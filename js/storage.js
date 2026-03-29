@@ -38,6 +38,9 @@ export class StorageManager {
       this.videoFileName = data.name;
       this._tryAutoRestore();
     });
+
+    // Playlist reference (set by app.js after construction)
+    this.playlist = null;
   }
 
   enableAutoSave() {
@@ -78,13 +81,21 @@ export class StorageManager {
   }
 
   _serialize() {
+    // Strip non-serializable File references from plays before saving
+    const plays = this.tagger.plays.map(p => {
+      const copy = { ...p, tags: { ...p.tags } };
+      return copy;
+    });
+
     return {
-      version: 1,
+      version: 2,
       videoFileName: this.videoFileName,
-      plays: this.tagger.plays,
+      plays: plays,
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
       nextId: this.tagger.nextId,
+      clipNames: this.playlist ? this.playlist.clips.map(c => c.name) : [],
+      isMultiClip: this.playlist ? this.playlist.hasClips : false,
     };
   }
 
@@ -165,13 +176,14 @@ export class StorageManager {
     }
 
     const headers = [
-      'Play #', 'Start', 'End', 'Down', 'Distance', 'Formation',
+      'Play #', 'Clip', 'Start', 'End', 'Down', 'Distance', 'Formation',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Custom Tags', 'Notes'
     ];
 
     const rows = this.tagger.plays.map(p => [
       p.id,
+      p.clipName || '',
       p.timestamp.start.toFixed(2),
       p.timestamp.end.toFixed(2),
       p.tags.down,

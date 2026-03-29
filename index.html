@@ -16,8 +16,8 @@
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">
           <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
-          <span id="fileLabel">Drop video or click to load</span>
-          <input type="file" id="videoFileInput" accept="video/*" hidden>
+          <span id="fileLabel">Drop video(s) or click to load</span>
+          <input type="file" id="videoFileInput" accept="video/*" multiple hidden>
         </label>
       </div>
       <div class="top-bar-right">
@@ -53,6 +53,9 @@
         <!-- Playback Controls -->
         <div class="playback-controls">
           <div class="controls-left">
+            <button class="ctrl-btn" id="btnPrevClip" title="Previous Clip (Shift+Left)">
+              <svg class="icon"><use href="assets/icons.svg#icon-prev-clip"/></svg>
+            </button>
             <button class="ctrl-btn" id="btnStepBack" title="Step Back (Left Arrow)">
               <svg class="icon"><use href="assets/icons.svg#icon-step-back"/></svg>
             </button>
@@ -62,7 +65,11 @@
             <button class="ctrl-btn" id="btnStepForward" title="Step Forward (Right Arrow)">
               <svg class="icon"><use href="assets/icons.svg#icon-step-forward"/></svg>
             </button>
+            <button class="ctrl-btn" id="btnNextClip" title="Next Clip (Shift+Right)">
+              <svg class="icon"><use href="assets/icons.svg#icon-next-clip"/></svg>
+            </button>
             <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+            <span class="clip-indicator" id="clipIndicator"></span>
           </div>
           <div class="scrub-bar-container">
             <div class="scrub-bar" id="scrubBar">
@@ -88,6 +95,27 @@
 
       <!-- Right Sidebar -->
       <aside class="sidebar">
+        <!-- Playlist -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="playlistPanel">
+            <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
+            Playlist
+            <span class="panel-badge" id="clipCount">0 clips</span>
+          </h3>
+          <div class="panel-body" id="playlistPanel">
+            <div class="playlist-controls">
+              <button class="btn btn-sm btn-accent" id="btnAddClips">
+                <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
+                Add Clips
+              </button>
+              <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
+            </div>
+            <div class="playlist-list" id="playlistItems">
+              <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Drawing Tools -->
         <div class="sidebar-panel">
           <h3 class="panel-title" data-toggle="drawingTools">

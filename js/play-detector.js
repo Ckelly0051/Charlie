@@ -96,13 +96,14 @@ export class PlayDetector {
 
   /**
    * Apply detected plays to the PlayTagger (creates actual play entries).
+   * Works for both single-video mode and multi-clip mode.
    */
   applyDetectedPlays() {
     let added = 0;
     for (const dp of this.detectedPlays) {
-      // Check for overlap with existing plays
+      // Check for overlap with existing plays (only non-clip plays)
       const overlaps = this.tagger.plays.some(p =>
-        dp.start < p.timestamp.end && dp.end > p.timestamp.start
+        !p.clipId && dp.start < p.timestamp.end && dp.end > p.timestamp.start
       );
       if (overlaps) continue;
 
@@ -120,6 +121,131 @@ export class PlayDetector {
     this.tagger.updateScrubBarPlays();
 
     return added;
+  }
+
+  /**
+   * Scan all clips in a playlist to detect the active play window within each.
+   * Updates each clip's associated play entry with refined start/end times.
+   *
+   * For play-by-play clips, the typical pattern is:
+   *   [idle/huddle] -> [snap: motion spike] -> [play action] -> [whistle: motion drops] -> [idle]
+   *
+   * This trims each clip's play to just the action window.
+   */
+  async scanClips(playlistManager) {
+    if (!playlistManager || !playlistManager.hasClips) {
+      throw new Error('No clips loaded');
+    }
+
+    this.isScanning = true;
+    const totalClips = playlistManager.clips.length;
+    const allResults = [];
+
+    this._emit('scan-start', { totalSamples: totalClips });
+
+    for (let ci = 0; ci < totalClips; ci++) {
+      if (!this.isScanning) break;
+
+      const clip = playlistManager.clips[ci];
+
+      this._emit('scan-progress', {
+        progress: ci / totalClips,
+        time: 0,
+        motion: 0,
+        clipIndex: ci,
+        clipName: clip.name
+      });
+
+      // Load the clip into a temporary video element
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'auto';
+      const url = URL.createObjectURL(clip.file);
+      tempVideo.src = url;
+
+      try {
+        await new Promise((resolve, reject) => {
+          tempVideo.addEventListener('loadedmetadata', resolve);
+          tempVideo.addEventListener('error', reject);
+        });
+
+        // Scan this clip's frames
+        const clipMotion = await this._scanVideo(tempVideo);
+        const detected = this._detectPlaysFromMotion(clipMotion);
+
+        // Update the associated play's timestamps
+        const play = this.tagger.getPlay(clip.playId);
+        if (play && detected.length > 0) {
+          // Use the first (and usually only) detected play window
+          play.timestamp.start = detected[0].start;
+          play.timestamp.end = Math.min(detected[0].end, tempVideo.duration);
+        }
+
+        allResults.push({
+          clipId: clip.id,
+          clipName: clip.name,
+          motionData: clipMotion,
+          detected: detected,
+          duration: tempVideo.duration
+        });
+      } catch (e) {
+        // Skip clips that fail to load
+        allResults.push({
+          clipId: clip.id,
+          clipName: clip.name,
+          motionData: [],
+          detected: [],
+          error: e.message
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+        tempVideo.src = '';
+      }
+    }
+
+    this.isScanning = false;
+    this.scanProgress = 1;
+
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+
+    this._emit('clips-scan-complete', { results: allResults });
+    return allResults;
+  }
+
+  /**
+   * Scan a video element's frames and return motion data.
+   */
+  async _scanVideo(video) {
+    const sampleW = 160;
+    const sampleH = Math.round(sampleW * (video.videoHeight / video.videoWidth)) || 90;
+    this._offscreen.width = sampleW;
+    this._offscreen.height = sampleH;
+    this._prevFrameData = null;
+
+    const motionData = [];
+
+    for (let t = 0; t < video.duration; t += this.sampleInterval) {
+      if (!this.isScanning) break;
+
+      await this._seekAndWait(video, t);
+      this._offCtx.drawImage(video, 0, 0, sampleW, sampleH);
+      const imageData = this._offCtx.getImageData(0, 0, sampleW, sampleH);
+      const motion = this._computeMotion(imageData.data);
+      motionData.push({ time: t, motion });
+    }
+
+    return motionData;
+  }
+
+  /**
+   * Detect plays from a given motion data array (used for per-clip analysis).
+   */
+  _detectPlaysFromMotion(motionData) {
+    const origData = this.motionData;
+    this.motionData = motionData;
+    const result = this._detectPlays();
+    this.motionData = origData;
+    return result;
   }
 
   // --- Private methods ---

@@ -7,6 +7,7 @@ import { PlayTagger } from './play-tagger.js';
 import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
 import { PlayDetector } from './play-detector.js';
+import { PlaylistManager } from './playlist-manager.js';
 
 class App {
   constructor() {
@@ -17,6 +18,10 @@ class App {
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
+    this.playlist = new PlaylistManager(this.vc, this.tagger);
+
+    // Give storage a reference to playlist
+    this.storage.playlist = this.playlist;
 
     // Wire cross-module events
     this._wireEvents();
@@ -43,6 +48,17 @@ class App {
       this.canvas.render();
     });
 
+    // Handle file selection from top bar (single or multi)
+    this.vc.on('files-selected', ({ files }) => {
+      if (files.length === 1 && !this.playlist.hasClips) {
+        // Single file, no existing playlist — legacy single-video mode
+        this.vc.loadFile(files[0]);
+      } else {
+        // Multiple files or adding to playlist — multi-clip mode
+        this.playlist.addFiles(files);
+      }
+    });
+
     // Update timeline markers when plays change
     this.tagger.on('play-created', () => {
       this.tagger.updateScrubBarPlays();
@@ -54,9 +70,22 @@ class App {
       this.tagger.updateScrubBarPlays();
     });
 
-    // When a play is selected, load its annotations context
-    this.tagger.on('play-selected', () => {
+    // When a play is selected and it has a clip, switch the playlist to that clip
+    this.tagger.on('play-selected', (play) => {
+      if (play.clipId && this.playlist.hasClips) {
+        this.playlist.switchToClipByPlayId(play.id);
+      }
       this.canvas.render();
+    });
+
+    // When playlist switches clips, re-sync canvas
+    this.playlist.on('clip-switched', () => {
+      this.canvas.render();
+    });
+
+    // Auto-advance to next clip when current clip ends (optional behavior)
+    this.vc.videoElement.addEventListener('ended', () => {
+      // Don't auto-advance; let user control navigation
     });
   }
 
@@ -72,11 +101,27 @@ class App {
           this.vc.togglePlay();
           break;
         case 'ArrowLeft':
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.playlist.prevClip();
+          } else {
+            e.preventDefault();
+            this.vc.stepBack();
+          }
+          break;
         case 'Comma':
           e.preventDefault();
           this.vc.stepBack();
           break;
         case 'ArrowRight':
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.playlist.nextClip();
+          } else {
+            e.preventDefault();
+            this.vc.stepForward();
+          }
+          break;
         case 'Period':
           e.preventDefault();
           this.vc.stepForward();
@@ -211,12 +256,8 @@ class App {
     // Start scan
     btnAutoDetect.addEventListener('click', async () => {
       if (this.detector.isScanning) return;
-      if (!this.vc.videoElement.duration) {
-        alert('Load a video first.');
-        return;
-      }
 
-      // Read settings
+      // Read settings into detector
       this.detector.motionThreshold = parseInt(sensitivitySlider.value) / 100;
       this.detector.minPlayDuration = parseFloat(document.getElementById('detectMinDuration').value) || 2;
       this.detector.maxPlayDuration = parseFloat(document.getElementById('detectMaxDuration').value) || 30;
@@ -231,9 +272,41 @@ class App {
       btnAutoDetect.classList.add('scanning');
 
       try {
-        await this.detector.scan();
+        if (this.playlist.hasClips) {
+          // Multi-clip mode: scan each clip to find the action window
+          const results = await this.detector.scanClips(this.playlist);
+
+          // Show summary
+          const totalDetected = results.reduce((s, r) => s + r.detected.length, 0);
+          resultCount.textContent = `${totalDetected} action windows found in ${results.length} clips`;
+          resultsDiv.classList.remove('hidden');
+          btnApply.classList.add('hidden'); // Already applied directly to play entries
+
+          // Draw a combined motion overview for the last scanned clip
+          if (results.length > 0) {
+            const last = results[results.length - 1];
+            if (last.motionData.length > 0) {
+              this._drawMotionGraph(motionCanvas, last.motionData, last.detected, this.detector.motionThreshold);
+            }
+          }
+        } else {
+          // Single-video mode
+          if (!this.vc.videoElement.duration) {
+            alert('Load a video first.');
+            throw new Error('No video');
+          }
+          await this.detector.scan();
+
+          const plays = this.detector.detectedPlays;
+          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected`;
+          resultsDiv.classList.remove('hidden');
+          btnApply.classList.remove('hidden');
+          this._drawMotionGraph(motionCanvas, this.detector.motionData, plays, this.detector.motionThreshold);
+        }
       } catch (e) {
-        alert('Scan error: ' + e.message);
+        if (e.message !== 'No video') {
+          alert('Scan error: ' + e.message);
+        }
       }
 
       // Scan finished
@@ -241,14 +314,6 @@ class App {
       btnAutoDetect.classList.remove('scanning');
       btnCancelScan.classList.add('hidden');
       progressDiv.classList.add('hidden');
-
-      // Show results
-      const plays = this.detector.detectedPlays;
-      resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected`;
-      resultsDiv.classList.remove('hidden');
-
-      // Draw motion graph
-      this._drawMotionGraph(motionCanvas, this.detector.motionData, plays, this.detector.motionThreshold);
     });
 
     // Cancel scan
@@ -256,7 +321,7 @@ class App {
       this.detector.cancelScan();
     });
 
-    // Apply detected plays
+    // Apply detected plays (single-video mode only)
     btnApply.addEventListener('click', () => {
       const added = this.detector.applyDetectedPlays();
       resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added`;
@@ -266,7 +331,11 @@ class App {
     this.detector.on('scan-progress', (data) => {
       const pct = Math.round(data.progress * 100);
       progressFill.style.width = pct + '%';
-      progressLabel.textContent = pct + '%';
+      if (data.clipName) {
+        progressLabel.textContent = `${pct}% — ${data.clipName}`;
+      } else {
+        progressLabel.textContent = pct + '%';
+      }
     });
   }
 
@@ -306,7 +375,7 @@ class App {
     }
 
     // Draw threshold line
-    const threshY = h - (threshold * maxMotion / maxMotion) * (h - 4) - 2;
+    const threshY = h - (threshold) * (h - 4) - 2;
     ctx.strokeStyle = 'rgba(255, 170, 0, 0.5)';
     ctx.setLineDash([4, 4]);
     ctx.lineWidth = 1;

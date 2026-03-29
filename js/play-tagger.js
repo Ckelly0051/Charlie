@@ -131,9 +131,14 @@ export class PlayTagger {
     this._loadTagForm(play);
     this._updateTimeline();
 
-    // Seek video to play start
-    this.vc.seekTo(play.timestamp.start);
-    this._emit('play-selected', play);
+    // If this play is tied to a clip, emit event so playlist can switch.
+    // Otherwise seek within the current video (single-video mode).
+    if (play.clipId) {
+      this._emit('play-selected', play);
+    } else {
+      this.vc.seekTo(play.timestamp.start);
+      this._emit('play-selected', play);
+    }
   }
 
   getPlay(id) {
@@ -203,7 +208,12 @@ export class PlayTagger {
     this.plays.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      const label = `Play ${p.id}: ${this._fmt(p.timestamp.start)}-${this._fmt(p.timestamp.end)}`;
+      let label;
+      if (p.clipName) {
+        label = `Play ${p.id}: ${p.clipName}`;
+      } else {
+        label = `Play ${p.id}: ${this._fmt(p.timestamp.start)}-${this._fmt(p.timestamp.end)}`;
+      }
       const type = p.tags.playType ? ` (${p.tags.playType})` : '';
       opt.textContent = label + type;
       this.playSelect.appendChild(opt);

@@ -28,12 +28,15 @@ export class VideoController {
   }
 
   _bindEvents() {
-    // File input
+    // File input — supports multiple files
     this.fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) this.loadFile(e.target.files[0]);
+      const files = Array.from(e.target.files).filter(f => f.type.startsWith('video/'));
+      if (files.length > 0) {
+        this._emit('files-selected', { files });
+      }
     });
 
-    // Drag and drop
+    // Drag and drop — supports multiple files
     this.dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
       this.dropZone.classList.add('drag-over');
@@ -44,9 +47,9 @@ export class VideoController {
     this.dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       this.dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('video/')) {
-        this.loadFile(file);
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+      if (files.length > 0) {
+        this._emit('files-selected', { files });
       }
     });
 
