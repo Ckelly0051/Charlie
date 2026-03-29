@@ -155,6 +155,56 @@
               <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
               <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
             </div>
+
+            <!-- Auto-detect section -->
+            <div class="auto-detect-section">
+              <div class="auto-detect-header">
+                <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
+                  <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
+                  Auto-Detect Plays
+                </button>
+                <button class="btn btn-sm btn-danger hidden" id="btnCancelScan">Cancel</button>
+              </div>
+              <div class="auto-detect-progress hidden" id="autoDetectProgress">
+                <div class="progress-bar">
+                  <div class="progress-bar-fill" id="scanProgressFill"></div>
+                </div>
+                <span class="progress-label" id="scanProgressLabel">0%</span>
+              </div>
+              <div class="auto-detect-settings hidden" id="autoDetectSettings">
+                <div class="detect-setting">
+                  <label>Sensitivity</label>
+                  <input type="range" id="detectSensitivity" min="10" max="70" value="35" title="Lower = more sensitive">
+                  <span class="setting-value" id="sensitivityValue">35%</span>
+                </div>
+                <div class="detect-setting">
+                  <label>Min Play (sec)</label>
+                  <input type="number" id="detectMinDuration" value="2" min="1" max="15" step="0.5">
+                </div>
+                <div class="detect-setting">
+                  <label>Max Play (sec)</label>
+                  <input type="number" id="detectMaxDuration" value="30" min="5" max="60" step="1">
+                </div>
+                <div class="detect-setting">
+                  <label>Cooldown (sec)</label>
+                  <input type="number" id="detectCooldown" value="3" min="1" max="15" step="0.5">
+                </div>
+                <div class="detect-setting">
+                  <label>Sample rate (sec)</label>
+                  <input type="number" id="detectSampleRate" value="0.2" min="0.05" max="1" step="0.05">
+                </div>
+              </div>
+              <button class="btn btn-sm btn-link" id="btnToggleDetectSettings">Settings</button>
+              <div class="auto-detect-results hidden" id="autoDetectResults">
+                <div class="detect-results-header">
+                  <span id="detectResultCount">0 plays detected</span>
+                  <button class="btn btn-sm btn-accent" id="btnApplyDetected">Apply All</button>
+                </div>
+                <div class="detect-motion-graph" id="motionGraph">
+                  <canvas id="motionGraphCanvas" height="60"></canvas>
+                </div>
+              </div>
+            </div>
             <div class="play-selector">
               <label>Current Play:</label>
               <select id="playSelect" class="play-select">
