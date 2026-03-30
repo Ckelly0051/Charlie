@@ -1,0 +1,4975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Football Film Analyzer</title>
+  <style>
+/* ===== CSS Custom Properties ===== */
+:root {
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #16213e;
+  --bg-surface: #1e2a45;
+  --accent: #0f3460;
+  --accent-hover: #154a8a;
+  --highlight: #e94560;
+  --highlight-hover: #ff5a75;
+  --text: #e0e0e0;
+  --text-dim: #8899aa;
+  --text-bright: #ffffff;
+  --border: #2a3a55;
+  --success: #44ff44;
+  --warning: #ffaa00;
+  --danger: #ff4444;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --transition: 150ms ease;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: 48px 1fr auto;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ===== Icons ===== */
+.icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.icon-large {
+  width: 48px;
+  height: 48px;
+}
+
+/* ===== Top Bar ===== */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  gap: 12px;
+  z-index: 10;
+}
+
+.app-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--highlight);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.top-bar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.file-input-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: all var(--transition);
+}
+
+.file-input-label:hover,
+.file-input-label.drag-over {
+  border-color: var(--highlight);
+  color: var(--text);
+  background: var(--bg-surface);
+}
+
+.top-bar-right {
+  display: flex;
+  gap: 6px;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+}
+
+.btn-sm {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+}
+
+.btn-accent:hover {
+  background: var(--accent-hover);
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: var(--danger);
+  color: var(--text-bright);
+}
+
+/* ===== Main Content ===== */
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  overflow: hidden;
+}
+
+/* ===== Video Section ===== */
+.video-section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.video-container video {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.video-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.video-placeholder {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.video-placeholder.hidden {
+  display: none;
+}
+
+/* ===== Playback Controls ===== */
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ctrl-btn:hover {
+  background: var(--accent);
+}
+
+.time-display {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 100px;
+  margin-left: 6px;
+}
+
+.scrub-bar-container {
+  flex: 1;
+  padding: 0 4px;
+}
+
+.scrub-bar {
+  position: relative;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.scrub-bar-fill {
+  height: 100%;
+  background: var(--accent-hover);
+  border-radius: 4px;
+  width: 0%;
+  pointer-events: none;
+}
+
+.scrub-bar-plays {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.scrub-bar-plays .play-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--highlight);
+  opacity: 0.5;
+  border-radius: 2px;
+}
+
+.scrub-bar-handle {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: var(--text-bright);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  left: 0%;
+  cursor: grab;
+  box-shadow: 0 0 4px rgba(0,0,0,0.5);
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-select {
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fps-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fps-input {
+  width: 40px;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-panel {
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.panel-title:hover {
+  color: var(--text);
+}
+
+.panel-body {
+  padding: 8px 12px 12px;
+}
+
+.panel-body.collapsed {
+  display: none;
+}
+
+/* ===== Drawing Tools ===== */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: var(--bg-tertiary);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 10px;
+  transition: all var(--transition);
+}
+
+.tool-btn:hover {
+  color: var(--text);
+  background: var(--bg-surface);
+}
+
+.tool-btn.active {
+  border-color: var(--highlight);
+  color: var(--highlight);
+  background: var(--bg-surface);
+}
+
+.tool-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.color-swatches {
+  display: flex;
+  gap: 4px;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.swatch:hover {
+  transform: scale(1.15);
+}
+
+.swatch.active {
+  border-color: var(--text-bright);
+  box-shadow: 0 0 6px rgba(255,255,255,0.3);
+}
+
+.line-width-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.line-width-control input[type="range"] {
+  flex: 1;
+  accent-color: var(--highlight);
+  height: 4px;
+}
+
+.tool-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ===== Play Tagger ===== */
+.play-mark-controls {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.play-selector {
+  margin-bottom: 10px;
+}
+
+.play-selector label {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.play-select {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.tag-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tag-row label {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.tag-row select,
+.tag-row input[type="number"],
+.tag-row input[type="text"] {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.tag-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-row-inline select,
+.tag-row-inline input {
+  flex: 1;
+}
+
+.tag-row-inline span {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.custom-tags-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: var(--accent);
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--text);
+}
+
+.tag-chip .chip-remove {
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 0.7;
+}
+
+.tag-chip .chip-remove:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+/* ===== Playlist ===== */
+.playlist-controls {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.playlist-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.playlist-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 8px 0;
+  text-align: center;
+}
+
+.playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  border: 1px solid transparent;
+  transition: all var(--transition);
+}
+
+.playlist-item:hover {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+.playlist-item.active {
+  border-color: var(--highlight);
+  background: var(--bg-surface);
+}
+
+.playlist-num {
+  color: var(--text-dim);
+  font-weight: 700;
+  font-size: 10px;
+  min-width: 18px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.playlist-item.active .playlist-num {
+  background: var(--highlight);
+  color: var(--text-bright);
+}
+
+.playlist-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.playlist-dur {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+}
+
+.playlist-remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.playlist-item:hover .playlist-remove {
+  opacity: 1;
+}
+
+.playlist-remove:hover {
+  color: var(--danger);
+}
+
+.panel-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-dim);
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.clip-indicator {
+  font-size: 11px;
+  color: var(--highlight);
+  font-weight: 600;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+/* ===== Auto-Detect ===== */
+.auto-detect-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.auto-detect-header {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.btn-detect {
+  background: #1a4a1a;
+  border-color: #2a6a2a;
+  color: var(--success);
+  flex: 1;
+}
+
+.btn-detect:hover {
+  background: #2a6a2a;
+}
+
+.btn-detect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-detect.scanning {
+  animation: pulse-scan 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-scan {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.auto-detect-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--success);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 200ms ease;
+}
+
+.progress-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  min-width: 30px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.auto-detect-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 6px;
+  padding: 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.detect-setting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.detect-setting label {
+  color: var(--text-dim);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detect-setting input[type="range"] {
+  flex: 1;
+  accent-color: var(--success);
+  height: 4px;
+}
+
+.detect-setting input[type="number"] {
+  width: 55px;
+  background: var(--bg-surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.setting-value {
+  font-size: 10px;
+  color: var(--text-dim);
+  min-width: 28px;
+  text-align: right;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 2px 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--text);
+  background: none;
+  border: none;
+}
+
+.auto-detect-results {
+  margin-top: 6px;
+}
+
+.detect-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.detect-motion-graph {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.detect-motion-graph canvas {
+  width: 100%;
+  display: block;
+}
+
+/* ===== Bottom Panel ===== */
+.bottom-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  max-height: 180px;
+  min-height: 120px;
+}
+
+.notes-section {
+  padding: 6px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-section .panel-title {
+  padding: 4px 0 6px;
+}
+
+.notes-area {
+  flex: 1;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: 'Menlo', 'Consolas', monospace;
+  resize: none;
+  line-height: 1.5;
+}
+
+.notes-area:focus {
+  outline: none;
+  border-color: var(--accent-hover);
+}
+
+.timeline-section {
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-section .panel-title {
+  padding: 4px 0 6px;
+}
+
+.timeline-strip {
+  flex: 1;
+  position: relative;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 40px;
+}
+
+.timeline-bar {
+  height: 100%;
+  position: relative;
+}
+
+.timeline-play {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--text-bright);
+  font-weight: 600;
+  opacity: 0.8;
+  transition: opacity var(--transition);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.timeline-play:hover {
+  opacity: 1;
+}
+
+.timeline-play.active {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--text-bright);
+}
+
+/* Play type colors */
+.timeline-play.run { background: #2266cc; }
+.timeline-play.pass { background: #22aa44; }
+.timeline-play.other { background: #aa6622; }
+
+/* ===== Scrollbar ===== */
+.sidebar::-webkit-scrollbar,
+.notes-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.notes-area::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.notes-area::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 250px;
+  }
+  .bottom-panel {
+    grid-template-columns: 1fr;
+  }
+  .top-bar-right .btn span {
+    display: none;
+  }
+}
+
+/* ===== Quick Chart Button ===== */
+.btn-highlight {
+  background: var(--highlight);
+  border-color: var(--highlight);
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+.btn-highlight:hover {
+  background: var(--highlight-hover);
+  border-color: var(--highlight-hover);
+}
+
+.btn-highlight.active {
+  background: var(--highlight-hover);
+  box-shadow: 0 0 0 2px var(--text-bright);
+}
+
+/* ===== Quick Chart Panel ===== */
+.quick-chart-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--bg-secondary);
+  border-top: 2px solid var(--highlight);
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qc-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.qc-fields {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.qc-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+}
+
+.qc-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.qc-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding: 2px 10px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  min-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.qc-value.qc-set {
+  color: var(--text-bright);
+  border-color: var(--highlight);
+  background: var(--bg-surface);
+}
+
+.qc-players {
+  display: flex;
+  gap: 6px;
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+}
+
+.qc-player-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qc-player-field label {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.qc-player-field input {
+  width: 42px;
+  background: var(--bg-tertiary);
+  color: var(--text-bright);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.qc-player-field input:focus {
+  outline: none;
+  border-color: var(--highlight);
+}
+
+.qc-status {
+  font-size: 11px;
+  color: var(--highlight);
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 200px;
+  text-align: right;
+}
+
+.qc-key-hints {
+  display: flex;
+  gap: 16px;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+
+.qc-key-hints b {
+  color: var(--text);
+}
+
+/* ===== Stats Dashboard ===== */
+.stats-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 20px;
+}
+
+.stats-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 1;
+}
+
+.stats-header h2 {
+  font-size: 18px;
+  color: var(--highlight);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stats-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.stats-body {
+  padding: 16px 20px;
+}
+
+.stats-section {
+  margin-bottom: 20px;
+}
+
+.stats-section h3 {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.stats-two-col h3 {
+  grid-column: span 1;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.stat-card-title {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-card-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.stats-table td,
+.stats-table th {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.stats-table td:first-child {
+  color: var(--text-dim);
+}
+
+.stats-table td:last-child,
+.stats-table th:last-child {
+  text-align: right;
+}
+
+.stats-table th {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+
+.stats-table-full {
+  margin-top: 8px;
+}
+
+.stats-table-full td:first-child {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tendency-bar {
+  display: flex;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tendency-run {
+  background: #2266cc;
+  color: var(--text-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+.tendency-pass {
+  background: #22aa44;
+  color: var(--text-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+/* ===== Utility ===== */
+.hidden {
+  display: none !important;
+}
+
+/* Text input modal overlay */
+.text-input-overlay {
+  position: absolute;
+  z-index: 100;
+}
+
+.text-input-overlay input {
+  background: var(--bg-surface);
+  color: var(--text-bright);
+  border: 2px solid var(--highlight);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: bold;
+  outline: none;
+  min-width: 120px;
+}
+  </style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+
+  <!-- Chart / Quick Chart -->
+  <symbol id="icon-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </symbol>
+
+  <!-- Stats / Bar chart -->
+  <symbol id="icon-stats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/>
+    <line x1="2" y1="20" x2="22" y2="20"/>
+  </symbol>
+
+  <!-- Upload -->
+  <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </symbol>
+
+  <!-- Save -->
+  <symbol id="icon-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17 21 17 13 7 13 7 21"/>
+    <polyline points="7 3 7 8 15 8"/>
+  </symbol>
+
+  <!-- Folder -->
+  <symbol id="icon-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </symbol>
+
+  <!-- Image -->
+  <symbol id="icon-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+    <circle cx="8.5" cy="8.5" r="1.5"/>
+    <polyline points="21 15 16 10 5 21"/>
+  </symbol>
+
+  <!-- Download -->
+  <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </symbol>
+
+  <!-- Film -->
+  <symbol id="icon-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+    <line x1="7" y1="2" x2="7" y2="22"/>
+    <line x1="17" y1="2" x2="17" y2="22"/>
+    <line x1="2" y1="12" x2="22" y2="12"/>
+    <line x1="2" y1="7" x2="7" y2="7"/>
+    <line x1="2" y1="17" x2="7" y2="17"/>
+    <line x1="17" y1="7" x2="22" y2="7"/>
+    <line x1="17" y1="17" x2="22" y2="17"/>
+  </symbol>
+
+  <!-- Play -->
+  <symbol id="icon-play" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </symbol>
+
+  <!-- Pause -->
+  <symbol id="icon-pause" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="4" width="4" height="16"/>
+    <rect x="14" y="4" width="4" height="16"/>
+  </symbol>
+
+  <!-- Step Back -->
+  <symbol id="icon-step-back" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="4" y="4" width="3" height="16"/>
+    <polygon points="20 4 9 12 20 20 20 4"/>
+  </symbol>
+
+  <!-- Step Forward -->
+  <symbol id="icon-step-forward" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="17" y="4" width="3" height="16"/>
+    <polygon points="4 4 15 12 4 20 4 4"/>
+  </symbol>
+
+  <!-- Pencil -->
+  <symbol id="icon-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20h9"/>
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+  </symbol>
+
+  <!-- Line tool -->
+  <symbol id="icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <line x1="5" y1="19" x2="19" y2="5"/>
+  </symbol>
+
+  <!-- Arrow tool -->
+  <symbol id="icon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="5" y1="19" x2="19" y2="5"/>
+    <polyline points="12 5 19 5 19 12"/>
+  </symbol>
+
+  <!-- Circle tool -->
+  <symbol id="icon-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="9"/>
+  </symbol>
+
+  <!-- Rect tool -->
+  <symbol id="icon-rect" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="1"/>
+  </symbol>
+
+  <!-- Freehand tool -->
+  <symbol id="icon-freehand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 17c3-3 5-8 9-8s3 5 6 5 3-3 3-3"/>
+  </symbol>
+
+  <!-- Text tool -->
+  <symbol id="icon-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4 7 4 4 20 4 20 7"/>
+    <line x1="12" y1="4" x2="12" y2="20"/>
+    <line x1="8" y1="20" x2="16" y2="20"/>
+  </symbol>
+
+  <!-- Tag -->
+  <symbol id="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+    <line x1="7" y1="7" x2="7.01" y2="7"/>
+  </symbol>
+
+  <!-- Notes -->
+  <symbol id="icon-notes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+  </symbol>
+
+  <!-- Timeline -->
+  <symbol id="icon-timeline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="2" y1="12" x2="22" y2="12"/>
+    <circle cx="6" cy="12" r="2" fill="currentColor"/>
+    <circle cx="12" cy="12" r="2" fill="currentColor"/>
+    <circle cx="18" cy="12" r="2" fill="currentColor"/>
+  </symbol>
+
+  <!-- Previous clip -->
+  <symbol id="icon-prev-clip" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="3" y="4" width="3" height="16"/>
+    <polygon points="20 4 9 12 20 20 20 4"/>
+    <polygon points="14 4 3 12 14 20 14 4" opacity="0"/>
+  </symbol>
+
+  <!-- Next clip -->
+  <symbol id="icon-next-clip" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="18" y="4" width="3" height="16"/>
+    <polygon points="4 4 15 12 4 20 4 4"/>
+  </symbol>
+
+  <!-- Scan / Auto-detect -->
+  <symbol id="icon-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 7V2h5"/>
+    <path d="M17 2h5v5"/>
+    <path d="M22 17v5h-5"/>
+    <path d="M7 22H2v-5"/>
+    <line x1="7" y1="12" x2="9" y2="8"/>
+    <line x1="9" y1="8" x2="11" y2="14"/>
+    <line x1="11" y1="14" x2="13" y2="6"/>
+    <line x1="13" y1="6" x2="15" y2="16"/>
+    <line x1="15" y1="16" x2="17" y2="12"/>
+  </symbol>
+
+</svg>
+
+  <div id="app">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <h1 class="app-title">Football Film Analyzer</h1>
+      </div>
+
+  <script>
+
+// ===== video-controller.js =====
+/**
+ * VideoController - Manages video loading, playback, and frame-by-frame controls.
+ */
+class VideoController {
+  constructor() {
+    this.video = document.getElementById('videoPlayer');
+    this.placeholder = document.getElementById('videoPlaceholder');
+    this.fileInput = document.getElementById('videoFileInput');
+    this.dropZone = document.getElementById('videoDropZone');
+    this.fileLabel = document.getElementById('fileLabel');
+    this.btnPlayPause = document.getElementById('btnPlayPause');
+    this.iconPlayPause = document.getElementById('iconPlayPause');
+    this.btnStepBack = document.getElementById('btnStepBack');
+    this.btnStepForward = document.getElementById('btnStepForward');
+    this.timeDisplay = document.getElementById('timeDisplay');
+    this.scrubBar = document.getElementById('scrubBar');
+    this.scrubBarFill = document.getElementById('scrubBarFill');
+    this.scrubBarHandle = document.getElementById('scrubBarHandle');
+    this.speedSelect = document.getElementById('speedSelect');
+    this.fpsInput = document.getElementById('fpsInput');
+
+    this.fps = 30;
+    this.objectUrl = null;
+    this.isScrubbing = false;
+    this.listeners = {};
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // File input — supports multiple files
+    this.fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files).filter(f => f.type.startsWith('video/'));
+      if (files.length > 0) {
+        this._emit('files-selected', { files });
+      }
+    });
+
+    // Drag and drop — supports multiple files
+    this.dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      this.dropZone.classList.add('drag-over');
+    });
+    this.dropZone.addEventListener('dragleave', () => {
+      this.dropZone.classList.remove('drag-over');
+    });
+    this.dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      this.dropZone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+      if (files.length > 0) {
+        this._emit('files-selected', { files });
+      }
+    });
+
+    // Playback controls
+    this.btnPlayPause.addEventListener('click', () => this.togglePlay());
+    this.btnStepBack.addEventListener('click', () => this.stepBack());
+    this.btnStepForward.addEventListener('click', () => this.stepForward());
+
+    // Speed
+    this.speedSelect.addEventListener('change', () => {
+      this.video.playbackRate = parseFloat(this.speedSelect.value);
+    });
+
+    // FPS
+    this.fpsInput.addEventListener('change', () => {
+      this.fps = parseInt(this.fpsInput.value) || 30;
+    });
+
+    // Video events
+    this.video.addEventListener('loadedmetadata', () => {
+      this.placeholder.classList.add('hidden');
+      this._updateTime();
+      this._emit('video-loaded', {
+        duration: this.video.duration,
+        width: this.video.videoWidth,
+        height: this.video.videoHeight
+      });
+    });
+
+    this.video.addEventListener('timeupdate', () => {
+      if (!this.isScrubbing) {
+        this._updateScrubBar();
+        this._updateTime();
+      }
+      this._emit('time-update', { time: this.video.currentTime });
+    });
+
+    this.video.addEventListener('play', () => {
+      this._updatePlayPauseIcon(true);
+      this._emit('play-state-change', { playing: true });
+    });
+
+    this.video.addEventListener('pause', () => {
+      this._updatePlayPauseIcon(false);
+      this._emit('play-state-change', { playing: false });
+    });
+
+    this.video.addEventListener('ended', () => {
+      this._updatePlayPauseIcon(false);
+    });
+
+    // Scrub bar interaction
+    this.scrubBar.addEventListener('mousedown', (e) => this._startScrub(e));
+    document.addEventListener('mousemove', (e) => {
+      if (this.isScrubbing) this._doScrub(e);
+    });
+    document.addEventListener('mouseup', () => {
+      if (this.isScrubbing) this._endScrub();
+    });
+  }
+
+  loadFile(file) {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+    }
+    this.objectUrl = URL.createObjectURL(file);
+    this.video.src = this.objectUrl;
+    this.video.load();
+    this.fileLabel.textContent = file.name;
+    this._emit('file-loaded', { name: file.name });
+  }
+
+  togglePlay() {
+    if (!this.video.src) return;
+    if (this.video.paused) {
+      this.video.play();
+    } else {
+      this.video.pause();
+    }
+  }
+
+  stepForward() {
+    if (!this.video.src) return;
+    this.video.pause();
+    this.video.currentTime = Math.min(
+      this.video.currentTime + 1 / this.fps,
+      this.video.duration
+    );
+    this._updateScrubBar();
+    this._updateTime();
+    this._emit('time-update', { time: this.video.currentTime });
+  }
+
+  stepBack() {
+    if (!this.video.src) return;
+    this.video.pause();
+    this.video.currentTime = Math.max(this.video.currentTime - 1 / this.fps, 0);
+    this._updateScrubBar();
+    this._updateTime();
+    this._emit('time-update', { time: this.video.currentTime });
+  }
+
+  seekTo(time) {
+    if (!this.video.src) return;
+    this.video.currentTime = Math.max(0, Math.min(time, this.video.duration));
+    this._updateScrubBar();
+    this._updateTime();
+  }
+
+  get currentTime() {
+    return this.video.currentTime;
+  }
+
+  get duration() {
+    return this.video.duration || 0;
+  }
+
+  get paused() {
+    return this.video.paused;
+  }
+
+  get videoElement() {
+    return this.video;
+  }
+
+  _startScrub(e) {
+    this.isScrubbing = true;
+    this._doScrub(e);
+  }
+
+  _doScrub(e) {
+    const rect = this.scrubBar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    this.video.currentTime = pct * this.video.duration;
+    this._setScrubPosition(pct);
+    this._updateTime();
+    this._emit('time-update', { time: this.video.currentTime });
+  }
+
+  _endScrub() {
+    this.isScrubbing = false;
+  }
+
+  _updateScrubBar() {
+    if (!this.video.duration) return;
+    const pct = this.video.currentTime / this.video.duration;
+    this._setScrubPosition(pct);
+  }
+
+  _setScrubPosition(pct) {
+    const pctStr = (pct * 100) + '%';
+    this.scrubBarFill.style.width = pctStr;
+    this.scrubBarHandle.style.left = pctStr;
+  }
+
+  _updateTime() {
+    const cur = this._formatTime(this.video.currentTime);
+    const dur = this._formatTime(this.video.duration || 0);
+    this.timeDisplay.textContent = `${cur} / ${dur}`;
+  }
+
+  _formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  _updatePlayPauseIcon(playing) {
+    const use = this.iconPlayPause.querySelector('use');
+    if (use) {
+      use.setAttribute('href', `#icon-${playing ? 'pause' : 'play'}`);
+    }
+  }
+
+  // Simple event system
+  on(event, callback) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== canvas-overlay.js =====
+/**
+ * CanvasOverlay - Manages the HTML5 Canvas drawing surface overlaid on video.
+ * Handles coordinate transforms, resize syncing, and rendering.
+ */
+class CanvasOverlay {
+  constructor(videoController) {
+    this.vc = videoController;
+    this.canvas = document.getElementById('drawingCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.container = document.getElementById('videoContainer');
+
+    this.currentTool = null;
+    this.color = '#ffffff';
+    this.lineWidth = 3;
+    this.isDrawing = false;
+    this.drawStart = null;
+    this.drawPoints = [];
+    this.annotations = []; // master list, shared with app state
+    this.undoStack = [];
+    this.redoStack = [];
+
+    this._resizeObserver = new ResizeObserver(() => this._syncSize());
+    this._resizeObserver.observe(this.container);
+
+    this.vc.on('video-loaded', () => {
+      requestAnimationFrame(() => this._syncSize());
+    });
+
+    this._bindDrawingEvents();
+  }
+
+  _syncSize() {
+    const video = this.vc.videoElement;
+    if (!video.videoWidth) {
+      // No video loaded yet, fill container
+      this.canvas.width = this.container.clientWidth * devicePixelRatio;
+      this.canvas.height = this.container.clientHeight * devicePixelRatio;
+      this.canvas.style.width = this.container.clientWidth + 'px';
+      this.canvas.style.height = this.container.clientHeight + 'px';
+      this.canvas.style.top = '0px';
+      this.canvas.style.left = '0px';
+      return;
+    }
+
+    // Calculate the actual rendered area of the video (object-fit: contain)
+    const containerW = this.container.clientWidth;
+    const containerH = this.container.clientHeight;
+    const videoAspect = video.videoWidth / video.videoHeight;
+    const containerAspect = containerW / containerH;
+
+    let renderW, renderH, offsetX, offsetY;
+    if (containerAspect > videoAspect) {
+      // Pillarboxed
+      renderH = containerH;
+      renderW = containerH * videoAspect;
+      offsetX = (containerW - renderW) / 2;
+      offsetY = 0;
+    } else {
+      // Letterboxed
+      renderW = containerW;
+      renderH = containerW / videoAspect;
+      offsetX = 0;
+      offsetY = (containerH - renderH) / 2;
+    }
+
+    this.canvas.style.left = offsetX + 'px';
+    this.canvas.style.top = offsetY + 'px';
+    this.canvas.style.width = renderW + 'px';
+    this.canvas.style.height = renderH + 'px';
+    this.canvas.width = Math.round(renderW * devicePixelRatio);
+    this.canvas.height = Math.round(renderH * devicePixelRatio);
+
+    this.render();
+  }
+
+  _bindDrawingEvents() {
+    this.canvas.addEventListener('mousedown', (e) => this._onStart(e));
+    this.canvas.addEventListener('mousemove', (e) => this._onMove(e));
+    this.canvas.addEventListener('mouseup', (e) => this._onEnd(e));
+    this.canvas.addEventListener('mouseleave', (e) => {
+      if (this.isDrawing) this._onEnd(e);
+    });
+
+    // Touch support
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this._onStart(e.touches[0]);
+    }, { passive: false });
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      this._onMove(e.touches[0]);
+    }, { passive: false });
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this._onEnd(e.changedTouches[0]);
+    }, { passive: false });
+  }
+
+  _getCanvasPos(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
+
+  toNormalized(canvasX, canvasY) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: canvasX / rect.width,
+      y: canvasY / rect.height
+    };
+  }
+
+  toCanvas(normX, normY) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: normX * rect.width,
+      y: normY * rect.height
+    };
+  }
+
+  _toCtx(canvasX, canvasY) {
+    return {
+      x: canvasX * devicePixelRatio,
+      y: canvasY * devicePixelRatio
+    };
+  }
+
+  _onStart(e) {
+    if (!this.currentTool) return;
+    this.isDrawing = true;
+    const pos = this._getCanvasPos(e);
+    this.drawStart = pos;
+    this.drawPoints = [pos];
+
+    if (this.currentTool === 'text') {
+      this.isDrawing = false;
+      this._promptText(pos);
+    }
+  }
+
+  _onMove(e) {
+    if (!this.isDrawing || !this.currentTool) return;
+    const pos = this._getCanvasPos(e);
+    this.drawPoints.push(pos);
+    this.render();
+    this._renderPreview(pos);
+  }
+
+  _onEnd(e) {
+    if (!this.isDrawing || !this.currentTool) return;
+    this.isDrawing = false;
+    const pos = this._getCanvasPos(e);
+    this.drawPoints.push(pos);
+    this._finalizeAnnotation(pos);
+  }
+
+  _promptText(pos) {
+    const norm = this.toNormalized(pos.x, pos.y);
+    const text = prompt('Enter text:');
+    if (text) {
+      const annotation = {
+        tool: 'text',
+        position: norm,
+        text: text,
+        color: this.color,
+        lineWidth: this.lineWidth,
+        timestamp: this.vc.currentTime
+      };
+      this._addAnnotation(annotation);
+    }
+  }
+
+  _finalizeAnnotation(endPos) {
+    const startNorm = this.toNormalized(this.drawStart.x, this.drawStart.y);
+    const endNorm = this.toNormalized(endPos.x, endPos.y);
+    let annotation = null;
+
+    switch (this.currentTool) {
+      case 'line':
+        annotation = {
+          tool: 'line',
+          start: startNorm,
+          end: endNorm,
+          color: this.color,
+          lineWidth: this.lineWidth,
+          timestamp: this.vc.currentTime
+        };
+        break;
+      case 'arrow':
+        annotation = {
+          tool: 'arrow',
+          start: startNorm,
+          end: endNorm,
+          color: this.color,
+          lineWidth: this.lineWidth,
+          timestamp: this.vc.currentTime
+        };
+        break;
+      case 'circle':
+        const dx = endNorm.x - startNorm.x;
+        const dy = endNorm.y - startNorm.y;
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        annotation = {
+          tool: 'circle',
+          center: startNorm,
+          radius: radius,
+          color: this.color,
+          lineWidth: this.lineWidth,
+          timestamp: this.vc.currentTime
+        };
+        break;
+      case 'rect':
+        annotation = {
+          tool: 'rect',
+          origin: { x: Math.min(startNorm.x, endNorm.x), y: Math.min(startNorm.y, endNorm.y) },
+          size: { w: Math.abs(endNorm.x - startNorm.x), h: Math.abs(endNorm.y - startNorm.y) },
+          color: this.color,
+          lineWidth: this.lineWidth,
+          timestamp: this.vc.currentTime
+        };
+        break;
+      case 'freehand':
+        const points = this.drawPoints.map(p => this.toNormalized(p.x, p.y));
+        annotation = {
+          tool: 'freehand',
+          points: this._simplifyPoints(points, 0.002),
+          color: this.color,
+          lineWidth: this.lineWidth,
+          timestamp: this.vc.currentTime
+        };
+        break;
+    }
+
+    if (annotation) {
+      this._addAnnotation(annotation);
+    }
+  }
+
+  _addAnnotation(annotation) {
+    this.annotations.push(annotation);
+    this.undoStack.push({ action: 'add', index: this.annotations.length - 1 });
+    this.redoStack = [];
+    this.render();
+    this._emit('annotation-added', annotation);
+  }
+
+  undo() {
+    if (this.undoStack.length === 0) return;
+    const op = this.undoStack.pop();
+    if (op.action === 'add') {
+      const removed = this.annotations.splice(op.index, 1)[0];
+      this.redoStack.push({ action: 'add', annotation: removed, index: op.index });
+    }
+    this.render();
+    this._emit('annotations-changed');
+  }
+
+  redo() {
+    if (this.redoStack.length === 0) return;
+    const op = this.redoStack.pop();
+    if (op.action === 'add') {
+      this.annotations.splice(op.index, 0, op.annotation);
+      this.undoStack.push({ action: 'add', index: op.index });
+    }
+    this.render();
+    this._emit('annotations-changed');
+  }
+
+  clearAnnotationsForTime(timestamp, tolerance) {
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const tol = tolerance || frameDur / 2;
+    this.annotations = this.annotations.filter(
+      a => Math.abs(a.timestamp - timestamp) > tol
+    );
+    this.undoStack = [];
+    this.redoStack = [];
+    this.render();
+    this._emit('annotations-changed');
+  }
+
+  clearAllAnnotations() {
+    this.annotations = [];
+    this.undoStack = [];
+    this.redoStack = [];
+    this.render();
+    this._emit('annotations-changed');
+  }
+
+  render() {
+    const ctx = this.ctx;
+    const dpr = devicePixelRatio;
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    const rect = this.canvas.getBoundingClientRect();
+    const currentTime = this.vc.currentTime;
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+
+    // Render finalized annotations near current time
+    for (const a of this.annotations) {
+      if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
+        this._renderAnnotation(ctx, a, rect.width, rect.height);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  _renderPreview(currentPos) {
+    if (!this.drawStart || !this.currentTool) return;
+
+    const ctx = this.ctx;
+    const dpr = devicePixelRatio;
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.lineWidth;
+    ctx.setLineDash([5, 5]);
+
+    switch (this.currentTool) {
+      case 'line':
+        ctx.beginPath();
+        ctx.moveTo(this.drawStart.x, this.drawStart.y);
+        ctx.lineTo(currentPos.x, currentPos.y);
+        ctx.stroke();
+        break;
+      case 'arrow':
+        ctx.beginPath();
+        ctx.moveTo(this.drawStart.x, this.drawStart.y);
+        ctx.lineTo(currentPos.x, currentPos.y);
+        ctx.stroke();
+        this._drawArrowHead(ctx, this.drawStart.x, this.drawStart.y, currentPos.x, currentPos.y);
+        break;
+      case 'circle': {
+        const dx = currentPos.x - this.drawStart.x;
+        const dy = currentPos.y - this.drawStart.y;
+        const r = Math.sqrt(dx * dx + dy * dy);
+        ctx.beginPath();
+        ctx.arc(this.drawStart.x, this.drawStart.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
+      case 'rect': {
+        const x = Math.min(this.drawStart.x, currentPos.x);
+        const y = Math.min(this.drawStart.y, currentPos.y);
+        const w = Math.abs(currentPos.x - this.drawStart.x);
+        const h = Math.abs(currentPos.y - this.drawStart.y);
+        ctx.strokeRect(x, y, w, h);
+        break;
+      }
+      case 'freehand':
+        if (this.drawPoints.length > 1) {
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(this.drawPoints[0].x, this.drawPoints[0].y);
+          for (let i = 1; i < this.drawPoints.length; i++) {
+            ctx.lineTo(this.drawPoints[i].x, this.drawPoints[i].y);
+          }
+          ctx.stroke();
+        }
+        break;
+    }
+
+    ctx.restore();
+  }
+
+  _renderAnnotation(ctx, a, w, h) {
+    ctx.strokeStyle = a.color;
+    ctx.fillStyle = a.color;
+    ctx.lineWidth = a.lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([]);
+
+    switch (a.tool) {
+      case 'line': {
+        const s = { x: a.start.x * w, y: a.start.y * h };
+        const e = { x: a.end.x * w, y: a.end.y * h };
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(e.x, e.y);
+        ctx.stroke();
+        break;
+      }
+      case 'arrow': {
+        const s = { x: a.start.x * w, y: a.start.y * h };
+        const e = { x: a.end.x * w, y: a.end.y * h };
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(e.x, e.y);
+        ctx.stroke();
+        this._drawArrowHead(ctx, s.x, s.y, e.x, e.y);
+        break;
+      }
+      case 'circle': {
+        const c = { x: a.center.x * w, y: a.center.y * h };
+        const r = a.radius * Math.max(w, h);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
+      case 'rect': {
+        const ox = a.origin.x * w;
+        const oy = a.origin.y * h;
+        const rw = a.size.w * w;
+        const rh = a.size.h * h;
+        ctx.strokeRect(ox, oy, rw, rh);
+        break;
+      }
+      case 'freehand': {
+        if (a.points.length < 2) break;
+        ctx.beginPath();
+        ctx.moveTo(a.points[0].x * w, a.points[0].y * h);
+        for (let i = 1; i < a.points.length; i++) {
+          ctx.lineTo(a.points[i].x * w, a.points[i].y * h);
+        }
+        ctx.stroke();
+        break;
+      }
+      case 'text': {
+        const pos = { x: a.position.x * w, y: a.position.y * h };
+        const fontSize = Math.max(14, a.lineWidth * 5);
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillText(a.text, pos.x, pos.y);
+        break;
+      }
+    }
+  }
+
+  _drawArrowHead(ctx, fromX, fromY, toX, toY) {
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const headLen = Math.max(10, ctx.lineWidth * 4);
+    const headAngle = Math.PI / 7;
+
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(
+      toX - headLen * Math.cos(angle - headAngle),
+      toY - headLen * Math.sin(angle - headAngle)
+    );
+    ctx.lineTo(
+      toX - headLen * Math.cos(angle + headAngle),
+      toY - headLen * Math.sin(angle + headAngle)
+    );
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Ramer-Douglas-Peucker simplification
+  _simplifyPoints(points, epsilon) {
+    if (points.length <= 2) return points;
+
+    let maxDist = 0;
+    let maxIdx = 0;
+    const start = points[0];
+    const end = points[points.length - 1];
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const d = this._perpendicularDist(points[i], start, end);
+      if (d > maxDist) {
+        maxDist = d;
+        maxIdx = i;
+      }
+    }
+
+    if (maxDist > epsilon) {
+      const left = this._simplifyPoints(points.slice(0, maxIdx + 1), epsilon);
+      const right = this._simplifyPoints(points.slice(maxIdx), epsilon);
+      return left.slice(0, -1).concat(right);
+    }
+    return [start, end];
+  }
+
+  _perpendicularDist(point, lineStart, lineEnd) {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
+    const t = Math.max(0, Math.min(1, ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lenSq));
+    const projX = lineStart.x + t * dx;
+    const projY = lineStart.y + t * dy;
+    return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
+  }
+
+  // Event system
+  on(event, callback) {
+    if (!this._listeners) this._listeners = {};
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    if (!this._listeners) return;
+    (this._listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== play-tagger.js =====
+/**
+ * PlayTagger - Manages play segmentation, categorization, and timeline display.
+ */
+class PlayTagger {
+  constructor(videoController) {
+    this.vc = videoController;
+    this.plays = [];
+    this.currentPlayId = null;
+    this.pendingStart = null;
+    this.listeners = {};
+    this.nextId = 1;
+
+    this.playSelect = document.getElementById('playSelect');
+    this.btnMarkStart = document.getElementById('btnMarkStart');
+    this.btnMarkEnd = document.getElementById('btnMarkEnd');
+    this.btnDeletePlay = document.getElementById('btnDeletePlay');
+    this.timelineBar = document.getElementById('timelineBar');
+
+    // Tag form elements
+    this.tagFields = {
+      down: document.getElementById('tagDown'),
+      distance: document.getElementById('tagDistance'),
+      formation: document.getElementById('tagFormation'),
+      playType: document.getElementById('tagPlayType'),
+      defFront: document.getElementById('tagDefFront'),
+      coverage: document.getElementById('tagCoverage'),
+      blitz: document.getElementById('tagBlitz'),
+      result: document.getElementById('tagResult'),
+      yardage: document.getElementById('tagYardage'),
+      hash: document.getElementById('tagHash'),
+    };
+
+    this.tagChips = document.getElementById('tagChips');
+    this.customTagInput = document.getElementById('customTagInput');
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    this.btnMarkStart.addEventListener('click', () => this.markStart());
+    this.btnMarkEnd.addEventListener('click', () => this.markEnd());
+    this.btnDeletePlay.addEventListener('click', () => this.deleteCurrentPlay());
+    this.playSelect.addEventListener('change', () => {
+      const id = parseInt(this.playSelect.value);
+      if (id) this.selectPlay(id);
+    });
+
+    // Tag form changes
+    Object.values(this.tagFields).forEach(el => {
+      el.addEventListener('change', () => this._saveCurrentTags());
+    });
+
+    // Custom tag input
+    this.customTagInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const tag = this.customTagInput.value.trim();
+        if (tag && this.currentPlayId) {
+          const play = this.getPlay(this.currentPlayId);
+          if (play && !play.tags.custom.includes(tag)) {
+            play.tags.custom.push(tag);
+            this._renderCustomTags(play.tags.custom);
+            this._emit('play-updated', play);
+          }
+          this.customTagInput.value = '';
+        }
+      }
+    });
+  }
+
+  markStart() {
+    this.pendingStart = this.vc.currentTime;
+    this.btnMarkStart.textContent = `Start: ${this._fmt(this.pendingStart)}`;
+    this.btnMarkStart.classList.add('btn-active');
+  }
+
+  markEnd() {
+    if (this.pendingStart === null) {
+      this.pendingStart = 0;
+    }
+    const endTime = this.vc.currentTime;
+    if (endTime <= this.pendingStart) return;
+
+    const play = {
+      id: this.nextId++,
+      timestamp: { start: this.pendingStart, end: endTime },
+      tags: {
+        down: '',
+        distance: '',
+        formation: '',
+        playType: '',
+        defFront: '',
+        coverage: '',
+        blitz: '',
+        result: '',
+        yardage: '',
+        hash: '',
+        custom: []
+      },
+      annotations: [],
+      notes: ''
+    };
+
+    this.plays.push(play);
+    this.pendingStart = null;
+    this.btnMarkStart.textContent = 'Mark Start';
+    this.btnMarkStart.classList.remove('btn-active');
+
+    this._updatePlaySelect();
+    this._updateTimeline();
+    this.selectPlay(play.id);
+    this._emit('play-created', play);
+  }
+
+  deleteCurrentPlay() {
+    if (!this.currentPlayId) return;
+    this.plays = this.plays.filter(p => p.id !== this.currentPlayId);
+    this.currentPlayId = null;
+    this._clearTagForm();
+    this._updatePlaySelect();
+    this._updateTimeline();
+    this._emit('play-deleted');
+  }
+
+  selectPlay(id) {
+    this.currentPlayId = id;
+    const play = this.getPlay(id);
+    if (!play) return;
+
+    this.playSelect.value = id;
+    this._loadTagForm(play);
+    this._updateTimeline();
+
+    // If this play is tied to a clip, emit event so playlist can switch.
+    // Otherwise seek within the current video (single-video mode).
+    if (play.clipId) {
+      this._emit('play-selected', play);
+    } else {
+      this.vc.seekTo(play.timestamp.start);
+      this._emit('play-selected', play);
+    }
+  }
+
+  getPlay(id) {
+    return this.plays.find(p => p.id === id);
+  }
+
+  getCurrentPlay() {
+    return this.getPlay(this.currentPlayId);
+  }
+
+  _saveCurrentTags() {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+
+    play.tags.down = this.tagFields.down.value;
+    play.tags.distance = this.tagFields.distance.value;
+    play.tags.formation = this.tagFields.formation.value;
+    play.tags.playType = this.tagFields.playType.value;
+    play.tags.defFront = this.tagFields.defFront.value;
+    play.tags.coverage = this.tagFields.coverage.value;
+    play.tags.blitz = this.tagFields.blitz.value;
+    play.tags.result = this.tagFields.result.value;
+    play.tags.yardage = this.tagFields.yardage.value;
+    play.tags.hash = this.tagFields.hash.value;
+
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  _loadTagForm(play) {
+    this.tagFields.down.value = play.tags.down;
+    this.tagFields.distance.value = play.tags.distance;
+    this.tagFields.formation.value = play.tags.formation;
+    this.tagFields.playType.value = play.tags.playType;
+    this.tagFields.defFront.value = play.tags.defFront;
+    this.tagFields.coverage.value = play.tags.coverage;
+    this.tagFields.blitz.value = play.tags.blitz;
+    this.tagFields.result.value = play.tags.result;
+    this.tagFields.yardage.value = play.tags.yardage;
+    this.tagFields.hash.value = play.tags.hash;
+    this._renderCustomTags(play.tags.custom);
+  }
+
+  _clearTagForm() {
+    Object.values(this.tagFields).forEach(el => el.value = '');
+    this.tagChips.innerHTML = '';
+  }
+
+  _renderCustomTags(tags) {
+    this.tagChips.innerHTML = '';
+    tags.forEach((tag, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip';
+      chip.innerHTML = `${tag} <span class="chip-remove" data-index="${i}">&times;</span>`;
+      chip.querySelector('.chip-remove').addEventListener('click', () => {
+        tags.splice(i, 1);
+        this._renderCustomTags(tags);
+        this._emit('play-updated', this.getCurrentPlay());
+      });
+      this.tagChips.appendChild(chip);
+    });
+  }
+
+  _updatePlaySelect() {
+    const currentVal = this.currentPlayId;
+    this.playSelect.innerHTML = '<option value="">-- No plays tagged --</option>';
+    this.plays.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      let label;
+      if (p.clipName) {
+        label = `Play ${p.id}: ${p.clipName}`;
+      } else {
+        label = `Play ${p.id}: ${this._fmt(p.timestamp.start)}-${this._fmt(p.timestamp.end)}`;
+      }
+      const type = p.tags.playType ? ` (${p.tags.playType})` : '';
+      opt.textContent = label + type;
+      this.playSelect.appendChild(opt);
+    });
+    if (currentVal) this.playSelect.value = currentVal;
+  }
+
+  _updateTimeline() {
+    this.timelineBar.innerHTML = '';
+    const duration = this.vc.duration;
+    if (!duration) return;
+
+    this.plays.forEach(p => {
+      const left = (p.timestamp.start / duration) * 100;
+      const width = ((p.timestamp.end - p.timestamp.start) / duration) * 100;
+      const div = document.createElement('div');
+
+      let typeClass = 'other';
+      if (p.tags.playType && p.tags.playType.toLowerCase().includes('run')) typeClass = 'run';
+      else if (p.tags.playType && (p.tags.playType.toLowerCase().includes('pass') || p.tags.playType.toLowerCase().includes('screen'))) typeClass = 'pass';
+
+      div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
+      div.style.left = left + '%';
+      div.style.width = Math.max(width, 0.5) + '%';
+      div.textContent = `${p.id}`;
+      div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+      div.addEventListener('click', () => this.selectPlay(p.id));
+      this.timelineBar.appendChild(div);
+    });
+  }
+
+  // Also update scrub bar play markers
+  updateScrubBarPlays() {
+    const container = document.getElementById('scrubBarPlays');
+    if (!container) return;
+    container.innerHTML = '';
+    const duration = this.vc.duration;
+    if (!duration) return;
+
+    this.plays.forEach(p => {
+      const left = (p.timestamp.start / duration) * 100;
+      const width = ((p.timestamp.end - p.timestamp.start) / duration) * 100;
+      const marker = document.createElement('div');
+      marker.className = 'play-marker';
+      marker.style.left = left + '%';
+      marker.style.width = Math.max(width, 0.3) + '%';
+      container.appendChild(marker);
+    });
+  }
+
+  _fmt(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Event system
+  on(event, callback) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== notes-manager.js =====
+/**
+ * NotesManager - Manages play-by-play notes tied to tagged plays.
+ */
+class NotesManager {
+  constructor(videoController, playTagger) {
+    this.vc = videoController;
+    this.tagger = playTagger;
+    this.notesArea = document.getElementById('notesArea');
+    this.btnInsertTimestamp = document.getElementById('btnInsertTimestamp');
+    this.debounceTimer = null;
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // Auto-save notes on input
+    this.notesArea.addEventListener('input', () => {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => this._saveNotes(), 500);
+    });
+
+    // Insert timestamp
+    this.btnInsertTimestamp.addEventListener('click', () => {
+      this._insertTimestamp();
+    });
+
+    // Update notes when play changes
+    this.tagger.on('play-selected', (play) => {
+      this.notesArea.value = play.notes || '';
+    });
+
+    this.tagger.on('play-deleted', () => {
+      this.notesArea.value = '';
+    });
+  }
+
+  _saveNotes() {
+    const play = this.tagger.getCurrentPlay();
+    if (play) {
+      play.notes = this.notesArea.value;
+    }
+  }
+
+  _insertTimestamp() {
+    const time = this.vc.currentTime;
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60).toString().padStart(2, '0');
+    const stamp = `[${m}:${s}] `;
+
+    const start = this.notesArea.selectionStart;
+    const end = this.notesArea.selectionEnd;
+    const text = this.notesArea.value;
+    this.notesArea.value = text.substring(0, start) + stamp + text.substring(end);
+    this.notesArea.selectionStart = this.notesArea.selectionEnd = start + stamp.length;
+    this.notesArea.focus();
+    this._saveNotes();
+  }
+
+  loadNotes(notes) {
+    this.notesArea.value = notes || '';
+  }
+
+  clear() {
+    this.notesArea.value = '';
+  }
+}
+
+// ===== storage.js =====
+/**
+ * StorageManager - Handles save/load/export for projects.
+ */
+class StorageManager {
+  constructor(videoController, playTagger, canvasOverlay) {
+    this.vc = videoController;
+    this.tagger = playTagger;
+    this.canvas = canvasOverlay;
+
+    this.autoSaveTimer = null;
+    this.videoFileName = null;
+
+    this.btnSave = document.getElementById('btnSave');
+    this.btnLoad = document.getElementById('btnLoad');
+    this.projectFileInput = document.getElementById('projectFileInput');
+    this.btnExportPng = document.getElementById('btnExportPng');
+    this.btnExportCsv = document.getElementById('btnExportCsv');
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    this.btnSave.addEventListener('click', () => this.saveProject());
+
+    this.btnLoad.addEventListener('click', () => {
+      this.projectFileInput.click();
+    });
+
+    this.projectFileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) this.loadProject(e.target.files[0]);
+    });
+
+    this.btnExportPng.addEventListener('click', () => this.exportPng());
+    this.btnExportCsv.addEventListener('click', () => this.exportCsv());
+
+    // Track video file name for auto-save key
+    this.vc.on('file-loaded', (data) => {
+      this.videoFileName = data.name;
+      this._tryAutoRestore();
+    });
+
+    // Playlist reference (set by app.js after construction)
+    this.playlist = null;
+  }
+
+  enableAutoSave() {
+    // Called from app.js after everything is wired up
+    this.tagger.on('play-created', () => this._autoSave());
+    this.tagger.on('play-updated', () => this._autoSave());
+    this.tagger.on('play-deleted', () => this._autoSave());
+    this.canvas.on('annotations-changed', () => this._autoSave());
+    this.canvas.on('annotation-added', () => this._autoSave());
+  }
+
+  _autoSave() {
+    clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = setTimeout(() => {
+      if (!this.videoFileName) return;
+      const data = this._serialize();
+      try {
+        localStorage.setItem('ffa_' + this.videoFileName, JSON.stringify(data));
+      } catch (e) {
+        // localStorage full — silently fail
+      }
+    }, 1000);
+  }
+
+  _tryAutoRestore() {
+    if (!this.videoFileName) return;
+    try {
+      const saved = localStorage.getItem('ffa_' + this.videoFileName);
+      if (saved) {
+        const ok = confirm('Previous session found for this video. Restore it?');
+        if (ok) {
+          this._deserialize(JSON.parse(saved));
+        }
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+
+  _serialize() {
+    // Strip non-serializable File references from plays before saving
+    const plays = this.tagger.plays.map(p => {
+      const copy = { ...p, tags: { ...p.tags } };
+      return copy;
+    });
+
+    return {
+      version: 2,
+      videoFileName: this.videoFileName,
+      plays: plays,
+      annotations: this.canvas.annotations,
+      currentPlayId: this.tagger.currentPlayId,
+      nextId: this.tagger.nextId,
+      clipNames: this.playlist ? this.playlist.clips.map(c => c.name) : [],
+      isMultiClip: this.playlist ? this.playlist.hasClips : false,
+    };
+  }
+
+  _deserialize(data) {
+    if (!data) return;
+    this.tagger.plays = data.plays || [];
+    this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
+    this.canvas.annotations = data.annotations || [];
+
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+    this.tagger.updateScrubBarPlays();
+
+    if (data.currentPlayId) {
+      this.tagger.selectPlay(data.currentPlayId);
+    }
+
+    this.canvas.render();
+  }
+
+  saveProject() {
+    const data = this._serialize();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const name = (this.videoFileName || 'project').replace(/\.[^.]+$/, '') + '_analysis.json';
+    this._download(blob, name);
+  }
+
+  loadProject(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        this._deserialize(data);
+      } catch (err) {
+        alert('Invalid project file.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  exportPng() {
+    const video = this.vc.videoElement;
+    if (!video.videoWidth) {
+      alert('No video loaded.');
+      return;
+    }
+
+    // Create offscreen canvas at video resolution
+    const offscreen = document.createElement('canvas');
+    offscreen.width = video.videoWidth;
+    offscreen.height = video.videoHeight;
+    const ctx = offscreen.getContext('2d');
+
+    // Draw video frame
+    ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+    // Draw annotations on top (scale from normalized to video resolution)
+    const currentTime = this.vc.currentTime;
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+
+    for (const a of this.canvas.annotations) {
+      if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
+        this.canvas._renderAnnotation(ctx, a, video.videoWidth, video.videoHeight);
+      }
+    }
+
+    offscreen.toBlob((blob) => {
+      const time = this.vc.currentTime.toFixed(2).replace('.', 's');
+      this._download(blob, `frame_${time}.png`);
+    }, 'image/png');
+  }
+
+  exportCsv() {
+    if (this.tagger.plays.length === 0) {
+      alert('No plays to export.');
+      return;
+    }
+
+    const headers = [
+      'Play #', 'Clip', 'Start', 'End', 'Down', 'Distance', 'Formation',
+      'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Yardage', 'Hash', 'Custom Tags', 'Notes'
+    ];
+
+    const rows = this.tagger.plays.map(p => [
+      p.id,
+      p.clipName || '',
+      p.timestamp.start.toFixed(2),
+      p.timestamp.end.toFixed(2),
+      p.tags.down,
+      p.tags.distance,
+      p.tags.formation,
+      p.tags.playType,
+      p.tags.defFront,
+      p.tags.coverage,
+      p.tags.blitz,
+      p.tags.result,
+      p.tags.yardage,
+      p.tags.hash,
+      (p.tags.custom || []).join('; '),
+      (p.notes || '').replace(/"/g, '""')
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const name = (this.videoFileName || 'plays').replace(/\.[^.]+$/, '') + '_plays.csv';
+    this._download(blob, name);
+  }
+
+  _download(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
+// ===== play-detector.js =====
+/**
+ * PlayDetector - Automatically detects play start/end using frame-differencing motion analysis.
+ *
+ * How it works:
+ * 1. Scans the video by seeking frame-by-frame at a configurable sample rate
+ * 2. Captures each frame to an offscreen canvas and computes pixel differences
+ * 3. Builds a motion intensity curve over time
+ * 4. Detects plays by finding motion spikes (snap) followed by motion drops (whistle)
+ *
+ * The motion signal is smoothed, then a threshold is applied:
+ *   - Rising edge above threshold = play start (snap / burst of motion)
+ *   - Falling edge below threshold = play end (players resetting)
+ */
+class PlayDetector {
+  constructor(videoController, playTagger) {
+    this.vc = videoController;
+    this.tagger = playTagger;
+    this.listeners = {};
+
+    // Detection parameters (user-tunable)
+    this.sampleInterval = 0.2;   // seconds between sampled frames
+    this.motionThreshold = 0.35; // 0-1, fraction of max motion to trigger play
+    this.minPlayDuration = 2.0;  // seconds — ignore plays shorter than this
+    this.maxPlayDuration = 30.0; // seconds — force-end plays longer than this
+    this.cooldownAfterEnd = 3.0; // seconds to wait after play end before detecting next
+    this.smoothingWindow = 3;    // number of samples to average for smoothing
+
+    this.isScanning = false;
+    this.scanProgress = 0;
+    this.motionData = [];        // { time, motion } pairs
+    this.detectedPlays = [];
+
+    this._offscreen = document.createElement('canvas');
+    this._offCtx = this._offscreen.getContext('2d', { willReadFrequently: true });
+    this._prevFrameData = null;
+  }
+
+  /**
+   * Scan the entire video (or a range) to build a motion profile.
+   * Returns a promise that resolves with detected plays.
+   */
+  async scan(startTime = 0, endTime = null) {
+    const video = this.vc.videoElement;
+    if (!video.duration) throw new Error('No video loaded');
+
+    const end = endTime || video.duration;
+    const wasPlaying = !video.paused;
+    if (wasPlaying) video.pause();
+
+    this.isScanning = true;
+    this.motionData = [];
+    this._prevFrameData = null;
+
+    // Set offscreen canvas to a small size for performance (motion detection
+    // doesn't need full resolution)
+    const sampleW = 160;
+    const sampleH = Math.round(sampleW * (video.videoHeight / video.videoWidth)) || 90;
+    this._offscreen.width = sampleW;
+    this._offscreen.height = sampleH;
+
+    const totalSamples = Math.ceil((end - startTime) / this.sampleInterval);
+
+    this._emit('scan-start', { totalSamples });
+
+    for (let t = startTime; t < end; t += this.sampleInterval) {
+      if (!this.isScanning) break; // allow cancellation
+
+      // Seek to time and wait for the frame to be ready
+      await this._seekAndWait(video, t);
+
+      // Capture the frame
+      this._offCtx.drawImage(video, 0, 0, sampleW, sampleH);
+      const imageData = this._offCtx.getImageData(0, 0, sampleW, sampleH);
+      const motion = this._computeMotion(imageData.data);
+
+      this.motionData.push({ time: t, motion });
+
+      this.scanProgress = (t - startTime) / (end - startTime);
+      this._emit('scan-progress', { progress: this.scanProgress, time: t, motion });
+    }
+
+    this.isScanning = false;
+    this.scanProgress = 1;
+
+    // Analyze the motion curve to find plays
+    this.detectedPlays = this._detectPlays();
+
+    this._emit('scan-complete', { plays: this.detectedPlays, motionData: this.motionData });
+
+    return this.detectedPlays;
+  }
+
+  cancelScan() {
+    this.isScanning = false;
+  }
+
+  /**
+   * Apply detected plays to the PlayTagger (creates actual play entries).
+   * Works for both single-video mode and multi-clip mode.
+   */
+  applyDetectedPlays() {
+    let added = 0;
+    for (const dp of this.detectedPlays) {
+      // Check for overlap with existing plays (only non-clip plays)
+      const overlaps = this.tagger.plays.some(p =>
+        !p.clipId && dp.start < p.timestamp.end && dp.end > p.timestamp.start
+      );
+      if (overlaps) continue;
+
+      this.tagger.pendingStart = dp.start;
+      // Temporarily set video time to end so markEnd records it
+      const origTime = this.vc.currentTime;
+      this.vc.videoElement.currentTime = dp.end;
+      this.tagger.markEnd();
+      this.vc.videoElement.currentTime = origTime;
+      added++;
+    }
+
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+    this.tagger.updateScrubBarPlays();
+
+    return added;
+  }
+
+  /**
+   * Scan all clips in a playlist to detect the active play window within each.
+   * Updates each clip's associated play entry with refined start/end times.
+   *
+   * For play-by-play clips, the typical pattern is:
+   *   [idle/huddle] -> [snap: motion spike] -> [play action] -> [whistle: motion drops] -> [idle]
+   *
+   * This trims each clip's play to just the action window.
+   */
+  async scanClips(playlistManager) {
+    if (!playlistManager || !playlistManager.hasClips) {
+      throw new Error('No clips loaded');
+    }
+
+    this.isScanning = true;
+    const totalClips = playlistManager.clips.length;
+    const allResults = [];
+
+    this._emit('scan-start', { totalSamples: totalClips });
+
+    for (let ci = 0; ci < totalClips; ci++) {
+      if (!this.isScanning) break;
+
+      const clip = playlistManager.clips[ci];
+
+      this._emit('scan-progress', {
+        progress: ci / totalClips,
+        time: 0,
+        motion: 0,
+        clipIndex: ci,
+        clipName: clip.name
+      });
+
+      // Load the clip into a temporary video element
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'auto';
+      const url = URL.createObjectURL(clip.file);
+      tempVideo.src = url;
+
+      try {
+        await new Promise((resolve, reject) => {
+          tempVideo.addEventListener('loadedmetadata', resolve);
+          tempVideo.addEventListener('error', reject);
+        });
+
+        // Scan this clip's frames
+        const clipMotion = await this._scanVideo(tempVideo);
+        const detected = this._detectPlaysFromMotion(clipMotion);
+
+        // Update the associated play's timestamps
+        const play = this.tagger.getPlay(clip.playId);
+        if (play && detected.length > 0) {
+          // Use the first (and usually only) detected play window
+          play.timestamp.start = detected[0].start;
+          play.timestamp.end = Math.min(detected[0].end, tempVideo.duration);
+        }
+
+        allResults.push({
+          clipId: clip.id,
+          clipName: clip.name,
+          motionData: clipMotion,
+          detected: detected,
+          duration: tempVideo.duration
+        });
+      } catch (e) {
+        // Skip clips that fail to load
+        allResults.push({
+          clipId: clip.id,
+          clipName: clip.name,
+          motionData: [],
+          detected: [],
+          error: e.message
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+        tempVideo.src = '';
+      }
+    }
+
+    this.isScanning = false;
+    this.scanProgress = 1;
+
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+
+    this._emit('clips-scan-complete', { results: allResults });
+    return allResults;
+  }
+
+  /**
+   * Scan a video element's frames and return motion data.
+   */
+  async _scanVideo(video) {
+    const sampleW = 160;
+    const sampleH = Math.round(sampleW * (video.videoHeight / video.videoWidth)) || 90;
+    this._offscreen.width = sampleW;
+    this._offscreen.height = sampleH;
+    this._prevFrameData = null;
+
+    const motionData = [];
+
+    for (let t = 0; t < video.duration; t += this.sampleInterval) {
+      if (!this.isScanning) break;
+
+      await this._seekAndWait(video, t);
+      this._offCtx.drawImage(video, 0, 0, sampleW, sampleH);
+      const imageData = this._offCtx.getImageData(0, 0, sampleW, sampleH);
+      const motion = this._computeMotion(imageData.data);
+      motionData.push({ time: t, motion });
+    }
+
+    return motionData;
+  }
+
+  /**
+   * Detect plays from a given motion data array (used for per-clip analysis).
+   */
+  _detectPlaysFromMotion(motionData) {
+    const origData = this.motionData;
+    this.motionData = motionData;
+    const result = this._detectPlays();
+    this.motionData = origData;
+    return result;
+  }
+
+  // --- Private methods ---
+
+  _seekAndWait(video, time) {
+    return new Promise((resolve) => {
+      video.currentTime = time;
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+      video.addEventListener('seeked', onSeeked);
+    });
+  }
+
+  /**
+   * Compute the per-pixel difference between current frame and previous frame.
+   * Returns a 0-1 value representing overall motion intensity.
+   */
+  _computeMotion(currentData) {
+    if (!this._prevFrameData) {
+      this._prevFrameData = new Uint8ClampedArray(currentData);
+      return 0;
+    }
+
+    let totalDiff = 0;
+    const pixelCount = currentData.length / 4;
+
+    for (let i = 0; i < currentData.length; i += 4) {
+      // Compare luminance (weighted grayscale) for speed and robustness
+      const prevLum = this._prevFrameData[i] * 0.299 +
+                      this._prevFrameData[i + 1] * 0.587 +
+                      this._prevFrameData[i + 2] * 0.114;
+      const curLum = currentData[i] * 0.299 +
+                     currentData[i + 1] * 0.587 +
+                     currentData[i + 2] * 0.114;
+      totalDiff += Math.abs(curLum - prevLum);
+    }
+
+    // Copy current frame for next comparison
+    this._prevFrameData.set(currentData);
+
+    // Normalize: max possible diff is 255 per pixel
+    return totalDiff / (pixelCount * 255);
+  }
+
+  /**
+   * Smooth the motion data with a moving average.
+   */
+  _smooth(data, windowSize) {
+    const smoothed = [];
+    const half = Math.floor(windowSize / 2);
+    for (let i = 0; i < data.length; i++) {
+      let sum = 0;
+      let count = 0;
+      for (let j = i - half; j <= i + half; j++) {
+        if (j >= 0 && j < data.length) {
+          sum += data[j].motion;
+          count++;
+        }
+      }
+      smoothed.push({ time: data[i].time, motion: sum / count });
+    }
+    return smoothed;
+  }
+
+  /**
+   * Detect plays from the motion curve using threshold-based edge detection.
+   */
+  _detectPlays() {
+    if (this.motionData.length < 3) return [];
+
+    const smoothed = this._smooth(this.motionData, this.smoothingWindow);
+
+    // Find the max motion value to compute adaptive threshold
+    let maxMotion = 0;
+    for (const d of smoothed) {
+      if (d.motion > maxMotion) maxMotion = d.motion;
+    }
+
+    if (maxMotion === 0) return [];
+
+    const threshold = maxMotion * this.motionThreshold;
+    const plays = [];
+    let playStart = null;
+
+    for (let i = 0; i < smoothed.length; i++) {
+      const m = smoothed[i].motion;
+      const t = smoothed[i].time;
+
+      if (playStart === null) {
+        // Looking for play start: motion rises above threshold
+        if (m > threshold) {
+          playStart = t;
+        }
+      } else {
+        // Looking for play end: motion drops below threshold
+        const elapsed = t - playStart;
+
+        if (m <= threshold || elapsed >= this.maxPlayDuration) {
+          // Play ended
+          if (elapsed >= this.minPlayDuration) {
+            // Refine: walk back from threshold crossing to find the actual
+            // start (first sample where motion begins rising)
+            let refinedStart = playStart;
+            for (let j = i - 1; j >= 0; j--) {
+              if (smoothed[j].time < playStart - 1.0) break;
+              if (smoothed[j].motion < threshold * 0.5) {
+                refinedStart = smoothed[j].time;
+                break;
+              }
+            }
+
+            plays.push({
+              start: Math.max(0, refinedStart - 0.5), // pad 0.5s before snap
+              end: t + 0.5,                            // pad 0.5s after whistle
+              peakMotion: this._peakInRange(smoothed, refinedStart, t)
+            });
+          }
+
+          playStart = null;
+
+          // Apply cooldown: skip ahead past dead time between plays
+          const cooldownEnd = t + this.cooldownAfterEnd;
+          while (i < smoothed.length - 1 && smoothed[i + 1].time < cooldownEnd) {
+            i++;
+          }
+        }
+      }
+    }
+
+    // Handle case where video ends during a play
+    if (playStart !== null) {
+      const lastTime = smoothed[smoothed.length - 1].time;
+      if (lastTime - playStart >= this.minPlayDuration) {
+        plays.push({
+          start: Math.max(0, playStart - 0.5),
+          end: lastTime,
+          peakMotion: this._peakInRange(smoothed, playStart, lastTime)
+        });
+      }
+    }
+
+    return plays;
+  }
+
+  _peakInRange(data, start, end) {
+    let peak = 0;
+    for (const d of data) {
+      if (d.time >= start && d.time <= end && d.motion > peak) {
+        peak = d.motion;
+      }
+    }
+    return peak;
+  }
+
+  // Event system
+  on(event, callback) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== playlist-manager.js =====
+/**
+ * PlaylistManager - Manages multiple video clips where each clip is one play.
+ *
+ * Game film is typically recorded play-by-play as individual clips, not as one
+ * continuous video. This module handles:
+ * - Loading multiple video files at once (multi-select or folder drop)
+ * - Maintaining an ordered playlist of clips
+ * - Navigating between clips (prev/next, click-to-select)
+ * - Auto-creating a play entry in PlayTagger for each loaded clip
+ * - Syncing the active clip with the video player
+ */
+class PlaylistManager {
+  constructor(videoController, playTagger) {
+    this.vc = videoController;
+    this.tagger = playTagger;
+    this.listeners = {};
+
+    // Each entry: { id, file: File, name: string, objectUrl: string|null, duration: number|null, playId: number|null }
+    this.clips = [];
+    this.activeClipIndex = -1;
+
+    this.playlistEl = document.getElementById('playlistItems');
+    this.clipCountEl = document.getElementById('clipCount');
+    this.btnAddClips = document.getElementById('btnAddClips');
+    this.clipFileInput = document.getElementById('clipFileInput');
+    this.btnPrevClip = document.getElementById('btnPrevClip');
+    this.btnNextClip = document.getElementById('btnNextClip');
+    this.clipIndicator = document.getElementById('clipIndicator');
+
+    this._nextClipId = 1;
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // Add clips button
+    this.btnAddClips.addEventListener('click', () => {
+      this.clipFileInput.click();
+    });
+
+    this.clipFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        this.addFiles(Array.from(e.target.files));
+        // Reset so the same files can be re-selected if needed
+        e.target.value = '';
+      }
+    });
+
+    // Prev/next clip
+    this.btnPrevClip.addEventListener('click', () => this.prevClip());
+    this.btnNextClip.addEventListener('click', () => this.nextClip());
+
+    // Also support drop zone for multiple files
+    const dropZone = document.getElementById('videoDropZone');
+    const origDropHandler = dropZone.ondrop;
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+      if (files.length === 0) return;
+
+      if (files.length === 1 && this.clips.length === 0) {
+        // Single file with no existing playlist — use legacy single-video mode
+        this.vc.loadFile(files[0]);
+      } else {
+        // Multiple files or adding to existing playlist
+        this.addFiles(files);
+      }
+    }, true); // capture phase to override existing handler
+
+    // When the main file input loads a single file and there's no playlist,
+    // that's fine — single-video mode still works. But if there IS a playlist,
+    // treat it as adding a clip.
+    this.vc.on('file-loaded', (data) => {
+      // If we have an active playlist, don't let single-file loads break it
+      // (the single load was initiated by us via switchToClip)
+    });
+  }
+
+  /**
+   * Add multiple video files to the playlist.
+   * Sorts them naturally by filename.
+   */
+  addFiles(files) {
+    // Sort files naturally by name (play_01, play_02, etc.)
+    const sorted = files.slice().sort((a, b) => {
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    for (const file of sorted) {
+      const clip = {
+        id: this._nextClipId++,
+        file: file,
+        name: file.name.replace(/\.[^.]+$/, ''), // strip extension for display
+        objectUrl: null,
+        duration: null,
+        playId: null
+      };
+      this.clips.push(clip);
+    }
+
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
+
+    // Auto-create play entries for each new clip
+    this._autoCreatePlays();
+
+    // If nothing is playing, activate the first clip
+    if (this.activeClipIndex === -1) {
+      this.switchToClip(0);
+    }
+
+    this._emit('clips-added', { count: sorted.length, total: this.clips.length });
+  }
+
+  /**
+   * Create a play entry in PlayTagger for each clip that doesn't have one yet.
+   * Uses a temporary hidden video to probe each clip's duration.
+   */
+  async _autoCreatePlays() {
+    for (const clip of this.clips) {
+      if (clip.playId !== null) continue;
+
+      // Probe duration
+      clip.duration = await this._probeDuration(clip.file);
+
+      // Create a play entry
+      const play = {
+        id: this.tagger.nextId++,
+        timestamp: { start: 0, end: clip.duration || 0 },
+        tags: {
+          down: '',
+          distance: '',
+          formation: '',
+          playType: '',
+          defFront: '',
+          coverage: '',
+          blitz: '',
+          result: '',
+          yardage: '',
+          hash: '',
+          custom: []
+        },
+        annotations: [],
+        notes: '',
+        clipName: clip.name,
+        clipId: clip.id
+      };
+
+      this.tagger.plays.push(play);
+      clip.playId = play.id;
+    }
+
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+    this._updatePlaylistUI();
+  }
+
+  /**
+   * Get a clip's video duration by briefly loading it in a hidden video element.
+   */
+  _probeDuration(file) {
+    return new Promise((resolve) => {
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'metadata';
+      const url = URL.createObjectURL(file);
+      tempVideo.src = url;
+      tempVideo.addEventListener('loadedmetadata', () => {
+        const dur = tempVideo.duration;
+        URL.revokeObjectURL(url);
+        tempVideo.src = '';
+        resolve(dur);
+      });
+      tempVideo.addEventListener('error', () => {
+        URL.revokeObjectURL(url);
+        resolve(0);
+      });
+    });
+  }
+
+  /**
+   * Switch the video player to show a specific clip by index.
+   */
+  switchToClip(index) {
+    if (index < 0 || index >= this.clips.length) return;
+
+    const clip = this.clips[index];
+    this.activeClipIndex = index;
+
+    // Revoke old URL if this clip had one
+    if (clip.objectUrl) {
+      URL.revokeObjectURL(clip.objectUrl);
+    }
+    clip.objectUrl = URL.createObjectURL(clip.file);
+
+    // Load into video player
+    this.vc.video.src = clip.objectUrl;
+    this.vc.video.load();
+    this.vc.fileLabel.textContent = clip.file.name;
+    this.vc.placeholder.classList.add('hidden');
+
+    // Select the associated play in the tagger
+    if (clip.playId !== null) {
+      // Use internal method to avoid re-seeking since we just loaded
+      this.tagger.currentPlayId = clip.playId;
+      const play = this.tagger.getPlay(clip.playId);
+      if (play) {
+        this.tagger.playSelect.value = clip.playId;
+        this.tagger._loadTagForm(play);
+        this.tagger._updateTimeline();
+        this.tagger._emit('play-selected', play);
+      }
+    }
+
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._emit('clip-switched', { index, clip });
+  }
+
+  nextClip() {
+    if (this.activeClipIndex < this.clips.length - 1) {
+      this.switchToClip(this.activeClipIndex + 1);
+    }
+  }
+
+  prevClip() {
+    if (this.activeClipIndex > 0) {
+      this.switchToClip(this.activeClipIndex - 1);
+    }
+  }
+
+  /**
+   * Find the clip associated with a given play ID and switch to it.
+   */
+  switchToClipByPlayId(playId) {
+    const index = this.clips.findIndex(c => c.playId === playId);
+    if (index !== -1 && index !== this.activeClipIndex) {
+      this.switchToClip(index);
+    }
+  }
+
+  removeClip(index) {
+    if (index < 0 || index >= this.clips.length) return;
+    const clip = this.clips[index];
+
+    // Remove the associated play
+    if (clip.playId !== null) {
+      this.tagger.plays = this.tagger.plays.filter(p => p.id !== clip.playId);
+      if (this.tagger.currentPlayId === clip.playId) {
+        this.tagger.currentPlayId = null;
+        this.tagger._clearTagForm();
+      }
+    }
+
+    // Clean up URL
+    if (clip.objectUrl) {
+      URL.revokeObjectURL(clip.objectUrl);
+    }
+
+    this.clips.splice(index, 1);
+
+    // Adjust active index
+    if (this.clips.length === 0) {
+      this.activeClipIndex = -1;
+    } else if (index <= this.activeClipIndex) {
+      this.activeClipIndex = Math.max(0, this.activeClipIndex - 1);
+      this.switchToClip(this.activeClipIndex);
+    }
+
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
+  }
+
+  get hasClips() {
+    return this.clips.length > 0;
+  }
+
+  get activeClip() {
+    return this.clips[this.activeClipIndex] || null;
+  }
+
+  // --- UI ---
+
+  _updatePlaylistUI() {
+    if (!this.playlistEl) return;
+    this.playlistEl.innerHTML = '';
+
+    this.clips.forEach((clip, i) => {
+      const item = document.createElement('div');
+      item.className = 'playlist-item' + (i === this.activeClipIndex ? ' active' : '');
+      item.dataset.index = i;
+
+      const num = document.createElement('span');
+      num.className = 'playlist-num';
+      num.textContent = (i + 1);
+
+      const name = document.createElement('span');
+      name.className = 'playlist-name';
+      name.textContent = clip.name;
+      name.title = clip.file.name;
+
+      const dur = document.createElement('span');
+      dur.className = 'playlist-dur';
+      dur.textContent = clip.duration ? this._fmt(clip.duration) : '--:--';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'playlist-remove';
+      removeBtn.innerHTML = '&times;';
+      removeBtn.title = 'Remove clip';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.removeClip(i);
+      });
+
+      item.appendChild(num);
+      item.appendChild(name);
+      item.appendChild(dur);
+      item.appendChild(removeBtn);
+
+      item.addEventListener('click', () => this.switchToClip(i));
+
+      this.playlistEl.appendChild(item);
+    });
+  }
+
+  _updateClipIndicator() {
+    if (!this.clipIndicator) return;
+    if (this.clips.length === 0) {
+      this.clipIndicator.textContent = '';
+    } else {
+      this.clipIndicator.textContent = `Clip ${this.activeClipIndex + 1}/${this.clips.length}`;
+    }
+  }
+
+  _updateClipCount() {
+    if (!this.clipCountEl) return;
+    this.clipCountEl.textContent = `${this.clips.length} clip${this.clips.length !== 1 ? 's' : ''}`;
+  }
+
+  _fmt(sec) {
+    if (!sec || isNaN(sec)) return '--:--';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Event system
+  on(event, callback) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== quick-chart.js =====
+/**
+ * QuickChart - Rapid keyboard-driven play charting mode.
+ *
+ * Workflow: watch clip → tag with a few keystrokes → auto-advance.
+ * A full 60-play game takes ~5 minutes to chart.
+ *
+ * Keyboard map (active when quick-chart panel is focused):
+ *   Play type:  R = Run Inside, O = Run Outside, P = Short Pass,
+ *               M = Medium Pass, D = Deep Pass, S = Screen,
+ *               A = Play Action, Q = RPO, K = Kick/Punt, X = Trick
+ *   Result:     G = Gain, L = Loss, N = No Gain, I = Incomplete,
+ *               T = Touchdown, U = Turnover (INT), F = Fumble,
+ *               W = Sack, E = Penalty
+ *   Yardage:    0-9 keys set yards, prefix with minus (-) for negative
+ *   Down:       Shift+1..4 = set down
+ *   First down: ! (Shift+1 after result) toggles first down
+ *   Confirm:    Enter = save play & advance to next clip
+ *   Replay:     Backspace = replay current clip
+ *   Skip:       Tab = skip this play (no tag, advance)
+ *   Undo:       Ctrl+Z = go back to previous clip
+ */
+class QuickChart {
+  constructor(videoController, playTagger, playlistManager) {
+    this.vc = videoController;
+    this.tagger = playTagger;
+    this.playlist = playlistManager;
+    this.listeners = {};
+
+    this.isActive = false;
+    this.currentEntry = this._emptyEntry();
+    this.yardageStr = '';
+    this.yardageNegative = false;
+
+    // DOM
+    this.panel = document.getElementById('quickChartPanel');
+    this.btnToggle = document.getElementById('btnQuickChart');
+    this.displayType = document.getElementById('qcPlayType');
+    this.displayResult = document.getElementById('qcResult');
+    this.displayYardage = document.getElementById('qcYardage');
+    this.displayDown = document.getElementById('qcDown');
+    this.displayExtra = document.getElementById('qcExtra');
+    this.displayStatus = document.getElementById('qcStatus');
+    this.displayKeys = document.getElementById('qcKeyHints');
+
+    // Player input elements
+    this.inputBallCarrier = document.getElementById('qcBallCarrier');
+    this.inputPasser = document.getElementById('qcPasser');
+    this.inputReceiver = document.getElementById('qcReceiver');
+    this.inputTackler = document.getElementById('qcTackler');
+
+    this._bindEvents();
+  }
+
+  _emptyEntry() {
+    return {
+      playType: '',
+      result: '',
+      yardage: '',
+      down: '',
+      distance: '',
+      firstDown: false,
+      turnover: false,
+      ballCarrier: '',
+      passer: '',
+      receiver: '',
+      tackler: ''
+    };
+  }
+
+  _bindEvents() {
+    // Toggle button
+    this.btnToggle.addEventListener('click', () => this.toggle());
+
+    // Keyboard handler — capture all keys when quick chart is active
+    document.addEventListener('keydown', (e) => {
+      if (!this.isActive) return;
+
+      // Allow normal behavior in player number inputs
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (this._handleKey(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true); // capture phase to override other handlers
+  }
+
+  toggle() {
+    this.isActive = !this.isActive;
+    this.panel.classList.toggle('hidden', !this.isActive);
+    this.btnToggle.classList.toggle('active', this.isActive);
+
+    if (this.isActive) {
+      this.currentEntry = this._emptyEntry();
+      this.yardageStr = '';
+      this.yardageNegative = false;
+      this._updateDisplay();
+      this._updateStatus('QUICK CHART ACTIVE — use keyboard to tag plays');
+    }
+  }
+
+  _handleKey(e) {
+    const key = e.key.toUpperCase();
+    const code = e.code;
+
+    // Enter = confirm and advance
+    if (code === 'Enter') {
+      this._confirmAndAdvance();
+      return true;
+    }
+
+    // Backspace = replay current clip
+    if (code === 'Backspace') {
+      this.vc.seekTo(0);
+      this.vc.videoElement.play();
+      return true;
+    }
+
+    // Tab = skip to next clip
+    if (code === 'Tab') {
+      this.playlist.nextClip();
+      this.currentEntry = this._emptyEntry();
+      this.yardageStr = '';
+      this.yardageNegative = false;
+      this._updateDisplay();
+      this._updateStatus('Skipped — next clip');
+      return true;
+    }
+
+    // Ctrl+Z = go back to previous clip
+    if ((e.ctrlKey || e.metaKey) && code === 'KeyZ') {
+      this.playlist.prevClip();
+      this.currentEntry = this._emptyEntry();
+      this.yardageStr = '';
+      this.yardageNegative = false;
+      this._updateDisplay();
+      this._updateStatus('Back to previous clip');
+      return true;
+    }
+
+    // Space = play/pause
+    if (code === 'Space') {
+      this.vc.togglePlay();
+      return true;
+    }
+
+    // Down: Shift + 1-4
+    if (e.shiftKey && code >= 'Digit1' && code <= 'Digit4') {
+      this.currentEntry.down = code.replace('Digit', '');
+      this._updateDisplay();
+      return true;
+    }
+
+    // Yardage: digits 0-9
+    if (!e.shiftKey && code >= 'Digit0' && code <= 'Digit9') {
+      this.yardageStr += code.replace('Digit', '');
+      if (this.yardageStr.length > 2) this.yardageStr = this.yardageStr.slice(-2);
+      this.currentEntry.yardage = (this.yardageNegative ? '-' : '') + this.yardageStr;
+      this._updateDisplay();
+      return true;
+    }
+
+    // Minus key for negative yardage
+    if (key === '-' || code === 'Minus') {
+      this.yardageNegative = !this.yardageNegative;
+      if (this.yardageStr) {
+        this.currentEntry.yardage = (this.yardageNegative ? '-' : '') + this.yardageStr;
+      }
+      this._updateDisplay();
+      return true;
+    }
+
+    // Play type keys
+    const typeMap = {
+      'R': 'Run Inside',
+      'O': 'Run Outside',
+      'P': 'Short Pass',
+      'M': 'Medium Pass',
+      'D': 'Deep Pass',
+      'S': 'Screen',
+      'A': 'Play Action',
+      'Q': 'RPO',
+      'K': 'Kick/Punt',
+      'X': 'Trick Play'
+    };
+    if (typeMap[key] && !e.shiftKey && !e.ctrlKey) {
+      this.currentEntry.playType = typeMap[key];
+      this._updateDisplay();
+      return true;
+    }
+
+    // Result keys
+    const resultMap = {
+      'G': 'Gain',
+      'L': 'Loss',
+      'N': 'No Gain',
+      'I': 'Incomplete',
+      'T': 'Touchdown',
+      'U': 'Interception',
+      'F': 'Fumble',
+      'W': 'Sack',
+      'E': 'Penalty'
+    };
+    if (resultMap[key] && !e.shiftKey && !e.ctrlKey) {
+      this.currentEntry.result = resultMap[key];
+      // Auto-set some flags
+      if (key === 'U' || key === 'F') this.currentEntry.turnover = true;
+      if (key === 'N') {
+        this.yardageStr = '0';
+        this.currentEntry.yardage = '0';
+      }
+      if (key === 'L' || key === 'W') {
+        this.yardageNegative = true;
+        if (this.yardageStr) {
+          this.currentEntry.yardage = '-' + this.yardageStr;
+        }
+      }
+      this._updateDisplay();
+      return true;
+    }
+
+    // C = clear current entry
+    if (key === 'C' && !e.ctrlKey) {
+      this.currentEntry = this._emptyEntry();
+      this.yardageStr = '';
+      this.yardageNegative = false;
+      this._updateDisplay();
+      this._updateStatus('Cleared');
+      return true;
+    }
+
+    return false;
+  }
+
+  _confirmAndAdvance() {
+    // Apply the quick-chart entry to the current play
+    const play = this.tagger.getCurrentPlay();
+    if (play) {
+      if (this.currentEntry.playType) play.tags.playType = this.currentEntry.playType;
+      if (this.currentEntry.result) play.tags.result = this.currentEntry.result;
+      if (this.currentEntry.yardage) play.tags.yardage = this.currentEntry.yardage;
+      if (this.currentEntry.down) play.tags.down = this.currentEntry.down;
+
+      // Store player assignments
+      const carrier = this.inputBallCarrier?.value?.trim();
+      const passer = this.inputPasser?.value?.trim();
+      const receiver = this.inputReceiver?.value?.trim();
+      const tackler = this.inputTackler?.value?.trim();
+
+      if (!play.tags.players) play.tags.players = {};
+      if (carrier) play.tags.players.ballCarrier = carrier;
+      if (passer) play.tags.players.passer = passer;
+      if (receiver) play.tags.players.receiver = receiver;
+      if (tackler) play.tags.players.tackler = tackler;
+
+      if (this.currentEntry.firstDown) {
+        if (!play.tags.custom) play.tags.custom = [];
+        if (!play.tags.custom.includes('1st Down')) play.tags.custom.push('1st Down');
+      }
+      if (this.currentEntry.turnover) {
+        if (!play.tags.custom) play.tags.custom = [];
+        if (!play.tags.custom.includes('Turnover')) play.tags.custom.push('Turnover');
+      }
+
+      // Auto-detect first down based on yardage vs distance
+      const yds = parseInt(this.currentEntry.yardage) || 0;
+      const dist = parseInt(play.tags.distance) || 10;
+      if (yds >= dist && yds > 0 && !this.currentEntry.turnover) {
+        if (!play.tags.custom) play.tags.custom = [];
+        if (!play.tags.custom.includes('1st Down')) play.tags.custom.push('1st Down');
+      }
+
+      this.tagger._emit('play-updated', play);
+    }
+
+    // Clear player inputs
+    if (this.inputBallCarrier) this.inputBallCarrier.value = '';
+    if (this.inputPasser) this.inputPasser.value = '';
+    if (this.inputReceiver) this.inputReceiver.value = '';
+    if (this.inputTackler) this.inputTackler.value = '';
+
+    // Advance to next clip
+    const clipIdx = this.playlist.activeClipIndex;
+    const totalClips = this.playlist.clips.length;
+
+    this.currentEntry = this._emptyEntry();
+    this.yardageStr = '';
+    this.yardageNegative = false;
+
+    if (clipIdx < totalClips - 1) {
+      this.playlist.nextClip();
+      this._updateStatus(`Saved — clip ${clipIdx + 2}/${totalClips}`);
+    } else {
+      this._updateStatus('All clips charted! View stats.');
+    }
+
+    this._updateDisplay();
+    this._emit('play-charted');
+  }
+
+  _updateDisplay() {
+    if (this.displayType) {
+      this.displayType.textContent = this.currentEntry.playType || '—';
+      this.displayType.className = 'qc-value' + (this.currentEntry.playType ? ' qc-set' : '');
+    }
+    if (this.displayResult) {
+      this.displayResult.textContent = this.currentEntry.result || '—';
+      this.displayResult.className = 'qc-value' + (this.currentEntry.result ? ' qc-set' : '');
+    }
+    if (this.displayYardage) {
+      this.displayYardage.textContent = this.currentEntry.yardage || '—';
+      this.displayYardage.className = 'qc-value' + (this.currentEntry.yardage ? ' qc-set' : '');
+    }
+    if (this.displayDown) {
+      const downLabels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+      this.displayDown.textContent = downLabels[this.currentEntry.down] || '—';
+      this.displayDown.className = 'qc-value' + (this.currentEntry.down ? ' qc-set' : '');
+    }
+    if (this.displayExtra) {
+      const extras = [];
+      if (this.currentEntry.firstDown) extras.push('1ST');
+      if (this.currentEntry.turnover) extras.push('TO');
+      this.displayExtra.textContent = extras.join(' ') || '';
+    }
+  }
+
+  _updateStatus(msg) {
+    if (this.displayStatus) this.displayStatus.textContent = msg;
+  }
+
+  // Event system
+  on(event, callback) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== stats-engine.js =====
+/**
+ * StatsEngine - Computes team and individual stats from charted play data.
+ *
+ * All stats are derived live from the play entries in PlayTagger.
+ * Nothing is cached — call compute() whenever you need fresh numbers.
+ */
+class StatsEngine {
+  constructor(playTagger) {
+    this.tagger = playTagger;
+    this.dashboardEl = document.getElementById('statsDashboard');
+    this.btnShowStats = document.getElementById('btnShowStats');
+    this.btnCloseStats = document.getElementById('btnCloseStats');
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    this.btnShowStats.addEventListener('click', () => this.showDashboard());
+    if (this.btnCloseStats) {
+      this.btnCloseStats.addEventListener('click', () => this.hideDashboard());
+    }
+  }
+
+  showDashboard() {
+    const stats = this.compute();
+    this._renderDashboard(stats);
+    this.dashboardEl.classList.remove('hidden');
+  }
+
+  hideDashboard() {
+    this.dashboardEl.classList.add('hidden');
+  }
+
+  /**
+   * Compute all stats from current play data.
+   */
+  compute() {
+    const plays = this.tagger.plays.filter(p => p.tags.playType);
+
+    const stats = {
+      totalPlays: plays.length,
+      rushing: this._rushingStats(plays),
+      passing: this._passingStats(plays),
+      scoring: this._scoringStats(plays),
+      downs: this._downStats(plays),
+      turnovers: this._turnoverStats(plays),
+      tendencies: this._tendencyStats(plays),
+      bigPlays: this._bigPlays(plays),
+      individuals: this._individualStats(plays)
+    };
+
+    return stats;
+  }
+
+  _rushingStats(plays) {
+    const rushPlays = plays.filter(p =>
+      p.tags.playType?.toLowerCase().includes('run')
+    );
+    const yards = rushPlays.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
+    const attempts = rushPlays.length;
+
+    return {
+      attempts,
+      yards,
+      average: attempts ? (yards / attempts).toFixed(1) : '0.0',
+      touchdowns: rushPlays.filter(p => p.tags.result === 'Touchdown').length,
+      fumbles: rushPlays.filter(p => p.tags.result === 'Fumble').length,
+      longest: rushPlays.reduce((max, p) => Math.max(max, parseInt(p.tags.yardage) || 0), 0),
+      firstDowns: rushPlays.filter(p => p.tags.custom?.includes('1st Down')).length
+    };
+  }
+
+  _passingStats(plays) {
+    const passPlays = plays.filter(p => {
+      const t = p.tags.playType?.toLowerCase() || '';
+      return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
+    });
+    const completions = passPlays.filter(p =>
+      p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain'
+    );
+    const incompletions = passPlays.filter(p => p.tags.result === 'Incomplete');
+    const yards = passPlays.reduce((sum, p) => {
+      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return sum;
+      return sum + (parseInt(p.tags.yardage) || 0);
+    }, 0);
+    const attempts = completions.length + incompletions.length +
+      passPlays.filter(p => p.tags.result === 'Interception').length;
+
+    return {
+      attempts,
+      completions: completions.length,
+      yards,
+      average: attempts ? (yards / attempts).toFixed(1) : '0.0',
+      yardsPerCompletion: completions.length ? (yards / completions.length).toFixed(1) : '0.0',
+      completionPct: attempts ? ((completions.length / attempts) * 100).toFixed(1) : '0.0',
+      touchdowns: passPlays.filter(p => p.tags.result === 'Touchdown').length,
+      interceptions: passPlays.filter(p => p.tags.result === 'Interception').length,
+      sacks: passPlays.filter(p => p.tags.result === 'Sack').length,
+      sackYards: passPlays.filter(p => p.tags.result === 'Sack')
+        .reduce((sum, p) => sum + Math.abs(parseInt(p.tags.yardage) || 0), 0),
+      longest: passPlays.reduce((max, p) => {
+        if (p.tags.result === 'Incomplete') return max;
+        return Math.max(max, parseInt(p.tags.yardage) || 0);
+      }, 0),
+      firstDowns: passPlays.filter(p => p.tags.custom?.includes('1st Down')).length
+    };
+  }
+
+  _scoringStats(plays) {
+    const tds = plays.filter(p => p.tags.result === 'Touchdown');
+    return {
+      touchdowns: tds.length,
+      rushingTDs: tds.filter(p => p.tags.playType?.toLowerCase().includes('run')).length,
+      passingTDs: tds.filter(p => {
+        const t = p.tags.playType?.toLowerCase() || '';
+        return t.includes('pass') || t.includes('screen') || t === 'play action';
+      }).length
+    };
+  }
+
+  _downStats(plays) {
+    const byDown = { '1': [], '2': [], '3': [], '4': [] };
+    plays.forEach(p => {
+      if (p.tags.down && byDown[p.tags.down]) {
+        byDown[p.tags.down].push(p);
+      }
+    });
+
+    const downStats = {};
+    for (const [down, downPlays] of Object.entries(byDown)) {
+      const total = downPlays.length;
+      if (total === 0) {
+        downStats[down] = { total: 0, runPct: '0', passPct: '0', avgYards: '0.0', conversionPct: '0.0' };
+        continue;
+      }
+      const runs = downPlays.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+      const passes = total - runs;
+      const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
+
+      downStats[down] = {
+        total,
+        runs,
+        passes,
+        runPct: ((runs / total) * 100).toFixed(0),
+        passPct: ((passes / total) * 100).toFixed(0),
+        avgYards: (yards / total).toFixed(1),
+        conversionPct: ((conversions / total) * 100).toFixed(1)
+      };
+    }
+
+    const firstDowns = plays.filter(p => p.tags.custom?.includes('1st Down')).length;
+    const thirdDown = byDown['3'];
+    const thirdDownConv = thirdDown.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
+    const fourthDown = byDown['4'];
+    const fourthDownConv = fourthDown.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
+
+    return {
+      byDown: downStats,
+      totalFirstDowns: firstDowns,
+      thirdDownConv: `${thirdDownConv}/${thirdDown.length}`,
+      thirdDownPct: thirdDown.length ? ((thirdDownConv / thirdDown.length) * 100).toFixed(1) : '0.0',
+      fourthDownConv: `${fourthDownConv}/${fourthDown.length}`,
+      fourthDownPct: fourthDown.length ? ((fourthDownConv / fourthDown.length) * 100).toFixed(1) : '0.0'
+    };
+  }
+
+  _turnoverStats(plays) {
+    const ints = plays.filter(p => p.tags.result === 'Interception').length;
+    const fumbles = plays.filter(p => p.tags.result === 'Fumble').length;
+    return {
+      total: ints + fumbles,
+      interceptions: ints,
+      fumbles
+    };
+  }
+
+  _tendencyStats(plays) {
+    // Formation frequency
+    const formations = {};
+    plays.forEach(p => {
+      const f = p.tags.formation || 'Unknown';
+      formations[f] = (formations[f] || 0) + 1;
+    });
+
+    // Play type distribution
+    const playTypes = {};
+    plays.forEach(p => {
+      const t = p.tags.playType || 'Unknown';
+      playTypes[t] = (playTypes[t] || 0) + 1;
+    });
+
+    // Run/pass ratio
+    const runs = plays.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+    const passes = plays.length - runs;
+
+    return {
+      formations,
+      playTypes,
+      runPassRatio: `${runs}/${passes}`,
+      runPct: plays.length ? ((runs / plays.length) * 100).toFixed(1) : '0.0',
+      passPct: plays.length ? ((passes / plays.length) * 100).toFixed(1) : '0.0'
+    };
+  }
+
+  _bigPlays(plays) {
+    return plays.filter(p => {
+      const yds = parseInt(p.tags.yardage) || 0;
+      return yds >= 20 || p.tags.result === 'Touchdown';
+    }).map(p => ({
+      id: p.id,
+      type: p.tags.playType,
+      result: p.tags.result,
+      yards: p.tags.yardage,
+      clipName: p.clipName || `Play ${p.id}`
+    }));
+  }
+
+  _individualStats(plays) {
+    const rushers = {};
+    const passers = {};
+    const receivers = {};
+    const tacklers = {};
+
+    plays.forEach(p => {
+      const players = p.tags.players || {};
+      const yds = parseInt(p.tags.yardage) || 0;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isPass = !isRun;
+      const isTD = p.tags.result === 'Touchdown';
+      const isComplete = p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain';
+
+      // Ball carrier (rushing)
+      if (players.ballCarrier && isRun) {
+        const id = players.ballCarrier;
+        if (!rushers[id]) rushers[id] = { num: id, attempts: 0, yards: 0, tds: 0, long: 0, fumbles: 0 };
+        rushers[id].attempts++;
+        rushers[id].yards += yds;
+        if (isTD) rushers[id].tds++;
+        if (yds > rushers[id].long) rushers[id].long = yds;
+        if (p.tags.result === 'Fumble') rushers[id].fumbles++;
+      }
+
+      // Passer
+      if (players.passer && isPass) {
+        const id = players.passer;
+        if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0 };
+        if (p.tags.result !== 'Sack') passers[id].attempts++;
+        if (isComplete) {
+          passers[id].completions++;
+          passers[id].yards += yds;
+        }
+        if (isTD) passers[id].tds++;
+        if (p.tags.result === 'Interception') passers[id].ints++;
+        if (p.tags.result === 'Sack') passers[id].sacks++;
+      }
+
+      // Receiver
+      if (players.receiver && isPass && isComplete) {
+        const id = players.receiver;
+        if (!receivers[id]) receivers[id] = { num: id, receptions: 0, yards: 0, tds: 0, long: 0 };
+        receivers[id].receptions++;
+        receivers[id].yards += yds;
+        if (isTD) receivers[id].tds++;
+        if (yds > receivers[id].long) receivers[id].long = yds;
+      }
+
+      // Tackler
+      if (players.tackler) {
+        const id = players.tackler;
+        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, sacks: 0, tfl: 0 };
+        tacklers[id].tackles++;
+        if (p.tags.result === 'Sack') tacklers[id].sacks++;
+        if (yds < 0) tacklers[id].tfl++;
+      }
+    });
+
+    return {
+      rushers: Object.values(rushers).sort((a, b) => b.yards - a.yards),
+      passers: Object.values(passers).sort((a, b) => b.yards - a.yards),
+      receivers: Object.values(receivers).sort((a, b) => b.yards - a.yards),
+      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles)
+    };
+  }
+
+  // --- Dashboard Rendering ---
+
+  _renderDashboard(stats) {
+    const el = this.dashboardEl;
+    el.innerHTML = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Game Stats</h2>
+            <div class="stats-header-actions">
+              <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
+              <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">
+            ${this._renderTeamStats(stats)}
+            ${this._renderDownAnalysis(stats)}
+            ${this._renderTendencies(stats)}
+            ${this._renderBigPlays(stats)}
+            ${this._renderIndividualStats(stats)}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Rebind close button
+    el.querySelector('#btnCloseStatsInner').addEventListener('click', () => this.hideDashboard());
+
+    // Export button
+    el.querySelector('#btnExportStats').addEventListener('click', () => this._exportStats(stats));
+
+    // Click overlay to close
+    el.querySelector('.stats-overlay').addEventListener('click', (e) => {
+      if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
+    });
+  }
+
+  _renderTeamStats(stats) {
+    const r = stats.rushing;
+    const p = stats.passing;
+    const s = stats.scoring;
+    const t = stats.turnovers;
+
+    return `
+      <div class="stats-section">
+        <h3>Team Summary</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">Total Plays</div>
+            <div class="stat-card-value">${stats.totalPlays}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Total Yards</div>
+            <div class="stat-card-value">${r.yards + p.yards}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Touchdowns</div>
+            <div class="stat-card-value">${s.touchdowns}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Turnovers</div>
+            <div class="stat-card-value">${t.total}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-section stats-two-col">
+        <div>
+          <h3>Rushing</h3>
+          <table class="stats-table">
+            <tr><td>Attempts</td><td>${r.attempts}</td></tr>
+            <tr><td>Yards</td><td>${r.yards}</td></tr>
+            <tr><td>Average</td><td>${r.average}</td></tr>
+            <tr><td>Longest</td><td>${r.longest}</td></tr>
+            <tr><td>Touchdowns</td><td>${r.touchdowns}</td></tr>
+            <tr><td>First Downs</td><td>${r.firstDowns}</td></tr>
+            <tr><td>Fumbles</td><td>${r.fumbles}</td></tr>
+          </table>
+        </div>
+        <div>
+          <h3>Passing</h3>
+          <table class="stats-table">
+            <tr><td>Comp/Att</td><td>${p.completions}/${p.attempts}</td></tr>
+            <tr><td>Comp %</td><td>${p.completionPct}%</td></tr>
+            <tr><td>Yards</td><td>${p.yards}</td></tr>
+            <tr><td>YPA</td><td>${p.average}</td></tr>
+            <tr><td>Touchdowns</td><td>${p.touchdowns}</td></tr>
+            <tr><td>Interceptions</td><td>${p.interceptions}</td></tr>
+            <tr><td>Sacks / Yds</td><td>${p.sacks} / ${p.sackYards}</td></tr>
+            <tr><td>Longest</td><td>${p.longest}</td></tr>
+            <tr><td>First Downs</td><td>${p.firstDowns}</td></tr>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderDownAnalysis(stats) {
+    const d = stats.downs;
+    const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+
+    let rows = '';
+    for (const [down, s] of Object.entries(d.byDown)) {
+      if (s.total === 0) continue;
+      rows += `<tr>
+        <td>${labels[down]}</td>
+        <td>${s.total}</td>
+        <td>${s.runPct}% / ${s.passPct}%</td>
+        <td>${s.avgYards}</td>
+        <td>${s.conversionPct}%</td>
+      </tr>`;
+    }
+
+    return `
+      <div class="stats-section">
+        <h3>Down &amp; Distance</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">First Downs</div>
+            <div class="stat-card-value">${d.totalFirstDowns}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">3rd Down</div>
+            <div class="stat-card-value">${d.thirdDownConv} (${d.thirdDownPct}%)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">4th Down</div>
+            <div class="stat-card-value">${d.fourthDownConv} (${d.fourthDownPct}%)</div>
+          </div>
+        </div>
+        ${rows ? `<table class="stats-table stats-table-full">
+          <thead><tr><th>Down</th><th>Plays</th><th>Run/Pass</th><th>Avg Yds</th><th>Conv %</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>` : ''}
+      </div>
+    `;
+  }
+
+  _renderTendencies(stats) {
+    const t = stats.tendencies;
+
+    let formationRows = '';
+    const sortedFormations = Object.entries(t.formations).sort((a, b) => b[1] - a[1]);
+    for (const [name, count] of sortedFormations) {
+      const pct = ((count / stats.totalPlays) * 100).toFixed(1);
+      formationRows += `<tr><td>${name}</td><td>${count}</td><td>${pct}%</td></tr>`;
+    }
+
+    let typeRows = '';
+    const sortedTypes = Object.entries(t.playTypes).sort((a, b) => b[1] - a[1]);
+    for (const [name, count] of sortedTypes) {
+      const pct = ((count / stats.totalPlays) * 100).toFixed(1);
+      typeRows += `<tr><td>${name}</td><td>${count}</td><td>${pct}%</td></tr>`;
+    }
+
+    return `
+      <div class="stats-section stats-two-col">
+        <div>
+          <h3>Formation Tendencies</h3>
+          <div class="tendency-bar">
+            <div class="tendency-run" style="width:${t.runPct}%">${t.runPct}% Run</div>
+            <div class="tendency-pass" style="width:${t.passPct}%">${t.passPct}% Pass</div>
+          </div>
+          ${formationRows ? `<table class="stats-table stats-table-full">
+            <thead><tr><th>Formation</th><th>#</th><th>%</th></tr></thead>
+            <tbody>${formationRows}</tbody>
+          </table>` : ''}
+        </div>
+        <div>
+          <h3>Play Type Breakdown</h3>
+          ${typeRows ? `<table class="stats-table stats-table-full">
+            <thead><tr><th>Type</th><th>#</th><th>%</th></tr></thead>
+            <tbody>${typeRows}</tbody>
+          </table>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  _renderBigPlays(stats) {
+    if (stats.bigPlays.length === 0) return '';
+
+    let rows = '';
+    for (const bp of stats.bigPlays) {
+      rows += `<tr>
+        <td>${bp.clipName}</td>
+        <td>${bp.type}</td>
+        <td>${bp.result}</td>
+        <td>${bp.yards}</td>
+      </tr>`;
+    }
+
+    return `
+      <div class="stats-section">
+        <h3>Big Plays (20+ yards &amp; TDs)</h3>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Play</th><th>Type</th><th>Result</th><th>Yards</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  _renderIndividualStats(stats) {
+    const ind = stats.individuals;
+    let html = '';
+
+    if (ind.rushers.length > 0) {
+      let rows = '';
+      for (const r of ind.rushers) {
+        const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
+        rows += `<tr><td>#${r.num}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Individual Rushing</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th><th>Fum</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.passers.length > 0) {
+      let rows = '';
+      for (const p of ind.passers) {
+        const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
+        rows += `<tr><td>#${p.num}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Individual Passing</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>C/A</th><th>Pct</th><th>Yds</th><th>TD</th><th>INT</th><th>Sck</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.receivers.length > 0) {
+      let rows = '';
+      for (const r of ind.receivers) {
+        rows += `<tr><td>#${r.num}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Individual Receiving</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>Long</th><th>TD</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.tacklers.length > 0) {
+      let rows = '';
+      for (const t of ind.tacklers) {
+        rows += `<tr><td>#${t.num}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Individual Tackles</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    return html;
+  }
+
+  _exportStats(stats) {
+    const lines = [];
+    lines.push('=== GAME STATS REPORT ===\n');
+
+    lines.push(`Total Plays: ${stats.totalPlays}`);
+    lines.push(`Total Yards: ${stats.rushing.yards + stats.passing.yards}`);
+    lines.push(`Touchdowns: ${stats.scoring.touchdowns}`);
+    lines.push(`Turnovers: ${stats.turnovers.total}\n`);
+
+    lines.push('--- RUSHING ---');
+    lines.push(`Att: ${stats.rushing.attempts}  Yds: ${stats.rushing.yards}  Avg: ${stats.rushing.average}  TD: ${stats.rushing.touchdowns}  Long: ${stats.rushing.longest}\n`);
+
+    lines.push('--- PASSING ---');
+    lines.push(`${stats.passing.completions}/${stats.passing.attempts} (${stats.passing.completionPct}%)  Yds: ${stats.passing.yards}  TD: ${stats.passing.touchdowns}  INT: ${stats.passing.interceptions}  Sacks: ${stats.passing.sacks}\n`);
+
+    lines.push('--- DOWNS ---');
+    lines.push(`First Downs: ${stats.downs.totalFirstDowns}`);
+    lines.push(`3rd Down: ${stats.downs.thirdDownConv} (${stats.downs.thirdDownPct}%)`);
+    lines.push(`4th Down: ${stats.downs.fourthDownConv} (${stats.downs.fourthDownPct}%)\n`);
+
+    lines.push('--- TENDENCIES ---');
+    lines.push(`Run/Pass: ${stats.tendencies.runPassRatio} (${stats.tendencies.runPct}%/${stats.tendencies.passPct}%)\n`);
+
+    const ind = stats.individuals;
+    if (ind.rushers.length) {
+      lines.push('--- INDIVIDUAL RUSHING ---');
+      lines.push('Player\tAtt\tYds\tAvg\tTD');
+      ind.rushers.forEach(r => {
+        lines.push(`#${r.num}\t${r.attempts}\t${r.yards}\t${(r.yards / r.attempts).toFixed(1)}\t${r.tds}`);
+      });
+      lines.push('');
+    }
+
+    if (ind.passers.length) {
+      lines.push('--- INDIVIDUAL PASSING ---');
+      lines.push('Player\tC/A\tYds\tTD\tINT');
+      ind.passers.forEach(p => {
+        lines.push(`#${p.num}\t${p.completions}/${p.attempts}\t${p.yards}\t${p.tds}\t${p.ints}`);
+      });
+      lines.push('');
+    }
+
+    if (ind.receivers.length) {
+      lines.push('--- INDIVIDUAL RECEIVING ---');
+      lines.push('Player\tRec\tYds\tTD');
+      ind.receivers.forEach(r => {
+        lines.push(`#${r.num}\t${r.receptions}\t${r.yards}\t${r.tds}`);
+      });
+      lines.push('');
+    }
+
+    const text = lines.join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'game_stats.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
+// ===== app.js =====
+/**
+ * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
+ */
+
+class App {
+  constructor() {
+    // Initialize components
+    this.vc = new VideoController();
+    this.canvas = new CanvasOverlay(this.vc);
+    this.tagger = new PlayTagger(this.vc);
+    this.notes = new NotesManager(this.vc, this.tagger);
+    this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
+    this.detector = new PlayDetector(this.vc, this.tagger);
+    this.playlist = new PlaylistManager(this.vc, this.tagger);
+    this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
+    this.stats = new StatsEngine(this.tagger);
+
+    // Give storage a reference to playlist
+    this.storage.playlist = this.playlist;
+
+    // Wire cross-module events
+    this._wireEvents();
+
+    // Keyboard shortcuts
+    this._bindKeyboard();
+
+    // Drawing tool UI
+    this._bindToolUI();
+
+    // Sidebar panel toggles
+    this._bindPanelToggles();
+
+    // Auto-detect UI
+    this._bindAutoDetect();
+
+    // Enable auto-save
+    this.storage.enableAutoSave();
+
+    // Quick-chart save triggers auto-save via play-updated event
+    this.quickChart.on('play-charted', () => {
+      this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
+    });
+  }
+
+  _wireEvents() {
+    // Re-render canvas annotations when video time changes
+    this.vc.on('time-update', () => {
+      this.canvas.render();
+    });
+
+    // Handle file selection from top bar (single or multi)
+    this.vc.on('files-selected', ({ files }) => {
+      if (files.length === 1 && !this.playlist.hasClips) {
+        // Single file, no existing playlist — legacy single-video mode
+        this.vc.loadFile(files[0]);
+      } else {
+        // Multiple files or adding to playlist — multi-clip mode
+        this.playlist.addFiles(files);
+      }
+    });
+
+    // Update timeline markers when plays change
+    this.tagger.on('play-created', () => {
+      this.tagger.updateScrubBarPlays();
+    });
+    this.tagger.on('play-deleted', () => {
+      this.tagger.updateScrubBarPlays();
+    });
+    this.tagger.on('play-updated', () => {
+      this.tagger.updateScrubBarPlays();
+    });
+
+    // When a play is selected and it has a clip, switch the playlist to that clip
+    this.tagger.on('play-selected', (play) => {
+      if (play.clipId && this.playlist.hasClips) {
+        this.playlist.switchToClipByPlayId(play.id);
+      }
+      this.canvas.render();
+    });
+
+    // When playlist switches clips, re-sync canvas
+    this.playlist.on('clip-switched', () => {
+      this.canvas.render();
+    });
+
+    // Auto-advance to next clip when current clip ends (optional behavior)
+    this.vc.videoElement.addEventListener('ended', () => {
+      // Don't auto-advance; let user control navigation
+    });
+  }
+
+  _bindKeyboard() {
+    document.addEventListener('keydown', (e) => {
+      // Don't capture keys when typing in inputs
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      // Let quick-chart handle its own keys when active
+      if (this.quickChart.isActive) return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          this.vc.togglePlay();
+          break;
+        case 'ArrowLeft':
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.playlist.prevClip();
+          } else {
+            e.preventDefault();
+            this.vc.stepBack();
+          }
+          break;
+        case 'Comma':
+          e.preventDefault();
+          this.vc.stepBack();
+          break;
+        case 'ArrowRight':
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.playlist.nextClip();
+          } else {
+            e.preventDefault();
+            this.vc.stepForward();
+          }
+          break;
+        case 'Period':
+          e.preventDefault();
+          this.vc.stepForward();
+          break;
+        case 'BracketLeft':
+          e.preventDefault();
+          this.tagger.markStart();
+          break;
+        case 'BracketRight':
+          e.preventDefault();
+          this.tagger.markEnd();
+          break;
+        case 'Digit1':
+          this._selectTool('line');
+          break;
+        case 'Digit2':
+          this._selectTool('arrow');
+          break;
+        case 'Digit3':
+          this._selectTool('circle');
+          break;
+        case 'Digit4':
+          this._selectTool('rect');
+          break;
+        case 'Digit5':
+          this._selectTool('freehand');
+          break;
+        case 'Digit6':
+          this._selectTool('text');
+          break;
+        case 'Escape':
+          this._selectTool(null);
+          break;
+        case 'KeyZ':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (e.shiftKey) {
+              this.canvas.redo();
+            } else {
+              this.canvas.undo();
+            }
+          }
+          break;
+        case 'KeyS':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            this.storage.saveProject();
+          }
+          break;
+      }
+    });
+  }
+
+  _bindToolUI() {
+    // Tool buttons
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tool = btn.dataset.tool;
+        this._selectTool(this.canvas.currentTool === tool ? null : tool);
+      });
+    });
+
+    // Color swatches
+    document.querySelectorAll('.swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+        this.canvas.color = swatch.dataset.color;
+      });
+    });
+
+    // Line width slider
+    const slider = document.getElementById('lineWidthSlider');
+    slider.addEventListener('input', () => {
+      this.canvas.lineWidth = parseInt(slider.value);
+    });
+
+    // Undo/Redo/Clear
+    document.getElementById('btnUndo').addEventListener('click', () => this.canvas.undo());
+    document.getElementById('btnRedo').addEventListener('click', () => this.canvas.redo());
+    document.getElementById('btnClearAnnotations').addEventListener('click', () => {
+      if (confirm('Clear all annotations?')) {
+        this.canvas.clearAllAnnotations();
+      }
+    });
+  }
+
+  _selectTool(toolName) {
+    this.canvas.currentTool = toolName;
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tool === toolName);
+    });
+    // Update cursor
+    this.canvas.canvas.style.cursor = toolName ? 'crosshair' : 'default';
+  }
+
+  _bindPanelToggles() {
+    document.querySelectorAll('.panel-title[data-toggle]').forEach(title => {
+      title.addEventListener('click', () => {
+        const targetId = title.dataset.toggle;
+        const body = document.getElementById(targetId);
+        if (body) body.classList.toggle('collapsed');
+      });
+    });
+  }
+
+  _bindAutoDetect() {
+    const btnAutoDetect = document.getElementById('btnAutoDetect');
+    const btnCancelScan = document.getElementById('btnCancelScan');
+    const progressDiv = document.getElementById('autoDetectProgress');
+    const progressFill = document.getElementById('scanProgressFill');
+    const progressLabel = document.getElementById('scanProgressLabel');
+    const settingsDiv = document.getElementById('autoDetectSettings');
+    const btnToggleSettings = document.getElementById('btnToggleDetectSettings');
+    const resultsDiv = document.getElementById('autoDetectResults');
+    const resultCount = document.getElementById('detectResultCount');
+    const btnApply = document.getElementById('btnApplyDetected');
+    const motionCanvas = document.getElementById('motionGraphCanvas');
+    const sensitivitySlider = document.getElementById('detectSensitivity');
+    const sensitivityValue = document.getElementById('sensitivityValue');
+
+    // Toggle settings visibility
+    btnToggleSettings.addEventListener('click', () => {
+      settingsDiv.classList.toggle('hidden');
+    });
+
+    // Sensitivity slider label
+    sensitivitySlider.addEventListener('input', () => {
+      sensitivityValue.textContent = sensitivitySlider.value + '%';
+    });
+
+    // Start scan
+    btnAutoDetect.addEventListener('click', async () => {
+      if (this.detector.isScanning) return;
+
+      // Read settings into detector
+      this.detector.motionThreshold = parseInt(sensitivitySlider.value) / 100;
+      this.detector.minPlayDuration = parseFloat(document.getElementById('detectMinDuration').value) || 2;
+      this.detector.maxPlayDuration = parseFloat(document.getElementById('detectMaxDuration').value) || 30;
+      this.detector.cooldownAfterEnd = parseFloat(document.getElementById('detectCooldown').value) || 3;
+      this.detector.sampleInterval = parseFloat(document.getElementById('detectSampleRate').value) || 0.2;
+
+      // Show progress, hide results
+      progressDiv.classList.remove('hidden');
+      btnCancelScan.classList.remove('hidden');
+      resultsDiv.classList.add('hidden');
+      btnAutoDetect.disabled = true;
+      btnAutoDetect.classList.add('scanning');
+
+      try {
+        if (this.playlist.hasClips) {
+          // Multi-clip mode: scan each clip to find the action window
+          const results = await this.detector.scanClips(this.playlist);
+
+          // Show summary
+          const totalDetected = results.reduce((s, r) => s + r.detected.length, 0);
+          resultCount.textContent = `${totalDetected} action windows found in ${results.length} clips`;
+          resultsDiv.classList.remove('hidden');
+          btnApply.classList.add('hidden'); // Already applied directly to play entries
+
+          // Draw a combined motion overview for the last scanned clip
+          if (results.length > 0) {
+            const last = results[results.length - 1];
+            if (last.motionData.length > 0) {
+              this._drawMotionGraph(motionCanvas, last.motionData, last.detected, this.detector.motionThreshold);
+            }
+          }
+        } else {
+          // Single-video mode
+          if (!this.vc.videoElement.duration) {
+            alert('Load a video first.');
+            throw new Error('No video');
+          }
+          await this.detector.scan();
+
+          const plays = this.detector.detectedPlays;
+          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected`;
+          resultsDiv.classList.remove('hidden');
+          btnApply.classList.remove('hidden');
+          this._drawMotionGraph(motionCanvas, this.detector.motionData, plays, this.detector.motionThreshold);
+        }
+      } catch (e) {
+        if (e.message !== 'No video') {
+          alert('Scan error: ' + e.message);
+        }
+      }
+
+      // Scan finished
+      btnAutoDetect.disabled = false;
+      btnAutoDetect.classList.remove('scanning');
+      btnCancelScan.classList.add('hidden');
+      progressDiv.classList.add('hidden');
+    });
+
+    // Cancel scan
+    btnCancelScan.addEventListener('click', () => {
+      this.detector.cancelScan();
+    });
+
+    // Apply detected plays (single-video mode only)
+    btnApply.addEventListener('click', () => {
+      const added = this.detector.applyDetectedPlays();
+      resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added`;
+    });
+
+    // Progress updates
+    this.detector.on('scan-progress', (data) => {
+      const pct = Math.round(data.progress * 100);
+      progressFill.style.width = pct + '%';
+      if (data.clipName) {
+        progressLabel.textContent = `${pct}% — ${data.clipName}`;
+      } else {
+        progressLabel.textContent = pct + '%';
+      }
+    });
+  }
+
+  _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {
+    if (!motionData.length) return;
+
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width;
+    const h = 60;
+    canvas.width = w * devicePixelRatio;
+    canvas.height = h * devicePixelRatio;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    // Background
+    ctx.fillStyle = '#16213e';
+    ctx.fillRect(0, 0, w, h);
+
+    // Find max motion for scaling
+    let maxMotion = 0;
+    for (const d of motionData) {
+      if (d.motion > maxMotion) maxMotion = d.motion;
+    }
+    if (maxMotion === 0) return;
+
+    const duration = motionData[motionData.length - 1].time;
+
+    // Draw detected play regions
+    ctx.fillStyle = 'rgba(233, 69, 96, 0.2)';
+    for (const p of detectedPlays) {
+      const x1 = (p.start / duration) * w;
+      const x2 = (p.end / duration) * w;
+      ctx.fillRect(x1, 0, x2 - x1, h);
+    }
+
+    // Draw threshold line
+    const threshY = h - (threshold) * (h - 4) - 2;
+    ctx.strokeStyle = 'rgba(255, 170, 0, 0.5)';
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, threshY);
+    ctx.lineTo(w, threshY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw motion curve
+    ctx.strokeStyle = '#44ff44';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < motionData.length; i++) {
+      const x = (motionData[i].time / duration) * w;
+      const y = h - (motionData[i].motion / maxMotion) * (h - 4) - 2;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// Boot the app
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new App();
+});
+  </script>
+</body>
+</html>
