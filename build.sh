@@ -1,0 +1,74 @@
+#!/bin/bash
+# Build a single self-contained HTML file from the modular source files
+cd /home/user/Charlie
+
+OUTPUT="football-film-analyzer.html"
+
+# Function to strip import/export from JS files
+strip_modules() {
+  sed -E '/^import /d; /^export (class|function|const|let|var|default)/s/^export //; /^export \{/d' "$1"
+}
+
+cat > "$OUTPUT" << 'HTMLHEAD'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Football Film Analyzer</title>
+  <style>
+HTMLHEAD
+
+# Inline CSS
+cat css/styles.css >> "$OUTPUT"
+
+cat >> "$OUTPUT" << 'STYLEEND'
+  </style>
+</head>
+<body>
+STYLEEND
+
+# Inline SVG sprite (must be in body for <use href="#id"> to work)
+cat assets/icons.svg >> "$OUTPUT"
+
+echo "" >> "$OUTPUT"
+
+# Extract the body content from index.html (between <body> and </body>),
+# excluding the <script> tag, and fix SVG href paths
+sed -n '/<div id="app">/,/<\/div>/p' index.html | \
+  sed 's|assets/icons.svg#|#|g' >> "$OUTPUT"
+
+# Start inline script
+cat >> "$OUTPUT" << 'SCRIPTSTART'
+
+  <script>
+SCRIPTSTART
+
+# Inline all JS in dependency order, stripping module syntax
+for jsfile in \
+  js/video-controller.js \
+  js/canvas-overlay.js \
+  js/play-tagger.js \
+  js/notes-manager.js \
+  js/storage.js \
+  js/play-detector.js \
+  js/playlist-manager.js \
+  js/quick-chart.js \
+  js/stats-engine.js \
+  js/app.js
+do
+  echo "" >> "$OUTPUT"
+  echo "// ===== $(basename $jsfile) =====" >> "$OUTPUT"
+  strip_modules "$jsfile" >> "$OUTPUT"
+done
+
+# Fix any remaining SVG href references in JS
+sed -i "s|assets/icons.svg#|#|g" "$OUTPUT"
+
+cat >> "$OUTPUT" << 'HTMLEND'
+  </script>
+</body>
+</html>
+HTMLEND
+
+echo "Built: $OUTPUT ($(wc -l < "$OUTPUT") lines, $(du -h "$OUTPUT" | cut -f1))"
