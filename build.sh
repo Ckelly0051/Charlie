@@ -33,9 +33,9 @@ cat assets/icons.svg >> "$OUTPUT"
 
 echo "" >> "$OUTPUT"
 
-# Extract the body content from index.html (between <body> and </body>),
-# excluding the <script> tag, and fix SVG href paths
-sed -n '/<div id="app">/,/<\/div>/p' index.html | \
+# Extract the FULL body content from index.html:
+# Everything between <body> and </body>, excluding those tags and the <script> tag
+sed -n '/<body>/,/<\/body>/{ /<body>/d; /<\/body>/d; /<script.*app\.js/d; p; }' index.html | \
   sed 's|assets/icons.svg#|#|g' >> "$OUTPUT"
 
 # Start inline script
