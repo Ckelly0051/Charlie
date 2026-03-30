@@ -8,6 +8,8 @@ import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
 import { PlayDetector } from './play-detector.js';
 import { PlaylistManager } from './playlist-manager.js';
+import { QuickChart } from './quick-chart.js';
+import { StatsEngine } from './stats-engine.js';
 
 class App {
   constructor() {
@@ -19,6 +21,8 @@ class App {
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.playlist = new PlaylistManager(this.vc, this.tagger);
+    this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
+    this.stats = new StatsEngine(this.tagger);
 
     // Give storage a reference to playlist
     this.storage.playlist = this.playlist;
@@ -40,6 +44,11 @@ class App {
 
     // Enable auto-save
     this.storage.enableAutoSave();
+
+    // Quick-chart save triggers auto-save via play-updated event
+    this.quickChart.on('play-charted', () => {
+      this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
+    });
   }
 
   _wireEvents() {
@@ -94,6 +103,9 @@ class App {
       // Don't capture keys when typing in inputs
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      // Let quick-chart handle its own keys when active
+      if (this.quickChart.isActive) return;
 
       switch (e.code) {
         case 'Space':
