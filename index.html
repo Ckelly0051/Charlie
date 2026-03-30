@@ -1494,6 +1494,439 @@ body {
       <div class="top-bar-left">
         <h1 class="app-title">Football Film Analyzer</h1>
       </div>
+      <div class="top-bar-center">
+        <label class="file-input-label" id="videoDropZone">
+          <svg class="icon"><use href="#icon-upload"/></svg>
+          <span id="fileLabel">Drop video(s) or click to load</span>
+          <input type="file" id="videoFileInput" accept="video/*" multiple hidden>
+        </label>
+      </div>
+      <div class="top-bar-right">
+        <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
+          <svg class="icon"><use href="#icon-chart"/></svg> Quick Chart
+        </button>
+        <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
+          <svg class="icon"><use href="#icon-stats"/></svg> Stats
+        </button>
+        <button class="btn" id="btnSave" title="Save Project (Ctrl+S)">
+          <svg class="icon"><use href="#icon-save"/></svg> Save
+        </button>
+        <button class="btn" id="btnLoad" title="Load Project">
+          <svg class="icon"><use href="#icon-folder"/></svg> Load
+          <input type="file" id="projectFileInput" accept=".json" hidden>
+        </button>
+        <button class="btn" id="btnExportPng" title="Export Frame as PNG">
+          <svg class="icon"><use href="#icon-image"/></svg> Screenshot
+        </button>
+        <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
+          <svg class="icon"><use href="#icon-download"/></svg> CSV
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Video Area -->
+      <div class="video-section">
+        <div class="video-container" id="videoContainer">
+          <video id="videoPlayer" preload="auto"></video>
+          <canvas id="drawingCanvas"></canvas>
+          <div class="video-placeholder" id="videoPlaceholder">
+            <svg class="icon icon-large"><use href="#icon-film"/></svg>
+            <p>Load a video file to begin</p>
+          </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="playback-controls">
+          <div class="controls-left">
+            <button class="ctrl-btn" id="btnPrevClip" title="Previous Clip (Shift+Left)">
+              <svg class="icon"><use href="#icon-prev-clip"/></svg>
+            </button>
+            <button class="ctrl-btn" id="btnStepBack" title="Step Back (Left Arrow)">
+              <svg class="icon"><use href="#icon-step-back"/></svg>
+            </button>
+            <button class="ctrl-btn" id="btnPlayPause" title="Play/Pause (Space)">
+              <svg class="icon" id="iconPlayPause"><use href="#icon-play"/></svg>
+            </button>
+            <button class="ctrl-btn" id="btnStepForward" title="Step Forward (Right Arrow)">
+              <svg class="icon"><use href="#icon-step-forward"/></svg>
+            </button>
+            <button class="ctrl-btn" id="btnNextClip" title="Next Clip (Shift+Right)">
+              <svg class="icon"><use href="#icon-next-clip"/></svg>
+            </button>
+            <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+            <span class="clip-indicator" id="clipIndicator"></span>
+          </div>
+          <div class="scrub-bar-container">
+            <div class="scrub-bar" id="scrubBar">
+              <div class="scrub-bar-fill" id="scrubBarFill"></div>
+              <div class="scrub-bar-plays" id="scrubBarPlays"></div>
+              <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+            </div>
+          </div>
+          <div class="controls-right">
+            <select id="speedSelect" class="speed-select" title="Playback Speed">
+              <option value="0.25">0.25x</option>
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+            <label class="fps-label" title="Video frame rate">
+              FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar -->
+      <aside class="sidebar">
+        <!-- Playlist -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="playlistPanel">
+            <svg class="icon"><use href="#icon-film"/></svg>
+            Playlist
+            <span class="panel-badge" id="clipCount">0 clips</span>
+          </h3>
+          <div class="panel-body" id="playlistPanel">
+            <div class="playlist-controls">
+              <button class="btn btn-sm btn-accent" id="btnAddClips">
+                <svg class="icon"><use href="#icon-upload"/></svg>
+                Add Clips
+              </button>
+              <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
+            </div>
+            <div class="playlist-list" id="playlistItems">
+              <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drawing Tools -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="drawingTools">
+            <svg class="icon"><use href="#icon-pencil"/></svg>
+            Drawing Tools
+          </h3>
+          <div class="panel-body" id="drawingTools">
+            <div class="tool-grid">
+              <button class="tool-btn" data-tool="line" title="Line (1)">
+                <svg class="icon"><use href="#icon-line"/></svg>
+                <span>Line</span>
+              </button>
+              <button class="tool-btn" data-tool="arrow" title="Arrow (2)">
+                <svg class="icon"><use href="#icon-arrow"/></svg>
+                <span>Arrow</span>
+              </button>
+              <button class="tool-btn" data-tool="circle" title="Circle (3)">
+                <svg class="icon"><use href="#icon-circle"/></svg>
+                <span>Circle</span>
+              </button>
+              <button class="tool-btn" data-tool="rect" title="Rectangle (4)">
+                <svg class="icon"><use href="#icon-rect"/></svg>
+                <span>Rect</span>
+              </button>
+              <button class="tool-btn" data-tool="freehand" title="Freehand (5)">
+                <svg class="icon"><use href="#icon-freehand"/></svg>
+                <span>Draw</span>
+              </button>
+              <button class="tool-btn" data-tool="text" title="Text (6)">
+                <svg class="icon"><use href="#icon-text"/></svg>
+                <span>Text</span>
+              </button>
+            </div>
+            <div class="tool-options">
+              <div class="color-swatches">
+                <button class="swatch active" data-color="#ffffff" style="background:#ffffff" title="White"></button>
+                <button class="swatch" data-color="#ffff00" style="background:#ffff00" title="Yellow"></button>
+                <button class="swatch" data-color="#ff4444" style="background:#ff4444" title="Red"></button>
+                <button class="swatch" data-color="#4488ff" style="background:#4488ff" title="Blue"></button>
+                <button class="swatch" data-color="#44ff44" style="background:#44ff44" title="Green"></button>
+                <button class="swatch" data-color="#ff8800" style="background:#ff8800" title="Orange"></button>
+              </div>
+              <div class="line-width-control">
+                <label>Width:</label>
+                <input type="range" id="lineWidthSlider" min="2" max="10" value="3">
+              </div>
+              <div class="tool-actions">
+                <button class="btn btn-sm" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+                <button class="btn btn-sm" id="btnRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+                <button class="btn btn-sm btn-danger" id="btnClearAnnotations" title="Clear All Annotations">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Play Tagger -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="playTagger">
+            <svg class="icon"><use href="#icon-tag"/></svg>
+            Play Tagger
+          </h3>
+          <div class="panel-body" id="playTagger">
+            <div class="play-mark-controls">
+              <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
+              <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
+              <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
+            </div>
+
+            <!-- Auto-detect section -->
+            <div class="auto-detect-section">
+              <div class="auto-detect-header">
+                <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
+                  <svg class="icon"><use href="#icon-scan"/></svg>
+                  Auto-Detect Plays
+                </button>
+                <button class="btn btn-sm btn-danger hidden" id="btnCancelScan">Cancel</button>
+              </div>
+              <div class="auto-detect-progress hidden" id="autoDetectProgress">
+                <div class="progress-bar">
+                  <div class="progress-bar-fill" id="scanProgressFill"></div>
+                </div>
+                <span class="progress-label" id="scanProgressLabel">0%</span>
+              </div>
+              <div class="auto-detect-settings hidden" id="autoDetectSettings">
+                <div class="detect-setting">
+                  <label>Sensitivity</label>
+                  <input type="range" id="detectSensitivity" min="10" max="70" value="35" title="Lower = more sensitive">
+                  <span class="setting-value" id="sensitivityValue">35%</span>
+                </div>
+                <div class="detect-setting">
+                  <label>Min Play (sec)</label>
+                  <input type="number" id="detectMinDuration" value="2" min="1" max="15" step="0.5">
+                </div>
+                <div class="detect-setting">
+                  <label>Max Play (sec)</label>
+                  <input type="number" id="detectMaxDuration" value="30" min="5" max="60" step="1">
+                </div>
+                <div class="detect-setting">
+                  <label>Cooldown (sec)</label>
+                  <input type="number" id="detectCooldown" value="3" min="1" max="15" step="0.5">
+                </div>
+                <div class="detect-setting">
+                  <label>Sample rate (sec)</label>
+                  <input type="number" id="detectSampleRate" value="0.2" min="0.05" max="1" step="0.05">
+                </div>
+              </div>
+              <button class="btn btn-sm btn-link" id="btnToggleDetectSettings">Settings</button>
+              <div class="auto-detect-results hidden" id="autoDetectResults">
+                <div class="detect-results-header">
+                  <span id="detectResultCount">0 plays detected</span>
+                  <button class="btn btn-sm btn-accent" id="btnApplyDetected">Apply All</button>
+                </div>
+                <div class="detect-motion-graph" id="motionGraph">
+                  <canvas id="motionGraphCanvas" height="60"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="play-selector">
+              <label>Current Play:</label>
+              <select id="playSelect" class="play-select">
+                <option value="">-- No plays tagged --</option>
+              </select>
+            </div>
+            <div class="tag-form" id="tagForm">
+              <div class="tag-row">
+                <label>Down &amp; Distance</label>
+                <div class="tag-row-inline">
+                  <select id="tagDown">
+                    <option value="">--</option>
+                    <option value="1">1st</option>
+                    <option value="2">2nd</option>
+                    <option value="3">3rd</option>
+                    <option value="4">4th</option>
+                  </select>
+                  <span>&amp;</span>
+                  <input type="number" id="tagDistance" placeholder="Yds" min="0" max="99">
+                </div>
+              </div>
+              <div class="tag-row">
+                <label>Formation</label>
+                <select id="tagFormation">
+                  <option value="">--</option>
+                  <option>Shotgun</option>
+                  <option>Under Center</option>
+                  <option>Pistol</option>
+                  <option>I-Form</option>
+                  <option>Singleback</option>
+                  <option>Empty</option>
+                  <option>Wildcat</option>
+                  <option>Goal Line</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Play Type</label>
+                <select id="tagPlayType">
+                  <option value="">--</option>
+                  <option>Run Inside</option>
+                  <option>Run Outside</option>
+                  <option>Screen</option>
+                  <option>Short Pass</option>
+                  <option>Medium Pass</option>
+                  <option>Deep Pass</option>
+                  <option>Play Action</option>
+                  <option>RPO</option>
+                  <option>Trick Play</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Defensive Front</label>
+                <select id="tagDefFront">
+                  <option value="">--</option>
+                  <option>4-3</option>
+                  <option>3-4</option>
+                  <option>Nickel</option>
+                  <option>Dime</option>
+                  <option>Quarter</option>
+                  <option>4-6</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Coverage</label>
+                <select id="tagCoverage">
+                  <option value="">--</option>
+                  <option>Cover 0</option>
+                  <option>Cover 1</option>
+                  <option>Cover 2</option>
+                  <option>Cover 3</option>
+                  <option>Cover 4</option>
+                  <option>Cover 6</option>
+                  <option>Man</option>
+                  <option>Zone</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Blitz</label>
+                <div class="tag-row-inline">
+                  <select id="tagBlitz">
+                    <option value="">None</option>
+                    <option>A-Gap</option>
+                    <option>B-Gap</option>
+                    <option>Edge</option>
+                    <option>DB Blitz</option>
+                    <option>Zone Blitz</option>
+                  </select>
+                </div>
+              </div>
+              <div class="tag-row">
+                <label>Result</label>
+                <div class="tag-row-inline">
+                  <select id="tagResult">
+                    <option value="">--</option>
+                    <option>Gain</option>
+                    <option>Loss</option>
+                    <option>No Gain</option>
+                    <option>Incomplete</option>
+                    <option>Interception</option>
+                    <option>Touchdown</option>
+                    <option>Sack</option>
+                    <option>Fumble</option>
+                    <option>Penalty</option>
+                  </select>
+                  <input type="number" id="tagYardage" placeholder="Yds" min="-99" max="99">
+                </div>
+              </div>
+              <div class="tag-row">
+                <label>Hash</label>
+                <select id="tagHash">
+                  <option value="">--</option>
+                  <option>Left</option>
+                  <option>Middle</option>
+                  <option>Right</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Custom Tags</label>
+                <div class="custom-tags-input">
+                  <div class="tag-chips" id="tagChips"></div>
+                  <input type="text" id="customTagInput" placeholder="Add tag + Enter">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Panel -->
+    <div class="bottom-panel">
+      <div class="notes-section">
+        <h3 class="panel-title">
+          <svg class="icon"><use href="#icon-notes"/></svg>
+          Play Notes
+          <button class="btn btn-sm" id="btnInsertTimestamp" title="Insert Timestamp">+ Time</button>
+        </h3>
+        <textarea id="notesArea" class="notes-area" placeholder="Add notes for the current play..."></textarea>
+      </div>
+      <div class="timeline-section">
+        <h3 class="panel-title">
+          <svg class="icon"><use href="#icon-timeline"/></svg>
+          Timeline
+        </h3>
+        <div class="timeline-strip" id="timelineStrip">
+          <div class="timeline-bar" id="timelineBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Chart Panel (overlay on bottom when active) -->
+    <div class="quick-chart-panel hidden" id="quickChartPanel">
+      <div class="qc-main">
+        <div class="qc-fields">
+          <div class="qc-field">
+            <span class="qc-label">TYPE</span>
+            <span class="qc-value" id="qcPlayType">—</span>
+          </div>
+          <div class="qc-field">
+            <span class="qc-label">RESULT</span>
+            <span class="qc-value" id="qcResult">—</span>
+          </div>
+          <div class="qc-field">
+            <span class="qc-label">YARDS</span>
+            <span class="qc-value" id="qcYardage">—</span>
+          </div>
+          <div class="qc-field">
+            <span class="qc-label">DOWN</span>
+            <span class="qc-value" id="qcDown">—</span>
+          </div>
+          <div class="qc-field">
+            <span class="qc-label">FLAGS</span>
+            <span class="qc-value" id="qcExtra"></span>
+          </div>
+        </div>
+        <div class="qc-players">
+          <div class="qc-player-field">
+            <label>Carrier #</label>
+            <input type="text" id="qcBallCarrier" placeholder="#" maxlength="3">
+          </div>
+          <div class="qc-player-field">
+            <label>Passer #</label>
+            <input type="text" id="qcPasser" placeholder="#" maxlength="3">
+          </div>
+          <div class="qc-player-field">
+            <label>Receiver #</label>
+            <input type="text" id="qcReceiver" placeholder="#" maxlength="3">
+          </div>
+          <div class="qc-player-field">
+            <label>Tackler #</label>
+            <input type="text" id="qcTackler" placeholder="#" maxlength="3">
+          </div>
+        </div>
+        <div class="qc-status" id="qcStatus">Press keys to tag — Enter to save &amp; advance</div>
+      </div>
+      <div class="qc-key-hints" id="qcKeyHints">
+        <span><b>Type:</b> R=Run O=Outside P=Pass M=Med D=Deep S=Screen A=PA Q=RPO K=Kick X=Trick</span>
+        <span><b>Result:</b> G=Gain L=Loss N=None I=Inc T=TD U=INT F=Fum W=Sack E=Pen</span>
+        <span><b>Nav:</b> 0-9=Yards &minus;=Neg Shift+1-4=Down Enter=Save+Next Tab=Skip Bksp=Replay C=Clear</span>
+      </div>
+    </div>
+
+    <!-- Stats Dashboard (full-screen overlay) -->
+    <div class="hidden" id="statsDashboard"></div>
+    <button class="hidden" id="btnCloseStats"></button>
+  </div>
+
 
   <script>
 
