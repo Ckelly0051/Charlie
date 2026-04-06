@@ -5,12 +5,14 @@
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
 import { HeatMaps } from './heat-maps.js';
+import { AdvancedMetrics } from './advanced-metrics.js';
 
 export class StatsEngine {
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
     this.heatMaps = new HeatMaps();
+    this.advanced = new AdvancedMetrics();
     this.dashboardEl = document.getElementById('statsDashboard');
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.getElementById('btnCloseStats');
@@ -63,7 +65,8 @@ export class StatsEngine {
       drives: this._driveStats(plays),
       situational: this._situationalStats(plays),
       efficiency: this._efficiencyStats(plays),
-      personnel: this._personnelStats(plays)
+      personnel: this._personnelStats(plays),
+      advanced: this.advanced.summarize(plays)
     };
 
     return stats;
@@ -450,6 +453,7 @@ export class StatsEngine {
           <div class="stats-body">
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
+            ${this._renderAdvanced(stats)}
             ${this.heatMaps.render(this._currentPlays())}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
@@ -502,6 +506,94 @@ export class StatsEngine {
           <div class="stat-card"><div class="stat-card-title">Negative Plays</div><div class="stat-card-value">${e.negativePlays} (${e.negativePct}%)</div></div>
         </div>
         <div class="success-rate-bar"><div style="width:${e.successRate}%;background:var(--accent);height:100%"></div></div>
+      </div>`;
+  }
+
+  _renderAdvanced(stats) {
+    const a = stats.advanced;
+    if (!a || !a.count) {
+      return `<div class="stats-section"><h3>Expected Points (EPA)</h3><p style="opacity:.6">Tag down, distance, yard line and result on plays to see EPA.</p></div>`;
+    }
+    const W = 600, H = 160, P = 30;
+    const n = a.curve.length;
+    const vals = a.curve.map(c => c.cum);
+    const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+    const xs = i => P + (n <= 1 ? 0 : (i * (W - 2 * P)) / (n - 1));
+    const ys = v => H - P - ((v - lo) / (hi - lo || 1)) * (H - 2 * P);
+    const path = a.curve.map((c, i) => `${i === 0 ? 'M' : 'L'}${xs(i).toFixed(1)},${ys(c.cum).toFixed(1)}`).join(' ');
+    const zeroY = ys(0).toFixed(1);
+    const epaClass = v => v > 0 ? 'epa-pos' : v < 0 ? 'epa-neg' : '';
+    const fmt = v => (v > 0 ? '+' : '') + v.toFixed(2);
+
+    const groupTable = (title, rows) => {
+      if (!rows.length) return '';
+      const body = rows.slice(0, 8).map(r =>
+        `<tr><td>${r.name}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
+      ).join('');
+      return `<div><h4 style="margin:8px 0 4px">${title}</h4>
+        <table class="stats-table stats-table-full epa-table">
+          <thead><tr><th>${title}</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table></div>`;
+    };
+
+    const playRow = (x) => {
+      const t = x.play.tags || {};
+      const label = `${t.down || '?'}&${t.distance || '?'} ${t.formation || ''} ${t.playType || ''}`.trim();
+      return `<tr><td>#${x.play.id}</td><td>${label}</td><td>${t.yardage || 0}</td><td class="${epaClass(x.epa)}">${fmt(x.epa)}</td></tr>`;
+    };
+
+    const downRows = ['1', '2', '3', '4'].map(d => {
+      const dd = a.byDown[d];
+      if (!dd || !dd.count) return '';
+      return `<tr><td>${d}</td><td>${dd.count}</td><td class="${epaClass(dd.total)}">${fmt(dd.total)}</td><td class="${epaClass(dd.perPlay)}">${fmt(dd.perPlay)}</td></tr>`;
+    }).join('');
+
+    return `
+      <div class="stats-section">
+        <h3>Expected Points (EPA)</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Total EPA</div><div class="stat-card-value ${epaClass(a.total)}">${fmt(a.total)}</div></div>
+          <div class="stat-card"><div class="stat-card-title">EPA / Play</div><div class="stat-card-value ${epaClass(a.perPlay)}">${fmt(a.perPlay)}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Plays Scored</div><div class="stat-card-value">${a.count}</div></div>
+        </div>
+        <div class="epa-curve-wrap">
+          <svg viewBox="0 0 ${W} ${H}" class="epa-curve" preserveAspectRatio="xMidYMid meet">
+            <line x1="${P}" y1="${zeroY}" x2="${W - P}" y2="${zeroY}" stroke="#555" stroke-dasharray="3,3"/>
+            <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+            <text x="${P}" y="14" fill="#aaa" font-size="11">Cumulative EPA</text>
+            <text x="${P}" y="${H - 8}" fill="#aaa" font-size="10">Play 1</text>
+            <text x="${W - P}" y="${H - 8}" fill="#aaa" font-size="10" text-anchor="end">Play ${n}</text>
+            <text x="${W - P}" y="14" fill="#aaa" font-size="11" text-anchor="end">High ${hi.toFixed(1)} / Low ${lo.toFixed(1)}</text>
+          </svg>
+        </div>
+        <div class="stats-two-col">
+          ${groupTable('Play Type', a.byType)}
+          ${groupTable('Formation', a.byFormation)}
+        </div>
+        <div class="stats-two-col">
+          ${groupTable('Personnel', a.byPersonnel)}
+          <div><h4 style="margin:8px 0 4px">By Down</h4>
+            <table class="stats-table stats-table-full epa-table">
+              <thead><tr><th>Down</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
+              <tbody>${downRows || '<tr><td colspan="4" style="opacity:.6">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="stats-two-col">
+          <div><h4 style="margin:8px 0 4px;color:#44ff88">Top 5 EPA Plays</h4>
+            <table class="stats-table stats-table-full epa-table">
+              <thead><tr><th>#</th><th>Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+              <tbody>${a.top.map(playRow).join('')}</tbody>
+            </table>
+          </div>
+          <div><h4 style="margin:8px 0 4px;color:#ff6666">Worst 5 EPA Plays</h4>
+            <table class="stats-table stats-table-full epa-table">
+              <thead><tr><th>#</th><th>Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+              <tbody>${a.worst.map(playRow).join('')}</tbody>
+            </table>
+          </div>
+        </div>
       </div>`;
   }
 

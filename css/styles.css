@@ -2368,3 +2368,18 @@ body {
   .trend-label { width: 70px; }
   .trend-val { width: 56px; }
 }
+
+/* ===== EPA / Advanced Metrics ===== */
+.epa-curve-wrap {
+  margin: 12px 0 8px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 6px;
+}
+.epa-curve { width: 100%; height: auto; display: block; }
+.epa-table td, .epa-table th { font-size: 12px; padding: 4px 6px; }
+.epa-pos { color: #44ff88; font-weight: 600; }
+.epa-neg { color: #ff6666; font-weight: 600; }
+.stat-card-value.epa-pos { color: #44ff88; }
+.stat-card-value.epa-neg { color: #ff6666; }

@@ -2375,6 +2375,21 @@ body {
   .trend-label { width: 70px; }
   .trend-val { width: 56px; }
 }
+
+/* ===== EPA / Advanced Metrics ===== */
+.epa-curve-wrap {
+  margin: 12px 0 8px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 6px;
+}
+.epa-curve { width: 100%; height: auto; display: block; }
+.epa-table td, .epa-table th { font-size: 12px; padding: 4px 6px; }
+.epa-pos { color: #44ff88; font-weight: 600; }
+.epa-neg { color: #ff6666; font-weight: 600; }
+.stat-card-value.epa-pos { color: #44ff88; }
+.stat-card-value.epa-neg { color: #ff6666; }
   </style>
 </head>
 <body>
@@ -6227,6 +6242,179 @@ class HeatMaps {
   }
 }
 
+// ===== advanced-metrics.js =====
+/**
+ * AdvancedMetrics - Expected Points (EP) and EPA calculations.
+ *
+ * EP is approximated by a piecewise-linear curve over yard line (1..99 from
+ * own goal), with adjustments for down and distance. Coefficients are
+ * hand-tuned to match the rough shape of nflfastR-derived EP for high school
+ * / college football. Not as precise as a full ML model, but useful for
+ * relative comparison: which plays / formations / play types are gaining
+ * the most expected points.
+ *
+ * EPA per play = EP_after_play - EP_before_play.
+ *
+ * Required tags: yardLine + fieldSide, down, distance, yardage, result.
+ * Plays missing any required field are skipped (returns null).
+ */
+class AdvancedMetrics {
+  /** Expected Points at a given (yardLineFromOwnGoal 1..99, down, distance) */
+  ep(yl, down, distance) {
+    if (yl == null || isNaN(yl)) return null;
+    yl = Math.max(1, Math.min(99, yl));
+
+    // Piecewise base curve anchored on rough public EP values
+    let base;
+    if (yl <= 25)      base = -1.5 + (yl - 1)  * (2.5 / 24);
+    else if (yl <= 50) base =  1.0 + (yl - 25) * (1.5 / 25);
+    else if (yl <= 75) base =  2.5 + (yl - 50) * (1.5 / 25);
+    else               base =  4.0 + (yl - 75) * (2.0 / 24);
+
+    const downAdj = ({ 1: 0, 2: -0.5, 3: -1.4, 4: -2.4 })[parseInt(down)] || 0;
+
+    const d = parseInt(distance) || 10;
+    let distAdj = 0;
+    if (d <= 3)        distAdj = 0.25;
+    else if (d <= 6)   distAdj = 0;
+    else if (d <= 10)  distAdj = -0.2;
+    else               distAdj = -0.7;
+
+    return +(base + downAdj + distAdj).toFixed(2);
+  }
+
+  _absYardLine(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  /** Compute EPA for a single play. Returns null if data is insufficient. */
+  computeEPA(play) {
+    const t = play.tags || {};
+    const ylBefore = this._absYardLine(t);
+    if (ylBefore == null || !t.down) return null;
+
+    const epBefore = this.ep(ylBefore, t.down, t.distance);
+    if (epBefore == null) return null;
+
+    const yds = parseInt(t.yardage) || 0;
+    const ylAfter = Math.max(0, Math.min(100, ylBefore + yds));
+    const result = t.result || '';
+    let epAfter = null;
+
+    // Scoring & special outcomes
+    if (result === 'Touchdown') {
+      epAfter = 7;
+    } else if (result === 'Field Goal') {
+      epAfter = 3;
+    } else if (result === 'Interception' || result === 'Fumble') {
+      const oppEp = this.ep(100 - ylAfter, 1, 10);
+      if (oppEp == null) return null;
+      epAfter = -oppEp;
+    } else if (result === 'Punt') {
+      // Average net punt of ~40 yards
+      const oppStart = Math.max(20, 100 - (ylAfter + 40));
+      const oppEp = this.ep(oppStart, 1, 10);
+      if (oppEp == null) return null;
+      epAfter = -oppEp;
+    } else if (result === 'Safety') {
+      epAfter = -2;
+    } else {
+      // Compute next down/distance
+      const dist = parseInt(t.distance) || 10;
+      const gotFirst = yds >= dist || t.custom?.includes('1st Down');
+      if (gotFirst) {
+        epAfter = this.ep(ylAfter, 1, 10);
+      } else {
+        const nextDown = parseInt(t.down) + 1;
+        if (nextDown > 4) {
+          // Turnover on downs
+          const oppEp = this.ep(100 - ylAfter, 1, 10);
+          if (oppEp == null) return null;
+          epAfter = -oppEp;
+        } else {
+          epAfter = this.ep(ylAfter, nextDown, Math.max(1, dist - yds));
+        }
+      }
+    }
+
+    if (epAfter == null) return null;
+    return +(epAfter - epBefore).toFixed(3);
+  }
+
+  /** Returns [{play, epa}] for all plays, with epa=null where data is missing. */
+  computeAll(plays) {
+    return plays.map(p => ({ play: p, epa: this.computeEPA(p) }));
+  }
+
+  /** Build a summary object suitable for rendering in the stats dashboard. */
+  summarize(plays) {
+    const all = this.computeAll(plays);
+    const withEpa = all.filter(x => x.epa !== null);
+
+    if (!withEpa.length) {
+      return {
+        total: 0, count: 0, perPlay: 0,
+        byType: [], byFormation: [], byPersonnel: [], byDown: {},
+        top: [], worst: [], curve: []
+      };
+    }
+
+    const total = withEpa.reduce((s, x) => s + x.epa, 0);
+
+    // By play type
+    const groupBy = (key) => {
+      const m = {};
+      for (const x of withEpa) {
+        const k = x.play.tags[key] || 'Unknown';
+        if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
+        m[k].total += x.epa;
+        m[k].count++;
+      }
+      return Object.values(m)
+        .map(g => ({ ...g, total: +g.total.toFixed(2), perPlay: +(g.total / g.count).toFixed(3) }))
+        .sort((a, b) => b.perPlay - a.perPlay);
+    };
+
+    const byType = groupBy('playType');
+    const byFormation = groupBy('formation');
+    const byPersonnel = groupBy('personnel');
+
+    // By down
+    const byDown = {};
+    for (const d of ['1', '2', '3', '4']) {
+      const dPlays = withEpa.filter(x => x.play.tags.down === d);
+      const dTotal = dPlays.reduce((s, x) => s + x.epa, 0);
+      byDown[d] = {
+        count: dPlays.length,
+        total: +dTotal.toFixed(2),
+        perPlay: dPlays.length ? +(dTotal / dPlays.length).toFixed(3) : 0
+      };
+    }
+
+    // Top / worst plays
+    const sorted = withEpa.slice().sort((a, b) => b.epa - a.epa);
+    const top = sorted.slice(0, 5);
+    const worst = sorted.slice(-5).reverse();
+
+    // Cumulative EPA curve in chronological order
+    let cum = 0;
+    const curve = withEpa.map((x, i) => {
+      cum += x.epa;
+      return { i, cum: +cum.toFixed(2), epa: x.epa, playId: x.play.id };
+    });
+
+    return {
+      total: +total.toFixed(2),
+      count: withEpa.length,
+      perPlay: +(total / withEpa.length).toFixed(3),
+      byType, byFormation, byPersonnel, byDown,
+      top, worst, curve
+    };
+  }
+}
+
 // ===== stats-engine.js =====
 /**
  * StatsEngine - Computes team and individual stats from charted play data.
@@ -6240,6 +6428,7 @@ class StatsEngine {
     this.tagger = playTagger;
     this.filter = playFilter || null;
     this.heatMaps = new HeatMaps();
+    this.advanced = new AdvancedMetrics();
     this.dashboardEl = document.getElementById('statsDashboard');
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.getElementById('btnCloseStats');
@@ -6292,7 +6481,8 @@ class StatsEngine {
       drives: this._driveStats(plays),
       situational: this._situationalStats(plays),
       efficiency: this._efficiencyStats(plays),
-      personnel: this._personnelStats(plays)
+      personnel: this._personnelStats(plays),
+      advanced: this.advanced.summarize(plays)
     };
 
     return stats;
@@ -6679,6 +6869,7 @@ class StatsEngine {
           <div class="stats-body">
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
+            ${this._renderAdvanced(stats)}
             ${this.heatMaps.render(this._currentPlays())}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
@@ -6731,6 +6922,94 @@ class StatsEngine {
           <div class="stat-card"><div class="stat-card-title">Negative Plays</div><div class="stat-card-value">${e.negativePlays} (${e.negativePct}%)</div></div>
         </div>
         <div class="success-rate-bar"><div style="width:${e.successRate}%;background:var(--accent);height:100%"></div></div>
+      </div>`;
+  }
+
+  _renderAdvanced(stats) {
+    const a = stats.advanced;
+    if (!a || !a.count) {
+      return `<div class="stats-section"><h3>Expected Points (EPA)</h3><p style="opacity:.6">Tag down, distance, yard line and result on plays to see EPA.</p></div>`;
+    }
+    const W = 600, H = 160, P = 30;
+    const n = a.curve.length;
+    const vals = a.curve.map(c => c.cum);
+    const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+    const xs = i => P + (n <= 1 ? 0 : (i * (W - 2 * P)) / (n - 1));
+    const ys = v => H - P - ((v - lo) / (hi - lo || 1)) * (H - 2 * P);
+    const path = a.curve.map((c, i) => `${i === 0 ? 'M' : 'L'}${xs(i).toFixed(1)},${ys(c.cum).toFixed(1)}`).join(' ');
+    const zeroY = ys(0).toFixed(1);
+    const epaClass = v => v > 0 ? 'epa-pos' : v < 0 ? 'epa-neg' : '';
+    const fmt = v => (v > 0 ? '+' : '') + v.toFixed(2);
+
+    const groupTable = (title, rows) => {
+      if (!rows.length) return '';
+      const body = rows.slice(0, 8).map(r =>
+        `<tr><td>${r.name}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
+      ).join('');
+      return `<div><h4 style="margin:8px 0 4px">${title}</h4>
+        <table class="stats-table stats-table-full epa-table">
+          <thead><tr><th>${title}</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table></div>`;
+    };
+
+    const playRow = (x) => {
+      const t = x.play.tags || {};
+      const label = `${t.down || '?'}&${t.distance || '?'} ${t.formation || ''} ${t.playType || ''}`.trim();
+      return `<tr><td>#${x.play.id}</td><td>${label}</td><td>${t.yardage || 0}</td><td class="${epaClass(x.epa)}">${fmt(x.epa)}</td></tr>`;
+    };
+
+    const downRows = ['1', '2', '3', '4'].map(d => {
+      const dd = a.byDown[d];
+      if (!dd || !dd.count) return '';
+      return `<tr><td>${d}</td><td>${dd.count}</td><td class="${epaClass(dd.total)}">${fmt(dd.total)}</td><td class="${epaClass(dd.perPlay)}">${fmt(dd.perPlay)}</td></tr>`;
+    }).join('');
+
+    return `
+      <div class="stats-section">
+        <h3>Expected Points (EPA)</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Total EPA</div><div class="stat-card-value ${epaClass(a.total)}">${fmt(a.total)}</div></div>
+          <div class="stat-card"><div class="stat-card-title">EPA / Play</div><div class="stat-card-value ${epaClass(a.perPlay)}">${fmt(a.perPlay)}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Plays Scored</div><div class="stat-card-value">${a.count}</div></div>
+        </div>
+        <div class="epa-curve-wrap">
+          <svg viewBox="0 0 ${W} ${H}" class="epa-curve" preserveAspectRatio="xMidYMid meet">
+            <line x1="${P}" y1="${zeroY}" x2="${W - P}" y2="${zeroY}" stroke="#555" stroke-dasharray="3,3"/>
+            <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+            <text x="${P}" y="14" fill="#aaa" font-size="11">Cumulative EPA</text>
+            <text x="${P}" y="${H - 8}" fill="#aaa" font-size="10">Play 1</text>
+            <text x="${W - P}" y="${H - 8}" fill="#aaa" font-size="10" text-anchor="end">Play ${n}</text>
+            <text x="${W - P}" y="14" fill="#aaa" font-size="11" text-anchor="end">High ${hi.toFixed(1)} / Low ${lo.toFixed(1)}</text>
+          </svg>
+        </div>
+        <div class="stats-two-col">
+          ${groupTable('Play Type', a.byType)}
+          ${groupTable('Formation', a.byFormation)}
+        </div>
+        <div class="stats-two-col">
+          ${groupTable('Personnel', a.byPersonnel)}
+          <div><h4 style="margin:8px 0 4px">By Down</h4>
+            <table class="stats-table stats-table-full epa-table">
+              <thead><tr><th>Down</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
+              <tbody>${downRows || '<tr><td colspan="4" style="opacity:.6">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="stats-two-col">
+          <div><h4 style="margin:8px 0 4px;color:#44ff88">Top 5 EPA Plays</h4>
+            <table class="stats-table stats-table-full epa-table">
+              <thead><tr><th>#</th><th>Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+              <tbody>${a.top.map(playRow).join('')}</tbody>
+            </table>
+          </div>
+          <div><h4 style="margin:8px 0 4px;color:#ff6666">Worst 5 EPA Plays</h4>
+            <table class="stats-table stats-table-full epa-table">
+              <thead><tr><th>#</th><th>Situation</th><th>Yds</th><th>EPA</th></tr></thead>
+              <tbody>${a.worst.map(playRow).join('')}</tbody>
+            </table>
+          </div>
+        </div>
       </div>`;
   }
 
