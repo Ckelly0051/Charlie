@@ -2055,6 +2055,104 @@ body {
   margin-bottom: 16px;
 }
 
+
+
+/* ===== Heat Maps ===== */
+.heatmap-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #2d3454;
+}
+.hm-tab {
+  background: transparent;
+  border: none;
+  color: #888;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.hm-tab:hover { color: #ccc; }
+.hm-tab.active {
+  color: #e94560;
+  border-bottom-color: #e94560;
+}
+.hm-panel { display: none; }
+.hm-panel.active { display: block; }
+.hm-field-wrap { background: #0a0a14; padding: 12px; border-radius: 6px; }
+.heatmap-field {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #0a0a14;
+}
+.hm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ccc;
+  justify-content: center;
+}
+.hm-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  border: 1px solid #000;
+}
+.hm-caption {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin: 8px 0 0;
+  font-style: italic;
+}
+.dd-grid, .fxp-grid, .hash-grid {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.dd-grid th, .dd-grid td,
+.fxp-grid th, .fxp-grid td,
+.hash-grid th, .hash-grid td {
+  border: 1px solid #2d3454;
+  padding: 8px;
+  text-align: center;
+  color: #e0e0e0;
+}
+.dd-grid th, .fxp-grid th, .hash-grid th {
+  background: #0f3460;
+  color: #fff;
+  font-weight: 600;
+}
+.dd-grid td { min-width: 80px; height: 56px; vertical-align: middle; }
+.dd-count { font-size: 18px; font-weight: bold; }
+.dd-meta { font-size: 10px; color: #ccc; margin-top: 2px; }
+.fxp-grid td { min-width: 36px; height: 32px; }
+.fxp-grid th.rotated {
+  height: 110px;
+  vertical-align: bottom;
+  padding: 4px;
+  white-space: nowrap;
+}
+.fxp-grid th.rotated div {
+  transform: rotate(-55deg);
+  transform-origin: left bottom;
+  display: inline-block;
+  width: 20px;
+  font-size: 11px;
+}
+.hash-grid td { min-width: 60px; }
+.hm-scroll { overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -5616,6 +5714,276 @@ class QuickChart {
   }
 }
 
+// ===== heat-maps.js =====
+/**
+ * HeatMaps - Visual analytics overlays rendered into the stats dashboard.
+ *
+ * Four views, switchable via tabs:
+ *   1. Field Position — SVG football field with each play plotted by yard line
+ *      and hash, color-coded by outcome
+ *   2. Down & Distance Grid — 4×4 matrix (down × distance bucket) showing
+ *      play count, run %, and success rate, intensity-shaded
+ *   3. Formation × Play Type — frequency matrix (rows = formations,
+ *      cols = play types), green-shaded
+ *   4. Hash Tendency — what kind of plays you call from each hash
+ */
+class HeatMaps {
+  render(plays) {
+    return `
+      <div class="stats-section">
+        <h3>Heat Maps</h3>
+        <div class="heatmap-tabs">
+          <button class="hm-tab active" data-tab="field">Field Position</button>
+          <button class="hm-tab" data-tab="dd">Down &amp; Distance</button>
+          <button class="hm-tab" data-tab="fxp">Formation × Play</button>
+          <button class="hm-tab" data-tab="hash">Hash Tendency</button>
+        </div>
+        <div class="heatmap-panels">
+          <div class="hm-panel active" data-panel="field">${this._renderField(plays)}</div>
+          <div class="hm-panel" data-panel="dd">${this._renderDownDistance(plays)}</div>
+          <div class="hm-panel" data-panel="fxp">${this._renderFormationByPlay(plays)}</div>
+          <div class="hm-panel" data-panel="hash">${this._renderHash(plays)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  bind(container) {
+    const tabs = container.querySelectorAll('.hm-tab');
+    const panels = container.querySelectorAll('.hm-panel');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const target = container.querySelector(`.hm-panel[data-panel="${tab.dataset.tab}"]`);
+        if (target) target.classList.add('active');
+      });
+    });
+  }
+
+  _absYardLine(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  _renderField(plays) {
+    const W = 1000, H = 440;
+    const fStart = 60, fEnd = 940;
+    const fW = fEnd - fStart;
+    const fTop = 60, fBot = 380;
+    const fH = fBot - fTop;
+
+    const plotted = plays.filter(p => this._absYardLine(p.tags) !== null);
+    if (!plotted.length) {
+      return '<p class="hm-caption">No plays have field position tagged. Tag yard line + side in the Play Tagger to populate this view.</p>';
+    }
+
+    let lines = '';
+    for (let i = 0; i <= 100; i += 10) {
+      const x = fStart + (i / 100) * fW;
+      const isMajor = i % 50 === 0;
+      lines += `<line x1="${x}" y1="${fTop}" x2="${x}" y2="${fBot}" stroke="#fff" stroke-width="${isMajor ? 2 : 1}" opacity="${isMajor ? 0.6 : 0.3}"/>`;
+      if (i > 0 && i < 100) {
+        const label = i === 50 ? '50' : (i < 50 ? i : 100 - i);
+        lines += `<text x="${x}" y="${fTop + 22}" fill="#fff" text-anchor="middle" font-size="14" opacity="0.7">${label}</text>`;
+        lines += `<text x="${x}" y="${fBot - 8}" fill="#fff" text-anchor="middle" font-size="14" opacity="0.7">${label}</text>`;
+      }
+    }
+
+    // Hash mark guides
+    const hashTop = fTop + fH * 0.35;
+    const hashBot = fTop + fH * 0.65;
+    lines += `<line x1="${fStart}" y1="${hashTop}" x2="${fEnd}" y2="${hashTop}" stroke="#fff" stroke-width="1" stroke-dasharray="4 8" opacity="0.25"/>`;
+    lines += `<line x1="${fStart}" y1="${hashBot}" x2="${fEnd}" y2="${hashBot}" stroke="#fff" stroke-width="1" stroke-dasharray="4 8" opacity="0.25"/>`;
+
+    let dots = '';
+    for (const p of plotted) {
+      const yl = this._absYardLine(p.tags);
+      const x = fStart + (yl / 100) * fW;
+      const hash = p.tags.hash || 'Middle';
+      let yFrac = 0.5;
+      if (hash === 'Left') yFrac = 0.25;
+      else if (hash === 'Right') yFrac = 0.75;
+      // Tiny jitter so overlapping plays don't fully hide
+      const jitter = ((p.id * 37) % 11 - 5) * 1.5;
+      const y = fTop + yFrac * fH + jitter;
+
+      const yds = parseInt(p.tags.yardage) || 0;
+      let color = '#888', radius = 5;
+      if (p.tags.result === 'Touchdown') { color = '#44ff44'; radius = 7; }
+      else if (yds >= 20) { color = '#88ddff'; radius = 6; }
+      else if (yds >= 4) { color = '#ffaa00'; }
+      else if (yds <= 0 || /loss|sack/i.test(p.tags.result || '')) { color = '#ff4444'; }
+      else if (/interception|fumble/i.test(p.tags.result || '')) { color = '#ff00ff'; radius = 6; }
+
+      const desc = `Play ${p.id}: ${p.tags.playType || ''} ${yds}yd ${p.tags.result || ''}`.trim();
+      dots += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.5" opacity="0.8"><title>${this._escape(desc)}</title></circle>`;
+    }
+
+    return `
+      <div class="hm-field-wrap">
+        <svg viewBox="0 0 ${W} ${H}" class="heatmap-field">
+          <rect x="0" y="${fTop}" width="${fStart}" height="${fH}" fill="#0a3a0a"/>
+          <rect x="${fEnd}" y="${fTop}" width="${fStart}" height="${fH}" fill="#0a3a0a"/>
+          <rect x="${fStart}" y="${fTop}" width="${fW}" height="${fH}" fill="#1f5e1f"/>
+          ${lines}
+          <text x="30" y="${(fTop + fBot) / 2}" fill="#fff" text-anchor="middle" font-size="22" font-weight="bold" transform="rotate(-90 30 ${(fTop + fBot) / 2})">OWN</text>
+          <text x="970" y="${(fTop + fBot) / 2}" fill="#fff" text-anchor="middle" font-size="22" font-weight="bold" transform="rotate(90 970 ${(fTop + fBot) / 2})">OPP</text>
+          ${dots}
+        </svg>
+        <div class="hm-legend">
+          <span><i style="background:#44ff44"></i> TD</span>
+          <span><i style="background:#88ddff"></i> 20+ yds</span>
+          <span><i style="background:#ffaa00"></i> 4-19 yds</span>
+          <span><i style="background:#888"></i> 1-3 yds</span>
+          <span><i style="background:#ff4444"></i> Loss/Sack</span>
+          <span><i style="background:#ff00ff"></i> Turnover</span>
+        </div>
+        <p class="hm-caption">${plotted.length} of ${plays.length} plays plotted (need yard line + side tagged). Hover a dot for details.</p>
+      </div>
+    `;
+  }
+
+  _renderDownDistance(plays) {
+    const downs = ['1', '2', '3', '4'];
+    const buckets = [
+      { label: '1-3', test: d => d >= 1 && d <= 3 },
+      { label: '4-6', test: d => d >= 4 && d <= 6 },
+      { label: '7-10', test: d => d >= 7 && d <= 10 },
+      { label: '11+', test: d => d >= 11 }
+    ];
+
+    const cells = downs.map(down =>
+      buckets.map(b => {
+        const matched = plays.filter(p => p.tags.down === down && b.test(parseInt(p.tags.distance) || 0));
+        const runs = matched.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+        const successes = matched.filter(p => this._isSuccess(p)).length;
+        return { count: matched.length, runs, successes };
+      })
+    );
+
+    const maxCount = Math.max(1, ...cells.flat().map(c => c.count));
+
+    let html = '<table class="dd-grid"><thead><tr><th></th>';
+    buckets.forEach(b => html += `<th>${b.label}</th>`);
+    html += '</tr></thead><tbody>';
+
+    downs.forEach((d, i) => {
+      html += `<tr><th>${d}${this._suffix(d)}</th>`;
+      cells[i].forEach(c => {
+        const intensity = c.count / maxCount;
+        const bg = c.count ? `rgba(233, 69, 96, ${intensity * 0.75 + 0.05})` : 'transparent';
+        const runPct = c.count ? Math.round((c.runs / c.count) * 100) : 0;
+        const successPct = c.count ? Math.round((c.successes / c.count) * 100) : 0;
+        html += `<td style="background:${bg}">
+          <div class="dd-count">${c.count || ''}</div>
+          ${c.count ? `<div class="dd-meta">${runPct}%R · ${successPct}%S</div>` : ''}
+        </td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    return html + '<p class="hm-caption">Cell intensity = play count. R = run share, S = success rate.</p>';
+  }
+
+  _renderFormationByPlay(plays) {
+    const formations = [...new Set(plays.map(p => p.tags.formation).filter(Boolean))];
+    const playTypes = [...new Set(plays.map(p => p.tags.playType).filter(Boolean))];
+
+    if (!formations.length || !playTypes.length) {
+      return '<p class="hm-caption">Need both formation and play type tagged on at least a few plays.</p>';
+    }
+
+    const matrix = formations.map(f =>
+      playTypes.map(pt => plays.filter(p => p.tags.formation === f && p.tags.playType === pt).length)
+    );
+    const max = Math.max(1, ...matrix.flat());
+    const rowTotals = matrix.map(row => row.reduce((s, n) => s + n, 0));
+
+    let html = '<div class="hm-scroll"><table class="fxp-grid"><thead><tr><th></th>';
+    playTypes.forEach(pt => html += `<th class="rotated"><div>${this._escape(pt)}</div></th>`);
+    html += '<th>Total</th></tr></thead><tbody>';
+
+    formations.forEach((f, i) => {
+      html += `<tr><th>${this._escape(f)}</th>`;
+      matrix[i].forEach((count, j) => {
+        const intensity = count / max;
+        const bg = count ? `rgba(68, 170, 68, ${intensity * 0.85 + 0.1})` : 'transparent';
+        const pct = rowTotals[i] ? Math.round((count / rowTotals[i]) * 100) : 0;
+        html += `<td style="background:${bg}" title="${f} → ${playTypes[j]}: ${count} (${pct}%)">${count || ''}</td>`;
+      });
+      html += `<td><b>${rowTotals[i]}</b></td></tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    return html + '<p class="hm-caption">Darker = called more often. Hover a cell for percentage of that formation.</p>';
+  }
+
+  _renderHash(plays) {
+    const hashes = ['Left', 'Middle', 'Right'];
+    const types = [
+      ['Run Inside', p => /run inside/i.test(p.tags.playType || '')],
+      ['Run Outside', p => /run outside/i.test(p.tags.playType || '')],
+      ['Short Pass', p => /short pass|screen/i.test(p.tags.playType || '')],
+      ['Med/Deep Pass', p => /(medium|deep) pass|play action/i.test(p.tags.playType || '')],
+      ['RPO/Trick', p => /rpo|trick/i.test(p.tags.playType || '')]
+    ];
+
+    const hashTotals = hashes.map(h => plays.filter(p => p.tags.hash === h).length);
+
+    if (hashTotals.every(t => t === 0)) {
+      return '<p class="hm-caption">No hash data tagged on any plays.</p>';
+    }
+
+    let html = '<table class="hash-grid"><thead><tr><th></th>';
+    hashes.forEach(h => html += `<th>${h}</th>`);
+    html += '<th>Total</th></tr></thead><tbody>';
+
+    types.forEach(([name, test]) => {
+      let rowTotal = 0;
+      let row = `<tr><th>${name}</th>`;
+      hashes.forEach((h, i) => {
+        const count = plays.filter(p => p.tags.hash === h && test(p)).length;
+        rowTotal += count;
+        const intensity = hashTotals[i] ? count / hashTotals[i] : 0;
+        const bg = count ? `rgba(136, 221, 255, ${intensity * 0.8 + 0.05})` : 'transparent';
+        const pct = hashTotals[i] ? Math.round((count / hashTotals[i]) * 100) : 0;
+        row += `<td style="background:${bg}" title="${pct}% of ${h} hash">${count || ''}</td>`;
+      });
+      row += `<td><b>${rowTotal}</b></td></tr>`;
+      html += row;
+    });
+
+    html += '<tr><th>Total</th>';
+    hashTotals.forEach(t => html += `<td><b>${t}</b></td>`);
+    html += `<td><b>${hashTotals.reduce((s, t) => s + t, 0)}</b></td></tr>`;
+    html += '</tbody></table>';
+    return html + '<p class="hm-caption">Cell intensity = share of plays from that hash.</p>';
+  }
+
+  _isSuccess(p) {
+    const yds = parseInt(p.tags.yardage) || 0;
+    const dist = parseInt(p.tags.distance) || 10;
+    if (p.tags.result === 'Touchdown') return true;
+    if (p.tags.custom?.includes('1st Down')) return true;
+    switch (p.tags.down) {
+      case '1': return yds >= dist * 0.5;
+      case '2': return yds >= dist * 0.7;
+      case '3':
+      case '4': return yds >= dist;
+      default: return yds >= 4;
+    }
+  }
+
+  _suffix(d) { return ({ '1': 'st', '2': 'nd', '3': 'rd', '4': 'th' })[d] || ''; }
+
+  _escape(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+}
+
 // ===== stats-engine.js =====
 /**
  * StatsEngine - Computes team and individual stats from charted play data.
@@ -5623,10 +5991,12 @@ class QuickChart {
  * All stats are derived live from the play entries in PlayTagger.
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
+
 class StatsEngine {
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
+    this.heatMaps = new HeatMaps();
     this.dashboardEl = document.getElementById('statsDashboard');
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.getElementById('btnCloseStats');
@@ -5677,6 +6047,12 @@ class StatsEngine {
     };
 
     return stats;
+  }
+
+  _currentPlays() {
+    let plays = this.tagger.plays.filter(p => p.tags.playType);
+    if (this.filter && this.filter.active) plays = this.filter.filter(plays);
+    return plays;
   }
 
   _absYardLine(tags) {
@@ -6054,6 +6430,7 @@ class StatsEngine {
           <div class="stats-body">
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
+            ${this.heatMaps.render(this._currentPlays())}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
             ${this._renderDrives(stats)}
@@ -6071,6 +6448,9 @@ class StatsEngine {
 
     // Export button
     el.querySelector('#btnExportStats').addEventListener('click', () => this._exportStats(stats));
+
+    // Heat map tab switching
+    this.heatMaps.bind(el);
 
     // Click overlay to close
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {

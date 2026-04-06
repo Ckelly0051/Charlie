@@ -4,10 +4,13 @@
  * All stats are derived live from the play entries in PlayTagger.
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
+import { HeatMaps } from './heat-maps.js';
+
 export class StatsEngine {
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
+    this.heatMaps = new HeatMaps();
     this.dashboardEl = document.getElementById('statsDashboard');
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.getElementById('btnCloseStats');
@@ -58,6 +61,12 @@ export class StatsEngine {
     };
 
     return stats;
+  }
+
+  _currentPlays() {
+    let plays = this.tagger.plays.filter(p => p.tags.playType);
+    if (this.filter && this.filter.active) plays = this.filter.filter(plays);
+    return plays;
   }
 
   _absYardLine(tags) {
@@ -435,6 +444,7 @@ export class StatsEngine {
           <div class="stats-body">
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
+            ${this.heatMaps.render(this._currentPlays())}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
             ${this._renderDrives(stats)}
@@ -452,6 +462,9 @@ export class StatsEngine {
 
     // Export button
     el.querySelector('#btnExportStats').addEventListener('click', () => this._exportStats(stats));
+
+    // Heat map tab switching
+    this.heatMaps.bind(el);
 
     // Click overlay to close
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {

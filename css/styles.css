@@ -2048,3 +2048,101 @@ body {
   margin-bottom: 16px;
 }
 
+
+
+/* ===== Heat Maps ===== */
+.heatmap-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #2d3454;
+}
+.hm-tab {
+  background: transparent;
+  border: none;
+  color: #888;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.hm-tab:hover { color: #ccc; }
+.hm-tab.active {
+  color: #e94560;
+  border-bottom-color: #e94560;
+}
+.hm-panel { display: none; }
+.hm-panel.active { display: block; }
+.hm-field-wrap { background: #0a0a14; padding: 12px; border-radius: 6px; }
+.heatmap-field {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #0a0a14;
+}
+.hm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ccc;
+  justify-content: center;
+}
+.hm-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  border: 1px solid #000;
+}
+.hm-caption {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin: 8px 0 0;
+  font-style: italic;
+}
+.dd-grid, .fxp-grid, .hash-grid {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.dd-grid th, .dd-grid td,
+.fxp-grid th, .fxp-grid td,
+.hash-grid th, .hash-grid td {
+  border: 1px solid #2d3454;
+  padding: 8px;
+  text-align: center;
+  color: #e0e0e0;
+}
+.dd-grid th, .fxp-grid th, .hash-grid th {
+  background: #0f3460;
+  color: #fff;
+  font-weight: 600;
+}
+.dd-grid td { min-width: 80px; height: 56px; vertical-align: middle; }
+.dd-count { font-size: 18px; font-weight: bold; }
+.dd-meta { font-size: 10px; color: #ccc; margin-top: 2px; }
+.fxp-grid td { min-width: 36px; height: 32px; }
+.fxp-grid th.rotated {
+  height: 110px;
+  vertical-align: bottom;
+  padding: 4px;
+  white-space: nowrap;
+}
+.fxp-grid th.rotated div {
+  transform: rotate(-55deg);
+  transform-origin: left bottom;
+  display: inline-block;
+  width: 20px;
+  font-size: 11px;
+}
+.hash-grid td { min-width: 60px; }
+.hm-scroll { overflow-x: auto; }

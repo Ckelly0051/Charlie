@@ -55,6 +55,7 @@ for jsfile in \
   js/play-detector.js \
   js/playlist-manager.js \
   js/quick-chart.js \
+  js/heat-maps.js \
   js/stats-engine.js \
   js/history-manager.js \
   js/version-manager.js \
