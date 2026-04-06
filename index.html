@@ -335,8 +335,29 @@
           <h3 class="panel-title" data-toggle="playTagger">
             <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
             Play Tagger
+            <span class="panel-badge" id="suggestionBadge" style="display:none"></span>
           </h3>
           <div class="panel-body" id="playTagger">
+            <!-- Scoreboard OCR -->
+            <div class="ocr-section">
+              <div class="ocr-header">
+                <span class="ocr-title">📺 Scoreboard OCR</span>
+                <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
+                  <input type="checkbox" id="btnAutoOcr"> Auto
+                </label>
+              </div>
+              <div class="ocr-controls">
+                <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
+                <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
+              </div>
+              <div class="ocr-status" id="ocrStatus">No region set</div>
+              <div class="ocr-preview" id="ocrPreview"></div>
+            </div>
+            <!-- Smart suggestions toggle -->
+            <label class="suggestion-toggle">
+              <input type="checkbox" id="btnToggleSuggestions" checked>
+              <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
+            </label>
             <div class="play-mark-controls">
               <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
               <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>

@@ -58,6 +58,8 @@ for jsfile in \
   js/stats-engine.js \
   js/history-manager.js \
   js/version-manager.js \
+  js/scoreboard-ocr.js \
+  js/suggestion-engine.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"

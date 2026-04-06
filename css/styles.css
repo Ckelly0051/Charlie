@@ -1922,3 +1922,79 @@ body {
   cursor: not-allowed;
 }
 
+
+
+/* ===== Scoreboard OCR & Suggestions ===== */
+.ocr-section {
+  background: #1a1a2e;
+  border: 1px solid #2d3454;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+.ocr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.ocr-title { font-size: 12px; font-weight: 600; color: #e0e0e0; }
+.ocr-toggle {
+  font-size: 11px;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ocr-controls { display: flex; gap: 6px; margin-bottom: 6px; }
+.ocr-controls .btn { flex: 1; }
+.ocr-status {
+  font-size: 11px;
+  color: #888;
+  min-height: 14px;
+}
+.ocr-preview { margin-top: 6px; }
+.ocr-preview:empty { display: none; }
+.ocr-fields {
+  background: #0f3460;
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.ocr-actions {
+  display: flex;
+  gap: 6px;
+}
+.ocr-actions .btn { flex: 1; }
+.ocr-raw {
+  background: #2a2a3e;
+  padding: 4px 6px;
+  font-size: 10px;
+  color: #aaa;
+  font-family: monospace;
+  border-radius: 3px;
+  word-break: break-all;
+}
+
+.suggestion-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #aaa;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.field-suggested {
+  animation: fieldFlash 1.2s ease;
+  outline: 2px solid #ffaa00 !important;
+}
+@keyframes fieldFlash {
+  0% { background-color: #ffaa00; color: #000; }
+  100% { background-color: transparent; }
+}
+

@@ -13,6 +13,8 @@ import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
+import { ScoreboardOCR } from './scoreboard-ocr.js';
+import { SuggestionEngine } from './suggestion-engine.js';
 
 class App {
   constructor() {
@@ -29,6 +31,8 @@ class App {
     this.stats = new StatsEngine(this.tagger, this.filter);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
+    this.ocr = new ScoreboardOCR(this.vc, this.tagger);
+    this.suggestions = new SuggestionEngine(this.tagger);
 
     // Give storage references
     this.storage.playlist = this.playlist;
