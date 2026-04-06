@@ -15,6 +15,7 @@ import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
 import { SuggestionEngine } from './suggestion-engine.js';
+import { CutupExporter } from './cutup-exporter.js';
 
 class App {
   constructor() {
@@ -33,6 +34,7 @@ class App {
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.suggestions = new SuggestionEngine(this.tagger);
+    this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
 
     // Give storage references
     this.storage.playlist = this.playlist;

@@ -60,6 +60,7 @@ for jsfile in \
   js/version-manager.js \
   js/scoreboard-ocr.js \
   js/suggestion-engine.js \
+  js/cutup-exporter.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"

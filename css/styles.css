@@ -1998,3 +1998,53 @@ body {
   100% { background-color: transparent; }
 }
 
+
+
+/* ===== Cut-Up Recorder ===== */
+.cutup-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cutup-modal {
+  background: #16213e;
+  border: 1px solid #2d3454;
+  border-radius: 8px;
+  padding: 24px 32px;
+  min-width: 360px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.cutup-modal h3 {
+  margin: 0 0 12px;
+  color: #e94560;
+}
+.cutup-info {
+  color: #e0e0e0;
+  font-size: 14px;
+  margin-bottom: 12px;
+  min-height: 18px;
+}
+.cutup-bar {
+  background: #1a1a2e;
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.cutup-bar-fill {
+  background: linear-gradient(90deg, #e94560, #ffaa00);
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+.cutup-hint {
+  color: #888;
+  font-size: 11px;
+  margin-bottom: 16px;
+}
+
