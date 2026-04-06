@@ -38,10 +38,16 @@ export class StatsEngine {
   /**
    * Compute all stats from current play data.
    */
-  compute() {
-    let plays = this.tagger.plays.filter(p => p.tags.playType);
-    const filterActive = this.filter && this.filter.active;
-    if (filterActive) plays = this.filter.filter(plays);
+  compute(playsOverride = null) {
+    let plays;
+    let filterActive = false;
+    if (playsOverride) {
+      plays = playsOverride.filter(p => p.tags && p.tags.playType);
+    } else {
+      plays = this.tagger.plays.filter(p => p.tags.playType);
+      filterActive = this.filter && this.filter.active;
+      if (filterActive) plays = this.filter.filter(plays);
+    }
 
     const stats = {
       totalPlays: plays.length,

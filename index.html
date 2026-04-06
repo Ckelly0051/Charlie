@@ -52,6 +52,9 @@
         <button class="btn" id="btnExportCutup" title="Stitch filtered plays into a cut-up video (WebM)">
           <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg> Cut-Up
         </button>
+        <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
+          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season
+        </button>
       </div>
     </header>
 
@@ -673,6 +676,24 @@
 
     <!-- Undo/Redo toast -->
     <div class="undo-toast" id="undoToast"></div>
+
+    <!-- Season Stats Modal -->
+    <div class="season-overlay hidden" id="seasonOverlay">
+      <div class="season-modal" onclick="event.stopPropagation()">
+        <div class="season-header">
+          <h2>Season Stats</h2>
+          <div class="season-header-actions">
+            <button class="btn btn-sm btn-accent" id="btnAddSeasonGames">+ Add Games</button>
+            <button class="btn btn-sm" id="btnExportSeason">Export Report</button>
+            <button class="btn btn-sm btn-danger" id="btnClearSeason">Clear All</button>
+            <button class="btn btn-sm btn-danger" id="btnCloseSeason">Close</button>
+          </div>
+          <input type="file" id="seasonFileInput" accept=".json" multiple hidden>
+        </div>
+        <div class="season-game-list" id="seasonGameList"></div>
+        <div class="season-stats-body" id="seasonStatsBody"></div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="js/app.js"></script>

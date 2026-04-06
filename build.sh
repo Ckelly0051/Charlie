@@ -62,6 +62,7 @@ for jsfile in \
   js/scoreboard-ocr.js \
   js/suggestion-engine.js \
   js/cutup-exporter.js \
+  js/season-manager.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"
