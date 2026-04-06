@@ -11,6 +11,8 @@ import { PlayDetector } from './play-detector.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
+import { HistoryManager } from './history-manager.js';
+import { VersionManager } from './version-manager.js';
 
 class App {
   constructor() {
@@ -25,10 +27,13 @@ class App {
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
+    this.history = new HistoryManager(this.tagger);
+    this.versions = new VersionManager(this.storage, this.tagger);
 
     // Give storage references
     this.storage.playlist = this.playlist;
     this.storage.filter = this.filter;
+    this.storage.versions = this.versions;
 
     // Wire cross-module events
     this._wireEvents();
@@ -58,6 +63,12 @@ class App {
     this.quickChart.on('play-charted', () => {
       this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
     });
+
+    // History needs to seed lastSnap *after* all wiring; do it on next tick
+    setTimeout(() => {
+      this.history.init();
+      this.versions.renderList();
+    }, 0);
   }
 
   _wireEvents() {
@@ -180,10 +191,17 @@ class App {
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             if (e.shiftKey) {
-              this.canvas.redo();
+              // History redo first, fall back to canvas
+              if (!this.history.redo()) this.canvas.redo();
             } else {
-              this.canvas.undo();
+              if (!this.history.undo()) this.canvas.undo();
             }
+          }
+          break;
+        case 'KeyY':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (!this.history.redo()) this.canvas.redo();
           }
           break;
         case 'KeyS':

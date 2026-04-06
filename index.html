@@ -21,6 +21,12 @@
         </label>
       </div>
       <div class="top-bar-right">
+        <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" disabled>
+          <svg class="icon"><use href="assets/icons.svg#icon-prev-clip"/></svg>
+        </button>
+        <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" disabled>
+          <svg class="icon"><use href="assets/icons.svg#icon-next-clip"/></svg>
+        </button>
         <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
           <svg class="icon"><use href="assets/icons.svg#icon-chart"/></svg> Quick Chart
         </button>
@@ -130,6 +136,24 @@
                 <span>-</span>
                 <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Version History -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="versionPanel">
+            <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg>
+            Version History
+            <span class="panel-badge" id="versionCount">0</span>
+          </h3>
+          <div class="panel-body collapsed" id="versionPanel">
+            <div class="version-controls">
+              <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
+              <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
+            </div>
+            <div class="version-list" id="versionList">
+              <div class="version-empty">No saved versions yet.</div>
             </div>
           </div>
         </div>
@@ -622,6 +646,9 @@
     <!-- Stats Dashboard (full-screen overlay) -->
     <div class="hidden" id="statsDashboard"></div>
     <button class="hidden" id="btnCloseStats"></button>
+
+    <!-- Undo/Redo toast -->
+    <div class="undo-toast" id="undoToast"></div>
   </div>
 
   <script type="module" src="js/app.js"></script>

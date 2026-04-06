@@ -1830,6 +1830,105 @@ body {
     color: #fff;
   }
 }
+
+
+/* ===== Version History & Undo Toast ===== */
+.version-controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.version-controls input {
+  flex: 1;
+  background: #1a1a2e;
+  border: 1px solid #2d3454;
+  color: #e0e0e0;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+.version-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.version-empty {
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+  padding: 12px;
+}
+.version-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border-radius: 3px;
+  border-left: 3px solid #2d3454;
+}
+.version-row.manual {
+  border-left-color: #e94560;
+}
+.version-info {
+  flex: 1;
+  min-width: 0;
+}
+.version-label {
+  font-size: 12px;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.version-meta {
+  font-size: 10px;
+  color: #888;
+  margin-top: 2px;
+}
+.version-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.version-actions .btn {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.undo-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15, 52, 96, 0.95);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: 1px solid #e94560;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.undo-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.btn-icon {
+  padding: 6px 8px;
+}
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
   </style>
 </head>
 <body>
@@ -2019,6 +2118,12 @@ body {
         </label>
       </div>
       <div class="top-bar-right">
+        <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" disabled>
+          <svg class="icon"><use href="#icon-prev-clip"/></svg>
+        </button>
+        <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" disabled>
+          <svg class="icon"><use href="#icon-next-clip"/></svg>
+        </button>
         <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
           <svg class="icon"><use href="#icon-chart"/></svg> Quick Chart
         </button>
@@ -2128,6 +2233,24 @@ body {
                 <span>-</span>
                 <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Version History -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="versionPanel">
+            <svg class="icon"><use href="#icon-save"/></svg>
+            Version History
+            <span class="panel-badge" id="versionCount">0</span>
+          </h3>
+          <div class="panel-body collapsed" id="versionPanel">
+            <div class="version-controls">
+              <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
+              <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
+            </div>
+            <div class="version-list" id="versionList">
+              <div class="version-empty">No saved versions yet.</div>
             </div>
           </div>
         </div>
@@ -2620,6 +2743,9 @@ body {
     <!-- Stats Dashboard (full-screen overlay) -->
     <div class="hidden" id="statsDashboard"></div>
     <button class="hidden" id="btnCloseStats"></button>
+
+    <!-- Undo/Redo toast -->
+    <div class="undo-toast" id="undoToast"></div>
   </div>
 
 
@@ -6212,6 +6338,305 @@ class StatsEngine {
   }
 }
 
+// ===== history-manager.js =====
+/**
+ * HistoryManager - Unified undo/redo for play data, tags, and game info.
+ *
+ * Records full snapshots of mutable state after each tagger event.
+ * Cheap because plays are small JSON. Capped at maxSize entries.
+ * Coexists with CanvasOverlay's local drawing undo (history runs first;
+ * if nothing to undo, falls through to canvas).
+ */
+class HistoryManager {
+  constructor(tagger) {
+    this.tagger = tagger;
+    this.stack = [];          // [{label, before, after}]
+    this.index = -1;          // index of last applied entry
+    this.recording = true;
+    this.maxSize = 100;
+    this.lastSnap = null;
+    this.toastEl = null;
+    this.btnUndo = null;
+    this.btnRedo = null;
+
+    tagger.on('play-created', (p) => this._record('Add play ' + (p?.id || '')));
+    tagger.on('play-deleted', () => this._record('Delete play'));
+    tagger.on('play-updated', (p) => this._record('Edit play ' + (p?.id || '')));
+  }
+
+  init() {
+    this.lastSnap = this._snapshot();
+    this.toastEl = document.getElementById('undoToast');
+    this.btnUndo = document.getElementById('btnUndoAction');
+    this.btnRedo = document.getElementById('btnRedoAction');
+    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
+    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redo());
+    this._updateUI();
+  }
+
+  _snapshot() {
+    return JSON.stringify({
+      plays: this.tagger.plays,
+      nextId: this.tagger.nextId,
+      currentPlayId: this.tagger.currentPlayId
+    });
+  }
+
+  _record(label) {
+    if (!this.recording) return;
+    const after = this._snapshot();
+    if (after === this.lastSnap) return;
+
+    // Coalesce rapid successive edits to the same play within 800ms
+    const now = Date.now();
+    const top = this.stack[this.index];
+    if (top && top.label === label && (now - top.time) < 800) {
+      top.after = after;
+      top.time = now;
+      this.lastSnap = after;
+      this._updateUI();
+      return;
+    }
+
+    // Drop redo tail
+    this.stack = this.stack.slice(0, this.index + 1);
+    this.stack.push({ label, before: this.lastSnap, after, time: now });
+    if (this.stack.length > this.maxSize) {
+      this.stack.shift();
+    } else {
+      this.index = this.stack.length - 1;
+    }
+    if (this.stack.length === this.maxSize) {
+      this.index = this.stack.length - 1;
+    }
+    this.lastSnap = after;
+    this._updateUI();
+  }
+
+  canUndo() { return this.index >= 0; }
+  canRedo() { return this.index < this.stack.length - 1; }
+
+  undo() {
+    if (!this.canUndo()) return false;
+    const entry = this.stack[this.index];
+    this._restore(entry.before);
+    this.index--;
+    this._toast('↶ Undo: ' + entry.label);
+    this._updateUI();
+    return true;
+  }
+
+  redo() {
+    if (!this.canRedo()) return false;
+    this.index++;
+    const entry = this.stack[this.index];
+    this._restore(entry.after);
+    this._toast('↷ Redo: ' + entry.label);
+    this._updateUI();
+    return true;
+  }
+
+  _restore(snap) {
+    if (!snap) return;
+    const data = JSON.parse(snap);
+    this.recording = false;
+    this.tagger.plays = data.plays || [];
+    this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+    this.tagger.updateScrubBarPlays();
+    const cid = data.currentPlayId;
+    if (cid && this.tagger.getPlay(cid)) {
+      this.tagger.currentPlayId = cid;
+      this.tagger._loadTagForm(this.tagger.getPlay(cid));
+      this.tagger.playSelect.value = cid;
+    } else {
+      this.tagger.currentPlayId = null;
+      this.tagger._clearTagForm();
+    }
+    this.lastSnap = snap;
+    this.recording = true;
+  }
+
+  _updateUI() {
+    if (this.btnUndo) this.btnUndo.disabled = !this.canUndo();
+    if (this.btnRedo) this.btnRedo.disabled = !this.canRedo();
+    if (this.btnUndo && this.canUndo()) {
+      this.btnUndo.title = 'Undo: ' + this.stack[this.index].label + ' (Ctrl+Z)';
+    }
+  }
+
+  _toast(msg) {
+    if (!this.toastEl) return;
+    this.toastEl.textContent = msg;
+    this.toastEl.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      this.toastEl.classList.remove('show');
+    }, 1800);
+  }
+}
+
+// ===== version-manager.js =====
+/**
+ * VersionManager - Snapshot project state to localStorage and restore later.
+ *
+ * Snapshots are taken:
+ *   - manually (Save Version button, with optional label)
+ *   - automatically every N play edits (default 10)
+ *   - automatically every M minutes if any changes occurred (default 5)
+ *
+ * Stored under ffa_versions_<videoFileName>. Capped at maxVersions; auto-saves
+ * are evicted before manual saves.
+ */
+class VersionManager {
+  constructor(storage, tagger) {
+    this.storage = storage;
+    this.tagger = tagger;
+    this.changeCount = 0;
+    this.changesPerSnap = 10;
+    this.intervalMin = 5;
+    this.maxVersions = 20;
+
+    this.listEl = document.getElementById('versionList');
+    this.btnSaveVersion = document.getElementById('btnSaveVersion');
+    this.versionLabelInput = document.getElementById('versionLabelInput');
+    this.versionCountBadge = document.getElementById('versionCount');
+
+    this._bindEvents();
+    this._startTimer();
+  }
+
+  _bindEvents() {
+    if (this.btnSaveVersion) {
+      this.btnSaveVersion.addEventListener('click', () => {
+        const label = (this.versionLabelInput?.value || '').trim() || 'Manual save';
+        this.snapshot(label, true);
+        if (this.versionLabelInput) this.versionLabelInput.value = '';
+      });
+    }
+    this.tagger.on('play-created', () => this._maybeAutoSnap());
+    this.tagger.on('play-updated', () => this._maybeAutoSnap());
+    this.tagger.on('play-deleted', () => this._maybeAutoSnap());
+  }
+
+  _key() {
+    return 'ffa_versions_' + (this.storage.videoFileName || 'default');
+  }
+
+  _list() {
+    try { return JSON.parse(localStorage.getItem(this._key()) || '[]'); }
+    catch { return []; }
+  }
+
+  _save(versions) {
+    try { localStorage.setItem(this._key(), JSON.stringify(versions)); }
+    catch (e) { /* quota — silently drop */ }
+  }
+
+  snapshot(label, manual = false) {
+    const data = this.storage._serialize();
+    const versions = this._list();
+    versions.push({
+      id: Date.now(),
+      label: label || (manual ? 'Manual save' : 'Auto-save'),
+      time: new Date().toISOString(),
+      manual,
+      playCount: data.plays.length,
+      data
+    });
+
+    // Evict — auto-saves go first
+    while (versions.length > this.maxVersions) {
+      const idx = versions.findIndex(v => !v.manual);
+      if (idx >= 0) versions.splice(idx, 1);
+      else versions.shift();
+    }
+
+    this._save(versions);
+    this.renderList();
+  }
+
+  restore(id) {
+    const v = this._list().find(x => x.id === id);
+    if (!v) return;
+    if (!confirm(`Restore version "${v.label}" (${v.playCount} plays)?\n\nA backup of your current state will be saved first.`)) return;
+    this.snapshot('Backup before restore', false);
+    this.storage._deserialize(v.data);
+    if (window.app && window.app.history) {
+      window.app.history.lastSnap = window.app.history._snapshot();
+      window.app.history.stack = [];
+      window.app.history.index = -1;
+      window.app.history._updateUI();
+    }
+  }
+
+  delete(id) {
+    if (!confirm('Delete this version?')) return;
+    const versions = this._list().filter(x => x.id !== id);
+    this._save(versions);
+    this.renderList();
+  }
+
+  renderList() {
+    if (!this.listEl) return;
+    const versions = this._list().slice().reverse();
+    if (this.versionCountBadge) {
+      this.versionCountBadge.textContent = `${versions.length}`;
+    }
+    if (!versions.length) {
+      this.listEl.innerHTML = '<div class="version-empty">No saved versions yet.</div>';
+      return;
+    }
+    this.listEl.innerHTML = '';
+    for (const v of versions) {
+      const row = document.createElement('div');
+      row.className = 'version-row' + (v.manual ? ' manual' : '');
+      const dt = new Date(v.time);
+      const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = dt.toLocaleDateString();
+      row.innerHTML = `
+        <div class="version-info">
+          <div class="version-label">${this._escape(v.label)}</div>
+          <div class="version-meta">${dateStr} ${timeStr} · ${v.playCount} plays${v.manual ? ' · ★' : ''}</div>
+        </div>
+        <div class="version-actions">
+          <button class="btn btn-sm" data-action="restore">Restore</button>
+          <button class="btn btn-sm btn-danger" data-action="delete">×</button>
+        </div>
+      `;
+      row.querySelector('[data-action="restore"]').addEventListener('click', () => this.restore(v.id));
+      row.querySelector('[data-action="delete"]').addEventListener('click', () => this.delete(v.id));
+      this.listEl.appendChild(row);
+    }
+  }
+
+  _escape(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  _maybeAutoSnap() {
+    this.changeCount++;
+    if (this.changeCount >= this.changesPerSnap) {
+      this.changeCount = 0;
+      this.snapshot(`Auto-save (${this.tagger.plays.length} plays)`, false);
+    }
+  }
+
+  _startTimer() {
+    setInterval(() => {
+      if (this.changeCount > 0) {
+        this.changeCount = 0;
+        this.snapshot(`Timed auto-save (${this.tagger.plays.length} plays)`, false);
+      }
+    }, this.intervalMin * 60 * 1000);
+  }
+
+  refresh() {
+    this.renderList();
+  }
+}
+
 // ===== app.js =====
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
@@ -6230,10 +6655,13 @@ class App {
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
+    this.history = new HistoryManager(this.tagger);
+    this.versions = new VersionManager(this.storage, this.tagger);
 
     // Give storage references
     this.storage.playlist = this.playlist;
     this.storage.filter = this.filter;
+    this.storage.versions = this.versions;
 
     // Wire cross-module events
     this._wireEvents();
@@ -6263,6 +6691,12 @@ class App {
     this.quickChart.on('play-charted', () => {
       this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
     });
+
+    // History needs to seed lastSnap *after* all wiring; do it on next tick
+    setTimeout(() => {
+      this.history.init();
+      this.versions.renderList();
+    }, 0);
   }
 
   _wireEvents() {
@@ -6385,10 +6819,17 @@ class App {
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             if (e.shiftKey) {
-              this.canvas.redo();
+              // History redo first, fall back to canvas
+              if (!this.history.redo()) this.canvas.redo();
             } else {
-              this.canvas.undo();
+              if (!this.history.undo()) this.canvas.undo();
             }
+          }
+          break;
+        case 'KeyY':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            if (!this.history.redo()) this.canvas.redo();
           }
           break;
         case 'KeyS':

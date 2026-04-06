@@ -56,6 +56,8 @@ for jsfile in \
   js/playlist-manager.js \
   js/quick-chart.js \
   js/stats-engine.js \
+  js/history-manager.js \
+  js/version-manager.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"
