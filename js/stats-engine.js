@@ -5,8 +5,9 @@
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
 export class StatsEngine {
-  constructor(playTagger) {
+  constructor(playTagger, playFilter) {
     this.tagger = playTagger;
+    this.filter = playFilter || null;
     this.dashboardEl = document.getElementById('statsDashboard');
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.getElementById('btnCloseStats');
@@ -35,10 +36,13 @@ export class StatsEngine {
    * Compute all stats from current play data.
    */
   compute() {
-    const plays = this.tagger.plays.filter(p => p.tags.playType);
+    let plays = this.tagger.plays.filter(p => p.tags.playType);
+    const filterActive = this.filter && this.filter.active;
+    if (filterActive) plays = this.filter.filter(plays);
 
     const stats = {
       totalPlays: plays.length,
+      filterActive,
       rushing: this._rushingStats(plays),
       passing: this._passingStats(plays),
       scoring: this._scoringStats(plays),
@@ -46,10 +50,141 @@ export class StatsEngine {
       turnovers: this._turnoverStats(plays),
       tendencies: this._tendencyStats(plays),
       bigPlays: this._bigPlays(plays),
-      individuals: this._individualStats(plays)
+      individuals: this._individualStats(plays),
+      drives: this._driveStats(plays),
+      situational: this._situationalStats(plays),
+      efficiency: this._efficiencyStats(plays),
+      personnel: this._personnelStats(plays)
     };
 
     return stats;
+  }
+
+  _absYardLine(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  _isSuccessfulPlay(p) {
+    const yds = parseInt(p.tags.yardage) || 0;
+    const dist = parseInt(p.tags.distance) || 10;
+    if (p.tags.result === 'Touchdown') return true;
+    if (p.tags.custom?.includes('1st Down')) return true;
+    switch (p.tags.down) {
+      case '1': return yds >= dist * 0.5;
+      case '2': return yds >= dist * 0.7;
+      case '3':
+      case '4': return yds >= dist;
+      default: return yds >= 4;
+    }
+  }
+
+  _driveStats(plays) {
+    const drives = {};
+    plays.forEach(p => {
+      const d = p.tags.driveNumber || '?';
+      if (!drives[d]) drives[d] = { number: d, plays: [], yards: 0, result: '' };
+      drives[d].plays.push(p);
+      drives[d].yards += parseInt(p.tags.yardage) || 0;
+    });
+    const list = Object.values(drives).map(dr => {
+      const last = dr.plays[dr.plays.length - 1];
+      const r = last?.tags.result || '';
+      let outcome = 'Other';
+      if (r === 'Touchdown') outcome = 'TD';
+      else if (r === 'Field Goal') outcome = 'FG';
+      else if (r === 'Punt') outcome = 'Punt';
+      else if (r === 'Interception' || r === 'Fumble') outcome = 'Turnover';
+      else if (r === 'Kneel') outcome = 'Kneel';
+      return { ...dr, plays: dr.plays.length, outcome };
+    });
+    return {
+      total: list.length,
+      list,
+      scoringDrives: list.filter(d => d.outcome === 'TD' || d.outcome === 'FG').length,
+      avgPlaysPerDrive: list.length ? (list.reduce((s, d) => s + d.plays, 0) / list.length).toFixed(1) : '0',
+      avgYardsPerDrive: list.length ? (list.reduce((s, d) => s + d.yards, 0) / list.length).toFixed(1) : '0'
+    };
+  }
+
+  _situationalStats(plays) {
+    const buckets = {
+      redZone: plays.filter(p => { const y = this._absYardLine(p.tags); return y !== null && y >= 80; }),
+      goalLine: plays.filter(p => { const y = this._absYardLine(p.tags); return y !== null && y >= 95; }),
+      backedUp: plays.filter(p => { const y = this._absYardLine(p.tags); return y !== null && y <= 10; }),
+      thirdLong: plays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7),
+      thirdShort: plays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 1 && (parseInt(p.tags.distance) || 0) <= 3)
+    };
+    const summarize = (arr) => {
+      const total = arr.length;
+      const tds = arr.filter(p => p.tags.result === 'Touchdown').length;
+      const successes = arr.filter(p => this._isSuccessfulPlay(p)).length;
+      const yds = arr.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      return {
+        total, tds, successes,
+        yards: yds,
+        avg: total ? (yds / total).toFixed(1) : '0.0',
+        successPct: total ? ((successes / total) * 100).toFixed(0) : '0'
+      };
+    };
+    return {
+      redZone: summarize(buckets.redZone),
+      goalLine: summarize(buckets.goalLine),
+      backedUp: summarize(buckets.backedUp),
+      thirdLong: summarize(buckets.thirdLong),
+      thirdShort: summarize(buckets.thirdShort),
+      byQuarter: this._statsByQuarter(plays)
+    };
+  }
+
+  _statsByQuarter(plays) {
+    const result = {};
+    ['Q1', 'Q2', 'Q3', 'Q4', 'OT'].forEach(q => {
+      const qp = plays.filter(p => p.tags.quarter === q);
+      result[q] = {
+        plays: qp.length,
+        yards: qp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0),
+        tds: qp.filter(p => p.tags.result === 'Touchdown').length
+      };
+    });
+    return result;
+  }
+
+  _efficiencyStats(plays) {
+    const successes = plays.filter(p => this._isSuccessfulPlay(p)).length;
+    const explosive = plays.filter(p => {
+      const y = parseInt(p.tags.yardage) || 0;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      return isRun ? y >= 12 : y >= 16;
+    }).length;
+    const negative = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0).length;
+    return {
+      successRate: plays.length ? ((successes / plays.length) * 100).toFixed(1) : '0.0',
+      successes,
+      explosivePct: plays.length ? ((explosive / plays.length) * 100).toFixed(1) : '0.0',
+      explosivePlays: explosive,
+      negativePct: plays.length ? ((negative / plays.length) * 100).toFixed(1) : '0.0',
+      negativePlays: negative
+    };
+  }
+
+  _personnelStats(plays) {
+    const groups = {};
+    plays.forEach(p => {
+      const k = p.tags.personnel || 'Unknown';
+      if (!groups[k]) groups[k] = { name: k, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+      groups[k].count++;
+      groups[k].yards += parseInt(p.tags.yardage) || 0;
+      if (p.tags.playType?.toLowerCase().includes('run')) groups[k].runs++;
+      else groups[k].passes++;
+      if (this._isSuccessfulPlay(p)) groups[k].successes++;
+    });
+    return Object.values(groups).map(g => ({
+      ...g,
+      avg: g.count ? (g.yards / g.count).toFixed(1) : '0.0',
+      successPct: g.count ? ((g.successes / g.count) * 100).toFixed(0) : '0'
+    })).sort((a, b) => b.count - a.count);
   }
 
   _rushingStats(plays) {
@@ -291,7 +426,7 @@ export class StatsEngine {
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Game Stats</h2>
+            <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
@@ -299,8 +434,12 @@ export class StatsEngine {
           </div>
           <div class="stats-body">
             ${this._renderTeamStats(stats)}
+            ${this._renderEfficiency(stats)}
             ${this._renderDownAnalysis(stats)}
+            ${this._renderSituational(stats)}
+            ${this._renderDrives(stats)}
             ${this._renderTendencies(stats)}
+            ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
             ${this._renderIndividualStats(stats)}
           </div>
@@ -318,6 +457,117 @@ export class StatsEngine {
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {
       if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
     });
+  }
+
+  _gameTitle() {
+    const t = document.getElementById('gameTeamName')?.value || '';
+    const o = document.getElementById('gameOpponent')?.value || '';
+    const u = document.getElementById('gameScoreUs')?.value;
+    const th = document.getElementById('gameScoreThem')?.value;
+    const d = document.getElementById('gameDate')?.value || '';
+    let title = 'Game Stats';
+    if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
+    if (u !== '' && th !== '' && u != null && th != null) title += ` &mdash; ${u}-${th}`;
+    if (d) title += ` (${d})`;
+    return title;
+  }
+
+  _renderEfficiency(stats) {
+    const e = stats.efficiency;
+    return `
+      <div class="stats-section">
+        <h3>Efficiency</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Success Rate</div><div class="stat-card-value">${e.successRate}%</div></div>
+          <div class="stat-card"><div class="stat-card-title">Explosive Plays</div><div class="stat-card-value">${e.explosivePlays} (${e.explosivePct}%)</div></div>
+          <div class="stat-card"><div class="stat-card-title">Negative Plays</div><div class="stat-card-value">${e.negativePlays} (${e.negativePct}%)</div></div>
+        </div>
+        <div class="success-rate-bar"><div style="width:${e.successRate}%;background:var(--accent);height:100%"></div></div>
+      </div>`;
+  }
+
+  _renderSituational(stats) {
+    const s = stats.situational;
+    const row = (label, b) => b.total === 0 ? '' :
+      `<tr><td>${label}</td><td>${b.total}</td><td>${b.yards}</td><td>${b.avg}</td><td>${b.successPct}%</td><td>${b.tds}</td></tr>`;
+    const rows = [
+      row('Red Zone', s.redZone),
+      row('Goal Line', s.goalLine),
+      row('Backed Up', s.backedUp),
+      row('3rd & Long', s.thirdLong),
+      row('3rd & Short', s.thirdShort)
+    ].filter(Boolean).join('');
+    if (!rows) return '';
+    let qRows = '';
+    for (const [q, qs] of Object.entries(s.byQuarter)) {
+      if (qs.plays === 0) continue;
+      qRows += `<tr><td>${q}</td><td>${qs.plays}</td><td>${qs.yards}</td><td>${qs.tds}</td></tr>`;
+    }
+    return `
+      <div class="stats-section stats-two-col">
+        <div>
+          <h3>Situational</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Situation</th><th>#</th><th>Yds</th><th>Avg</th><th>Succ%</th><th>TD</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div>
+          <h3>By Quarter</h3>
+          ${qRows ? `<table class="stats-table stats-table-full">
+            <thead><tr><th>Q</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
+            <tbody>${qRows}</tbody>
+          </table>` : '<p style="opacity:.6">No quarter data tagged.</p>'}
+        </div>
+      </div>`;
+  }
+
+  _renderDrives(stats) {
+    const d = stats.drives;
+    if (d.total === 0) return '';
+    const colorMap = { TD: '#44ff44', FG: '#88ddff', Punt: '#888', Turnover: '#ff4444', Kneel: '#666', Other: '#ffaa00' };
+    let rows = '';
+    for (const dr of d.list) {
+      const color = colorMap[dr.outcome] || '#aaa';
+      rows += `<div class="drive-row">
+        <span style="width:50px">Drive ${dr.number}</span>
+        <div class="drive-bar" style="flex:1;background:#222;height:18px;position:relative">
+          <div style="background:${color};height:100%;width:${Math.min(100, dr.plays * 8)}%"></div>
+        </div>
+        <span style="width:60px;text-align:right">${dr.plays} pl</span>
+        <span style="width:60px;text-align:right">${dr.yards} yd</span>
+        <span style="width:80px;text-align:right;color:${color}">${dr.outcome}</span>
+      </div>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Drives</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Total Drives</div><div class="stat-card-value">${d.total}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Scoring Drives</div><div class="stat-card-value">${d.scoringDrives}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Avg Plays</div><div class="stat-card-value">${d.avgPlaysPerDrive}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${d.avgYardsPerDrive}</div></div>
+        </div>
+        <div class="drive-chart">${rows}</div>
+      </div>`;
+  }
+
+  _renderPersonnel(stats) {
+    if (!stats.personnel.length) return '';
+    let rows = '';
+    for (const g of stats.personnel) {
+      if (g.name === 'Unknown' && stats.personnel.length > 1) continue;
+      rows += `<tr><td>${g.name}</td><td>${g.count}</td><td>${g.runs}/${g.passes}</td><td>${g.yards}</td><td>${g.avg}</td><td>${g.successPct}%</td></tr>`;
+    }
+    if (!rows) return '';
+    return `
+      <div class="stats-section">
+        <h3>Personnel Groupings</h3>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Group</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Succ%</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
   }
 
   _renderTeamStats(stats) {

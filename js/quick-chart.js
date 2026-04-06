@@ -241,6 +241,11 @@ export class QuickChart {
       if (this.currentEntry.result) play.tags.result = this.currentEntry.result;
       if (this.currentEntry.yardage) play.tags.yardage = this.currentEntry.yardage;
       if (this.currentEntry.down) play.tags.down = this.currentEntry.down;
+      // Inherit quarter and drive from previous play if not set
+      if (!play.tags.quarter) {
+        const prev = this.tagger.plays[this.tagger.plays.length - 2];
+        if (prev?.tags.quarter) play.tags.quarter = prev.tags.quarter;
+      }
 
       // Store player assignments
       const carrier = this.inputBallCarrier?.value?.trim();

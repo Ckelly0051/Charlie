@@ -4,6 +4,7 @@
 import { VideoController } from './video-controller.js';
 import { CanvasOverlay } from './canvas-overlay.js';
 import { PlayTagger } from './play-tagger.js';
+import { PlayFilter } from './play-filter.js';
 import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
 import { PlayDetector } from './play-detector.js';
@@ -17,18 +18,26 @@ class App {
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);
     this.tagger = new PlayTagger(this.vc);
+    this.filter = new PlayFilter(this.tagger);
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
-    this.stats = new StatsEngine(this.tagger);
+    this.stats = new StatsEngine(this.tagger, this.filter);
 
-    // Give storage a reference to playlist
+    // Give storage references
     this.storage.playlist = this.playlist;
+    this.storage.filter = this.filter;
 
     // Wire cross-module events
     this._wireEvents();
+
+    // Wire game info form
+    this._bindGameInfo();
+
+    // Wire report export
+    this._bindReportExport();
 
     // Keyboard shortcuts
     this._bindKeyboard();
@@ -349,6 +358,50 @@ class App {
         progressLabel.textContent = pct + '%';
       }
     });
+  }
+
+  _bindGameInfo() {
+    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => this._saveGameInfo());
+        el.addEventListener('input', () => this._saveGameInfo());
+      }
+    });
+  }
+
+  _saveGameInfo() {
+    this.storage.gameInfo = {
+      teamName: document.getElementById('gameTeamName')?.value || '',
+      opponent: document.getElementById('gameOpponent')?.value || '',
+      date: document.getElementById('gameDate')?.value || '',
+      scoreUs: document.getElementById('gameScoreUs')?.value || '',
+      scoreThem: document.getElementById('gameScoreThem')?.value || ''
+    };
+    this.storage._autoSave();
+  }
+
+  _loadGameInfo(info) {
+    if (!info) return;
+    const map = {
+      gameTeamName: info.teamName,
+      gameOpponent: info.opponent,
+      gameDate: info.date,
+      gameScoreUs: info.scoreUs,
+      gameScoreThem: info.scoreThem
+    };
+    for (const [id, val] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      if (el && val) el.value = val;
+    }
+  }
+
+  _bindReportExport() {
+    const btn = document.getElementById('btnExportReport');
+    if (btn) {
+      btn.addEventListener('click', () => this.storage.exportHtmlReport(this.stats));
+    }
   }
 
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {

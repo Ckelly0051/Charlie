@@ -1291,6 +1291,255 @@ body {
   min-width: 40px;
 }
 
+/* ===== Game Info ===== */
+.game-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.game-info-header strong {
+  color: var(--text);
+}
+
+/* ===== Filter Panel ===== */
+.filter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-group label:first-child {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-chip:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: var(--text-bright);
+}
+
+.filter-chip input[type="checkbox"] {
+  display: none;
+}
+
+.filter-multi,
+.filter-select {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 4px;
+  font-size: 11px;
+}
+
+.filter-multi option:checked {
+  background: var(--accent);
+  color: var(--text-bright);
+}
+
+.filter-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+/* ===== Drive Summary in Stats ===== */
+.drive-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.drive-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+}
+
+.drive-num {
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 24px;
+}
+
+.drive-bar {
+  flex: 1;
+  height: 16px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.drive-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 9px;
+  color: var(--text-bright);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.drive-bar-fill.td { background: var(--success); color: #000; }
+.drive-bar-fill.fg { background: var(--warning); color: #000; }
+.drive-bar-fill.punt { background: var(--text-dim); }
+.drive-bar-fill.turnover { background: var(--danger); }
+.drive-bar-fill.other { background: var(--accent); }
+
+.drive-result {
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ===== Efficiency Stats ===== */
+.success-rate-bar {
+  display: flex;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.success-fill {
+  background: var(--success);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fail-fill {
+  background: var(--danger);
+  color: var(--text-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Comparison View ===== */
+.comparison-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+}
+
+.comparison-header select {
+  background: var(--bg-surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.comparison-header span {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.comparison-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.comparison-col {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.comparison-col h4 {
+  font-size: 13px;
+  color: var(--highlight);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* ===== Situational tabs ===== */
+.situation-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.situation-tab {
+  padding: 4px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.situation-tab.active {
+  background: var(--bg-surface);
+  border-bottom-color: var(--bg-surface);
+  color: var(--highlight);
+  font-weight: 600;
+}
+
+.situation-content {
+  display: none;
+}
+
+.situation-content.active {
+  display: block;
+}
+
 /* ===== Utility ===== */
 .hidden {
   display: none !important;
@@ -1312,6 +1561,274 @@ body {
   font-weight: bold;
   outline: none;
   min-width: 120px;
+}
+
+/* ===== Game Info ===== */
+.game-info-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-info-form input[type="date"] {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* ===== Filter Panel ===== */
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-row label:first-child {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-chip:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--highlight);
+  color: var(--text-bright);
+}
+
+.filter-chip input[type="checkbox"] {
+  display: none;
+}
+
+.filter-multi {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  padding: 2px;
+}
+
+.filter-multi option {
+  padding: 2px 4px;
+}
+
+.filter-multi option:checked {
+  background: var(--accent);
+  color: var(--text-bright);
+}
+
+/* ===== Situational Stats ===== */
+.stats-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.stats-tab {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.stats-tab:hover {
+  color: var(--text);
+}
+
+.stats-tab.active {
+  color: var(--highlight);
+  border-color: var(--border);
+  border-bottom-color: var(--bg-secondary);
+  background: var(--bg-secondary);
+}
+
+/* ===== Success Rate Visual ===== */
+.success-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.success-bar-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 80px;
+}
+
+.success-bar-track {
+  flex: 1;
+  height: 18px;
+  background: var(--bg-tertiary);
+  border-radius: 9px;
+  overflow: hidden;
+  position: relative;
+}
+
+.success-bar-fill {
+  height: 100%;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-bright);
+  min-width: 30px;
+  transition: width 300ms ease;
+}
+
+.success-bar-fill.good { background: var(--success); }
+.success-bar-fill.ok { background: var(--warning); }
+.success-bar-fill.bad { background: var(--danger); }
+
+/* ===== Comparison View ===== */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.comparison-col {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+.comparison-col h4 {
+  font-size: 12px;
+  color: var(--highlight);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ===== Drive Chart ===== */
+.drive-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.drive-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.drive-num {
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 24px;
+}
+
+.drive-bar {
+  flex: 1;
+  height: 14px;
+  background: var(--bg-surface);
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+
+.drive-bar-fill {
+  height: 100%;
+  border-radius: 7px;
+  min-width: 4px;
+}
+
+.drive-bar-fill.td { background: var(--success); }
+.drive-bar-fill.fg { background: var(--warning); }
+.drive-bar-fill.punt { background: var(--text-dim); }
+.drive-bar-fill.turnover { background: var(--danger); }
+.drive-bar-fill.other { background: var(--accent); }
+
+.drive-result {
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+}
+
+.drive-result.td { color: var(--success); }
+.drive-result.fg { color: var(--warning); }
+.drive-result.turnover { color: var(--danger); }
+
+/* ===== Print ===== */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    overflow: visible;
+    height: auto;
+  }
+  .stats-overlay {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+  .stats-container {
+    max-height: none;
+    box-shadow: none;
+    border: none;
+    background: #fff;
+  }
+  .stats-header-actions {
+    display: none;
+  }
+  .stat-card {
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+  }
+  .stat-card-value {
+    color: #000;
+  }
+  .stats-table td, .stats-table th {
+    border-bottom: 1px solid #ddd;
+  }
+  .tendency-run, .tendency-pass {
+    color: #fff;
+  }
 }
   </style>
 </head>
@@ -1521,6 +2038,9 @@ body {
         <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
           <svg class="icon"><use href="#icon-download"/></svg> CSV
         </button>
+        <button class="btn" id="btnExportReport" title="Export HTML Report">
+          <svg class="icon"><use href="#icon-notes"/></svg> Report
+        </button>
       </div>
     </header>
 
@@ -1582,6 +2102,36 @@ body {
 
       <!-- Right Sidebar -->
       <aside class="sidebar">
+        <!-- Game Info -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="gameInfoPanel">
+            <svg class="icon"><use href="#icon-tag"/></svg>
+            Game Info
+          </h3>
+          <div class="panel-body" id="gameInfoPanel">
+            <div class="tag-row">
+              <label>Team Name</label>
+              <input type="text" id="gameTeamName" placeholder="Our Team">
+            </div>
+            <div class="tag-row">
+              <label>Opponent</label>
+              <input type="text" id="gameOpponent" placeholder="Opponent">
+            </div>
+            <div class="tag-row">
+              <label>Date</label>
+              <input type="date" id="gameDate">
+            </div>
+            <div class="tag-row">
+              <label>Score</label>
+              <div class="tag-row-inline">
+                <input type="number" id="gameScoreUs" placeholder="Us" min="0" style="width:60px">
+                <span>-</span>
+                <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Playlist -->
         <div class="sidebar-panel">
           <h3 class="panel-title" data-toggle="playlistPanel">
@@ -1599,6 +2149,102 @@ body {
             </div>
             <div class="playlist-list" id="playlistItems">
               <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Play Filters -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="filterPanel">
+            <svg class="icon"><use href="#icon-scan"/></svg>
+            Filter Plays
+            <span class="panel-badge" id="filterCount"></span>
+          </h3>
+          <div class="panel-body collapsed" id="filterPanel">
+            <div class="filter-grid">
+              <div class="filter-group">
+                <label>Down</label>
+                <div class="filter-checks" id="filterDown">
+                  <label class="filter-chip"><input type="checkbox" value="1"> 1st</label>
+                  <label class="filter-chip"><input type="checkbox" value="2"> 2nd</label>
+                  <label class="filter-chip"><input type="checkbox" value="3"> 3rd</label>
+                  <label class="filter-chip"><input type="checkbox" value="4"> 4th</label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label>Quarter</label>
+                <div class="filter-checks" id="filterQuarter">
+                  <label class="filter-chip"><input type="checkbox" value="Q1"> Q1</label>
+                  <label class="filter-chip"><input type="checkbox" value="Q2"> Q2</label>
+                  <label class="filter-chip"><input type="checkbox" value="Q3"> Q3</label>
+                  <label class="filter-chip"><input type="checkbox" value="Q4"> Q4</label>
+                  <label class="filter-chip"><input type="checkbox" value="OT"> OT</label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label>Play Type</label>
+                <select id="filterPlayType" multiple size="3" class="filter-multi">
+                  <option value="Run Inside">Run Inside</option>
+                  <option value="Run Outside">Run Outside</option>
+                  <option value="Screen">Screen</option>
+                  <option value="Short Pass">Short Pass</option>
+                  <option value="Medium Pass">Med Pass</option>
+                  <option value="Deep Pass">Deep Pass</option>
+                  <option value="Play Action">Play Action</option>
+                  <option value="RPO">RPO</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Result</label>
+                <select id="filterResult" multiple size="3" class="filter-multi">
+                  <option value="Gain">Gain</option>
+                  <option value="Loss">Loss</option>
+                  <option value="No Gain">No Gain</option>
+                  <option value="Incomplete">Incomplete</option>
+                  <option value="Touchdown">TD</option>
+                  <option value="Interception">INT</option>
+                  <option value="Fumble">Fumble</option>
+                  <option value="Sack">Sack</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Formation</label>
+                <select id="filterFormation" class="filter-select">
+                  <option value="">All</option>
+                  <option>Shotgun</option>
+                  <option>Under Center</option>
+                  <option>Pistol</option>
+                  <option>I-Form</option>
+                  <option>Singleback</option>
+                  <option>Empty</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Personnel</label>
+                <select id="filterPersonnel" class="filter-select">
+                  <option value="">All</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="21">21</option>
+                  <option value="22">22</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Situation</label>
+                <select id="filterSituation" class="filter-select">
+                  <option value="">All</option>
+                  <option value="redzone">Red Zone</option>
+                  <option value="goalline">Goal Line</option>
+                  <option value="backed-up">Backed Up (Own 10)</option>
+                  <option value="3rd-long">3rd & Long (7+)</option>
+                  <option value="3rd-short">3rd & Short (1-3)</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-sm btn-danger" id="btnClearFilters">Clear Filters</button>
             </div>
           </div>
         </div>
@@ -1742,6 +2388,27 @@ body {
                 </div>
               </div>
               <div class="tag-row">
+                <label>Quarter</label>
+                <select id="tagQuarter">
+                  <option value="">--</option>
+                  <option value="Q1">Q1</option>
+                  <option value="Q2">Q2</option>
+                  <option value="Q3">Q3</option>
+                  <option value="Q4">Q4</option>
+                  <option value="OT">OT</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Field Position</label>
+                <div class="tag-row-inline">
+                  <select id="tagFieldSide" style="width:70px">
+                    <option value="own">Own</option>
+                    <option value="opp">Opp</option>
+                  </select>
+                  <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" style="width:55px">
+                </div>
+              </div>
+              <div class="tag-row">
                 <label>Formation</label>
                 <select id="tagFormation">
                   <option value="">--</option>
@@ -1753,6 +2420,23 @@ body {
                   <option>Empty</option>
                   <option>Wildcat</option>
                   <option>Goal Line</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Personnel</label>
+                <select id="tagPersonnel">
+                  <option value="">--</option>
+                  <option value="00">00 (5 WR)</option>
+                  <option value="10">10 (4 WR, 1 RB)</option>
+                  <option value="11">11 (3 WR, 1 RB, 1 TE)</option>
+                  <option value="12">12 (2 WR, 1 RB, 2 TE)</option>
+                  <option value="13">13 (1 WR, 1 RB, 3 TE)</option>
+                  <option value="20">20 (3 WR, 2 RB)</option>
+                  <option value="21">21 (2 WR, 2 RB, 1 TE)</option>
+                  <option value="22">22 (1 WR, 2 RB, 2 TE)</option>
+                  <option value="23">23 (0 WR, 2 RB, 3 TE)</option>
+                  <option value="Jumbo">Jumbo</option>
+                  <option value="Goal Line">Goal Line</option>
                 </select>
               </div>
               <div class="tag-row">
@@ -1769,6 +2453,13 @@ body {
                   <option>RPO</option>
                   <option>Trick Play</option>
                 </select>
+              </div>
+              <div class="tag-row">
+                <label>Drive #</label>
+                <div class="tag-row-inline">
+                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" style="width:55px">
+                  <button class="btn btn-sm btn-accent" id="btnNewDrive" title="Start New Drive">New Drive</button>
+                </div>
               </div>
               <div class="tag-row">
                 <label>Defensive Front</label>
@@ -1823,6 +2514,10 @@ body {
                     <option>Sack</option>
                     <option>Fumble</option>
                     <option>Penalty</option>
+                    <option>Punt</option>
+                    <option>Field Goal</option>
+                    <option>Kneel</option>
+                    <option>Spike</option>
                   </select>
                   <input type="number" id="tagYardage" placeholder="Yds" min="-99" max="99">
                 </div>
@@ -2704,10 +3399,18 @@ class PlayTagger {
       result: document.getElementById('tagResult'),
       yardage: document.getElementById('tagYardage'),
       hash: document.getElementById('tagHash'),
+      quarter: document.getElementById('tagQuarter'),
+      yardLine: document.getElementById('tagYardLine'),
+      fieldSide: document.getElementById('tagFieldSide'),
+      personnel: document.getElementById('tagPersonnel'),
+      driveNumber: document.getElementById('tagDriveNumber'),
     };
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
+
+    this.btnNewDrive = document.getElementById('btnNewDrive');
+    this.currentDrive = 1;
 
     this._bindEvents();
   }
@@ -2725,6 +3428,15 @@ class PlayTagger {
     Object.values(this.tagFields).forEach(el => {
       el.addEventListener('change', () => this._saveCurrentTags());
     });
+
+    // New Drive button
+    if (this.btnNewDrive) {
+      this.btnNewDrive.addEventListener('click', () => {
+        this.currentDrive++;
+        if (this.tagFields.driveNumber) this.tagFields.driveNumber.value = this.currentDrive;
+        this._saveCurrentTags();
+      });
+    }
 
     // Custom tag input
     this.customTagInput.addEventListener('keydown', (e) => {
@@ -2771,6 +3483,11 @@ class PlayTagger {
         result: '',
         yardage: '',
         hash: '',
+        quarter: '',
+        yardLine: '',
+        fieldSide: 'own',
+        personnel: '',
+        driveNumber: this.currentDrive.toString(),
         custom: []
       },
       annotations: [],
@@ -2839,6 +3556,11 @@ class PlayTagger {
     play.tags.result = this.tagFields.result.value;
     play.tags.yardage = this.tagFields.yardage.value;
     play.tags.hash = this.tagFields.hash.value;
+    play.tags.quarter = this.tagFields.quarter.value;
+    play.tags.yardLine = this.tagFields.yardLine.value;
+    play.tags.fieldSide = this.tagFields.fieldSide.value;
+    play.tags.personnel = this.tagFields.personnel.value;
+    play.tags.driveNumber = this.tagFields.driveNumber.value;
 
     this._updateTimeline();
     this._emit('play-updated', play);
@@ -2855,6 +3577,11 @@ class PlayTagger {
     this.tagFields.result.value = play.tags.result;
     this.tagFields.yardage.value = play.tags.yardage;
     this.tagFields.hash.value = play.tags.hash;
+    this.tagFields.quarter.value = play.tags.quarter || '';
+    this.tagFields.yardLine.value = play.tags.yardLine || '';
+    this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
+    this.tagFields.personnel.value = play.tags.personnel || '';
+    this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this._renderCustomTags(play.tags.custom);
   }
 
@@ -2957,6 +3684,175 @@ class PlayTagger {
   }
 }
 
+// ===== play-filter.js =====
+/**
+ * PlayFilter - Filters plays by any combination of criteria.
+ */
+class PlayFilter {
+  constructor(playTagger) {
+    this.tagger = playTagger;
+    this.listeners = {};
+    this.active = false;
+
+    this.criteria = {
+      quarters: [],
+      downs: [],
+      playTypes: [],
+      formations: [],
+      personnel: [],
+      results: [],
+      situation: ''
+    };
+
+    this.filterCountEl = document.getElementById('filterCount');
+    this.btnClear = document.getElementById('btnClearFilters');
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // Quarter checkboxes
+    document.querySelectorAll('#filterQuarter input').forEach(cb => {
+      cb.addEventListener('change', () => this._updateFromUI());
+    });
+    // Down checkboxes
+    document.querySelectorAll('#filterDown input').forEach(cb => {
+      cb.addEventListener('change', () => this._updateFromUI());
+    });
+    // Multi-selects
+    ['filterPlayType', 'filterResult'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => this._updateFromUI());
+    });
+    // Single selects
+    ['filterFormation', 'filterPersonnel', 'filterSituation'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => this._updateFromUI());
+    });
+    // Clear
+    if (this.btnClear) {
+      this.btnClear.addEventListener('click', () => this.clearAll());
+    }
+  }
+
+  _updateFromUI() {
+    this.criteria.quarters = this._getChecked('filterQuarter');
+    this.criteria.downs = this._getChecked('filterDown');
+    this.criteria.playTypes = this._getMultiSelect('filterPlayType');
+    this.criteria.results = this._getMultiSelect('filterResult');
+    this.criteria.formations = this._getSingleSelect('filterFormation');
+    this.criteria.personnel = this._getSingleSelect('filterPersonnel');
+    this.criteria.situation = document.getElementById('filterSituation')?.value || '';
+
+    this.active = this.criteria.situation !== '' ||
+      [this.criteria.quarters, this.criteria.downs, this.criteria.playTypes,
+       this.criteria.formations, this.criteria.personnel, this.criteria.results]
+        .some(arr => arr.length > 0);
+
+    this._updateBadge();
+    this._emit('filter-changed');
+  }
+
+  _getChecked(containerId) {
+    const checks = document.querySelectorAll(`#${containerId} input:checked`);
+    return Array.from(checks).map(cb => cb.value);
+  }
+
+  _getMultiSelect(id) {
+    const el = document.getElementById(id);
+    if (!el) return [];
+    return Array.from(el.selectedOptions).map(o => o.value);
+  }
+
+  _getSingleSelect(id) {
+    const el = document.getElementById(id);
+    if (!el) return [];
+    const val = el.value;
+    return val ? [val] : [];
+  }
+
+  filter(plays) {
+    if (!this.active) return plays;
+    return plays.filter(p => this._matchesPlay(p));
+  }
+
+  _matchesPlay(p) {
+    const c = this.criteria;
+    const tags = p.tags || {};
+
+    if (c.quarters.length && !c.quarters.includes(tags.quarter)) return false;
+    if (c.downs.length && !c.downs.includes(tags.down)) return false;
+    if (c.playTypes.length && !c.playTypes.includes(tags.playType)) return false;
+    if (c.formations.length && !c.formations.includes(tags.formation)) return false;
+    if (c.personnel.length && !c.personnel.includes(tags.personnel)) return false;
+    if (c.results.length && !c.results.includes(tags.result)) return false;
+
+    if (c.situation) {
+      if (!this._matchesSituation(p, c.situation)) return false;
+    }
+
+    return true;
+  }
+
+  _matchesSituation(p, situation) {
+    const tags = p.tags || {};
+    const yl = this._absYardLine(tags);
+
+    switch (situation) {
+      case 'redzone':
+        return yl !== null && yl >= 80;
+      case 'goalline':
+        return yl !== null && yl >= 95;
+      case 'backed-up':
+        return yl !== null && yl <= 10;
+      case '3rd-long': {
+        const dist = parseInt(tags.distance) || 0;
+        return tags.down === '3' && dist >= 7;
+      }
+      case '3rd-short': {
+        const dist = parseInt(tags.distance) || 0;
+        return tags.down === '3' && dist >= 1 && dist <= 3;
+      }
+      default:
+        return true;
+    }
+  }
+
+  _absYardLine(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    const side = tags.fieldSide || 'own';
+    return side === 'opp' ? (100 - yl) : yl;
+  }
+
+  clearAll() {
+    document.querySelectorAll('#filterPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#filterPanel select').forEach(sel => sel.value = '');
+    this.criteria = { quarters: [], downs: [], playTypes: [], formations: [], personnel: [], results: [], situation: '' };
+    this.active = false;
+    this._updateBadge();
+    this._emit('filter-changed');
+  }
+
+  _updateBadge() {
+    if (!this.filterCountEl) return;
+    const count = [this.criteria.quarters, this.criteria.downs, this.criteria.playTypes,
+      this.criteria.formations, this.criteria.personnel, this.criteria.results]
+        .reduce((s, a) => s + a.length, 0) + (this.criteria.situation ? 1 : 0);
+    this.filterCountEl.textContent = count > 0 ? `${count} active` : 'Off';
+    this.filterCountEl.style.color = count > 0 ? 'var(--highlight)' : '';
+  }
+
+  on(event, callback) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(callback);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
 // ===== notes-manager.js =====
 /**
  * NotesManager - Manages play-by-play notes tied to tagged plays.
@@ -3037,6 +3933,8 @@ class StorageManager {
 
     this.autoSaveTimer = null;
     this.videoFileName = null;
+    this.gameInfo = {};
+    this.filter = null;
 
     this.btnSave = document.getElementById('btnSave');
     this.btnLoad = document.getElementById('btnLoad');
@@ -3116,8 +4014,9 @@ class StorageManager {
     });
 
     return {
-      version: 2,
+      version: 3,
       videoFileName: this.videoFileName,
+      gameInfo: this.gameInfo,
       plays: plays,
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
@@ -3132,6 +4031,13 @@ class StorageManager {
     this.tagger.plays = data.plays || [];
     this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
     this.canvas.annotations = data.annotations || [];
+
+    if (data.gameInfo) {
+      this.gameInfo = data.gameInfo;
+      if (window.app && window.app._loadGameInfo) {
+        window.app._loadGameInfo(data.gameInfo);
+      }
+    }
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
@@ -3204,7 +4110,8 @@ class StorageManager {
     }
 
     const headers = [
-      'Play #', 'Clip', 'Start', 'End', 'Down', 'Distance', 'Formation',
+      'Play #', 'Clip', 'Start', 'End', 'Quarter', 'Drive', 'Down', 'Distance',
+      'Field Side', 'Yard Line', 'Formation', 'Personnel',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Custom Tags', 'Notes'
     ];
@@ -3214,9 +4121,14 @@ class StorageManager {
       p.clipName || '',
       p.timestamp.start.toFixed(2),
       p.timestamp.end.toFixed(2),
+      p.tags.quarter || '',
+      p.tags.driveNumber || '',
       p.tags.down,
       p.tags.distance,
+      p.tags.fieldSide || '',
+      p.tags.yardLine || '',
       p.tags.formation,
+      p.tags.personnel || '',
       p.tags.playType,
       p.tags.defFront,
       p.tags.coverage,
@@ -3234,6 +4146,57 @@ class StorageManager {
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const name = (this.videoFileName || 'plays').replace(/\.[^.]+$/, '') + '_plays.csv';
+    this._download(blob, name);
+  }
+
+  exportHtmlReport(statsEngine) {
+    if (!statsEngine) return;
+    const stats = statsEngine.compute();
+    const title = statsEngine._gameTitle ? statsEngine._gameTitle().replace(/<[^>]+>/g, '') : 'Game Report';
+
+    // Reuse existing render methods
+    const body = [
+      statsEngine._renderTeamStats(stats),
+      statsEngine._renderEfficiency(stats),
+      statsEngine._renderDownAnalysis(stats),
+      statsEngine._renderSituational(stats),
+      statsEngine._renderDrives(stats),
+      statsEngine._renderTendencies(stats),
+      statsEngine._renderPersonnel(stats),
+      statsEngine._renderBigPlays(stats),
+      statsEngine._renderIndividualStats(stats)
+    ].join('\n');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1100px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #e94560;padding-bottom:8px}
+h3{color:#0f3460;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}
+th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#0f3460;color:#fff}
+tr:nth-child(even){background:#f4f4f8}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
+.stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
+.stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
+.stat-card-value{font-size:22px;font-weight:bold;color:#0f3460}
+.stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.stats-section{margin:18px 0}
+.tendency-bar{display:flex;height:24px;border-radius:4px;overflow:hidden;margin:8px 0}
+.tendency-run{background:#44aa44;color:#fff;text-align:center;line-height:24px;font-size:12px}
+.tendency-pass{background:#4488cc;color:#fff;text-align:center;line-height:24px;font-size:12px}
+.success-rate-bar{height:14px;background:#eee;border-radius:7px;overflow:hidden;margin:8px 0}
+.drive-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.drive-bar{background:#eee !important}
+@media print{body{max-width:none}}
+</style></head><body>
+<h1>${title}</h1>
+<p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+${body}
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const name = (this.videoFileName || 'game').replace(/\.[^.]+$/, '') + '_report.html';
     this._download(blob, name);
   }
 
@@ -4273,6 +5236,11 @@ class QuickChart {
       if (this.currentEntry.result) play.tags.result = this.currentEntry.result;
       if (this.currentEntry.yardage) play.tags.yardage = this.currentEntry.yardage;
       if (this.currentEntry.down) play.tags.down = this.currentEntry.down;
+      // Inherit quarter and drive from previous play if not set
+      if (!play.tags.quarter) {
+        const prev = this.tagger.plays[this.tagger.plays.length - 2];
+        if (prev?.tags.quarter) play.tags.quarter = prev.tags.quarter;
+      }
 
       // Store player assignments
       const carrier = this.inputBallCarrier?.value?.trim();
@@ -4380,8 +5348,9 @@ class QuickChart {
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
 class StatsEngine {
-  constructor(playTagger) {
+  constructor(playTagger, playFilter) {
     this.tagger = playTagger;
+    this.filter = playFilter || null;
     this.dashboardEl = document.getElementById('statsDashboard');
     this.btnShowStats = document.getElementById('btnShowStats');
     this.btnCloseStats = document.getElementById('btnCloseStats');
@@ -4410,10 +5379,13 @@ class StatsEngine {
    * Compute all stats from current play data.
    */
   compute() {
-    const plays = this.tagger.plays.filter(p => p.tags.playType);
+    let plays = this.tagger.plays.filter(p => p.tags.playType);
+    const filterActive = this.filter && this.filter.active;
+    if (filterActive) plays = this.filter.filter(plays);
 
     const stats = {
       totalPlays: plays.length,
+      filterActive,
       rushing: this._rushingStats(plays),
       passing: this._passingStats(plays),
       scoring: this._scoringStats(plays),
@@ -4421,10 +5393,141 @@ class StatsEngine {
       turnovers: this._turnoverStats(plays),
       tendencies: this._tendencyStats(plays),
       bigPlays: this._bigPlays(plays),
-      individuals: this._individualStats(plays)
+      individuals: this._individualStats(plays),
+      drives: this._driveStats(plays),
+      situational: this._situationalStats(plays),
+      efficiency: this._efficiencyStats(plays),
+      personnel: this._personnelStats(plays)
     };
 
     return stats;
+  }
+
+  _absYardLine(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  _isSuccessfulPlay(p) {
+    const yds = parseInt(p.tags.yardage) || 0;
+    const dist = parseInt(p.tags.distance) || 10;
+    if (p.tags.result === 'Touchdown') return true;
+    if (p.tags.custom?.includes('1st Down')) return true;
+    switch (p.tags.down) {
+      case '1': return yds >= dist * 0.5;
+      case '2': return yds >= dist * 0.7;
+      case '3':
+      case '4': return yds >= dist;
+      default: return yds >= 4;
+    }
+  }
+
+  _driveStats(plays) {
+    const drives = {};
+    plays.forEach(p => {
+      const d = p.tags.driveNumber || '?';
+      if (!drives[d]) drives[d] = { number: d, plays: [], yards: 0, result: '' };
+      drives[d].plays.push(p);
+      drives[d].yards += parseInt(p.tags.yardage) || 0;
+    });
+    const list = Object.values(drives).map(dr => {
+      const last = dr.plays[dr.plays.length - 1];
+      const r = last?.tags.result || '';
+      let outcome = 'Other';
+      if (r === 'Touchdown') outcome = 'TD';
+      else if (r === 'Field Goal') outcome = 'FG';
+      else if (r === 'Punt') outcome = 'Punt';
+      else if (r === 'Interception' || r === 'Fumble') outcome = 'Turnover';
+      else if (r === 'Kneel') outcome = 'Kneel';
+      return { ...dr, plays: dr.plays.length, outcome };
+    });
+    return {
+      total: list.length,
+      list,
+      scoringDrives: list.filter(d => d.outcome === 'TD' || d.outcome === 'FG').length,
+      avgPlaysPerDrive: list.length ? (list.reduce((s, d) => s + d.plays, 0) / list.length).toFixed(1) : '0',
+      avgYardsPerDrive: list.length ? (list.reduce((s, d) => s + d.yards, 0) / list.length).toFixed(1) : '0'
+    };
+  }
+
+  _situationalStats(plays) {
+    const buckets = {
+      redZone: plays.filter(p => { const y = this._absYardLine(p.tags); return y !== null && y >= 80; }),
+      goalLine: plays.filter(p => { const y = this._absYardLine(p.tags); return y !== null && y >= 95; }),
+      backedUp: plays.filter(p => { const y = this._absYardLine(p.tags); return y !== null && y <= 10; }),
+      thirdLong: plays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7),
+      thirdShort: plays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 1 && (parseInt(p.tags.distance) || 0) <= 3)
+    };
+    const summarize = (arr) => {
+      const total = arr.length;
+      const tds = arr.filter(p => p.tags.result === 'Touchdown').length;
+      const successes = arr.filter(p => this._isSuccessfulPlay(p)).length;
+      const yds = arr.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      return {
+        total, tds, successes,
+        yards: yds,
+        avg: total ? (yds / total).toFixed(1) : '0.0',
+        successPct: total ? ((successes / total) * 100).toFixed(0) : '0'
+      };
+    };
+    return {
+      redZone: summarize(buckets.redZone),
+      goalLine: summarize(buckets.goalLine),
+      backedUp: summarize(buckets.backedUp),
+      thirdLong: summarize(buckets.thirdLong),
+      thirdShort: summarize(buckets.thirdShort),
+      byQuarter: this._statsByQuarter(plays)
+    };
+  }
+
+  _statsByQuarter(plays) {
+    const result = {};
+    ['Q1', 'Q2', 'Q3', 'Q4', 'OT'].forEach(q => {
+      const qp = plays.filter(p => p.tags.quarter === q);
+      result[q] = {
+        plays: qp.length,
+        yards: qp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0),
+        tds: qp.filter(p => p.tags.result === 'Touchdown').length
+      };
+    });
+    return result;
+  }
+
+  _efficiencyStats(plays) {
+    const successes = plays.filter(p => this._isSuccessfulPlay(p)).length;
+    const explosive = plays.filter(p => {
+      const y = parseInt(p.tags.yardage) || 0;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      return isRun ? y >= 12 : y >= 16;
+    }).length;
+    const negative = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0).length;
+    return {
+      successRate: plays.length ? ((successes / plays.length) * 100).toFixed(1) : '0.0',
+      successes,
+      explosivePct: plays.length ? ((explosive / plays.length) * 100).toFixed(1) : '0.0',
+      explosivePlays: explosive,
+      negativePct: plays.length ? ((negative / plays.length) * 100).toFixed(1) : '0.0',
+      negativePlays: negative
+    };
+  }
+
+  _personnelStats(plays) {
+    const groups = {};
+    plays.forEach(p => {
+      const k = p.tags.personnel || 'Unknown';
+      if (!groups[k]) groups[k] = { name: k, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+      groups[k].count++;
+      groups[k].yards += parseInt(p.tags.yardage) || 0;
+      if (p.tags.playType?.toLowerCase().includes('run')) groups[k].runs++;
+      else groups[k].passes++;
+      if (this._isSuccessfulPlay(p)) groups[k].successes++;
+    });
+    return Object.values(groups).map(g => ({
+      ...g,
+      avg: g.count ? (g.yards / g.count).toFixed(1) : '0.0',
+      successPct: g.count ? ((g.successes / g.count) * 100).toFixed(0) : '0'
+    })).sort((a, b) => b.count - a.count);
   }
 
   _rushingStats(plays) {
@@ -4666,7 +5769,7 @@ class StatsEngine {
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Game Stats</h2>
+            <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
@@ -4674,8 +5777,12 @@ class StatsEngine {
           </div>
           <div class="stats-body">
             ${this._renderTeamStats(stats)}
+            ${this._renderEfficiency(stats)}
             ${this._renderDownAnalysis(stats)}
+            ${this._renderSituational(stats)}
+            ${this._renderDrives(stats)}
             ${this._renderTendencies(stats)}
+            ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
             ${this._renderIndividualStats(stats)}
           </div>
@@ -4693,6 +5800,117 @@ class StatsEngine {
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {
       if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
     });
+  }
+
+  _gameTitle() {
+    const t = document.getElementById('gameTeamName')?.value || '';
+    const o = document.getElementById('gameOpponent')?.value || '';
+    const u = document.getElementById('gameScoreUs')?.value;
+    const th = document.getElementById('gameScoreThem')?.value;
+    const d = document.getElementById('gameDate')?.value || '';
+    let title = 'Game Stats';
+    if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
+    if (u !== '' && th !== '' && u != null && th != null) title += ` &mdash; ${u}-${th}`;
+    if (d) title += ` (${d})`;
+    return title;
+  }
+
+  _renderEfficiency(stats) {
+    const e = stats.efficiency;
+    return `
+      <div class="stats-section">
+        <h3>Efficiency</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Success Rate</div><div class="stat-card-value">${e.successRate}%</div></div>
+          <div class="stat-card"><div class="stat-card-title">Explosive Plays</div><div class="stat-card-value">${e.explosivePlays} (${e.explosivePct}%)</div></div>
+          <div class="stat-card"><div class="stat-card-title">Negative Plays</div><div class="stat-card-value">${e.negativePlays} (${e.negativePct}%)</div></div>
+        </div>
+        <div class="success-rate-bar"><div style="width:${e.successRate}%;background:var(--accent);height:100%"></div></div>
+      </div>`;
+  }
+
+  _renderSituational(stats) {
+    const s = stats.situational;
+    const row = (label, b) => b.total === 0 ? '' :
+      `<tr><td>${label}</td><td>${b.total}</td><td>${b.yards}</td><td>${b.avg}</td><td>${b.successPct}%</td><td>${b.tds}</td></tr>`;
+    const rows = [
+      row('Red Zone', s.redZone),
+      row('Goal Line', s.goalLine),
+      row('Backed Up', s.backedUp),
+      row('3rd & Long', s.thirdLong),
+      row('3rd & Short', s.thirdShort)
+    ].filter(Boolean).join('');
+    if (!rows) return '';
+    let qRows = '';
+    for (const [q, qs] of Object.entries(s.byQuarter)) {
+      if (qs.plays === 0) continue;
+      qRows += `<tr><td>${q}</td><td>${qs.plays}</td><td>${qs.yards}</td><td>${qs.tds}</td></tr>`;
+    }
+    return `
+      <div class="stats-section stats-two-col">
+        <div>
+          <h3>Situational</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Situation</th><th>#</th><th>Yds</th><th>Avg</th><th>Succ%</th><th>TD</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div>
+          <h3>By Quarter</h3>
+          ${qRows ? `<table class="stats-table stats-table-full">
+            <thead><tr><th>Q</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
+            <tbody>${qRows}</tbody>
+          </table>` : '<p style="opacity:.6">No quarter data tagged.</p>'}
+        </div>
+      </div>`;
+  }
+
+  _renderDrives(stats) {
+    const d = stats.drives;
+    if (d.total === 0) return '';
+    const colorMap = { TD: '#44ff44', FG: '#88ddff', Punt: '#888', Turnover: '#ff4444', Kneel: '#666', Other: '#ffaa00' };
+    let rows = '';
+    for (const dr of d.list) {
+      const color = colorMap[dr.outcome] || '#aaa';
+      rows += `<div class="drive-row">
+        <span style="width:50px">Drive ${dr.number}</span>
+        <div class="drive-bar" style="flex:1;background:#222;height:18px;position:relative">
+          <div style="background:${color};height:100%;width:${Math.min(100, dr.plays * 8)}%"></div>
+        </div>
+        <span style="width:60px;text-align:right">${dr.plays} pl</span>
+        <span style="width:60px;text-align:right">${dr.yards} yd</span>
+        <span style="width:80px;text-align:right;color:${color}">${dr.outcome}</span>
+      </div>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Drives</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Total Drives</div><div class="stat-card-value">${d.total}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Scoring Drives</div><div class="stat-card-value">${d.scoringDrives}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Avg Plays</div><div class="stat-card-value">${d.avgPlaysPerDrive}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${d.avgYardsPerDrive}</div></div>
+        </div>
+        <div class="drive-chart">${rows}</div>
+      </div>`;
+  }
+
+  _renderPersonnel(stats) {
+    if (!stats.personnel.length) return '';
+    let rows = '';
+    for (const g of stats.personnel) {
+      if (g.name === 'Unknown' && stats.personnel.length > 1) continue;
+      rows += `<tr><td>${g.name}</td><td>${g.count}</td><td>${g.runs}/${g.passes}</td><td>${g.yards}</td><td>${g.avg}</td><td>${g.successPct}%</td></tr>`;
+    }
+    if (!rows) return '';
+    return `
+      <div class="stats-section">
+        <h3>Personnel Groupings</h3>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Group</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Succ%</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
   }
 
   _renderTeamStats(stats) {
@@ -5005,18 +6223,26 @@ class App {
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);
     this.tagger = new PlayTagger(this.vc);
+    this.filter = new PlayFilter(this.tagger);
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
-    this.stats = new StatsEngine(this.tagger);
+    this.stats = new StatsEngine(this.tagger, this.filter);
 
-    // Give storage a reference to playlist
+    // Give storage references
     this.storage.playlist = this.playlist;
+    this.storage.filter = this.filter;
 
     // Wire cross-module events
     this._wireEvents();
+
+    // Wire game info form
+    this._bindGameInfo();
+
+    // Wire report export
+    this._bindReportExport();
 
     // Keyboard shortcuts
     this._bindKeyboard();
@@ -5337,6 +6563,50 @@ class App {
         progressLabel.textContent = pct + '%';
       }
     });
+  }
+
+  _bindGameInfo() {
+    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => this._saveGameInfo());
+        el.addEventListener('input', () => this._saveGameInfo());
+      }
+    });
+  }
+
+  _saveGameInfo() {
+    this.storage.gameInfo = {
+      teamName: document.getElementById('gameTeamName')?.value || '',
+      opponent: document.getElementById('gameOpponent')?.value || '',
+      date: document.getElementById('gameDate')?.value || '',
+      scoreUs: document.getElementById('gameScoreUs')?.value || '',
+      scoreThem: document.getElementById('gameScoreThem')?.value || ''
+    };
+    this.storage._autoSave();
+  }
+
+  _loadGameInfo(info) {
+    if (!info) return;
+    const map = {
+      gameTeamName: info.teamName,
+      gameOpponent: info.opponent,
+      gameDate: info.date,
+      gameScoreUs: info.scoreUs,
+      gameScoreThem: info.scoreThem
+    };
+    for (const [id, val] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      if (el && val) el.value = val;
+    }
+  }
+
+  _bindReportExport() {
+    const btn = document.getElementById('btnExportReport');
+    if (btn) {
+      btn.addEventListener('click', () => this.storage.exportHtmlReport(this.stats));
+    }
   }
 
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {

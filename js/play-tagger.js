@@ -28,10 +28,18 @@ export class PlayTagger {
       result: document.getElementById('tagResult'),
       yardage: document.getElementById('tagYardage'),
       hash: document.getElementById('tagHash'),
+      quarter: document.getElementById('tagQuarter'),
+      yardLine: document.getElementById('tagYardLine'),
+      fieldSide: document.getElementById('tagFieldSide'),
+      personnel: document.getElementById('tagPersonnel'),
+      driveNumber: document.getElementById('tagDriveNumber'),
     };
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
+
+    this.btnNewDrive = document.getElementById('btnNewDrive');
+    this.currentDrive = 1;
 
     this._bindEvents();
   }
@@ -49,6 +57,15 @@ export class PlayTagger {
     Object.values(this.tagFields).forEach(el => {
       el.addEventListener('change', () => this._saveCurrentTags());
     });
+
+    // New Drive button
+    if (this.btnNewDrive) {
+      this.btnNewDrive.addEventListener('click', () => {
+        this.currentDrive++;
+        if (this.tagFields.driveNumber) this.tagFields.driveNumber.value = this.currentDrive;
+        this._saveCurrentTags();
+      });
+    }
 
     // Custom tag input
     this.customTagInput.addEventListener('keydown', (e) => {
@@ -95,6 +112,11 @@ export class PlayTagger {
         result: '',
         yardage: '',
         hash: '',
+        quarter: '',
+        yardLine: '',
+        fieldSide: 'own',
+        personnel: '',
+        driveNumber: this.currentDrive.toString(),
         custom: []
       },
       annotations: [],
@@ -163,6 +185,11 @@ export class PlayTagger {
     play.tags.result = this.tagFields.result.value;
     play.tags.yardage = this.tagFields.yardage.value;
     play.tags.hash = this.tagFields.hash.value;
+    play.tags.quarter = this.tagFields.quarter.value;
+    play.tags.yardLine = this.tagFields.yardLine.value;
+    play.tags.fieldSide = this.tagFields.fieldSide.value;
+    play.tags.personnel = this.tagFields.personnel.value;
+    play.tags.driveNumber = this.tagFields.driveNumber.value;
 
     this._updateTimeline();
     this._emit('play-updated', play);
@@ -179,6 +206,11 @@ export class PlayTagger {
     this.tagFields.result.value = play.tags.result;
     this.tagFields.yardage.value = play.tags.yardage;
     this.tagFields.hash.value = play.tags.hash;
+    this.tagFields.quarter.value = play.tags.quarter || '';
+    this.tagFields.yardLine.value = play.tags.yardLine || '';
+    this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
+    this.tagFields.personnel.value = play.tags.personnel || '';
+    this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this._renderCustomTags(play.tags.custom);
   }
 

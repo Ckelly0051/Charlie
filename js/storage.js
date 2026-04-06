@@ -9,6 +9,8 @@ export class StorageManager {
 
     this.autoSaveTimer = null;
     this.videoFileName = null;
+    this.gameInfo = {};
+    this.filter = null;
 
     this.btnSave = document.getElementById('btnSave');
     this.btnLoad = document.getElementById('btnLoad');
@@ -88,8 +90,9 @@ export class StorageManager {
     });
 
     return {
-      version: 2,
+      version: 3,
       videoFileName: this.videoFileName,
+      gameInfo: this.gameInfo,
       plays: plays,
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
@@ -104,6 +107,13 @@ export class StorageManager {
     this.tagger.plays = data.plays || [];
     this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
     this.canvas.annotations = data.annotations || [];
+
+    if (data.gameInfo) {
+      this.gameInfo = data.gameInfo;
+      if (window.app && window.app._loadGameInfo) {
+        window.app._loadGameInfo(data.gameInfo);
+      }
+    }
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
@@ -176,7 +186,8 @@ export class StorageManager {
     }
 
     const headers = [
-      'Play #', 'Clip', 'Start', 'End', 'Down', 'Distance', 'Formation',
+      'Play #', 'Clip', 'Start', 'End', 'Quarter', 'Drive', 'Down', 'Distance',
+      'Field Side', 'Yard Line', 'Formation', 'Personnel',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Custom Tags', 'Notes'
     ];
@@ -186,9 +197,14 @@ export class StorageManager {
       p.clipName || '',
       p.timestamp.start.toFixed(2),
       p.timestamp.end.toFixed(2),
+      p.tags.quarter || '',
+      p.tags.driveNumber || '',
       p.tags.down,
       p.tags.distance,
+      p.tags.fieldSide || '',
+      p.tags.yardLine || '',
       p.tags.formation,
+      p.tags.personnel || '',
       p.tags.playType,
       p.tags.defFront,
       p.tags.coverage,
@@ -206,6 +222,57 @@ export class StorageManager {
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const name = (this.videoFileName || 'plays').replace(/\.[^.]+$/, '') + '_plays.csv';
+    this._download(blob, name);
+  }
+
+  exportHtmlReport(statsEngine) {
+    if (!statsEngine) return;
+    const stats = statsEngine.compute();
+    const title = statsEngine._gameTitle ? statsEngine._gameTitle().replace(/<[^>]+>/g, '') : 'Game Report';
+
+    // Reuse existing render methods
+    const body = [
+      statsEngine._renderTeamStats(stats),
+      statsEngine._renderEfficiency(stats),
+      statsEngine._renderDownAnalysis(stats),
+      statsEngine._renderSituational(stats),
+      statsEngine._renderDrives(stats),
+      statsEngine._renderTendencies(stats),
+      statsEngine._renderPersonnel(stats),
+      statsEngine._renderBigPlays(stats),
+      statsEngine._renderIndividualStats(stats)
+    ].join('\n');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1100px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #e94560;padding-bottom:8px}
+h3{color:#0f3460;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}
+th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#0f3460;color:#fff}
+tr:nth-child(even){background:#f4f4f8}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
+.stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
+.stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
+.stat-card-value{font-size:22px;font-weight:bold;color:#0f3460}
+.stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.stats-section{margin:18px 0}
+.tendency-bar{display:flex;height:24px;border-radius:4px;overflow:hidden;margin:8px 0}
+.tendency-run{background:#44aa44;color:#fff;text-align:center;line-height:24px;font-size:12px}
+.tendency-pass{background:#4488cc;color:#fff;text-align:center;line-height:24px;font-size:12px}
+.success-rate-bar{height:14px;background:#eee;border-radius:7px;overflow:hidden;margin:8px 0}
+.drive-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.drive-bar{background:#eee !important}
+@media print{body{max-width:none}}
+</style></head><body>
+<h1>${title}</h1>
+<p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+${body}
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const name = (this.videoFileName || 'game').replace(/\.[^.]+$/, '') + '_report.html';
     this._download(blob, name);
   }
 

@@ -40,6 +40,9 @@
         <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
           <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> CSV
         </button>
+        <button class="btn" id="btnExportReport" title="Export HTML Report">
+          <svg class="icon"><use href="assets/icons.svg#icon-notes"/></svg> Report
+        </button>
       </div>
     </header>
 
@@ -101,6 +104,36 @@
 
       <!-- Right Sidebar -->
       <aside class="sidebar">
+        <!-- Game Info -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="gameInfoPanel">
+            <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
+            Game Info
+          </h3>
+          <div class="panel-body" id="gameInfoPanel">
+            <div class="tag-row">
+              <label>Team Name</label>
+              <input type="text" id="gameTeamName" placeholder="Our Team">
+            </div>
+            <div class="tag-row">
+              <label>Opponent</label>
+              <input type="text" id="gameOpponent" placeholder="Opponent">
+            </div>
+            <div class="tag-row">
+              <label>Date</label>
+              <input type="date" id="gameDate">
+            </div>
+            <div class="tag-row">
+              <label>Score</label>
+              <div class="tag-row-inline">
+                <input type="number" id="gameScoreUs" placeholder="Us" min="0" style="width:60px">
+                <span>-</span>
+                <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Playlist -->
         <div class="sidebar-panel">
           <h3 class="panel-title" data-toggle="playlistPanel">
@@ -118,6 +151,102 @@
             </div>
             <div class="playlist-list" id="playlistItems">
               <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Play Filters -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="filterPanel">
+            <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
+            Filter Plays
+            <span class="panel-badge" id="filterCount"></span>
+          </h3>
+          <div class="panel-body collapsed" id="filterPanel">
+            <div class="filter-grid">
+              <div class="filter-group">
+                <label>Down</label>
+                <div class="filter-checks" id="filterDown">
+                  <label class="filter-chip"><input type="checkbox" value="1"> 1st</label>
+                  <label class="filter-chip"><input type="checkbox" value="2"> 2nd</label>
+                  <label class="filter-chip"><input type="checkbox" value="3"> 3rd</label>
+                  <label class="filter-chip"><input type="checkbox" value="4"> 4th</label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label>Quarter</label>
+                <div class="filter-checks" id="filterQuarter">
+                  <label class="filter-chip"><input type="checkbox" value="Q1"> Q1</label>
+                  <label class="filter-chip"><input type="checkbox" value="Q2"> Q2</label>
+                  <label class="filter-chip"><input type="checkbox" value="Q3"> Q3</label>
+                  <label class="filter-chip"><input type="checkbox" value="Q4"> Q4</label>
+                  <label class="filter-chip"><input type="checkbox" value="OT"> OT</label>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label>Play Type</label>
+                <select id="filterPlayType" multiple size="3" class="filter-multi">
+                  <option value="Run Inside">Run Inside</option>
+                  <option value="Run Outside">Run Outside</option>
+                  <option value="Screen">Screen</option>
+                  <option value="Short Pass">Short Pass</option>
+                  <option value="Medium Pass">Med Pass</option>
+                  <option value="Deep Pass">Deep Pass</option>
+                  <option value="Play Action">Play Action</option>
+                  <option value="RPO">RPO</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Result</label>
+                <select id="filterResult" multiple size="3" class="filter-multi">
+                  <option value="Gain">Gain</option>
+                  <option value="Loss">Loss</option>
+                  <option value="No Gain">No Gain</option>
+                  <option value="Incomplete">Incomplete</option>
+                  <option value="Touchdown">TD</option>
+                  <option value="Interception">INT</option>
+                  <option value="Fumble">Fumble</option>
+                  <option value="Sack">Sack</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Formation</label>
+                <select id="filterFormation" class="filter-select">
+                  <option value="">All</option>
+                  <option>Shotgun</option>
+                  <option>Under Center</option>
+                  <option>Pistol</option>
+                  <option>I-Form</option>
+                  <option>Singleback</option>
+                  <option>Empty</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Personnel</label>
+                <select id="filterPersonnel" class="filter-select">
+                  <option value="">All</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="21">21</option>
+                  <option value="22">22</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Situation</label>
+                <select id="filterSituation" class="filter-select">
+                  <option value="">All</option>
+                  <option value="redzone">Red Zone</option>
+                  <option value="goalline">Goal Line</option>
+                  <option value="backed-up">Backed Up (Own 10)</option>
+                  <option value="3rd-long">3rd & Long (7+)</option>
+                  <option value="3rd-short">3rd & Short (1-3)</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-sm btn-danger" id="btnClearFilters">Clear Filters</button>
             </div>
           </div>
         </div>
@@ -261,6 +390,27 @@
                 </div>
               </div>
               <div class="tag-row">
+                <label>Quarter</label>
+                <select id="tagQuarter">
+                  <option value="">--</option>
+                  <option value="Q1">Q1</option>
+                  <option value="Q2">Q2</option>
+                  <option value="Q3">Q3</option>
+                  <option value="Q4">Q4</option>
+                  <option value="OT">OT</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Field Position</label>
+                <div class="tag-row-inline">
+                  <select id="tagFieldSide" style="width:70px">
+                    <option value="own">Own</option>
+                    <option value="opp">Opp</option>
+                  </select>
+                  <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" style="width:55px">
+                </div>
+              </div>
+              <div class="tag-row">
                 <label>Formation</label>
                 <select id="tagFormation">
                   <option value="">--</option>
@@ -272,6 +422,23 @@
                   <option>Empty</option>
                   <option>Wildcat</option>
                   <option>Goal Line</option>
+                </select>
+              </div>
+              <div class="tag-row">
+                <label>Personnel</label>
+                <select id="tagPersonnel">
+                  <option value="">--</option>
+                  <option value="00">00 (5 WR)</option>
+                  <option value="10">10 (4 WR, 1 RB)</option>
+                  <option value="11">11 (3 WR, 1 RB, 1 TE)</option>
+                  <option value="12">12 (2 WR, 1 RB, 2 TE)</option>
+                  <option value="13">13 (1 WR, 1 RB, 3 TE)</option>
+                  <option value="20">20 (3 WR, 2 RB)</option>
+                  <option value="21">21 (2 WR, 2 RB, 1 TE)</option>
+                  <option value="22">22 (1 WR, 2 RB, 2 TE)</option>
+                  <option value="23">23 (0 WR, 2 RB, 3 TE)</option>
+                  <option value="Jumbo">Jumbo</option>
+                  <option value="Goal Line">Goal Line</option>
                 </select>
               </div>
               <div class="tag-row">
@@ -288,6 +455,13 @@
                   <option>RPO</option>
                   <option>Trick Play</option>
                 </select>
+              </div>
+              <div class="tag-row">
+                <label>Drive #</label>
+                <div class="tag-row-inline">
+                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" style="width:55px">
+                  <button class="btn btn-sm btn-accent" id="btnNewDrive" title="Start New Drive">New Drive</button>
+                </div>
               </div>
               <div class="tag-row">
                 <label>Defensive Front</label>
@@ -342,6 +516,10 @@
                     <option>Sack</option>
                     <option>Fumble</option>
                     <option>Penalty</option>
+                    <option>Punt</option>
+                    <option>Field Goal</option>
+                    <option>Kneel</option>
+                    <option>Spike</option>
                   </select>
                   <input type="number" id="tagYardage" placeholder="Yds" min="-99" max="99">
                 </div>

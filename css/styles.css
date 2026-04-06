@@ -1284,6 +1284,255 @@ body {
   min-width: 40px;
 }
 
+/* ===== Game Info ===== */
+.game-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.game-info-header strong {
+  color: var(--text);
+}
+
+/* ===== Filter Panel ===== */
+.filter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-group label:first-child {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-chip:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: var(--text-bright);
+}
+
+.filter-chip input[type="checkbox"] {
+  display: none;
+}
+
+.filter-multi,
+.filter-select {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 4px;
+  font-size: 11px;
+}
+
+.filter-multi option:checked {
+  background: var(--accent);
+  color: var(--text-bright);
+}
+
+.filter-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+/* ===== Drive Summary in Stats ===== */
+.drive-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.drive-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+}
+
+.drive-num {
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 24px;
+}
+
+.drive-bar {
+  flex: 1;
+  height: 16px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.drive-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 9px;
+  color: var(--text-bright);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.drive-bar-fill.td { background: var(--success); color: #000; }
+.drive-bar-fill.fg { background: var(--warning); color: #000; }
+.drive-bar-fill.punt { background: var(--text-dim); }
+.drive-bar-fill.turnover { background: var(--danger); }
+.drive-bar-fill.other { background: var(--accent); }
+
+.drive-result {
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ===== Efficiency Stats ===== */
+.success-rate-bar {
+  display: flex;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.success-fill {
+  background: var(--success);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fail-fill {
+  background: var(--danger);
+  color: var(--text-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Comparison View ===== */
+.comparison-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+}
+
+.comparison-header select {
+  background: var(--bg-surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.comparison-header span {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.comparison-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.comparison-col {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.comparison-col h4 {
+  font-size: 13px;
+  color: var(--highlight);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* ===== Situational tabs ===== */
+.situation-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.situation-tab {
+  padding: 4px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.situation-tab.active {
+  background: var(--bg-surface);
+  border-bottom-color: var(--bg-surface);
+  color: var(--highlight);
+  font-weight: 600;
+}
+
+.situation-content {
+  display: none;
+}
+
+.situation-content.active {
+  display: block;
+}
+
 /* ===== Utility ===== */
 .hidden {
   display: none !important;
@@ -1305,4 +1554,272 @@ body {
   font-weight: bold;
   outline: none;
   min-width: 120px;
+}
+
+/* ===== Game Info ===== */
+.game-info-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-info-form input[type="date"] {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* ===== Filter Panel ===== */
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-row label:first-child {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.filter-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-chip:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--highlight);
+  color: var(--text-bright);
+}
+
+.filter-chip input[type="checkbox"] {
+  display: none;
+}
+
+.filter-multi {
+  width: 100%;
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  padding: 2px;
+}
+
+.filter-multi option {
+  padding: 2px 4px;
+}
+
+.filter-multi option:checked {
+  background: var(--accent);
+  color: var(--text-bright);
+}
+
+/* ===== Situational Stats ===== */
+.stats-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.stats-tab {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.stats-tab:hover {
+  color: var(--text);
+}
+
+.stats-tab.active {
+  color: var(--highlight);
+  border-color: var(--border);
+  border-bottom-color: var(--bg-secondary);
+  background: var(--bg-secondary);
+}
+
+/* ===== Success Rate Visual ===== */
+.success-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.success-bar-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 80px;
+}
+
+.success-bar-track {
+  flex: 1;
+  height: 18px;
+  background: var(--bg-tertiary);
+  border-radius: 9px;
+  overflow: hidden;
+  position: relative;
+}
+
+.success-bar-fill {
+  height: 100%;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-bright);
+  min-width: 30px;
+  transition: width 300ms ease;
+}
+
+.success-bar-fill.good { background: var(--success); }
+.success-bar-fill.ok { background: var(--warning); }
+.success-bar-fill.bad { background: var(--danger); }
+
+/* ===== Comparison View ===== */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.comparison-col {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+.comparison-col h4 {
+  font-size: 12px;
+  color: var(--highlight);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ===== Drive Chart ===== */
+.drive-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.drive-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.drive-num {
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 24px;
+}
+
+.drive-bar {
+  flex: 1;
+  height: 14px;
+  background: var(--bg-surface);
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+
+.drive-bar-fill {
+  height: 100%;
+  border-radius: 7px;
+  min-width: 4px;
+}
+
+.drive-bar-fill.td { background: var(--success); }
+.drive-bar-fill.fg { background: var(--warning); }
+.drive-bar-fill.punt { background: var(--text-dim); }
+.drive-bar-fill.turnover { background: var(--danger); }
+.drive-bar-fill.other { background: var(--accent); }
+
+.drive-result {
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+}
+
+.drive-result.td { color: var(--success); }
+.drive-result.fg { color: var(--warning); }
+.drive-result.turnover { color: var(--danger); }
+
+/* ===== Print ===== */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    overflow: visible;
+    height: auto;
+  }
+  .stats-overlay {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+  .stats-container {
+    max-height: none;
+    box-shadow: none;
+    border: none;
+    background: #fff;
+  }
+  .stats-header-actions {
+    display: none;
+  }
+  .stat-card {
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+  }
+  .stat-card-value {
+    color: #000;
+  }
+  .stats-table td, .stats-table th {
+    border-bottom: 1px solid #ddd;
+  }
+  .tendency-run, .tendency-pass {
+    color: #fff;
+  }
 }
