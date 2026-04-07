@@ -3640,3 +3640,13 @@ body.qc-active .tw-reopen { display: none; }
 
 /* Hide legacy floating reopen (replaced by top-bar button) */
 .wiz-reopen { display: none !important; }
+
+/* Permanently kill the floating wizard action card */
+.wizard-action { display: none !important; }
+
+/* Always show Wizard button on every screen size */
+#btnToggleWizard { display: inline-flex !important; }
+#btnToggleWizard span { display: inline !important; }
+@media (max-width: 500px) {
+  #btnToggleWizard span { display: none !important; }
+}

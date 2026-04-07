@@ -13,7 +13,11 @@ export class Wizard {
     this.stats = stats;
     this.history = history;
     this.currentStep = 1;
-    // Default: wizard is OFF (opt-in via the top-bar Wizard button).
+    // Default: wizard is OFF. One-time migration to clear any old "on" pref.
+    if (!localStorage.getItem('ffa_wizard_v2')) {
+      localStorage.setItem('ffa_wizard_dismissed', '1');
+      localStorage.setItem('ffa_wizard_v2', '1');
+    }
     const saved = localStorage.getItem('ffa_wizard_dismissed');
     this.dismissed = saved === null ? true : saved === '1';
 
@@ -46,12 +50,8 @@ export class Wizard {
     // Top-bar toggle button (in index.html). No floating reopen anymore.
     this.reopenBtn = document.getElementById('btnToggleWizard');
 
-    // Floating action card — single big "do this next" button.
-    const card = document.createElement('div');
-    card.className = 'wizard-action hidden';
-    card.id = 'wizAction';
-    document.body.appendChild(card);
-    this.card = card;
+    // No floating card — step pills handle all actions inline.
+    this.card = { classList: { add() {}, remove() {} }, innerHTML: '', querySelector: () => null };
   }
 
   _stepDefs() {
@@ -70,7 +70,9 @@ export class Wizard {
     document.getElementById('wizSteps').addEventListener('click', (e) => {
       const btn = e.target.closest('.wiz-step');
       if (!btn) return;
-      this.goTo(parseInt(btn.dataset.step, 10));
+      const step = parseInt(btn.dataset.step, 10);
+      this.goTo(step);
+      this._runStepAction(step);
     });
 
     document.getElementById('wizDismiss').addEventListener('click', () => this.setDismissed(true));
@@ -240,9 +242,23 @@ export class Wizard {
   }
 
   _runStepSideEffects() {
-    // Close overlays when jumping.
     document.getElementById('statsDashboard')?.classList.add('hidden');
     document.getElementById('moreDropdown')?.classList.add('hidden');
+  }
+
+  _runStepAction(step) {
+    // Each pill click triggers the step's primary action directly.
+    if (step === 1) {
+      document.getElementById('videoFileInput')?.click();
+    } else if (step === 2) {
+      document.getElementById('btnAutoDetect')?.click();
+    } else if (step === 3) {
+      document.getElementById('btnQuickChart')?.click();
+    } else if (step === 4) {
+      document.getElementById('btnShowStats')?.click();
+    } else if (step === 5) {
+      document.getElementById('btnCallSheet')?.click();
+    }
   }
 
   _openPlayTaggerPanel() {
