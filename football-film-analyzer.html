@@ -3644,6 +3644,9 @@ body.qc-active .wizard-action { display: none; }
 /* Make sure wizard action card hides when dismissed */
 body.qc-active .tw,
 body.qc-active .tw-reopen { display: none; }
+
+/* Hide legacy floating reopen (replaced by top-bar button) */
+.wiz-reopen { display: none !important; }
   </style>
 </head>
 <body>
@@ -3830,6 +3833,12 @@ body.qc-active .tw-reopen { display: none; }
             <line x1="4" y1="17" x2="20" y2="17"/>
           </svg>
           <span class="sidebar-toggle-label">Menu</span>
+        </button>
+        <button class="btn" id="btnToggleWizard" title="Show/hide the step-by-step wizard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l2.09 6.26L20 9.27l-5 4.87L16.18 21 12 17.77 7.82 21 9 14.14l-5-4.87 5.91-1.01L12 2z"/>
+          </svg>
+          <span>Wizard</span>
         </button>
         <h1 class="app-title">Film Analyzer</h1>
       </div>
@@ -10652,7 +10661,9 @@ class Wizard {
     this.stats = stats;
     this.history = history;
     this.currentStep = 1;
-    this.dismissed = localStorage.getItem('ffa_wizard_dismissed') === '1';
+    // Default: wizard is OFF (opt-in via the top-bar Wizard button).
+    const saved = localStorage.getItem('ffa_wizard_dismissed');
+    this.dismissed = saved === null ? true : saved === '1';
 
     this._inject();
     this._wire();
@@ -10680,14 +10691,8 @@ class Wizard {
     header?.after(bar);
     this.bar = bar;
 
-    // Floating reopen button
-    const reopen = document.createElement('button');
-    reopen.className = 'wiz-reopen hidden';
-    reopen.id = 'wizReopen';
-    reopen.title = 'Show guide';
-    reopen.innerHTML = '<span>?</span>';
-    document.body.appendChild(reopen);
-    this.reopenBtn = reopen;
+    // Top-bar toggle button (in index.html). No floating reopen anymore.
+    this.reopenBtn = document.getElementById('btnToggleWizard');
 
     // Floating action card — single big "do this next" button.
     const card = document.createElement('div');
@@ -10717,7 +10722,7 @@ class Wizard {
     });
 
     document.getElementById('wizDismiss').addEventListener('click', () => this.setDismissed(true));
-    this.reopenBtn.addEventListener('click', () => this.setDismissed(false));
+    this.reopenBtn?.addEventListener('click', () => this.toggle());
 
     // Auto-advance on video load.
     this.vc.on('video-loaded', () => {
@@ -10747,7 +10752,7 @@ class Wizard {
     this.dismissed = d;
     localStorage.setItem('ffa_wizard_dismissed', d ? '1' : '0');
     this.bar.classList.toggle('hidden', d);
-    this.reopenBtn.classList.toggle('hidden', !d);
+    this.reopenBtn?.classList.toggle('btn-highlight', !d);
     if (d) this.card.classList.add('hidden');
     else this._render();
   }
@@ -10757,12 +10762,12 @@ class Wizard {
   _render() {
     if (this.dismissed) {
       this.bar.classList.add('hidden');
-      this.reopenBtn.classList.remove('hidden');
+      this.reopenBtn?.classList.remove('btn-highlight');
       this.card.classList.add('hidden');
       return;
     }
     this.bar.classList.remove('hidden');
-    this.reopenBtn.classList.add('hidden');
+    this.reopenBtn?.classList.add('btn-highlight');
 
     // Update step pill states.
     const total = this.tagger.plays.length;

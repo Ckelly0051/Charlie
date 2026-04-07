@@ -3637,3 +3637,6 @@ body.qc-active .wizard-action { display: none; }
 /* Make sure wizard action card hides when dismissed */
 body.qc-active .tw,
 body.qc-active .tw-reopen { display: none; }
+
+/* Hide legacy floating reopen (replaced by top-bar button) */
+.wiz-reopen { display: none !important; }
