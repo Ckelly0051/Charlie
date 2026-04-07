@@ -18,6 +18,7 @@ import { SuggestionEngine } from './suggestion-engine.js';
 import { CutupExporter } from './cutup-exporter.js';
 import { SeasonManager } from './season-manager.js';
 import { CallSheetBuilder } from './call-sheet-builder.js';
+import { UIPolish } from './ui-polish.js';
 
 class App {
   constructor() {
@@ -39,6 +40,7 @@ class App {
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.season = new SeasonManager(this.stats);
     this.callSheet = new CallSheetBuilder(this.tagger);
+    this.uiPolish = new UIPolish();
 
     // Give storage references
     this.storage.playlist = this.playlist;

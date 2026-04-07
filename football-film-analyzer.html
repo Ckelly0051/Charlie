@@ -2435,6 +2435,377 @@ body {
   .cs-body { grid-template-columns: 1fr; }
   .cs-preview { min-height: 300px; }
 }
+
+/* ================================================================== */
+/* ============  UX PASS — polish, mobile, touch targets  =========== */
+/* ================================================================== */
+
+:root {
+  --bg-primary: #0b1020;
+  --bg-secondary: #131a2e;
+  --bg-tertiary: #1a2338;
+  --bg-surface: #222e48;
+  --accent: #1e4a8f;
+  --accent-hover: #2563c4;
+  --highlight: #ef4766;
+  --highlight-hover: #ff5f7e;
+  --border: #2c3a58;
+  --border-bright: #3e5180;
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+  --radius: 8px;
+  --radius-sm: 6px;
+}
+
+body {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Top bar polish --- */
+.top-bar {
+  padding: 0 14px;
+  background: linear-gradient(180deg, #151d33 0%, #0f1527 100%);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 2px 8px rgba(0,0,0,0.25);
+}
+.top-bar-left { display: flex; align-items: center; gap: 10px; }
+.app-title {
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  background: linear-gradient(90deg, #ef4766, #ffaa00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sidebar-toggle { display: none; }
+
+.file-input-label {
+  padding: 8px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  transition: all 180ms ease;
+}
+
+/* --- Buttons: touch-friendly, subtle depth --- */
+.btn {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  transition: all 160ms ease;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.25);
+}
+.btn:hover {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-icon {
+  min-width: 34px;
+  padding: 7px;
+  justify-content: center;
+}
+.btn-sm { min-height: 28px; padding: 4px 10px; font-size: 11px; }
+.btn-highlight {
+  background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
+  border-color: #c93552;
+  color: #fff;
+}
+.btn-highlight:hover {
+  background: linear-gradient(180deg, var(--highlight-hover) 0%, var(--highlight) 100%);
+  border-color: var(--highlight);
+}
+.btn-accent {
+  background: linear-gradient(180deg, #2563c4 0%, #1b4791 100%);
+  border-color: #1b4791;
+}
+
+/* --- More menu dropdown --- */
+.more-menu { position: relative; }
+.more-caret { font-size: 10px; margin-left: 2px; }
+.more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+  z-index: 1000;
+}
+.more-dropdown.hidden { display: none; }
+.more-dropdown .btn {
+  justify-content: flex-start;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  width: 100%;
+}
+.more-dropdown .btn:hover {
+  background: var(--accent);
+  border-color: transparent;
+  transform: none;
+}
+.more-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+
+/* --- Sidebar polish --- */
+.main-content { grid-template-columns: 1fr 300px; }
+.sidebar {
+  background: linear-gradient(180deg, #131a2e 0%, #0f1527 100%);
+  border-left: 1px solid var(--border);
+  box-shadow: inset 1px 0 0 rgba(255,255,255,0.02);
+}
+.sidebar-panel {
+  border-bottom: 1px solid var(--border);
+}
+.panel-title {
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  transition: background 150ms;
+}
+.panel-title:hover { background: rgba(255,255,255,0.02); color: var(--text); }
+.panel-title .icon { color: var(--highlight); }
+.panel-body { padding: 4px 14px 14px; }
+.panel-body.collapsed { display: none; }
+.panel-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* --- Input / select polish (also prevents iOS zoom with 16px on mobile) --- */
+input[type="text"], input[type="number"], input[type="date"],
+select, textarea {
+  background: var(--bg-primary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--highlight);
+  box-shadow: 0 0 0 2px rgba(239,71,102,0.15);
+}
+
+/* --- Playback controls --- */
+.playback-controls {
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #0e1424 0%, #0a0f1c 100%);
+  border-top: 1px solid var(--border);
+  gap: 12px;
+}
+.ctrl-btn {
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms;
+}
+.ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
+
+/* --- Scrollbars --- */
+.sidebar::-webkit-scrollbar,
+.stats-body::-webkit-scrollbar,
+.panel-body::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-track,
+.stats-body::-webkit-scrollbar-track,
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb,
+.stats-body::-webkit-scrollbar-thumb,
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+
+/* --- Sidebar scrim for mobile --- */
+.sidebar-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 90;
+}
+.sidebar-scrim.active { display: block; }
+
+/* ============  TABLET: <= 1100px  ============ */
+@media (max-width: 1100px) {
+  .main-content { grid-template-columns: 1fr 280px; }
+  .btn-label { display: none; }
+  .btn-highlight .btn-label { display: inline; }
+  .app-title { display: none; }
+  .file-input-label { padding: 7px 12px; font-size: 12px; }
+}
+
+/* ============  MOBILE: <= 800px  ============ */
+@media (max-width: 800px) {
+  #app { grid-template-rows: 52px 1fr auto; }
+  .top-bar { padding: 0 10px; gap: 8px; }
+  .sidebar-toggle { display: inline-flex; }
+  .top-bar-center { flex: 1; min-width: 0; }
+  .file-input-label { padding: 8px 10px; font-size: 12px; }
+  .file-input-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .main-content { grid-template-columns: 1fr; position: relative; }
+
+  .sidebar {
+    position: fixed;
+    top: 52px;
+    right: 0;
+    bottom: 0;
+    width: 85vw;
+    max-width: 340px;
+    transform: translateX(100%);
+    transition: transform 260ms ease;
+    z-index: 100;
+    overflow-y: auto;
+    box-shadow: -8px 0 30px rgba(0,0,0,0.5);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* 16px inputs to prevent iOS auto-zoom */
+  input[type="text"], input[type="number"], input[type="date"],
+  select, textarea { font-size: 16px; padding: 10px 12px; }
+
+  .btn { min-height: 40px; padding: 9px 12px; font-size: 13px; }
+  .btn-sm { min-height: 34px; padding: 7px 10px; font-size: 12px; }
+  .btn-icon { min-width: 40px; }
+  .ctrl-btn { min-width: 44px; min-height: 44px; }
+
+  .top-bar-right { gap: 4px; }
+
+  .playback-controls {
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 8px;
+  }
+  .controls-left { order: 1; width: 100%; justify-content: center; }
+  .scrub-bar-container { order: 2; width: 100%; }
+  .controls-right { order: 3; width: 100%; justify-content: center; gap: 12px; }
+
+  .bottom-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 30vh;
+  }
+  .notes-area { min-height: 60px; }
+
+  /* Quick chart panel stacks */
+  .qc-fields, .qc-players { flex-wrap: wrap; }
+  .qc-key-hints { display: none; }
+
+  /* Stats overlay full screen */
+  .stats-container { width: 100vw !important; height: 100vh !important; max-width: none; max-height: none; border-radius: 0; }
+}
+
+/* ============  SMALL MOBILE: <= 500px  ============ */
+@media (max-width: 500px) {
+  .app-title { display: none; }
+  .btn-label { display: none; }
+  .btn-highlight .btn-label { display: none; }
+  .top-bar-center .file-input-label span { display: none; }
+  .more-dropdown { min-width: 180px; }
+}
+
+/* --- Focus accessibility --- */
+.btn:focus-visible,
+.ctrl-btn:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 1px;
+}
+
+/* --- Tool button polish --- */
+.tool-btn {
+  min-height: 52px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px;
+  font-size: 10px;
+  transition: all 150ms;
+}
+.tool-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
+.tool-btn.active {
+  background: var(--highlight);
+  border-color: var(--highlight);
+  color: #fff;
+}
+
+/* --- Swatch polish --- */
+.swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 150ms;
+}
+.swatch:hover { transform: scale(1.1); }
+.swatch.active {
+  border-color: var(--highlight);
+  box-shadow: 0 0 0 2px rgba(239,71,102,0.35);
+  transform: scale(1.1);
+}
+
+/* --- Card / panel subtle polish --- */
+.stat-card {
+  background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-tertiary) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+/* --- Safe area (iPhone notch) --- */
+@supports (padding: env(safe-area-inset-top)) {
+  .top-bar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .playback-controls { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+}
   </style>
 </head>
 <body>
@@ -2614,7 +2985,10 @@ body {
     <!-- Top Bar -->
     <header class="top-bar">
       <div class="top-bar-left">
-        <h1 class="app-title">Football Film Analyzer</h1>
+        <button class="btn btn-icon sidebar-toggle" id="btnSidebarToggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+          <svg class="icon"><use href="#icon-tag"/></svg>
+        </button>
+        <h1 class="app-title">Film Analyzer</h1>
       </div>
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">
@@ -2631,33 +3005,41 @@ body {
           <svg class="icon"><use href="#icon-next-clip"/></svg>
         </button>
         <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
-          <svg class="icon"><use href="#icon-chart"/></svg> Quick Chart
+          <svg class="icon"><use href="#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
         </button>
         <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
-          <svg class="icon"><use href="#icon-stats"/></svg> Stats
+          <svg class="icon"><use href="#icon-stats"/></svg> <span class="btn-label">Stats</span>
         </button>
-        <button class="btn" id="btnSave" title="Save Project (Ctrl+S)">
-          <svg class="icon"><use href="#icon-save"/></svg> Save
+        <button class="btn btn-accent" id="btnSave" title="Save Project (Ctrl+S)">
+          <svg class="icon"><use href="#icon-save"/></svg> <span class="btn-label">Save</span>
         </button>
-        <button class="btn" id="btnLoad" title="Load Project">
-          <svg class="icon"><use href="#icon-folder"/></svg> Load
-          <input type="file" id="projectFileInput" accept=".json" hidden>
-        </button>
-        <button class="btn" id="btnExportPng" title="Export Frame as PNG">
-          <svg class="icon"><use href="#icon-image"/></svg> Screenshot
-        </button>
-        <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
-          <svg class="icon"><use href="#icon-download"/></svg> CSV
-        </button>
-        <button class="btn" id="btnExportReport" title="Export HTML Report">
-          <svg class="icon"><use href="#icon-notes"/></svg> Report
-        </button>
-        <button class="btn" id="btnExportCutup" title="Stitch filtered plays into a cut-up video (WebM)">
-          <svg class="icon"><use href="#icon-film"/></svg> Cut-Up
-        </button>
-        <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
-          <svg class="icon"><use href="#icon-stats"/></svg> Season
-        </button>
+        <div class="more-menu">
+          <button class="btn" id="btnMoreMenu" title="More actions" aria-haspopup="true" aria-expanded="false">
+            More <span class="more-caret">▾</span>
+          </button>
+          <div class="more-dropdown hidden" id="moreDropdown" role="menu">
+            <button class="btn" id="btnLoad" title="Load Project">
+              <svg class="icon"><use href="#icon-folder"/></svg> Load Project
+              <input type="file" id="projectFileInput" accept=".json" hidden>
+            </button>
+            <button class="btn" id="btnExportPng" title="Export Frame as PNG">
+              <svg class="icon"><use href="#icon-image"/></svg> Screenshot
+            </button>
+            <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
+              <svg class="icon"><use href="#icon-download"/></svg> Export CSV
+            </button>
+            <button class="btn" id="btnExportReport" title="Export HTML Report">
+              <svg class="icon"><use href="#icon-notes"/></svg> HTML Report
+            </button>
+            <button class="btn" id="btnExportCutup" title="Stitch filtered plays into a cut-up video (WebM)">
+              <svg class="icon"><use href="#icon-film"/></svg> Cut-Up Video
+            </button>
+            <div class="more-divider"></div>
+            <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
+              <svg class="icon"><use href="#icon-stats"/></svg> Season Stats
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -9197,6 +9579,87 @@ class CallSheetBuilder {
   }
 }
 
+// ===== ui-polish.js =====
+/**
+ * UIPolish - Small interactions for the UX pass: More menu dropdown,
+ * mobile sidebar drawer, and outside-click handling.
+ */
+class UIPolish {
+  constructor() {
+    this._initMoreMenu();
+    this._initSidebarDrawer();
+    this._initPanelCollapse();
+  }
+
+  _initMoreMenu() {
+    const btn = document.getElementById('btnMoreMenu');
+    const menu = document.getElementById('moreDropdown');
+    if (!btn || !menu) return;
+    const close = () => {
+      menu.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    };
+    const open = () => {
+      menu.classList.remove('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+    };
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.contains('hidden') ? open() : close();
+    });
+    // Close when clicking inside a menu item button (let its handler run)
+    menu.addEventListener('click', (e) => {
+      if (e.target.closest('button')) setTimeout(close, 0);
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+  }
+
+  _initSidebarDrawer() {
+    const btn = document.getElementById('btnSidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (!btn || !sidebar) return;
+
+    // Inject a scrim
+    let scrim = document.querySelector('.sidebar-scrim');
+    if (!scrim) {
+      scrim = document.createElement('div');
+      scrim.className = 'sidebar-scrim';
+      document.body.appendChild(scrim);
+    }
+    const close = () => {
+      sidebar.classList.remove('open');
+      scrim.classList.remove('active');
+    };
+    const open = () => {
+      sidebar.classList.add('open');
+      scrim.classList.add('active');
+    };
+    btn.addEventListener('click', () => {
+      sidebar.classList.contains('open') ? close() : open();
+    });
+    scrim.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+  }
+
+  _initPanelCollapse() {
+    // Make panel titles toggle their body via data-toggle attribute.
+    document.querySelectorAll('.panel-title[data-toggle]').forEach(title => {
+      title.addEventListener('click', () => {
+        const id = title.getAttribute('data-toggle');
+        const body = document.getElementById(id);
+        if (body) body.classList.toggle('collapsed');
+      });
+    });
+  }
+}
+
 // ===== app.js =====
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
@@ -9222,6 +9685,7 @@ class App {
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.season = new SeasonManager(this.stats);
     this.callSheet = new CallSheetBuilder(this.tagger);
+    this.uiPolish = new UIPolish();
 
     // Give storage references
     this.storage.playlist = this.playlist;

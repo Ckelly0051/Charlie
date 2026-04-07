@@ -11,7 +11,10 @@
     <!-- Top Bar -->
     <header class="top-bar">
       <div class="top-bar-left">
-        <h1 class="app-title">Football Film Analyzer</h1>
+        <button class="btn btn-icon sidebar-toggle" id="btnSidebarToggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
+        </button>
+        <h1 class="app-title">Film Analyzer</h1>
       </div>
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">
@@ -28,33 +31,41 @@
           <svg class="icon"><use href="assets/icons.svg#icon-next-clip"/></svg>
         </button>
         <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
-          <svg class="icon"><use href="assets/icons.svg#icon-chart"/></svg> Quick Chart
+          <svg class="icon"><use href="assets/icons.svg#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
         </button>
         <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
-          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Stats
+          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> <span class="btn-label">Stats</span>
         </button>
-        <button class="btn" id="btnSave" title="Save Project (Ctrl+S)">
-          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> Save
+        <button class="btn btn-accent" id="btnSave" title="Save Project (Ctrl+S)">
+          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save</span>
         </button>
-        <button class="btn" id="btnLoad" title="Load Project">
-          <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Load
-          <input type="file" id="projectFileInput" accept=".json" hidden>
-        </button>
-        <button class="btn" id="btnExportPng" title="Export Frame as PNG">
-          <svg class="icon"><use href="assets/icons.svg#icon-image"/></svg> Screenshot
-        </button>
-        <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
-          <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> CSV
-        </button>
-        <button class="btn" id="btnExportReport" title="Export HTML Report">
-          <svg class="icon"><use href="assets/icons.svg#icon-notes"/></svg> Report
-        </button>
-        <button class="btn" id="btnExportCutup" title="Stitch filtered plays into a cut-up video (WebM)">
-          <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg> Cut-Up
-        </button>
-        <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
-          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season
-        </button>
+        <div class="more-menu">
+          <button class="btn" id="btnMoreMenu" title="More actions" aria-haspopup="true" aria-expanded="false">
+            More <span class="more-caret">▾</span>
+          </button>
+          <div class="more-dropdown hidden" id="moreDropdown" role="menu">
+            <button class="btn" id="btnLoad" title="Load Project">
+              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Load Project
+              <input type="file" id="projectFileInput" accept=".json" hidden>
+            </button>
+            <button class="btn" id="btnExportPng" title="Export Frame as PNG">
+              <svg class="icon"><use href="assets/icons.svg#icon-image"/></svg> Screenshot
+            </button>
+            <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
+              <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> Export CSV
+            </button>
+            <button class="btn" id="btnExportReport" title="Export HTML Report">
+              <svg class="icon"><use href="assets/icons.svg#icon-notes"/></svg> HTML Report
+            </button>
+            <button class="btn" id="btnExportCutup" title="Stitch filtered plays into a cut-up video (WebM)">
+              <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg> Cut-Up Video
+            </button>
+            <div class="more-divider"></div>
+            <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
+              <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season Stats
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
