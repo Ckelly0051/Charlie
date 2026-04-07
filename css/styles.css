@@ -2799,3 +2799,25 @@ select:focus-visible {
   .top-bar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
   .playback-controls { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 }
+
+/* --- Sidebar toggle visibility & style --- */
+.sidebar-toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--highlight);
+  border-color: var(--highlight);
+  color: #fff;
+  font-weight: 600;
+}
+.sidebar-toggle:hover {
+  background: var(--highlight-hover);
+  border-color: var(--highlight-hover);
+}
+.sidebar-toggle-label { font-size: 12px; }
+@media (max-width: 1000px) {
+  .sidebar-toggle { display: inline-flex; }
+}
+@media (max-width: 500px) {
+  .sidebar-toggle-label { display: none; }
+}
