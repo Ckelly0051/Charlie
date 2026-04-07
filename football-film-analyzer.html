@@ -2964,6 +2964,327 @@ select:focus-visible {
   .empty-cta-title { font-size: 19px; }
   .empty-cta svg { width: 36px; height: 36px; }
 }
+
+/* ================================================================== */
+/* ===================  VISUAL OVERHAUL v2  ======================== */
+/* ================================================================== */
+
+:root {
+  /* Softer, more modern SaaS palette */
+  --bg-primary:    #0a0e1a;
+  --bg-secondary:  #111827;
+  --bg-tertiary:   #1a2236;
+  --bg-surface:    #202b45;
+  --bg-elevated:   #26314d;
+  --accent:        #4f46e5;
+  --accent-hover:  #6366f1;
+  --accent-soft:   rgba(99,102,241,0.12);
+  --highlight:     #f43f5e;
+  --highlight-hover: #fb7185;
+  --highlight-soft: rgba(244,63,94,0.12);
+  --success:       #10b981;
+  --warning:       #f59e0b;
+  --danger:        #ef4444;
+  --text:          #e5e7eb;
+  --text-dim:      #9ca3af;
+  --text-bright:   #ffffff;
+  --border:        #2a3552;
+  --border-bright: #3d4a70;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 0 3px rgba(244,63,94,0.2);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+}
+
+body { font-size: 14px; letter-spacing: -0.01em; }
+
+/* --- Refined top bar --- */
+.top-bar {
+  background: linear-gradient(180deg, #111827 0%, #0a0e1a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  height: 52px;
+}
+#app { grid-template-rows: 52px auto 1fr auto; }
+.app-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  background: linear-gradient(90deg, #f43f5e 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.file-input-label {
+  border: 1px dashed var(--border-bright);
+  border-radius: var(--radius);
+  padding: 8px 18px;
+  background: var(--bg-tertiary);
+  font-weight: 500;
+}
+.file-input-label:hover,
+.file-input-label.drag-over {
+  border-color: var(--highlight);
+  background: var(--highlight-soft);
+  color: var(--text);
+}
+
+/* --- Wizard step bar --- */
+.wizard-bar {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.wiz-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 180ms;
+  white-space: nowrap;
+}
+.wiz-step:hover { color: var(--text); border-color: var(--border-bright); }
+.wiz-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  transition: all 180ms;
+}
+.wiz-step.active {
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  border-color: var(--highlight);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(244,63,94,0.35);
+}
+.wiz-step.active .wiz-num {
+  background: rgba(255,255,255,0.2);
+  border-color: transparent;
+  color: #fff;
+}
+.wiz-step.done {
+  border-color: var(--success);
+  color: var(--success);
+}
+.wiz-step.done .wiz-num {
+  background: var(--success);
+  border-color: var(--success);
+  color: #002818;
+}
+.wiz-step.done .wiz-num::before { content: '✓'; font-weight: 800; }
+.wiz-step.done .wiz-num { font-size: 0; }
+.wiz-sep {
+  width: 20px;
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* --- Wizard floating action card --- */
+.wizard-action {
+  position: fixed;
+  left: 50%;
+  bottom: 100px;
+  transform: translateX(-50%);
+  z-index: 150;
+  max-width: 92vw;
+  width: 440px;
+  animation: wizIn 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.wizard-action.hidden { display: none; }
+@keyframes wizIn {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.wiz-card-inner {
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 18px 20px;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.03);
+  position: relative;
+  pointer-events: auto;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.wiz-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 14px;
+}
+.wiz-card-step {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--highlight);
+}
+.wiz-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+}
+.wiz-card-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.wiz-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wiz-primary {
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 13px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms;
+  box-shadow: 0 6px 18px rgba(244,63,94,0.35), 0 1px 0 rgba(255,255,255,0.1) inset;
+  -webkit-tap-highlight-color: transparent;
+}
+.wiz-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(244,63,94,0.45), 0 1px 0 rgba(255,255,255,0.12) inset; }
+.wiz-primary:active { transform: translateY(0); }
+.wiz-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 180ms;
+}
+.wiz-secondary:hover { color: var(--text); border-color: var(--border-bright); background: rgba(255,255,255,0.02); }
+.wiz-back {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.wiz-back:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+/* Shrink wizard card when it would conflict */
+@media (max-height: 700px) {
+  .wizard-action { bottom: 78px; width: 380px; }
+  .wiz-card-inner { padding: 14px 16px; }
+  .wiz-card-title { font-size: 16px; }
+  .wiz-primary { padding: 11px 16px; font-size: 14px; }
+}
+
+@media (max-width: 800px) {
+  .wizard-action { bottom: 78px; width: calc(100vw - 24px); }
+  .wizard-bar { padding: 8px 10px; }
+  .wiz-step { padding: 5px 10px 5px 5px; font-size: 11px; }
+  .wiz-label { display: none; }
+  .wiz-step.active .wiz-label { display: inline; }
+  .wiz-sep { width: 8px; }
+}
+
+/* --- Empty CTA refinement --- */
+.empty-cta {
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  box-shadow: 0 14px 40px rgba(244,63,94,0.4), 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
+  border-radius: var(--radius-lg);
+}
+
+/* Hide the wizard bar while in Quick Chart mode */
+body.qc-active .wizard-bar,
+body.qc-active .wizard-action { display: none; }
+
+/* --- Elevated sidebar panels --- */
+.sidebar-panel { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.panel-title {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  padding: 14px 16px;
+}
+.panel-title .icon { color: var(--highlight); opacity: 0.9; }
+
+/* --- Buttons --- */
+.btn {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+.btn-highlight {
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  border-color: #be123c;
+}
+.btn-accent {
+  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  border-color: var(--accent);
+}
+
+/* Stats cards refined */
+.stat-card {
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dim); font-weight: 600; }
+.stat-card-value { font-size: 24px; font-weight: 800; color: var(--text-bright); margin-top: 4px; letter-spacing: -0.02em; }
+
+/* --- Playback controls refined --- */
+.playback-controls {
+  background: linear-gradient(180deg, #0c1220 0%, #080c18 100%);
+  border-top: 1px solid var(--border);
+}
+.ctrl-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all 150ms;
+}
+.ctrl-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text-bright);
+}
+
   </style>
 </head>
 <body>
@@ -9956,6 +10277,236 @@ class UIPolish {
   }
 }
 
+// ===== wizard.js =====
+/**
+ * Wizard - Guided left-to-right workflow: Load → Detect → Tag → Analyze → Export.
+ *
+ * Adds a step bar across the top of the app and a contextual floating action
+ * card that always tells the user the single best "do this next" step.
+ * Each step auto-advances when its completion condition is met; users can
+ * also jump freely by tapping any step pill.
+ */
+class Wizard {
+  constructor({ videoController, tagger, stats, history }) {
+    this.vc = videoController;
+    this.tagger = tagger;
+    this.stats = stats;
+    this.history = history;
+    this.currentStep = 1;
+
+    this._inject();
+    this._wire();
+    this._render();
+  }
+
+  // ---------- DOM injection ----------
+  _inject() {
+    // Step bar: sits directly under the top bar.
+    const bar = document.createElement('div');
+    bar.className = 'wizard-bar';
+    bar.innerHTML = `
+      <div class="wizard-steps" id="wizSteps">
+        ${this._stepDefs().map((s, i) => `
+          <button class="wiz-step" data-step="${i + 1}">
+            <span class="wiz-num">${i + 1}</span>
+            <span class="wiz-label">${s.label}</span>
+          </button>
+          ${i < 4 ? '<span class="wiz-sep"></span>' : ''}
+        `).join('')}
+      </div>
+    `;
+    const header = document.querySelector('.top-bar');
+    header?.after(bar);
+
+    // Floating action card — single big "do this next" button.
+    const card = document.createElement('div');
+    card.className = 'wizard-action hidden';
+    card.id = 'wizAction';
+    document.body.appendChild(card);
+    this.card = card;
+  }
+
+  _stepDefs() {
+    return [
+      { id: 1, label: 'Load',    key: 'load' },
+      { id: 2, label: 'Detect',  key: 'detect' },
+      { id: 3, label: 'Tag',     key: 'tag' },
+      { id: 4, label: 'Analyze', key: 'analyze' },
+      { id: 5, label: 'Export',  key: 'export' },
+    ];
+  }
+
+  // ---------- Event wiring ----------
+  _wire() {
+    // Step clicks — allow free navigation.
+    document.getElementById('wizSteps').addEventListener('click', (e) => {
+      const btn = e.target.closest('.wiz-step');
+      if (!btn) return;
+      this.goTo(parseInt(btn.dataset.step, 10));
+    });
+
+    // Auto-advance on video load.
+    this.vc.on('video-loaded', () => {
+      if (this.currentStep === 1) this.goTo(2);
+    });
+
+    // Auto-advance when plays exist.
+    this.tagger.on('play-created', () => {
+      if (this.currentStep === 2) this.goTo(3);
+      this._render();
+    });
+    this.tagger.on('play-updated', () => this._render());
+    this.tagger.on('play-deleted', () => this._render());
+  }
+
+  // ---------- Public API ----------
+  goTo(step) {
+    this.currentStep = Math.max(1, Math.min(5, step));
+    this._render();
+    this._runStepSideEffects();
+  }
+
+  next() { this.goTo(this.currentStep + 1); }
+  prev() { this.goTo(this.currentStep - 1); }
+
+  // ---------- Rendering ----------
+  _render() {
+    // Update step pill states.
+    const total = this.tagger.plays.length;
+    const tagged = this.tagger.plays.filter(p => p.tags && p.tags.playType).length;
+    document.querySelectorAll('.wiz-step').forEach(btn => {
+      const s = parseInt(btn.dataset.step, 10);
+      btn.classList.toggle('active', s === this.currentStep);
+      btn.classList.toggle('done', this._isStepComplete(s, { total, tagged }));
+    });
+
+    // Compose action card for current step.
+    const def = this._actionCardFor(this.currentStep, { total, tagged });
+    if (!def) { this.card.classList.add('hidden'); return; }
+
+    this.card.innerHTML = `
+      <div class="wiz-card-inner">
+        <div class="wiz-card-head">
+          <span class="wiz-card-step">Step ${this.currentStep} of 5</span>
+          <span class="wiz-card-title">${def.title}</span>
+          ${def.sub ? `<span class="wiz-card-sub">${def.sub}</span>` : ''}
+        </div>
+        <div class="wiz-card-actions">
+          ${def.primary ? `<button class="wiz-primary">${def.primary.label}</button>` : ''}
+          ${def.secondary ? `<button class="wiz-secondary">${def.secondary.label}</button>` : ''}
+        </div>
+        ${this.currentStep > 1 ? '<button class="wiz-back" title="Back">&larr; Back</button>' : ''}
+      </div>`;
+    this.card.classList.remove('hidden');
+
+    this.card.querySelector('.wiz-primary')?.addEventListener('click', () => def.primary.onClick());
+    this.card.querySelector('.wiz-secondary')?.addEventListener('click', () => def.secondary.onClick());
+    this.card.querySelector('.wiz-back')?.addEventListener('click', () => this.prev());
+  }
+
+  _isStepComplete(step, { total, tagged }) {
+    switch (step) {
+      case 1: return !!this.vc.video?.src;
+      case 2: return total > 0;
+      case 3: return total > 0 && tagged === total;
+      case 4: return false; // analyze doesn't auto-complete
+      case 5: return false;
+      default: return false;
+    }
+  }
+
+  _actionCardFor(step, { total, tagged }) {
+    const hasVideo = !!this.vc.video?.src;
+
+    if (step === 1) {
+      return {
+        title: 'Load your game film',
+        sub: 'Tap the button below, or drop a video file anywhere on the page.',
+        primary: { label: '＋ Load Video', onClick: () => document.getElementById('videoFileInput')?.click() },
+      };
+    }
+
+    if (step === 2) {
+      if (!hasVideo) return { title: 'Load a video first', primary: { label: 'Go to Step 1', onClick: () => this.goTo(1) } };
+      return {
+        title: 'Auto-detect plays',
+        sub: 'We\'ll scan the film and drop a marker at every play. You can still tag manually.',
+        primary: {
+          label: '⚡ Auto-Detect Plays',
+          onClick: () => {
+            this._openPlayTaggerPanel();
+            setTimeout(() => document.getElementById('btnAutoDetect')?.click(), 200);
+          }
+        },
+        secondary: {
+          label: 'Skip — I\'ll mark plays manually',
+          onClick: () => this.goTo(3)
+        }
+      };
+    }
+
+    if (step === 3) {
+      if (total === 0) {
+        return {
+          title: 'No plays yet',
+          sub: 'Mark a play start/end with [ and ] while the video plays, or go back and auto-detect.',
+          primary: { label: 'Open Play Tagger', onClick: () => this._openPlayTaggerPanel() },
+          secondary: { label: '← Back to Detect', onClick: () => this.goTo(2) }
+        };
+      }
+      return {
+        title: `Tag your plays  ·  ${tagged}/${total} done`,
+        sub: tagged < total
+          ? 'Fill in down, distance, formation, and result. Use Quick Chart for keyboard-only tagging.'
+          : 'All plays tagged. Ready to analyze.',
+        primary: tagged < total
+          ? { label: '⚡ Quick Chart Mode', onClick: () => document.getElementById('btnQuickChart')?.click() }
+          : { label: 'See Stats →', onClick: () => this.goTo(4) },
+        secondary: tagged >= total
+          ? null
+          : { label: 'Open Tagger Panel', onClick: () => this._openPlayTaggerPanel() }
+      };
+    }
+
+    if (step === 4) {
+      return {
+        title: 'Analyze the game',
+        sub: 'Stats, EPA, heat maps, personnel, self-scout.',
+        primary: { label: '📊 Open Stats Dashboard', onClick: () => document.getElementById('btnShowStats')?.click() },
+        secondary: { label: 'Next: Export →', onClick: () => this.goTo(5) }
+      };
+    }
+
+    if (step === 5) {
+      return {
+        title: 'Export & share',
+        sub: 'Pick what you need: call sheet, cut-up video, CSV, or HTML report.',
+        primary: { label: '📋 Call Sheet / Wristband', onClick: () => document.getElementById('btnCallSheet')?.click() },
+        secondary: { label: '🎞 Cut-Up Video', onClick: () => document.getElementById('btnExportCutup')?.click() }
+      };
+    }
+
+    return null;
+  }
+
+  _runStepSideEffects() {
+    // Close overlays when jumping.
+    document.getElementById('statsDashboard')?.classList.add('hidden');
+    document.getElementById('moreDropdown')?.classList.add('hidden');
+  }
+
+  _openPlayTaggerPanel() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar?.classList.add('open');
+    document.querySelector('.sidebar-scrim')?.classList.add('active');
+    const panel = document.getElementById('playTagger');
+    if (panel) {
+      panel.classList.remove('collapsed');
+      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
+  }
+}
+
 // ===== app.js =====
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
@@ -9982,6 +10533,7 @@ class App {
     this.season = new SeasonManager(this.stats);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
+    this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
 
     // Give storage references
     this.storage.playlist = this.playlist;

@@ -19,6 +19,7 @@ import { CutupExporter } from './cutup-exporter.js';
 import { SeasonManager } from './season-manager.js';
 import { CallSheetBuilder } from './call-sheet-builder.js';
 import { UIPolish } from './ui-polish.js';
+import { Wizard } from './wizard.js';
 
 class App {
   constructor() {
@@ -41,6 +42,7 @@ class App {
     this.season = new SeasonManager(this.stats);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
+    this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
 
     // Give storage references
     this.storage.playlist = this.playlist;
