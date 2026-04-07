@@ -64,6 +64,7 @@ for jsfile in \
   js/suggestion-engine.js \
   js/cutup-exporter.js \
   js/season-manager.js \
+  js/call-sheet-builder.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"

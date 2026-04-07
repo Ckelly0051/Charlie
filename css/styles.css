@@ -2383,3 +2383,48 @@ body {
 .epa-neg { color: #ff6666; font-weight: 600; }
 .stat-card-value.epa-pos { color: #44ff88; }
 .stat-card-value.epa-neg { color: #ff6666; }
+
+/* ===== Call Sheet Builder ===== */
+.cs-modal.hidden { display: none; }
+.cs-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.cs-container {
+  background: #1a1a2e; border: 1px solid #333; border-radius: 8px;
+  width: 92vw; max-width: 1100px; max-height: 92vh; display: flex; flex-direction: column;
+}
+.cs-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid #333;
+}
+.cs-header h2 { margin: 0; font-size: 18px; }
+.cs-header-actions { display: flex; gap: 8px; }
+.cs-body {
+  display: grid; grid-template-columns: 320px 1fr; gap: 16px;
+  padding: 16px; overflow: auto;
+}
+.cs-config .cs-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.cs-config .cs-row label { width: 90px; font-size: 12px; opacity: 0.8; }
+.cs-config .cs-row input, .cs-config .cs-row select {
+  flex: 1; background: #0f0f1e; color: #eee; border: 1px solid #333;
+  padding: 4px 6px; border-radius: 4px; font-size: 12px;
+}
+.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #333; border-radius: 4px; padding: 6px; }
+.cs-bucket-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 4px; font-size: 12px;
+}
+.cs-bucket-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.cs-bk-n { width: 48px; background: #0f0f1e; color: #eee; border: 1px solid #333; border-radius: 3px; padding: 2px 4px; }
+.cs-preview {
+  background: #fff; border-radius: 4px; min-height: 400px;
+  overflow: auto; padding: 0;
+}
+.cs-preview-frame { width: 100%; height: 100%; min-height: 500px; border: 0; background: #fff; }
+@media (max-width: 800px) {
+  .cs-body { grid-template-columns: 1fr; }
+  .cs-preview { min-height: 300px; }
+}

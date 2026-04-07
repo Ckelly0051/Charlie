@@ -17,6 +17,7 @@ import { ScoreboardOCR } from './scoreboard-ocr.js';
 import { SuggestionEngine } from './suggestion-engine.js';
 import { CutupExporter } from './cutup-exporter.js';
 import { SeasonManager } from './season-manager.js';
+import { CallSheetBuilder } from './call-sheet-builder.js';
 
 class App {
   constructor() {
@@ -37,6 +38,7 @@ class App {
     this.suggestions = new SuggestionEngine(this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.season = new SeasonManager(this.stats);
+    this.callSheet = new CallSheetBuilder(this.tagger);
 
     // Give storage references
     this.storage.playlist = this.playlist;
