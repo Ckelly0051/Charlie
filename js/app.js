@@ -20,6 +20,7 @@ import { SeasonManager } from './season-manager.js';
 import { CallSheetBuilder } from './call-sheet-builder.js';
 import { UIPolish } from './ui-polish.js';
 import { Wizard } from './wizard.js';
+import { TagWorkspace } from './tag-workspace.js';
 
 class App {
   constructor() {
@@ -43,6 +44,7 @@ class App {
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
+    this.tagWorkspace = new TagWorkspace({ videoController: this.vc, tagger: this.tagger, wizard: this.wizard });
 
     // Give storage references
     this.storage.playlist = this.playlist;

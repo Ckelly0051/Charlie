@@ -13,6 +13,7 @@ export class Wizard {
     this.stats = stats;
     this.history = history;
     this.currentStep = 1;
+    this.dismissed = localStorage.getItem('ffa_wizard_dismissed') === '1';
 
     this._inject();
     this._wire();
@@ -34,9 +35,20 @@ export class Wizard {
           ${i < 4 ? '<span class="wiz-sep"></span>' : ''}
         `).join('')}
       </div>
+      <button class="wiz-dismiss" id="wizDismiss" title="Hide wizard (toggle from More menu)">×</button>
     `;
     const header = document.querySelector('.top-bar');
     header?.after(bar);
+    this.bar = bar;
+
+    // Floating reopen button
+    const reopen = document.createElement('button');
+    reopen.className = 'wiz-reopen hidden';
+    reopen.id = 'wizReopen';
+    reopen.title = 'Show guide';
+    reopen.innerHTML = '<span>?</span>';
+    document.body.appendChild(reopen);
+    this.reopenBtn = reopen;
 
     // Floating action card — single big "do this next" button.
     const card = document.createElement('div');
@@ -65,6 +77,9 @@ export class Wizard {
       this.goTo(parseInt(btn.dataset.step, 10));
     });
 
+    document.getElementById('wizDismiss').addEventListener('click', () => this.setDismissed(true));
+    this.reopenBtn.addEventListener('click', () => this.setDismissed(false));
+
     // Auto-advance on video load.
     this.vc.on('video-loaded', () => {
       if (this.currentStep === 1) this.goTo(2);
@@ -89,8 +104,27 @@ export class Wizard {
   next() { this.goTo(this.currentStep + 1); }
   prev() { this.goTo(this.currentStep - 1); }
 
+  setDismissed(d) {
+    this.dismissed = d;
+    localStorage.setItem('ffa_wizard_dismissed', d ? '1' : '0');
+    this.bar.classList.toggle('hidden', d);
+    this.reopenBtn.classList.toggle('hidden', !d);
+    if (d) this.card.classList.add('hidden');
+    else this._render();
+  }
+  toggle() { this.setDismissed(!this.dismissed); }
+
   // ---------- Rendering ----------
   _render() {
+    if (this.dismissed) {
+      this.bar.classList.add('hidden');
+      this.reopenBtn.classList.remove('hidden');
+      this.card.classList.add('hidden');
+      return;
+    }
+    this.bar.classList.remove('hidden');
+    this.reopenBtn.classList.add('hidden');
+
     // Update step pill states.
     const total = this.tagger.plays.length;
     const tagged = this.tagger.plays.filter(p => p.tags && p.tags.playType).length;

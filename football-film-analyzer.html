@@ -3285,6 +3285,365 @@ body.qc-active .wizard-action { display: none; }
   color: var(--text-bright);
 }
 
+
+/* ================================================================== */
+/* ================  TAG WORKSPACE — primary view  ================== */
+/* ================================================================== */
+
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 380px 300px;
+  overflow: hidden;
+}
+
+.tw {
+  background: linear-gradient(180deg, #131a2e 0%, #0c1322 100%);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  transition: width 220ms ease, transform 220ms ease;
+}
+.tw.collapsed { width: 0 !important; min-width: 0; transform: translateX(100%); border-left: none; }
+
+.tw-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.tw-progress { flex: 1; min-width: 0; }
+.tw-progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.tw-current-play {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+}
+.tw-progress-counter {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.2px;
+}
+.tw-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tw-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--highlight) 0%, var(--accent-hover) 100%);
+  border-radius: 2px;
+  transition: width 280ms ease;
+}
+.tw-collapse {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tw-collapse:hover { background: var(--bg-tertiary); color: var(--text); }
+
+.tw-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+/* Empty state */
+.tw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 16px;
+  gap: 10px;
+}
+.tw-empty-icon { font-size: 38px; line-height: 1; margin-bottom: 4px; }
+.tw-empty-title { font-size: 16px; font-weight: 700; color: var(--text-bright); }
+.tw-empty-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; max-width: 260px; }
+.tw-empty-sub kbd {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+.tw-btn-pri {
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  max-width: 260px;
+  box-shadow: 0 6px 18px rgba(244,63,94,0.3);
+}
+.tw-btn-pri:hover { filter: brightness(1.08); }
+.tw-btn-sec {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.tw-btn-sec:hover { color: var(--text); border-color: var(--border-bright); }
+
+/* Tag form */
+.tw-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+.tw-row { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tw-row-wide { grid-column: 1 / -1; }
+.tw-row-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.tw-row-input { width: 100%; }
+
+.tw-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tw-pill {
+  flex: 1 0 auto;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.tw-pill:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+.tw-pill.active {
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  border-color: var(--highlight);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(244,63,94,0.35);
+  transform: scale(1.02);
+}
+.tw-pill:active { transform: scale(0.97); }
+
+.tw-num, .tw-notes {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 9px 11px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.tw-notes { resize: vertical; min-height: 56px; }
+.tw-num:focus, .tw-notes:focus {
+  outline: none;
+  border-color: var(--highlight);
+  box-shadow: 0 0 0 3px rgba(244,63,94,0.15);
+}
+
+/* Footer with Save & Next */
+.tw-footer {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.015);
+}
+.tw-nav-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms;
+}
+.tw-nav-btn:hover { background: var(--bg-elevated); color: var(--text); border-color: var(--border-bright); }
+.tw-save-next {
+  position: relative;
+  background: linear-gradient(180deg, var(--success) 0%, #059669 100%);
+  border: none;
+  color: #002818;
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 6px 18px rgba(16,185,129,0.3), 0 1px 0 rgba(255,255,255,0.2) inset;
+  transition: all 160ms;
+}
+.tw-save-next:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.tw-save-next:active { transform: translateY(0) scale(0.98); }
+.tw-save-arrow { font-size: 13px; }
+
+.tw-burst {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--success);
+  color: #002818;
+  font-size: 28px;
+  font-weight: 900;
+  border-radius: 10px;
+  animation: twBurst 600ms ease;
+}
+@keyframes twBurst {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* Reopen pill */
+.tw-reopen {
+  position: fixed;
+  top: 110px;
+  right: 16px;
+  background: linear-gradient(180deg, var(--highlight) 0%, #be123c 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(244,63,94,0.4);
+  z-index: 120;
+}
+.tw-reopen.hidden { display: none; }
+#twReopenBadge {
+  background: rgba(255,255,255,0.25);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+/* When workspace is collapsed, video gets the freed space */
+@media (min-width: 1101px) {
+  .main-content:has(.tw.collapsed) {
+    grid-template-columns: 1fr 0 300px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .main-content { grid-template-columns: 1fr 340px; }
+  .sidebar { display: none; }
+}
+
+/* Mobile: workspace takes over */
+@media (max-width: 800px) {
+  .main-content { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
+  .video-section { min-height: 40vh; }
+  .tw {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    width: 100%;
+  }
+  .tw-form { grid-template-columns: 1fr; }
+  .tw-pill { flex: 1 0 calc(33% - 4px); padding: 11px 8px; font-size: 13px; }
+  .tw-save-next { padding: 16px 20px; font-size: 16px; }
+  .tw-num, .tw-notes { font-size: 16px; padding: 12px; }
+  /* Hide bottom tab bar Tag tab effect — workspace is always visible now */
+}
+
+/* ================================================================== */
+/* ===========  Wizard dismiss / reopen  ============================ */
+/* ================================================================== */
+.wizard-bar {
+  position: relative;
+}
+.wizard-bar.hidden { display: none; }
+.wiz-dismiss {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wiz-dismiss:hover { background: var(--bg-tertiary); color: var(--text); }
+.wiz-reopen {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  border: 1px solid var(--accent);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wiz-reopen.hidden { display: none; }
+.wiz-reopen:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+/* Make sure wizard action card hides when dismissed */
+body.qc-active .tw,
+body.qc-active .tw-reopen { display: none; }
   </style>
 </head>
 <body>
@@ -10293,6 +10652,7 @@ class Wizard {
     this.stats = stats;
     this.history = history;
     this.currentStep = 1;
+    this.dismissed = localStorage.getItem('ffa_wizard_dismissed') === '1';
 
     this._inject();
     this._wire();
@@ -10314,9 +10674,20 @@ class Wizard {
           ${i < 4 ? '<span class="wiz-sep"></span>' : ''}
         `).join('')}
       </div>
+      <button class="wiz-dismiss" id="wizDismiss" title="Hide wizard (toggle from More menu)">×</button>
     `;
     const header = document.querySelector('.top-bar');
     header?.after(bar);
+    this.bar = bar;
+
+    // Floating reopen button
+    const reopen = document.createElement('button');
+    reopen.className = 'wiz-reopen hidden';
+    reopen.id = 'wizReopen';
+    reopen.title = 'Show guide';
+    reopen.innerHTML = '<span>?</span>';
+    document.body.appendChild(reopen);
+    this.reopenBtn = reopen;
 
     // Floating action card — single big "do this next" button.
     const card = document.createElement('div');
@@ -10345,6 +10716,9 @@ class Wizard {
       this.goTo(parseInt(btn.dataset.step, 10));
     });
 
+    document.getElementById('wizDismiss').addEventListener('click', () => this.setDismissed(true));
+    this.reopenBtn.addEventListener('click', () => this.setDismissed(false));
+
     // Auto-advance on video load.
     this.vc.on('video-loaded', () => {
       if (this.currentStep === 1) this.goTo(2);
@@ -10369,8 +10743,27 @@ class Wizard {
   next() { this.goTo(this.currentStep + 1); }
   prev() { this.goTo(this.currentStep - 1); }
 
+  setDismissed(d) {
+    this.dismissed = d;
+    localStorage.setItem('ffa_wizard_dismissed', d ? '1' : '0');
+    this.bar.classList.toggle('hidden', d);
+    this.reopenBtn.classList.toggle('hidden', !d);
+    if (d) this.card.classList.add('hidden');
+    else this._render();
+  }
+  toggle() { this.setDismissed(!this.dismissed); }
+
   // ---------- Rendering ----------
   _render() {
+    if (this.dismissed) {
+      this.bar.classList.add('hidden');
+      this.reopenBtn.classList.remove('hidden');
+      this.card.classList.add('hidden');
+      return;
+    }
+    this.bar.classList.remove('hidden');
+    this.reopenBtn.classList.add('hidden');
+
     // Update step pill states.
     const total = this.tagger.plays.length;
     const tagged = this.tagger.plays.filter(p => p.tags && p.tags.playType).length;
@@ -10507,6 +10900,338 @@ class Wizard {
   }
 }
 
+// ===== tag-workspace.js =====
+/**
+ * TagWorkspace - The primary view of the app once a video is loaded.
+ *
+ * Goal: make tagging plays the single most-discoverable, frictionless action
+ * in the app. Video on the left, persistent tag form pinned to the right,
+ * giant "Save & Next ▶" button, live progress bar showing
+ * "Play 12 of 47 — 25% tagged".
+ *
+ * The workspace mirrors the existing PlayTagger sidebar form (writing into
+ * the same hidden inputs) so all downstream stats / filters / exports keep
+ * working without modification.
+ */
+class TagWorkspace {
+  // Field schema — order matters; this is the visual order in the workspace.
+  static FIELDS = [
+    { id: 'down',      label: 'Down',     type: 'pills', src: 'tagDown',
+      options: [['1', '1st'], ['2', '2nd'], ['3', '3rd'], ['4', '4th']] },
+    { id: 'distance',  label: 'Distance', type: 'number', src: 'tagDistance', placeholder: 'Yds', min: 0, max: 99 },
+    { id: 'fieldSide', label: 'Side',     type: 'pills', src: 'tagFieldSide',
+      options: [['own', 'Own'], ['opp', 'Opp']] },
+    { id: 'yardLine',  label: 'Yard Line', type: 'number', src: 'tagYardLine', placeholder: 'Yd', min: 1, max: 50 },
+    { id: 'hash',      label: 'Hash',     type: 'pills', src: 'tagHash',
+      options: [['Left', 'L'], ['Middle', 'M'], ['Right', 'R']] },
+    { id: 'formation', label: 'Formation', type: 'pills', src: 'tagFormation', wide: true,
+      options: [
+        ['Shotgun', 'Shotgun'], ['Under Center', 'U-Center'], ['Pistol', 'Pistol'],
+        ['I-Form', 'I-Form'], ['Singleback', 'Single'], ['Empty', 'Empty'],
+        ['Wildcat', 'Wildcat'], ['Goal Line', 'Goal Line']
+      ] },
+    { id: 'personnel', label: 'Personnel', type: 'pills', src: 'tagPersonnel', wide: true,
+      options: [['11','11'], ['12','12'], ['10','10'], ['21','21'], ['22','22'], ['13','13'], ['00','00']] },
+    { id: 'playType',  label: 'Play Type', type: 'pills', src: 'tagPlayType', wide: true,
+      options: [
+        ['Run Inside', 'Run In'], ['Run Outside', 'Run Out'],
+        ['Short Pass', 'Short'], ['Medium Pass', 'Medium'], ['Deep Pass', 'Deep'],
+        ['Screen', 'Screen'], ['Play Action', 'PA'], ['RPO', 'RPO']
+      ] },
+    { id: 'result',    label: 'Result', type: 'pills', src: 'tagResult', wide: true,
+      options: [
+        ['Gain', 'Gain'], ['No Gain', 'None'], ['Loss', 'Loss'],
+        ['Incomplete', 'Inc'], ['Touchdown', 'TD'], ['Sack', 'Sack'],
+        ['Interception', 'INT'], ['Fumble', 'Fum'], ['Penalty', 'Pen']
+      ] },
+    { id: 'yardage',   label: 'Yards Gained', type: 'number', src: 'tagYardage', placeholder: 'Yds', min: -30, max: 99 },
+  ];
+
+  constructor({ videoController, tagger, wizard }) {
+    this.vc = videoController;
+    this.tagger = tagger;
+    this.wizard = wizard;
+    this.collapsed = false;
+
+    this._inject();
+    this._wire();
+    this._render();
+  }
+
+  _inject() {
+    const wrap = document.createElement('aside');
+    wrap.id = 'tagWorkspace';
+    wrap.className = 'tw';
+    wrap.innerHTML = `
+      <header class="tw-header">
+        <div class="tw-progress">
+          <div class="tw-progress-text">
+            <span class="tw-current-play">No play selected</span>
+            <span class="tw-progress-counter" id="twCounter">0 of 0 tagged</span>
+          </div>
+          <div class="tw-progress-bar"><div class="tw-progress-fill" id="twProgressFill"></div></div>
+        </div>
+        <button class="tw-collapse" id="twCollapse" title="Collapse panel">×</button>
+      </header>
+
+      <div class="tw-body">
+        <div class="tw-empty" id="twEmpty">
+          <div class="tw-empty-icon">⚡</div>
+          <div class="tw-empty-title">No plays yet</div>
+          <div class="tw-empty-sub">Auto-detect from the video, or mark manually with <kbd>[</kbd> and <kbd>]</kbd>.</div>
+          <button class="tw-btn-pri" id="twAutoDetect">⚡ Auto-Detect Plays</button>
+          <button class="tw-btn-sec" id="twMarkStart">Mark Play Start [</button>
+        </div>
+
+        <div class="tw-form hidden" id="twForm"></div>
+      </div>
+
+      <footer class="tw-footer hidden" id="twFooter">
+        <button class="tw-nav-btn" id="twPrev" title="Previous play (Shift+←)">◀ Prev</button>
+        <button class="tw-save-next" id="twSaveNext">
+          <span class="tw-save-label">Save & Next</span>
+          <span class="tw-save-arrow">▶</span>
+        </button>
+        <button class="tw-nav-btn" id="twNext" title="Next play (Shift+→)">Next ▶</button>
+      </footer>
+    `;
+    // Insert as a sibling of .video-section inside .main-content
+    const main = document.querySelector('.main-content');
+    main?.appendChild(wrap);
+
+    // Pinned floating toggle when collapsed
+    const reopen = document.createElement('button');
+    reopen.className = 'tw-reopen hidden';
+    reopen.id = 'twReopen';
+    reopen.innerHTML = '🏷 Tag <span id="twReopenBadge">0</span>';
+    document.body.appendChild(reopen);
+
+    this.el = wrap;
+    this.formEl = wrap.querySelector('#twForm');
+    this.emptyEl = wrap.querySelector('#twEmpty');
+    this.footerEl = wrap.querySelector('#twFooter');
+    this.counterEl = wrap.querySelector('#twCounter');
+    this.fillEl = wrap.querySelector('#twProgressFill');
+    this.currentPlayEl = wrap.querySelector('.tw-current-play');
+    this.reopenBtn = reopen;
+  }
+
+  _buildForm() {
+    const fields = TagWorkspace.FIELDS;
+    let html = '';
+    for (const f of fields) {
+      const wide = f.wide ? ' tw-row-wide' : '';
+      html += `<div class="tw-row${wide}" data-field="${f.id}">
+        <label class="tw-row-label">${f.label}</label>
+        <div class="tw-row-input">`;
+      if (f.type === 'pills') {
+        html += `<div class="tw-pills" data-src="${f.src}">`;
+        for (const [val, label] of f.options) {
+          html += `<button type="button" class="tw-pill" data-val="${this._esc(val)}">${this._esc(label)}</button>`;
+        }
+        html += `</div>`;
+      } else if (f.type === 'number') {
+        html += `<input type="number" class="tw-num" data-src="${f.src}" placeholder="${f.placeholder || ''}" min="${f.min ?? ''}" max="${f.max ?? ''}">`;
+      }
+      html += `</div></div>`;
+    }
+    // Notes mini
+    html += `
+      <div class="tw-row tw-row-wide" data-field="notes">
+        <label class="tw-row-label">Notes</label>
+        <div class="tw-row-input">
+          <textarea class="tw-notes" id="twNotes" placeholder="Quick notes for this play (optional)"></textarea>
+        </div>
+      </div>
+    `;
+    this.formEl.innerHTML = html;
+
+    // Wire pill clicks
+    this.formEl.querySelectorAll('.tw-pills').forEach(pillRow => {
+      const src = pillRow.dataset.src;
+      pillRow.querySelectorAll('.tw-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const allPills = pillRow.querySelectorAll('.tw-pill');
+          const wasActive = pill.classList.contains('active');
+          allPills.forEach(p => p.classList.remove('active'));
+          if (!wasActive) pill.classList.add('active');
+          const hidden = document.getElementById(src);
+          if (hidden) {
+            hidden.value = wasActive ? '' : pill.dataset.val;
+            hidden.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          this._haptic();
+          this._maybeAutoAdvance();
+        });
+      });
+    });
+
+    this.formEl.querySelectorAll('.tw-num').forEach(num => {
+      num.addEventListener('input', () => {
+        const hidden = document.getElementById(num.dataset.src);
+        if (hidden) {
+          hidden.value = num.value;
+          hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    });
+
+    const notes = this.formEl.querySelector('#twNotes');
+    notes?.addEventListener('input', () => {
+      const play = this.tagger.getCurrentPlay();
+      if (play) {
+        play.notes = notes.value;
+        this.tagger._emit('play-updated', play);
+      }
+    });
+  }
+
+  _wire() {
+    this._buildForm();
+
+    // Empty state actions
+    this.el.querySelector('#twAutoDetect').addEventListener('click', () => {
+      document.getElementById('btnAutoDetect')?.click();
+    });
+    this.el.querySelector('#twMarkStart').addEventListener('click', () => {
+      document.getElementById('btnMarkStart')?.click();
+    });
+
+    // Footer actions
+    this.el.querySelector('#twSaveNext').addEventListener('click', () => this.saveAndNext());
+    this.el.querySelector('#twPrev').addEventListener('click', () => this.gotoOffset(-1));
+    this.el.querySelector('#twNext').addEventListener('click', () => this.gotoOffset(1));
+
+    // Collapse
+    this.el.querySelector('#twCollapse').addEventListener('click', () => this.toggle(false));
+    this.reopenBtn.addEventListener('click', () => this.toggle(true));
+
+    // Tagger events
+    this.tagger.on('play-created', () => this._render());
+    this.tagger.on('play-updated', () => this._render());
+    this.tagger.on('play-deleted', () => this._render());
+    this.tagger.on('play-selected', () => this._loadPlayIntoForm());
+
+    // Global keyboard
+    document.addEventListener('keydown', (e) => {
+      if (this._isTyping(e.target)) return;
+      if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        if (this.tagger.getCurrentPlay()) { e.preventDefault(); this.saveAndNext(); }
+      }
+    });
+  }
+
+  _isTyping(el) {
+    return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+  }
+
+  _haptic() {
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+
+  toggle(open) {
+    this.collapsed = !open;
+    this.el.classList.toggle('collapsed', this.collapsed);
+    this.reopenBtn.classList.toggle('hidden', !this.collapsed);
+  }
+
+  saveAndNext() {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    this._haptic();
+    this._burst();
+    this.gotoOffset(1);
+  }
+
+  gotoOffset(delta) {
+    const plays = this.tagger.plays;
+    if (!plays.length) return;
+    const idx = plays.findIndex(p => p.id === this.tagger.currentPlayId);
+    const nextIdx = idx === -1 ? 0 : Math.max(0, Math.min(plays.length - 1, idx + delta));
+    const next = plays[nextIdx];
+    if (next) {
+      this.tagger.selectPlay(next.id);
+      // Seek video
+      if (next.startTime != null && this.vc.video) {
+        this.vc.video.currentTime = next.startTime;
+      }
+    }
+  }
+
+  _maybeAutoAdvance() {
+    // No-op stub. Could auto-advance once Result is set + all required fields filled.
+  }
+
+  _burst() {
+    // Visual confirmation
+    const burst = document.createElement('div');
+    burst.className = 'tw-burst';
+    burst.textContent = '✓';
+    this.el.querySelector('#twSaveNext').appendChild(burst);
+    setTimeout(() => burst.remove(), 600);
+  }
+
+  _loadPlayIntoForm() {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    const t = play.tags || {};
+    // Pills
+    this.formEl.querySelectorAll('.tw-pills').forEach(row => {
+      const src = row.dataset.src;
+      const fieldId = src.replace(/^tag/, '');
+      const key = fieldId.charAt(0).toLowerCase() + fieldId.slice(1);
+      const val = t[key] || '';
+      row.querySelectorAll('.tw-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.val === val);
+      });
+    });
+    // Numbers
+    this.formEl.querySelectorAll('.tw-num').forEach(input => {
+      const src = input.dataset.src;
+      const fieldId = src.replace(/^tag/, '');
+      const key = fieldId.charAt(0).toLowerCase() + fieldId.slice(1);
+      input.value = t[key] || '';
+    });
+    // Notes
+    const notes = this.formEl.querySelector('#twNotes');
+    if (notes) notes.value = play.notes || '';
+  }
+
+  _render() {
+    const total = this.tagger.plays.length;
+    const tagged = this.tagger.plays.filter(p => p.tags && p.tags.playType).length;
+    const pct = total ? Math.round((tagged / total) * 100) : 0;
+
+    this.counterEl.textContent = `${tagged} of ${total} tagged · ${pct}%`;
+    this.fillEl.style.width = `${pct}%`;
+    document.getElementById('twReopenBadge').textContent = `${tagged}/${total}`;
+
+    if (total === 0) {
+      this.emptyEl.classList.remove('hidden');
+      this.formEl.classList.add('hidden');
+      this.footerEl.classList.add('hidden');
+      this.currentPlayEl.textContent = 'No play selected';
+      return;
+    }
+    this.emptyEl.classList.add('hidden');
+    this.formEl.classList.remove('hidden');
+    this.footerEl.classList.remove('hidden');
+
+    const play = this.tagger.getCurrentPlay();
+    if (play) {
+      const idx = this.tagger.plays.findIndex(p => p.id === play.id);
+      this.currentPlayEl.textContent = `Play ${idx + 1} of ${total}`;
+      this._loadPlayIntoForm();
+    } else {
+      // Auto-select first untagged play, or first play
+      const target = this.tagger.plays.find(p => !p.tags?.playType) || this.tagger.plays[0];
+      if (target) this.tagger.selectPlay(target.id);
+    }
+  }
+
+  _esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+}
+
 // ===== app.js =====
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
@@ -10534,6 +11259,7 @@ class App {
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
+    this.tagWorkspace = new TagWorkspace({ videoController: this.vc, tagger: this.tagger, wizard: this.wizard });
 
     // Give storage references
     this.storage.playlist = this.playlist;

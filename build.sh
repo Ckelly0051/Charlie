@@ -67,6 +67,7 @@ for jsfile in \
   js/call-sheet-builder.js \
   js/ui-polish.js \
   js/wizard.js \
+  js/tag-workspace.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"
