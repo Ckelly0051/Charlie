@@ -294,30 +294,44 @@ class App {
     const resultsDiv = document.getElementById('autoDetectResults');
     const resultCount = document.getElementById('detectResultCount');
     const btnApply = document.getElementById('btnApplyDetected');
+    const btnReview = document.getElementById('btnReviewDetected');
     const motionCanvas = document.getElementById('motionGraphCanvas');
-    const sensitivitySlider = document.getElementById('detectSensitivity');
-    const sensitivityValue = document.getElementById('sensitivityValue');
+    const strictnessSlider = document.getElementById('detectStrictness');
+    const strictnessValue = document.getElementById('strictnessValue');
+    const audioToggle = document.getElementById('detectUseAudio');
+    const minDur = document.getElementById('detectMinDuration');
+    const maxDur = document.getElementById('detectMaxDuration');
+    const cooldown = document.getElementById('detectCooldown');
 
     // Toggle settings visibility
-    btnToggleSettings.addEventListener('click', () => {
-      settingsDiv.classList.toggle('hidden');
+    btnToggleSettings?.addEventListener('click', () => {
+      settingsDiv?.classList.toggle('hidden');
     });
 
-    // Sensitivity slider label
-    sensitivitySlider.addEventListener('input', () => {
-      sensitivityValue.textContent = sensitivitySlider.value + '%';
+    // Strictness slider label (shows Loose → Strict)
+    const strictnessLabel = (v) => {
+      const n = parseFloat(v);
+      if (n <= 0.7) return 'Loose';
+      if (n <= 0.95) return 'Relaxed';
+      if (n <= 1.15) return 'Balanced';
+      if (n <= 1.4) return 'Strict';
+      return 'Very Strict';
+    };
+    strictnessSlider?.addEventListener('input', () => {
+      if (strictnessValue) strictnessValue.textContent = strictnessLabel(strictnessSlider.value);
     });
+    if (strictnessSlider && strictnessValue) strictnessValue.textContent = strictnessLabel(strictnessSlider.value);
 
     // Start scan
     btnAutoDetect.addEventListener('click', async () => {
       if (this.detector.isScanning) return;
 
-      // Read settings into detector
-      this.detector.motionThreshold = parseInt(sensitivitySlider.value) / 100;
-      this.detector.minPlayDuration = parseFloat(document.getElementById('detectMinDuration').value) || 2;
-      this.detector.maxPlayDuration = parseFloat(document.getElementById('detectMaxDuration').value) || 30;
-      this.detector.cooldownAfterEnd = parseFloat(document.getElementById('detectCooldown').value) || 3;
-      this.detector.sampleInterval = parseFloat(document.getElementById('detectSampleRate').value) || 0.2;
+      // Read settings into v2 detector
+      if (strictnessSlider) this.detector.strictness = parseFloat(strictnessSlider.value) || 1.0;
+      if (minDur) this.detector.minPlayDuration = parseFloat(minDur.value) || 2;
+      if (maxDur) this.detector.maxPlayDuration = parseFloat(maxDur.value) || 30;
+      if (cooldown) this.detector.cooldownAfterEnd = parseFloat(cooldown.value) || 2.5;
+      if (audioToggle) this.detector.useAudio = audioToggle.checked;
 
       // Show progress, hide results
       progressDiv.classList.remove('hidden');
@@ -325,28 +339,21 @@ class App {
       resultsDiv.classList.add('hidden');
       btnAutoDetect.disabled = true;
       btnAutoDetect.classList.add('scanning');
+      progressLabel.textContent = 'Starting scan…';
 
       try {
         if (this.playlist.hasClips) {
-          // Multi-clip mode: scan each clip to find the action window
+          // Multi-clip mode (backward-compat stub in v2)
           const results = await this.detector.scanClips(this.playlist);
-
-          // Show summary
-          const totalDetected = results.reduce((s, r) => s + r.detected.length, 0);
+          const totalDetected = results.reduce((s, r) => s + (r.detected?.length || 0), 0);
           resultCount.textContent = `${totalDetected} action windows found in ${results.length} clips`;
           resultsDiv.classList.remove('hidden');
-          btnApply.classList.add('hidden'); // Already applied directly to play entries
-
-          // Draw a combined motion overview for the last scanned clip
-          if (results.length > 0) {
-            const last = results[results.length - 1];
-            if (last.motionData.length > 0) {
-              this._drawMotionGraph(motionCanvas, last.motionData, last.detected, this.detector.motionThreshold);
-            }
-          }
+          btnApply?.classList.add('hidden');
+          btnReview?.classList.add('hidden');
         } else {
-          // Single-video mode
-          if (!this.vc.videoElement.duration) {
+          // Single-video mode (v2 scan)
+          const videoEl = this.vc.videoElement || this.vc.video;
+          if (!videoEl || !videoEl.duration) {
             alert('Load a video first.');
             throw new Error('No video');
           }
@@ -355,8 +362,9 @@ class App {
           const plays = this.detector.detectedPlays;
           resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected`;
           resultsDiv.classList.remove('hidden');
-          btnApply.classList.remove('hidden');
-          this._drawMotionGraph(motionCanvas, this.detector.motionData, plays, this.detector.motionThreshold);
+          btnApply?.classList.remove('hidden');
+          btnReview?.classList.toggle('hidden', plays.length === 0);
+          this._drawMotionGraph(motionCanvas, this.detector.motionData, plays, 0);
         }
       } catch (e) {
         if (e.message !== 'No video') {
@@ -364,33 +372,220 @@ class App {
         }
       }
 
-      // Scan finished
       btnAutoDetect.disabled = false;
       btnAutoDetect.classList.remove('scanning');
       btnCancelScan.classList.add('hidden');
       progressDiv.classList.add('hidden');
     });
 
-    // Cancel scan
     btnCancelScan.addEventListener('click', () => {
       this.detector.cancelScan();
     });
 
-    // Apply detected plays (single-video mode only)
-    btnApply.addEventListener('click', () => {
+    // Apply all detected plays directly
+    btnApply?.addEventListener('click', () => {
       const added = this.detector.applyDetectedPlays();
       resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added`;
+      btnReview?.classList.add('hidden');
     });
 
-    // Progress updates
+    // Open the review modal so the coach can tweak each detection
+    btnReview?.addEventListener('click', () => {
+      this._openDetectionReview();
+    });
+
+    // Progress updates — single-clip scan
     this.detector.on('scan-progress', (data) => {
       const pct = Math.round(data.progress * 100);
       progressFill.style.width = pct + '%';
-      if (data.clipName) {
-        progressLabel.textContent = `${pct}% — ${data.clipName}`;
-      } else {
-        progressLabel.textContent = pct + '%';
-      }
+      const timeStr = data.time != null ? ` · ${data.time.toFixed(1)}s` : '';
+      progressLabel.textContent = `${pct}%${timeStr}`;
+    });
+
+    // Progress updates — folder / multi-clip scan (one update per clip done)
+    this.detector.on('clip-scanned', (data) => {
+      const pct = Math.round(data.progress * 100);
+      progressFill.style.width = pct + '%';
+      progressLabel.textContent = `Clip ${data.index}/${data.total} · ${data.clipName} · ${data.detected} detected`;
+    });
+  }
+
+  /**
+   * Open a review modal where the coach can scrub through each detected
+   * play, adjust start/end by ±0.5s, reject false positives, and apply
+   * only the ones they want. Mirrors the review step that top coaching
+   * tools like Hudl and Catapult provide.
+   */
+  _openDetectionReview() {
+    const plays = (this.detector.detectedPlays || []).map((p, i) => ({
+      idx: i,
+      start: p.start,
+      end: p.end,
+      peak: p.peak,
+      confidence: p.confidence,
+      accepted: true,
+    }));
+    if (plays.length === 0) {
+      alert('No detections to review.');
+      return;
+    }
+
+    // Remove any prior modal
+    document.getElementById('detectReviewModal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'detectReviewModal';
+    modal.className = 'detect-review-modal';
+    modal.innerHTML = `
+      <div class="detect-review-backdrop"></div>
+      <div class="detect-review-card">
+        <div class="detect-review-head">
+          <h3>Review Detected Plays</h3>
+          <div class="detect-review-sub">Scrub, trim, or reject each detection. Accept all good plays in one click.</div>
+          <button class="detect-review-close" id="detectReviewClose" title="Close">×</button>
+        </div>
+        <div class="detect-review-toolbar">
+          <button class="btn btn-sm" id="detectReviewAcceptAll">Accept All</button>
+          <button class="btn btn-sm" id="detectReviewRejectLow">Reject Low Confidence</button>
+          <span class="detect-review-count" id="detectReviewCount"></span>
+        </div>
+        <div class="detect-review-list" id="detectReviewList"></div>
+        <div class="detect-review-foot">
+          <button class="btn btn-sm" id="detectReviewCancel">Cancel</button>
+          <button class="btn btn-sm btn-accent" id="detectReviewApply">Apply Selected</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const list = modal.querySelector('#detectReviewList');
+    const count = modal.querySelector('#detectReviewCount');
+    const video = this.vc.videoElement || this.vc.video;
+
+    const formatTime = (t) => {
+      const m = Math.floor(t / 60), s = Math.floor(t % 60), d = Math.floor((t * 10) % 10);
+      return `${m}:${s.toString().padStart(2, '0')}.${d}`;
+    };
+
+    const renderRow = (p) => {
+      const row = document.createElement('div');
+      row.className = 'detect-review-row' + (p.accepted ? '' : ' rejected');
+      row.dataset.idx = p.idx;
+      const conf = Math.round((p.confidence || 0) * 100);
+      const confClass = conf >= 70 ? 'hi' : conf >= 40 ? 'med' : 'lo';
+      row.innerHTML = `
+        <div class="drr-main">
+          <div class="drr-head">
+            <span class="drr-num">#${p.idx + 1}</span>
+            <span class="drr-time">${formatTime(p.start)} → ${formatTime(p.end)}</span>
+            <span class="drr-dur">${(p.end - p.start).toFixed(1)}s</span>
+            <span class="drr-conf ${confClass}">${conf}%</span>
+          </div>
+          <div class="drr-controls">
+            <button class="btn-xs" data-act="play">▶ Preview</button>
+            <span class="drr-bump">
+              Start:
+              <button class="btn-xs" data-act="s-">−0.5s</button>
+              <button class="btn-xs" data-act="s+">+0.5s</button>
+            </span>
+            <span class="drr-bump">
+              End:
+              <button class="btn-xs" data-act="e-">−0.5s</button>
+              <button class="btn-xs" data-act="e+">+0.5s</button>
+            </span>
+          </div>
+        </div>
+        <div class="drr-side">
+          <label class="drr-check">
+            <input type="checkbox" ${p.accepted ? 'checked' : ''}>
+            <span>Accept</span>
+          </label>
+        </div>`;
+
+      const bump = (act) => {
+        if (act === 's-') p.start = Math.max(0, p.start - 0.5);
+        else if (act === 's+') p.start = Math.min(p.end - 0.2, p.start + 0.5);
+        else if (act === 'e-') p.end = Math.max(p.start + 0.2, p.end - 0.5);
+        else if (act === 'e+') p.end = p.end + 0.5;
+        row.querySelector('.drr-time').textContent = `${formatTime(p.start)} → ${formatTime(p.end)}`;
+        row.querySelector('.drr-dur').textContent = `${(p.end - p.start).toFixed(1)}s`;
+      };
+
+      row.querySelectorAll('[data-act]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const act = btn.dataset.act;
+          if (act === 'play') {
+            if (video) {
+              video.currentTime = p.start;
+              video.play().catch(() => {});
+              // Auto-pause at end
+              const stopAt = () => {
+                if (video.currentTime >= p.end) {
+                  video.pause();
+                  video.removeEventListener('timeupdate', stopAt);
+                }
+              };
+              video.addEventListener('timeupdate', stopAt);
+            }
+          } else {
+            bump(act);
+          }
+        });
+      });
+
+      row.querySelector('input[type=checkbox]').addEventListener('change', (e) => {
+        p.accepted = e.target.checked;
+        row.classList.toggle('rejected', !p.accepted);
+        updateCount();
+      });
+
+      return row;
+    };
+
+    const updateCount = () => {
+      const acc = plays.filter(p => p.accepted).length;
+      count.textContent = `${acc} / ${plays.length} accepted`;
+    };
+
+    plays.forEach(p => list.appendChild(renderRow(p)));
+    updateCount();
+
+    const close = () => modal.remove();
+    modal.querySelector('#detectReviewClose').addEventListener('click', close);
+    modal.querySelector('#detectReviewCancel').addEventListener('click', close);
+    modal.querySelector('.detect-review-backdrop').addEventListener('click', close);
+
+    modal.querySelector('#detectReviewAcceptAll').addEventListener('click', () => {
+      plays.forEach(p => p.accepted = true);
+      list.querySelectorAll('.detect-review-row').forEach(r => {
+        r.classList.remove('rejected');
+        r.querySelector('input[type=checkbox]').checked = true;
+      });
+      updateCount();
+    });
+
+    modal.querySelector('#detectReviewRejectLow').addEventListener('click', () => {
+      plays.forEach(p => { if ((p.confidence || 0) < 0.4) p.accepted = false; });
+      list.querySelectorAll('.detect-review-row').forEach(r => {
+        const idx = parseInt(r.dataset.idx, 10);
+        const p = plays[idx];
+        r.classList.toggle('rejected', !p.accepted);
+        r.querySelector('input[type=checkbox]').checked = p.accepted;
+      });
+      updateCount();
+    });
+
+    modal.querySelector('#detectReviewApply').addEventListener('click', () => {
+      const accepted = plays.filter(p => p.accepted).map(p => ({
+        start: p.start,
+        end: p.end,
+        peak: p.peak,
+        confidence: p.confidence,
+      }));
+      const added = this.detector.applyDetectedPlays(accepted);
+      const resultCount = document.getElementById('detectResultCount');
+      if (resultCount) resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added`;
+      close();
     });
   }
 

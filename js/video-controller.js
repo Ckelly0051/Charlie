@@ -6,6 +6,9 @@ export class VideoController {
     this.video = document.getElementById('videoPlayer');
     this.placeholder = document.getElementById('videoPlaceholder');
     this.fileInput = document.getElementById('videoFileInput');
+    this.folderInput = document.getElementById('videoFolderInput');
+    this.btnLoadFolder = document.getElementById('btnLoadFolder');
+    this.folderLoadBadge = document.getElementById('folderLoadBadge');
     this.dropZone = document.getElementById('videoDropZone');
     this.fileLabel = document.getElementById('fileLabel');
     this.btnPlayPause = document.getElementById('btnPlayPause');
@@ -30,13 +33,33 @@ export class VideoController {
   _bindEvents() {
     // File input — supports multiple files
     this.fileInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files).filter(f => f.type.startsWith('video/'));
+      const files = this._filterVideoFiles(Array.from(e.target.files));
       if (files.length > 0) {
+        this._showFolderBadge(files);
         this._emit('files-selected', { files });
       }
     });
 
-    // Drag and drop — supports multiple files
+    // Folder picker (webkitdirectory) — scoops every video file inside
+    if (this.folderInput) {
+      this.folderInput.addEventListener('change', (e) => {
+        const files = this._filterVideoFiles(Array.from(e.target.files))
+          // keep a natural sort order so plays load alphabetically
+          .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
+            b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        if (files.length > 0) {
+          this._showFolderBadge(files);
+          this._emit('files-selected', { files });
+        } else {
+          alert('No video files found in that folder.');
+        }
+      });
+    }
+    if (this.btnLoadFolder && this.folderInput) {
+      this.btnLoadFolder.addEventListener('click', () => this.folderInput.click());
+    }
+
+    // Drag and drop — supports single files, multi-files, AND dropped folders
     this.dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
       this.dropZone.classList.add('drag-over');
@@ -44,11 +67,28 @@ export class VideoController {
     this.dropZone.addEventListener('dragleave', () => {
       this.dropZone.classList.remove('drag-over');
     });
-    this.dropZone.addEventListener('drop', (e) => {
+    this.dropZone.addEventListener('drop', async (e) => {
       e.preventDefault();
       this.dropZone.classList.remove('drag-over');
-      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+
+      // Try DataTransferItemList for folder support. Fallback to flat files.
+      const items = e.dataTransfer.items;
+      let files = [];
+      if (items && items.length && typeof items[0].webkitGetAsEntry === 'function') {
+        const entries = [];
+        for (const it of items) {
+          const entry = it.webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        files = await this._walkEntries(entries);
+      } else {
+        files = Array.from(e.dataTransfer.files);
+      }
+      files = this._filterVideoFiles(files)
+        .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
+          b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
       if (files.length > 0) {
+        this._showFolderBadge(files);
         this._emit('files-selected', { files });
       }
     });
@@ -120,6 +160,63 @@ export class VideoController {
     this.video.load();
     this.fileLabel.textContent = file.name;
     this._emit('file-loaded', { name: file.name });
+  }
+
+  /**
+   * Filter a list of File objects down to supported video files. Some
+   * browsers leave the MIME type blank for less-common containers, so we
+   * also accept known video extensions as a fallback.
+   */
+  _filterVideoFiles(files) {
+    const exts = /\.(mp4|m4v|mov|webm|mkv|avi|wmv|mpg|mpeg|ogv|3gp|ts|mts|m2ts)$/i;
+    return files.filter(f => (f.type && f.type.startsWith('video/')) || exts.test(f.name || ''));
+  }
+
+  /**
+   * Recursively walk a list of FileSystemEntry objects (dropped folders)
+   * and return a flat list of File objects. Subfolders are included.
+   */
+  async _walkEntries(entries) {
+    const out = [];
+    const walk = async (entry, relPath = '') => {
+      if (!entry) return;
+      if (entry.isFile) {
+        const file = await new Promise((res, rej) => entry.file(res, rej));
+        // Preserve folder path so we can sort naturally
+        if (relPath && !file.webkitRelativePath) {
+          try { Object.defineProperty(file, 'webkitRelativePath', { value: relPath + file.name }); }
+          catch {}
+        }
+        out.push(file);
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const readAll = () => new Promise((resolve, reject) => {
+          const all = [];
+          const readBatch = () => reader.readEntries((results) => {
+            if (!results.length) resolve(all);
+            else { all.push(...results); readBatch(); }
+          }, reject);
+          readBatch();
+        });
+        const children = await readAll();
+        for (const c of children) await walk(c, relPath + entry.name + '/');
+      }
+    };
+    for (const e of entries) await walk(e);
+    return out;
+  }
+
+  /**
+   * Show a small badge on the top bar when a folder of videos was loaded.
+   */
+  _showFolderBadge(files) {
+    if (!this.folderLoadBadge) return;
+    if (files.length <= 1) {
+      this.folderLoadBadge.classList.add('hidden');
+      return;
+    }
+    this.folderLoadBadge.textContent = `📁 ${files.length} clips`;
+    this.folderLoadBadge.classList.remove('hidden');
   }
 
   togglePlay() {
