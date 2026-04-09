@@ -3948,3 +3948,45 @@ body.qc-active .tw-reopen { display: none; }
 .drr-tag.hi  { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
 .drr-tag.med { background: rgba(251, 191, 36, 0.18); color: #fcd34d; border-color: rgba(251, 191, 36, 0.35); }
 .drr-tag.lo  { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.25); }
+
+/* ===========================================================
+   BACKEND STATUS BADGE — top-bar indicator for local CV server
+   =========================================================== */
+.backend-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.backend-status-badge.online {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.backend-status-badge.online:hover {
+  background: rgba(16, 185, 129, 0.22);
+}
+.backend-status-badge.offline {
+  background: rgba(148, 163, 184, 0.10);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+.backend-status-badge.offline:hover {
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+}
+@media (max-width: 900px) {
+  .backend-status-badge { display: none; }
+}

@@ -155,6 +155,7 @@ export class VideoController {
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
     }
+    this.currentFile = file;
     this.objectUrl = URL.createObjectURL(file);
     this.video.src = this.objectUrl;
     this.video.load();

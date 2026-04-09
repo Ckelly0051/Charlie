@@ -3955,6 +3955,48 @@ body.qc-active .tw-reopen { display: none; }
 .drr-tag.hi  { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
 .drr-tag.med { background: rgba(251, 191, 36, 0.18); color: #fcd34d; border-color: rgba(251, 191, 36, 0.35); }
 .drr-tag.lo  { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.25); }
+
+/* ===========================================================
+   BACKEND STATUS BADGE — top-bar indicator for local CV server
+   =========================================================== */
+.backend-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.backend-status-badge.online {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.backend-status-badge.online:hover {
+  background: rgba(16, 185, 129, 0.22);
+}
+.backend-status-badge.offline {
+  background: rgba(148, 163, 184, 0.10);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+.backend-status-badge.offline:hover {
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+}
+@media (max-width: 900px) {
+  .backend-status-badge { display: none; }
+}
   </style>
 </head>
 <body>
@@ -4164,6 +4206,10 @@ body.qc-active .tw-reopen { display: none; }
         <span class="folder-load-badge hidden" id="folderLoadBadge"></span>
       </div>
       <div class="top-bar-right">
+        <button class="backend-status-badge offline" id="backendStatusBadge" type="button"
+                title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
+          ⚪ Heuristics
+        </button>
         <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" disabled>
           <svg class="icon"><use href="#icon-prev-clip"/></svg>
         </button>
@@ -5014,6 +5060,7 @@ class VideoController {
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
     }
+    this.currentFile = file;
     this.objectUrl = URL.createObjectURL(file);
     this.video.src = this.objectUrl;
     this.video.load();
@@ -7402,6 +7449,166 @@ class ClipAnalyzer {
   }
 }
 
+// ===== backend-client.js =====
+/**
+ * BackendClient — thin wrapper around the local Python CV server.
+ *
+ * The browser app ships with a full in-browser heuristic analyzer, but
+ * when the companion `server/app.py` is running on 127.0.0.1:8765 we get
+ * real YOLOv8 player detection instead of luminance deltas. This module:
+ *
+ *   1. Probes /health on startup (and on demand) to decide availability
+ *   2. Exposes analyzeClip(file, start, end) — POSTs multipart to /analyze
+ *   3. Exposes detectPlays(file) — POSTs to /detect
+ *   4. Exposes analyzeBatch(file, windows) — one upload, many windows
+ *
+ * The response shape matches js/clip-analyzer.js exactly
+ * ({ tags, confidence, reasons, extras }) so the backend is a drop-in
+ * replacement. If the server is unreachable, callers should fall back to
+ * the JS ClipAnalyzer — nothing breaks either way.
+ *
+ * Users can override the backend URL from the console:
+ *   localStorage.setItem('ffa_backend_url', 'http://127.0.0.1:9000');
+ */
+class BackendClient {
+  constructor(opts = {}) {
+    this.baseUrl = opts.baseUrl
+      || (typeof localStorage !== 'undefined' && localStorage.getItem('ffa_backend_url'))
+      || 'http://127.0.0.1:8765';
+    this.available = false;
+    this.info = null;
+    this.lastProbeTime = 0;
+    this.probeTimeoutMs = opts.probeTimeoutMs || 1500;
+    this._listeners = new Map();
+  }
+
+  on(event, fn) {
+    if (!this._listeners.has(event)) this._listeners.set(event, new Set());
+    this._listeners.get(event).add(fn);
+  }
+  _emit(event, payload) {
+    const set = this._listeners.get(event);
+    if (set) for (const fn of set) { try { fn(payload); } catch {} }
+  }
+
+  /**
+   * Probe /health with a short timeout. Returns true if reachable and
+   * updates this.available + this.info. Safe to call repeatedly.
+   */
+  async probe() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.probeTimeoutMs);
+    try {
+      const res = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const info = await res.json();
+      const wasAvailable = this.available;
+      this.available = info?.status === 'ok';
+      this.info = info;
+      this.lastProbeTime = Date.now();
+      if (this.available !== wasAvailable) this._emit('availability-changed', this.available);
+      return this.available;
+    } catch (e) {
+      clearTimeout(timer);
+      const wasAvailable = this.available;
+      this.available = false;
+      this.info = null;
+      if (wasAvailable) this._emit('availability-changed', false);
+      return false;
+    }
+  }
+
+  /**
+   * Analyze a single play window. `file` is a File/Blob (the video), and
+   * start/end are seconds. Returns { tags, confidence, reasons, extras }
+   * or throws if the server errored out.
+   */
+  async analyzeClip(file, start, end) {
+    if (!file) throw new Error('BackendClient.analyzeClip: no file');
+    const form = new FormData();
+    form.append('video', file, file.name || 'clip.mp4');
+    form.append('start', String(start ?? 0));
+    form.append('end', String(end ?? 0));
+    const res = await fetch(`${this.baseUrl}/analyze`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`analyze failed: HTTP ${res.status} ${text}`);
+    }
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  }
+
+  /**
+   * Scan a whole video and return detected play boundaries. Shape:
+   *   { plays: [{start, end, confidence, peak}, ...] }
+   */
+  async detectPlays(file) {
+    if (!file) throw new Error('BackendClient.detectPlays: no file');
+    const form = new FormData();
+    form.append('video', file, file.name || 'video.mp4');
+    const res = await fetch(`${this.baseUrl}/detect`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`detect failed: HTTP ${res.status} ${text}`);
+    }
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  }
+
+  /**
+   * Analyze many windows in a single video upload. `windows` is an array
+   * of {start, end}. Returns an array of per-window analysis results in
+   * the same order. Preferred when analyzing a batch of plays from one
+   * source file — we only pay the upload cost once.
+   */
+  async analyzeBatch(file, windows) {
+    if (!file) throw new Error('BackendClient.analyzeBatch: no file');
+    if (!Array.isArray(windows)) throw new Error('windows must be an array');
+    const form = new FormData();
+    form.append('video', file, file.name || 'clip.mp4');
+    form.append('windows', JSON.stringify(windows));
+    const res = await fetch(`${this.baseUrl}/analyze_batch`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`analyze_batch failed: HTTP ${res.status} ${text}`);
+    }
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json.results || [];
+  }
+
+  /**
+   * True if the last probe succeeded recently. Callers use this to
+   * decide whether to try the backend at all before doing real work.
+   */
+  isAvailable() {
+    return this.available;
+  }
+
+  /**
+   * Human-readable capability list from the last /health response.
+   */
+  getCapabilities() {
+    return this.info?.capabilities || [];
+  }
+}
+
 // ===== playlist-manager.js =====
 /**
  * PlaylistManager - Manages multiple video clips where each clip is one play.
@@ -7602,6 +7809,7 @@ class PlaylistManager {
     clip.objectUrl = URL.createObjectURL(clip.file);
 
     // Load into video player
+    this.vc.currentFile = clip.file;
     this.vc.video.src = clip.objectUrl;
     this.vc.video.load();
     this.vc.fileLabel.textContent = clip.file.name;
@@ -12132,6 +12340,7 @@ class App {
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.clipAnalyzer = new ClipAnalyzer();
+    this.backend = new BackendClient();
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
@@ -12171,6 +12380,9 @@ class App {
 
     // Auto-detect UI
     this._bindAutoDetect();
+
+    // Probe the local CV backend and keep the status badge in sync
+    this._bindBackendStatus();
 
     // Enable auto-save
     this.storage.enableAutoSave();
@@ -12461,14 +12673,34 @@ class App {
 
           const plays = this.detector.detectedPlays;
 
-          // Run the heuristic clip analyzer on every detection so tags
-          // show up alongside the boundaries in the review modal.
+          // Seed analyses from the in-browser heuristic analyzer first.
+          // This guarantees we always have tags, even if the backend
+          // request fails halfway through. The backend (if reachable)
+          // then overwrites them with higher-quality YOLO-based tags.
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
 
+          let backendUsed = false;
+          const sourceFile = this.vc.currentFile || this.vc.file || null;
+          if (this.backend.isAvailable() && sourceFile && plays.length > 0) {
+            try {
+              progressLabel.textContent = `AI server analyzing ${plays.length} plays…`;
+              const windows = plays.map(p => ({ start: p.start, end: p.end }));
+              const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
+              if (Array.isArray(backendResults) && backendResults.length === plays.length) {
+                this._lastAnalyses = backendResults;
+                backendUsed = true;
+              }
+            } catch (e) {
+              console.warn('[backend] analyze_batch failed, falling back to heuristics:', e);
+              // keep the heuristic analyses we already computed
+            }
+          }
+
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
-            return sum + Object.values(a.tags || {}).filter(v => v).length;
+            return sum + Object.values(a?.tags || {}).filter(v => v).length;
           }, 0);
-          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags`;
+          const backendLabel = backendUsed ? ' · AI-tagged' : '';
+          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
           resultsDiv.classList.remove('hidden');
           btnApply?.classList.remove('hidden');
           btnReview?.classList.toggle('hidden', plays.length === 0);
@@ -12518,6 +12750,52 @@ class App {
       progressFill.style.width = pct + '%';
       progressLabel.textContent = `Clip ${data.index}/${data.total} · ${data.clipName} · ${data.detected} detected`;
     });
+  }
+
+  /**
+   * Probe the local Python CV backend, update the top-bar status badge,
+   * and re-probe periodically so the badge reflects server up/down state
+   * while the app is open. When the backend is reachable, auto-detect
+   * and clip analysis route through it automatically for real YOLO-based
+   * detection instead of in-browser heuristics.
+   */
+  _bindBackendStatus() {
+    const badge = document.getElementById('backendStatusBadge');
+    const updateBadge = (available) => {
+      if (!badge) return;
+      if (available) {
+        badge.textContent = '🟢 AI Server';
+        badge.classList.add('online');
+        badge.classList.remove('offline');
+        const caps = this.backend.getCapabilities();
+        badge.title = `Local CV server online\n${caps.join('\n')}\nClick to re-probe`;
+      } else {
+        badge.textContent = '⚪ Heuristics';
+        badge.classList.add('offline');
+        badge.classList.remove('online');
+        badge.title = 'Local CV server not detected — using in-browser heuristics.\nRun `cd server && ./start.sh` then click to re-probe.';
+      }
+    };
+
+    updateBadge(false);
+    this.backend.on('availability-changed', updateBadge);
+
+    // Kick off initial probe (non-blocking)
+    this.backend.probe().then(updateBadge);
+
+    // Click to manually re-probe (e.g. after starting the server)
+    badge?.addEventListener('click', async () => {
+      badge.textContent = '… probing';
+      const ok = await this.backend.probe();
+      updateBadge(ok);
+    });
+
+    // Re-probe every 30s while the tab is visible so the badge stays fresh
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.backend.probe();
+      }
+    }, 30000);
   }
 
   /**

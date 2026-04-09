@@ -197,6 +197,7 @@ export class PlaylistManager {
     clip.objectUrl = URL.createObjectURL(clip.file);
 
     // Load into video player
+    this.vc.currentFile = clip.file;
     this.vc.video.src = clip.objectUrl;
     this.vc.video.load();
     this.vc.fileLabel.textContent = clip.file.name;

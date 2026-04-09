@@ -9,6 +9,7 @@ import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
 import { PlayDetector } from './play-detector.js';
 import { ClipAnalyzer } from './clip-analyzer.js';
+import { BackendClient } from './backend-client.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
@@ -34,6 +35,7 @@ class App {
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.clipAnalyzer = new ClipAnalyzer();
+    this.backend = new BackendClient();
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
@@ -73,6 +75,9 @@ class App {
 
     // Auto-detect UI
     this._bindAutoDetect();
+
+    // Probe the local CV backend and keep the status badge in sync
+    this._bindBackendStatus();
 
     // Enable auto-save
     this.storage.enableAutoSave();
@@ -363,14 +368,34 @@ class App {
 
           const plays = this.detector.detectedPlays;
 
-          // Run the heuristic clip analyzer on every detection so tags
-          // show up alongside the boundaries in the review modal.
+          // Seed analyses from the in-browser heuristic analyzer first.
+          // This guarantees we always have tags, even if the backend
+          // request fails halfway through. The backend (if reachable)
+          // then overwrites them with higher-quality YOLO-based tags.
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
 
+          let backendUsed = false;
+          const sourceFile = this.vc.currentFile || this.vc.file || null;
+          if (this.backend.isAvailable() && sourceFile && plays.length > 0) {
+            try {
+              progressLabel.textContent = `AI server analyzing ${plays.length} plays…`;
+              const windows = plays.map(p => ({ start: p.start, end: p.end }));
+              const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
+              if (Array.isArray(backendResults) && backendResults.length === plays.length) {
+                this._lastAnalyses = backendResults;
+                backendUsed = true;
+              }
+            } catch (e) {
+              console.warn('[backend] analyze_batch failed, falling back to heuristics:', e);
+              // keep the heuristic analyses we already computed
+            }
+          }
+
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
-            return sum + Object.values(a.tags || {}).filter(v => v).length;
+            return sum + Object.values(a?.tags || {}).filter(v => v).length;
           }, 0);
-          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags`;
+          const backendLabel = backendUsed ? ' · AI-tagged' : '';
+          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
           resultsDiv.classList.remove('hidden');
           btnApply?.classList.remove('hidden');
           btnReview?.classList.toggle('hidden', plays.length === 0);
@@ -420,6 +445,52 @@ class App {
       progressFill.style.width = pct + '%';
       progressLabel.textContent = `Clip ${data.index}/${data.total} · ${data.clipName} · ${data.detected} detected`;
     });
+  }
+
+  /**
+   * Probe the local Python CV backend, update the top-bar status badge,
+   * and re-probe periodically so the badge reflects server up/down state
+   * while the app is open. When the backend is reachable, auto-detect
+   * and clip analysis route through it automatically for real YOLO-based
+   * detection instead of in-browser heuristics.
+   */
+  _bindBackendStatus() {
+    const badge = document.getElementById('backendStatusBadge');
+    const updateBadge = (available) => {
+      if (!badge) return;
+      if (available) {
+        badge.textContent = '🟢 AI Server';
+        badge.classList.add('online');
+        badge.classList.remove('offline');
+        const caps = this.backend.getCapabilities();
+        badge.title = `Local CV server online\n${caps.join('\n')}\nClick to re-probe`;
+      } else {
+        badge.textContent = '⚪ Heuristics';
+        badge.classList.add('offline');
+        badge.classList.remove('online');
+        badge.title = 'Local CV server not detected — using in-browser heuristics.\nRun `cd server && ./start.sh` then click to re-probe.';
+      }
+    };
+
+    updateBadge(false);
+    this.backend.on('availability-changed', updateBadge);
+
+    // Kick off initial probe (non-blocking)
+    this.backend.probe().then(updateBadge);
+
+    // Click to manually re-probe (e.g. after starting the server)
+    badge?.addEventListener('click', async () => {
+      badge.textContent = '… probing';
+      const ok = await this.backend.probe();
+      updateBadge(ok);
+    });
+
+    // Re-probe every 30s while the tab is visible so the badge stays fresh
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.backend.probe();
+      }
+    }, 30000);
   }
 
   /**
