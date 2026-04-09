@@ -8,6 +8,7 @@ import { PlayFilter } from './play-filter.js';
 import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
 import { PlayDetector } from './play-detector.js';
+import { ClipAnalyzer } from './clip-analyzer.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
@@ -32,6 +33,7 @@ class App {
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
+    this.clipAnalyzer = new ClipAnalyzer();
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
@@ -360,7 +362,15 @@ class App {
           await this.detector.scan();
 
           const plays = this.detector.detectedPlays;
-          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected`;
+
+          // Run the heuristic clip analyzer on every detection so tags
+          // show up alongside the boundaries in the review modal.
+          this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
+
+          const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
+            return sum + Object.values(a.tags || {}).filter(v => v).length;
+          }, 0);
+          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags`;
           resultsDiv.classList.remove('hidden');
           btnApply?.classList.remove('hidden');
           btnReview?.classList.toggle('hidden', plays.length === 0);
@@ -382,10 +392,12 @@ class App {
       this.detector.cancelScan();
     });
 
-    // Apply all detected plays directly
+    // Apply all detected plays directly — also stamp heuristic auto-tags
     btnApply?.addEventListener('click', () => {
+      const before = this.tagger.plays.length;
       const added = this.detector.applyDetectedPlays();
-      resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added`;
+      this._stampAutoTags(before);
+      resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added · tagged from film`;
       btnReview?.classList.add('hidden');
     });
 
@@ -408,6 +420,36 @@ class App {
       progressFill.style.width = pct + '%';
       progressLabel.textContent = `Clip ${data.index}/${data.total} · ${data.clipName} · ${data.detected} detected`;
     });
+  }
+
+  /**
+   * Merge heuristic auto-tags from this._lastAnalyses onto the plays that
+   * were just appended to the tagger. Only writes into empty fields — if
+   * the coach already tagged a field manually, we leave it alone.
+   */
+  _stampAutoTags(startIndex = 0) {
+    const analyses = this._lastAnalyses || [];
+    if (!analyses.length) return 0;
+    const newPlays = this.tagger.plays.slice(startIndex);
+    let stamped = 0;
+    for (let i = 0; i < newPlays.length && i < analyses.length; i++) {
+      const play = newPlays[i];
+      const a = analyses[i];
+      if (!a || !a.tags) continue;
+      for (const [k, v] of Object.entries(a.tags)) {
+        if (v && (!play.tags[k] || play.tags[k] === '')) {
+          play.tags[k] = v;
+          stamped++;
+        }
+      }
+      // Store the raw analysis on the play so the coach can inspect it
+      play.analysis = a;
+      this.tagger._emit('play-updated', play);
+    }
+    // Refresh UI panels that depend on tags
+    this.tagger._updatePlaySelect?.();
+    this.tagger._updateTimeline?.();
+    return stamped;
   }
 
   /**
@@ -466,20 +508,43 @@ class App {
       return `${m}:${s.toString().padStart(2, '0')}.${d}`;
     };
 
+    const analyses = this._lastAnalyses || [];
+    const renderTagPills = (a) => {
+      if (!a || !a.tags) return '';
+      const pills = [];
+      for (const [k, v] of Object.entries(a.tags)) {
+        if (!v) continue;
+        const c = a.confidence?.[k] || 0;
+        const confCls = c >= 0.6 ? 'hi' : c >= 0.4 ? 'med' : 'lo';
+        const label = ({
+          formation: 'Form',
+          playType: 'Type',
+          hash: 'Dir',
+          result: 'Result',
+          yardage: 'Yds',
+        })[k] || k;
+        const title = a.reasons?.[k] ? `${label}: ${v} — ${a.reasons[k]} (${Math.round(c*100)}%)` : `${label}: ${v}`;
+        pills.push(`<span class="drr-tag ${confCls}" title="${title.replace(/"/g,'&quot;')}">${label} · ${v}</span>`);
+      }
+      return pills.length ? `<div class="drr-tags">${pills.join('')}</div>` : '';
+    };
+
     const renderRow = (p) => {
       const row = document.createElement('div');
       row.className = 'detect-review-row' + (p.accepted ? '' : ' rejected');
       row.dataset.idx = p.idx;
       const conf = Math.round((p.confidence || 0) * 100);
       const confClass = conf >= 70 ? 'hi' : conf >= 40 ? 'med' : 'lo';
+      const analysis = analyses[p.idx];
       row.innerHTML = `
         <div class="drr-main">
           <div class="drr-head">
             <span class="drr-num">#${p.idx + 1}</span>
             <span class="drr-time">${formatTime(p.start)} → ${formatTime(p.end)}</span>
             <span class="drr-dur">${(p.end - p.start).toFixed(1)}s</span>
-            <span class="drr-conf ${confClass}">${conf}%</span>
+            <span class="drr-conf ${confClass}" title="Detection confidence">${conf}%</span>
           </div>
+          ${renderTagPills(analysis)}
           <div class="drr-controls">
             <button class="btn-xs" data-act="play">▶ Preview</button>
             <span class="drr-bump">
@@ -576,15 +641,25 @@ class App {
     });
 
     modal.querySelector('#detectReviewApply').addEventListener('click', () => {
-      const accepted = plays.filter(p => p.accepted).map(p => ({
-        start: p.start,
-        end: p.end,
-        peak: p.peak,
-        confidence: p.confidence,
-      }));
+      // Keep analyses aligned with the accepted plays so _stampAutoTags
+      // tags the right ones after applyDetectedPlays creates them.
+      const keptIdxs = [];
+      const accepted = [];
+      plays.forEach(p => {
+        if (!p.accepted) return;
+        keptIdxs.push(p.idx);
+        accepted.push({ start: p.start, end: p.end, peak: p.peak, confidence: p.confidence });
+      });
+      const before = this.tagger.plays.length;
       const added = this.detector.applyDetectedPlays(accepted);
+      // Rebuild _lastAnalyses in the order the tagger appended them
+      const fullAnalyses = this._lastAnalyses || [];
+      this._lastAnalyses = keptIdxs.map(i => fullAnalyses[i]);
+      this._stampAutoTags(before);
+      // Restore the full analyses array in case user re-opens the review
+      this._lastAnalyses = fullAnalyses;
       const resultCount = document.getElementById('detectResultCount');
-      if (resultCount) resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added`;
+      if (resultCount) resultCount.textContent = `${added} play${added !== 1 ? 's' : ''} added · tagged from film`;
       close();
     });
   }

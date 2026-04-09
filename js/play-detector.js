@@ -155,12 +155,15 @@ export class PlayDetector {
         // Capture frame
         this._offCtx.drawImage(video, 0, 0, sampleW, sampleH);
         const roi = this._roiRect(sampleW, sampleH);
-        let motion = 0, cut = 0;
+        let motion = 0, cut = 0, cx = 0.5, cy = 0.5, spread = 0;
         try {
           const imageData = this._offCtx.getImageData(roi.x, roi.y, roi.w, roi.h);
           const sig = this._computeFrameSignal(imageData, roi.w, roi.h);
           motion = sig.motion;
           cut = sig.cut;
+          cx = sig.cx;
+          cy = sig.cy;
+          spread = sig.spread;
         } catch {}
 
         // Audio level
@@ -176,7 +179,7 @@ export class PlayDetector {
           audio = sum / ((hi - lo) * 255);
         }
 
-        this.motionData.push({ time: t, motion, cut, audio });
+        this.motionData.push({ time: t, motion, cut, audio, cx, cy, spread });
 
         this.scanProgress = (t - startTime) / (end - startTime);
         this._emit('scan-progress', { progress: this.scanProgress, time: t, motion });
@@ -220,6 +223,7 @@ export class PlayDetector {
     for (let i = 0; i < cellLum.length; i++) cellLum[i] /= cellArea;
 
     let motion = 0;
+    let centroidX = 0.5, centroidY = 0.5, spread = 0;
     if (this._prevCellMotion) {
       // Per-cell delta
       const deltas = new Float32Array(cellLum.length);
@@ -248,6 +252,39 @@ export class PlayDetector {
       const panPenalty = uniformityRatio > 0.6 ? (1 - uniformityRatio) : 1;
 
       motion = (sum / (255 * deltas.length)) * panPenalty;
+
+      // Weighted motion centroid (in normalized ROI coords 0..1). Used by
+      // ClipAnalyzer to classify run/pass/direction/yards.
+      if (sum > 0) {
+        let wx = 0, wy = 0;
+        for (let cy2 = 0; cy2 < rows; cy2++) {
+          for (let cx2 = 0; cx2 < cols; cx2++) {
+            const d = deltas[cy2 * cols + cx2];
+            const nx = (cx2 + 0.5) / cols;
+            const ny = (cy2 + 0.5) / rows;
+            wx += nx * d;
+            wy += ny * d;
+          }
+        }
+        centroidX = wx / sum;
+        centroidY = wy / sum;
+
+        // Spread = weighted avg distance of active cells from centroid.
+        // Low spread = concentrated motion (run), high spread = fanned out (pass).
+        let distSum = 0, distW = 0;
+        for (let cy2 = 0; cy2 < rows; cy2++) {
+          for (let cx2 = 0; cx2 < cols; cx2++) {
+            const d = deltas[cy2 * cols + cx2];
+            if (d <= mean) continue;
+            const nx = (cx2 + 0.5) / cols;
+            const ny = (cy2 + 0.5) / rows;
+            const dx = nx - centroidX, dy = ny - centroidY;
+            distSum += Math.sqrt(dx * dx + dy * dy) * d;
+            distW += d;
+          }
+        }
+        spread = distW > 0 ? distSum / distW : 0;
+      }
     }
     this._prevCellMotion = cellLum;
 
@@ -269,7 +306,7 @@ export class PlayDetector {
     }
     this._prevHist = hist;
 
-    return { motion, cut };
+    return { motion, cut, cx: centroidX, cy: centroidY, spread };
   }
 
   _roiRect(w, h) {
