@@ -1,7 +1,13 @@
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-python-multipart==0.0.12
-ultralytics==8.3.0
-opencv-python-headless==4.10.0.84
-numpy==1.26.4
-pydantic==2.9.2
+# Minimum versions that have wheels for Python 3.10 through 3.13.
+# Ranges (not pins) so pip can pick the newest compatible build for
+# whichever interpreter the user is on.
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+# ultralytics pulls torch/torchvision automatically. 8.3.x is the first
+# series with solid Python 3.13 support via torch >= 2.5.
+ultralytics>=8.3.40
+opencv-python-headless>=4.10.0.84
+# numpy 2.1+ is the first release with Python 3.13 wheels.
+numpy>=2.1.0
+pydantic>=2.9.2
