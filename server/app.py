@@ -99,12 +99,26 @@ async def analyze(
     """Analyze a single play window. Returns the same shape as
     js/clip-analyzer.js so the frontend can swap backends transparently.
     """
+    import time
     tmp_path = _save_upload(video)
+    size_mb = tmp_path.stat().st_size / 1024 / 1024
+    print(
+        f"[FFA] /analyze received {video.filename} ({size_mb:.1f} MB) "
+        f"window {start:.1f}s → {end:.1f}s",
+        flush=True,
+    )
+    t0 = time.time()
     try:
         analyzer = get_analyzer()
         result = analyzer.analyze(str(tmp_path), start=start, end=end)
+        ms = int((time.time() - t0) * 1000)
+        tag_preview = ", ".join(
+            f"{k}={v}" for k, v in (result.get("tags") or {}).items() if v
+        ) or "(no tags)"
+        print(f"[FFA] /analyze done in {ms}ms → {tag_preview}", flush=True)
         return result
     except Exception as exc:  # noqa: BLE001
+        print(f"[FFA] /analyze ERROR: {exc}", flush=True)
         return JSONResponse(status_code=500, content={"error": str(exc)})
     finally:
         _safe_unlink(tmp_path)
@@ -113,12 +127,22 @@ async def analyze(
 @app.post("/detect")
 async def detect(video: UploadFile = File(...)):
     """Scan a full video and return detected play boundaries."""
+    import time
     tmp_path = _save_upload(video)
+    size_mb = tmp_path.stat().st_size / 1024 / 1024
+    print(
+        f"[FFA] /detect received {video.filename} ({size_mb:.1f} MB)",
+        flush=True,
+    )
+    t0 = time.time()
     try:
         detector = get_detector()
         plays = detector.detect(str(tmp_path))
+        ms = int((time.time() - t0) * 1000)
+        print(f"[FFA] /detect done in {ms}ms → {len(plays)} plays", flush=True)
         return {"plays": plays}
     except Exception as exc:  # noqa: BLE001
+        print(f"[FFA] /detect ERROR: {exc}", flush=True)
         return JSONResponse(status_code=500, content={"error": str(exc)})
     finally:
         _safe_unlink(tmp_path)
@@ -135,6 +159,7 @@ async def analyze_batch(
     we only pay the upload cost once per file.
     """
     import json
+    import time
 
     try:
         window_list = json.loads(windows)
@@ -142,19 +167,43 @@ async def analyze_batch(
         return JSONResponse(status_code=400, content={"error": "invalid windows JSON"})
 
     tmp_path = _save_upload(video)
+    size_mb = tmp_path.stat().st_size / 1024 / 1024
+    print(
+        f"[FFA] /analyze_batch received {video.filename} "
+        f"({size_mb:.1f} MB) · {len(window_list)} windows",
+        flush=True,
+    )
+    t0 = time.time()
     try:
         analyzer = get_analyzer()
         results = []
-        for w in window_list:
-            results.append(
-                analyzer.analyze(
-                    str(tmp_path),
-                    start=float(w.get("start", 0)),
-                    end=float(w.get("end", 0)),
-                )
+        for i, w in enumerate(window_list):
+            start = float(w.get("start", 0))
+            end = float(w.get("end", 0))
+            wt0 = time.time()
+            print(
+                f"[FFA]   window {i + 1}/{len(window_list)}: "
+                f"{start:.1f}s → {end:.1f}s ({end - start:.1f}s) analyzing…",
+                flush=True,
             )
+            result = analyzer.analyze(str(tmp_path), start=start, end=end)
+            wms = int((time.time() - wt0) * 1000)
+            tag_preview = ", ".join(
+                f"{k}={v}" for k, v in (result.get("tags") or {}).items() if v
+            ) or "(no tags)"
+            print(
+                f"[FFA]   window {i + 1} done in {wms}ms → {tag_preview}",
+                flush=True,
+            )
+            results.append(result)
+        total_ms = int((time.time() - t0) * 1000)
+        print(
+            f"[FFA] /analyze_batch complete — {len(results)} results in {total_ms}ms",
+            flush=True,
+        )
         return {"results": results}
     except Exception as exc:  # noqa: BLE001
+        print(f"[FFA] /analyze_batch ERROR: {exc}", flush=True)
         return JSONResponse(status_code=500, content={"error": str(exc)})
     finally:
         _safe_unlink(tmp_path)

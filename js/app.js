@@ -375,26 +375,63 @@ class App {
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
 
           let backendUsed = false;
+          let backendMs = 0;
           const sourceFile = this.vc.currentFile || this.vc.file || null;
           if (this.backend.isAvailable() && sourceFile && plays.length > 0) {
+            // Live elapsed-time ticker so the user sees the request is
+            // still in flight. First run can take 1–3 minutes on CPU
+            // because the server downloads YOLO weights + loads torch.
+            const mb = (sourceFile.size / 1024 / 1024).toFixed(1);
+            const t0 = performance.now();
+            let tickHandle = null;
+            const renderTick = () => {
+              const elapsed = Math.floor((performance.now() - t0) / 1000);
+              const hint = elapsed > 25
+                ? ' (first request is slow — server is loading YOLO weights)'
+                : '';
+              progressLabel.textContent = `🤖 AI server analyzing ${plays.length} play${plays.length !== 1 ? 's' : ''} · ${elapsed}s elapsed${hint}`;
+            };
+            renderTick();
+            tickHandle = setInterval(renderTick, 500);
+            // Force the progress bar into an indeterminate "busy" style
+            progressFill.style.width = '100%';
+            progressFill.classList.add('busy');
+
             try {
-              progressLabel.textContent = `AI server analyzing ${plays.length} plays…`;
+              console.log(`[FFA] uploading ${mb} MB clip to ${this.backend.baseUrl} for ${plays.length} windows`);
               const windows = plays.map(p => ({ start: p.start, end: p.end }));
               const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
+              backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
                 this._lastAnalyses = backendResults;
                 backendUsed = true;
+                progressLabel.textContent = `✅ AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`;
+                console.log(`[FFA] AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`);
+              } else {
+                progressLabel.textContent = `⚠️ AI server returned ${backendResults?.length || 0} results (expected ${plays.length}) — using heuristics`;
+                console.warn(`[FFA] backend returned ${backendResults?.length} results, expected ${plays.length}`);
               }
             } catch (e) {
-              console.warn('[backend] analyze_batch failed, falling back to heuristics:', e);
+              backendMs = Math.round(performance.now() - t0);
+              console.warn('[FFA] backend analyze_batch failed, falling back to heuristics:', e);
+              progressLabel.textContent = `⚠️ AI server error after ${(backendMs / 1000).toFixed(1)}s: ${e.message} — using heuristics`;
               // keep the heuristic analyses we already computed
+            } finally {
+              if (tickHandle) clearInterval(tickHandle);
+              progressFill.classList.remove('busy');
             }
+          } else if (!this.backend.isAvailable()) {
+            console.log('[FFA] AI server not available, using in-browser heuristic tagging');
+          } else if (!sourceFile) {
+            console.warn('[FFA] no source file handle — cannot send to AI server');
           }
 
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
             return sum + Object.values(a?.tags || {}).filter(v => v).length;
           }, 0);
-          const backendLabel = backendUsed ? ' · AI-tagged' : '';
+          const backendLabel = backendUsed
+            ? ` · 🤖 AI-tagged in ${(backendMs / 1000).toFixed(1)}s`
+            : (this.backend.isAvailable() ? ' · ⚠️ AI failed, heuristic fallback' : ' · heuristic (no AI server)');
           resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
           resultsDiv.classList.remove('hidden');
           btnApply?.classList.remove('hidden');

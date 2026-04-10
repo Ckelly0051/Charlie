@@ -121,6 +121,12 @@ export class BackendClient {
    * of {start, end}. Returns an array of per-window analysis results in
    * the same order. Preferred when analyzing a batch of plays from one
    * source file — we only pay the upload cost once.
+   *
+   * Emits progress events so the UI can show what's happening during the
+   * long-running request:
+   *   'request-start'  { endpoint, bytes, windowCount }
+   *   'upload-progress' { loaded, total }   (when supported)
+   *   'request-done'   { endpoint, ms, ok }
    */
   async analyzeBatch(file, windows) {
     if (!file) throw new Error('BackendClient.analyzeBatch: no file');
@@ -128,15 +134,36 @@ export class BackendClient {
     const form = new FormData();
     form.append('video', file, file.name || 'clip.mp4');
     form.append('windows', JSON.stringify(windows));
-    const res = await fetch(`${this.baseUrl}/analyze_batch`, {
-      method: 'POST',
-      body: form,
-    });
+
+    const meta = { endpoint: '/analyze_batch', bytes: file.size || 0, windowCount: windows.length };
+    console.log(`[FFA backend] POST ${this.baseUrl}/analyze_batch — ${meta.windowCount} windows, ${(meta.bytes / 1024 / 1024).toFixed(1)} MB`);
+    this._emit('request-start', meta);
+    const t0 = performance.now();
+
+    let res;
+    try {
+      res = await fetch(`${this.baseUrl}/analyze_batch`, {
+        method: 'POST',
+        body: form,
+      });
+    } catch (e) {
+      const ms = Math.round(performance.now() - t0);
+      this._emit('request-done', { ...meta, ms, ok: false });
+      console.error(`[FFA backend] analyze_batch network error after ${ms}ms:`, e);
+      throw e;
+    }
+
     if (!res.ok) {
       const text = await res.text().catch(() => '');
+      const ms = Math.round(performance.now() - t0);
+      this._emit('request-done', { ...meta, ms, ok: false });
+      console.error(`[FFA backend] analyze_batch HTTP ${res.status} after ${ms}ms: ${text}`);
       throw new Error(`analyze_batch failed: HTTP ${res.status} ${text}`);
     }
     const json = await res.json();
+    const ms = Math.round(performance.now() - t0);
+    this._emit('request-done', { ...meta, ms, ok: true });
+    console.log(`[FFA backend] analyze_batch OK in ${(ms / 1000).toFixed(1)}s — ${(json.results || []).length} results`);
     if (json.error) throw new Error(json.error);
     return json.results || [];
   }

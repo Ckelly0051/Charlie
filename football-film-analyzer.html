@@ -744,11 +744,28 @@ body {
   width: 0%;
   transition: width 200ms ease;
 }
+/* Indeterminate "busy" style used while the AI server is crunching */
+.progress-bar-fill.busy {
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.3) 0%,
+    rgba(16, 185, 129, 0.9) 50%,
+    rgba(16, 185, 129, 0.3) 100%
+  );
+  background-size: 200% 100%;
+  animation: ffa-progress-busy 1.1s linear infinite;
+}
+@keyframes ffa-progress-busy {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 .progress-label {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   min-width: 30px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -7573,6 +7590,12 @@ class BackendClient {
    * of {start, end}. Returns an array of per-window analysis results in
    * the same order. Preferred when analyzing a batch of plays from one
    * source file — we only pay the upload cost once.
+   *
+   * Emits progress events so the UI can show what's happening during the
+   * long-running request:
+   *   'request-start'  { endpoint, bytes, windowCount }
+   *   'upload-progress' { loaded, total }   (when supported)
+   *   'request-done'   { endpoint, ms, ok }
    */
   async analyzeBatch(file, windows) {
     if (!file) throw new Error('BackendClient.analyzeBatch: no file');
@@ -7580,15 +7603,36 @@ class BackendClient {
     const form = new FormData();
     form.append('video', file, file.name || 'clip.mp4');
     form.append('windows', JSON.stringify(windows));
-    const res = await fetch(`${this.baseUrl}/analyze_batch`, {
-      method: 'POST',
-      body: form,
-    });
+
+    const meta = { endpoint: '/analyze_batch', bytes: file.size || 0, windowCount: windows.length };
+    console.log(`[FFA backend] POST ${this.baseUrl}/analyze_batch — ${meta.windowCount} windows, ${(meta.bytes / 1024 / 1024).toFixed(1)} MB`);
+    this._emit('request-start', meta);
+    const t0 = performance.now();
+
+    let res;
+    try {
+      res = await fetch(`${this.baseUrl}/analyze_batch`, {
+        method: 'POST',
+        body: form,
+      });
+    } catch (e) {
+      const ms = Math.round(performance.now() - t0);
+      this._emit('request-done', { ...meta, ms, ok: false });
+      console.error(`[FFA backend] analyze_batch network error after ${ms}ms:`, e);
+      throw e;
+    }
+
     if (!res.ok) {
       const text = await res.text().catch(() => '');
+      const ms = Math.round(performance.now() - t0);
+      this._emit('request-done', { ...meta, ms, ok: false });
+      console.error(`[FFA backend] analyze_batch HTTP ${res.status} after ${ms}ms: ${text}`);
       throw new Error(`analyze_batch failed: HTTP ${res.status} ${text}`);
     }
     const json = await res.json();
+    const ms = Math.round(performance.now() - t0);
+    this._emit('request-done', { ...meta, ms, ok: true });
+    console.log(`[FFA backend] analyze_batch OK in ${(ms / 1000).toFixed(1)}s — ${(json.results || []).length} results`);
     if (json.error) throw new Error(json.error);
     return json.results || [];
   }
@@ -12680,26 +12724,63 @@ class App {
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
 
           let backendUsed = false;
+          let backendMs = 0;
           const sourceFile = this.vc.currentFile || this.vc.file || null;
           if (this.backend.isAvailable() && sourceFile && plays.length > 0) {
+            // Live elapsed-time ticker so the user sees the request is
+            // still in flight. First run can take 1–3 minutes on CPU
+            // because the server downloads YOLO weights + loads torch.
+            const mb = (sourceFile.size / 1024 / 1024).toFixed(1);
+            const t0 = performance.now();
+            let tickHandle = null;
+            const renderTick = () => {
+              const elapsed = Math.floor((performance.now() - t0) / 1000);
+              const hint = elapsed > 25
+                ? ' (first request is slow — server is loading YOLO weights)'
+                : '';
+              progressLabel.textContent = `🤖 AI server analyzing ${plays.length} play${plays.length !== 1 ? 's' : ''} · ${elapsed}s elapsed${hint}`;
+            };
+            renderTick();
+            tickHandle = setInterval(renderTick, 500);
+            // Force the progress bar into an indeterminate "busy" style
+            progressFill.style.width = '100%';
+            progressFill.classList.add('busy');
+
             try {
-              progressLabel.textContent = `AI server analyzing ${plays.length} plays…`;
+              console.log(`[FFA] uploading ${mb} MB clip to ${this.backend.baseUrl} for ${plays.length} windows`);
               const windows = plays.map(p => ({ start: p.start, end: p.end }));
               const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
+              backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
                 this._lastAnalyses = backendResults;
                 backendUsed = true;
+                progressLabel.textContent = `✅ AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`;
+                console.log(`[FFA] AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`);
+              } else {
+                progressLabel.textContent = `⚠️ AI server returned ${backendResults?.length || 0} results (expected ${plays.length}) — using heuristics`;
+                console.warn(`[FFA] backend returned ${backendResults?.length} results, expected ${plays.length}`);
               }
             } catch (e) {
-              console.warn('[backend] analyze_batch failed, falling back to heuristics:', e);
+              backendMs = Math.round(performance.now() - t0);
+              console.warn('[FFA] backend analyze_batch failed, falling back to heuristics:', e);
+              progressLabel.textContent = `⚠️ AI server error after ${(backendMs / 1000).toFixed(1)}s: ${e.message} — using heuristics`;
               // keep the heuristic analyses we already computed
+            } finally {
+              if (tickHandle) clearInterval(tickHandle);
+              progressFill.classList.remove('busy');
             }
+          } else if (!this.backend.isAvailable()) {
+            console.log('[FFA] AI server not available, using in-browser heuristic tagging');
+          } else if (!sourceFile) {
+            console.warn('[FFA] no source file handle — cannot send to AI server');
           }
 
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
             return sum + Object.values(a?.tags || {}).filter(v => v).length;
           }, 0);
-          const backendLabel = backendUsed ? ' · AI-tagged' : '';
+          const backendLabel = backendUsed
+            ? ` · 🤖 AI-tagged in ${(backendMs / 1000).toFixed(1)}s`
+            : (this.backend.isAvailable() ? ' · ⚠️ AI failed, heuristic fallback' : ' · heuristic (no AI server)');
           resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
           resultsDiv.classList.remove('hidden');
           btnApply?.classList.remove('hidden');

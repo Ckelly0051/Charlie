@@ -82,7 +82,18 @@ class _YoloWrapper:
     def _ensure(self):
         if self._model is None and HAS_YOLO:
             # Ultralytics auto-downloads the model on first use.
+            import time
+            print(
+                f"[FFA] loading YOLO model '{self.model_name}' "
+                f"(first call downloads weights ~6 MB from ultralytics CDN)…",
+                flush=True,
+            )
+            t0 = time.time()
             self._model = YOLO(self.model_name)
+            print(
+                f"[FFA] YOLO model ready in {int((time.time() - t0) * 1000)}ms",
+                flush=True,
+            )
         return self._model
 
     def detect_people(self, frame_bgr: np.ndarray) -> List[Detection]:
