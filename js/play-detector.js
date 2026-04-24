@@ -122,11 +122,12 @@ export class PlayDetector {
 
     return new Promise((resolve) => {
       let finished = false;
-      const finish = async () => {
+      const finish = async (reason) => {
         if (finished) return;
         finished = true;
-        video.removeEventListener('ended', finish);
-        // Restore video state
+        clearTimeout(safetyTimer);
+        video.removeEventListener('ended', onEnded);
+
         try { video.pause(); } catch {}
         video.playbackRate = origRate;
         video.muted = origMuted;
@@ -135,6 +136,9 @@ export class PlayDetector {
 
         this.isScanning = false;
         this.scanProgress = 1;
+
+        console.log(`[FFA scan] complete (${reason}) — ${this.motionData.length} samples in ${((end - startTime)).toFixed(1)}s clip`);
+
         this.detectedPlays = this._detectPlaysFromSignal();
 
         // If the detector found nothing and the clip is short (≤ 45s),
@@ -149,7 +153,10 @@ export class PlayDetector {
             peak: peakMotion,
             confidence: 0.6,
           });
+          console.log(`[FFA scan] short clip → treating entire clip as 1 play`);
         }
+
+        console.log(`[FFA scan] ${this.detectedPlays.length} play(s) ready for analysis`);
 
         this._emit('scan-complete', {
           plays: this.detectedPlays,
@@ -158,11 +165,25 @@ export class PlayDetector {
         resolve(this.detectedPlays);
       };
 
+      // --- Three independent ways to trigger finish, because different
+      //     browsers / codecs / video lengths can leave one path dead ---
+
+      // 1. Video 'ended' event — most reliable for short clips
+      const onEnded = () => finish('video-ended');
+      video.addEventListener('ended', onEnded);
+
+      // 2. Hard safety timeout — catches EVERYTHING (codec hangs,
+      //    RVFC never firing, video failing to play, etc.)
+      const maxWaitMs = Math.max(12000, ((end - startTime) / this.playbackRate) * 3000 + 5000);
+      const safetyTimer = setTimeout(() => finish('timeout'), maxWaitMs);
+
+      // 3. Normal frame-by-frame tick — fires finish when t >= end
       const tick = (_now, metadata) => {
-        if (!this.isScanning) return finish();
+        if (finished) return;
+        if (!this.isScanning) return finish('cancelled');
         const t = metadata ? metadata.mediaTime : video.currentTime;
 
-        if (t >= end || video.ended) return finish();
+        if (t >= end || video.ended) return finish('tick-end');
         if (t - lastSampleT < sampleStep) {
           if (useRVFC) video.requestVideoFrameCallback(tick);
           else requestAnimationFrame(() => tick(performance.now(), null));
@@ -170,7 +191,6 @@ export class PlayDetector {
         }
         lastSampleT = t;
 
-        // Capture frame
         this._offCtx.drawImage(video, 0, 0, sampleW, sampleH);
         const roi = this._roiRect(sampleW, sampleH);
         let motion = 0, cut = 0, cx = 0.5, cy = 0.5, spread = 0;
@@ -184,11 +204,9 @@ export class PlayDetector {
           spread = sig.spread;
         } catch {}
 
-        // Audio level
         let audio = 0;
         if (analyser && audioData) {
           analyser.getByteFrequencyData(audioData);
-          // Focus on 1-4 kHz band (whistle + voices + crowd roar)
           const binHz = audioCtx.sampleRate / 2 / audioData.length;
           const lo = Math.floor(1000 / binHz);
           const hi = Math.floor(4000 / binHz);
@@ -205,11 +223,6 @@ export class PlayDetector {
         if (useRVFC) video.requestVideoFrameCallback(tick);
         else requestAnimationFrame(() => tick(performance.now(), null));
       };
-
-      // Safety net: requestVideoFrameCallback stops firing when the
-      // video ends (no new frames), so tick() never runs the finish
-      // check. Listen for 'ended' directly to guarantee we complete.
-      video.addEventListener('ended', finish);
 
       if (useRVFC) video.requestVideoFrameCallback(tick);
       else requestAnimationFrame(() => tick(performance.now(), null));

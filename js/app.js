@@ -364,15 +364,16 @@ class App {
             alert('Load a video first.');
             throw new Error('No video');
           }
+          console.log('[FFA] starting scan…');
           await this.detector.scan();
+          console.log('[FFA] scan resolved');
 
           const plays = this.detector.detectedPlays;
+          console.log(`[FFA] ${plays.length} play(s) detected, ${this.detector.motionData.length} motion samples`);
 
           // Seed analyses from the in-browser heuristic analyzer first.
-          // This guarantees we always have tags, even if the backend
-          // request fails halfway through. The backend (if reachable)
-          // then overwrites them with higher-quality YOLO-based tags.
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
+          console.log('[FFA] heuristic analysis:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
           let backendUsed = false;
           let backendMs = 0;
@@ -436,9 +437,6 @@ class App {
           } else if (!sourceFile) {
             console.warn('[FFA] no source file handle — cannot send to AI server');
           }
-
-          // Debug: dump analysis results so we can see what was produced
-          console.log('[FFA] analyses:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
             return sum + Object.values(a?.tags || {}).filter(v => v).length;
