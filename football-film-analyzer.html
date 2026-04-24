@@ -12766,7 +12766,18 @@ class App {
               const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
               backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
-                this._lastAnalyses = backendResults;
+                // Merge: keep whichever source has more non-empty tags
+                // per play. If the backend returned blanks (YOLO found
+                // nothing) the heuristic tags survive.
+                for (let i = 0; i < backendResults.length; i++) {
+                  const bt = backendResults[i]?.tags || {};
+                  const ht = this._lastAnalyses[i]?.tags || {};
+                  const bCount = Object.values(bt).filter(v => v).length;
+                  const hCount = Object.values(ht).filter(v => v).length;
+                  if (bCount >= hCount) {
+                    this._lastAnalyses[i] = backendResults[i];
+                  }
+                }
                 backendUsed = true;
                 progressLabel.textContent = `✅ AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`;
                 console.log(`[FFA] AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`);
@@ -12789,16 +12800,33 @@ class App {
             console.warn('[FFA] no source file handle — cannot send to AI server');
           }
 
+          // Debug: dump analysis results so we can see what was produced
+          console.log('[FFA] analyses:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
+
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
             return sum + Object.values(a?.tags || {}).filter(v => v).length;
           }, 0);
           const backendLabel = backendUsed
             ? ` · 🤖 AI-tagged in ${(backendMs / 1000).toFixed(1)}s`
             : (this.backend.isAvailable() ? ' · ⚠️ AI failed, heuristic fallback' : ' · heuristic (no AI server)');
-          resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
-          resultsDiv.classList.remove('hidden');
-          btnApply?.classList.remove('hidden');
-          btnReview?.classList.toggle('hidden', plays.length === 0);
+
+          // For a single short clip (≤ 45s, 1 play), skip the review
+          // step and stamp tags immediately — the coach loaded one play
+          // and expects to see it tagged, not to click Apply first.
+          if (plays.length === 1 && (this.vc.video?.duration || 999) <= 45) {
+            const before = this.tagger.plays.length;
+            this.detector.applyDetectedPlays();
+            this._stampAutoTags(before);
+            resultCount.textContent = `1 play auto-tagged · ${taggedFieldCount} fields${backendLabel}`;
+            resultsDiv.classList.remove('hidden');
+            btnApply?.classList.add('hidden');
+            btnReview?.classList.add('hidden');
+          } else {
+            resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
+            resultsDiv.classList.remove('hidden');
+            btnApply?.classList.remove('hidden');
+            btnReview?.classList.toggle('hidden', plays.length === 0);
+          }
           this._drawMotionGraph(motionCanvas, this.detector.motionData, plays, 0);
         }
       } catch (e) {
@@ -12920,6 +12948,11 @@ class App {
     // Refresh UI panels that depend on tags
     this.tagger._updatePlaySelect?.();
     this.tagger._updateTimeline?.();
+    // Reload the tag form so the coach sees the stamped tags immediately.
+    // Without this the form still shows the empty defaults from markEnd().
+    const current = this.tagger.getCurrentPlay?.();
+    if (current) this.tagger._loadTagForm(current);
+    console.log(`[FFA] stamped ${stamped} tag fields across ${Math.min(newPlays.length, analyses.length)} plays`);
     return stamped;
   }
 
