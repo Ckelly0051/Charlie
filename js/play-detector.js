@@ -133,6 +133,20 @@ export class PlayDetector {
         this.scanProgress = 1;
         this.detectedPlays = this._detectPlaysFromSignal();
 
+        // If the detector found nothing and the clip is short (≤ 45s),
+        // it's almost certainly a pre-cut single play. Treat the whole
+        // clip as one play so the analyzer still runs on it.
+        const clipLen = end - startTime;
+        if (this.detectedPlays.length === 0 && clipLen <= 45 && this.motionData.length >= 4) {
+          const peakMotion = Math.max(...this.motionData.map(d => d.motion));
+          this.detectedPlays.push({
+            start: startTime,
+            end: end,
+            peak: peakMotion,
+            confidence: 0.6,
+          });
+        }
+
         this._emit('scan-complete', {
           plays: this.detectedPlays,
           motionData: this.motionData,
