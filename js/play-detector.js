@@ -121,7 +121,11 @@ export class PlayDetector {
     const sampleStep = 0.15; // seconds between logical samples
 
     return new Promise((resolve) => {
+      let finished = false;
       const finish = async () => {
+        if (finished) return;
+        finished = true;
+        video.removeEventListener('ended', finish);
         // Restore video state
         try { video.pause(); } catch {}
         video.playbackRate = origRate;
@@ -201,6 +205,11 @@ export class PlayDetector {
         if (useRVFC) video.requestVideoFrameCallback(tick);
         else requestAnimationFrame(() => tick(performance.now(), null));
       };
+
+      // Safety net: requestVideoFrameCallback stops firing when the
+      // video ends (no new frames), so tick() never runs the finish
+      // check. Listen for 'ended' directly to guarantee we complete.
+      video.addEventListener('ended', finish);
 
       if (useRVFC) video.requestVideoFrameCallback(tick);
       else requestAnimationFrame(() => tick(performance.now(), null));
