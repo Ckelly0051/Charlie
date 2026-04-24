@@ -47,7 +47,7 @@ export class ClipAnalyzer {
    *   confidence — per-field 0..1 confidence map
    *   reasons    — short human-readable explanation per field
    */
-  analyze(play, motionData) {
+  analyze(play, motionData, teamCtx = {}) {
     const start = play.timestamp?.start ?? play.start;
     const end   = play.timestamp?.end   ?? play.end;
     if (start == null || end == null) return this._empty();
@@ -209,32 +209,33 @@ export class ClipAnalyzer {
 
     // --- 6. Yardage estimate ------------------------------------------
     // Use horizontal drift for runs, vertical (downfield) travel for passes.
+    // If the coach told us which direction they go, use signed drift to
+    // distinguish gains from losses. Without that, we use |drift|.
     const isRun = playType.startsWith('Run');
     const isPass = /Pass|Play Action/.test(playType);
+    const dir = teamCtx.direction || '';
+    // signedDrift: positive = forward progress, negative = loss
+    let signedDrift = xDrift;
+    if (dir === 'left') signedDrift = -xDrift;
+    // If no direction set, default to positive (assume camera-right = forward)
+
     let yards = 0;
     let yardsConf = 0.35;
     if (isRun) {
-      yards = Math.round(Math.abs(xDrift) * this.opts.yardsPerUnitX);
-      // If motion barely moved, report a small gain rather than zero
+      yards = Math.round(signedDrift * this.opts.yardsPerUnitX);
       if (yards === 0 && xSpan > 0.03) yards = Math.max(1, Math.round(xSpan * 25));
     } else if (isPass) {
       yards = Math.round((ySpan * 40) + (xSpan * 10));
     } else {
-      // Screens, trick plays etc.
       yards = Math.round(xSpan * 25);
     }
-    if (yards < 0) yards = 0;
+    if (dir) {
+      yardsConf = 0.45;
+    }
     if (yards > 70) yards = 70;
+    if (yards < -15) yards = -15;
 
     // --- 7. Result bucket ---------------------------------------------
-    // Loss: backward-drifting motion on runs, or very short duration with peak
-    // Short: small centroid travel, short duration
-    // Medium: moderate travel
-    // Big: long travel or long sustained motion
-    // TD: motion ends near the frame edge (off the field)
-    // Result must match the exact option text in <select id="tagResult">:
-    //   Gain / Loss / No Gain / Incomplete / Interception / Touchdown /
-    //   Sack / Fumble / Penalty / Punt / Field Goal / Kneel / Spike
     let result = '';
     let resultConf = 0.4;
     const finalCx = xs[xs.length - 1];
@@ -247,6 +248,9 @@ export class ClipAnalyzer {
     } else if (yards >= 20 && nearEdge) {
       result = 'Touchdown';
       resultConf = 0.45;
+    } else if (yards < 0) {
+      result = 'Loss';
+      resultConf = dir ? 0.55 : 0.35;
     } else if (yards > 0) {
       result = 'Gain';
       resultConf = 0.5;
@@ -266,7 +270,7 @@ export class ClipAnalyzer {
       playType,
       hash,
       result,
-      yardage: yards ? String(yards) : '',
+      yardage: yards !== 0 ? String(yards) : '',
     };
     const confidence = {
       formation: formationConf,
@@ -315,7 +319,7 @@ export class ClipAnalyzer {
    * Convenience: analyze every play in `plays` using matching motionData.
    * Returns an array parallel to `plays` of analysis results.
    */
-  analyzePlays(plays, motionData) {
-    return plays.map(p => this.analyze(p, motionData));
+  analyzePlays(plays, motionData, teamCtx = {}) {
+    return plays.map(p => this.analyze(p, motionData, teamCtx));
   }
 }

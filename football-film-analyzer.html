@@ -4357,6 +4357,40 @@ body.qc-active .tw-reopen { display: none; }
                 <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
               </div>
             </div>
+            <div class="tag-row">
+              <label>Our Jersey</label>
+              <select id="gameJerseyColor">
+                <option value="">-- select --</option>
+                <option value="white">White</option>
+                <option value="black">Black</option>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+                <option value="navy">Navy</option>
+                <option value="green">Green</option>
+                <option value="yellow">Yellow / Gold</option>
+                <option value="orange">Orange</option>
+                <option value="purple">Purple</option>
+                <option value="maroon">Maroon</option>
+                <option value="gray">Gray / Silver</option>
+                <option value="teal">Teal</option>
+              </select>
+            </div>
+            <div class="tag-row">
+              <label>Film shows</label>
+              <select id="gamePerspective">
+                <option value="offense">Our Offense</option>
+                <option value="defense">Our Defense</option>
+                <option value="special">Special Teams</option>
+              </select>
+            </div>
+            <div class="tag-row">
+              <label>We go →</label>
+              <select id="gameDirection">
+                <option value="">Auto (guess)</option>
+                <option value="right">Left → Right</option>
+                <option value="left">Right → Left</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -7229,7 +7263,7 @@ class ClipAnalyzer {
    *   confidence — per-field 0..1 confidence map
    *   reasons    — short human-readable explanation per field
    */
-  analyze(play, motionData) {
+  analyze(play, motionData, teamCtx = {}) {
     const start = play.timestamp?.start ?? play.start;
     const end   = play.timestamp?.end   ?? play.end;
     if (start == null || end == null) return this._empty();
@@ -7391,32 +7425,33 @@ class ClipAnalyzer {
 
     // --- 6. Yardage estimate ------------------------------------------
     // Use horizontal drift for runs, vertical (downfield) travel for passes.
+    // If the coach told us which direction they go, use signed drift to
+    // distinguish gains from losses. Without that, we use |drift|.
     const isRun = playType.startsWith('Run');
     const isPass = /Pass|Play Action/.test(playType);
+    const dir = teamCtx.direction || '';
+    // signedDrift: positive = forward progress, negative = loss
+    let signedDrift = xDrift;
+    if (dir === 'left') signedDrift = -xDrift;
+    // If no direction set, default to positive (assume camera-right = forward)
+
     let yards = 0;
     let yardsConf = 0.35;
     if (isRun) {
-      yards = Math.round(Math.abs(xDrift) * this.opts.yardsPerUnitX);
-      // If motion barely moved, report a small gain rather than zero
+      yards = Math.round(signedDrift * this.opts.yardsPerUnitX);
       if (yards === 0 && xSpan > 0.03) yards = Math.max(1, Math.round(xSpan * 25));
     } else if (isPass) {
       yards = Math.round((ySpan * 40) + (xSpan * 10));
     } else {
-      // Screens, trick plays etc.
       yards = Math.round(xSpan * 25);
     }
-    if (yards < 0) yards = 0;
+    if (dir) {
+      yardsConf = 0.45;
+    }
     if (yards > 70) yards = 70;
+    if (yards < -15) yards = -15;
 
     // --- 7. Result bucket ---------------------------------------------
-    // Loss: backward-drifting motion on runs, or very short duration with peak
-    // Short: small centroid travel, short duration
-    // Medium: moderate travel
-    // Big: long travel or long sustained motion
-    // TD: motion ends near the frame edge (off the field)
-    // Result must match the exact option text in <select id="tagResult">:
-    //   Gain / Loss / No Gain / Incomplete / Interception / Touchdown /
-    //   Sack / Fumble / Penalty / Punt / Field Goal / Kneel / Spike
     let result = '';
     let resultConf = 0.4;
     const finalCx = xs[xs.length - 1];
@@ -7429,6 +7464,9 @@ class ClipAnalyzer {
     } else if (yards >= 20 && nearEdge) {
       result = 'Touchdown';
       resultConf = 0.45;
+    } else if (yards < 0) {
+      result = 'Loss';
+      resultConf = dir ? 0.55 : 0.35;
     } else if (yards > 0) {
       result = 'Gain';
       resultConf = 0.5;
@@ -7448,7 +7486,7 @@ class ClipAnalyzer {
       playType,
       hash,
       result,
-      yardage: yards ? String(yards) : '',
+      yardage: yards !== 0 ? String(yards) : '',
     };
     const confidence = {
       formation: formationConf,
@@ -7497,8 +7535,8 @@ class ClipAnalyzer {
    * Convenience: analyze every play in `plays` using matching motionData.
    * Returns an array parallel to `plays` of analysis results.
    */
-  analyzePlays(plays, motionData) {
-    return plays.map(p => this.analyze(p, motionData));
+  analyzePlays(plays, motionData, teamCtx = {}) {
+    return plays.map(p => this.analyze(p, motionData, teamCtx));
   }
 }
 
@@ -7633,12 +7671,15 @@ class BackendClient {
    *   'upload-progress' { loaded, total }   (when supported)
    *   'request-done'   { endpoint, ms, ok }
    */
-  async analyzeBatch(file, windows) {
+  async analyzeBatch(file, windows, teamCtx = {}) {
     if (!file) throw new Error('BackendClient.analyzeBatch: no file');
     if (!Array.isArray(windows)) throw new Error('windows must be an array');
     const form = new FormData();
     form.append('video', file, file.name || 'clip.mp4');
     form.append('windows', JSON.stringify(windows));
+    if (teamCtx.jerseyColor) form.append('jersey_color', teamCtx.jerseyColor);
+    if (teamCtx.direction) form.append('direction', teamCtx.direction);
+    if (teamCtx.perspective) form.append('perspective', teamCtx.perspective);
 
     const meta = { endpoint: '/analyze_batch', bytes: file.size || 0, windowCount: windows.length };
     console.log(`[FFA backend] POST ${this.baseUrl}/analyze_batch — ${meta.windowCount} windows, ${(meta.bytes / 1024 / 1024).toFixed(1)} MB`);
@@ -12756,8 +12797,12 @@ class App {
           const plays = this.detector.detectedPlays;
           console.log(`[FFA] ${plays.length} play(s) detected, ${this.detector.motionData.length} motion samples`);
 
+          // Build team context from Game Info (set once, applies to all plays)
+          const teamCtx = this._getTeamContext();
+          console.log('[FFA] team context:', JSON.stringify(teamCtx));
+
           // Seed analyses from the in-browser heuristic analyzer first.
-          this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
+          this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData, teamCtx);
           console.log('[FFA] heuristic analysis:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
           let backendUsed = false;
@@ -12786,7 +12831,7 @@ class App {
             try {
               console.log(`[FFA] uploading ${mb} MB clip to ${this.backend.baseUrl} for ${plays.length} windows`);
               const windows = plays.map(p => ({ start: p.start, end: p.end }));
-              const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
+              const backendResults = await this.backend.analyzeBatch(sourceFile, windows, teamCtx);
               backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
                 // Merge: keep whichever source has more non-empty tags
@@ -12939,6 +12984,18 @@ class App {
         this.backend.probe();
       }
     }, 30000);
+  }
+
+  /**
+   * Read jersey color, perspective, and direction from the Game Info
+   * panel. Set once per session/game — applies to every play analyzed.
+   */
+  _getTeamContext() {
+    return {
+      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
+      perspective: document.getElementById('gamePerspective')?.value || 'offense',
+      direction: document.getElementById('gameDirection')?.value || '',
+    };
   }
 
   /**
@@ -13189,7 +13246,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem'];
+    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -13205,7 +13262,10 @@ class App {
       opponent: document.getElementById('gameOpponent')?.value || '',
       date: document.getElementById('gameDate')?.value || '',
       scoreUs: document.getElementById('gameScoreUs')?.value || '',
-      scoreThem: document.getElementById('gameScoreThem')?.value || ''
+      scoreThem: document.getElementById('gameScoreThem')?.value || '',
+      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
+      perspective: document.getElementById('gamePerspective')?.value || 'offense',
+      direction: document.getElementById('gameDirection')?.value || '',
     };
     this.storage._autoSave();
   }
@@ -13217,7 +13277,10 @@ class App {
       gameOpponent: info.opponent,
       gameDate: info.date,
       gameScoreUs: info.scoreUs,
-      gameScoreThem: info.scoreThem
+      gameScoreThem: info.scoreThem,
+      gameJerseyColor: info.jerseyColor,
+      gamePerspective: info.perspective,
+      gameDirection: info.direction,
     };
     for (const [id, val] of Object.entries(map)) {
       const el = document.getElementById(id);

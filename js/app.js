@@ -371,8 +371,12 @@ class App {
           const plays = this.detector.detectedPlays;
           console.log(`[FFA] ${plays.length} play(s) detected, ${this.detector.motionData.length} motion samples`);
 
+          // Build team context from Game Info (set once, applies to all plays)
+          const teamCtx = this._getTeamContext();
+          console.log('[FFA] team context:', JSON.stringify(teamCtx));
+
           // Seed analyses from the in-browser heuristic analyzer first.
-          this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData);
+          this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData, teamCtx);
           console.log('[FFA] heuristic analysis:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
           let backendUsed = false;
@@ -401,7 +405,7 @@ class App {
             try {
               console.log(`[FFA] uploading ${mb} MB clip to ${this.backend.baseUrl} for ${plays.length} windows`);
               const windows = plays.map(p => ({ start: p.start, end: p.end }));
-              const backendResults = await this.backend.analyzeBatch(sourceFile, windows);
+              const backendResults = await this.backend.analyzeBatch(sourceFile, windows, teamCtx);
               backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
                 // Merge: keep whichever source has more non-empty tags
@@ -554,6 +558,18 @@ class App {
         this.backend.probe();
       }
     }, 30000);
+  }
+
+  /**
+   * Read jersey color, perspective, and direction from the Game Info
+   * panel. Set once per session/game — applies to every play analyzed.
+   */
+  _getTeamContext() {
+    return {
+      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
+      perspective: document.getElementById('gamePerspective')?.value || 'offense',
+      direction: document.getElementById('gameDirection')?.value || '',
+    };
   }
 
   /**
@@ -804,7 +820,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem'];
+    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -820,7 +836,10 @@ class App {
       opponent: document.getElementById('gameOpponent')?.value || '',
       date: document.getElementById('gameDate')?.value || '',
       scoreUs: document.getElementById('gameScoreUs')?.value || '',
-      scoreThem: document.getElementById('gameScoreThem')?.value || ''
+      scoreThem: document.getElementById('gameScoreThem')?.value || '',
+      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
+      perspective: document.getElementById('gamePerspective')?.value || 'offense',
+      direction: document.getElementById('gameDirection')?.value || '',
     };
     this.storage._autoSave();
   }
@@ -832,7 +851,10 @@ class App {
       gameOpponent: info.opponent,
       gameDate: info.date,
       gameScoreUs: info.scoreUs,
-      gameScoreThem: info.scoreThem
+      gameScoreThem: info.scoreThem,
+      gameJerseyColor: info.jerseyColor,
+      gamePerspective: info.perspective,
+      gameDirection: info.direction,
     };
     for (const [id, val] of Object.entries(map)) {
       const el = document.getElementById(id);

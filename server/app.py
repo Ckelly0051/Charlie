@@ -152,6 +152,9 @@ async def detect(video: UploadFile = File(...)):
 async def analyze_batch(
     video: UploadFile = File(...),
     windows: str = Form("[]"),
+    jersey_color: str = Form(""),
+    direction: str = Form(""),
+    perspective: str = Form("offense"),
 ):
     """Analyze multiple play windows in a single video upload. `windows`
     is a JSON-encoded array of {start, end} objects. Returns an array of
@@ -168,9 +171,16 @@ async def analyze_batch(
 
     tmp_path = _save_upload(video)
     size_mb = tmp_path.stat().st_size / 1024 / 1024
+    team_ctx = {
+        "jersey_color": jersey_color,
+        "direction": direction,
+        "perspective": perspective,
+    }
+    ctx_summary = ", ".join(f"{k}={v}" for k, v in team_ctx.items() if v)
     print(
         f"[FFA] /analyze_batch received {video.filename} "
-        f"({size_mb:.1f} MB) · {len(window_list)} windows",
+        f"({size_mb:.1f} MB) · {len(window_list)} windows"
+        f"{' · ' + ctx_summary if ctx_summary else ''}",
         flush=True,
     )
     t0 = time.time()
@@ -186,7 +196,7 @@ async def analyze_batch(
                 f"{start:.1f}s → {end:.1f}s ({end - start:.1f}s) analyzing…",
                 flush=True,
             )
-            result = analyzer.analyze(str(tmp_path), start=start, end=end)
+            result = analyzer.analyze(str(tmp_path), start=start, end=end, team_ctx=team_ctx)
             wms = int((time.time() - wt0) * 1000)
             tag_preview = ", ".join(
                 f"{k}={v}" for k, v in (result.get("tags") or {}).items() if v

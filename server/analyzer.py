@@ -38,6 +38,23 @@ ACTION_SAMPLE_FPS = 8
 PRE_SNAP_SAMPLE_FPS = 6
 PERSON_CLASS_ID = 0  # COCO class 0 = person
 
+# Jersey color reference values in HSV.  Each entry is a list of
+# (H_lo, H_hi, S_min, V_min) ranges. H is 0..180 in OpenCV.
+JERSEY_HSV = {
+    "white":  [(0, 180, 0, 180)],
+    "black":  [(0, 180, 0, 0)],         # special: V < 60
+    "red":    [(0, 10, 80, 80), (170, 180, 80, 80)],
+    "blue":   [(100, 130, 80, 50)],
+    "navy":   [(100, 130, 50, 20)],
+    "green":  [(40, 80, 60, 50)],
+    "yellow": [(20, 35, 80, 100)],
+    "orange": [(10, 25, 120, 100)],
+    "purple": [(130, 160, 50, 40)],
+    "maroon": [(0, 10, 60, 30), (170, 180, 60, 30)],
+    "gray":   [(0, 180, 0, 60)],        # special: S < 50, 60 < V < 180
+    "teal":   [(80, 100, 60, 50)],
+}
+
 
 @dataclass
 class Detection:
@@ -48,6 +65,7 @@ class Detection:
     x2: float
     y2: float
     conf: float
+    team: str = ""   # "ours" | "opp" | "" (unclassified)
 
     @property
     def cx(self) -> float:
@@ -60,6 +78,41 @@ class Detection:
     @property
     def area(self) -> float:
         return max(0.0, self.x2 - self.x1) * max(0.0, self.y2 - self.y1)
+
+
+def _classify_jersey(frame_bgr: np.ndarray, det: Detection, target_color: str) -> str:
+    """Sample the jersey region of a detection box and return 'ours' or 'opp'."""
+    if not target_color or target_color not in JERSEY_HSV:
+        return ""
+    h, w = frame_bgr.shape[:2]
+    # Sample the upper-middle 40% of the bounding box (torso area)
+    bx1 = int(max(0, det.x1 + (det.x2 - det.x1) * 0.2))
+    bx2 = int(min(w, det.x2 - (det.x2 - det.x1) * 0.2))
+    by1 = int(max(0, det.y1 + (det.y2 - det.y1) * 0.15))
+    by2 = int(min(h, det.y1 + (det.y2 - det.y1) * 0.55))
+    if bx2 <= bx1 or by2 <= by1:
+        return ""
+    patch = frame_bgr[by1:by2, bx1:bx2]
+    if patch.size == 0:
+        return ""
+    hsv = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
+    avg_h = float(np.median(hsv[:, :, 0]))
+    avg_s = float(np.median(hsv[:, :, 1]))
+    avg_v = float(np.median(hsv[:, :, 2]))
+
+    # Special cases
+    if target_color == "white":
+        return "ours" if avg_s < 50 and avg_v > 180 else "opp"
+    if target_color == "black":
+        return "ours" if avg_v < 60 else "opp"
+    if target_color == "gray":
+        return "ours" if avg_s < 50 and 60 < avg_v < 180 else "opp"
+
+    ranges = JERSEY_HSV.get(target_color, [])
+    for h_lo, h_hi, s_min, v_min in ranges:
+        if h_lo <= avg_h <= h_hi and avg_s >= s_min and avg_v >= v_min:
+            return "ours"
+    return "opp"
 
 
 @dataclass
@@ -127,7 +180,8 @@ class ClipAnalyzer:
     # Public API — matches the JS ClipAnalyzer.analyze() output shape
     # ------------------------------------------------------------------
 
-    def analyze(self, video_path: str, start: float = 0.0, end: float = 0.0) -> dict:
+    def analyze(self, video_path: str, start: float = 0.0, end: float = 0.0,
+                team_ctx: Optional[dict] = None) -> dict:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             return self._empty("could not open video")
@@ -159,22 +213,39 @@ class ClipAnalyzer:
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 1)
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 1)
 
+            tc = team_ctx or {}
+            jersey_color = tc.get("jersey_color", "")
+            play_direction = tc.get("direction", "")
+            perspective = tc.get("perspective", "offense")
+
             # --- 2. Run detection on every sampled frame ----------------
-            pre_snap_dets = [self._detect_frame(f, width, height) for f in pre_snap_frames]
-            action_dets = [self._detect_frame(f, width, height) for f in action_frames]
+            pre_snap_dets = [
+                self._detect_frame(f, width, height, jersey_color)
+                for f in pre_snap_frames
+            ]
+            action_dets = [
+                self._detect_frame(f, width, height, jersey_color)
+                for f in action_frames
+            ]
 
-            # --- 3. Infer formation from pre-snap frames ----------------
-            formation_result = self._infer_formation(pre_snap_dets, width, height)
+            # --- 3. Infer formation from pre-snap (our team only) ------
+            # If we know the jersey color, filter to just our players so
+            # the formation reflects OUR alignment, not a blob of both teams.
+            our_pre_snap = self._filter_team(pre_snap_dets, "ours") if jersey_color else pre_snap_dets
+            formation_result = self._infer_formation(our_pre_snap, width, height)
 
-            # --- 4. Track the ball carrier / motion through action ------
-            trajectory = self._build_trajectory(action_dets, width, height)
+            # --- 4. Track OUR players through the action phase ---------
+            our_action = self._filter_team(action_dets, "ours") if jersey_color else action_dets
+            trajectory = self._build_trajectory(our_action, width, height)
 
             # --- 5. Play type + direction + yardage from trajectory -----
             play_type_result = self._infer_play_type(
                 trajectory, formation_result, duration
             )
             hash_result = self._infer_direction(trajectory)
-            yards_result = self._infer_yardage(trajectory, play_type_result["value"])
+            yards_result = self._infer_yardage(
+                trajectory, play_type_result["value"], play_direction
+            )
             result_bucket = self._infer_result(yards_result["value"], trajectory, duration)
 
             # --- 6. Personnel hint from pre-snap player count -----------
@@ -244,10 +315,14 @@ class ClipAnalyzer:
         return frames
 
     def _detect_frame(
-        self, frame_tuple: Tuple[float, np.ndarray], width: int, height: int
+        self, frame_tuple: Tuple[float, np.ndarray], width: int, height: int,
+        jersey_color: str = "",
     ) -> FrameDetections:
         t, frame = frame_tuple
         dets = self._yolo.detect_people(frame)
+        if jersey_color:
+            for d in dets:
+                d.team = _classify_jersey(frame, d, jersey_color)
         return FrameDetections(time=t, width=width, height=height, detections=dets)
 
     # ------------------------------------------------------------------
@@ -373,6 +448,22 @@ class ClipAnalyzer:
             return self._res("11", 0.3, f"avg {avg:.0f} players (partial detection)")
         return self._res("", 0.1, f"too few players detected ({avg:.0f})")
 
+    @staticmethod
+    def _filter_team(
+        frame_dets: List[FrameDetections], team: str
+    ) -> List[FrameDetections]:
+        """Return a copy of frame_dets keeping only detections matching
+        `team` ('ours' or 'opp'). If filtering leaves a frame empty,
+        keep all detections for that frame (better than nothing)."""
+        out: List[FrameDetections] = []
+        for fd in frame_dets:
+            filtered = [d for d in fd.detections if d.team == team]
+            out.append(FrameDetections(
+                time=fd.time, width=fd.width, height=fd.height,
+                detections=filtered if filtered else fd.detections,
+            ))
+        return out
+
     # ------------------------------------------------------------------
     # Post-snap trajectory + play type inference
     # ------------------------------------------------------------------
@@ -446,20 +537,30 @@ class ClipAnalyzer:
             return self._res("Right", min(0.9, 0.55 + drift * 2), f"drift {drift:+.2f}")
         return self._res("Left", min(0.9, 0.55 + (-drift) * 2), f"drift {drift:+.2f}")
 
-    def _infer_yardage(self, trajectory: List, play_type: str) -> dict:
+    def _infer_yardage(
+        self, trajectory: List, play_type: str, direction: str = ""
+    ) -> dict:
         if len(trajectory) < 2:
             return self._res(0, 0.0, "insufficient frames")
         xs = np.array([p[1] for p in trajectory])
         ys = np.array([p[2] for p in trajectory])
         x_span = float(xs.max() - xs.min())
         y_span = float(ys.max() - ys.min())
-        x_drift = abs(float(xs[-1] - xs[0]))
+        raw_drift = float(xs[-1] - xs[0])
         is_run = play_type.startswith("Run")
         is_pass = ("Pass" in play_type) or (play_type == "Play Action")
 
-        # Calibration: normalized 1.0 ≈ 30yd on sideline broadcast, ≈ 50yd on endzone
+        # Signed drift: positive = forward, negative = loss.
+        # If direction is 'left', forward means decreasing x.
+        if direction == "left":
+            signed_drift = -raw_drift
+        else:
+            signed_drift = raw_drift
+
+        conf = 0.45 if direction else 0.35
+
         if is_run:
-            yards = round(x_drift * 30)
+            yards = round(signed_drift * 30)
             if yards == 0 and x_span > 0.03:
                 yards = max(1, round(x_span * 25))
         elif is_pass:
@@ -468,11 +569,12 @@ class ClipAnalyzer:
             yards = round(x_span * 22)
         else:
             yards = round(x_span * 20)
-        yards = max(0, min(80, int(yards)))
+        yards = max(-15, min(80, int(yards)))
         return self._res(
             yards,
-            0.4,
-            f"x_span={x_span:.2f}, y_span={y_span:.2f}, play_type={play_type}",
+            conf,
+            f"drift={signed_drift:+.2f} ({direction or 'auto'}), "
+            f"x_span={x_span:.2f}, y_span={y_span:.2f}",
         )
 
     def _infer_result(self, yards: int, trajectory: List, duration: float) -> dict:
@@ -488,6 +590,8 @@ class ClipAnalyzer:
             return self._res("Incomplete", 0.45, "short clip, no progress")
         if yards >= 20 and near_edge:
             return self._res("Touchdown", 0.55, f"~{yards}yd + motion reached frame edge")
+        if yards < 0:
+            return self._res("Loss", 0.55, f"~{yards}yd backward motion")
         if yards > 0:
             return self._res("Gain", 0.55, f"~{yards}yd forward motion")
         return self._res("No Gain", 0.4, f"~{yards}yd")

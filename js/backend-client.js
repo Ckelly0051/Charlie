@@ -128,12 +128,15 @@ export class BackendClient {
    *   'upload-progress' { loaded, total }   (when supported)
    *   'request-done'   { endpoint, ms, ok }
    */
-  async analyzeBatch(file, windows) {
+  async analyzeBatch(file, windows, teamCtx = {}) {
     if (!file) throw new Error('BackendClient.analyzeBatch: no file');
     if (!Array.isArray(windows)) throw new Error('windows must be an array');
     const form = new FormData();
     form.append('video', file, file.name || 'clip.mp4');
     form.append('windows', JSON.stringify(windows));
+    if (teamCtx.jerseyColor) form.append('jersey_color', teamCtx.jerseyColor);
+    if (teamCtx.direction) form.append('direction', teamCtx.direction);
+    if (teamCtx.perspective) form.append('perspective', teamCtx.perspective);
 
     const meta = { endpoint: '/analyze_batch', bytes: file.size || 0, windowCount: windows.length };
     console.log(`[FFA backend] POST ${this.baseUrl}/analyze_batch — ${meta.windowCount} windows, ${(meta.bytes / 1024 / 1024).toFixed(1)} MB`);
