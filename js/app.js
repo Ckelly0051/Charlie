@@ -10,6 +10,7 @@ import { StorageManager } from './storage.js';
 import { PlayDetector } from './play-detector.js';
 import { ClipAnalyzer } from './clip-analyzer.js';
 import { BackendClient } from './backend-client.js';
+import { VisionAnalyzer } from './vision-analyzer.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
@@ -36,6 +37,9 @@ class App {
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.clipAnalyzer = new ClipAnalyzer();
     this.backend = new BackendClient();
+    this.vision = new VisionAnalyzer({
+      apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('ffa_claude_api_key')) || '',
+    });
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
@@ -375,79 +379,110 @@ class App {
           const teamCtx = this._getTeamContext();
           console.log('[FFA] team context:', JSON.stringify(teamCtx));
 
-          // Seed analyses from the in-browser heuristic analyzer first.
+          // Seed analyses from the in-browser heuristic analyzer as baseline.
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData, teamCtx);
           console.log('[FFA] heuristic analysis:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
-          let backendUsed = false;
-          let backendMs = 0;
-          const sourceFile = this.vc.currentFile || this.vc.file || null;
-          if (this.backend.isAvailable() && sourceFile && plays.length > 0) {
-            // Live elapsed-time ticker so the user sees the request is
-            // still in flight. First run can take 1–3 minutes on CPU
-            // because the server downloads YOLO weights + loads torch.
-            const mb = (sourceFile.size / 1024 / 1024).toFixed(1);
+          let visionUsed = false;
+          let visionMs = 0;
+
+          // Primary path: Claude Vision API (sends frames, gets structured tags)
+          if (this.vision.apiKey && videoEl && plays.length > 0) {
             const t0 = performance.now();
             let tickHandle = null;
             const renderTick = () => {
               const elapsed = Math.floor((performance.now() - t0) / 1000);
-              const hint = elapsed > 25
-                ? ' (first request is slow — server is loading YOLO weights)'
-                : '';
-              progressLabel.textContent = `🤖 AI server analyzing ${plays.length} play${plays.length !== 1 ? 's' : ''} · ${elapsed}s elapsed${hint}`;
+              progressLabel.textContent = `🧠 Claude Vision analyzing play ${Math.min(this._visionProgress || 1, plays.length)}/${plays.length} · ${elapsed}s elapsed`;
             };
             renderTick();
             tickHandle = setInterval(renderTick, 500);
-            // Force the progress bar into an indeterminate "busy" style
             progressFill.style.width = '100%';
             progressFill.classList.add('busy');
 
             try {
-              console.log(`[FFA] uploading ${mb} MB clip to ${this.backend.baseUrl} for ${plays.length} windows`);
-              const windows = plays.map(p => ({ start: p.start, end: p.end }));
-              const backendResults = await this.backend.analyzeBatch(sourceFile, windows, teamCtx);
-              backendMs = Math.round(performance.now() - t0);
-              if (Array.isArray(backendResults) && backendResults.length === plays.length) {
-                // Merge: keep whichever source has more non-empty tags
-                // per play. If the backend returned blanks (YOLO found
-                // nothing) the heuristic tags survive.
-                for (let i = 0; i < backendResults.length; i++) {
-                  const bt = backendResults[i]?.tags || {};
-                  const ht = this._lastAnalyses[i]?.tags || {};
-                  const bCount = Object.values(bt).filter(v => v).length;
-                  const hCount = Object.values(ht).filter(v => v).length;
-                  if (bCount >= hCount) {
-                    this._lastAnalyses[i] = backendResults[i];
-                  }
+              console.log(`[FFA] sending ${plays.length} play(s) to Claude Vision API`);
+              const visionResults = [];
+              for (let i = 0; i < plays.length; i++) {
+                this._visionProgress = i + 1;
+                const p = plays[i];
+                try {
+                  const result = await this.vision.analyzePlay(videoEl, p.start, p.end, teamCtx);
+                  visionResults.push(result);
+                } catch (e) {
+                  console.warn(`[FFA vision] play ${i + 1} failed:`, e);
+                  visionResults.push({ tags: {}, confidence: {}, reasons: {}, extras: { error: e.message } });
                 }
-                backendUsed = true;
-                progressLabel.textContent = `✅ AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`;
-                console.log(`[FFA] AI server returned ${backendResults.length} tagged plays in ${(backendMs / 1000).toFixed(1)}s`);
-              } else {
-                progressLabel.textContent = `⚠️ AI server returned ${backendResults?.length || 0} results (expected ${plays.length}) — using heuristics`;
-                console.warn(`[FFA] backend returned ${backendResults?.length} results, expected ${plays.length}`);
               }
+              visionMs = Math.round(performance.now() - t0);
+
+              for (let i = 0; i < visionResults.length; i++) {
+                const vt = visionResults[i]?.tags || {};
+                const ht = this._lastAnalyses[i]?.tags || {};
+                const vCount = Object.values(vt).filter(v => v).length;
+                const hCount = Object.values(ht).filter(v => v).length;
+                if (vCount >= hCount) {
+                  this._lastAnalyses[i] = visionResults[i];
+                }
+              }
+              visionUsed = true;
+              progressLabel.textContent = `✅ Claude Vision tagged ${visionResults.length} play${visionResults.length !== 1 ? 's' : ''} in ${(visionMs / 1000).toFixed(1)}s`;
+              console.log(`[FFA] Claude Vision tagged ${visionResults.length} plays in ${(visionMs / 1000).toFixed(1)}s`);
             } catch (e) {
-              backendMs = Math.round(performance.now() - t0);
-              console.warn('[FFA] backend analyze_batch failed, falling back to heuristics:', e);
-              progressLabel.textContent = `⚠️ AI server error after ${(backendMs / 1000).toFixed(1)}s: ${e.message} — using heuristics`;
-              // keep the heuristic analyses we already computed
+              visionMs = Math.round(performance.now() - t0);
+              console.warn('[FFA] Claude Vision failed, falling back to heuristics:', e);
+              progressLabel.textContent = `⚠️ Vision API error after ${(visionMs / 1000).toFixed(1)}s: ${e.message} — using heuristics`;
             } finally {
               if (tickHandle) clearInterval(tickHandle);
               progressFill.classList.remove('busy');
+              delete this._visionProgress;
             }
-          } else if (!this.backend.isAvailable()) {
-            console.log('[FFA] AI server not available, using in-browser heuristic tagging');
-          } else if (!sourceFile) {
-            console.warn('[FFA] no source file handle — cannot send to AI server');
+          } else if (!this.vision.apiKey) {
+            console.log('[FFA] no Claude API key set — enter one in Game Info to enable AI tagging');
+          }
+
+          // Fallback: local YOLO backend (if vision wasn't used and backend is available)
+          if (!visionUsed && this.backend.isAvailable()) {
+            const sourceFile = this.vc.currentFile || this.vc.file || null;
+            if (sourceFile && plays.length > 0) {
+              const t0 = performance.now();
+              let tickHandle = null;
+              const renderTick = () => {
+                const elapsed = Math.floor((performance.now() - t0) / 1000);
+                progressLabel.textContent = `🤖 Local server analyzing ${plays.length} play${plays.length !== 1 ? 's' : ''} · ${elapsed}s elapsed`;
+              };
+              renderTick();
+              tickHandle = setInterval(renderTick, 500);
+              progressFill.style.width = '100%';
+              progressFill.classList.add('busy');
+              try {
+                const windows = plays.map(p => ({ start: p.start, end: p.end }));
+                const backendResults = await this.backend.analyzeBatch(sourceFile, windows, teamCtx);
+                const backendMs = Math.round(performance.now() - t0);
+                if (Array.isArray(backendResults) && backendResults.length === plays.length) {
+                  for (let i = 0; i < backendResults.length; i++) {
+                    const bt = backendResults[i]?.tags || {};
+                    const ht = this._lastAnalyses[i]?.tags || {};
+                    const bCount = Object.values(bt).filter(v => v).length;
+                    const hCount = Object.values(ht).filter(v => v).length;
+                    if (bCount >= hCount) this._lastAnalyses[i] = backendResults[i];
+                  }
+                  progressLabel.textContent = `✅ Local server tagged ${backendResults.length} plays in ${(backendMs / 1000).toFixed(1)}s`;
+                }
+              } catch (e) {
+                console.warn('[FFA] backend fallback failed:', e);
+              } finally {
+                if (tickHandle) clearInterval(tickHandle);
+                progressFill.classList.remove('busy');
+              }
+            }
           }
 
           const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => {
             return sum + Object.values(a?.tags || {}).filter(v => v).length;
           }, 0);
-          const backendLabel = backendUsed
-            ? ` · 🤖 AI-tagged in ${(backendMs / 1000).toFixed(1)}s`
-            : (this.backend.isAvailable() ? ' · ⚠️ AI failed, heuristic fallback' : ' · heuristic (no AI server)');
+          const analysisLabel = visionUsed
+            ? ` · 🧠 Vision AI in ${(visionMs / 1000).toFixed(1)}s`
+            : (this.vision.apiKey ? ' · ⚠️ Vision failed, heuristic fallback' : ' · heuristic (set API key for AI tagging)');
 
           // For a single short clip (≤ 45s, 1 play), skip the review
           // step and stamp tags immediately — the coach loaded one play
@@ -456,12 +491,12 @@ class App {
             const before = this.tagger.plays.length;
             this.detector.applyDetectedPlays();
             this._stampAutoTags(before);
-            resultCount.textContent = `1 play auto-tagged · ${taggedFieldCount} fields${backendLabel}`;
+            resultCount.textContent = `1 play auto-tagged · ${taggedFieldCount} fields${analysisLabel}`;
             resultsDiv.classList.remove('hidden');
             btnApply?.classList.add('hidden');
             btnReview?.classList.add('hidden');
           } else {
-            resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${backendLabel}`;
+            resultCount.textContent = `${plays.length} play${plays.length !== 1 ? 's' : ''} detected · ${taggedFieldCount} auto-tags${analysisLabel}`;
             resultsDiv.classList.remove('hidden');
             btnApply?.classList.remove('hidden');
             btnReview?.classList.toggle('hidden', plays.length === 0);
@@ -539,14 +574,33 @@ class App {
       }
     };
 
-    updateBadge(false);
-    this.backend.on('availability-changed', updateBadge);
+    const updateVisionBadge = () => {
+      if (!badge) return false;
+      if (this.vision.apiKey) {
+        badge.textContent = '🧠 Vision AI';
+        badge.classList.add('online');
+        badge.classList.remove('offline');
+        badge.title = 'Claude Vision API active — plays will be analyzed with AI.\nClick to re-probe local server.';
+        return true;
+      }
+      return false;
+    };
+    this._updateAnalysisBadge = () => {
+      if (!updateVisionBadge()) updateBadge(this.backend.isAvailable());
+    };
+
+    if (!updateVisionBadge()) updateBadge(false);
+    this.backend.on('availability-changed', (avail) => {
+      if (!updateVisionBadge()) updateBadge(avail);
+    });
 
     // Kick off initial probe (non-blocking)
-    this.backend.probe().then(updateBadge);
+    this.backend.probe().then((avail) => {
+      if (!updateVisionBadge()) updateBadge(avail);
+    });
 
-    // Click to manually re-probe (e.g. after starting the server)
     badge?.addEventListener('click', async () => {
+      if (updateVisionBadge()) return;
       badge.textContent = '… probing';
       const ok = await this.backend.probe();
       updateBadge(ok);
@@ -820,7 +874,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
+    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection', 'gameApiKey'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -831,6 +885,10 @@ class App {
   }
 
   _saveGameInfo() {
+    const apiKey = document.getElementById('gameApiKey')?.value || '';
+    localStorage.setItem('ffa_claude_api_key', apiKey);
+    this.vision.apiKey = apiKey;
+    this._updateAnalysisBadge?.();
     this.storage.gameInfo = {
       teamName: document.getElementById('gameTeamName')?.value || '',
       opponent: document.getElementById('gameOpponent')?.value || '',
@@ -859,6 +917,12 @@ class App {
     for (const [id, val] of Object.entries(map)) {
       const el = document.getElementById(id);
       if (el && val) el.value = val;
+    }
+    const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
+    if (savedKey) {
+      const keyEl = document.getElementById('gameApiKey');
+      if (keyEl) keyEl.value = savedKey;
+      this.vision.apiKey = savedKey;
     }
   }
 

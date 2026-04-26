@@ -55,6 +55,7 @@ for jsfile in \
   js/play-detector.js \
   js/clip-analyzer.js \
   js/backend-client.js \
+  js/vision-analyzer.js \
   js/playlist-manager.js \
   js/quick-chart.js \
   js/heat-maps.js \
