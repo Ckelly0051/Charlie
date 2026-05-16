@@ -874,7 +874,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection', 'gameApiKey'];
+    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -882,13 +882,21 @@ class App {
         el.addEventListener('input', () => this._saveGameInfo());
       }
     });
+    const apiKeyEl = document.getElementById('gameApiKey');
+    if (apiKeyEl) {
+      apiKeyEl.addEventListener('change', () => this._saveApiKey());
+      apiKeyEl.addEventListener('blur', () => this._saveApiKey());
+    }
   }
 
-  _saveGameInfo() {
+  _saveApiKey() {
     const apiKey = document.getElementById('gameApiKey')?.value || '';
     localStorage.setItem('ffa_claude_api_key', apiKey);
     this.vision.apiKey = apiKey;
     this._updateAnalysisBadge?.();
+  }
+
+  _saveGameInfo() {
     this.storage.gameInfo = {
       teamName: document.getElementById('gameTeamName')?.value || '',
       opponent: document.getElementById('gameOpponent')?.value || '',
