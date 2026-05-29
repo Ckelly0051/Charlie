@@ -159,7 +159,7 @@ body {
 /* ===== Main Content ===== */
 .main-content {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr 320px;
   overflow: hidden;
 }
 
@@ -351,6 +351,17 @@ body {
 
 .sidebar-panel {
   border-bottom: 1px solid var(--border);
+}
+
+/* Float the Play Tagger to the top of the sidebar so the tool used on
+   every play needs no scrolling; secondary panels sort below it. */
+.sidebar-panel-primary {
+  order: -1;
+  border-top: none;
+}
+.sidebar-panel-primary .panel-title {
+  color: var(--text-bright);
+  background: rgba(233, 69, 96, 0.08);
 }
 
 .panel-title {
