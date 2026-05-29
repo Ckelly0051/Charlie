@@ -91,7 +91,7 @@ export class ScoreboardOCR {
     overlay.className = 'ocr-region-overlay';
     overlay.style.cssText = 'position:absolute;inset:0;cursor:crosshair;background:rgba(0,0,0,0.35);z-index:50';
     const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.18);pointer-events:none';
+    box.style.cssText = 'position:absolute;border:2px solid #06b6d4;background:rgba(6,182,212,0.18);pointer-events:none';
     overlay.appendChild(box);
     this.videoContainer.appendChild(overlay);
 

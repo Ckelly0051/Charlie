@@ -7,18 +7,18 @@
   <style>
 /* ===== CSS Custom Properties ===== */
 :root {
-  --bg-primary: #1a1d23;
-  --bg-secondary: #22262e;
-  --bg-tertiary: #2a2f38;
-  --bg-surface: #32373f;
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --highlight: #3b82f6;
-  --highlight-hover: #60a5fa;
-  --text: #d4d4d8;
-  --text-dim: #71717a;
-  --text-bright: #fafafa;
-  --border: #3f3f46;
+  --bg-primary: #1b1f27;
+  --bg-secondary: #232830;
+  --bg-tertiary: #2c323c;
+  --bg-surface: #363d49;
+  --accent: #06b6d4;
+  --accent-hover: #22d3ee;
+  --highlight: #06b6d4;
+  --highlight-hover: #22d3ee;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-bright: #f8fafc;
+  --border: #374151;
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
@@ -368,7 +368,7 @@ body {
 }
 .sidebar-panel-primary .panel-title {
   color: var(--text-bright);
-  background: rgba(233, 69, 96, 0.08);
+  background: rgba(6, 182, 212, 0.08);
 }
 
 .panel-title {
@@ -550,7 +550,10 @@ body {
 
 /* ===== Chip-based tag form ===== */
 .chip-section {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius);
 }
 .chip-section-inline {
   display: flex;
@@ -562,14 +565,14 @@ body {
   font-size: 10px;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 3px;
+  letter-spacing: 0.8px;
+  margin-bottom: 5px;
   font-weight: 600;
 }
 .pick-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
 }
 .chip-inline {
   display: flex;
@@ -585,13 +588,13 @@ body {
 .pick {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 4px 8px;
+  gap: 3px;
+  padding: 5px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-tertiary);
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   transition: all var(--transition);
   white-space: nowrap;
@@ -608,6 +611,7 @@ body {
   border-color: var(--highlight);
   color: var(--text-bright);
   font-weight: 600;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
 }
 .pick kbd {
   font-size: 8px;
@@ -2073,7 +2077,7 @@ body {
 }
 .version-controls input {
   flex: 1;
-  background: #22262e;
+  background: #232830;
   border: 1px solid #2d3454;
   color: #e0e0e0;
   padding: 4px 8px;
@@ -2098,12 +2102,12 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #22262e;
+  background: #232830;
   border-radius: 3px;
   border-left: 3px solid #2d3454;
 }
 .version-row.manual {
-  border-left-color: #3b82f6;
+  border-left-color: #06b6d4;
 }
 .version-info {
   flex: 1;
@@ -2140,7 +2144,7 @@ body {
   color: #fff;
   padding: 10px 18px;
   border-radius: 6px;
-  border: 1px solid #3b82f6;
+  border: 1px solid #06b6d4;
   font-size: 13px;
   font-weight: 500;
   pointer-events: none;
@@ -2166,7 +2170,7 @@ body {
 
 /* ===== Scoreboard OCR & Suggestions ===== */
 .ocr-section {
-  background: #22262e;
+  background: #232830;
   border: 1px solid #2d3454;
   border-radius: 4px;
   padding: 8px;
@@ -2197,7 +2201,7 @@ body {
 .ocr-preview { margin-top: 6px; }
 .ocr-preview:empty { display: none; }
 .ocr-fields {
-  background: #2a2f38;
+  background: #2c323c;
   padding: 6px 8px;
   border-radius: 3px;
   font-size: 12px;
@@ -2251,7 +2255,7 @@ body {
   justify-content: center;
 }
 .cutup-modal {
-  background: #2a2f38;
+  background: #2c323c;
   border: 1px solid #2d3454;
   border-radius: 8px;
   padding: 24px 32px;
@@ -2261,7 +2265,7 @@ body {
 }
 .cutup-modal h3 {
   margin: 0 0 12px;
-  color: #3b82f6;
+  color: #06b6d4;
 }
 .cutup-info {
   color: #e0e0e0;
@@ -2270,14 +2274,14 @@ body {
   min-height: 18px;
 }
 .cutup-bar {
-  background: #22262e;
+  background: #232830;
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
   margin-bottom: 8px;
 }
 .cutup-bar-fill {
-  background: linear-gradient(90deg, #3b82f6, #f59e0b);
+  background: linear-gradient(90deg, #06b6d4, #f59e0b);
   height: 100%;
   width: 0%;
   transition: width 0.3s ease;
@@ -2311,8 +2315,8 @@ body {
 }
 .hm-tab:hover { color: #ccc; }
 .hm-tab.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: #06b6d4;
+  border-bottom-color: #06b6d4;
 }
 .hm-panel { display: none; }
 .hm-panel.active { display: block; }
@@ -2363,7 +2367,7 @@ body {
   color: #e0e0e0;
 }
 .dd-grid th, .fxp-grid th, .hash-grid th {
-  background: #2a2f38;
+  background: #2c323c;
   color: #fff;
   font-weight: 600;
 }
@@ -2401,7 +2405,7 @@ body {
   padding: 20px;
 }
 .season-modal {
-  background: #2a2f38;
+  background: #2c323c;
   border-radius: 8px;
   width: 100%;
   max-width: 1300px;
@@ -2418,12 +2422,12 @@ body {
   gap: 10px;
   position: sticky;
   top: 0;
-  background: #2a2f38;
+  background: #2c323c;
   z-index: 10;
 }
 .season-header h2 {
   margin: 0;
-  color: #3b82f6;
+  color: #06b6d4;
   font-size: 22px;
 }
 .season-header-actions {
@@ -2448,7 +2452,7 @@ body {
   padding: 16px;
 }
 .season-game-row {
-  background: #22262e;
+  background: #232830;
   border: 1px solid #2d3454;
   border-radius: 4px;
   padding: 8px 10px;
@@ -2497,7 +2501,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  background: linear-gradient(135deg, #2a2f38, #2a2f38);
+  background: linear-gradient(135deg, #2c323c, #2c323c);
   padding: 16px 20px;
   border-radius: 6px;
   margin-bottom: 18px;
@@ -2548,7 +2552,7 @@ body {
 .trend-bar {
   flex: 1;
   height: 12px;
-  background: #22262e;
+  background: #232830;
   border-radius: 2px;
   overflow: hidden;
   border: 1px solid #2d3454;
@@ -2570,7 +2574,7 @@ body {
 }
 .self-scout li {
   padding: 8px 12px;
-  background: #22262e;
+  background: #232830;
   border-left: 3px solid #f59e0b;
   margin: 4px 0;
   border-radius: 3px;
@@ -2582,7 +2586,7 @@ body {
   border-left-color: #44aa44;
   color: #aaa;
 }
-.self-scout li b { color: #3b82f6; }
+.self-scout li b { color: #06b6d4; }
 .self-scout-intro {
   font-size: 12px;
   color: #888;
@@ -2613,7 +2617,7 @@ body {
 .epa-curve-wrap {
   margin: 12px 0 8px;
   background: rgba(0,0,0,0.25);
-  border: 1px solid #3f3f46;
+  border: 1px solid #374151;
   border-radius: 6px;
   padding: 6px;
 }
@@ -2631,12 +2635,12 @@ body {
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 .cs-container {
-  background: #22262e; border: 1px solid #3f3f46; border-radius: 8px;
+  background: #232830; border: 1px solid #374151; border-radius: 8px;
   width: 92vw; max-width: 1100px; max-height: 92vh; display: flex; flex-direction: column;
 }
 .cs-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; border-bottom: 1px solid #3f3f46;
+  padding: 12px 16px; border-bottom: 1px solid #374151;
 }
 .cs-header h2 { margin: 0; font-size: 18px; }
 .cs-header-actions { display: flex; gap: 8px; }
@@ -2649,16 +2653,16 @@ body {
 }
 .cs-config .cs-row label { width: 90px; font-size: 12px; opacity: 0.8; }
 .cs-config .cs-row input, .cs-config .cs-row select {
-  flex: 1; background: #1a1d23; color: #eee; border: 1px solid #3f3f46;
+  flex: 1; background: #1a1d23; color: #eee; border: 1px solid #374151;
   padding: 4px 6px; border-radius: 4px; font-size: 12px;
 }
-.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 4px; padding: 6px; }
+.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #374151; border-radius: 4px; padding: 6px; }
 .cs-bucket-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 3px 4px; font-size: 12px;
 }
 .cs-bucket-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.cs-bk-n { width: 48px; background: #1a1d23; color: #eee; border: 1px solid #3f3f46; border-radius: 3px; padding: 2px 4px; }
+.cs-bk-n { width: 48px; background: #1a1d23; color: #eee; border: 1px solid #374151; border-radius: 3px; padding: 2px 4px; }
 .cs-preview {
   background: #fff; border-radius: 4px; min-height: 400px;
   overflow: auto; padding: 0;
@@ -2680,7 +2684,7 @@ body {
   --bg-surface: #222e48;
   --accent: #1e4a8f;
   --accent-hover: #2563c4;
-  --highlight: #3b82f6;
+  --highlight: #06b6d4;
   --highlight-hover: #ff5f7e;
   --border: #2c3a58;
   --border-bright: #3e5180;
@@ -2707,7 +2711,7 @@ body {
 .app-title {
   font-size: 13px;
   letter-spacing: 0.8px;
-  background: linear-gradient(90deg, #3b82f6, #f59e0b);
+  background: linear-gradient(90deg, #06b6d4, #f59e0b);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -3923,7 +3927,7 @@ body.qc-active .tw-reopen { display: none; }
 }
 #btnReviewDetected {
   background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  color: #22d3ee;
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 #btnReviewDetected:hover {
@@ -4062,7 +4066,7 @@ body.qc-active .tw-reopen { display: none; }
 }
 .drr-num {
   font-weight: 700;
-  color: #60a5fa;
+  color: #22d3ee;
   min-width: 32px;
 }
 .drr-time {
@@ -4949,6 +4953,8 @@ body.qc-active .tw-reopen { display: none; }
                   <button class="pick" data-value="Pistol" type="button">Pistol</button>
                   <button class="pick" data-value="I-Form" type="button">I-Form</button>
                   <button class="pick" data-value="Singleback" type="button">Singleback</button>
+                  <button class="pick" data-value="Split Back" type="button">Split Back</button>
+                  <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
                   <button class="pick" data-value="Empty" type="button">Empty</button>
                   <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
                   <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
@@ -4978,6 +4984,7 @@ body.qc-active .tw-reopen { display: none; }
                   <div class="pick-group" id="tagDefFront">
                     <button class="pick" data-value="4-3" type="button">4-3</button>
                     <button class="pick" data-value="3-4" type="button">3-4</button>
+                    <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
                     <button class="pick" data-value="Nickel" type="button">Nickel</button>
                     <button class="pick" data-value="Dime" type="button">Dime</button>
                     <button class="pick" data-value="Quarter" type="button">Quarter</button>
@@ -6879,16 +6886,16 @@ class StorageManager {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
 body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1100px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #3b82f6;padding-bottom:8px}
-h3{color:#3b82f6;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+h1{border-bottom:3px solid #06b6d4;padding-bottom:8px}
+h3{color:#06b6d4;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
 th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#3b82f6;color:#fff}
+th{background:#06b6d4;color:#fff}
 tr:nth-child(even){background:#f4f4f8}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
 .stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
 .stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
-.stat-card-value{font-size:22px;font-weight:bold;color:#3b82f6}
+.stat-card-value{font-size:22px;font-weight:bold;color:#06b6d4}
 .stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:24px;border-radius:4px;overflow:hidden;margin:8px 0}
@@ -8196,11 +8203,11 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
    - Count tight ends (TEs): larger players lined up on or just off the line, tight to the offensive tackles.
    - Count wide receivers (WRs): players split wide toward the sidelines.
    - Personnel = (#RBs)(#TEs): 1 RB + 1 TE = "11"; 1 RB + 2 TE = "12"; 2 RB + 1 TE = "21"; etc.
-   - Formation: "Empty" = 0 RBs in backfield; "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Wildcat" = direct snap to non-QB.
+   - Formation: "Empty" = 0 RBs in backfield; "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Split Back" = 2 RBs side by side behind QB; "Single Wing" = unbalanced line, direct snap to wingback; "Wildcat" = direct snap to non-QB.
 
 2. DEFENSIVE READ (pre-snap and early frames):
    - Count down linemen (DL): players in 3- or 4-point stance at the line. Count standing linebackers (LBs) behind them.
-   - 4 DL + 3 LBs = "4-3"; 3 DL + 4 LBs = "3-4"; 4 DL + 2 LB + 5 DBs = "Nickel"; 6+ DBs = "Dime".
+   - 4 DL + 3 LBs = "4-3"; 3 DL + 4 LBs = "3-4"; 4 DL + 2 LBs + 5 DBs = "4-2-5"; 4 DL + 2 LB + 5 DBs = "Nickel"; 6+ DBs = "Dime".
    - Safety alignment: one deep safety = likely Cover 1 or Cover 3; two deep safeties = Cover 2 or Cover 4.
    - Man vs zone: DBs pressed/shadowing individual receivers = "Man"; DBs in off-coverage at landmark spots = "Zone".
    - Blitz: more than 4 players rushing the QB; "A-Gap" = between center and guard; "B-Gap" = between guard and tackle; "Edge" = outside the tackle; "DB Blitz" = a defensive back rushes.
@@ -8226,13 +8233,13 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
 Return ONLY valid JSON with these fields (use ONLY the listed enum values, or "" if you cannot determine):
 
 {
-  "formation": "Shotgun"|"Under Center"|"Pistol"|"I-Form"|"Singleback"|"Empty"|"Wildcat"|"Goal Line"|"",
+  "formation": "Shotgun"|"Under Center"|"Pistol"|"I-Form"|"Singleback"|"Split Back"|"Single Wing"|"Empty"|"Wildcat"|"Goal Line"|"",
   "personnel": "00"|"10"|"11"|"12"|"13"|"20"|"21"|"22"|"23"|"Jumbo"|"Goal Line"|"",
   "playType": "Run Inside"|"Run Outside"|"Screen"|"Short Pass"|"Medium Pass"|"Deep Pass"|"Play Action"|"RPO"|"Trick Play"|"",
   "result": "Gain"|"Loss"|"No Gain"|"Incomplete"|"Interception"|"Touchdown"|"Sack"|"Fumble"|"Penalty"|"Punt"|"Field Goal"|"Kneel"|"Spike"|"",
   "yardage": integer or "",
   "hash": "Left"|"Middle"|"Right"|"",
-  "defFront": "4-3"|"3-4"|"Nickel"|"Dime"|"Quarter"|"4-6"|"",
+  "defFront": "4-3"|"3-4"|"4-2-5"|"Nickel"|"Dime"|"Quarter"|"4-6"|"",
   "coverage": "Cover 0"|"Cover 1"|"Cover 2"|"Cover 3"|"Cover 4"|"Cover 6"|"Man"|"Zone"|"",
   "blitz": ""|"A-Gap"|"B-Gap"|"Edge"|"DB Blitz"|"Zone Blitz",
   "fieldSide": "own"|"opp"|"",
@@ -8294,12 +8301,12 @@ IMPORTANT:
    */
   static get ALLOWED() {
     return {
-      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Empty', 'Wildcat', 'Goal Line'],
+      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Empty', 'Wildcat', 'Goal Line'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
       playType: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play'],
       result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Kneel', 'Spike'],
       hash: ['Left', 'Middle', 'Right'],
-      defFront: ['4-3', '3-4', 'Nickel', 'Dime', 'Quarter', '4-6'],
+      defFront: ['4-3', '3-4', '4-2-5', 'Nickel', 'Dime', 'Quarter', '4-6'],
       coverage: ['Cover 0', 'Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 6', 'Man', 'Zone'],
       blitz: ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'],
       fieldSide: ['own', 'opp'],
@@ -10925,7 +10932,7 @@ class ScoreboardOCR {
     overlay.className = 'ocr-region-overlay';
     overlay.style.cssText = 'position:absolute;inset:0;cursor:crosshair;background:rgba(0,0,0,0.35);z-index:50';
     const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.18);pointer-events:none';
+    box.style.cssText = 'position:absolute;border:2px solid #06b6d4;background:rgba(6,182,212,0.18);pointer-events:none';
     overlay.appendChild(box);
     this.videoContainer.appendChild(overlay);
 
@@ -11482,7 +11489,7 @@ class CutupExporter {
   async _drawTitleCard(ctx, W, H, p, n, total) {
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = '#06b6d4';
     ctx.fillRect(0, H - 6, W, 6);
 
     ctx.fillStyle = '#fff';
@@ -11956,17 +11963,17 @@ class SeasonManager {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
 body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1200px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #3b82f6;padding-bottom:8px}
-h3{color:#3b82f6;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+h1{border-bottom:3px solid #06b6d4;padding-bottom:8px}
+h3{color:#06b6d4;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
 th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#3b82f6;color:#fff}
+th{background:#06b6d4;color:#fff}
 tr:nth-child(even){background:#f4f4f8}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
 .stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
 .stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
-.stat-card-value{font-size:22px;font-weight:bold;color:#3b82f6}
-.season-summary{display:flex;flex-wrap:wrap;gap:18px;background:#3b82f6;color:#fff;padding:14px;border-radius:6px;justify-content:space-around}
+.stat-card-value{font-size:22px;font-weight:bold;color:#06b6d4}
+.season-summary{display:flex;flex-wrap:wrap;gap:18px;background:#06b6d4;color:#fff;padding:14px;border-radius:6px;justify-content:space-around}
 .ss-num{font-size:24px;font-weight:bold}
 .ss-lbl{font-size:11px;opacity:.8;text-transform:uppercase}
 .trend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
@@ -11976,7 +11983,7 @@ tr:nth-child(even){background:#f4f4f8}
 .trend-bar div{height:100%}
 .trend-val{width:80px;text-align:right;color:#666}
 .self-scout li{margin:6px 0;line-height:1.4}
-.self-scout li b{color:#3b82f6}
+.self-scout li b{color:#06b6d4}
 </style></head><body>
 <h1>${title}</h1>
 <p style="color:#666">Generated ${new Date().toLocaleString()}</p>
@@ -13863,7 +13870,7 @@ class App {
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     // Background
-    ctx.fillStyle = '#2a2f38';
+    ctx.fillStyle = '#2c323c';
     ctx.fillRect(0, 0, w, h);
 
     // Find max motion for scaling

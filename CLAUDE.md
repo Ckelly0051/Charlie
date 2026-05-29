@@ -65,13 +65,13 @@ server/                       # Optional local Python backend (YOLO-based)
     quarter: '',        // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'OT'
     fieldSide: 'own',   // 'own' | 'opp'
     yardLine: '',       // 1-50
-    formation: '',      // 'Shotgun' | 'Under Center' | 'Pistol' | 'I-Form' | 'Singleback' | 'Empty' | 'Wildcat' | 'Goal Line'
+    formation: '',      // 'Shotgun' | 'Under Center' | 'Pistol' | 'I-Form' | 'Singleback' | 'Split Back' | 'Single Wing' | 'Empty' | 'Wildcat' | 'Goal Line'
     personnel: '',      // '00'-'23' | 'Jumbo' | 'Goal Line'
     playType: '',       // 'Run Inside' | 'Run Outside' | 'Screen' | 'Short Pass' | 'Medium Pass' | 'Deep Pass' | 'Play Action' | 'RPO' | 'Trick Play'
     result: '',         // 'Gain' | 'Loss' | 'No Gain' | 'Incomplete' | 'Interception' | 'Touchdown' | 'Sack' | 'Fumble' | 'Penalty' | 'Punt' | 'Field Goal' | 'Kneel' | 'Spike'
     yardage: '',        // integer (negative for loss)
     hash: '',           // 'Left' | 'Middle' | 'Right'
-    defFront: '',       // '4-3' | '3-4' | 'Nickel' | 'Dime' | 'Quarter' | '4-6'
+    defFront: '',       // '4-3' | '3-4' | '4-2-5' | 'Nickel' | 'Dime' | 'Quarter' | '4-6'
     coverage: '',       // 'Cover 0'-'Cover 6' | 'Man' | 'Zone'
     blitz: '',          // 'A-Gap' | 'B-Gap' | 'Edge' | 'DB Blitz' | 'Zone Blitz'
     driveNumber: '',    // auto-incremented

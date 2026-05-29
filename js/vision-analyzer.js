@@ -177,11 +177,11 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
    - Count tight ends (TEs): larger players lined up on or just off the line, tight to the offensive tackles.
    - Count wide receivers (WRs): players split wide toward the sidelines.
    - Personnel = (#RBs)(#TEs): 1 RB + 1 TE = "11"; 1 RB + 2 TE = "12"; 2 RB + 1 TE = "21"; etc.
-   - Formation: "Empty" = 0 RBs in backfield; "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Wildcat" = direct snap to non-QB.
+   - Formation: "Empty" = 0 RBs in backfield; "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Split Back" = 2 RBs side by side behind QB; "Single Wing" = unbalanced line, direct snap to wingback; "Wildcat" = direct snap to non-QB.
 
 2. DEFENSIVE READ (pre-snap and early frames):
    - Count down linemen (DL): players in 3- or 4-point stance at the line. Count standing linebackers (LBs) behind them.
-   - 4 DL + 3 LBs = "4-3"; 3 DL + 4 LBs = "3-4"; 4 DL + 2 LB + 5 DBs = "Nickel"; 6+ DBs = "Dime".
+   - 4 DL + 3 LBs = "4-3"; 3 DL + 4 LBs = "3-4"; 4 DL + 2 LBs + 5 DBs = "4-2-5"; 4 DL + 2 LB + 5 DBs = "Nickel"; 6+ DBs = "Dime".
    - Safety alignment: one deep safety = likely Cover 1 or Cover 3; two deep safeties = Cover 2 or Cover 4.
    - Man vs zone: DBs pressed/shadowing individual receivers = "Man"; DBs in off-coverage at landmark spots = "Zone".
    - Blitz: more than 4 players rushing the QB; "A-Gap" = between center and guard; "B-Gap" = between guard and tackle; "Edge" = outside the tackle; "DB Blitz" = a defensive back rushes.
@@ -207,13 +207,13 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
 Return ONLY valid JSON with these fields (use ONLY the listed enum values, or "" if you cannot determine):
 
 {
-  "formation": "Shotgun"|"Under Center"|"Pistol"|"I-Form"|"Singleback"|"Empty"|"Wildcat"|"Goal Line"|"",
+  "formation": "Shotgun"|"Under Center"|"Pistol"|"I-Form"|"Singleback"|"Split Back"|"Single Wing"|"Empty"|"Wildcat"|"Goal Line"|"",
   "personnel": "00"|"10"|"11"|"12"|"13"|"20"|"21"|"22"|"23"|"Jumbo"|"Goal Line"|"",
   "playType": "Run Inside"|"Run Outside"|"Screen"|"Short Pass"|"Medium Pass"|"Deep Pass"|"Play Action"|"RPO"|"Trick Play"|"",
   "result": "Gain"|"Loss"|"No Gain"|"Incomplete"|"Interception"|"Touchdown"|"Sack"|"Fumble"|"Penalty"|"Punt"|"Field Goal"|"Kneel"|"Spike"|"",
   "yardage": integer or "",
   "hash": "Left"|"Middle"|"Right"|"",
-  "defFront": "4-3"|"3-4"|"Nickel"|"Dime"|"Quarter"|"4-6"|"",
+  "defFront": "4-3"|"3-4"|"4-2-5"|"Nickel"|"Dime"|"Quarter"|"4-6"|"",
   "coverage": "Cover 0"|"Cover 1"|"Cover 2"|"Cover 3"|"Cover 4"|"Cover 6"|"Man"|"Zone"|"",
   "blitz": ""|"A-Gap"|"B-Gap"|"Edge"|"DB Blitz"|"Zone Blitz",
   "fieldSide": "own"|"opp"|"",
@@ -275,12 +275,12 @@ IMPORTANT:
    */
   static get ALLOWED() {
     return {
-      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Empty', 'Wildcat', 'Goal Line'],
+      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Empty', 'Wildcat', 'Goal Line'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
       playType: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play'],
       result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Kneel', 'Spike'],
       hash: ['Left', 'Middle', 'Right'],
-      defFront: ['4-3', '3-4', 'Nickel', 'Dime', 'Quarter', '4-6'],
+      defFront: ['4-3', '3-4', '4-2-5', 'Nickel', 'Dime', 'Quarter', '4-6'],
       coverage: ['Cover 0', 'Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 6', 'Man', 'Zone'],
       blitz: ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'],
       fieldSide: ['own', 'opp'],

@@ -1104,7 +1104,7 @@ class App {
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     // Background
-    ctx.fillStyle = '#2a2f38';
+    ctx.fillStyle = '#2c323c';
     ctx.fillRect(0, 0, w, h);
 
     // Find max motion for scaling

@@ -246,16 +246,16 @@ export class StorageManager {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
 body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1100px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #3b82f6;padding-bottom:8px}
-h3{color:#3b82f6;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+h1{border-bottom:3px solid #06b6d4;padding-bottom:8px}
+h3{color:#06b6d4;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
 th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#3b82f6;color:#fff}
+th{background:#06b6d4;color:#fff}
 tr:nth-child(even){background:#f4f4f8}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
 .stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
 .stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
-.stat-card-value{font-size:22px;font-weight:bold;color:#3b82f6}
+.stat-card-value{font-size:22px;font-weight:bold;color:#06b6d4}
 .stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:24px;border-radius:4px;overflow:hidden;margin:8px 0}
