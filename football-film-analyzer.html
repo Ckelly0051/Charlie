@@ -499,7 +499,7 @@ body {
 .tag-form {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .tag-row label {
@@ -535,6 +535,177 @@ body {
 .tag-row-inline span {
   color: var(--text-dim);
   font-size: 12px;
+}
+
+/* ===== Chip-based tag form ===== */
+.chip-section {
+  margin-bottom: 6px;
+}
+.chip-section-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chip-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  font-weight: 600;
+}
+.pick-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.chip-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip-sep {
+  color: var(--text-dim);
+  font-weight: bold;
+  font-size: 13px;
+}
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  user-select: none;
+  font-family: inherit;
+  line-height: 1.3;
+}
+.pick:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent-hover);
+}
+.pick.active {
+  background: var(--highlight);
+  border-color: var(--highlight);
+  color: var(--text-bright);
+  font-weight: 600;
+}
+.pick kbd {
+  font-size: 8px;
+  color: #556a8e;
+  padding: 0 2px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  margin-left: 1px;
+  font-family: inherit;
+  line-height: 1;
+}
+.pick.active kbd {
+  color: rgba(255,255,255,0.6);
+  border-color: rgba(255,255,255,0.25);
+}
+.pick-sm {
+  padding: 3px 6px;
+  font-size: 10px;
+}
+.compact-input {
+  width: 50px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  font-size: 12px;
+}
+.yards-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.yards-input {
+  width: 48px;
+  text-align: center;
+  padding: 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.btn-nudge {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  font-family: inherit;
+}
+.btn-nudge:hover { background: var(--bg-surface); }
+.chip-details {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 2px;
+}
+.chip-details summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+  list-style: none;
+}
+.chip-details summary::-webkit-details-marker { display: none; }
+.chip-details summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform var(--transition);
+}
+.chip-details[open] summary::before { transform: rotate(90deg); }
+.chip-details summary:hover { color: var(--text); }
+.tag-nav {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.tag-nav-main {
+  flex: 1;
+  font-weight: 600;
+}
+.tag-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.tag-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tag-progress-fill {
+  height: 100%;
+  background: var(--highlight);
+  border-radius: 2px;
+  transition: width 0.3s;
+  width: 0%;
 }
 
 .custom-tags-input {
@@ -4697,170 +4868,180 @@ body.qc-active .tw-reopen { display: none; }
               </select>
             </div>
             <div class="tag-form" id="tagForm">
-              <div class="tag-row">
-                <label>Down &amp; Distance</label>
-                <div class="tag-row-inline">
-                  <select id="tagDown">
-                    <option value="">--</option>
-                    <option value="1">1st</option>
-                    <option value="2">2nd</option>
-                    <option value="3">3rd</option>
-                    <option value="4">4th</option>
-                  </select>
-                  <span>&amp;</span>
-                  <input type="number" id="tagDistance" placeholder="Yds" min="0" max="99">
+              <div class="tag-progress-row">
+                <span id="tagProgressLabel">0 / 0 tagged</span>
+                <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
+              </div>
+
+              <div class="chip-section">
+                <label class="chip-label">Play Type</label>
+                <div class="pick-group" id="tagPlayType">
+                  <button class="pick" data-value="Run Inside" type="button">Run In<kbd>R</kbd></button>
+                  <button class="pick" data-value="Run Outside" type="button">Run Out<kbd>O</kbd></button>
+                  <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
+                  <button class="pick" data-value="Short Pass" type="button">Short<kbd>P</kbd></button>
+                  <button class="pick" data-value="Medium Pass" type="button">Med<kbd>M</kbd></button>
+                  <button class="pick" data-value="Deep Pass" type="button">Deep<kbd>D</kbd></button>
+                  <button class="pick" data-value="Play Action" type="button">PA<kbd>A</kbd></button>
+                  <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
+                  <button class="pick pick-sm" data-value="Trick Play" type="button">Trick<kbd>X</kbd></button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Quarter</label>
-                <select id="tagQuarter">
-                  <option value="">--</option>
-                  <option value="Q1">Q1</option>
-                  <option value="Q2">Q2</option>
-                  <option value="Q3">Q3</option>
-                  <option value="Q4">Q4</option>
-                  <option value="OT">OT</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Field Position</label>
-                <div class="tag-row-inline">
-                  <select id="tagFieldSide" style="width:70px">
-                    <option value="own">Own</option>
-                    <option value="opp">Opp</option>
-                  </select>
-                  <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" style="width:55px">
+
+              <div class="chip-section">
+                <label class="chip-label">Result</label>
+                <div class="pick-group" id="tagResult">
+                  <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
+                  <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
+                  <button class="pick" data-value="No Gain" type="button">None<kbd>N</kbd></button>
+                  <button class="pick" data-value="Incomplete" type="button">Inc<kbd>I</kbd></button>
+                  <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
+                  <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
+                  <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
+                  <button class="pick" data-value="Fumble" type="button">Fum<kbd>F</kbd></button>
+                  <button class="pick pick-sm" data-value="Penalty" type="button">Pen<kbd>E</kbd></button>
+                  <button class="pick pick-sm" data-value="Punt" type="button">Punt</button>
+                  <button class="pick pick-sm" data-value="Field Goal" type="button">FG</button>
+                  <button class="pick pick-sm" data-value="Kneel" type="button">Kneel</button>
+                  <button class="pick pick-sm" data-value="Spike" type="button">Spike</button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Formation</label>
-                <select id="tagFormation">
-                  <option value="">--</option>
-                  <option>Shotgun</option>
-                  <option>Under Center</option>
-                  <option>Pistol</option>
-                  <option>I-Form</option>
-                  <option>Singleback</option>
-                  <option>Empty</option>
-                  <option>Wildcat</option>
-                  <option>Goal Line</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Personnel</label>
-                <select id="tagPersonnel">
-                  <option value="">--</option>
-                  <option value="00">00 (5 WR)</option>
-                  <option value="10">10 (4 WR, 1 RB)</option>
-                  <option value="11">11 (3 WR, 1 RB, 1 TE)</option>
-                  <option value="12">12 (2 WR, 1 RB, 2 TE)</option>
-                  <option value="13">13 (1 WR, 1 RB, 3 TE)</option>
-                  <option value="20">20 (3 WR, 2 RB)</option>
-                  <option value="21">21 (2 WR, 2 RB, 1 TE)</option>
-                  <option value="22">22 (1 WR, 2 RB, 2 TE)</option>
-                  <option value="23">23 (0 WR, 2 RB, 3 TE)</option>
-                  <option value="Jumbo">Jumbo</option>
-                  <option value="Goal Line">Goal Line</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Play Type</label>
-                <select id="tagPlayType">
-                  <option value="">--</option>
-                  <option>Run Inside</option>
-                  <option>Run Outside</option>
-                  <option>Screen</option>
-                  <option>Short Pass</option>
-                  <option>Medium Pass</option>
-                  <option>Deep Pass</option>
-                  <option>Play Action</option>
-                  <option>RPO</option>
-                  <option>Trick Play</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Drive #</label>
-                <div class="tag-row-inline">
-                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" style="width:55px">
-                  <button class="btn btn-sm btn-accent" id="btnNewDrive" title="Start New Drive">New Drive</button>
+
+              <div class="chip-section chip-section-inline">
+                <label class="chip-label">Yards</label>
+                <div class="yards-row">
+                  <button class="btn-nudge" id="yardsMinus" type="button">−</button>
+                  <input type="number" id="tagYardage" min="-99" max="99" placeholder="0" class="yards-input">
+                  <button class="btn-nudge" id="yardsPlus" type="button">+</button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Defensive Front</label>
-                <select id="tagDefFront">
-                  <option value="">--</option>
-                  <option>4-3</option>
-                  <option>3-4</option>
-                  <option>Nickel</option>
-                  <option>Dime</option>
-                  <option>Quarter</option>
-                  <option>4-6</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Coverage</label>
-                <select id="tagCoverage">
-                  <option value="">--</option>
-                  <option>Cover 0</option>
-                  <option>Cover 1</option>
-                  <option>Cover 2</option>
-                  <option>Cover 3</option>
-                  <option>Cover 4</option>
-                  <option>Cover 6</option>
-                  <option>Man</option>
-                  <option>Zone</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Blitz</label>
-                <div class="tag-row-inline">
-                  <select id="tagBlitz">
-                    <option value="">None</option>
-                    <option>A-Gap</option>
-                    <option>B-Gap</option>
-                    <option>Edge</option>
-                    <option>DB Blitz</option>
-                    <option>Zone Blitz</option>
-                  </select>
+
+              <div class="chip-section">
+                <label class="chip-label">Down &amp; Distance</label>
+                <div class="chip-inline">
+                  <div class="pick-group" id="tagDown">
+                    <button class="pick" data-value="1" type="button">1st</button>
+                    <button class="pick" data-value="2" type="button">2nd</button>
+                    <button class="pick" data-value="3" type="button">3rd</button>
+                    <button class="pick" data-value="4" type="button">4th</button>
+                  </div>
+                  <span class="chip-sep">&amp;</span>
+                  <input type="number" id="tagDistance" placeholder="Dist" min="0" max="99" class="compact-input">
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Result</label>
-                <div class="tag-row-inline">
-                  <select id="tagResult">
-                    <option value="">--</option>
-                    <option>Gain</option>
-                    <option>Loss</option>
-                    <option>No Gain</option>
-                    <option>Incomplete</option>
-                    <option>Interception</option>
-                    <option>Touchdown</option>
-                    <option>Sack</option>
-                    <option>Fumble</option>
-                    <option>Penalty</option>
-                    <option>Punt</option>
-                    <option>Field Goal</option>
-                    <option>Kneel</option>
-                    <option>Spike</option>
-                  </select>
-                  <input type="number" id="tagYardage" placeholder="Yds" min="-99" max="99">
+
+              <div class="chip-section">
+                <label class="chip-label">Formation</label>
+                <div class="pick-group" id="tagFormation">
+                  <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                  <button class="pick" data-value="Under Center" type="button">Under C</button>
+                  <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                  <button class="pick" data-value="I-Form" type="button">I-Form</button>
+                  <button class="pick" data-value="Singleback" type="button">Single</button>
+                  <button class="pick" data-value="Empty" type="button">Empty</button>
+                  <button class="pick pick-sm" data-value="Wildcat" type="button">Wildcat</button>
+                  <button class="pick pick-sm" data-value="Goal Line" type="button">Goal Ln</button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Hash</label>
-                <select id="tagHash">
-                  <option value="">--</option>
-                  <option>Left</option>
-                  <option>Middle</option>
-                  <option>Right</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Custom Tags</label>
-                <div class="custom-tags-input">
-                  <div class="tag-chips" id="tagChips"></div>
-                  <input type="text" id="customTagInput" placeholder="Add tag + Enter">
+
+              <details class="chip-details">
+                <summary>Defense &amp; Details</summary>
+                <div class="chip-section">
+                  <label class="chip-label">Personnel</label>
+                  <div class="pick-group" id="tagPersonnel">
+                    <button class="pick" data-value="11" type="button">11</button>
+                    <button class="pick" data-value="12" type="button">12</button>
+                    <button class="pick" data-value="21" type="button">21</button>
+                    <button class="pick" data-value="22" type="button">22</button>
+                    <button class="pick" data-value="10" type="button">10</button>
+                    <button class="pick" data-value="20" type="button">20</button>
+                    <button class="pick pick-sm" data-value="00" type="button">00</button>
+                    <button class="pick pick-sm" data-value="13" type="button">13</button>
+                    <button class="pick pick-sm" data-value="23" type="button">23</button>
+                    <button class="pick pick-sm" data-value="Jumbo" type="button">Jumbo</button>
+                    <button class="pick pick-sm" data-value="Goal Line" type="button">G.Line</button>
+                  </div>
                 </div>
+                <div class="chip-section">
+                  <label class="chip-label">Def Front</label>
+                  <div class="pick-group" id="tagDefFront">
+                    <button class="pick" data-value="4-3" type="button">4-3</button>
+                    <button class="pick" data-value="3-4" type="button">3-4</button>
+                    <button class="pick" data-value="Nickel" type="button">Nickel</button>
+                    <button class="pick" data-value="Dime" type="button">Dime</button>
+                    <button class="pick pick-sm" data-value="Quarter" type="button">Qtr</button>
+                    <button class="pick pick-sm" data-value="4-6" type="button">4-6</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Coverage</label>
+                  <div class="pick-group" id="tagCoverage">
+                    <button class="pick" data-value="Cover 0" type="button">C0</button>
+                    <button class="pick" data-value="Cover 1" type="button">C1</button>
+                    <button class="pick" data-value="Cover 2" type="button">C2</button>
+                    <button class="pick" data-value="Cover 3" type="button">C3</button>
+                    <button class="pick" data-value="Cover 4" type="button">C4</button>
+                    <button class="pick" data-value="Cover 6" type="button">C6</button>
+                    <button class="pick" data-value="Man" type="button">Man</button>
+                    <button class="pick" data-value="Zone" type="button">Zone</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Blitz</label>
+                  <div class="pick-group" id="tagBlitz">
+                    <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
+                    <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                    <button class="pick" data-value="Edge" type="button">Edge</button>
+                    <button class="pick" data-value="DB Blitz" type="button">DB</button>
+                    <button class="pick" data-value="Zone Blitz" type="button">Zone</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Hash</label>
+                  <div class="pick-group" id="tagHash">
+                    <button class="pick" data-value="Left" type="button">Left</button>
+                    <button class="pick" data-value="Middle" type="button">Mid</button>
+                    <button class="pick" data-value="Right" type="button">Right</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Quarter</label>
+                  <div class="pick-group" id="tagQuarter">
+                    <button class="pick" data-value="Q1" type="button">Q1</button>
+                    <button class="pick" data-value="Q2" type="button">Q2</button>
+                    <button class="pick" data-value="Q3" type="button">Q3</button>
+                    <button class="pick" data-value="Q4" type="button">Q4</button>
+                    <button class="pick" data-value="OT" type="button">OT</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Field Position</label>
+                  <div class="chip-inline">
+                    <div class="pick-group" id="tagFieldSide">
+                      <button class="pick" data-value="own" type="button">Own</button>
+                      <button class="pick" data-value="opp" type="button">Opp</button>
+                    </div>
+                    <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" class="compact-input">
+                  </div>
+                </div>
+                <div class="chip-section chip-section-inline">
+                  <label class="chip-label">Drive</label>
+                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" class="compact-input">
+                  <button class="btn btn-sm btn-accent" id="btnNewDrive" type="button">New Drive</button>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Custom Tags</label>
+                  <div class="custom-tags-input">
+                    <div class="tag-chips" id="tagChips"></div>
+                    <input type="text" id="customTagInput" placeholder="Add tag + Enter" class="compact-input" style="width:100%">
+                  </div>
+                </div>
+              </details>
+
+              <div class="tag-nav">
+                <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
+                <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
+                <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
               </div>
             </div>
 
@@ -5845,6 +6026,39 @@ class CanvasOverlay {
 
 // ===== play-tagger.js =====
 /**
+ * ChipField — lightweight wrapper so a div.pick-group behaves like a
+ * <select> for the rest of the tagger: .value get/set, change events.
+ */
+class ChipField {
+  constructor(el) {
+    this.el = el;
+    this._value = '';
+    this._listeners = {};
+    this.chips = [...el.querySelectorAll('[data-value]')];
+    this.chips.forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        const v = chip.dataset.value;
+        this.value = this._value === v ? '' : v;
+        this._fire('change');
+      });
+    });
+  }
+  get value() { return this._value; }
+  set value(v) {
+    this._value = v || '';
+    this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
+  }
+  addEventListener(event, fn) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(fn);
+  }
+  _fire(event) {
+    (this._listeners[event] || []).forEach(fn => fn());
+  }
+}
+
+/**
  * PlayTagger - Manages play segmentation, categorization, and timeline display.
  */
 class PlayTagger {
@@ -5862,24 +6076,20 @@ class PlayTagger {
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
     this.timelineBar = document.getElementById('timelineBar');
 
-    // Tag form elements
-    this.tagFields = {
-      down: document.getElementById('tagDown'),
-      distance: document.getElementById('tagDistance'),
-      formation: document.getElementById('tagFormation'),
-      playType: document.getElementById('tagPlayType'),
-      defFront: document.getElementById('tagDefFront'),
-      coverage: document.getElementById('tagCoverage'),
-      blitz: document.getElementById('tagBlitz'),
-      result: document.getElementById('tagResult'),
-      yardage: document.getElementById('tagYardage'),
-      hash: document.getElementById('tagHash'),
-      quarter: document.getElementById('tagQuarter'),
-      yardLine: document.getElementById('tagYardLine'),
-      fieldSide: document.getElementById('tagFieldSide'),
-      personnel: document.getElementById('tagPersonnel'),
-      driveNumber: document.getElementById('tagDriveNumber'),
+    // Tag form elements — chip groups wrapped as ChipField, inputs used directly
+    const fieldMap = {
+      down: 'tagDown', distance: 'tagDistance', formation: 'tagFormation',
+      playType: 'tagPlayType', defFront: 'tagDefFront', coverage: 'tagCoverage',
+      blitz: 'tagBlitz', result: 'tagResult', yardage: 'tagYardage',
+      hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
+      fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
+      driveNumber: 'tagDriveNumber',
     };
+    this.tagFields = {};
+    for (const [key, id] of Object.entries(fieldMap)) {
+      const el = document.getElementById(id);
+      this.tagFields[key] = el?.classList.contains('pick-group') ? new ChipField(el) : el;
+    }
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
@@ -6061,8 +6271,26 @@ class PlayTagger {
   }
 
   _clearTagForm() {
-    Object.values(this.tagFields).forEach(el => el.value = '');
+    for (const el of Object.values(this.tagFields)) el.value = '';
     this.tagChips.innerHTML = '';
+  }
+
+  nextPlay() {
+    const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
+    if (idx >= 0 && idx < this.plays.length - 1) {
+      this.selectPlay(this.plays[idx + 1].id);
+      return true;
+    }
+    return false;
+  }
+
+  prevPlay() {
+    const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
+    if (idx > 0) {
+      this.selectPlay(this.plays[idx - 1].id);
+      return true;
+    }
+    return false;
   }
 
   _renderCustomTags(tags) {
@@ -12947,6 +13175,14 @@ class App {
       this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
     });
 
+    // Tag navigation & chip shortcuts
+    this._bindTagNav();
+
+    // Keep tagging progress updated
+    this.tagger.on('play-created', () => this._updateTagProgress());
+    this.tagger.on('play-deleted', () => this._updateTagProgress());
+    this.tagger.on('play-updated', () => this._updateTagProgress());
+
     // The single top-bar undo/redo also drives canvas annotation undo when
     // there's no play-data action left to undo (mirrors Ctrl+Z).
     this.history.onUndoEmpty = () => this.canvas.undo();
@@ -13019,6 +13255,9 @@ class App {
 
       // Let quick-chart handle its own keys when active
       if (this.quickChart.isActive) return;
+
+      // Tag shortcuts (play type, result, down via keyboard)
+      if (this._handleTagKey(e)) return;
 
       switch (e.code) {
         case 'Space':
@@ -13824,6 +14063,116 @@ class App {
     if (btn) {
       btn.addEventListener('click', () => this.storage.exportHtmlReport(this.stats));
     }
+  }
+
+  _bindTagNav() {
+    const btnPrev = document.getElementById('btnTagPrev');
+    const btnNext = document.getElementById('btnTagSaveNext');
+    const btnSkip = document.getElementById('btnTagSkip');
+    const yardsMinus = document.getElementById('yardsMinus');
+    const yardsPlus = document.getElementById('yardsPlus');
+    const yardsInput = document.getElementById('tagYardage');
+
+    btnPrev?.addEventListener('click', () => {
+      this.tagger.prevPlay();
+      this._autoPlayCurrent();
+    });
+    btnNext?.addEventListener('click', () => {
+      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+    });
+    btnSkip?.addEventListener('click', () => {
+      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+    });
+
+    yardsMinus?.addEventListener('click', () => {
+      const v = parseInt(yardsInput.value) || 0;
+      yardsInput.value = v - 1;
+      yardsInput.dispatchEvent(new Event('change'));
+    });
+    yardsPlus?.addEventListener('click', () => {
+      const v = parseInt(yardsInput.value) || 0;
+      yardsInput.value = v + 1;
+      yardsInput.dispatchEvent(new Event('change'));
+    });
+  }
+
+  _autoPlayCurrent() {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    const v = this.vc.videoElement || this.vc.video;
+    if (v) {
+      v.currentTime = play.timestamp.start;
+      v.play().catch(() => {});
+    }
+  }
+
+  _handleTagKey(e) {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return false;
+    if (!this.tagger.currentPlayId) return false;
+
+    const keyMap = {
+      'KeyR': ['playType', 'Run Inside'],
+      'KeyO': ['playType', 'Run Outside'],
+      'KeyS': ['playType', 'Screen'],
+      'KeyP': ['playType', 'Short Pass'],
+      'KeyM': ['playType', 'Medium Pass'],
+      'KeyD': ['playType', 'Deep Pass'],
+      'KeyA': ['playType', 'Play Action'],
+      'KeyQ': ['playType', 'RPO'],
+      'KeyX': ['playType', 'Trick Play'],
+      'KeyG': ['result', 'Gain'],
+      'KeyL': ['result', 'Loss'],
+      'KeyN': ['result', 'No Gain'],
+      'KeyI': ['result', 'Incomplete'],
+      'KeyT': ['result', 'Touchdown'],
+      'KeyW': ['result', 'Sack'],
+      'KeyU': ['result', 'Interception'],
+      'KeyF': ['result', 'Fumble'],
+      'KeyE': ['result', 'Penalty'],
+      'KeyK': ['result', 'Punt'],
+    };
+
+    if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      return true;
+    }
+
+    if (e.shiftKey && e.code >= 'Digit1' && e.code <= 'Digit4') {
+      e.preventDefault();
+      const down = e.code.replace('Digit', '');
+      const tf = this.tagger.tagFields.down;
+      if (tf) {
+        tf.value = tf.value === down ? '' : down;
+        this.tagger._saveCurrentTags();
+      }
+      return true;
+    }
+
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+
+    const mapped = keyMap[e.code];
+    if (!mapped) return false;
+
+    e.preventDefault();
+    const [field, value] = mapped;
+    const tf = this.tagger.tagFields[field];
+    if (tf) {
+      tf.value = tf.value === value ? '' : value;
+      this.tagger._saveCurrentTags();
+    }
+    return true;
+  }
+
+  _updateTagProgress() {
+    const label = document.getElementById('tagProgressLabel');
+    const fill = document.getElementById('tagProgressFill');
+    if (!label || !fill) return;
+    const total = this.tagger.plays.length;
+    const tagged = this.tagger.plays.filter(p => p.tags.playType && p.tags.result).length;
+    label.textContent = `${tagged} / ${total} tagged`;
+    fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
   }
 
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {
