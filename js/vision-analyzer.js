@@ -199,6 +199,29 @@ Look at pre-snap frame for formation/personnel. Estimate yardage from player mov
 
   // ----- Response parsing -----------------------------------------------
 
+  /**
+   * Allowed values for each enum field — must match the <option> values in
+   * index.html exactly. Any value Claude returns that isn't in this set is
+   * dropped, because assigning an unknown value to a <select> silently
+   * fails (the dropdown shows blank) while still polluting play.tags and,
+   * downstream, the stats engine and CSV export.
+   */
+  static get ALLOWED() {
+    return {
+      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Empty', 'Wildcat', 'Goal Line'],
+      personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
+      playType: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play'],
+      result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Kneel', 'Spike'],
+      hash: ['Left', 'Middle', 'Right'],
+      defFront: ['4-3', '3-4', 'Nickel', 'Dime', 'Quarter', '4-6'],
+      coverage: ['Cover 0', 'Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 6', 'Man', 'Zone'],
+      blitz: ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'],
+      fieldSide: ['own', 'opp'],
+      down: ['1', '2', '3', '4'],
+      quarter: ['Q1', 'Q2', 'Q3', 'Q4', 'OT'],
+    };
+  }
+
   _parseResponse(text) {
     // Extract JSON from the response (handle markdown code blocks)
     let jsonStr = text;
@@ -216,6 +239,8 @@ Look at pre-snap frame for formation/personnel. Estimate yardage from player mov
 
     const confidence = parsed.confidence || {};
     const reasons = parsed.reasons || {};
+    const allowed = VisionAnalyzer.ALLOWED;
+    const numericFields = new Set(['yardage', 'yardLine', 'distance']);
 
     const tags = {};
     const tagFields = [
@@ -223,12 +248,35 @@ Look at pre-snap frame for formation/personnel. Estimate yardage from player mov
       'hash', 'defFront', 'coverage', 'blitz',
       'fieldSide', 'yardLine', 'down', 'distance', 'quarter',
     ];
+    const dropped = [];
     for (const k of tagFields) {
       let v = parsed[k];
-      if (v !== undefined && v !== null && v !== '') {
-        if (k === 'blitz' && v === 'None') v = '';
-        if (v !== '') tags[k] = String(v);
+      if (v === undefined || v === null || v === '') continue;
+      // Blitz "None" is the model's way of saying "no blitz" → empty field.
+      if (k === 'blitz' && v === 'None') continue;
+
+      if (numericFields.has(k)) {
+        const n = Math.round(Number(v));
+        if (Number.isFinite(n)) tags[k] = String(n);
+        continue;
       }
+
+      const enumValues = allowed[k];
+      if (enumValues) {
+        // Exact match wins; otherwise try a case/format-insensitive match
+        // before giving up, so "cover 2" or "i form" still resolve.
+        const exact = enumValues.find(opt => opt === String(v));
+        const fuzzy = exact || enumValues.find(opt =>
+          opt.toLowerCase().replace(/[\s-]/g, '') === String(v).toLowerCase().replace(/[\s-]/g, ''));
+        if (fuzzy) tags[k] = fuzzy;
+        else dropped.push(`${k}="${v}"`);
+        continue;
+      }
+
+      tags[k] = String(v);
+    }
+    if (dropped.length) {
+      console.warn('[FFA vision] dropped non-matching values:', dropped.join(', '));
     }
 
     return { tags, confidence, reasons, extras: { model: this.model } };

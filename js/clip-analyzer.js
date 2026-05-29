@@ -89,7 +89,10 @@ export class ClipAnalyzer {
     let formationReason = '';
     if (n >= 2) {
       if (avgSpread > 0.32) {
-        formation = 'Spread';
+        // Wide pre-snap spread → almost always a shotgun look. ('Spread'
+        // is not a valid formation option, so we must map to a real one
+        // or the dropdown silently rejects it and stats get a junk value.)
+        formation = 'Shotgun';
         formationConf = Math.min(0.7, 0.3 + avgSpread);
         formationReason = `wide pre-snap spread (${avgSpread.toFixed(2)})`;
       } else if (avgCy < 0.42) {

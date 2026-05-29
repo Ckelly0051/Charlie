@@ -641,7 +641,12 @@ class App {
       const a = analyses[i];
       if (!a || !a.tags) continue;
       for (const [k, v] of Object.entries(a.tags)) {
-        if (v && (!play.tags[k] || play.tags[k] === '')) {
+        // A field is "empty" if blank, or if it's still at its markEnd()
+        // default. fieldSide defaults to 'own', so without this the AI's
+        // opp-side determination would always be discarded.
+        const isDefault = !play.tags[k] || play.tags[k] === ''
+          || (k === 'fieldSide' && play.tags[k] === 'own');
+        if (v && isDefault) {
           play.tags[k] = v;
           stamped++;
         }
@@ -884,6 +889,10 @@ class App {
     });
     const apiKeyEl = document.getElementById('gameApiKey');
     if (apiKeyEl) {
+      // Restore a previously saved key on startup so the field matches the
+      // analyzer state (the badge already reflects it via the constructor).
+      const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
+      if (savedKey) apiKeyEl.value = savedKey;
       apiKeyEl.addEventListener('change', () => this._saveApiKey());
       apiKeyEl.addEventListener('blur', () => this._saveApiKey());
     }
