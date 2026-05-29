@@ -1,4 +1,37 @@
 /**
+ * ChipField — lightweight wrapper so a div.pick-group behaves like a
+ * <select> for the rest of the tagger: .value get/set, change events.
+ */
+class ChipField {
+  constructor(el) {
+    this.el = el;
+    this._value = '';
+    this._listeners = {};
+    this.chips = [...el.querySelectorAll('[data-value]')];
+    this.chips.forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        const v = chip.dataset.value;
+        this.value = this._value === v ? '' : v;
+        this._fire('change');
+      });
+    });
+  }
+  get value() { return this._value; }
+  set value(v) {
+    this._value = v || '';
+    this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
+  }
+  addEventListener(event, fn) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(fn);
+  }
+  _fire(event) {
+    (this._listeners[event] || []).forEach(fn => fn());
+  }
+}
+
+/**
  * PlayTagger - Manages play segmentation, categorization, and timeline display.
  */
 export class PlayTagger {
@@ -16,24 +49,20 @@ export class PlayTagger {
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
     this.timelineBar = document.getElementById('timelineBar');
 
-    // Tag form elements
-    this.tagFields = {
-      down: document.getElementById('tagDown'),
-      distance: document.getElementById('tagDistance'),
-      formation: document.getElementById('tagFormation'),
-      playType: document.getElementById('tagPlayType'),
-      defFront: document.getElementById('tagDefFront'),
-      coverage: document.getElementById('tagCoverage'),
-      blitz: document.getElementById('tagBlitz'),
-      result: document.getElementById('tagResult'),
-      yardage: document.getElementById('tagYardage'),
-      hash: document.getElementById('tagHash'),
-      quarter: document.getElementById('tagQuarter'),
-      yardLine: document.getElementById('tagYardLine'),
-      fieldSide: document.getElementById('tagFieldSide'),
-      personnel: document.getElementById('tagPersonnel'),
-      driveNumber: document.getElementById('tagDriveNumber'),
+    // Tag form elements — chip groups wrapped as ChipField, inputs used directly
+    const fieldMap = {
+      down: 'tagDown', distance: 'tagDistance', formation: 'tagFormation',
+      playType: 'tagPlayType', defFront: 'tagDefFront', coverage: 'tagCoverage',
+      blitz: 'tagBlitz', result: 'tagResult', yardage: 'tagYardage',
+      hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
+      fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
+      driveNumber: 'tagDriveNumber',
     };
+    this.tagFields = {};
+    for (const [key, id] of Object.entries(fieldMap)) {
+      const el = document.getElementById(id);
+      this.tagFields[key] = el?.classList.contains('pick-group') ? new ChipField(el) : el;
+    }
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
@@ -215,8 +244,26 @@ export class PlayTagger {
   }
 
   _clearTagForm() {
-    Object.values(this.tagFields).forEach(el => el.value = '');
+    for (const el of Object.values(this.tagFields)) el.value = '';
     this.tagChips.innerHTML = '';
+  }
+
+  nextPlay() {
+    const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
+    if (idx >= 0 && idx < this.plays.length - 1) {
+      this.selectPlay(this.plays[idx + 1].id);
+      return true;
+    }
+    return false;
+  }
+
+  prevPlay() {
+    const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
+    if (idx > 0) {
+      this.selectPlay(this.plays[idx - 1].id);
+      return true;
+    }
+    return false;
   }
 
   _renderCustomTags(tags) {

@@ -91,6 +91,14 @@ class App {
       this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
     });
 
+    // Tag navigation & chip shortcuts
+    this._bindTagNav();
+
+    // Keep tagging progress updated
+    this.tagger.on('play-created', () => this._updateTagProgress());
+    this.tagger.on('play-deleted', () => this._updateTagProgress());
+    this.tagger.on('play-updated', () => this._updateTagProgress());
+
     // The single top-bar undo/redo also drives canvas annotation undo when
     // there's no play-data action left to undo (mirrors Ctrl+Z).
     this.history.onUndoEmpty = () => this.canvas.undo();
@@ -163,6 +171,9 @@ class App {
 
       // Let quick-chart handle its own keys when active
       if (this.quickChart.isActive) return;
+
+      // Tag shortcuts (play type, result, down via keyboard)
+      if (this._handleTagKey(e)) return;
 
       switch (e.code) {
         case 'Space':
@@ -968,6 +979,116 @@ class App {
     if (btn) {
       btn.addEventListener('click', () => this.storage.exportHtmlReport(this.stats));
     }
+  }
+
+  _bindTagNav() {
+    const btnPrev = document.getElementById('btnTagPrev');
+    const btnNext = document.getElementById('btnTagSaveNext');
+    const btnSkip = document.getElementById('btnTagSkip');
+    const yardsMinus = document.getElementById('yardsMinus');
+    const yardsPlus = document.getElementById('yardsPlus');
+    const yardsInput = document.getElementById('tagYardage');
+
+    btnPrev?.addEventListener('click', () => {
+      this.tagger.prevPlay();
+      this._autoPlayCurrent();
+    });
+    btnNext?.addEventListener('click', () => {
+      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+    });
+    btnSkip?.addEventListener('click', () => {
+      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+    });
+
+    yardsMinus?.addEventListener('click', () => {
+      const v = parseInt(yardsInput.value) || 0;
+      yardsInput.value = v - 1;
+      yardsInput.dispatchEvent(new Event('change'));
+    });
+    yardsPlus?.addEventListener('click', () => {
+      const v = parseInt(yardsInput.value) || 0;
+      yardsInput.value = v + 1;
+      yardsInput.dispatchEvent(new Event('change'));
+    });
+  }
+
+  _autoPlayCurrent() {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    const v = this.vc.videoElement || this.vc.video;
+    if (v) {
+      v.currentTime = play.timestamp.start;
+      v.play().catch(() => {});
+    }
+  }
+
+  _handleTagKey(e) {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return false;
+    if (!this.tagger.currentPlayId) return false;
+
+    const keyMap = {
+      'KeyR': ['playType', 'Run Inside'],
+      'KeyO': ['playType', 'Run Outside'],
+      'KeyS': ['playType', 'Screen'],
+      'KeyP': ['playType', 'Short Pass'],
+      'KeyM': ['playType', 'Medium Pass'],
+      'KeyD': ['playType', 'Deep Pass'],
+      'KeyA': ['playType', 'Play Action'],
+      'KeyQ': ['playType', 'RPO'],
+      'KeyX': ['playType', 'Trick Play'],
+      'KeyG': ['result', 'Gain'],
+      'KeyL': ['result', 'Loss'],
+      'KeyN': ['result', 'No Gain'],
+      'KeyI': ['result', 'Incomplete'],
+      'KeyT': ['result', 'Touchdown'],
+      'KeyW': ['result', 'Sack'],
+      'KeyU': ['result', 'Interception'],
+      'KeyF': ['result', 'Fumble'],
+      'KeyE': ['result', 'Penalty'],
+      'KeyK': ['result', 'Punt'],
+    };
+
+    if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      return true;
+    }
+
+    if (e.shiftKey && e.code >= 'Digit1' && e.code <= 'Digit4') {
+      e.preventDefault();
+      const down = e.code.replace('Digit', '');
+      const tf = this.tagger.tagFields.down;
+      if (tf) {
+        tf.value = tf.value === down ? '' : down;
+        this.tagger._saveCurrentTags();
+      }
+      return true;
+    }
+
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+
+    const mapped = keyMap[e.code];
+    if (!mapped) return false;
+
+    e.preventDefault();
+    const [field, value] = mapped;
+    const tf = this.tagger.tagFields[field];
+    if (tf) {
+      tf.value = tf.value === value ? '' : value;
+      this.tagger._saveCurrentTags();
+    }
+    return true;
+  }
+
+  _updateTagProgress() {
+    const label = document.getElementById('tagProgressLabel');
+    const fill = document.getElementById('tagProgressFill');
+    if (!label || !fill) return;
+    const total = this.tagger.plays.length;
+    const tagged = this.tagger.plays.filter(p => p.tags.playType && p.tags.result).length;
+    label.textContent = `${tagged} / ${total} tagged`;
+    fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
   }
 
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {

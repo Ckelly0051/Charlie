@@ -481,170 +481,180 @@
               </select>
             </div>
             <div class="tag-form" id="tagForm">
-              <div class="tag-row">
-                <label>Down &amp; Distance</label>
-                <div class="tag-row-inline">
-                  <select id="tagDown">
-                    <option value="">--</option>
-                    <option value="1">1st</option>
-                    <option value="2">2nd</option>
-                    <option value="3">3rd</option>
-                    <option value="4">4th</option>
-                  </select>
-                  <span>&amp;</span>
-                  <input type="number" id="tagDistance" placeholder="Yds" min="0" max="99">
+              <div class="tag-progress-row">
+                <span id="tagProgressLabel">0 / 0 tagged</span>
+                <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
+              </div>
+
+              <div class="chip-section">
+                <label class="chip-label">Play Type</label>
+                <div class="pick-group" id="tagPlayType">
+                  <button class="pick" data-value="Run Inside" type="button">Run In<kbd>R</kbd></button>
+                  <button class="pick" data-value="Run Outside" type="button">Run Out<kbd>O</kbd></button>
+                  <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
+                  <button class="pick" data-value="Short Pass" type="button">Short<kbd>P</kbd></button>
+                  <button class="pick" data-value="Medium Pass" type="button">Med<kbd>M</kbd></button>
+                  <button class="pick" data-value="Deep Pass" type="button">Deep<kbd>D</kbd></button>
+                  <button class="pick" data-value="Play Action" type="button">PA<kbd>A</kbd></button>
+                  <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
+                  <button class="pick pick-sm" data-value="Trick Play" type="button">Trick<kbd>X</kbd></button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Quarter</label>
-                <select id="tagQuarter">
-                  <option value="">--</option>
-                  <option value="Q1">Q1</option>
-                  <option value="Q2">Q2</option>
-                  <option value="Q3">Q3</option>
-                  <option value="Q4">Q4</option>
-                  <option value="OT">OT</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Field Position</label>
-                <div class="tag-row-inline">
-                  <select id="tagFieldSide" style="width:70px">
-                    <option value="own">Own</option>
-                    <option value="opp">Opp</option>
-                  </select>
-                  <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" style="width:55px">
+
+              <div class="chip-section">
+                <label class="chip-label">Result</label>
+                <div class="pick-group" id="tagResult">
+                  <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
+                  <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
+                  <button class="pick" data-value="No Gain" type="button">None<kbd>N</kbd></button>
+                  <button class="pick" data-value="Incomplete" type="button">Inc<kbd>I</kbd></button>
+                  <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
+                  <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
+                  <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
+                  <button class="pick" data-value="Fumble" type="button">Fum<kbd>F</kbd></button>
+                  <button class="pick pick-sm" data-value="Penalty" type="button">Pen<kbd>E</kbd></button>
+                  <button class="pick pick-sm" data-value="Punt" type="button">Punt</button>
+                  <button class="pick pick-sm" data-value="Field Goal" type="button">FG</button>
+                  <button class="pick pick-sm" data-value="Kneel" type="button">Kneel</button>
+                  <button class="pick pick-sm" data-value="Spike" type="button">Spike</button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Formation</label>
-                <select id="tagFormation">
-                  <option value="">--</option>
-                  <option>Shotgun</option>
-                  <option>Under Center</option>
-                  <option>Pistol</option>
-                  <option>I-Form</option>
-                  <option>Singleback</option>
-                  <option>Empty</option>
-                  <option>Wildcat</option>
-                  <option>Goal Line</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Personnel</label>
-                <select id="tagPersonnel">
-                  <option value="">--</option>
-                  <option value="00">00 (5 WR)</option>
-                  <option value="10">10 (4 WR, 1 RB)</option>
-                  <option value="11">11 (3 WR, 1 RB, 1 TE)</option>
-                  <option value="12">12 (2 WR, 1 RB, 2 TE)</option>
-                  <option value="13">13 (1 WR, 1 RB, 3 TE)</option>
-                  <option value="20">20 (3 WR, 2 RB)</option>
-                  <option value="21">21 (2 WR, 2 RB, 1 TE)</option>
-                  <option value="22">22 (1 WR, 2 RB, 2 TE)</option>
-                  <option value="23">23 (0 WR, 2 RB, 3 TE)</option>
-                  <option value="Jumbo">Jumbo</option>
-                  <option value="Goal Line">Goal Line</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Play Type</label>
-                <select id="tagPlayType">
-                  <option value="">--</option>
-                  <option>Run Inside</option>
-                  <option>Run Outside</option>
-                  <option>Screen</option>
-                  <option>Short Pass</option>
-                  <option>Medium Pass</option>
-                  <option>Deep Pass</option>
-                  <option>Play Action</option>
-                  <option>RPO</option>
-                  <option>Trick Play</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Drive #</label>
-                <div class="tag-row-inline">
-                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" style="width:55px">
-                  <button class="btn btn-sm btn-accent" id="btnNewDrive" title="Start New Drive">New Drive</button>
+
+              <div class="chip-section chip-section-inline">
+                <label class="chip-label">Yards</label>
+                <div class="yards-row">
+                  <button class="btn-nudge" id="yardsMinus" type="button">−</button>
+                  <input type="number" id="tagYardage" min="-99" max="99" placeholder="0" class="yards-input">
+                  <button class="btn-nudge" id="yardsPlus" type="button">+</button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Defensive Front</label>
-                <select id="tagDefFront">
-                  <option value="">--</option>
-                  <option>4-3</option>
-                  <option>3-4</option>
-                  <option>Nickel</option>
-                  <option>Dime</option>
-                  <option>Quarter</option>
-                  <option>4-6</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Coverage</label>
-                <select id="tagCoverage">
-                  <option value="">--</option>
-                  <option>Cover 0</option>
-                  <option>Cover 1</option>
-                  <option>Cover 2</option>
-                  <option>Cover 3</option>
-                  <option>Cover 4</option>
-                  <option>Cover 6</option>
-                  <option>Man</option>
-                  <option>Zone</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Blitz</label>
-                <div class="tag-row-inline">
-                  <select id="tagBlitz">
-                    <option value="">None</option>
-                    <option>A-Gap</option>
-                    <option>B-Gap</option>
-                    <option>Edge</option>
-                    <option>DB Blitz</option>
-                    <option>Zone Blitz</option>
-                  </select>
+
+              <div class="chip-section">
+                <label class="chip-label">Down &amp; Distance</label>
+                <div class="chip-inline">
+                  <div class="pick-group" id="tagDown">
+                    <button class="pick" data-value="1" type="button">1st</button>
+                    <button class="pick" data-value="2" type="button">2nd</button>
+                    <button class="pick" data-value="3" type="button">3rd</button>
+                    <button class="pick" data-value="4" type="button">4th</button>
+                  </div>
+                  <span class="chip-sep">&amp;</span>
+                  <input type="number" id="tagDistance" placeholder="Dist" min="0" max="99" class="compact-input">
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Result</label>
-                <div class="tag-row-inline">
-                  <select id="tagResult">
-                    <option value="">--</option>
-                    <option>Gain</option>
-                    <option>Loss</option>
-                    <option>No Gain</option>
-                    <option>Incomplete</option>
-                    <option>Interception</option>
-                    <option>Touchdown</option>
-                    <option>Sack</option>
-                    <option>Fumble</option>
-                    <option>Penalty</option>
-                    <option>Punt</option>
-                    <option>Field Goal</option>
-                    <option>Kneel</option>
-                    <option>Spike</option>
-                  </select>
-                  <input type="number" id="tagYardage" placeholder="Yds" min="-99" max="99">
+
+              <div class="chip-section">
+                <label class="chip-label">Formation</label>
+                <div class="pick-group" id="tagFormation">
+                  <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                  <button class="pick" data-value="Under Center" type="button">Under C</button>
+                  <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                  <button class="pick" data-value="I-Form" type="button">I-Form</button>
+                  <button class="pick" data-value="Singleback" type="button">Single</button>
+                  <button class="pick" data-value="Empty" type="button">Empty</button>
+                  <button class="pick pick-sm" data-value="Wildcat" type="button">Wildcat</button>
+                  <button class="pick pick-sm" data-value="Goal Line" type="button">Goal Ln</button>
                 </div>
               </div>
-              <div class="tag-row">
-                <label>Hash</label>
-                <select id="tagHash">
-                  <option value="">--</option>
-                  <option>Left</option>
-                  <option>Middle</option>
-                  <option>Right</option>
-                </select>
-              </div>
-              <div class="tag-row">
-                <label>Custom Tags</label>
-                <div class="custom-tags-input">
-                  <div class="tag-chips" id="tagChips"></div>
-                  <input type="text" id="customTagInput" placeholder="Add tag + Enter">
+
+              <details class="chip-details">
+                <summary>Defense &amp; Details</summary>
+                <div class="chip-section">
+                  <label class="chip-label">Personnel</label>
+                  <div class="pick-group" id="tagPersonnel">
+                    <button class="pick" data-value="11" type="button">11</button>
+                    <button class="pick" data-value="12" type="button">12</button>
+                    <button class="pick" data-value="21" type="button">21</button>
+                    <button class="pick" data-value="22" type="button">22</button>
+                    <button class="pick" data-value="10" type="button">10</button>
+                    <button class="pick" data-value="20" type="button">20</button>
+                    <button class="pick pick-sm" data-value="00" type="button">00</button>
+                    <button class="pick pick-sm" data-value="13" type="button">13</button>
+                    <button class="pick pick-sm" data-value="23" type="button">23</button>
+                    <button class="pick pick-sm" data-value="Jumbo" type="button">Jumbo</button>
+                    <button class="pick pick-sm" data-value="Goal Line" type="button">G.Line</button>
+                  </div>
                 </div>
+                <div class="chip-section">
+                  <label class="chip-label">Def Front</label>
+                  <div class="pick-group" id="tagDefFront">
+                    <button class="pick" data-value="4-3" type="button">4-3</button>
+                    <button class="pick" data-value="3-4" type="button">3-4</button>
+                    <button class="pick" data-value="Nickel" type="button">Nickel</button>
+                    <button class="pick" data-value="Dime" type="button">Dime</button>
+                    <button class="pick pick-sm" data-value="Quarter" type="button">Qtr</button>
+                    <button class="pick pick-sm" data-value="4-6" type="button">4-6</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Coverage</label>
+                  <div class="pick-group" id="tagCoverage">
+                    <button class="pick" data-value="Cover 0" type="button">C0</button>
+                    <button class="pick" data-value="Cover 1" type="button">C1</button>
+                    <button class="pick" data-value="Cover 2" type="button">C2</button>
+                    <button class="pick" data-value="Cover 3" type="button">C3</button>
+                    <button class="pick" data-value="Cover 4" type="button">C4</button>
+                    <button class="pick" data-value="Cover 6" type="button">C6</button>
+                    <button class="pick" data-value="Man" type="button">Man</button>
+                    <button class="pick" data-value="Zone" type="button">Zone</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Blitz</label>
+                  <div class="pick-group" id="tagBlitz">
+                    <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
+                    <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                    <button class="pick" data-value="Edge" type="button">Edge</button>
+                    <button class="pick" data-value="DB Blitz" type="button">DB</button>
+                    <button class="pick" data-value="Zone Blitz" type="button">Zone</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Hash</label>
+                  <div class="pick-group" id="tagHash">
+                    <button class="pick" data-value="Left" type="button">Left</button>
+                    <button class="pick" data-value="Middle" type="button">Mid</button>
+                    <button class="pick" data-value="Right" type="button">Right</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Quarter</label>
+                  <div class="pick-group" id="tagQuarter">
+                    <button class="pick" data-value="Q1" type="button">Q1</button>
+                    <button class="pick" data-value="Q2" type="button">Q2</button>
+                    <button class="pick" data-value="Q3" type="button">Q3</button>
+                    <button class="pick" data-value="Q4" type="button">Q4</button>
+                    <button class="pick" data-value="OT" type="button">OT</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Field Position</label>
+                  <div class="chip-inline">
+                    <div class="pick-group" id="tagFieldSide">
+                      <button class="pick" data-value="own" type="button">Own</button>
+                      <button class="pick" data-value="opp" type="button">Opp</button>
+                    </div>
+                    <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" class="compact-input">
+                  </div>
+                </div>
+                <div class="chip-section chip-section-inline">
+                  <label class="chip-label">Drive</label>
+                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" class="compact-input">
+                  <button class="btn btn-sm btn-accent" id="btnNewDrive" type="button">New Drive</button>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Custom Tags</label>
+                  <div class="custom-tags-input">
+                    <div class="tag-chips" id="tagChips"></div>
+                    <input type="text" id="customTagInput" placeholder="Add tag + Enter" class="compact-input" style="width:100%">
+                  </div>
+                </div>
+              </details>
+
+              <div class="tag-nav">
+                <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
+                <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
+                <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
               </div>
             </div>
 
