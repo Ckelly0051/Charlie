@@ -7,21 +7,21 @@
   <style>
 /* ===== CSS Custom Properties ===== */
 :root {
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --bg-tertiary: #16213e;
-  --bg-surface: #1e2a45;
-  --accent: #0f3460;
-  --accent-hover: #154a8a;
-  --highlight: #e94560;
-  --highlight-hover: #ff5a75;
-  --text: #e0e0e0;
-  --text-dim: #8899aa;
-  --text-bright: #ffffff;
-  --border: #2a3a55;
-  --success: #44ff44;
-  --warning: #ffaa00;
-  --danger: #ff4444;
+  --bg-primary: #1a1d23;
+  --bg-secondary: #22262e;
+  --bg-tertiary: #2a2f38;
+  --bg-surface: #32373f;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --highlight: #3b82f6;
+  --highlight-hover: #60a5fa;
+  --text: #d4d4d8;
+  --text-dim: #71717a;
+  --text-bright: #fafafa;
+  --border: #3f3f46;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
   --radius: 6px;
   --radius-sm: 4px;
   --transition: 150ms ease;
@@ -611,7 +611,7 @@ body {
 }
 .pick kbd {
   font-size: 8px;
-  color: #556a8e;
+  color: var(--text-dim);
   padding: 0 2px;
   border: 1px solid var(--border);
   border-radius: 2px;
@@ -2073,7 +2073,7 @@ body {
 }
 .version-controls input {
   flex: 1;
-  background: #1a1a2e;
+  background: #22262e;
   border: 1px solid #2d3454;
   color: #e0e0e0;
   padding: 4px 8px;
@@ -2098,12 +2098,12 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #1a1a2e;
+  background: #22262e;
   border-radius: 3px;
   border-left: 3px solid #2d3454;
 }
 .version-row.manual {
-  border-left-color: #e94560;
+  border-left-color: #3b82f6;
 }
 .version-info {
   flex: 1;
@@ -2140,7 +2140,7 @@ body {
   color: #fff;
   padding: 10px 18px;
   border-radius: 6px;
-  border: 1px solid #e94560;
+  border: 1px solid #3b82f6;
   font-size: 13px;
   font-weight: 500;
   pointer-events: none;
@@ -2166,7 +2166,7 @@ body {
 
 /* ===== Scoreboard OCR & Suggestions ===== */
 .ocr-section {
-  background: #1a1a2e;
+  background: #22262e;
   border: 1px solid #2d3454;
   border-radius: 4px;
   padding: 8px;
@@ -2197,7 +2197,7 @@ body {
 .ocr-preview { margin-top: 6px; }
 .ocr-preview:empty { display: none; }
 .ocr-fields {
-  background: #0f3460;
+  background: #2a2f38;
   padding: 6px 8px;
   border-radius: 3px;
   font-size: 12px;
@@ -2231,10 +2231,10 @@ body {
 
 .field-suggested {
   animation: fieldFlash 1.2s ease;
-  outline: 2px solid #ffaa00 !important;
+  outline: 2px solid #f59e0b !important;
 }
 @keyframes fieldFlash {
-  0% { background-color: #ffaa00; color: #000; }
+  0% { background-color: #f59e0b; color: #000; }
   100% { background-color: transparent; }
 }
 
@@ -2251,7 +2251,7 @@ body {
   justify-content: center;
 }
 .cutup-modal {
-  background: #16213e;
+  background: #2a2f38;
   border: 1px solid #2d3454;
   border-radius: 8px;
   padding: 24px 32px;
@@ -2261,7 +2261,7 @@ body {
 }
 .cutup-modal h3 {
   margin: 0 0 12px;
-  color: #e94560;
+  color: #3b82f6;
 }
 .cutup-info {
   color: #e0e0e0;
@@ -2270,14 +2270,14 @@ body {
   min-height: 18px;
 }
 .cutup-bar {
-  background: #1a1a2e;
+  background: #22262e;
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
   margin-bottom: 8px;
 }
 .cutup-bar-fill {
-  background: linear-gradient(90deg, #e94560, #ffaa00);
+  background: linear-gradient(90deg, #3b82f6, #f59e0b);
   height: 100%;
   width: 0%;
   transition: width 0.3s ease;
@@ -2311,8 +2311,8 @@ body {
 }
 .hm-tab:hover { color: #ccc; }
 .hm-tab.active {
-  color: #e94560;
-  border-bottom-color: #e94560;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 .hm-panel { display: none; }
 .hm-panel.active { display: block; }
@@ -2363,7 +2363,7 @@ body {
   color: #e0e0e0;
 }
 .dd-grid th, .fxp-grid th, .hash-grid th {
-  background: #0f3460;
+  background: #2a2f38;
   color: #fff;
   font-weight: 600;
 }
@@ -2401,7 +2401,7 @@ body {
   padding: 20px;
 }
 .season-modal {
-  background: #16213e;
+  background: #2a2f38;
   border-radius: 8px;
   width: 100%;
   max-width: 1300px;
@@ -2418,12 +2418,12 @@ body {
   gap: 10px;
   position: sticky;
   top: 0;
-  background: #16213e;
+  background: #2a2f38;
   z-index: 10;
 }
 .season-header h2 {
   margin: 0;
-  color: #e94560;
+  color: #3b82f6;
   font-size: 22px;
 }
 .season-header-actions {
@@ -2448,7 +2448,7 @@ body {
   padding: 16px;
 }
 .season-game-row {
-  background: #1a1a2e;
+  background: #22262e;
   border: 1px solid #2d3454;
   border-radius: 4px;
   padding: 8px 10px;
@@ -2497,7 +2497,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  background: linear-gradient(135deg, #0f3460, #16213e);
+  background: linear-gradient(135deg, #2a2f38, #2a2f38);
   padding: 16px 20px;
   border-radius: 6px;
   margin-bottom: 18px;
@@ -2548,7 +2548,7 @@ body {
 .trend-bar {
   flex: 1;
   height: 12px;
-  background: #1a1a2e;
+  background: #22262e;
   border-radius: 2px;
   overflow: hidden;
   border: 1px solid #2d3454;
@@ -2570,8 +2570,8 @@ body {
 }
 .self-scout li {
   padding: 8px 12px;
-  background: #1a1a2e;
-  border-left: 3px solid #ffaa00;
+  background: #22262e;
+  border-left: 3px solid #f59e0b;
   margin: 4px 0;
   border-radius: 3px;
   font-size: 13px;
@@ -2582,7 +2582,7 @@ body {
   border-left-color: #44aa44;
   color: #aaa;
 }
-.self-scout li b { color: #e94560; }
+.self-scout li b { color: #3b82f6; }
 .self-scout-intro {
   font-size: 12px;
   color: #888;
@@ -2613,7 +2613,7 @@ body {
 .epa-curve-wrap {
   margin: 12px 0 8px;
   background: rgba(0,0,0,0.25);
-  border: 1px solid #333;
+  border: 1px solid #3f3f46;
   border-radius: 6px;
   padding: 6px;
 }
@@ -2631,12 +2631,12 @@ body {
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 .cs-container {
-  background: #1a1a2e; border: 1px solid #333; border-radius: 8px;
+  background: #22262e; border: 1px solid #3f3f46; border-radius: 8px;
   width: 92vw; max-width: 1100px; max-height: 92vh; display: flex; flex-direction: column;
 }
 .cs-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; border-bottom: 1px solid #333;
+  padding: 12px 16px; border-bottom: 1px solid #3f3f46;
 }
 .cs-header h2 { margin: 0; font-size: 18px; }
 .cs-header-actions { display: flex; gap: 8px; }
@@ -2649,16 +2649,16 @@ body {
 }
 .cs-config .cs-row label { width: 90px; font-size: 12px; opacity: 0.8; }
 .cs-config .cs-row input, .cs-config .cs-row select {
-  flex: 1; background: #0f0f1e; color: #eee; border: 1px solid #333;
+  flex: 1; background: #1a1d23; color: #eee; border: 1px solid #3f3f46;
   padding: 4px 6px; border-radius: 4px; font-size: 12px;
 }
-.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #333; border-radius: 4px; padding: 6px; }
+.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 4px; padding: 6px; }
 .cs-bucket-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 3px 4px; font-size: 12px;
 }
 .cs-bucket-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.cs-bk-n { width: 48px; background: #0f0f1e; color: #eee; border: 1px solid #333; border-radius: 3px; padding: 2px 4px; }
+.cs-bk-n { width: 48px; background: #1a1d23; color: #eee; border: 1px solid #3f3f46; border-radius: 3px; padding: 2px 4px; }
 .cs-preview {
   background: #fff; border-radius: 4px; min-height: 400px;
   overflow: auto; padding: 0;
@@ -2680,7 +2680,7 @@ body {
   --bg-surface: #222e48;
   --accent: #1e4a8f;
   --accent-hover: #2563c4;
-  --highlight: #ef4766;
+  --highlight: #3b82f6;
   --highlight-hover: #ff5f7e;
   --border: #2c3a58;
   --border-bright: #3e5180;
@@ -2707,7 +2707,7 @@ body {
 .app-title {
   font-size: 13px;
   letter-spacing: 0.8px;
-  background: linear-gradient(90deg, #ef4766, #ffaa00);
+  background: linear-gradient(90deg, #3b82f6, #f59e0b);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4887,15 +4887,15 @@ body.qc-active .tw-reopen { display: none; }
               <div class="chip-section">
                 <label class="chip-label">Play Type</label>
                 <div class="pick-group" id="tagPlayType">
-                  <button class="pick" data-value="Run Inside" type="button">Run In<kbd>R</kbd></button>
-                  <button class="pick" data-value="Run Outside" type="button">Run Out<kbd>O</kbd></button>
+                  <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
+                  <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
                   <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
-                  <button class="pick" data-value="Short Pass" type="button">Short<kbd>P</kbd></button>
-                  <button class="pick" data-value="Medium Pass" type="button">Med<kbd>M</kbd></button>
-                  <button class="pick" data-value="Deep Pass" type="button">Deep<kbd>D</kbd></button>
-                  <button class="pick" data-value="Play Action" type="button">PA<kbd>A</kbd></button>
+                  <button class="pick" data-value="Short Pass" type="button">Short Pass<kbd>P</kbd></button>
+                  <button class="pick" data-value="Medium Pass" type="button">Med Pass<kbd>M</kbd></button>
+                  <button class="pick" data-value="Deep Pass" type="button">Deep Pass<kbd>D</kbd></button>
+                  <button class="pick" data-value="Play Action" type="button">Play Action<kbd>A</kbd></button>
                   <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
-                  <button class="pick pick-sm" data-value="Trick Play" type="button">Trick<kbd>X</kbd></button>
+                  <button class="pick" data-value="Trick Play" type="button">Trick Play<kbd>X</kbd></button>
                 </div>
               </div>
 
@@ -4904,17 +4904,17 @@ body.qc-active .tw-reopen { display: none; }
                 <div class="pick-group" id="tagResult">
                   <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
                   <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
-                  <button class="pick" data-value="No Gain" type="button">None<kbd>N</kbd></button>
-                  <button class="pick" data-value="Incomplete" type="button">Inc<kbd>I</kbd></button>
+                  <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>
+                  <button class="pick" data-value="Incomplete" type="button">Incomplete<kbd>I</kbd></button>
                   <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
                   <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
                   <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
-                  <button class="pick" data-value="Fumble" type="button">Fum<kbd>F</kbd></button>
-                  <button class="pick pick-sm" data-value="Penalty" type="button">Pen<kbd>E</kbd></button>
-                  <button class="pick pick-sm" data-value="Punt" type="button">Punt</button>
-                  <button class="pick pick-sm" data-value="Field Goal" type="button">FG</button>
-                  <button class="pick pick-sm" data-value="Kneel" type="button">Kneel</button>
-                  <button class="pick pick-sm" data-value="Spike" type="button">Spike</button>
+                  <button class="pick" data-value="Fumble" type="button">Fumble<kbd>F</kbd></button>
+                  <button class="pick" data-value="Penalty" type="button">Penalty<kbd>E</kbd></button>
+                  <button class="pick" data-value="Punt" type="button">Punt</button>
+                  <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                  <button class="pick" data-value="Kneel" type="button">Kneel</button>
+                  <button class="pick" data-value="Spike" type="button">Spike</button>
                 </div>
               </div>
 
@@ -4945,13 +4945,13 @@ body.qc-active .tw-reopen { display: none; }
                 <label class="chip-label">Formation</label>
                 <div class="pick-group" id="tagFormation">
                   <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
-                  <button class="pick" data-value="Under Center" type="button">Under C</button>
+                  <button class="pick" data-value="Under Center" type="button">Under Center</button>
                   <button class="pick" data-value="Pistol" type="button">Pistol</button>
                   <button class="pick" data-value="I-Form" type="button">I-Form</button>
-                  <button class="pick" data-value="Singleback" type="button">Single</button>
+                  <button class="pick" data-value="Singleback" type="button">Singleback</button>
                   <button class="pick" data-value="Empty" type="button">Empty</button>
-                  <button class="pick pick-sm" data-value="Wildcat" type="button">Wildcat</button>
-                  <button class="pick pick-sm" data-value="Goal Line" type="button">Goal Ln</button>
+                  <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
+                  <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                 </div>
               </div>
 
@@ -4966,11 +4966,11 @@ body.qc-active .tw-reopen { display: none; }
                     <button class="pick" data-value="22" type="button">22</button>
                     <button class="pick" data-value="10" type="button">10</button>
                     <button class="pick" data-value="20" type="button">20</button>
-                    <button class="pick pick-sm" data-value="00" type="button">00</button>
-                    <button class="pick pick-sm" data-value="13" type="button">13</button>
-                    <button class="pick pick-sm" data-value="23" type="button">23</button>
-                    <button class="pick pick-sm" data-value="Jumbo" type="button">Jumbo</button>
-                    <button class="pick pick-sm" data-value="Goal Line" type="button">G.Line</button>
+                    <button class="pick" data-value="00" type="button">00</button>
+                    <button class="pick" data-value="13" type="button">13</button>
+                    <button class="pick" data-value="23" type="button">23</button>
+                    <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
+                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -4980,19 +4980,19 @@ body.qc-active .tw-reopen { display: none; }
                     <button class="pick" data-value="3-4" type="button">3-4</button>
                     <button class="pick" data-value="Nickel" type="button">Nickel</button>
                     <button class="pick" data-value="Dime" type="button">Dime</button>
-                    <button class="pick pick-sm" data-value="Quarter" type="button">Qtr</button>
-                    <button class="pick pick-sm" data-value="4-6" type="button">4-6</button>
+                    <button class="pick" data-value="Quarter" type="button">Quarter</button>
+                    <button class="pick" data-value="4-6" type="button">4-6</button>
                   </div>
                 </div>
                 <div class="chip-section">
                   <label class="chip-label">Coverage</label>
                   <div class="pick-group" id="tagCoverage">
-                    <button class="pick" data-value="Cover 0" type="button">C0</button>
-                    <button class="pick" data-value="Cover 1" type="button">C1</button>
-                    <button class="pick" data-value="Cover 2" type="button">C2</button>
-                    <button class="pick" data-value="Cover 3" type="button">C3</button>
-                    <button class="pick" data-value="Cover 4" type="button">C4</button>
-                    <button class="pick" data-value="Cover 6" type="button">C6</button>
+                    <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
+                    <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
+                    <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
+                    <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
+                    <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
+                    <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
                     <button class="pick" data-value="Man" type="button">Man</button>
                     <button class="pick" data-value="Zone" type="button">Zone</button>
                   </div>
@@ -5003,15 +5003,15 @@ body.qc-active .tw-reopen { display: none; }
                     <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
                     <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
                     <button class="pick" data-value="Edge" type="button">Edge</button>
-                    <button class="pick" data-value="DB Blitz" type="button">DB</button>
-                    <button class="pick" data-value="Zone Blitz" type="button">Zone</button>
+                    <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
+                    <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
                   </div>
                 </div>
                 <div class="chip-section">
                   <label class="chip-label">Hash</label>
                   <div class="pick-group" id="tagHash">
                     <button class="pick" data-value="Left" type="button">Left</button>
-                    <button class="pick" data-value="Middle" type="button">Mid</button>
+                    <button class="pick" data-value="Middle" type="button">Middle</button>
                     <button class="pick" data-value="Right" type="button">Right</button>
                   </div>
                 </div>
@@ -6879,16 +6879,16 @@ class StorageManager {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
 body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1100px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #e94560;padding-bottom:8px}
-h3{color:#0f3460;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+h1{border-bottom:3px solid #3b82f6;padding-bottom:8px}
+h3{color:#3b82f6;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
 th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#0f3460;color:#fff}
+th{background:#3b82f6;color:#fff}
 tr:nth-child(even){background:#f4f4f8}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
 .stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
 .stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
-.stat-card-value{font-size:22px;font-weight:bold;color:#0f3460}
+.stat-card-value{font-size:22px;font-weight:bold;color:#3b82f6}
 .stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:24px;border-radius:4px;overflow:hidden;margin:8px 0}
@@ -10925,7 +10925,7 @@ class ScoreboardOCR {
     overlay.className = 'ocr-region-overlay';
     overlay.style.cssText = 'position:absolute;inset:0;cursor:crosshair;background:rgba(0,0,0,0.35);z-index:50';
     const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;border:2px solid #e94560;background:rgba(233,69,96,0.18);pointer-events:none';
+    box.style.cssText = 'position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.18);pointer-events:none';
     overlay.appendChild(box);
     this.videoContainer.appendChild(overlay);
 
@@ -11482,7 +11482,7 @@ class CutupExporter {
   async _drawTitleCard(ctx, W, H, p, n, total) {
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#e94560';
+    ctx.fillStyle = '#3b82f6';
     ctx.fillRect(0, H - 6, W, 6);
 
     ctx.fillStyle = '#fff';
@@ -11956,17 +11956,17 @@ class SeasonManager {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
 body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1200px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #e94560;padding-bottom:8px}
-h3{color:#0f3460;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+h1{border-bottom:3px solid #3b82f6;padding-bottom:8px}
+h3{color:#3b82f6;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
 th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#0f3460;color:#fff}
+th{background:#3b82f6;color:#fff}
 tr:nth-child(even){background:#f4f4f8}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
 .stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
 .stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
-.stat-card-value{font-size:22px;font-weight:bold;color:#0f3460}
-.season-summary{display:flex;flex-wrap:wrap;gap:18px;background:#0f3460;color:#fff;padding:14px;border-radius:6px;justify-content:space-around}
+.stat-card-value{font-size:22px;font-weight:bold;color:#3b82f6}
+.season-summary{display:flex;flex-wrap:wrap;gap:18px;background:#3b82f6;color:#fff;padding:14px;border-radius:6px;justify-content:space-around}
 .ss-num{font-size:24px;font-weight:bold}
 .ss-lbl{font-size:11px;opacity:.8;text-transform:uppercase}
 .trend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
@@ -11976,7 +11976,7 @@ tr:nth-child(even){background:#f4f4f8}
 .trend-bar div{height:100%}
 .trend-val{width:80px;text-align:right;color:#666}
 .self-scout li{margin:6px 0;line-height:1.4}
-.self-scout li b{color:#e94560}
+.self-scout li b{color:#3b82f6}
 </style></head><body>
 <h1>${title}</h1>
 <p style="color:#666">Generated ${new Date().toLocaleString()}</p>
@@ -13863,7 +13863,7 @@ class App {
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     // Background
-    ctx.fillStyle = '#16213e';
+    ctx.fillStyle = '#2a2f38';
     ctx.fillRect(0, 0, w, h);
 
     // Find max motion for scaling

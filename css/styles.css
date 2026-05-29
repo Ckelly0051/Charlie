@@ -1,20 +1,20 @@
 /* ===== CSS Custom Properties ===== */
 :root {
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --bg-tertiary: #16213e;
-  --bg-surface: #1e2a45;
-  --accent: #0f3460;
-  --accent-hover: #154a8a;
-  --highlight: #e94560;
-  --highlight-hover: #ff5a75;
-  --text: #e0e0e0;
-  --text-dim: #8899aa;
-  --text-bright: #ffffff;
-  --border: #2a3a55;
-  --success: #44ff44;
-  --warning: #ffaa00;
-  --danger: #ff4444;
+  --bg-primary: #1a1d23;
+  --bg-secondary: #22262e;
+  --bg-tertiary: #2a2f38;
+  --bg-surface: #32373f;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --highlight: #3b82f6;
+  --highlight-hover: #60a5fa;
+  --text: #d4d4d8;
+  --text-dim: #71717a;
+  --text-bright: #fafafa;
+  --border: #3f3f46;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
   --radius: 6px;
   --radius-sm: 4px;
   --transition: 150ms ease;
@@ -604,7 +604,7 @@ body {
 }
 .pick kbd {
   font-size: 8px;
-  color: #556a8e;
+  color: var(--text-dim);
   padding: 0 2px;
   border: 1px solid var(--border);
   border-radius: 2px;
@@ -2066,7 +2066,7 @@ body {
 }
 .version-controls input {
   flex: 1;
-  background: #1a1a2e;
+  background: #22262e;
   border: 1px solid #2d3454;
   color: #e0e0e0;
   padding: 4px 8px;
@@ -2091,12 +2091,12 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #1a1a2e;
+  background: #22262e;
   border-radius: 3px;
   border-left: 3px solid #2d3454;
 }
 .version-row.manual {
-  border-left-color: #e94560;
+  border-left-color: #3b82f6;
 }
 .version-info {
   flex: 1;
@@ -2133,7 +2133,7 @@ body {
   color: #fff;
   padding: 10px 18px;
   border-radius: 6px;
-  border: 1px solid #e94560;
+  border: 1px solid #3b82f6;
   font-size: 13px;
   font-weight: 500;
   pointer-events: none;
@@ -2159,7 +2159,7 @@ body {
 
 /* ===== Scoreboard OCR & Suggestions ===== */
 .ocr-section {
-  background: #1a1a2e;
+  background: #22262e;
   border: 1px solid #2d3454;
   border-radius: 4px;
   padding: 8px;
@@ -2190,7 +2190,7 @@ body {
 .ocr-preview { margin-top: 6px; }
 .ocr-preview:empty { display: none; }
 .ocr-fields {
-  background: #0f3460;
+  background: #2a2f38;
   padding: 6px 8px;
   border-radius: 3px;
   font-size: 12px;
@@ -2224,10 +2224,10 @@ body {
 
 .field-suggested {
   animation: fieldFlash 1.2s ease;
-  outline: 2px solid #ffaa00 !important;
+  outline: 2px solid #f59e0b !important;
 }
 @keyframes fieldFlash {
-  0% { background-color: #ffaa00; color: #000; }
+  0% { background-color: #f59e0b; color: #000; }
   100% { background-color: transparent; }
 }
 
@@ -2244,7 +2244,7 @@ body {
   justify-content: center;
 }
 .cutup-modal {
-  background: #16213e;
+  background: #2a2f38;
   border: 1px solid #2d3454;
   border-radius: 8px;
   padding: 24px 32px;
@@ -2254,7 +2254,7 @@ body {
 }
 .cutup-modal h3 {
   margin: 0 0 12px;
-  color: #e94560;
+  color: #3b82f6;
 }
 .cutup-info {
   color: #e0e0e0;
@@ -2263,14 +2263,14 @@ body {
   min-height: 18px;
 }
 .cutup-bar {
-  background: #1a1a2e;
+  background: #22262e;
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
   margin-bottom: 8px;
 }
 .cutup-bar-fill {
-  background: linear-gradient(90deg, #e94560, #ffaa00);
+  background: linear-gradient(90deg, #3b82f6, #f59e0b);
   height: 100%;
   width: 0%;
   transition: width 0.3s ease;
@@ -2304,8 +2304,8 @@ body {
 }
 .hm-tab:hover { color: #ccc; }
 .hm-tab.active {
-  color: #e94560;
-  border-bottom-color: #e94560;
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
 }
 .hm-panel { display: none; }
 .hm-panel.active { display: block; }
@@ -2356,7 +2356,7 @@ body {
   color: #e0e0e0;
 }
 .dd-grid th, .fxp-grid th, .hash-grid th {
-  background: #0f3460;
+  background: #2a2f38;
   color: #fff;
   font-weight: 600;
 }
@@ -2394,7 +2394,7 @@ body {
   padding: 20px;
 }
 .season-modal {
-  background: #16213e;
+  background: #2a2f38;
   border-radius: 8px;
   width: 100%;
   max-width: 1300px;
@@ -2411,12 +2411,12 @@ body {
   gap: 10px;
   position: sticky;
   top: 0;
-  background: #16213e;
+  background: #2a2f38;
   z-index: 10;
 }
 .season-header h2 {
   margin: 0;
-  color: #e94560;
+  color: #3b82f6;
   font-size: 22px;
 }
 .season-header-actions {
@@ -2441,7 +2441,7 @@ body {
   padding: 16px;
 }
 .season-game-row {
-  background: #1a1a2e;
+  background: #22262e;
   border: 1px solid #2d3454;
   border-radius: 4px;
   padding: 8px 10px;
@@ -2490,7 +2490,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  background: linear-gradient(135deg, #0f3460, #16213e);
+  background: linear-gradient(135deg, #2a2f38, #2a2f38);
   padding: 16px 20px;
   border-radius: 6px;
   margin-bottom: 18px;
@@ -2541,7 +2541,7 @@ body {
 .trend-bar {
   flex: 1;
   height: 12px;
-  background: #1a1a2e;
+  background: #22262e;
   border-radius: 2px;
   overflow: hidden;
   border: 1px solid #2d3454;
@@ -2563,8 +2563,8 @@ body {
 }
 .self-scout li {
   padding: 8px 12px;
-  background: #1a1a2e;
-  border-left: 3px solid #ffaa00;
+  background: #22262e;
+  border-left: 3px solid #f59e0b;
   margin: 4px 0;
   border-radius: 3px;
   font-size: 13px;
@@ -2575,7 +2575,7 @@ body {
   border-left-color: #44aa44;
   color: #aaa;
 }
-.self-scout li b { color: #e94560; }
+.self-scout li b { color: #3b82f6; }
 .self-scout-intro {
   font-size: 12px;
   color: #888;
@@ -2606,7 +2606,7 @@ body {
 .epa-curve-wrap {
   margin: 12px 0 8px;
   background: rgba(0,0,0,0.25);
-  border: 1px solid #333;
+  border: 1px solid #3f3f46;
   border-radius: 6px;
   padding: 6px;
 }
@@ -2624,12 +2624,12 @@ body {
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 .cs-container {
-  background: #1a1a2e; border: 1px solid #333; border-radius: 8px;
+  background: #22262e; border: 1px solid #3f3f46; border-radius: 8px;
   width: 92vw; max-width: 1100px; max-height: 92vh; display: flex; flex-direction: column;
 }
 .cs-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; border-bottom: 1px solid #333;
+  padding: 12px 16px; border-bottom: 1px solid #3f3f46;
 }
 .cs-header h2 { margin: 0; font-size: 18px; }
 .cs-header-actions { display: flex; gap: 8px; }
@@ -2642,16 +2642,16 @@ body {
 }
 .cs-config .cs-row label { width: 90px; font-size: 12px; opacity: 0.8; }
 .cs-config .cs-row input, .cs-config .cs-row select {
-  flex: 1; background: #0f0f1e; color: #eee; border: 1px solid #333;
+  flex: 1; background: #1a1d23; color: #eee; border: 1px solid #3f3f46;
   padding: 4px 6px; border-radius: 4px; font-size: 12px;
 }
-.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #333; border-radius: 4px; padding: 6px; }
+.cs-buckets { max-height: 300px; overflow-y: auto; border: 1px solid #3f3f46; border-radius: 4px; padding: 6px; }
 .cs-bucket-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 3px 4px; font-size: 12px;
 }
 .cs-bucket-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.cs-bk-n { width: 48px; background: #0f0f1e; color: #eee; border: 1px solid #333; border-radius: 3px; padding: 2px 4px; }
+.cs-bk-n { width: 48px; background: #1a1d23; color: #eee; border: 1px solid #3f3f46; border-radius: 3px; padding: 2px 4px; }
 .cs-preview {
   background: #fff; border-radius: 4px; min-height: 400px;
   overflow: auto; padding: 0;
@@ -2673,7 +2673,7 @@ body {
   --bg-surface: #222e48;
   --accent: #1e4a8f;
   --accent-hover: #2563c4;
-  --highlight: #ef4766;
+  --highlight: #3b82f6;
   --highlight-hover: #ff5f7e;
   --border: #2c3a58;
   --border-bright: #3e5180;
@@ -2700,7 +2700,7 @@ body {
 .app-title {
   font-size: 13px;
   letter-spacing: 0.8px;
-  background: linear-gradient(90deg, #ef4766, #ffaa00);
+  background: linear-gradient(90deg, #3b82f6, #f59e0b);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

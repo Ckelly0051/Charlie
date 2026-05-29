@@ -182,7 +182,7 @@ export class CutupExporter {
   async _drawTitleCard(ctx, W, H, p, n, total) {
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#e94560';
+    ctx.fillStyle = '#3b82f6';
     ctx.fillRect(0, H - 6, W, 6);
 
     ctx.fillStyle = '#fff';
