@@ -82,10 +82,11 @@ export class PlayTagger {
       if (id) this.selectPlay(id);
     });
 
-    // Tag form changes
-    Object.values(this.tagFields).forEach(el => {
-      el.addEventListener('change', () => this._saveCurrentTags());
-    });
+    // Tag form changes — save only the changed field, not all fields,
+    // so clicking one chip doesn't overwrite other fields with stale values.
+    for (const [key, el] of Object.entries(this.tagFields)) {
+      el.addEventListener('change', () => this._saveField(key));
+    }
 
     // New Drive button
     if (this.btnNewDrive) {
@@ -200,26 +201,20 @@ export class PlayTagger {
     return this.getPlay(this.currentPlayId);
   }
 
+  _saveField(key) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    play.tags[key] = this.tagFields[key].value;
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
-
-    play.tags.down = this.tagFields.down.value;
-    play.tags.distance = this.tagFields.distance.value;
-    play.tags.formation = this.tagFields.formation.value;
-    play.tags.playType = this.tagFields.playType.value;
-    play.tags.defFront = this.tagFields.defFront.value;
-    play.tags.coverage = this.tagFields.coverage.value;
-    play.tags.blitz = this.tagFields.blitz.value;
-    play.tags.result = this.tagFields.result.value;
-    play.tags.yardage = this.tagFields.yardage.value;
-    play.tags.hash = this.tagFields.hash.value;
-    play.tags.quarter = this.tagFields.quarter.value;
-    play.tags.yardLine = this.tagFields.yardLine.value;
-    play.tags.fieldSide = this.tagFields.fieldSide.value;
-    play.tags.personnel = this.tagFields.personnel.value;
-    play.tags.driveNumber = this.tagFields.driveNumber.value;
-
+    for (const [key, el] of Object.entries(this.tagFields)) {
+      play.tags[key] = el.value;
+    }
     this._updateTimeline();
     this._emit('play-updated', play);
   }

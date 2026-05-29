@@ -1061,7 +1061,7 @@ class App {
       const tf = this.tagger.tagFields.down;
       if (tf) {
         tf.value = tf.value === down ? '' : down;
-        this.tagger._saveCurrentTags();
+        this.tagger._saveField('down');
       }
       return true;
     }
@@ -1076,7 +1076,7 @@ class App {
     const tf = this.tagger.tagFields[field];
     if (tf) {
       tf.value = tf.value === value ? '' : value;
-      this.tagger._saveCurrentTags();
+      this.tagger._saveField(field);
     }
     return true;
   }
