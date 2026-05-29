@@ -394,9 +394,11 @@ class App {
           if (this.vision.apiKey && videoEl && plays.length > 0) {
             const t0 = performance.now();
             let tickHandle = null;
+            const modelName = this.vision.model.includes('opus') ? 'Opus' : 'Sonnet';
             const renderTick = () => {
               const elapsed = Math.floor((performance.now() - t0) / 1000);
-              progressLabel.textContent = `🧠 Claude Vision analyzing play ${Math.min(this._visionProgress || 1, plays.length)}/${plays.length} · ${elapsed}s elapsed`;
+              const phase = elapsed > 5 ? ' (thinking…)' : '';
+              progressLabel.textContent = `🧠 ${modelName} analyzing play ${Math.min(this._visionProgress || 1, plays.length)}/${plays.length} · ${elapsed}s${phase}`;
             };
             renderTick();
             tickHandle = setInterval(renderTick, 500);
@@ -893,12 +895,20 @@ class App {
     });
     const apiKeyEl = document.getElementById('gameApiKey');
     if (apiKeyEl) {
-      // Restore a previously saved key on startup so the field matches the
-      // analyzer state (the badge already reflects it via the constructor).
       const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
       if (savedKey) apiKeyEl.value = savedKey;
       apiKeyEl.addEventListener('change', () => this._saveApiKey());
       apiKeyEl.addEventListener('blur', () => this._saveApiKey());
+    }
+    const modelEl = document.getElementById('gameAiModel');
+    if (modelEl) {
+      const savedModel = localStorage.getItem('ffa_claude_model') || '';
+      if (savedModel) modelEl.value = savedModel;
+      this.vision.model = modelEl.value;
+      modelEl.addEventListener('change', () => {
+        this.vision.model = modelEl.value;
+        localStorage.setItem('ffa_claude_model', modelEl.value);
+      });
     }
   }
 
@@ -944,6 +954,12 @@ class App {
       const keyEl = document.getElementById('gameApiKey');
       if (keyEl) keyEl.value = savedKey;
       this.vision.apiKey = savedKey;
+    }
+    const savedModel = localStorage.getItem('ffa_claude_model') || '';
+    if (savedModel) {
+      const mEl = document.getElementById('gameAiModel');
+      if (mEl) mEl.value = savedModel;
+      this.vision.model = savedModel;
     }
   }
 
