@@ -4227,3 +4227,242 @@ body.qc-active .tw-reopen { display: none; }
 @media (max-width: 900px) {
   .backend-status-badge { display: none; }
 }
+
+/* ================================================================== */
+/* =========  VISUAL OVERHAUL v3 — ATHLETIC LIGHT (Blue/White)  ===== */
+/* Final layer: wins the cascade. Light chrome, bold blue accents,    */
+/* white text on filled controls, dark text on light surfaces.        */
+/* ================================================================== */
+
+:root {
+  --bg-primary:    #eef1f6;   /* app canvas */
+  --bg-secondary:  #ffffff;   /* panels, top bar, sidebar */
+  --bg-tertiary:   #eef2f7;   /* chips, inputs */
+  --bg-surface:    #e2e8f0;   /* hover */
+  --bg-elevated:   #ffffff;
+  --accent:        #2563eb;   /* blue-600 */
+  --accent-hover:  #1d4ed8;   /* blue-700 */
+  --accent-soft:   rgba(37,99,235,0.10);
+  --highlight:     #2563eb;
+  --highlight-hover: #1d4ed8;
+  --highlight-soft: rgba(37,99,235,0.10);
+  --success:       #16a34a;
+  --warning:       #d97706;
+  --danger:        #dc2626;
+  --text:          #0f172a;   /* slate-900 */
+  --text-dim:      #64748b;   /* slate-500 */
+  --text-bright:   #ffffff;   /* white — for text ON colored fills */
+  --border:        #e2e8f0;   /* slate-200 */
+  --border-bright: #cbd5e1;   /* slate-300 */
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+  --shadow-md: 0 6px 18px rgba(15,23,42,0.10);
+  --shadow-lg: 0 16px 40px rgba(15,23,42,0.18);
+  --shadow-glow: 0 0 0 3px rgba(37,99,235,0.18);
+}
+
+body { background: var(--bg-primary); color: var(--text); }
+
+/* --- Layout: collapse the dead 3-column TagWorkspace grid to 2 --- */
+.main-content { grid-template-columns: 1fr 320px; }
+/* Re-show the sidebar at all widths (old design hid it for the removed
+   .tw workspace) and keep sane columns per breakpoint. */
+@media (max-width: 1100px) {
+  .sidebar { display: flex; }
+  .main-content { grid-template-columns: 1fr 300px; }
+}
+@media (max-width: 800px) {
+  .main-content { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
+  .sidebar { display: flex; border-left: none; border-top: 1px solid var(--border); }
+}
+
+/* --- Top bar: clean white with a blue brand wordmark --- */
+.top-bar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+}
+.app-title {
+  background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.file-input-label {
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-bright);
+  color: var(--text-dim);
+}
+.file-input-label:hover,
+.file-input-label.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+/* --- Sidebar & panels: white surfaces, subtle dividers --- */
+.sidebar {
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  box-shadow: none;
+}
+.sidebar-panel { border-bottom: 1px solid var(--border); }
+.panel-title { color: var(--text-dim); }
+.panel-title:hover { background: var(--bg-tertiary); color: var(--text); }
+.panel-title .icon { color: var(--accent); opacity: 1; }
+.sidebar-panel-primary .panel-title {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+.panel-badge { background: var(--accent); color: #fff; }
+
+/* --- Buttons --- */
+.btn {
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+}
+.btn:hover {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.30);
+}
+.btn:hover .icon { color: #fff; }
+.btn-accent {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+.btn-accent:hover { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: #fff; }
+.btn-highlight {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+.btn-highlight:hover { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); }
+.btn-danger { border-color: var(--danger); color: var(--danger); background: var(--bg-tertiary); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-detect { background: #dcfce7; border-color: #86efac; color: #15803d; }
+.btn-detect:hover { background: #bbf7d0; }
+.more-dropdown { background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+.more-dropdown .btn { background: transparent; border-color: transparent; color: var(--text); }
+.more-dropdown .btn:hover { background: var(--accent); color: #fff; }
+.more-divider { background: var(--border); }
+
+/* --- Inputs --- */
+input[type="text"], input[type="number"], input[type="date"],
+select, textarea {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border-bright);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.compact-input, .yards-input { background: #fff; color: var(--text); border-color: var(--border-bright); }
+
+/* --- Chip tag form --- */
+.chip-section { background: var(--bg-tertiary); }
+.pick {
+  background: #fff;
+  border: 1px solid var(--border-bright);
+  color: var(--text);
+}
+.pick:hover { background: var(--bg-tertiary); border-color: var(--accent); color: var(--accent-hover); }
+.pick.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.30);
+}
+.pick kbd { color: var(--text-dim); border-color: var(--border-bright); }
+.pick.active kbd { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.4); }
+.tag-progress-fill { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+.tag-progress-bar { background: var(--bg-surface); }
+.tag-chip { background: var(--accent); color: #fff; }
+.chip-details { border-top-color: var(--border); }
+
+/* --- Playback controls: light bar under the (dark) video --- */
+.playback-controls {
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+}
+.ctrl-btn { background: var(--bg-tertiary); border: 1px solid var(--border-bright); color: var(--text); }
+.ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); color: #fff; }
+.scrub-bar { background: var(--bg-surface); }
+.scrub-bar-fill { background: var(--accent); }
+.scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.20); }
+.scrub-bar-plays .play-marker { background: var(--accent); opacity: 0.45; }
+.speed-select, .fps-input { background: #fff; color: var(--text); border-color: var(--border-bright); }
+
+/* --- Timeline play blocks --- */
+.timeline-play.run   { background: #2563eb; }
+.timeline-play.pass  { background: #0ea5e9; }
+.timeline-play.other { background: #94a3b8; }
+.timeline-play.active { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
+
+/* --- Playlist --- */
+.playlist-item { background: var(--bg-tertiary); border: 1px solid transparent; }
+.playlist-item:hover { background: #fff; border-color: var(--border-bright); }
+.playlist-item.active { background: var(--accent-soft); border-color: var(--accent); }
+.playlist-num { background: #fff; color: var(--text-dim); }
+.playlist-item.active .playlist-num { background: var(--accent); color: #fff; }
+
+/* --- Drawing tools --- */
+.tool-btn { background: var(--bg-tertiary); color: var(--text-dim); }
+.tool-btn:hover { background: #fff; color: var(--text); }
+.tool-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* --- Wizard: light card, blue accents --- */
+.wiz-step.active {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-color: var(--accent-hover);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(37,99,235,0.30);
+}
+.wiz-card-inner { background: #fff; border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg); }
+.wiz-card-step { color: var(--accent); }
+.wiz-card-title { color: var(--text); }
+.wiz-primary {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.30);
+}
+.wiz-primary:hover { box-shadow: 0 10px 24px rgba(37,99,235,0.40); }
+.empty-cta {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 14px 40px rgba(37,99,235,0.35), 0 4px 12px rgba(15,23,42,0.12);
+}
+.empty-cta:hover { box-shadow: 0 16px 44px rgba(37,99,235,0.45); }
+
+/* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
+   Scope dark variables onto their roots so existing light-on-dark
+   styling renders correctly over the light app. Blue accent carries
+   through from :root. --- */
+.stats-overlay,
+.quick-chart-panel,
+.season-overlay,
+.cs-overlay,
+.epa-overlay {
+  --bg-primary:   #0b1020;
+  --bg-secondary: #111827;
+  --bg-tertiary:  #1a2236;
+  --bg-surface:   #202b45;
+  --bg-elevated:  #26314d;
+  --text:         #e5e7eb;
+  --text-dim:     #9ca3af;
+  --text-bright:  #ffffff;
+  --border:       #2a3552;
+  --border-bright:#3d4a70;
+}
+/* Quick chart sits at the bottom as a dark command bar */
+.quick-chart-panel { background: #0b1020; border-top: 2px solid var(--accent); }
+
+/* --- Final light-theme contrast polish --- */
+.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.30); }
+/* On-video text annotation input: light field, dark text */
+.text-input-overlay input { background: #fff; color: var(--text); border-color: var(--accent); }
+/* Generic input focus ring recolor (was rose) */
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
