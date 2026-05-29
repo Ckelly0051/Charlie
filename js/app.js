@@ -91,6 +91,16 @@ class App {
       this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
     });
 
+    // The single top-bar undo/redo also drives canvas annotation undo when
+    // there's no play-data action left to undo (mirrors Ctrl+Z).
+    this.history.onUndoEmpty = () => this.canvas.undo();
+    this.history.onRedoEmpty = () => this.canvas.redo();
+    this.history.fallbackCanUndo = () => this.canvas.undoStack.length > 0;
+    this.history.fallbackCanRedo = () => this.canvas.redoStack.length > 0;
+    // Keep the undo/redo button enabled-state fresh as annotations change.
+    this.canvas.on?.('annotation-added', () => this.history._updateUI());
+    this.canvas.on?.('annotations-changed', () => this.history._updateUI());
+
     // History needs to seed lastSnap *after* all wiring; do it on next tick
     setTimeout(() => {
       this.history.init();
@@ -217,18 +227,14 @@ class App {
         case 'KeyZ':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
-            if (e.shiftKey) {
-              // History redo first, fall back to canvas
-              if (!this.history.redo()) this.canvas.redo();
-            } else {
-              if (!this.history.undo()) this.canvas.undo();
-            }
+            if (e.shiftKey) this.history.redoAll();
+            else this.history.undoAll();
           }
           break;
         case 'KeyY':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
-            if (!this.history.redo()) this.canvas.redo();
+            this.history.redoAll();
           }
           break;
         case 'KeyS':
@@ -265,9 +271,7 @@ class App {
       this.canvas.lineWidth = parseInt(slider.value);
     });
 
-    // Undo/Redo/Clear
-    document.getElementById('btnUndo').addEventListener('click', () => this.canvas.undo());
-    document.getElementById('btnRedo').addEventListener('click', () => this.canvas.redo());
+    // Clear annotations (undo/redo now live as a single pair in the top bar)
     document.getElementById('btnClearAnnotations').addEventListener('click', () => {
       if (confirm('Clear all annotations?')) {
         this.canvas.clearAllAnnotations();

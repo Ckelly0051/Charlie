@@ -684,6 +684,40 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* Collapsible secondary tools inside the Play Tagger panel. Keeps the
+   manual marking, scoreboard OCR, and suggestions available but out of the
+   way so auto-detect + tag review is the focus. */
+.tagger-tools {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.tagger-tools > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 4px 2px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tagger-tools > summary::-webkit-details-marker { display: none; }
+.tagger-tools > summary::before {
+  content: '▸';
+  font-size: 10px;
+  transition: transform var(--transition);
+}
+.tagger-tools[open] > summary::before { transform: rotate(90deg); }
+.tagger-tools > summary:hover { color: var(--text); }
+.tagger-tools-body {
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .auto-detect-header {
   display: flex;
   gap: 4px;

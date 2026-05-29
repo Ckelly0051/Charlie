@@ -17,6 +17,12 @@ export class HistoryManager {
     this.toastEl = null;
     this.btnUndo = null;
     this.btnRedo = null;
+    // Optional fallbacks so the single top-bar undo/redo can also drive
+    // canvas annotation undo when there's no play-data action to undo.
+    this.onUndoEmpty = null;
+    this.onRedoEmpty = null;
+    this.fallbackCanUndo = null;
+    this.fallbackCanRedo = null;
 
     tagger.on('play-created', (p) => this._record('Add play ' + (p?.id || '')));
     tagger.on('play-deleted', () => this._record('Delete play'));
@@ -28,8 +34,8 @@ export class HistoryManager {
     this.toastEl = document.getElementById('undoToast');
     this.btnUndo = document.getElementById('btnUndoAction');
     this.btnRedo = document.getElementById('btnRedoAction');
-    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
-    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redo());
+    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undoAll());
+    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redoAll());
     this._updateUI();
   }
 
@@ -75,6 +81,23 @@ export class HistoryManager {
   canUndo() { return this.index >= 0; }
   canRedo() { return this.index < this.stack.length - 1; }
 
+  /**
+   * Single global undo: undo the last play-data action if there is one,
+   * otherwise fall through to the canvas annotation undo. Mirrors Ctrl+Z
+   * so the one top-bar button covers both kinds of edits.
+   */
+  undoAll() {
+    if (this.undo()) return true;
+    if (this.onUndoEmpty) { this.onUndoEmpty(); this._updateUI(); return true; }
+    return false;
+  }
+
+  redoAll() {
+    if (this.redo()) return true;
+    if (this.onRedoEmpty) { this.onRedoEmpty(); this._updateUI(); return true; }
+    return false;
+  }
+
   undo() {
     if (!this.canUndo()) return false;
     const entry = this.stack[this.index];
@@ -118,10 +141,14 @@ export class HistoryManager {
   }
 
   _updateUI() {
-    if (this.btnUndo) this.btnUndo.disabled = !this.canUndo();
-    if (this.btnRedo) this.btnRedo.disabled = !this.canRedo();
-    if (this.btnUndo && this.canUndo()) {
-      this.btnUndo.title = 'Undo: ' + this.stack[this.index].label + ' (Ctrl+Z)';
+    const canUndo = this.canUndo() || (this.fallbackCanUndo && this.fallbackCanUndo());
+    const canRedo = this.canRedo() || (this.fallbackCanRedo && this.fallbackCanRedo());
+    if (this.btnUndo) this.btnUndo.disabled = !canUndo;
+    if (this.btnRedo) this.btnRedo.disabled = !canRedo;
+    if (this.btnUndo) {
+      this.btnUndo.title = this.canUndo()
+        ? 'Undo: ' + this.stack[this.index].label + ' (Ctrl+Z)'
+        : 'Undo (Ctrl+Z)';
     }
   }
 

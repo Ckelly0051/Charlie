@@ -691,6 +691,40 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* Collapsible secondary tools inside the Play Tagger panel. Keeps the
+   manual marking, scoreboard OCR, and suggestions available but out of the
+   way so auto-detect + tag review is the focus. */
+.tagger-tools {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.tagger-tools > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 4px 2px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tagger-tools > summary::-webkit-details-marker { display: none; }
+.tagger-tools > summary::before {
+  content: '▸';
+  font-size: 10px;
+  transition: transform var(--transition);
+}
+.tagger-tools[open] > summary::before { transform: rotate(90deg); }
+.tagger-tools > summary:hover { color: var(--text); }
+.tagger-tools-body {
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .auto-detect-header {
   display: flex;
   gap: 4px;
@@ -4580,9 +4614,7 @@ body.qc-active .tw-reopen { display: none; }
                 <input type="range" id="lineWidthSlider" min="2" max="10" value="3">
               </div>
               <div class="tool-actions">
-                <button class="btn btn-sm" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
-                <button class="btn btn-sm" id="btnRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
-                <button class="btn btn-sm btn-danger" id="btnClearAnnotations" title="Clear All Annotations">Clear</button>
+                <button class="btn btn-sm btn-danger" id="btnClearAnnotations" title="Clear All Annotations">Clear Drawings</button>
               </div>
             </div>
           </div>
@@ -4596,33 +4628,7 @@ body.qc-active .tw-reopen { display: none; }
             <span class="panel-badge" id="suggestionBadge" style="display:none"></span>
           </h3>
           <div class="panel-body" id="playTagger">
-            <!-- Scoreboard OCR -->
-            <div class="ocr-section">
-              <div class="ocr-header">
-                <span class="ocr-title">📺 Scoreboard OCR</span>
-                <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
-                  <input type="checkbox" id="btnAutoOcr"> Auto
-                </label>
-              </div>
-              <div class="ocr-controls">
-                <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
-                <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
-              </div>
-              <div class="ocr-status" id="ocrStatus">No region set</div>
-              <div class="ocr-preview" id="ocrPreview"></div>
-            </div>
-            <!-- Smart suggestions toggle -->
-            <label class="suggestion-toggle">
-              <input type="checkbox" id="btnToggleSuggestions" checked>
-              <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
-            </label>
-            <div class="play-mark-controls">
-              <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
-              <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
-              <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
-            </div>
-
-            <!-- Auto-detect section -->
+            <!-- Auto-detect section (primary workflow) -->
             <div class="auto-detect-section">
               <div class="auto-detect-header">
                 <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
@@ -4850,6 +4856,38 @@ body.qc-active .tw-reopen { display: none; }
                 </div>
               </div>
             </div>
+
+            <!-- Secondary / manual tools, tucked away so auto-detect leads -->
+            <details class="tagger-tools">
+              <summary>Manual &amp; advanced tools</summary>
+              <div class="tagger-tools-body">
+                <div class="play-mark-controls">
+                  <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
+                  <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
+                  <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
+                </div>
+                <!-- Scoreboard OCR -->
+                <div class="ocr-section">
+                  <div class="ocr-header">
+                    <span class="ocr-title">📺 Scoreboard OCR</span>
+                    <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
+                      <input type="checkbox" id="btnAutoOcr"> Auto
+                    </label>
+                  </div>
+                  <div class="ocr-controls">
+                    <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
+                    <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
+                  </div>
+                  <div class="ocr-status" id="ocrStatus">No region set</div>
+                  <div class="ocr-preview" id="ocrPreview"></div>
+                </div>
+                <!-- Smart suggestions toggle -->
+                <label class="suggestion-toggle">
+                  <input type="checkbox" id="btnToggleSuggestions" checked>
+                  <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
+                </label>
+              </div>
+            </details>
           </div>
         </div>
       </aside>
@@ -10180,6 +10218,12 @@ class HistoryManager {
     this.toastEl = null;
     this.btnUndo = null;
     this.btnRedo = null;
+    // Optional fallbacks so the single top-bar undo/redo can also drive
+    // canvas annotation undo when there's no play-data action to undo.
+    this.onUndoEmpty = null;
+    this.onRedoEmpty = null;
+    this.fallbackCanUndo = null;
+    this.fallbackCanRedo = null;
 
     tagger.on('play-created', (p) => this._record('Add play ' + (p?.id || '')));
     tagger.on('play-deleted', () => this._record('Delete play'));
@@ -10191,8 +10235,8 @@ class HistoryManager {
     this.toastEl = document.getElementById('undoToast');
     this.btnUndo = document.getElementById('btnUndoAction');
     this.btnRedo = document.getElementById('btnRedoAction');
-    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
-    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redo());
+    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undoAll());
+    if (this.btnRedo) this.btnRedo.addEventListener('click', () => this.redoAll());
     this._updateUI();
   }
 
@@ -10238,6 +10282,23 @@ class HistoryManager {
   canUndo() { return this.index >= 0; }
   canRedo() { return this.index < this.stack.length - 1; }
 
+  /**
+   * Single global undo: undo the last play-data action if there is one,
+   * otherwise fall through to the canvas annotation undo. Mirrors Ctrl+Z
+   * so the one top-bar button covers both kinds of edits.
+   */
+  undoAll() {
+    if (this.undo()) return true;
+    if (this.onUndoEmpty) { this.onUndoEmpty(); this._updateUI(); return true; }
+    return false;
+  }
+
+  redoAll() {
+    if (this.redo()) return true;
+    if (this.onRedoEmpty) { this.onRedoEmpty(); this._updateUI(); return true; }
+    return false;
+  }
+
   undo() {
     if (!this.canUndo()) return false;
     const entry = this.stack[this.index];
@@ -10281,10 +10342,14 @@ class HistoryManager {
   }
 
   _updateUI() {
-    if (this.btnUndo) this.btnUndo.disabled = !this.canUndo();
-    if (this.btnRedo) this.btnRedo.disabled = !this.canRedo();
-    if (this.btnUndo && this.canUndo()) {
-      this.btnUndo.title = 'Undo: ' + this.stack[this.index].label + ' (Ctrl+Z)';
+    const canUndo = this.canUndo() || (this.fallbackCanUndo && this.fallbackCanUndo());
+    const canRedo = this.canRedo() || (this.fallbackCanRedo && this.fallbackCanRedo());
+    if (this.btnUndo) this.btnUndo.disabled = !canUndo;
+    if (this.btnRedo) this.btnRedo.disabled = !canRedo;
+    if (this.btnUndo) {
+      this.btnUndo.title = this.canUndo()
+        ? 'Undo: ' + this.stack[this.index].label + ' (Ctrl+Z)'
+        : 'Undo (Ctrl+Z)';
     }
   }
 
@@ -12809,6 +12874,16 @@ class App {
       this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
     });
 
+    // The single top-bar undo/redo also drives canvas annotation undo when
+    // there's no play-data action left to undo (mirrors Ctrl+Z).
+    this.history.onUndoEmpty = () => this.canvas.undo();
+    this.history.onRedoEmpty = () => this.canvas.redo();
+    this.history.fallbackCanUndo = () => this.canvas.undoStack.length > 0;
+    this.history.fallbackCanRedo = () => this.canvas.redoStack.length > 0;
+    // Keep the undo/redo button enabled-state fresh as annotations change.
+    this.canvas.on?.('annotation-added', () => this.history._updateUI());
+    this.canvas.on?.('annotations-changed', () => this.history._updateUI());
+
     // History needs to seed lastSnap *after* all wiring; do it on next tick
     setTimeout(() => {
       this.history.init();
@@ -12935,18 +13010,14 @@ class App {
         case 'KeyZ':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
-            if (e.shiftKey) {
-              // History redo first, fall back to canvas
-              if (!this.history.redo()) this.canvas.redo();
-            } else {
-              if (!this.history.undo()) this.canvas.undo();
-            }
+            if (e.shiftKey) this.history.redoAll();
+            else this.history.undoAll();
           }
           break;
         case 'KeyY':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
-            if (!this.history.redo()) this.canvas.redo();
+            this.history.redoAll();
           }
           break;
         case 'KeyS':
@@ -12983,9 +13054,7 @@ class App {
       this.canvas.lineWidth = parseInt(slider.value);
     });
 
-    // Undo/Redo/Clear
-    document.getElementById('btnUndo').addEventListener('click', () => this.canvas.undo());
-    document.getElementById('btnRedo').addEventListener('click', () => this.canvas.redo());
+    // Clear annotations (undo/redo now live as a single pair in the top bar)
     document.getElementById('btnClearAnnotations').addEventListener('click', () => {
       if (confirm('Clear all annotations?')) {
         this.canvas.clearAllAnnotations();
