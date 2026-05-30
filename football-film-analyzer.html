@@ -4242,11 +4242,11 @@ body.qc-active .tw-reopen { display: none; }
 /* ================================================================== */
 
 :root {
-  --bg-primary:    #eef1f6;   /* app canvas */
-  --bg-secondary:  #ffffff;   /* panels, top bar, sidebar */
-  --bg-tertiary:   #eef2f7;   /* chips, inputs */
-  --bg-surface:    #e2e8f0;   /* hover */
-  --bg-elevated:   #ffffff;
+  --bg-primary:    #e2e6ed;   /* app canvas */
+  --bg-secondary:  #eef1f5;   /* panels, top bar, sidebar */
+  --bg-tertiary:   #e4e8ef;   /* chips, inputs */
+  --bg-surface:    #d8dde6;   /* hover */
+  --bg-elevated:   #eef1f5;
   --accent:        #2563eb;   /* blue-600 */
   --accent-hover:  #1d4ed8;   /* blue-700 */
   --accent-soft:   rgba(37,99,235,0.10);
@@ -4284,7 +4284,7 @@ body { background: var(--bg-primary); color: var(--text); }
 
 /* --- Top bar: clean white with a blue brand wordmark --- */
 .top-bar {
-  background: #ffffff;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(15,23,42,0.06);
 }
@@ -4352,7 +4352,7 @@ body { background: var(--bg-primary); color: var(--text); }
 .btn-danger:hover { background: var(--danger); color: #fff; }
 .btn-detect { background: #dcfce7; border-color: #86efac; color: #15803d; }
 .btn-detect:hover { background: #bbf7d0; }
-.more-dropdown { background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+.more-dropdown { background: var(--bg-secondary); border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
 .more-dropdown .btn { background: transparent; border-color: transparent; color: var(--text); }
 .more-dropdown .btn:hover { background: var(--accent); color: #fff; }
 .more-divider { background: var(--border); }
@@ -4360,7 +4360,7 @@ body { background: var(--bg-primary); color: var(--text); }
 /* --- Inputs --- */
 input[type="text"], input[type="number"], input[type="date"],
 select, textarea {
-  background: #fff;
+  background: var(--bg-secondary);
   color: var(--text);
   border: 1px solid var(--border-bright);
 }
@@ -4368,12 +4368,12 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.compact-input, .yards-input { background: #fff; color: var(--text); border-color: var(--border-bright); }
+.compact-input, .yards-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
 /* --- Chip tag form --- */
 .chip-section { background: var(--bg-tertiary); }
 .pick {
-  background: #fff;
+  background: var(--bg-secondary);
   border: 1px solid var(--border-bright);
   color: var(--text);
 }
@@ -4393,7 +4393,7 @@ input:focus, select:focus, textarea:focus {
 
 /* --- Playback controls: light bar under the (dark) video --- */
 .playback-controls {
-  background: #ffffff;
+  background: var(--bg-secondary);
   border-top: 1px solid var(--border);
 }
 .ctrl-btn { background: var(--bg-tertiary); border: 1px solid var(--border-bright); color: var(--text); }
@@ -4402,7 +4402,7 @@ input:focus, select:focus, textarea:focus {
 .scrub-bar-fill { background: var(--accent); }
 .scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.20); }
 .scrub-bar-plays .play-marker { background: var(--accent); opacity: 0.45; }
-.speed-select, .fps-input { background: #fff; color: var(--text); border-color: var(--border-bright); }
+.speed-select, .fps-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
 /* --- Timeline play blocks --- */
 .timeline-play.run   { background: #2563eb; }
@@ -4412,14 +4412,14 @@ input:focus, select:focus, textarea:focus {
 
 /* --- Playlist --- */
 .playlist-item { background: var(--bg-tertiary); border: 1px solid transparent; }
-.playlist-item:hover { background: #fff; border-color: var(--border-bright); }
+.playlist-item:hover { background: var(--bg-secondary); border-color: var(--border-bright); }
 .playlist-item.active { background: var(--accent-soft); border-color: var(--accent); }
-.playlist-num { background: #fff; color: var(--text-dim); }
+.playlist-num { background: var(--bg-secondary); color: var(--text-dim); }
 .playlist-item.active .playlist-num { background: var(--accent); color: #fff; }
 
 /* --- Drawing tools --- */
 .tool-btn { background: var(--bg-tertiary); color: var(--text-dim); }
-.tool-btn:hover { background: #fff; color: var(--text); }
+.tool-btn:hover { background: var(--bg-secondary); color: var(--text); }
 .tool-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
 /* --- Wizard: light card, blue accents --- */
@@ -4429,7 +4429,7 @@ input:focus, select:focus, textarea:focus {
   color: #fff;
   box-shadow: 0 4px 14px rgba(37,99,235,0.30);
 }
-.wiz-card-inner { background: #fff; border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg); }
+.wiz-card-inner { background: var(--bg-secondary); border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg); }
 .wiz-card-step { color: var(--accent); }
 .wiz-card-title { color: var(--text); }
 .wiz-primary {
@@ -4470,7 +4470,7 @@ input:focus, select:focus, textarea:focus {
 /* --- Final light-theme contrast polish --- */
 .swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.30); }
 /* On-video text annotation input: light field, dark text */
-.text-input-overlay input { background: #fff; color: var(--text); border-color: var(--accent); }
+.text-input-overlay input { background: var(--bg-secondary); color: var(--text); border-color: var(--accent); }
 /* Generic input focus ring recolor (was rose) */
 input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
   </style>
