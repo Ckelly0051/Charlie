@@ -4247,12 +4247,12 @@ body.qc-active .tw-reopen { display: none; }
   --bg-tertiary:   #e4e8ef;   /* chips, inputs */
   --bg-surface:    #d8dde6;   /* hover */
   --bg-elevated:   #eef1f5;
-  --accent:        #2563eb;   /* blue-600 */
-  --accent-hover:  #1d4ed8;   /* blue-700 */
-  --accent-soft:   rgba(37,99,235,0.10);
-  --highlight:     #2563eb;
-  --highlight-hover: #1d4ed8;
-  --highlight-soft: rgba(37,99,235,0.10);
+  --accent:        #4169e1;   /* royal blue */
+  --accent-hover:  #2f4fc4;   /* deeper royal */
+  --accent-soft:   rgba(65,105,225,0.12);
+  --highlight:     #4169e1;
+  --highlight-hover: #2f4fc4;
+  --highlight-soft: rgba(65,105,225,0.12);
   --success:       #16a34a;
   --warning:       #d97706;
   --danger:        #dc2626;
@@ -4264,7 +4264,7 @@ body.qc-active .tw-reopen { display: none; }
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
   --shadow-md: 0 6px 18px rgba(15,23,42,0.10);
   --shadow-lg: 0 16px 40px rgba(15,23,42,0.18);
-  --shadow-glow: 0 0 0 3px rgba(37,99,235,0.18);
+  --shadow-glow: 0 0 0 3px rgba(65,105,225,0.18);
 }
 
 body { background: var(--bg-primary); color: var(--text); }
@@ -4289,7 +4289,7 @@ body { background: var(--bg-primary); color: var(--text); }
   box-shadow: 0 1px 3px rgba(15,23,42,0.06);
 }
 .app-title {
-  background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(90deg, #4169e1 0%, #2f4fc4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4333,21 +4333,21 @@ body { background: var(--bg-primary); color: var(--text); }
   background: var(--accent);
   border-color: var(--accent-hover);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(37,99,235,0.30);
+  box-shadow: 0 2px 6px rgba(65,105,225,0.30);
 }
 .btn:hover .icon { color: #fff; }
 .btn-accent {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
   border-color: var(--accent-hover);
   color: #fff;
 }
-.btn-accent:hover { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: #fff; }
+.btn-accent:hover { background: linear-gradient(180deg, #4169e1 0%, #2f4fc4 100%); color: #fff; }
 .btn-highlight {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
   border-color: var(--accent-hover);
   color: #fff;
 }
-.btn-highlight:hover { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); }
+.btn-highlight:hover { background: linear-gradient(180deg, #4169e1 0%, #2f4fc4 100%); }
 .btn-danger { border-color: var(--danger); color: var(--danger); background: var(--bg-tertiary); }
 .btn-danger:hover { background: var(--danger); color: #fff; }
 .btn-detect { background: #dcfce7; border-color: #86efac; color: #15803d; }
@@ -4382,11 +4382,11 @@ input:focus, select:focus, textarea:focus {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.30);
+  box-shadow: 0 2px 8px rgba(65,105,225,0.30);
 }
 .pick kbd { color: var(--text-dim); border-color: var(--border-bright); }
 .pick.active kbd { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.4); }
-.tag-progress-fill { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+.tag-progress-fill { background: linear-gradient(90deg, #5278f0, #4169e1); }
 .tag-progress-bar { background: var(--bg-surface); }
 .tag-chip { background: var(--accent); color: #fff; }
 .chip-details { border-top-color: var(--border); }
@@ -4400,12 +4400,12 @@ input:focus, select:focus, textarea:focus {
 .ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); color: #fff; }
 .scrub-bar { background: var(--bg-surface); }
 .scrub-bar-fill { background: var(--accent); }
-.scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.20); }
+.scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(65,105,225,0.20); }
 .scrub-bar-plays .play-marker { background: var(--accent); opacity: 0.45; }
 .speed-select, .fps-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
 /* --- Timeline play blocks --- */
-.timeline-play.run   { background: #2563eb; }
+.timeline-play.run   { background: #4169e1; }
 .timeline-play.pass  { background: #0ea5e9; }
 .timeline-play.other { background: #94a3b8; }
 .timeline-play.active { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
@@ -4424,25 +4424,25 @@ input:focus, select:focus, textarea:focus {
 
 /* --- Wizard: light card, blue accents --- */
 .wiz-step.active {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
   border-color: var(--accent-hover);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(37,99,235,0.30);
+  box-shadow: 0 4px 14px rgba(65,105,225,0.30);
 }
 .wiz-card-inner { background: var(--bg-secondary); border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg); }
 .wiz-card-step { color: var(--accent); }
 .wiz-card-title { color: var(--text); }
 .wiz-primary {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(37,99,235,0.30);
+  box-shadow: 0 6px 18px rgba(65,105,225,0.30);
 }
-.wiz-primary:hover { box-shadow: 0 10px 24px rgba(37,99,235,0.40); }
+.wiz-primary:hover { box-shadow: 0 10px 24px rgba(65,105,225,0.40); }
 .empty-cta {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 14px 40px rgba(37,99,235,0.35), 0 4px 12px rgba(15,23,42,0.12);
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  box-shadow: 0 14px 40px rgba(65,105,225,0.35), 0 4px 12px rgba(15,23,42,0.12);
 }
-.empty-cta:hover { box-shadow: 0 16px 44px rgba(37,99,235,0.45); }
+.empty-cta:hover { box-shadow: 0 16px 44px rgba(65,105,225,0.45); }
 
 /* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
    Scope dark variables onto their roots so existing light-on-dark
@@ -4468,7 +4468,7 @@ input:focus, select:focus, textarea:focus {
 .quick-chart-panel { background: #0b1020; border-top: 2px solid var(--accent); }
 
 /* --- Final light-theme contrast polish --- */
-.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.30); }
+.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(65,105,225,0.30); }
 /* On-video text annotation input: light field, dark text */
 .text-input-overlay input { background: var(--bg-secondary); color: var(--text); border-color: var(--accent); }
 /* Generic input focus ring recolor (was rose) */
