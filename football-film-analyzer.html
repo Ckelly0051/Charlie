@@ -4559,6 +4559,64 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 /* Clickable player stat rows in the dashboard */
 .player-row { cursor: pointer; transition: background var(--transition); }
 .player-row:hover { background: rgba(65,105,225,0.12); }
+
+/* ================================================================== */
+/* ========================  CUT-UP REVIEW  ======================== */
+/* ================================================================== */
+
+.cutup-banner {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 180;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #3b4a6b 0%, #2a3552 100%);
+  color: #fff;
+  border: 1px solid var(--border-bright);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  font-weight: 600;
+  animation: cutupIn 220ms ease;
+}
+@keyframes cutupIn { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.cutup-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(65,105,225,0.6);
+  animation: cutupPulse 1.4s infinite;
+}
+@keyframes cutupPulse {
+  0% { box-shadow: 0 0 0 0 rgba(65,105,225,0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(65,105,225,0); }
+  100% { box-shadow: 0 0 0 0 rgba(65,105,225,0); }
+}
+.cutup-label { letter-spacing: 0.2px; }
+.cutup-count { color: #cbd5e1; font-variant-numeric: tabular-nums; font-weight: 700; }
+.cutup-controls { display: flex; gap: 4px; margin-left: 4px; }
+.cutup-btn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: #fff;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+}
+.cutup-btn:hover { background: var(--accent); }
+.cutup-exit:hover { background: var(--danger); }
+
+/* Season modal: player rows aren't clickable (no film loaded) */
+#seasonOverlay .player-row { cursor: default; }
+#seasonOverlay .player-row:hover { background: transparent; }
   </style>
 </head>
 <body>
@@ -10639,7 +10697,7 @@ class StatsEngine {
     });
   }
 
-  /** Find every play this jersey # is involved in and cue the first one. */
+  /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
   _watchPlayer(num) {
     if (!num) return;
     const matches = this.tagger.plays
@@ -10650,9 +10708,13 @@ class StatsEngine {
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
     if (matches.length === 0) return;
     this.hideDashboard();
-    this.tagger.playerSpotlight = matches.map(p => p.id);
-    this.tagger.selectPlay(matches[0].id);
-    if (this.tagger.vc && typeof this.tagger.vc.play === 'function') this.tagger.vc.play();
+    const ids = matches.map(p => p.id);
+    const label = `${this._playerLabel(num)} — cut-up`;
+    if (window.app && window.app.cutupPlayer) {
+      window.app.cutupPlayer.start(ids, label);
+    } else {
+      this.tagger.selectPlay(ids[0]);
+    }
   }
 
   _gameTitle() {
@@ -11021,6 +11083,8 @@ class StatsEngine {
   }
 
   _playerLabel(num) {
+    // Season view supplies a merged name map across loaded games.
+    if (this._seasonLabels && this._seasonLabels[num]) return `#${num} ${this._seasonLabels[num]}`;
     const roster = (typeof window !== 'undefined') && window.app && window.app.roster;
     return roster ? roster.getLabel(num) : `#${num}`;
   }
@@ -12222,6 +12286,133 @@ class CutupExporter {
   }
 }
 
+// ===== cutup-player.js =====
+/**
+ * CutupPlayer — in-app film cut-up review.
+ *
+ * Given a set of play IDs (e.g. every play a jersey # was involved in),
+ * it plays them back-to-back: seek to play start, let it run, and at the
+ * play's end timestamp auto-advance to the next. A floating banner shows
+ * the label and position with Prev / Next / Exit controls.
+ *
+ * Unlike CutupExporter (which renders a downloadable stitched video),
+ * this just drives the existing <video> element for instant review.
+ */
+class CutupPlayer {
+  constructor(videoController, tagger) {
+    this.vc = videoController;
+    this.tagger = tagger;
+    this.queue = [];
+    this.index = -1;
+    this.active = false;
+    this.label = '';
+    this._armed = false;
+    this.bannerEl = null;
+
+    this.vc.on('time-update', (d) => this._onTime(d.time));
+  }
+
+  /** Begin a cut-up over the given play IDs (sorted by time). */
+  start(playIds, label = '') {
+    const plays = (playIds || [])
+      .map(id => this.tagger.getPlay(id))
+      .filter(Boolean)
+      .sort((a, b) => a.timestamp.start - b.timestamp.start);
+    if (!plays.length) return;
+
+    this.queue = plays;
+    this.label = label;
+    this.active = true;
+    this._renderBanner();
+    this._goTo(0);
+  }
+
+  _goTo(i) {
+    if (!this.active) return;
+    if (i < 0 || i >= this.queue.length) { this.stop(); return; }
+    this.index = i;
+    this._armed = false;
+    const play = this.queue[i];
+    // selectPlay seeks to the start (and switches clips in multi-clip mode).
+    this.tagger.selectPlay(play.id);
+    this._updateBanner();
+    // Resume playback shortly after the seek lands.
+    setTimeout(() => {
+      if (this.active && this.vc.video && this.vc.video.paused) {
+        this.vc.video.play().catch(() => {});
+      }
+    }, 40);
+  }
+
+  _onTime(t) {
+    if (!this.active || this.index < 0) return;
+    const play = this.queue[this.index];
+    if (!play) return;
+    // Arm only once we're inside the current segment, so a stale timeupdate
+    // from before the seek can't trigger a double-advance.
+    if (!this._armed) {
+      if (t >= play.timestamp.start - 0.15) this._armed = true;
+      return;
+    }
+    if (t >= play.timestamp.end - 0.03) {
+      if (this.index < this.queue.length - 1) {
+        this._goTo(this.index + 1);
+      } else {
+        if (this.vc.video) this.vc.video.pause();
+        this.stop();
+      }
+    }
+  }
+
+  next() { this._goTo(this.index + 1); }
+  prev() { this._goTo(this.index - 1); }
+
+  stop() {
+    this.active = false;
+    this.index = -1;
+    this.queue = [];
+    this._removeBanner();
+  }
+
+  // --- Banner UI ---
+
+  _renderBanner() {
+    this._removeBanner();
+    const b = document.createElement('div');
+    b.className = 'cutup-banner';
+    b.innerHTML = `
+      <span class="cutup-dot"></span>
+      <span class="cutup-label"></span>
+      <span class="cutup-count"></span>
+      <div class="cutup-controls">
+        <button class="cutup-btn" data-act="prev" title="Previous (←)">◀</button>
+        <button class="cutup-btn" data-act="next" title="Next (→)">▶</button>
+        <button class="cutup-btn cutup-exit" data-act="exit" title="Exit cut-up (Esc)">✕</button>
+      </div>`;
+    b.querySelector('[data-act=prev]').addEventListener('click', () => this.prev());
+    b.querySelector('[data-act=next]').addEventListener('click', () => this.next());
+    b.querySelector('[data-act=exit]').addEventListener('click', () => this.stop());
+    document.body.appendChild(b);
+    this.bannerEl = b;
+    this._updateBanner();
+  }
+
+  _updateBanner() {
+    if (!this.bannerEl) return;
+    const lbl = this.bannerEl.querySelector('.cutup-label');
+    const cnt = this.bannerEl.querySelector('.cutup-count');
+    if (lbl) lbl.textContent = this.label || 'Cut-up';
+    if (cnt) cnt.textContent = `${this.index + 1} / ${this.queue.length}`;
+  }
+
+  _removeBanner() {
+    if (this.bannerEl && this.bannerEl.parentNode) {
+      this.bannerEl.parentNode.removeChild(this.bannerEl);
+    }
+    this.bannerEl = null;
+  }
+}
+
 // ===== season-manager.js =====
 /**
  * SeasonManager - Aggregate stats across multiple game project files.
@@ -12306,6 +12497,7 @@ class SeasonManager {
           name,
           file: f.name,
           gameInfo: data.gameInfo || {},
+          roster: data.roster || [],
           plays: data.plays,
           loadedAt: new Date().toISOString()
         });
@@ -12346,6 +12538,16 @@ class SeasonManager {
 
   _allPlays() {
     return this.games.flatMap(g => g.plays || []);
+  }
+
+  /** Merge jersey#→name across every loaded game's roster (+ live roster). */
+  _mergeRoster() {
+    const map = {};
+    const live = (window.app && window.app.roster) ? window.app.roster.players : [];
+    [...this.games.flatMap(g => g.roster || []), ...live].forEach(p => {
+      if (p && p.num != null && p.name) map[String(p.num)] = p.name;
+    });
+    return map;
   }
 
   _renderAll() {
@@ -12400,6 +12602,14 @@ class SeasonManager {
     const allPlays = this._allPlays();
     const stats = this.statsEngine.compute(allPlays);
 
+    // Provide merged player names for the season roll-up, then clear.
+    this.statsEngine._seasonLabels = this._mergeRoster();
+    const indTables = this.statsEngine._renderIndividualStats(stats);
+    const individual = indTables ? `
+      <div class="stats-section"><h3>Season Player Roll-Up</h3>
+      <p class="self-scout-intro">Per-player totals across all ${this.games.length} loaded games.</p></div>
+      ${indTables}` : '';
+
     body.innerHTML = `
       ${this._renderHeader(stats)}
       ${this._renderTrends()}
@@ -12410,9 +12620,11 @@ class SeasonManager {
       ${this.statsEngine._renderSituational(stats)}
       ${this.statsEngine._renderTendencies(stats)}
       ${this.statsEngine._renderPersonnel(stats)}
+      ${individual}
       ${this._renderPerGameTable()}
       ${this._renderSelfScout()}
     `;
+    this.statsEngine._seasonLabels = null;
 
     this.statsEngine.heatMaps.bind(body);
   }
@@ -12593,6 +12805,9 @@ class SeasonManager {
     const stats = this.statsEngine.compute(allPlays);
     const title = `Season Report — ${this.games.length} games`;
 
+    this.statsEngine._seasonLabels = this._mergeRoster();
+    const indTables = this.statsEngine._renderIndividualStats(stats);
+    const individual = indTables ? `<div class="stats-section"><h3>Season Player Roll-Up</h3></div>${indTables}` : '';
     const body = [
       this._renderHeader(stats),
       this._renderTrends(),
@@ -12602,9 +12817,11 @@ class SeasonManager {
       this.statsEngine._renderSituational(stats),
       this.statsEngine._renderTendencies(stats),
       this.statsEngine._renderPersonnel(stats),
+      individual,
       this._renderPerGameTable(),
       this._renderSelfScout()
     ].join('\n');
+    this.statsEngine._seasonLabels = null;
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
@@ -13461,6 +13678,7 @@ class App {
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.suggestions = new SuggestionEngine(this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
+    this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
     this.season = new SeasonManager(this.stats);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
@@ -13583,6 +13801,13 @@ class App {
 
       // Let quick-chart handle its own keys when active
       if (this.quickChart.isActive) return;
+
+      // Cut-up review: arrows skip plays, Esc exits.
+      if (this.cutupPlayer && this.cutupPlayer.active) {
+        if (e.code === 'ArrowRight') { e.preventDefault(); this.cutupPlayer.next(); return; }
+        if (e.code === 'ArrowLeft') { e.preventDefault(); this.cutupPlayer.prev(); return; }
+        if (e.code === 'Escape') { e.preventDefault(); this.cutupPlayer.stop(); return; }
+      }
 
       // Tag shortcuts (play type, result, down via keyboard)
       if (this._handleTagKey(e)) return;
