@@ -11,13 +11,13 @@
     <!-- Top Bar -->
     <header class="top-bar">
       <div class="top-bar-left">
-        <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+        <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Toggle settings drawer" aria-label="Toggle settings drawer">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="4" y1="7" x2="20" y2="7"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
             <line x1="4" y1="17" x2="20" y2="17"/>
           </svg>
-          <span class="sidebar-toggle-label">Menu</span>
+          <span class="sidebar-toggle-label">Settings</span>
         </button>
         <button class="btn" id="btnToggleWizard" title="Show/hide the step-by-step wizard">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -155,677 +155,385 @@
             </label>
           </div>
         </div>
+
+        <!-- Timeline (moved from bottom-panel into video-section) -->
+        <div class="video-timeline">
+          <div class="timeline-strip" id="timelineStrip">
+            <div class="timeline-bar" id="timelineBar"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Right Sidebar -->
-      <aside class="sidebar">
-        <!-- Game Info -->
-        <div class="sidebar-panel">
-          <h3 class="panel-title" data-toggle="gameInfoPanel">
-            <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-            Game Info
-          </h3>
-          <div class="panel-body collapsed" id="gameInfoPanel">
-            <div class="tag-row">
-              <label>Team Name</label>
-              <input type="text" id="gameTeamName" placeholder="Our Team">
-            </div>
-            <div class="tag-row">
-              <label>Opponent</label>
-              <input type="text" id="gameOpponent" placeholder="Opponent">
-            </div>
-            <div class="tag-row">
-              <label>Date</label>
-              <input type="date" id="gameDate">
-            </div>
-            <div class="tag-row">
-              <label>Score</label>
-              <div class="tag-row-inline">
-                <input type="number" id="gameScoreUs" placeholder="Us" min="0" style="width:60px">
-                <span>-</span>
-                <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
-              </div>
-            </div>
-            <div class="tag-row">
-              <label>Our Jersey</label>
-              <select id="gameJerseyColor">
-                <option value="">-- select --</option>
-                <option value="white">White</option>
-                <option value="black">Black</option>
-                <option value="red">Red</option>
-                <option value="blue">Blue</option>
-                <option value="navy">Navy</option>
-                <option value="green">Green</option>
-                <option value="yellow">Yellow / Gold</option>
-                <option value="orange">Orange</option>
-                <option value="purple">Purple</option>
-                <option value="maroon">Maroon</option>
-                <option value="gray">Gray / Silver</option>
-                <option value="teal">Teal</option>
-              </select>
-            </div>
-            <div class="tag-row">
-              <label>Film shows</label>
-              <select id="gamePerspective">
-                <option value="offense">Our Offense</option>
-                <option value="defense">Our Defense</option>
-                <option value="special">Special Teams</option>
-                <option value="scout">Opponent Scout</option>
-              </select>
-            </div>
-            <div class="tag-row">
-              <label>We go →</label>
-              <select id="gameDirection">
-                <option value="">Auto (guess)</option>
-                <option value="right">Left → Right</option>
-                <option value="left">Right → Left</option>
-              </select>
-            </div>
-            <div class="tag-row">
-              <label>Claude API Key</label>
-              <input type="password" id="gameApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" style="font-family:monospace;font-size:12px">
-            </div>
-            <div class="tag-row">
-              <label>AI Model</label>
-              <select id="gameAiModel">
-                <option value="claude-opus-4-6">Opus (most accurate)</option>
-                <option value="claude-sonnet-4-6">Sonnet (faster / cheaper)</option>
-              </select>
-            </div>
-            <div class="scout-section hidden" id="scoutSection">
-              <label class="game-info-label">Scouting Notes</label>
-              <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
-              <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
-            </div>
-          </div>
+      <!-- Tag Section (full-width, below video) -->
+      <section class="tag-section">
+        <!-- Play mark controls -->
+        <div class="play-mark-controls play-mark-primary">
+          <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
+          <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
+          <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
         </div>
 
-        <!-- Roster -->
-        <div class="sidebar-panel">
-          <h3 class="panel-title" data-toggle="rosterPanel">
-            <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-            Roster
-          </h3>
-          <div class="panel-body collapsed" id="rosterPanel">
-            <div class="roster-add">
-              <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
-              <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
-              <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
-              <select id="rosterSide" class="roster-add-side" title="Side of ball">
-                <option value="O">Off</option>
-                <option value="D">Def</option>
-                <option value="B">Both</option>
-              </select>
-              <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
-            </div>
-            <div class="roster-import-bar">
-              <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
-            </div>
-            <div class="roster-import-area hidden" id="rosterImportArea">
-              <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
-              <div class="roster-import-actions">
-                <label class="btn btn-sm roster-import-file-label">
-                  Choose CSV
-                  <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
-                </label>
-                <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
-              </div>
-              <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
-            </div>
-            <div class="roster-list" id="rosterList"></div>
-          </div>
+        <!-- Play selector -->
+        <div class="play-selector">
+          <label>Current Play:</label>
+          <select id="playSelect" class="play-select">
+            <option value="">-- No plays tagged --</option>
+          </select>
         </div>
 
-        <!-- Version History -->
-        <div class="sidebar-panel">
-          <h3 class="panel-title" data-toggle="versionPanel">
-            <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg>
-            Version History
-            <span class="panel-badge" id="versionCount">0</span>
-          </h3>
-          <div class="panel-body collapsed" id="versionPanel">
-            <div class="version-controls">
-              <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
-              <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
-            </div>
-            <div class="version-list" id="versionList">
-              <div class="version-empty">No saved versions yet.</div>
+        <!-- Tag Form -->
+        <div class="tag-form" id="tagForm">
+          <div class="tag-progress-row">
+            <span id="tagProgressLabel">0 / 0 tagged</span>
+            <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
+          </div>
+
+          <div class="chip-section unit-toggle-section">
+            <div class="pick-group unit-toggle" id="tagUnit">
+              <button class="pick" data-value="offense" type="button">Offense</button>
+              <button class="pick" data-value="defense" type="button">Defense</button>
+              <button class="pick" data-value="special" type="button">Special Teams</button>
             </div>
           </div>
-        </div>
 
-        <!-- Playlist -->
-        <div class="sidebar-panel">
-          <h3 class="panel-title" data-toggle="playlistPanel">
-            <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
-            Playlist
-            <span class="panel-badge" id="clipCount">0 clips</span>
-          </h3>
-          <div class="panel-body collapsed" id="playlistPanel">
-            <div class="playlist-controls">
-              <button class="btn btn-sm btn-accent" id="btnAddClips">
-                <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
-                Add Clips
-              </button>
-              <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
-            </div>
-            <div class="playlist-list" id="playlistItems">
-              <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+          <div class="chip-section">
+            <label class="chip-label">Down &amp; Distance</label>
+            <div class="chip-inline">
+              <div class="pick-group" id="tagDown">
+                <button class="pick" data-value="1" type="button">1st</button>
+                <button class="pick" data-value="2" type="button">2nd</button>
+                <button class="pick" data-value="3" type="button">3rd</button>
+                <button class="pick" data-value="4" type="button">4th</button>
+              </div>
+              <span class="chip-sep">&amp;</span>
+              <input type="number" id="tagDistance" placeholder="Dist" min="0" max="99" class="compact-input">
             </div>
           </div>
-        </div>
 
-        <!-- Play Filters -->
-        <div class="sidebar-panel">
-          <h3 class="panel-title" data-toggle="filterPanel">
-            <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
-            Filter Plays
-            <span class="panel-badge" id="filterCount"></span>
-          </h3>
-          <div class="panel-body collapsed" id="filterPanel">
-            <div class="filter-grid">
-              <div class="filter-group">
-                <label>Down</label>
-                <div class="filter-checks" id="filterDown">
-                  <label class="filter-chip"><input type="checkbox" value="1"> 1st</label>
-                  <label class="filter-chip"><input type="checkbox" value="2"> 2nd</label>
-                  <label class="filter-chip"><input type="checkbox" value="3"> 3rd</label>
-                  <label class="filter-chip"><input type="checkbox" value="4"> 4th</label>
-                </div>
-              </div>
-              <div class="filter-group">
-                <label>Quarter</label>
-                <div class="filter-checks" id="filterQuarter">
-                  <label class="filter-chip"><input type="checkbox" value="Q1"> Q1</label>
-                  <label class="filter-chip"><input type="checkbox" value="Q2"> Q2</label>
-                  <label class="filter-chip"><input type="checkbox" value="Q3"> Q3</label>
-                  <label class="filter-chip"><input type="checkbox" value="Q4"> Q4</label>
-                  <label class="filter-chip"><input type="checkbox" value="OT"> OT</label>
-                </div>
-              </div>
-              <div class="filter-group">
-                <label>Play Type</label>
-                <select id="filterPlayType" multiple size="3" class="filter-multi">
-                  <option value="Run Inside">Run Inside</option>
-                  <option value="Run Outside">Run Outside</option>
-                  <option value="Screen">Screen</option>
-                  <option value="Short Pass">Short Pass</option>
-                  <option value="Medium Pass">Med Pass</option>
-                  <option value="Deep Pass">Deep Pass</option>
-                  <option value="Play Action">Play Action</option>
-                  <option value="RPO">RPO</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Result</label>
-                <select id="filterResult" multiple size="3" class="filter-multi">
-                  <option value="Gain">Gain</option>
-                  <option value="Loss">Loss</option>
-                  <option value="No Gain">No Gain</option>
-                  <option value="Incomplete">Incomplete</option>
-                  <option value="Touchdown">TD</option>
-                  <option value="Interception">INT</option>
-                  <option value="Fumble">Fumble</option>
-                  <option value="Sack">Sack</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Formation</label>
-                <select id="filterFormation" class="filter-select">
-                  <option value="">All</option>
-                  <option>Shotgun</option>
-                  <option>Under Center</option>
-                  <option>Pistol</option>
-                  <option>I-Form</option>
-                  <option>Singleback</option>
-                  <option>Empty</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Personnel</label>
-                <select id="filterPersonnel" class="filter-select">
-                  <option value="">All</option>
-                  <option value="11">11</option>
-                  <option value="12">12</option>
-                  <option value="21">21</option>
-                  <option value="22">22</option>
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Situation</label>
-                <select id="filterSituation" class="filter-select">
-                  <option value="">All</option>
-                  <option value="redzone">Red Zone</option>
-                  <option value="goalline">Goal Line</option>
-                  <option value="backed-up">Backed Up (Own 10)</option>
-                  <option value="3rd-long">3rd & Long (7+)</option>
-                  <option value="3rd-short">3rd & Short (1-3)</option>
-                </select>
-              </div>
-            </div>
-            <div class="filter-actions">
-              <button class="btn btn-sm btn-danger" id="btnClearFilters">Clear Filters</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Drawing Tools -->
-        <div class="sidebar-panel">
-          <h3 class="panel-title" data-toggle="drawingTools">
-            <svg class="icon"><use href="assets/icons.svg#icon-pencil"/></svg>
-            Drawing Tools
-          </h3>
-          <div class="panel-body collapsed" id="drawingTools">
-            <div class="tool-grid">
-              <button class="tool-btn" data-tool="line" title="Line (1)">
-                <svg class="icon"><use href="assets/icons.svg#icon-line"/></svg>
-                <span>Line</span>
-              </button>
-              <button class="tool-btn" data-tool="arrow" title="Arrow (2)">
-                <svg class="icon"><use href="assets/icons.svg#icon-arrow"/></svg>
-                <span>Arrow</span>
-              </button>
-              <button class="tool-btn" data-tool="circle" title="Circle (3)">
-                <svg class="icon"><use href="assets/icons.svg#icon-circle"/></svg>
-                <span>Circle</span>
-              </button>
-              <button class="tool-btn" data-tool="rect" title="Rectangle (4)">
-                <svg class="icon"><use href="assets/icons.svg#icon-rect"/></svg>
-                <span>Rect</span>
-              </button>
-              <button class="tool-btn" data-tool="freehand" title="Freehand (5)">
-                <svg class="icon"><use href="assets/icons.svg#icon-freehand"/></svg>
-                <span>Draw</span>
-              </button>
-              <button class="tool-btn" data-tool="text" title="Text (6)">
-                <svg class="icon"><use href="assets/icons.svg#icon-text"/></svg>
-                <span>Text</span>
-              </button>
-            </div>
-            <div class="tool-options">
-              <div class="color-swatches">
-                <button class="swatch active" data-color="#ffffff" style="background:#ffffff" title="White"></button>
-                <button class="swatch" data-color="#ffff00" style="background:#ffff00" title="Yellow"></button>
-                <button class="swatch" data-color="#ff4444" style="background:#ff4444" title="Red"></button>
-                <button class="swatch" data-color="#4488ff" style="background:#4488ff" title="Blue"></button>
-                <button class="swatch" data-color="#44ff44" style="background:#44ff44" title="Green"></button>
-                <button class="swatch" data-color="#ff8800" style="background:#ff8800" title="Orange"></button>
-              </div>
-              <div class="line-width-control">
-                <label>Width:</label>
-                <input type="range" id="lineWidthSlider" min="2" max="10" value="3">
-              </div>
-              <div class="tool-actions">
-                <button class="btn btn-sm btn-danger" id="btnClearAnnotations" title="Clear All Annotations">Clear Drawings</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Play Tagger -->
-        <div class="sidebar-panel sidebar-panel-primary">
-          <h3 class="panel-title" data-toggle="playTagger">
-            <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-            Play Tagger
-            <span class="panel-badge" id="suggestionBadge" style="display:none"></span>
-          </h3>
-          <div class="panel-body" id="playTagger">
-            <!-- Manual play marking (primary entry — mark a clip, then tag it) -->
-            <div class="play-mark-controls play-mark-primary">
-              <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
-              <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
-              <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
-            </div>
-            <div class="play-selector">
-              <label>Current Play:</label>
-              <select id="playSelect" class="play-select">
-                <option value="">-- No plays tagged --</option>
-              </select>
-            </div>
-            <div class="tag-form" id="tagForm">
-              <div class="tag-progress-row">
-                <span id="tagProgressLabel">0 / 0 tagged</span>
-                <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
-              </div>
-
-              <div class="chip-section unit-toggle-section">
-                <div class="pick-group unit-toggle" id="tagUnit">
-                  <button class="pick" data-value="offense" type="button">Offense</button>
-                  <button class="pick" data-value="defense" type="button">Defense</button>
-                  <button class="pick" data-value="special" type="button">Special Teams</button>
-                </div>
-              </div>
-
-              <div class="chip-section core-hide-st">
-                <label class="chip-label">Play Type</label>
-                <div class="pick-group" id="tagPlayType">
-                  <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
-                  <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
-                  <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
-                  <button class="pick" data-value="Short Pass" type="button">Short Pass<kbd>P</kbd></button>
-                  <button class="pick" data-value="Medium Pass" type="button">Med Pass<kbd>M</kbd></button>
-                  <button class="pick" data-value="Deep Pass" type="button">Deep Pass<kbd>D</kbd></button>
-                  <button class="pick" data-value="Play Action" type="button">Play Action<kbd>A</kbd></button>
-                  <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
-                  <button class="pick" data-value="Trick Play" type="button">Trick Play<kbd>X</kbd></button>
-                </div>
-              </div>
-
-              <div class="chip-section">
-                <label class="chip-label">Result</label>
-                <div class="pick-group" id="tagResult">
-                  <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
-                  <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
-                  <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>
-                  <button class="pick" data-value="Incomplete" type="button">Incomplete<kbd>I</kbd></button>
-                  <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
-                  <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
-                  <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
-                  <button class="pick" data-value="Fumble" type="button">Fumble<kbd>F</kbd></button>
-                  <button class="pick" data-value="Penalty" type="button">Penalty<kbd>E</kbd></button>
-                  <button class="pick" data-value="Punt" type="button">Punt</button>
-                  <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
-                  <button class="pick" data-value="Kneel" type="button">Kneel</button>
-                  <button class="pick" data-value="Spike" type="button">Spike</button>
-                </div>
-              </div>
-
-              <div class="chip-section chip-section-inline">
-                <label class="chip-label">Yards</label>
-                <div class="yards-row">
-                  <button class="btn-nudge" id="yardsMinus" type="button">−</button>
-                  <input type="number" id="tagYardage" min="-99" max="99" placeholder="0" class="yards-input">
-                  <button class="btn-nudge" id="yardsPlus" type="button">+</button>
-                </div>
-              </div>
-
-              <div class="chip-section">
-                <label class="chip-label">Down &amp; Distance</label>
-                <div class="chip-inline">
-                  <div class="pick-group" id="tagDown">
-                    <button class="pick" data-value="1" type="button">1st</button>
-                    <button class="pick" data-value="2" type="button">2nd</button>
-                    <button class="pick" data-value="3" type="button">3rd</button>
-                    <button class="pick" data-value="4" type="button">4th</button>
-                  </div>
-                  <span class="chip-sep">&amp;</span>
-                  <input type="number" id="tagDistance" placeholder="Dist" min="0" max="99" class="compact-input">
-                </div>
-              </div>
-
-              <!-- Offense / Defense / Special Teams reorderable groups -->
-              <div class="tag-side-groups">
-                <div class="tag-group group-offense" data-group="offense">
-                  <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
-                  <div class="tag-group-body">
-                    <div class="chip-section">
-                      <label class="chip-label">Formation</label>
-                      <div class="pick-group" id="tagFormation">
-                        <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
-                        <button class="pick" data-value="Under Center" type="button">Under Center</button>
-                        <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                        <button class="pick" data-value="I-Form" type="button">I-Form</button>
-                        <button class="pick" data-value="Singleback" type="button">Singleback</button>
-                        <button class="pick" data-value="Split Back" type="button">Split Back</button>
-                        <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
-                        <button class="pick" data-value="Empty" type="button">Empty</button>
-                        <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
-                        <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
-                      </div>
-                    </div>
-                    <div class="chip-section">
-                      <label class="chip-label">Personnel</label>
-                      <div class="pick-group" id="tagPersonnel">
-                        <button class="pick" data-value="11" type="button">11</button>
-                        <button class="pick" data-value="12" type="button">12</button>
-                        <button class="pick" data-value="21" type="button">21</button>
-                        <button class="pick" data-value="22" type="button">22</button>
-                        <button class="pick" data-value="10" type="button">10</button>
-                        <button class="pick" data-value="20" type="button">20</button>
-                        <button class="pick" data-value="00" type="button">00</button>
-                        <button class="pick" data-value="13" type="button">13</button>
-                        <button class="pick" data-value="23" type="button">23</button>
-                        <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
-                        <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="tag-group group-defense" data-group="defense">
-                  <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
-                  <div class="tag-group-body">
-                    <div class="chip-section">
-                      <label class="chip-label">Def Front</label>
-                      <div class="pick-group" id="tagDefFront">
-                        <button class="pick" data-value="4-3" type="button">4-3</button>
-                        <button class="pick" data-value="3-4" type="button">3-4</button>
-                        <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
-                        <button class="pick" data-value="Nickel" type="button">Nickel</button>
-                        <button class="pick" data-value="Dime" type="button">Dime</button>
-                        <button class="pick" data-value="Quarter" type="button">Quarter</button>
-                        <button class="pick" data-value="4-6" type="button">4-6</button>
-                      </div>
-                    </div>
-                    <div class="chip-section">
-                      <label class="chip-label">Coverage</label>
-                      <div class="pick-group" id="tagCoverage">
-                        <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
-                        <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
-                        <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
-                        <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
-                        <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
-                        <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
-                        <button class="pick" data-value="Man" type="button">Man</button>
-                        <button class="pick" data-value="Zone" type="button">Zone</button>
-                      </div>
-                    </div>
-                    <div class="chip-section">
-                      <label class="chip-label">Blitz</label>
-                      <div class="pick-group" id="tagBlitz">
-                        <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
-                        <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
-                        <button class="pick" data-value="Edge" type="button">Edge</button>
-                        <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
-                        <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="tag-group group-special" data-group="special">
-                  <button class="tag-group-head" type="button">Special Teams<span class="tag-group-caret">▾</span></button>
-                  <div class="tag-group-body">
-                    <div class="chip-section">
-                      <label class="chip-label">ST Play Type</label>
-                      <div class="pick-group" id="tagStType">
-                        <button class="pick" data-value="Kickoff" type="button">Kickoff</button>
-                        <button class="pick" data-value="Kick Return" type="button">Kick Return</button>
-                        <button class="pick" data-value="Punt" type="button">Punt</button>
-                        <button class="pick" data-value="Punt Return" type="button">Punt Return</button>
-                        <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
-                        <button class="pick" data-value="XP" type="button">XP</button>
-                        <button class="pick" data-value="2-Pt" type="button">2-Pt</button>
-                        <button class="pick" data-value="Onside" type="button">Onside</button>
-                        <button class="pick" data-value="Fake" type="button">Fake</button>
-                      </div>
-                    </div>
-                    <div class="chip-section">
-                      <label class="chip-label">ST Players — jersey #</label>
-                      <div class="player-roles">
-                        <label class="player-role" data-role="kicker">
-                          <span class="player-role-label">Kicker / Punter</span>
-                          <input type="number" id="tagPlayerKicker" class="player-num" min="0" max="99" placeholder="#">
-                          <select id="tagGradeKicker" class="player-grade" title="Grade">
-                          <option value="">—</option>
-                          <option value="2">++</option>
-                          <option value="1">+</option>
-                          <option value="0">0</option>
-                          <option value="-1">−</option>
-                          <option value="-2">−−</option>
-                        </select>
-                        </label>
-                        <label class="player-role" data-role="returner">
-                          <span class="player-role-label">Returner</span>
-                          <input type="number" id="tagPlayerReturner" class="player-num" min="0" max="99" placeholder="#">
-                          <select id="tagGradeReturner" class="player-grade" title="Grade">
-                          <option value="">—</option>
-                          <option value="2">++</option>
-                          <option value="1">+</option>
-                          <option value="0">0</option>
-                          <option value="-1">−</option>
-                          <option value="-2">−−</option>
-                        </select>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Players (shared) -->
-              <div class="chip-section">
-                <label class="chip-label">Players — jersey #</label>
-                <div class="player-roles">
-                  <label class="player-role active" data-role="ballCarrier">
-                    <span class="player-role-label">Ball Carrier</span>
-                    <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
-                    <select id="tagGradeBC" class="player-grade" title="Grade">
-                          <option value="">—</option>
-                          <option value="2">++</option>
-                          <option value="1">+</option>
-                          <option value="0">0</option>
-                          <option value="-1">−</option>
-                          <option value="-2">−−</option>
-                        </select>
-                  </label>
-                  <label class="player-role" data-role="passer">
-                    <span class="player-role-label">Passer</span>
-                    <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
-                    <select id="tagGradePasser" class="player-grade" title="Grade">
-                          <option value="">—</option>
-                          <option value="2">++</option>
-                          <option value="1">+</option>
-                          <option value="0">0</option>
-                          <option value="-1">−</option>
-                          <option value="-2">−−</option>
-                        </select>
-                  </label>
-                  <label class="player-role" data-role="receiver">
-                    <span class="player-role-label">Receiver</span>
-                    <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
-                    <select id="tagGradeReceiver" class="player-grade" title="Grade">
-                          <option value="">—</option>
-                          <option value="2">++</option>
-                          <option value="1">+</option>
-                          <option value="0">0</option>
-                          <option value="-1">−</option>
-                          <option value="-2">−−</option>
-                        </select>
-                  </label>
-                  <label class="player-role" data-role="tackler">
-                    <span class="player-role-label">Tackler</span>
-                    <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
-                    <select id="tagGradeTackler" class="player-grade" title="Grade">
-                          <option value="">—</option>
-                          <option value="2">++</option>
-                          <option value="1">+</option>
-                          <option value="0">0</option>
-                          <option value="-1">−</option>
-                          <option value="-2">−−</option>
-                        </select>
-                  </label>
-                </div>
-                <div class="player-quickpick" id="rosterQuickPick"></div>
-              </div>
-
-              <details class="chip-details">
-                <summary>Situation &amp; Details</summary>
+          <!-- Offense / Defense / Special Teams reorderable groups -->
+          <div class="tag-side-groups">
+            <div class="tag-group group-offense" data-group="offense">
+              <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
+              <div class="tag-group-body">
                 <div class="chip-section">
-                  <label class="chip-label">Hash</label>
-                  <div class="pick-group" id="tagHash">
-                    <button class="pick" data-value="Left" type="button">Left</button>
-                    <button class="pick" data-value="Middle" type="button">Middle</button>
-                    <button class="pick" data-value="Right" type="button">Right</button>
+                  <label class="chip-label">Formation</label>
+                  <div class="pick-group" id="tagFormation">
+                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                    <button class="pick" data-value="Under Center" type="button">Under Center</button>
+                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                    <button class="pick" data-value="I-Form" type="button">I-Form</button>
+                    <button class="pick" data-value="Singleback" type="button">Singleback</button>
+                    <button class="pick" data-value="Split Back" type="button">Split Back</button>
+                    <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
+                    <button class="pick" data-value="Empty" type="button">Empty</button>
+                    <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
+                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                   </div>
                 </div>
                 <div class="chip-section">
-                  <label class="chip-label">Quarter</label>
-                  <div class="pick-group" id="tagQuarter">
-                    <button class="pick" data-value="Q1" type="button">Q1</button>
-                    <button class="pick" data-value="Q2" type="button">Q2</button>
-                    <button class="pick" data-value="Q3" type="button">Q3</button>
-                    <button class="pick" data-value="Q4" type="button">Q4</button>
-                    <button class="pick" data-value="OT" type="button">OT</button>
+                  <label class="chip-label">Personnel</label>
+                  <div class="pick-group" id="tagPersonnel">
+                    <button class="pick" data-value="11" type="button">11</button>
+                    <button class="pick" data-value="12" type="button">12</button>
+                    <button class="pick" data-value="21" type="button">21</button>
+                    <button class="pick" data-value="22" type="button">22</button>
+                    <button class="pick" data-value="10" type="button">10</button>
+                    <button class="pick" data-value="20" type="button">20</button>
+                    <button class="pick" data-value="00" type="button">00</button>
+                    <button class="pick" data-value="13" type="button">13</button>
+                    <button class="pick" data-value="23" type="button">23</button>
+                    <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
+                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                   </div>
                 </div>
-                <div class="chip-section">
-                  <label class="chip-label">Field Position</label>
-                  <div class="chip-inline">
-                    <div class="pick-group" id="tagFieldSide">
-                      <button class="pick" data-value="own" type="button">Own</button>
-                      <button class="pick" data-value="opp" type="button">Opp</button>
-                    </div>
-                    <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" class="compact-input">
-                  </div>
-                </div>
-                <div class="chip-section chip-section-inline">
-                  <label class="chip-label">Drive</label>
-                  <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" class="compact-input">
-                  <button class="btn btn-sm btn-accent" id="btnNewDrive" type="button">New Drive</button>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Custom Tags</label>
-                  <div class="custom-tags-input">
-                    <div class="tag-chips" id="tagChips"></div>
-                    <input type="text" id="customTagInput" placeholder="Add tag + Enter" class="compact-input" style="width:100%">
-                  </div>
-                </div>
-              </details>
-
-              <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
-                <input type="checkbox" id="autoDDToggle" checked>
-                <span>Auto down &amp; distance</span>
-              </label>
-
-              <div class="tag-nav">
-                <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
-                <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
-                <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
               </div>
             </div>
-
-            <!-- Secondary tools (OCR, smart suggestions) -->
-            <details class="tagger-tools">
-              <summary>More tools (scoreboard OCR, suggestions)</summary>
-              <div class="tagger-tools-body">
-                <!-- Scoreboard OCR -->
-                <div class="ocr-section">
-                  <div class="ocr-header">
-                    <span class="ocr-title">📺 Scoreboard OCR</span>
-                    <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
-                      <input type="checkbox" id="btnAutoOcr"> Auto
+            <div class="tag-group group-defense" data-group="defense">
+              <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
+              <div class="tag-group-body">
+                <div class="chip-section">
+                  <label class="chip-label">Def Front</label>
+                  <div class="pick-group" id="tagDefFront">
+                    <button class="pick" data-value="4-3" type="button">4-3</button>
+                    <button class="pick" data-value="3-4" type="button">3-4</button>
+                    <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
+                    <button class="pick" data-value="Nickel" type="button">Nickel</button>
+                    <button class="pick" data-value="Dime" type="button">Dime</button>
+                    <button class="pick" data-value="Quarter" type="button">Quarter</button>
+                    <button class="pick" data-value="4-6" type="button">4-6</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Coverage</label>
+                  <div class="pick-group" id="tagCoverage">
+                    <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
+                    <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
+                    <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
+                    <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
+                    <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
+                    <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
+                    <button class="pick" data-value="Man" type="button">Man</button>
+                    <button class="pick" data-value="Zone" type="button">Zone</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Blitz</label>
+                  <div class="pick-group" id="tagBlitz">
+                    <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
+                    <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                    <button class="pick" data-value="Edge" type="button">Edge</button>
+                    <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
+                    <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tag-group group-special" data-group="special">
+              <button class="tag-group-head" type="button">Special Teams<span class="tag-group-caret">▾</span></button>
+              <div class="tag-group-body">
+                <div class="chip-section">
+                  <label class="chip-label">ST Play Type</label>
+                  <div class="pick-group" id="tagStType">
+                    <button class="pick" data-value="Kickoff" type="button">Kickoff</button>
+                    <button class="pick" data-value="Kick Return" type="button">Kick Return</button>
+                    <button class="pick" data-value="Punt" type="button">Punt</button>
+                    <button class="pick" data-value="Punt Return" type="button">Punt Return</button>
+                    <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                    <button class="pick" data-value="XP" type="button">XP</button>
+                    <button class="pick" data-value="2-Pt" type="button">2-Pt</button>
+                    <button class="pick" data-value="Onside" type="button">Onside</button>
+                    <button class="pick" data-value="Fake" type="button">Fake</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">ST Players — jersey #</label>
+                  <div class="player-roles">
+                    <label class="player-role" data-role="kicker">
+                      <span class="player-role-label">Kicker / Punter</span>
+                      <input type="number" id="tagPlayerKicker" class="player-num" min="0" max="99" placeholder="#">
+                      <select id="tagGradeKicker" class="player-grade" title="Grade">
+                        <option value="">—</option>
+                        <option value="2">++</option>
+                        <option value="1">+</option>
+                        <option value="0">0</option>
+                        <option value="-1">−</option>
+                        <option value="-2">−−</option>
+                      </select>
+                    </label>
+                    <label class="player-role" data-role="returner">
+                      <span class="player-role-label">Returner</span>
+                      <input type="number" id="tagPlayerReturner" class="player-num" min="0" max="99" placeholder="#">
+                      <select id="tagGradeReturner" class="player-grade" title="Grade">
+                        <option value="">—</option>
+                        <option value="2">++</option>
+                        <option value="1">+</option>
+                        <option value="0">0</option>
+                        <option value="-1">−</option>
+                        <option value="-2">−−</option>
+                      </select>
                     </label>
                   </div>
-                  <div class="ocr-controls">
-                    <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
-                    <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
-                  </div>
-                  <div class="ocr-status" id="ocrStatus">No region set</div>
-                  <div class="ocr-preview" id="ocrPreview"></div>
                 </div>
-                <!-- Smart suggestions toggle -->
-                <label class="suggestion-toggle">
-                  <input type="checkbox" id="btnToggleSuggestions" checked>
-                  <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- What happened on the play (post-snap) -->
+          <div class="chip-section core-hide-st">
+            <label class="chip-label">Play Type</label>
+            <div class="pick-group" id="tagPlayType">
+              <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
+              <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
+              <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
+              <button class="pick" data-value="Short Pass" type="button">Short Pass<kbd>P</kbd></button>
+              <button class="pick" data-value="Medium Pass" type="button">Med Pass<kbd>M</kbd></button>
+              <button class="pick" data-value="Deep Pass" type="button">Deep Pass<kbd>D</kbd></button>
+              <button class="pick" data-value="Play Action" type="button">Play Action<kbd>A</kbd></button>
+              <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
+              <button class="pick" data-value="Trick Play" type="button">Trick Play<kbd>X</kbd></button>
+            </div>
+          </div>
+
+          <div class="chip-section">
+            <label class="chip-label">Result</label>
+            <div class="pick-group" id="tagResult">
+              <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
+              <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
+              <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>
+              <button class="pick" data-value="Incomplete" type="button">Incomplete<kbd>I</kbd></button>
+              <button class="pick" data-value="Touchdown" type="button">TD<kbd>T</kbd></button>
+              <button class="pick" data-value="Sack" type="button">Sack<kbd>W</kbd></button>
+              <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
+              <button class="pick" data-value="Fumble" type="button">Fumble<kbd>F</kbd></button>
+              <button class="pick" data-value="Penalty" type="button">Penalty<kbd>E</kbd></button>
+              <button class="pick" data-value="Punt" type="button">Punt</button>
+              <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+              <button class="pick" data-value="Kneel" type="button">Kneel</button>
+              <button class="pick" data-value="Spike" type="button">Spike</button>
+            </div>
+          </div>
+
+          <div class="chip-section chip-section-inline">
+            <label class="chip-label">Yards</label>
+            <div class="yards-row">
+              <button class="btn-nudge" id="yardsMinus" type="button">−</button>
+              <input type="number" id="tagYardage" min="-99" max="99" placeholder="0" class="yards-input">
+              <button class="btn-nudge" id="yardsPlus" type="button">+</button>
+            </div>
+          </div>
+
+          <!-- Players (shared) -->
+          <div class="chip-section">
+            <label class="chip-label">Players — jersey #</label>
+            <div class="player-roles">
+              <label class="player-role active" data-role="ballCarrier">
+                <span class="player-role-label">Ball Carrier</span>
+                <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
+                <select id="tagGradeBC" class="player-grade" title="Grade">
+                  <option value="">—</option>
+                  <option value="2">++</option>
+                  <option value="1">+</option>
+                  <option value="0">0</option>
+                  <option value="-1">−</option>
+                  <option value="-2">−−</option>
+                </select>
+              </label>
+              <label class="player-role" data-role="passer">
+                <span class="player-role-label">Passer</span>
+                <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
+                <select id="tagGradePasser" class="player-grade" title="Grade">
+                  <option value="">—</option>
+                  <option value="2">++</option>
+                  <option value="1">+</option>
+                  <option value="0">0</option>
+                  <option value="-1">−</option>
+                  <option value="-2">−−</option>
+                </select>
+              </label>
+              <label class="player-role" data-role="receiver">
+                <span class="player-role-label">Receiver</span>
+                <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
+                <select id="tagGradeReceiver" class="player-grade" title="Grade">
+                  <option value="">—</option>
+                  <option value="2">++</option>
+                  <option value="1">+</option>
+                  <option value="0">0</option>
+                  <option value="-1">−</option>
+                  <option value="-2">−−</option>
+                </select>
+              </label>
+              <label class="player-role" data-role="tackler">
+                <span class="player-role-label">Tackler</span>
+                <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                <select id="tagGradeTackler" class="player-grade" title="Grade">
+                  <option value="">—</option>
+                  <option value="2">++</option>
+                  <option value="1">+</option>
+                  <option value="0">0</option>
+                  <option value="-1">−</option>
+                  <option value="-2">−−</option>
+                </select>
+              </label>
+            </div>
+            <div class="player-quickpick" id="rosterQuickPick"></div>
+          </div>
+
+          <!-- Notes — embedded in tag flow (before Situation & Details) -->
+          <div class="tag-notes">
+            <div class="tag-notes-label">
+              <span>Play Notes</span>
+              <button class="btn btn-sm" id="btnInsertTimestamp" title="Insert Timestamp">+ Time</button>
+            </div>
+            <textarea id="notesArea" class="notes-area" placeholder="Add notes for the current play..."></textarea>
+          </div>
+
+          <details class="chip-details">
+            <summary>Situation &amp; Details</summary>
+            <div class="chip-section">
+              <label class="chip-label">Hash</label>
+              <div class="pick-group" id="tagHash">
+                <button class="pick" data-value="Left" type="button">Left</button>
+                <button class="pick" data-value="Middle" type="button">Middle</button>
+                <button class="pick" data-value="Right" type="button">Right</button>
+              </div>
+            </div>
+            <div class="chip-section">
+              <label class="chip-label">Quarter</label>
+              <div class="pick-group" id="tagQuarter">
+                <button class="pick" data-value="Q1" type="button">Q1</button>
+                <button class="pick" data-value="Q2" type="button">Q2</button>
+                <button class="pick" data-value="Q3" type="button">Q3</button>
+                <button class="pick" data-value="Q4" type="button">Q4</button>
+                <button class="pick" data-value="OT" type="button">OT</button>
+              </div>
+            </div>
+            <div class="chip-section">
+              <label class="chip-label">Field Position</label>
+              <div class="chip-inline">
+                <div class="pick-group" id="tagFieldSide">
+                  <button class="pick" data-value="own" type="button">Own</button>
+                  <button class="pick" data-value="opp" type="button">Opp</button>
+                </div>
+                <input type="number" id="tagYardLine" placeholder="Yd" min="1" max="50" class="compact-input">
+              </div>
+            </div>
+            <div class="chip-section chip-section-inline">
+              <label class="chip-label">Drive</label>
+              <input type="number" id="tagDriveNumber" placeholder="#" min="1" max="30" class="compact-input">
+              <button class="btn btn-sm btn-accent" id="btnNewDrive" type="button">New Drive</button>
+            </div>
+            <div class="chip-section">
+              <label class="chip-label">Custom Tags</label>
+              <div class="custom-tags-input">
+                <div class="tag-chips" id="tagChips"></div>
+                <input type="text" id="customTagInput" placeholder="Add tag + Enter" class="compact-input" style="width:100%">
+              </div>
+            </div>
+          </details>
+
+          <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
+            <input type="checkbox" id="autoDDToggle" checked>
+            <span>Auto down &amp; distance</span>
+          </label>
+
+          <div class="tag-nav">
+            <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
+            <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
+            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
+          </div>
+        </div>
+
+        <!-- Secondary tools (OCR, smart suggestions) -->
+        <details class="tagger-tools">
+          <summary>More tools (scoreboard OCR, suggestions)</summary>
+          <div class="tagger-tools-body">
+            <!-- Scoreboard OCR -->
+            <div class="ocr-section">
+              <div class="ocr-header">
+                <span class="ocr-title">📺 Scoreboard OCR</span>
+                <label class="ocr-toggle" title="Auto-read scoreboard at end of each play">
+                  <input type="checkbox" id="btnAutoOcr"> Auto
                 </label>
               </div>
-            </details>
+              <div class="ocr-controls">
+                <button class="btn btn-sm" id="btnSetScoreboardRegion" title="Drag a box around the scoreboard on the video">Set Region</button>
+                <button class="btn btn-sm btn-accent" id="btnReadScoreboard" title="Read scoreboard now">Read Now</button>
+              </div>
+              <div class="ocr-status" id="ocrStatus">No region set</div>
+              <div class="ocr-preview" id="ocrPreview"></div>
+            </div>
+            <!-- Smart suggestions toggle -->
+            <label class="suggestion-toggle">
+              <input type="checkbox" id="btnToggleSuggestions" checked>
+              <span>💡 Smart suggestions (auto-fill from your tagging patterns)</span>
+            </label>
+          </div>
+        </details>
 
-            <!-- Auto-Detect (experimental — demoted below manual tagging) -->
-            <details class="tagger-tools auto-detect-tools">
-              <summary>Auto-Detect Plays (experimental)</summary>
-              <div class="tagger-tools-body">
+        <!-- Auto-Detect (experimental) -->
+        <details class="tagger-tools auto-detect-tools">
+          <summary>Auto-Detect Plays (experimental)</summary>
+          <div class="tagger-tools-body">
             <div class="auto-detect-section">
               <div class="auto-detect-header">
                 <button class="btn btn-sm btn-detect" id="btnAutoDetect" title="Scan video to auto-detect plays">
@@ -880,33 +588,324 @@
                 </div>
               </div>
             </div>
-              </div>
-            </details>
           </div>
-        </div>
-      </aside>
+        </details>
+      </section>
     </div>
 
-    <!-- Bottom Panel -->
-    <div class="bottom-panel">
-      <div class="notes-section">
-        <h3 class="panel-title">
-          <svg class="icon"><use href="assets/icons.svg#icon-notes"/></svg>
-          Play Notes
-          <button class="btn btn-sm" id="btnInsertTimestamp" title="Insert Timestamp">+ Time</button>
-        </h3>
-        <textarea id="notesArea" class="notes-area" placeholder="Add notes for the current play..."></textarea>
+    <!-- Settings Drawer (slides in from right — replaces old sidebar) -->
+    <aside class="settings-drawer" id="settingsDrawer">
+      <div class="settings-drawer-head">
+        <h2>Settings &amp; Tools</h2>
+        <button class="settings-drawer-close" id="settingsDrawerClose" type="button" title="Close">×</button>
       </div>
-      <div class="timeline-section">
-        <h3 class="panel-title">
-          <svg class="icon"><use href="assets/icons.svg#icon-timeline"/></svg>
-          Timeline
+      <!-- Game Info -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="gameInfoPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
+          Game Info
         </h3>
-        <div class="timeline-strip" id="timelineStrip">
-          <div class="timeline-bar" id="timelineBar"></div>
+        <div class="panel-body collapsed" id="gameInfoPanel">
+          <div class="tag-row">
+            <label>Team Name</label>
+            <input type="text" id="gameTeamName" placeholder="Our Team">
+          </div>
+          <div class="tag-row">
+            <label>Opponent</label>
+            <input type="text" id="gameOpponent" placeholder="Opponent">
+          </div>
+          <div class="tag-row">
+            <label>Date</label>
+            <input type="date" id="gameDate">
+          </div>
+          <div class="tag-row">
+            <label>Score</label>
+            <div class="tag-row-inline">
+              <input type="number" id="gameScoreUs" placeholder="Us" min="0" style="width:60px">
+              <span>-</span>
+              <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
+            </div>
+          </div>
+          <div class="tag-row">
+            <label>Our Jersey</label>
+            <select id="gameJerseyColor">
+              <option value="">-- select --</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+              <option value="navy">Navy</option>
+              <option value="green">Green</option>
+              <option value="yellow">Yellow / Gold</option>
+              <option value="orange">Orange</option>
+              <option value="purple">Purple</option>
+              <option value="maroon">Maroon</option>
+              <option value="gray">Gray / Silver</option>
+              <option value="teal">Teal</option>
+            </select>
+          </div>
+          <div class="tag-row">
+            <label>Film shows</label>
+            <select id="gamePerspective">
+              <option value="offense">Our Offense</option>
+              <option value="defense">Our Defense</option>
+              <option value="special">Special Teams</option>
+              <option value="scout">Opponent Scout</option>
+            </select>
+          </div>
+          <div class="tag-row">
+            <label>We go →</label>
+            <select id="gameDirection">
+              <option value="">Auto (guess)</option>
+              <option value="right">Left → Right</option>
+              <option value="left">Right → Left</option>
+            </select>
+          </div>
+          <div class="tag-row">
+            <label>Claude API Key</label>
+            <input type="password" id="gameApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" style="font-family:monospace;font-size:12px">
+          </div>
+          <div class="tag-row">
+            <label>AI Model</label>
+            <select id="gameAiModel">
+              <option value="claude-opus-4-6">Opus (most accurate)</option>
+              <option value="claude-sonnet-4-6">Sonnet (faster / cheaper)</option>
+            </select>
+          </div>
+          <div class="scout-section hidden" id="scoutSection">
+            <label class="game-info-label">Scouting Notes</label>
+            <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
+            <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- Roster -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="rosterPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
+          Roster
+        </h3>
+        <div class="panel-body collapsed" id="rosterPanel">
+          <div class="roster-add">
+            <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
+            <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
+            <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
+            <select id="rosterSide" class="roster-add-side" title="Side of ball">
+              <option value="O">Off</option>
+              <option value="D">Def</option>
+              <option value="B">Both</option>
+            </select>
+            <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
+          </div>
+          <div class="roster-import-bar">
+            <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
+          </div>
+          <div class="roster-import-area hidden" id="rosterImportArea">
+            <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
+            <div class="roster-import-actions">
+              <label class="btn btn-sm roster-import-file-label">
+                Choose CSV
+                <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
+              </label>
+              <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
+            </div>
+            <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
+          </div>
+          <div class="roster-list" id="rosterList"></div>
+        </div>
+      </div>
+
+      <!-- Version History -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="versionPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg>
+          Version History
+          <span class="panel-badge" id="versionCount">0</span>
+        </h3>
+        <div class="panel-body collapsed" id="versionPanel">
+          <div class="version-controls">
+            <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
+            <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
+          </div>
+          <div class="version-list" id="versionList">
+            <div class="version-empty">No saved versions yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Playlist -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="playlistPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
+          Playlist
+          <span class="panel-badge" id="clipCount">0 clips</span>
+        </h3>
+        <div class="panel-body collapsed" id="playlistPanel">
+          <div class="playlist-controls">
+            <button class="btn btn-sm btn-accent" id="btnAddClips">
+              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
+              Add Clips
+            </button>
+            <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
+          </div>
+          <div class="playlist-list" id="playlistItems">
+            <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Play Filters -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="filterPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
+          Filter Plays
+          <span class="panel-badge" id="filterCount"></span>
+        </h3>
+        <div class="panel-body collapsed" id="filterPanel">
+          <div class="filter-grid">
+            <div class="filter-group">
+              <label>Down</label>
+              <div class="filter-checks" id="filterDown">
+                <label class="filter-chip"><input type="checkbox" value="1"> 1st</label>
+                <label class="filter-chip"><input type="checkbox" value="2"> 2nd</label>
+                <label class="filter-chip"><input type="checkbox" value="3"> 3rd</label>
+                <label class="filter-chip"><input type="checkbox" value="4"> 4th</label>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Quarter</label>
+              <div class="filter-checks" id="filterQuarter">
+                <label class="filter-chip"><input type="checkbox" value="Q1"> Q1</label>
+                <label class="filter-chip"><input type="checkbox" value="Q2"> Q2</label>
+                <label class="filter-chip"><input type="checkbox" value="Q3"> Q3</label>
+                <label class="filter-chip"><input type="checkbox" value="Q4"> Q4</label>
+                <label class="filter-chip"><input type="checkbox" value="OT"> OT</label>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Play Type</label>
+              <select id="filterPlayType" multiple size="3" class="filter-multi">
+                <option value="Run Inside">Run Inside</option>
+                <option value="Run Outside">Run Outside</option>
+                <option value="Screen">Screen</option>
+                <option value="Short Pass">Short Pass</option>
+                <option value="Medium Pass">Med Pass</option>
+                <option value="Deep Pass">Deep Pass</option>
+                <option value="Play Action">Play Action</option>
+                <option value="RPO">RPO</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Result</label>
+              <select id="filterResult" multiple size="3" class="filter-multi">
+                <option value="Gain">Gain</option>
+                <option value="Loss">Loss</option>
+                <option value="No Gain">No Gain</option>
+                <option value="Incomplete">Incomplete</option>
+                <option value="Touchdown">TD</option>
+                <option value="Interception">INT</option>
+                <option value="Fumble">Fumble</option>
+                <option value="Sack">Sack</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Formation</label>
+              <select id="filterFormation" class="filter-select">
+                <option value="">All</option>
+                <option>Shotgun</option>
+                <option>Under Center</option>
+                <option>Pistol</option>
+                <option>I-Form</option>
+                <option>Singleback</option>
+                <option>Empty</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Personnel</label>
+              <select id="filterPersonnel" class="filter-select">
+                <option value="">All</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="21">21</option>
+                <option value="22">22</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Situation</label>
+              <select id="filterSituation" class="filter-select">
+                <option value="">All</option>
+                <option value="redzone">Red Zone</option>
+                <option value="goalline">Goal Line</option>
+                <option value="backed-up">Backed Up (Own 10)</option>
+                <option value="3rd-long">3rd &amp; Long (7+)</option>
+                <option value="3rd-short">3rd &amp; Short (1-3)</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-sm btn-danger" id="btnClearFilters">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drawing Tools -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="drawingTools">
+          <svg class="icon"><use href="assets/icons.svg#icon-pencil"/></svg>
+          Drawing Tools
+        </h3>
+        <div class="panel-body collapsed" id="drawingTools">
+          <div class="tool-grid">
+            <button class="tool-btn" data-tool="line" title="Line (1)">
+              <svg class="icon"><use href="assets/icons.svg#icon-line"/></svg>
+              <span>Line</span>
+            </button>
+            <button class="tool-btn" data-tool="arrow" title="Arrow (2)">
+              <svg class="icon"><use href="assets/icons.svg#icon-arrow"/></svg>
+              <span>Arrow</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Circle (3)">
+              <svg class="icon"><use href="assets/icons.svg#icon-circle"/></svg>
+              <span>Circle</span>
+            </button>
+            <button class="tool-btn" data-tool="rect" title="Rectangle (4)">
+              <svg class="icon"><use href="assets/icons.svg#icon-rect"/></svg>
+              <span>Rect</span>
+            </button>
+            <button class="tool-btn" data-tool="freehand" title="Freehand (5)">
+              <svg class="icon"><use href="assets/icons.svg#icon-freehand"/></svg>
+              <span>Draw</span>
+            </button>
+            <button class="tool-btn" data-tool="text" title="Text (6)">
+              <svg class="icon"><use href="assets/icons.svg#icon-text"/></svg>
+              <span>Text</span>
+            </button>
+          </div>
+          <div class="tool-options">
+            <div class="color-swatches">
+              <button class="swatch active" data-color="#ffffff" style="background:#ffffff" title="White"></button>
+              <button class="swatch" data-color="#ffff00" style="background:#ffff00" title="Yellow"></button>
+              <button class="swatch" data-color="#ff4444" style="background:#ff4444" title="Red"></button>
+              <button class="swatch" data-color="#4488ff" style="background:#4488ff" title="Blue"></button>
+              <button class="swatch" data-color="#44ff44" style="background:#44ff44" title="Green"></button>
+              <button class="swatch" data-color="#ff8800" style="background:#ff8800" title="Orange"></button>
+            </div>
+            <div class="line-width-control">
+              <label>Width:</label>
+              <input type="range" id="lineWidthSlider" min="2" max="10" value="3">
+            </div>
+            <div class="tool-actions">
+              <button class="btn btn-sm btn-danger" id="btnClearAnnotations" title="Clear All Annotations">Clear Drawings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <!-- Settings drawer scrim -->
+    <div class="drawer-scrim" id="drawerScrim"></div>
 
     <!-- Quick Chart Panel (overlay on bottom when active) -->
     <div class="quick-chart-panel hidden" id="quickChartPanel">

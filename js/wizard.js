@@ -262,13 +262,10 @@ export class Wizard {
   }
 
   _openPlayTaggerPanel() {
-    const sidebar = document.querySelector('.sidebar');
-    sidebar?.classList.add('open');
-    document.querySelector('.sidebar-scrim')?.classList.add('active');
-    const panel = document.getElementById('playTagger');
-    if (panel) {
-      panel.classList.remove('collapsed');
-      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    // The tag form is always on-page now (below the video) — just scroll to it.
+    const section = document.querySelector('.tag-section');
+    if (section) {
+      setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
     }
   }
 }

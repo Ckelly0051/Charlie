@@ -42,31 +42,35 @@ export class UIPolish {
 
   _initSidebarDrawer() {
     const btn = document.getElementById('btnSidebarToggle');
-    const sidebar = document.querySelector('.sidebar');
-    if (!btn || !sidebar) return;
+    const drawer = document.querySelector('.settings-drawer');
+    if (!btn || !drawer) return;
 
     // Inject a scrim
-    let scrim = document.querySelector('.sidebar-scrim');
+    let scrim = document.querySelector('.drawer-scrim');
     if (!scrim) {
       scrim = document.createElement('div');
-      scrim.className = 'sidebar-scrim';
+      scrim.className = 'drawer-scrim';
       document.body.appendChild(scrim);
     }
     const close = () => {
-      sidebar.classList.remove('open');
+      drawer.classList.remove('open');
       scrim.classList.remove('active');
     };
     const open = () => {
-      sidebar.classList.add('open');
+      drawer.classList.add('open');
       scrim.classList.add('active');
     };
     btn.addEventListener('click', () => {
-      sidebar.classList.contains('open') ? close() : open();
+      drawer.classList.contains('open') ? close() : open();
     });
     scrim.addEventListener('click', close);
+    document.getElementById('settingsDrawerClose')?.addEventListener('click', close);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') close();
     });
+    // Expose for the bottom tab bar
+    this._closeDrawer = close;
+    this._openDrawer = open;
   }
 
   _initPanelCollapse() {
@@ -106,20 +110,20 @@ export class UIPolish {
     `;
     document.body.appendChild(nav);
 
-    const sidebar = document.querySelector('.sidebar');
-    const scrim = document.querySelector('.sidebar-scrim');
+    const drawer = document.querySelector('.settings-drawer');
+    const scrim = document.querySelector('.drawer-scrim');
 
     const setActive = (name) => {
       nav.querySelectorAll('.bt-tab').forEach(b =>
         b.classList.toggle('active', b.dataset.tab === name));
     };
 
-    const closeSidebar = () => {
-      sidebar?.classList.remove('open');
+    const closeDrawer = () => {
+      drawer?.classList.remove('open');
       scrim?.classList.remove('active');
     };
-    const openSidebar = () => {
-      sidebar?.classList.add('open');
+    const openDrawer = () => {
+      drawer?.classList.add('open');
       scrim?.classList.add('active');
     };
     const closeMore = () => document.getElementById('moreDropdown')?.classList.add('hidden');
@@ -131,26 +135,26 @@ export class UIPolish {
       setActive(tab);
 
       if (tab === 'video') {
-        closeSidebar();
+        closeDrawer();
         closeMore();
         document.getElementById('statsDashboard')?.classList.add('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (tab === 'tag') {
+        closeDrawer();
         closeMore();
         document.getElementById('statsDashboard')?.classList.add('hidden');
-        openSidebar();
-        // Expand Play Tagger panel and scroll to it
-        const panel = document.getElementById('playTagger');
-        if (panel) {
-          panel.classList.remove('collapsed');
-          setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+        // The tag form is always on-page now — just scroll it into view
+        const section = document.querySelector('.tag-section');
+        if (section) {
+          setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
         }
       } else if (tab === 'stats') {
-        closeSidebar();
+        closeDrawer();
         closeMore();
         document.getElementById('btnShowStats')?.click();
       } else if (tab === 'more') {
-        closeSidebar();
-        document.getElementById('btnMoreMenu')?.click();
+        closeMore();
+        openDrawer();
       }
     });
 
@@ -199,8 +203,8 @@ export class UIPolish {
       hint.className = 'onboard-hint';
       hint.innerHTML = `
         <div class="onboard-hint-body">
-          <strong>Next step:</strong> Tap <b>Tag</b> below to auto-detect plays,
-          or press <b>Play ▸</b> and chart manually.
+          <strong>Next step:</strong> Mark a play with <b>[</b> and <b>]</b>,
+          then tag it right below the video.
           <button class="onboard-close">Got it</button>
         </div>`;
       document.body.appendChild(hint);

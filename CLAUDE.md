@@ -7,6 +7,31 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Live URL**: https://ckelly0051.github.io/Charlie/
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
+## Page Layout (single-column, top-to-bottom)
+
+The app is a **single scrollable column**, not a video+sidebar split:
+- **Top bar** — sticky, file load + actions.
+- **Video section** (`.video-section`) — **sticky** below the top bar so the
+  film stays in view while you scroll the form. Constrained height
+  (`min(54vh, 620px)`, 38vh on mobile). Contains the video, playback controls,
+  and the timeline strip.
+- **Tag section** (`.tag-section`) — full-width, directly below the video.
+  Holds the entire tagging workflow (mark controls, play selector, chip-based
+  tag form, notes, OCR/auto-detect). No popup/sidebar — tagging is always
+  on-page. The form is centered with `max-width: 1100px`.
+- **Settings drawer** (`.settings-drawer` / `#settingsDrawer`) — slides in from
+  the right (toggled by the top-bar "Settings" button, the mobile "More" tab,
+  Esc, scrim, or its × button). Houses secondary panels: Game Info, Roster,
+  Version History, Playlist, Filter Plays, Drawing Tools. Backed by
+  `.drawer-scrim`. Wired in `js/ui-polish.js` `_initSidebarDrawer()`.
+- **Mobile** — bottom tab bar (Video / Tag / Stats / More) from
+  `_initBottomTabs()`; "Tag" scrolls to the form, "More" opens the drawer.
+
+The old 2-column `.main-content` grid and `.bottom-panel` (notes + timeline)
+were removed; notes moved into the tag form, timeline into the video section.
+The CSS that enforces this is the last block in `css/styles.css`
+("SINGLE-COLUMN LAYOUT").
+
 ## Project Structure
 
 ```
@@ -199,14 +224,16 @@ Players, situational) is shared. The toggle:
 inside `.tag-side-groups` (a flex column so `order` can reorder them). Group
 headers (`.tag-group-head`) are clickable to expand/collapse the secondary side.
 
-**Priority layout** (visible without scrolling):
+**Field order** — follows the chronological order a coach tags a play
+(pre-snap → post-snap), not a "most-important-first" order:
 1. Unit toggle — Offense / Defense / Special Teams
-2. Play Type — 9 chips
-3. Result — 13 chips
-4. Yardage — number input with +/− buttons
-5. Down & Distance — 4 chips + input
-6. Side groups — Offense (Formation, Personnel) / Defense (Def Front, Coverage, Blitz) / Special Teams (ST Play Type, Kicker, Returner)
+2. Down & Distance — 4 chips + input (known pre-snap; usually auto-filled)
+3. Side groups — Offense (Formation, Personnel) / Defense (Def Front, Coverage, Blitz) / Special Teams (ST Play Type, Kicker, Returner) — the alignment you read pre-snap
+4. Play Type — 9 chips (what they ran)
+5. Result — 13 chips
+6. Yardage — number input with +/− buttons
 7. Players — 6 role inputs (BC/Passer/Receiver/Tackler/Kicker/Returner) + grade selects + quick-pick chips
+8. Play Notes — textarea (the real call, e.g. "Power R 34 Lead")
 
 **Collapsed section** ("Situation & Details"):
 Hash, Quarter, Field Position, Drive, Custom Tags

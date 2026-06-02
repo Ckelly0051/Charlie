@@ -4723,3 +4723,250 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .shortcuts-group dd { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .shortcuts-group kbd { display: inline-block; font-family: inherit; font-size: 11px; line-height: 1; padding: 3px 5px; margin: 1px; border: 1px solid var(--border-bright, var(--border)); border-bottom-width: 2px; border-radius: 4px; background: var(--bg-tertiary); color: var(--text); }
 @media (max-width: 640px) { .shortcuts-grid { grid-template-columns: 1fr; } }
+
+/* ================================================================== */
+/* ==========  SINGLE-COLUMN LAYOUT — tag form below video  ========= */
+/* Final layer: video on top (sticky), full-width tag form below it,   */
+/* secondary panels live in a slide-in Settings drawer. Wins cascade.  */
+/* ================================================================== */
+
+html { height: auto; }
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: auto;
+  width: 100%;
+  overflow: visible;
+  grid-template-rows: none;
+}
+
+/* Top bar stays pinned */
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex: 0 0 auto;
+}
+
+/* Main content is a single vertical column (kills the old 2/3-col grid) */
+.main-content {
+  display: flex !important;
+  flex-direction: column;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  flex: 1 1 auto;
+  overflow: visible;
+  min-height: 0;
+}
+
+/* Video stays in view (sticky) while the tag form scrolls underneath */
+.video-section {
+  position: sticky;
+  top: 52px;
+  z-index: 50;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  height: min(54vh, 620px);
+  min-height: 240px;
+  border-bottom: 1px solid var(--border);
+  max-height: none;
+}
+.video-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Timeline strip under the video */
+.video-timeline {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+}
+.video-timeline .timeline-strip {
+  height: 26px;
+  min-height: 26px;
+  position: relative;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.video-timeline .timeline-bar { height: 100%; position: relative; }
+
+/* Tag section: full width, scrollable region below the sticky video */
+.tag-section {
+  flex: 1 0 auto;
+  background: var(--bg-secondary);
+  padding: 14px 18px 48px;
+  border-top: none;
+}
+.tag-section .play-mark-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tag-section .play-mark-controls .btn { flex: 0 1 auto; }
+.tag-section .play-selector {
+  margin: 0 auto 12px;
+  max-width: 1100px;
+}
+.tag-section .play-selector .play-select { max-width: 420px; }
+
+/* Center the form and give it room to breathe; chips spread horizontally */
+.tag-section .tag-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.tag-section .tagger-tools {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Larger, more tappable chips now that we have the width */
+.tag-section .pick-group { gap: 5px; }
+.tag-section .pick { padding: 8px 13px; font-size: 13px; }
+.tag-section .unit-toggle .pick { padding: 9px 6px; }
+
+/* Notes embedded in the tag flow */
+.tag-notes { margin: 8px 0; }
+.tag-notes-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.tag-notes-label span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.tag-notes .notes-area {
+  width: 100%;
+  min-height: 46px;
+  max-height: 120px;
+  resize: vertical;
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.tag-notes .notes-area:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Save & Next bar sits at the end of the core fields, full width. */
+.tag-section .tag-nav {
+  background: var(--bg-secondary);
+  padding: 12px 0 4px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* Wide screens: lay the side groups (Off/Def/ST) out in two columns */
+@media (min-width: 920px) {
+  .tag-section { padding: 16px 28px 48px; }
+  .tag-section .player-roles { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Settings / tools drawer (replaces the old right sidebar) */
+.settings-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  max-width: 88vw;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  box-shadow: -10px 0 36px rgba(15, 23, 42, 0.18);
+  transform: translateX(100%);
+  transition: transform 260ms ease;
+  z-index: 600;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.settings-drawer.open { transform: translateX(0); }
+.settings-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 2;
+}
+.settings-drawer-head h2 { margin: 0; font-size: 15px; color: var(--text); }
+.settings-drawer-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 0 6px;
+}
+.settings-drawer-close:hover { color: var(--text); }
+.settings-drawer .sidebar-panel { border-bottom: 1px solid var(--border); }
+
+/* Scrim behind the drawer */
+.drawer-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 599;
+}
+.drawer-scrim.active { display: block; }
+
+/* Old containers no longer rendered — make sure they never reserve space */
+.bottom-panel { display: none !important; }
+.sidebar { display: none !important; }
+
+/* Mobile: shorter video, comfortable chips, account for bottom tab bar */
+@media (max-width: 800px) {
+  .video-section { top: 52px; height: 38vh; min-height: 180px; }
+  .tag-section { padding: 12px 12px 80px; }
+  .tag-section .pick { padding: 11px 13px; font-size: 14px; }
+  .tag-section .player-roles { grid-template-columns: repeat(2, 1fr); }
+  /* Bottom tabs no longer need to reserve the old layout's space */
+  #app { padding-bottom: 0; }
+}
+
+/* Settings button must be reachable on desktop now that the secondary
+   panels live in the slide-in drawer (it was mobile-only in the old
+   2-column layout). Hidden on small screens where bottom tabs cover it. */
+.sidebar-toggle { display: inline-flex !important; }
+@media (max-width: 800px) {
+  .sidebar-toggle { display: none !important; }
+}
