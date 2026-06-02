@@ -32,7 +32,7 @@ js/
 ├── stats-engine.js           # Stats aggregation (run/pass, efficiency, EPA)
 ├── advanced-metrics.js       # Expected Points Added calculations
 ├── heat-maps.js              # Visual heat map generation
-├── storage.js                # Project save/load (JSON + localStorage)
+├── storage.js                # Project save/load (JSON + localStorage) + CSV import
 ├── history-manager.js        # Unified undo/redo (play data + canvas)
 ├── version-manager.js        # Named save points
 ├── notes-manager.js          # Per-play text notes
@@ -77,6 +77,7 @@ server/                       # Optional local Python backend (YOLO-based)
     blitz: '',          // 'A-Gap' | 'B-Gap' | 'Edge' | 'DB Blitz' | 'Zone Blitz'
     driveNumber: '',    // auto-incremented
     players: {},        // { ballCarrier, passer, receiver, tackler } -> jersey # strings
+    grades: {},         // { ballCarrier, passer, receiver, tackler } -> integer (-2 to +2)
     custom: []          // freeform string array
   },
   notes: '',
@@ -95,10 +96,12 @@ server/                       # Optional local Python backend (YOLO-based)
 Box-score style per-player stats, modeled on Hudl/QwikCut:
 
 1. **Roster panel** (`roster-manager.js`): add players (jersey #, name, position, side O/D/B). Stored in `localStorage` (`ffa_roster`) and in project saves (`roster` key, schema v4).
-2. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`.
-3. **Aggregation** (`stats-engine.js` `_individualStats`): rolls role assignments into rushing (att/yds/avg/long/TD/fum), passing (cmp-att/pct/yds/TD/INT/sack), receiving (rec/yds/long/TD), and tackles (tkl/sack/TFL).
-4. **Output**: dashboard renders four individual-stat tables; jersey #s map to "#22 Smith" via the roster. **Click any player row to launch a film cut-up** (`_watchPlayer` → `CutupPlayer`).
-5. **Export**: CSV includes Ball Carrier / Passer / Receiver / Tackler columns.
+2. **Roster import**: CSV file upload or paste-from-spreadsheet with smart header detection (`#`/`Num`/`Jersey` → num, `Name`/`Player` → name, `Pos`/`Position` → pos, `Side`/`Unit` → side). Delimiter auto-detected (tab/comma/semicolon). No external libraries.
+3. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`.
+4. **Per-play grading**: each role has a grade select (++/+/0/−/−−, stored as -2 to +2 in `play.tags.grades`). Average grades appear in the individual stats tables.
+5. **Aggregation** (`stats-engine.js` `_individualStats`): rolls role assignments into rushing (att/yds/avg/long/TD/fum/grade), passing (cmp-att/pct/yds/TD/INT/sack/grade), receiving (rec/yds/long/TD/grade), and tackles (tkl/sack/TFL/grade).
+6. **Output**: dashboard renders four individual-stat tables; jersey #s map to "#22 Smith" via the roster. **Click any player row to launch a film cut-up** (`_watchPlayer` → `CutupPlayer`).
+7. **Export**: CSV includes Ball Carrier / Passer / Receiver / Tackler + grade columns.
 
 Quick Chart mode also writes `play.tags.players` for the same roles.
 
@@ -117,6 +120,42 @@ names come from a merged roster across all loaded games' saved `roster`
 arrays plus the live roster (`_mergeRoster` → `statsEngine._seasonLabels`).
 Included in the exported season HTML report.
 
+## Import / Export
+
+### Play Import (CSV / Hudl)
+Accessible via More → Import Plays. Supports:
+- CSV file upload or paste-from-spreadsheet
+- Auto-detects delimiter (tab/comma/semicolon)
+- Smart column mapping with Hudl aliases (`ODK`→playType, `GnLs`→yardage, `Dn`→down, `Dist`→distance, `Off Form`→formation, etc.)
+- Interactive column remapping UI before import
+- Preview of first 5 rows
+- Creates play objects without timestamps (for stats-only migration from other tools)
+
+Methods in `StorageManager`: `importPlaysFromText(text)` parses CSV and returns column mapping; `applyPlayImport(parsed)` creates plays.
+
+### Roster Import
+In the Roster panel: Import button reveals a paste area + file chooser. `RosterManager.importFromText(text)` handles parsing with header detection.
+
+### CSV Export
+`StorageManager.exportCsv()` — all plays with full tag fields including player attribution and grades.
+
+### HTML Report Export
+`StorageManager.exportHtmlReport(statsEngine)` — styled standalone HTML with all stats sections.
+
+## Opponent Scouting Mode
+
+Set "Film shows" to **Opponent Scout** in Game Info to reveal the scouting panel.
+
+**Workflow**: tag opponent film normally (their formations, play types, results), then click "Generate Scout Report" for a tendencies-focused dashboard:
+- Run/pass ratio and avg yards overview
+- Formation tendencies with run/pass split per formation
+- Down & distance situation tendencies (top 15)
+- Defensive front and coverage frequency (when tagging their D)
+- Red zone and third-down conversion rates
+- Exportable as standalone HTML scouting report
+
+Methods in `StatsEngine`: `generateScoutReport()`, `renderScoutReport()`, `_exportScoutReport()`.
+
 ## Tag Form UI (Chip-Based)
 
 The tag form uses **chip buttons** instead of dropdowns. Each field is a `div.pick-group` containing `button.pick` elements. The `ChipField` wrapper class (in `play-tagger.js`) provides `.value` get/set and `change` events so the rest of the code interacts with chip groups identically to native `<select>` elements.
@@ -126,7 +165,8 @@ The tag form uses **chip buttons** instead of dropdowns. Each field is a `div.pi
 2. Result — 13 chips
 3. Yardage — number input with +/− buttons
 4. Down & Distance — 4 chips + input
-5. Formation — 8 chips
+5. Formation — 10 chips
+6. Players — 4 role inputs + grade selects + quick-pick chips
 
 **Collapsed section** ("Defense & Details"):
 Personnel, Def Front, Coverage, Blitz, Hash, Quarter, Field Position, Drive, Custom Tags
@@ -186,6 +226,8 @@ The stats engine (`js/stats-engine.js`) computes:
 - Defensive front/coverage/blitz frequency
 - Red zone, goal line, backed-up situational stats
 - Expected Points Added (EPA) via `js/advanced-metrics.js`
+- Per-player grades (avg from play.tags.grades)
+- Opponent scouting report (formation/down tendencies with run/pass splits)
 
 ## Key Decisions & Lessons
 
@@ -198,3 +240,7 @@ The stats engine (`js/stats-engine.js`) computes:
 4. **Unified undo/redo**: `HistoryManager` handles both play data changes and canvas annotations through a single Ctrl+Z/Y interface with fallback callbacks.
 
 5. **Single-file deployment**: The app deploys to GitHub Pages as one self-contained HTML file. No build tools, no dependencies, no server required.
+
+6. **No external libraries**: All parsing (CSV, roster import) uses pure browser JS. No SheetJS, Papa Parse, etc. This preserves the single-file no-dependency design.
+
+7. **Event delegation for modals**: Season and import modals use document-level click delegation with `e.target.id` checks. Don't add `stopPropagation()` on modal containers — it breaks the delegated button handlers.
