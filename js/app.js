@@ -1273,28 +1273,6 @@ class App {
     }
     ctx.stroke();
   }
-
-  _bindScoutMode() {
-    const perspectiveEl = document.getElementById('gamePerspective');
-    const scoutSection = document.getElementById('scoutSection');
-    const btnScoutReport = document.getElementById('btnScoutReport');
-
-    if (!perspectiveEl) return;
-
-    const toggleScoutUI = () => {
-      const isScout = perspectiveEl.value === 'scout';
-      if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
-    };
-
-    perspectiveEl.addEventListener('change', toggleScoutUI);
-    toggleScoutUI();
-
-    if (btnScoutReport) {
-      btnScoutReport.addEventListener('click', () => {
-        this.stats.renderScoutReport();
-      });
-    }
-  }
 }
 
 // Boot the app
