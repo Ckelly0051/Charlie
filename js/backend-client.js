@@ -28,6 +28,22 @@ export class BackendClient {
     this.lastProbeTime = 0;
     this.probeTimeoutMs = opts.probeTimeoutMs || 1500;
     this._listeners = new Map();
+    // The local CV server is optional and off by default. We don't probe it
+    // automatically, since fetching an unreachable 127.0.0.1 port makes the
+    // browser log a noisy ERR_CONNECTION_REFUSED on every page load. The user
+    // opts in (by clicking the status badge), which flips this flag.
+    this.enabled = (typeof localStorage !== 'undefined'
+      && localStorage.getItem('ffa_backend_enabled') === '1');
+  }
+
+  /** Turn the local-server integration on/off and remember the choice. */
+  setEnabled(on) {
+    this.enabled = !!on;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('ffa_backend_enabled', on ? '1' : '0');
+      }
+    } catch {}
   }
 
   on(event, fn) {
@@ -44,6 +60,15 @@ export class BackendClient {
    * updates this.available + this.info. Safe to call repeatedly.
    */
   async probe() {
+    // Skip the network call entirely when the integration is disabled, so a
+    // default session never hits an unreachable port (no console errors).
+    if (!this.enabled) {
+      const wasAvailable = this.available;
+      this.available = false;
+      this.info = null;
+      if (wasAvailable) this._emit('availability-changed', false);
+      return false;
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.probeTimeoutMs);
     try {

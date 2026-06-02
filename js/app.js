@@ -595,7 +595,7 @@ class App {
         badge.textContent = '⚪ Heuristics';
         badge.classList.add('offline');
         badge.classList.remove('online');
-        badge.title = 'Local CV server not detected — using in-browser heuristics.\nRun `cd server && ./start.sh` then click to re-probe.';
+        badge.title = 'Using in-browser heuristics. Optional local CV server is off.\nRun `cd server && ./start.sh`, then click to connect.';
       }
     };
 
@@ -626,6 +626,9 @@ class App {
 
     badge?.addEventListener('click', async () => {
       if (updateVisionBadge()) return;
+      // Clicking the badge opts into the local CV server. Until then we never
+      // touch the network, so a default session stays console-clean.
+      this.backend.setEnabled(true);
       badge.textContent = '… probing';
       const ok = await this.backend.probe();
       updateBadge(ok);

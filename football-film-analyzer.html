@@ -4702,6 +4702,8 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .tag-group.is-secondary.collapsed .tag-group-caret { transform: rotate(-90deg); }
 /* In Defense mode the defensive group leads (above the offense "faced" group) */
 .mode-defense .group-defense { order: -1; }
+/* In Special Teams mode the offensive Play Type is replaced by ST Play Type */
+.mode-special .core-hide-st { display: none; }
   </style>
 </head>
 <body>
@@ -5409,7 +5411,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                 </div>
               </div>
 
-              <div class="chip-section">
+              <div class="chip-section core-hide-st">
                 <label class="chip-label">Play Type</label>
                 <div class="pick-group" id="tagPlayType">
                   <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
@@ -9147,6 +9149,22 @@ class BackendClient {
     this.lastProbeTime = 0;
     this.probeTimeoutMs = opts.probeTimeoutMs || 1500;
     this._listeners = new Map();
+    // The local CV server is optional and off by default. We don't probe it
+    // automatically, since fetching an unreachable 127.0.0.1 port makes the
+    // browser log a noisy ERR_CONNECTION_REFUSED on every page load. The user
+    // opts in (by clicking the status badge), which flips this flag.
+    this.enabled = (typeof localStorage !== 'undefined'
+      && localStorage.getItem('ffa_backend_enabled') === '1');
+  }
+
+  /** Turn the local-server integration on/off and remember the choice. */
+  setEnabled(on) {
+    this.enabled = !!on;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('ffa_backend_enabled', on ? '1' : '0');
+      }
+    } catch {}
   }
 
   on(event, fn) {
@@ -9163,6 +9181,15 @@ class BackendClient {
    * updates this.available + this.info. Safe to call repeatedly.
    */
   async probe() {
+    // Skip the network call entirely when the integration is disabled, so a
+    // default session never hits an unreachable port (no console errors).
+    if (!this.enabled) {
+      const wasAvailable = this.available;
+      this.available = false;
+      this.info = null;
+      if (wasAvailable) this._emit('availability-changed', false);
+      return false;
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.probeTimeoutMs);
     try {
@@ -15099,7 +15126,7 @@ class App {
         badge.textContent = '⚪ Heuristics';
         badge.classList.add('offline');
         badge.classList.remove('online');
-        badge.title = 'Local CV server not detected — using in-browser heuristics.\nRun `cd server && ./start.sh` then click to re-probe.';
+        badge.title = 'Using in-browser heuristics. Optional local CV server is off.\nRun `cd server && ./start.sh`, then click to connect.';
       }
     };
 
@@ -15130,6 +15157,9 @@ class App {
 
     badge?.addEventListener('click', async () => {
       if (updateVisionBadge()) return;
+      // Clicking the badge opts into the local CV server. Until then we never
+      // touch the network, so a default session stays console-clean.
+      this.backend.setEnabled(true);
       badge.textContent = '… probing';
       const ok = await this.backend.probe();
       updateBadge(ok);

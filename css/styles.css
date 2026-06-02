@@ -4695,3 +4695,5 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .tag-group.is-secondary.collapsed .tag-group-caret { transform: rotate(-90deg); }
 /* In Defense mode the defensive group leads (above the offense "faced" group) */
 .mode-defense .group-defense { order: -1; }
+/* In Special Teams mode the offensive Play Type is replaced by ST Play Type */
+.mode-special .core-hide-st { display: none; }
