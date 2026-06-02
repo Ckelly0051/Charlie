@@ -20,6 +20,7 @@ import { VersionManager } from './version-manager.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
 import { SuggestionEngine } from './suggestion-engine.js';
 import { CutupExporter } from './cutup-exporter.js';
+import { CutupPlayer } from './cutup-player.js';
 import { SeasonManager } from './season-manager.js';
 import { CallSheetBuilder } from './call-sheet-builder.js';
 import { UIPolish } from './ui-polish.js';
@@ -50,6 +51,7 @@ class App {
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.suggestions = new SuggestionEngine(this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
+    this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
     this.season = new SeasonManager(this.stats);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
@@ -172,6 +174,13 @@ class App {
 
       // Let quick-chart handle its own keys when active
       if (this.quickChart.isActive) return;
+
+      // Cut-up review: arrows skip plays, Esc exits.
+      if (this.cutupPlayer && this.cutupPlayer.active) {
+        if (e.code === 'ArrowRight') { e.preventDefault(); this.cutupPlayer.next(); return; }
+        if (e.code === 'ArrowLeft') { e.preventDefault(); this.cutupPlayer.prev(); return; }
+        if (e.code === 'Escape') { e.preventDefault(); this.cutupPlayer.stop(); return; }
+      }
 
       // Tag shortcuts (play type, result, down via keyboard)
       if (this._handleTagKey(e)) return;

@@ -97,10 +97,25 @@ Box-score style per-player stats, modeled on Hudl/QwikCut:
 1. **Roster panel** (`roster-manager.js`): add players (jersey #, name, position, side O/D/B). Stored in `localStorage` (`ffa_roster`) and in project saves (`roster` key, schema v4).
 2. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`.
 3. **Aggregation** (`stats-engine.js` `_individualStats`): rolls role assignments into rushing (att/yds/avg/long/TD/fum), passing (cmp-att/pct/yds/TD/INT/sack), receiving (rec/yds/long/TD), and tackles (tkl/sack/TFL).
-4. **Output**: dashboard renders four individual-stat tables; jersey #s map to "#22 Smith" via the roster. **Click any player row to jump to their first play on film** (`_watchPlayer`).
+4. **Output**: dashboard renders four individual-stat tables; jersey #s map to "#22 Smith" via the roster. **Click any player row to launch a film cut-up** (`_watchPlayer` → `CutupPlayer`).
 5. **Export**: CSV includes Ball Carrier / Passer / Receiver / Tackler columns.
 
 Quick Chart mode also writes `play.tags.players` for the same roles.
+
+### Film Cut-Ups (`cutup-player.js`)
+`CutupPlayer` plays a set of plays back-to-back in the existing `<video>`:
+seek to each play's start, run to its end, auto-advance to the next. A
+floating banner shows label + position with Prev/Next/Exit (←/→/Esc).
+Triggered by clicking a player row in the stats dashboard. Distinct from
+`cutup-exporter.js`, which renders a downloadable stitched video file.
+
+### Season Player Roll-Up (`season-manager.js`)
+The Season modal aggregates plays across loaded game files. Because
+`StatsEngine.compute(allPlays)` already produces `individuals`, the season
+view renders the same four box-score tables as **season totals**. Player
+names come from a merged roster across all loaded games' saved `roster`
+arrays plus the live roster (`_mergeRoster` → `statsEngine._seasonLabels`).
+Included in the exported season HTML report.
 
 ## Tag Form UI (Chip-Based)
 

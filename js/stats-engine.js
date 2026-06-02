@@ -488,7 +488,7 @@ export class StatsEngine {
     });
   }
 
-  /** Find every play this jersey # is involved in and cue the first one. */
+  /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
   _watchPlayer(num) {
     if (!num) return;
     const matches = this.tagger.plays
@@ -499,9 +499,13 @@ export class StatsEngine {
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
     if (matches.length === 0) return;
     this.hideDashboard();
-    this.tagger.playerSpotlight = matches.map(p => p.id);
-    this.tagger.selectPlay(matches[0].id);
-    if (this.tagger.vc && typeof this.tagger.vc.play === 'function') this.tagger.vc.play();
+    const ids = matches.map(p => p.id);
+    const label = `${this._playerLabel(num)} — cut-up`;
+    if (window.app && window.app.cutupPlayer) {
+      window.app.cutupPlayer.start(ids, label);
+    } else {
+      this.tagger.selectPlay(ids[0]);
+    }
   }
 
   _gameTitle() {
@@ -870,6 +874,8 @@ export class StatsEngine {
   }
 
   _playerLabel(num) {
+    // Season view supplies a merged name map across loaded games.
+    if (this._seasonLabels && this._seasonLabels[num]) return `#${num} ${this._seasonLabels[num]}`;
     const roster = (typeof window !== 'undefined') && window.app && window.app.roster;
     return roster ? roster.getLabel(num) : `#${num}`;
   }

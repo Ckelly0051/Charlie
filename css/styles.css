@@ -4552,3 +4552,61 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 /* Clickable player stat rows in the dashboard */
 .player-row { cursor: pointer; transition: background var(--transition); }
 .player-row:hover { background: rgba(65,105,225,0.12); }
+
+/* ================================================================== */
+/* ========================  CUT-UP REVIEW  ======================== */
+/* ================================================================== */
+
+.cutup-banner {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 180;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #3b4a6b 0%, #2a3552 100%);
+  color: #fff;
+  border: 1px solid var(--border-bright);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  font-weight: 600;
+  animation: cutupIn 220ms ease;
+}
+@keyframes cutupIn { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.cutup-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(65,105,225,0.6);
+  animation: cutupPulse 1.4s infinite;
+}
+@keyframes cutupPulse {
+  0% { box-shadow: 0 0 0 0 rgba(65,105,225,0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(65,105,225,0); }
+  100% { box-shadow: 0 0 0 0 rgba(65,105,225,0); }
+}
+.cutup-label { letter-spacing: 0.2px; }
+.cutup-count { color: #cbd5e1; font-variant-numeric: tabular-nums; font-weight: 700; }
+.cutup-controls { display: flex; gap: 4px; margin-left: 4px; }
+.cutup-btn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: #fff;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+}
+.cutup-btn:hover { background: var(--accent); }
+.cutup-exit:hover { background: var(--danger); }
+
+/* Season modal: player rows aren't clickable (no film loaded) */
+#seasonOverlay .player-row { cursor: default; }
+#seasonOverlay .player-row:hover { background: transparent; }

@@ -81,6 +81,7 @@ export class SeasonManager {
           name,
           file: f.name,
           gameInfo: data.gameInfo || {},
+          roster: data.roster || [],
           plays: data.plays,
           loadedAt: new Date().toISOString()
         });
@@ -121,6 +122,16 @@ export class SeasonManager {
 
   _allPlays() {
     return this.games.flatMap(g => g.plays || []);
+  }
+
+  /** Merge jersey#→name across every loaded game's roster (+ live roster). */
+  _mergeRoster() {
+    const map = {};
+    const live = (window.app && window.app.roster) ? window.app.roster.players : [];
+    [...this.games.flatMap(g => g.roster || []), ...live].forEach(p => {
+      if (p && p.num != null && p.name) map[String(p.num)] = p.name;
+    });
+    return map;
   }
 
   _renderAll() {
@@ -175,6 +186,14 @@ export class SeasonManager {
     const allPlays = this._allPlays();
     const stats = this.statsEngine.compute(allPlays);
 
+    // Provide merged player names for the season roll-up, then clear.
+    this.statsEngine._seasonLabels = this._mergeRoster();
+    const indTables = this.statsEngine._renderIndividualStats(stats);
+    const individual = indTables ? `
+      <div class="stats-section"><h3>Season Player Roll-Up</h3>
+      <p class="self-scout-intro">Per-player totals across all ${this.games.length} loaded games.</p></div>
+      ${indTables}` : '';
+
     body.innerHTML = `
       ${this._renderHeader(stats)}
       ${this._renderTrends()}
@@ -185,9 +204,11 @@ export class SeasonManager {
       ${this.statsEngine._renderSituational(stats)}
       ${this.statsEngine._renderTendencies(stats)}
       ${this.statsEngine._renderPersonnel(stats)}
+      ${individual}
       ${this._renderPerGameTable()}
       ${this._renderSelfScout()}
     `;
+    this.statsEngine._seasonLabels = null;
 
     this.statsEngine.heatMaps.bind(body);
   }
@@ -368,6 +389,9 @@ export class SeasonManager {
     const stats = this.statsEngine.compute(allPlays);
     const title = `Season Report — ${this.games.length} games`;
 
+    this.statsEngine._seasonLabels = this._mergeRoster();
+    const indTables = this.statsEngine._renderIndividualStats(stats);
+    const individual = indTables ? `<div class="stats-section"><h3>Season Player Roll-Up</h3></div>${indTables}` : '';
     const body = [
       this._renderHeader(stats),
       this._renderTrends(),
@@ -377,9 +401,11 @@ export class SeasonManager {
       this.statsEngine._renderSituational(stats),
       this.statsEngine._renderTendencies(stats),
       this.statsEngine._renderPersonnel(stats),
+      individual,
       this._renderPerGameTable(),
       this._renderSelfScout()
     ].join('\n');
+    this.statsEngine._seasonLabels = null;
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>

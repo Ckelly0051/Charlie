@@ -67,6 +67,7 @@ for jsfile in \
   js/scoreboard-ocr.js \
   js/suggestion-engine.js \
   js/cutup-exporter.js \
+  js/cutup-player.js \
   js/season-manager.js \
   js/call-sheet-builder.js \
   js/ui-polish.js \
