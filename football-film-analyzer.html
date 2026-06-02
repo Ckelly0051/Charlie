@@ -4670,6 +4670,38 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 /* --- Scout Mode --- */
 .scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
 .scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
+
+/* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
+.unit-toggle-section { padding: 2px 0 0; margin-bottom: 6px; background: transparent; }
+.unit-toggle { display: flex; gap: 4px; }
+.unit-toggle .pick { flex: 1; justify-content: center; padding: 8px 6px; font-weight: 600; }
+.tag-side-groups { display: flex; flex-direction: column; }
+.tag-group-head {
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tag-group-head:hover { color: var(--text); border-color: var(--accent-hover); }
+.tag-group.is-secondary > .tag-group-head { display: flex; }
+.tag-group.is-hidden { display: none; }
+.tag-group.is-secondary.collapsed > .tag-group-body { display: none; }
+.tag-group-caret { transition: transform var(--transition); font-size: 10px; }
+.tag-group.is-secondary.collapsed .tag-group-caret { transform: rotate(-90deg); }
+/* In Defense mode the defensive group leads (above the offense "faced" group) */
+.mode-defense .group-defense { order: -1; }
   </style>
 </head>
 <body>
@@ -5369,6 +5401,14 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                 <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
               </div>
 
+              <div class="chip-section unit-toggle-section">
+                <div class="pick-group unit-toggle" id="tagUnit">
+                  <button class="pick" data-value="offense" type="button">Offense</button>
+                  <button class="pick" data-value="defense" type="button">Defense</button>
+                  <button class="pick" data-value="special" type="button">Special Teams</button>
+                </div>
+              </div>
+
               <div class="chip-section">
                 <label class="chip-label">Play Type</label>
                 <div class="pick-group" id="tagPlayType">
@@ -5426,22 +5466,135 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                 </div>
               </div>
 
-              <div class="chip-section">
-                <label class="chip-label">Formation</label>
-                <div class="pick-group" id="tagFormation">
-                  <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
-                  <button class="pick" data-value="Under Center" type="button">Under Center</button>
-                  <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                  <button class="pick" data-value="I-Form" type="button">I-Form</button>
-                  <button class="pick" data-value="Singleback" type="button">Singleback</button>
-                  <button class="pick" data-value="Split Back" type="button">Split Back</button>
-                  <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
-                  <button class="pick" data-value="Empty" type="button">Empty</button>
-                  <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
-                  <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+              <!-- Offense / Defense / Special Teams reorderable groups -->
+              <div class="tag-side-groups">
+                <div class="tag-group group-offense" data-group="offense">
+                  <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
+                  <div class="tag-group-body">
+                    <div class="chip-section">
+                      <label class="chip-label">Formation</label>
+                      <div class="pick-group" id="tagFormation">
+                        <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                        <button class="pick" data-value="Under Center" type="button">Under Center</button>
+                        <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                        <button class="pick" data-value="I-Form" type="button">I-Form</button>
+                        <button class="pick" data-value="Singleback" type="button">Singleback</button>
+                        <button class="pick" data-value="Split Back" type="button">Split Back</button>
+                        <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
+                        <button class="pick" data-value="Empty" type="button">Empty</button>
+                        <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
+                        <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">Personnel</label>
+                      <div class="pick-group" id="tagPersonnel">
+                        <button class="pick" data-value="11" type="button">11</button>
+                        <button class="pick" data-value="12" type="button">12</button>
+                        <button class="pick" data-value="21" type="button">21</button>
+                        <button class="pick" data-value="22" type="button">22</button>
+                        <button class="pick" data-value="10" type="button">10</button>
+                        <button class="pick" data-value="20" type="button">20</button>
+                        <button class="pick" data-value="00" type="button">00</button>
+                        <button class="pick" data-value="13" type="button">13</button>
+                        <button class="pick" data-value="23" type="button">23</button>
+                        <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
+                        <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tag-group group-defense" data-group="defense">
+                  <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
+                  <div class="tag-group-body">
+                    <div class="chip-section">
+                      <label class="chip-label">Def Front</label>
+                      <div class="pick-group" id="tagDefFront">
+                        <button class="pick" data-value="4-3" type="button">4-3</button>
+                        <button class="pick" data-value="3-4" type="button">3-4</button>
+                        <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
+                        <button class="pick" data-value="Nickel" type="button">Nickel</button>
+                        <button class="pick" data-value="Dime" type="button">Dime</button>
+                        <button class="pick" data-value="Quarter" type="button">Quarter</button>
+                        <button class="pick" data-value="4-6" type="button">4-6</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">Coverage</label>
+                      <div class="pick-group" id="tagCoverage">
+                        <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
+                        <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
+                        <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
+                        <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
+                        <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
+                        <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
+                        <button class="pick" data-value="Man" type="button">Man</button>
+                        <button class="pick" data-value="Zone" type="button">Zone</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">Blitz</label>
+                      <div class="pick-group" id="tagBlitz">
+                        <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
+                        <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                        <button class="pick" data-value="Edge" type="button">Edge</button>
+                        <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
+                        <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tag-group group-special" data-group="special">
+                  <button class="tag-group-head" type="button">Special Teams<span class="tag-group-caret">▾</span></button>
+                  <div class="tag-group-body">
+                    <div class="chip-section">
+                      <label class="chip-label">ST Play Type</label>
+                      <div class="pick-group" id="tagStType">
+                        <button class="pick" data-value="Kickoff" type="button">Kickoff</button>
+                        <button class="pick" data-value="Kick Return" type="button">Kick Return</button>
+                        <button class="pick" data-value="Punt" type="button">Punt</button>
+                        <button class="pick" data-value="Punt Return" type="button">Punt Return</button>
+                        <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                        <button class="pick" data-value="XP" type="button">XP</button>
+                        <button class="pick" data-value="2-Pt" type="button">2-Pt</button>
+                        <button class="pick" data-value="Onside" type="button">Onside</button>
+                        <button class="pick" data-value="Fake" type="button">Fake</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">ST Players — jersey #</label>
+                      <div class="player-roles">
+                        <label class="player-role" data-role="kicker">
+                          <span class="player-role-label">Kicker / Punter</span>
+                          <input type="number" id="tagPlayerKicker" class="player-num" min="0" max="99" placeholder="#">
+                          <select id="tagGradeKicker" class="player-grade" title="Grade">
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
+                        </label>
+                        <label class="player-role" data-role="returner">
+                          <span class="player-role-label">Returner</span>
+                          <input type="number" id="tagPlayerReturner" class="player-num" min="0" max="99" placeholder="#">
+                          <select id="tagGradeReturner" class="player-grade" title="Grade">
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              <!-- Players (shared) -->
               <div class="chip-section">
                 <label class="chip-label">Players — jersey #</label>
                 <div class="player-roles">
@@ -5449,107 +5602,56 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                     <span class="player-role-label">Ball Carrier</span>
                     <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradeBC" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                   <label class="player-role" data-role="passer">
                     <span class="player-role-label">Passer</span>
                     <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradePasser" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                   <label class="player-role" data-role="receiver">
                     <span class="player-role-label">Receiver</span>
                     <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradeReceiver" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                   <label class="player-role" data-role="tackler">
                     <span class="player-role-label">Tackler</span>
                     <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradeTackler" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                 </div>
                 <div class="player-quickpick" id="rosterQuickPick"></div>
               </div>
 
               <details class="chip-details">
-                <summary>Defense &amp; Details</summary>
-                <div class="chip-section">
-                  <label class="chip-label">Personnel</label>
-                  <div class="pick-group" id="tagPersonnel">
-                    <button class="pick" data-value="11" type="button">11</button>
-                    <button class="pick" data-value="12" type="button">12</button>
-                    <button class="pick" data-value="21" type="button">21</button>
-                    <button class="pick" data-value="22" type="button">22</button>
-                    <button class="pick" data-value="10" type="button">10</button>
-                    <button class="pick" data-value="20" type="button">20</button>
-                    <button class="pick" data-value="00" type="button">00</button>
-                    <button class="pick" data-value="13" type="button">13</button>
-                    <button class="pick" data-value="23" type="button">23</button>
-                    <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
-                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Def Front</label>
-                  <div class="pick-group" id="tagDefFront">
-                    <button class="pick" data-value="4-3" type="button">4-3</button>
-                    <button class="pick" data-value="3-4" type="button">3-4</button>
-                    <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
-                    <button class="pick" data-value="Nickel" type="button">Nickel</button>
-                    <button class="pick" data-value="Dime" type="button">Dime</button>
-                    <button class="pick" data-value="Quarter" type="button">Quarter</button>
-                    <button class="pick" data-value="4-6" type="button">4-6</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Coverage</label>
-                  <div class="pick-group" id="tagCoverage">
-                    <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
-                    <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
-                    <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
-                    <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
-                    <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
-                    <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
-                    <button class="pick" data-value="Man" type="button">Man</button>
-                    <button class="pick" data-value="Zone" type="button">Zone</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Blitz</label>
-                  <div class="pick-group" id="tagBlitz">
-                    <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
-                    <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
-                    <button class="pick" data-value="Edge" type="button">Edge</button>
-                    <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
-                    <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
-                  </div>
-                </div>
+                <summary>Situation &amp; Details</summary>
                 <div class="chip-section">
                   <label class="chip-label">Hash</label>
                   <div class="pick-group" id="tagHash">
@@ -6672,7 +6774,7 @@ class PlayTagger {
       blitz: 'tagBlitz', result: 'tagResult', yardage: 'tagYardage',
       hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
-      driveNumber: 'tagDriveNumber',
+      driveNumber: 'tagDriveNumber', stType: 'tagStType',
     };
     this.tagFields = {};
     for (const [key, id] of Object.entries(fieldMap)) {
@@ -6686,6 +6788,8 @@ class PlayTagger {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      kicker: document.getElementById('tagPlayerKicker'),
+      returner: document.getElementById('tagPlayerReturner'),
     };
 
     // Per-play player grading (+/- per snap).
@@ -6694,7 +6798,17 @@ class PlayTagger {
       passer: document.getElementById('tagGradePasser'),
       receiver: document.getElementById('tagGradeReceiver'),
       tackler: document.getElementById('tagGradeTackler'),
+      kicker: document.getElementById('tagGradeKicker'),
+      returner: document.getElementById('tagGradeReturner'),
     };
+
+    // Unit toggle (Offense / Defense / Special Teams) — drives the tag-form
+    // layout per play. Stored on play.tags.unit; defaults from Game Info
+    // perspective via this.defaultUnit (set by App).
+    this.tagForm = document.getElementById('tagForm');
+    const unitEl = document.getElementById('tagUnit');
+    this.unitField = unitEl ? new ChipField(unitEl) : null;
+    this.defaultUnit = 'offense';
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
@@ -6703,6 +6817,11 @@ class PlayTagger {
     this.currentDrive = 1;
 
     this._bindEvents();
+
+    // Lay the form out for the default side before any play is selected,
+    // otherwise every side group would be visible at once.
+    if (this.unitField) this.unitField.value = this.defaultUnit;
+    this.applyUnitMode(this.defaultUnit);
   }
 
   _bindEvents() {
@@ -6730,6 +6849,35 @@ class PlayTagger {
     for (const [role, el] of Object.entries(this.gradeFields)) {
       if (!el) continue;
       el.addEventListener('change', () => this._saveGrade(role));
+    }
+
+    // Unit toggle: save the side on the play and re-lay-out the form.
+    if (this.unitField) {
+      this.unitField.addEventListener('change', () => {
+        const play = this.getCurrentPlay();
+        // The toggle always keeps a side selected — re-tapping the active
+        // side would otherwise clear it, so fall back to the current value.
+        let unit = this.unitField.value;
+        if (!unit) {
+          unit = (play && play.tags.unit) || this.defaultUnit || 'offense';
+          this.unitField.value = unit;
+        }
+        if (play) {
+          play.tags.unit = unit;
+          this._emit('play-updated', play);
+        }
+        this.applyUnitMode(unit);
+      });
+    }
+
+    // Collapsible secondary side groups (e.g. "Defense Faced" while charting
+    // offense). Clicking the group header toggles its body.
+    if (this.tagForm) {
+      this.tagForm.querySelectorAll('.tag-group-head').forEach(head => {
+        head.addEventListener('click', () => {
+          head.parentElement.classList.toggle('collapsed');
+        });
+      });
     }
 
     // New Drive button
@@ -6791,6 +6939,8 @@ class PlayTagger {
         fieldSide: 'own',
         personnel: '',
         driveNumber: this.currentDrive.toString(),
+        unit: this.defaultUnit || 'offense',
+        stType: '',
         players: {},
         grades: {},
         custom: []
@@ -6901,6 +7051,7 @@ class PlayTagger {
     this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
+    this.tagFields.stType.value = play.tags.stType || '';
     const players = play.tags.players || {};
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (el) el.value = players[role] || '';
@@ -6909,7 +7060,42 @@ class PlayTagger {
     for (const [role, el] of Object.entries(this.gradeFields)) {
       if (el) el.value = grades[role] != null ? String(grades[role]) : '';
     }
+    const unit = play.tags.unit || this.defaultUnit || 'offense';
+    if (this.unitField) this.unitField.value = unit;
+    this.applyUnitMode(unit);
     this._renderCustomTags(play.tags.custom);
+  }
+
+  /**
+   * Lay out the tag form for the given unit. The active side's fields lead;
+   * the other side collapses into a one-tap "faced" group; Special Teams
+   * swaps in its own fields. Nothing is destroyed — just reordered/hidden.
+   */
+  applyUnitMode(unit) {
+    unit = unit || 'offense';
+    const form = this.tagForm;
+    if (!form) return;
+    form.classList.remove('mode-offense', 'mode-defense', 'mode-special');
+    form.classList.add('mode-' + unit);
+
+    const groups = {
+      offense: form.querySelector('.group-offense'),
+      defense: form.querySelector('.group-defense'),
+      special: form.querySelector('.group-special'),
+    };
+    for (const g of Object.values(groups)) {
+      if (g) g.classList.remove('is-secondary', 'is-hidden', 'collapsed');
+    }
+    if (unit === 'offense') {
+      groups.defense && groups.defense.classList.add('is-secondary', 'collapsed');
+      groups.special && groups.special.classList.add('is-hidden');
+    } else if (unit === 'defense') {
+      groups.offense && groups.offense.classList.add('is-secondary', 'collapsed');
+      groups.special && groups.special.classList.add('is-hidden');
+    } else { // special teams
+      groups.offense && groups.offense.classList.add('is-hidden');
+      groups.defense && groups.defense.classList.add('is-hidden');
+    }
   }
 
   _clearTagForm() {
@@ -7065,6 +7251,8 @@ class RosterManager {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      kicker: document.getElementById('tagPlayerKicker'),
+      returner: document.getElementById('tagPlayerReturner'),
     };
 
     this._load();
@@ -7794,10 +7982,11 @@ class StorageManager {
     }
 
     const headers = [
-      'Play #', 'Clip', 'Start', 'End', 'Quarter', 'Drive', 'Down', 'Distance',
+      'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
-      'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
+      'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
       'Custom Tags', 'Notes'
     ];
@@ -7807,6 +7996,7 @@ class StorageManager {
       p.clipName || '',
       p.timestamp.start.toFixed(2),
       p.timestamp.end.toFixed(2),
+      p.tags.unit || '',
       p.tags.quarter || '',
       p.tags.driveNumber || '',
       p.tags.down,
@@ -7816,6 +8006,7 @@ class StorageManager {
       p.tags.formation,
       p.tags.personnel || '',
       p.tags.playType,
+      p.tags.stType || '',
       p.tags.defFront,
       p.tags.coverage,
       p.tags.blitz,
@@ -7826,6 +8017,8 @@ class StorageManager {
       p.tags.players?.passer || '',
       p.tags.players?.receiver || '',
       p.tags.players?.tackler || '',
+      p.tags.players?.kicker || '',
+      p.tags.players?.returner || '',
       p.tags.grades?.ballCarrier ?? '',
       p.tags.grades?.passer ?? '',
       p.tags.grades?.receiver ?? '',
@@ -10996,6 +11189,8 @@ class StatsEngine {
     const passers = {};
     const receivers = {};
     const tacklers = {};
+    const returners = {};
+    const kickers = {};
 
     plays.forEach(p => {
       const players = p.tags.players || {};
@@ -11004,6 +11199,29 @@ class StatsEngine {
       const isPass = !isRun;
       const isTD = p.tags.result === 'Touchdown';
       const isComplete = p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain';
+      const st = p.tags.stType || '';
+
+      // --- Special teams ---
+      if (players.returner && st.includes('Return')) {
+        const id = players.returner;
+        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0 };
+        returners[id].returns++;
+        returners[id].yards += yds;
+        if (isTD) returners[id].tds++;
+        if (yds > returners[id].long) returners[id].long = yds;
+      }
+      if (players.kicker && st) {
+        const id = players.kicker;
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
+        if (st === 'Field Goal' || st === 'XP') {
+          kickers[id].fgAtt++;
+          // result 'Field Goal' (made) or a scoring result counts as made
+          if (p.tags.result === 'Field Goal' || p.tags.result === 'Touchdown') kickers[id].fgMade++;
+        } else if (st === 'Punt') {
+          kickers[id].punts++;
+          kickers[id].puntYds += yds;
+        }
+      }
 
       // Ball carrier (rushing)
       if (players.ballCarrier && isRun) {
@@ -11078,7 +11296,9 @@ class StatsEngine {
       rushers: Object.values(rushers).sort((a, b) => b.yards - a.yards),
       passers: Object.values(passers).sort((a, b) => b.yards - a.yards),
       receivers: Object.values(receivers).sort((a, b) => b.yards - a.yards),
-      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles)
+      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles),
+      returners: Object.values(returners).sort((a, b) => b.yards - a.yards),
+      kickers: Object.values(kickers).sort((a, b) => (b.fgMade + b.punts) - (a.fgMade + a.punts))
     };
   }
 
@@ -11599,6 +11819,39 @@ class StatsEngine {
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
             <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.returners && ind.returners.length > 0) {
+      let rows = '';
+      for (const r of ind.returners) {
+        const avg = r.returns ? (r.yards / r.returns).toFixed(1) : '0.0';
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.returns}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Return Game</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>Ret</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.kickers && ind.kickers.length > 0) {
+      let rows = '';
+      for (const k of ind.kickers) {
+        const fg = k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—';
+        const puntAvg = k.punts ? (k.puntYds / k.punts).toFixed(1) : '—';
+        rows += `<tr class="player-row" data-player="${k.num}"><td>${this._playerLabel(k.num)}</td><td>${fg}</td><td>${k.punts || '—'}</td><td>${puntAvg}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Kicking / Punting</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>FG (M/A)</th><th>Punts</th><th>Punt Avg</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -15245,9 +15498,16 @@ class App {
     const scoutSection = document.getElementById('scoutSection');
     const btnScoutReport = document.getElementById('btnScoutReport');
     if (!perspectiveEl) return;
+    const unitFromPerspective = (p) => {
+      if (p === 'defense') return 'defense';
+      if (p === 'special') return 'special';
+      return 'offense'; // offense or scout (charts both, default offense layout)
+    };
     const toggleScoutUI = () => {
       const isScout = perspectiveEl.value === 'scout';
       if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
+      // New plays default their unit toggle from the film perspective.
+      this.tagger.defaultUnit = unitFromPerspective(perspectiveEl.value);
     };
     perspectiveEl.addEventListener('change', toggleScoutUI);
     toggleScoutUI();

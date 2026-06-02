@@ -531,6 +531,14 @@
                 <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
               </div>
 
+              <div class="chip-section unit-toggle-section">
+                <div class="pick-group unit-toggle" id="tagUnit">
+                  <button class="pick" data-value="offense" type="button">Offense</button>
+                  <button class="pick" data-value="defense" type="button">Defense</button>
+                  <button class="pick" data-value="special" type="button">Special Teams</button>
+                </div>
+              </div>
+
               <div class="chip-section">
                 <label class="chip-label">Play Type</label>
                 <div class="pick-group" id="tagPlayType">
@@ -588,22 +596,135 @@
                 </div>
               </div>
 
-              <div class="chip-section">
-                <label class="chip-label">Formation</label>
-                <div class="pick-group" id="tagFormation">
-                  <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
-                  <button class="pick" data-value="Under Center" type="button">Under Center</button>
-                  <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                  <button class="pick" data-value="I-Form" type="button">I-Form</button>
-                  <button class="pick" data-value="Singleback" type="button">Singleback</button>
-                  <button class="pick" data-value="Split Back" type="button">Split Back</button>
-                  <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
-                  <button class="pick" data-value="Empty" type="button">Empty</button>
-                  <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
-                  <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+              <!-- Offense / Defense / Special Teams reorderable groups -->
+              <div class="tag-side-groups">
+                <div class="tag-group group-offense" data-group="offense">
+                  <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
+                  <div class="tag-group-body">
+                    <div class="chip-section">
+                      <label class="chip-label">Formation</label>
+                      <div class="pick-group" id="tagFormation">
+                        <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                        <button class="pick" data-value="Under Center" type="button">Under Center</button>
+                        <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                        <button class="pick" data-value="I-Form" type="button">I-Form</button>
+                        <button class="pick" data-value="Singleback" type="button">Singleback</button>
+                        <button class="pick" data-value="Split Back" type="button">Split Back</button>
+                        <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
+                        <button class="pick" data-value="Empty" type="button">Empty</button>
+                        <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
+                        <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">Personnel</label>
+                      <div class="pick-group" id="tagPersonnel">
+                        <button class="pick" data-value="11" type="button">11</button>
+                        <button class="pick" data-value="12" type="button">12</button>
+                        <button class="pick" data-value="21" type="button">21</button>
+                        <button class="pick" data-value="22" type="button">22</button>
+                        <button class="pick" data-value="10" type="button">10</button>
+                        <button class="pick" data-value="20" type="button">20</button>
+                        <button class="pick" data-value="00" type="button">00</button>
+                        <button class="pick" data-value="13" type="button">13</button>
+                        <button class="pick" data-value="23" type="button">23</button>
+                        <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
+                        <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tag-group group-defense" data-group="defense">
+                  <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
+                  <div class="tag-group-body">
+                    <div class="chip-section">
+                      <label class="chip-label">Def Front</label>
+                      <div class="pick-group" id="tagDefFront">
+                        <button class="pick" data-value="4-3" type="button">4-3</button>
+                        <button class="pick" data-value="3-4" type="button">3-4</button>
+                        <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
+                        <button class="pick" data-value="Nickel" type="button">Nickel</button>
+                        <button class="pick" data-value="Dime" type="button">Dime</button>
+                        <button class="pick" data-value="Quarter" type="button">Quarter</button>
+                        <button class="pick" data-value="4-6" type="button">4-6</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">Coverage</label>
+                      <div class="pick-group" id="tagCoverage">
+                        <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
+                        <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
+                        <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
+                        <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
+                        <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
+                        <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
+                        <button class="pick" data-value="Man" type="button">Man</button>
+                        <button class="pick" data-value="Zone" type="button">Zone</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">Blitz</label>
+                      <div class="pick-group" id="tagBlitz">
+                        <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
+                        <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                        <button class="pick" data-value="Edge" type="button">Edge</button>
+                        <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
+                        <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tag-group group-special" data-group="special">
+                  <button class="tag-group-head" type="button">Special Teams<span class="tag-group-caret">▾</span></button>
+                  <div class="tag-group-body">
+                    <div class="chip-section">
+                      <label class="chip-label">ST Play Type</label>
+                      <div class="pick-group" id="tagStType">
+                        <button class="pick" data-value="Kickoff" type="button">Kickoff</button>
+                        <button class="pick" data-value="Kick Return" type="button">Kick Return</button>
+                        <button class="pick" data-value="Punt" type="button">Punt</button>
+                        <button class="pick" data-value="Punt Return" type="button">Punt Return</button>
+                        <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                        <button class="pick" data-value="XP" type="button">XP</button>
+                        <button class="pick" data-value="2-Pt" type="button">2-Pt</button>
+                        <button class="pick" data-value="Onside" type="button">Onside</button>
+                        <button class="pick" data-value="Fake" type="button">Fake</button>
+                      </div>
+                    </div>
+                    <div class="chip-section">
+                      <label class="chip-label">ST Players — jersey #</label>
+                      <div class="player-roles">
+                        <label class="player-role" data-role="kicker">
+                          <span class="player-role-label">Kicker / Punter</span>
+                          <input type="number" id="tagPlayerKicker" class="player-num" min="0" max="99" placeholder="#">
+                          <select id="tagGradeKicker" class="player-grade" title="Grade">
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
+                        </label>
+                        <label class="player-role" data-role="returner">
+                          <span class="player-role-label">Returner</span>
+                          <input type="number" id="tagPlayerReturner" class="player-num" min="0" max="99" placeholder="#">
+                          <select id="tagGradeReturner" class="player-grade" title="Grade">
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              <!-- Players (shared) -->
               <div class="chip-section">
                 <label class="chip-label">Players — jersey #</label>
                 <div class="player-roles">
@@ -611,107 +732,56 @@
                     <span class="player-role-label">Ball Carrier</span>
                     <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradeBC" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                   <label class="player-role" data-role="passer">
                     <span class="player-role-label">Passer</span>
                     <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradePasser" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                   <label class="player-role" data-role="receiver">
                     <span class="player-role-label">Receiver</span>
                     <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradeReceiver" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                   <label class="player-role" data-role="tackler">
                     <span class="player-role-label">Tackler</span>
                     <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
                     <select id="tagGradeTackler" class="player-grade" title="Grade">
-                      <option value="">—</option>
-                      <option value="2">++</option>
-                      <option value="1">+</option>
-                      <option value="0">0</option>
-                      <option value="-1">−</option>
-                      <option value="-2">−−</option>
-                    </select>
+                          <option value="">—</option>
+                          <option value="2">++</option>
+                          <option value="1">+</option>
+                          <option value="0">0</option>
+                          <option value="-1">−</option>
+                          <option value="-2">−−</option>
+                        </select>
                   </label>
                 </div>
                 <div class="player-quickpick" id="rosterQuickPick"></div>
               </div>
 
               <details class="chip-details">
-                <summary>Defense &amp; Details</summary>
-                <div class="chip-section">
-                  <label class="chip-label">Personnel</label>
-                  <div class="pick-group" id="tagPersonnel">
-                    <button class="pick" data-value="11" type="button">11</button>
-                    <button class="pick" data-value="12" type="button">12</button>
-                    <button class="pick" data-value="21" type="button">21</button>
-                    <button class="pick" data-value="22" type="button">22</button>
-                    <button class="pick" data-value="10" type="button">10</button>
-                    <button class="pick" data-value="20" type="button">20</button>
-                    <button class="pick" data-value="00" type="button">00</button>
-                    <button class="pick" data-value="13" type="button">13</button>
-                    <button class="pick" data-value="23" type="button">23</button>
-                    <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
-                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Def Front</label>
-                  <div class="pick-group" id="tagDefFront">
-                    <button class="pick" data-value="4-3" type="button">4-3</button>
-                    <button class="pick" data-value="3-4" type="button">3-4</button>
-                    <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
-                    <button class="pick" data-value="Nickel" type="button">Nickel</button>
-                    <button class="pick" data-value="Dime" type="button">Dime</button>
-                    <button class="pick" data-value="Quarter" type="button">Quarter</button>
-                    <button class="pick" data-value="4-6" type="button">4-6</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Coverage</label>
-                  <div class="pick-group" id="tagCoverage">
-                    <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
-                    <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
-                    <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
-                    <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
-                    <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
-                    <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
-                    <button class="pick" data-value="Man" type="button">Man</button>
-                    <button class="pick" data-value="Zone" type="button">Zone</button>
-                  </div>
-                </div>
-                <div class="chip-section">
-                  <label class="chip-label">Blitz</label>
-                  <div class="pick-group" id="tagBlitz">
-                    <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
-                    <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
-                    <button class="pick" data-value="Edge" type="button">Edge</button>
-                    <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
-                    <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
-                  </div>
-                </div>
+                <summary>Situation &amp; Details</summary>
                 <div class="chip-section">
                   <label class="chip-label">Hash</label>
                   <div class="pick-group" id="tagHash">

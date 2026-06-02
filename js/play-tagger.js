@@ -56,7 +56,7 @@ export class PlayTagger {
       blitz: 'tagBlitz', result: 'tagResult', yardage: 'tagYardage',
       hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
-      driveNumber: 'tagDriveNumber',
+      driveNumber: 'tagDriveNumber', stType: 'tagStType',
     };
     this.tagFields = {};
     for (const [key, id] of Object.entries(fieldMap)) {
@@ -70,6 +70,8 @@ export class PlayTagger {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      kicker: document.getElementById('tagPlayerKicker'),
+      returner: document.getElementById('tagPlayerReturner'),
     };
 
     // Per-play player grading (+/- per snap).
@@ -78,7 +80,17 @@ export class PlayTagger {
       passer: document.getElementById('tagGradePasser'),
       receiver: document.getElementById('tagGradeReceiver'),
       tackler: document.getElementById('tagGradeTackler'),
+      kicker: document.getElementById('tagGradeKicker'),
+      returner: document.getElementById('tagGradeReturner'),
     };
+
+    // Unit toggle (Offense / Defense / Special Teams) — drives the tag-form
+    // layout per play. Stored on play.tags.unit; defaults from Game Info
+    // perspective via this.defaultUnit (set by App).
+    this.tagForm = document.getElementById('tagForm');
+    const unitEl = document.getElementById('tagUnit');
+    this.unitField = unitEl ? new ChipField(unitEl) : null;
+    this.defaultUnit = 'offense';
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
@@ -87,6 +99,11 @@ export class PlayTagger {
     this.currentDrive = 1;
 
     this._bindEvents();
+
+    // Lay the form out for the default side before any play is selected,
+    // otherwise every side group would be visible at once.
+    if (this.unitField) this.unitField.value = this.defaultUnit;
+    this.applyUnitMode(this.defaultUnit);
   }
 
   _bindEvents() {
@@ -114,6 +131,35 @@ export class PlayTagger {
     for (const [role, el] of Object.entries(this.gradeFields)) {
       if (!el) continue;
       el.addEventListener('change', () => this._saveGrade(role));
+    }
+
+    // Unit toggle: save the side on the play and re-lay-out the form.
+    if (this.unitField) {
+      this.unitField.addEventListener('change', () => {
+        const play = this.getCurrentPlay();
+        // The toggle always keeps a side selected — re-tapping the active
+        // side would otherwise clear it, so fall back to the current value.
+        let unit = this.unitField.value;
+        if (!unit) {
+          unit = (play && play.tags.unit) || this.defaultUnit || 'offense';
+          this.unitField.value = unit;
+        }
+        if (play) {
+          play.tags.unit = unit;
+          this._emit('play-updated', play);
+        }
+        this.applyUnitMode(unit);
+      });
+    }
+
+    // Collapsible secondary side groups (e.g. "Defense Faced" while charting
+    // offense). Clicking the group header toggles its body.
+    if (this.tagForm) {
+      this.tagForm.querySelectorAll('.tag-group-head').forEach(head => {
+        head.addEventListener('click', () => {
+          head.parentElement.classList.toggle('collapsed');
+        });
+      });
     }
 
     // New Drive button
@@ -175,6 +221,8 @@ export class PlayTagger {
         fieldSide: 'own',
         personnel: '',
         driveNumber: this.currentDrive.toString(),
+        unit: this.defaultUnit || 'offense',
+        stType: '',
         players: {},
         grades: {},
         custom: []
@@ -285,6 +333,7 @@ export class PlayTagger {
     this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
+    this.tagFields.stType.value = play.tags.stType || '';
     const players = play.tags.players || {};
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (el) el.value = players[role] || '';
@@ -293,7 +342,42 @@ export class PlayTagger {
     for (const [role, el] of Object.entries(this.gradeFields)) {
       if (el) el.value = grades[role] != null ? String(grades[role]) : '';
     }
+    const unit = play.tags.unit || this.defaultUnit || 'offense';
+    if (this.unitField) this.unitField.value = unit;
+    this.applyUnitMode(unit);
     this._renderCustomTags(play.tags.custom);
+  }
+
+  /**
+   * Lay out the tag form for the given unit. The active side's fields lead;
+   * the other side collapses into a one-tap "faced" group; Special Teams
+   * swaps in its own fields. Nothing is destroyed — just reordered/hidden.
+   */
+  applyUnitMode(unit) {
+    unit = unit || 'offense';
+    const form = this.tagForm;
+    if (!form) return;
+    form.classList.remove('mode-offense', 'mode-defense', 'mode-special');
+    form.classList.add('mode-' + unit);
+
+    const groups = {
+      offense: form.querySelector('.group-offense'),
+      defense: form.querySelector('.group-defense'),
+      special: form.querySelector('.group-special'),
+    };
+    for (const g of Object.values(groups)) {
+      if (g) g.classList.remove('is-secondary', 'is-hidden', 'collapsed');
+    }
+    if (unit === 'offense') {
+      groups.defense && groups.defense.classList.add('is-secondary', 'collapsed');
+      groups.special && groups.special.classList.add('is-hidden');
+    } else if (unit === 'defense') {
+      groups.offense && groups.offense.classList.add('is-secondary', 'collapsed');
+      groups.special && groups.special.classList.add('is-hidden');
+    } else { // special teams
+      groups.offense && groups.offense.classList.add('is-hidden');
+      groups.defense && groups.defense.classList.add('is-hidden');
+    }
   }
 
   _clearTagForm() {

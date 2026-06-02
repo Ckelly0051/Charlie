@@ -31,6 +31,8 @@ export class RosterManager {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      kicker: document.getElementById('tagPlayerKicker'),
+      returner: document.getElementById('tagPlayerReturner'),
     };
 
     this._load();

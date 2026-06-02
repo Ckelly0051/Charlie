@@ -76,8 +76,10 @@ server/                       # Optional local Python backend (YOLO-based)
     coverage: '',       // 'Cover 0'-'Cover 6' | 'Man' | 'Zone'
     blitz: '',          // 'A-Gap' | 'B-Gap' | 'Edge' | 'DB Blitz' | 'Zone Blitz'
     driveNumber: '',    // auto-incremented
-    players: {},        // { ballCarrier, passer, receiver, tackler } -> jersey # strings
-    grades: {},         // { ballCarrier, passer, receiver, tackler } -> integer (-2 to +2)
+    unit: 'offense',    // 'offense' | 'defense' | 'special' — drives tag-form layout
+    stType: '',         // 'Kickoff' | 'Kick Return' | 'Punt' | 'Punt Return' | 'Field Goal' | 'XP' | '2-Pt' | 'Onside' | 'Fake'
+    players: {},        // { ballCarrier, passer, receiver, tackler, kicker, returner } -> jersey # strings
+    grades: {},         // same role keys -> integer (-2 to +2)
     custom: []          // freeform string array
   },
   notes: '',
@@ -160,18 +162,45 @@ Methods in `StatsEngine`: `generateScoutReport()`, `renderScoutReport()`, `_expo
 
 The tag form uses **chip buttons** instead of dropdowns. Each field is a `div.pick-group` containing `button.pick` elements. The `ChipField` wrapper class (in `play-tagger.js`) provides `.value` get/set and `change` events so the rest of the code interacts with chip groups identically to native `<select>` elements.
 
-**Priority layout** (visible without scrolling):
-1. Play Type — 9 chips
-2. Result — 13 chips
-3. Yardage — number input with +/− buttons
-4. Down & Distance — 4 chips + input
-5. Formation — 10 chips
-6. Players — 4 role inputs + grade selects + quick-pick chips
+### Unit Toggle (Offense / Defense / Special Teams)
 
-**Collapsed section** ("Defense & Details"):
-Personnel, Def Front, Coverage, Blitz, Hash, Quarter, Field Position, Drive, Custom Tags
+A per-play segmented toggle (`#tagUnit`) at the top of the form drives the
+**layout** — it reorders/collapses side-specific fields rather than hiding
+data. Stored on `play.tags.unit`; new plays default from the Game Info "Film
+shows" perspective via `tagger.defaultUnit` (set by `App._bindScoutMode`).
+
+Only Formation/Personnel (offense) and Def Front/Coverage/Blitz (defense) are
+side-specific; everything else (Play Type, Result, Yardage, Down & Distance,
+Players, situational) is shared. The toggle:
+- **Offense**: offense group leads; **defense group collapses** into a one-tap
+  "Defense Faced" header (still chartable, e.g. offense vs Cover 2); ST hidden.
+- **Defense**: defense group leads (CSS `.mode-defense .group-defense{order:-1}`);
+  offense group collapses into "Offense"; ST hidden.
+- **Special Teams**: ST group (ST Play Type + Kicker/Returner) shows; offense &
+  defense groups hidden.
+
+`PlayTagger.applyUnitMode(unit)` toggles `.mode-*` on `#tagForm` and
+`.is-secondary` / `.is-hidden` / `.collapsed` on the `.tag-group` wrappers
+inside `.tag-side-groups` (a flex column so `order` can reorder them). Group
+headers (`.tag-group-head`) are clickable to expand/collapse the secondary side.
+
+**Priority layout** (visible without scrolling):
+1. Unit toggle — Offense / Defense / Special Teams
+2. Play Type — 9 chips
+3. Result — 13 chips
+4. Yardage — number input with +/− buttons
+5. Down & Distance — 4 chips + input
+6. Side groups — Offense (Formation, Personnel) / Defense (Def Front, Coverage, Blitz) / Special Teams (ST Play Type, Kicker, Returner)
+7. Players — 6 role inputs (BC/Passer/Receiver/Tackler/Kicker/Returner) + grade selects + quick-pick chips
+
+**Collapsed section** ("Situation & Details"):
+Hash, Quarter, Field Position, Drive, Custom Tags
 
 **Navigation bar**: ← Prev | Save & Next → | Skip
+
+Special-teams stats (return game, kicking/punting) roll up in
+`StatsEngine._individualStats` from `players.returner` / `players.kicker` keyed
+on `stType`, and render as extra tables in the stats dashboard.
 
 ### Keyboard Shortcuts (active when a play is selected)
 | Key | Action |

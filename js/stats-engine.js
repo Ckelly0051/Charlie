@@ -374,6 +374,8 @@ export class StatsEngine {
     const passers = {};
     const receivers = {};
     const tacklers = {};
+    const returners = {};
+    const kickers = {};
 
     plays.forEach(p => {
       const players = p.tags.players || {};
@@ -382,6 +384,29 @@ export class StatsEngine {
       const isPass = !isRun;
       const isTD = p.tags.result === 'Touchdown';
       const isComplete = p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain';
+      const st = p.tags.stType || '';
+
+      // --- Special teams ---
+      if (players.returner && st.includes('Return')) {
+        const id = players.returner;
+        if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0 };
+        returners[id].returns++;
+        returners[id].yards += yds;
+        if (isTD) returners[id].tds++;
+        if (yds > returners[id].long) returners[id].long = yds;
+      }
+      if (players.kicker && st) {
+        const id = players.kicker;
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
+        if (st === 'Field Goal' || st === 'XP') {
+          kickers[id].fgAtt++;
+          // result 'Field Goal' (made) or a scoring result counts as made
+          if (p.tags.result === 'Field Goal' || p.tags.result === 'Touchdown') kickers[id].fgMade++;
+        } else if (st === 'Punt') {
+          kickers[id].punts++;
+          kickers[id].puntYds += yds;
+        }
+      }
 
       // Ball carrier (rushing)
       if (players.ballCarrier && isRun) {
@@ -456,7 +481,9 @@ export class StatsEngine {
       rushers: Object.values(rushers).sort((a, b) => b.yards - a.yards),
       passers: Object.values(passers).sort((a, b) => b.yards - a.yards),
       receivers: Object.values(receivers).sort((a, b) => b.yards - a.yards),
-      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles)
+      tacklers: Object.values(tacklers).sort((a, b) => b.tackles - a.tackles),
+      returners: Object.values(returners).sort((a, b) => b.yards - a.yards),
+      kickers: Object.values(kickers).sort((a, b) => (b.fgMade + b.punts) - (a.fgMade + a.punts))
     };
   }
 
@@ -977,6 +1004,39 @@ export class StatsEngine {
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
             <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.returners && ind.returners.length > 0) {
+      let rows = '';
+      for (const r of ind.returners) {
+        const avg = r.returns ? (r.yards / r.returns).toFixed(1) : '0.0';
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.returns}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Return Game</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>Ret</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (ind.kickers && ind.kickers.length > 0) {
+      let rows = '';
+      for (const k of ind.kickers) {
+        const fg = k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—';
+        const puntAvg = k.punts ? (k.puntYds / k.punts).toFixed(1) : '—';
+        rows += `<tr class="player-row" data-player="${k.num}"><td>${this._playerLabel(k.num)}</td><td>${fg}</td><td>${k.punts || '—'}</td><td>${puntAvg}</td></tr>`;
+      }
+      html += `
+        <div class="stats-section">
+          <h3>Kicking / Punting</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Player</th><th>FG (M/A)</th><th>Punts</th><th>Punt Avg</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;

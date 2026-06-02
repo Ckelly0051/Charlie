@@ -4663,3 +4663,35 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 /* --- Scout Mode --- */
 .scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
 .scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
+
+/* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
+.unit-toggle-section { padding: 2px 0 0; margin-bottom: 6px; background: transparent; }
+.unit-toggle { display: flex; gap: 4px; }
+.unit-toggle .pick { flex: 1; justify-content: center; padding: 8px 6px; font-weight: 600; }
+.tag-side-groups { display: flex; flex-direction: column; }
+.tag-group-head {
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tag-group-head:hover { color: var(--text); border-color: var(--accent-hover); }
+.tag-group.is-secondary > .tag-group-head { display: flex; }
+.tag-group.is-hidden { display: none; }
+.tag-group.is-secondary.collapsed > .tag-group-body { display: none; }
+.tag-group-caret { transition: transform var(--transition); font-size: 10px; }
+.tag-group.is-secondary.collapsed .tag-group-caret { transform: rotate(-90deg); }
+/* In Defense mode the defensive group leads (above the offense "faced" group) */
+.mode-defense .group-defense { order: -1; }

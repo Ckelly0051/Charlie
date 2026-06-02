@@ -191,10 +191,11 @@ export class StorageManager {
     }
 
     const headers = [
-      'Play #', 'Clip', 'Start', 'End', 'Quarter', 'Drive', 'Down', 'Distance',
+      'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
-      'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
+      'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
       'Custom Tags', 'Notes'
     ];
@@ -204,6 +205,7 @@ export class StorageManager {
       p.clipName || '',
       p.timestamp.start.toFixed(2),
       p.timestamp.end.toFixed(2),
+      p.tags.unit || '',
       p.tags.quarter || '',
       p.tags.driveNumber || '',
       p.tags.down,
@@ -213,6 +215,7 @@ export class StorageManager {
       p.tags.formation,
       p.tags.personnel || '',
       p.tags.playType,
+      p.tags.stType || '',
       p.tags.defFront,
       p.tags.coverage,
       p.tags.blitz,
@@ -223,6 +226,8 @@ export class StorageManager {
       p.tags.players?.passer || '',
       p.tags.players?.receiver || '',
       p.tags.players?.tackler || '',
+      p.tags.players?.kicker || '',
+      p.tags.players?.returner || '',
       p.tags.grades?.ballCarrier ?? '',
       p.tags.grades?.passer ?? '',
       p.tags.grades?.receiver ?? '',
