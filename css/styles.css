@@ -4697,3 +4697,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .mode-defense .group-defense { order: -1; }
 /* In Special Teams mode the offensive Play Type is replaced by ST Play Type */
 .mode-special .core-hide-st { display: none; }
+/* Auto down & distance toggle (above the tag nav) */
+.auto-dd-toggle { display: flex; align-items: center; gap: 6px; margin: 8px 2px 0; font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none; }
+.auto-dd-toggle input { accent-color: var(--accent); }
+.auto-dd-toggle:hover { color: var(--text); }

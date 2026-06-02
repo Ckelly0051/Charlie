@@ -4704,6 +4704,10 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .mode-defense .group-defense { order: -1; }
 /* In Special Teams mode the offensive Play Type is replaced by ST Play Type */
 .mode-special .core-hide-st { display: none; }
+/* Auto down & distance toggle (above the tag nav) */
+.auto-dd-toggle { display: flex; align-items: center; gap: 6px; margin: 8px 2px 0; font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none; }
+.auto-dd-toggle input { accent-color: var(--accent); }
+.auto-dd-toggle:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -5695,6 +5699,11 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                   </div>
                 </div>
               </details>
+
+              <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
+                <input type="checkbox" id="autoDDToggle" checked>
+                <span>Auto down &amp; distance</span>
+              </label>
 
               <div class="tag-nav">
                 <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
@@ -6812,6 +6821,11 @@ class PlayTagger {
     this.unitField = unitEl ? new ChipField(unitEl) : null;
     this.defaultUnit = 'offense';
 
+    // Auto down & distance: when advancing to the next (untagged) play, pre-fill
+    // its down/distance/field position from the previous play's result.
+    this.autoDD = (typeof localStorage === 'undefined')
+      || localStorage.getItem('ffa_auto_dd') !== '0';
+
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
 
@@ -7123,6 +7137,96 @@ class PlayTagger {
       return true;
     }
     return false;
+  }
+
+  /** Like nextPlay(), but carries the down & distance situation forward. */
+  nextPlayWithSituation() {
+    const prev = this.getCurrentPlay();
+    const advanced = this.nextPlay();
+    if (advanced && this.autoDD && prev) {
+      const next = this.getCurrentPlay();
+      if (next) this.applyNextSituation(prev, next);
+    }
+    return advanced;
+  }
+
+  /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
+  setUnit(unit) {
+    unit = unit || 'offense';
+    if (this.unitField) this.unitField.value = unit;
+    const play = this.getCurrentPlay();
+    if (play) {
+      play.tags.unit = unit;
+      this._emit('play-updated', play);
+    }
+    this.applyUnitMode(unit);
+  }
+
+  _absYL(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  /**
+   * Given the just-tagged previous play, compute the next play's situation.
+   * Returns null when the possession ends (TD, turnover, punt, FG, etc.) or
+   * when there isn't enough info — in those cases we leave the next play blank
+   * for the coach to start fresh.
+   */
+  computeNextSituation(prev) {
+    const t = prev.tags;
+    const stop = ['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Kneel', 'Spike', 'Penalty'];
+    if (stop.includes(t.result)) return null;
+
+    const down = parseInt(t.down);
+    const distance = parseInt(t.distance);
+    if (!down || isNaN(distance)) return null;
+
+    let gained = parseInt(t.yardage);
+    if (isNaN(gained)) gained = 0;
+
+    const firstDown = (gained >= distance) || (Array.isArray(t.custom) && t.custom.includes('1st Down'));
+
+    // Field position only makes sense for the offense's own yardage.
+    let fieldSide = null, yardLine = null, newAbs = null;
+    if (t.unit === 'offense' || !t.unit) {
+      const abs = this._absYL(t);
+      if (abs != null) {
+        newAbs = Math.min(99, Math.max(1, abs + gained));
+        if (newAbs <= 50) { fieldSide = 'own'; yardLine = newAbs; }
+        else { fieldSide = 'opp'; yardLine = 100 - newAbs; }
+      }
+    }
+
+    let nextDown, nextDist;
+    if (firstDown) {
+      nextDown = 1;
+      nextDist = (newAbs != null && (100 - newAbs) < 10) ? (100 - newAbs) : 10;
+    } else {
+      if (down >= 4) return null; // turnover on downs — new possession
+      nextDown = down + 1;
+      nextDist = Math.max(1, distance - gained);
+      if (newAbs != null && (100 - newAbs) < nextDist) nextDist = Math.max(1, 100 - newAbs);
+    }
+    return { down: String(nextDown), distance: String(nextDist), fieldSide, yardLine };
+  }
+
+  /** Pre-fill the next play's situation, without overwriting existing tags. */
+  applyNextSituation(prev, next) {
+    if (next.tags.down) return; // already has a down — respect manual/imported data
+    const sit = this.computeNextSituation(prev);
+    if (!sit) return;
+    next.tags.down = sit.down;
+    next.tags.distance = sit.distance;
+    if (sit.fieldSide != null) next.tags.fieldSide = sit.fieldSide;
+    if (sit.yardLine != null) next.tags.yardLine = String(sit.yardLine);
+    // Same drive/quarter continues unless already set.
+    if (!next.tags.quarter && prev.tags.quarter) next.tags.quarter = prev.tags.quarter;
+    if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
+    this._loadTagForm(next);
+    this._updateTimeline();
+    this._emit('play-updated', next);
   }
 
   _renderCustomTags(tags) {
@@ -15563,11 +15667,21 @@ class App {
       this._autoPlayCurrent();
     });
     btnNext?.addEventListener('click', () => {
-      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
     });
     btnSkip?.addEventListener('click', () => {
-      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
     });
+
+    // Auto down & distance toggle
+    const autoDD = document.getElementById('autoDDToggle');
+    if (autoDD) {
+      autoDD.checked = this.tagger.autoDD;
+      autoDD.addEventListener('change', () => {
+        this.tagger.autoDD = autoDD.checked;
+        try { localStorage.setItem('ffa_auto_dd', autoDD.checked ? '1' : '0'); } catch (e) {}
+      });
+    }
 
     yardsMinus?.addEventListener('click', () => {
       const v = parseInt(yardsInput.value) || 0;
@@ -15620,7 +15734,7 @@ class App {
 
     if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
       return true;
     }
 
@@ -15636,6 +15750,34 @@ class App {
     }
 
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
+
+    const curPlay = this.tagger.getCurrentPlay();
+    const curUnit = (curPlay && curPlay.tags.unit) || this.tagger.defaultUnit || 'offense';
+
+    // C cycles the unit toggle (Offense → Defense → Special Teams).
+    if (e.code === 'KeyC' && !e.shiftKey) {
+      e.preventDefault();
+      const order = ['offense', 'defense', 'special'];
+      const nextUnit = order[(order.indexOf(curUnit) + 1) % order.length];
+      this.tagger.setUnit(nextUnit);
+      return true;
+    }
+
+    // In Special Teams mode, digits 1-9 pick the ST play type.
+    if (curUnit === 'special' && !e.shiftKey && /^Digit[1-9]$/.test(e.code)) {
+      const stTypes = ['Kickoff', 'Kick Return', 'Punt', 'Punt Return', 'Field Goal', 'XP', '2-Pt', 'Onside', 'Fake'];
+      const n = parseInt(e.code.replace('Digit', ''), 10);
+      if (n >= 1 && n <= stTypes.length) {
+        e.preventDefault();
+        const tf = this.tagger.tagFields.stType;
+        const val = stTypes[n - 1];
+        if (tf) {
+          tf.value = tf.value === val ? '' : val;
+          this.tagger._saveField('stType');
+        }
+        return true;
+      }
+    }
 
     const mapped = keyMap[e.code];
     if (!mapped) return false;

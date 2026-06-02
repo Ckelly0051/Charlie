@@ -207,11 +207,23 @@ on `stType`, and render as extra tables in the stats dashboard.
 |-----|--------|
 | R, O, S, P, M, D, A, Q, X | Play type (Run In, Run Out, Screen, Short, Med, Deep, PA, RPO, Trick) |
 | G, L, N, I, T, W, U, F, E, K | Result (Gain, Loss, None, Inc, TD, Sack, INT, Fum, Pen, Punt) |
+| C | Cycle unit toggle (Offense → Defense → Special Teams) |
+| 1-9 | ST play type (only in Special Teams mode) |
 | Shift+1-4 | Down number |
-| Enter | Save & advance to next play |
+| Enter | Save & advance to next play (carries down & distance forward) |
 | Space | Play/Pause video |
 | [ / ] | Mark play start / end |
 | 1-6 | Drawing tools (when no play selected) |
+
+### Auto Down & Distance
+When **Auto down & distance** is on (checkbox above the nav bar; persisted in
+`localStorage` as `ffa_auto_dd`), advancing to the next *untagged* play
+pre-fills its down, distance, and field position from the previous play's
+result (`PlayTagger.computeNextSituation` / `applyNextSituation`). First downs
+reset to 1st & 10 (goal-to-go aware); 4th-down stops and possession-ending
+results (TD, turnover, punt, FG, penalty) leave the next play blank for a fresh
+start. Existing tags are never overwritten. Field position only advances for the
+offense unit (yardage is from the offense's perspective).
 
 ### Quick Chart Mode
 A separate keyboard-only overlay (toggled via top bar button) for power users who want to tag 60 plays in ~5 minutes. Adds yardage via number keys, player numbers, auto-advance on Enter. See `js/quick-chart.js` header comment for full key map.

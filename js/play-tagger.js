@@ -92,6 +92,11 @@ export class PlayTagger {
     this.unitField = unitEl ? new ChipField(unitEl) : null;
     this.defaultUnit = 'offense';
 
+    // Auto down & distance: when advancing to the next (untagged) play, pre-fill
+    // its down/distance/field position from the previous play's result.
+    this.autoDD = (typeof localStorage === 'undefined')
+      || localStorage.getItem('ffa_auto_dd') !== '0';
+
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
 
@@ -403,6 +408,96 @@ export class PlayTagger {
       return true;
     }
     return false;
+  }
+
+  /** Like nextPlay(), but carries the down & distance situation forward. */
+  nextPlayWithSituation() {
+    const prev = this.getCurrentPlay();
+    const advanced = this.nextPlay();
+    if (advanced && this.autoDD && prev) {
+      const next = this.getCurrentPlay();
+      if (next) this.applyNextSituation(prev, next);
+    }
+    return advanced;
+  }
+
+  /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
+  setUnit(unit) {
+    unit = unit || 'offense';
+    if (this.unitField) this.unitField.value = unit;
+    const play = this.getCurrentPlay();
+    if (play) {
+      play.tags.unit = unit;
+      this._emit('play-updated', play);
+    }
+    this.applyUnitMode(unit);
+  }
+
+  _absYL(tags) {
+    const yl = parseInt(tags.yardLine);
+    if (!yl) return null;
+    return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  /**
+   * Given the just-tagged previous play, compute the next play's situation.
+   * Returns null when the possession ends (TD, turnover, punt, FG, etc.) or
+   * when there isn't enough info — in those cases we leave the next play blank
+   * for the coach to start fresh.
+   */
+  computeNextSituation(prev) {
+    const t = prev.tags;
+    const stop = ['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Kneel', 'Spike', 'Penalty'];
+    if (stop.includes(t.result)) return null;
+
+    const down = parseInt(t.down);
+    const distance = parseInt(t.distance);
+    if (!down || isNaN(distance)) return null;
+
+    let gained = parseInt(t.yardage);
+    if (isNaN(gained)) gained = 0;
+
+    const firstDown = (gained >= distance) || (Array.isArray(t.custom) && t.custom.includes('1st Down'));
+
+    // Field position only makes sense for the offense's own yardage.
+    let fieldSide = null, yardLine = null, newAbs = null;
+    if (t.unit === 'offense' || !t.unit) {
+      const abs = this._absYL(t);
+      if (abs != null) {
+        newAbs = Math.min(99, Math.max(1, abs + gained));
+        if (newAbs <= 50) { fieldSide = 'own'; yardLine = newAbs; }
+        else { fieldSide = 'opp'; yardLine = 100 - newAbs; }
+      }
+    }
+
+    let nextDown, nextDist;
+    if (firstDown) {
+      nextDown = 1;
+      nextDist = (newAbs != null && (100 - newAbs) < 10) ? (100 - newAbs) : 10;
+    } else {
+      if (down >= 4) return null; // turnover on downs — new possession
+      nextDown = down + 1;
+      nextDist = Math.max(1, distance - gained);
+      if (newAbs != null && (100 - newAbs) < nextDist) nextDist = Math.max(1, 100 - newAbs);
+    }
+    return { down: String(nextDown), distance: String(nextDist), fieldSide, yardLine };
+  }
+
+  /** Pre-fill the next play's situation, without overwriting existing tags. */
+  applyNextSituation(prev, next) {
+    if (next.tags.down) return; // already has a down — respect manual/imported data
+    const sit = this.computeNextSituation(prev);
+    if (!sit) return;
+    next.tags.down = sit.down;
+    next.tags.distance = sit.distance;
+    if (sit.fieldSide != null) next.tags.fieldSide = sit.fieldSide;
+    if (sit.yardLine != null) next.tags.yardLine = String(sit.yardLine);
+    // Same drive/quarter continues unless already set.
+    if (!next.tags.quarter && prev.tags.quarter) next.tags.quarter = prev.tags.quarter;
+    if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
+    this._loadTagForm(next);
+    this._updateTimeline();
+    this._emit('play-updated', next);
   }
 
   _renderCustomTags(tags) {

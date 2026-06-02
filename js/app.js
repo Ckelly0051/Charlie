@@ -1032,11 +1032,21 @@ class App {
       this._autoPlayCurrent();
     });
     btnNext?.addEventListener('click', () => {
-      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
     });
     btnSkip?.addEventListener('click', () => {
-      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
     });
+
+    // Auto down & distance toggle
+    const autoDD = document.getElementById('autoDDToggle');
+    if (autoDD) {
+      autoDD.checked = this.tagger.autoDD;
+      autoDD.addEventListener('change', () => {
+        this.tagger.autoDD = autoDD.checked;
+        try { localStorage.setItem('ffa_auto_dd', autoDD.checked ? '1' : '0'); } catch (e) {}
+      });
+    }
 
     yardsMinus?.addEventListener('click', () => {
       const v = parseInt(yardsInput.value) || 0;
@@ -1089,7 +1099,7 @@ class App {
 
     if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      if (this.tagger.nextPlay()) this._autoPlayCurrent();
+      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
       return true;
     }
 
@@ -1105,6 +1115,34 @@ class App {
     }
 
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
+
+    const curPlay = this.tagger.getCurrentPlay();
+    const curUnit = (curPlay && curPlay.tags.unit) || this.tagger.defaultUnit || 'offense';
+
+    // C cycles the unit toggle (Offense → Defense → Special Teams).
+    if (e.code === 'KeyC' && !e.shiftKey) {
+      e.preventDefault();
+      const order = ['offense', 'defense', 'special'];
+      const nextUnit = order[(order.indexOf(curUnit) + 1) % order.length];
+      this.tagger.setUnit(nextUnit);
+      return true;
+    }
+
+    // In Special Teams mode, digits 1-9 pick the ST play type.
+    if (curUnit === 'special' && !e.shiftKey && /^Digit[1-9]$/.test(e.code)) {
+      const stTypes = ['Kickoff', 'Kick Return', 'Punt', 'Punt Return', 'Field Goal', 'XP', '2-Pt', 'Onside', 'Fake'];
+      const n = parseInt(e.code.replace('Digit', ''), 10);
+      if (n >= 1 && n <= stTypes.length) {
+        e.preventDefault();
+        const tf = this.tagger.tagFields.stType;
+        const val = stTypes[n - 1];
+        if (tf) {
+          tf.value = tf.value === val ? '' : val;
+          this.tagger._saveField('stType');
+        }
+        return true;
+      }
+    }
 
     const mapped = keyMap[e.code];
     if (!mapped) return false;
