@@ -104,6 +104,9 @@ class App {
     // Scout mode UI
     this._bindScoutMode();
 
+    // Keyboard shortcuts legend
+    this._bindShortcuts();
+
     // Keep tagging progress updated
     this.tagger.on('play-created', () => this._updateTagProgress());
     this.tagger.on('play-deleted', () => this._updateTagProgress());
@@ -178,6 +181,13 @@ class App {
       // Don't capture keys when typing in inputs
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      // "?" toggles the shortcuts legend; Esc closes it (handle before others).
+      const shortcutsModal = document.getElementById('shortcutsModal');
+      const shortcutsOpen = shortcutsModal && !shortcutsModal.classList.contains('hidden');
+      if (e.key === '?') { e.preventDefault(); this.toggleShortcuts?.(); return; }
+      if (shortcutsOpen && e.code === 'Escape') { e.preventDefault(); this.toggleShortcuts?.(false); return; }
+      if (shortcutsOpen) return; // swallow other keys while the legend is open
 
       // Let quick-chart handle its own keys when active
       if (this.quickChart.isActive) return;
@@ -994,6 +1004,20 @@ class App {
     if (btn) {
       btn.addEventListener('click', () => this.storage.exportHtmlReport(this.stats));
     }
+  }
+
+  _bindShortcuts() {
+    const modal = document.getElementById('shortcutsModal');
+    const btn = document.getElementById('btnShortcuts');
+    if (!modal) return;
+    this.toggleShortcuts = (show) => {
+      const hidden = modal.classList.contains('hidden');
+      const willShow = show != null ? show : hidden;
+      modal.classList.toggle('hidden', !willShow);
+    };
+    btn?.addEventListener('click', () => this.toggleShortcuts());
+    modal.querySelector('#shortcutsClose')?.addEventListener('click', () => this.toggleShortcuts(false));
+    modal.querySelector('.shortcuts-backdrop')?.addEventListener('click', () => this.toggleShortcuts(false));
   }
 
   _bindScoutMode() {

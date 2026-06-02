@@ -4705,3 +4705,21 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .play-mark-primary { margin-top: 2px; }
 .play-mark-primary .btn { flex: 1; }
 .auto-detect-tools .auto-detect-section { margin-top: 4px; }
+
+/* --- Keyboard Shortcuts Legend --- */
+.shortcuts-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; }
+.shortcuts-modal.hidden { display: none; }
+.shortcuts-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+.shortcuts-card { position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.35); width: 92%; max-width: 760px; max-height: 86vh; overflow-y: auto; }
+.shortcuts-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg-secondary); }
+.shortcuts-head h3 { margin: 0; font-size: 16px; }
+.shortcuts-close { background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-secondary); padding: 0 4px; }
+.shortcuts-close:hover { color: var(--text); }
+.shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; padding: 16px 20px 20px; }
+.shortcuts-group h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--accent); }
+.shortcuts-note { text-transform: none; letter-spacing: 0; color: var(--text-dim); font-weight: 400; }
+.shortcuts-group dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; align-items: baseline; }
+.shortcuts-group dt { white-space: nowrap; }
+.shortcuts-group dd { margin: 0; font-size: 12px; color: var(--text-secondary); }
+.shortcuts-group kbd { display: inline-block; font-family: inherit; font-size: 11px; line-height: 1; padding: 3px 5px; margin: 1px; border: 1px solid var(--border-bright, var(--border)); border-bottom-width: 2px; border-radius: 4px; background: var(--bg-tertiary); color: var(--text); }
+@media (max-width: 640px) { .shortcuts-grid { grid-template-columns: 1fr; } }

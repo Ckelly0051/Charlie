@@ -217,6 +217,13 @@ Special-teams stats (return game, kicking/punting) roll up in
 `StatsEngine._individualStats` from `players.returner` / `players.kicker` keyed
 on `stType`, and render as extra tables in the stats dashboard.
 
+### Shortcuts Legend
+A **Shortcuts** button in the top bar (always visible, even on the first screen
+before a video loads) and the **`?`** key open a keyboard-shortcuts legend
+modal (`#shortcutsModal`, wired by `App._bindShortcuts`). It groups shortcuts by
+Playback / Tagging / Drawing / General. While open it swallows other keys; Esc,
+the × button, or a backdrop click closes it.
+
 ### Keyboard Shortcuts (active when a play is selected)
 | Key | Action |
 |-----|--------|
