@@ -476,10 +476,32 @@ export class StatsEngine {
     // Heat map tab switching
     this.heatMaps.bind(el);
 
+    // Click a player's stat row to jump to their first play on film.
+    el.querySelectorAll('.player-row').forEach(row => {
+      row.title = "Jump to this player's plays";
+      row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
+    });
+
     // Click overlay to close
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {
       if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
     });
+  }
+
+  /** Find every play this jersey # is involved in and cue the first one. */
+  _watchPlayer(num) {
+    if (!num) return;
+    const matches = this.tagger.plays
+      .filter(p => {
+        const pl = p.tags.players || {};
+        return Object.values(pl).includes(String(num));
+      })
+      .sort((a, b) => a.timestamp.start - b.timestamp.start);
+    if (matches.length === 0) return;
+    this.hideDashboard();
+    this.tagger.playerSpotlight = matches.map(p => p.id);
+    this.tagger.selectPlay(matches[0].id);
+    if (this.tagger.vc && typeof this.tagger.vc.play === 'function') this.tagger.vc.play();
   }
 
   _gameTitle() {
@@ -847,6 +869,11 @@ export class StatsEngine {
     `;
   }
 
+  _playerLabel(num) {
+    const roster = (typeof window !== 'undefined') && window.app && window.app.roster;
+    return roster ? roster.getLabel(num) : `#${num}`;
+  }
+
   _renderIndividualStats(stats) {
     const ind = stats.individuals;
     let html = '';
@@ -855,7 +882,7 @@ export class StatsEngine {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
-        rows += `<tr><td>#${r.num}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -871,7 +898,7 @@ export class StatsEngine {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
-        rows += `<tr><td>#${p.num}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -886,7 +913,7 @@ export class StatsEngine {
     if (ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
-        rows += `<tr><td>#${r.num}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -901,7 +928,7 @@ export class StatsEngine {
     if (ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr><td>#${t.num}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
       }
       html += `
         <div class="stats-section">

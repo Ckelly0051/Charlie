@@ -21,6 +21,7 @@ js/
 ├── video-controller.js       # HTML5 video playback (play/pause/seek/step)
 ├── canvas-overlay.js         # Drawing annotations on video frames
 ├── play-tagger.js            # Play CRUD + chip-based tag form (ChipField)
+├── roster-manager.js         # Team roster + per-play player attribution (quick-pick)
 ├── play-filter.js            # Filter plays by tag values
 ├── play-detector.js          # Motion-based auto-detection of play boundaries
 ├── clip-analyzer.js          # Heuristic auto-tagging (centroid tracking)
@@ -75,6 +76,7 @@ server/                       # Optional local Python backend (YOLO-based)
     coverage: '',       // 'Cover 0'-'Cover 6' | 'Man' | 'Zone'
     blitz: '',          // 'A-Gap' | 'B-Gap' | 'Edge' | 'DB Blitz' | 'Zone Blitz'
     driveNumber: '',    // auto-incremented
+    players: {},        // { ballCarrier, passer, receiver, tackler } -> jersey # strings
     custom: []          // freeform string array
   },
   notes: '',
@@ -87,6 +89,18 @@ server/                       # Optional local Python backend (YOLO-based)
 2. **down** + **distance** — conversion rates, situational analysis
 3. **formation** — tendency breakdowns
 4. Everything else (defense, personnel, field position) is bonus detail
+
+## Player Stats (Roster + Attribution)
+
+Box-score style per-player stats, modeled on Hudl/QwikCut:
+
+1. **Roster panel** (`roster-manager.js`): add players (jersey #, name, position, side O/D/B). Stored in `localStorage` (`ffa_roster`) and in project saves (`roster` key, schema v4).
+2. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`.
+3. **Aggregation** (`stats-engine.js` `_individualStats`): rolls role assignments into rushing (att/yds/avg/long/TD/fum), passing (cmp-att/pct/yds/TD/INT/sack), receiving (rec/yds/long/TD), and tackles (tkl/sack/TFL).
+4. **Output**: dashboard renders four individual-stat tables; jersey #s map to "#22 Smith" via the roster. **Click any player row to jump to their first play on film** (`_watchPlayer`).
+5. **Export**: CSV includes Ball Carrier / Passer / Receiver / Tackler columns.
+
+Quick Chart mode also writes `play.tags.players` for the same roles.
 
 ## Tag Form UI (Chip-Based)
 

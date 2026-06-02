@@ -223,6 +223,28 @@
           </div>
         </div>
 
+        <!-- Roster -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="rosterPanel">
+            <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
+            Roster
+          </h3>
+          <div class="panel-body collapsed" id="rosterPanel">
+            <div class="roster-add">
+              <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
+              <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
+              <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
+              <select id="rosterSide" class="roster-add-side" title="Side of ball">
+                <option value="O">Off</option>
+                <option value="D">Def</option>
+                <option value="B">Both</option>
+              </select>
+              <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
+            </div>
+            <div class="roster-list" id="rosterList"></div>
+          </div>
+        </div>
+
         <!-- Version History -->
         <div class="sidebar-panel">
           <h3 class="panel-title" data-toggle="versionPanel">
@@ -557,6 +579,29 @@
                   <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
                   <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                 </div>
+              </div>
+
+              <div class="chip-section">
+                <label class="chip-label">Players — jersey #</label>
+                <div class="player-roles">
+                  <label class="player-role active" data-role="ballCarrier">
+                    <span class="player-role-label">Ball Carrier</span>
+                    <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                  <label class="player-role" data-role="passer">
+                    <span class="player-role-label">Passer</span>
+                    <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                  <label class="player-role" data-role="receiver">
+                    <span class="player-role-label">Receiver</span>
+                    <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                  <label class="player-role" data-role="tackler">
+                    <span class="player-role-label">Tackler</span>
+                    <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                </div>
+                <div class="player-quickpick" id="rosterQuickPick"></div>
               </div>
 
               <details class="chip-details">

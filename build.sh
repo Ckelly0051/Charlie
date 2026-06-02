@@ -49,6 +49,7 @@ for jsfile in \
   js/video-controller.js \
   js/canvas-overlay.js \
   js/play-tagger.js \
+  js/roster-manager.js \
   js/play-filter.js \
   js/notes-manager.js \
   js/storage.js \

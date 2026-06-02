@@ -90,9 +90,10 @@ export class StorageManager {
     });
 
     return {
-      version: 3,
+      version: 4,
       videoFileName: this.videoFileName,
       gameInfo: this.gameInfo,
+      roster: (window.app && window.app.roster) ? window.app.roster.toJSON() : [],
       plays: plays,
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
@@ -113,6 +114,10 @@ export class StorageManager {
       if (window.app && window.app._loadGameInfo) {
         window.app._loadGameInfo(data.gameInfo);
       }
+    }
+
+    if (data.roster && window.app && window.app.roster) {
+      window.app.roster.loadFrom(data.roster);
     }
 
     this.tagger._updatePlaySelect();
@@ -189,7 +194,8 @@ export class StorageManager {
       'Play #', 'Clip', 'Start', 'End', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
-      'Yardage', 'Hash', 'Custom Tags', 'Notes'
+      'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
+      'Custom Tags', 'Notes'
     ];
 
     const rows = this.tagger.plays.map(p => [
@@ -212,6 +218,10 @@ export class StorageManager {
       p.tags.result,
       p.tags.yardage,
       p.tags.hash,
+      p.tags.players?.ballCarrier || '',
+      p.tags.players?.passer || '',
+      p.tags.players?.receiver || '',
+      p.tags.players?.tackler || '',
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);

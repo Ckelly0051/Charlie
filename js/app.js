@@ -4,6 +4,7 @@
 import { VideoController } from './video-controller.js';
 import { CanvasOverlay } from './canvas-overlay.js';
 import { PlayTagger } from './play-tagger.js';
+import { RosterManager } from './roster-manager.js';
 import { PlayFilter } from './play-filter.js';
 import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
@@ -30,6 +31,7 @@ class App {
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);
     this.tagger = new PlayTagger(this.vc);
+    this.roster = new RosterManager(this.tagger);
     this.filter = new PlayFilter(this.tagger);
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
@@ -42,6 +44,7 @@ class App {
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
+    this.stats.roster = this.roster;
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);

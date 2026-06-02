@@ -4473,6 +4473,92 @@ input:focus, select:focus, textarea:focus {
 .text-input-overlay input { background: var(--bg-secondary); color: var(--text); border-color: var(--accent); }
 /* Generic input focus ring recolor (was rose) */
 input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* ================================================================== */
+/* ==================  ROSTER & PLAYER ATTRIBUTION  ================= */
+/* ================================================================== */
+
+/* Roster panel add-row */
+.roster-add {
+  display: grid;
+  grid-template-columns: 48px 1fr 52px 64px auto;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.roster-add input, .roster-add select { min-width: 0; }
+.roster-list { display: flex; flex-direction: column; gap: 3px; max-height: 220px; overflow-y: auto; }
+.roster-empty { font-size: 11px; color: var(--text-dim); padding: 6px 2px; line-height: 1.4; }
+.roster-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto 22px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+.roster-num { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.roster-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster-name em { color: var(--text-dim); }
+.roster-meta { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.3px; }
+.roster-del {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 16px; line-height: 1; padding: 0; width: 22px;
+}
+.roster-del:hover { color: var(--danger); }
+
+/* Player-role inputs in the tag form */
+.player-roles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.player-role {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 5px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.player-role.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.player-role-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.player-role.active .player-role-label { color: var(--accent); }
+.player-num {
+  width: 100%;
+  text-align: center;
+  padding: 3px 2px;
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Roster quick-pick chip bar (stamps the active role) */
+.player-quickpick { display: flex; flex-wrap: wrap; gap: 3px; }
+.quickpick-hint { font-size: 10px; color: var(--text-dim); font-style: italic; }
+.quickpick-chip { font-variant-numeric: tabular-nums; }
+
+/* Clickable player stat rows in the dashboard */
+.player-row { cursor: pointer; transition: background var(--transition); }
+.player-row:hover { background: rgba(65,105,225,0.12); }
   </style>
 </head>
 <body>
@@ -4864,6 +4950,28 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
           </div>
         </div>
 
+        <!-- Roster -->
+        <div class="sidebar-panel">
+          <h3 class="panel-title" data-toggle="rosterPanel">
+            <svg class="icon"><use href="#icon-tag"/></svg>
+            Roster
+          </h3>
+          <div class="panel-body collapsed" id="rosterPanel">
+            <div class="roster-add">
+              <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
+              <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
+              <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
+              <select id="rosterSide" class="roster-add-side" title="Side of ball">
+                <option value="O">Off</option>
+                <option value="D">Def</option>
+                <option value="B">Both</option>
+              </select>
+              <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
+            </div>
+            <div class="roster-list" id="rosterList"></div>
+          </div>
+        </div>
+
         <!-- Version History -->
         <div class="sidebar-panel">
           <h3 class="panel-title" data-toggle="versionPanel">
@@ -5198,6 +5306,29 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                   <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
                   <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                 </div>
+              </div>
+
+              <div class="chip-section">
+                <label class="chip-label">Players — jersey #</label>
+                <div class="player-roles">
+                  <label class="player-role active" data-role="ballCarrier">
+                    <span class="player-role-label">Ball Carrier</span>
+                    <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                  <label class="player-role" data-role="passer">
+                    <span class="player-role-label">Passer</span>
+                    <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                  <label class="player-role" data-role="receiver">
+                    <span class="player-role-label">Receiver</span>
+                    <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                  <label class="player-role" data-role="tackler">
+                    <span class="player-role-label">Tackler</span>
+                    <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                  </label>
+                </div>
+                <div class="player-quickpick" id="rosterQuickPick"></div>
               </div>
 
               <details class="chip-details">
@@ -6348,6 +6479,14 @@ class PlayTagger {
       this.tagFields[key] = el?.classList.contains('pick-group') ? new ChipField(el) : el;
     }
 
+    // Per-play player attribution (jersey #) by role.
+    this.playerFields = {
+      ballCarrier: document.getElementById('tagPlayerBC'),
+      passer: document.getElementById('tagPlayerPasser'),
+      receiver: document.getElementById('tagPlayerReceiver'),
+      tackler: document.getElementById('tagPlayerTackler'),
+    };
+
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
 
@@ -6370,6 +6509,12 @@ class PlayTagger {
     // so clicking one chip doesn't overwrite other fields with stale values.
     for (const [key, el] of Object.entries(this.tagFields)) {
       el.addEventListener('change', () => this._saveField(key));
+    }
+
+    // Player-role inputs save into play.tags.players.
+    for (const [role, el] of Object.entries(this.playerFields)) {
+      if (!el) continue;
+      el.addEventListener('change', () => this._savePlayer(role));
     }
 
     // New Drive button
@@ -6431,6 +6576,7 @@ class PlayTagger {
         fieldSide: 'own',
         personnel: '',
         driveNumber: this.currentDrive.toString(),
+        players: {},
         custom: []
       },
       annotations: [],
@@ -6493,6 +6639,16 @@ class PlayTagger {
     this._emit('play-updated', play);
   }
 
+  _savePlayer(role) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    if (!play.tags.players) play.tags.players = {};
+    const val = (this.playerFields[role].value || '').trim();
+    if (val) play.tags.players[role] = val;
+    else delete play.tags.players[role];
+    this._emit('play-updated', play);
+  }
+
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
@@ -6519,11 +6675,16 @@ class PlayTagger {
     this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
+    const players = play.tags.players || {};
+    for (const [role, el] of Object.entries(this.playerFields)) {
+      if (el) el.value = players[role] || '';
+    }
     this._renderCustomTags(play.tags.custom);
   }
 
   _clearTagForm() {
     for (const el of Object.values(this.tagFields)) el.value = '';
+    for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
     this.tagChips.innerHTML = '';
   }
 
@@ -6636,6 +6797,215 @@ class PlayTagger {
 
   _emit(event, data) {
     (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
+// ===== roster-manager.js =====
+/**
+ * RosterManager — team roster + player attribution helper.
+ *
+ * Owns the roster (jersey #, name, position, side) and the "quick-pick"
+ * jersey chip bar in the tag form. Clicking a chip stamps the currently
+ * focused player-role input (Ball Carrier / Passer / Receiver / Tackler),
+ * so a coach can attribute players to a play in a couple of taps.
+ *
+ * Roster persists to localStorage and is included in project saves via
+ * StorageManager (which reads window.app.roster). Per-play attribution
+ * lives on play.tags.players and is handled by PlayTagger.
+ */
+class RosterManager {
+  constructor(tagger) {
+    this.tagger = tagger;
+    this.players = [];           // [{ num, name, pos, side }] side: 'O'|'D'|'B'
+    this.activeRole = 'ballCarrier';
+
+    // Roster panel elements
+    this.listEl = document.getElementById('rosterList');
+    this.numInput = document.getElementById('rosterNum');
+    this.nameInput = document.getElementById('rosterName');
+    this.posInput = document.getElementById('rosterPos');
+    this.sideInput = document.getElementById('rosterSide');
+    this.addBtn = document.getElementById('btnAddPlayer');
+
+    // Quick-pick bar in the tag form + the role inputs it stamps
+    this.quickPickEl = document.getElementById('rosterQuickPick');
+    this.roleInputs = {
+      ballCarrier: document.getElementById('tagPlayerBC'),
+      passer: document.getElementById('tagPlayerPasser'),
+      receiver: document.getElementById('tagPlayerReceiver'),
+      tackler: document.getElementById('tagPlayerTackler'),
+    };
+
+    this._load();
+    this._bind();
+    this.renderList();
+    this.renderQuickPick();
+  }
+
+  _bind() {
+    if (this.addBtn) {
+      this.addBtn.addEventListener('click', () => this._addFromForm());
+    }
+    // Enter in any add-field commits the player
+    [this.numInput, this.nameInput, this.posInput].forEach(el => {
+      if (el) el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this._addFromForm(); }
+      });
+    });
+
+    // Track which role the roster chips will stamp (last focused input).
+    for (const [role, el] of Object.entries(this.roleInputs)) {
+      if (!el) continue;
+      el.addEventListener('focus', () => { this.activeRole = role; this._markActiveRole(); });
+    }
+
+    // Refresh chip highlights when a different play is selected.
+    if (this.tagger) {
+      this.tagger.on('play-selected', () => this.refreshActiveChips());
+    }
+  }
+
+  // --- Roster CRUD ---
+
+  _addFromForm() {
+    const num = (this.numInput?.value || '').trim();
+    if (!num) { this.numInput?.focus(); return; }
+    const name = (this.nameInput?.value || '').trim();
+    const pos = (this.posInput?.value || '').trim();
+    const side = this.sideInput?.value || 'B';
+    this.addPlayer(num, name, pos, side);
+    // Reset for fast entry
+    if (this.numInput) this.numInput.value = '';
+    if (this.nameInput) this.nameInput.value = '';
+    if (this.posInput) this.posInput.value = '';
+    this.numInput?.focus();
+  }
+
+  addPlayer(num, name = '', pos = '', side = 'B') {
+    num = String(num).trim();
+    if (!num) return;
+    const existing = this.players.find(p => p.num === num);
+    if (existing) {
+      existing.name = name || existing.name;
+      existing.pos = pos || existing.pos;
+      existing.side = side || existing.side;
+    } else {
+      this.players.push({ num, name, pos, side });
+    }
+    this.players.sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0));
+    this._save();
+    this.renderList();
+    this.renderQuickPick();
+  }
+
+  removePlayer(num) {
+    this.players = this.players.filter(p => p.num !== String(num));
+    this._save();
+    this.renderList();
+    this.renderQuickPick();
+  }
+
+  /** "#22 Smith" when named, else "#22" — used by the stats tables. */
+  getLabel(num) {
+    const p = this.players.find(pl => pl.num === String(num));
+    return p && p.name ? `#${p.num} ${p.name}` : `#${num}`;
+  }
+
+  // --- Persistence (project save/load goes through StorageManager) ---
+
+  toJSON() { return this.players; }
+
+  loadFrom(arr) {
+    this.players = Array.isArray(arr) ? arr.filter(p => p && p.num != null) : [];
+    this._save();
+    this.renderList();
+    this.renderQuickPick();
+  }
+
+  _save() {
+    try { localStorage.setItem('ffa_roster', JSON.stringify(this.players)); } catch (e) {}
+  }
+
+  _load() {
+    try {
+      const raw = localStorage.getItem('ffa_roster');
+      if (raw) this.players = JSON.parse(raw) || [];
+    } catch (e) { this.players = []; }
+  }
+
+  // --- Rendering ---
+
+  renderList() {
+    if (!this.listEl) return;
+    if (this.players.length === 0) {
+      this.listEl.innerHTML = '<div class="roster-empty">No players yet. Add jersey numbers to chart per-player stats.</div>';
+      return;
+    }
+    this.listEl.innerHTML = '';
+    this.players.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'roster-row';
+      const meta = [p.pos, p.side && p.side !== 'B' ? p.side : ''].filter(Boolean).join(' · ');
+      row.innerHTML = `
+        <span class="roster-num">#${p.num}</span>
+        <span class="roster-name">${p.name || '<em>unnamed</em>'}</span>
+        <span class="roster-meta">${meta}</span>
+        <button class="roster-del" title="Remove" data-num="${p.num}">&times;</button>`;
+      row.querySelector('.roster-del').addEventListener('click', () => this.removePlayer(p.num));
+      this.listEl.appendChild(row);
+    });
+  }
+
+  /** Players relevant to the active role: offense roles show O/B, tackler shows D/B. */
+  _playersForRole(role) {
+    const wantSide = role === 'tackler' ? 'D' : 'O';
+    const filtered = this.players.filter(p => p.side === wantSide || p.side === 'B' || !p.side);
+    return filtered.length ? filtered : this.players;
+  }
+
+  renderQuickPick() {
+    if (!this.quickPickEl) return;
+    if (this.players.length === 0) {
+      this.quickPickEl.innerHTML = '<span class="quickpick-hint">Add players in the Roster panel for one-tap entry.</span>';
+      return;
+    }
+    this.quickPickEl.innerHTML = '';
+    this._playersForRole(this.activeRole).forEach(p => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'pick pick-sm quickpick-chip';
+      chip.dataset.num = p.num;
+      chip.textContent = p.name ? `${p.num} ${p.name.split(' ')[0]}` : p.num;
+      chip.title = this.getLabel(p.num);
+      chip.addEventListener('click', () => this._stamp(p.num));
+      this.quickPickEl.appendChild(chip);
+    });
+    this.refreshActiveChips();
+  }
+
+  _stamp(num) {
+    const input = this.roleInputs[this.activeRole];
+    if (!input) return;
+    // Toggle off if the same number is already set for this role.
+    input.value = (input.value.trim() === String(num)) ? '' : String(num);
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    this.refreshActiveChips();
+  }
+
+  _markActiveRole() {
+    document.querySelectorAll('.player-role').forEach(el => {
+      el.classList.toggle('active', el.dataset.role === this.activeRole);
+    });
+    this.renderQuickPick();
+  }
+
+  /** Highlight chips that match the current value of the active role input. */
+  refreshActiveChips() {
+    if (!this.quickPickEl) return;
+    const cur = this.roleInputs[this.activeRole]?.value.trim();
+    this.quickPickEl.querySelectorAll('.quickpick-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.num === cur);
+    });
   }
 }
 
@@ -6969,9 +7339,10 @@ class StorageManager {
     });
 
     return {
-      version: 3,
+      version: 4,
       videoFileName: this.videoFileName,
       gameInfo: this.gameInfo,
+      roster: (window.app && window.app.roster) ? window.app.roster.toJSON() : [],
       plays: plays,
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
@@ -6992,6 +7363,10 @@ class StorageManager {
       if (window.app && window.app._loadGameInfo) {
         window.app._loadGameInfo(data.gameInfo);
       }
+    }
+
+    if (data.roster && window.app && window.app.roster) {
+      window.app.roster.loadFrom(data.roster);
     }
 
     this.tagger._updatePlaySelect();
@@ -7068,7 +7443,8 @@ class StorageManager {
       'Play #', 'Clip', 'Start', 'End', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
-      'Yardage', 'Hash', 'Custom Tags', 'Notes'
+      'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
+      'Custom Tags', 'Notes'
     ];
 
     const rows = this.tagger.plays.map(p => [
@@ -7091,6 +7467,10 @@ class StorageManager {
       p.tags.result,
       p.tags.yardage,
       p.tags.hash,
+      p.tags.players?.ballCarrier || '',
+      p.tags.players?.passer || '',
+      p.tags.players?.receiver || '',
+      p.tags.players?.tackler || '',
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);
@@ -10247,10 +10627,32 @@ class StatsEngine {
     // Heat map tab switching
     this.heatMaps.bind(el);
 
+    // Click a player's stat row to jump to their first play on film.
+    el.querySelectorAll('.player-row').forEach(row => {
+      row.title = "Jump to this player's plays";
+      row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
+    });
+
     // Click overlay to close
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {
       if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
     });
+  }
+
+  /** Find every play this jersey # is involved in and cue the first one. */
+  _watchPlayer(num) {
+    if (!num) return;
+    const matches = this.tagger.plays
+      .filter(p => {
+        const pl = p.tags.players || {};
+        return Object.values(pl).includes(String(num));
+      })
+      .sort((a, b) => a.timestamp.start - b.timestamp.start);
+    if (matches.length === 0) return;
+    this.hideDashboard();
+    this.tagger.playerSpotlight = matches.map(p => p.id);
+    this.tagger.selectPlay(matches[0].id);
+    if (this.tagger.vc && typeof this.tagger.vc.play === 'function') this.tagger.vc.play();
   }
 
   _gameTitle() {
@@ -10618,6 +11020,11 @@ class StatsEngine {
     `;
   }
 
+  _playerLabel(num) {
+    const roster = (typeof window !== 'undefined') && window.app && window.app.roster;
+    return roster ? roster.getLabel(num) : `#${num}`;
+  }
+
   _renderIndividualStats(stats) {
     const ind = stats.individuals;
     let html = '';
@@ -10626,7 +11033,7 @@ class StatsEngine {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
-        rows += `<tr><td>#${r.num}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -10642,7 +11049,7 @@ class StatsEngine {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
-        rows += `<tr><td>#${p.num}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -10657,7 +11064,7 @@ class StatsEngine {
     if (ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
-        rows += `<tr><td>#${r.num}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -10672,7 +11079,7 @@ class StatsEngine {
     if (ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr><td>#${t.num}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -13035,6 +13442,7 @@ class App {
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);
     this.tagger = new PlayTagger(this.vc);
+    this.roster = new RosterManager(this.tagger);
     this.filter = new PlayFilter(this.tagger);
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
@@ -13047,6 +13455,7 @@ class App {
     this.playlist = new PlaylistManager(this.vc, this.tagger);
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
+    this.stats.roster = this.roster;
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);

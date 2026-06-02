@@ -64,6 +64,14 @@ export class PlayTagger {
       this.tagFields[key] = el?.classList.contains('pick-group') ? new ChipField(el) : el;
     }
 
+    // Per-play player attribution (jersey #) by role.
+    this.playerFields = {
+      ballCarrier: document.getElementById('tagPlayerBC'),
+      passer: document.getElementById('tagPlayerPasser'),
+      receiver: document.getElementById('tagPlayerReceiver'),
+      tackler: document.getElementById('tagPlayerTackler'),
+    };
+
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
 
@@ -86,6 +94,12 @@ export class PlayTagger {
     // so clicking one chip doesn't overwrite other fields with stale values.
     for (const [key, el] of Object.entries(this.tagFields)) {
       el.addEventListener('change', () => this._saveField(key));
+    }
+
+    // Player-role inputs save into play.tags.players.
+    for (const [role, el] of Object.entries(this.playerFields)) {
+      if (!el) continue;
+      el.addEventListener('change', () => this._savePlayer(role));
     }
 
     // New Drive button
@@ -147,6 +161,7 @@ export class PlayTagger {
         fieldSide: 'own',
         personnel: '',
         driveNumber: this.currentDrive.toString(),
+        players: {},
         custom: []
       },
       annotations: [],
@@ -209,6 +224,16 @@ export class PlayTagger {
     this._emit('play-updated', play);
   }
 
+  _savePlayer(role) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    if (!play.tags.players) play.tags.players = {};
+    const val = (this.playerFields[role].value || '').trim();
+    if (val) play.tags.players[role] = val;
+    else delete play.tags.players[role];
+    this._emit('play-updated', play);
+  }
+
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
@@ -235,11 +260,16 @@ export class PlayTagger {
     this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
+    const players = play.tags.players || {};
+    for (const [role, el] of Object.entries(this.playerFields)) {
+      if (el) el.value = players[role] || '';
+    }
     this._renderCustomTags(play.tags.custom);
   }
 
   _clearTagForm() {
     for (const el of Object.values(this.tagFields)) el.value = '';
+    for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
     this.tagChips.innerHTML = '';
   }
 
