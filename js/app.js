@@ -968,6 +968,10 @@ class App {
       const el = document.getElementById(id);
       if (el && val) el.value = val;
     }
+    // Loading sets the perspective programmatically (no native change event),
+    // so fire one to re-sync the scout UI and the new-play unit default.
+    const perspectiveEl = document.getElementById('gamePerspective');
+    if (perspectiveEl) perspectiveEl.dispatchEvent(new Event('change'));
     const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
     if (savedKey) {
       const keyEl = document.getElementById('gameApiKey');
