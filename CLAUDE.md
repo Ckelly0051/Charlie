@@ -144,6 +144,21 @@ In the Roster panel: Import button reveals a paste area + file chooser. `RosterM
 ### HTML Report Export
 `StorageManager.exportHtmlReport(statsEngine)` — styled standalone HTML with all stats sections.
 
+### Call Sheet / Practice Script (`call-sheet-builder.js`)
+More → **Call Sheet** opens a builder that buckets tagged plays by situation
+(Openers, 1st & 10, 2nd/3rd & long/med/short, 4th down, red zone, goal line,
+backed up, 2-min, 4-min), ranks each bucket by **EPA** (or yards / recency),
+and renders a printable document in three layouts: **Wristband** (3-up compact,
+4×6in page), **Full Call Sheet** (letter, 2-col), and **Practice Script**
+(letter table with a blank Result column to write in).
+
+Each play shows its **call** — formation + personnel + play type, plus the
+coach's per-play `notes` in quotes (where the real call like "Power R 34 Lead"
+is typically typed) — and a compact **performance tag** (`TD 48`, `+11`, `Inc`,
+`Sack -6`) so an EPA-ranked sheet shows why a call is ranked. Output opens in a
+new window and auto-triggers print-to-PDF. `_playLabel` / `_playResult` build
+the text; `_gather(rankMode)` does the bucketing + ranking.
+
 ## Opponent Scouting Mode
 
 Set "Film shows" to **Opponent Scout** in Game Info to reveal the scouting panel.

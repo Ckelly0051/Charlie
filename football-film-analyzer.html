@@ -13912,8 +13912,8 @@ const BUCKETS = [
   { id: 'redzone',   label: 'Red Zone',        count: 8, filter: (p, i, abs) => abs != null && abs >= 80 && abs < 95 },
   { id: 'goalline',  label: 'Goal Line',       count: 6, filter: (p, i, abs) => abs != null && abs >= 95 },
   { id: 'backedup',  label: 'Backed Up',       count: 4, filter: (p, i, abs) => abs != null && abs <= 10 },
-  { id: 'twomin',    label: '2 Minute',        count: 6, filter: p => /2\s*min|two\s*min|hurry/i.test(p.tags.custom || '') },
-  { id: 'fourmin',   label: '4 Minute',        count: 4, filter: p => /4\s*min|four\s*min|kill/i.test(p.tags.custom || '') },
+  { id: 'twomin',    label: '2 Minute',        count: 6, filter: p => /2\s*min|two\s*min|hurry/i.test((p.tags.custom || []).join(' ')) },
+  { id: 'fourmin',   label: '4 Minute',        count: 4, filter: p => /4\s*min|four\s*min|kill/i.test((p.tags.custom || []).join(' ')) },
 ];
 
 class CallSheetBuilder {
@@ -14059,10 +14059,29 @@ class CallSheetBuilder {
     if (t.formation) parts.push(t.formation);
     if (t.personnel) parts.push(t.personnel);
     if (t.playType) parts.push(t.playType);
-    if (t.playName) parts.push(`"${t.playName}"`);
-    if (t.runDirection) parts.push(t.runDirection);
-    if (t.passConcept) parts.push(t.passConcept);
+    // Coaches often type the real play call ("Power R 34 Lead") in notes —
+    // surface it in quotes so the sheet shows the actual call, not just type.
+    const note = (p.notes || '').trim().replace(/\s+/g, ' ');
+    if (note) parts.push(`"${note.length > 40 ? note.slice(0, 39) + '…' : note}"`);
     return parts.join(' ') || `Play #${p.id}`;
+  }
+
+  /** Compact performance tag so an EPA-ranked call shows why it's ranked. */
+  _playResult(p) {
+    const t = p.tags || {};
+    const yds = parseInt(t.yardage);
+    switch (t.result) {
+      case 'Touchdown': return `TD${isNaN(yds) ? '' : ' ' + yds}`;
+      case 'Incomplete': return 'Inc';
+      case 'Interception': return 'INT';
+      case 'Fumble': return 'Fum';
+      case 'Sack': return `Sack${isNaN(yds) ? '' : ' ' + yds}`;
+      case 'Field Goal': return 'FG';
+      case 'Punt': return 'Punt';
+      default:
+        if (isNaN(yds)) return t.result || '';
+        return (yds > 0 ? '+' : '') + yds;
+    }
   }
 
   build() {
@@ -14112,6 +14131,7 @@ class CallSheetBuilder {
       .bucket table { width: 100%; border-collapse: collapse; font-size: ${wristband ? '8px' : '10px'}; }
       .bucket td { border-top: 1px solid #ccc; padding: 2px 4px; vertical-align: top; }
       .bucket td.num { font-weight: bold; width: 18px; text-align: right; background: #f4f4f4; }
+      .bucket td.res { text-align: right; white-space: nowrap; color: #444; font-variant-numeric: tabular-nums; width: 34px; }
       @media print {
         body { padding: 0.3in; }
         .bucket { page-break-inside: avoid; }
@@ -14124,9 +14144,10 @@ class CallSheetBuilder {
     const cls = wristband ? 'wristband' : 'full';
     const sections = buckets.map((b, bIdx) => {
       if (!b.plays.length) return '';
-      const rows = b.plays.map((p, pIdx) =>
-        `<tr><td class="num">${numFor(bIdx, pIdx)}</td><td>${this._esc(this._playLabel(p))}</td></tr>`
-      ).join('');
+      const rows = b.plays.map((p, pIdx) => {
+        const res = this._esc(this._playResult(p));
+        return `<tr><td class="num">${numFor(bIdx, pIdx)}</td><td>${this._esc(this._playLabel(p))}</td><td class="res">${res}</td></tr>`;
+      }).join('');
       return `<div class="bucket"><h2>${this._esc(b.label)}</h2><table>${rows}</table></div>`;
     }).join('');
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${this._esc(title)}</title>
