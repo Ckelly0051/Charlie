@@ -4701,3 +4701,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .auto-dd-toggle { display: flex; align-items: center; gap: 6px; margin: 8px 2px 0; font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none; }
 .auto-dd-toggle input { accent-color: var(--accent); }
 .auto-dd-toggle:hover { color: var(--text); }
+/* Primary manual play-marking row at the top of the tagger */
+.play-mark-primary { margin-top: 2px; }
+.play-mark-primary .btn { flex: 1; }
+.auto-detect-tools .auto-detect-section { margin-top: 4px; }
