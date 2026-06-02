@@ -72,6 +72,14 @@ export class PlayTagger {
       tackler: document.getElementById('tagPlayerTackler'),
     };
 
+    // Per-play player grading (+/- per snap).
+    this.gradeFields = {
+      ballCarrier: document.getElementById('tagGradeBC'),
+      passer: document.getElementById('tagGradePasser'),
+      receiver: document.getElementById('tagGradeReceiver'),
+      tackler: document.getElementById('tagGradeTackler'),
+    };
+
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
 
@@ -100,6 +108,12 @@ export class PlayTagger {
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (!el) continue;
       el.addEventListener('change', () => this._savePlayer(role));
+    }
+
+    // Grade selects save into play.tags.grades.
+    for (const [role, el] of Object.entries(this.gradeFields)) {
+      if (!el) continue;
+      el.addEventListener('change', () => this._saveGrade(role));
     }
 
     // New Drive button
@@ -162,6 +176,7 @@ export class PlayTagger {
         personnel: '',
         driveNumber: this.currentDrive.toString(),
         players: {},
+        grades: {},
         custom: []
       },
       annotations: [],
@@ -234,6 +249,16 @@ export class PlayTagger {
     this._emit('play-updated', play);
   }
 
+  _saveGrade(role) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    if (!play.tags.grades) play.tags.grades = {};
+    const val = (this.gradeFields[role].value || '').trim();
+    if (val !== '') play.tags.grades[role] = parseInt(val);
+    else delete play.tags.grades[role];
+    this._emit('play-updated', play);
+  }
+
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
@@ -264,12 +289,17 @@ export class PlayTagger {
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (el) el.value = players[role] || '';
     }
+    const grades = play.tags.grades || {};
+    for (const [role, el] of Object.entries(this.gradeFields)) {
+      if (el) el.value = grades[role] != null ? String(grades[role]) : '';
+    }
     this._renderCustomTags(play.tags.custom);
   }
 
   _clearTagForm() {
     for (const el of Object.values(this.tagFields)) el.value = '';
     for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
+    for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
     this.tagChips.innerHTML = '';
   }
 

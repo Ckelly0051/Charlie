@@ -85,6 +85,9 @@
             <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
               <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season Stats
             </button>
+            <button class="btn" id="btnImportPlays" title="Import plays from CSV (Hudl, etc.)">
+              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg> Import Plays
+            </button>
           </div>
         </div>
       </div>
@@ -199,6 +202,7 @@
                 <option value="offense">Our Offense</option>
                 <option value="defense">Our Defense</option>
                 <option value="special">Special Teams</option>
+                <option value="scout">Opponent Scout</option>
               </select>
             </div>
             <div class="tag-row">
@@ -220,6 +224,11 @@
                 <option value="claude-sonnet-4-6">Sonnet (faster / cheaper)</option>
               </select>
             </div>
+            <div class="scout-section hidden" id="scoutSection">
+              <label class="game-info-label">Scouting Notes</label>
+              <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
+              <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
+            </div>
           </div>
         </div>
 
@@ -240,6 +249,20 @@
                 <option value="B">Both</option>
               </select>
               <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
+            </div>
+            <div class="roster-import-bar">
+              <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
+            </div>
+            <div class="roster-import-area hidden" id="rosterImportArea">
+              <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
+              <div class="roster-import-actions">
+                <label class="btn btn-sm roster-import-file-label">
+                  Choose CSV
+                  <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
+                </label>
+                <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
+              </div>
+              <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
             </div>
             <div class="roster-list" id="rosterList"></div>
           </div>
@@ -587,18 +610,50 @@
                   <label class="player-role active" data-role="ballCarrier">
                     <span class="player-role-label">Ball Carrier</span>
                     <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradeBC" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                   <label class="player-role" data-role="passer">
                     <span class="player-role-label">Passer</span>
                     <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradePasser" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                   <label class="player-role" data-role="receiver">
                     <span class="player-role-label">Receiver</span>
                     <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradeReceiver" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                   <label class="player-role" data-role="tackler">
                     <span class="player-role-label">Tackler</span>
                     <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradeTackler" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                 </div>
                 <div class="player-quickpick" id="rosterQuickPick"></div>
@@ -837,6 +892,41 @@
         </div>
         <div class="season-game-list" id="seasonGameList"></div>
         <div class="season-stats-body" id="seasonStatsBody"></div>
+      </div>
+    </div>
+
+    <!-- Play Import Modal -->
+    <div class="play-import-modal hidden" id="playImportModal">
+      <div class="play-import-backdrop"></div>
+      <div class="play-import-card">
+        <div class="play-import-head">
+          <h3>Import Plays from CSV</h3>
+          <button class="play-import-close" id="playImportClose" type="button">×</button>
+        </div>
+        <div class="play-import-body">
+          <p class="play-import-hint">Upload a CSV from Hudl, QwikCut, or any spreadsheet. We'll auto-detect columns.</p>
+          <div class="play-import-upload">
+            <label class="btn btn-sm btn-accent play-import-file-label">
+              Choose CSV File
+              <input type="file" id="playImportFile" accept=".csv,.tsv,.txt" hidden>
+            </label>
+            <span class="play-import-filename" id="playImportFilename">No file chosen</span>
+          </div>
+          <textarea id="playImportText" class="play-import-text" rows="6" placeholder="Or paste CSV data here..."></textarea>
+          <div class="play-import-mapping hidden" id="playImportMapping">
+            <h4>Column Mapping</h4>
+            <div class="play-import-map-grid" id="playImportMapGrid"></div>
+          </div>
+          <div class="play-import-preview hidden" id="playImportPreview">
+            <h4>Preview (<span id="playImportCount">0</span> plays)</h4>
+            <div class="play-import-preview-table" id="playImportPreviewTable"></div>
+          </div>
+        </div>
+        <div class="play-import-foot">
+          <button class="btn btn-sm" id="playImportCancel" type="button">Cancel</button>
+          <button class="btn btn-sm" id="playImportParse" type="button">Parse</button>
+          <button class="btn btn-sm btn-accent hidden" id="playImportApply" type="button">Import Plays</button>
+        </div>
       </div>
     </div>
   </div>

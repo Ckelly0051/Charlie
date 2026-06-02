@@ -195,6 +195,7 @@ export class StorageManager {
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
+      'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
       'Custom Tags', 'Notes'
     ];
 
@@ -222,6 +223,10 @@ export class StorageManager {
       p.tags.players?.passer || '',
       p.tags.players?.receiver || '',
       p.tags.players?.tackler || '',
+      p.tags.grades?.ballCarrier ?? '',
+      p.tags.grades?.passer ?? '',
+      p.tags.grades?.receiver ?? '',
+      p.tags.grades?.tackler ?? '',
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);
@@ -295,5 +300,117 @@ ${body}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  importPlaysFromText(text) {
+    if (!text || !text.trim()) return { count: 0, error: 'No data' };
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return { count: 0, error: 'Need at least a header row and one data row' };
+
+    // Detect delimiter
+    const firstLine = lines[0];
+    let delim = ',';
+    if (firstLine.split('\t').length > firstLine.split(',').length) delim = '\t';
+    else if (firstLine.split(';').length > firstLine.split(',').length) delim = ';';
+
+    const parseLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuotes = !inQuotes; continue; }
+        if (ch === delim && !inQuotes) { result.push(current.trim()); current = ''; continue; }
+        current += ch;
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+    // Map headers to our tag field names
+    const colMap = {};
+    const aliases = {
+      playtype: 'playType', type: 'playType', odk: 'playType',
+      result: 'result', gnls: 'yardage', yardage: 'yardage', yards: 'yardage', yds: 'yardage',
+      down: 'down', dn: 'down',
+      distance: 'distance', dist: 'distance', togo: 'distance',
+      formation: 'formation', form: 'formation', offform: 'formation', offenseformation: 'formation',
+      personnel: 'personnel', pers: 'personnel', offpers: 'personnel',
+      hash: 'hash', hashmark: 'hash',
+      deffront: 'defFront', front: 'defFront', defenseformation: 'defFront', defform: 'defFront',
+      coverage: 'coverage', cov: 'coverage',
+      blitz: 'blitz',
+      quarter: 'quarter', qtr: 'quarter', period: 'quarter',
+      yardline: 'yardLine', ydln: 'yardLine', ydline: 'yardLine',
+      fieldside: 'fieldSide', side: 'fieldSide',
+      drivenumber: 'driveNumber', drive: 'driveNumber',
+      ballcarrier: 'ballCarrier', bc: 'ballCarrier', carrier: 'ballCarrier',
+      passer: 'passer', qb: 'passer',
+      receiver: 'receiver', rec: 'receiver',
+      tackler: 'tackler',
+      notes: 'notes', note: 'notes',
+    };
+
+    headers.forEach((h, i) => {
+      if (aliases[h]) colMap[i] = aliases[h];
+    });
+
+    return { headers: parseLine(lines[0]), colMap, lines: lines.slice(1).map(parseLine), delim };
+  }
+
+  applyPlayImport(parsed) {
+    if (!parsed || !parsed.lines) return 0;
+    const { colMap, lines } = parsed;
+    let count = 0;
+
+    const playerFields = ['ballCarrier', 'passer', 'receiver', 'tackler'];
+
+    for (const cells of lines) {
+      if (cells.every(c => !c)) continue;
+
+      const tags = {
+        down: '', distance: '', formation: '', playType: '',
+        defFront: '', coverage: '', blitz: '', result: '',
+        yardage: '', hash: '', quarter: '', yardLine: '',
+        fieldSide: 'own', personnel: '', driveNumber: '',
+        players: {}, custom: []
+      };
+      let notes = '';
+
+      for (const [colIdx, field] of Object.entries(colMap)) {
+        const val = cells[parseInt(colIdx)] || '';
+        if (!val) continue;
+        if (field === 'notes') { notes = val; continue; }
+        if (playerFields.includes(field)) {
+          tags.players[field] = val;
+          continue;
+        }
+        tags[field] = val;
+      }
+
+      // Skip rows with no useful data
+      if (!tags.playType && !tags.result && !tags.yardage && !tags.down) continue;
+
+      const play = {
+        id: this.tagger.nextId++,
+        timestamp: { start: 0, end: 0 },
+        tags,
+        annotations: [],
+        notes
+      };
+      this.tagger.plays.push(play);
+      count++;
+    }
+
+    if (count > 0) {
+      this.tagger._updatePlaySelect();
+      this.tagger._updateTimeline();
+      this.tagger.updateScrubBarPlays();
+      this.tagger._emit('play-created');
+    }
+
+    return count;
   }
 }

@@ -4622,3 +4622,44 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .cutup-btn, .tool-btn, .bt-tab, .playlist-item {
   touch-action: manipulation;
 }
+
+/* --- Roster Import --- */
+.roster-import-bar { display:flex; justify-content:flex-end; margin:4px 0 2px; }
+.roster-import-area { margin:6px 0; }
+.roster-import-text { width:100%; font-size:12px; font-family:monospace; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
+.roster-import-actions { display:flex; gap:6px; justify-content:flex-end; margin-top:4px; }
+.roster-import-file-label { cursor:pointer; }
+.roster-import-msg { font-size:12px; color:var(--accent); padding:4px 0; text-align:center; }
+
+/* --- Play Import Modal --- */
+.play-import-modal { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; }
+.play-import-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.5); }
+.play-import-card { position:relative; background:var(--bg-secondary); border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,.3); width:90%; max-width:700px; max-height:85vh; overflow-y:auto; }
+.play-import-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; border-bottom:1px solid var(--border); }
+.play-import-head h3 { margin:0; font-size:16px; }
+.play-import-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-secondary); padding:0 4px; }
+.play-import-body { padding:16px 20px; }
+.play-import-hint { font-size:13px; color:var(--text-secondary); margin:0 0 12px; }
+.play-import-upload { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.play-import-file-label { cursor:pointer; }
+.play-import-filename { font-size:12px; color:var(--text-secondary); }
+.play-import-text { width:100%; font-size:12px; font-family:monospace; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
+.play-import-mapping { margin-top:12px; }
+.play-import-mapping h4 { margin:0 0 8px; font-size:14px; }
+.play-import-map-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; }
+.play-import-map-row { display:flex; align-items:center; gap:8px; font-size:13px; }
+.play-import-col-name { flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.play-import-col-select { flex:1; font-size:12px; padding:3px 6px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:4px; }
+.play-import-preview { margin-top:12px; }
+.play-import-preview h4 { margin:0 0 8px; font-size:14px; }
+.play-import-preview-table { max-height:200px; overflow:auto; }
+.play-import-foot { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px; border-top:1px solid var(--border); }
+
+/* --- Player Grades --- */
+.player-grade { width:48px; padding:2px 4px; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:4px; }
+.grade-pos { color:#22c55e; font-weight:600; }
+.grade-neg { color:#ef4444; font-weight:600; }
+
+/* --- Scout Mode --- */
+.scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
+.scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }

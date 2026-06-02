@@ -35,6 +35,7 @@ export class RosterManager {
 
     this._load();
     this._bind();
+    this._bindImport();
     this.renderList();
     this.renderQuickPick();
   }
@@ -203,5 +204,127 @@ export class RosterManager {
     this.quickPickEl.querySelectorAll('.quickpick-chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.num === cur);
     });
+  }
+
+  // --- Import from CSV / paste ---
+
+  _bindImport() {
+    const toggleBtn = document.getElementById('btnRosterImport');
+    const area = document.getElementById('rosterImportArea');
+    const applyBtn = document.getElementById('btnRosterImportApply');
+    const textarea = document.getElementById('rosterImportText');
+    const fileInput = document.getElementById('rosterImportFile');
+    const msgEl = document.getElementById('rosterImportMsg');
+
+    if (toggleBtn && area) {
+      toggleBtn.addEventListener('click', () => {
+        area.classList.toggle('hidden');
+      });
+    }
+
+    if (applyBtn && textarea && msgEl) {
+      applyBtn.addEventListener('click', () => {
+        const text = textarea.value;
+        const count = this.importFromText(text);
+        msgEl.textContent = count > 0
+          ? `Imported ${count} player${count !== 1 ? 's' : ''}.`
+          : 'No players found. Check format.';
+        msgEl.classList.remove('hidden');
+        textarea.value = '';
+        setTimeout(() => msgEl.classList.add('hidden'), 3000);
+      });
+    }
+
+    if (fileInput && textarea) {
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => { textarea.value = reader.result; };
+        reader.readAsText(file);
+        fileInput.value = '';
+      });
+    }
+  }
+
+  /**
+   * Parse pasted/CSV text and add players to the roster.
+   * Returns the number of players added or updated.
+   */
+  importFromText(text) {
+    if (!text || !text.trim()) return 0;
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length === 0) return 0;
+
+    // Detect delimiter: tab > semicolon > comma
+    const firstLines = lines.slice(0, Math.min(3, lines.length)).join('\n');
+    let delim = ',';
+    if (firstLines.includes('\t')) delim = '\t';
+    else if (firstLines.includes(';')) delim = ';';
+
+    // Parse all lines into arrays of trimmed cells
+    const rows = lines.map(line => line.split(delim).map(c => c.trim()));
+
+    // Try to detect a header row
+    const headerAliases = {
+      num: ['#', 'num', 'number', 'jersey'],
+      name: ['name', 'player'],
+      pos: ['pos', 'position'],
+      side: ['side', 'unit'],
+    };
+
+    let colMap = null; // { num: idx, name: idx, pos: idx, side: idx }
+    let dataStart = 0;
+
+    if (rows.length > 0) {
+      const firstRow = rows[0].map(c => c.toLowerCase().replace(/[^a-z#]/g, ''));
+      const detected = {};
+      for (const [field, aliases] of Object.entries(headerAliases)) {
+        const idx = firstRow.findIndex(cell => aliases.includes(cell));
+        if (idx !== -1) detected[field] = idx;
+      }
+      // Consider it a header if at least "num" or "name" was found
+      if (detected.num !== undefined || detected.name !== undefined) {
+        colMap = detected;
+        dataStart = 1;
+      }
+    }
+
+    let count = 0;
+    for (let i = dataStart; i < rows.length; i++) {
+      const cells = rows[i];
+      if (cells.length === 0 || (cells.length === 1 && !cells[0])) continue;
+
+      let num, name, pos, side;
+
+      if (colMap) {
+        num = colMap.num !== undefined ? cells[colMap.num] : '';
+        name = colMap.name !== undefined ? cells[colMap.name] : '';
+        pos = colMap.pos !== undefined ? cells[colMap.pos] : '';
+        side = colMap.side !== undefined ? cells[colMap.side] : '';
+      } else {
+        // Assume columns in order: num, name, pos, side
+        num = cells[0] || '';
+        name = cells[1] || '';
+        pos = cells[2] || '';
+        side = cells[3] || '';
+      }
+
+      num = num.replace(/^#/, '').trim();
+      // Skip rows where num is empty or non-numeric
+      if (!num || !/^\d+$/.test(num)) continue;
+
+      // Normalize side
+      side = (side || '').trim().toUpperCase();
+      if (side === 'OFF' || side === 'OFFENSE') side = 'O';
+      else if (side === 'DEF' || side === 'DEFENSE') side = 'D';
+      else if (side !== 'O' && side !== 'D' && side !== 'B') side = 'B';
+
+      this.addPlayer(num, name.trim(), pos.trim(), side);
+      count++;
+    }
+
+    return count;
   }
 }

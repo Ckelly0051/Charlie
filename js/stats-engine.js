@@ -392,6 +392,12 @@ export class StatsEngine {
         if (isTD) rushers[id].tds++;
         if (yds > rushers[id].long) rushers[id].long = yds;
         if (p.tags.result === 'Fumble') rushers[id].fumbles++;
+        if (p.tags.grades?.ballCarrier != null) {
+          if (!rushers[id].gradeSum) rushers[id].gradeSum = 0;
+          if (!rushers[id].gradeCount) rushers[id].gradeCount = 0;
+          rushers[id].gradeSum += p.tags.grades.ballCarrier;
+          rushers[id].gradeCount++;
+        }
       }
 
       // Passer
@@ -406,6 +412,12 @@ export class StatsEngine {
         if (isTD) passers[id].tds++;
         if (p.tags.result === 'Interception') passers[id].ints++;
         if (p.tags.result === 'Sack') passers[id].sacks++;
+        if (p.tags.grades?.passer != null) {
+          if (!passers[id].gradeSum) passers[id].gradeSum = 0;
+          if (!passers[id].gradeCount) passers[id].gradeCount = 0;
+          passers[id].gradeSum += p.tags.grades.passer;
+          passers[id].gradeCount++;
+        }
       }
 
       // Receiver
@@ -416,6 +428,12 @@ export class StatsEngine {
         receivers[id].yards += yds;
         if (isTD) receivers[id].tds++;
         if (yds > receivers[id].long) receivers[id].long = yds;
+        if (p.tags.grades?.receiver != null) {
+          if (!receivers[id].gradeSum) receivers[id].gradeSum = 0;
+          if (!receivers[id].gradeCount) receivers[id].gradeCount = 0;
+          receivers[id].gradeSum += p.tags.grades.receiver;
+          receivers[id].gradeCount++;
+        }
       }
 
       // Tackler
@@ -425,6 +443,12 @@ export class StatsEngine {
         tacklers[id].tackles++;
         if (p.tags.result === 'Sack') tacklers[id].sacks++;
         if (yds < 0) tacklers[id].tfl++;
+        if (p.tags.grades?.tackler != null) {
+          if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
+          if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
+          tacklers[id].gradeSum += p.tags.grades.tackler;
+          tacklers[id].gradeCount++;
+        }
       }
     });
 
@@ -884,17 +908,29 @@ export class StatsEngine {
     const ind = stats.individuals;
     let html = '';
 
+    const fmtGrade = (r) => {
+      if (!r.gradeCount) return '—';
+      const avg = r.gradeSum / r.gradeCount;
+      const sign = avg > 0 ? '+' : '';
+      return `${sign}${avg.toFixed(1)}`;
+    };
+    const gradeClass = (r) => {
+      if (!r.gradeCount) return '';
+      const avg = r.gradeSum / r.gradeCount;
+      return avg > 0 ? 'grade-pos' : avg < 0 ? 'grade-neg' : '';
+    };
+
     if (ind.rushers.length > 0) {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Rushing</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th><th>Fum</th></tr></thead>
+            <thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th><th>Fum</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -904,13 +940,13 @@ export class StatsEngine {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td><td class="${gradeClass(p)}">${fmtGrade(p)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Passing</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>C/A</th><th>Pct</th><th>Yds</th><th>TD</th><th>INT</th><th>Sck</th></tr></thead>
+            <thead><tr><th>Player</th><th>C/A</th><th>Pct</th><th>Yds</th><th>TD</th><th>INT</th><th>Sck</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -919,13 +955,13 @@ export class StatsEngine {
     if (ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Receiving</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>Long</th><th>TD</th></tr></thead>
+            <thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>Long</th><th>TD</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -934,19 +970,194 @@ export class StatsEngine {
     if (ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th></tr></thead>
+            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
     }
 
     return html;
+  }
+
+  generateScoutReport(playsOverride = null) {
+    const plays = playsOverride || this._currentPlays();
+    if (plays.length === 0) return null;
+    const stats = this.compute(playsOverride || undefined);
+    const formationDetail = {};
+    plays.forEach(p => {
+      const f = p.tags.formation || 'Unknown';
+      if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
+      formationDetail[f].total++;
+      if (p.tags.playType?.toLowerCase().includes('run')) formationDetail[f].runs++;
+      else formationDetail[f].passes++;
+      formationDetail[f].yards += parseInt(p.tags.yardage) || 0;
+      if (p.tags.result === 'Touchdown') formationDetail[f].tds++;
+    });
+    const downTendency = {};
+    plays.forEach(p => {
+      const key = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
+      if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0 };
+      downTendency[key].total++;
+      if (p.tags.playType?.toLowerCase().includes('run')) downTendency[key].runs++;
+      else downTendency[key].passes++;
+    });
+    const fronts = {}, coverages = {};
+    plays.forEach(p => {
+      if (p.tags.defFront) fronts[p.tags.defFront] = (fronts[p.tags.defFront] || 0) + 1;
+      if (p.tags.coverage) coverages[p.tags.coverage] = (coverages[p.tags.coverage] || 0) + 1;
+    });
+    const redZonePlays = plays.filter(p => {
+      const yl = parseInt(p.tags.yardLine);
+      return yl && (p.tags.fieldSide === 'opp' ? yl <= 20 : yl >= 80);
+    });
+    const thirdDownPlays = plays.filter(p => p.tags.down === '3');
+    return {
+      totalPlays: plays.length, stats,
+      formationDetail: Object.entries(formationDetail).sort((a, b) => b[1].total - a[1].total)
+        .map(([name, d]) => ({ name, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+      downTendency: Object.entries(downTendency).sort((a, b) => b[1].total - a[1].total).slice(0, 15)
+        .map(([key, d]) => ({ key, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+      fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
+      coverages: Object.entries(coverages).sort((a, b) => b[1] - a[1]),
+      redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => p.tags.result === 'Touchdown').length },
+      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length },
+    };
+  }
+
+  renderScoutReport() {
+    const report = this.generateScoutReport();
+    if (!report) { alert('No plays tagged. Tag opponent plays first.'); return; }
+    const notes = document.getElementById('scoutNotes')?.value || '';
+    const opponent = document.getElementById('gameOpponent')?.value || 'Opponent';
+    const t = report.stats.tendencies;
+
+    let html = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Scout Report: ${opponent}</h2>
+            <div class="stats-header-actions">
+              <button class="btn btn-sm" id="btnExportScoutReport">Export Report</button>
+              <button class="btn btn-sm btn-danger" id="btnCloseScoutReport">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">
+            ${notes ? `<div class="stats-section"><h3>Scouting Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p></div>` : ''}
+            <div class="stats-section">
+              <h3>Overview (${report.totalPlays} plays)</h3>
+              <div class="stats-grid">
+                <div class="stat-card"><div class="stat-card-title">Run/Pass</div><div class="stat-card-value">${t.runPassRatio}</div></div>
+                <div class="stat-card"><div class="stat-card-title">Run %</div><div class="stat-card-value">${t.runPct}%</div></div>
+                <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${report.totalPlays ? ((report.stats.rushing.yards + report.stats.passing.yards) / report.totalPlays).toFixed(1) : '0.0'}</div></div>
+                <div class="stat-card"><div class="stat-card-title">3rd Down</div><div class="stat-card-value">${report.thirdDown.total ? `${report.thirdDown.converted}/${report.thirdDown.total}` : 'N/A'}</div></div>
+              </div>
+            </div>
+            <div class="stats-section">
+              <h3>Formation Tendencies</h3>
+              <table class="stats-table stats-table-full">
+                <thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead>
+                <tbody>${report.formationDetail.map(f =>
+                  `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+                ).join('')}</tbody>
+              </table>
+            </div>
+            <div class="stats-section stats-two-col">
+              <div>
+                <h3>Down & Distance Tendencies</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead>
+                  <tbody>${report.downTendency.map(d =>
+                    `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
+                  ).join('')}</tbody>
+                </table>
+              </div>
+              <div>
+                <h3>Key Situations</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Situation</th><th>Detail</th></tr></thead>
+                  <tbody>
+                    <tr><td>Red Zone</td><td>${report.redZone.total} plays, ${report.redZone.tds} TD${report.redZone.total ? ` (${Math.round(report.redZone.tds / report.redZone.total * 100)}%)` : ''}</td></tr>
+                    <tr><td>3rd Down Conv</td><td>${report.thirdDown.converted}/${report.thirdDown.total} (${report.thirdDown.total ? Math.round(report.thirdDown.converted / report.thirdDown.total * 100) : 0}%)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            ${report.fronts.length ? `
+            <div class="stats-section stats-two-col">
+              <div>
+                <h3>Defensive Fronts</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
+                  <tbody>${report.fronts.map(([f, c]) => `<tr><td>${f}</td><td>${c}</td><td>${Math.round(c / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                </table>
+              </div>
+              ${report.coverages.length ? `<div>
+                <h3>Coverages</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Coverage</th><th>#</th><th>%</th></tr></thead>
+                  <tbody>${report.coverages.map(([c, n]) => `<tr><td>${c}</td><td>${n}</td><td>${Math.round(n / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                </table>
+              </div>` : ''}
+            </div>` : ''}
+            ${this._renderTendencies(report.stats)}
+            ${this._renderBigPlays(report.stats)}
+          </div>
+        </div>
+      </div>`;
+
+    this.dashboardEl.innerHTML = html;
+    this.dashboardEl.classList.remove('hidden');
+    this.dashboardEl.querySelector('#btnCloseScoutReport').addEventListener('click', () => this.hideDashboard());
+    this.dashboardEl.querySelector('#btnExportScoutReport').addEventListener('click', () => this._exportScoutReport(report, opponent, notes));
+    this.dashboardEl.querySelector('.stats-overlay').addEventListener('click', (e) => {
+      if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
+    });
+  }
+
+  _exportScoutReport(report, opponent, notes) {
+    const t = report.stats.tendencies;
+    const title = `Scout Report: ${opponent}`;
+    const formRows = report.formationDetail.map(f =>
+      `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+    ).join('');
+    const ddRows = report.downTendency.map(d =>
+      `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
+    ).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+.overview{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+.ov-card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
+.ov-val{font-size:24px;font-weight:bold;color:#4169e1}.ov-lbl{font-size:11px;text-transform:uppercase;color:#666}
+</style></head><body>
+<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} plays</p>
+${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p>` : ''}
+<h3>Overview</h3><div class="overview">
+<div class="ov-card"><div class="ov-val">${t.runPassRatio}</div><div class="ov-lbl">Run/Pass</div></div>
+<div class="ov-card"><div class="ov-val">${t.runPct}%</div><div class="ov-lbl">Run Rate</div></div>
+<div class="ov-card"><div class="ov-val">${report.totalPlays ? ((report.stats.rushing.yards + report.stats.passing.yards) / report.totalPlays).toFixed(1) : '0'}</div><div class="ov-lbl">Avg Yards</div></div>
+<div class="ov-card"><div class="ov-val">${report.thirdDown.total ? report.thirdDown.converted + '/' + report.thirdDown.total : 'N/A'}</div><div class="ov-lbl">3rd Down</div></div>
+</div>
+<h3>Formation Tendencies</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead><tbody>${formRows}</tbody></table>
+<h3>Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead><tbody>${ddRows}</tbody></table>
+</body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scout_${opponent.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   _exportStats(stats) {

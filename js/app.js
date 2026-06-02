@@ -71,6 +71,9 @@ class App {
     // Wire report export
     this._bindReportExport();
 
+    // Wire play import
+    this._bindPlayImport();
+
     // Keyboard shortcuts
     this._bindKeyboard();
 
@@ -97,6 +100,9 @@ class App {
 
     // Tag navigation & chip shortcuts
     this._bindTagNav();
+
+    // Scout mode UI
+    this._bindScoutMode();
 
     // Keep tagging progress updated
     this.tagger.on('play-created', () => this._updateTagProgress());
@@ -983,6 +989,22 @@ class App {
     }
   }
 
+  _bindScoutMode() {
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const scoutSection = document.getElementById('scoutSection');
+    const btnScoutReport = document.getElementById('btnScoutReport');
+    if (!perspectiveEl) return;
+    const toggleScoutUI = () => {
+      const isScout = perspectiveEl.value === 'scout';
+      if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
+    };
+    perspectiveEl.addEventListener('change', toggleScoutUI);
+    toggleScoutUI();
+    if (btnScoutReport) {
+      btnScoutReport.addEventListener('click', () => this.stats.renderScoutReport());
+    }
+  }
+
   _bindTagNav() {
     const btnPrev = document.getElementById('btnTagPrev');
     const btnNext = document.getElementById('btnTagSaveNext');
@@ -1093,6 +1115,106 @@ class App {
     fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
   }
 
+  _bindPlayImport() {
+    const btn = document.getElementById('btnImportPlays');
+    const modal = document.getElementById('playImportModal');
+    if (!btn || !modal) return;
+
+    const fileInput = modal.querySelector('#playImportFile');
+    const textArea = modal.querySelector('#playImportText');
+    const filename = modal.querySelector('#playImportFilename');
+    const parseBtn = modal.querySelector('#playImportParse');
+    const applyBtn = modal.querySelector('#playImportApply');
+    const cancelBtn = modal.querySelector('#playImportCancel');
+    const closeBtn = modal.querySelector('#playImportClose');
+    const backdrop = modal.querySelector('.play-import-backdrop');
+    const mappingDiv = modal.querySelector('#playImportMapping');
+    const mapGrid = modal.querySelector('#playImportMapGrid');
+    const previewDiv = modal.querySelector('#playImportPreview');
+    const previewTable = modal.querySelector('#playImportPreviewTable');
+    const countSpan = modal.querySelector('#playImportCount');
+
+    let lastParsed = null;
+
+    const open = () => { modal.classList.remove('hidden'); lastParsed = null; applyBtn.classList.add('hidden'); mappingDiv.classList.add('hidden'); previewDiv.classList.add('hidden'); };
+    const close = () => { modal.classList.add('hidden'); textArea.value = ''; filename.textContent = 'No file chosen'; lastParsed = null; };
+
+    btn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    cancelBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      filename.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = (ev) => { textArea.value = ev.target.result; };
+      reader.readAsText(file);
+    });
+
+    const ourFields = ['playType','result','yardage','down','distance','formation','personnel',
+      'hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
+      'ballCarrier','passer','receiver','tackler','notes'];
+
+    parseBtn.addEventListener('click', () => {
+      const text = textArea.value;
+      if (!text.trim()) { alert('Paste or upload CSV data first.'); return; }
+      const parsed = this.storage.importPlaysFromText(text);
+      if (parsed.error) { alert(parsed.error); return; }
+      lastParsed = parsed;
+
+      // Show column mapping
+      mapGrid.innerHTML = '';
+      parsed.headers.forEach((h, i) => {
+        const row = document.createElement('div');
+        row.className = 'play-import-map-row';
+        const mapped = parsed.colMap[i] || '';
+        row.innerHTML = `<span class="play-import-col-name">${h}</span>
+          <select class="play-import-col-select" data-col="${i}">
+            <option value="">(skip)</option>
+            ${ourFields.map(f => `<option value="${f}" ${f === mapped ? 'selected' : ''}>${f}</option>`).join('')}
+          </select>`;
+        row.querySelector('select').addEventListener('change', (e) => {
+          if (e.target.value) parsed.colMap[i] = e.target.value;
+          else delete parsed.colMap[i];
+          renderPreview();
+        });
+        mapGrid.appendChild(row);
+      });
+      mappingDiv.classList.remove('hidden');
+      renderPreview();
+    });
+
+    const renderPreview = () => {
+      if (!lastParsed) return;
+      const preview = lastParsed.lines.slice(0, 5);
+      const mapped = Object.values(lastParsed.colMap);
+      let html = '<table class="stats-table stats-table-full"><thead><tr>';
+      mapped.forEach(f => { html += `<th>${f}</th>`; });
+      html += '</tr></thead><tbody>';
+      preview.forEach(cells => {
+        html += '<tr>';
+        Object.entries(lastParsed.colMap).forEach(([idx]) => {
+          html += `<td>${cells[parseInt(idx)] || ''}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      previewTable.innerHTML = html;
+      countSpan.textContent = lastParsed.lines.filter(cells => !cells.every(c => !c)).length;
+      previewDiv.classList.remove('hidden');
+      applyBtn.classList.remove('hidden');
+    };
+
+    applyBtn.addEventListener('click', () => {
+      if (!lastParsed) return;
+      const count = this.storage.applyPlayImport(lastParsed);
+      alert(`Imported ${count} play${count !== 1 ? 's' : ''}.`);
+      close();
+    });
+  }
+
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {
     if (!motionData.length) return;
 
@@ -1150,6 +1272,28 @@ class App {
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
+  }
+
+  _bindScoutMode() {
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const scoutSection = document.getElementById('scoutSection');
+    const btnScoutReport = document.getElementById('btnScoutReport');
+
+    if (!perspectiveEl) return;
+
+    const toggleScoutUI = () => {
+      const isScout = perspectiveEl.value === 'scout';
+      if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
+    };
+
+    perspectiveEl.addEventListener('change', toggleScoutUI);
+    toggleScoutUI();
+
+    if (btnScoutReport) {
+      btnScoutReport.addEventListener('click', () => {
+        this.stats.renderScoutReport();
+      });
+    }
   }
 }
 

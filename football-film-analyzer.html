@@ -4629,6 +4629,47 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .cutup-btn, .tool-btn, .bt-tab, .playlist-item {
   touch-action: manipulation;
 }
+
+/* --- Roster Import --- */
+.roster-import-bar { display:flex; justify-content:flex-end; margin:4px 0 2px; }
+.roster-import-area { margin:6px 0; }
+.roster-import-text { width:100%; font-size:12px; font-family:monospace; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
+.roster-import-actions { display:flex; gap:6px; justify-content:flex-end; margin-top:4px; }
+.roster-import-file-label { cursor:pointer; }
+.roster-import-msg { font-size:12px; color:var(--accent); padding:4px 0; text-align:center; }
+
+/* --- Play Import Modal --- */
+.play-import-modal { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; }
+.play-import-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.5); }
+.play-import-card { position:relative; background:var(--bg-secondary); border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,.3); width:90%; max-width:700px; max-height:85vh; overflow-y:auto; }
+.play-import-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; border-bottom:1px solid var(--border); }
+.play-import-head h3 { margin:0; font-size:16px; }
+.play-import-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-secondary); padding:0 4px; }
+.play-import-body { padding:16px 20px; }
+.play-import-hint { font-size:13px; color:var(--text-secondary); margin:0 0 12px; }
+.play-import-upload { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.play-import-file-label { cursor:pointer; }
+.play-import-filename { font-size:12px; color:var(--text-secondary); }
+.play-import-text { width:100%; font-size:12px; font-family:monospace; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
+.play-import-mapping { margin-top:12px; }
+.play-import-mapping h4 { margin:0 0 8px; font-size:14px; }
+.play-import-map-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; }
+.play-import-map-row { display:flex; align-items:center; gap:8px; font-size:13px; }
+.play-import-col-name { flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.play-import-col-select { flex:1; font-size:12px; padding:3px 6px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:4px; }
+.play-import-preview { margin-top:12px; }
+.play-import-preview h4 { margin:0 0 8px; font-size:14px; }
+.play-import-preview-table { max-height:200px; overflow:auto; }
+.play-import-foot { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px; border-top:1px solid var(--border); }
+
+/* --- Player Grades --- */
+.player-grade { width:48px; padding:2px 4px; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:4px; }
+.grade-pos { color:#22c55e; font-weight:600; }
+.grade-neg { color:#ef4444; font-weight:600; }
+
+/* --- Scout Mode --- */
+.scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
+.scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
   </style>
 </head>
 <body>
@@ -4882,6 +4923,9 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
             <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
               <svg class="icon"><use href="#icon-stats"/></svg> Season Stats
             </button>
+            <button class="btn" id="btnImportPlays" title="Import plays from CSV (Hudl, etc.)">
+              <svg class="icon"><use href="#icon-upload"/></svg> Import Plays
+            </button>
           </div>
         </div>
       </div>
@@ -4996,6 +5040,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                 <option value="offense">Our Offense</option>
                 <option value="defense">Our Defense</option>
                 <option value="special">Special Teams</option>
+                <option value="scout">Opponent Scout</option>
               </select>
             </div>
             <div class="tag-row">
@@ -5017,6 +5062,11 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                 <option value="claude-sonnet-4-6">Sonnet (faster / cheaper)</option>
               </select>
             </div>
+            <div class="scout-section hidden" id="scoutSection">
+              <label class="game-info-label">Scouting Notes</label>
+              <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
+              <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
+            </div>
           </div>
         </div>
 
@@ -5037,6 +5087,20 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                 <option value="B">Both</option>
               </select>
               <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
+            </div>
+            <div class="roster-import-bar">
+              <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
+            </div>
+            <div class="roster-import-area hidden" id="rosterImportArea">
+              <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
+              <div class="roster-import-actions">
+                <label class="btn btn-sm roster-import-file-label">
+                  Choose CSV
+                  <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
+                </label>
+                <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
+              </div>
+              <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
             </div>
             <div class="roster-list" id="rosterList"></div>
           </div>
@@ -5384,18 +5448,50 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
                   <label class="player-role active" data-role="ballCarrier">
                     <span class="player-role-label">Ball Carrier</span>
                     <input type="number" id="tagPlayerBC" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradeBC" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                   <label class="player-role" data-role="passer">
                     <span class="player-role-label">Passer</span>
                     <input type="number" id="tagPlayerPasser" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradePasser" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                   <label class="player-role" data-role="receiver">
                     <span class="player-role-label">Receiver</span>
                     <input type="number" id="tagPlayerReceiver" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradeReceiver" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                   <label class="player-role" data-role="tackler">
                     <span class="player-role-label">Tackler</span>
                     <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                    <select id="tagGradeTackler" class="player-grade" title="Grade">
+                      <option value="">—</option>
+                      <option value="2">++</option>
+                      <option value="1">+</option>
+                      <option value="0">0</option>
+                      <option value="-1">−</option>
+                      <option value="-2">−−</option>
+                    </select>
                   </label>
                 </div>
                 <div class="player-quickpick" id="rosterQuickPick"></div>
@@ -5634,6 +5730,41 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
         </div>
         <div class="season-game-list" id="seasonGameList"></div>
         <div class="season-stats-body" id="seasonStatsBody"></div>
+      </div>
+    </div>
+
+    <!-- Play Import Modal -->
+    <div class="play-import-modal hidden" id="playImportModal">
+      <div class="play-import-backdrop"></div>
+      <div class="play-import-card">
+        <div class="play-import-head">
+          <h3>Import Plays from CSV</h3>
+          <button class="play-import-close" id="playImportClose" type="button">×</button>
+        </div>
+        <div class="play-import-body">
+          <p class="play-import-hint">Upload a CSV from Hudl, QwikCut, or any spreadsheet. We'll auto-detect columns.</p>
+          <div class="play-import-upload">
+            <label class="btn btn-sm btn-accent play-import-file-label">
+              Choose CSV File
+              <input type="file" id="playImportFile" accept=".csv,.tsv,.txt" hidden>
+            </label>
+            <span class="play-import-filename" id="playImportFilename">No file chosen</span>
+          </div>
+          <textarea id="playImportText" class="play-import-text" rows="6" placeholder="Or paste CSV data here..."></textarea>
+          <div class="play-import-mapping hidden" id="playImportMapping">
+            <h4>Column Mapping</h4>
+            <div class="play-import-map-grid" id="playImportMapGrid"></div>
+          </div>
+          <div class="play-import-preview hidden" id="playImportPreview">
+            <h4>Preview (<span id="playImportCount">0</span> plays)</h4>
+            <div class="play-import-preview-table" id="playImportPreviewTable"></div>
+          </div>
+        </div>
+        <div class="play-import-foot">
+          <button class="btn btn-sm" id="playImportCancel" type="button">Cancel</button>
+          <button class="btn btn-sm" id="playImportParse" type="button">Parse</button>
+          <button class="btn btn-sm btn-accent hidden" id="playImportApply" type="button">Import Plays</button>
+        </div>
       </div>
     </div>
   </div>
@@ -6557,6 +6688,14 @@ class PlayTagger {
       tackler: document.getElementById('tagPlayerTackler'),
     };
 
+    // Per-play player grading (+/- per snap).
+    this.gradeFields = {
+      ballCarrier: document.getElementById('tagGradeBC'),
+      passer: document.getElementById('tagGradePasser'),
+      receiver: document.getElementById('tagGradeReceiver'),
+      tackler: document.getElementById('tagGradeTackler'),
+    };
+
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
 
@@ -6585,6 +6724,12 @@ class PlayTagger {
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (!el) continue;
       el.addEventListener('change', () => this._savePlayer(role));
+    }
+
+    // Grade selects save into play.tags.grades.
+    for (const [role, el] of Object.entries(this.gradeFields)) {
+      if (!el) continue;
+      el.addEventListener('change', () => this._saveGrade(role));
     }
 
     // New Drive button
@@ -6647,6 +6792,7 @@ class PlayTagger {
         personnel: '',
         driveNumber: this.currentDrive.toString(),
         players: {},
+        grades: {},
         custom: []
       },
       annotations: [],
@@ -6719,6 +6865,16 @@ class PlayTagger {
     this._emit('play-updated', play);
   }
 
+  _saveGrade(role) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    if (!play.tags.grades) play.tags.grades = {};
+    const val = (this.gradeFields[role].value || '').trim();
+    if (val !== '') play.tags.grades[role] = parseInt(val);
+    else delete play.tags.grades[role];
+    this._emit('play-updated', play);
+  }
+
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
@@ -6749,12 +6905,17 @@ class PlayTagger {
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (el) el.value = players[role] || '';
     }
+    const grades = play.tags.grades || {};
+    for (const [role, el] of Object.entries(this.gradeFields)) {
+      if (el) el.value = grades[role] != null ? String(grades[role]) : '';
+    }
     this._renderCustomTags(play.tags.custom);
   }
 
   _clearTagForm() {
     for (const el of Object.values(this.tagFields)) el.value = '';
     for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
+    for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
     this.tagChips.innerHTML = '';
   }
 
@@ -6908,6 +7069,7 @@ class RosterManager {
 
     this._load();
     this._bind();
+    this._bindImport();
     this.renderList();
     this.renderQuickPick();
   }
@@ -7076,6 +7238,128 @@ class RosterManager {
     this.quickPickEl.querySelectorAll('.quickpick-chip').forEach(chip => {
       chip.classList.toggle('active', chip.dataset.num === cur);
     });
+  }
+
+  // --- Import from CSV / paste ---
+
+  _bindImport() {
+    const toggleBtn = document.getElementById('btnRosterImport');
+    const area = document.getElementById('rosterImportArea');
+    const applyBtn = document.getElementById('btnRosterImportApply');
+    const textarea = document.getElementById('rosterImportText');
+    const fileInput = document.getElementById('rosterImportFile');
+    const msgEl = document.getElementById('rosterImportMsg');
+
+    if (toggleBtn && area) {
+      toggleBtn.addEventListener('click', () => {
+        area.classList.toggle('hidden');
+      });
+    }
+
+    if (applyBtn && textarea && msgEl) {
+      applyBtn.addEventListener('click', () => {
+        const text = textarea.value;
+        const count = this.importFromText(text);
+        msgEl.textContent = count > 0
+          ? `Imported ${count} player${count !== 1 ? 's' : ''}.`
+          : 'No players found. Check format.';
+        msgEl.classList.remove('hidden');
+        textarea.value = '';
+        setTimeout(() => msgEl.classList.add('hidden'), 3000);
+      });
+    }
+
+    if (fileInput && textarea) {
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => { textarea.value = reader.result; };
+        reader.readAsText(file);
+        fileInput.value = '';
+      });
+    }
+  }
+
+  /**
+   * Parse pasted/CSV text and add players to the roster.
+   * Returns the number of players added or updated.
+   */
+  importFromText(text) {
+    if (!text || !text.trim()) return 0;
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length === 0) return 0;
+
+    // Detect delimiter: tab > semicolon > comma
+    const firstLines = lines.slice(0, Math.min(3, lines.length)).join('\n');
+    let delim = ',';
+    if (firstLines.includes('\t')) delim = '\t';
+    else if (firstLines.includes(';')) delim = ';';
+
+    // Parse all lines into arrays of trimmed cells
+    const rows = lines.map(line => line.split(delim).map(c => c.trim()));
+
+    // Try to detect a header row
+    const headerAliases = {
+      num: ['#', 'num', 'number', 'jersey'],
+      name: ['name', 'player'],
+      pos: ['pos', 'position'],
+      side: ['side', 'unit'],
+    };
+
+    let colMap = null; // { num: idx, name: idx, pos: idx, side: idx }
+    let dataStart = 0;
+
+    if (rows.length > 0) {
+      const firstRow = rows[0].map(c => c.toLowerCase().replace(/[^a-z#]/g, ''));
+      const detected = {};
+      for (const [field, aliases] of Object.entries(headerAliases)) {
+        const idx = firstRow.findIndex(cell => aliases.includes(cell));
+        if (idx !== -1) detected[field] = idx;
+      }
+      // Consider it a header if at least "num" or "name" was found
+      if (detected.num !== undefined || detected.name !== undefined) {
+        colMap = detected;
+        dataStart = 1;
+      }
+    }
+
+    let count = 0;
+    for (let i = dataStart; i < rows.length; i++) {
+      const cells = rows[i];
+      if (cells.length === 0 || (cells.length === 1 && !cells[0])) continue;
+
+      let num, name, pos, side;
+
+      if (colMap) {
+        num = colMap.num !== undefined ? cells[colMap.num] : '';
+        name = colMap.name !== undefined ? cells[colMap.name] : '';
+        pos = colMap.pos !== undefined ? cells[colMap.pos] : '';
+        side = colMap.side !== undefined ? cells[colMap.side] : '';
+      } else {
+        // Assume columns in order: num, name, pos, side
+        num = cells[0] || '';
+        name = cells[1] || '';
+        pos = cells[2] || '';
+        side = cells[3] || '';
+      }
+
+      num = num.replace(/^#/, '').trim();
+      // Skip rows where num is empty or non-numeric
+      if (!num || !/^\d+$/.test(num)) continue;
+
+      // Normalize side
+      side = (side || '').trim().toUpperCase();
+      if (side === 'OFF' || side === 'OFFENSE') side = 'O';
+      else if (side === 'DEF' || side === 'DEFENSE') side = 'D';
+      else if (side !== 'O' && side !== 'D' && side !== 'B') side = 'B';
+
+      this.addPlayer(num, name.trim(), pos.trim(), side);
+      count++;
+    }
+
+    return count;
   }
 }
 
@@ -7514,6 +7798,7 @@ class StorageManager {
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
       'Play Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
+      'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
       'Custom Tags', 'Notes'
     ];
 
@@ -7541,6 +7826,10 @@ class StorageManager {
       p.tags.players?.passer || '',
       p.tags.players?.receiver || '',
       p.tags.players?.tackler || '',
+      p.tags.grades?.ballCarrier ?? '',
+      p.tags.grades?.passer ?? '',
+      p.tags.grades?.receiver ?? '',
+      p.tags.grades?.tackler ?? '',
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);
@@ -7614,6 +7903,118 @@ ${body}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  importPlaysFromText(text) {
+    if (!text || !text.trim()) return { count: 0, error: 'No data' };
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return { count: 0, error: 'Need at least a header row and one data row' };
+
+    // Detect delimiter
+    const firstLine = lines[0];
+    let delim = ',';
+    if (firstLine.split('\t').length > firstLine.split(',').length) delim = '\t';
+    else if (firstLine.split(';').length > firstLine.split(',').length) delim = ';';
+
+    const parseLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuotes = !inQuotes; continue; }
+        if (ch === delim && !inQuotes) { result.push(current.trim()); current = ''; continue; }
+        current += ch;
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+    // Map headers to our tag field names
+    const colMap = {};
+    const aliases = {
+      playtype: 'playType', type: 'playType', odk: 'playType',
+      result: 'result', gnls: 'yardage', yardage: 'yardage', yards: 'yardage', yds: 'yardage',
+      down: 'down', dn: 'down',
+      distance: 'distance', dist: 'distance', togo: 'distance',
+      formation: 'formation', form: 'formation', offform: 'formation', offenseformation: 'formation',
+      personnel: 'personnel', pers: 'personnel', offpers: 'personnel',
+      hash: 'hash', hashmark: 'hash',
+      deffront: 'defFront', front: 'defFront', defenseformation: 'defFront', defform: 'defFront',
+      coverage: 'coverage', cov: 'coverage',
+      blitz: 'blitz',
+      quarter: 'quarter', qtr: 'quarter', period: 'quarter',
+      yardline: 'yardLine', ydln: 'yardLine', ydline: 'yardLine',
+      fieldside: 'fieldSide', side: 'fieldSide',
+      drivenumber: 'driveNumber', drive: 'driveNumber',
+      ballcarrier: 'ballCarrier', bc: 'ballCarrier', carrier: 'ballCarrier',
+      passer: 'passer', qb: 'passer',
+      receiver: 'receiver', rec: 'receiver',
+      tackler: 'tackler',
+      notes: 'notes', note: 'notes',
+    };
+
+    headers.forEach((h, i) => {
+      if (aliases[h]) colMap[i] = aliases[h];
+    });
+
+    return { headers: parseLine(lines[0]), colMap, lines: lines.slice(1).map(parseLine), delim };
+  }
+
+  applyPlayImport(parsed) {
+    if (!parsed || !parsed.lines) return 0;
+    const { colMap, lines } = parsed;
+    let count = 0;
+
+    const playerFields = ['ballCarrier', 'passer', 'receiver', 'tackler'];
+
+    for (const cells of lines) {
+      if (cells.every(c => !c)) continue;
+
+      const tags = {
+        down: '', distance: '', formation: '', playType: '',
+        defFront: '', coverage: '', blitz: '', result: '',
+        yardage: '', hash: '', quarter: '', yardLine: '',
+        fieldSide: 'own', personnel: '', driveNumber: '',
+        players: {}, custom: []
+      };
+      let notes = '';
+
+      for (const [colIdx, field] of Object.entries(colMap)) {
+        const val = cells[parseInt(colIdx)] || '';
+        if (!val) continue;
+        if (field === 'notes') { notes = val; continue; }
+        if (playerFields.includes(field)) {
+          tags.players[field] = val;
+          continue;
+        }
+        tags[field] = val;
+      }
+
+      // Skip rows with no useful data
+      if (!tags.playType && !tags.result && !tags.yardage && !tags.down) continue;
+
+      const play = {
+        id: this.tagger.nextId++,
+        timestamp: { start: 0, end: 0 },
+        tags,
+        annotations: [],
+        notes
+      };
+      this.tagger.plays.push(play);
+      count++;
+    }
+
+    if (count > 0) {
+      this.tagger._updatePlaySelect();
+      this.tagger._updateTimeline();
+      this.tagger.updateScrubBarPlays();
+      this.tagger._emit('play-created');
+    }
+
+    return count;
   }
 }
 
@@ -10613,6 +11014,12 @@ class StatsEngine {
         if (isTD) rushers[id].tds++;
         if (yds > rushers[id].long) rushers[id].long = yds;
         if (p.tags.result === 'Fumble') rushers[id].fumbles++;
+        if (p.tags.grades?.ballCarrier != null) {
+          if (!rushers[id].gradeSum) rushers[id].gradeSum = 0;
+          if (!rushers[id].gradeCount) rushers[id].gradeCount = 0;
+          rushers[id].gradeSum += p.tags.grades.ballCarrier;
+          rushers[id].gradeCount++;
+        }
       }
 
       // Passer
@@ -10627,6 +11034,12 @@ class StatsEngine {
         if (isTD) passers[id].tds++;
         if (p.tags.result === 'Interception') passers[id].ints++;
         if (p.tags.result === 'Sack') passers[id].sacks++;
+        if (p.tags.grades?.passer != null) {
+          if (!passers[id].gradeSum) passers[id].gradeSum = 0;
+          if (!passers[id].gradeCount) passers[id].gradeCount = 0;
+          passers[id].gradeSum += p.tags.grades.passer;
+          passers[id].gradeCount++;
+        }
       }
 
       // Receiver
@@ -10637,6 +11050,12 @@ class StatsEngine {
         receivers[id].yards += yds;
         if (isTD) receivers[id].tds++;
         if (yds > receivers[id].long) receivers[id].long = yds;
+        if (p.tags.grades?.receiver != null) {
+          if (!receivers[id].gradeSum) receivers[id].gradeSum = 0;
+          if (!receivers[id].gradeCount) receivers[id].gradeCount = 0;
+          receivers[id].gradeSum += p.tags.grades.receiver;
+          receivers[id].gradeCount++;
+        }
       }
 
       // Tackler
@@ -10646,6 +11065,12 @@ class StatsEngine {
         tacklers[id].tackles++;
         if (p.tags.result === 'Sack') tacklers[id].sacks++;
         if (yds < 0) tacklers[id].tfl++;
+        if (p.tags.grades?.tackler != null) {
+          if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
+          if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
+          tacklers[id].gradeSum += p.tags.grades.tackler;
+          tacklers[id].gradeCount++;
+        }
       }
     });
 
@@ -11105,17 +11530,29 @@ class StatsEngine {
     const ind = stats.individuals;
     let html = '';
 
+    const fmtGrade = (r) => {
+      if (!r.gradeCount) return '—';
+      const avg = r.gradeSum / r.gradeCount;
+      const sign = avg > 0 ? '+' : '';
+      return `${sign}${avg.toFixed(1)}`;
+    };
+    const gradeClass = (r) => {
+      if (!r.gradeCount) return '';
+      const avg = r.gradeSum / r.gradeCount;
+      return avg > 0 ? 'grade-pos' : avg < 0 ? 'grade-neg' : '';
+    };
+
     if (ind.rushers.length > 0) {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Rushing</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th><th>Fum</th></tr></thead>
+            <thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>Long</th><th>TD</th><th>Fum</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -11125,13 +11562,13 @@ class StatsEngine {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td><td class="${gradeClass(p)}">${fmtGrade(p)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Passing</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>C/A</th><th>Pct</th><th>Yds</th><th>TD</th><th>INT</th><th>Sck</th></tr></thead>
+            <thead><tr><th>Player</th><th>C/A</th><th>Pct</th><th>Yds</th><th>TD</th><th>INT</th><th>Sck</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -11140,13 +11577,13 @@ class StatsEngine {
     if (ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Receiving</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>Long</th><th>TD</th></tr></thead>
+            <thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>Long</th><th>TD</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
@@ -11155,19 +11592,194 @@ class StatsEngine {
     if (ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th></tr></thead>
+            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
     }
 
     return html;
+  }
+
+  generateScoutReport(playsOverride = null) {
+    const plays = playsOverride || this._currentPlays();
+    if (plays.length === 0) return null;
+    const stats = this.compute(playsOverride || undefined);
+    const formationDetail = {};
+    plays.forEach(p => {
+      const f = p.tags.formation || 'Unknown';
+      if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
+      formationDetail[f].total++;
+      if (p.tags.playType?.toLowerCase().includes('run')) formationDetail[f].runs++;
+      else formationDetail[f].passes++;
+      formationDetail[f].yards += parseInt(p.tags.yardage) || 0;
+      if (p.tags.result === 'Touchdown') formationDetail[f].tds++;
+    });
+    const downTendency = {};
+    plays.forEach(p => {
+      const key = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
+      if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0 };
+      downTendency[key].total++;
+      if (p.tags.playType?.toLowerCase().includes('run')) downTendency[key].runs++;
+      else downTendency[key].passes++;
+    });
+    const fronts = {}, coverages = {};
+    plays.forEach(p => {
+      if (p.tags.defFront) fronts[p.tags.defFront] = (fronts[p.tags.defFront] || 0) + 1;
+      if (p.tags.coverage) coverages[p.tags.coverage] = (coverages[p.tags.coverage] || 0) + 1;
+    });
+    const redZonePlays = plays.filter(p => {
+      const yl = parseInt(p.tags.yardLine);
+      return yl && (p.tags.fieldSide === 'opp' ? yl <= 20 : yl >= 80);
+    });
+    const thirdDownPlays = plays.filter(p => p.tags.down === '3');
+    return {
+      totalPlays: plays.length, stats,
+      formationDetail: Object.entries(formationDetail).sort((a, b) => b[1].total - a[1].total)
+        .map(([name, d]) => ({ name, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+      downTendency: Object.entries(downTendency).sort((a, b) => b[1].total - a[1].total).slice(0, 15)
+        .map(([key, d]) => ({ key, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+      fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
+      coverages: Object.entries(coverages).sort((a, b) => b[1] - a[1]),
+      redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => p.tags.result === 'Touchdown').length },
+      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length },
+    };
+  }
+
+  renderScoutReport() {
+    const report = this.generateScoutReport();
+    if (!report) { alert('No plays tagged. Tag opponent plays first.'); return; }
+    const notes = document.getElementById('scoutNotes')?.value || '';
+    const opponent = document.getElementById('gameOpponent')?.value || 'Opponent';
+    const t = report.stats.tendencies;
+
+    let html = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Scout Report: ${opponent}</h2>
+            <div class="stats-header-actions">
+              <button class="btn btn-sm" id="btnExportScoutReport">Export Report</button>
+              <button class="btn btn-sm btn-danger" id="btnCloseScoutReport">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">
+            ${notes ? `<div class="stats-section"><h3>Scouting Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p></div>` : ''}
+            <div class="stats-section">
+              <h3>Overview (${report.totalPlays} plays)</h3>
+              <div class="stats-grid">
+                <div class="stat-card"><div class="stat-card-title">Run/Pass</div><div class="stat-card-value">${t.runPassRatio}</div></div>
+                <div class="stat-card"><div class="stat-card-title">Run %</div><div class="stat-card-value">${t.runPct}%</div></div>
+                <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${report.totalPlays ? ((report.stats.rushing.yards + report.stats.passing.yards) / report.totalPlays).toFixed(1) : '0.0'}</div></div>
+                <div class="stat-card"><div class="stat-card-title">3rd Down</div><div class="stat-card-value">${report.thirdDown.total ? `${report.thirdDown.converted}/${report.thirdDown.total}` : 'N/A'}</div></div>
+              </div>
+            </div>
+            <div class="stats-section">
+              <h3>Formation Tendencies</h3>
+              <table class="stats-table stats-table-full">
+                <thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead>
+                <tbody>${report.formationDetail.map(f =>
+                  `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+                ).join('')}</tbody>
+              </table>
+            </div>
+            <div class="stats-section stats-two-col">
+              <div>
+                <h3>Down & Distance Tendencies</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead>
+                  <tbody>${report.downTendency.map(d =>
+                    `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
+                  ).join('')}</tbody>
+                </table>
+              </div>
+              <div>
+                <h3>Key Situations</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Situation</th><th>Detail</th></tr></thead>
+                  <tbody>
+                    <tr><td>Red Zone</td><td>${report.redZone.total} plays, ${report.redZone.tds} TD${report.redZone.total ? ` (${Math.round(report.redZone.tds / report.redZone.total * 100)}%)` : ''}</td></tr>
+                    <tr><td>3rd Down Conv</td><td>${report.thirdDown.converted}/${report.thirdDown.total} (${report.thirdDown.total ? Math.round(report.thirdDown.converted / report.thirdDown.total * 100) : 0}%)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            ${report.fronts.length ? `
+            <div class="stats-section stats-two-col">
+              <div>
+                <h3>Defensive Fronts</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
+                  <tbody>${report.fronts.map(([f, c]) => `<tr><td>${f}</td><td>${c}</td><td>${Math.round(c / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                </table>
+              </div>
+              ${report.coverages.length ? `<div>
+                <h3>Coverages</h3>
+                <table class="stats-table stats-table-full">
+                  <thead><tr><th>Coverage</th><th>#</th><th>%</th></tr></thead>
+                  <tbody>${report.coverages.map(([c, n]) => `<tr><td>${c}</td><td>${n}</td><td>${Math.round(n / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                </table>
+              </div>` : ''}
+            </div>` : ''}
+            ${this._renderTendencies(report.stats)}
+            ${this._renderBigPlays(report.stats)}
+          </div>
+        </div>
+      </div>`;
+
+    this.dashboardEl.innerHTML = html;
+    this.dashboardEl.classList.remove('hidden');
+    this.dashboardEl.querySelector('#btnCloseScoutReport').addEventListener('click', () => this.hideDashboard());
+    this.dashboardEl.querySelector('#btnExportScoutReport').addEventListener('click', () => this._exportScoutReport(report, opponent, notes));
+    this.dashboardEl.querySelector('.stats-overlay').addEventListener('click', (e) => {
+      if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
+    });
+  }
+
+  _exportScoutReport(report, opponent, notes) {
+    const t = report.stats.tendencies;
+    const title = `Scout Report: ${opponent}`;
+    const formRows = report.formationDetail.map(f =>
+      `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+    ).join('');
+    const ddRows = report.downTendency.map(d =>
+      `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
+    ).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+.overview{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+.ov-card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
+.ov-val{font-size:24px;font-weight:bold;color:#4169e1}.ov-lbl{font-size:11px;text-transform:uppercase;color:#666}
+</style></head><body>
+<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} plays</p>
+${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p>` : ''}
+<h3>Overview</h3><div class="overview">
+<div class="ov-card"><div class="ov-val">${t.runPassRatio}</div><div class="ov-lbl">Run/Pass</div></div>
+<div class="ov-card"><div class="ov-val">${t.runPct}%</div><div class="ov-lbl">Run Rate</div></div>
+<div class="ov-card"><div class="ov-val">${report.totalPlays ? ((report.stats.rushing.yards + report.stats.passing.yards) / report.totalPlays).toFixed(1) : '0'}</div><div class="ov-lbl">Avg Yards</div></div>
+<div class="ov-card"><div class="ov-val">${report.thirdDown.total ? report.thirdDown.converted + '/' + report.thirdDown.total : 'N/A'}</div><div class="ov-lbl">3rd Down</div></div>
+</div>
+<h3>Formation Tendencies</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead><tbody>${formRows}</tbody></table>
+<h3>Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead><tbody>${ddRows}</tbody></table>
+</body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scout_${opponent.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   _exportStats(stats) {
@@ -13710,6 +14322,9 @@ class App {
     // Wire report export
     this._bindReportExport();
 
+    // Wire play import
+    this._bindPlayImport();
+
     // Keyboard shortcuts
     this._bindKeyboard();
 
@@ -13736,6 +14351,9 @@ class App {
 
     // Tag navigation & chip shortcuts
     this._bindTagNav();
+
+    // Scout mode UI
+    this._bindScoutMode();
 
     // Keep tagging progress updated
     this.tagger.on('play-created', () => this._updateTagProgress());
@@ -14622,6 +15240,22 @@ class App {
     }
   }
 
+  _bindScoutMode() {
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const scoutSection = document.getElementById('scoutSection');
+    const btnScoutReport = document.getElementById('btnScoutReport');
+    if (!perspectiveEl) return;
+    const toggleScoutUI = () => {
+      const isScout = perspectiveEl.value === 'scout';
+      if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
+    };
+    perspectiveEl.addEventListener('change', toggleScoutUI);
+    toggleScoutUI();
+    if (btnScoutReport) {
+      btnScoutReport.addEventListener('click', () => this.stats.renderScoutReport());
+    }
+  }
+
   _bindTagNav() {
     const btnPrev = document.getElementById('btnTagPrev');
     const btnNext = document.getElementById('btnTagSaveNext');
@@ -14730,6 +15364,106 @@ class App {
     const tagged = this.tagger.plays.filter(p => p.tags.playType && p.tags.result).length;
     label.textContent = `${tagged} / ${total} tagged`;
     fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
+  }
+
+  _bindPlayImport() {
+    const btn = document.getElementById('btnImportPlays');
+    const modal = document.getElementById('playImportModal');
+    if (!btn || !modal) return;
+
+    const fileInput = modal.querySelector('#playImportFile');
+    const textArea = modal.querySelector('#playImportText');
+    const filename = modal.querySelector('#playImportFilename');
+    const parseBtn = modal.querySelector('#playImportParse');
+    const applyBtn = modal.querySelector('#playImportApply');
+    const cancelBtn = modal.querySelector('#playImportCancel');
+    const closeBtn = modal.querySelector('#playImportClose');
+    const backdrop = modal.querySelector('.play-import-backdrop');
+    const mappingDiv = modal.querySelector('#playImportMapping');
+    const mapGrid = modal.querySelector('#playImportMapGrid');
+    const previewDiv = modal.querySelector('#playImportPreview');
+    const previewTable = modal.querySelector('#playImportPreviewTable');
+    const countSpan = modal.querySelector('#playImportCount');
+
+    let lastParsed = null;
+
+    const open = () => { modal.classList.remove('hidden'); lastParsed = null; applyBtn.classList.add('hidden'); mappingDiv.classList.add('hidden'); previewDiv.classList.add('hidden'); };
+    const close = () => { modal.classList.add('hidden'); textArea.value = ''; filename.textContent = 'No file chosen'; lastParsed = null; };
+
+    btn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    cancelBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      filename.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = (ev) => { textArea.value = ev.target.result; };
+      reader.readAsText(file);
+    });
+
+    const ourFields = ['playType','result','yardage','down','distance','formation','personnel',
+      'hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
+      'ballCarrier','passer','receiver','tackler','notes'];
+
+    parseBtn.addEventListener('click', () => {
+      const text = textArea.value;
+      if (!text.trim()) { alert('Paste or upload CSV data first.'); return; }
+      const parsed = this.storage.importPlaysFromText(text);
+      if (parsed.error) { alert(parsed.error); return; }
+      lastParsed = parsed;
+
+      // Show column mapping
+      mapGrid.innerHTML = '';
+      parsed.headers.forEach((h, i) => {
+        const row = document.createElement('div');
+        row.className = 'play-import-map-row';
+        const mapped = parsed.colMap[i] || '';
+        row.innerHTML = `<span class="play-import-col-name">${h}</span>
+          <select class="play-import-col-select" data-col="${i}">
+            <option value="">(skip)</option>
+            ${ourFields.map(f => `<option value="${f}" ${f === mapped ? 'selected' : ''}>${f}</option>`).join('')}
+          </select>`;
+        row.querySelector('select').addEventListener('change', (e) => {
+          if (e.target.value) parsed.colMap[i] = e.target.value;
+          else delete parsed.colMap[i];
+          renderPreview();
+        });
+        mapGrid.appendChild(row);
+      });
+      mappingDiv.classList.remove('hidden');
+      renderPreview();
+    });
+
+    const renderPreview = () => {
+      if (!lastParsed) return;
+      const preview = lastParsed.lines.slice(0, 5);
+      const mapped = Object.values(lastParsed.colMap);
+      let html = '<table class="stats-table stats-table-full"><thead><tr>';
+      mapped.forEach(f => { html += `<th>${f}</th>`; });
+      html += '</tr></thead><tbody>';
+      preview.forEach(cells => {
+        html += '<tr>';
+        Object.entries(lastParsed.colMap).forEach(([idx]) => {
+          html += `<td>${cells[parseInt(idx)] || ''}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      previewTable.innerHTML = html;
+      countSpan.textContent = lastParsed.lines.filter(cells => !cells.every(c => !c)).length;
+      previewDiv.classList.remove('hidden');
+      applyBtn.classList.remove('hidden');
+    };
+
+    applyBtn.addEventListener('click', () => {
+      if (!lastParsed) return;
+      const count = this.storage.applyPlayImport(lastParsed);
+      alert(`Imported ${count} play${count !== 1 ? 's' : ''}.`);
+      close();
+    });
   }
 
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {
