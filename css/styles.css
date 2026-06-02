@@ -4610,3 +4610,15 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 /* Season modal: player rows aren't clickable (no film loaded) */
 #seasonOverlay .player-row { cursor: default; }
 #seasonOverlay .player-row:hover { background: transparent; }
+
+/* ================================================================== */
+/* =====================  TOUCH RESPONSIVENESS  ==================== */
+/* Remove the 300ms tap delay / double-tap zoom on interactive bits. */
+/* ================================================================== */
+.panel-title,
+.pick, .btn, .ctrl-btn, .btn-nudge,
+.player-role, .player-num,
+.quickpick-chip, .roster-del, .roster-add .btn,
+.cutup-btn, .tool-btn, .bt-tab, .playlist-item {
+  touch-action: manipulation;
+}

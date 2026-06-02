@@ -77,8 +77,9 @@ class App {
     // Drawing tool UI
     this._bindToolUI();
 
-    // Sidebar panel toggles
-    this._bindPanelToggles();
+    // Sidebar panel toggles are handled by UIPolish._initPanelCollapse().
+    // (A second binding here previously double-toggled every panel, so a
+    // collapsed panel like Roster opened then instantly closed on tap.)
 
     // Auto-detect UI
     this._bindAutoDetect();
@@ -309,15 +310,6 @@ class App {
     this.canvas.canvas.style.cursor = toolName ? 'crosshair' : 'default';
   }
 
-  _bindPanelToggles() {
-    document.querySelectorAll('.panel-title[data-toggle]').forEach(title => {
-      title.addEventListener('click', () => {
-        const targetId = title.dataset.toggle;
-        const body = document.getElementById(targetId);
-        if (body) body.classList.toggle('collapsed');
-      });
-    });
-  }
 
   _bindAutoDetect() {
     const btnAutoDetect = document.getElementById('btnAutoDetect');
