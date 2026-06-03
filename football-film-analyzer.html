@@ -5234,6 +5234,57 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* ================================================================== */
+/* ====  LAYOUT v5 — play controls under the video, toggle top-right  */
+/* Mark Start/End + Delete + Current Play now live beneath the video  */
+/* (filling the dead space in the left column); the Offense/Defense/   */
+/* Special Teams toggle leads the right column.                       */
+/* ================================================================== */
+
+/* Compact control bar under the video (in the video-section column). */
+.video-play-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.video-play-controls .btn { flex: 0 0 auto; }
+.video-play-controls .play-select {
+  flex: 1 1 160px;
+  min-width: 140px;
+  width: auto;
+  background: var(--surface);
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 12px;
+  box-shadow: var(--shadow-xs);
+}
+
+/* The toggle now leads the right column — give it a touch more presence. */
+.tag-section .unit-toggle-section { margin-bottom: 10px; }
+
+/* Two-column: let the video fill the column's vertical space (standard
+   player look) so the controls + mark bar stack directly beneath it,
+   with no awkward empty gap. */
+@media (min-width: 1100px) {
+  .video-section { justify-content: stretch; }
+  .video-section .video-container {
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+}
+
+/* Single-column / mobile: the control bar flows under the timeline. */
+@media (max-width: 1099px) {
+  .video-play-controls { padding: 8px 10px; }
+}
   </style>
 </head>
 <body>
@@ -5564,38 +5615,34 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
             <div class="timeline-bar" id="timelineBar"></div>
           </div>
         </div>
+
+        <!-- Play marking + selector (moved under the video to use the dead space) -->
+        <div class="video-play-controls">
+          <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
+          <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
+          <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
+          <select id="playSelect" class="play-select" title="Current play">
+            <option value="">-- No plays tagged --</option>
+          </select>
+        </div>
       </div>
 
       <!-- Tag Section (full-width, below video) -->
       <section class="tag-section">
-        <!-- Play mark controls -->
-        <div class="play-mark-controls play-mark-primary">
-          <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
-          <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
-          <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
-        </div>
-
-        <!-- Play selector -->
-        <div class="play-selector">
-          <label>Current Play:</label>
-          <select id="playSelect" class="play-select">
-            <option value="">-- No plays tagged --</option>
-          </select>
-        </div>
-
         <!-- Tag Form -->
         <div class="tag-form" id="tagForm">
-          <div class="tag-progress-row">
-            <span id="tagProgressLabel">0 / 0 tagged</span>
-            <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
-          </div>
-
+          <!-- Offense / Defense / Special Teams toggle (top right) -->
           <div class="chip-section unit-toggle-section">
             <div class="pick-group unit-toggle" id="tagUnit">
               <button class="pick" data-value="offense" type="button">Offense</button>
               <button class="pick" data-value="defense" type="button">Defense</button>
               <button class="pick" data-value="special" type="button">Special Teams</button>
             </div>
+          </div>
+
+          <div class="tag-progress-row">
+            <span id="tagProgressLabel">0 / 0 tagged</span>
+            <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
           </div>
 
           <div class="chip-section">

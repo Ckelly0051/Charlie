@@ -162,38 +162,34 @@
             <div class="timeline-bar" id="timelineBar"></div>
           </div>
         </div>
+
+        <!-- Play marking + selector (moved under the video to use the dead space) -->
+        <div class="video-play-controls">
+          <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
+          <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
+          <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
+          <select id="playSelect" class="play-select" title="Current play">
+            <option value="">-- No plays tagged --</option>
+          </select>
+        </div>
       </div>
 
       <!-- Tag Section (full-width, below video) -->
       <section class="tag-section">
-        <!-- Play mark controls -->
-        <div class="play-mark-controls play-mark-primary">
-          <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
-          <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
-          <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete Current Play">Delete Play</button>
-        </div>
-
-        <!-- Play selector -->
-        <div class="play-selector">
-          <label>Current Play:</label>
-          <select id="playSelect" class="play-select">
-            <option value="">-- No plays tagged --</option>
-          </select>
-        </div>
-
         <!-- Tag Form -->
         <div class="tag-form" id="tagForm">
-          <div class="tag-progress-row">
-            <span id="tagProgressLabel">0 / 0 tagged</span>
-            <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
-          </div>
-
+          <!-- Offense / Defense / Special Teams toggle (top right) -->
           <div class="chip-section unit-toggle-section">
             <div class="pick-group unit-toggle" id="tagUnit">
               <button class="pick" data-value="offense" type="button">Offense</button>
               <button class="pick" data-value="defense" type="button">Defense</button>
               <button class="pick" data-value="special" type="button">Special Teams</button>
             </div>
+          </div>
+
+          <div class="tag-progress-row">
+            <span id="tagProgressLabel">0 / 0 tagged</span>
+            <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
           </div>
 
           <div class="chip-section">
