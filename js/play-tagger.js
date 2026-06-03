@@ -282,41 +282,36 @@ export class PlayTagger {
 
   /**
    * Reset the current play's tags back to blank, keeping the play segment and
-   * the loaded video so the coach can re-tag the same snap.
+   * the loaded video so the coach can re-tag the same snap. Instant (no
+   * confirmation) and always clears the on-screen form so the button has an
+   * obvious effect even when no play is selected yet.
    */
-  async clearCurrentTags() {
+  clearCurrentTags() {
     let id = this.currentPlayId;
     if (!id && this.playSelect && this.playSelect.value) {
       id = parseInt(this.playSelect.value);
     }
-    if (!id) return;
-    const play = this.getPlay(id);
-    if (!play) return;
-    const ok = await this._confirmDialog(
-      `Clear all tags on Play ${id}? Only the tag values reset — the play and video stay.`,
-      'Clear Tags'
-    );
-    if (!ok) return;
+    const play = id ? this.getPlay(id) : null;
 
-    play.tags = {
-      down: '', distance: '', formation: '', playType: '', defFront: '',
-      coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
-      yardLine: '', fieldSide: 'own', personnel: '',
-      driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
-      unit: play.tags.unit || this.defaultUnit || 'offense',
-      stType: '', players: {}, grades: {}, custom: []
-    };
-    play.notes = '';
-
-    // Reflect the reset in the UI if this play is the one on screen.
-    if (this.currentPlayId === id) {
-      this._loadTagForm(play);
-      const notesEl = document.getElementById('notesArea');
-      if (notesEl) notesEl.value = '';
+    if (play) {
+      play.tags = {
+        down: '', distance: '', formation: '', playType: '', defFront: '',
+        coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
+        yardLine: '', fieldSide: 'own', personnel: '',
+        driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
+        unit: play.tags.unit || this.defaultUnit || 'offense',
+        stType: '', players: {}, grades: {}, custom: []
+      };
+      play.notes = '';
+      this._updatePlaySelect();
+      this._updateTimeline();
+      this._emit('play-updated', play);
     }
-    this._updatePlaySelect();
-    this._updateTimeline();
-    this._emit('play-updated', play);
+
+    // Always reset the visible form fields, chips, players, grades and notes.
+    this._clearTagForm();
+    const notesEl = document.getElementById('notesArea');
+    if (notesEl) notesEl.value = '';
   }
 
   /**
