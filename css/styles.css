@@ -5147,6 +5147,30 @@ body { background: var(--canvas); }
 /* Run / Pass: two big segmented toggles */
 .runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
 
+/* Stats-dashboard visualizations (field zones, spray, quarter bars) */
+.viz-block { margin: 14px 0 18px; }
+.viz-block h4 { margin: 0 0 8px; font-size: 13px; color: var(--text, #e6ebf5); display: flex; align-items: center; gap: 8px; }
+.viz-sub, .viz-caption { color: #8b97b0; font-weight: 400; font-size: 11px; }
+.viz-caption { margin: 6px 0 0; }
+.viz-legend { font-size: 11px; font-weight: 400; color: #8b97b0; display: inline-flex; align-items: center; gap: 5px; }
+.viz-legend .dot, .viz-q-chart .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.run { background: #ffd23f; }
+.dot.pass { background: #6cc4ff; }
+.viz-field-strip { display: flex; gap: 3px; }
+.viz-zone { flex: 1; min-height: 64px; border-radius: 6px; padding: 7px 6px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.viz-zone-label { font-size: 10px; opacity: 0.92; }
+.viz-zone-val { font-size: 20px; font-weight: 800; line-height: 1; }
+.viz-zone-n { font-size: 10px; opacity: 0.85; }
+.viz-svg { width: 100%; height: auto; background: #0e1626; border: 1px solid #233049; border-radius: 8px; }
+.viz-q-chart { display: flex; flex-direction: column; gap: 6px; }
+.viz-q-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text, #e6ebf5); }
+.viz-q-name { width: 26px; font-weight: 700; }
+.viz-q-bars { flex: 1; display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: #1b2436; }
+.viz-q-bar.run { background: #ffd23f; }
+.viz-q-bar.pass { background: #6cc4ff; }
+.viz-q-avg { width: 54px; text-align: right; color: #b9c4da; font-variant-numeric: tabular-nums; }
+.viz-q-n { width: 28px; text-align: right; color: #7d8aa5; }
+
 /* Play diagram (X's & O's) */
 .pd-preview {
   width: 100%;

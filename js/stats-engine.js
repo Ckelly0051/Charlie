@@ -6,6 +6,7 @@
  */
 import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
+import { Visualizations } from './visualizations.js';
 
 export class StatsEngine {
   /**
@@ -531,6 +532,7 @@ export class StatsEngine {
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
             ${this._renderDrives(stats)}
+            ${Visualizations.render(this._currentPlays())}
             ${this._renderTendencies(stats)}
             ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
