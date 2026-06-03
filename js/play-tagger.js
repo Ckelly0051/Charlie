@@ -248,9 +248,16 @@ export class PlayTagger {
   }
 
   deleteCurrentPlay() {
-    if (!this.currentPlayId) return;
+    // Fall back to the dropdown selection if no play is actively loaded
+    // (e.g. after importing/loading plays without re-selecting one), so the
+    // Delete button always acts on the play the user can see.
+    let id = this.currentPlayId;
+    if (!id && this.playSelect && this.playSelect.value) {
+      id = parseInt(this.playSelect.value);
+    }
+    if (!id) return;
     if (!confirm('Delete this play? This cannot be undone.')) return;
-    this.plays = this.plays.filter(p => p.id !== this.currentPlayId);
+    this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
     this._updatePlaySelect();
