@@ -5153,6 +5153,113 @@ body { background: var(--canvas); }
 }
 /* Run / Pass: two big segmented toggles */
 .runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
+
+/* Stats-dashboard visualizations (field zones, spray, quarter bars) */
+.viz-block { margin: 14px 0 18px; }
+.viz-block h4 { margin: 0 0 8px; font-size: 13px; color: var(--text, #e6ebf5); display: flex; align-items: center; gap: 8px; }
+.viz-sub, .viz-caption { color: #8b97b0; font-weight: 400; font-size: 11px; }
+.viz-caption { margin: 6px 0 0; }
+.viz-legend { font-size: 11px; font-weight: 400; color: #8b97b0; display: inline-flex; align-items: center; gap: 5px; }
+.viz-legend .dot, .viz-q-chart .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.run { background: #ffd23f; }
+.dot.pass { background: #6cc4ff; }
+.viz-field-strip { display: flex; gap: 3px; }
+.viz-zone { flex: 1; min-height: 64px; border-radius: 6px; padding: 7px 6px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.viz-zone-label { font-size: 10px; opacity: 0.92; }
+.viz-zone-val { font-size: 20px; font-weight: 800; line-height: 1; }
+.viz-zone-n { font-size: 10px; opacity: 0.85; }
+.viz-svg { width: 100%; height: auto; background: #0e1626; border: 1px solid #233049; border-radius: 8px; }
+.viz-q-chart { display: flex; flex-direction: column; gap: 6px; }
+.viz-q-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text, #e6ebf5); }
+.viz-q-name { width: 26px; font-weight: 700; }
+.viz-q-bars { flex: 1; display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: #1b2436; }
+.viz-q-bar.run { background: #ffd23f; }
+.viz-q-bar.pass { background: #6cc4ff; }
+.viz-q-avg { width: 54px; text-align: right; color: #b9c4da; font-variant-numeric: tabular-nums; }
+.viz-q-n { width: 28px; text-align: right; color: #7d8aa5; }
+
+/* Play diagram (X's & O's) */
+.pd-preview {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  aspect-ratio: 320 / 150;
+  border: 1px solid var(--chip-border, #cbd3e0);
+  border-radius: var(--radius, 8px);
+  background: #13351c;
+  cursor: pointer;
+  display: block;
+  margin-top: 4px;
+}
+#playDiagramSection:not(.has-diagram) #btnClearDiagram { display: none; }
+.pd-actions { display: inline-flex; gap: 6px; }
+.pd-editor { max-width: 700px; width: 96%; text-align: left; }
+.pd-title { margin: 0 0 8px; font-size: 16px; }
+.pd-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.pd-tool.active { background: var(--accent, #4169e1); border-color: var(--accent, #4169e1); color: #fff; }
+.pd-canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 380;
+  border-radius: var(--radius, 8px);
+  border: 1px solid var(--chip-border, #cbd3e0);
+  touch-action: none;
+  display: block;
+}
+.pd-help { font-size: 11px; color: var(--text-dim, #64748b); margin: 6px 0 4px; }
+
+/* Custom user-defined tag fields */
+#customFieldsSection.cf-empty #tagCustomFields { display: none; }
+.cf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cf-field { margin-bottom: 8px; }
+.cf-field .chip-label { margin-bottom: 4px; }
+.cf-text { width: 100%; font-size: 13px; padding: 6px 9px; }
+#btnEditCustomFields { font-size: 11px; padding: 4px 8px; }
+/* Field-definition manager modal */
+.cf-manager { max-width: 520px; width: 94%; text-align: left; }
+.cf-mgr-title { margin: 0 0 6px; font-size: 16px; }
+.cf-mgr-help { margin: 0 0 12px; font-size: 12px; color: var(--text-dim, #64748b); }
+.cf-mgr-help em { color: var(--text); font-style: normal; font-weight: 600; }
+.cf-mgr-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 46vh; overflow-y: auto; }
+.cf-mgr-row { display: flex; gap: 6px; align-items: center; }
+.cf-mgr-row .cf-mgr-name { flex: 0 0 35%; }
+.cf-mgr-row .cf-mgr-opts { flex: 1 1 auto; }
+.cf-mgr-row .cf-mgr-del { flex: 0 0 auto; padding: 4px 9px; }
+.cf-mgr-empty { font-size: 12px; color: var(--text-dim, #64748b); margin: 4px 0; }
+.cf-add { margin-bottom: 8px; }
+
+/* Tagging-speed helpers row (copy from previous + templates) */
+.tag-helpers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  flex-wrap: wrap;
+}
+.tag-helpers .template-select {
+  flex: 1 1 120px;
+  min-width: 110px;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.tag-helpers .btn { flex: 0 0 auto; }
+.tag-helpers .btn-icon-only { padding: 5px 8px; }
+
+/* Loop + A/B loop controls in the playback bar */
+.ctrl-btn.ab-btn {
+  font-size: 11px;
+  font-weight: 800;
+  width: auto;
+  min-width: 26px;
+  padding: 0 7px;
+}
+#btnLoop.active,
+.ctrl-btn.ab-btn.set {
+  background: var(--accent, #4169e1);
+  border-color: var(--accent, #4169e1);
+  color: #fff;
+}
+#btnLoop.active { box-shadow: 0 0 0 2px rgba(65,105,225,0.25); }
 .chip-hint {
   font-weight: 600;
   font-size: 9.5px;
@@ -5500,6 +5607,14 @@ video.is-buffering { opacity: 0.6; }
     <polygon points="4 4 15 12 4 20 4 4"/>
   </symbol>
 
+  <!-- Loop / repeat -->
+  <symbol id="icon-loop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="17 1 21 5 17 9"/>
+    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <polyline points="7 23 3 19 7 15"/>
+    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+  </symbol>
+
   <!-- Pencil -->
   <symbol id="icon-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 20h9"/>
@@ -5725,6 +5840,11 @@ video.is-buffering { opacity: 0.6; }
             </div>
           </div>
           <div class="controls-right">
+            <button class="ctrl-btn" id="btnLoop" title="Loop the current play (toggle)">
+              <svg class="icon"><use href="#icon-loop"/></svg>
+            </button>
+            <button class="ctrl-btn ab-btn" id="btnLoopA" title="Set A — loop start">A</button>
+            <button class="ctrl-btn ab-btn" id="btnLoopB" title="Set B — loop end">B</button>
             <select id="speedSelect" class="speed-select" title="Playback Speed">
               <option value="0.25">0.25x</option>
               <option value="0.5">0.5x</option>
@@ -5773,6 +5893,16 @@ video.is-buffering { opacity: 0.6; }
           <div class="tag-progress-row">
             <span id="tagProgressLabel">0 / 0 tagged</span>
             <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
+          </div>
+
+          <!-- Tagging speed helpers: copy from previous play + reusable templates -->
+          <div class="tag-helpers">
+            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copy scheme tags from the previous play (same formation/look)">⤓ Same as Last</button>
+            <select id="templateSelect" class="template-select" title="Apply a saved tag template">
+              <option value="">Templates…</option>
+            </select>
+            <button class="btn btn-sm" id="btnSaveTemplate" type="button" title="Save this play's tags as a reusable template">Save…</button>
+            <button class="btn btn-sm btn-icon-only" id="btnDeleteTemplate" type="button" title="Delete the selected template">🗑</button>
           </div>
 
           <div class="chip-section">
@@ -6027,6 +6157,27 @@ video.is-buffering { opacity: 0.6; }
               </label>
             </div>
             <div class="player-quickpick" id="rosterQuickPick"></div>
+          </div>
+
+          <!-- Play diagram (X's & O's) -->
+          <div class="chip-section" id="playDiagramSection">
+            <div class="cf-head">
+              <label class="chip-label">Play Diagram</label>
+              <span class="pd-actions">
+                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
+                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
+              </span>
+            </div>
+            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
+          </div>
+
+          <!-- Custom user-defined tag fields -->
+          <div class="chip-section cf-empty" id="customFieldsSection">
+            <div class="cf-head">
+              <label class="chip-label">Custom Fields</label>
+              <button class="btn btn-sm btn-icon-only" id="btnEditCustomFields" type="button" title="Add or edit your own tag categories">✎ Fields</button>
+            </div>
+            <div id="tagCustomFields"></div>
           </div>
 
           <!-- Notes — embedded in tag flow (before Situation & Details) -->
@@ -6693,11 +6844,18 @@ class VideoController {
     this.scrubBarHandle = document.getElementById('scrubBarHandle');
     this.speedSelect = document.getElementById('speedSelect');
     this.fpsInput = document.getElementById('fpsInput');
+    this.btnLoop = document.getElementById('btnLoop');
+    this.btnLoopA = document.getElementById('btnLoopA');
+    this.btnLoopB = document.getElementById('btnLoopB');
 
     this.fps = 30;
     this.objectUrl = null;
     this.isScrubbing = false;
     this._wasPlayingBeforeScrub = false;
+    // Loop playback. loopRegion = { start, end }; loopMode = 'play' | 'ab' | null.
+    this.loopRegion = null;
+    this.loopMode = null;
+    this._abA = null;
     this.listeners = {};
 
     this._bindEvents();
@@ -6771,6 +6929,11 @@ class VideoController {
     this.btnStepBack.addEventListener('click', () => this.stepBack());
     this.btnStepForward.addEventListener('click', () => this.stepForward());
 
+    // Loop controls
+    if (this.btnLoop) this.btnLoop.addEventListener('click', () => this.toggleLoopPlay());
+    if (this.btnLoopA) this.btnLoopA.addEventListener('click', () => this.setLoopA());
+    if (this.btnLoopB) this.btnLoopB.addEventListener('click', () => this.setLoopB());
+
     // Speed
     this.speedSelect.addEventListener('change', () => {
       this.video.playbackRate = parseFloat(this.speedSelect.value);
@@ -6793,6 +6956,13 @@ class VideoController {
     });
 
     this.video.addEventListener('timeupdate', () => {
+      // Loop: jump back to the region start once we pass the end.
+      if (this.loopRegion && !this.isScrubbing) {
+        if (this.video.currentTime >= this.loopRegion.end - 0.02 ||
+            this.video.currentTime < this.loopRegion.start - 0.3) {
+          this.video.currentTime = this.loopRegion.start;
+        }
+      }
       if (!this.isScrubbing) {
         this._updateScrubBar();
         this._updateTime();
@@ -6942,6 +7112,57 @@ class VideoController {
     } else {
       this.video.pause();
     }
+  }
+
+  // ---- Loop playback ---------------------------------------------------
+  // App keeps `currentPlayRegion = { start, end }` in sync with the selected
+  // play so "Loop play" knows what to repeat.
+
+  toggleLoopPlay() {
+    if (this.loopMode === 'play') { this.clearLoop(); return; }
+    const r = this.currentPlayRegion;
+    if (!r || !(r.end > r.start)) { this.clearLoop(); return; }
+    this.loopRegion = { start: r.start, end: r.end };
+    this.loopMode = 'play';
+    this._abA = null;
+    this._updateLoopUI();
+    if (this.video.currentTime < r.start || this.video.currentTime >= r.end) {
+      this.video.currentTime = r.start;
+    }
+    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
+  }
+
+  setLoopA() {
+    this._abA = this.video.currentTime;
+    this.loopMode = null;
+    this.loopRegion = null;
+    this._updateLoopUI();
+  }
+
+  setLoopB() {
+    const b = this.video.currentTime;
+    if (this._abA == null) { this._abA = 0; }
+    const start = Math.min(this._abA, b);
+    const end = Math.max(this._abA, b);
+    if (end - start < 0.1) return;
+    this.loopRegion = { start, end };
+    this.loopMode = 'ab';
+    this._updateLoopUI();
+    this.video.currentTime = start;
+    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
+  }
+
+  clearLoop() {
+    this.loopRegion = null;
+    this.loopMode = null;
+    this._abA = null;
+    this._updateLoopUI();
+  }
+
+  _updateLoopUI() {
+    if (this.btnLoop) this.btnLoop.classList.toggle('active', this.loopMode === 'play');
+    if (this.btnLoopA) this.btnLoopA.classList.toggle('set', this._abA != null || this.loopMode === 'ab');
+    if (this.btnLoopB) this.btnLoopB.classList.toggle('set', this.loopMode === 'ab');
   }
 
   stepForward() {
@@ -7633,6 +7854,10 @@ class PlayTagger {
     this.btnMarkEnd = document.getElementById('btnMarkEnd');
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
     this.btnClearTags = document.getElementById('btnClearTags');
+    this.btnCopyPrev = document.getElementById('btnCopyPrev');
+    this.templateSelect = document.getElementById('templateSelect');
+    this.btnSaveTemplate = document.getElementById('btnSaveTemplate');
+    this.btnDeleteTemplate = document.getElementById('btnDeleteTemplate');
     this.timelineBar = document.getElementById('timelineBar');
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
@@ -7709,6 +7934,15 @@ class PlayTagger {
     this.btnDeletePlay.addEventListener('click', () => this.deleteCurrentPlay());
     if (this.btnClearTags) {
       this.btnClearTags.addEventListener('click', () => this.clearCurrentTags());
+    }
+    if (this.btnCopyPrev) this.btnCopyPrev.addEventListener('click', () => this.copyFromPrevious());
+    if (this.btnSaveTemplate) this.btnSaveTemplate.addEventListener('click', () => this.saveTemplate());
+    if (this.btnDeleteTemplate) this.btnDeleteTemplate.addEventListener('click', () => this.deleteSelectedTemplate());
+    if (this.templateSelect) {
+      this.templateSelect.addEventListener('change', () => {
+        if (this.templateSelect.value) this.applyTemplate(this.templateSelect.value);
+      });
+      this._refreshTemplateSelect();
     }
     this.playSelect.addEventListener('change', () => {
       const id = parseInt(this.playSelect.value);
@@ -7898,7 +8132,7 @@ class PlayTagger {
         yardLine: '', fieldSide: 'own', personnel: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
         unit: play.tags.unit || this.defaultUnit || 'offense',
-        stType: '', players: {}, grades: {}, custom: []
+        stType: '', players: {}, grades: {}, custom: [], customFields: {}
       };
       play.notes = '';
       this._updatePlaySelect();
@@ -7910,6 +8144,82 @@ class PlayTagger {
     this._clearTagForm();
     const notesEl = document.getElementById('notesArea');
     if (notesEl) notesEl.value = '';
+  }
+
+  // --- Copy-from-previous + reusable tag templates ----------------------
+  // The "scheme" tag keys these helpers carry over (pre-snap alignment +
+  // play concept). Play-specific fields (result, yardage, players, notes,
+  // down/distance — owned by Auto D&D) are intentionally NOT copied.
+  static get SCHEME_KEYS() {
+    return ['unit', 'formation', 'personnel', 'runPass', 'playType',
+            'defFront', 'coverage', 'blitz', 'hash'];
+  }
+
+  /** Copy scheme tags from the play immediately before the current one. */
+  copyFromPrevious() {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    const idx = this.plays.findIndex(p => p.id === play.id);
+    if (idx <= 0) return; // no previous play
+    const prev = this.plays[idx - 1];
+    PlayTagger.SCHEME_KEYS.forEach(k => { play.tags[k] = prev.tags[k] || (k === 'unit' ? 'offense' : ''); });
+    this._loadTagForm(play);
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  _templateStore() {
+    try { return JSON.parse(localStorage.getItem('ffa_play_templates') || '{}') || {}; }
+    catch { return {}; }
+  }
+  _saveTemplateStore(obj) {
+    try { localStorage.setItem('ffa_play_templates', JSON.stringify(obj)); } catch {}
+  }
+
+  _refreshTemplateSelect() {
+    if (!this.templateSelect) return;
+    const store = this._templateStore();
+    const names = Object.keys(store).sort((a, b) => a.localeCompare(b));
+    const cur = this.templateSelect.value;
+    this.templateSelect.innerHTML = '<option value="">Templates…</option>' +
+      names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    if (cur && store[cur]) this.templateSelect.value = cur;
+  }
+
+  /** Save the current play's scheme tags as a named, reusable template. */
+  saveTemplate() {
+    const play = this.getCurrentPlay();
+    if (!play) { alert('Select a play first, then save its tags as a template.'); return; }
+    const name = (prompt('Template name (e.g. "Gun Trips Rt / 4-3 Cover 3"):') || '').trim();
+    if (!name) return;
+    const store = this._templateStore();
+    const subset = {};
+    PlayTagger.SCHEME_KEYS.forEach(k => { if (play.tags[k]) subset[k] = play.tags[k]; });
+    store[name] = subset;
+    this._saveTemplateStore(store);
+    this._refreshTemplateSelect();
+    this.templateSelect.value = name;
+  }
+
+  applyTemplate(name) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    const tpl = this._templateStore()[name];
+    if (!tpl) return;
+    Object.entries(tpl).forEach(([k, v]) => { play.tags[k] = v; });
+    this._loadTagForm(play);
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  deleteSelectedTemplate() {
+    if (!this.templateSelect || !this.templateSelect.value) return;
+    const name = this.templateSelect.value;
+    const store = this._templateStore();
+    delete store[name];
+    this._saveTemplateStore(store);
+    this._refreshTemplateSelect();
+    this.templateSelect.value = '';
   }
 
   /**
@@ -8079,6 +8389,8 @@ class PlayTagger {
     if (this.unitField) this.unitField.value = unit;
     this.applyUnitMode(unit);
     this._renderCustomTags(play.tags.custom);
+    // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
+    if (this.onLoadForm) this.onLoadForm(play);
   }
 
   /**
@@ -9139,6 +9451,17 @@ class StorageManager {
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);
+
+    // Append any user-defined custom fields as extra columns.
+    let cfDefs = [];
+    try { cfDefs = JSON.parse(localStorage.getItem('ffa_custom_fields') || '[]') || []; } catch {}
+    if (cfDefs.length) {
+      cfDefs.forEach(d => headers.push(d.name));
+      this.tagger.plays.forEach((p, i) => {
+        const cf = (p.tags && p.tags.customFields) || {};
+        cfDefs.forEach(d => rows[i].push(cf[d.id] || ''));
+      });
+    }
 
     const csv = [headers, ...rows]
       .map(row => row.map(cell => `"${cell}"`).join(','))
@@ -11977,6 +12300,164 @@ class AdvancedMetrics {
   }
 }
 
+// ===== visualizations.js =====
+/**
+ * Visualizations — SVG charts for the stats dashboard (no libraries).
+ *
+ * Adds the visual pieces tabular stats miss:
+ *   1. Success-by-field-zone  — a field strip colored by success rate.
+ *   2. Yardage spray          — scatter of every play (field position x gain),
+ *                               colored run/pass; reveals where chunk plays hit.
+ *   3. Quarter comparison     — run/pass mix + avg yards per quarter.
+ *
+ * Cross-game "week over week" comparison lives in the Season modal
+ * (season-manager.js), which already renders per-game trends.
+ */
+class Visualizations {
+  static isRun(p) {
+    const rp = p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
+  }
+
+  static isSuccess(p) {
+    const yds = parseInt(p.tags.yardage) || 0;
+    const dist = parseInt(p.tags.distance) || 10;
+    if (p.tags.result === 'Touchdown') return true;
+    if (p.tags.custom && p.tags.custom.includes('1st Down')) return true;
+    switch (p.tags.down) {
+      case '1': return yds >= dist * 0.5;
+      case '2': return yds >= dist * 0.7;
+      case '3': case '4': return yds >= dist;
+      default: return yds >= 4;
+    }
+  }
+
+  /** Absolute field position 0..100 (own goal -> opp goal), or null. */
+  static fieldPos(p) {
+    const yl = parseInt(p.tags.yardLine);
+    if (isNaN(yl)) return null;
+    return p.tags.fieldSide === 'opp' ? (100 - yl) : yl;
+  }
+
+  static _esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  static render(plays) {
+    plays = (plays || []).filter(p => p.tags && (p.tags.playType || p.tags.runPass));
+    if (plays.length < 3) return '';
+    return `
+      <div class="stats-section viz-section">
+        <h3>Visualizations</h3>
+        ${this._fieldZones(plays)}
+        ${this._spray(plays)}
+        ${this._quarters(plays)}
+      </div>`;
+  }
+
+  // 1. Success by field zone --------------------------------------------
+  static _fieldZones(plays) {
+    const zones = [
+      { lo: 0, hi: 20, label: 'Own 1–20' },
+      { lo: 20, hi: 40, label: 'Own 20–40' },
+      { lo: 40, hi: 60, label: 'Midfield' },
+      { lo: 60, hi: 80, label: 'Opp 40–20' },
+      { lo: 80, hi: 100, label: 'Red Zone' },
+    ];
+    const located = plays.filter(p => this.fieldPos(p) != null);
+    if (located.length < 3) return '';
+    const cells = zones.map(z => {
+      const inZone = located.filter(p => { const f = this.fieldPos(p); return f >= z.lo && f < z.hi || (z.hi === 100 && f === 100); });
+      const n = inZone.length;
+      const succ = inZone.filter(p => this.isSuccess(p)).length;
+      const pct = n ? Math.round((succ / n) * 100) : null;
+      return { ...z, n, pct };
+    });
+    const color = (pct) => {
+      if (pct == null) return '#1b2436';
+      // red (low) -> yellow -> green (high)
+      const h = Math.round((pct / 100) * 120);
+      return `hsl(${h} 65% 42%)`;
+    };
+    const strip = cells.map(c => `
+      <div class="viz-zone" style="background:${color(c.pct)}" title="${c.label}: ${c.pct == null ? 'n/a' : c.pct + '% success'} (${c.n} plays)">
+        <span class="viz-zone-label">${c.label}</span>
+        <span class="viz-zone-val">${c.pct == null ? '—' : c.pct + '%'}</span>
+        <span class="viz-zone-n">${c.n} plays</span>
+      </div>`).join('');
+    return `<div class="viz-block">
+      <h4>Success by Field Zone <span class="viz-sub">→ attacking</span></h4>
+      <div class="viz-field-strip">${strip}</div>
+    </div>`;
+  }
+
+  // 2. Yardage spray scatter --------------------------------------------
+  static _spray(plays) {
+    const pts = plays.map(p => ({
+      x: this.fieldPos(p),
+      y: parseInt(p.tags.yardage),
+      run: this.isRun(p),
+    })).filter(p => p.x != null && !isNaN(p.y));
+    if (pts.length < 3) return '';
+
+    const W = 600, H = 240, padL = 36, padB = 26, padT = 10, padR = 10;
+    const ys = pts.map(p => p.y);
+    const yMax = Math.max(10, ...ys), yMin = Math.min(-5, ...ys);
+    const xOf = (x) => padL + (x / 100) * (W - padL - padR);
+    const yOf = (y) => padT + (1 - (y - yMin) / (yMax - yMin)) * (H - padT - padB);
+
+    const zeroY = yOf(0);
+    let grid = '';
+    for (let x = 0; x <= 100; x += 20) {
+      const yl = x <= 50 ? x : 100 - x;   // standard field: counts up to 50, back down
+      grid += `<line x1="${xOf(x)}" y1="${padT}" x2="${xOf(x)}" y2="${H - padB}" stroke="#243049" stroke-width="1"/>
+               <text x="${xOf(x)}" y="${H - padB + 14}" fill="#7d8aa5" font-size="9" text-anchor="middle">${yl === 0 ? 'G' : yl}</text>`;
+    }
+    const dots = pts.map(p =>
+      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#ffd23f' : '#6cc4ff'}" fill-opacity="0.8"/>`
+    ).join('');
+    return `<div class="viz-block">
+      <h4>Yardage Spray <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span></h4>
+      <svg class="viz-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        ${grid}
+        <line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#4a5a7d" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="${padL - 4}" y="${zeroY + 3}" fill="#7d8aa5" font-size="9" text-anchor="end">0</text>
+        <text x="${padL - 4}" y="${yOf(yMax) + 3}" fill="#7d8aa5" font-size="9" text-anchor="end">${yMax}</text>
+        ${dots}
+      </svg>
+      <p class="viz-caption">Each dot is a play — field position (own goal → opp goal) vs. yards gained.</p>
+    </div>`;
+  }
+
+  // 3. Quarter comparison ------------------------------------------------
+  static _quarters(plays) {
+    const qs = ['Q1', 'Q2', 'Q3', 'Q4'];
+    const data = qs.map(q => {
+      const qp = plays.filter(p => p.tags.quarter === q);
+      const runs = qp.filter(p => this.isRun(p)).length;
+      const yards = qp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      return { q, n: qp.length, runPct: qp.length ? Math.round((runs / qp.length) * 100) : 0, avg: qp.length ? (yards / qp.length) : 0 };
+    }).filter(d => d.n > 0);
+    if (data.length < 2) return '';
+
+    const maxAvg = Math.max(6, ...data.map(d => Math.abs(d.avg)));
+    const rows = data.map(d => `
+      <div class="viz-q-row">
+        <span class="viz-q-name">${d.q}</span>
+        <div class="viz-q-bars">
+          <div class="viz-q-bar run" style="width:${d.runPct}%" title="${d.runPct}% run"></div>
+          <div class="viz-q-bar pass" style="width:${100 - d.runPct}%" title="${100 - d.runPct}% pass"></div>
+        </div>
+        <span class="viz-q-avg" title="avg yards/play">${d.avg.toFixed(1)} yd</span>
+        <span class="viz-q-n">${d.n}</span>
+      </div>`).join('');
+    return `<div class="viz-block">
+      <h4>By Quarter <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · avg yds</span></h4>
+      <div class="viz-q-chart">${rows}</div>
+    </div>`;
+  }
+}
+
 // ===== stats-engine.js =====
 /**
  * StatsEngine - Computes team and individual stats from charted play data.
@@ -12509,6 +12990,7 @@ class StatsEngine {
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
             ${this._renderDrives(stats)}
+            ${Visualizations.render(this._currentPlays())}
             ${this._renderTendencies(stats)}
             ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
@@ -15124,6 +15606,13 @@ class CallSheetBuilder {
     return parts.join(' ') || `Play #${p.id}`;
   }
 
+  /** Diagram thumbnail (data-URL <img>) for a play, or '' if none. */
+  _diagramImg(p, w = 132, h = 82) {
+    if (!p.diagram || !p.diagram.length) return '';
+    try { return `<img class="cs-diagram" src="${PlayDiagram.toDataURL(p.diagram, w * 2, h * 2)}" width="${w}" height="${h}">`; }
+    catch { return ''; }
+  }
+
   /** Compact performance tag so an EPA-ranked call shows why it's ranked. */
   _playResult(p) {
     const t = p.tags || {};
@@ -15190,6 +15679,8 @@ class CallSheetBuilder {
       .bucket td { border-top: 1px solid #ccc; padding: 2px 4px; vertical-align: top; }
       .bucket td.num { font-weight: bold; width: 18px; text-align: right; background: #f4f4f4; }
       .bucket td.res { text-align: right; white-space: nowrap; color: #444; font-variant-numeric: tabular-nums; width: 34px; }
+      .cs-diag-wrap { margin-top: 3px; }
+      .cs-diagram { display: block; border: 1px solid #999; border-radius: 3px; max-width: 100%; height: auto; }
       @media print {
         body { padding: 0.3in; }
         .bucket { page-break-inside: avoid; }
@@ -15204,7 +15695,10 @@ class CallSheetBuilder {
       if (!b.plays.length) return '';
       const rows = b.plays.map((p, pIdx) => {
         const res = this._esc(this._playResult(p));
-        return `<tr><td class="num">${numFor(bIdx, pIdx)}</td><td>${this._esc(this._playLabel(p))}</td><td class="res">${res}</td></tr>`;
+        // Diagrams print on the full sheet (wristband is too compact).
+        const diag = wristband ? '' : this._diagramImg(p);
+        const label = this._esc(this._playLabel(p)) + (diag ? `<div class="cs-diag-wrap">${diag}</div>` : '');
+        return `<tr><td class="num">${numFor(bIdx, pIdx)}</td><td>${label}</td><td class="res">${res}</td></tr>`;
       }).join('');
       return `<div class="bucket"><h2>${this._esc(b.label)}</h2><table>${rows}</table></div>`;
     }).join('');
@@ -15747,6 +16241,421 @@ class Wizard {
   }
 }
 
+// ===== custom-fields.js =====
+/**
+ * CustomFieldsManager — user-defined tag fields.
+ *
+ * Coaches can add their own categories (e.g. "Coverage Beater", "MOFO/MOFC",
+ * "Blitz Pickup") without a code change. Each field is either a set of chip
+ * options or a free-text input. Definitions live in localStorage (global,
+ * like the roster); per-play values are stored on `play.tags.customFields`
+ * so they travel with the project save and appear in CSV export.
+ *
+ * Field def shape: { id, name, options: string[] }  (options empty => text)
+ */
+class CustomFieldsManager {
+  constructor(tagger) {
+    this.tagger = tagger;
+    this.defs = this._load();
+
+    this.container = document.getElementById('tagCustomFields');   // per-play inputs
+    this.section = document.getElementById('customFieldsSection');
+    this.btnEdit = document.getElementById('btnEditCustomFields');
+
+    if (this.btnEdit) this.btnEdit.addEventListener('click', () => this.openManager());
+
+    // Re-render per-play inputs whenever the form loads a play.
+    this.tagger.on && this.tagger.on('play-selected', () => this.loadValues(this.tagger.getCurrentPlay()));
+
+    this.renderInputs();
+  }
+
+  static KEY = 'ffa_custom_fields';
+
+  _load() {
+    try { return JSON.parse(localStorage.getItem(CustomFieldsManager.KEY) || '[]') || []; }
+    catch { return []; }
+  }
+  _save() {
+    try { localStorage.setItem(CustomFieldsManager.KEY, JSON.stringify(this.defs)); } catch {}
+  }
+  _uid() { return 'cf_' + Math.random().toString(36).slice(2, 8); }
+
+  /** Render the per-play inputs (chips / text) into the tag form. */
+  renderInputs() {
+    if (!this.container) return;
+    if (!this.defs.length) {
+      if (this.section) this.section.classList.add('cf-empty');
+      this.container.innerHTML = '';
+      return;
+    }
+    if (this.section) this.section.classList.remove('cf-empty');
+
+    this.container.innerHTML = this.defs.map(d => {
+      if (d.options && d.options.length) {
+        const chips = d.options.map(o =>
+          `<button class="pick" type="button" data-cf="${d.id}" data-value="${this._attr(o)}">${this._esc(o)}</button>`
+        ).join('');
+        return `<div class="cf-field"><label class="chip-label">${this._esc(d.name)}</label>
+          <div class="pick-group cf-picks" data-cf-group="${d.id}">${chips}</div></div>`;
+      }
+      return `<div class="cf-field"><label class="chip-label">${this._esc(d.name)}</label>
+        <input type="text" class="cf-text" data-cf="${d.id}" placeholder="${this._attr(d.name)}…"></div>`;
+    }).join('');
+
+    // Wire chip toggles
+    this.container.querySelectorAll('.cf-picks .pick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.cf;
+        const group = btn.parentElement;
+        const wasActive = btn.classList.contains('active');
+        group.querySelectorAll('.pick').forEach(b => b.classList.remove('active'));
+        if (!wasActive) btn.classList.add('active');
+        this._write(id, wasActive ? '' : btn.dataset.value);
+      });
+    });
+    // Wire text inputs
+    this.container.querySelectorAll('.cf-text').forEach(inp => {
+      inp.addEventListener('change', () => this._write(inp.dataset.cf, inp.value.trim()));
+    });
+
+    this.loadValues(this.tagger.getCurrentPlay && this.tagger.getCurrentPlay());
+  }
+
+  /** Reflect a play's stored custom values into the inputs. */
+  loadValues(play) {
+    if (!this.container) return;
+    const vals = (play && play.tags && play.tags.customFields) || {};
+    this.container.querySelectorAll('.cf-picks').forEach(group => {
+      const id = group.dataset.cfGroup;
+      const v = vals[id] || '';
+      group.querySelectorAll('.pick').forEach(b => b.classList.toggle('active', b.dataset.value === v));
+    });
+    this.container.querySelectorAll('.cf-text').forEach(inp => {
+      inp.value = vals[inp.dataset.cf] || '';
+    });
+  }
+
+  _write(id, value) {
+    const play = this.tagger.getCurrentPlay && this.tagger.getCurrentPlay();
+    if (!play) return;
+    if (!play.tags.customFields) play.tags.customFields = {};
+    if (value) play.tags.customFields[id] = value;
+    else delete play.tags.customFields[id];
+    this.tagger._emit && this.tagger._emit('play-updated', play);
+  }
+
+  // --- Field definition manager (modal) ---------------------------------
+  openManager() {
+    const prev = document.getElementById('cfManagerModal');
+    if (prev) prev.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'ffa-confirm-modal';
+    overlay.id = 'cfManagerModal';
+    overlay.innerHTML = `
+      <div class="ffa-confirm-backdrop"></div>
+      <div class="ffa-confirm-card cf-manager" role="dialog" aria-modal="true">
+        <h3 class="cf-mgr-title">Custom Tag Fields</h3>
+        <p class="cf-mgr-help">Add your own categories. Leave options blank for a free-text field, or
+          comma-separate options for tap-to-pick chips (e.g. <em>MOFO, MOFC</em>).</p>
+        <div class="cf-mgr-list"></div>
+        <button type="button" class="btn btn-sm cf-add">+ Add field</button>
+        <div class="ffa-confirm-actions">
+          <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
+          <button type="button" class="btn btn-sm btn-accent" data-act="save">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const listEl = overlay.querySelector('.cf-mgr-list');
+    const draft = this.defs.map(d => ({ id: d.id, name: d.name, options: (d.options || []).join(', ') }));
+
+    const renderList = () => {
+      listEl.innerHTML = draft.map((d, i) => `
+        <div class="cf-mgr-row" data-i="${i}">
+          <input type="text" class="cf-mgr-name" placeholder="Field name" value="${this._attr(d.name)}">
+          <input type="text" class="cf-mgr-opts" placeholder="Options (comma-separated) or blank for text" value="${this._attr(d.options)}">
+          <button type="button" class="btn btn-sm btn-danger cf-mgr-del" title="Remove">×</button>
+        </div>`).join('') || '<p class="cf-mgr-empty">No custom fields yet.</p>';
+      listEl.querySelectorAll('.cf-mgr-row').forEach(row => {
+        const i = +row.dataset.i;
+        row.querySelector('.cf-mgr-name').addEventListener('input', e => draft[i].name = e.target.value);
+        row.querySelector('.cf-mgr-opts').addEventListener('input', e => draft[i].options = e.target.value);
+        row.querySelector('.cf-mgr-del').addEventListener('click', () => { draft.splice(i, 1); renderList(); });
+      });
+    };
+    renderList();
+
+    overlay.querySelector('.cf-add').addEventListener('click', () => {
+      draft.push({ id: this._uid(), name: '', options: '' });
+      renderList();
+    });
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => {
+      const act = e.target.dataset ? e.target.dataset.act : null;
+      if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) close();
+      else if (act === 'save') {
+        this.defs = draft
+          .map(d => ({
+            id: d.id || this._uid(),
+            name: (d.name || '').trim(),
+            options: (d.options || '').split(',').map(s => s.trim()).filter(Boolean)
+          }))
+          .filter(d => d.name);
+        this._save();
+        this.renderInputs();
+        close();
+      }
+    });
+  }
+
+  _esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  _attr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
+}
+
+// ===== play-diagram.js =====
+/**
+ * PlayDiagram — schematic X's & O's drawing per play.
+ *
+ * Distinct from the telestrator (`canvas-overlay.js`, which draws over the
+ * video frame): this is a blank-field play diagram a coach draws up and that
+ * travels with the play (`play.diagram` = array of shapes in normalized 0..1
+ * coords) and prints on the call sheet.
+ *
+ * Shapes:
+ *   { t:'O'|'X', x, y }              offensive / defensive marker
+ *   { t:'text', x, y, s }            text label
+ *   { t:'route', pts:[{x,y}...], a } polyline; a=true draws an arrowhead
+ */
+class PlayDiagram {
+  constructor(tagger) {
+    this.tagger = tagger;
+    this.section = document.getElementById('playDiagramSection');
+    this.preview = document.getElementById('playDiagramPreview');
+    this.btnDraw = document.getElementById('btnDrawDiagram');
+    this.btnClearDiagram = document.getElementById('btnClearDiagram');
+
+    if (this.btnDraw) this.btnDraw.addEventListener('click', () => this.openEditor());
+    if (this.btnClearDiagram) this.btnClearDiagram.addEventListener('click', () => this.clearCurrent());
+
+    this.tagger.on && this.tagger.on('play-selected', () => this.renderPreview());
+    this.renderPreview();
+  }
+
+  _play() { return this.tagger.getCurrentPlay && this.tagger.getCurrentPlay(); }
+
+  clearCurrent() {
+    const play = this._play();
+    if (!play) return;
+    play.diagram = [];
+    this.tagger._emit && this.tagger._emit('play-updated', play);
+    this.renderPreview();
+  }
+
+  renderPreview() {
+    if (!this.preview) return;
+    const play = this._play();
+    const shapes = (play && play.diagram) || [];
+    const has = shapes.length > 0;
+    if (this.section) this.section.classList.toggle('has-diagram', has);
+    PlayDiagram.draw(this.preview, shapes);
+  }
+
+  // ---- Static rendering (reused by the editor, preview, and call sheet) ----
+
+  /** Draw the field background + shapes onto a <canvas> element. */
+  static draw(canvas, shapes) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    PlayDiagram._field(ctx, w, h);
+    (shapes || []).forEach(s => PlayDiagram._shape(ctx, w, h, s));
+  }
+
+  /** Render shapes to a PNG data URL at a given pixel size (for call sheet). */
+  static toDataURL(shapes, w = 320, h = 200) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    PlayDiagram.draw(c, shapes);
+    return c.toDataURL('image/png');
+  }
+
+  static _field(ctx, w, h) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#13351c';            // turf green
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    // yard lines (horizontal)
+    for (let i = 1; i < 6; i++) {
+      const y = (h / 6) * i;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    // line of scrimmage (emphasized, middle)
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2;
+    const los = h * 0.5;
+    ctx.beginPath(); ctx.moveTo(0, los); ctx.lineTo(w, los); ctx.stroke();
+    // hash marks
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1;
+    [w * 0.36, w * 0.64].forEach(x => {
+      for (let y = 6; y < h; y += 12) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 5); ctx.stroke(); }
+    });
+  }
+
+  static _shape(ctx, w, h, s) {
+    const px = (n) => n * w, py = (n) => n * h;
+    const r = Math.max(7, Math.min(w, h) * 0.045);
+    ctx.lineWidth = 2;
+    if (s.t === 'O') {
+      ctx.strokeStyle = '#ffd23f';
+      ctx.beginPath(); ctx.arc(px(s.x), py(s.y), r, 0, Math.PI * 2); ctx.stroke();
+    } else if (s.t === 'X') {
+      ctx.strokeStyle = '#ff5a5a';
+      const x = px(s.x), y = py(s.y);
+      ctx.beginPath();
+      ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r);
+      ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r);
+      ctx.stroke();
+    } else if (s.t === 'text') {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${Math.max(11, r * 1.6)}px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(s.s || '', px(s.x), py(s.y));
+    } else if (s.t === 'route' && s.pts && s.pts.length > 1) {
+      ctx.strokeStyle = '#6cc4ff';
+      ctx.beginPath();
+      ctx.moveTo(px(s.pts[0].x), py(s.pts[0].y));
+      for (let i = 1; i < s.pts.length; i++) ctx.lineTo(px(s.pts[i].x), py(s.pts[i].y));
+      ctx.stroke();
+      if (s.a) {
+        const a = s.pts[s.pts.length - 2], b = s.pts[s.pts.length - 1];
+        const ang = Math.atan2(py(b.y) - py(a.y), px(b.x) - px(a.x));
+        const ah = r * 1.1;
+        ctx.beginPath();
+        ctx.moveTo(px(b.x), py(b.y));
+        ctx.lineTo(px(b.x) - ah * Math.cos(ang - 0.4), py(b.y) - ah * Math.sin(ang - 0.4));
+        ctx.moveTo(px(b.x), py(b.y));
+        ctx.lineTo(px(b.x) - ah * Math.cos(ang + 0.4), py(b.y) - ah * Math.sin(ang + 0.4));
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ---- Editor modal ----------------------------------------------------
+  openEditor() {
+    const play = this._play();
+    if (!play) { alert('Select a play first, then draw its diagram.'); return; }
+    const prev = document.getElementById('diagramEditorModal');
+    if (prev) prev.remove();
+
+    let shapes = JSON.parse(JSON.stringify(play.diagram || []));
+    let tool = 'O';
+    let drawing = null; // in-progress route
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ffa-confirm-modal';
+    overlay.id = 'diagramEditorModal';
+    overlay.innerHTML = `
+      <div class="ffa-confirm-backdrop"></div>
+      <div class="ffa-confirm-card pd-editor" role="dialog" aria-modal="true">
+        <h3 class="pd-title">Play Diagram</h3>
+        <div class="pd-tools">
+          ${['O','X','route','text','erase'].map(t =>
+            `<button type="button" class="btn btn-sm pd-tool${t==='O'?' active':''}" data-tool="${t}">${
+              {O:'O (Off)',X:'X (Def)',route:'Route ↗',text:'Text',erase:'Erase'}[t]}</button>`).join('')}
+          <button type="button" class="btn btn-sm pd-undo" title="Undo last">Undo</button>
+          <button type="button" class="btn btn-sm btn-danger pd-clear">Clear</button>
+        </div>
+        <canvas class="pd-canvas" width="640" height="380"></canvas>
+        <p class="pd-help">Tap to place O/X or text · drag for a route · Erase taps a mark to remove it.</p>
+        <div class="ffa-confirm-actions">
+          <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
+          <button type="button" class="btn btn-sm btn-accent" data-act="save">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const canvas = overlay.querySelector('.pd-canvas');
+    const redraw = () => {
+      PlayDiagram.draw(canvas, shapes);
+      if (drawing) PlayDiagram._shape(canvas.getContext('2d'), canvas.width, canvas.height, drawing);
+    };
+    redraw();
+
+    const pos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+      return { x: Math.max(0, Math.min(1, cx / rect.width)), y: Math.max(0, Math.min(1, cy / rect.height)) };
+    };
+    const nearestIdx = (p) => {
+      let best = -1, bd = 0.05; // threshold in normalized space
+      shapes.forEach((s, i) => {
+        const sx = s.x ?? (s.pts ? s.pts[0].x : null);
+        const sy = s.y ?? (s.pts ? s.pts[0].y : null);
+        if (sx == null) return;
+        const d = Math.hypot(sx - p.x, sy - p.y);
+        if (d < bd) { bd = d; best = i; }
+      });
+      return best;
+    };
+
+    const onDown = (e) => {
+      e.preventDefault();
+      const p = pos(e);
+      if (tool === 'O' || tool === 'X') { shapes.push({ t: tool, x: p.x, y: p.y }); redraw(); }
+      else if (tool === 'text') {
+        const s = (prompt('Label text:') || '').trim();
+        if (s) { shapes.push({ t: 'text', x: p.x, y: p.y, s }); redraw(); }
+      } else if (tool === 'erase') {
+        const i = nearestIdx(p); if (i >= 0) { shapes.splice(i, 1); redraw(); }
+      } else if (tool === 'route') {
+        drawing = { t: 'route', pts: [p], a: true };
+      }
+    };
+    const onMove = (e) => {
+      if (!drawing) return;
+      e.preventDefault();
+      const p = pos(e);
+      const last = drawing.pts[drawing.pts.length - 1];
+      if (Math.hypot(last.x - p.x, last.y - p.y) > 0.01) { drawing.pts.push(p); redraw(); }
+    };
+    const onUp = () => {
+      if (drawing) {
+        if (drawing.pts.length > 1) shapes.push(drawing);
+        drawing = null; redraw();
+      }
+    };
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onDown, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    canvas.addEventListener('touchend', onUp);
+
+    overlay.querySelectorAll('.pd-tool').forEach(b => b.addEventListener('click', () => {
+      tool = b.dataset.tool;
+      overlay.querySelectorAll('.pd-tool').forEach(x => x.classList.toggle('active', x === b));
+    }));
+    overlay.querySelector('.pd-undo').addEventListener('click', () => { shapes.pop(); redraw(); });
+    overlay.querySelector('.pd-clear').addEventListener('click', () => { shapes = []; redraw(); });
+
+    const close = () => { window.removeEventListener('mouseup', onUp); overlay.remove(); };
+    overlay.addEventListener('click', (e) => {
+      const act = e.target.dataset ? e.target.dataset.act : null;
+      if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) close();
+      else if (act === 'save') {
+        play.diagram = shapes;
+        this.tagger._emit && this.tagger._emit('play-updated', play);
+        this.renderPreview();
+        close();
+      }
+    });
+  }
+}
+
 // ===== app.js =====
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
@@ -15760,6 +16669,13 @@ class App {
     this.tagger = new PlayTagger(this.vc);
     this.roster = new RosterManager(this.tagger);
     this.filter = new PlayFilter(this.tagger);
+    this.customFields = new CustomFieldsManager(this.tagger);
+    this.playDiagram = new PlayDiagram(this.tagger);
+    // Re-render custom-field inputs + diagram preview on every form load.
+    this.tagger.onLoadForm = (play) => {
+      this.customFields.loadValues(play);
+      this.playDiagram.renderPreview();
+    };
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
@@ -15887,6 +16803,13 @@ class App {
     this.tagger.on('play-selected', (play) => {
       if (play.clipId && this.playlist.hasClips) {
         this.playlist.switchToClipByPlayId(play.id);
+      }
+      // Keep the loop region in sync; if "Loop play" is active, retarget it.
+      if (play.timestamp) {
+        this.vc.currentPlayRegion = { start: play.timestamp.start, end: play.timestamp.end };
+        if (this.vc.loopMode === 'play') {
+          this.vc.loopRegion = { start: play.timestamp.start, end: play.timestamp.end };
+        }
       }
       this.canvas.render();
     });
