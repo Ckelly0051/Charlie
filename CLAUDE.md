@@ -64,6 +64,7 @@ js/
 ├── stats-engine.js           # Stats aggregation (run/pass, efficiency, EPA)
 ├── advanced-metrics.js       # Expected Points Added calculations
 ├── heat-maps.js              # Visual heat map generation
+├── visualizations.js         # SVG charts: field-zone success, yardage spray, quarter mix
 ├── storage.js                # Project save/load (JSON + localStorage) + CSV import
 ├── history-manager.js        # Unified undo/redo (play data + canvas)
 ├── version-manager.js        # Named save points
@@ -75,7 +76,9 @@ js/
 ├── call-sheet-builder.js     # Play call sheet generation
 ├── ui-polish.js              # Misc UI enhancements
 ├── wizard.js                 # Step-by-step onboarding wizard
-└── tag-workspace.js          # Tag workspace utilities
+├── custom-fields.js          # User-defined tag fields (CustomFieldsManager)
+├── play-diagram.js           # Per-play X's & O's diagram editor (PlayDiagram)
+└── tag-workspace.js          # Tag workspace utilities (dead code — not wired)
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
@@ -287,6 +290,31 @@ browsers suppress repeated native `confirm()` dialogs ("prevent additional
 dialogs"), which silently returned `false` and made Delete look broken. Enter /
 the confirm button resolve true; Esc / Cancel / backdrop resolve false; keydown
 is captured so the app's tagging shortcuts don't fire underneath.
+
+### Tagging-speed & coaching tools
+
+- **Loop / A-B** (`VideoController`): `btnLoop` toggles looping the selected
+  play (`currentPlayRegion`, kept synced by App on `play-selected`); `A`/`B`
+  set a custom loop region. `timeupdate` jumps back to `loopRegion.start`.
+- **Same as Last + templates** (`PlayTagger`): `copyFromPrevious()` carries
+  `SCHEME_KEYS` (formation, personnel, run/pass, play type, defense, hash) from
+  the prior play; named templates persist in `localStorage ffa_play_templates`
+  (`saveTemplate`/`applyTemplate`/`deleteSelectedTemplate`).
+- **Custom tag fields** (`custom-fields.js`): coach-defined categories
+  (chips or text). Defs in `localStorage ffa_custom_fields`; per-play values in
+  `play.tags.customFields`. Inputs reload via the `tagger.onLoadForm` hook;
+  CSV export appends a column per field.
+- **Play diagram** (`play-diagram.js`): per-play X's & O's stored as normalized
+  shapes on `play.diagram` (saved with the project). `PlayDiagram.draw()` /
+  `toDataURL()` are static renderers reused by the tag-form preview and the
+  Call Sheet (thumbnails on the Full layout).
+- **Visualizations** (`visualizations.js`): SVG field-zone success strip,
+  yardage spray scatter, and quarter run/pass mix, injected into the stats
+  dashboard. Self-contained run/pass + success helpers (mirror StatsEngine).
+
+> **Build note**: new JS modules must be added to the `build.sh` file list
+> *and* imported in `app.js` (or their consuming module) — the modular
+> `index.html` needs the import; the bundle needs the build-list entry.
 
 ### Video robustness (freeze fixes)
 
