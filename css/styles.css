@@ -5039,3 +5039,191 @@ body {
   /* Wider column => player roles fit four-up again. */
   .tag-section .player-roles { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* ================================================================== */
+/* =========  DESIGN PASS v4 — crisp, tactile, consumer-grade  ====== */
+/* Visual-only layer: depth, contrast, radius, motion. No layout      */
+/* changes. Appended last so it wins the cascade.                     */
+/* ================================================================== */
+:root {
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --canvas:        #e7eaf1;   /* soft cool-gray work surface */
+  --surface:       #ffffff;   /* raised cards / chips / chrome */
+  --chip-border:   #cbd3e0;   /* visible but soft */
+  --shadow-xs: 0 1px 2px rgba(15,23,42,0.07);
+  --shadow-sm: 0 1px 3px rgba(15,23,42,0.10), 0 1px 2px rgba(15,23,42,0.05);
+  --shadow-md: 0 8px 24px rgba(15,23,42,0.12);
+  --shadow-lg: 0 22px 50px rgba(15,23,42,0.20);
+  --shadow-blue: 0 2px 10px rgba(65,105,225,0.40);
+  --transition: 140ms cubic-bezier(.4,0,.2,1);
+}
+
+/* Keep overlay-scoped vars dark so var(--surface)/(--canvas) resolve
+   correctly over the dark analytics modals. */
+.stats-overlay, .quick-chart-panel, .season-overlay,
+.cs-overlay, .epa-overlay {
+  --surface: #161d2e;
+  --canvas:  #0b1020;
+  --chip-border: #2a3552;
+}
+
+/* ---- Work surfaces ---- */
+body { background: var(--canvas); }
+.top-bar { background: var(--surface); box-shadow: 0 1px 0 var(--border), var(--shadow-xs); }
+.tag-section { background: var(--canvas); }
+
+/* ---- Chips: white, tactile, unmistakably tappable ---- */
+.pick {
+  background: var(--surface);
+  border: 1px solid var(--chip-border);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-weight: 500;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition), box-shadow var(--transition),
+              border-color var(--transition), background var(--transition),
+              color var(--transition);
+}
+.pick:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.pick:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
+.pick.active {
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  border-color: var(--accent-hover);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: var(--shadow-blue);
+}
+.pick.active:hover {
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(65,105,225,0.50);
+}
+.pick kbd {
+  color: var(--text-dim);
+  border-color: var(--chip-border);
+  background: rgba(15,23,42,0.03);
+}
+.pick.active kbd {
+  color: rgba(255,255,255,0.92);
+  border-color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.14);
+}
+
+/* ---- Field groups: drop muddy fills; group by label + spacing ---- */
+.chip-section,
+.tag-section .chip-section {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 11px;
+}
+.chip-label {
+  color: #475569;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.7px;
+  margin-bottom: 5px;
+}
+
+/* ---- Unit toggle: premium segmented control ---- */
+.unit-toggle {
+  gap: 4px;
+  background: var(--surface);
+  padding: 4px;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+.unit-toggle .pick {
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.unit-toggle .pick:hover {
+  background: var(--canvas);
+  border-color: transparent;
+  color: var(--accent-hover);
+  transform: none;
+  box-shadow: none;
+}
+.unit-toggle .pick.active {
+  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  border-color: var(--accent-hover);
+  box-shadow: var(--shadow-blue);
+  transform: none;
+}
+
+/* ---- Buttons: consistent depth + smooth motion ---- */
+.btn {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
+  font-weight: 500;
+  transition: transform var(--transition), box-shadow var(--transition),
+              background var(--transition), border-color var(--transition),
+              color var(--transition);
+}
+.btn:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: #fff; }
+.btn:active { transform: translateY(0); }
+.btn-accent, .btn-highlight { box-shadow: var(--shadow-blue); }
+.btn-accent:hover, .btn-highlight:hover { box-shadow: 0 4px 16px rgba(65,105,225,0.45); }
+.ctrl-btn { border-radius: var(--radius-sm); transition: all var(--transition); }
+.ctrl-btn:hover { transform: translateY(-1px); }
+
+/* ---- Inputs: match the crisp chip border + radius ---- */
+input[type="text"], input[type="number"], input[type="date"],
+select, textarea, .compact-input, .yards-input, .play-select {
+  border-radius: var(--radius-sm);
+  border-color: var(--chip-border);
+}
+
+/* ---- Collapsed side-group headers: clean white rows ---- */
+.tag-group-head {
+  background: var(--surface);
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  color: var(--text);
+  transition: border-color var(--transition), color var(--transition), box-shadow var(--transition);
+}
+.tag-group-head:hover {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- Play selector + progress: tidy ---- */
+.play-selector label { font-weight: 600; color: var(--text-dim); }
+.tag-progress-bar { border-radius: 999px; overflow: hidden; }
+.tag-progress-fill { border-radius: 999px; }
+
+/* ---- Depth on key surfaces ---- */
+.video-section { box-shadow: var(--shadow-xs); }
+.settings-drawer { box-shadow: var(--shadow-lg); border-left: 1px solid var(--border); }
+.more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
+
+/* ---- Custom thin scrollbar for the tag column ---- */
+.tag-section { scrollbar-width: thin; scrollbar-color: #c1cad8 transparent; }
+.tag-section::-webkit-scrollbar { width: 10px; }
+.tag-section::-webkit-scrollbar-track { background: transparent; }
+.tag-section::-webkit-scrollbar-thumb {
+  background: #c1cad8;
+  border-radius: 999px;
+  border: 3px solid var(--canvas);
+}
+.tag-section::-webkit-scrollbar-thumb:hover { background: #a9b5c6; }
+
+/* ---- Accessible focus ring ---- */
+.pick:focus-visible, .btn:focus-visible, .ctrl-btn:focus-visible,
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
