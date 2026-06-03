@@ -5278,3 +5278,47 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 @media (max-width: 1099px) {
   .video-play-controls { padding: 8px 10px; }
 }
+
+/* ================================================================== */
+/* ====  COMPACT v6 — fit the nav bar on screen without scrolling  == */
+/* Tightens vertical rhythm in the two-column (desktop) tag form only. */
+/* Mobile/tablet keep their roomier touch spacing.                    */
+/* ================================================================== */
+@media (min-width: 1100px) {
+  .tag-section { padding-top: 10px; padding-bottom: 18px; }
+
+  /* Inter-group whitespace is the biggest lever — trim it evenly. */
+  .tag-section .chip-section { margin-bottom: 4px; }
+  .tag-section .chip-label { margin-bottom: 2px; font-size: 10px; letter-spacing: 0.6px; }
+
+  /* Slightly shorter chips (still comfortable click targets). */
+  .tag-section .pick { padding: 4px 10px; }
+  .tag-section .unit-toggle .pick { padding: 6px 6px; }
+  .tag-section .tag-progress-row { margin: 0 0 2px; }
+
+  /* Header controls */
+  .tag-section .unit-toggle-section { margin-bottom: 8px; }
+  .tag-section .unit-toggle { padding: 3px; }
+  .tag-section .unit-toggle .pick { padding: 7px 6px; }
+  .tag-section .tag-progress-row { margin: 0 0 3px; }
+
+  /* Collapsed "Defense Faced / Offense" header row */
+  .tag-section .tag-group-head { padding: 6px 10px; margin-bottom: 4px; }
+
+  /* Collapsed "Situation & Details" disclosure: snug */
+  .tag-section .chip-details { margin-top: 0; padding-top: 0; }
+  .tag-section .chip-details > summary { padding: 3px 0; }
+
+  /* Player role cards: trim internal padding */
+  .tag-section .player-roles { margin-bottom: 4px; }
+  .tag-section .player-role { padding: 3px 5px; gap: 1px; }
+  .tag-section .player-num { padding: 2px; font-size: 13px; }
+  .tag-section .player-grade { padding: 1px 3px; }
+
+  /* Notes: compact but still usable */
+  .tag-section .tag-notes { margin: 3px 0; }
+  .tag-section .tag-notes .notes-area { min-height: 30px; }
+
+  /* Nav bar: snug to the content above it */
+  .tag-section .tag-nav { padding: 6px 0 0; margin-top: 2px; }
+}
