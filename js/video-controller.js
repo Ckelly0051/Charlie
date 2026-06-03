@@ -25,6 +25,7 @@ export class VideoController {
     this.fps = 30;
     this.objectUrl = null;
     this.isScrubbing = false;
+    this._wasPlayingBeforeScrub = false;
     this.listeners = {};
 
     this._bindEvents();
@@ -141,6 +142,23 @@ export class VideoController {
       this._updatePlayPauseIcon(false);
     });
 
+    this.video.addEventListener('waiting', () => {
+      this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('playing', () => {
+      this.video.classList.remove('is-buffering');
+    });
+    this.video.addEventListener('stalled', () => {
+      this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('error', () => {
+      this.video.classList.remove('is-buffering');
+      this._updatePlayPauseIcon(false);
+    });
+    this.video.addEventListener('seeked', () => {
+      this.video.classList.remove('is-buffering');
+    });
+
     // Scrub bar interaction
     this.scrubBar.addEventListener('mousedown', (e) => this._startScrub(e));
     document.addEventListener('mousemove', (e) => {
@@ -223,7 +241,9 @@ export class VideoController {
   togglePlay() {
     if (!this.video.src) return;
     if (this.video.paused) {
-      this.video.play();
+      this.video.play().catch(() => {
+        this._updatePlayPauseIcon(false);
+      });
     } else {
       this.video.pause();
     }
@@ -274,6 +294,8 @@ export class VideoController {
   }
 
   _startScrub(e) {
+    this._wasPlayingBeforeScrub = !this.video.paused;
+    if (this._wasPlayingBeforeScrub) this.video.pause();
     this.isScrubbing = true;
     this._doScrub(e);
   }
@@ -289,6 +311,12 @@ export class VideoController {
 
   _endScrub() {
     this.isScrubbing = false;
+    if (this._wasPlayingBeforeScrub) {
+      this.video.play().catch(() => {
+        this._updatePlayPauseIcon(false);
+      });
+      this._wasPlayingBeforeScrub = false;
+    }
   }
 
   _updateScrubBar() {

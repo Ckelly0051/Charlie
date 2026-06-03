@@ -249,6 +249,7 @@ export class PlayTagger {
 
   deleteCurrentPlay() {
     if (!this.currentPlayId) return;
+    if (!confirm('Delete this play? This cannot be undone.')) return;
     this.plays = this.plays.filter(p => p.id !== this.currentPlayId);
     this.currentPlayId = null;
     this._clearTagForm();

@@ -5329,6 +5329,48 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   /* Nav bar: snug to the content above it */
   .tag-section .tag-nav { padding: 6px 0 0; margin-top: 2px; }
 }
+
+/* ================================================================== */
+/* ====  SELECTS v7 — prominent dropdown arrows                    == */
+/* Custom chevron replaces the default browser arrow for all selects. */
+/* ================================================================== */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 28px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px 8px;
+  cursor: pointer;
+}
+select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234169e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234169e1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ================================================================== */
+/* ====  BUFFERING v8 — visual feedback while video loads          == */
+/* ================================================================== */
+.video-container { position: relative; }
+video.is-buffering { opacity: 0.6; }
+.video-container:has(video.is-buffering)::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 36px; height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 3px solid rgba(255,255,255,0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: vc-spin 0.7s linear infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+@keyframes vc-spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -5603,7 +5645,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <!-- Video Area -->
       <div class="video-section">
         <div class="video-container" id="videoContainer">
-          <video id="videoPlayer" preload="auto"></video>
+          <video id="videoPlayer" preload="auto" playsinline></video>
           <canvas id="drawingCanvas"></canvas>
           <div class="video-placeholder" id="videoPlaceholder">
             <svg class="icon icon-large"><use href="#icon-film"/></svg>
@@ -6604,6 +6646,7 @@ class VideoController {
     this.fps = 30;
     this.objectUrl = null;
     this.isScrubbing = false;
+    this._wasPlayingBeforeScrub = false;
     this.listeners = {};
 
     this._bindEvents();
@@ -6720,6 +6763,23 @@ class VideoController {
       this._updatePlayPauseIcon(false);
     });
 
+    this.video.addEventListener('waiting', () => {
+      this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('playing', () => {
+      this.video.classList.remove('is-buffering');
+    });
+    this.video.addEventListener('stalled', () => {
+      this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('error', () => {
+      this.video.classList.remove('is-buffering');
+      this._updatePlayPauseIcon(false);
+    });
+    this.video.addEventListener('seeked', () => {
+      this.video.classList.remove('is-buffering');
+    });
+
     // Scrub bar interaction
     this.scrubBar.addEventListener('mousedown', (e) => this._startScrub(e));
     document.addEventListener('mousemove', (e) => {
@@ -6802,7 +6862,9 @@ class VideoController {
   togglePlay() {
     if (!this.video.src) return;
     if (this.video.paused) {
-      this.video.play();
+      this.video.play().catch(() => {
+        this._updatePlayPauseIcon(false);
+      });
     } else {
       this.video.pause();
     }
@@ -6853,6 +6915,8 @@ class VideoController {
   }
 
   _startScrub(e) {
+    this._wasPlayingBeforeScrub = !this.video.paused;
+    if (this._wasPlayingBeforeScrub) this.video.pause();
     this.isScrubbing = true;
     this._doScrub(e);
   }
@@ -6868,6 +6932,12 @@ class VideoController {
 
   _endScrub() {
     this.isScrubbing = false;
+    if (this._wasPlayingBeforeScrub) {
+      this.video.play().catch(() => {
+        this._updatePlayPauseIcon(false);
+      });
+      this._wasPlayingBeforeScrub = false;
+    }
   }
 
   _updateScrubBar() {
@@ -7669,6 +7739,7 @@ class PlayTagger {
 
   deleteCurrentPlay() {
     if (!this.currentPlayId) return;
+    if (!confirm('Delete this play? This cannot be undone.')) return;
     this.plays = this.plays.filter(p => p.id !== this.currentPlayId);
     this.currentPlayId = null;
     this._clearTagForm();
