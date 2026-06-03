@@ -237,7 +237,13 @@ export class QuickChart {
     // Apply the quick-chart entry to the current play
     const play = this.tagger.getCurrentPlay();
     if (play) {
-      if (this.currentEntry.playType) play.tags.playType = this.currentEntry.playType;
+      if (this.currentEntry.playType) {
+        play.tags.playType = this.currentEntry.playType;
+        // Auto-classify Run/Pass for unambiguous play types (RPO/PA/Trick left blank).
+        const t = this.currentEntry.playType.toLowerCase();
+        if (t.includes('run')) play.tags.runPass = 'Run';
+        else if (t.includes('pass') || t.includes('screen')) play.tags.runPass = 'Pass';
+      }
       if (this.currentEntry.result) play.tags.result = this.currentEntry.result;
       if (this.currentEntry.yardage) play.tags.yardage = this.currentEntry.yardage;
       if (this.currentEntry.down) play.tags.down = this.currentEntry.down;

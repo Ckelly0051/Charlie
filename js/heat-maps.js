@@ -141,7 +141,7 @@ export class HeatMaps {
     const cells = downs.map(down =>
       buckets.map(b => {
         const matched = plays.filter(p => p.tags.down === down && b.test(parseInt(p.tags.distance) || 0));
-        const runs = matched.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+        const runs = matched.filter(p => this._isRun(p)).length;
         const successes = matched.filter(p => this._isSuccess(p)).length;
         return { count: matched.length, runs, successes };
       })
@@ -247,6 +247,13 @@ export class HeatMaps {
     html += `<td><b>${hashTotals.reduce((s, t) => s + t, 0)}</b></td></tr>`;
     html += '</tbody></table>';
     return html + '<p class="hm-caption">Cell intensity = share of plays from that hash.</p>';
+  }
+
+  _isRun(p) {
+    const rp = p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
 
   _isSuccess(p) {

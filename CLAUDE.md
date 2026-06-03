@@ -97,6 +97,7 @@ server/                       # Optional local Python backend (YOLO-based)
     yardLine: '',       // 1-50
     formation: '',      // MULTI-SELECT (offense). One or more of 'Shotgun' | 'Under Center' | 'Pistol' | 'I-Form' | 'Singleback' | 'Trips' | 'Spread' | 'Split Back' | 'Single Wing' | 'Empty' | 'Wildcat' | 'Goal Line', stored as a " + "-joined string (e.g. 'Pistol + Spread'). Analytics split on " + " and attribute the play to each component formation. ChipField({multi:true}); StatsEngine.splitFormations() is the canonical splitter.
     personnel: '',      // '00'-'23' | 'Jumbo' | 'Goal Line'
+    runPass: '',        // 'Run' | 'Pass' | '' — explicit run/pass classifier, authoritative for all run/pass analytics. Auto-filled from unambiguous playType; coach sets it for RPO/Play Action/Trick. StatsEngine.isRun()/isPass() are canonical and fall back to playType-string inference when runPass is blank (legacy data).
     playType: '',       // 'Run Inside' | 'Run Outside' | 'Screen' | 'Short Pass' | 'Medium Pass' | 'Deep Pass' | 'Play Action' | 'RPO' | 'Trick Play'
     result: '',         // 'Gain' | 'Loss' | 'No Gain' | 'Incomplete' | 'Interception' | 'Touchdown' | 'Sack' | 'Fumble' | 'Penalty' | 'Punt' | 'Field Goal' | 'Kneel' | 'Spike'
     yardage: '',        // integer (negative for loss)

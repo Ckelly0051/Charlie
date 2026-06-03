@@ -327,7 +327,7 @@ export class SeasonManager {
     // so a play is attributed to each of its component looks.
     const formMap = {};
     allPlays.forEach(p => {
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isRun = this._isRun(p);
       String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(f => {
         if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
         formMap[f].total++;
@@ -348,7 +348,7 @@ export class SeasonManager {
 
     // Down & distance: 3rd & long pass tell?
     const thirdLong = allPlays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7);
-    const thirdLongPass = thirdLong.filter(p => !p.tags.playType?.toLowerCase().includes('run')).length;
+    const thirdLongPass = thirdLong.filter(p => !this._isRun(p)).length;
     let ddFlags = '';
     if (thirdLong.length >= 5) {
       const passPct = (thirdLongPass / thirdLong.length) * 100;
@@ -361,7 +361,7 @@ export class SeasonManager {
       const h = p.tags.hash;
       if (!hashMap[h]) return;
       hashMap[h].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) hashMap[h].runs++;
+      if (this._isRun(p)) hashMap[h].runs++;
     });
     let hashFlags = '';
     for (const [h, d] of Object.entries(hashMap)) {
@@ -451,5 +451,13 @@ ${body}
 
   _escape(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // Run/pass classification: explicit runPass tag wins, else infer from playType.
+  _isRun(p) {
+    const rp = p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
 }

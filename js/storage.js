@@ -193,7 +193,7 @@ export class StorageManager {
     const headers = [
       'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
-      'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Run/Pass', 'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
@@ -214,6 +214,7 @@ export class StorageManager {
       p.tags.yardLine || '',
       p.tags.formation,
       p.tags.personnel || '',
+      p.tags.runPass || '',
       p.tags.playType,
       p.tags.stType || '',
       p.tags.defFront,
@@ -338,6 +339,7 @@ ${body}
     const colMap = {};
     const aliases = {
       playtype: 'playType', type: 'playType', odk: 'playType',
+      runpass: 'runPass', rp: 'runPass', runorpass: 'runPass',
       result: 'result', gnls: 'yardage', yardage: 'yardage', yards: 'yardage', yds: 'yardage',
       down: 'down', dn: 'down',
       distance: 'distance', dist: 'distance', togo: 'distance',
@@ -376,7 +378,7 @@ ${body}
       if (cells.every(c => !c)) continue;
 
       const tags = {
-        down: '', distance: '', formation: '', playType: '',
+        down: '', distance: '', formation: '', playType: '', runPass: '',
         defFront: '', coverage: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
         fieldSide: 'own', personnel: '', driveNumber: '',

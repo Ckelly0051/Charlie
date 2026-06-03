@@ -17,6 +17,25 @@ export class StatsEngine {
     return parts.length ? parts : ['Unknown'];
   }
 
+  /**
+   * Run/pass classification. The explicit `runPass` tag is authoritative
+   * (set via the Run/Pass selector); for older plays without it we fall back
+   * to inferring from the play-type string.
+   */
+  static isRun(p) {
+    const rp = p && p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p && p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
+  }
+  static isPass(p) {
+    const rp = p && p.tags && p.tags.runPass;
+    if (rp === 'Pass') return true;
+    if (rp === 'Run') return false;
+    const t = (p && p.tags && p.tags.playType ? p.tags.playType.toLowerCase() : '');
+    return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
+  }
+
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
@@ -182,8 +201,7 @@ export class StatsEngine {
     const successes = plays.filter(p => this._isSuccessfulPlay(p)).length;
     const explosive = plays.filter(p => {
       const y = parseInt(p.tags.yardage) || 0;
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
-      return isRun ? y >= 12 : y >= 16;
+      return StatsEngine.isRun(p) ? y >= 12 : y >= 16;
     }).length;
     const negative = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0).length;
     return {
@@ -203,7 +221,7 @@ export class StatsEngine {
       if (!groups[k]) groups[k] = { name: k, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
       groups[k].count++;
       groups[k].yards += parseInt(p.tags.yardage) || 0;
-      if (p.tags.playType?.toLowerCase().includes('run')) groups[k].runs++;
+      if (StatsEngine.isRun(p)) groups[k].runs++;
       else groups[k].passes++;
       if (this._isSuccessfulPlay(p)) groups[k].successes++;
     });
@@ -215,9 +233,7 @@ export class StatsEngine {
   }
 
   _rushingStats(plays) {
-    const rushPlays = plays.filter(p =>
-      p.tags.playType?.toLowerCase().includes('run')
-    );
+    const rushPlays = plays.filter(p => StatsEngine.isRun(p));
     const yards = rushPlays.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
     const attempts = rushPlays.length;
 
@@ -233,10 +249,7 @@ export class StatsEngine {
   }
 
   _passingStats(plays) {
-    const passPlays = plays.filter(p => {
-      const t = p.tags.playType?.toLowerCase() || '';
-      return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
-    });
+    const passPlays = plays.filter(p => StatsEngine.isPass(p));
     const completions = passPlays.filter(p =>
       p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain'
     );
@@ -272,11 +285,8 @@ export class StatsEngine {
     const tds = plays.filter(p => p.tags.result === 'Touchdown');
     return {
       touchdowns: tds.length,
-      rushingTDs: tds.filter(p => p.tags.playType?.toLowerCase().includes('run')).length,
-      passingTDs: tds.filter(p => {
-        const t = p.tags.playType?.toLowerCase() || '';
-        return t.includes('pass') || t.includes('screen') || t === 'play action';
-      }).length
+      rushingTDs: tds.filter(p => StatsEngine.isRun(p)).length,
+      passingTDs: tds.filter(p => StatsEngine.isPass(p)).length
     };
   }
 
@@ -295,7 +305,7 @@ export class StatsEngine {
         downStats[down] = { total: 0, runPct: '0', passPct: '0', avgYards: '0.0', conversionPct: '0.0' };
         continue;
       }
-      const runs = downPlays.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+      const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
       const passes = total - runs;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
@@ -356,7 +366,7 @@ export class StatsEngine {
     });
 
     // Run/pass ratio
-    const runs = plays.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+    const runs = plays.filter(p => StatsEngine.isRun(p)).length;
     const passes = plays.length - runs;
 
     return {
@@ -392,7 +402,7 @@ export class StatsEngine {
     plays.forEach(p => {
       const players = p.tags.players || {};
       const yds = parseInt(p.tags.yardage) || 0;
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isRun = StatsEngine.isRun(p);
       const isPass = !isRun;
       const isTD = p.tags.result === 'Touchdown';
       const isComplete = p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain';
@@ -1063,7 +1073,7 @@ export class StatsEngine {
     const stats = this.compute(playsOverride || undefined);
     const formationDetail = {};
     plays.forEach(p => {
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isRun = StatsEngine.isRun(p);
       const yards = parseInt(p.tags.yardage) || 0;
       const isTd = p.tags.result === 'Touchdown';
       // Multi-select formation: attribute the play to each component look.
@@ -1081,7 +1091,7 @@ export class StatsEngine {
       const key = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
       if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0 };
       downTendency[key].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) downTendency[key].runs++;
+      if (StatsEngine.isRun(p)) downTendency[key].runs++;
       else downTendency[key].passes++;
     });
     const fronts = {}, coverages = {};

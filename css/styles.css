@@ -5144,6 +5144,8 @@ body { background: var(--canvas); }
   letter-spacing: 0.7px;
   margin-bottom: 5px;
 }
+/* Run / Pass: two big segmented toggles */
+.runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
 .chip-hint {
   font-weight: 600;
   font-size: 9.5px;

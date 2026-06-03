@@ -79,6 +79,7 @@ export class PlayTagger {
       hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
+      runPass: 'tagRunPass',
     };
     this.tagFields = {};
     // Offensive formation is multi-select — a QB can be in Pistol AND Spread,
@@ -245,6 +246,7 @@ export class PlayTagger {
         distance: '',
         formation: '',
         playType: '',
+        runPass: '',
         defFront: '',
         coverage: '',
         blitz: '',
@@ -327,7 +329,7 @@ export class PlayTagger {
 
     if (play) {
       play.tags = {
-        down: '', distance: '', formation: '', playType: '', defFront: '',
+        down: '', distance: '', formation: '', playType: '', runPass: '', defFront: '',
         coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
         yardLine: '', fieldSide: 'own', personnel: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
@@ -425,8 +427,32 @@ export class PlayTagger {
     const play = this.getCurrentPlay();
     if (!play) return;
     play.tags[key] = this.tagFields[key].value;
+
+    // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
+    // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
+    // coach to set, which is exactly why the explicit selector exists.
+    if (key === 'playType') {
+      const auto = PlayTagger.runPassForPlayType(play.tags.playType);
+      if (auto && play.tags.runPass !== auto) {
+        play.tags.runPass = auto;
+        if (this.tagFields.runPass) this.tagFields.runPass.value = auto;
+      }
+    }
+
     this._updateTimeline();
     this._emit('play-updated', play);
+  }
+
+  /**
+   * Map a play type to Run/Pass when it's unambiguous, else '' (ambiguous:
+   * RPO, Play Action, Trick Play — coach picks).
+   */
+  static runPassForPlayType(playType) {
+    const t = (playType || '').toLowerCase();
+    if (!t) return '';
+    if (t.includes('run')) return 'Run';
+    if (t.includes('pass') || t.includes('screen')) return 'Pass';
+    return ''; // RPO, Play Action, Trick Play
   }
 
   _savePlayer(role) {
@@ -464,6 +490,7 @@ export class PlayTagger {
     this.tagFields.distance.value = play.tags.distance;
     this.tagFields.formation.value = play.tags.formation;
     this.tagFields.playType.value = play.tags.playType;
+    this.tagFields.runPass.value = play.tags.runPass || '';
     this.tagFields.defFront.value = play.tags.defFront;
     this.tagFields.coverage.value = play.tags.coverage;
     this.tagFields.blitz.value = play.tags.blitz;
@@ -682,8 +709,10 @@ export class PlayTagger {
       const div = document.createElement('div');
 
       let typeClass = 'other';
-      if (p.tags.playType && p.tags.playType.toLowerCase().includes('run')) typeClass = 'run';
-      else if (p.tags.playType && (p.tags.playType.toLowerCase().includes('pass') || p.tags.playType.toLowerCase().includes('screen'))) typeClass = 'pass';
+      const rp = p.tags.runPass;
+      const t = (p.tags.playType || '').toLowerCase();
+      if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
+      else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
 
       div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
       div.style.left = left + '%';

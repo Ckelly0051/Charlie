@@ -1230,7 +1230,7 @@ class App {
       reader.readAsText(file);
     });
 
-    const ourFields = ['playType','result','yardage','down','distance','formation','personnel',
+    const ourFields = ['playType','runPass','result','yardage','down','distance','formation','personnel',
       'hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
       'ballCarrier','passer','receiver','tackler','notes'];
 

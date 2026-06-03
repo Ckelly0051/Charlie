@@ -136,6 +136,7 @@ export class PlaylistManager {
           distance: '',
           formation: '',
           playType: '',
+          runPass: '',
           defFront: '',
           coverage: '',
           blitz: '',
