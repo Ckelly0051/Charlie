@@ -1030,10 +1030,11 @@ class App {
       if (p === 'special') return 'special';
       return 'offense'; // offense or scout (charts both, default offense layout)
     };
+    const tagForm = document.getElementById('tagForm');
     const toggleScoutUI = () => {
       const isScout = perspectiveEl.value === 'scout';
       if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
-      // New plays default their unit toggle from the film perspective.
+      if (tagForm) tagForm.classList.toggle('is-scout', isScout);
       this.tagger.defaultUnit = unitFromPerspective(perspectiveEl.value);
     };
     perspectiveEl.addEventListener('change', toggleScoutUI);

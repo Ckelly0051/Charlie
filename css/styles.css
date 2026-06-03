@@ -4664,6 +4664,9 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
 .scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
 
+/* Hide our-defense-only fronts (Maverick/Eagle/Falcon) in opponent scout mode */
+.tag-form.is-scout .our-def-only { display: none; }
+
 /* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
 .unit-toggle-section { padding: 2px 0 0; margin-bottom: 6px; background: transparent; }
 .unit-toggle { display: flex; gap: 4px; }
