@@ -4732,6 +4732,14 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .shortcuts-group kbd { display: inline-block; font-family: inherit; font-size: 11px; line-height: 1; padding: 3px 5px; margin: 1px; border: 1px solid var(--border-bright, var(--border)); border-bottom-width: 2px; border-radius: 4px; background: var(--bg-tertiary); color: var(--text); }
 @media (max-width: 640px) { .shortcuts-grid { grid-template-columns: 1fr; } }
 
+/* --- In-app confirmation modal (reliable replacement for window.confirm) --- */
+.ffa-confirm-modal { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; }
+.ffa-confirm-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+.ffa-confirm-card { position: relative; background: var(--surface, #fff); color: var(--text); border: 1px solid var(--chip-border, var(--border)); border-radius: var(--radius-lg, 12px); box-shadow: var(--shadow-lg, 0 22px 50px rgba(15,23,42,.2)); width: 92%; max-width: 380px; padding: 22px 22px 18px; }
+.ffa-confirm-msg { margin: 0 0 18px; font-size: 15px; line-height: 1.45; }
+.ffa-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.ffa-confirm-actions .btn { min-width: 88px; justify-content: center; }
+
 /* ================================================================== */
 /* ==========  SINGLE-COLUMN LAYOUT — tag form below video  ========= */
 /* Final layer: video on top (sticky), full-width tag form below it,   */

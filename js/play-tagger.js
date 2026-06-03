@@ -247,7 +247,7 @@ export class PlayTagger {
     this._emit('play-created', play);
   }
 
-  deleteCurrentPlay() {
+  async deleteCurrentPlay() {
     // Fall back to the dropdown selection if no play is actively loaded
     // (e.g. after importing/loading plays without re-selecting one), so the
     // Delete button always acts on the play the user can see.
@@ -256,13 +256,64 @@ export class PlayTagger {
       id = parseInt(this.playSelect.value);
     }
     if (!id) return;
-    if (!confirm('Delete this play? This cannot be undone.')) return;
+    // Use an in-app modal instead of native confirm(): browsers suppress
+    // repeated confirm() dialogs ("prevent additional dialogs"), which made
+    // delete silently do nothing.
+    const ok = await this._confirmDialog(`Delete Play ${id}? This cannot be undone.`);
+    if (!ok) return;
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
     this._updatePlaySelect();
     this._updateTimeline();
     this._emit('play-deleted');
+  }
+
+  /**
+   * Lightweight in-app confirmation modal. Returns a Promise<boolean>.
+   * Reliable replacement for window.confirm (which can be suppressed by the
+   * browser). Enter / the Delete button confirm; Esc / Cancel / backdrop reject.
+   */
+  _confirmDialog(message) {
+    return new Promise(resolve => {
+      const prev = document.getElementById('ffaConfirmModal');
+      if (prev) prev.remove();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'ffa-confirm-modal';
+      overlay.id = 'ffaConfirmModal';
+      overlay.innerHTML = `
+        <div class="ffa-confirm-backdrop"></div>
+        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
+          <p class="ffa-confirm-msg"></p>
+          <div class="ffa-confirm-actions">
+            <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
+            <button type="button" class="btn btn-sm btn-danger" data-act="ok">Delete</button>
+          </div>
+        </div>`;
+      overlay.querySelector('.ffa-confirm-msg').textContent = message;
+      document.body.appendChild(overlay);
+
+      const cleanup = (val) => {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        resolve(val);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(false); }
+        else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(true); }
+      };
+      overlay.addEventListener('click', (e) => {
+        const act = e.target.dataset ? e.target.dataset.act : null;
+        if (act === 'ok') cleanup(true);
+        else if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) cleanup(false);
+      });
+      // Capture phase so the app's global key shortcuts don't also fire.
+      document.addEventListener('keydown', onKey, true);
+
+      const okBtn = overlay.querySelector('[data-act="ok"]');
+      if (okBtn) okBtn.focus();
+    });
   }
 
   selectPlay(id) {
