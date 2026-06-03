@@ -5147,6 +5147,36 @@ body { background: var(--canvas); }
 /* Run / Pass: two big segmented toggles */
 .runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
 
+/* Play diagram (X's & O's) */
+.pd-preview {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  aspect-ratio: 320 / 150;
+  border: 1px solid var(--chip-border, #cbd3e0);
+  border-radius: var(--radius, 8px);
+  background: #13351c;
+  cursor: pointer;
+  display: block;
+  margin-top: 4px;
+}
+#playDiagramSection:not(.has-diagram) #btnClearDiagram { display: none; }
+.pd-actions { display: inline-flex; gap: 6px; }
+.pd-editor { max-width: 700px; width: 96%; text-align: left; }
+.pd-title { margin: 0 0 8px; font-size: 16px; }
+.pd-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.pd-tool.active { background: var(--accent, #4169e1); border-color: var(--accent, #4169e1); color: #fff; }
+.pd-canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 380;
+  border-radius: var(--radius, 8px);
+  border: 1px solid var(--chip-border, #cbd3e0);
+  touch-action: none;
+  display: block;
+}
+.pd-help { font-size: 11px; color: var(--text-dim, #64748b); margin: 6px 0 4px; }
+
 /* Custom user-defined tag fields */
 #customFieldsSection.cf-empty #tagCustomFields { display: none; }
 .cf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

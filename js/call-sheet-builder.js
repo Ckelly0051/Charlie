@@ -10,6 +10,7 @@
  * how many of each to include; we rank by EPA (if available) then by yards.
  */
 import { AdvancedMetrics } from './advanced-metrics.js';
+import { PlayDiagram } from './play-diagram.js';
 
 const BUCKETS = [
   { id: 'openers',   label: 'Openers',        count: 8,  filter: (p, i) => i < 15 },
@@ -177,6 +178,13 @@ export class CallSheetBuilder {
     return parts.join(' ') || `Play #${p.id}`;
   }
 
+  /** Diagram thumbnail (data-URL <img>) for a play, or '' if none. */
+  _diagramImg(p, w = 132, h = 82) {
+    if (!p.diagram || !p.diagram.length) return '';
+    try { return `<img class="cs-diagram" src="${PlayDiagram.toDataURL(p.diagram, w * 2, h * 2)}" width="${w}" height="${h}">`; }
+    catch { return ''; }
+  }
+
   /** Compact performance tag so an EPA-ranked call shows why it's ranked. */
   _playResult(p) {
     const t = p.tags || {};
@@ -243,6 +251,8 @@ export class CallSheetBuilder {
       .bucket td { border-top: 1px solid #ccc; padding: 2px 4px; vertical-align: top; }
       .bucket td.num { font-weight: bold; width: 18px; text-align: right; background: #f4f4f4; }
       .bucket td.res { text-align: right; white-space: nowrap; color: #444; font-variant-numeric: tabular-nums; width: 34px; }
+      .cs-diag-wrap { margin-top: 3px; }
+      .cs-diagram { display: block; border: 1px solid #999; border-radius: 3px; max-width: 100%; height: auto; }
       @media print {
         body { padding: 0.3in; }
         .bucket { page-break-inside: avoid; }
@@ -257,7 +267,10 @@ export class CallSheetBuilder {
       if (!b.plays.length) return '';
       const rows = b.plays.map((p, pIdx) => {
         const res = this._esc(this._playResult(p));
-        return `<tr><td class="num">${numFor(bIdx, pIdx)}</td><td>${this._esc(this._playLabel(p))}</td><td class="res">${res}</td></tr>`;
+        // Diagrams print on the full sheet (wristband is too compact).
+        const diag = wristband ? '' : this._diagramImg(p);
+        const label = this._esc(this._playLabel(p)) + (diag ? `<div class="cs-diag-wrap">${diag}</div>` : '');
+        return `<tr><td class="num">${numFor(bIdx, pIdx)}</td><td>${label}</td><td class="res">${res}</td></tr>`;
       }).join('');
       return `<div class="bucket"><h2>${this._esc(b.label)}</h2><table>${rows}</table></div>`;
     }).join('');

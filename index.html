@@ -462,6 +462,18 @@
             <div class="player-quickpick" id="rosterQuickPick"></div>
           </div>
 
+          <!-- Play diagram (X's & O's) -->
+          <div class="chip-section" id="playDiagramSection">
+            <div class="cf-head">
+              <label class="chip-label">Play Diagram</label>
+              <span class="pd-actions">
+                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
+                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
+              </span>
+            </div>
+            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
+          </div>
+
           <!-- Custom user-defined tag fields -->
           <div class="chip-section cf-empty" id="customFieldsSection">
             <div class="cf-head">

@@ -26,6 +26,7 @@ import { CallSheetBuilder } from './call-sheet-builder.js';
 import { UIPolish } from './ui-polish.js';
 import { Wizard } from './wizard.js';
 import { CustomFieldsManager } from './custom-fields.js';
+import { PlayDiagram } from './play-diagram.js';
 
 class App {
   constructor() {
@@ -36,8 +37,12 @@ class App {
     this.roster = new RosterManager(this.tagger);
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
-    // Re-render custom-field inputs on every form load (select / clear / copy / template).
-    this.tagger.onLoadForm = (play) => this.customFields.loadValues(play);
+    this.playDiagram = new PlayDiagram(this.tagger);
+    // Re-render custom-field inputs + diagram preview on every form load.
+    this.tagger.onLoadForm = (play) => {
+      this.customFields.loadValues(play);
+      this.playDiagram.renderPreview();
+    };
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
     this.detector = new PlayDetector(this.vc, this.tagger);
