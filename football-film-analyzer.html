@@ -7825,16 +7825,22 @@ class PlayTagger {
 
   /**
    * Reset the current play's tags back to blank, keeping the play segment and
-   * the loaded video so the coach can re-tag the same snap. Instant (no
-   * confirmation) and always clears the on-screen form so the button has an
-   * obvious effect even when no play is selected yet.
+   * the loaded video so the coach can re-tag the same snap. Confirms first,
+   * then clears the on-screen form (and the current play's stored tags/notes
+   * when one exists) so the button always has an obvious effect.
    */
-  clearCurrentTags() {
+  async clearCurrentTags() {
     let id = this.currentPlayId;
     if (!id && this.playSelect && this.playSelect.value) {
       id = parseInt(this.playSelect.value);
     }
     const play = id ? this.getPlay(id) : null;
+
+    const msg = play
+      ? `Clear all tags on Play ${id}? Only the tag values reset — the play and video stay.`
+      : 'Clear the current tag selections?';
+    const ok = await this._confirmDialog(msg, 'Clear Tags');
+    if (!ok) return;
 
     if (play) {
       play.tags = {
