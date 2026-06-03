@@ -4978,36 +4978,43 @@ body {
 /* the single-column stack above. Last block => wins the cascade.      */
 /* ================================================================== */
 @media (min-width: 1100px) {
+  /* Use the full viewport height; only the tag column scrolls so the   */
+  /* film stays put. A wide right column keeps chips on few rows =>      */
+  /* minimal scrolling.                                                  */
+  body, html { overflow: hidden; }
+
   .main-content {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) clamp(430px, 33vw, 580px) !important;
+    grid-template-columns: minmax(0, 1fr) clamp(460px, 40vw, 760px) !important;
     grid-template-rows: auto !important;
-    align-items: start;
+    align-items: stretch;
+    height: calc(100vh - 52px);
     gap: 0;
   }
 
-  /* Left column: video sticks below the top bar, sized to its 16:9    */
-  /* box so we reclaim width instead of letterboxing.                  */
+  /* Left column: video centered in its column, sized to its 16:9 box. */
   .video-section {
-    position: sticky;
-    top: 52px;
-    height: auto;
+    position: static;
+    height: calc(100vh - 52px);
     max-height: calc(100vh - 52px);
     min-height: 0;
     border-bottom: none;
     border-right: 1px solid var(--border);
+    justify-content: center;
   }
   .video-section .video-container {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     aspect-ratio: 16 / 9;
-    max-height: calc(100vh - 200px);
+    width: 100%;
+    max-height: calc(100vh - 150px);
   }
 
-  /* Right column: tag form scrolls with the page. No max-width/centering */
-  /* now that it owns a dedicated narrow column.                          */
+  /* Right column owns its own scroll so the page never moves. */
   .tag-section {
-    padding: 14px 20px 72px;
-    min-height: calc(100vh - 52px);
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+    padding: 12px 18px 40px;
+    min-height: 0;
     border-top: none;
   }
   .tag-section .tag-form,
@@ -5019,10 +5026,13 @@ body {
     margin-right: 0;
   }
 
-  /* Player role inputs stay at two-up in the narrower column (overrides */
-  /* the 4-up rule from the 920px breakpoint).                          */
-  .tag-section .player-roles { grid-template-columns: repeat(2, 1fr); }
+  /* Compact vertical rhythm so more fields fit per screen. */
+  .tag-section .chip-section { margin-bottom: 5px; padding: 5px 8px; }
+  .tag-section .chip-label { margin-bottom: 3px; }
+  .tag-section .play-mark-controls { margin-bottom: 8px; }
+  .tag-section .play-selector { margin-bottom: 8px; }
+  .tag-section .pick { padding: 6px 10px; font-size: 12.5px; }
 
-  /* Slightly tighter chips so each field fits a row or two in-column. */
-  .tag-section .pick { padding: 7px 11px; font-size: 12.5px; }
+  /* Wider column => player roles fit four-up again. */
+  .tag-section .player-roles { grid-template-columns: repeat(4, 1fr); }
 }
