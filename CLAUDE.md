@@ -13,7 +13,10 @@ The app is a **single scrollable column**, not a video+sidebar split:
 - **Top bar** — sticky, file load + actions.
 - **Video section** (`.video-section`) — **sticky** below the top bar so the
   film stays in view while you tag. Contains the video, playback controls,
-  and the timeline strip.
+  the timeline strip, and the **play-control bar** (`.video-play-controls`):
+  Mark Start · Mark End · **Clear Tags** · **Delete Play** · play selector
+  (filling the dead space under the player). The Offense/Defense/ST unit toggle
+  leads the right (tag) column.
 - **Tag section** (`.tag-section`) — holds the entire tagging workflow (mark
   controls, play selector, chip-based tag form, notes, OCR/auto-detect). No
   popup/sidebar — tagging is always on-page.
@@ -169,7 +172,9 @@ Methods in `StorageManager`: `importPlaysFromText(text)` parses CSV and returns 
 In the Roster panel: Import button reveals a paste area + file chooser. `RosterManager.importFromText(text)` handles parsing with header detection.
 
 ### CSV Export
-`StorageManager.exportCsv()` — all plays with full tag fields including player attribution and grades.
+`StorageManager.exportCsv()` — all plays with full tag fields including the
+multi-select Formation (`"Pistol + Spread"`), the **Run/Pass** column, player
+attribution, and grades. CSV import recognizes a `Run/Pass` (or `RP`) column.
 
 ### HTML Report Export
 `StorageManager.exportHtmlReport(statsEngine)` — styled standalone HTML with all stats sections.
@@ -207,6 +212,13 @@ Methods in `StatsEngine`: `generateScoutReport()`, `renderScoutReport()`, `_expo
 
 The tag form uses **chip buttons** instead of dropdowns. Each field is a `div.pick-group` containing `button.pick` elements. The `ChipField` wrapper class (in `play-tagger.js`) provides `.value` get/set and `change` events so the rest of the code interacts with chip groups identically to native `<select>` elements.
 
+**Multi-select chips**: `ChipField(el, { multi: true })` allows multiple chips
+active at once; `.value` then returns a `" + "`-joined string (e.g. `"Pistol +
+Spread"`). Only **Formation** is multi-select today (a QB can be Pistol AND
+Spread). The string interface is unchanged, so all consumers still treat it as
+a plain string; analytics split on `" + "` and attribute the play to each
+component (see `StatsEngine.splitFormations`).
+
 ### Unit Toggle (Offense / Defense / Special Teams)
 
 A per-play segmented toggle (`#tagUnit`) at the top of the form drives the
@@ -233,12 +245,13 @@ headers (`.tag-group-head`) are clickable to expand/collapse the secondary side.
 (pre-snap → post-snap), not a "most-important-first" order:
 1. Unit toggle — Offense / Defense / Special Teams
 2. Down & Distance — 4 chips + input (known pre-snap; usually auto-filled)
-3. Side groups — Offense (Formation, Personnel) / Defense (Def Front, Coverage, Blitz) / Special Teams (ST Play Type, Kicker, Returner) — the alignment you read pre-snap
-4. Play Type — 9 chips (what they ran)
-5. Result — 13 chips
-6. Yardage — number input with +/− buttons
-7. Players — 6 role inputs (BC/Passer/Receiver/Tackler/Kicker/Returner) + grade selects + quick-pick chips
-8. Play Notes — textarea (the real call, e.g. "Power R 34 Lead")
+3. Side groups — Offense (Formation **[multi-select]**, Personnel) / Defense (Def Front, Coverage, Blitz) / Special Teams (ST Play Type, Kicker, Returner) — the alignment you read pre-snap
+4. Run / Pass — 2 chips (`#tagRunPass`, `play.tags.runPass`). The authoritative run/pass classifier. Auto-fills when an unambiguous Play Type is picked (Run* → Run; Pass/Screen → Pass); left blank for RPO / Play Action / Trick for the coach to set. `StatsEngine.isRun()/isPass()` consume it (fallback to playType-string inference for legacy plays).
+5. Play Type — 9 chips (what they ran)
+6. Result — 13 chips
+7. Yardage — number input with +/− buttons
+8. Players — 6 role inputs (BC/Passer/Receiver/Tackler/Kicker/Returner) + grade selects + quick-pick chips
+9. Play Notes — textarea (the real call, e.g. "Power R 34 Lead")
 
 **Collapsed section** ("Situation & Details"):
 Hash, Quarter, Field Position, Drive, Custom Tags
@@ -248,6 +261,42 @@ Hash, Quarter, Field Position, Drive, Custom Tags
 Special-teams stats (return game, kicking/punting) roll up in
 `StatsEngine._individualStats` from `players.returner` / `players.kicker` keyed
 on `stType`, and render as extra tables in the stats dashboard.
+
+### Clear Tags vs Delete Play (play-control bar)
+
+Two distinct destructive actions live in `.video-play-controls`:
+- **Clear Tags** (`PlayTagger.clearCurrentTags`) — resets the current play's
+  tag values + notes back to blank but keeps the play segment and the loaded
+  video, so you can re-tag the same snap. Always also clears the on-screen form
+  (even when no play is selected) so the button has an obvious effect. Shows the
+  confirmation modal first.
+- **Delete Play** (`PlayTagger.deleteCurrentPlay`) — removes the play **and**
+  unloads the video from the player (`VideoController.unloadVideo()` revokes the
+  object URL, clears `<video>`, restores the placeholder). The **source file on
+  disk is never touched** — browsers can't delete local files; this only clears
+  the player. Confirms first.
+- Both fall back to the play-selector value when `currentPlayId` is null (plays
+  loaded/imported without an explicit re-select).
+
+### In-app confirmation modal
+
+`PlayTagger._confirmDialog(message, confirmLabel)` builds a lightweight modal
+(`#ffaConfirmModal`, `.ffa-confirm-*` CSS) and returns a `Promise<boolean>`.
+**Use this instead of `window.confirm()`** for in-form destructive actions:
+browsers suppress repeated native `confirm()` dialogs ("prevent additional
+dialogs"), which silently returned `false` and made Delete look broken. Enter /
+the confirm button resolve true; Esc / Cancel / backdrop resolve false; keydown
+is captured so the app's tagging shortcuts don't fire underneath.
+
+### Video robustness (freeze fixes)
+
+`VideoController` guards against the common "frozen player" causes: `play()`
+promise rejections are caught; scrubbing pauses playback then resumes on
+release (avoids seek-queue buildup); `waiting`/`stalled`/`seeked`/`error`
+events toggle an `is-buffering` class that shows a spinner; the `<video>` has
+`playsinline`. Native `<select>` arrows are replaced with a larger custom SVG
+chevron (cascade-proofed with `!important` against class-based `background`
+shorthands).
 
 ### Shortcuts Legend
 A **Shortcuts** button in the top bar (always visible, even on the first screen
@@ -311,6 +360,51 @@ Sends video frames to Claude's vision API for AI-assisted tagging. Currently a *
 
 **Important**: All JS files share one function scope in the built bundle. Variable name collisions between files will cause runtime errors. Each file's top-level `const`/`let` declarations must be unique across the entire codebase.
 
+### Deploy to GitHub Pages
+
+The live site serves from the **`gh-pages` branch**, NOT the feature branch.
+After building, deploy by copying the bundle into both `index.html` and
+`football-film-analyzer.html` on `gh-pages` (a git worktree is the clean way),
+then push. Pushing only to the feature branch does **not** update the live URL.
+
+## Offline / Self-Contained Distribution
+
+**Current status: the app is already ~95% self-contained.**
+`football-film-analyzer.html` is a single ~575 KB file with all CSS, JS, and
+icons inlined, and **no `type="module"`**, so it can be downloaded and opened
+directly via `file://` (double-click) and runs **fully offline**. The core
+workflow — load local video, mark/tag plays, stats, EPA, heat maps, cut-ups,
+call sheets, roster, CSV/HTML export — makes **zero network calls**.
+
+The only runtime network touches are **optional** features:
+- **Claude Vision auto-tagging** → `api.anthropic.com` (needs API key; by design).
+- **Local CV backend** → `127.0.0.1` (optional localhost server, not internet).
+- **Scoreboard OCR** → lazy-loads `tesseract.js` from `cdn.jsdelivr.net` on first
+  use. **This is the one core-ish feature that breaks offline.**
+
+(`www.w3.org` references are SVG/XML namespaces — identifiers, never fetched.)
+
+### Planned: Option 1 — PWA install + offline cache (chosen, execute eventually)
+
+The agreed direction (deferred until current feature work wraps) is to make the
+app an installable, guaranteed-offline PWA **without** abandoning the
+no-build/single-file ethos:
+1. **Web app manifest** (name, icons, `display: standalone`, theme color) so
+   browsers offer "Install Football Film Analyzer" (desktop + mobile), with an
+   app icon and its own window.
+2. **Service worker** that precaches the app shell so it's guaranteed available
+   offline after the first load (cache-first for the app, network-only for the
+   optional API/backend calls).
+3. **"Download offline copy" button** in-app that saves `football-film-analyzer.html`
+   for true file:// portability.
+4. **Graceful OCR degradation**: when offline (or the CDN is unreachable), the
+   scoreboard-OCR feature should show a friendly "needs internet" note instead
+   of failing silently. (Fully bundling Tesseract + WASM + lang data ≈ 10–15 MB
+   was considered and rejected for now to keep the package lean.)
+
+Not chosen: bundling Tesseract locally (size), and a native Electron/Tauri
+installer (adds a build toolchain + code-signing, against the current design).
+
 ## Stats Engine Dependencies
 
 The stats engine (`js/stats-engine.js`) computes:
@@ -339,3 +433,11 @@ The stats engine (`js/stats-engine.js`) computes:
 6. **No external libraries**: All parsing (CSV, roster import) uses pure browser JS. No SheetJS, Papa Parse, etc. This preserves the single-file no-dependency design.
 
 7. **Event delegation for modals**: Season and import modals use document-level click delegation with `e.target.id` checks. Don't add `stopPropagation()` on modal containers — it breaks the delegated button handlers.
+
+8. **Never trust `window.confirm()` for in-form actions**: browsers suppress repeated native dialogs, returning `false` and making actions silently no-op. Use `PlayTagger._confirmDialog()` (in-app modal) instead.
+
+9. **Explicit > inferred classification**: run/pass was guessed from the play-type string, which broke on RPO/Play Action/Screen. The explicit `runPass` field is now authoritative (`StatsEngine.isRun()/isPass()`), with string inference kept only as a legacy fallback. When a tag drives core analytics, prefer an explicit field over parsing another field.
+
+10. **Multi-value tags as delimited strings**: multi-select Formation stores `"A + B"` rather than switching the field to an array — this keeps every string consumer (save, CSV, call sheet, display) working unchanged. Analytics split on `" + "` and attribute the play to each component (percentages can exceed 100%, which is correct for overlapping looks). `StatsEngine.splitFormations()` is the canonical splitter.
+
+11. **Backward compatibility by fallback**: new tag fields (`runPass`, multi-formation) degrade gracefully for plays/saves that predate them — empty `runPass` falls back to string inference; a single-formation string is just a one-element split. No schema migration needed.
