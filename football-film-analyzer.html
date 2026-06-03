@@ -5329,6 +5329,64 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   /* Nav bar: snug to the content above it */
   .tag-section .tag-nav { padding: 6px 0 0; margin-top: 2px; }
 }
+
+/* ================================================================== */
+/* ====  SELECTS v7 — prominent dropdown arrows                    == */
+/* Custom chevron replaces the default browser arrow for all selects. */
+/* !important + high-specificity coverage so class-based selectors    */
+/* (.play-select, .speed-select, .tag-row select…) that set a         */
+/* `background:` shorthand can't wipe out our arrow image.            */
+/* ================================================================== */
+select,
+.play-select,
+.speed-select,
+.filter-select,
+.tag-row select,
+.tag-row-inline select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  padding-right: 36px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%231e293b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 16px 16px !important;
+  cursor: pointer;
+}
+select:hover,
+.play-select:hover,
+.speed-select:hover,
+.filter-select:hover,
+.tag-row select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%234169e1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+select:focus,
+.play-select:focus,
+.speed-select:focus,
+.filter-select:focus,
+.tag-row select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%234169e1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+
+/* ================================================================== */
+/* ====  BUFFERING v8 — visual feedback while video loads          == */
+/* ================================================================== */
+.video-container { position: relative; }
+video.is-buffering { opacity: 0.6; }
+.video-container:has(video.is-buffering)::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 36px; height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 3px solid rgba(255,255,255,0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: vc-spin 0.7s linear infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+@keyframes vc-spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -5603,7 +5661,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <!-- Video Area -->
       <div class="video-section">
         <div class="video-container" id="videoContainer">
-          <video id="videoPlayer" preload="auto"></video>
+          <video id="videoPlayer" preload="auto" playsinline></video>
           <canvas id="drawingCanvas"></canvas>
           <div class="video-placeholder" id="videoPlaceholder">
             <svg class="icon icon-large"><use href="#icon-film"/></svg>
@@ -6604,6 +6662,7 @@ class VideoController {
     this.fps = 30;
     this.objectUrl = null;
     this.isScrubbing = false;
+    this._wasPlayingBeforeScrub = false;
     this.listeners = {};
 
     this._bindEvents();
@@ -6720,6 +6779,23 @@ class VideoController {
       this._updatePlayPauseIcon(false);
     });
 
+    this.video.addEventListener('waiting', () => {
+      this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('playing', () => {
+      this.video.classList.remove('is-buffering');
+    });
+    this.video.addEventListener('stalled', () => {
+      this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('error', () => {
+      this.video.classList.remove('is-buffering');
+      this._updatePlayPauseIcon(false);
+    });
+    this.video.addEventListener('seeked', () => {
+      this.video.classList.remove('is-buffering');
+    });
+
     // Scrub bar interaction
     this.scrubBar.addEventListener('mousedown', (e) => this._startScrub(e));
     document.addEventListener('mousemove', (e) => {
@@ -6802,7 +6878,9 @@ class VideoController {
   togglePlay() {
     if (!this.video.src) return;
     if (this.video.paused) {
-      this.video.play();
+      this.video.play().catch(() => {
+        this._updatePlayPauseIcon(false);
+      });
     } else {
       this.video.pause();
     }
@@ -6853,6 +6931,8 @@ class VideoController {
   }
 
   _startScrub(e) {
+    this._wasPlayingBeforeScrub = !this.video.paused;
+    if (this._wasPlayingBeforeScrub) this.video.pause();
     this.isScrubbing = true;
     this._doScrub(e);
   }
@@ -6868,6 +6948,12 @@ class VideoController {
 
   _endScrub() {
     this.isScrubbing = false;
+    if (this._wasPlayingBeforeScrub) {
+      this.video.play().catch(() => {
+        this._updatePlayPauseIcon(false);
+      });
+      this._wasPlayingBeforeScrub = false;
+    }
   }
 
   _updateScrubBar() {
@@ -7669,6 +7755,7 @@ class PlayTagger {
 
   deleteCurrentPlay() {
     if (!this.currentPlayId) return;
+    if (!confirm('Delete this play? This cannot be undone.')) return;
     this.plays = this.plays.filter(p => p.id !== this.currentPlayId);
     this.currentPlayId = null;
     this._clearTagForm();
