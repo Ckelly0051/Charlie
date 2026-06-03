@@ -12,13 +12,11 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 The app is a **single scrollable column**, not a video+sidebar split:
 - **Top bar** — sticky, file load + actions.
 - **Video section** (`.video-section`) — **sticky** below the top bar so the
-  film stays in view while you scroll the form. Constrained height
-  (`min(54vh, 620px)`, 38vh on mobile). Contains the video, playback controls,
+  film stays in view while you tag. Contains the video, playback controls,
   and the timeline strip.
-- **Tag section** (`.tag-section`) — full-width, directly below the video.
-  Holds the entire tagging workflow (mark controls, play selector, chip-based
-  tag form, notes, OCR/auto-detect). No popup/sidebar — tagging is always
-  on-page. The form is centered with `max-width: 1100px`.
+- **Tag section** (`.tag-section`) — holds the entire tagging workflow (mark
+  controls, play selector, chip-based tag form, notes, OCR/auto-detect). No
+  popup/sidebar — tagging is always on-page.
 - **Settings drawer** (`.settings-drawer` / `#settingsDrawer`) — slides in from
   the right (toggled by the top-bar "Settings" button, the mobile "More" tab,
   Esc, scrim, or its × button). Houses secondary panels: Game Info, Roster,
@@ -27,10 +25,16 @@ The app is a **single scrollable column**, not a video+sidebar split:
 - **Mobile** — bottom tab bar (Video / Tag / Stats / More) from
   `_initBottomTabs()`; "Tag" scrolls to the form, "More" opens the drawer.
 
-The old 2-column `.main-content` grid and `.bottom-panel` (notes + timeline)
-were removed; notes moved into the tag form, timeline into the video section.
-The CSS that enforces this is the last block in `css/styles.css`
-("SINGLE-COLUMN LAYOUT").
+### Responsive layout modes
+
+- **Widescreen (≥1100px)** — two-column grid: video sticky on the left
+  (`minmax(0,1fr)`), tag form scrolling on the right (`clamp(430px,33vw,580px)`).
+  CSS block: "TWO-COLUMN LAYOUT" at the end of `css/styles.css`.
+- **Narrow / tablet (<1100px)** — single-column stack: sticky video on top
+  (`min(54vh,620px)`), full-width tag form below. CSS block: "SINGLE-COLUMN
+  LAYOUT".
+- **Mobile (≤800px)** — same stack with shorter video (38vh), bottom tab bar,
+  larger touch chips.
 
 ## Project Structure
 

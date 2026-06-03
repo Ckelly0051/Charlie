@@ -4977,6 +4977,62 @@ body {
 @media (max-width: 800px) {
   .sidebar-toggle { display: none !important; }
 }
+
+/* ==========  TWO-COLUMN LAYOUT — widescreen  ===================== */
+/* On wide monitors the single column wastes horizontal space: the    */
+/* film is far wider than it needs to be. Split into video (left,      */
+/* sticky) + tag form (right, scrolls). Below 1100px we fall back to   */
+/* the single-column stack above. Last block => wins the cascade.      */
+/* ================================================================== */
+@media (min-width: 1100px) {
+  .main-content {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) clamp(430px, 33vw, 580px) !important;
+    grid-template-rows: auto !important;
+    align-items: start;
+    gap: 0;
+  }
+
+  /* Left column: video sticks below the top bar, sized to its 16:9    */
+  /* box so we reclaim width instead of letterboxing.                  */
+  .video-section {
+    position: sticky;
+    top: 52px;
+    height: auto;
+    max-height: calc(100vh - 52px);
+    min-height: 0;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+  .video-section .video-container {
+    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
+    max-height: calc(100vh - 200px);
+  }
+
+  /* Right column: tag form scrolls with the page. No max-width/centering */
+  /* now that it owns a dedicated narrow column.                          */
+  .tag-section {
+    padding: 14px 20px 72px;
+    min-height: calc(100vh - 52px);
+    border-top: none;
+  }
+  .tag-section .tag-form,
+  .tag-section .tagger-tools,
+  .tag-section .play-mark-controls,
+  .tag-section .play-selector {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Player role inputs stay at two-up in the narrower column (overrides */
+  /* the 4-up rule from the 920px breakpoint).                          */
+  .tag-section .player-roles { grid-template-columns: repeat(2, 1fr); }
+
+  /* Slightly tighter chips so each field fits a row or two in-column. */
+  .tag-section .pick { padding: 7px 11px; font-size: 12.5px; }
+}
   </style>
 </head>
 <body>
