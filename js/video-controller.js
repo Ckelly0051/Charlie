@@ -182,6 +182,29 @@ export class VideoController {
   }
 
   /**
+   * Unload the current video from the player without touching the source
+   * file on disk. Revokes the object URL, clears the <video> element, and
+   * brings back the placeholder so the player shows an empty state again.
+   */
+  unloadVideo() {
+    try { this.video.pause(); } catch {}
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this.currentFile = null;
+    this.video.removeAttribute('src');
+    try { this.video.load(); } catch {}
+    if (this.placeholder) this.placeholder.classList.remove('hidden');
+    if (this.fileLabel) this.fileLabel.textContent = 'Drop video(s) / folder or click to load';
+    if (this.folderLoadBadge) this.folderLoadBadge.classList.add('hidden');
+    this._setScrubPosition(0);
+    this._updatePlayPauseIcon(false);
+    if (this.timeDisplay) this.timeDisplay.textContent = '0:00 / 0:00';
+    this._emit('video-unloaded', {});
+  }
+
+  /**
    * Filter a list of File objects down to supported video files. Some
    * browsers leave the MIME type blank for less-common containers, so we
    * also accept known video extensions as a fallback.

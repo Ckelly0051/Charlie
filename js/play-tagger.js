@@ -47,6 +47,7 @@ export class PlayTagger {
     this.btnMarkStart = document.getElementById('btnMarkStart');
     this.btnMarkEnd = document.getElementById('btnMarkEnd');
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
+    this.btnClearTags = document.getElementById('btnClearTags');
     this.timelineBar = document.getElementById('timelineBar');
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
@@ -115,6 +116,9 @@ export class PlayTagger {
     this.btnMarkStart.addEventListener('click', () => this.markStart());
     this.btnMarkEnd.addEventListener('click', () => this.markEnd());
     this.btnDeletePlay.addEventListener('click', () => this.deleteCurrentPlay());
+    if (this.btnClearTags) {
+      this.btnClearTags.addEventListener('click', () => this.clearCurrentTags());
+    }
     this.playSelect.addEventListener('change', () => {
       const id = parseInt(this.playSelect.value);
       if (id) this.selectPlay(id);
@@ -259,7 +263,10 @@ export class PlayTagger {
     // Use an in-app modal instead of native confirm(): browsers suppress
     // repeated confirm() dialogs ("prevent additional dialogs"), which made
     // delete silently do nothing.
-    const ok = await this._confirmDialog(`Delete Play ${id}? This cannot be undone.`);
+    const ok = await this._confirmDialog(
+      `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
+      'Delete Play'
+    );
     if (!ok) return;
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
@@ -267,6 +274,49 @@ export class PlayTagger {
     this._updatePlaySelect();
     this._updateTimeline();
     this._emit('play-deleted');
+    // Remove the loaded video from the player (does NOT delete the file).
+    if (this.vc && typeof this.vc.unloadVideo === 'function') {
+      this.vc.unloadVideo();
+    }
+  }
+
+  /**
+   * Reset the current play's tags back to blank, keeping the play segment and
+   * the loaded video so the coach can re-tag the same snap.
+   */
+  async clearCurrentTags() {
+    let id = this.currentPlayId;
+    if (!id && this.playSelect && this.playSelect.value) {
+      id = parseInt(this.playSelect.value);
+    }
+    if (!id) return;
+    const play = this.getPlay(id);
+    if (!play) return;
+    const ok = await this._confirmDialog(
+      `Clear all tags on Play ${id}? Only the tag values reset — the play and video stay.`,
+      'Clear Tags'
+    );
+    if (!ok) return;
+
+    play.tags = {
+      down: '', distance: '', formation: '', playType: '', defFront: '',
+      coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
+      yardLine: '', fieldSide: 'own', personnel: '',
+      driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
+      unit: play.tags.unit || this.defaultUnit || 'offense',
+      stType: '', players: {}, grades: {}, custom: []
+    };
+    play.notes = '';
+
+    // Reflect the reset in the UI if this play is the one on screen.
+    if (this.currentPlayId === id) {
+      this._loadTagForm(play);
+      const notesEl = document.getElementById('notesArea');
+      if (notesEl) notesEl.value = '';
+    }
+    this._updatePlaySelect();
+    this._updateTimeline();
+    this._emit('play-updated', play);
   }
 
   /**
@@ -274,7 +324,7 @@ export class PlayTagger {
    * Reliable replacement for window.confirm (which can be suppressed by the
    * browser). Enter / the Delete button confirm; Esc / Cancel / backdrop reject.
    */
-  _confirmDialog(message) {
+  _confirmDialog(message, confirmLabel = 'Delete') {
     return new Promise(resolve => {
       const prev = document.getElementById('ffaConfirmModal');
       if (prev) prev.remove();
@@ -288,10 +338,11 @@ export class PlayTagger {
           <p class="ffa-confirm-msg"></p>
           <div class="ffa-confirm-actions">
             <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
-            <button type="button" class="btn btn-sm btn-danger" data-act="ok">Delete</button>
+            <button type="button" class="btn btn-sm btn-danger" data-act="ok"></button>
           </div>
         </div>`;
       overlay.querySelector('.ffa-confirm-msg').textContent = message;
+      overlay.querySelector('[data-act="ok"]').textContent = confirmLabel;
       document.body.appendChild(overlay);
 
       const cleanup = (val) => {
