@@ -72,6 +72,7 @@ for jsfile in \
   js/call-sheet-builder.js \
   js/ui-polish.js \
   js/wizard.js \
+  js/custom-fields.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"

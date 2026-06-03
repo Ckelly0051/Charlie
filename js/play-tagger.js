@@ -347,7 +347,7 @@ export class PlayTagger {
         yardLine: '', fieldSide: 'own', personnel: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
         unit: play.tags.unit || this.defaultUnit || 'offense',
-        stType: '', players: {}, grades: {}, custom: []
+        stType: '', players: {}, grades: {}, custom: [], customFields: {}
       };
       play.notes = '';
       this._updatePlaySelect();
@@ -604,6 +604,8 @@ export class PlayTagger {
     if (this.unitField) this.unitField.value = unit;
     this.applyUnitMode(unit);
     this._renderCustomTags(play.tags.custom);
+    // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
+    if (this.onLoadForm) this.onLoadForm(play);
   }
 
   /**

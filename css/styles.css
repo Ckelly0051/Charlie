@@ -5147,6 +5147,26 @@ body { background: var(--canvas); }
 /* Run / Pass: two big segmented toggles */
 .runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
 
+/* Custom user-defined tag fields */
+#customFieldsSection.cf-empty #tagCustomFields { display: none; }
+.cf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cf-field { margin-bottom: 8px; }
+.cf-field .chip-label { margin-bottom: 4px; }
+.cf-text { width: 100%; font-size: 13px; padding: 6px 9px; }
+#btnEditCustomFields { font-size: 11px; padding: 4px 8px; }
+/* Field-definition manager modal */
+.cf-manager { max-width: 520px; width: 94%; text-align: left; }
+.cf-mgr-title { margin: 0 0 6px; font-size: 16px; }
+.cf-mgr-help { margin: 0 0 12px; font-size: 12px; color: var(--text-dim, #64748b); }
+.cf-mgr-help em { color: var(--text); font-style: normal; font-weight: 600; }
+.cf-mgr-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 46vh; overflow-y: auto; }
+.cf-mgr-row { display: flex; gap: 6px; align-items: center; }
+.cf-mgr-row .cf-mgr-name { flex: 0 0 35%; }
+.cf-mgr-row .cf-mgr-opts { flex: 1 1 auto; }
+.cf-mgr-row .cf-mgr-del { flex: 0 0 auto; padding: 4px 9px; }
+.cf-mgr-empty { font-size: 12px; color: var(--text-dim, #64748b); margin: 4px 0; }
+.cf-add { margin-bottom: 8px; }
+
 /* Tagging-speed helpers row (copy from previous + templates) */
 .tag-helpers {
   display: flex;

@@ -237,6 +237,17 @@ export class StorageManager {
       (p.notes || '').replace(/"/g, '""')
     ]);
 
+    // Append any user-defined custom fields as extra columns.
+    let cfDefs = [];
+    try { cfDefs = JSON.parse(localStorage.getItem('ffa_custom_fields') || '[]') || []; } catch {}
+    if (cfDefs.length) {
+      cfDefs.forEach(d => headers.push(d.name));
+      this.tagger.plays.forEach((p, i) => {
+        const cf = (p.tags && p.tags.customFields) || {};
+        cfDefs.forEach(d => rows[i].push(cf[d.id] || ''));
+      });
+    }
+
     const csv = [headers, ...rows]
       .map(row => row.map(cell => `"${cell}"`).join(','))
       .join('\n');
