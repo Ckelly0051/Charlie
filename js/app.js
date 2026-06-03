@@ -162,6 +162,13 @@ class App {
       if (play.clipId && this.playlist.hasClips) {
         this.playlist.switchToClipByPlayId(play.id);
       }
+      // Keep the loop region in sync; if "Loop play" is active, retarget it.
+      if (play.timestamp) {
+        this.vc.currentPlayRegion = { start: play.timestamp.start, end: play.timestamp.end };
+        if (this.vc.loopMode === 'play') {
+          this.vc.loopRegion = { start: play.timestamp.start, end: play.timestamp.end };
+        }
+      }
       this.canvas.render();
     });
 

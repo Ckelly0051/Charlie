@@ -5146,6 +5146,39 @@ body { background: var(--canvas); }
 }
 /* Run / Pass: two big segmented toggles */
 .runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
+
+/* Tagging-speed helpers row (copy from previous + templates) */
+.tag-helpers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  flex-wrap: wrap;
+}
+.tag-helpers .template-select {
+  flex: 1 1 120px;
+  min-width: 110px;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.tag-helpers .btn { flex: 0 0 auto; }
+.tag-helpers .btn-icon-only { padding: 5px 8px; }
+
+/* Loop + A/B loop controls in the playback bar */
+.ctrl-btn.ab-btn {
+  font-size: 11px;
+  font-weight: 800;
+  width: auto;
+  min-width: 26px;
+  padding: 0 7px;
+}
+#btnLoop.active,
+.ctrl-btn.ab-btn.set {
+  background: var(--accent, #4169e1);
+  border-color: var(--accent, #4169e1);
+  color: #fff;
+}
+#btnLoop.active { box-shadow: 0 0 0 2px rgba(65,105,225,0.25); }
 .chip-hint {
   font-weight: 600;
   font-size: 9.5px;

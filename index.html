@@ -143,6 +143,11 @@
             </div>
           </div>
           <div class="controls-right">
+            <button class="ctrl-btn" id="btnLoop" title="Loop the current play (toggle)">
+              <svg class="icon"><use href="assets/icons.svg#icon-loop"/></svg>
+            </button>
+            <button class="ctrl-btn ab-btn" id="btnLoopA" title="Set A — loop start">A</button>
+            <button class="ctrl-btn ab-btn" id="btnLoopB" title="Set B — loop end">B</button>
             <select id="speedSelect" class="speed-select" title="Playback Speed">
               <option value="0.25">0.25x</option>
               <option value="0.5">0.5x</option>
@@ -191,6 +196,16 @@
           <div class="tag-progress-row">
             <span id="tagProgressLabel">0 / 0 tagged</span>
             <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
+          </div>
+
+          <!-- Tagging speed helpers: copy from previous play + reusable templates -->
+          <div class="tag-helpers">
+            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copy scheme tags from the previous play (same formation/look)">⤓ Same as Last</button>
+            <select id="templateSelect" class="template-select" title="Apply a saved tag template">
+              <option value="">Templates…</option>
+            </select>
+            <button class="btn btn-sm" id="btnSaveTemplate" type="button" title="Save this play's tags as a reusable template">Save…</button>
+            <button class="btn btn-sm btn-icon-only" id="btnDeleteTemplate" type="button" title="Delete the selected template">🗑</button>
           </div>
 
           <div class="chip-section">

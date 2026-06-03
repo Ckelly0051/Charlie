@@ -21,11 +21,18 @@ export class VideoController {
     this.scrubBarHandle = document.getElementById('scrubBarHandle');
     this.speedSelect = document.getElementById('speedSelect');
     this.fpsInput = document.getElementById('fpsInput');
+    this.btnLoop = document.getElementById('btnLoop');
+    this.btnLoopA = document.getElementById('btnLoopA');
+    this.btnLoopB = document.getElementById('btnLoopB');
 
     this.fps = 30;
     this.objectUrl = null;
     this.isScrubbing = false;
     this._wasPlayingBeforeScrub = false;
+    // Loop playback. loopRegion = { start, end }; loopMode = 'play' | 'ab' | null.
+    this.loopRegion = null;
+    this.loopMode = null;
+    this._abA = null;
     this.listeners = {};
 
     this._bindEvents();
@@ -99,6 +106,11 @@ export class VideoController {
     this.btnStepBack.addEventListener('click', () => this.stepBack());
     this.btnStepForward.addEventListener('click', () => this.stepForward());
 
+    // Loop controls
+    if (this.btnLoop) this.btnLoop.addEventListener('click', () => this.toggleLoopPlay());
+    if (this.btnLoopA) this.btnLoopA.addEventListener('click', () => this.setLoopA());
+    if (this.btnLoopB) this.btnLoopB.addEventListener('click', () => this.setLoopB());
+
     // Speed
     this.speedSelect.addEventListener('change', () => {
       this.video.playbackRate = parseFloat(this.speedSelect.value);
@@ -121,6 +133,13 @@ export class VideoController {
     });
 
     this.video.addEventListener('timeupdate', () => {
+      // Loop: jump back to the region start once we pass the end.
+      if (this.loopRegion && !this.isScrubbing) {
+        if (this.video.currentTime >= this.loopRegion.end - 0.02 ||
+            this.video.currentTime < this.loopRegion.start - 0.3) {
+          this.video.currentTime = this.loopRegion.start;
+        }
+      }
       if (!this.isScrubbing) {
         this._updateScrubBar();
         this._updateTime();
@@ -270,6 +289,57 @@ export class VideoController {
     } else {
       this.video.pause();
     }
+  }
+
+  // ---- Loop playback ---------------------------------------------------
+  // App keeps `currentPlayRegion = { start, end }` in sync with the selected
+  // play so "Loop play" knows what to repeat.
+
+  toggleLoopPlay() {
+    if (this.loopMode === 'play') { this.clearLoop(); return; }
+    const r = this.currentPlayRegion;
+    if (!r || !(r.end > r.start)) { this.clearLoop(); return; }
+    this.loopRegion = { start: r.start, end: r.end };
+    this.loopMode = 'play';
+    this._abA = null;
+    this._updateLoopUI();
+    if (this.video.currentTime < r.start || this.video.currentTime >= r.end) {
+      this.video.currentTime = r.start;
+    }
+    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
+  }
+
+  setLoopA() {
+    this._abA = this.video.currentTime;
+    this.loopMode = null;
+    this.loopRegion = null;
+    this._updateLoopUI();
+  }
+
+  setLoopB() {
+    const b = this.video.currentTime;
+    if (this._abA == null) { this._abA = 0; }
+    const start = Math.min(this._abA, b);
+    const end = Math.max(this._abA, b);
+    if (end - start < 0.1) return;
+    this.loopRegion = { start, end };
+    this.loopMode = 'ab';
+    this._updateLoopUI();
+    this.video.currentTime = start;
+    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
+  }
+
+  clearLoop() {
+    this.loopRegion = null;
+    this.loopMode = null;
+    this._abA = null;
+    this._updateLoopUI();
+  }
+
+  _updateLoopUI() {
+    if (this.btnLoop) this.btnLoop.classList.toggle('active', this.loopMode === 'play');
+    if (this.btnLoopA) this.btnLoopA.classList.toggle('set', this._abA != null || this.loopMode === 'ab');
+    if (this.btnLoopB) this.btnLoopB.classList.toggle('set', this.loopMode === 'ab');
   }
 
   stepForward() {

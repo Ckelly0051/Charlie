@@ -5153,6 +5153,39 @@ body { background: var(--canvas); }
 }
 /* Run / Pass: two big segmented toggles */
 .runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
+
+/* Tagging-speed helpers row (copy from previous + templates) */
+.tag-helpers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  flex-wrap: wrap;
+}
+.tag-helpers .template-select {
+  flex: 1 1 120px;
+  min-width: 110px;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.tag-helpers .btn { flex: 0 0 auto; }
+.tag-helpers .btn-icon-only { padding: 5px 8px; }
+
+/* Loop + A/B loop controls in the playback bar */
+.ctrl-btn.ab-btn {
+  font-size: 11px;
+  font-weight: 800;
+  width: auto;
+  min-width: 26px;
+  padding: 0 7px;
+}
+#btnLoop.active,
+.ctrl-btn.ab-btn.set {
+  background: var(--accent, #4169e1);
+  border-color: var(--accent, #4169e1);
+  color: #fff;
+}
+#btnLoop.active { box-shadow: 0 0 0 2px rgba(65,105,225,0.25); }
 .chip-hint {
   font-weight: 600;
   font-size: 9.5px;
@@ -5500,6 +5533,14 @@ video.is-buffering { opacity: 0.6; }
     <polygon points="4 4 15 12 4 20 4 4"/>
   </symbol>
 
+  <!-- Loop / repeat -->
+  <symbol id="icon-loop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="17 1 21 5 17 9"/>
+    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <polyline points="7 23 3 19 7 15"/>
+    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+  </symbol>
+
   <!-- Pencil -->
   <symbol id="icon-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 20h9"/>
@@ -5725,6 +5766,11 @@ video.is-buffering { opacity: 0.6; }
             </div>
           </div>
           <div class="controls-right">
+            <button class="ctrl-btn" id="btnLoop" title="Loop the current play (toggle)">
+              <svg class="icon"><use href="#icon-loop"/></svg>
+            </button>
+            <button class="ctrl-btn ab-btn" id="btnLoopA" title="Set A — loop start">A</button>
+            <button class="ctrl-btn ab-btn" id="btnLoopB" title="Set B — loop end">B</button>
             <select id="speedSelect" class="speed-select" title="Playback Speed">
               <option value="0.25">0.25x</option>
               <option value="0.5">0.5x</option>
@@ -5773,6 +5819,16 @@ video.is-buffering { opacity: 0.6; }
           <div class="tag-progress-row">
             <span id="tagProgressLabel">0 / 0 tagged</span>
             <div class="tag-progress-bar"><div class="tag-progress-fill" id="tagProgressFill"></div></div>
+          </div>
+
+          <!-- Tagging speed helpers: copy from previous play + reusable templates -->
+          <div class="tag-helpers">
+            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copy scheme tags from the previous play (same formation/look)">⤓ Same as Last</button>
+            <select id="templateSelect" class="template-select" title="Apply a saved tag template">
+              <option value="">Templates…</option>
+            </select>
+            <button class="btn btn-sm" id="btnSaveTemplate" type="button" title="Save this play's tags as a reusable template">Save…</button>
+            <button class="btn btn-sm btn-icon-only" id="btnDeleteTemplate" type="button" title="Delete the selected template">🗑</button>
           </div>
 
           <div class="chip-section">
@@ -6693,11 +6749,18 @@ class VideoController {
     this.scrubBarHandle = document.getElementById('scrubBarHandle');
     this.speedSelect = document.getElementById('speedSelect');
     this.fpsInput = document.getElementById('fpsInput');
+    this.btnLoop = document.getElementById('btnLoop');
+    this.btnLoopA = document.getElementById('btnLoopA');
+    this.btnLoopB = document.getElementById('btnLoopB');
 
     this.fps = 30;
     this.objectUrl = null;
     this.isScrubbing = false;
     this._wasPlayingBeforeScrub = false;
+    // Loop playback. loopRegion = { start, end }; loopMode = 'play' | 'ab' | null.
+    this.loopRegion = null;
+    this.loopMode = null;
+    this._abA = null;
     this.listeners = {};
 
     this._bindEvents();
@@ -6771,6 +6834,11 @@ class VideoController {
     this.btnStepBack.addEventListener('click', () => this.stepBack());
     this.btnStepForward.addEventListener('click', () => this.stepForward());
 
+    // Loop controls
+    if (this.btnLoop) this.btnLoop.addEventListener('click', () => this.toggleLoopPlay());
+    if (this.btnLoopA) this.btnLoopA.addEventListener('click', () => this.setLoopA());
+    if (this.btnLoopB) this.btnLoopB.addEventListener('click', () => this.setLoopB());
+
     // Speed
     this.speedSelect.addEventListener('change', () => {
       this.video.playbackRate = parseFloat(this.speedSelect.value);
@@ -6793,6 +6861,13 @@ class VideoController {
     });
 
     this.video.addEventListener('timeupdate', () => {
+      // Loop: jump back to the region start once we pass the end.
+      if (this.loopRegion && !this.isScrubbing) {
+        if (this.video.currentTime >= this.loopRegion.end - 0.02 ||
+            this.video.currentTime < this.loopRegion.start - 0.3) {
+          this.video.currentTime = this.loopRegion.start;
+        }
+      }
       if (!this.isScrubbing) {
         this._updateScrubBar();
         this._updateTime();
@@ -6942,6 +7017,57 @@ class VideoController {
     } else {
       this.video.pause();
     }
+  }
+
+  // ---- Loop playback ---------------------------------------------------
+  // App keeps `currentPlayRegion = { start, end }` in sync with the selected
+  // play so "Loop play" knows what to repeat.
+
+  toggleLoopPlay() {
+    if (this.loopMode === 'play') { this.clearLoop(); return; }
+    const r = this.currentPlayRegion;
+    if (!r || !(r.end > r.start)) { this.clearLoop(); return; }
+    this.loopRegion = { start: r.start, end: r.end };
+    this.loopMode = 'play';
+    this._abA = null;
+    this._updateLoopUI();
+    if (this.video.currentTime < r.start || this.video.currentTime >= r.end) {
+      this.video.currentTime = r.start;
+    }
+    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
+  }
+
+  setLoopA() {
+    this._abA = this.video.currentTime;
+    this.loopMode = null;
+    this.loopRegion = null;
+    this._updateLoopUI();
+  }
+
+  setLoopB() {
+    const b = this.video.currentTime;
+    if (this._abA == null) { this._abA = 0; }
+    const start = Math.min(this._abA, b);
+    const end = Math.max(this._abA, b);
+    if (end - start < 0.1) return;
+    this.loopRegion = { start, end };
+    this.loopMode = 'ab';
+    this._updateLoopUI();
+    this.video.currentTime = start;
+    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
+  }
+
+  clearLoop() {
+    this.loopRegion = null;
+    this.loopMode = null;
+    this._abA = null;
+    this._updateLoopUI();
+  }
+
+  _updateLoopUI() {
+    if (this.btnLoop) this.btnLoop.classList.toggle('active', this.loopMode === 'play');
+    if (this.btnLoopA) this.btnLoopA.classList.toggle('set', this._abA != null || this.loopMode === 'ab');
+    if (this.btnLoopB) this.btnLoopB.classList.toggle('set', this.loopMode === 'ab');
   }
 
   stepForward() {
@@ -7633,6 +7759,10 @@ class PlayTagger {
     this.btnMarkEnd = document.getElementById('btnMarkEnd');
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
     this.btnClearTags = document.getElementById('btnClearTags');
+    this.btnCopyPrev = document.getElementById('btnCopyPrev');
+    this.templateSelect = document.getElementById('templateSelect');
+    this.btnSaveTemplate = document.getElementById('btnSaveTemplate');
+    this.btnDeleteTemplate = document.getElementById('btnDeleteTemplate');
     this.timelineBar = document.getElementById('timelineBar');
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
@@ -7709,6 +7839,15 @@ class PlayTagger {
     this.btnDeletePlay.addEventListener('click', () => this.deleteCurrentPlay());
     if (this.btnClearTags) {
       this.btnClearTags.addEventListener('click', () => this.clearCurrentTags());
+    }
+    if (this.btnCopyPrev) this.btnCopyPrev.addEventListener('click', () => this.copyFromPrevious());
+    if (this.btnSaveTemplate) this.btnSaveTemplate.addEventListener('click', () => this.saveTemplate());
+    if (this.btnDeleteTemplate) this.btnDeleteTemplate.addEventListener('click', () => this.deleteSelectedTemplate());
+    if (this.templateSelect) {
+      this.templateSelect.addEventListener('change', () => {
+        if (this.templateSelect.value) this.applyTemplate(this.templateSelect.value);
+      });
+      this._refreshTemplateSelect();
     }
     this.playSelect.addEventListener('change', () => {
       const id = parseInt(this.playSelect.value);
@@ -7910,6 +8049,82 @@ class PlayTagger {
     this._clearTagForm();
     const notesEl = document.getElementById('notesArea');
     if (notesEl) notesEl.value = '';
+  }
+
+  // --- Copy-from-previous + reusable tag templates ----------------------
+  // The "scheme" tag keys these helpers carry over (pre-snap alignment +
+  // play concept). Play-specific fields (result, yardage, players, notes,
+  // down/distance — owned by Auto D&D) are intentionally NOT copied.
+  static get SCHEME_KEYS() {
+    return ['unit', 'formation', 'personnel', 'runPass', 'playType',
+            'defFront', 'coverage', 'blitz', 'hash'];
+  }
+
+  /** Copy scheme tags from the play immediately before the current one. */
+  copyFromPrevious() {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    const idx = this.plays.findIndex(p => p.id === play.id);
+    if (idx <= 0) return; // no previous play
+    const prev = this.plays[idx - 1];
+    PlayTagger.SCHEME_KEYS.forEach(k => { play.tags[k] = prev.tags[k] || (k === 'unit' ? 'offense' : ''); });
+    this._loadTagForm(play);
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  _templateStore() {
+    try { return JSON.parse(localStorage.getItem('ffa_play_templates') || '{}') || {}; }
+    catch { return {}; }
+  }
+  _saveTemplateStore(obj) {
+    try { localStorage.setItem('ffa_play_templates', JSON.stringify(obj)); } catch {}
+  }
+
+  _refreshTemplateSelect() {
+    if (!this.templateSelect) return;
+    const store = this._templateStore();
+    const names = Object.keys(store).sort((a, b) => a.localeCompare(b));
+    const cur = this.templateSelect.value;
+    this.templateSelect.innerHTML = '<option value="">Templates…</option>' +
+      names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    if (cur && store[cur]) this.templateSelect.value = cur;
+  }
+
+  /** Save the current play's scheme tags as a named, reusable template. */
+  saveTemplate() {
+    const play = this.getCurrentPlay();
+    if (!play) { alert('Select a play first, then save its tags as a template.'); return; }
+    const name = (prompt('Template name (e.g. "Gun Trips Rt / 4-3 Cover 3"):') || '').trim();
+    if (!name) return;
+    const store = this._templateStore();
+    const subset = {};
+    PlayTagger.SCHEME_KEYS.forEach(k => { if (play.tags[k]) subset[k] = play.tags[k]; });
+    store[name] = subset;
+    this._saveTemplateStore(store);
+    this._refreshTemplateSelect();
+    this.templateSelect.value = name;
+  }
+
+  applyTemplate(name) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    const tpl = this._templateStore()[name];
+    if (!tpl) return;
+    Object.entries(tpl).forEach(([k, v]) => { play.tags[k] = v; });
+    this._loadTagForm(play);
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  deleteSelectedTemplate() {
+    if (!this.templateSelect || !this.templateSelect.value) return;
+    const name = this.templateSelect.value;
+    const store = this._templateStore();
+    delete store[name];
+    this._saveTemplateStore(store);
+    this._refreshTemplateSelect();
+    this.templateSelect.value = '';
   }
 
   /**
@@ -15887,6 +16102,13 @@ class App {
     this.tagger.on('play-selected', (play) => {
       if (play.clipId && this.playlist.hasClips) {
         this.playlist.switchToClipByPlayId(play.id);
+      }
+      // Keep the loop region in sync; if "Loop play" is active, retarget it.
+      if (play.timestamp) {
+        this.vc.currentPlayRegion = { start: play.timestamp.start, end: play.timestamp.end };
+        if (this.vc.loopMode === 'play') {
+          this.vc.loopRegion = { start: play.timestamp.start, end: play.timestamp.end };
+        }
       }
       this.canvas.render();
     });

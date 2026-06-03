@@ -69,6 +69,10 @@ export class PlayTagger {
     this.btnMarkEnd = document.getElementById('btnMarkEnd');
     this.btnDeletePlay = document.getElementById('btnDeletePlay');
     this.btnClearTags = document.getElementById('btnClearTags');
+    this.btnCopyPrev = document.getElementById('btnCopyPrev');
+    this.templateSelect = document.getElementById('templateSelect');
+    this.btnSaveTemplate = document.getElementById('btnSaveTemplate');
+    this.btnDeleteTemplate = document.getElementById('btnDeleteTemplate');
     this.timelineBar = document.getElementById('timelineBar');
 
     // Tag form elements — chip groups wrapped as ChipField, inputs used directly
@@ -145,6 +149,15 @@ export class PlayTagger {
     this.btnDeletePlay.addEventListener('click', () => this.deleteCurrentPlay());
     if (this.btnClearTags) {
       this.btnClearTags.addEventListener('click', () => this.clearCurrentTags());
+    }
+    if (this.btnCopyPrev) this.btnCopyPrev.addEventListener('click', () => this.copyFromPrevious());
+    if (this.btnSaveTemplate) this.btnSaveTemplate.addEventListener('click', () => this.saveTemplate());
+    if (this.btnDeleteTemplate) this.btnDeleteTemplate.addEventListener('click', () => this.deleteSelectedTemplate());
+    if (this.templateSelect) {
+      this.templateSelect.addEventListener('change', () => {
+        if (this.templateSelect.value) this.applyTemplate(this.templateSelect.value);
+      });
+      this._refreshTemplateSelect();
     }
     this.playSelect.addEventListener('change', () => {
       const id = parseInt(this.playSelect.value);
@@ -346,6 +359,82 @@ export class PlayTagger {
     this._clearTagForm();
     const notesEl = document.getElementById('notesArea');
     if (notesEl) notesEl.value = '';
+  }
+
+  // --- Copy-from-previous + reusable tag templates ----------------------
+  // The "scheme" tag keys these helpers carry over (pre-snap alignment +
+  // play concept). Play-specific fields (result, yardage, players, notes,
+  // down/distance — owned by Auto D&D) are intentionally NOT copied.
+  static get SCHEME_KEYS() {
+    return ['unit', 'formation', 'personnel', 'runPass', 'playType',
+            'defFront', 'coverage', 'blitz', 'hash'];
+  }
+
+  /** Copy scheme tags from the play immediately before the current one. */
+  copyFromPrevious() {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    const idx = this.plays.findIndex(p => p.id === play.id);
+    if (idx <= 0) return; // no previous play
+    const prev = this.plays[idx - 1];
+    PlayTagger.SCHEME_KEYS.forEach(k => { play.tags[k] = prev.tags[k] || (k === 'unit' ? 'offense' : ''); });
+    this._loadTagForm(play);
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  _templateStore() {
+    try { return JSON.parse(localStorage.getItem('ffa_play_templates') || '{}') || {}; }
+    catch { return {}; }
+  }
+  _saveTemplateStore(obj) {
+    try { localStorage.setItem('ffa_play_templates', JSON.stringify(obj)); } catch {}
+  }
+
+  _refreshTemplateSelect() {
+    if (!this.templateSelect) return;
+    const store = this._templateStore();
+    const names = Object.keys(store).sort((a, b) => a.localeCompare(b));
+    const cur = this.templateSelect.value;
+    this.templateSelect.innerHTML = '<option value="">Templates…</option>' +
+      names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    if (cur && store[cur]) this.templateSelect.value = cur;
+  }
+
+  /** Save the current play's scheme tags as a named, reusable template. */
+  saveTemplate() {
+    const play = this.getCurrentPlay();
+    if (!play) { alert('Select a play first, then save its tags as a template.'); return; }
+    const name = (prompt('Template name (e.g. "Gun Trips Rt / 4-3 Cover 3"):') || '').trim();
+    if (!name) return;
+    const store = this._templateStore();
+    const subset = {};
+    PlayTagger.SCHEME_KEYS.forEach(k => { if (play.tags[k]) subset[k] = play.tags[k]; });
+    store[name] = subset;
+    this._saveTemplateStore(store);
+    this._refreshTemplateSelect();
+    this.templateSelect.value = name;
+  }
+
+  applyTemplate(name) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    const tpl = this._templateStore()[name];
+    if (!tpl) return;
+    Object.entries(tpl).forEach(([k, v]) => { play.tags[k] = v; });
+    this._loadTagForm(play);
+    this._updateTimeline();
+    this._emit('play-updated', play);
+  }
+
+  deleteSelectedTemplate() {
+    if (!this.templateSelect || !this.templateSelect.value) return;
+    const name = this.templateSelect.value;
+    const store = this._templateStore();
+    delete store[name];
+    this._saveTemplateStore(store);
+    this._refreshTemplateSelect();
+    this.templateSelect.value = '';
   }
 
   /**
