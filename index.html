@@ -4671,6 +4671,9 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
 .scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
 
+/* Hide our-defense-only fronts (Maverick/Eagle/Falcon) in opponent scout mode */
+.tag-form.is-scout .our-def-only { display: none; }
+
 /* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
 .unit-toggle-section { padding: 2px 0 0; margin-bottom: 6px; background: transparent; }
 .unit-toggle { display: flex; gap: 4px; }
@@ -5434,6 +5437,8 @@ body {
                     <button class="pick" data-value="Pistol" type="button">Pistol</button>
                     <button class="pick" data-value="I-Form" type="button">I-Form</button>
                     <button class="pick" data-value="Singleback" type="button">Singleback</button>
+                    <button class="pick" data-value="Trips" type="button">Trips</button>
+                    <button class="pick" data-value="Spread" type="button">Spread</button>
                     <button class="pick" data-value="Split Back" type="button">Split Back</button>
                     <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
                     <button class="pick" data-value="Empty" type="button">Empty</button>
@@ -5465,6 +5470,9 @@ body {
                 <div class="chip-section">
                   <label class="chip-label">Def Front</label>
                   <div class="pick-group" id="tagDefFront">
+                    <button class="pick our-def-only" data-value="Maverick" type="button">Maverick</button>
+                    <button class="pick our-def-only" data-value="Eagle" type="button">Eagle</button>
+                    <button class="pick our-def-only" data-value="Falcon" type="button">Falcon</button>
                     <button class="pick" data-value="4-3" type="button">4-3</button>
                     <button class="pick" data-value="3-4" type="button">3-4</button>
                     <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
@@ -6029,7 +6037,13 @@ body {
                 <option>Pistol</option>
                 <option>I-Form</option>
                 <option>Singleback</option>
+                <option>Trips</option>
+                <option>Spread</option>
+                <option>Split Back</option>
+                <option>Single Wing</option>
                 <option>Empty</option>
+                <option>Wildcat</option>
+                <option>Goal Line</option>
               </select>
             </div>
             <div class="filter-group">
@@ -16085,10 +16099,11 @@ class App {
       if (p === 'special') return 'special';
       return 'offense'; // offense or scout (charts both, default offense layout)
     };
+    const tagForm = document.getElementById('tagForm');
     const toggleScoutUI = () => {
       const isScout = perspectiveEl.value === 'scout';
       if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
-      // New plays default their unit toggle from the film perspective.
+      if (tagForm) tagForm.classList.toggle('is-scout', isScout);
       this.tagger.defaultUnit = unitFromPerspective(perspectiveEl.value);
     };
     perspectiveEl.addEventListener('change', toggleScoutUI);
