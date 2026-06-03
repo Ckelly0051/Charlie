@@ -4671,8 +4671,13 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .scout-section { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
 .scout-notes { width:100%; font-size:12px; background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; margin-bottom:8px; }
 
-/* Hide our-defense-only fronts (Maverick/Eagle/Falcon) in opponent scout mode */
-.tag-form.is-scout .our-def-only { display: none; }
+/* Hide our-defense-only fronts (Maverick/Eagle/Falcon) when they don't apply:
+   - opponent scout mode (we're charting the opponent throughout), and
+   - offense mode, where the "Defense Faced" group is the OPPONENT's defense
+     (our own defensive calls have no place there). They only show when we're
+     charting our own defense (mode-defense, non-scout). */
+.tag-form.is-scout .our-def-only,
+.tag-form.mode-offense .our-def-only { display: none; }
 
 /* --- Unit toggle + reorderable side groups (Offense / Defense / Special Teams) --- */
 .unit-toggle-section { padding: 2px 0 0; margin-bottom: 6px; background: transparent; }
@@ -4701,7 +4706,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .tag-group.is-secondary > .tag-group-head { display: flex; }
 .tag-group.is-hidden { display: none; }
 .tag-group.is-secondary.collapsed > .tag-group-body { display: none; }
-.tag-group-caret { transition: transform var(--transition); font-size: 10px; }
+.tag-group-caret { transition: transform var(--transition); font-size: 18px; line-height: 1; }
 .tag-group.is-secondary.collapsed .tag-group-caret { transform: rotate(-90deg); }
 /* In Defense mode the defensive group leads (above the offense "faced" group) */
 .mode-defense .group-defense { order: -1; }
@@ -7754,9 +7759,16 @@ class PlayTagger {
   }
 
   deleteCurrentPlay() {
-    if (!this.currentPlayId) return;
+    // Fall back to the dropdown selection if no play is actively loaded
+    // (e.g. after importing/loading plays without re-selecting one), so the
+    // Delete button always acts on the play the user can see.
+    let id = this.currentPlayId;
+    if (!id && this.playSelect && this.playSelect.value) {
+      id = parseInt(this.playSelect.value);
+    }
+    if (!id) return;
     if (!confirm('Delete this play? This cannot be undone.')) return;
-    this.plays = this.plays.filter(p => p.id !== this.currentPlayId);
+    this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
     this._updatePlaySelect();
