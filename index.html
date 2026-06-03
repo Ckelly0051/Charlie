@@ -5151,6 +5151,8 @@ body { background: var(--canvas); }
   letter-spacing: 0.7px;
   margin-bottom: 5px;
 }
+/* Run / Pass: two big segmented toggles */
+.runpass-group .pick { flex: 1; justify-content: center; font-weight: 700; }
 .chip-hint {
   font-weight: 600;
   font-size: 9.5px;
@@ -5921,6 +5923,13 @@ video.is-buffering { opacity: 0.6; }
           </div>
 
           <!-- What happened on the play (post-snap) -->
+          <div class="chip-section core-hide-st">
+            <label class="chip-label">Run / Pass</label>
+            <div class="pick-group runpass-group" id="tagRunPass">
+              <button class="pick" data-value="Run" type="button">Run</button>
+              <button class="pick" data-value="Pass" type="button">Pass</button>
+            </div>
+          </div>
           <div class="chip-section core-hide-st">
             <label class="chip-label">Play Type</label>
             <div class="pick-group" id="tagPlayType">
@@ -7634,6 +7643,7 @@ class PlayTagger {
       hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
+      runPass: 'tagRunPass',
     };
     this.tagFields = {};
     // Offensive formation is multi-select — a QB can be in Pistol AND Spread,
@@ -7800,6 +7810,7 @@ class PlayTagger {
         distance: '',
         formation: '',
         playType: '',
+        runPass: '',
         defFront: '',
         coverage: '',
         blitz: '',
@@ -7882,7 +7893,7 @@ class PlayTagger {
 
     if (play) {
       play.tags = {
-        down: '', distance: '', formation: '', playType: '', defFront: '',
+        down: '', distance: '', formation: '', playType: '', runPass: '', defFront: '',
         coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
         yardLine: '', fieldSide: 'own', personnel: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
@@ -7980,8 +7991,32 @@ class PlayTagger {
     const play = this.getCurrentPlay();
     if (!play) return;
     play.tags[key] = this.tagFields[key].value;
+
+    // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
+    // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
+    // coach to set, which is exactly why the explicit selector exists.
+    if (key === 'playType') {
+      const auto = PlayTagger.runPassForPlayType(play.tags.playType);
+      if (auto && play.tags.runPass !== auto) {
+        play.tags.runPass = auto;
+        if (this.tagFields.runPass) this.tagFields.runPass.value = auto;
+      }
+    }
+
     this._updateTimeline();
     this._emit('play-updated', play);
+  }
+
+  /**
+   * Map a play type to Run/Pass when it's unambiguous, else '' (ambiguous:
+   * RPO, Play Action, Trick Play — coach picks).
+   */
+  static runPassForPlayType(playType) {
+    const t = (playType || '').toLowerCase();
+    if (!t) return '';
+    if (t.includes('run')) return 'Run';
+    if (t.includes('pass') || t.includes('screen')) return 'Pass';
+    return ''; // RPO, Play Action, Trick Play
   }
 
   _savePlayer(role) {
@@ -8019,6 +8054,7 @@ class PlayTagger {
     this.tagFields.distance.value = play.tags.distance;
     this.tagFields.formation.value = play.tags.formation;
     this.tagFields.playType.value = play.tags.playType;
+    this.tagFields.runPass.value = play.tags.runPass || '';
     this.tagFields.defFront.value = play.tags.defFront;
     this.tagFields.coverage.value = play.tags.coverage;
     this.tagFields.blitz.value = play.tags.blitz;
@@ -8237,8 +8273,10 @@ class PlayTagger {
       const div = document.createElement('div');
 
       let typeClass = 'other';
-      if (p.tags.playType && p.tags.playType.toLowerCase().includes('run')) typeClass = 'run';
-      else if (p.tags.playType && (p.tags.playType.toLowerCase().includes('pass') || p.tags.playType.toLowerCase().includes('screen'))) typeClass = 'pass';
+      const rp = p.tags.runPass;
+      const t = (p.tags.playType || '').toLowerCase();
+      if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
+      else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
 
       div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
       div.style.left = left + '%';
@@ -9058,7 +9096,7 @@ class StorageManager {
     const headers = [
       'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line', 'Formation', 'Personnel',
-      'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Run/Pass', 'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
@@ -9079,6 +9117,7 @@ class StorageManager {
       p.tags.yardLine || '',
       p.tags.formation,
       p.tags.personnel || '',
+      p.tags.runPass || '',
       p.tags.playType,
       p.tags.stType || '',
       p.tags.defFront,
@@ -9203,6 +9242,7 @@ ${body}
     const colMap = {};
     const aliases = {
       playtype: 'playType', type: 'playType', odk: 'playType',
+      runpass: 'runPass', rp: 'runPass', runorpass: 'runPass',
       result: 'result', gnls: 'yardage', yardage: 'yardage', yards: 'yardage', yds: 'yardage',
       down: 'down', dn: 'down',
       distance: 'distance', dist: 'distance', togo: 'distance',
@@ -9241,7 +9281,7 @@ ${body}
       if (cells.every(c => !c)) continue;
 
       const tags = {
-        down: '', distance: '', formation: '', playType: '',
+        down: '', distance: '', formation: '', playType: '', runPass: '',
         defFront: '', coverage: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
         fieldSide: 'own', personnel: '', driveNumber: '',
@@ -10896,6 +10936,7 @@ class PlaylistManager {
           distance: '',
           formation: '',
           playType: '',
+          runPass: '',
           defFront: '',
           coverage: '',
           blitz: '',
@@ -11362,7 +11403,13 @@ class QuickChart {
     // Apply the quick-chart entry to the current play
     const play = this.tagger.getCurrentPlay();
     if (play) {
-      if (this.currentEntry.playType) play.tags.playType = this.currentEntry.playType;
+      if (this.currentEntry.playType) {
+        play.tags.playType = this.currentEntry.playType;
+        // Auto-classify Run/Pass for unambiguous play types (RPO/PA/Trick left blank).
+        const t = this.currentEntry.playType.toLowerCase();
+        if (t.includes('run')) play.tags.runPass = 'Run';
+        else if (t.includes('pass') || t.includes('screen')) play.tags.runPass = 'Pass';
+      }
       if (this.currentEntry.result) play.tags.result = this.currentEntry.result;
       if (this.currentEntry.yardage) play.tags.yardage = this.currentEntry.yardage;
       if (this.currentEntry.down) play.tags.down = this.currentEntry.down;
@@ -11614,7 +11661,7 @@ class HeatMaps {
     const cells = downs.map(down =>
       buckets.map(b => {
         const matched = plays.filter(p => p.tags.down === down && b.test(parseInt(p.tags.distance) || 0));
-        const runs = matched.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+        const runs = matched.filter(p => this._isRun(p)).length;
         const successes = matched.filter(p => this._isSuccess(p)).length;
         return { count: matched.length, runs, successes };
       })
@@ -11720,6 +11767,13 @@ class HeatMaps {
     html += `<td><b>${hashTotals.reduce((s, t) => s + t, 0)}</b></td></tr>`;
     html += '</tbody></table>';
     return html + '<p class="hm-caption">Cell intensity = share of plays from that hash.</p>';
+  }
+
+  _isRun(p) {
+    const rp = p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
 
   _isSuccess(p) {
@@ -11941,6 +11995,25 @@ class StatsEngine {
     return parts.length ? parts : ['Unknown'];
   }
 
+  /**
+   * Run/pass classification. The explicit `runPass` tag is authoritative
+   * (set via the Run/Pass selector); for older plays without it we fall back
+   * to inferring from the play-type string.
+   */
+  static isRun(p) {
+    const rp = p && p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p && p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
+  }
+  static isPass(p) {
+    const rp = p && p.tags && p.tags.runPass;
+    if (rp === 'Pass') return true;
+    if (rp === 'Run') return false;
+    const t = (p && p.tags && p.tags.playType ? p.tags.playType.toLowerCase() : '');
+    return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
+  }
+
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
@@ -12106,8 +12179,7 @@ class StatsEngine {
     const successes = plays.filter(p => this._isSuccessfulPlay(p)).length;
     const explosive = plays.filter(p => {
       const y = parseInt(p.tags.yardage) || 0;
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
-      return isRun ? y >= 12 : y >= 16;
+      return StatsEngine.isRun(p) ? y >= 12 : y >= 16;
     }).length;
     const negative = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0).length;
     return {
@@ -12127,7 +12199,7 @@ class StatsEngine {
       if (!groups[k]) groups[k] = { name: k, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
       groups[k].count++;
       groups[k].yards += parseInt(p.tags.yardage) || 0;
-      if (p.tags.playType?.toLowerCase().includes('run')) groups[k].runs++;
+      if (StatsEngine.isRun(p)) groups[k].runs++;
       else groups[k].passes++;
       if (this._isSuccessfulPlay(p)) groups[k].successes++;
     });
@@ -12139,9 +12211,7 @@ class StatsEngine {
   }
 
   _rushingStats(plays) {
-    const rushPlays = plays.filter(p =>
-      p.tags.playType?.toLowerCase().includes('run')
-    );
+    const rushPlays = plays.filter(p => StatsEngine.isRun(p));
     const yards = rushPlays.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
     const attempts = rushPlays.length;
 
@@ -12157,10 +12227,7 @@ class StatsEngine {
   }
 
   _passingStats(plays) {
-    const passPlays = plays.filter(p => {
-      const t = p.tags.playType?.toLowerCase() || '';
-      return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
-    });
+    const passPlays = plays.filter(p => StatsEngine.isPass(p));
     const completions = passPlays.filter(p =>
       p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain'
     );
@@ -12196,11 +12263,8 @@ class StatsEngine {
     const tds = plays.filter(p => p.tags.result === 'Touchdown');
     return {
       touchdowns: tds.length,
-      rushingTDs: tds.filter(p => p.tags.playType?.toLowerCase().includes('run')).length,
-      passingTDs: tds.filter(p => {
-        const t = p.tags.playType?.toLowerCase() || '';
-        return t.includes('pass') || t.includes('screen') || t === 'play action';
-      }).length
+      rushingTDs: tds.filter(p => StatsEngine.isRun(p)).length,
+      passingTDs: tds.filter(p => StatsEngine.isPass(p)).length
     };
   }
 
@@ -12219,7 +12283,7 @@ class StatsEngine {
         downStats[down] = { total: 0, runPct: '0', passPct: '0', avgYards: '0.0', conversionPct: '0.0' };
         continue;
       }
-      const runs = downPlays.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+      const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
       const passes = total - runs;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
@@ -12280,7 +12344,7 @@ class StatsEngine {
     });
 
     // Run/pass ratio
-    const runs = plays.filter(p => p.tags.playType?.toLowerCase().includes('run')).length;
+    const runs = plays.filter(p => StatsEngine.isRun(p)).length;
     const passes = plays.length - runs;
 
     return {
@@ -12316,7 +12380,7 @@ class StatsEngine {
     plays.forEach(p => {
       const players = p.tags.players || {};
       const yds = parseInt(p.tags.yardage) || 0;
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isRun = StatsEngine.isRun(p);
       const isPass = !isRun;
       const isTD = p.tags.result === 'Touchdown';
       const isComplete = p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain';
@@ -12987,7 +13051,7 @@ class StatsEngine {
     const stats = this.compute(playsOverride || undefined);
     const formationDetail = {};
     plays.forEach(p => {
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isRun = StatsEngine.isRun(p);
       const yards = parseInt(p.tags.yardage) || 0;
       const isTd = p.tags.result === 'Touchdown';
       // Multi-select formation: attribute the play to each component look.
@@ -13005,7 +13069,7 @@ class StatsEngine {
       const key = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
       if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0 };
       downTendency[key].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) downTendency[key].runs++;
+      if (StatsEngine.isRun(p)) downTendency[key].runs++;
       else downTendency[key].passes++;
     });
     const fronts = {}, coverages = {};
@@ -14746,7 +14810,7 @@ class SeasonManager {
     // so a play is attributed to each of its component looks.
     const formMap = {};
     allPlays.forEach(p => {
-      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const isRun = this._isRun(p);
       String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(f => {
         if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
         formMap[f].total++;
@@ -14767,7 +14831,7 @@ class SeasonManager {
 
     // Down & distance: 3rd & long pass tell?
     const thirdLong = allPlays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7);
-    const thirdLongPass = thirdLong.filter(p => !p.tags.playType?.toLowerCase().includes('run')).length;
+    const thirdLongPass = thirdLong.filter(p => !this._isRun(p)).length;
     let ddFlags = '';
     if (thirdLong.length >= 5) {
       const passPct = (thirdLongPass / thirdLong.length) * 100;
@@ -14780,7 +14844,7 @@ class SeasonManager {
       const h = p.tags.hash;
       if (!hashMap[h]) return;
       hashMap[h].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) hashMap[h].runs++;
+      if (this._isRun(p)) hashMap[h].runs++;
     });
     let hashFlags = '';
     for (const [h, d] of Object.entries(hashMap)) {
@@ -14870,6 +14934,14 @@ ${body}
 
   _escape(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // Run/pass classification: explicit runPass tag wins, else infer from playType.
+  _isRun(p) {
+    const rp = p.tags && p.tags.runPass;
+    if (rp === 'Run') return true;
+    if (rp === 'Pass') return false;
+    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
 }
 
@@ -16884,7 +16956,7 @@ class App {
       reader.readAsText(file);
     });
 
-    const ourFields = ['playType','result','yardage','down','distance','formation','personnel',
+    const ourFields = ['playType','runPass','result','yardage','down','distance','formation','personnel',
       'hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
       'ballCarrier','passer','receiver','tackler','notes'];
 
