@@ -5151,6 +5151,18 @@ body { background: var(--canvas); }
   letter-spacing: 0.7px;
   margin-bottom: 5px;
 }
+.chip-hint {
+  font-weight: 600;
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: var(--accent, #4169e1);
+  background: rgba(65,105,225,0.10);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
 
 /* ---- Unit toggle: premium segmented control ---- */
 .unit-toggle {
@@ -5781,8 +5793,8 @@ video.is-buffering { opacity: 0.6; }
               <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
               <div class="tag-group-body">
                 <div class="chip-section">
-                  <label class="chip-label">Formation</label>
-                  <div class="pick-group" id="tagFormation">
+                  <label class="chip-label">Formation <span class="chip-hint">select all that apply</span></label>
+                  <div class="pick-group multi" id="tagFormation">
                     <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
                     <button class="pick" data-value="Under Center" type="button">Under Center</button>
                     <button class="pick" data-value="Pistol" type="button">Pistol</button>
@@ -7546,24 +7558,45 @@ class CanvasOverlay {
  * <select> for the rest of the tagger: .value get/set, change events.
  */
 class ChipField {
-  constructor(el) {
+  constructor(el, opts = {}) {
     this.el = el;
+    this.multi = !!opts.multi;       // allow multiple chips active at once
     this._value = '';
+    this._values = [];               // selected values when multi
     this._listeners = {};
     this.chips = [...el.querySelectorAll('[data-value]')];
     this.chips.forEach(chip => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const v = chip.dataset.value;
-        this.value = this._value === v ? '' : v;
+        if (this.multi) {
+          const i = this._values.indexOf(v);
+          if (i >= 0) this._values.splice(i, 1);
+          else this._values.push(v);
+          this._syncMulti();
+        } else {
+          this.value = this._value === v ? '' : v;
+        }
         this._fire('change');
       });
     });
   }
-  get value() { return this._value; }
+  // For multi fields .value is a " + "-joined string (e.g. "Pistol + Spread")
+  // so the rest of the tagger and all downstream consumers keep treating the
+  // field as a plain string.
+  get value() { return this.multi ? this._values.join(' + ') : this._value; }
   set value(v) {
-    this._value = v || '';
-    this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
+    if (this.multi) {
+      this._values = String(v || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      this._syncMulti();
+    } else {
+      this._value = v || '';
+      this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
+    }
+  }
+  _syncMulti() {
+    const set = new Set(this._values);
+    this.chips.forEach(c => c.classList.toggle('active', set.has(c.dataset.value)));
   }
   addEventListener(event, fn) {
     if (!this._listeners[event]) this._listeners[event] = [];
@@ -7603,9 +7636,14 @@ class PlayTagger {
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
     };
     this.tagFields = {};
+    // Offensive formation is multi-select — a QB can be in Pistol AND Spread,
+    // Empty + Trips, etc. Stored as a " + "-joined string for compatibility.
+    const multiFields = new Set(['formation']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
-      this.tagFields[key] = el?.classList.contains('pick-group') ? new ChipField(el) : el;
+      this.tagFields[key] = el?.classList.contains('pick-group')
+        ? new ChipField(el, { multi: multiFields.has(key) })
+        : el;
     }
 
     // Per-play player attribution (jersey #) by role.
@@ -8681,7 +8719,12 @@ class PlayFilter {
     if (c.quarters.length && !c.quarters.includes(tags.quarter)) return false;
     if (c.downs.length && !c.downs.includes(tags.down)) return false;
     if (c.playTypes.length && !c.playTypes.includes(tags.playType)) return false;
-    if (c.formations.length && !c.formations.includes(tags.formation)) return false;
+    if (c.formations.length) {
+      // Formation is multi-select ("Pistol + Spread") — match if the play uses
+      // ANY of the selected formations.
+      const playForms = String(tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      if (!c.formations.some(f => playForms.includes(f))) return false;
+    }
     if (c.personnel.length && !c.personnel.includes(tags.personnel)) return false;
     if (c.results.length && !c.results.includes(tags.result)) return false;
 
@@ -11602,7 +11645,10 @@ class HeatMaps {
   }
 
   _renderFormationByPlay(plays) {
-    const formations = [...new Set(plays.map(p => p.tags.formation).filter(Boolean))];
+    // Formation is multi-select ("Pistol + Spread"); split each play into its
+    // component looks so every formation gets its own matrix row.
+    const formsOf = (p) => String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    const formations = [...new Set(plays.flatMap(formsOf))];
     const playTypes = [...new Set(plays.map(p => p.tags.playType).filter(Boolean))];
 
     if (!formations.length || !playTypes.length) {
@@ -11610,7 +11656,7 @@ class HeatMaps {
     }
 
     const matrix = formations.map(f =>
-      playTypes.map(pt => plays.filter(p => p.tags.formation === f && p.tags.playType === pt).length)
+      playTypes.map(pt => plays.filter(p => formsOf(p).includes(f) && p.tags.playType === pt).length)
     );
     const max = Math.max(1, ...matrix.flat());
     const rowTotals = matrix.map(row => row.reduce((s, n) => s + n, 0));
@@ -11818,14 +11864,21 @@ class AdvancedMetrics {
 
     const total = withEpa.reduce((s, x) => s + x.epa, 0);
 
-    // By play type
-    const groupBy = (key) => {
+    // By play type. `multi` splits a " + "-joined value (e.g. the multi-select
+    // formation "Pistol + Spread") so EPA is attributed to each component.
+    const groupBy = (key, multi = false) => {
       const m = {};
       for (const x of withEpa) {
-        const k = x.play.tags[key] || 'Unknown';
-        if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
-        m[k].total += x.epa;
-        m[k].count++;
+        const raw = x.play.tags[key] || 'Unknown';
+        const keys = multi
+          ? (String(raw).split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean) || [])
+          : [raw];
+        if (!keys.length) keys.push('Unknown');
+        for (const k of keys) {
+          if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
+          m[k].total += x.epa;
+          m[k].count++;
+        }
       }
       return Object.values(m)
         .map(g => ({ ...g, total: +g.total.toFixed(2), perPlay: +(g.total / g.count).toFixed(3) }))
@@ -11833,7 +11886,7 @@ class AdvancedMetrics {
     };
 
     const byType = groupBy('playType');
-    const byFormation = groupBy('formation');
+    const byFormation = groupBy('formation', true);
     const byPersonnel = groupBy('personnel');
 
     // By down
@@ -11879,6 +11932,15 @@ class AdvancedMetrics {
  */
 
 class StatsEngine {
+  /**
+   * Split a (possibly multi-select) formation string into its component
+   * formations. "Pistol + Spread" -> ["Pistol", "Spread"]; blank -> ["Unknown"].
+   */
+  static splitFormations(formation) {
+    const parts = String(formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    return parts.length ? parts : ['Unknown'];
+  }
+
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
@@ -12200,11 +12262,14 @@ class StatsEngine {
   }
 
   _tendencyStats(plays) {
-    // Formation frequency
+    // Formation frequency. Formation is multi-select (e.g. "Pistol + Spread"),
+    // so a play is counted under EACH of its formations — percentages may sum
+    // above 100% because looks overlap.
     const formations = {};
     plays.forEach(p => {
-      const f = p.tags.formation || 'Unknown';
-      formations[f] = (formations[f] || 0) + 1;
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        formations[f] = (formations[f] || 0) + 1;
+      });
     });
 
     // Play type distribution
@@ -12922,13 +12987,18 @@ class StatsEngine {
     const stats = this.compute(playsOverride || undefined);
     const formationDetail = {};
     plays.forEach(p => {
-      const f = p.tags.formation || 'Unknown';
-      if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
-      formationDetail[f].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) formationDetail[f].runs++;
-      else formationDetail[f].passes++;
-      formationDetail[f].yards += parseInt(p.tags.yardage) || 0;
-      if (p.tags.result === 'Touchdown') formationDetail[f].tds++;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const yards = parseInt(p.tags.yardage) || 0;
+      const isTd = p.tags.result === 'Touchdown';
+      // Multi-select formation: attribute the play to each component look.
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
+        formationDetail[f].total++;
+        if (isRun) formationDetail[f].runs++;
+        else formationDetail[f].passes++;
+        formationDetail[f].yards += yards;
+        if (isTd) formationDetail[f].tds++;
+      });
     });
     const downTendency = {};
     plays.forEach(p => {
@@ -14672,14 +14742,16 @@ class SeasonManager {
   _renderSelfScout() {
     const allPlays = this._allPlays().filter(p => p.tags && p.tags.playType);
 
-    // Formation tendencies
+    // Formation tendencies. Formation is multi-select ("Pistol + Spread"),
+    // so a play is attributed to each of its component looks.
     const formMap = {};
     allPlays.forEach(p => {
-      const f = p.tags.formation;
-      if (!f) return;
-      if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
-      formMap[f].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) formMap[f].runs++;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(f => {
+        if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
+        formMap[f].total++;
+        if (isRun) formMap[f].runs++;
+      });
     });
 
     let formationFlags = '';
