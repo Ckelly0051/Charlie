@@ -323,14 +323,16 @@ export class SeasonManager {
   _renderSelfScout() {
     const allPlays = this._allPlays().filter(p => p.tags && p.tags.playType);
 
-    // Formation tendencies
+    // Formation tendencies. Formation is multi-select ("Pistol + Spread"),
+    // so a play is attributed to each of its component looks.
     const formMap = {};
     allPlays.forEach(p => {
-      const f = p.tags.formation;
-      if (!f) return;
-      if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
-      formMap[f].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) formMap[f].runs++;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(f => {
+        if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
+        formMap[f].total++;
+        if (isRun) formMap[f].runs++;
+      });
     });
 
     let formationFlags = '';

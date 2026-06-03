@@ -3,24 +3,45 @@
  * <select> for the rest of the tagger: .value get/set, change events.
  */
 class ChipField {
-  constructor(el) {
+  constructor(el, opts = {}) {
     this.el = el;
+    this.multi = !!opts.multi;       // allow multiple chips active at once
     this._value = '';
+    this._values = [];               // selected values when multi
     this._listeners = {};
     this.chips = [...el.querySelectorAll('[data-value]')];
     this.chips.forEach(chip => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const v = chip.dataset.value;
-        this.value = this._value === v ? '' : v;
+        if (this.multi) {
+          const i = this._values.indexOf(v);
+          if (i >= 0) this._values.splice(i, 1);
+          else this._values.push(v);
+          this._syncMulti();
+        } else {
+          this.value = this._value === v ? '' : v;
+        }
         this._fire('change');
       });
     });
   }
-  get value() { return this._value; }
+  // For multi fields .value is a " + "-joined string (e.g. "Pistol + Spread")
+  // so the rest of the tagger and all downstream consumers keep treating the
+  // field as a plain string.
+  get value() { return this.multi ? this._values.join(' + ') : this._value; }
   set value(v) {
-    this._value = v || '';
-    this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
+    if (this.multi) {
+      this._values = String(v || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      this._syncMulti();
+    } else {
+      this._value = v || '';
+      this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
+    }
+  }
+  _syncMulti() {
+    const set = new Set(this._values);
+    this.chips.forEach(c => c.classList.toggle('active', set.has(c.dataset.value)));
   }
   addEventListener(event, fn) {
     if (!this._listeners[event]) this._listeners[event] = [];
@@ -60,9 +81,14 @@ export class PlayTagger {
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
     };
     this.tagFields = {};
+    // Offensive formation is multi-select — a QB can be in Pistol AND Spread,
+    // Empty + Trips, etc. Stored as a " + "-joined string for compatibility.
+    const multiFields = new Set(['formation']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
-      this.tagFields[key] = el?.classList.contains('pick-group') ? new ChipField(el) : el;
+      this.tagFields[key] = el?.classList.contains('pick-group')
+        ? new ChipField(el, { multi: multiFields.has(key) })
+        : el;
     }
 
     // Per-play player attribution (jersey #) by role.

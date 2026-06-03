@@ -172,7 +172,10 @@ export class HeatMaps {
   }
 
   _renderFormationByPlay(plays) {
-    const formations = [...new Set(plays.map(p => p.tags.formation).filter(Boolean))];
+    // Formation is multi-select ("Pistol + Spread"); split each play into its
+    // component looks so every formation gets its own matrix row.
+    const formsOf = (p) => String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    const formations = [...new Set(plays.flatMap(formsOf))];
     const playTypes = [...new Set(plays.map(p => p.tags.playType).filter(Boolean))];
 
     if (!formations.length || !playTypes.length) {
@@ -180,7 +183,7 @@ export class HeatMaps {
     }
 
     const matrix = formations.map(f =>
-      playTypes.map(pt => plays.filter(p => p.tags.formation === f && p.tags.playType === pt).length)
+      playTypes.map(pt => plays.filter(p => formsOf(p).includes(f) && p.tags.playType === pt).length)
     );
     const max = Math.max(1, ...matrix.flat());
     const rowTotals = matrix.map(row => row.reduce((s, n) => s + n, 0));

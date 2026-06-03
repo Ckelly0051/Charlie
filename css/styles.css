@@ -5144,6 +5144,18 @@ body { background: var(--canvas); }
   letter-spacing: 0.7px;
   margin-bottom: 5px;
 }
+.chip-hint {
+  font-weight: 600;
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: var(--accent, #4169e1);
+  background: rgba(65,105,225,0.10);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
 
 /* ---- Unit toggle: premium segmented control ---- */
 .unit-toggle {

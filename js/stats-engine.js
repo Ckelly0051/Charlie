@@ -8,6 +8,15 @@ import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
 
 export class StatsEngine {
+  /**
+   * Split a (possibly multi-select) formation string into its component
+   * formations. "Pistol + Spread" -> ["Pistol", "Spread"]; blank -> ["Unknown"].
+   */
+  static splitFormations(formation) {
+    const parts = String(formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    return parts.length ? parts : ['Unknown'];
+  }
+
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
@@ -329,11 +338,14 @@ export class StatsEngine {
   }
 
   _tendencyStats(plays) {
-    // Formation frequency
+    // Formation frequency. Formation is multi-select (e.g. "Pistol + Spread"),
+    // so a play is counted under EACH of its formations — percentages may sum
+    // above 100% because looks overlap.
     const formations = {};
     plays.forEach(p => {
-      const f = p.tags.formation || 'Unknown';
-      formations[f] = (formations[f] || 0) + 1;
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        formations[f] = (formations[f] || 0) + 1;
+      });
     });
 
     // Play type distribution
@@ -1051,13 +1063,18 @@ export class StatsEngine {
     const stats = this.compute(playsOverride || undefined);
     const formationDetail = {};
     plays.forEach(p => {
-      const f = p.tags.formation || 'Unknown';
-      if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
-      formationDetail[f].total++;
-      if (p.tags.playType?.toLowerCase().includes('run')) formationDetail[f].runs++;
-      else formationDetail[f].passes++;
-      formationDetail[f].yards += parseInt(p.tags.yardage) || 0;
-      if (p.tags.result === 'Touchdown') formationDetail[f].tds++;
+      const isRun = p.tags.playType?.toLowerCase().includes('run');
+      const yards = parseInt(p.tags.yardage) || 0;
+      const isTd = p.tags.result === 'Touchdown';
+      // Multi-select formation: attribute the play to each component look.
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
+        formationDetail[f].total++;
+        if (isRun) formationDetail[f].runs++;
+        else formationDetail[f].passes++;
+        formationDetail[f].yards += yards;
+        if (isTd) formationDetail[f].tds++;
+      });
     });
     const downTendency = {};
     plays.forEach(p => {

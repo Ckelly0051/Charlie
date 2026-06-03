@@ -95,7 +95,7 @@ server/                       # Optional local Python backend (YOLO-based)
     quarter: '',        // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'OT'
     fieldSide: 'own',   // 'own' | 'opp'
     yardLine: '',       // 1-50
-    formation: '',      // 'Shotgun' | 'Under Center' | 'Pistol' | 'I-Form' | 'Singleback' | 'Split Back' | 'Single Wing' | 'Empty' | 'Wildcat' | 'Goal Line'
+    formation: '',      // MULTI-SELECT (offense). One or more of 'Shotgun' | 'Under Center' | 'Pistol' | 'I-Form' | 'Singleback' | 'Trips' | 'Spread' | 'Split Back' | 'Single Wing' | 'Empty' | 'Wildcat' | 'Goal Line', stored as a " + "-joined string (e.g. 'Pistol + Spread'). Analytics split on " + " and attribute the play to each component formation. ChipField({multi:true}); StatsEngine.splitFormations() is the canonical splitter.
     personnel: '',      // '00'-'23' | 'Jumbo' | 'Goal Line'
     playType: '',       // 'Run Inside' | 'Run Outside' | 'Screen' | 'Short Pass' | 'Medium Pass' | 'Deep Pass' | 'Play Action' | 'RPO' | 'Trick Play'
     result: '',         // 'Gain' | 'Loss' | 'No Gain' | 'Incomplete' | 'Interception' | 'Touchdown' | 'Sack' | 'Fumble' | 'Penalty' | 'Punt' | 'Field Goal' | 'Kneel' | 'Spike'

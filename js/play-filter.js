@@ -96,7 +96,12 @@ export class PlayFilter {
     if (c.quarters.length && !c.quarters.includes(tags.quarter)) return false;
     if (c.downs.length && !c.downs.includes(tags.down)) return false;
     if (c.playTypes.length && !c.playTypes.includes(tags.playType)) return false;
-    if (c.formations.length && !c.formations.includes(tags.formation)) return false;
+    if (c.formations.length) {
+      // Formation is multi-select ("Pistol + Spread") — match if the play uses
+      // ANY of the selected formations.
+      const playForms = String(tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      if (!c.formations.some(f => playForms.includes(f))) return false;
+    }
     if (c.personnel.length && !c.personnel.includes(tags.personnel)) return false;
     if (c.results.length && !c.results.includes(tags.result)) return false;
 

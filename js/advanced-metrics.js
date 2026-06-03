@@ -118,14 +118,21 @@ export class AdvancedMetrics {
 
     const total = withEpa.reduce((s, x) => s + x.epa, 0);
 
-    // By play type
-    const groupBy = (key) => {
+    // By play type. `multi` splits a " + "-joined value (e.g. the multi-select
+    // formation "Pistol + Spread") so EPA is attributed to each component.
+    const groupBy = (key, multi = false) => {
       const m = {};
       for (const x of withEpa) {
-        const k = x.play.tags[key] || 'Unknown';
-        if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
-        m[k].total += x.epa;
-        m[k].count++;
+        const raw = x.play.tags[key] || 'Unknown';
+        const keys = multi
+          ? (String(raw).split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean) || [])
+          : [raw];
+        if (!keys.length) keys.push('Unknown');
+        for (const k of keys) {
+          if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
+          m[k].total += x.epa;
+          m[k].count++;
+        }
       }
       return Object.values(m)
         .map(g => ({ ...g, total: +g.total.toFixed(2), perPlay: +(g.total / g.count).toFixed(3) }))
@@ -133,7 +140,7 @@ export class AdvancedMetrics {
     };
 
     const byType = groupBy('playType');
-    const byFormation = groupBy('formation');
+    const byFormation = groupBy('formation', true);
     const byPersonnel = groupBy('personnel');
 
     // By down
