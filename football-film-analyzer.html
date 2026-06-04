@@ -5503,6 +5503,128 @@ select:focus,
 }
 
 /* ================================================================== */
+/* ====  MULTI-ANGLE SYNC                                         == */
+/* ================================================================== */
+
+/* Wrappers — each holds a video (+ canvas on angle 1). Transparent
+   when no second angle is loaded; position:absolute fills container. */
+.angle-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.angle-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.angle-wrapper-2 { display: none; }
+
+/* Placeholder must sit above the wrappers */
+.video-container .video-placeholder { z-index: 10; }
+
+/* Angle badges */
+.angle-badge {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 10px;
+  background: rgba(0,0,0,0.55);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  z-index: 6;
+  pointer-events: none;
+  letter-spacing: 0.3px;
+}
+.angle-badge.active {
+  background: rgba(59,130,246,0.75);
+  color: #fff;
+}
+
+/* --- Toggle mode: stack both, z-index controls which is on top --- */
+.video-container.angle-single .angle-wrapper-2 { display: flex; z-index: 0; }
+.video-container.angle-single #angleWrapper1 { z-index: 1; }
+.video-container.angle-single.active-angle-2 #angleWrapper1 { z-index: 0; }
+.video-container.angle-single.active-angle-2 .angle-wrapper-2 { z-index: 1; }
+
+/* --- Side-by-side: both wrappers share space 50/50 --- */
+.video-container.angle-sbs { flex-direction: row !important; gap: 2px; }
+.video-container.angle-sbs .angle-wrapper,
+.video-container.angle-sbs .angle-wrapper-2 {
+  position: relative;
+  inset: auto;
+  flex: 1 1 50%;
+  min-width: 0;
+  align-self: stretch;
+}
+.video-container.angle-sbs .angle-wrapper-2 { display: flex; }
+.video-container.angle-sbs.active-angle-1 #angleWrapper1,
+.video-container.angle-sbs.active-angle-2 #angleWrapper2 {
+  outline: 2px solid rgba(59,130,246,0.5);
+  outline-offset: -2px;
+  border-radius: 3px;
+}
+
+/* --- PiP: primary full, secondary small overlay in corner --- */
+.video-container.angle-pip .angle-wrapper-2 {
+  display: flex;
+  position: absolute;
+  inset: auto 8px 8px auto;
+  width: 28%;
+  height: 28%;
+  z-index: 5;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  transition: border-color 0.15s;
+}
+.video-container.angle-pip .angle-wrapper-2:hover {
+  border-color: rgba(59,130,246,0.7);
+}
+.video-container.angle-pip #angleWrapper1 { z-index: 1; }
+
+/* Angle controls strip */
+.angle-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.angle-controls .ctrl-btn { font-size: 12px; padding: 2px 8px; }
+.angle2-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.angle2-info.hidden { display: none; }
+.angle2-name {
+  color: var(--text-dim);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.angle-sync-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.angle-remove-btn { color: var(--danger) !important; font-size: 14px !important; }
+
+/* ================================================================== */
 /* ====  BUFFERING v8 — visual feedback while video loads          == */
 /* ================================================================== */
 .video-container { position: relative; }
@@ -5716,13 +5838,7 @@ video.is-buffering { opacity: 0.6; }
           </svg>
           <span class="sidebar-toggle-label">Settings</span>
         </button>
-        <button class="btn" id="btnToggleWizard" title="Show/hide the step-by-step wizard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2l2.09 6.26L20 9.27l-5 4.87L16.18 21 12 17.77 7.82 21 9 14.14l-5-4.87 5.91-1.01L12 2z"/>
-          </svg>
-          <span>Wizard</span>
-        </button>
-        <button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)">
+<button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="6" width="20" height="12" rx="2"/>
             <line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/>
@@ -5803,8 +5919,15 @@ video.is-buffering { opacity: 0.6; }
       <!-- Video Area -->
       <div class="video-section">
         <div class="video-container" id="videoContainer">
-          <video id="videoPlayer" preload="auto" playsinline></video>
-          <canvas id="drawingCanvas"></canvas>
+          <div class="angle-wrapper" id="angleWrapper1">
+            <video id="videoPlayer" preload="auto" playsinline></video>
+            <canvas id="drawingCanvas"></canvas>
+            <span class="angle-badge" id="angleLabel1">Angle 1</span>
+          </div>
+          <div class="angle-wrapper angle-wrapper-2" id="angleWrapper2">
+            <video id="videoPlayer2" preload="auto" playsinline></video>
+            <span class="angle-badge" id="angleLabel2">Angle 2</span>
+          </div>
           <div class="video-placeholder" id="videoPlaceholder">
             <svg class="icon icon-large"><use href="#icon-film"/></svg>
             <p>Load a video file to begin</p>
@@ -5856,6 +5979,25 @@ video.is-buffering { opacity: 0.6; }
               FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
             </label>
           </div>
+        </div>
+
+        <!-- Multi-angle controls -->
+        <div class="angle-controls" id="angleControls">
+          <button class="ctrl-btn" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
+          <input type="file" id="angle2FileInput" accept="video/*" hidden>
+          <span class="angle2-info hidden" id="angle2Info">
+            <span class="angle2-name" id="angle2Name"></span>
+            <select id="angleViewMode" class="speed-select" title="View layout">
+              <option value="single">Toggle</option>
+              <option value="sideBySide">Side by Side</option>
+              <option value="pip">Picture-in-Picture</option>
+            </select>
+            <button class="ctrl-btn" id="btnSwapAngle" title="Swap active angle (V)">⇄</button>
+            <label class="angle-sync-label" title="Time offset for angle 2 (seconds)">
+              Sync: <input type="number" id="angleSyncOffset" value="0" step="0.1" class="fps-input" style="width:52px">s
+            </label>
+            <button class="ctrl-btn angle-remove-btn" id="btnRemoveAngle" title="Remove second angle">✕</button>
+          </span>
         </div>
 
         <!-- Timeline (moved from bottom-panel into video-section) -->
@@ -6159,18 +6301,6 @@ video.is-buffering { opacity: 0.6; }
             <div class="player-quickpick" id="rosterQuickPick"></div>
           </div>
 
-          <!-- Play diagram (X's & O's) -->
-          <div class="chip-section" id="playDiagramSection">
-            <div class="cf-head">
-              <label class="chip-label">Play Diagram</label>
-              <span class="pd-actions">
-                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
-                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
-              </span>
-            </div>
-            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
-          </div>
-
           <!-- Custom user-defined tag fields -->
           <div class="chip-section cf-empty" id="customFieldsSection">
             <div class="cf-head">
@@ -6242,6 +6372,18 @@ video.is-buffering { opacity: 0.6; }
             <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
             <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
             <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
+          </div>
+
+          <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
+          <div class="chip-section" id="playDiagramSection">
+            <div class="cf-head">
+              <label class="chip-label">Play Diagram</label>
+              <span class="pd-actions">
+                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
+                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
+              </span>
+            </div>
+            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
           </div>
         </div>
 
@@ -6809,6 +6951,7 @@ video.is-buffering { opacity: 0.6; }
               <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
               <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo</dd>
               <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd></dt><dd>Save project</dd>
+              <dt><kbd>V</kbd></dt><dd>Swap camera angle (multi-angle)</dd>
               <dt><kbd>?</kbd></dt><dd>Show / hide this help</dd>
             </dl>
           </div>
@@ -7288,7 +7431,7 @@ class CanvasOverlay {
     this.vc = videoController;
     this.canvas = document.getElementById('drawingCanvas');
     this.ctx = this.canvas.getContext('2d');
-    this.container = document.getElementById('videoContainer');
+    this.container = document.getElementById('angleWrapper1') || document.getElementById('videoContainer');
 
     this.currentTool = null;
     this.color = '#ffffff';
@@ -12458,6 +12601,213 @@ class Visualizations {
   }
 }
 
+// ===== multi-angle.js =====
+/**
+ * MultiAngle — two camera angles of the same game, time-locked.
+ *
+ * Typical use: sideline (primary) + end zone (secondary). Both videos
+ * play/pause/seek in sync; the coach toggles, views side-by-side, or
+ * uses picture-in-picture. Tags and drawings attach to the shared play
+ * data, not to a specific angle — they show the same snap.
+ *
+ * View modes:
+ *   - single (Toggle):      one angle visible at a time, V key swaps.
+ *   - sideBySide:           both angles 50/50, active one has outline.
+ *   - pip (Picture-in-Pic): primary full-size, secondary small overlay.
+ */
+class MultiAngle {
+  constructor(vc) {
+    this.vc = vc;
+    this.video2 = document.getElementById('videoPlayer2');
+    this.container = document.getElementById('videoContainer');
+    this.objectUrl2 = null;
+    this.offset = 0;
+    this.enabled = false;
+    this.viewMode = 'single';
+    this.activeAngle = 1;
+    this.listeners = {};
+    this._driftThreshold = 0.15;
+    this._userSetViewMode = false;
+
+    this._bindUI();
+    this._bindSync();
+  }
+
+  _bindUI() {
+    const btnAdd = document.getElementById('btnAddAngle');
+    const fileInput = document.getElementById('angle2FileInput');
+    const btnRemove = document.getElementById('btnRemoveAngle');
+    const viewSelect = document.getElementById('angleViewMode');
+    const btnSwap = document.getElementById('btnSwapAngle');
+    const offsetInput = document.getElementById('angleSyncOffset');
+
+    if (btnAdd && fileInput) {
+      btnAdd.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) this.loadAngle2(file);
+        fileInput.value = '';
+      });
+    }
+
+    btnRemove?.addEventListener('click', () => this.removeAngle2());
+    btnSwap?.addEventListener('click', () => this.swapActive());
+
+    viewSelect?.addEventListener('change', () => {
+      this.setViewMode(viewSelect.value);
+    });
+
+    offsetInput?.addEventListener('change', () => {
+      this.offset = parseFloat(offsetInput.value) || 0;
+      this._syncTime();
+    });
+
+    const wrapper2 = document.getElementById('angleWrapper2');
+    wrapper2?.addEventListener('click', () => {
+      if (this.enabled && this.viewMode === 'pip') this.swapActive();
+    });
+  }
+
+  _bindSync() {
+    this.vc.on('play-state-change', ({ playing }) => {
+      if (!this.enabled || !this.video2) return;
+      if (playing) this.video2.play().catch(() => {});
+      else this.video2.pause();
+    });
+
+    this.vc.on('time-update', () => {
+      if (this.enabled) this._syncTime();
+    });
+
+    this.vc.videoElement.addEventListener('ratechange', () => {
+      if (this.enabled && this.video2) {
+        this.video2.playbackRate = this.vc.videoElement.playbackRate;
+      }
+    });
+
+    this.vc.on('video-unloaded', () => {
+      this.removeAngle2();
+    });
+  }
+
+  _syncTime() {
+    if (!this.video2 || !this.enabled) return;
+    const target = this.vc.currentTime + this.offset;
+    if (Math.abs(this.video2.currentTime - target) > this._driftThreshold) {
+      this.video2.currentTime = Math.max(0, target);
+    }
+  }
+
+  loadAngle2(file) {
+    if (this.objectUrl2) URL.revokeObjectURL(this.objectUrl2);
+    this.objectUrl2 = URL.createObjectURL(file);
+    this.video2.src = this.objectUrl2;
+    this.video2.load();
+    this.enabled = true;
+    this.angle2Name = file.name;
+    this.activeAngle = 1;
+
+    this.video2.playbackRate = this.vc.videoElement.playbackRate;
+
+    this.video2.addEventListener('loadedmetadata', () => {
+      this._syncTime();
+      if (!this.vc.paused) this.video2.play().catch(() => {});
+    }, { once: true });
+
+    if (!this._userSetViewMode) {
+      const mode = window.innerWidth >= 1100 ? 'sideBySide' : 'single';
+      this.viewMode = mode;
+      const vs = document.getElementById('angleViewMode');
+      if (vs) vs.value = mode;
+    }
+
+    this._updateUI();
+    this._emit('angle-loaded', { name: file.name });
+  }
+
+  removeAngle2() {
+    if (!this.enabled && !this.objectUrl2) return;
+    if (this.objectUrl2) {
+      URL.revokeObjectURL(this.objectUrl2);
+      this.objectUrl2 = null;
+    }
+    if (this.video2) {
+      this.video2.pause();
+      this.video2.removeAttribute('src');
+      try { this.video2.load(); } catch {}
+    }
+    this.enabled = false;
+    this.activeAngle = 1;
+    this.angle2Name = null;
+    this._userSetViewMode = false;
+    this._updateUI();
+    this._emit('angle-removed');
+  }
+
+  swapActive() {
+    if (!this.enabled) return;
+    this.activeAngle = this.activeAngle === 1 ? 2 : 1;
+    this._updateUI();
+    this._emit('angle-swapped', { active: this.activeAngle });
+  }
+
+  setViewMode(mode) {
+    this._userSetViewMode = true;
+    this.viewMode = mode;
+    this._updateUI();
+    this._emit('view-changed', { mode });
+  }
+
+  _updateUI() {
+    const c = this.container;
+    if (!c) return;
+
+    const info = document.getElementById('angle2Info');
+    const nameEl = document.getElementById('angle2Name');
+    const label1 = document.getElementById('angleLabel1');
+    const label2 = document.getElementById('angleLabel2');
+
+    if (info) info.classList.toggle('hidden', !this.enabled);
+    if (nameEl) nameEl.textContent = this.enabled ? this.angle2Name : '';
+
+    c.classList.toggle('has-angle2', this.enabled);
+    c.classList.remove('angle-single', 'angle-sbs', 'angle-pip');
+    c.classList.remove('active-angle-1', 'active-angle-2');
+
+    if (this.enabled) {
+      c.classList.add('active-angle-' + this.activeAngle);
+      switch (this.viewMode) {
+        case 'sideBySide': c.classList.add('angle-sbs'); break;
+        case 'pip': c.classList.add('angle-pip'); break;
+        default: c.classList.add('angle-single'); break;
+      }
+    }
+
+    if (label1) {
+      label1.classList.toggle('active', this.activeAngle === 1);
+      label1.style.display = this.enabled ? '' : 'none';
+    }
+    if (label2) {
+      label2.classList.toggle('active', this.activeAngle === 2);
+      label2.style.display = this.enabled ? '' : 'none';
+    }
+  }
+
+  get activeVideoElement() {
+    if (this.activeAngle === 2 && this.enabled) return this.video2;
+    return this.vc.videoElement;
+  }
+
+  on(event, cb) {
+    if (!this.listeners[event]) this.listeners[event] = [];
+    this.listeners[event].push(cb);
+  }
+
+  _emit(event, data) {
+    (this.listeners[event] || []).forEach(cb => cb(data));
+  }
+}
+
 // ===== stats-engine.js =====
 /**
  * StatsEngine - Computes team and individual stats from charted play data.
@@ -16671,6 +17021,7 @@ class App {
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
+    this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
     this.tagger.onLoadForm = (play) => {
       this.customFields.loadValues(play);
@@ -16819,6 +17170,11 @@ class App {
       this.canvas.render();
     });
 
+    // Re-sync canvas overlay when multi-angle layout changes
+    this.multiAngle.on('view-changed', () => requestAnimationFrame(() => this.canvas._syncSize()));
+    this.multiAngle.on('angle-loaded', () => requestAnimationFrame(() => this.canvas._syncSize()));
+    this.multiAngle.on('angle-removed', () => requestAnimationFrame(() => this.canvas._syncSize()));
+
     // Auto-advance to next clip when current clip ends (optional behavior)
     this.vc.videoElement.addEventListener('ended', () => {
       // Don't auto-advance; let user control navigation
@@ -16922,6 +17278,12 @@ class App {
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             this.history.redoAll();
+          }
+          break;
+        case 'KeyV':
+          if (!e.ctrlKey && !e.metaKey && this.multiAngle?.enabled) {
+            e.preventDefault();
+            this.multiAngle.swapActive();
           }
           break;
         case 'KeyS':
