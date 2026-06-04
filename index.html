@@ -5780,6 +5780,92 @@ video.is-buffering { opacity: 0.6; }
   .ctrl-btn { min-width: 36px !important; min-height: 36px !important; }
   .time-display { font-size: 10px !important; }
 }
+
+/* ================================================================== */
+/* ====  SELF-SCOUT REPORT                                         == */
+/* Predictability meter, tell bars/badges. Lives in the stats        */
+/* overlay (dark surface).                                            */
+/* ================================================================== */
+.ss-meter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 6px 0 4px;
+}
+.ss-meter {
+  flex: 1 1 220px;
+  min-width: 180px;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ss-meter-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 400ms cubic-bezier(.4, 0, .2, 1);
+}
+.ss-meter-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ss-meter-val span { font-size: 13px; color: #7d8aa5; font-weight: 600; }
+.ss-meter-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #b9c4da;
+  padding: 3px 10px;
+  border: 1px solid #2a3552;
+  border-radius: 999px;
+}
+
+/* Tells table: severity-tinted rows + lean bars */
+.ss-tells .ss-dim {
+  font-size: 11px;
+  color: #8b97b0;
+}
+.ss-bar {
+  display: inline-block;
+  min-width: 76px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b1020;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(90deg, var(--c, #ffd23f) var(--p, 50%), rgba(255, 255, 255, 0.1) var(--p, 50%));
+}
+.ss-bar-run { --c: #ffd23f; }
+.ss-bar-pass { --c: #6cc4ff; }
+.ss-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.ss-badge-strong { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
+.ss-badge-notable { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); }
+.ss-badge-slight { background: rgba(234, 179, 8, 0.14); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+.ss-tells tr.ss-tier-strong td { background: rgba(239, 68, 68, 0.07); }
+
+/* Split tables: tell vs balanced flags */
+.ss-flag {
+  font-weight: 700;
+  color: #fbbf24;
+  font-size: 12px;
+}
+.ss-ok { color: #6b7a99; font-size: 12px; }
+
+.ss-recs {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+.ss-recs li { margin-bottom: 5px; color: #cdd6e6; font-size: 13px; }
+.ss-recs li:first-child:only-child,
+.ss-recs li:first-child { color: #e6ebf5; }
   </style>
 </head>
 <body>
@@ -13581,6 +13667,7 @@ class StatsEngine {
           <div class="stats-header">
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
+              <button class="btn btn-sm" id="btnSelfScout" title="Reveal what tendencies your offense is tipping">Self-Scout</button>
               <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
             </div>
@@ -13610,6 +13697,9 @@ class StatsEngine {
 
     // Export button
     el.querySelector('#btnExportStats').addEventListener('click', () => this._exportStats(stats));
+
+    // Self-scout: flip the scouting lens on our own offense
+    el.querySelector('#btnSelfScout')?.addEventListener('click', () => this.renderSelfScout());
 
     // Heat map tab switching
     this.heatMaps.bind(el);
@@ -14519,6 +14609,282 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     const a = document.createElement('a');
     a.href = url;
     a.download = `scout_${opponent.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ================================================================
+  // SELF-SCOUT — flip the scouting lens on your own offense to reveal
+  // what tendencies you're tipping. Distinct from the opponent scout
+  // report: it flags predictability, ranks your "tells", and suggests
+  // counters. Run/pass-classifiable offensive plays only.
+  // ================================================================
+
+  /** Minimum sample for a grouping to be considered a tell / counted. */
+  static get _SELF_SCOUT_MIN_N() { return 4; }
+
+  /** Pretty-print a "down&distance" key like "1&10" → "1st & 10". */
+  _ddPretty(key) {
+    const [d, dist] = String(key).split('&');
+    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[d] || `${d}`;
+    return dist != null && dist !== '?' && dist !== '' ? `${ord} & ${dist}` : ord;
+  }
+
+  /**
+   * Bucket plays by a key function, counting only run/pass-classifiable
+   * plays. keyFn may return a single key or an array (multi-formation).
+   */
+  _selfScoutGroup(plays, keyFn) {
+    const g = {};
+    plays.forEach(p => {
+      const isRun = StatsEngine.isRun(p);
+      const isPass = StatsEngine.isPass(p);
+      if (!isRun && !isPass) return; // skip unclassifiable (e.g. trick/blank)
+      let keys = keyFn(p);
+      if (!Array.isArray(keys)) keys = [keys];
+      keys.forEach(k => {
+        if (k == null || k === '' || k === '?' || /(^|&)\?($|&)/.test(String(k))) return;
+        if (!g[k]) g[k] = { key: k, n: 0, runs: 0, passes: 0, yards: 0 };
+        g[k].n++;
+        if (isRun) g[k].runs++; else g[k].passes++;
+        g[k].yards += parseInt(p.tags.yardage) || 0;
+      });
+    });
+    return g;
+  }
+
+  /** Turn a group map into rows with runPct / lean / tell flag. */
+  _selfScoutRows(groups) {
+    return Object.values(groups)
+      .map(grp => {
+        const runPct = grp.n ? Math.round(grp.runs / grp.n * 100) : 0;
+        const lean = runPct >= 50 ? 'Run' : 'Pass';
+        const leanPct = Math.max(runPct, 100 - runPct);
+        return {
+          ...grp, runPct, passPct: 100 - runPct, lean, leanPct,
+          avg: grp.n ? +(grp.yards / grp.n).toFixed(1) : 0,
+          tell: grp.n >= StatsEngine._SELF_SCOUT_MIN_N && leanPct >= 70,
+        };
+      })
+      .sort((a, b) => b.n - a.n);
+  }
+
+  /** Extract ranked tells from a group map, tagged with a dimension label. */
+  _tellsFrom(groups, dim, fmt) {
+    const min = StatsEngine._SELF_SCOUT_MIN_N;
+    return Object.values(groups)
+      .filter(grp => grp.n >= min)
+      .map(grp => {
+        const runPct = Math.round(grp.runs / grp.n * 100);
+        const leanPct = Math.max(runPct, 100 - runPct);
+        const lean = runPct >= 50 ? 'Run' : 'Pass';
+        return {
+          dim, label: fmt(grp.key), n: grp.n, lean, leanPct,
+          tier: leanPct >= 85 ? 'strong' : leanPct >= 75 ? 'notable' : 'slight',
+          score: (leanPct - 50) * Math.min(grp.n, 12),
+        };
+      })
+      .filter(t => t.leanPct >= 70);
+  }
+
+  /** Sample-weighted predictability index (0 balanced → 100 predictable). */
+  _predictabilityIndex(...groupMaps) {
+    let wsum = 0, w = 0;
+    groupMaps.forEach(groups => Object.values(groups).forEach(grp => {
+      if (grp.n < 3) return;
+      const maxPct = Math.max(grp.runs, grp.passes) / grp.n * 100;
+      wsum += maxPct * grp.n; w += grp.n;
+    }));
+    const avgMax = w ? wsum / w : 50;
+    return Math.round(Math.max(0, Math.min(100, (avgMax - 50) * 2)));
+  }
+
+  generateSelfScout(playsOverride = null) {
+    const all = playsOverride || this._currentPlays();
+    // Self-scout is about your own offense's tendencies.
+    const plays = all.filter(p => (p.tags.unit || 'offense') === 'offense');
+    const classifiable = plays.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
+    if (classifiable.length === 0) return null;
+
+    const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(p.tags.formation));
+    const byDownDist = this._selfScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
+    const byPersonnel = this._selfScoutGroup(plays, p => p.tags.personnel);
+    const byHash = this._selfScoutGroup(plays, p => p.tags.hash);
+    // Combined formation-on-down — what a DC actually keys on.
+    const byCombo = this._selfScoutGroup(plays, p => {
+      const dd = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
+      return StatsEngine.splitFormations(p.tags.formation).map(f => `${f}__${dd}`);
+    });
+
+    let tells = [
+      ...this._tellsFrom(byCombo, 'Formation × Down', k => {
+        const [f, dd] = k.split('__'); return `${f} on ${this._ddPretty(dd)}`;
+      }),
+      ...this._tellsFrom(byFormation, 'Formation', k => `From ${k}`),
+      ...this._tellsFrom(byDownDist, 'Down & Dist', k => this._ddPretty(k)),
+      ...this._tellsFrom(byPersonnel, 'Personnel', k => `${k} personnel`),
+      ...this._tellsFrom(byHash, 'Hash', k => `${k} hash`),
+    ].sort((a, b) => b.score - a.score).slice(0, 12);
+
+    const predictability = this._predictabilityIndex(byFormation, byDownDist);
+    const predLabel = predictability >= 70 ? 'Very Predictable'
+      : predictability >= 50 ? 'Predictable'
+        : predictability >= 30 ? 'Moderate' : 'Balanced';
+
+    // Auto coaching recommendations from the top tells.
+    const recommendations = [];
+    if (predictability >= 60) {
+      recommendations.push('Your offense is reading as predictable — defenses can key these tells. Prioritize the situations below.');
+    }
+    tells.slice(0, 5).forEach(t => {
+      const counter = t.lean === 'Run'
+        ? 'play-action or a quick game pass off the same look'
+        : 'a draw, screen, or run off the same look';
+      recommendations.push(`${t.label}: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) — add ${counter}.`);
+    });
+    if (tells.length === 0) {
+      recommendations.push('No strong tells detected at the current sample size — your run/pass mix is well balanced. Keep tagging for finer detail.');
+    }
+
+    return {
+      totalPlays: classifiable.length,
+      predictability, predLabel,
+      tells,
+      formationRows: this._selfScoutRows(byFormation),
+      downDistRows: this._selfScoutRows(byDownDist).sort((a, b) => b.n - a.n).slice(0, 15),
+      personnelRows: this._selfScoutRows(byPersonnel),
+      recommendations,
+    };
+  }
+
+  _selfScoutTellsTable(tells) {
+    if (!tells.length) return '<p style="color:var(--text-dim)">No strong tells at the current sample size.</p>';
+    return `<table class="stats-table stats-table-full ss-tells">
+      <thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Lean</th><th>n</th></tr></thead>
+      <tbody>${tells.map(t => `<tr class="ss-tier-${t.tier}">
+        <td>${t.label}</td>
+        <td><span class="ss-dim">${t.dim}</span></td>
+        <td><span class="ss-bar ss-bar-${t.lean === 'Run' ? 'run' : 'pass'}" style="--p:${t.leanPct}%">${t.lean} ${t.leanPct}%</span></td>
+        <td><span class="ss-badge ss-badge-${t.tier}">${t.tier}</span></td>
+        <td>${t.n}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  _selfScoutSplitTable(rows, label) {
+    return `<table class="stats-table stats-table-full">
+      <thead><tr><th>${label}</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td>${r.dim ? this._ddPretty(r.key) : (label === 'Down & Dist' ? this._ddPretty(r.key) : r.key)}</td>
+        <td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.avg}</td>
+        <td>${r.tell ? `<span class="ss-flag">${r.lean} ${r.leanPct}%</span>` : '<span class="ss-ok">balanced</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  renderSelfScout() {
+    const report = this.generateSelfScout();
+    if (!report) { alert('No run/pass plays tagged yet. Tag your offense first.'); return; }
+    const team = document.getElementById('gameTeamName')?.value || 'Our Offense';
+    const meterColor = report.predictability >= 70 ? '#ef4444'
+      : report.predictability >= 50 ? '#f59e0b'
+        : report.predictability >= 30 ? '#eab308' : '#22c55e';
+
+    const html = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Self-Scout: ${team}</h2>
+            <div class="stats-header-actions">
+              <button class="btn btn-sm" id="btnExportSelfScout">Export Report</button>
+              <button class="btn btn-sm btn-danger" id="btnCloseSelfScout">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">
+            <div class="stats-section">
+              <h3>Predictability (${report.totalPlays} run/pass plays)</h3>
+              <div class="ss-meter-wrap">
+                <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${meterColor}"></div></div>
+                <div class="ss-meter-val" style="color:${meterColor}">${report.predictability}<span>/100</span></div>
+                <div class="ss-meter-label">${report.predLabel}</div>
+              </div>
+              <p class="viz-caption">Higher = more predictable (run/pass leans heavily by formation &amp; down). A defensive coordinator reads the same numbers — aim to keep your key situations balanced.</p>
+            </div>
+            <div class="stats-section">
+              <h3>Your Top Tells</h3>
+              ${this._selfScoutTellsTable(report.tells)}
+            </div>
+            ${report.recommendations.length ? `<div class="stats-section">
+              <h3>Recommendations</h3>
+              <ul class="ss-recs">${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+            </div>` : ''}
+            <div class="stats-section stats-two-col">
+              <div>
+                <h3>By Formation</h3>
+                ${this._selfScoutSplitTable(report.formationRows, 'Formation')}
+              </div>
+              <div>
+                <h3>By Down &amp; Distance</h3>
+                ${this._selfScoutSplitTable(report.downDistRows, 'Down & Dist')}
+              </div>
+            </div>
+            ${report.personnelRows.length ? `<div class="stats-section">
+              <h3>By Personnel</h3>
+              ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
+            </div>` : ''}
+          </div>
+        </div>
+      </div>`;
+
+    this.dashboardEl.innerHTML = html;
+    this.dashboardEl.classList.remove('hidden');
+    this.dashboardEl.querySelector('#btnCloseSelfScout').addEventListener('click', () => this.hideDashboard());
+    this.dashboardEl.querySelector('#btnExportSelfScout').addEventListener('click', () => this._exportSelfScout(report, team));
+    this.dashboardEl.querySelector('.stats-overlay').addEventListener('click', (e) => {
+      if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
+    });
+  }
+
+  _exportSelfScout(report, team) {
+    const title = `Self-Scout: ${team}`;
+    const tellRows = report.tells.map(t =>
+      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.tier}</td><td>${t.n}</td></tr>`
+    ).join('') || '<tr><td colspan="5">No strong tells at current sample size.</td></tr>';
+    const formRows = report.formationRows.map(r =>
+      `<tr><td>${r.key}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.avg}</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
+    ).join('');
+    const ddRows = report.downDistRows.map(r =>
+      `<tr><td>${this._ddPretty(r.key)}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.avg}</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
+    ).join('');
+    const meterColor = report.predictability >= 70 ? '#ef4444'
+      : report.predictability >= 50 ? '#f59e0b'
+        : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+.meter{height:20px;border-radius:10px;background:#eee;overflow:hidden;margin:10px 0 4px}
+.meter>div{height:100%;width:${report.predictability}%;background:${meterColor}}
+.mval{font-size:28px;font-weight:bold;color:${meterColor}}.mlbl{color:#666;font-size:13px}
+ul{line-height:1.6}</style></head><body>
+<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} run/pass plays</p>
+<h3>Predictability Index</h3>
+<div class="meter"><div></div></div>
+<div class="mval">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; <span class="mlbl">${report.predLabel}</span></div>
+<p style="color:#666">Higher = more predictable. A DC reads the same tendencies; keep key situations balanced.</p>
+<h3>Top Tells</h3><table><thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Severity</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
+${report.recommendations.length ? `<h3>Recommendations</h3><ul>${report.recommendations.map(r => `<li>${r.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : ''}
+<h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
+<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>
+</body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `self_scout_${team.replace(/\s+/g, '_')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
