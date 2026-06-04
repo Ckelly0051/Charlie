@@ -4576,6 +4576,8 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
   font-size: 14px;
   font-weight: 700;
 }
+/* Tackler accepts multiple #s (shared tackles) — keep the list readable. */
+.player-num-multi { font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
 
 /* Roster quick-pick chip bar (stamps the active role) */
 .player-quickpick { display: flex; flex-wrap: wrap; gap: 3px; }

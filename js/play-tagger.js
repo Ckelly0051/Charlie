@@ -197,6 +197,9 @@ export class PlayTagger {
           play.tags.unit = unit;
           this._emit('play-updated', play);
         }
+        // Make the side "sticky": the user's choice carries forward to the
+        // next untagged play (Save & Next) until they change it again.
+        this.defaultUnit = unit;
         this.applyUnitMode(unit);
       });
     }
@@ -701,13 +704,24 @@ export class PlayTagger {
     return false;
   }
 
-  /** Like nextPlay(), but carries the down & distance situation forward. */
+  /**
+   * Like nextPlay(), but carries situation + unit forward. The down & distance
+   * advance is gated on Auto D&D; the unit (Offense/Defense/Special) always
+   * carries to an untagged next play so the coach doesn't re-pick the side
+   * every snap ("persistent until changed").
+   */
   nextPlayWithSituation() {
     const prev = this.getCurrentPlay();
+    const carryUnit = (prev && prev.tags.unit) || this.defaultUnit;
     const advanced = this.nextPlay();
-    if (advanced && this.autoDD && prev) {
+    if (advanced) {
       const next = this.getCurrentPlay();
-      if (next) this.applyNextSituation(prev, next);
+      if (next) {
+        if (this.autoDD && prev) this.applyNextSituation(prev, next);
+        // Carry the side forward only when the next play hasn't been set yet,
+        // so we never overwrite a play already tagged as a different unit.
+        if (carryUnit && !next.tags.unit) this.setUnit(carryUnit);
+      }
     }
     return advanced;
   }

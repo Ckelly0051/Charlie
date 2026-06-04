@@ -127,7 +127,7 @@ server/                       # Optional local Python backend (YOLO-based)
     driveNumber: '',    // auto-incremented
     unit: 'offense',    // 'offense' | 'defense' | 'special' — drives tag-form layout
     stType: '',         // 'Kickoff' | 'Kick Return' | 'Punt' | 'Punt Return' | 'Field Goal' | 'XP' | '2-Pt' | 'Onside' | 'Fake'
-    players: {},        // { ballCarrier, passer, receiver, tackler, kicker, returner } -> jersey # strings
+    players: {},        // { ballCarrier, passer, receiver, tackler, kicker, returner } -> jersey # strings. Most roles hold a single #; tackler may hold MULTIPLE (shared tackles), stored as a "55, 22"-style string. StatsEngine.splitPlayers() splits any player value into individual #s.
     grades: {},         // same role keys -> integer (-2 to +2)
     custom: []          // freeform string array
   },
@@ -148,9 +148,9 @@ Box-score style per-player stats, modeled on Hudl/QwikCut:
 
 1. **Roster panel** (`roster-manager.js`): add players (jersey #, name, position, side O/D/B). Stored in `localStorage` (`ffa_roster`) and in project saves (`roster` key, schema v4).
 2. **Roster import**: CSV file upload or paste-from-spreadsheet with smart header detection (`#`/`Num`/`Jersey` → num, `Name`/`Player` → name, `Pos`/`Position` → pos, `Side`/`Unit` → side). Delimiter auto-detected (tab/comma/semicolon). No external libraries.
-3. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`.
+3. **Per-play attribution**: the tag form has a **Players** section with four roles — Ball Carrier, Passer, Receiver, Tackler. Click a role input to make it active, then tap a roster **quick-pick chip** (filtered by side of ball) to stamp the jersey #. Saved to `play.tags.players`. **Tackler accepts multiple #s** (shared/assisted tackles): the input is a text field and the quick-pick chips *toggle* membership in a `"55, 22"` list (`RosterManager.multiRoles`) instead of replacing. Other roles stay single-value.
 4. **Per-play grading**: each role has a grade select (++/+/0/−/−−, stored as -2 to +2 in `play.tags.grades`). Average grades appear in the individual stats tables.
-5. **Aggregation** (`stats-engine.js` `_individualStats`): rolls role assignments into rushing (att/yds/avg/long/TD/fum/grade), passing (cmp-att/pct/yds/TD/INT/sack/grade), receiving (rec/yds/long/TD/grade), and tackles (tkl/sack/TFL/grade).
+5. **Aggregation** (`stats-engine.js` `_individualStats`): rolls role assignments into rushing (att/yds/avg/long/TD/fum/grade), passing (cmp-att/pct/yds/TD/INT/sack/grade), receiving (rec/yds/long/TD/grade), and tackles (tkl/**solo**/**ast**/sack/TFL/grade). A play with 2+ tacklers credits each as an **assist**; a lone tackler is **solo**. `StatsEngine.splitPlayers()` splits the tackler list.
 6. **Output**: dashboard renders four individual-stat tables; jersey #s map to "#22 Smith" via the roster. **Click any player row to launch a film cut-up** (`_watchPlayer` → `CutupPlayer`).
 7. **Export**: CSV includes Ball Carrier / Passer / Receiver / Tackler + grade columns.
 
@@ -306,6 +306,13 @@ A per-play segmented toggle (`#tagUnit`) at the top of the form drives the
 **layout** — it reorders/collapses side-specific fields rather than hiding
 data. Stored on `play.tags.unit`; new plays default from the Game Info "Film
 shows" perspective via `tagger.defaultUnit` (set by `App._bindScoutMode`).
+
+**Sticky side**: the unit is "persistent until changed" — manually changing the
+toggle updates `tagger.defaultUnit`, and **Save & Next carries the side forward**
+to the next *untagged* play (`nextPlayWithSituation` applies `carryUnit` when the
+next play has no explicit `tags.unit`). So a coach tagging a series of defensive
+snaps picks Defense once instead of every play. An already-tagged play keeps its
+own unit (the carry never overwrites).
 
 Only Formation/Personnel (offense) and Def Front/Coverage/Blitz (defense) are
 side-specific; everything else (Play Type, Result, Yardage, Down & Distance,

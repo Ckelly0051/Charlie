@@ -470,8 +470,8 @@
                 </select>
               </label>
               <label class="player-role" data-role="tackler">
-                <span class="player-role-label">Tackler</span>
-                <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                <span class="player-role-label">Tackler(s)</span>
+                <input type="text" id="tagPlayerTackler" class="player-num player-num-multi" inputmode="numeric" placeholder="# #" title="Multiple allowed for shared tackles (e.g. 55, 22)">
                 <select id="tagGradeTackler" class="player-grade" title="Grade">
                   <option value="">—</option>
                   <option value="2">++</option>
@@ -1021,7 +1021,7 @@
           </div>
           <div class="qc-player-field">
             <label>Tackler #</label>
-            <input type="text" id="qcTackler" placeholder="#" maxlength="3">
+            <input type="text" id="qcTackler" placeholder="# #" maxlength="12" title="Multiple allowed for shared tackles (e.g. 55 22)">
           </div>
         </div>
         <div class="qc-status" id="qcStatus">Press keys to tag — Enter to save &amp; advance</div>

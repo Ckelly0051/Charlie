@@ -34,6 +34,10 @@ export class RosterManager {
       kicker: document.getElementById('tagPlayerKicker'),
       returner: document.getElementById('tagPlayerReturner'),
     };
+    // Roles that accept multiple jersey #s (e.g. shared/assisted tackles).
+    // Stamping toggles membership in a comma-separated list instead of
+    // replacing the single value.
+    this.multiRoles = new Set(['tackler']);
 
     this._load();
     this._bind();
@@ -186,8 +190,17 @@ export class RosterManager {
   _stamp(num) {
     const input = this.roleInputs[this.activeRole];
     if (!input) return;
-    // Toggle off if the same number is already set for this role.
-    input.value = (input.value.trim() === String(num)) ? '' : String(num);
+    num = String(num);
+    if (this.multiRoles.has(this.activeRole)) {
+      // Toggle membership in the jersey list (shared tackles).
+      const list = input.value.match(/\d+/g) || [];
+      const i = list.indexOf(num);
+      if (i >= 0) list.splice(i, 1); else list.push(num);
+      input.value = list.join(', ');
+    } else {
+      // Single-value role: toggle off if re-tapping the same number.
+      input.value = (input.value.trim() === num) ? '' : num;
+    }
     input.dispatchEvent(new Event('change', { bubbles: true }));
     this.refreshActiveChips();
   }
@@ -199,12 +212,12 @@ export class RosterManager {
     this.renderQuickPick();
   }
 
-  /** Highlight chips that match the current value of the active role input. */
+  /** Highlight chips that match the current value(s) of the active role input. */
   refreshActiveChips() {
     if (!this.quickPickEl) return;
-    const cur = this.roleInputs[this.activeRole]?.value.trim();
+    const set = new Set((this.roleInputs[this.activeRole]?.value || '').match(/\d+/g) || []);
     this.quickPickEl.querySelectorAll('.quickpick-chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.num === cur);
+      chip.classList.toggle('active', set.has(String(chip.dataset.num)));
     });
   }
 

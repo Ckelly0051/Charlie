@@ -20,6 +20,15 @@ export class StatsEngine {
   }
 
   /**
+   * Split a player attribution value into individual jersey #s. Most roles hold
+   * a single number, but Tackler can hold several (shared tackles), stored as a
+   * "55, 22"-style string. Returns an array of jersey-# strings (may be empty).
+   */
+  static splitPlayers(val) {
+    return String(val == null ? '' : val).match(/\d+/g) || [];
+  }
+
+  /**
    * Run/pass classification. The explicit `runPass` tag is authoritative
    * (set via the Run/Pass selector); for older plays without it we fall back
    * to inferring from the play-type string.
@@ -637,11 +646,14 @@ export class StatsEngine {
         }
       }
 
-      // Tackler
-      if (players.tackler) {
-        const id = players.tackler;
-        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, sacks: 0, tfl: 0 };
+      // Tackler(s) — may be multiple for shared/assisted tackles. Credit each
+      // listed jersey #. A play with 2+ tacklers marks each as an assist.
+      const tacklerIds = StatsEngine.splitPlayers(players.tackler);
+      const shared = tacklerIds.length > 1;
+      tacklerIds.forEach(id => {
+        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0 };
         tacklers[id].tackles++;
+        if (shared) tacklers[id].assists++; else tacklers[id].solo++;
         if (p.tags.result === 'Sack') tacklers[id].sacks++;
         if (yds < 0) tacklers[id].tfl++;
         if (p.tags.grades?.tackler != null) {
@@ -650,7 +662,7 @@ export class StatsEngine {
           tacklers[id].gradeSum += p.tags.grades.tackler;
           tacklers[id].gradeCount++;
         }
-      }
+      });
     });
 
     return {
@@ -736,7 +748,8 @@ export class StatsEngine {
     const matches = this.tagger.plays
       .filter(p => {
         const pl = p.tags.players || {};
-        return Object.values(pl).includes(String(num));
+        // Player values may hold multiple jersey #s (e.g. shared tackles).
+        return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
       })
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
     if (matches.length === 0) return;
@@ -1432,13 +1445,13 @@ export class StatsEngine {
     if (ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
+            <thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
