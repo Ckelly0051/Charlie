@@ -5695,6 +5695,109 @@ video.is-buffering { opacity: 0.6; }
 @keyframes vc-spin { to { transform: rotate(360deg); } }
 
 /* ================================================================== */
+/* ====  CHARTS & VISUAL ANALYTICS                                 == */
+/* ================================================================== */
+
+/* --- Donut -------------------------------------------------------- */
+.chart-donut { display: block; }
+.chart-donut-wrap { display: flex; align-items: center; gap: 12px; }
+.chart-donut-label { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.chart-legend { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text); }
+.chart-leg-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.chart-leg-item i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+.chart-leg-item b { font-weight: 700; }
+
+/* --- Horizontal Bars --------------------------------------------- */
+.chart-hbars { display: flex; flex-direction: column; gap: 5px; }
+.chart-hbar-row { display: flex; align-items: center; gap: 8px; }
+.chart-hbar-label { width: 100px; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.chart-hbar-track { flex: 1; height: 18px; background: #1b2436; border-radius: 3px; overflow: hidden; position: relative; }
+.chart-hbar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+.chart-hbar-sub { position: absolute; left: 4px; top: 0; line-height: 18px; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.chart-hbar-val { width: 52px; text-align: right; font-size: 12px; font-weight: 600; color: var(--text); flex-shrink: 0; }
+
+/* --- Stacked Bar ------------------------------------------------- */
+.chart-stack { display: flex; border-radius: 4px; overflow: hidden; font-size: 10px; font-weight: 600; color: #0b1020; }
+.chart-stack-seg { display: flex; align-items: center; justify-content: center; min-width: 0; transition: width 0.3s ease; }
+
+/* --- Gauge ------------------------------------------------------- */
+.chart-gauge { display: flex; flex-direction: column; align-items: center; }
+.chart-gauge-label { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: -2px; font-weight: 600; letter-spacing: 0.3px; }
+
+/* --- Sparkline --------------------------------------------------- */
+.chart-sparkline { display: block; width: 100%; max-width: 100%; }
+
+/* --- Mini Bar ---------------------------------------------------- */
+.chart-minibar { height: 4px; background: #1b2436; border-radius: 2px; overflow: hidden; width: 100%; }
+.chart-minibar > div { height: 100%; border-radius: 2px; }
+
+/* --- Effectiveness Chart ----------------------------------------- */
+.chart-eff { display: flex; flex-direction: column; gap: 3px; }
+.chart-eff-head { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.chart-eff-head > span:first-child { width: 110px; flex-shrink: 0; }
+.chart-eff-bar-head { flex: 1; }
+.chart-eff-meta-head { display: flex; gap: 0; width: 140px; flex-shrink: 0; }
+.chart-eff-meta-head > span { width: 46px; text-align: right; }
+.chart-eff-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.chart-eff-row:hover { background: rgba(255,255,255,0.03); }
+.chart-eff-label { width: 110px; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.chart-eff-bar-wrap { flex: 1; }
+.chart-eff-track { height: 18px; background: #1b2436; border-radius: 3px; overflow: hidden; position: relative; }
+.chart-eff-fill { height: 100%; background: #6cc4ff; border-radius: 3px; position: relative; }
+.chart-eff-run { height: 100%; background: #ffd23f; border-radius: 3px 0 0 3px; }
+.chart-eff-meta { display: flex; gap: 0; width: 140px; flex-shrink: 0; }
+.chart-eff-n { width: 36px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
+.chart-eff-succ { width: 50px; text-align: right; font-size: 12px; font-weight: 700; }
+.chart-eff-avg { width: 50px; text-align: right; font-size: 12px; color: var(--text-dim); }
+
+/* --- Game Flow --------------------------------------------------- */
+.chart-gameflow { max-height: 200px; }
+
+/* --- Team Summary Layout ----------------------------------------- */
+.team-summary-row { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.team-summary-row .stats-grid { flex: 1; min-width: 280px; }
+.team-summary-donuts { display: flex; gap: 20px; flex-shrink: 0; align-items: center; }
+.team-donut-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+/* --- Efficiency Layout ------------------------------------------- */
+.eff-gauges-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.eff-side-cards { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 160px; }
+.stat-card-sm { padding: 8px 12px !important; }
+
+/* --- Down & Distance Layout -------------------------------------- */
+.dd-gauges-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.dd-split-bar { min-width: 100px; }
+
+/* --- Situational Layout ------------------------------------------ */
+.sit-gauges-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* --- Drives Layout ----------------------------------------------- */
+.drives-top-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.drives-top-row .stats-grid { flex: 1; min-width: 200px; }
+.drives-donut { flex-shrink: 0; }
+.drive-num { width: 28px; font-weight: 700; font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+.drive-meta { width: 85px; text-align: right; font-size: 11px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
+.drive-outcome { width: 65px; text-align: right; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+/* --- Defensive Top Row ------------------------------------------- */
+.def-top-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.def-top-row .stats-grid { flex: 1; min-width: 280px; }
+
+/* --- Play Type Visual -------------------------------------------- */
+.play-type-visual { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.play-type-donut-col { flex-shrink: 0; }
+.play-type-chart-col { flex: 1; min-width: 300px; }
+
+/* --- Stats Grid Flex (auto-flow cards) --------------------------- */
+.stats-grid-flex { display: flex; flex-wrap: wrap; gap: 8px; }
+.stats-grid-flex .stat-card { flex: 1 1 120px; min-width: 100px; }
+
+/* --- Run/Pass Dots (shared) -------------------------------------- */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+.dot.run { background: #ffd23f; }
+.dot.pass { background: #6cc4ff; }
+
+/* ================================================================== */
 /* ====  MOBILE RENDERING FIX v9                                   == */
 /* Compacts the video-section controls so the placeholder CTA and     */
 /* actual video get usable space on phone screens (≤800 px).          */

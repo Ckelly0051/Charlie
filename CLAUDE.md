@@ -69,6 +69,7 @@ js/
 ├── quick-chart.js            # Keyboard-only rapid charting mode
 ├── playlist-manager.js       # Multi-clip video session management
 ├── multi-angle.js            # Dual-camera sync (toggle/SBS/PiP view modes)
+├── charts.js                 # Pure-SVG chart primitives (donut, gauge, bars, sparkline, game flow)
 ├── stats-engine.js           # Stats aggregation (run/pass, efficiency, EPA, defensive)
 ├── advanced-metrics.js       # Expected Points Added calculations
 ├── heat-maps.js              # Visual heat map generation
@@ -517,12 +518,37 @@ The stats engine (`js/stats-engine.js`) computes:
 - Run/pass ratio, play type distribution
 - Success rate, average yards per play/type/formation
 - Down & distance conversion rates
-- Formation tendencies
+- Formation tendencies (with per-formation effectiveness: run/pass split, success%, avg)
+- Play type effectiveness (same breakdown per play type)
 - Defensive analytics (see below)
 - Red zone, goal line, backed-up situational stats
 - Expected Points Added (EPA) via `js/advanced-metrics.js`
 - Per-player grades (avg from play.tags.grades)
+- Game flow (cumulative yards play-by-play)
 - Opponent scouting report (formation/down tendencies with run/pass splits)
+
+### Visual Analytics (`js/charts.js`)
+
+Pure-SVG chart primitives used throughout the stats dashboard — no external
+libraries. All methods are static on the `Charts` class, returning HTML/SVG
+strings. The module is imported by `stats-engine.js`.
+
+**Chart types**:
+- **Donut** (`Charts.donut`, `Charts.donutWithLegend`) — ring chart with center
+  text. Used for run/pass split, yards breakdown, play type distribution, drive
+  outcomes.
+- **Gauge** (`Charts.gauge`) — semicircular arc meter for percentages. Used for
+  success rate, run/pass success, 3rd/4th down conversion, red zone TD%, havoc
+  rate.
+- **Effectiveness Rows** (`Charts.effectivenessRows`) — horizontal bar chart
+  where each row shows a fill bar split into run (gold) / pass (blue), with
+  count, success%, and avg yards. Used for formations, play types, personnel.
+- **Stacked Bar** (`Charts.stackBar`) — inline run/pass proportion bar. Used
+  inside the Down & Distance table rows.
+- **Game Flow** (`Charts.gameFlow`) — cumulative-yards line chart with per-play
+  dots color-coded by run/pass. Shows momentum shifts at a glance.
+- **Sparkline** (`Charts.sparkline`) — compact area line for inline use.
+- **Mini Bar** (`Charts.miniBar`) — thin progress bar for table cells.
 
 ### Defensive Analytics (`_defensiveStats` / `_renderDefensive`)
 

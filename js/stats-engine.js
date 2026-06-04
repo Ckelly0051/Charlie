@@ -7,6 +7,7 @@
 import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { Visualizations } from './visualizations.js';
+import { Charts } from './charts.js';
 
 export class StatsEngine {
   /**
@@ -96,7 +97,8 @@ export class StatsEngine {
       efficiency: this._efficiencyStats(plays),
       personnel: this._personnelStats(plays),
       advanced: this.advanced.summarize(plays),
-      defensive: this._defensiveStats(plays)
+      defensive: this._defensiveStats(plays),
+      gameFlow: this._gameFlowStats(plays)
     };
 
     return stats;
@@ -462,30 +464,58 @@ export class StatsEngine {
   }
 
   _tendencyStats(plays) {
-    // Formation frequency. Formation is multi-select (e.g. "Pistol + Spread"),
-    // so a play is counted under EACH of its formations — percentages may sum
-    // above 100% because looks overlap.
     const formations = {};
+    const formationDetail = {};
     plays.forEach(p => {
+      const isRun = StatsEngine.isRun(p);
+      const yds = parseInt(p.tags.yardage) || 0;
+      const succ = this._isSuccessfulPlay(p);
       StatsEngine.splitFormations(p.tags.formation).forEach(f => {
         formations[f] = (formations[f] || 0) + 1;
+        if (!formationDetail[f]) formationDetail[f] = { name: f, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+        formationDetail[f].count++;
+        if (isRun) formationDetail[f].runs++; else formationDetail[f].passes++;
+        formationDetail[f].yards += yds;
+        if (succ) formationDetail[f].successes++;
       });
     });
+    const formationList = Object.values(formationDetail)
+      .map(f => ({ ...f, avg: f.count ? (f.yards / f.count).toFixed(1) : '0.0', successPct: f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0' }))
+      .sort((a, b) => b.count - a.count);
 
-    // Play type distribution
     const playTypes = {};
+    const playTypeDetail = {};
     plays.forEach(p => {
       const t = p.tags.playType || 'Unknown';
       playTypes[t] = (playTypes[t] || 0) + 1;
+      const isRun = StatsEngine.isRun(p);
+      const yds = parseInt(p.tags.yardage) || 0;
+      const succ = this._isSuccessfulPlay(p);
+      if (!playTypeDetail[t]) playTypeDetail[t] = { name: t, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+      playTypeDetail[t].count++;
+      if (isRun) playTypeDetail[t].runs++; else playTypeDetail[t].passes++;
+      playTypeDetail[t].yards += yds;
+      if (succ) playTypeDetail[t].successes++;
     });
+    const playTypeList = Object.values(playTypeDetail)
+      .map(pt => ({ ...pt, avg: pt.count ? (pt.yards / pt.count).toFixed(1) : '0.0', successPct: pt.count ? ((pt.successes / pt.count) * 100).toFixed(0) : '0' }))
+      .sort((a, b) => b.count - a.count);
 
-    // Run/pass ratio
     const runs = plays.filter(p => StatsEngine.isRun(p)).length;
     const passes = plays.length - runs;
+    const runYds = plays.filter(p => StatsEngine.isRun(p)).reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+    const passYds = plays.filter(p => StatsEngine.isPass(p)).reduce((s, p) => {
+      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return s;
+      return s + (parseInt(p.tags.yardage) || 0);
+    }, 0);
+    const runSucc = plays.filter(p => StatsEngine.isRun(p) && this._isSuccessfulPlay(p)).length;
+    const passSucc = plays.filter(p => StatsEngine.isPass(p) && this._isSuccessfulPlay(p)).length;
 
     return {
-      formations,
-      playTypes,
+      formations, formationList, playTypes, playTypeList,
+      runs, passes, runYds, passYds,
+      runSuccRate: runs ? ((runSucc / runs) * 100).toFixed(1) : '0.0',
+      passSuccRate: passes ? ((passSucc / passes) * 100).toFixed(1) : '0.0',
       runPassRatio: `${runs}/${passes}`,
       runPct: plays.length ? ((runs / plays.length) * 100).toFixed(1) : '0.0',
       passPct: plays.length ? ((passes / plays.length) * 100).toFixed(1) : '0.0'
@@ -503,6 +533,16 @@ export class StatsEngine {
       yards: p.tags.yardage,
       clipName: p.clipName || `Play ${p.id}`
     }));
+  }
+
+  _gameFlowStats(plays) {
+    let cum = 0;
+    return plays.map((p, i) => {
+      const yds = parseInt(p.tags.yardage) || 0;
+      cum += yds;
+      const isRun = StatsEngine.isRun(p);
+      return { playNum: i + 1, yards: yds, cumYards: cum, isRun, label: `${p.tags.playType || '?'} ${yds >= 0 ? '+' : ''}${yds}` };
+    });
   }
 
   _individualStats(plays) {
@@ -648,6 +688,7 @@ export class StatsEngine {
             ${this._renderSituational(stats)}
             ${this._renderDrives(stats)}
             ${Visualizations.render(this._currentPlays())}
+            ${this._renderGameFlow(stats)}
             ${this._renderTendencies(stats)}
             ${this._renderTendencyMatrix(stats)}
             ${this._renderDefensive(stats)}
@@ -724,15 +765,22 @@ export class StatsEngine {
 
   _renderEfficiency(stats) {
     const e = stats.efficiency;
+    const t = stats.tendencies;
+    const succColor = parseFloat(e.successRate) >= 50 ? '#22c55e' : parseFloat(e.successRate) >= 35 ? '#eab308' : '#ef4444';
+    const runSuccColor = parseFloat(t.runSuccRate) >= 50 ? '#22c55e' : parseFloat(t.runSuccRate) >= 35 ? '#eab308' : '#ef4444';
+    const passSuccColor = parseFloat(t.passSuccRate) >= 50 ? '#22c55e' : parseFloat(t.passSuccRate) >= 35 ? '#eab308' : '#ef4444';
     return `
       <div class="stats-section">
         <h3>Efficiency</h3>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-card-title">Success Rate</div><div class="stat-card-value">${e.successRate}%</div></div>
-          <div class="stat-card"><div class="stat-card-title">Explosive Plays</div><div class="stat-card-value">${e.explosivePlays} (${e.explosivePct}%)</div></div>
-          <div class="stat-card"><div class="stat-card-title">Negative Plays</div><div class="stat-card-value">${e.negativePlays} (${e.negativePct}%)</div></div>
+        <div class="eff-gauges-row">
+          ${Charts.gauge(parseFloat(e.successRate), 'Success Rate', succColor, 110)}
+          ${Charts.gauge(parseFloat(t.runSuccRate), 'Run Success', runSuccColor, 110)}
+          ${Charts.gauge(parseFloat(t.passSuccRate), 'Pass Success', passSuccColor, 110)}
+          <div class="eff-side-cards">
+            <div class="stat-card stat-card-sm"><div class="stat-card-title">Explosive</div><div class="stat-card-value" style="color:#22c55e">${e.explosivePlays}</div><div style="font-size:11px;opacity:.6">${e.explosivePct}% (run 12+/pass 16+)</div></div>
+            <div class="stat-card stat-card-sm"><div class="stat-card-title">Negative</div><div class="stat-card-value" style="color:#ef4444">${e.negativePlays}</div><div style="font-size:11px;opacity:.6">${e.negativePct}% of plays</div></div>
+          </div>
         </div>
-        <div class="success-rate-bar"><div style="width:${e.successRate}%;background:var(--accent);height:100%"></div></div>
       </div>`;
   }
 
@@ -836,26 +884,38 @@ export class StatsEngine {
       row('3rd & Short', s.thirdShort)
     ].filter(Boolean).join('');
     if (!rows) return '';
+
+    const rzPct = s.redZone.total ? Math.round(s.redZone.tds / s.redZone.total * 100) : 0;
+    const rzColor = rzPct >= 60 ? '#22c55e' : rzPct >= 40 ? '#eab308' : '#ef4444';
+    const buPct = parseFloat(s.backedUp.successPct) || 0;
+    const buColor = buPct >= 45 ? '#22c55e' : buPct >= 30 ? '#eab308' : '#ef4444';
+
     let qRows = '';
     for (const [q, qs] of Object.entries(s.byQuarter)) {
       if (qs.plays === 0) continue;
       qRows += `<tr><td>${q}</td><td>${qs.plays}</td><td>${qs.yards}</td><td>${qs.tds}</td></tr>`;
     }
     return `
-      <div class="stats-section stats-two-col">
-        <div>
-          <h3>Situational</h3>
-          <table class="stats-table stats-table-full">
-            <thead><tr><th>Situation</th><th>#</th><th>Yds</th><th>Avg</th><th>Succ%</th><th>TD</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
+      <div class="stats-section">
+        <h3>Situational</h3>
+        <div class="sit-gauges-row">
+          ${s.redZone.total ? Charts.gauge(rzPct, `Red Zone TD (${s.redZone.tds}/${s.redZone.total})`, rzColor, 100) : ''}
+          ${s.backedUp.total ? Charts.gauge(buPct, `Backed Up Succ%`, buColor, 100) : ''}
         </div>
-        <div>
-          <h3>By Quarter</h3>
-          ${qRows ? `<table class="stats-table stats-table-full">
-            <thead><tr><th>Q</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
-            <tbody>${qRows}</tbody>
-          </table>` : '<p style="opacity:.6">No quarter data tagged.</p>'}
+        <div class="stats-two-col">
+          <div>
+            <table class="stats-table stats-table-full">
+              <thead><tr><th>Situation</th><th>#</th><th>Yds</th><th>Avg</th><th>Succ%</th><th>TD</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div>
+            <h4 style="margin:0 0 6px">By Quarter</h4>
+            ${qRows ? `<table class="stats-table stats-table-full">
+              <thead><tr><th>Q</th><th>Plays</th><th>Yds</th><th>TD</th></tr></thead>
+              <tbody>${qRows}</tbody>
+            </table>` : '<p style="opacity:.6">No quarter data tagged.</p>'}
+          </div>
         </div>
       </div>`;
   }
@@ -864,47 +924,58 @@ export class StatsEngine {
     const d = stats.drives;
     if (d.total === 0) return '';
     const colorMap = { TD: '#44ff44', FG: '#88ddff', Punt: '#888', Turnover: '#ff4444', Kneel: '#666', Other: '#ffaa00' };
+    const outcomeCounts = {};
+    d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
+    const outcomeDonut = Charts.donut(
+      Object.entries(outcomeCounts).map(([k, v]) => ({ value: v, color: colorMap[k] || '#aaa', label: k })),
+      100, String(d.total), 'drives'
+    );
+
     let rows = '';
+    const maxYds = Math.max(1, ...d.list.map(dr => Math.abs(dr.yards)));
     for (const dr of d.list) {
       const color = colorMap[dr.outcome] || '#aaa';
+      const barPct = Math.max(3, (Math.abs(dr.yards) / maxYds) * 100);
       rows += `<div class="drive-row">
-        <span style="width:50px">Drive ${dr.number}</span>
-        <div class="drive-bar" style="flex:1;background:#222;height:18px;position:relative">
-          <div style="background:${color};height:100%;width:${Math.min(100, dr.plays * 8)}%"></div>
-        </div>
-        <span style="width:60px;text-align:right">${dr.plays} pl</span>
-        <span style="width:60px;text-align:right">${dr.yards} yd</span>
-        <span style="width:80px;text-align:right;color:${color}">${dr.outcome}</span>
+        <span class="drive-num">${dr.number}</span>
+        <div class="drive-bar"><div style="background:${color};height:100%;width:${barPct.toFixed(1)}%;border-radius:3px"></div></div>
+        <span class="drive-meta">${dr.plays}pl · ${dr.yards}yd</span>
+        <span class="drive-outcome" style="color:${color}">${dr.outcome}</span>
       </div>`;
     }
     return `
       <div class="stats-section">
         <h3>Drives</h3>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-card-title">Total Drives</div><div class="stat-card-value">${d.total}</div></div>
-          <div class="stat-card"><div class="stat-card-title">Scoring Drives</div><div class="stat-card-value">${d.scoringDrives}</div></div>
-          <div class="stat-card"><div class="stat-card-title">Avg Plays</div><div class="stat-card-value">${d.avgPlaysPerDrive}</div></div>
-          <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${d.avgYardsPerDrive}</div></div>
+        <div class="drives-top-row">
+          <div class="stats-grid stats-grid-flex">
+            <div class="stat-card"><div class="stat-card-title">Scoring</div><div class="stat-card-value">${d.scoringDrives}/${d.total}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Avg Plays</div><div class="stat-card-value">${d.avgPlaysPerDrive}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${d.avgYardsPerDrive}</div></div>
+          </div>
+          <div class="drives-donut">${outcomeDonut}</div>
         </div>
         <div class="drive-chart">${rows}</div>
       </div>`;
   }
 
+  _renderGameFlow(stats) {
+    if (!stats.gameFlow || stats.gameFlow.length < 3) return '';
+    return `
+      <div class="stats-section viz-section">
+        ${Charts.gameFlow(stats.gameFlow)}
+      </div>`;
+  }
+
   _renderPersonnel(stats) {
-    if (!stats.personnel.length) return '';
-    let rows = '';
-    for (const g of stats.personnel) {
-      if (g.name === 'Unknown' && stats.personnel.length > 1) continue;
-      rows += `<tr><td>${g.name}</td><td>${g.count}</td><td>${g.runs}/${g.passes}</td><td>${g.yards}</td><td>${g.avg}</td><td>${g.successPct}%</td></tr>`;
-    }
-    if (!rows) return '';
+    const filtered = stats.personnel.filter(g => !(g.name === 'Unknown' && stats.personnel.length > 1));
+    if (!filtered.length) return '';
+    const chart = Charts.effectivenessRows(
+      filtered.map(g => ({ label: g.name, count: g.count, runs: g.runs, passes: g.passes, yards: g.yards, successPct: g.successPct, avg: g.avg }))
+    );
     return `
       <div class="stats-section">
         <h3>Personnel Groupings</h3>
-        <table class="stats-table stats-table-full">
-          <thead><tr><th>Group</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Succ%</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+        ${chart}
       </div>`;
   }
 
@@ -913,26 +984,33 @@ export class StatsEngine {
     const p = stats.passing;
     const s = stats.scoring;
     const t = stats.turnovers;
+    const tend = stats.tendencies;
+    const totalYards = r.yards + p.yards;
+
+    const rpDonut = Charts.donut([
+      { value: tend.runs, color: '#ffd23f', label: 'Run' },
+      { value: tend.passes, color: '#6cc4ff', label: 'Pass' }
+    ], 110, tend.runPct + '%', 'Run Rate');
+
+    const ydsDonut = Charts.donut([
+      { value: Math.max(0, r.yards), color: '#ffd23f', label: 'Rush Yards' },
+      { value: Math.max(0, p.yards), color: '#6cc4ff', label: 'Pass Yards' }
+    ], 110, String(totalYards), 'Total Yds');
 
     return `
       <div class="stats-section">
         <h3>Team Summary</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-card-title">Total Plays</div>
-            <div class="stat-card-value">${stats.totalPlays}</div>
+        <div class="team-summary-row">
+          <div class="stats-grid stats-grid-flex">
+            <div class="stat-card"><div class="stat-card-title">Total Plays</div><div class="stat-card-value">${stats.totalPlays}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Total Yards</div><div class="stat-card-value">${totalYards}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Yds/Play</div><div class="stat-card-value">${stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0'}</div></div>
+            <div class="stat-card"><div class="stat-card-title">TDs</div><div class="stat-card-value">${s.touchdowns}</div><div style="font-size:11px;opacity:.6">${s.rushingTDs}R / ${s.passingTDs}P</div></div>
+            <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${t.total}</div><div style="font-size:11px;opacity:.6">${t.interceptions} INT / ${t.fumbles} Fum</div></div>
           </div>
-          <div class="stat-card">
-            <div class="stat-card-title">Total Yards</div>
-            <div class="stat-card-value">${r.yards + p.yards}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-title">Touchdowns</div>
-            <div class="stat-card-value">${s.touchdowns}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-title">Turnovers</div>
-            <div class="stat-card-value">${t.total}</div>
+          <div class="team-summary-donuts">
+            <div class="team-donut-cell">${rpDonut}<div class="chart-donut-label"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</div></div>
+            <div class="team-donut-cell">${ydsDonut}<div class="chart-donut-label"><i class="dot run"></i>Rush <i class="dot pass"></i>Pass</div></div>
           </div>
         </div>
       </div>
@@ -971,14 +1049,19 @@ export class StatsEngine {
   _renderDownAnalysis(stats) {
     const d = stats.downs;
     const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+    const thirdPct = parseFloat(d.thirdDownPct);
+    const fourthPct = parseFloat(d.fourthDownPct);
+    const thirdColor = thirdPct >= 45 ? '#22c55e' : thirdPct >= 30 ? '#eab308' : '#ef4444';
+    const fourthColor = fourthPct >= 50 ? '#22c55e' : fourthPct >= 30 ? '#eab308' : '#ef4444';
 
     let rows = '';
+    const maxDown = Math.max(...Object.values(d.byDown).map(s => s.total));
     for (const [down, s] of Object.entries(d.byDown)) {
       if (s.total === 0) continue;
       rows += `<tr>
         <td>${labels[down]}</td>
         <td>${s.total}</td>
-        <td>${s.runPct}% / ${s.passPct}%</td>
+        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#ffd23f', label: 'Run' }, { value: parseInt(s.passPct), color: '#6cc4ff', label: 'Pass' }], 18)}</div></td>
         <td>${s.avgYards}</td>
         <td>${s.conversionPct}%</td>
       </tr>`;
@@ -987,22 +1070,13 @@ export class StatsEngine {
     return `
       <div class="stats-section">
         <h3>Down &amp; Distance</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-card-title">First Downs</div>
-            <div class="stat-card-value">${d.totalFirstDowns}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-title">3rd Down</div>
-            <div class="stat-card-value">${d.thirdDownConv} (${d.thirdDownPct}%)</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-title">4th Down</div>
-            <div class="stat-card-value">${d.fourthDownConv} (${d.fourthDownPct}%)</div>
-          </div>
+        <div class="dd-gauges-row">
+          <div class="stat-card"><div class="stat-card-title">First Downs</div><div class="stat-card-value">${d.totalFirstDowns}</div></div>
+          ${Charts.gauge(thirdPct, `3rd Down ${d.thirdDownConv}`, thirdColor, 110)}
+          ${Charts.gauge(fourthPct, `4th Down ${d.fourthDownConv}`, fourthColor, 110)}
         </div>
         ${rows ? `<table class="stats-table stats-table-full">
-          <thead><tr><th>Down</th><th>Plays</th><th>Run/Pass</th><th>Avg Yds</th><th>Conv %</th></tr></thead>
+          <thead><tr><th>Down</th><th>Plays</th><th>Run / Pass</th><th>Avg Yds</th><th>Conv %</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>` : ''}
       </div>
@@ -1012,39 +1086,36 @@ export class StatsEngine {
   _renderTendencies(stats) {
     const t = stats.tendencies;
 
-    let formationRows = '';
-    const sortedFormations = Object.entries(t.formations).sort((a, b) => b[1] - a[1]);
-    for (const [name, count] of sortedFormations) {
-      const pct = ((count / stats.totalPlays) * 100).toFixed(1);
-      formationRows += `<tr><td>${name}</td><td>${count}</td><td>${pct}%</td></tr>`;
-    }
+    const formChart = Charts.effectivenessRows(
+      t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg }))
+    );
 
-    let typeRows = '';
-    const sortedTypes = Object.entries(t.playTypes).sort((a, b) => b[1] - a[1]);
-    for (const [name, count] of sortedTypes) {
-      const pct = ((count / stats.totalPlays) * 100).toFixed(1);
-      typeRows += `<tr><td>${name}</td><td>${count}</td><td>${pct}%</td></tr>`;
-    }
+    const playTypeDonut = Charts.donutWithLegend(
+      t.playTypeList.slice(0, 8).map((pt, i) => {
+        const colors = ['#4a9eff', '#ffd23f', '#6cc4ff', '#ff6b6b', '#22c55e', '#a78bfa', '#f97316', '#ec4899'];
+        return { value: pt.count, color: colors[i % colors.length], label: pt.name };
+      }),
+      120, String(stats.totalPlays), 'plays'
+    );
+
+    const typeChart = Charts.effectivenessRows(
+      t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg }))
+    );
 
     return `
-      <div class="stats-section stats-two-col">
-        <div>
-          <h3>Formation Tendencies</h3>
-          <div class="tendency-bar">
-            <div class="tendency-run" style="width:${t.runPct}%">${t.runPct}% Run</div>
-            <div class="tendency-pass" style="width:${t.passPct}%">${t.passPct}% Pass</div>
-          </div>
-          ${formationRows ? `<table class="stats-table stats-table-full">
-            <thead><tr><th>Formation</th><th>#</th><th>%</th></tr></thead>
-            <tbody>${formationRows}</tbody>
-          </table>` : ''}
+      <div class="stats-section">
+        <h3>Formation Tendencies</h3>
+        <div class="tendency-bar">
+          <div class="tendency-run" style="width:${t.runPct}%">${t.runPct}% Run</div>
+          <div class="tendency-pass" style="width:${t.passPct}%">${t.passPct}% Pass</div>
         </div>
-        <div>
-          <h3>Play Type Breakdown</h3>
-          ${typeRows ? `<table class="stats-table stats-table-full">
-            <thead><tr><th>Type</th><th>#</th><th>%</th></tr></thead>
-            <tbody>${typeRows}</tbody>
-          </table>` : ''}
+        ${formChart}
+      </div>
+      <div class="stats-section">
+        <h3>Play Type Breakdown</h3>
+        <div class="play-type-visual">
+          <div class="play-type-donut-col">${playTypeDonut}</div>
+          <div class="play-type-chart-col">${typeChart}</div>
         </div>
       </div>
     `;
@@ -1223,20 +1294,24 @@ export class StatsEngine {
         </table></div>`;
     });
 
+    const havocPctVal = parseFloat(d.havocRate);
+    const havocColor = havocPctVal >= 20 ? '#22c55e' : havocPctVal >= 12 ? '#eab308' : '#ef4444';
+    const blitzPctVal = parseFloat(d.blitzRate);
+
     return `
       <div class="stats-section">
         <h3>Defensive Analytics</h3>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-card-title">Havoc Rate</div><div class="stat-card-value" style="color:#ff6666">${d.havocRate}%</div><div style="font-size:11px;opacity:.6">${d.havocPlays} plays</div></div>
-          <div class="stat-card"><div class="stat-card-title">Sacks</div><div class="stat-card-value">${d.sacks}</div><div style="font-size:11px;opacity:.6">${d.sackYards} yds</div></div>
-          <div class="stat-card"><div class="stat-card-title">TFL</div><div class="stat-card-value">${d.tfl}</div></div>
-          <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${d.interceptions + d.fumbles}</div><div style="font-size:11px;opacity:.6">${d.interceptions} INT / ${d.fumbles} Fum</div></div>
-        </div>
-        <div class="stats-grid" style="margin-top:8px">
-          <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">${d.blitzRate}%</div><div style="font-size:11px;opacity:.6">${d.blitzTotal} plays</div></div>
-          <div class="stat-card"><div class="stat-card-title">Blitz Havoc</div><div class="stat-card-value" style="color:${parseFloat(d.blitzHavocRate) >= 20 ? '#44ff88' : '#fff'}">${d.blitzHavocRate}%</div></div>
-          <div class="stat-card"><div class="stat-card-title">Incompletions</div><div class="stat-card-value">${d.incompletions}</div></div>
-          <div class="stat-card"><div class="stat-card-title">3-and-Outs</div><div class="stat-card-value">${d.threeAndOuts}</div></div>
+        <div class="def-top-row">
+          ${Charts.gauge(havocPctVal, `Havoc Rate (${d.havocPlays})`, havocColor, 110)}
+          <div class="stats-grid stats-grid-flex">
+            <div class="stat-card"><div class="stat-card-title">Sacks</div><div class="stat-card-value">${d.sacks}</div><div style="font-size:11px;opacity:.6">${d.sackYards} yds</div></div>
+            <div class="stat-card"><div class="stat-card-title">TFL</div><div class="stat-card-value">${d.tfl}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${d.interceptions + d.fumbles}</div><div style="font-size:11px;opacity:.6">${d.interceptions} INT / ${d.fumbles} Fum</div></div>
+            <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">${d.blitzRate}%</div><div style="font-size:11px;opacity:.6">${d.blitzTotal} plays</div></div>
+            <div class="stat-card"><div class="stat-card-title">Blitz Havoc</div><div class="stat-card-value" style="color:${parseFloat(d.blitzHavocRate) >= 20 ? '#44ff88' : '#fff'}">${d.blitzHavocRate}%</div></div>
+            <div class="stat-card"><div class="stat-card-title">Forced Inc</div><div class="stat-card-value">${d.incompletions}</div></div>
+            <div class="stat-card"><div class="stat-card-title">3-and-Outs</div><div class="stat-card-value">${d.threeAndOuts}</div></div>
+          </div>
         </div>
         ${frontRows ? `
         <h4 style="margin:16px 0 4px">Defensive Front Breakdown</h4>
