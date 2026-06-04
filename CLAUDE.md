@@ -221,6 +221,36 @@ Set "Film shows" to **Opponent Scout** in Game Info to reveal the scouting panel
 
 Methods in `StatsEngine`: `generateScoutReport()`, `renderScoutReport()`, `_exportScoutReport()`.
 
+## Self-Scout Report
+
+The flip side of opponent scouting: run the same lens on **your own offense**
+to reveal what tendencies you're *tipping*. Opened via the **Self-Scout**
+button in the stats dashboard header (analyzes your own tagged offensive
+plays — no perspective gate, unlike Opponent Scout). Run/pass-classifiable
+offensive plays only (`unit === 'offense'` and `isRun || isPass`).
+
+**Output**:
+- **Predictability Index (0–100)** — sample-weighted measure of how lopsided
+  your run/pass mix is across formations & down-and-distance (`(avgMaxPct −
+  50) × 2`, weighted by bucket sample, buckets need n ≥ 3). Labeled Balanced
+  (<30) / Moderate (<50) / Predictable (<70) / Very Predictable (≥70), with a
+  colored meter (green→amber→red).
+- **Your Top Tells** — ranked table of the situations where you're most
+  readable, drawn from Formation, Down & Distance, Personnel, Hash, and the
+  combined **Formation × Down** view a DC actually keys on. A "tell" needs
+  n ≥ `_SELF_SCOUT_MIN_N` (4) and a lean ≥ 70 % one way; ranked by
+  `(leanPct − 50) × min(n, 12)`; tiered Strong (≥85 %) / Notable (≥75 %) /
+  Slight (≥70 %). Lean shown as a fill bar (amber = run, blue = pass).
+- **Recommendations** — auto-generated counters per top tell (run-heavy →
+  "add play-action"; pass-heavy → "add a draw/screen").
+- **By Formation / By Down & Distance / By Personnel** split tables with a
+  tell-vs-balanced flag per row.
+- **Exportable** as a standalone HTML report (`self_scout_<team>.html`).
+
+Methods in `StatsEngine`: `generateSelfScout()`, `renderSelfScout()`,
+`_exportSelfScout()`, plus helpers `_selfScoutGroup()`, `_selfScoutRows()`,
+`_tellsFrom()`, `_predictabilityIndex()`, `_ddPretty()`.
+
 ## Multi-Angle Video Sync (`multi-angle.js`)
 
 Load two camera angles (e.g. sideline + end zone) time-locked together.
