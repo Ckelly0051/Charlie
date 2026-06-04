@@ -4492,6 +4492,10 @@ input:focus, select:focus, textarea:focus {
   --text-bright:  #ffffff;
   --border:       #2a3552;
   --border-bright:#3d4a70;
+  /* These overlays are always dark; force light default text so table
+     data cells & paragraphs don't inherit the light-theme dark body
+     color (inherited colors are literal, not live var() references). */
+  color: var(--text);
 }
 /* Quick chart sits at the bottom as a dark command bar */
 .quick-chart-panel { background: #0b1020; border-top: 2px solid var(--accent); }
@@ -5866,6 +5870,18 @@ video.is-buffering { opacity: 0.6; }
 .ss-recs li { margin-bottom: 5px; color: #cdd6e6; font-size: 13px; }
 .ss-recs li:first-child:only-child,
 .ss-recs li:first-child { color: #e6ebf5; }
+
+/* Defensive report empty state */
+.def-empty p { color: #cdd6e6; line-height: 1.55; }
+.def-empty-steps { margin: 8px 0; padding-left: 22px; line-height: 1.7; color: #cdd6e6; }
+.def-empty-steps li { margin-bottom: 4px; }
+.def-empty kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #2a3552;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+}
   </style>
 </head>
 <body>
@@ -13668,6 +13684,7 @@ class StatsEngine {
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnSelfScout" title="Reveal what tendencies your offense is tipping">Self-Scout</button>
+              <button class="btn btn-sm" id="btnDefReport" title="Defensive analytics: havoc, fronts, coverage, blitz">Defense</button>
               <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
             </div>
@@ -13700,6 +13717,9 @@ class StatsEngine {
 
     // Self-scout: flip the scouting lens on our own offense
     el.querySelector('#btnSelfScout')?.addEventListener('click', () => this.renderSelfScout());
+
+    // Defensive report: focused defensive analytics view
+    el.querySelector('#btnDefReport')?.addEventListener('click', () => this.renderDefensiveReport());
 
     // Heat map tab switching
     this.heatMaps.bind(el);
@@ -14885,6 +14905,94 @@ ${report.recommendations.length ? `<h3>Recommendations</h3><ul>${report.recommen
     const a = document.createElement('a');
     a.href = url;
     a.download = `self_scout_${team.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ================================================================
+  // DEFENSIVE REPORT — a focused, first-class view of the defensive
+  // analytics (also rendered inline in the main dashboard). Surfaced
+  // via the "Defense" button so it's never buried or silently empty.
+  // ================================================================
+  renderDefensiveReport() {
+    const stats = this.compute();
+    const team = document.getElementById('gameTeamName')?.value || 'Our Defense';
+    const hasData = stats.defensive.hasData;
+    const body = hasData ? this._renderDefensive(stats) : `
+      <div class="stats-section def-empty">
+        <h3>No defensive data tagged yet</h3>
+        <p>Defensive analytics build from your <b>defensive</b> plays. To populate this report:</p>
+        <ol class="def-empty-steps">
+          <li>Set a play's unit toggle to <b>Defense</b> (or press <kbd>C</kbd> to cycle to it).</li>
+          <li>Tag the <b>Front</b> (4-3, Nickel, 3-4…), <b>Coverage</b>, and <b>Blitz</b>.</li>
+          <li>Or just tag defensive <b>results</b> — Sack, TFL (negative yardage), Interception, Fumble.</li>
+        </ol>
+        <p style="color:var(--text-dim)">Once any defensive data exists, this report shows havoc rate, front &amp; coverage breakdowns with stop%, blitz analysis, and front-by-situation.</p>
+      </div>`;
+
+    this.dashboardEl.innerHTML = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Defensive Report: ${team}</h2>
+            <div class="stats-header-actions">
+              ${hasData ? '<button class="btn btn-sm" id="btnExportDef">Export Report</button>' : ''}
+              <button class="btn btn-sm btn-danger" id="btnCloseDef">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">${body}</div>
+        </div>
+      </div>`;
+    this.dashboardEl.classList.remove('hidden');
+    this.dashboardEl.querySelector('#btnCloseDef').addEventListener('click', () => this.hideDashboard());
+    this.dashboardEl.querySelector('#btnExportDef')?.addEventListener('click', () => this._exportDefensiveReport(stats, team));
+    this.dashboardEl.querySelector('.stats-overlay').addEventListener('click', (e) => {
+      if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
+    });
+  }
+
+  _exportDefensiveReport(stats, team) {
+    const d = stats.defensive;
+    const title = `Defensive Report: ${team}`;
+    const frontRows = d.fronts.map(f =>
+      `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+    ).join('');
+    const covRows = d.coverages.map(c =>
+      `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+    ).join('');
+    const blitzRows = d.blitzes.map(b =>
+      `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
+    ).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+.card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
+.cv{font-size:24px;font-weight:bold;color:#4169e1}.cl{font-size:11px;text-transform:uppercase;color:#666}</style></head><body>
+<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+<h3>Summary</h3><div class="cards">
+<div class="card"><div class="cv">${d.havocRate}%</div><div class="cl">Havoc Rate</div></div>
+<div class="card"><div class="cv">${d.sacks}</div><div class="cl">Sacks (${d.sackYards} yds)</div></div>
+<div class="card"><div class="cv">${d.tfl}</div><div class="cl">TFL</div></div>
+<div class="card"><div class="cv">${d.interceptions + d.fumbles}</div><div class="cl">Turnovers</div></div>
+<div class="card"><div class="cv">${d.blitzRate}%</div><div class="cl">Blitz Rate</div></div>
+<div class="card"><div class="cv">${d.blitzHavocRate}%</div><div class="cl">Blitz Havoc</div></div>
+<div class="card"><div class="cv">${d.incompletions}</div><div class="cl">Incompletions</div></div>
+<div class="card"><div class="cv">${d.threeAndOuts}</div><div class="cl">3-and-Outs</div></div>
+</div>
+${frontRows ? `<h3>Defensive Front</h3><table><thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}
+${covRows ? `<h3>Coverage</h3><table><thead><tr><th>Coverage</th><th>#</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${covRows}</tbody></table>` : ''}
+${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${blitzRows}</tbody></table>` : ''}
+</body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `defense_${team.replace(/\s+/g, '_')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -17054,13 +17162,13 @@ class UIPolish {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         <span>Video</span>
       </button>
-      <button class="bt-tab" data-tab="tag" aria-label="Tag">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        <span>Tag</span>
-      </button>
       <button class="bt-tab" data-tab="stats" aria-label="Stats">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
         <span>Stats</span>
+      </button>
+      <button class="bt-tab" data-tab="selfscout" aria-label="Self-Scout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+        <span>Self-Scout</span>
       </button>
       <button class="bt-tab" data-tab="more" aria-label="More">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -17098,19 +17206,14 @@ class UIPolish {
         closeMore();
         document.getElementById('statsDashboard')?.classList.add('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (tab === 'tag') {
-        closeDrawer();
-        closeMore();
-        document.getElementById('statsDashboard')?.classList.add('hidden');
-        // The tag form is always on-page now — just scroll it into view
-        const section = document.querySelector('.tag-section');
-        if (section) {
-          setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
-        }
       } else if (tab === 'stats') {
         closeDrawer();
         closeMore();
         document.getElementById('btnShowStats')?.click();
+      } else if (tab === 'selfscout') {
+        closeDrawer();
+        closeMore();
+        window.app?.stats?.renderSelfScout();
       } else if (tab === 'more') {
         closeMore();
         openDrawer();
