@@ -162,6 +162,7 @@ const offenseSections = [
   engine._renderSituational(stats),
   engine._renderDrives(stats),
   engine._renderTendencies(stats),
+  engine._renderTendencyMatrix(stats),
   engine._renderPersonnel(stats),
   engine._renderBigPlays(stats),
   engine._renderIndividualStats(stats),

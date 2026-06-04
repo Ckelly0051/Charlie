@@ -1493,6 +1493,19 @@ body {
   font-weight: 600;
 }
 
+/* --- Tendency Matrix --- */
+.tm-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.tm-controls label { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.tm-controls select { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 13px; }
+.tm-legend { font-size: 11px; opacity: .6; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.tm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tm-table td, .tm-table th { text-align: center; padding: 4px 6px; font-size: 11px; }
+.tm-table th { font-size: 11px; white-space: nowrap; }
+.tm-cell { border-radius: 3px; min-width: 56px; cursor: default; vertical-align: top; }
+.tm-count { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.tm-split { font-size: 9px; opacity: .7; }
+.tm-succ { font-size: 10px; font-weight: 600; }
+
 .tendency-bar {
   display: flex;
   height: 24px;

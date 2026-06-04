@@ -1497,6 +1497,19 @@ body {
   font-weight: 600;
 }
 
+/* --- Tendency Matrix --- */
+.tm-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.tm-controls label { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.tm-controls select { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 13px; }
+.tm-legend { font-size: 11px; opacity: .6; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.tm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tm-table td, .tm-table th { text-align: center; padding: 4px 6px; font-size: 11px; }
+.tm-table th { font-size: 11px; white-space: nowrap; }
+.tm-cell { border-radius: 3px; min-width: 56px; cursor: default; vertical-align: top; }
+.tm-count { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.tm-split { font-size: 9px; opacity: .7; }
+.tm-succ { font-size: 10px; font-weight: 600; }
+
 .tendency-bar {
   display: flex;
   height: 24px;
@@ -3114,27 +3127,37 @@ select:focus-visible {
   color: var(--text-dim);
   pointer-events: auto;
 }
+.empty-cta-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
 .empty-cta {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 32px 48px;
+  gap: 4px;
+  padding: 18px 28px;
   background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
   border: none;
-  border-radius: 20px;
+  border-radius: 14px;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 12px 36px rgba(239,71,102,0.35), 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(239,71,102,0.3), 0 3px 8px rgba(0,0,0,0.35);
   transition: transform 180ms, box-shadow 180ms;
   -webkit-tap-highlight-color: transparent;
 }
-.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(239,71,102,0.45); }
+.empty-cta-folder {
+  background: linear-gradient(180deg, var(--accent, #4a9eff) 0%, #2a6fd4 100%);
+  box-shadow: 0 8px 24px rgba(74,158,255,0.3), 0 3px 8px rgba(0,0,0,0.35);
+}
+.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(239,71,102,0.4); }
+.empty-cta-folder:hover { box-shadow: 0 12px 32px rgba(74,158,255,0.4); }
 .empty-cta:active { transform: translateY(0); }
-.empty-cta svg { width: 44px; height: 44px; margin-bottom: 4px; }
-.empty-cta-title { font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
-.empty-cta-sub { font-size: 12px; opacity: 0.9; font-weight: 500; }
+.empty-cta svg { width: 30px; height: 30px; margin-bottom: 2px; }
+.empty-cta-title { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
+.empty-cta-sub { font-size: 11px; opacity: 0.85; font-weight: 500; }
 .empty-hint { font-size: 12px; opacity: 0.5; }
 
 /* --- Onboarding hint toast --- */
@@ -3194,9 +3217,10 @@ select:focus-visible {
 
 /* --- Empty CTA sizing on small phones --- */
 @media (max-width: 500px) {
-  .empty-cta { padding: 26px 36px; border-radius: 16px; }
-  .empty-cta-title { font-size: 19px; }
-  .empty-cta svg { width: 36px; height: 36px; }
+  .empty-cta { padding: 14px 20px; border-radius: 12px; }
+  .empty-cta-title { font-size: 14px; }
+  .empty-cta svg { width: 24px; height: 24px; }
+  .empty-cta-row { gap: 8px; }
 }
 
 /* ================================================================== */
@@ -4439,7 +4463,12 @@ input:focus, select:focus, textarea:focus {
   background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
   box-shadow: 0 14px 40px rgba(65,105,225,0.35), 0 4px 12px rgba(15,23,42,0.12);
 }
+.empty-cta-folder {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 14px 40px rgba(56,189,248,0.3), 0 4px 12px rgba(15,23,42,0.12);
+}
 .empty-cta:hover { box-shadow: 0 16px 44px rgba(65,105,225,0.45); }
+.empty-cta-folder:hover { box-shadow: 0 16px 44px rgba(56,189,248,0.4); }
 
 /* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
    Scope dark variables onto their roots so existing light-on-dark
@@ -5655,7 +5684,7 @@ video.is-buffering { opacity: 0.6; }
 <div class="report-wrap">
   <div class="report-banner">
     <h1>Sample Analytics Report</h1>
-    <p>Generated from 93 dummy plays across 20 drives &middot; 6/4/2026, 1:11:43 PM &middot; reproducible seed</p>
+    <p>Generated from 93 dummy plays across 20 drives &middot; 6/4/2026, 5:34:19 PM &middot; reproducible seed</p>
   </div>
   <div class="report-divider"><h2>&#127944; Offensive Analytics</h2></div>
   
@@ -6035,6 +6064,132 @@ video.is-buffering { opacity: 0.6; }
         </div>
       </div>
     
+
+      <div class="stats-section" id="tendencyMatrixSection">
+        <h3>Tendency Matrix</h3>
+        <div class="tm-controls">
+          <label>Rows: <select id="tmRowDim"><option value="formation">Formation</option><option value="playType">Play Type</option><option value="down">Down</option><option value="distBucket">Distance</option><option value="personnel">Personnel</option><option value="defFront">Def Front</option><option value="coverage">Coverage</option><option value="hash">Hash</option><option value="quarter">Quarter</option><option value="runPass">Run / Pass</option></select></label>
+          <span style="opacity:.5;margin:0 4px">×</span>
+          <label>Cols: <select id="tmColDim"><option value="formation">Formation</option><option value="playType">Play Type</option><option value="down" selected>Down</option><option value="distBucket">Distance</option><option value="personnel">Personnel</option><option value="defFront">Def Front</option><option value="coverage">Coverage</option><option value="hash">Hash</option><option value="quarter">Quarter</option><option value="runPass">Run / Pass</option></select></label>
+        </div>
+        <div class="tm-legend">
+          <span>Cell: <strong>count</strong> · run/pass split · success% · avg yards</span>
+          <span style="margin-left:12px"><span style="display:inline-block;width:10px;height:10px;border:1px solid rgba(68,255,136,0.5);border-radius:2px;vertical-align:middle"></span> ≥50% success</span>
+          <span style="margin-left:8px"><span style="display:inline-block;width:10px;height:10px;border:1px solid rgba(255,102,102,0.4);border-radius:2px;vertical-align:middle"></span> ≤30% success</span>
+        </div>
+        <div id="tmGridContainer"><div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
+      <thead><tr><th>Formation \ Down</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead>
+      <tbody><tr><td style="font-weight:600;white-space:nowrap">Shotgun</td><td class="tm-cell" style="background:rgba(74,158,255,0.50);border:1px solid rgba(68,255,136,0.4)" title="Shotgun × 1: 13 plays, 54% run, 69% success, 8.9 avg">
+          <div class="tm-count">13</div>
+          <div class="tm-split">54R/46P</div>
+          <div class="tm-succ">69% · 8.9y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.29);border:1px solid transparent" title="Shotgun × 2: 7 plays, 29% run, 43% success, 3.4 avg">
+          <div class="tm-count">7</div>
+          <div class="tm-split">29R/71P</div>
+          <div class="tm-succ">43% · 3.4y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.19);border:1px solid rgba(68,255,136,0.4)" title="Shotgun × 3: 4 plays, 50% run, 75% success, 9.3 avg">
+          <div class="tm-count">4</div>
+          <div class="tm-split">50R/50P</div>
+          <div class="tm-succ">75% · 9.3y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.12);border:1px solid rgba(255,102,102,0.25)" title="Shotgun × 4: 2 plays, 100% run, 0% success, -3.0 avg">
+          <div class="tm-count">2</div>
+          <div class="tm-split">100R/0P</div>
+          <div class="tm-succ">0% · -3.0y</div>
+        </td></tr><tr><td style="font-weight:600;white-space:nowrap">Singleback</td><td class="tm-cell" style="background:rgba(74,158,255,0.40);border:1px solid rgba(68,255,136,0.4)" title="Singleback × 1: 10 plays, 40% run, 50% success, 4.9 avg">
+          <div class="tm-count">10</div>
+          <div class="tm-split">40R/60P</div>
+          <div class="tm-succ">50% · 4.9y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.22);border:1px solid rgba(255,102,102,0.25)" title="Singleback × 2: 5 plays, 80% run, 20% success, 1.0 avg">
+          <div class="tm-count">5</div>
+          <div class="tm-split">80R/20P</div>
+          <div class="tm-succ">20% · 1.0y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.08);border:1px solid rgba(255,102,102,0.25)" title="Singleback × 3: 1 plays, 100% run, 0% success, -5.0 avg">
+          <div class="tm-count">1</div>
+          <div class="tm-split">100R/0P</div>
+          <div class="tm-succ">0% · -5.0y</div>
+        </td><td class="tm-cell" style="opacity:.2">—</td></tr><tr><td style="font-weight:600;white-space:nowrap">Under Center</td><td class="tm-cell" style="background:rgba(74,158,255,0.40);border:1px solid rgba(68,255,136,0.4)" title="Under Center × 1: 10 plays, 50% run, 80% success, 10.1 avg">
+          <div class="tm-count">10</div>
+          <div class="tm-split">50R/50P</div>
+          <div class="tm-succ">80% · 10.1y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.22);border:1px solid transparent" title="Under Center × 2: 5 plays, 60% run, 40% success, 11.4 avg">
+          <div class="tm-count">5</div>
+          <div class="tm-split">60R/40P</div>
+          <div class="tm-succ">40% · 11.4y</div>
+        </td><td class="tm-cell" style="opacity:.2">—</td><td class="tm-cell" style="background:rgba(74,158,255,0.08);border:1px solid rgba(255,102,102,0.25)" title="Under Center × 4: 1 plays, 100% run, 0% success, -5.0 avg">
+          <div class="tm-count">1</div>
+          <div class="tm-split">100R/0P</div>
+          <div class="tm-succ">0% · -5.0y</div>
+        </td></tr><tr><td style="font-weight:600;white-space:nowrap">Empty</td><td class="tm-cell" style="background:rgba(74,158,255,0.22);border:1px solid rgba(68,255,136,0.4)" title="Empty × 1: 5 plays, 60% run, 100% success, 15.2 avg">
+          <div class="tm-count">5</div>
+          <div class="tm-split">60R/40P</div>
+          <div class="tm-succ">100% · 15.2y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.29);border:1px solid transparent" title="Empty × 2: 7 plays, 43% run, 43% success, 4.6 avg">
+          <div class="tm-count">7</div>
+          <div class="tm-split">43R/57P</div>
+          <div class="tm-succ">43% · 4.6y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.15);border:1px solid rgba(68,255,136,0.4)" title="Empty × 3: 3 plays, 33% run, 67% success, 16.0 avg">
+          <div class="tm-count">3</div>
+          <div class="tm-split">33R/67P</div>
+          <div class="tm-succ">67% · 16.0y</div>
+        </td><td class="tm-cell" style="opacity:.2">—</td></tr><tr><td style="font-weight:600;white-space:nowrap">Pistol</td><td class="tm-cell" style="background:rgba(74,158,255,0.26);border:1px solid transparent" title="Pistol × 1: 6 plays, 33% run, 33% success, 6.3 avg">
+          <div class="tm-count">6</div>
+          <div class="tm-split">33R/67P</div>
+          <div class="tm-succ">33% · 6.3y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.19);border:1px solid rgba(68,255,136,0.4)" title="Pistol × 2: 4 plays, 75% run, 50% success, 10.8 avg">
+          <div class="tm-count">4</div>
+          <div class="tm-split">75R/25P</div>
+          <div class="tm-succ">50% · 10.8y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.15);border:1px solid rgba(68,255,136,0.4)" title="Pistol × 3: 3 plays, 67% run, 67% success, 16.7 avg">
+          <div class="tm-count">3</div>
+          <div class="tm-split">67R/33P</div>
+          <div class="tm-succ">67% · 16.7y</div>
+        </td><td class="tm-cell" style="opacity:.2">—</td></tr><tr><td style="font-weight:600;white-space:nowrap">Spread</td><td class="tm-cell" style="background:rgba(74,158,255,0.26);border:1px solid transparent" title="Spread × 1: 6 plays, 33% run, 33% success, 6.3 avg">
+          <div class="tm-count">6</div>
+          <div class="tm-split">33R/67P</div>
+          <div class="tm-succ">33% · 6.3y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.19);border:1px solid rgba(68,255,136,0.4)" title="Spread × 2: 4 plays, 75% run, 50% success, 10.8 avg">
+          <div class="tm-count">4</div>
+          <div class="tm-split">75R/25P</div>
+          <div class="tm-succ">50% · 10.8y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.15);border:1px solid rgba(68,255,136,0.4)" title="Spread × 3: 3 plays, 67% run, 67% success, 16.7 avg">
+          <div class="tm-count">3</div>
+          <div class="tm-split">67R/33P</div>
+          <div class="tm-succ">67% · 16.7y</div>
+        </td><td class="tm-cell" style="opacity:.2">—</td></tr><tr><td style="font-weight:600;white-space:nowrap">Trips</td><td class="tm-cell" style="background:rgba(74,158,255,0.26);border:1px solid rgba(68,255,136,0.4)" title="Trips × 1: 6 plays, 50% run, 50% success, 11.2 avg">
+          <div class="tm-count">6</div>
+          <div class="tm-split">50R/50P</div>
+          <div class="tm-succ">50% · 11.2y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.15);border:1px solid transparent" title="Trips × 2: 3 plays, 0% run, 33% success, 6.0 avg">
+          <div class="tm-count">3</div>
+          <div class="tm-split">0R/100P</div>
+          <div class="tm-succ">33% · 6.0y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.12);border:1px solid rgba(68,255,136,0.4)" title="Trips × 3: 2 plays, 50% run, 100% success, 14.0 avg">
+          <div class="tm-count">2</div>
+          <div class="tm-split">50R/50P</div>
+          <div class="tm-succ">100% · 14.0y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.08);border:1px solid rgba(255,102,102,0.25)" title="Trips × 4: 1 plays, 100% run, 0% success, -3.0 avg">
+          <div class="tm-count">1</div>
+          <div class="tm-split">100R/0P</div>
+          <div class="tm-succ">0% · -3.0y</div>
+        </td></tr><tr><td style="font-weight:600;white-space:nowrap">I-Form</td><td class="tm-cell" style="background:rgba(74,158,255,0.12);border:1px solid rgba(68,255,136,0.4)" title="I-Form × 1: 2 plays, 50% run, 50% success, 4.5 avg">
+          <div class="tm-count">2</div>
+          <div class="tm-split">50R/50P</div>
+          <div class="tm-succ">50% · 4.5y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.12);border:1px solid rgba(68,255,136,0.4)" title="I-Form × 2: 2 plays, 50% run, 50% success, 1.5 avg">
+          <div class="tm-count">2</div>
+          <div class="tm-split">50R/50P</div>
+          <div class="tm-succ">50% · 1.5y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.12);border:1px solid rgba(255,102,102,0.25)" title="I-Form × 3: 2 plays, 0% run, 0% success, 0.0 avg">
+          <div class="tm-count">2</div>
+          <div class="tm-split">0R/100P</div>
+          <div class="tm-succ">0% · 0.0y</div>
+        </td><td class="tm-cell" style="background:rgba(74,158,255,0.08);border:1px solid rgba(68,255,136,0.4)" title="I-Form × 4: 1 plays, 100% run, 100% success, 9.0 avg">
+          <div class="tm-count">1</div>
+          <div class="tm-split">100R/0P</div>
+          <div class="tm-succ">100% · 9.0y</div>
+        </td></tr></tbody>
+    </table></div></div>
+      </div>
 
       <div class="stats-section">
         <h3>Personnel Groupings</h3>
