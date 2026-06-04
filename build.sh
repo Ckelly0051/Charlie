@@ -62,6 +62,7 @@ for jsfile in \
   js/heat-maps.js \
   js/advanced-metrics.js \
   js/visualizations.js \
+  js/multi-angle.js \
   js/stats-engine.js \
   js/history-manager.js \
   js/version-manager.js \

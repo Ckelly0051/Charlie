@@ -7,7 +7,7 @@ export class CanvasOverlay {
     this.vc = videoController;
     this.canvas = document.getElementById('drawingCanvas');
     this.ctx = this.canvas.getContext('2d');
-    this.container = document.getElementById('videoContainer');
+    this.container = document.getElementById('angleWrapper1') || document.getElementById('videoContainer');
 
     this.currentTool = null;
     this.color = '#ffffff';

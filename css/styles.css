@@ -5496,6 +5496,128 @@ select:focus,
 }
 
 /* ================================================================== */
+/* ====  MULTI-ANGLE SYNC                                         == */
+/* ================================================================== */
+
+/* Wrappers — each holds a video (+ canvas on angle 1). Transparent
+   when no second angle is loaded; position:absolute fills container. */
+.angle-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.angle-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.angle-wrapper-2 { display: none; }
+
+/* Placeholder must sit above the wrappers */
+.video-container .video-placeholder { z-index: 10; }
+
+/* Angle badges */
+.angle-badge {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 10px;
+  background: rgba(0,0,0,0.55);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  z-index: 6;
+  pointer-events: none;
+  letter-spacing: 0.3px;
+}
+.angle-badge.active {
+  background: rgba(59,130,246,0.75);
+  color: #fff;
+}
+
+/* --- Toggle mode: stack both, z-index controls which is on top --- */
+.video-container.angle-single .angle-wrapper-2 { display: flex; z-index: 0; }
+.video-container.angle-single #angleWrapper1 { z-index: 1; }
+.video-container.angle-single.active-angle-2 #angleWrapper1 { z-index: 0; }
+.video-container.angle-single.active-angle-2 .angle-wrapper-2 { z-index: 1; }
+
+/* --- Side-by-side: both wrappers share space 50/50 --- */
+.video-container.angle-sbs { flex-direction: row !important; gap: 2px; }
+.video-container.angle-sbs .angle-wrapper,
+.video-container.angle-sbs .angle-wrapper-2 {
+  position: relative;
+  inset: auto;
+  flex: 1 1 50%;
+  min-width: 0;
+  align-self: stretch;
+}
+.video-container.angle-sbs .angle-wrapper-2 { display: flex; }
+.video-container.angle-sbs.active-angle-1 #angleWrapper1,
+.video-container.angle-sbs.active-angle-2 #angleWrapper2 {
+  outline: 2px solid rgba(59,130,246,0.5);
+  outline-offset: -2px;
+  border-radius: 3px;
+}
+
+/* --- PiP: primary full, secondary small overlay in corner --- */
+.video-container.angle-pip .angle-wrapper-2 {
+  display: flex;
+  position: absolute;
+  inset: auto 8px 8px auto;
+  width: 28%;
+  height: 28%;
+  z-index: 5;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  transition: border-color 0.15s;
+}
+.video-container.angle-pip .angle-wrapper-2:hover {
+  border-color: rgba(59,130,246,0.7);
+}
+.video-container.angle-pip #angleWrapper1 { z-index: 1; }
+
+/* Angle controls strip */
+.angle-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.angle-controls .ctrl-btn { font-size: 12px; padding: 2px 8px; }
+.angle2-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.angle2-info.hidden { display: none; }
+.angle2-name {
+  color: var(--text-dim);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.angle-sync-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.angle-remove-btn { color: var(--danger) !important; font-size: 14px !important; }
+
+/* ================================================================== */
 /* ====  BUFFERING v8 — visual feedback while video loads          == */
 /* ================================================================== */
 .video-container { position: relative; }

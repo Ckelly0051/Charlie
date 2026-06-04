@@ -27,6 +27,7 @@ import { UIPolish } from './ui-polish.js';
 import { Wizard } from './wizard.js';
 import { CustomFieldsManager } from './custom-fields.js';
 import { PlayDiagram } from './play-diagram.js';
+import { MultiAngle } from './multi-angle.js';
 
 class App {
   constructor() {
@@ -38,6 +39,7 @@ class App {
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
+    this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
     this.tagger.onLoadForm = (play) => {
       this.customFields.loadValues(play);
@@ -186,6 +188,11 @@ class App {
       this.canvas.render();
     });
 
+    // Re-sync canvas overlay when multi-angle layout changes
+    this.multiAngle.on('view-changed', () => requestAnimationFrame(() => this.canvas._syncSize()));
+    this.multiAngle.on('angle-loaded', () => requestAnimationFrame(() => this.canvas._syncSize()));
+    this.multiAngle.on('angle-removed', () => requestAnimationFrame(() => this.canvas._syncSize()));
+
     // Auto-advance to next clip when current clip ends (optional behavior)
     this.vc.videoElement.addEventListener('ended', () => {
       // Don't auto-advance; let user control navigation
@@ -289,6 +296,12 @@ class App {
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             this.history.redoAll();
+          }
+          break;
+        case 'KeyV':
+          if (!e.ctrlKey && !e.metaKey && this.multiAngle?.enabled) {
+            e.preventDefault();
+            this.multiAngle.swapActive();
           }
           break;
         case 'KeyS':

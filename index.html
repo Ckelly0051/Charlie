@@ -19,13 +19,7 @@
           </svg>
           <span class="sidebar-toggle-label">Settings</span>
         </button>
-        <button class="btn" id="btnToggleWizard" title="Show/hide the step-by-step wizard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2l2.09 6.26L20 9.27l-5 4.87L16.18 21 12 17.77 7.82 21 9 14.14l-5-4.87 5.91-1.01L12 2z"/>
-          </svg>
-          <span>Wizard</span>
-        </button>
-        <button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)">
+<button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="6" width="20" height="12" rx="2"/>
             <line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/>
@@ -106,8 +100,15 @@
       <!-- Video Area -->
       <div class="video-section">
         <div class="video-container" id="videoContainer">
-          <video id="videoPlayer" preload="auto" playsinline></video>
-          <canvas id="drawingCanvas"></canvas>
+          <div class="angle-wrapper" id="angleWrapper1">
+            <video id="videoPlayer" preload="auto" playsinline></video>
+            <canvas id="drawingCanvas"></canvas>
+            <span class="angle-badge" id="angleLabel1">Angle 1</span>
+          </div>
+          <div class="angle-wrapper angle-wrapper-2" id="angleWrapper2">
+            <video id="videoPlayer2" preload="auto" playsinline></video>
+            <span class="angle-badge" id="angleLabel2">Angle 2</span>
+          </div>
           <div class="video-placeholder" id="videoPlaceholder">
             <svg class="icon icon-large"><use href="assets/icons.svg#icon-film"/></svg>
             <p>Load a video file to begin</p>
@@ -159,6 +160,25 @@
               FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
             </label>
           </div>
+        </div>
+
+        <!-- Multi-angle controls -->
+        <div class="angle-controls" id="angleControls">
+          <button class="ctrl-btn" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
+          <input type="file" id="angle2FileInput" accept="video/*" hidden>
+          <span class="angle2-info hidden" id="angle2Info">
+            <span class="angle2-name" id="angle2Name"></span>
+            <select id="angleViewMode" class="speed-select" title="View layout">
+              <option value="single">Toggle</option>
+              <option value="sideBySide">Side by Side</option>
+              <option value="pip">Picture-in-Picture</option>
+            </select>
+            <button class="ctrl-btn" id="btnSwapAngle" title="Swap active angle (V)">⇄</button>
+            <label class="angle-sync-label" title="Time offset for angle 2 (seconds)">
+              Sync: <input type="number" id="angleSyncOffset" value="0" step="0.1" class="fps-input" style="width:52px">s
+            </label>
+            <button class="ctrl-btn angle-remove-btn" id="btnRemoveAngle" title="Remove second angle">✕</button>
+          </span>
         </div>
 
         <!-- Timeline (moved from bottom-panel into video-section) -->
@@ -462,18 +482,6 @@
             <div class="player-quickpick" id="rosterQuickPick"></div>
           </div>
 
-          <!-- Play diagram (X's & O's) -->
-          <div class="chip-section" id="playDiagramSection">
-            <div class="cf-head">
-              <label class="chip-label">Play Diagram</label>
-              <span class="pd-actions">
-                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
-                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
-              </span>
-            </div>
-            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
-          </div>
-
           <!-- Custom user-defined tag fields -->
           <div class="chip-section cf-empty" id="customFieldsSection">
             <div class="cf-head">
@@ -545,6 +553,18 @@
             <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
             <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
             <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
+          </div>
+
+          <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
+          <div class="chip-section" id="playDiagramSection">
+            <div class="cf-head">
+              <label class="chip-label">Play Diagram</label>
+              <span class="pd-actions">
+                <button class="btn btn-sm btn-icon-only" id="btnClearDiagram" type="button" title="Clear this play's diagram">Clear</button>
+                <button class="btn btn-sm" id="btnDrawDiagram" type="button" title="Draw up this play's X's &amp; O's">✎ Draw</button>
+              </span>
+            </div>
+            <canvas id="playDiagramPreview" class="pd-preview" width="320" height="150" title="Click Draw to edit"></canvas>
           </div>
         </div>
 
@@ -1112,6 +1132,7 @@
               <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
               <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo</dd>
               <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd></dt><dd>Save project</dd>
+              <dt><kbd>V</kbd></dt><dd>Swap camera angle (multi-angle)</dd>
               <dt><kbd>?</kbd></dt><dd>Show / hide this help</dd>
             </dl>
           </div>
