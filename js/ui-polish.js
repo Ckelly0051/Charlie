@@ -171,20 +171,34 @@ export class UIPolish {
     if (!placeholder || !fileInput) return;
 
     placeholder.innerHTML = `
-      <button class="empty-cta" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        <span class="empty-cta-title">Load Video</span>
-        <span class="empty-cta-sub">Tap to select a game film file</span>
-      </button>
+      <div class="empty-cta-row">
+        <button class="empty-cta" type="button" data-action="file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span class="empty-cta-title">Add Video</span>
+          <span class="empty-cta-sub">Select a game film file</span>
+        </button>
+        <button class="empty-cta empty-cta-folder" type="button" data-action="folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="empty-cta-title">Add Folder</span>
+          <span class="empty-cta-sub">Load a folder of plays</span>
+        </button>
+      </div>
       <div class="empty-hint">or drop a video file anywhere</div>
     `;
-    placeholder.querySelector('.empty-cta').addEventListener('click', (e) => {
+    placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
       e.stopPropagation();
       fileInput.click();
+    });
+    const folderInput = document.getElementById('videoFolderInput');
+    placeholder.querySelector('[data-action="folder"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (folderInput) folderInput.click();
     });
   }
 

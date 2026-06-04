@@ -3117,27 +3117,37 @@ select:focus-visible {
   color: var(--text-dim);
   pointer-events: auto;
 }
+.empty-cta-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
 .empty-cta {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 32px 48px;
+  gap: 4px;
+  padding: 18px 28px;
   background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
   border: none;
-  border-radius: 20px;
+  border-radius: 14px;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 12px 36px rgba(239,71,102,0.35), 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(239,71,102,0.3), 0 3px 8px rgba(0,0,0,0.35);
   transition: transform 180ms, box-shadow 180ms;
   -webkit-tap-highlight-color: transparent;
 }
-.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(239,71,102,0.45); }
+.empty-cta-folder {
+  background: linear-gradient(180deg, var(--accent, #4a9eff) 0%, #2a6fd4 100%);
+  box-shadow: 0 8px 24px rgba(74,158,255,0.3), 0 3px 8px rgba(0,0,0,0.35);
+}
+.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(239,71,102,0.4); }
+.empty-cta-folder:hover { box-shadow: 0 12px 32px rgba(74,158,255,0.4); }
 .empty-cta:active { transform: translateY(0); }
-.empty-cta svg { width: 44px; height: 44px; margin-bottom: 4px; }
-.empty-cta-title { font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
-.empty-cta-sub { font-size: 12px; opacity: 0.9; font-weight: 500; }
+.empty-cta svg { width: 30px; height: 30px; margin-bottom: 2px; }
+.empty-cta-title { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
+.empty-cta-sub { font-size: 11px; opacity: 0.85; font-weight: 500; }
 .empty-hint { font-size: 12px; opacity: 0.5; }
 
 /* --- Onboarding hint toast --- */
@@ -3197,9 +3207,10 @@ select:focus-visible {
 
 /* --- Empty CTA sizing on small phones --- */
 @media (max-width: 500px) {
-  .empty-cta { padding: 26px 36px; border-radius: 16px; }
-  .empty-cta-title { font-size: 19px; }
-  .empty-cta svg { width: 36px; height: 36px; }
+  .empty-cta { padding: 14px 20px; border-radius: 12px; }
+  .empty-cta-title { font-size: 14px; }
+  .empty-cta svg { width: 24px; height: 24px; }
+  .empty-cta-row { gap: 8px; }
 }
 
 /* ================================================================== */
@@ -4442,7 +4453,12 @@ input:focus, select:focus, textarea:focus {
   background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
   box-shadow: 0 14px 40px rgba(65,105,225,0.35), 0 4px 12px rgba(15,23,42,0.12);
 }
+.empty-cta-folder {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 14px 40px rgba(56,189,248,0.3), 0 4px 12px rgba(15,23,42,0.12);
+}
 .empty-cta:hover { box-shadow: 0 16px 44px rgba(65,105,225,0.45); }
+.empty-cta-folder:hover { box-shadow: 0 16px 44px rgba(56,189,248,0.4); }
 
 /* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
    Scope dark variables onto their roots so existing light-on-dark
@@ -6112,6 +6128,8 @@ video.is-buffering { opacity: 0.6; }
                     <button class="pick our-def-only" data-value="Falcon" type="button">Falcon</button>
                     <button class="pick" data-value="4-3" type="button">4-3</button>
                     <button class="pick" data-value="3-4" type="button">3-4</button>
+                    <button class="pick" data-value="4-4" type="button">4-4</button>
+                    <button class="pick" data-value="5-2" type="button">5-2</button>
                     <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
                     <button class="pick" data-value="Nickel" type="button">Nickel</button>
                     <button class="pick" data-value="Dime" type="button">Dime</button>
@@ -16487,20 +16505,34 @@ class UIPolish {
     if (!placeholder || !fileInput) return;
 
     placeholder.innerHTML = `
-      <button class="empty-cta" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        <span class="empty-cta-title">Load Video</span>
-        <span class="empty-cta-sub">Tap to select a game film file</span>
-      </button>
+      <div class="empty-cta-row">
+        <button class="empty-cta" type="button" data-action="file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span class="empty-cta-title">Add Video</span>
+          <span class="empty-cta-sub">Select a game film file</span>
+        </button>
+        <button class="empty-cta empty-cta-folder" type="button" data-action="folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="empty-cta-title">Add Folder</span>
+          <span class="empty-cta-sub">Load a folder of plays</span>
+        </button>
+      </div>
       <div class="empty-hint">or drop a video file anywhere</div>
     `;
-    placeholder.querySelector('.empty-cta').addEventListener('click', (e) => {
+    placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
       e.stopPropagation();
       fileInput.click();
+    });
+    const folderInput = document.getElementById('videoFolderInput');
+    placeholder.querySelector('[data-action="folder"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (folderInput) folderInput.click();
     });
   }
 
