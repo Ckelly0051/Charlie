@@ -5548,6 +5548,30 @@ select:focus,
 /* Placeholder must sit above the wrappers */
 .video-container .video-placeholder { z-index: 10; }
 
+/* Subtle app-name "bug" in the top-right of the video, broadcast style.
+   Absolutely positioned → never affects the controls/timeline layout. */
+.brand-bug {
+  position: absolute;
+  top: 7px;
+  right: 9px;
+  z-index: 8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.brand-bug b {
+  font-weight: 800;
+  color: var(--accent-hover, #6366f1);
+}
+@media (max-width: 500px) {
+  .brand-bug { font-size: 10px; top: 5px; right: 7px; }
+}
+
 /* Angle badges */
 .angle-badge {
   display: none;
