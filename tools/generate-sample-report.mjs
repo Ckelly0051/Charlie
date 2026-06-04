@@ -200,9 +200,71 @@ const html = `<!DOCTYPE html>
 const outPath = join(ROOT, 'sample-analytics-report.html');
 writeFileSync(outPath, html);
 
-// --- Console summary -------------------------------------------------------
+// --- Markdown dump (for terminal / chat) -----------------------------------
 const d = stats.defensive;
-console.log(`Wrote ${outPath}`);
-console.log(`\nPlays: ${stats.totalPlays}  |  Total yards: ${stats.rushing.yards + stats.passing.yards}  |  TDs: ${stats.scoring.touchdowns}`);
-console.log(`Offense  -> Run/Pass ${stats.tendencies.runPassRatio}, Success ${stats.efficiency.successRate}%, EPA/play ${stats.advanced.perPlay?.toFixed?.(2) ?? 'n/a'}`);
-console.log(`Defense  -> Havoc ${d.havocRate}%, Sacks ${d.sacks}, TFL ${d.tfl}, INT ${d.interceptions}, Blitz rate ${d.blitzRate}%, Blitz havoc ${d.blitzHavocRate}%`);
+const r = stats.rushing, pa = stats.passing, e = stats.efficiency, a = stats.advanced;
+const fmt = v => (v > 0 ? '+' : '') + (typeof v === 'number' ? v.toFixed(2) : v);
+const md = [];
+md.push(`# Sample Analytics Report`);
+md.push(`*${stats.totalPlays} plays · ${NUM_DRIVES} drives · ${stats.rushing.yards + stats.passing.yards} total yards · reproducible dummy data*`);
+
+md.push(`\n## 🏈 Offensive Analytics`);
+md.push(`\n**Team:** ${stats.totalPlays} plays · ${r.yards + pa.yards} yds · ${stats.scoring.touchdowns} TD · ${stats.turnovers.total} TO`);
+md.push(`**Efficiency:** ${e.successRate}% success · ${e.explosivePlays} explosive (${e.explosivePct}%) · ${e.negativePlays} negative (${e.negativePct}%)`);
+md.push(`**EPA:** ${fmt(a.total)} total · ${fmt(a.perPlay)}/play`);
+md.push(`**Run/Pass:** ${stats.tendencies.runPassRatio} (${stats.tendencies.runPct}% / ${stats.tendencies.passPct}%)`);
+
+md.push(`\n**Rushing**\n`);
+md.push(`| Att | Yds | Avg | Long | TD | Fum |`);
+md.push(`|---|---|---|---|---|---|`);
+md.push(`| ${r.attempts} | ${r.yards} | ${r.average} | ${r.longest} | ${r.touchdowns} | ${r.fumbles} |`);
+md.push(`\n**Passing**\n`);
+md.push(`| C/A | Pct | Yds | YPA | TD | INT | Sck |`);
+md.push(`|---|---|---|---|---|---|---|`);
+md.push(`| ${pa.completions}/${pa.attempts} | ${pa.completionPct}% | ${pa.yards} | ${pa.average} | ${pa.touchdowns} | ${pa.interceptions} | ${pa.sacks} |`);
+
+md.push(`\n**Down & Distance**\n`);
+md.push(`| Down | Plays | Run/Pass | Avg | Conv% |`);
+md.push(`|---|---|---|---|---|`);
+const dl = { '1':'1st','2':'2nd','3':'3rd','4':'4th' };
+for (const [dn, s] of Object.entries(stats.downs.byDown)) { if (!s.total) continue; md.push(`| ${dl[dn]} | ${s.total} | ${s.runPct}%/${s.passPct}% | ${s.avgYards} | ${s.conversionPct}% |`); }
+md.push(`\n3rd down: ${stats.downs.thirdDownConv} (${stats.downs.thirdDownPct}%) · 4th down: ${stats.downs.fourthDownConv} (${stats.downs.fourthDownPct}%)`);
+
+md.push(`\n**Formation Tendencies**\n`);
+md.push(`| Formation | # | % |`);
+md.push(`|---|---|---|`);
+Object.entries(stats.tendencies.formations).sort((x,y)=>y[1]-x[1]).forEach(([n,c])=>md.push(`| ${n} | ${c} | ${((c/stats.totalPlays)*100).toFixed(1)}% |`));
+
+md.push(`\n**Top EPA Plays**\n`);
+md.push(`| # | Situation | Yds | EPA |`);
+md.push(`|---|---|---|---|`);
+a.top.slice(0,5).forEach(x=>{const t=x.play.tags;md.push(`| #${x.play.id} | ${t.down}&${t.distance} ${t.playType} | ${t.yardage} | ${fmt(x.epa)} |`);});
+
+md.push(`\n## 🛡️ Defensive Analytics`);
+md.push(`\n**Havoc:** ${d.havocRate}% (${d.havocPlays} plays) · **Sacks:** ${d.sacks} (${d.sackYards} yds) · **TFL:** ${d.tfl} · **Turnovers:** ${d.interceptions + d.fumbles} (${d.interceptions} INT / ${d.fumbles} Fum)`);
+md.push(`**Blitz:** ${d.blitzRate}% rate (${d.blitzTotal} plays) · ${d.blitzHavocRate}% havoc · **Forced incompletions:** ${d.incompletions} · **3-and-outs:** ${d.threeAndOuts}`);
+
+md.push(`\n**Defensive Front Breakdown**\n`);
+md.push(`| Front | # | Run/Pass | Yds | Avg | Stop% | Havoc% |`);
+md.push(`|---|---|---|---|---|---|---|`);
+d.fronts.forEach(f=>md.push(`| ${f.name} | ${f.count} | ${f.runs}/${f.passes} | ${f.yards} | ${(f.yards/f.count).toFixed(1)} | ${Math.round(f.successes/f.count*100)}% | ${Math.round(f.havoc/f.count*100)}% |`));
+
+md.push(`\n**Coverage Breakdown**\n`);
+md.push(`| Coverage | # | Comp | Inc | INT | Sack | Yds | Avg | Stop% |`);
+md.push(`|---|---|---|---|---|---|---|---|---|`);
+d.coverages.forEach(c=>md.push(`| ${c.name} | ${c.count} | ${c.comps} | ${c.incs} | ${c.ints} | ${c.sacks} | ${c.yards} | ${(c.yards/c.count).toFixed(1)} | ${Math.round(c.successes/c.count*100)}% |`));
+
+md.push(`\n**Blitz Analysis**\n`);
+md.push(`| Blitz | # | Sacks | Havoc% | Avg Yds | Stop% |`);
+md.push(`|---|---|---|---|---|---|`);
+d.blitzes.forEach(b=>md.push(`| ${b.name} | ${b.count} | ${b.sacks} | ${Math.round(b.havoc/b.count*100)}% | ${(b.yards/b.count).toFixed(1)} | ${Math.round(b.successes/b.count*100)}% |`));
+
+md.push(`\n**Front Usage by Situation**\n`);
+[d.earlyDownFronts, d.passingDownFronts].forEach(sit=>{
+  md.push(`\n*${sit.label} (${sit.total})*: ` + sit.fronts.map(([n,c])=>`${n} ${Math.round(c/sit.total*100)}%`).join(' · '));
+});
+
+const mdText = md.join('\n');
+writeFileSync(join(ROOT, 'sample-analytics-report.md'), mdText);
+console.log(mdText);
+console.log(`\n---\nWrote ${outPath} and sample-analytics-report.md`);
