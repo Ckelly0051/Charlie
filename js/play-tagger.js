@@ -649,7 +649,15 @@ export class PlayTagger {
 
   nextPlay() {
     const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
-    if (idx >= 0 && idx < this.plays.length - 1) {
+    // No current selection: jump to the first play if any exist.
+    if (idx === -1) {
+      if (this.plays.length) {
+        this.selectPlay(this.plays[0].id);
+        return true;
+      }
+      return false;
+    }
+    if (idx < this.plays.length - 1) {
       this.selectPlay(this.plays[idx + 1].id);
       return true;
     }

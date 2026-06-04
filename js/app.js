@@ -1085,12 +1085,8 @@ class App {
       this.tagger.prevPlay();
       this._autoPlayCurrent();
     });
-    btnNext?.addEventListener('click', () => {
-      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
-    });
-    btnSkip?.addEventListener('click', () => {
-      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
-    });
+    btnNext?.addEventListener('click', () => this._advancePlay());
+    btnSkip?.addEventListener('click', () => this._advancePlay());
 
     // Auto down & distance toggle
     const autoDD = document.getElementById('autoDDToggle');
@@ -1124,6 +1120,38 @@ class App {
     }
   }
 
+  /**
+   * Save & advance. Commits any focused field, then moves to the next play —
+   * which in folder/multi-clip mode also switches to the next video. When we're
+   * past the last play but more video clips remain, jump to the next clip so a
+   * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
+   */
+  _advancePlay() {
+    // Commit a value still being edited (yardage/notes) before advancing.
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // 1) Next play in the list (also switches clip in folder mode).
+    if (this.tagger.nextPlayWithSituation()) {
+      this._autoPlayCurrent();
+      return;
+    }
+
+    // 2) No next play — if a folder/playlist is loaded, advance to the next
+    //    video clip so the user keeps moving through uploaded videos.
+    if (this.playlist && this.playlist.hasClips &&
+        this.playlist.activeClipIndex < this.playlist.clips.length - 1) {
+      this.playlist.nextClip();
+      this._autoPlayCurrent();
+      return;
+    }
+
+    // 3) Nothing left to advance to.
+    this.history?._toast('Last play — all tagged');
+  }
+
   _handleTagKey(e) {
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return false;
@@ -1153,7 +1181,7 @@ class App {
 
     if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      if (this.tagger.nextPlayWithSituation()) this._autoPlayCurrent();
+      this._advancePlay();
       return true;
     }
 

@@ -339,6 +339,17 @@ Hash, Quarter, Field Position, Drive, Custom Tags
 
 **Navigation bar**: ← Prev | Save & Next → | Skip
 
+**Save & Next behavior** (`App._advancePlay`, shared by the button, the Skip
+button, and the Enter shortcut): commits any focused field (yardage/notes),
+then advances. The fields already auto-save on change, so "Save" is a flush;
+"Next" is the advance. Advance order: (1) next play in the list — which in
+folder/multi-clip mode also switches to that play's video via the
+`play-selected` → `switchToClipByPlayId` handler; (2) if there's no next play
+but more **video clips** remain, jump to the next clip so a folder upload keeps
+flowing video-to-video; (3) otherwise show a brief "Last play" toast.
+`PlayTagger.nextPlay()` also handles a null current selection by jumping to the
+first play, so the button is never a silent no-op when plays exist.
+
 Special-teams stats (return game, kicking/punting) roll up in
 `StatsEngine._individualStats` from `players.returner` / `players.kicker` keyed
 on `stType`, and render as extra tables in the stats dashboard.
