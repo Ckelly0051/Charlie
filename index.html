@@ -1500,6 +1500,19 @@ body {
   font-weight: 600;
 }
 
+/* --- Tendency Matrix --- */
+.tm-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.tm-controls label { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.tm-controls select { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 13px; }
+.tm-legend { font-size: 11px; opacity: .6; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.tm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tm-table td, .tm-table th { text-align: center; padding: 4px 6px; font-size: 11px; }
+.tm-table th { font-size: 11px; white-space: nowrap; }
+.tm-cell { border-radius: 3px; min-width: 56px; cursor: default; vertical-align: top; }
+.tm-count { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.tm-split { font-size: 9px; opacity: .7; }
+.tm-succ { font-size: 10px; font-weight: 600; }
+
 .tendency-bar {
   display: flex;
   height: 24px;
@@ -13473,6 +13486,7 @@ class StatsEngine {
             ${this._renderDrives(stats)}
             ${Visualizations.render(this._currentPlays())}
             ${this._renderTendencies(stats)}
+            ${this._renderTendencyMatrix(stats)}
             ${this._renderDefensive(stats)}
             ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
@@ -13496,6 +13510,9 @@ class StatsEngine {
       row.title = "Jump to this player's plays";
       row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
     });
+
+    // Tendency matrix dimension pickers
+    this._bindTendencyMatrix(el);
 
     // Click overlay to close
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {
@@ -13862,6 +13879,139 @@ class StatsEngine {
         </div>
       </div>
     `;
+  }
+
+  // --- Tendency Matrix ---
+
+  static _matrixDimensions() {
+    return [
+      { id: 'formation',  label: 'Formation',  extract: p => StatsEngine.splitFormations(p.tags.formation) },
+      { id: 'playType',   label: 'Play Type',  extract: p => [p.tags.playType || 'Unknown'] },
+      { id: 'down',       label: 'Down',        extract: p => [p.tags.down ? `${p.tags.down}` : '?'] },
+      { id: 'distBucket', label: 'Distance',    extract: p => { const d = parseInt(p.tags.distance) || 0; return [d <= 3 ? 'Short (1-3)' : d <= 6 ? 'Med (4-6)' : 'Long (7+)']; } },
+      { id: 'personnel',  label: 'Personnel',   extract: p => [p.tags.personnel || 'Unknown'] },
+      { id: 'defFront',   label: 'Def Front',   extract: p => [p.tags.defFront || ''].filter(Boolean) },
+      { id: 'coverage',   label: 'Coverage',    extract: p => [p.tags.coverage || ''].filter(Boolean) },
+      { id: 'hash',       label: 'Hash',        extract: p => [p.tags.hash || 'Unknown'] },
+      { id: 'quarter',    label: 'Quarter',     extract: p => [p.tags.quarter || '?'] },
+      { id: 'runPass',    label: 'Run / Pass',  extract: p => [StatsEngine.isRun(p) ? 'Run' : 'Pass'] },
+    ];
+  }
+
+  _computeMatrix(plays, rowId, colId) {
+    const dims = StatsEngine._matrixDimensions();
+    const rowDim = dims.find(d => d.id === rowId) || dims[0];
+    const colDim = dims.find(d => d.id === colId) || dims[1];
+    const cells = {};
+    const rowSet = new Set();
+    const colSet = new Set();
+    const rowCounts = {};
+    const colCounts = {};
+
+    plays.forEach(p => {
+      const rows = rowDim.extract(p);
+      const cols = colDim.extract(p);
+      if (!rows.length || !cols.length) return;
+      const isRun = StatsEngine.isRun(p);
+      const yds = parseInt(p.tags.yardage) || 0;
+      const succ = this._isSuccessfulPlay(p);
+
+      rows.forEach(r => {
+        cols.forEach(c => {
+          rowSet.add(r);
+          colSet.add(c);
+          const key = `${r}\0${c}`;
+          if (!cells[key]) cells[key] = { count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+          cells[key].count++;
+          if (isRun) cells[key].runs++; else cells[key].passes++;
+          cells[key].yards += yds;
+          if (succ) cells[key].successes++;
+          rowCounts[r] = (rowCounts[r] || 0) + 1;
+          colCounts[c] = (colCounts[c] || 0) + 1;
+        });
+      });
+    });
+
+    const rowKeys = [...rowSet].sort((a, b) => (rowCounts[b] || 0) - (rowCounts[a] || 0));
+    const colKeys = [...colSet].sort((a, b) => (colCounts[b] || 0) - (colCounts[a] || 0));
+    return { rowDim, colDim, rowKeys, colKeys, cells, total: plays.length };
+  }
+
+  _renderMatrixGrid(matrix) {
+    if (!matrix.rowKeys.length || !matrix.colKeys.length) return '<p style="opacity:.6">Not enough data for this combination.</p>';
+    const maxCount = Math.max(1, ...Object.values(matrix.cells).map(c => c.count));
+
+    let header = `<th>${matrix.rowDim.label} \\ ${matrix.colDim.label}</th>`;
+    matrix.colKeys.forEach(c => { header += `<th>${c}</th>`; });
+
+    let body = '';
+    matrix.rowKeys.forEach(r => {
+      let row = `<td style="font-weight:600;white-space:nowrap">${r}</td>`;
+      matrix.colKeys.forEach(c => {
+        const cell = matrix.cells[`${r}\0${c}`];
+        if (!cell || !cell.count) {
+          row += '<td class="tm-cell" style="opacity:.2">—</td>';
+          return;
+        }
+        const intensity = cell.count / maxCount;
+        const succPct = Math.round((cell.successes / cell.count) * 100);
+        const avg = (cell.yards / cell.count).toFixed(1);
+        const runPct = Math.round((cell.runs / cell.count) * 100);
+        const bg = `rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)})`;
+        const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
+        row += `<td class="tm-cell" style="background:${bg};border:${border}" title="${r} × ${c}: ${cell.count} plays, ${runPct}% run, ${succPct}% success, ${avg} avg">
+          <div class="tm-count">${cell.count}</div>
+          <div class="tm-split">${runPct}R/${100 - runPct}P</div>
+          <div class="tm-succ">${succPct}% · ${avg}y</div>
+        </td>`;
+      });
+      body += `<tr>${row}</tr>`;
+    });
+
+    return `<div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
+      <thead><tr>${header}</tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
+
+  _renderTendencyMatrix(stats) {
+    if (stats.totalPlays < 3) return '';
+    const dims = StatsEngine._matrixDimensions();
+    const opts = dims.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
+    const defaultMatrix = this._computeMatrix(this._currentPlays(), 'formation', 'down');
+    return `
+      <div class="stats-section" id="tendencyMatrixSection">
+        <h3>Tendency Matrix</h3>
+        <div class="tm-controls">
+          <label>Rows: <select id="tmRowDim">${opts}</select></label>
+          <span style="opacity:.5;margin:0 4px">×</span>
+          <label>Cols: <select id="tmColDim">${opts.replace('value="down"', 'value="down" selected')}</select></label>
+        </div>
+        <div class="tm-legend">
+          <span>Cell: <strong>count</strong> · run/pass split · success% · avg yards</span>
+          <span style="margin-left:12px"><span style="display:inline-block;width:10px;height:10px;border:1px solid rgba(68,255,136,0.5);border-radius:2px;vertical-align:middle"></span> ≥50% success</span>
+          <span style="margin-left:8px"><span style="display:inline-block;width:10px;height:10px;border:1px solid rgba(255,102,102,0.4);border-radius:2px;vertical-align:middle"></span> ≤30% success</span>
+        </div>
+        <div id="tmGridContainer">${this._renderMatrixGrid(defaultMatrix)}</div>
+      </div>`;
+  }
+
+  _bindTendencyMatrix(el) {
+    const rowSel = el.querySelector('#tmRowDim');
+    const colSel = el.querySelector('#tmColDim');
+    const container = el.querySelector('#tmGridContainer');
+    if (!rowSel || !colSel || !container) return;
+
+    const refresh = () => {
+      if (rowSel.value === colSel.value) {
+        container.innerHTML = '<p style="opacity:.6">Pick two different dimensions.</p>';
+        return;
+      }
+      const matrix = this._computeMatrix(this._currentPlays(), rowSel.value, colSel.value);
+      container.innerHTML = this._renderMatrixGrid(matrix);
+    };
+    rowSel.addEventListener('change', refresh);
+    colSel.addEventListener('change', refresh);
   }
 
   _renderDefensive(stats) {
