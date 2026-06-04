@@ -30,8 +30,10 @@ The app is a **single scrollable column**, not a video+sidebar split:
   Esc, scrim, or its × button). Houses secondary panels: Game Info, Roster,
   Version History, Playlist, Filter Plays, Drawing Tools. Backed by
   `.drawer-scrim`. Wired in `js/ui-polish.js` `_initSidebarDrawer()`.
-- **Mobile** — bottom tab bar (Video / Tag / Stats / More) from
-  `_initBottomTabs()`; "Tag" scrolls to the form, "More" opens the drawer.
+- **Mobile** — bottom tab bar (Video / Stats / Self-Scout / More) from
+  `_initBottomTabs()`; "Stats" opens the dashboard, "Self-Scout" opens the
+  self-scout report, "More" opens the drawer. (The tag form is always on-page,
+  so a dedicated "Tag" tab was dropped in favor of the analytics shortcuts.)
 
 ### Responsive layout modes
 
@@ -553,6 +555,15 @@ Included in the text export (`_exportStats`). The scout report
 (`generateScoutReport`) also shows front/coverage frequency but without the
 per-scheme success metrics — the defensive analytics section is the deep dive.
 
+**Dedicated Defensive Report**: the same `_renderDefensive(stats)` output is
+also reachable as a first-class focused view via the **Defense** button in the
+stats dashboard header (`renderDefensiveReport()`), with its own standalone
+HTML export (`_exportDefensiveReport`). The inline dashboard section stays
+hidden when there's no defensive data, but the dedicated view shows an
+explanatory empty state (how to tag a Defense play / front / coverage / blitz)
+so the feature is never silently missing. The section renders inline as the
+2nd-to-last dashboard block, so the button is the quick path to it.
+
 ## Key Decisions & Lessons
 
 1. **Auto-tagging accuracy**: Tried three approaches — in-browser heuristics (poor), local YOLO server (marginal), Claude Vision API (functional but inaccurate for coaching use). Manual chip-based tagging is the primary workflow. **Play Tagger panel order** reflects this: Mark Start/End (primary) → play selector → tag form → "More tools" (OCR/suggestions) → a collapsed "Auto-Detect Plays (experimental)" section at the bottom. Auto-detect was demoted from the top since it isn't reliable yet.
@@ -576,3 +587,5 @@ per-scheme success metrics — the defensive analytics section is the deep dive.
 10. **Multi-value tags as delimited strings**: multi-select Formation stores `"A + B"` rather than switching the field to an array — this keeps every string consumer (save, CSV, call sheet, display) working unchanged. Analytics split on `" + "` and attribute the play to each component (percentages can exceed 100%, which is correct for overlapping looks). `StatsEngine.splitFormations()` is the canonical splitter.
 
 11. **Backward compatibility by fallback**: new tag fields (`runPass`, multi-formation) degrade gracefully for plays/saves that predate them — empty `runPass` falls back to string inference; a single-formation string is just a one-element split. No schema migration needed.
+
+12. **Inherited `color` is literal, not a live `var()`**: the app went light-theme (`--text` dark for the light canvas) while the stats overlays re-scope `--text` to a *light* value. But `.stats-body` set no explicit `color`, so it inherited the already-computed dark color from `<body>` — re-scoping the variable downstream does nothing for inherited values. Stats-table data cells (which had no explicit color) were dark-on-dark and invisible across the whole dashboard. Fix: set `color: var(--text)` directly on the overlay container so descendants inherit the light value. When a container re-scopes theme vars, also set the properties that should consume them, or inheritance silently keeps the old computed color.

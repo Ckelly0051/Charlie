@@ -634,6 +634,7 @@ export class StatsEngine {
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnSelfScout" title="Reveal what tendencies your offense is tipping">Self-Scout</button>
+              <button class="btn btn-sm" id="btnDefReport" title="Defensive analytics: havoc, fronts, coverage, blitz">Defense</button>
               <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
             </div>
@@ -666,6 +667,9 @@ export class StatsEngine {
 
     // Self-scout: flip the scouting lens on our own offense
     el.querySelector('#btnSelfScout')?.addEventListener('click', () => this.renderSelfScout());
+
+    // Defensive report: focused defensive analytics view
+    el.querySelector('#btnDefReport')?.addEventListener('click', () => this.renderDefensiveReport());
 
     // Heat map tab switching
     this.heatMaps.bind(el);
@@ -1851,6 +1855,94 @@ ${report.recommendations.length ? `<h3>Recommendations</h3><ul>${report.recommen
     const a = document.createElement('a');
     a.href = url;
     a.download = `self_scout_${team.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ================================================================
+  // DEFENSIVE REPORT — a focused, first-class view of the defensive
+  // analytics (also rendered inline in the main dashboard). Surfaced
+  // via the "Defense" button so it's never buried or silently empty.
+  // ================================================================
+  renderDefensiveReport() {
+    const stats = this.compute();
+    const team = document.getElementById('gameTeamName')?.value || 'Our Defense';
+    const hasData = stats.defensive.hasData;
+    const body = hasData ? this._renderDefensive(stats) : `
+      <div class="stats-section def-empty">
+        <h3>No defensive data tagged yet</h3>
+        <p>Defensive analytics build from your <b>defensive</b> plays. To populate this report:</p>
+        <ol class="def-empty-steps">
+          <li>Set a play's unit toggle to <b>Defense</b> (or press <kbd>C</kbd> to cycle to it).</li>
+          <li>Tag the <b>Front</b> (4-3, Nickel, 3-4…), <b>Coverage</b>, and <b>Blitz</b>.</li>
+          <li>Or just tag defensive <b>results</b> — Sack, TFL (negative yardage), Interception, Fumble.</li>
+        </ol>
+        <p style="color:var(--text-dim)">Once any defensive data exists, this report shows havoc rate, front &amp; coverage breakdowns with stop%, blitz analysis, and front-by-situation.</p>
+      </div>`;
+
+    this.dashboardEl.innerHTML = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Defensive Report: ${team}</h2>
+            <div class="stats-header-actions">
+              ${hasData ? '<button class="btn btn-sm" id="btnExportDef">Export Report</button>' : ''}
+              <button class="btn btn-sm btn-danger" id="btnCloseDef">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">${body}</div>
+        </div>
+      </div>`;
+    this.dashboardEl.classList.remove('hidden');
+    this.dashboardEl.querySelector('#btnCloseDef').addEventListener('click', () => this.hideDashboard());
+    this.dashboardEl.querySelector('#btnExportDef')?.addEventListener('click', () => this._exportDefensiveReport(stats, team));
+    this.dashboardEl.querySelector('.stats-overlay').addEventListener('click', (e) => {
+      if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
+    });
+  }
+
+  _exportDefensiveReport(stats, team) {
+    const d = stats.defensive;
+    const title = `Defensive Report: ${team}`;
+    const frontRows = d.fronts.map(f =>
+      `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+    ).join('');
+    const covRows = d.coverages.map(c =>
+      `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+    ).join('');
+    const blitzRows = d.blitzes.map(b =>
+      `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
+    ).join('');
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
+th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+.card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
+.cv{font-size:24px;font-weight:bold;color:#4169e1}.cl{font-size:11px;text-transform:uppercase;color:#666}</style></head><body>
+<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+<h3>Summary</h3><div class="cards">
+<div class="card"><div class="cv">${d.havocRate}%</div><div class="cl">Havoc Rate</div></div>
+<div class="card"><div class="cv">${d.sacks}</div><div class="cl">Sacks (${d.sackYards} yds)</div></div>
+<div class="card"><div class="cv">${d.tfl}</div><div class="cl">TFL</div></div>
+<div class="card"><div class="cv">${d.interceptions + d.fumbles}</div><div class="cl">Turnovers</div></div>
+<div class="card"><div class="cv">${d.blitzRate}%</div><div class="cl">Blitz Rate</div></div>
+<div class="card"><div class="cv">${d.blitzHavocRate}%</div><div class="cl">Blitz Havoc</div></div>
+<div class="card"><div class="cv">${d.incompletions}</div><div class="cl">Incompletions</div></div>
+<div class="card"><div class="cv">${d.threeAndOuts}</div><div class="cl">3-and-Outs</div></div>
+</div>
+${frontRows ? `<h3>Defensive Front</h3><table><thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}
+${covRows ? `<h3>Coverage</h3><table><thead><tr><th>Coverage</th><th>#</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${covRows}</tbody></table>` : ''}
+${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${blitzRows}</tbody></table>` : ''}
+</body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `defense_${team.replace(/\s+/g, '_')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -95,13 +95,13 @@ export class UIPolish {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         <span>Video</span>
       </button>
-      <button class="bt-tab" data-tab="tag" aria-label="Tag">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        <span>Tag</span>
-      </button>
       <button class="bt-tab" data-tab="stats" aria-label="Stats">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
         <span>Stats</span>
+      </button>
+      <button class="bt-tab" data-tab="selfscout" aria-label="Self-Scout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+        <span>Self-Scout</span>
       </button>
       <button class="bt-tab" data-tab="more" aria-label="More">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -139,19 +139,14 @@ export class UIPolish {
         closeMore();
         document.getElementById('statsDashboard')?.classList.add('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (tab === 'tag') {
-        closeDrawer();
-        closeMore();
-        document.getElementById('statsDashboard')?.classList.add('hidden');
-        // The tag form is always on-page now — just scroll it into view
-        const section = document.querySelector('.tag-section');
-        if (section) {
-          setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
-        }
       } else if (tab === 'stats') {
         closeDrawer();
         closeMore();
         document.getElementById('btnShowStats')?.click();
+      } else if (tab === 'selfscout') {
+        closeDrawer();
+        closeMore();
+        window.app?.stats?.renderSelfScout();
       } else if (tab === 'more') {
         closeMore();
         openDrawer();

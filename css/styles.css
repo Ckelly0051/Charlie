@@ -4485,6 +4485,10 @@ input:focus, select:focus, textarea:focus {
   --text-bright:  #ffffff;
   --border:       #2a3552;
   --border-bright:#3d4a70;
+  /* These overlays are always dark; force light default text so table
+     data cells & paragraphs don't inherit the light-theme dark body
+     color (inherited colors are literal, not live var() references). */
+  color: var(--text);
 }
 /* Quick chart sits at the bottom as a dark command bar */
 .quick-chart-panel { background: #0b1020; border-top: 2px solid var(--accent); }
@@ -5859,3 +5863,15 @@ video.is-buffering { opacity: 0.6; }
 .ss-recs li { margin-bottom: 5px; color: #cdd6e6; font-size: 13px; }
 .ss-recs li:first-child:only-child,
 .ss-recs li:first-child { color: #e6ebf5; }
+
+/* Defensive report empty state */
+.def-empty p { color: #cdd6e6; line-height: 1.55; }
+.def-empty-steps { margin: 8px 0; padding-left: 22px; line-height: 1.7; color: #cdd6e6; }
+.def-empty-steps li { margin-bottom: 4px; }
+.def-empty kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #2a3552;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+}
