@@ -4583,6 +4583,8 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
   font-size: 14px;
   font-weight: 700;
 }
+/* Tackler accepts multiple #s (shared tackles) — keep the list readable. */
+.player-num-multi { font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
 
 /* Roster quick-pick chip bar (stamps the active role) */
 .player-quickpick { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -6631,8 +6633,8 @@ video.is-buffering { opacity: 0.6; }
                 </select>
               </label>
               <label class="player-role" data-role="tackler">
-                <span class="player-role-label">Tackler</span>
-                <input type="number" id="tagPlayerTackler" class="player-num" min="0" max="99" placeholder="#">
+                <span class="player-role-label">Tackler(s)</span>
+                <input type="text" id="tagPlayerTackler" class="player-num player-num-multi" inputmode="numeric" placeholder="# #" title="Multiple allowed for shared tackles (e.g. 55, 22)">
                 <select id="tagGradeTackler" class="player-grade" title="Grade">
                   <option value="">—</option>
                   <option value="2">++</option>
@@ -7182,7 +7184,7 @@ video.is-buffering { opacity: 0.6; }
           </div>
           <div class="qc-player-field">
             <label>Tackler #</label>
-            <input type="text" id="qcTackler" placeholder="#" maxlength="3">
+            <input type="text" id="qcTackler" placeholder="# #" maxlength="12" title="Multiple allowed for shared tackles (e.g. 55 22)">
           </div>
         </div>
         <div class="qc-status" id="qcStatus">Press keys to tag — Enter to save &amp; advance</div>
@@ -8470,6 +8472,9 @@ class PlayTagger {
           play.tags.unit = unit;
           this._emit('play-updated', play);
         }
+        // Make the side "sticky": the user's choice carries forward to the
+        // next untagged play (Save & Next) until they change it again.
+        this.defaultUnit = unit;
         this.applyUnitMode(unit);
       });
     }
@@ -8974,13 +8979,24 @@ class PlayTagger {
     return false;
   }
 
-  /** Like nextPlay(), but carries the down & distance situation forward. */
+  /**
+   * Like nextPlay(), but carries situation + unit forward. The down & distance
+   * advance is gated on Auto D&D; the unit (Offense/Defense/Special) always
+   * carries to an untagged next play so the coach doesn't re-pick the side
+   * every snap ("persistent until changed").
+   */
   nextPlayWithSituation() {
     const prev = this.getCurrentPlay();
+    const carryUnit = (prev && prev.tags.unit) || this.defaultUnit;
     const advanced = this.nextPlay();
-    if (advanced && this.autoDD && prev) {
+    if (advanced) {
       const next = this.getCurrentPlay();
-      if (next) this.applyNextSituation(prev, next);
+      if (next) {
+        if (this.autoDD && prev) this.applyNextSituation(prev, next);
+        // Carry the side forward only when the next play hasn't been set yet,
+        // so we never overwrite a play already tagged as a different unit.
+        if (carryUnit && !next.tags.unit) this.setUnit(carryUnit);
+      }
     }
     return advanced;
   }
@@ -9197,6 +9213,10 @@ class RosterManager {
       kicker: document.getElementById('tagPlayerKicker'),
       returner: document.getElementById('tagPlayerReturner'),
     };
+    // Roles that accept multiple jersey #s (e.g. shared/assisted tackles).
+    // Stamping toggles membership in a comma-separated list instead of
+    // replacing the single value.
+    this.multiRoles = new Set(['tackler']);
 
     this._load();
     this._bind();
@@ -9349,8 +9369,17 @@ class RosterManager {
   _stamp(num) {
     const input = this.roleInputs[this.activeRole];
     if (!input) return;
-    // Toggle off if the same number is already set for this role.
-    input.value = (input.value.trim() === String(num)) ? '' : String(num);
+    num = String(num);
+    if (this.multiRoles.has(this.activeRole)) {
+      // Toggle membership in the jersey list (shared tackles).
+      const list = input.value.match(/\d+/g) || [];
+      const i = list.indexOf(num);
+      if (i >= 0) list.splice(i, 1); else list.push(num);
+      input.value = list.join(', ');
+    } else {
+      // Single-value role: toggle off if re-tapping the same number.
+      input.value = (input.value.trim() === num) ? '' : num;
+    }
     input.dispatchEvent(new Event('change', { bubbles: true }));
     this.refreshActiveChips();
   }
@@ -9362,12 +9391,12 @@ class RosterManager {
     this.renderQuickPick();
   }
 
-  /** Highlight chips that match the current value of the active role input. */
+  /** Highlight chips that match the current value(s) of the active role input. */
   refreshActiveChips() {
     if (!this.quickPickEl) return;
-    const cur = this.roleInputs[this.activeRole]?.value.trim();
+    const set = new Set((this.roleInputs[this.activeRole]?.value || '').match(/\d+/g) || []);
     this.quickPickEl.querySelectorAll('.quickpick-chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.num === cur);
+      chip.classList.toggle('active', set.has(String(chip.dataset.num)));
     });
   }
 
@@ -13392,6 +13421,15 @@ class StatsEngine {
   }
 
   /**
+   * Split a player attribution value into individual jersey #s. Most roles hold
+   * a single number, but Tackler can hold several (shared tackles), stored as a
+   * "55, 22"-style string. Returns an array of jersey-# strings (may be empty).
+   */
+  static splitPlayers(val) {
+    return String(val == null ? '' : val).match(/\d+/g) || [];
+  }
+
+  /**
    * Run/pass classification. The explicit `runPass` tag is authoritative
    * (set via the Run/Pass selector); for older plays without it we fall back
    * to inferring from the play-type string.
@@ -14009,11 +14047,14 @@ class StatsEngine {
         }
       }
 
-      // Tackler
-      if (players.tackler) {
-        const id = players.tackler;
-        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, sacks: 0, tfl: 0 };
+      // Tackler(s) — may be multiple for shared/assisted tackles. Credit each
+      // listed jersey #. A play with 2+ tacklers marks each as an assist.
+      const tacklerIds = StatsEngine.splitPlayers(players.tackler);
+      const shared = tacklerIds.length > 1;
+      tacklerIds.forEach(id => {
+        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0 };
         tacklers[id].tackles++;
+        if (shared) tacklers[id].assists++; else tacklers[id].solo++;
         if (p.tags.result === 'Sack') tacklers[id].sacks++;
         if (yds < 0) tacklers[id].tfl++;
         if (p.tags.grades?.tackler != null) {
@@ -14022,7 +14063,7 @@ class StatsEngine {
           tacklers[id].gradeSum += p.tags.grades.tackler;
           tacklers[id].gradeCount++;
         }
-      }
+      });
     });
 
     return {
@@ -14108,7 +14149,8 @@ class StatsEngine {
     const matches = this.tagger.plays
       .filter(p => {
         const pl = p.tags.players || {};
-        return Object.values(pl).includes(String(num));
+        // Player values may hold multiple jersey #s (e.g. shared tackles).
+        return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
       })
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
     if (matches.length === 0) return;
@@ -14804,13 +14846,13 @@ class StatsEngine {
     if (ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Tkl</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
+            <thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
