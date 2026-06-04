@@ -61,7 +61,8 @@ js/
 ├── backend-client.js         # Local Python CV server client (optional)
 ├── quick-chart.js            # Keyboard-only rapid charting mode
 ├── playlist-manager.js       # Multi-clip video session management
-├── stats-engine.js           # Stats aggregation (run/pass, efficiency, EPA)
+├── multi-angle.js            # Dual-camera sync (toggle/SBS/PiP view modes)
+├── stats-engine.js           # Stats aggregation (run/pass, efficiency, EPA, defensive)
 ├── advanced-metrics.js       # Expected Points Added calculations
 ├── heat-maps.js              # Visual heat map generation
 ├── visualizations.js         # SVG charts: field-zone success, yardage spray, quarter mix
@@ -79,6 +80,10 @@ js/
 ├── custom-fields.js          # User-defined tag fields (CustomFieldsManager)
 ├── play-diagram.js           # Per-play X's & O's diagram editor (PlayDiagram)
 └── tag-workspace.js          # Tag workspace utilities (dead code — not wired)
+
+tools/
+├── generate-sample-report.mjs  # Generates dummy-data analytics report via real StatsEngine
+└── screenshot-report.mjs       # Puppeteer screenshots of the sample report
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
@@ -210,6 +215,41 @@ Set "Film shows" to **Opponent Scout** in Game Info to reveal the scouting panel
 - Exportable as standalone HTML scouting report
 
 Methods in `StatsEngine`: `generateScoutReport()`, `renderScoutReport()`, `_exportScoutReport()`.
+
+## Multi-Angle Video Sync (`multi-angle.js`)
+
+Load two camera angles (e.g. sideline + end zone) time-locked together.
+
+**Architecture**: master/follower pattern — the primary `VideoController` drives
+time; `MultiAngle` mirrors play/pause/seek/rate to `<video id="videoPlayer2">`
+with drift correction (threshold 0.15 s).
+
+**View modes** (cycled via `#angleViewMode` select):
+- **Toggle** (default on narrow screens) — z-index stacking, `V` key or
+  `btnSwapAngle` swaps which angle is on top.
+- **Side-by-Side** (default on ≥1100 px) — flex 50/50, both visible, active
+  angle gets a blue outline.
+- **PiP** — angle 2 overlays angle 1 at 28 % in the bottom-right corner.
+
+**HTML structure** (inside `#videoContainer`):
+```html
+<div class="angle-wrapper" id="angleWrapper1">  <!-- primary video + canvas -->
+<div class="angle-wrapper angle-wrapper-2" id="angleWrapper2">  <!-- secondary -->
+```
+`CanvasOverlay` attaches to `#angleWrapper1` (not `#videoContainer`) so the
+canvas sizes correctly in SBS mode where each wrapper is 50 % width.
+
+**Controls strip** (`.angle-controls`, between playback controls and timeline):
+`+ Angle` button, file input, view-mode select, swap button (⇄), sync-offset
+number input, remove button (✕). All hidden until angle 2 is loaded.
+
+**Events**: `view-changed`, `angle-loaded`, `angle-removed` — `App` listens to
+trigger `canvas._syncSize()` via `requestAnimationFrame`.
+
+**Key method**: `loadAngle2(file)`, `removeAngle2()`, `swapActive()`,
+`setViewMode(mode)`, `_syncTime()`.
+
+Cleans up on `video-unloaded` (primary video removed → angle 2 auto-removed).
 
 ## Tag Form UI (Chip-Based)
 
@@ -343,6 +383,7 @@ the × button, or a backdrop click closes it.
 | Shift+1-4 | Down number |
 | Enter | Save & advance to next play (carries down & distance forward) |
 | Space | Play/Pause video |
+| V | Swap multi-angle view (when angle 2 loaded) |
 | [ / ] | Mark play start / end |
 | 1-6 | Drawing tools (when no play selected) |
 
@@ -398,7 +439,7 @@ then push. Pushing only to the feature branch does **not** update the live URL.
 ## Offline / Self-Contained Distribution
 
 **Current status: the app is already ~95% self-contained.**
-`football-film-analyzer.html` is a single ~575 KB file with all CSS, JS, and
+`football-film-analyzer.html` is a single ~640 KB file with all CSS, JS, and
 icons inlined, and **no `type="module"`**, so it can be downloaded and opened
 directly via `file://` (double-click) and runs **fully offline**. The core
 workflow — load local video, mark/tag plays, stats, EPA, heat maps, cut-ups,
@@ -440,11 +481,42 @@ The stats engine (`js/stats-engine.js`) computes:
 - Success rate, average yards per play/type/formation
 - Down & distance conversion rates
 - Formation tendencies
-- Defensive front/coverage/blitz frequency
+- Defensive analytics (see below)
 - Red zone, goal line, backed-up situational stats
 - Expected Points Added (EPA) via `js/advanced-metrics.js`
 - Per-player grades (avg from play.tags.grades)
 - Opponent scouting report (formation/down tendencies with run/pass splits)
+
+### Defensive Analytics (`_defensiveStats` / `_renderDefensive`)
+
+Computes and renders a full defensive breakdown from the existing tagged fields
+(`defFront`, `coverage`, `blitz`, `result`, `yardage`). Appears in the stats
+dashboard between Tendencies and Personnel. Only renders when defensive data is
+present.
+
+**Summary cards (two rows)**:
+- **Havoc Rate** — (sacks + TFL + turnovers) / total plays. TFL = negative
+  yardage plays excluding sacks.
+- Sacks (with sack yards), TFL, Turnovers (INT/Fum split)
+- Blitz Rate (blitz-tagged plays / total), Blitz Havoc % (havoc plays when
+  blitzing), Forced Incompletions, 3-and-Outs forced
+
+**Breakdown tables**:
+- **Defensive Front** — per front: plays, run/pass faced, yards allowed, avg,
+  stop% (= 1 − offensive success rate), havoc%
+- **Coverage** — per coverage: plays, completions, incompletions, INTs, sacks,
+  yards, avg, stop%
+- **Blitz Analysis** — per blitz type: plays, sacks, havoc%, avg yards, stop%
+- **Front by Situation** — front usage split on early downs (1st, 2nd & short)
+  vs passing downs (2nd & long, 3rd, 4th)
+
+**Stop%** is the inverse of offensive success rate: the percentage of plays
+where the defense held the offense below the down-adjusted success threshold
+(1st: <50% of distance, 2nd: <70%, 3rd/4th: didn't convert).
+
+Included in the text export (`_exportStats`). The scout report
+(`generateScoutReport`) also shows front/coverage frequency but without the
+per-scheme success metrics — the defensive analytics section is the deep dive.
 
 ## Key Decisions & Lessons
 
