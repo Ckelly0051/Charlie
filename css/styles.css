@@ -5665,3 +5665,87 @@ video.is-buffering { opacity: 0.6; }
   z-index: 10;
 }
 @keyframes vc-spin { to { transform: rotate(360deg); } }
+
+/* ================================================================== */
+/* ====  MOBILE RENDERING FIX v9                                   == */
+/* Compacts the video-section controls so the placeholder CTA and     */
+/* actual video get usable space on phone screens (≤800 px).          */
+/* Appended last → wins the cascade over earlier mobile blocks.       */
+/* ================================================================== */
+
+@media (max-width: 800px) {
+  /* --- Hide desktop-only / power-user controls on mobile --- */
+  .fps-label { display: none !important; }
+  .ab-btn { display: none !important; }
+  .angle-controls { display: none !important; }
+  .video-timeline { display: none !important; }
+  #btnPrevClip, #btnNextClip { display: none !important; }
+
+  /* --- Playback controls: 2 compact rows instead of 3 --- */
+  .playback-controls {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
+  .controls-left {
+    width: auto !important;
+    gap: 2px !important;
+  }
+  .controls-right {
+    order: 2 !important;
+    width: auto !important;
+    gap: 6px !important;
+  }
+  .scrub-bar-container {
+    order: 3 !important;
+  }
+  .time-display { font-size: 11px; }
+  .ctrl-btn { min-width: 38px; min-height: 38px; }
+
+  /* --- Video-play-controls: tighter bar --- */
+  .video-play-controls {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
+  .video-play-controls .btn {
+    padding: 3px 7px !important;
+    min-height: 28px !important;
+    font-size: 11px !important;
+  }
+  .video-play-controls .play-select {
+    padding: 3px 28px 3px 6px !important;
+    font-size: 11px !important;
+    min-height: 28px !important;
+  }
+
+  /* --- Video placeholder: reduce padding so CTA fits --- */
+  .video-placeholder {
+    padding: 12px 10px !important;
+    gap: 8px !important;
+  }
+  .empty-hint { font-size: 11px; }
+
+  /* --- Tag section: ensure bottom clears the tab bar --- */
+  .tag-section {
+    padding-bottom: max(80px, calc(68px + env(safe-area-inset-bottom))) !important;
+  }
+
+  /* --- Top bar: tighter on mobile --- */
+  .top-bar { gap: 6px; }
+}
+
+/* Small phones: stack CTA buttons, even more compact */
+@media (max-width: 500px) {
+  .video-section {
+    height: 36vh !important;
+    min-height: 200px !important;
+  }
+  .video-placeholder { padding: 8px !important; gap: 6px !important; }
+  .empty-cta { padding: 10px 16px !important; }
+  .empty-cta svg { width: 22px !important; height: 22px !important; }
+  .empty-cta-title { font-size: 13px !important; }
+  .empty-cta-sub { font-size: 10px !important; }
+  .empty-cta-row { gap: 6px !important; }
+
+  .ctrl-btn { min-width: 36px !important; min-height: 36px !important; }
+  .time-display { font-size: 10px !important; }
+}
