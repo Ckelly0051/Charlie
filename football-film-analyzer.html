@@ -12903,7 +12903,8 @@ class StatsEngine {
       situational: this._situationalStats(plays),
       efficiency: this._efficiencyStats(plays),
       personnel: this._personnelStats(plays),
-      advanced: this.advanced.summarize(plays)
+      advanced: this.advanced.summarize(plays),
+      defensive: this._defensiveStats(plays)
     };
 
     return stats;
@@ -13039,6 +13040,118 @@ class StatsEngine {
       avg: g.count ? (g.yards / g.count).toFixed(1) : '0.0',
       successPct: g.count ? ((g.successes / g.count) * 100).toFixed(0) : '0'
     })).sort((a, b) => b.count - a.count);
+  }
+
+  _defensiveStats(plays) {
+    const sacks = plays.filter(p => p.tags.result === 'Sack');
+    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0 && p.tags.result !== 'Sack');
+    const ints = plays.filter(p => p.tags.result === 'Interception');
+    const fumbles = plays.filter(p => p.tags.result === 'Fumble');
+    const incompletions = plays.filter(p => p.tags.result === 'Incomplete');
+    const havocPlays = sacks.length + tfl.length + ints.length + fumbles.length;
+    const threeAndOuts = this._countThreeAndOuts(plays);
+
+    const fronts = {};
+    const coverages = {};
+    const blitzes = {};
+
+    plays.forEach(p => {
+      const yds = parseInt(p.tags.yardage) || 0;
+      const defSuccess = !this._isSuccessfulPlay(p);
+      const isHavoc = p.tags.result === 'Sack' || p.tags.result === 'Interception' ||
+        p.tags.result === 'Fumble' || (yds < 0 && p.tags.result !== 'Sack');
+
+      if (p.tags.defFront) {
+        const f = p.tags.defFront;
+        if (!fronts[f]) fronts[f] = { name: f, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0 };
+        fronts[f].count++;
+        fronts[f].yards += yds;
+        if (defSuccess) fronts[f].successes++;
+        if (isHavoc) fronts[f].havoc++;
+        if (StatsEngine.isRun(p)) fronts[f].runs++;
+        else fronts[f].passes++;
+      }
+
+      if (p.tags.coverage) {
+        const c = p.tags.coverage;
+        if (!coverages[c]) coverages[c] = { name: c, count: 0, yards: 0, successes: 0, comps: 0, incs: 0, ints: 0, sacks: 0 };
+        coverages[c].count++;
+        coverages[c].yards += yds;
+        if (defSuccess) coverages[c].successes++;
+        if (p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain') coverages[c].comps++;
+        if (p.tags.result === 'Incomplete') coverages[c].incs++;
+        if (p.tags.result === 'Interception') coverages[c].ints++;
+        if (p.tags.result === 'Sack') coverages[c].sacks++;
+      }
+
+      if (p.tags.blitz) {
+        const b = p.tags.blitz;
+        if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
+        blitzes[b].count++;
+        blitzes[b].yards += yds;
+        if (p.tags.result === 'Sack') blitzes[b].sacks++;
+        if (isHavoc) blitzes[b].havoc++;
+        if (defSuccess) blitzes[b].successes++;
+      }
+    });
+
+    const blitzPlays = plays.filter(p => p.tags.blitz);
+    const noBlitzPlays = plays.filter(p => !p.tags.blitz && (p.tags.defFront || p.tags.coverage));
+    const blitzHavoc = blitzPlays.filter(p =>
+      p.tags.result === 'Sack' || p.tags.result === 'Interception' ||
+      p.tags.result === 'Fumble' || ((parseInt(p.tags.yardage) || 0) < 0 && p.tags.result !== 'Sack')
+    ).length;
+
+    const passingDowns = plays.filter(p =>
+      (p.tags.down === '2' && (parseInt(p.tags.distance) || 0) >= 7) ||
+      (p.tags.down === '3') || (p.tags.down === '4')
+    );
+    const earlyDowns = plays.filter(p => p.tags.down === '1' || (p.tags.down === '2' && (parseInt(p.tags.distance) || 0) < 7));
+
+    const frontBySituation = (subset, label) => {
+      const map = {};
+      subset.forEach(p => {
+        if (!p.tags.defFront) return;
+        map[p.tags.defFront] = (map[p.tags.defFront] || 0) + 1;
+      });
+      return { label, total: subset.length, fronts: Object.entries(map).sort((a, b) => b[1] - a[1]) };
+    };
+
+    return {
+      sacks: sacks.length,
+      sackYards: sacks.reduce((s, p) => s + Math.abs(parseInt(p.tags.yardage) || 0), 0),
+      tfl: tfl.length,
+      interceptions: ints.length,
+      fumbles: fumbles.length,
+      havocPlays,
+      havocRate: plays.length ? ((havocPlays / plays.length) * 100).toFixed(1) : '0.0',
+      incompletions: incompletions.length,
+      threeAndOuts,
+      fronts: Object.values(fronts).sort((a, b) => b.count - a.count),
+      coverages: Object.values(coverages).sort((a, b) => b.count - a.count),
+      blitzes: Object.values(blitzes).sort((a, b) => b.count - a.count),
+      blitzRate: plays.length ? ((blitzPlays.length / plays.length) * 100).toFixed(1) : '0.0',
+      blitzTotal: blitzPlays.length,
+      blitzHavocRate: blitzPlays.length ? ((blitzHavoc / blitzPlays.length) * 100).toFixed(1) : '0.0',
+      noBlitzTotal: noBlitzPlays.length,
+      earlyDownFronts: frontBySituation(earlyDowns, 'Early Downs'),
+      passingDownFronts: frontBySituation(passingDowns, 'Passing Downs'),
+      hasData: !!(Object.keys(fronts).length || Object.keys(coverages).length || Object.keys(blitzes).length ||
+        sacks.length || tfl.length || ints.length || fumbles.length)
+    };
+  }
+
+  _countThreeAndOuts(plays) {
+    const drives = {};
+    plays.forEach(p => {
+      const d = p.tags.driveNumber;
+      if (!d) return;
+      if (!drives[d]) drives[d] = [];
+      drives[d].push(p);
+    });
+    return Object.values(drives).filter(dp =>
+      dp.length <= 3 && !dp.some(p => p.tags.result === 'Touchdown' || p.tags.result === 'Field Goal' || p.tags.custom?.includes('1st Down'))
+    ).length;
   }
 
   _rushingStats(plays) {
@@ -13342,6 +13455,7 @@ class StatsEngine {
             ${this._renderDrives(stats)}
             ${Visualizations.render(this._currentPlays())}
             ${this._renderTendencies(stats)}
+            ${this._renderDefensive(stats)}
             ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
             ${this._renderIndividualStats(stats)}
@@ -13732,6 +13846,83 @@ class StatsEngine {
     `;
   }
 
+  _renderDefensive(stats) {
+    const d = stats.defensive;
+    if (!d.hasData) return '';
+
+    let frontRows = '';
+    for (const f of d.fronts) {
+      const avg = f.count ? (f.yards / f.count).toFixed(1) : '0.0';
+      const defSucc = f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0';
+      const havocPct = f.count ? ((f.havoc / f.count) * 100).toFixed(0) : '0';
+      frontRows += `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
+    }
+
+    let covRows = '';
+    for (const c of d.coverages) {
+      const avg = c.count ? (c.yards / c.count).toFixed(1) : '0.0';
+      const defSucc = c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0';
+      covRows += `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+    }
+
+    let blitzRows = '';
+    for (const b of d.blitzes) {
+      const avg = b.count ? (b.yards / b.count).toFixed(1) : '0.0';
+      const havocPct = b.count ? ((b.havoc / b.count) * 100).toFixed(0) : '0';
+      const defSucc = b.count ? ((b.successes / b.count) * 100).toFixed(0) : '0';
+      blitzRows += `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+    }
+
+    let sitFrontHtml = '';
+    [d.earlyDownFronts, d.passingDownFronts].forEach(sit => {
+      if (!sit.fronts.length) return;
+      const rows = sit.fronts.map(([name, count]) =>
+        `<tr><td>${name}</td><td>${count}</td><td>${sit.total ? ((count / sit.total) * 100).toFixed(0) : 0}%</td></tr>`
+      ).join('');
+      sitFrontHtml += `<div><h4 style="margin:8px 0 4px">${sit.label} (${sit.total})</h4>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>`;
+    });
+
+    return `
+      <div class="stats-section">
+        <h3>Defensive Analytics</h3>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-card-title">Havoc Rate</div><div class="stat-card-value" style="color:#ff6666">${d.havocRate}%</div><div style="font-size:11px;opacity:.6">${d.havocPlays} plays</div></div>
+          <div class="stat-card"><div class="stat-card-title">Sacks</div><div class="stat-card-value">${d.sacks}</div><div style="font-size:11px;opacity:.6">${d.sackYards} yds</div></div>
+          <div class="stat-card"><div class="stat-card-title">TFL</div><div class="stat-card-value">${d.tfl}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${d.interceptions + d.fumbles}</div><div style="font-size:11px;opacity:.6">${d.interceptions} INT / ${d.fumbles} Fum</div></div>
+        </div>
+        <div class="stats-grid" style="margin-top:8px">
+          <div class="stat-card"><div class="stat-card-title">Blitz Rate</div><div class="stat-card-value">${d.blitzRate}%</div><div style="font-size:11px;opacity:.6">${d.blitzTotal} plays</div></div>
+          <div class="stat-card"><div class="stat-card-title">Blitz Havoc</div><div class="stat-card-value" style="color:${parseFloat(d.blitzHavocRate) >= 20 ? '#44ff88' : '#fff'}">${d.blitzHavocRate}%</div></div>
+          <div class="stat-card"><div class="stat-card-title">Incompletions</div><div class="stat-card-value">${d.incompletions}</div></div>
+          <div class="stat-card"><div class="stat-card-title">3-and-Outs</div><div class="stat-card-value">${d.threeAndOuts}</div></div>
+        </div>
+        ${frontRows ? `
+        <h4 style="margin:16px 0 4px">Defensive Front Breakdown</h4>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead>
+          <tbody>${frontRows}</tbody>
+        </table>` : ''}
+        ${covRows ? `
+        <h4 style="margin:16px 0 4px">Coverage Breakdown</h4>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Coverage</th><th>#</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead>
+          <tbody>${covRows}</tbody>
+        </table>` : ''}
+        ${blitzRows ? `
+        <h4 style="margin:16px 0 4px">Blitz Analysis</h4>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg Yds</th><th>Stop%</th></tr></thead>
+          <tbody>${blitzRows}</tbody>
+        </table>` : ''}
+        ${sitFrontHtml ? `<div class="stats-two-col" style="margin-top:12px">${sitFrontHtml}</div>` : ''}
+      </div>`;
+  }
+
   _renderBigPlays(stats) {
     if (stats.bigPlays.length === 0) return '';
 
@@ -14079,6 +14270,28 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
     lines.push('--- TENDENCIES ---');
     lines.push(`Run/Pass: ${stats.tendencies.runPassRatio} (${stats.tendencies.runPct}%/${stats.tendencies.passPct}%)\n`);
+
+    if (stats.defensive.hasData) {
+      const d = stats.defensive;
+      lines.push('--- DEFENSIVE ANALYTICS ---');
+      lines.push(`Havoc Rate: ${d.havocRate}% (${d.havocPlays} plays)`);
+      lines.push(`Sacks: ${d.sacks} (${d.sackYards} yds)  TFL: ${d.tfl}  INT: ${d.interceptions}  Fum: ${d.fumbles}`);
+      lines.push(`Blitz Rate: ${d.blitzRate}% (${d.blitzTotal} plays)  Blitz Havoc: ${d.blitzHavocRate}%`);
+      lines.push(`3-and-Outs Forced: ${d.threeAndOuts}`);
+      if (d.fronts.length) {
+        lines.push('\nFront\tPlays\tYds\tAvg\tStop%\tHavoc%');
+        d.fronts.forEach(f => {
+          lines.push(`${f.name}\t${f.count}\t${f.yards}\t${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}\t${f.count ? Math.round(f.successes / f.count * 100) : 0}%\t${f.count ? Math.round(f.havoc / f.count * 100) : 0}%`);
+        });
+      }
+      if (d.coverages.length) {
+        lines.push('\nCoverage\tPlays\tComp\tInc\tINT\tYds\tAvg\tStop%');
+        d.coverages.forEach(c => {
+          lines.push(`${c.name}\t${c.count}\t${c.comps}\t${c.incs}\t${c.ints}\t${c.yards}\t${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}\t${c.count ? Math.round(c.successes / c.count * 100) : 0}%`);
+        });
+      }
+      lines.push('');
+    }
 
     const ind = stats.individuals;
     if (ind.rushers.length) {
