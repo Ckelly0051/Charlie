@@ -1,5 +1,5 @@
 """
-Football Film Analyzer — YOLOv8-powered clip analysis.
+GridIron IQ — YOLOv8-powered clip analysis.
 
 This module replaces the in-browser heuristic analyzer with a real
 computer-vision pipeline. YOLOv8n is small enough to run on CPU at

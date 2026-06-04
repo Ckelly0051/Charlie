@@ -1,5 +1,5 @@
 @echo off
-REM Launch the Football Film Analyzer local CV server on Windows.
+REM Launch the GridIron IQ local CV server on Windows.
 REM First run will create a venv and download deps (~1GB incl. torch).
 
 cd /d "%~dp0"

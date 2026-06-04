@@ -1,5 +1,5 @@
 """
-Football Film Analyzer — local CV backend.
+GridIron IQ — local CV backend.
 
 FastAPI server that exposes play detection and play analysis powered by
 YOLOv8 person detection. Designed to run alongside the browser app on
@@ -37,7 +37,7 @@ from fastapi.responses import JSONResponse
 
 from analyzer import ClipAnalyzer, PlayDetector
 
-APP_NAME = "Football Film Analyzer — Local CV Server"
+APP_NAME = "GridIron IQ — Local CV Server"
 APP_VERSION = "1.0.0"
 DEFAULT_PORT = 8765
 

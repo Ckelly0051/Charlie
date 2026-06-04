@@ -1,7 +1,7 @@
-# Football Film Analyzer — Local CV Server
+# GridIron IQ — Local CV Server
 
 A small FastAPI companion server that powers **real computer-vision
-auto-tagging** for the Football Film Analyzer browser app. When this
+auto-tagging** for the GridIron IQ browser app. When this
 server is running, the browser frontend automatically routes clip
 analysis through here (YOLOv8 person detection + heuristic rules).
 When it's not running, the browser falls back to its in-browser
@@ -63,7 +63,7 @@ You should see a JSON response like:
 ```json
 {
   "status": "ok",
-  "name": "Football Film Analyzer — Local CV Server",
+  "name": "GridIron IQ — Local CV Server",
   "version": "1.0.0",
   "capabilities": ["play_detection", "formation_detection", ...],
   "backend": "yolov8"

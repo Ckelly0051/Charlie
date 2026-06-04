@@ -1,4 +1,9 @@
-# Football Film Analyzer — Architecture & Reference
+# GridIron IQ — Architecture & Reference
+
+> Formerly "Football Film Analyzer". The product is now branded **GridIron IQ**;
+> the built bundle filename remains `football-film-analyzer.html` and the git
+> branch remains `claude/football-film-analyzer-GRiCW` (renaming those would
+> break the deploy/build path, so they're intentionally unchanged).
 
 ## What This Is
 
@@ -459,7 +464,7 @@ The agreed direction (deferred until current feature work wraps) is to make the
 app an installable, guaranteed-offline PWA **without** abandoning the
 no-build/single-file ethos:
 1. **Web app manifest** (name, icons, `display: standalone`, theme color) so
-   browsers offer "Install Football Film Analyzer" (desktop + mobile), with an
+   browsers offer "Install GridIron IQ" (desktop + mobile), with an
    app icon and its own window.
 2. **Service worker** that precaches the app shell so it's guaranteed available
    offline after the first load (cache-first for the app, network-only for the

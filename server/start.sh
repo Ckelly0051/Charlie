@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the Football Film Analyzer local CV server.
+# Launch the GridIron IQ local CV server.
 # First run will create a venv and download deps (~1GB incl. torch).
 set -e
 
