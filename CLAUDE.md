@@ -362,11 +362,21 @@ Two distinct destructive actions live in `.video-play-controls`:
   video, so you can re-tag the same snap. Always also clears the on-screen form
   (even when no play is selected) so the button has an obvious effect. Shows the
   confirmation modal first.
-- **Delete Play** (`PlayTagger.deleteCurrentPlay`) — removes the play **and**
-  unloads the video from the player (`VideoController.unloadVideo()` revokes the
-  object URL, clears `<video>`, restores the placeholder). The **source file on
-  disk is never touched** — browsers can't delete local files; this only clears
-  the player. Confirms first.
+- **Delete Play** (`PlayTagger.deleteCurrentPlay`) — behavior depends on mode:
+  - **Folder / multi-clip mode** (play has a `clipId` in the playlist): drops
+    the play *and* its clip via `PlaylistManager.removeClip()`, which revokes
+    the clip URL, fixes the active index, and **switches to the adjacent clip**
+    (forward — the next clip slides into the deleted slot). The player stays
+    loaded and a valid current play is selected, so Save & Next keeps working.
+    Only when that empties the playlist does it unload the player. (Previously
+    it always called `unloadVideo()`, orphaning the remaining clips and forcing
+    a full folder re-upload — the bug this path fixes. Requires
+    `tagger.playlist`, wired in `App` constructor.)
+  - **Single-video mode** (no clip): removes the play **and** unloads the video
+    from the player (`VideoController.unloadVideo()` revokes the object URL,
+    clears `<video>`, restores the placeholder).
+  - The **source file on disk is never touched** — browsers can't delete local
+    files; this only clears the player. Confirms first.
 - Both fall back to the play-selector value when `currentPlayId` is null (plays
   loaded/imported without an explicit re-select).
 

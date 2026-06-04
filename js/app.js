@@ -54,6 +54,9 @@ class App {
       apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('ffa_claude_api_key')) || '',
     });
     this.playlist = new PlaylistManager(this.vc, this.tagger);
+    // Let the tagger coordinate with the playlist (e.g. delete a play => also
+    // drop its clip and advance, instead of unloading the whole player).
+    this.tagger.playlist = this.playlist;
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
     this.stats.roster = this.roster;

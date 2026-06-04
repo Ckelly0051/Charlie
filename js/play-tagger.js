@@ -301,14 +301,42 @@ export class PlayTagger {
       id = parseInt(this.playSelect.value);
     }
     if (!id) return;
+
+    // Folder/multi-clip mode: the play is backed by a playlist clip. Deleting
+    // it must drop the clip too AND advance to an adjacent clip — NOT unload
+    // the whole player (which orphaned the remaining clips and forced a full
+    // re-upload). Detect that case and delegate to the playlist.
+    const play = this.getPlay(id);
+    const clipIdx = (this.playlist && this.playlist.hasClips && play && play.clipId != null)
+      ? this.playlist.clips.findIndex(c => c.playId === id)
+      : -1;
+    const inPlaylist = clipIdx !== -1;
+
     // Use an in-app modal instead of native confirm(): browsers suppress
     // repeated confirm() dialogs ("prevent additional dialogs"), which made
     // delete silently do nothing.
     const ok = await this._confirmDialog(
-      `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
+      inPlaylist
+        ? `Delete Play ${id} and remove its clip from the playlist? The remaining videos stay loaded (your source file is not deleted).`
+        : `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
       'Delete Play'
     );
     if (!ok) return;
+
+    if (inPlaylist) {
+      // removeClip() filters out the play, revokes its URL, fixes the active
+      // index, and switches to an adjacent clip (keeping video + a valid
+      // current play so Save & Next keeps working).
+      this.playlist.removeClip(clipIdx);
+      // If that emptied the playlist, clear the player too.
+      if (!this.playlist.hasClips && this.vc && typeof this.vc.unloadVideo === 'function') {
+        this.vc.unloadVideo();
+      }
+      this._emit('play-deleted');
+      return;
+    }
+
+    // Single-video mode: remove the play and clear the player.
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();

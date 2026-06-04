@@ -264,13 +264,21 @@ export class PlaylistManager {
 
     this.clips.splice(index, 1);
 
-    // Adjust active index
+    // Adjust active index.
     if (this.clips.length === 0) {
       this.activeClipIndex = -1;
-    } else if (index <= this.activeClipIndex) {
-      this.activeClipIndex = Math.max(0, this.activeClipIndex - 1);
+    } else if (index < this.activeClipIndex) {
+      // Removed a clip before the active one: shift the pointer left so it
+      // still points at the same (active) clip.
+      this.activeClipIndex -= 1;
+      this.switchToClip(this.activeClipIndex);
+    } else if (index === this.activeClipIndex) {
+      // Removed the active clip: stay at this index, which now holds the NEXT
+      // clip, so deleting flows forward. Clamp when we removed the last one.
+      this.activeClipIndex = Math.min(index, this.clips.length - 1);
       this.switchToClip(this.activeClipIndex);
     }
+    // index > activeClipIndex: the active clip's position is unchanged.
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
