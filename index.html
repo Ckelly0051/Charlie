@@ -8574,14 +8574,42 @@ class PlayTagger {
       id = parseInt(this.playSelect.value);
     }
     if (!id) return;
+
+    // Folder/multi-clip mode: the play is backed by a playlist clip. Deleting
+    // it must drop the clip too AND advance to an adjacent clip — NOT unload
+    // the whole player (which orphaned the remaining clips and forced a full
+    // re-upload). Detect that case and delegate to the playlist.
+    const play = this.getPlay(id);
+    const clipIdx = (this.playlist && this.playlist.hasClips && play && play.clipId != null)
+      ? this.playlist.clips.findIndex(c => c.playId === id)
+      : -1;
+    const inPlaylist = clipIdx !== -1;
+
     // Use an in-app modal instead of native confirm(): browsers suppress
     // repeated confirm() dialogs ("prevent additional dialogs"), which made
     // delete silently do nothing.
     const ok = await this._confirmDialog(
-      `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
+      inPlaylist
+        ? `Delete Play ${id} and remove its clip from the playlist? The remaining videos stay loaded (your source file is not deleted).`
+        : `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
       'Delete Play'
     );
     if (!ok) return;
+
+    if (inPlaylist) {
+      // removeClip() filters out the play, revokes its URL, fixes the active
+      // index, and switches to an adjacent clip (keeping video + a valid
+      // current play so Save & Next keeps working).
+      this.playlist.removeClip(clipIdx);
+      // If that emptied the playlist, clear the player too.
+      if (!this.playlist.hasClips && this.vc && typeof this.vc.unloadVideo === 'function') {
+        this.vc.unloadVideo();
+      }
+      this._emit('play-deleted');
+      return;
+    }
+
+    // Single-video mode: remove the play and clear the player.
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
@@ -11883,13 +11911,21 @@ class PlaylistManager {
 
     this.clips.splice(index, 1);
 
-    // Adjust active index
+    // Adjust active index.
     if (this.clips.length === 0) {
       this.activeClipIndex = -1;
-    } else if (index <= this.activeClipIndex) {
-      this.activeClipIndex = Math.max(0, this.activeClipIndex - 1);
+    } else if (index < this.activeClipIndex) {
+      // Removed a clip before the active one: shift the pointer left so it
+      // still points at the same (active) clip.
+      this.activeClipIndex -= 1;
+      this.switchToClip(this.activeClipIndex);
+    } else if (index === this.activeClipIndex) {
+      // Removed the active clip: stay at this index, which now holds the NEXT
+      // clip, so deleting flows forward. Clamp when we removed the last one.
+      this.activeClipIndex = Math.min(index, this.clips.length - 1);
       this.switchToClip(this.activeClipIndex);
     }
+    // index > activeClipIndex: the active clip's position is unchanged.
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
@@ -18370,6 +18406,9 @@ class App {
       apiKey: (typeof localStorage !== 'undefined' && localStorage.getItem('ffa_claude_api_key')) || '',
     });
     this.playlist = new PlaylistManager(this.vc, this.tagger);
+    // Let the tagger coordinate with the playlist (e.g. delete a play => also
+    // drop its clip and advance, instead of unloading the whole player).
+    this.tagger.playlist = this.playlist;
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
     this.stats.roster = this.roster;
