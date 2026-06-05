@@ -449,17 +449,59 @@ export class StatsEngine {
   }
 
   _countThreeAndOuts(plays) {
-    const drives = {};
-    plays.forEach(p => {
-      const d = p.tags.driveNumber;
-      if (!d) return;
-      if (!drives[d]) drives[d] = [];
-      drives[d].push(p);
-    });
-    return Object.values(drives).filter(dp =>
-      dp.length <= 3 && !dp.some(p => p.tags.result === 'Touchdown' || p.tags.result === 'Field Goal' || p.tags.custom?.includes('1st Down'))
-    ).length;
+    // A three-and-out = the defense forced the offense off the field in three
+    // plays without a first down (ending in a punt). We must NOT rely on the
+    // driveNumber tag: it's only set when the coach clicks "New Drive", so a
+    // normally-tagged game leaves every play on drive "1" — which made this
+    // always report 0. Instead, reconstruct drives from the play sequence.
+    const drives = this._reconstructDrives(plays);
+    return drives.filter(dp => {
+      if (dp.length > 3) return false;
+      // Not a forced punt if the offense scored, turned it over (counted
+      // separately), or it was a victory-formation kneel/spike.
+      const excluded = dp.some(p => ['Touchdown', 'Field Goal', 'Good',
+        'Interception', 'Fumble', 'Kneel', 'Spike'].includes(p.tags.result));
+      if (excluded) return false;
+      // Any first down extends the possession — no longer a three-and-out.
+      return !dp.some(p => StatsEngine._gainedFirstDown(p));
+    }).length;
   }
+
+  /** Did this play earn a first down? (explicit tag, or yardage >= distance) */
+  static _gainedFirstDown(p) {
+    if (p.tags.custom?.includes('1st Down')) return true;
+    const dist = parseInt(p.tags.distance);
+    const yds = parseInt(p.tags.yardage);
+    return !isNaN(dist) && !isNaN(yds) && yds >= dist;
+  }
+
+  /**
+   * Split a list of plays into possessions (drives) without depending on the
+   * manual driveNumber tag. A new drive begins after a possession-ending
+   * result (punt/score/turnover), and at any 1st-down play that the previous
+   * play did NOT earn (down reset to 1 ⇒ the ball changed hands off-camera).
+   */
+  _reconstructDrives(plays) {
+    const ordered = [...plays].sort((a, b) =>
+      ((a.timestamp && a.timestamp.start) ?? a.id ?? 0) -
+      ((b.timestamp && b.timestamp.start) ?? b.id ?? 0));
+    const enders = new Set(['Touchdown', 'Field Goal', 'Punt', 'Interception',
+      'Fumble', 'Good', 'No Good', 'Safety', 'Kneel', 'Spike']);
+    const drives = [];
+    let cur = [];
+    ordered.forEach((p, i) => {
+      const prev = ordered[i - 1];
+      const boundary = i > 0 && (
+        (prev && enders.has(prev.tags.result)) ||
+        (p.tags.down === '1' && !StatsEngine._gainedFirstDown(prev))
+      );
+      if (boundary && cur.length) { drives.push(cur); cur = []; }
+      cur.push(p);
+    });
+    if (cur.length) drives.push(cur);
+    return drives;
+  }
+
 
   _rushingStats(plays) {
     const rushPlays = plays.filter(p => StatsEngine.isRun(p));
