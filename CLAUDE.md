@@ -117,9 +117,9 @@ server/                       # Optional local Python backend (YOLO-based)
     formation: '',      // MULTI-SELECT (offense). One or more of 'Shotgun' | 'Under Center' | 'Pistol' | 'I-Form' | 'Singleback' | 'Trips' | 'Spread' | 'Split Back' | 'Single Wing' | 'Empty' | 'Wildcat' | 'Goal Line', stored as a " + "-joined string (e.g. 'Pistol + Spread'). Analytics split on " + " and attribute the play to each component formation. ChipField({multi:true}); StatsEngine.splitFormations() is the canonical splitter.
     personnel: '',      // '00'-'23' | 'Jumbo' | 'Goal Line'
     runPass: '',        // 'Run' | 'Pass' | '' — explicit run/pass classifier, authoritative for all run/pass analytics. Auto-filled from unambiguous playType; coach sets it for RPO/Play Action/Trick. StatsEngine.isRun()/isPass() are canonical and fall back to playType-string inference when runPass is blank (legacy data).
-    playType: '',       // 'Run Inside' | 'Run Outside' | 'Screen' | 'Short Pass' | 'Medium Pass' | 'Deep Pass' | 'Play Action' | 'RPO' | 'Trick Play'
+    playType: '',       // MULTI-SELECT. One or more of 'Run Inside' | 'Run Outside' | 'Screen' | 'Short Pass' | 'Medium Pass' | 'Deep Pass' | 'Play Action' | 'RPO' | 'Trick Play', stored as a " + "-joined string (e.g. 'RPO + Short Pass' — an RPO that became a pass). ChipField({multi:true}); StatsEngine.splitPlayTypes() is the canonical splitter; analytics attribute the play to each component.
     result: '',         // 'Gain' | 'Loss' | 'No Gain' | 'Incomplete' | 'Interception' | 'Touchdown' | 'Sack' | 'Fumble' | 'Penalty' | 'Punt' | 'Field Goal' | 'Good' | 'No Good' | 'Kneel' | 'Spike'. 'Good'/'No Good' mark conversion/kick success (2-Pt, XP, FG) — counts as success/failure in efficiency + the PAT/2-Point conversions stat.
-    yardage: '',        // integer (negative for loss)
+    yardage: '',        // integer, signed (negative for loss/sack). The tag form enters it as a MAGNITUDE — the Result chip (Loss/Sack) supplies the sign, so the coach never types a minus (PlayTagger._applyYardageSign). Stored signed for stats/EPA/export.
     hash: '',           // 'Left' | 'Middle' | 'Right'
     defFront: '',       // '4-3' | '3-4' | '4-4' | '5-2' | '4-2-5' | 'Nickel' | 'Dime' | 'Quarter' | '4-6'
     coverage: '',       // 'Cover 0'-'Cover 6' | 'Man' | 'Zone'
@@ -335,9 +335,9 @@ headers (`.tag-group-head`) are clickable to expand/collapse the secondary side.
 2. Down & Distance — 4 chips + input (known pre-snap; usually auto-filled)
 3. Side groups — Offense (Formation **[multi-select]**, Personnel) / Defense (Def Front, Coverage, Blitz) / Special Teams (ST Play Type, Kicker, Returner) — the alignment you read pre-snap
 4. Run / Pass — 2 chips (`#tagRunPass`, `play.tags.runPass`). The authoritative run/pass classifier. Auto-fills when an unambiguous Play Type is picked (Run* → Run; Pass/Screen → Pass); left blank for RPO / Play Action / Trick for the coach to set. `StatsEngine.isRun()/isPass()` consume it (fallback to playType-string inference for legacy plays).
-5. Play Type — 9 chips (what they ran)
+5. Play Type — 9 chips, **multi-select** (an RPO can be tagged with its realized look, e.g. RPO + Short Pass)
 6. Result — 15 chips (incl. **Good** / **No Good** for 2-Pt/XP/FG conversion success)
-7. Yardage — number input with +/− buttons
+7. Yardage — magnitude input (positive) with +/− nudge buttons; the Result chip (Loss/Sack) sets the sign, so no minus is typed
 8. Players — 6 role inputs (BC/Passer/Receiver/Tackler/Kicker/Returner) + grade selects + quick-pick chips
 9. Play Notes — textarea (the real call, e.g. "Power R 34 Lead")
 

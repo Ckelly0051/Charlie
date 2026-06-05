@@ -20,6 +20,15 @@ export class StatsEngine {
   }
 
   /**
+   * Split a (possibly multi-select) play-type string into components.
+   * "RPO + Short Pass" -> ["RPO", "Short Pass"]; blank -> ["Unknown"].
+   */
+  static splitPlayTypes(playType) {
+    const parts = String(playType || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    return parts.length ? parts : ['Unknown'];
+  }
+
+  /**
    * Split a player attribution value into individual jersey #s. Most roles hold
    * a single number, but Tackler can hold several (shared tackles), stored as a
    * "55, 22"-style string. Returns an array of jersey-# strings (may be empty).
@@ -522,16 +531,18 @@ export class StatsEngine {
     const playTypes = {};
     const playTypeDetail = {};
     plays.forEach(p => {
-      const t = p.tags.playType || 'Unknown';
-      playTypes[t] = (playTypes[t] || 0) + 1;
       const isRun = StatsEngine.isRun(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
-      if (!playTypeDetail[t]) playTypeDetail[t] = { name: t, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
-      playTypeDetail[t].count++;
-      if (isRun) playTypeDetail[t].runs++; else playTypeDetail[t].passes++;
-      playTypeDetail[t].yards += yds;
-      if (succ) playTypeDetail[t].successes++;
+      // Play Type is multi-select ("RPO + Short Pass"); attribute to each.
+      StatsEngine.splitPlayTypes(p.tags.playType).forEach(t => {
+        playTypes[t] = (playTypes[t] || 0) + 1;
+        if (!playTypeDetail[t]) playTypeDetail[t] = { name: t, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+        playTypeDetail[t].count++;
+        if (isRun) playTypeDetail[t].runs++; else playTypeDetail[t].passes++;
+        playTypeDetail[t].yards += yds;
+        if (succ) playTypeDetail[t].successes++;
+      });
     });
     const playTypeList = Object.values(playTypeDetail)
       .map(pt => ({ ...pt, avg: pt.count ? (pt.yards / pt.count).toFixed(1) : '0.0', successPct: pt.count ? ((pt.successes / pt.count) * 100).toFixed(0) : '0' }))
@@ -1184,7 +1195,7 @@ export class StatsEngine {
   static _matrixDimensions() {
     return [
       { id: 'formation',  label: 'Formation',  extract: p => StatsEngine.splitFormations(p.tags.formation) },
-      { id: 'playType',   label: 'Play Type',  extract: p => [p.tags.playType || 'Unknown'] },
+      { id: 'playType',   label: 'Play Type',  extract: p => StatsEngine.splitPlayTypes(p.tags.playType) },
       { id: 'down',       label: 'Down',        extract: p => [p.tags.down ? `${p.tags.down}` : '?'] },
       { id: 'distBucket', label: 'Distance',    extract: p => { const d = parseInt(p.tags.distance) || 0; return [d <= 3 ? 'Short (1-3)' : d <= 6 ? 'Med (4-6)' : 'Long (7+)']; } },
       { id: 'personnel',  label: 'Personnel',   extract: p => [p.tags.personnel || 'Unknown'] },

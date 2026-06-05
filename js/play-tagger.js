@@ -43,6 +43,16 @@ class ChipField {
     const set = new Set(this._values);
     this.chips.forEach(c => c.classList.toggle('active', set.has(c.dataset.value)));
   }
+  /** Toggle a value (membership for multi, on/off for single). */
+  toggle(v) {
+    if (this.multi) {
+      const i = this._values.indexOf(v);
+      if (i >= 0) this._values.splice(i, 1); else this._values.push(v);
+      this._syncMulti();
+    } else {
+      this.value = this._value === v ? '' : v;
+    }
+  }
   addEventListener(event, fn) {
     if (!this._listeners[event]) this._listeners[event] = [];
     this._listeners[event].push(fn);
@@ -86,9 +96,10 @@ export class PlayTagger {
       runPass: 'tagRunPass',
     };
     this.tagFields = {};
-    // Offensive formation is multi-select — a QB can be in Pistol AND Spread,
-    // Empty + Trips, etc. Stored as a " + "-joined string for compatibility.
-    const multiFields = new Set(['formation']);
+    // Multi-select fields stored as " + "-joined strings. Formation: a QB can
+    // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
+    // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
+    const multiFields = new Set(['formation', 'playType']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
@@ -559,8 +570,27 @@ export class PlayTagger {
       }
     }
 
+    // Yardage is entered as a plain magnitude; the Result supplies the sign
+    // (Loss / Sack = lost yards), so the coach never types a minus. tags.yardage
+    // stays signed for stats/EPA/exports. Re-derive when either field changes.
+    if (key === 'yardage' || key === 'result') {
+      this._applyYardageSign(play);
+    }
+
     this._updateTimeline();
     this._emit('play-updated', play);
+  }
+
+  /** Loss/Sack make yardage negative; everything else positive. Input shows the
+   *  magnitude only; play.tags.yardage holds the signed value. */
+  _applyYardageSign(play) {
+    const el = this.tagFields.yardage;
+    const raw = el ? String(el.value).trim() : String(play.tags.yardage ?? '');
+    if (raw === '') { play.tags.yardage = ''; return; }
+    const mag = Math.abs(parseInt(raw, 10) || 0);
+    const neg = play.tags.result === 'Loss' || play.tags.result === 'Sack';
+    play.tags.yardage = String(neg ? -mag : mag);
+    if (el) el.value = String(mag); // keep the field showing the magnitude
   }
 
   /**
@@ -615,7 +645,9 @@ export class PlayTagger {
     this.tagFields.coverage.value = play.tags.coverage;
     this.tagFields.blitz.value = play.tags.blitz;
     this.tagFields.result.value = play.tags.result;
-    this.tagFields.yardage.value = play.tags.yardage;
+    // Yardage is stored signed but shown as a magnitude (sign comes from Result).
+    this.tagFields.yardage.value = (play.tags.yardage === '' || play.tags.yardage == null)
+      ? '' : String(Math.abs(parseInt(play.tags.yardage, 10) || 0));
     this.tagFields.hash.value = play.tags.hash;
     this.tagFields.quarter.value = play.tags.quarter || '';
     this.tagFields.yardLine.value = play.tags.yardLine || '';

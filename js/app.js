@@ -1101,9 +1101,10 @@ class App {
       });
     }
 
+    // Yardage is a magnitude (positive); the Result chip sets the direction.
     yardsMinus?.addEventListener('click', () => {
       const v = parseInt(yardsInput.value) || 0;
-      yardsInput.value = v - 1;
+      yardsInput.value = Math.max(0, v - 1);
       yardsInput.dispatchEvent(new Event('change'));
     });
     yardsPlus?.addEventListener('click', () => {
@@ -1236,7 +1237,9 @@ class App {
     const [field, value] = mapped;
     const tf = this.tagger.tagFields[field];
     if (tf) {
-      tf.value = tf.value === value ? '' : value;
+      // Multi-select fields (e.g. Play Type) toggle membership; single replace.
+      if (typeof tf.toggle === 'function') tf.toggle(value);
+      else tf.value = tf.value === value ? '' : value;
       this.tagger._saveField(field);
     }
     return true;
