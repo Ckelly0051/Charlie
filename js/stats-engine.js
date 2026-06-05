@@ -105,24 +105,35 @@ export class StatsEngine {
       }
     }
 
+    // Partition by unit perspective: offense-unit plays are OUR offense
+    // (formations, play types, yards gained are ours). Defense-unit plays
+    // are OUR defense (fronts, coverages, blitzes are ours; the offensive
+    // tags on them are the opponent's). Legacy plays without a unit tag
+    // default to offense.
+    const offPlays = plays.filter(p => (p.tags.unit || 'offense') === 'offense');
+    const defPlays = plays.filter(p => p.tags.unit === 'defense');
+
     const stats = {
-      totalPlays: plays.length,
+      totalPlays: offPlays.length,
+      allPlays: plays.length,
+      offPlays,
+      defPlays,
       filterActive,
-      rushing: this._rushingStats(plays),
-      passing: this._passingStats(plays),
-      scoring: this._scoringStats(plays),
-      downs: this._downStats(plays),
-      turnovers: this._turnoverStats(plays),
-      tendencies: this._tendencyStats(plays),
-      bigPlays: this._bigPlays(plays),
+      rushing: this._rushingStats(offPlays),
+      passing: this._passingStats(offPlays),
+      scoring: this._scoringStats(offPlays),
+      downs: this._downStats(offPlays),
+      turnovers: this._turnoverStats(offPlays),
+      tendencies: this._tendencyStats(offPlays),
+      bigPlays: this._bigPlays(offPlays),
       individuals: this._individualStats(plays),
-      drives: this._driveStats(plays),
-      situational: this._situationalStats(plays),
-      efficiency: this._efficiencyStats(plays),
-      personnel: this._personnelStats(plays),
-      advanced: this.advanced.summarize(plays),
-      defensive: this._defensiveStats(plays),
-      gameFlow: this._gameFlowStats(plays),
+      drives: this._driveStats(offPlays),
+      situational: this._situationalStats(offPlays),
+      efficiency: this._efficiencyStats(offPlays),
+      personnel: this._personnelStats(offPlays),
+      advanced: this.advanced.summarize(offPlays),
+      defensive: this._defensiveStats(defPlays),
+      gameFlow: this._gameFlowStats(offPlays),
       conversions: this._conversionStats(convSource)
     };
 
@@ -133,6 +144,10 @@ export class StatsEngine {
     let plays = this.tagger.plays.filter(p => p.tags.playType);
     if (this.filter && this.filter.active) plays = this.filter.filter(plays);
     return plays;
+  }
+
+  _offensePlays() {
+    return this._currentPlays().filter(p => (p.tags.unit || 'offense') === 'offense');
   }
 
   _absYardLine(tags) {
@@ -733,12 +748,12 @@ export class StatsEngine {
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
             ${this._renderAdvanced(stats)}
-            ${this.heatMaps.render(this._currentPlays())}
+            ${this.heatMaps.render(stats.offPlays)}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
             ${this._renderConversions(stats)}
             ${this._renderDrives(stats)}
-            ${Visualizations.render(this._currentPlays())}
+            ${Visualizations.render(stats.offPlays)}
             ${this._renderGameFlow(stats)}
             ${this._renderTendencies(stats)}
             ${this._renderTendencyMatrix(stats)}
@@ -1287,7 +1302,7 @@ export class StatsEngine {
     if (stats.totalPlays < 3) return '';
     const dims = StatsEngine._matrixDimensions();
     const opts = dims.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
-    const defaultMatrix = this._computeMatrix(this._currentPlays(), 'formation', 'down');
+    const defaultMatrix = this._computeMatrix(stats.offPlays, 'formation', 'down');
     return `
       <div class="stats-section" id="tendencyMatrixSection">
         <h3>Tendency Matrix</h3>
@@ -1316,7 +1331,7 @@ export class StatsEngine {
         container.innerHTML = '<p style="opacity:.6">Pick two different dimensions.</p>';
         return;
       }
-      const matrix = this._computeMatrix(this._currentPlays(), rowSel.value, colSel.value);
+      const matrix = this._computeMatrix(this._offensePlays(), rowSel.value, colSel.value);
       container.innerHTML = this._renderMatrixGrid(matrix);
     };
     rowSel.addEventListener('change', refresh);

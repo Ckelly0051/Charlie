@@ -5493,6 +5493,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ================================================================== */
+/* ====  STICKY NAV — Save & Next always visible in the tag column == */
+/* In the two-column layout the tag section scrolls independently.   */
+/* Pin the nav bar to the bottom so the coach never has to scroll     */
+/* past the form to reach Save & Next.                                */
+/* ================================================================== */
+@media (min-width: 1100px) {
+  .tag-section .tag-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: var(--canvas);
+    padding-bottom: 8px;
+    margin-top: 4px;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* ================================================================== */
 /* ====  SELECTS v7 — prominent dropdown arrows                    == */
 /* Custom chevron replaces the default browser arrow for all selects. */
 /* !important + high-specificity coverage so class-based selectors    */
