@@ -14711,7 +14711,7 @@ class StatsEngine {
           <div class="stats-header">
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
-              <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
+              <button class="btn btn-sm" id="btnExportStats">Export PDF</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
             </div>
           </div>
@@ -16246,34 +16246,17 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     const meterColor = report.predictability >= 70 ? '#ef4444'
       : report.predictability >= 50 ? '#f59e0b'
         : report.predictability >= 30 ? '#eab308' : '#22c55e';
-    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
-table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
-.meter{height:20px;border-radius:10px;background:#eee;overflow:hidden;margin:10px 0 4px}
-.meter>div{height:100%;width:${report.predictability}%;background:${meterColor}}
-.mval{font-size:28px;font-weight:bold;color:${meterColor}}.mlbl{color:#666;font-size:13px}
-ul{line-height:1.6}</style></head><body>
-<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} run/pass plays</p>
+    const body = `
+<h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} run/pass plays</p>
 <h3>Predictability Index</h3>
-<div class="meter"><div></div></div>
-<div class="mval">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; <span class="mlbl">${report.predLabel}</span></div>
-<p style="color:#666">Higher = more predictable. A DC reads the same tendencies; keep key situations balanced.</p>
+<div class="meter"><div style="width:${report.predictability}%;background:${meterColor}"></div></div>
+<div class="mval" style="color:${meterColor}">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; <span class="mlbl">${report.predLabel}</span></div>
+<p class="sub">Higher = more predictable. A DC reads the same tendencies; keep key situations balanced.</p>
 <h3>Top Tells</h3><table><thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Severity</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
 ${report.recommendations.length ? `<h3>Recommendations</h3><ul>${report.recommendations.map(r => `<li>${r.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : ''}
 <h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
-<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>
-</body></html>`;
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `self_scout_${team.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>`;
+    this._openPrintWindow(title, body);
   }
 
   // ================================================================
@@ -16330,15 +16313,8 @@ ${report.recommendations.length ? `<h3>Recommendations</h3><ul>${report.recommen
     const blitzRows = d.blitzes.map(b =>
       `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
     ).join('');
-    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
-table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
-.card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
-.cv{font-size:24px;font-weight:bold;color:#4169e1}.cl{font-size:11px;text-transform:uppercase;color:#666}</style></head><body>
-<h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+    const body = `
+<h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
 <h3>Summary</h3><div class="cards">
 <div class="card"><div class="cv">${d.havocRate}%</div><div class="cl">Havoc Rate</div></div>
 <div class="card"><div class="cv">${d.sacks}</div><div class="cl">Sacks (${d.sackYards} yds)</div></div>
@@ -16351,102 +16327,129 @@ th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
 </div>
 ${frontRows ? `<h3>Defensive Front</h3><table><thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}
 ${covRows ? `<h3>Coverage</h3><table><thead><tr><th>Coverage</th><th>#</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${covRows}</tbody></table>` : ''}
-${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${blitzRows}</tbody></table>` : ''}
-</body></html>`;
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `defense_${team.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${blitzRows}</tbody></table>` : ''}`;
+    this._openPrintWindow(title, body);
   }
 
   _exportStats(stats) {
-    const lines = [];
-    lines.push('=== GAME STATS REPORT ===\n');
+    const title = this._gameTitle() || 'Game Stats';
+    const r = stats.rushing, p = stats.passing, s = stats.scoring, t = stats.turnovers;
+    const totalYards = r.yards + p.yards;
+    const dn = stats.downs;
+    const tend = stats.tendencies;
 
-    lines.push(`Total Plays: ${stats.totalPlays}`);
-    lines.push(`Total Yards: ${stats.rushing.yards + stats.passing.yards}`);
-    lines.push(`Touchdowns: ${stats.scoring.touchdowns}`);
-    lines.push(`Turnovers: ${stats.turnovers.total}\n`);
-
-    lines.push('--- RUSHING ---');
-    lines.push(`Att: ${stats.rushing.attempts}  Yds: ${stats.rushing.yards}  Avg: ${stats.rushing.average}  TD: ${stats.rushing.touchdowns}  Long: ${stats.rushing.longest}\n`);
-
-    lines.push('--- PASSING ---');
-    lines.push(`${stats.passing.completions}/${stats.passing.attempts} (${stats.passing.completionPct}%)  Yds: ${stats.passing.yards}  TD: ${stats.passing.touchdowns}  INT: ${stats.passing.interceptions}  Sacks: ${stats.passing.sacks}\n`);
-
-    lines.push('--- DOWNS ---');
-    lines.push(`First Downs: ${stats.downs.totalFirstDowns}`);
-    lines.push(`3rd Down: ${stats.downs.thirdDownConv} (${stats.downs.thirdDownPct}%)`);
-    lines.push(`4th Down: ${stats.downs.fourthDownConv} (${stats.downs.fourthDownPct}%)\n`);
-
-    lines.push('--- TENDENCIES ---');
-    lines.push(`Run/Pass: ${stats.tendencies.runPassRatio} (${stats.tendencies.runPct}%/${stats.tendencies.passPct}%)\n`);
+    let body = `
+<h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+<h3>Team Summary</h3>
+<div class="cards">
+<div class="card"><div class="cv">${stats.totalPlays}</div><div class="cl">Total Plays</div></div>
+<div class="card"><div class="cv">${totalYards}</div><div class="cl">Total Yards</div></div>
+<div class="card"><div class="cv">${stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0'}</div><div class="cl">Yds/Play</div></div>
+<div class="card"><div class="cv">${s.touchdowns}</div><div class="cl">Touchdowns</div></div>
+<div class="card"><div class="cv">${t.total}</div><div class="cl">Turnovers</div></div>
+<div class="card"><div class="cv">${tend.runPct}%/${tend.passPct}%</div><div class="cl">Run/Pass</div></div>
+</div>
+<div class="two-col">
+<div><h3>Rushing</h3><table>
+<tr><td>Attempts</td><td>${r.attempts}</td></tr><tr><td>Yards</td><td>${r.yards}</td></tr>
+<tr><td>Average</td><td>${r.average}</td></tr><tr><td>Longest</td><td>${r.longest}</td></tr>
+<tr><td>Touchdowns</td><td>${r.touchdowns}</td></tr><tr><td>First Downs</td><td>${r.firstDowns}</td></tr>
+<tr><td>Fumbles</td><td>${r.fumbles}</td></tr></table></div>
+<div><h3>Passing</h3><table>
+<tr><td>Comp/Att</td><td>${p.completions}/${p.attempts}</td></tr><tr><td>Comp %</td><td>${p.completionPct}%</td></tr>
+<tr><td>Yards</td><td>${p.yards}</td></tr><tr><td>YPA</td><td>${p.average}</td></tr>
+<tr><td>Touchdowns</td><td>${p.touchdowns}</td></tr><tr><td>Interceptions</td><td>${p.interceptions}</td></tr>
+<tr><td>Sacks / Yds</td><td>${p.sacks} / ${p.sackYards}</td></tr><tr><td>Longest</td><td>${p.longest}</td></tr>
+<tr><td>First Downs</td><td>${p.firstDowns}</td></tr></table></div>
+</div>
+<h3>Down &amp; Distance</h3>
+<div class="cards">
+<div class="card"><div class="cv">${dn.totalFirstDowns}</div><div class="cl">First Downs</div></div>
+<div class="card"><div class="cv">${dn.thirdDownConv}</div><div class="cl">3rd Down (${dn.thirdDownPct}%)</div></div>
+<div class="card"><div class="cv">${dn.fourthDownConv}</div><div class="cl">4th Down (${dn.fourthDownPct}%)</div></div>
+</div>`;
 
     if (stats.defensive.hasData) {
       const d = stats.defensive;
-      lines.push('--- DEFENSIVE ANALYTICS ---');
-      lines.push(`Havoc Rate: ${d.havocRate}% (${d.havocPlays} plays)`);
-      lines.push(`Sacks: ${d.sacks} (${d.sackYards} yds)  TFL: ${d.tfl}  INT: ${d.interceptions}  Fum: ${d.fumbles}`);
-      lines.push(`Blitz Rate: ${d.blitzRate}% (${d.blitzTotal} plays)  Blitz Havoc: ${d.blitzHavocRate}%`);
-      lines.push(`3-and-Outs Forced: ${d.threeAndOuts}`);
-      if (d.fronts.length) {
-        lines.push('\nFront\tPlays\tYds\tAvg\tStop%\tHavoc%');
-        d.fronts.forEach(f => {
-          lines.push(`${f.name}\t${f.count}\t${f.yards}\t${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}\t${f.count ? Math.round(f.successes / f.count * 100) : 0}%\t${f.count ? Math.round(f.havoc / f.count * 100) : 0}%`);
-        });
-      }
-      if (d.coverages.length) {
-        lines.push('\nCoverage\tPlays\tComp\tInc\tINT\tYds\tAvg\tStop%');
-        d.coverages.forEach(c => {
-          lines.push(`${c.name}\t${c.count}\t${c.comps}\t${c.incs}\t${c.ints}\t${c.yards}\t${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}\t${c.count ? Math.round(c.successes / c.count * 100) : 0}%`);
-        });
-      }
-      lines.push('');
+      const frontRows = d.fronts.map(f =>
+        `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+      ).join('');
+      const covRows = d.coverages.map(c =>
+        `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+      ).join('');
+      body += `
+<h3>Defensive Summary</h3>
+<div class="cards">
+<div class="card"><div class="cv">${d.havocRate}%</div><div class="cl">Havoc Rate</div></div>
+<div class="card"><div class="cv">${d.sacks}</div><div class="cl">Sacks</div></div>
+<div class="card"><div class="cv">${d.tfl}</div><div class="cl">TFL</div></div>
+<div class="card"><div class="cv">${d.interceptions + d.fumbles}</div><div class="cl">Turnovers</div></div>
+<div class="card"><div class="cv">${d.threeAndOuts}</div><div class="cl">3-and-Outs</div></div>
+</div>
+${frontRows ? `<table><thead><tr><th>Front</th><th>#</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}
+${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${covRows}</tbody></table>` : ''}`;
     }
 
     const ind = stats.individuals;
     if (ind.rushers.length) {
-      lines.push('--- INDIVIDUAL RUSHING ---');
-      lines.push('Player\tAtt\tYds\tAvg\tTD');
-      ind.rushers.forEach(r => {
-        lines.push(`#${r.num}\t${r.attempts}\t${r.yards}\t${(r.yards / r.attempts).toFixed(1)}\t${r.tds}`);
-      });
-      lines.push('');
+      body += '<h3>Individual Rushing</h3><table><thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>TD</th></tr></thead><tbody>';
+      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.avg}</td><td>${rv.tds}</td></tr>`; });
+      body += '</tbody></table>';
     }
-
     if (ind.passers.length) {
-      lines.push('--- INDIVIDUAL PASSING ---');
-      lines.push('Player\tC/A\tYds\tTD\tINT');
-      ind.passers.forEach(p => {
-        lines.push(`#${p.num}\t${p.completions}/${p.attempts}\t${p.yards}\t${p.tds}\t${p.ints}`);
-      });
-      lines.push('');
+      body += '<h3>Individual Passing</h3><table><thead><tr><th>Player</th><th>C/A</th><th>Yds</th><th>TD</th><th>INT</th></tr></thead><tbody>';
+      ind.passers.forEach(pv => { body += `<tr><td>${this._playerLabel(pv.num)}</td><td>${pv.completions}/${pv.attempts}</td><td>${pv.yards}</td><td>${pv.tds}</td><td>${pv.ints}</td></tr>`; });
+      body += '</tbody></table>';
     }
-
     if (ind.receivers.length) {
-      lines.push('--- INDIVIDUAL RECEIVING ---');
-      lines.push('Player\tRec\tYds\tTD');
-      ind.receivers.forEach(r => {
-        lines.push(`#${r.num}\t${r.receptions}\t${r.yards}\t${r.tds}`);
-      });
-      lines.push('');
+      body += '<h3>Individual Receiving</h3><table><thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>TD</th></tr></thead><tbody>';
+      ind.receivers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.receptions}</td><td>${rv.yards}</td><td>${rv.tds}</td></tr>`; });
+      body += '</tbody></table>';
+    }
+    if (ind.tacklers.length) {
+      body += '<h3>Individual Tackles</h3><table><thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th></tr></thead><tbody>';
+      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabel(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td></tr>`; });
+      body += '</tbody></table>';
     }
 
-    const text = lines.join('\n');
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'game_stats.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    this._openPrintWindow(title, body);
+  }
+
+  _openPrintWindow(title, bodyHtml) {
+    const w = window.open('', '_blank');
+    if (!w) { alert('Pop-up blocked — allow pop-ups for this site to export PDF.'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
+h1{border-bottom:3px solid #1a3a6b;padding-bottom:8px;color:#1a3a6b;font-size:22px}
+h3{color:#1a3a6b;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px;font-size:14px}
+.sub{color:#666;font-size:12px}
+table{width:100%;border-collapse:collapse;margin:8px 0}
+th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:12px}
+th{background:#1a3a6b;color:#fff}tr:nth-child(even){background:#f4f4f8}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:12px 0}
+.card{border:1px solid #ddd;padding:10px;border-radius:6px;text-align:center}
+.cv{font-size:22px;font-weight:bold;color:#1a3a6b}.cl{font-size:10px;text-transform:uppercase;color:#666;margin-top:2px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.meter{height:18px;border-radius:9px;background:#eee;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
+.mval{font-size:26px;font-weight:bold}.mlbl{color:#666;font-size:13px}
+ul{line-height:1.7;font-size:13px}
+@media print{
+  body{margin:0;padding:10px}
+  h1{font-size:18px}h3{font-size:12px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
+  .card{padding:6px}.cv{font-size:16px}
+  table{font-size:11px}th,td{padding:4px 6px}
+  .no-print{display:none}
+}
+</style></head><body>
+${bodyHtml}
+<div class="no-print" style="text-align:center;margin:32px 0">
+<p style="color:#999;font-size:12px">Use your browser's <b>Save as PDF</b> option in the print dialog, or press Ctrl/Cmd+P.</p>
+</div>
+</body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
   }
 }
 
