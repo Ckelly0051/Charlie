@@ -16625,9 +16625,8 @@ class SuggestionEngine {
     // Suggestion rules — chained
     if (changedField === 'formation') {
       this._suggestField(play, 'personnel', { formation: tags.formation });
-      this._suggestField(play, 'playType', { formation: tags.formation });
     } else if (changedField === 'personnel') {
-      this._suggestField(play, 'playType', { formation: tags.formation, personnel: tags.personnel });
+      // personnel change — no further auto-fill (playType is always manual)
     } else if (changedField === 'playType') {
       this._suggestField(play, 'defFront', { playType: tags.playType });
       this._suggestField(play, 'coverage', { playType: tags.playType });
