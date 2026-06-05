@@ -949,7 +949,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
+    const fields = ['gameProjectName', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -974,6 +974,37 @@ class App {
         localStorage.setItem('ffa_claude_model', modelEl.value);
       });
     }
+
+    // Live "tracked" score: recompute from scoring plays whenever they change,
+    // and let the coach copy it into the Final Score with one click.
+    const applyBtn = document.getElementById('btnApplyTrackedScore');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => this._applyTrackedScore());
+    }
+    this.tagger.on('play-created', () => this._updateTrackedScore());
+    this.tagger.on('play-updated', () => this._updateTrackedScore());
+    this.tagger.on('play-deleted', () => this._updateTrackedScore());
+    this._updateTrackedScore();
+  }
+
+  /** Recompute the running scoreboard from tagged plays and show it. */
+  _updateTrackedScore() {
+    const el = document.getElementById('trackedScore');
+    if (!el || !this.stats) return;
+    const sb = this.stats.computeScoreboard();
+    el.textContent = `${sb.us} – ${sb.them}`;
+    el.classList.toggle('has-score', sb.hasData);
+    this._trackedScore = sb;
+  }
+
+  /** Copy the tracked score into the editable Final Score fields. */
+  _applyTrackedScore() {
+    const sb = this._trackedScore || this.stats.computeScoreboard();
+    const usEl = document.getElementById('gameScoreUs');
+    const themEl = document.getElementById('gameScoreThem');
+    if (usEl) usEl.value = sb.us;
+    if (themEl) themEl.value = sb.them;
+    this._saveGameInfo();
   }
 
   _saveApiKey() {
@@ -985,6 +1016,7 @@ class App {
 
   _saveGameInfo() {
     this.storage.gameInfo = {
+      projectName: document.getElementById('gameProjectName')?.value || '',
       teamName: document.getElementById('gameTeamName')?.value || '',
       opponent: document.getElementById('gameOpponent')?.value || '',
       date: document.getElementById('gameDate')?.value || '',
@@ -1000,6 +1032,7 @@ class App {
   _loadGameInfo(info) {
     if (!info) return;
     const map = {
+      gameProjectName: info.projectName,
       gameTeamName: info.teamName,
       gameOpponent: info.opponent,
       gameDate: info.date,

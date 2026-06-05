@@ -135,8 +135,19 @@ export class StorageManager {
     const data = this._serialize();
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
-    const name = (this.videoFileName || 'project').replace(/\.[^.]+$/, '') + '_analysis.json';
+    const name = this._projectFileBase() + '_analysis.json';
     this._download(blob, name);
+  }
+
+  /**
+   * Base filename for exports — prefers the user's Game / Project name (so saves
+   * are labeled by game), then the video file name, then a generic fallback.
+   */
+  _projectFileBase() {
+    const projectName = (this.gameInfo && this.gameInfo.projectName) || '';
+    const raw = projectName || (this.videoFileName || 'project').replace(/\.[^.]+$/, '');
+    // Filesystem-safe slug
+    return raw.trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'project';
   }
 
   loadProject(file) {
@@ -253,7 +264,7 @@ export class StorageManager {
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
-    const name = (this.videoFileName || 'plays').replace(/\.[^.]+$/, '') + '_plays.csv';
+    const name = this._projectFileBase() + '_plays.csv';
     this._download(blob, name);
   }
 

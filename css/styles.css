@@ -541,6 +541,17 @@ body {
   font-size: 12px;
 }
 
+/* Live "tracked" score computed from tagged scoring plays */
+.tracked-score {
+  flex: 1;
+  font-weight: 700;
+  font-size: 15px !important;
+  color: var(--text) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+.tracked-score.has-score { color: var(--accent) !important; }
+
 /* ===== Chip-based tag form ===== */
 .chip-section {
   margin-bottom: 8px;
@@ -5790,6 +5801,33 @@ video.is-buffering { opacity: 0.6; }
 
 /* --- Situational Layout ------------------------------------------ */
 .sit-gauges-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* --- Scoreboard -------------------------------------------------- */
+.scoreboard-final {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin: 4px 0 14px;
+}
+.scoreboard-team { text-align: center; min-width: 120px; }
+.scoreboard-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scoreboard-pts { font-size: 52px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.scoreboard-sep { font-size: 34px; font-weight: 300; color: var(--text-dim); }
+.scoreboard-quarters { max-width: 480px; }
+.scoreboard-quarters th, .scoreboard-quarters td { text-align: center; }
+.scoreboard-quarters th:first-child, .scoreboard-quarters td:first-child { text-align: left; }
 
 /* --- Drives Layout ----------------------------------------------- */
 .drives-top-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }

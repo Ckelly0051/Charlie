@@ -677,6 +677,10 @@
         </h3>
         <div class="panel-body collapsed" id="gameInfoPanel">
           <div class="tag-row">
+            <label>Game / Project</label>
+            <input type="text" id="gameProjectName" placeholder="e.g. Week 5 vs Tigers" title="Name this project so you can label it by game — used for the save file name and report titles">
+          </div>
+          <div class="tag-row">
             <label>Team Name</label>
             <input type="text" id="gameTeamName" placeholder="Our Team">
           </div>
@@ -689,11 +693,18 @@
             <input type="date" id="gameDate">
           </div>
           <div class="tag-row">
-            <label>Score</label>
+            <label>Final Score</label>
             <div class="tag-row-inline">
               <input type="number" id="gameScoreUs" placeholder="Us" min="0" style="width:60px">
               <span>-</span>
               <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
+            </div>
+          </div>
+          <div class="tag-row">
+            <label>Tracked</label>
+            <div class="tag-row-inline">
+              <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense / Special Teams plays count for us; Defense plays count for the opponent.">0 – 0</span>
+              <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into the Final Score above">Apply →</button>
             </div>
           </div>
           <div class="tag-row">

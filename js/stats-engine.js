@@ -56,6 +56,75 @@ export class StatsEngine {
     return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
   }
 
+  /**
+   * Points a single play put on the board. Touchdown = 6, made Field Goal = 3,
+   * made XP = 1, made 2-Point = 2. Conversion/kick success is the explicit
+   * 'Good' result (paired with the ST type); a 'Field Goal' result also counts
+   * as 3 for offense plays that mark the drive's FG outcome directly.
+   */
+  static playPoints(p) {
+    if (!p || !p.tags) return 0;
+    const r = p.tags.result;
+    const st = p.tags.stType || '';
+    if (r === 'Touchdown') return 6;
+    if (st === '2-Pt') return r === 'Good' ? 2 : 0;
+    if (st === 'XP') return r === 'Good' ? 1 : 0;
+    if (st === 'Field Goal') return r === 'Good' ? 3 : 0;
+    if (r === 'Field Goal') return 3;
+    return 0;
+  }
+
+  /**
+   * Which side a scoring play counts for. Offense / Special Teams plays score
+   * for us; Defense-unit plays are the opponent's offense, so their scores
+   * count against us. (A pick-six is the rare exception — the coach can fix the
+   * Final Score manually.)
+   */
+  static scoringSide(p) {
+    return (p && p.tags && p.tags.unit) === 'defense' ? 'them' : 'us';
+  }
+
+  /**
+   * Walk the plays in charting order and build a running scoreboard:
+   * final us/them totals, a per-quarter split, and the list of scoring plays
+   * with the running score after each. Includes every tagged play (offense,
+   * defense, and special teams) so kicks/conversions count even without a
+   * play type.
+   */
+  computeScoreboard(playsOverride = null) {
+    const plays = (playsOverride || (this.tagger ? this.tagger.plays : []) || [])
+      .filter(p => p && p.tags);
+    let us = 0, them = 0;
+    const events = [];
+    const byQuarter = {};
+    plays.forEach(p => {
+      const pts = StatsEngine.playPoints(p);
+      if (!pts) return;
+      const side = StatsEngine.scoringSide(p);
+      if (side === 'them') them += pts; else us += pts;
+      const q = p.tags.quarter || '';
+      if (q) {
+        if (!byQuarter[q]) byQuarter[q] = { us: 0, them: 0 };
+        byQuarter[q][side] += pts;
+      }
+      events.push({
+        playId: p.id, quarter: q, points: pts, side,
+        type: this._scoreType(p), us, them
+      });
+    });
+    return { us, them, events, byQuarter, hasData: events.length > 0 };
+  }
+
+  _scoreType(p) {
+    const r = p.tags.result;
+    const st = p.tags.stType || '';
+    if (r === 'Touchdown') return 'TD';
+    if (st === '2-Pt') return '2-Pt';
+    if (st === 'XP') return 'XP';
+    if (st === 'Field Goal' || r === 'Field Goal') return 'FG';
+    return 'Score';
+  }
+
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
@@ -134,7 +203,8 @@ export class StatsEngine {
       advanced: this.advanced.summarize(offPlays),
       defensive: this._defensiveStats(defPlays),
       gameFlow: this._gameFlowStats(offPlays),
-      conversions: this._conversionStats(convSource)
+      conversions: this._conversionStats(convSource),
+      scoreboard: this.computeScoreboard(convSource)
     };
 
     return stats;
@@ -745,6 +815,7 @@ export class StatsEngine {
             </div>
           </div>
           <div class="stats-body">
+            ${this._renderScoreboard(stats)}
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
             ${this._renderAdvanced(stats)}
@@ -818,13 +889,15 @@ export class StatsEngine {
   }
 
   _gameTitle() {
+    const name = document.getElementById('gameProjectName')?.value || '';
     const t = document.getElementById('gameTeamName')?.value || '';
     const o = document.getElementById('gameOpponent')?.value || '';
     const u = document.getElementById('gameScoreUs')?.value;
     const th = document.getElementById('gameScoreThem')?.value;
     const d = document.getElementById('gameDate')?.value || '';
     let title = 'Game Stats';
-    if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
+    if (name) title = name;
+    else if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
     if (u !== '' && th !== '' && u != null && th != null) title += ` &mdash; ${u}-${th}`;
     if (d) title += ` (${d})`;
     return title;
@@ -936,6 +1009,51 @@ export class StatsEngine {
             </table>
           </div>
         </div>
+      </div>`;
+  }
+
+  _renderScoreboard(stats) {
+    const sb = stats.scoreboard;
+    if (!sb || !sb.hasData) return '';
+    const team = document.getElementById('gameTeamName')?.value || 'Us';
+    const opp = document.getElementById('gameOpponent')?.value || 'Opponent';
+    const winColor = '#22c55e', loseColor = '#ef4444', tieColor = 'var(--text)';
+    const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
+    const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
+
+    // Per-quarter table (only quarters that actually have scoring tagged)
+    const order = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'];
+    const quarters = Object.keys(sb.byQuarter).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    let qTable = '';
+    if (quarters.length) {
+      const head = quarters.map(q => `<th>${q}</th>`).join('');
+      const usRow = quarters.map(q => `<td>${sb.byQuarter[q].us}</td>`).join('');
+      const themRow = quarters.map(q => `<td>${sb.byQuarter[q].them}</td>`).join('');
+      qTable = `
+        <table class="stats-table scoreboard-quarters">
+          <thead><tr><th></th>${head}<th>Final</th></tr></thead>
+          <tbody>
+            <tr><td>${team}</td>${usRow}<td><strong>${sb.us}</strong></td></tr>
+            <tr><td>${opp}</td>${themRow}<td><strong>${sb.them}</strong></td></tr>
+          </tbody>
+        </table>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Scoreboard</h3>
+        <div class="scoreboard-final">
+          <div class="scoreboard-team">
+            <div class="scoreboard-name">${team}</div>
+            <div class="scoreboard-pts" style="color:${usColor}">${sb.us}</div>
+          </div>
+          <div class="scoreboard-sep">–</div>
+          <div class="scoreboard-team">
+            <div class="scoreboard-name">${opp}</div>
+            <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
+          </div>
+        </div>
+        ${qTable}
+        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense &amp; Special Teams plays score for ${team}; Defense plays score for ${opp}.</p>
       </div>`;
   }
 
