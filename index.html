@@ -548,6 +548,17 @@ body {
   font-size: 12px;
 }
 
+/* Live "tracked" score computed from tagged scoring plays */
+.tracked-score {
+  flex: 1;
+  font-weight: 700;
+  font-size: 15px !important;
+  color: var(--text) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+.tracked-score.has-score { color: var(--accent) !important; }
+
 /* ===== Chip-based tag form ===== */
 .chip-section {
   margin-bottom: 8px;
@@ -4595,6 +4606,31 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .player-row { cursor: pointer; transition: background var(--transition); }
 .player-row:hover { background: rgba(65,105,225,0.12); }
 
+/* Click-to-film: any stat row that maps to a set of plays. A small ▶ hint
+   appears on hover so it's discoverable as a "watch these plays" control. */
+.cut-row { cursor: pointer; transition: background var(--transition); }
+.cut-row:hover { background: rgba(65,105,225,0.12); }
+.cut-row td:first-child::before,
+.chart-eff-row.cut-row .chart-eff-label::before {
+  content: '▶';
+  font-size: 9px;
+  color: var(--accent);
+  opacity: 0;
+  margin-right: 5px;
+  transition: opacity var(--transition);
+}
+.cut-row:hover td:first-child::before,
+.chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
+.stats-cut-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: rgba(65,105,225,0.08);
+  border: 1px solid rgba(65,105,225,0.2);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  margin-bottom: 14px;
+}
+
 /* ================================================================== */
 /* ========================  CUT-UP REVIEW  ======================== */
 /* ================================================================== */
@@ -5798,6 +5834,33 @@ video.is-buffering { opacity: 0.6; }
 /* --- Situational Layout ------------------------------------------ */
 .sit-gauges-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 
+/* --- Scoreboard -------------------------------------------------- */
+.scoreboard-final {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin: 4px 0 14px;
+}
+.scoreboard-team { text-align: center; min-width: 120px; }
+.scoreboard-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scoreboard-pts { font-size: 52px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.scoreboard-sep { font-size: 34px; font-weight: 300; color: var(--text-dim); }
+.scoreboard-quarters { max-width: 480px; }
+.scoreboard-quarters th, .scoreboard-quarters td { text-align: center; }
+.scoreboard-quarters th:first-child, .scoreboard-quarters td:first-child { text-align: left; }
+
 /* --- Drives Layout ----------------------------------------------- */
 .drives-top-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .drives-top-row .stats-grid { flex: 1; min-width: 200px; }
@@ -6858,6 +6921,10 @@ video.is-buffering { opacity: 0.6; }
         </h3>
         <div class="panel-body collapsed" id="gameInfoPanel">
           <div class="tag-row">
+            <label>Game / Project</label>
+            <input type="text" id="gameProjectName" placeholder="e.g. Week 5 vs Tigers" title="Name this project so you can label it by game — used for the save file name and report titles">
+          </div>
+          <div class="tag-row">
             <label>Team Name</label>
             <input type="text" id="gameTeamName" placeholder="Our Team">
           </div>
@@ -6870,11 +6937,18 @@ video.is-buffering { opacity: 0.6; }
             <input type="date" id="gameDate">
           </div>
           <div class="tag-row">
-            <label>Score</label>
+            <label>Final Score</label>
             <div class="tag-row-inline">
               <input type="number" id="gameScoreUs" placeholder="Us" min="0" style="width:60px">
               <span>-</span>
               <input type="number" id="gameScoreThem" placeholder="Them" min="0" style="width:60px">
+            </div>
+          </div>
+          <div class="tag-row">
+            <label>Tracked</label>
+            <div class="tag-row-inline">
+              <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense / Special Teams plays count for us; Defense plays count for the opponent.">0 – 0</span>
+              <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into the Final Score above">Apply →</button>
             </div>
           </div>
           <div class="tag-row">
@@ -9955,8 +10029,19 @@ class StorageManager {
     const data = this._serialize();
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
-    const name = (this.videoFileName || 'project').replace(/\.[^.]+$/, '') + '_analysis.json';
+    const name = this._projectFileBase() + '_analysis.json';
     this._download(blob, name);
+  }
+
+  /**
+   * Base filename for exports — prefers the user's Game / Project name (so saves
+   * are labeled by game), then the video file name, then a generic fallback.
+   */
+  _projectFileBase() {
+    const projectName = (this.gameInfo && this.gameInfo.projectName) || '';
+    const raw = projectName || (this.videoFileName || 'project').replace(/\.[^.]+$/, '');
+    // Filesystem-safe slug
+    return raw.trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'project';
   }
 
   loadProject(file) {
@@ -10073,7 +10158,7 @@ class StorageManager {
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
-    const name = (this.videoFileName || 'plays').replace(/\.[^.]+$/, '') + '_plays.csv';
+    const name = this._projectFileBase() + '_plays.csv';
     this._download(blob, name);
   }
 
@@ -13208,7 +13293,13 @@ class Charts {
       const countPct = maxCount ? (item.count / maxCount) * 100 : 0;
       const runPct = item.count ? Math.round((item.runs / item.count) * 100) : 0;
       const succColor = parseFloat(item.successPct) >= 50 ? '#22c55e' : parseFloat(item.successPct) >= 35 ? '#eab308' : '#ef4444';
-      return `<div class="chart-eff-row"><div class="chart-eff-label">${Charts._esc(item.label)}</div><div class="chart-eff-bar-wrap"><div class="chart-eff-track"><div class="chart-eff-fill" style="width:${countPct.toFixed(1)}%"><div class="chart-eff-run" style="width:${runPct}%"></div></div></div></div><div class="chart-eff-meta"><span class="chart-eff-n">${item.count}</span><span class="chart-eff-succ" style="color:${succColor}">${item.successPct}%</span><span class="chart-eff-avg">${item.avg}y</span></div></div>`;
+      // Optional click-to-film: when an item carries cut filter data, emit
+      // data attributes the stats dashboard wires to a film cut-up.
+      const cut = item.cutType
+        ? ` data-cut-type="${Charts._esc(item.cutType)}" data-cut-val="${Charts._esc(item.cutVal ?? item.label)}" data-cut-label="${Charts._esc(item.cutLabel || item.label)}"`
+        : '';
+      const cls = item.cutType ? 'chart-eff-row cut-row' : 'chart-eff-row';
+      return `<div class="${cls}"${cut}><div class="chart-eff-label">${Charts._esc(item.label)}</div><div class="chart-eff-bar-wrap"><div class="chart-eff-track"><div class="chart-eff-fill" style="width:${countPct.toFixed(1)}%"><div class="chart-eff-run" style="width:${runPct}%"></div></div></div></div><div class="chart-eff-meta"><span class="chart-eff-n">${item.count}</span><span class="chart-eff-succ" style="color:${succColor}">${item.successPct}%</span><span class="chart-eff-avg">${item.avg}y</span></div></div>`;
     }).join('');
     return `<div class="chart-eff"><div class="chart-eff-head"><span></span><span class="chart-eff-bar-head"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span><span class="chart-eff-meta-head"><span>n</span><span>Succ</span><span>Avg</span></span></div>${rows}</div>`;
   }
@@ -13509,6 +13600,75 @@ class StatsEngine {
     return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
   }
 
+  /**
+   * Points a single play put on the board. Touchdown = 6, made Field Goal = 3,
+   * made XP = 1, made 2-Point = 2. Conversion/kick success is the explicit
+   * 'Good' result (paired with the ST type); a 'Field Goal' result also counts
+   * as 3 for offense plays that mark the drive's FG outcome directly.
+   */
+  static playPoints(p) {
+    if (!p || !p.tags) return 0;
+    const r = p.tags.result;
+    const st = p.tags.stType || '';
+    if (r === 'Touchdown') return 6;
+    if (st === '2-Pt') return r === 'Good' ? 2 : 0;
+    if (st === 'XP') return r === 'Good' ? 1 : 0;
+    if (st === 'Field Goal') return r === 'Good' ? 3 : 0;
+    if (r === 'Field Goal') return 3;
+    return 0;
+  }
+
+  /**
+   * Which side a scoring play counts for. Offense / Special Teams plays score
+   * for us; Defense-unit plays are the opponent's offense, so their scores
+   * count against us. (A pick-six is the rare exception — the coach can fix the
+   * Final Score manually.)
+   */
+  static scoringSide(p) {
+    return (p && p.tags && p.tags.unit) === 'defense' ? 'them' : 'us';
+  }
+
+  /**
+   * Walk the plays in charting order and build a running scoreboard:
+   * final us/them totals, a per-quarter split, and the list of scoring plays
+   * with the running score after each. Includes every tagged play (offense,
+   * defense, and special teams) so kicks/conversions count even without a
+   * play type.
+   */
+  computeScoreboard(playsOverride = null) {
+    const plays = (playsOverride || (this.tagger ? this.tagger.plays : []) || [])
+      .filter(p => p && p.tags);
+    let us = 0, them = 0;
+    const events = [];
+    const byQuarter = {};
+    plays.forEach(p => {
+      const pts = StatsEngine.playPoints(p);
+      if (!pts) return;
+      const side = StatsEngine.scoringSide(p);
+      if (side === 'them') them += pts; else us += pts;
+      const q = p.tags.quarter || '';
+      if (q) {
+        if (!byQuarter[q]) byQuarter[q] = { us: 0, them: 0 };
+        byQuarter[q][side] += pts;
+      }
+      events.push({
+        playId: p.id, quarter: q, points: pts, side,
+        type: this._scoreType(p), us, them
+      });
+    });
+    return { us, them, events, byQuarter, hasData: events.length > 0 };
+  }
+
+  _scoreType(p) {
+    const r = p.tags.result;
+    const st = p.tags.stType || '';
+    if (r === 'Touchdown') return 'TD';
+    if (st === '2-Pt') return '2-Pt';
+    if (st === 'XP') return 'XP';
+    if (st === 'Field Goal' || r === 'Field Goal') return 'FG';
+    return 'Score';
+  }
+
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
@@ -13587,7 +13747,8 @@ class StatsEngine {
       advanced: this.advanced.summarize(offPlays),
       defensive: this._defensiveStats(defPlays),
       gameFlow: this._gameFlowStats(offPlays),
-      conversions: this._conversionStats(convSource)
+      conversions: this._conversionStats(convSource),
+      scoreboard: this.computeScoreboard(convSource)
     };
 
     return stats;
@@ -14198,6 +14359,8 @@ class StatsEngine {
             </div>
           </div>
           <div class="stats-body">
+            <div class="stats-cut-hint">▶ Tip: click any highlighted stat row (formation, play type, down, situation, defense) or player to watch those exact plays as a film cut-up.</div>
+            ${this._renderScoreboard(stats)}
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
             ${this._renderAdvanced(stats)}
@@ -14240,6 +14403,17 @@ class StatsEngine {
       row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
     });
 
+    // "Every data point ties to video": click any tagged stat row (formation,
+    // play type, down, situation, defensive front/coverage/blitz) to launch a
+    // film cut-up of exactly those plays.
+    el.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
+      row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
+      row.addEventListener('click', () => {
+        const filter = this._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
+        this._watchPlays(filter, row.dataset.cutLabel || '');
+      });
+    });
+
     // Tendency matrix dimension pickers
     this._bindTendencyMatrix(el);
 
@@ -14252,32 +14426,78 @@ class StatsEngine {
   /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
   _watchPlayer(num) {
     if (!num) return;
+    this._watchPlays(p => {
+      const pl = p.tags.players || {};
+      // Player values may hold multiple jersey #s (e.g. shared tackles).
+      return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
+    }, `${this._playerLabel(num)} — cut-up`);
+  }
+
+  /**
+   * Play every snap matching `filter` back-to-back (cut-up). Shared by player
+   * rows and every clickable stat row. Only plays with a real video region are
+   * playable; if none match (e.g. stats-only imported plays), fall back to
+   * selecting the first match so the click is never a silent no-op.
+   */
+  _watchPlays(filter, label) {
+    if (typeof filter !== 'function') return;
     const matches = this.tagger.plays
-      .filter(p => {
-        const pl = p.tags.players || {};
-        // Player values may hold multiple jersey #s (e.g. shared tackles).
-        return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
-      })
-      .sort((a, b) => a.timestamp.start - b.timestamp.start);
+      .filter(p => p && p.tags && filter(p))
+      .sort((a, b) => (a.timestamp?.start || 0) - (b.timestamp?.start || 0));
     if (matches.length === 0) return;
+    const playable = matches.filter(p => p.timestamp && p.timestamp.end > p.timestamp.start);
     this.hideDashboard();
-    const ids = matches.map(p => p.id);
-    const label = `${this._playerLabel(num)} — cut-up`;
-    if (window.app && window.app.cutupPlayer) {
-      window.app.cutupPlayer.start(ids, label);
+    const ids = (playable.length ? playable : matches).map(p => p.id);
+    if (playable.length && window.app && window.app.cutupPlayer) {
+      window.app.cutupPlayer.start(ids, label || `${ids.length} plays`);
     } else {
       this.tagger.selectPlay(ids[0]);
     }
   }
 
+  /**
+   * Build a play-filter predicate for a clickable stat row. Offense-tagged
+   * dimensions (formation, play type, down, situation) match our offensive
+   * plays; defensive dimensions (front/coverage/blitz) match our defensive
+   * plays — mirroring how the dashboard partitions stats by unit.
+   */
+  _buildCutFilter(type, val) {
+    const isOff = p => (p.tags.unit || 'offense') === 'offense';
+    const isDef = p => p.tags.unit === 'defense';
+    const absYL = p => this._absYardLine(p.tags);
+    switch (type) {
+      case 'formation': return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(val);
+      case 'playType':  return p => isOff(p) && StatsEngine.splitPlayTypes(p.tags.playType).includes(val);
+      case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
+      case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
+      case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
+      case 'defFront':  return p => isDef(p) && (p.tags.defFront || '') === val;
+      case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
+      case 'blitz':     return p => isDef(p) && (p.tags.blitz || '') === val;
+      case 'situation': {
+        switch (val) {
+          case 'redZone':    return p => isOff(p) && absYL(p) !== null && absYL(p) >= 80;
+          case 'goalLine':   return p => isOff(p) && absYL(p) !== null && absYL(p) >= 95;
+          case 'backedUp':   return p => isOff(p) && absYL(p) !== null && absYL(p) <= 10;
+          case 'thirdLong':  return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7;
+          case 'thirdShort': return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 1 && (parseInt(p.tags.distance) || 0) <= 3;
+          default: return null;
+        }
+      }
+      default: return null;
+    }
+  }
+
   _gameTitle() {
+    const name = document.getElementById('gameProjectName')?.value || '';
     const t = document.getElementById('gameTeamName')?.value || '';
     const o = document.getElementById('gameOpponent')?.value || '';
     const u = document.getElementById('gameScoreUs')?.value;
     const th = document.getElementById('gameScoreThem')?.value;
     const d = document.getElementById('gameDate')?.value || '';
     let title = 'Game Stats';
-    if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
+    if (name) title = name;
+    else if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
     if (u !== '' && th !== '' && u != null && th != null) title += ` &mdash; ${u}-${th}`;
     if (d) title += ` (${d})`;
     return title;
@@ -14392,6 +14612,51 @@ class StatsEngine {
       </div>`;
   }
 
+  _renderScoreboard(stats) {
+    const sb = stats.scoreboard;
+    if (!sb || !sb.hasData) return '';
+    const team = document.getElementById('gameTeamName')?.value || 'Us';
+    const opp = document.getElementById('gameOpponent')?.value || 'Opponent';
+    const winColor = '#22c55e', loseColor = '#ef4444', tieColor = 'var(--text)';
+    const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
+    const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
+
+    // Per-quarter table (only quarters that actually have scoring tagged)
+    const order = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'];
+    const quarters = Object.keys(sb.byQuarter).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    let qTable = '';
+    if (quarters.length) {
+      const head = quarters.map(q => `<th>${q}</th>`).join('');
+      const usRow = quarters.map(q => `<td>${sb.byQuarter[q].us}</td>`).join('');
+      const themRow = quarters.map(q => `<td>${sb.byQuarter[q].them}</td>`).join('');
+      qTable = `
+        <table class="stats-table scoreboard-quarters">
+          <thead><tr><th></th>${head}<th>Final</th></tr></thead>
+          <tbody>
+            <tr><td>${team}</td>${usRow}<td><strong>${sb.us}</strong></td></tr>
+            <tr><td>${opp}</td>${themRow}<td><strong>${sb.them}</strong></td></tr>
+          </tbody>
+        </table>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Scoreboard</h3>
+        <div class="scoreboard-final">
+          <div class="scoreboard-team">
+            <div class="scoreboard-name">${team}</div>
+            <div class="scoreboard-pts" style="color:${usColor}">${sb.us}</div>
+          </div>
+          <div class="scoreboard-sep">–</div>
+          <div class="scoreboard-team">
+            <div class="scoreboard-name">${opp}</div>
+            <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
+          </div>
+        </div>
+        ${qTable}
+        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense &amp; Special Teams plays score for ${team}; Defense plays score for ${opp}.</p>
+      </div>`;
+  }
+
   _renderConversions(stats) {
     const c = stats.conversions;
     if (!c || !c.hasData) return '';
@@ -14411,14 +14676,14 @@ class StatsEngine {
 
   _renderSituational(stats) {
     const s = stats.situational;
-    const row = (label, b) => b.total === 0 ? '' :
-      `<tr><td>${label}</td><td>${b.total}</td><td>${b.yards}</td><td>${b.avg}</td><td>${b.successPct}%</td><td>${b.tds}</td></tr>`;
+    const row = (label, b, key) => b.total === 0 ? '' :
+      `<tr class="cut-row" data-cut-type="situation" data-cut-val="${key}" data-cut-label="${label} — ${b.total} plays"><td>${label}</td><td>${b.total}</td><td>${b.yards}</td><td>${b.avg}</td><td>${b.successPct}%</td><td>${b.tds}</td></tr>`;
     const rows = [
-      row('Red Zone', s.redZone),
-      row('Goal Line', s.goalLine),
-      row('Backed Up', s.backedUp),
-      row('3rd & Long', s.thirdLong),
-      row('3rd & Short', s.thirdShort)
+      row('Red Zone', s.redZone, 'redZone'),
+      row('Goal Line', s.goalLine, 'goalLine'),
+      row('Backed Up', s.backedUp, 'backedUp'),
+      row('3rd & Long', s.thirdLong, 'thirdLong'),
+      row('3rd & Short', s.thirdShort, 'thirdShort')
     ].filter(Boolean).join('');
     if (!rows) return '';
 
@@ -14595,7 +14860,7 @@ class StatsEngine {
     const maxDown = Math.max(...Object.values(d.byDown).map(s => s.total));
     for (const [down, s] of Object.entries(d.byDown)) {
       if (s.total === 0) continue;
-      rows += `<tr>
+      rows += `<tr class="cut-row" data-cut-type="down" data-cut-val="${down}" data-cut-label="${labels[down]} down — ${s.total} plays">
         <td>${labels[down]}</td>
         <td>${s.total}</td>
         <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#ffd23f', label: 'Run' }, { value: parseInt(s.passPct), color: '#6cc4ff', label: 'Pass' }], 18)}</div></td>
@@ -14624,7 +14889,7 @@ class StatsEngine {
     const t = stats.tendencies;
 
     const formChart = Charts.effectivenessRows(
-      t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg }))
+      t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg, cutType: 'formation', cutVal: f.name, cutLabel: `${f.name} — ${f.count} plays` }))
     );
 
     const playTypeDonut = Charts.donutWithLegend(
@@ -14636,7 +14901,7 @@ class StatsEngine {
     );
 
     const typeChart = Charts.effectivenessRows(
-      t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg }))
+      t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg, cutType: 'playType', cutVal: pt.name, cutLabel: `${pt.name} — ${pt.count} plays` }))
     );
 
     return `
@@ -14800,14 +15065,14 @@ class StatsEngine {
       const avg = f.count ? (f.yards / f.count).toFixed(1) : '0.0';
       const defSucc = f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0';
       const havocPct = f.count ? ((f.havoc / f.count) * 100).toFixed(0) : '0';
-      frontRows += `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
+      frontRows += `<tr class="cut-row" data-cut-type="defFront" data-cut-val="${f.name}" data-cut-label="${f.name} front — ${f.count} plays"><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
     }
 
     let covRows = '';
     for (const c of d.coverages) {
       const avg = c.count ? (c.yards / c.count).toFixed(1) : '0.0';
       const defSucc = c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0';
-      covRows += `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      covRows += `<tr class="cut-row" data-cut-type="coverage" data-cut-val="${c.name}" data-cut-label="${c.name} — ${c.count} plays"><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let blitzRows = '';
@@ -14815,7 +15080,7 @@ class StatsEngine {
       const avg = b.count ? (b.yards / b.count).toFixed(1) : '0.0';
       const havocPct = b.count ? ((b.havoc / b.count) * 100).toFixed(0) : '0';
       const defSucc = b.count ? ((b.successes / b.count) * 100).toFixed(0) : '0';
-      blitzRows += `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      blitzRows += `<tr class="cut-row" data-cut-type="blitz" data-cut-val="${b.name}" data-cut-label="${b.name} blitz — ${b.count} plays"><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let sitFrontHtml = '';
@@ -19466,7 +19731,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
+    const fields = ['gameProjectName', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -19491,6 +19756,37 @@ class App {
         localStorage.setItem('ffa_claude_model', modelEl.value);
       });
     }
+
+    // Live "tracked" score: recompute from scoring plays whenever they change,
+    // and let the coach copy it into the Final Score with one click.
+    const applyBtn = document.getElementById('btnApplyTrackedScore');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => this._applyTrackedScore());
+    }
+    this.tagger.on('play-created', () => this._updateTrackedScore());
+    this.tagger.on('play-updated', () => this._updateTrackedScore());
+    this.tagger.on('play-deleted', () => this._updateTrackedScore());
+    this._updateTrackedScore();
+  }
+
+  /** Recompute the running scoreboard from tagged plays and show it. */
+  _updateTrackedScore() {
+    const el = document.getElementById('trackedScore');
+    if (!el || !this.stats) return;
+    const sb = this.stats.computeScoreboard();
+    el.textContent = `${sb.us} – ${sb.them}`;
+    el.classList.toggle('has-score', sb.hasData);
+    this._trackedScore = sb;
+  }
+
+  /** Copy the tracked score into the editable Final Score fields. */
+  _applyTrackedScore() {
+    const sb = this._trackedScore || this.stats.computeScoreboard();
+    const usEl = document.getElementById('gameScoreUs');
+    const themEl = document.getElementById('gameScoreThem');
+    if (usEl) usEl.value = sb.us;
+    if (themEl) themEl.value = sb.them;
+    this._saveGameInfo();
   }
 
   _saveApiKey() {
@@ -19502,6 +19798,7 @@ class App {
 
   _saveGameInfo() {
     this.storage.gameInfo = {
+      projectName: document.getElementById('gameProjectName')?.value || '',
       teamName: document.getElementById('gameTeamName')?.value || '',
       opponent: document.getElementById('gameOpponent')?.value || '',
       date: document.getElementById('gameDate')?.value || '',
@@ -19517,6 +19814,7 @@ class App {
   _loadGameInfo(info) {
     if (!info) return;
     const map = {
+      gameProjectName: info.projectName,
       gameTeamName: info.teamName,
       gameOpponent: info.opponent,
       gameDate: info.date,
