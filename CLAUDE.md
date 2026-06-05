@@ -160,8 +160,23 @@ Quick Chart mode also writes `play.tags.players` for the same roles.
 `CutupPlayer` plays a set of plays back-to-back in the existing `<video>`:
 seek to each play's start, run to its end, auto-advance to the next. A
 floating banner shows label + position with Prev/Next/Exit (←/→/Esc).
-Triggered by clicking a player row in the stats dashboard. Distinct from
-`cutup-exporter.js`, which renders a downloadable stitched video file.
+Distinct from `cutup-exporter.js`, which renders a downloadable stitched
+video file.
+
+**Every data point ties to video** (Hudl-style): clicking *any* highlighted
+stat in the dashboard launches a cut-up of exactly those plays — not just
+player rows. Formation / Play Type effectiveness rows, the Down & Distance
+table, the Situational table (Red Zone, Goal Line, Backed Up, 3rd & Long/
+Short), and the Defensive Front / Coverage / Blitz tables all carry
+`data-cut-type` / `data-cut-val` attributes. `_renderDashboard` wires every
+`.cut-row[data-cut-type]` to `_watchPlays(filter, label)`; `_buildCutFilter
+(type, val)` returns the predicate (offense dimensions match offense-unit
+plays, defensive dimensions match defense-unit plays — mirroring the stats
+partition). `_watchPlayer` is now a thin wrapper over `_watchPlays`. Rows
+without a playable video region fall back to selecting the first match. A
+hover ▶ + tooltip and a one-line `.stats-cut-hint` banner make it
+discoverable. `Charts.effectivenessRows` emits the cut attributes when an
+item carries `cutType`/`cutVal`/`cutLabel`.
 
 ### Season Player Roll-Up (`season-manager.js`)
 The Season modal aggregates plays across loaded game files. Because
@@ -557,6 +572,25 @@ The stats engine (`js/stats-engine.js`) computes:
 - Per-player grades (avg from play.tags.grades)
 - Game flow (cumulative yards play-by-play)
 - Opponent scouting report (formation/down tendencies with run/pass splits)
+- **Scoreboard** (`computeScoreboard`, `_renderScoreboard`) — a running score
+  built from tagged scoring plays. `StatsEngine.playPoints(p)` scores each play
+  (TD = 6, made FG = 3, made XP = 1, made 2-Pt = 2; "made" = the explicit
+  `Good` result or a `Touchdown`/`Field Goal` result). `scoringSide(p)`
+  attributes points: Offense / Special Teams plays count for us, Defense plays
+  for the opponent (the rare pick-six is fixed via the manual Final Score). The
+  Scoreboard section leads the dashboard with the final + a per-quarter table.
+  Live mirror in Game Info: `App._updateTrackedScore()` shows a "Tracked"
+  score that updates on every play change; "Apply →"
+  (`_applyTrackedScore`) copies it into the editable Final Score fields.
+
+### Game / Project Name
+
+Game Info has a **Game / Project** field (`#gameProjectName`, stored on
+`gameInfo.projectName`, schema unchanged — it's just another key). It labels the
+project: `StorageManager._projectFileBase()` uses it (slugified) for the save
+JSON + CSV filenames (falling back to the video name), and `_gameTitle()` uses
+it as the stats-dashboard / report heading. Wired through `App._bindGameInfo`
+/ `_saveGameInfo` / `_loadGameInfo` like the other Game Info fields.
 
 ### Visual Analytics (`js/charts.js`)
 

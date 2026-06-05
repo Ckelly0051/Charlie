@@ -815,6 +815,7 @@ export class StatsEngine {
             </div>
           </div>
           <div class="stats-body">
+            <div class="stats-cut-hint">▶ Tip: click any highlighted stat row (formation, play type, down, situation, defense) or player to watch those exact plays as a film cut-up.</div>
             ${this._renderScoreboard(stats)}
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
@@ -858,6 +859,17 @@ export class StatsEngine {
       row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
     });
 
+    // "Every data point ties to video": click any tagged stat row (formation,
+    // play type, down, situation, defensive front/coverage/blitz) to launch a
+    // film cut-up of exactly those plays.
+    el.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
+      row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
+      row.addEventListener('click', () => {
+        const filter = this._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
+        this._watchPlays(filter, row.dataset.cutLabel || '');
+      });
+    });
+
     // Tendency matrix dimension pickers
     this._bindTendencyMatrix(el);
 
@@ -870,21 +882,65 @@ export class StatsEngine {
   /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
   _watchPlayer(num) {
     if (!num) return;
+    this._watchPlays(p => {
+      const pl = p.tags.players || {};
+      // Player values may hold multiple jersey #s (e.g. shared tackles).
+      return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
+    }, `${this._playerLabel(num)} — cut-up`);
+  }
+
+  /**
+   * Play every snap matching `filter` back-to-back (cut-up). Shared by player
+   * rows and every clickable stat row. Only plays with a real video region are
+   * playable; if none match (e.g. stats-only imported plays), fall back to
+   * selecting the first match so the click is never a silent no-op.
+   */
+  _watchPlays(filter, label) {
+    if (typeof filter !== 'function') return;
     const matches = this.tagger.plays
-      .filter(p => {
-        const pl = p.tags.players || {};
-        // Player values may hold multiple jersey #s (e.g. shared tackles).
-        return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
-      })
-      .sort((a, b) => a.timestamp.start - b.timestamp.start);
+      .filter(p => p && p.tags && filter(p))
+      .sort((a, b) => (a.timestamp?.start || 0) - (b.timestamp?.start || 0));
     if (matches.length === 0) return;
+    const playable = matches.filter(p => p.timestamp && p.timestamp.end > p.timestamp.start);
     this.hideDashboard();
-    const ids = matches.map(p => p.id);
-    const label = `${this._playerLabel(num)} — cut-up`;
-    if (window.app && window.app.cutupPlayer) {
-      window.app.cutupPlayer.start(ids, label);
+    const ids = (playable.length ? playable : matches).map(p => p.id);
+    if (playable.length && window.app && window.app.cutupPlayer) {
+      window.app.cutupPlayer.start(ids, label || `${ids.length} plays`);
     } else {
       this.tagger.selectPlay(ids[0]);
+    }
+  }
+
+  /**
+   * Build a play-filter predicate for a clickable stat row. Offense-tagged
+   * dimensions (formation, play type, down, situation) match our offensive
+   * plays; defensive dimensions (front/coverage/blitz) match our defensive
+   * plays — mirroring how the dashboard partitions stats by unit.
+   */
+  _buildCutFilter(type, val) {
+    const isOff = p => (p.tags.unit || 'offense') === 'offense';
+    const isDef = p => p.tags.unit === 'defense';
+    const absYL = p => this._absYardLine(p.tags);
+    switch (type) {
+      case 'formation': return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(val);
+      case 'playType':  return p => isOff(p) && StatsEngine.splitPlayTypes(p.tags.playType).includes(val);
+      case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
+      case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
+      case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
+      case 'defFront':  return p => isDef(p) && (p.tags.defFront || '') === val;
+      case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
+      case 'blitz':     return p => isDef(p) && (p.tags.blitz || '') === val;
+      case 'situation': {
+        switch (val) {
+          case 'redZone':    return p => isOff(p) && absYL(p) !== null && absYL(p) >= 80;
+          case 'goalLine':   return p => isOff(p) && absYL(p) !== null && absYL(p) >= 95;
+          case 'backedUp':   return p => isOff(p) && absYL(p) !== null && absYL(p) <= 10;
+          case 'thirdLong':  return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7;
+          case 'thirdShort': return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 1 && (parseInt(p.tags.distance) || 0) <= 3;
+          default: return null;
+        }
+      }
+      default: return null;
     }
   }
 
@@ -1076,14 +1132,14 @@ export class StatsEngine {
 
   _renderSituational(stats) {
     const s = stats.situational;
-    const row = (label, b) => b.total === 0 ? '' :
-      `<tr><td>${label}</td><td>${b.total}</td><td>${b.yards}</td><td>${b.avg}</td><td>${b.successPct}%</td><td>${b.tds}</td></tr>`;
+    const row = (label, b, key) => b.total === 0 ? '' :
+      `<tr class="cut-row" data-cut-type="situation" data-cut-val="${key}" data-cut-label="${label} — ${b.total} plays"><td>${label}</td><td>${b.total}</td><td>${b.yards}</td><td>${b.avg}</td><td>${b.successPct}%</td><td>${b.tds}</td></tr>`;
     const rows = [
-      row('Red Zone', s.redZone),
-      row('Goal Line', s.goalLine),
-      row('Backed Up', s.backedUp),
-      row('3rd & Long', s.thirdLong),
-      row('3rd & Short', s.thirdShort)
+      row('Red Zone', s.redZone, 'redZone'),
+      row('Goal Line', s.goalLine, 'goalLine'),
+      row('Backed Up', s.backedUp, 'backedUp'),
+      row('3rd & Long', s.thirdLong, 'thirdLong'),
+      row('3rd & Short', s.thirdShort, 'thirdShort')
     ].filter(Boolean).join('');
     if (!rows) return '';
 
@@ -1260,7 +1316,7 @@ export class StatsEngine {
     const maxDown = Math.max(...Object.values(d.byDown).map(s => s.total));
     for (const [down, s] of Object.entries(d.byDown)) {
       if (s.total === 0) continue;
-      rows += `<tr>
+      rows += `<tr class="cut-row" data-cut-type="down" data-cut-val="${down}" data-cut-label="${labels[down]} down — ${s.total} plays">
         <td>${labels[down]}</td>
         <td>${s.total}</td>
         <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#ffd23f', label: 'Run' }, { value: parseInt(s.passPct), color: '#6cc4ff', label: 'Pass' }], 18)}</div></td>
@@ -1289,7 +1345,7 @@ export class StatsEngine {
     const t = stats.tendencies;
 
     const formChart = Charts.effectivenessRows(
-      t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg }))
+      t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg, cutType: 'formation', cutVal: f.name, cutLabel: `${f.name} — ${f.count} plays` }))
     );
 
     const playTypeDonut = Charts.donutWithLegend(
@@ -1301,7 +1357,7 @@ export class StatsEngine {
     );
 
     const typeChart = Charts.effectivenessRows(
-      t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg }))
+      t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg, cutType: 'playType', cutVal: pt.name, cutLabel: `${pt.name} — ${pt.count} plays` }))
     );
 
     return `
@@ -1465,14 +1521,14 @@ export class StatsEngine {
       const avg = f.count ? (f.yards / f.count).toFixed(1) : '0.0';
       const defSucc = f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0';
       const havocPct = f.count ? ((f.havoc / f.count) * 100).toFixed(0) : '0';
-      frontRows += `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
+      frontRows += `<tr class="cut-row" data-cut-type="defFront" data-cut-val="${f.name}" data-cut-label="${f.name} front — ${f.count} plays"><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
     }
 
     let covRows = '';
     for (const c of d.coverages) {
       const avg = c.count ? (c.yards / c.count).toFixed(1) : '0.0';
       const defSucc = c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0';
-      covRows += `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      covRows += `<tr class="cut-row" data-cut-type="coverage" data-cut-val="${c.name}" data-cut-label="${c.name} — ${c.count} plays"><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let blitzRows = '';
@@ -1480,7 +1536,7 @@ export class StatsEngine {
       const avg = b.count ? (b.yards / b.count).toFixed(1) : '0.0';
       const havocPct = b.count ? ((b.havoc / b.count) * 100).toFixed(0) : '0';
       const defSucc = b.count ? ((b.successes / b.count) * 100).toFixed(0) : '0';
-      blitzRows += `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      blitzRows += `<tr class="cut-row" data-cut-type="blitz" data-cut-val="${b.name}" data-cut-label="${b.name} blitz — ${b.count} plays"><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let sitFrontHtml = '';
