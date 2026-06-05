@@ -752,7 +752,7 @@ export class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
-    const stop = ['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Kneel', 'Spike', 'Penalty'];
+    const stop = ['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Penalty'];
     if (stop.includes(t.result)) return null;
 
     const down = parseInt(t.down);

@@ -82,12 +82,18 @@ export class StatsEngine {
   compute(playsOverride = null) {
     let plays;
     let filterActive = false;
+    // Broader source for ST/conversion plays, which often have no offensive
+    // playType and would otherwise be filtered out below.
+    let convSource = (playsOverride || (this.tagger ? this.tagger.plays : [])).filter(p => p && p.tags);
     if (playsOverride) {
       plays = playsOverride.filter(p => p.tags && p.tags.playType);
     } else {
       plays = this.tagger.plays.filter(p => p.tags.playType);
       filterActive = this.filter && this.filter.active;
-      if (filterActive) plays = this.filter.filter(plays);
+      if (filterActive) {
+        plays = this.filter.filter(plays);
+        convSource = this.filter.filter(convSource);
+      }
     }
 
     const stats = {
@@ -107,7 +113,8 @@ export class StatsEngine {
       personnel: this._personnelStats(plays),
       advanced: this.advanced.summarize(plays),
       defensive: this._defensiveStats(plays),
-      gameFlow: this._gameFlowStats(plays)
+      gameFlow: this._gameFlowStats(plays),
+      conversions: this._conversionStats(convSource)
     };
 
     return stats;
@@ -129,6 +136,9 @@ export class StatsEngine {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
     if (p.tags.result === 'Touchdown') return true;
+    // Conversion / kick outcomes are explicit success/failure markers.
+    if (p.tags.result === 'Good') return true;
+    if (p.tags.result === 'No Good') return false;
     if (p.tags.custom?.includes('1st Down')) return true;
     switch (p.tags.down) {
       case '1': return yds >= dist * 0.5;
@@ -415,6 +425,23 @@ export class StatsEngine {
     };
   }
 
+  /**
+   * PAT / 2-point conversion success. Keyed on stType ('XP' | '2-Pt') and the
+   * explicit Good / No Good (or Touchdown / Field Goal) result, so it works
+   * even on ST plays that carry no offensive playType.
+   */
+  _conversionStats(source) {
+    const made = (r) => r === 'Good' || r === 'Touchdown' || r === 'Field Goal';
+    const tally = (type) => {
+      const att = source.filter(p => p.tags.stType === type);
+      const m = att.filter(p => made(p.tags.result)).length;
+      return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
+    };
+    const two = tally('2-Pt');
+    const xp = tally('XP');
+    return { two, xp, hasData: two.att > 0 || xp.att > 0 };
+  }
+
   _downStats(plays) {
     const byDown = { '1': [], '2': [], '3': [], '4': [] };
     plays.forEach(p => {
@@ -585,8 +612,8 @@ export class StatsEngine {
         if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
         if (st === 'Field Goal' || st === 'XP') {
           kickers[id].fgAtt++;
-          // result 'Field Goal' (made) or a scoring result counts as made
-          if (p.tags.result === 'Field Goal' || p.tags.result === 'Touchdown') kickers[id].fgMade++;
+          // 'Good'/'Field Goal' (made) or a scoring result counts as made
+          if (p.tags.result === 'Good' || p.tags.result === 'Field Goal' || p.tags.result === 'Touchdown') kickers[id].fgMade++;
         } else if (st === 'Punt') {
           kickers[id].punts++;
           kickers[id].puntYds += yds;
@@ -698,6 +725,7 @@ export class StatsEngine {
             ${this.heatMaps.render(this._currentPlays())}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
+            ${this._renderConversions(stats)}
             ${this._renderDrives(stats)}
             ${Visualizations.render(this._currentPlays())}
             ${this._renderGameFlow(stats)}
@@ -882,6 +910,23 @@ export class StatsEngine {
             </table>
           </div>
         </div>
+      </div>`;
+  }
+
+  _renderConversions(stats) {
+    const c = stats.conversions;
+    if (!c || !c.hasData) return '';
+    const card = (label, d) => {
+      if (!d.att) return '';
+      const color = d.pct >= 60 ? '#22c55e' : d.pct >= 40 ? '#eab308' : '#ef4444';
+      return `${Charts.gauge(d.pct, `${label} ${d.made}/${d.att}`, color, 110)}`;
+    };
+    const cards = [card('2-Point', c.two), card('PAT (XP)', c.xp)].filter(Boolean).join('');
+    return `
+      <div class="stats-section">
+        <h3>PAT &amp; 2-Point Conversions</h3>
+        <div class="sit-gauges-row">${cards}</div>
+        <p class="viz-caption">Tag the ST Play Type (2-Pt / XP) and pick <b>Good</b> or <b>No Good</b> in Result to chart conversion success.</p>
       </div>`;
   }
 
