@@ -101,7 +101,7 @@ export class PlayTagger {
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
     // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
-    const multiFields = new Set(['formation', 'playType']);
+    const multiFields = new Set(['formation', 'playType', 'result']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
@@ -590,7 +590,8 @@ export class PlayTagger {
     const raw = el ? String(el.value).trim() : String(play.tags.yardage ?? '');
     if (raw === '') { play.tags.yardage = ''; return; }
     const mag = Math.abs(parseInt(raw, 10) || 0);
-    const neg = play.tags.result === 'Loss' || play.tags.result === 'Sack';
+    const parts = String(play.tags.result || '').split(/\s*\+\s*/);
+    const neg = parts.includes('Loss') || parts.includes('Sack');
     play.tags.yardage = String(neg ? -mag : mag);
     if (el) el.value = String(mag); // keep the field showing the magnitude
   }
@@ -786,8 +787,9 @@ export class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
-    const stop = ['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Penalty'];
-    if (stop.includes(t.result)) return null;
+    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Penalty', 'Safety']);
+    const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    if (resultParts.some(r => stop.has(r))) return null;
 
     const down = parseInt(t.down);
     const distance = parseInt(t.distance);

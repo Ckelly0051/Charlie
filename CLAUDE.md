@@ -118,7 +118,7 @@ server/                       # Optional local Python backend (YOLO-based)
     personnel: '',      // '00'-'23' | 'Jumbo' | 'Goal Line'
     runPass: '',        // 'Run' | 'Pass' | '' — explicit run/pass classifier, authoritative for all run/pass analytics. Auto-filled from unambiguous playType; coach sets it for RPO/Play Action/Trick. StatsEngine.isRun()/isPass() are canonical and fall back to playType-string inference when runPass is blank (legacy data).
     playType: '',       // MULTI-SELECT. One or more of 'Run Inside' | 'Run Outside' | 'Screen' | 'Short Pass' | 'Medium Pass' | 'Deep Pass' | 'Play Action' | 'RPO' | 'Trick Play', stored as a " + "-joined string (e.g. 'RPO + Short Pass' — an RPO that became a pass). ChipField({multi:true}); StatsEngine.splitPlayTypes() is the canonical splitter; analytics attribute the play to each component.
-    result: '',         // 'Gain' | 'Loss' | 'No Gain' | 'Incomplete' | 'Interception' | 'Touchdown' | 'Sack' | 'Fumble' | 'Penalty' | 'Punt' | 'Field Goal' | 'Good' | 'No Good' | 'Kneel' | 'Spike'. 'Good'/'No Good' mark conversion/kick success (2-Pt, XP, FG) — counts as success/failure in efficiency + the PAT/2-Point conversions stat.
+    result: '',         // MULTI-SELECT. One or more of 'Gain' | 'Loss' | 'No Gain' | 'Incomplete' | 'Interception' | 'Touchdown' | 'Sack' | 'Fumble' | 'Penalty' | 'Punt' | 'Field Goal' | 'Good' | 'No Good' | 'Kneel' | 'Spike' | 'Safety', stored as a " + "-joined string (e.g. 'Fumble + Touchdown' for a scoop-and-score, 'Interception + Touchdown' for a pick-six). ChipField({multi:true}); StatsEngine.splitResults()/hasResult() are the canonical accessors. 'Good'/'No Good' mark conversion/kick success (2-Pt, XP, FG). 'Safety' = 2 pts, always attributed to the defensive team.
     yardage: '',        // integer, signed (negative for loss/sack). The tag form enters it as a MAGNITUDE — the Result chip (Loss/Sack) supplies the sign, so the coach never types a minus (PlayTagger._applyYardageSign). Stored signed for stats/EPA/export.
     hash: '',           // 'Left' | 'Middle' | 'Right'
     defFront: '',       // '4-3' | '3-4' | '4-4' | '5-2' | '4-2-5' | 'Nickel' | 'Dime' | 'Quarter' | '4-6'
@@ -574,10 +574,13 @@ The stats engine (`js/stats-engine.js`) computes:
 - Opponent scouting report (formation/down tendencies with run/pass splits)
 - **Scoreboard** (`computeScoreboard`, `_renderScoreboard`) — a running score
   built from tagged scoring plays. `StatsEngine.playPoints(p)` scores each play
-  (TD = 6, made FG = 3, made XP = 1, made 2-Pt = 2; "made" = the explicit
-  `Good` result or a `Touchdown`/`Field Goal` result). `scoringSide(p)`
+  (TD = 6, Safety = 2, made FG = 3, made XP = 1, made 2-Pt = 2; "made" = the
+  explicit `Good` result or a `Touchdown`/`Field Goal` result). `scoringSide(p)`
   attributes points: Offense / Special Teams plays count for us, Defense plays
-  for the opponent (the rare pick-six is fixed via the manual Final Score). The
+  for the opponent — **except** defensive scores (pick-six = `Interception +
+  Touchdown`, scoop-and-score = `Fumble + Touchdown`, or `Safety`) count for us.
+  The multi-select Result field handles this: tag a defensive play with both
+  `Fumble` and `Touchdown` to record a scoop-and-score.
   Scoreboard section leads the dashboard with the final + a per-quarter table.
   Live mirror in Game Info: `App._updateTrackedScore()` shows a "Tracked"
   score that updates on every play change; "Apply →"

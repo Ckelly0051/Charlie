@@ -95,11 +95,12 @@ export class HeatMaps {
 
       const yds = parseInt(p.tags.yardage) || 0;
       let color = '#888', radius = 5;
-      if (p.tags.result === 'Touchdown') { color = '#44ff44'; radius = 7; }
+      const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
+      if (rParts.includes('Touchdown')) { color = '#44ff44'; radius = 7; }
       else if (yds >= 20) { color = '#88ddff'; radius = 6; }
       else if (yds >= 4) { color = '#ffaa00'; }
-      else if (yds <= 0 || /loss|sack/i.test(p.tags.result || '')) { color = '#ff4444'; }
-      else if (/interception|fumble/i.test(p.tags.result || '')) { color = '#ff00ff'; radius = 6; }
+      else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ff4444'; }
+      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#ff00ff'; radius = 6; }
 
       const desc = `Play ${p.id}: ${p.tags.playType || ''} ${yds}yd ${p.tags.result || ''}`.trim();
       dots += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.5" opacity="0.8"><title>${this._escape(desc)}</title></circle>`;
@@ -259,7 +260,7 @@ export class HeatMaps {
   _isSuccess(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
-    if (p.tags.result === 'Touchdown') return true;
+    if (String(p.tags.result || '').split(/\s*\+\s*/).includes('Touchdown')) return true;
     if (p.tags.custom?.includes('1st Down')) return true;
     switch (p.tags.down) {
       case '1': return yds >= dist * 0.5;

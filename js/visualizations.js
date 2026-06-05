@@ -21,7 +21,7 @@ export class Visualizations {
   static isSuccess(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
-    if (p.tags.result === 'Touchdown') return true;
+    if (String(p.tags.result || '').split(/\s*\+\s*/).includes('Touchdown')) return true;
     if (p.tags.custom && p.tags.custom.includes('1st Down')) return true;
     switch (p.tags.down) {
       case '1': return yds >= dist * 0.5;
