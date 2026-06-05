@@ -8,6 +8,7 @@ import { HeatMaps } from './heat-maps.js';
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
+import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
 
 export class StatsEngine {
   /**
@@ -244,23 +245,19 @@ export class StatsEngine {
   }
 
   _driveStats(plays) {
-    const drives = {};
-    plays.forEach(p => {
-      const d = p.tags.driveNumber || '?';
-      if (!drives[d]) drives[d] = { number: d, plays: [], yards: 0, result: '' };
-      drives[d].plays.push(p);
-      drives[d].yards += parseInt(p.tags.yardage) || 0;
-    });
-    const list = Object.values(drives).map(dr => {
-      const last = dr.plays[dr.plays.length - 1];
-      const r = last?.tags.result || '';
+    // Reconstruct drives from the play sequence — the same model the
+    // three-and-out count uses — so the panel stays correct even when the coach
+    // never clicks "New Drive" (which leaves every play on driveNumber "1").
+    const list = this._reconstructDrives(plays).map((dp, idx) => {
+      const yards = dp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      const r = dp[dp.length - 1]?.tags.result || '';
       let outcome = 'Other';
       if (r === 'Touchdown') outcome = 'TD';
       else if (r === 'Field Goal') outcome = 'FG';
       else if (r === 'Punt') outcome = 'Punt';
       else if (r === 'Interception' || r === 'Fumble') outcome = 'Turnover';
       else if (r === 'Kneel') outcome = 'Kneel';
-      return { ...dr, plays: dr.plays.length, outcome };
+      return { number: idx + 1, plays: dp.length, yards, outcome };
     });
     return {
       total: list.length,
@@ -449,30 +446,28 @@ export class StatsEngine {
   }
 
   _countThreeAndOuts(plays) {
-    // A three-and-out = the defense forced the offense off the field in three
-    // plays without a first down (ending in a punt). We must NOT rely on the
-    // driveNumber tag: it's only set when the coach clicks "New Drive", so a
-    // normally-tagged game leaves every play on drive "1" — which made this
-    // always report 0. Instead, reconstruct drives from the play sequence.
+    // A three-and-out = the defense forced the offense to give the ball back in
+    // three plays without a first down. We must NOT rely on the driveNumber
+    // tag: it's only set when the coach clicks "New Drive", so a normally-tagged
+    // game leaves every play on drive "1" — which made this always report 0.
+    // Instead, reconstruct drives from the play sequence.
     const drives = this._reconstructDrives(plays);
-    return drives.filter(dp => {
+    // Results that mean the possession ended some other way than a forced punt.
+    const NON_PUNT = ['Touchdown', 'Field Goal', 'Good', 'Interception',
+      'Fumble', 'Kneel', 'Spike'];
+    return drives.filter((dp, idx) => {
       if (dp.length > 3) return false;
-      // Not a forced punt if the offense scored, turned it over (counted
-      // separately), or it was a victory-formation kneel/spike.
-      const excluded = dp.some(p => ['Touchdown', 'Field Goal', 'Good',
-        'Interception', 'Fumble', 'Kneel', 'Spike'].includes(p.tags.result));
-      if (excluded) return false;
+      if (dp.some(p => NON_PUNT.includes(p.tags.result))) return false;
       // Any first down extends the possession — no longer a three-and-out.
-      return !dp.some(p => StatsEngine._gainedFirstDown(p));
+      if (dp.some(p => gainedFirstDown(p.tags))) return false;
+      // The offense must actually have surrendered the ball: an explicit punt,
+      // or another possession follows (so this one ended in an untagged punt).
+      // Without this, a short drive cut off by the end of a half/game — or a
+      // partially-tagged final drive — would be miscounted as a three-and-out.
+      const punted = dp[dp.length - 1].tags.result === 'Punt';
+      const possessionFollowed = idx < drives.length - 1;
+      return punted || possessionFollowed;
     }).length;
-  }
-
-  /** Did this play earn a first down? (explicit tag, or yardage >= distance) */
-  static _gainedFirstDown(p) {
-    if (p.tags.custom?.includes('1st Down')) return true;
-    const dist = parseInt(p.tags.distance);
-    const yds = parseInt(p.tags.yardage);
-    return !isNaN(dist) && !isNaN(yds) && yds >= dist;
   }
 
   /**
@@ -485,23 +480,23 @@ export class StatsEngine {
     const ordered = [...plays].sort((a, b) =>
       ((a.timestamp && a.timestamp.start) ?? a.id ?? 0) -
       ((b.timestamp && b.timestamp.start) ?? b.id ?? 0));
-    const enders = new Set(['Touchdown', 'Field Goal', 'Punt', 'Interception',
-      'Fumble', 'Good', 'No Good', 'Safety', 'Kneel', 'Spike']);
     const drives = [];
     let cur = [];
     ordered.forEach((p, i) => {
-      const prev = ordered[i - 1];
-      const boundary = i > 0 && (
-        (prev && enders.has(prev.tags.result)) ||
-        (p.tags.down === '1' && !StatsEngine._gainedFirstDown(prev))
-      );
-      if (boundary && cur.length) { drives.push(cur); cur = []; }
+      const prev = i > 0 ? ordered[i - 1] : null;
+      // A drive ends on a possession-ending result...
+      const possessionEnded = prev && DRIVE_ENDERS.has(prev.tags.result);
+      // ...or when the down resets to 1st without a first down being earned (the
+      // ball changed hands off-camera). A penalty can legally reset the down
+      // within the same drive, so it never starts a new possession on its own.
+      const downReset = prev && p.tags.down === '1' &&
+        prev.tags.result !== 'Penalty' && !gainedFirstDown(prev.tags);
+      if ((possessionEnded || downReset) && cur.length) { drives.push(cur); cur = []; }
       cur.push(p);
     });
     if (cur.length) drives.push(cur);
     return drives;
   }
-
 
   _rushingStats(plays) {
     const rushPlays = plays.filter(p => StatsEngine.isRun(p));

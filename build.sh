@@ -46,6 +46,7 @@ SCRIPTSTART
 
 # Inline all JS in dependency order, stripping module syntax
 for jsfile in \
+  js/football-rules.js \
   js/video-controller.js \
   js/canvas-overlay.js \
   js/play-tagger.js \

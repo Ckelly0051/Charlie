@@ -1,3 +1,5 @@
+import { gainedFirstDown } from './football-rules.js';
+
 /**
  * ChipField — lightweight wrapper so a div.pick-group behaves like a
  * <select> for the rest of the tagger: .value get/set, change events.
@@ -794,7 +796,7 @@ export class PlayTagger {
     let gained = parseInt(t.yardage);
     if (isNaN(gained)) gained = 0;
 
-    const firstDown = (gained >= distance) || (Array.isArray(t.custom) && t.custom.includes('1st Down'));
+    const firstDown = gainedFirstDown(t);
 
     // Field position only makes sense for the offense's own yardage.
     let fieldSide = null, yardLine = null, newAbs = null;
