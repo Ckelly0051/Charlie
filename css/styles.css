@@ -255,6 +255,8 @@ body {
 .scrub-bar-container {
   flex: 1;
   padding: 0 4px;
+  position: relative;
+  z-index: 1;
 }
 
 .scrub-bar {
@@ -1425,6 +1427,22 @@ body {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
+
+.takeaways-section {
+  background: rgba(255, 210, 63, 0.08);
+  border: 1px solid rgba(255, 210, 63, 0.25);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.takeaways-list {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.takeaways-list li { margin-bottom: 4px; }
+.takeaways-list li::marker { color: var(--accent, #ffd23f); }
 
 .stats-two-col {
   display: grid;
@@ -5450,6 +5468,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   padding: 10px 12px;
   background: var(--surface);
   border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 2;
 }
 .video-play-controls .btn { flex: 0 0 auto; }
 .video-play-controls .play-select {

@@ -262,6 +262,8 @@ body {
 .scrub-bar-container {
   flex: 1;
   padding: 0 4px;
+  position: relative;
+  z-index: 1;
 }
 
 .scrub-bar {
@@ -1432,6 +1434,22 @@ body {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
+
+.takeaways-section {
+  background: rgba(255, 210, 63, 0.08);
+  border: 1px solid rgba(255, 210, 63, 0.25);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.takeaways-list {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.takeaways-list li { margin-bottom: 4px; }
+.takeaways-list li::marker { color: var(--accent, #ffd23f); }
 
 .stats-two-col {
   display: grid;
@@ -5457,6 +5475,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   padding: 10px 12px;
   background: var(--surface);
   border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 2;
 }
 .video-play-controls .btn { flex: 0 0 auto; }
 .video-play-controls .play-select {
@@ -13781,8 +13801,13 @@ class StatsEngine {
       defensive: this._defensiveStats(defPlays),
       gameFlow: this._gameFlowStats(offPlays),
       conversions: this._conversionStats(convSource),
-      scoreboard: this.computeScoreboard(convSource)
+      scoreboard: this.computeScoreboard(convSource),
+      hash: this._hashStats(offPlays),
+      personnelSituation: this._personnelSituationStats(offPlays),
+      frontCoverageCombos: this._frontCoverageCombos(defPlays),
+      playAction: this._playActionStats(offPlays),
     };
+    stats.takeaways = this._generateTakeaways(stats);
 
     return stats;
   }
@@ -14290,6 +14315,236 @@ class StatsEngine {
     });
   }
 
+  // ===== Feature 2: Hash tendencies ====================================
+  _hashStats(plays) {
+    const hashes = {};
+    plays.forEach(p => {
+      const h = p.tags.hash;
+      if (!h) return;
+      if (!hashes[h]) hashes[h] = { name: h, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+      hashes[h].count++;
+      hashes[h].yards += parseInt(p.tags.yardage) || 0;
+      if (StatsEngine.isRun(p)) hashes[h].runs++; else hashes[h].passes++;
+      if (this._isSuccessfulPlay(p)) hashes[h].successes++;
+    });
+    const list = Object.values(hashes).map(h => ({
+      ...h,
+      runPct: h.count ? ((h.runs / h.count) * 100).toFixed(0) : '0',
+      avg: h.count ? (h.yards / h.count).toFixed(1) : '0.0',
+      successPct: h.count ? ((h.successes / h.count) * 100).toFixed(0) : '0',
+    })).sort((a, b) => b.count - a.count);
+    const formations = {};
+    plays.forEach(p => {
+      if (!p.tags.hash) return;
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        const k = `${p.tags.hash}|${f}`;
+        formations[k] = (formations[k] || 0) + 1;
+      });
+    });
+    return { list, formations, hasData: list.length > 0 };
+  }
+
+  // ===== Feature 3: Personnel × Situation cross-tab =====================
+  _personnelSituationStats(plays) {
+    const combos = {};
+    plays.forEach(p => {
+      const pers = p.tags.personnel || '';
+      if (!pers) return;
+      const sit = this._situationBucket(p);
+      const k = `${pers}|${sit}`;
+      if (!combos[k]) combos[k] = { personnel: pers, situation: sit, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
+      combos[k].count++;
+      combos[k].yards += parseInt(p.tags.yardage) || 0;
+      if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
+      if (this._isSuccessfulPlay(p)) combos[k].successes++;
+    });
+    const list = Object.values(combos).map(c => ({
+      ...c,
+      runPct: c.count ? ((c.runs / c.count) * 100).toFixed(0) : '0',
+      avg: c.count ? (c.yards / c.count).toFixed(1) : '0.0',
+      successPct: c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0',
+    })).filter(c => c.count >= 2).sort((a, b) => b.count - a.count);
+    return { list, hasData: list.length > 0 };
+  }
+
+  _situationBucket(p) {
+    const d = p.tags.down;
+    const dist = parseInt(p.tags.distance) || 0;
+    if (d === '1') return '1st Down';
+    if (d === '2' && dist <= 3) return '2nd & Short';
+    if (d === '2') return '2nd & Long';
+    if (d === '3' && dist <= 3) return '3rd & Short';
+    if (d === '3' && dist <= 6) return '3rd & Med';
+    if (d === '3') return '3rd & Long';
+    if (d === '4') return '4th Down';
+    return 'Other';
+  }
+
+  // ===== Feature 4: Defensive front + coverage combos ====================
+  _frontCoverageCombos(plays) {
+    const combos = {};
+    plays.forEach(p => {
+      const front = p.tags.defFront;
+      const cov = p.tags.coverage;
+      if (!front || !cov) return;
+      const k = `${front} + ${cov}`;
+      if (!combos[k]) combos[k] = { name: k, front, coverage: cov, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0 };
+      const yds = parseInt(p.tags.yardage) || 0;
+      combos[k].count++;
+      combos[k].yards += yds;
+      if (!this._isSuccessfulPlay(p)) combos[k].successes++;
+      if (p.tags.result === 'Sack' || p.tags.result === 'Interception' ||
+          p.tags.result === 'Fumble' || (yds < 0 && p.tags.result !== 'Sack'))
+        combos[k].havoc++;
+      if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
+    });
+    const list = Object.values(combos).map(c => ({
+      ...c,
+      avg: c.count ? (c.yards / c.count).toFixed(1) : '0.0',
+      stopPct: c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0',
+      havocPct: c.count ? ((c.havoc / c.count) * 100).toFixed(0) : '0',
+    })).filter(c => c.count >= 2).sort((a, b) => b.count - a.count);
+    return { list, hasData: list.length > 0 };
+  }
+
+  // ===== Feature 6: Play-action as first-class metric ====================
+  _playActionStats(plays) {
+    const paPlays = plays.filter(p => {
+      const types = StatsEngine.splitPlayTypes(p.tags.playType);
+      return types.includes('Play Action');
+    });
+    const dropbacks = plays.filter(p => StatsEngine.isPass(p));
+    const straightDrops = dropbacks.filter(p => {
+      const types = StatsEngine.splitPlayTypes(p.tags.playType);
+      return !types.includes('Play Action');
+    });
+
+    const paRate = dropbacks.length ? ((paPlays.length / dropbacks.length) * 100).toFixed(1) : '0.0';
+    const paComps = paPlays.filter(p => p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain');
+    const paAttempts = paPlays.filter(p => p.tags.result !== 'Sack').length;
+    const paYards = paPlays.reduce((s, p) => {
+      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return s;
+      return s + (parseInt(p.tags.yardage) || 0);
+    }, 0);
+    const straightComps = straightDrops.filter(p => p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain');
+    const straightAttempts = straightDrops.filter(p => p.tags.result !== 'Sack').length;
+    const straightYards = straightDrops.reduce((s, p) => {
+      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return s;
+      return s + (parseInt(p.tags.yardage) || 0);
+    }, 0);
+
+    const byFormation = {};
+    paPlays.forEach(p => {
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        if (!byFormation[f]) byFormation[f] = { name: f, count: 0, yards: 0, successes: 0 };
+        byFormation[f].count++;
+        byFormation[f].yards += parseInt(p.tags.yardage) || 0;
+        if (this._isSuccessfulPlay(p)) byFormation[f].successes++;
+      });
+    });
+    const formationList = Object.values(byFormation).map(f => ({
+      ...f,
+      avg: f.count ? (f.yards / f.count).toFixed(1) : '0.0',
+      successPct: f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0',
+    })).sort((a, b) => b.count - a.count);
+
+    return {
+      paPlays: paPlays.length,
+      paRate,
+      paCompPct: paAttempts ? ((paComps.length / paAttempts) * 100).toFixed(1) : '0.0',
+      paYPA: paAttempts ? (paYards / paAttempts).toFixed(1) : '0.0',
+      straightCompPct: straightAttempts ? ((straightComps.length / straightAttempts) * 100).toFixed(1) : '0.0',
+      straightYPA: straightAttempts ? (straightYards / straightAttempts).toFixed(1) : '0.0',
+      formationList,
+      hasData: paPlays.length > 0,
+    };
+  }
+
+  // ===== Feature 1: Top Takeaways (auto-generated insights) ==============
+  _generateTakeaways(stats) {
+    const items = [];
+    const MIN_N = 4;
+
+    // Lopsided formation run/pass tendencies
+    (stats.tendencies.formationList || []).forEach(f => {
+      if (f.count < MIN_N) return;
+      const runPct = f.count ? (f.runs / f.count) * 100 : 50;
+      if (runPct >= 75) items.push({ strength: (runPct - 50) * Math.min(f.count, 15), text: `<strong>${f.name}</strong>: ${runPct.toFixed(0)}% run (${f.runs}R/${f.passes}P, ${f.count} plays, ${f.avg} avg)` });
+      else if (runPct <= 25) items.push({ strength: (50 - runPct) * Math.min(f.count, 15), text: `<strong>${f.name}</strong>: ${(100 - runPct).toFixed(0)}% pass (${f.passes}P/${f.runs}R, ${f.count} plays, ${f.avg} avg)` });
+    });
+
+    // Down & distance conversion gaps
+    if (stats.downs) {
+      const thirdDown = stats.downs.find ? null : (stats.downs['3'] || null);
+      // Use the rendered down stats pattern
+    }
+
+    // Defensive coverage getting shredded
+    if (stats.defensive && stats.defensive.coverages) {
+      stats.defensive.coverages.forEach(c => {
+        if (c.count < MIN_N) return;
+        const avg = c.count ? c.yards / c.count : 0;
+        const stopPct = c.count ? (c.successes / c.count) * 100 : 0;
+        if (avg >= 7) items.push({ strength: avg * Math.min(c.count, 10), text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps, ${stopPct.toFixed(0)}% stop rate) — consider switching` });
+      });
+    }
+
+    // Defensive combos that dominate
+    if (stats.frontCoverageCombos && stats.frontCoverageCombos.list) {
+      stats.frontCoverageCombos.list.forEach(c => {
+        if (c.count < MIN_N) return;
+        const stopPct = parseInt(c.stopPct);
+        const avg = parseFloat(c.avg);
+        if (stopPct >= 65 && avg <= 3.5) items.push({ strength: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct}% stop rate, ${avg} avg allowed (${c.count} snaps) — keep calling it` });
+      });
+    }
+
+    // Play-action gap
+    if (stats.playAction && stats.playAction.hasData && stats.tendencies.runs >= MIN_N) {
+      const runPct = parseFloat(stats.tendencies.runPct);
+      const paRate = parseFloat(stats.playAction.paRate);
+      if (runPct >= 45 && paRate < 15) {
+        items.push({ strength: 600, text: `Running ${runPct}% of the time but only ${paRate}% play-action — opponents aren't being held by fakes` });
+      }
+      const paYPA = parseFloat(stats.playAction.paYPA);
+      const straightYPA = parseFloat(stats.playAction.straightYPA);
+      if (stats.playAction.paPlays >= 3 && paYPA > straightYPA + 2) {
+        items.push({ strength: (paYPA - straightYPA) * 100, text: `Play-action averaging <strong>${paYPA} YPA</strong> vs ${straightYPA} on straight drops — lean into it` });
+      }
+    }
+
+    // Hash tendencies
+    if (stats.hash && stats.hash.hasData) {
+      stats.hash.list.forEach(h => {
+        if (h.count < MIN_N) return;
+        const runPct = parseInt(h.runPct);
+        if (runPct >= 70) items.push({ strength: (runPct - 50) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
+        else if (runPct <= 30) items.push({ strength: (50 - runPct) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
+      });
+    }
+
+    // Situational efficiency (red zone, 3rd down)
+    if (stats.situational) {
+      const rz = stats.situational.redZone;
+      if (rz && rz.total >= MIN_N) {
+        const tdPct = rz.total ? ((rz.tds / rz.total) * 100) : 0;
+        if (tdPct <= 25) items.push({ strength: (50 - tdPct) * 10, text: `Red zone TD rate only <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — settling for field goals or stalling` });
+        else if (tdPct >= 60) items.push({ strength: tdPct * 5, text: `Red zone TD rate <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — finishing drives` });
+      }
+    }
+
+    // Explosive play rate
+    if (stats.efficiency && stats.totalPlays >= 10) {
+      const expPct = parseFloat(stats.efficiency.explosivePct);
+      if (expPct >= 15) items.push({ strength: expPct * 20, text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
+      const negPct = parseFloat(stats.efficiency.negativePct);
+      if (negPct >= 15) items.push({ strength: negPct * 20, text: `<strong>${negPct}%</strong> negative play rate (${stats.efficiency.negativePlays} plays) — too many losses` });
+    }
+
+    items.sort((a, b) => b.strength - a.strength);
+    return items.slice(0, 5);
+  }
+
   _individualStats(plays) {
     const rushers = {};
     const passers = {};
@@ -14429,11 +14684,14 @@ class StatsEngine {
           </div>
           <div class="stats-body">
             <div class="stats-cut-hint">▶ Tip: click any highlighted stat row (formation, play type, down, situation, defense) or player to watch those exact plays as a film cut-up.</div>
+            ${this._renderTakeaways(stats)}
             ${this._renderScoreboard(stats)}
             ${this._renderTeamStats(stats)}
             ${this._renderEfficiency(stats)}
+            ${this._renderPlayAction(stats)}
             ${this._renderAdvanced(stats)}
             ${this.heatMaps.render(stats.offPlays)}
+            ${this._renderHashStats(stats)}
             ${this._renderDownAnalysis(stats)}
             ${this._renderSituational(stats)}
             ${this._renderConversions(stats)}
@@ -14442,7 +14700,9 @@ class StatsEngine {
             ${this._renderGameFlow(stats)}
             ${this._renderTendencies(stats)}
             ${this._renderTendencyMatrix(stats)}
+            ${this._renderPersonnelSituation(stats)}
             ${this._renderDefensive(stats)}
+            ${this._renderFrontCoverageCombos(stats)}
             ${this._renderPersonnel(stats)}
             ${this._renderBigPlays(stats)}
             ${this._renderIndividualStats(stats)}
@@ -14543,6 +14803,10 @@ class StatsEngine {
       case 'defFront':  return p => isDef(p) && (p.tags.defFront || '') === val;
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
       case 'blitz':     return p => isDef(p) && (p.tags.blitz || '') === val;
+      case 'frontCoverage': {
+        const [front, cov] = val.split('|');
+        return p => isDef(p) && (p.tags.defFront || '') === front && (p.tags.coverage || '') === cov;
+      }
       case 'situation': {
         switch (val) {
           case 'redZone':    return p => isOff(p) && absYL(p) !== null && absYL(p) >= 80;
@@ -14834,6 +15098,89 @@ class StatsEngine {
     return `
       <div class="stats-section viz-section">
         ${Charts.gameFlow(stats.gameFlow)}
+      </div>`;
+  }
+
+  // ===== Feature 1 render: Top Takeaways ===============================
+  _renderTakeaways(stats) {
+    if (!stats.takeaways || !stats.takeaways.length) return '';
+    const bullets = stats.takeaways.map(t => `<li>${t.text}</li>`).join('');
+    return `
+      <div class="stats-section takeaways-section">
+        <h3>Key Takeaways</h3>
+        <ol class="takeaways-list">${bullets}</ol>
+      </div>`;
+  }
+
+  // ===== Feature 2 render: Hash Tendencies ==============================
+  _renderHashStats(stats) {
+    if (!stats.hash || !stats.hash.hasData) return '';
+    let rows = '';
+    for (const h of stats.hash.list) {
+      const runPct = parseInt(h.runPct);
+      const bar = Charts.stackBar([{ value: h.runs, color: '#ffd23f', label: 'Run' }, { value: h.passes, color: '#6cc4ff', label: 'Pass' }]);
+      rows += `<tr><td>${h.name}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Hash Tendencies</h3>
+        <table class="stats-table"><thead><tr><th>Hash</th><th>Plays</th><th>Run / Pass</th><th>Run%</th><th>Avg</th><th>Success%</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>`;
+  }
+
+  // ===== Feature 3 render: Personnel × Situation ========================
+  _renderPersonnelSituation(stats) {
+    if (!stats.personnelSituation || !stats.personnelSituation.hasData) return '';
+    let rows = '';
+    for (const c of stats.personnelSituation.list) {
+      const bar = Charts.stackBar([{ value: c.runs, color: '#ffd23f', label: 'Run' }, { value: c.passes, color: '#6cc4ff', label: 'Pass' }]);
+      rows += `<tr><td>${c.personnel}</td><td>${c.situation}</td><td>${c.count}</td><td>${bar}</td><td>${c.runPct}%</td><td>${c.avg}</td><td>${c.successPct}%</td></tr>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Personnel × Situation</h3>
+        <table class="stats-table"><thead><tr><th>Personnel</th><th>Situation</th><th>Plays</th><th>Run / Pass</th><th>Run%</th><th>Avg</th><th>Success%</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>`;
+  }
+
+  // ===== Feature 4 render: Front + Coverage Combos ======================
+  _renderFrontCoverageCombos(stats) {
+    if (!stats.frontCoverageCombos || !stats.frontCoverageCombos.hasData) return '';
+    let rows = '';
+    for (const c of stats.frontCoverageCombos.list) {
+      rows += `<tr class="cut-row" data-cut-type="frontCoverage" data-cut-val="${c.front}|${c.coverage}" data-cut-label="${c.name}"><td>${c.name}</td><td>${c.count}</td><td>${c.avg}</td><td>${c.stopPct}%</td><td>${c.havocPct}%</td></tr>`;
+    }
+    return `
+      <div class="stats-section">
+        <h3>Front + Coverage Combos</h3>
+        <table class="stats-table"><thead><tr><th>Combo</th><th>Plays</th><th>Avg Yds</th><th>Stop%</th><th>Havoc%</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>`;
+  }
+
+  // ===== Feature 6 render: Play-Action Breakdown ========================
+  _renderPlayAction(stats) {
+    if (!stats.playAction || !stats.playAction.hasData) return '';
+    const pa = stats.playAction;
+    let formRows = '';
+    for (const f of pa.formationList) {
+      formRows += `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.avg}</td><td>${f.successPct}%</td></tr>`;
+    }
+    const formTable = formRows ? `
+      <table class="stats-table" style="margin-top:12px"><thead><tr><th>Formation</th><th>PA Plays</th><th>Avg</th><th>Success%</th></tr></thead>
+      <tbody>${formRows}</tbody></table>` : '';
+    return `
+      <div class="stats-section">
+        <h3>Play-Action</h3>
+        <div class="stats-grid stats-grid-flex">
+          <div class="stat-card"><div class="stat-card-title">PA Rate</div><div class="stat-card-value">${pa.paRate}%</div><div class="stat-card-sub">${pa.paPlays} of dropbacks</div></div>
+          <div class="stat-card"><div class="stat-card-title">PA Comp%</div><div class="stat-card-value">${pa.paCompPct}%</div></div>
+          <div class="stat-card"><div class="stat-card-title">PA YPA</div><div class="stat-card-value">${pa.paYPA}</div></div>
+          <div class="stat-card"><div class="stat-card-title">Straight YPA</div><div class="stat-card-value">${pa.straightYPA}</div></div>
+        </div>
+        ${formTable}
       </div>`;
   }
 
