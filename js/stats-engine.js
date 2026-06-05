@@ -1074,46 +1074,71 @@ export class StatsEngine {
 
   _renderDashboard(stats) {
     const el = this.dashboardEl;
+    const selfScout = this._renderSelfScoutBody(stats);
+    const defBody = this._renderDefenseTabBody(stats);
+
     el.innerHTML = `
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
-              <button class="btn btn-sm" id="btnSelfScout" title="Reveal what tendencies your offense is tipping">Self-Scout</button>
-              <button class="btn btn-sm" id="btnDefReport" title="Defensive analytics: havoc, fronts, coverage, blitz">Defense</button>
               <button class="btn btn-sm" id="btnExportStats">Export Stats</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
             </div>
           </div>
+          <div class="stats-tabs">
+            <button class="stats-tab active" data-tab="game">Game</button>
+            <button class="stats-tab" data-tab="offense">Offense</button>
+            <button class="stats-tab" data-tab="defense">Defense</button>
+            <button class="stats-tab" data-tab="selfscout">Self-Scout</button>
+          </div>
           <div class="stats-body">
-            <div class="stats-cut-hint">▶ Tip: click any highlighted stat row (formation, play type, down, situation, defense) or player to watch those exact plays as a film cut-up.</div>
-            ${this._renderTakeaways(stats)}
-            ${this._renderScoreboard(stats)}
-            ${this._renderTeamStats(stats)}
-            ${this._renderEfficiency(stats)}
-            ${this._renderPlayAction(stats)}
-            ${this._renderAdvanced(stats)}
-            ${this.heatMaps.render(stats.offPlays)}
-            ${this._renderHashStats(stats)}
-            ${this._renderDownAnalysis(stats)}
-            ${this._renderSituational(stats)}
-            ${this._renderConversions(stats)}
-            ${this._renderDrives(stats)}
-            ${Visualizations.render(stats.offPlays)}
-            ${this._renderGameFlow(stats)}
-            ${this._renderTendencies(stats)}
-            ${this._renderTendencyMatrix(stats)}
-            ${this._renderPersonnelSituation(stats)}
-            ${this._renderDefensive(stats)}
-            ${this._renderFrontCoverageCombos(stats)}
-            ${this._renderPersonnel(stats)}
-            ${this._renderBigPlays(stats)}
-            ${this._renderIndividualStats(stats)}
+            <div class="stats-tab-pane active" data-pane="game">
+              <div class="stats-cut-hint">▶ Tip: click any highlighted stat row to watch those exact plays as a film cut-up.</div>
+              ${this._renderTakeaways(stats)}
+              ${this._renderScoreboard(stats)}
+              ${this._renderTeamStats(stats)}
+              ${this._renderDownAnalysis(stats)}
+              ${this._renderEfficiency(stats)}
+              ${this._renderDrives(stats)}
+              ${this._renderConversions(stats)}
+              ${this._renderBigPlays(stats)}
+              ${this._renderGameFlow(stats)}
+              ${this._renderIndividualStats(stats)}
+            </div>
+            <div class="stats-tab-pane" data-pane="offense">
+              ${this._renderPlayAction(stats)}
+              ${this._renderTendencies(stats)}
+              ${this._renderPersonnel(stats)}
+              ${this._renderHashStats(stats)}
+              ${this._renderPersonnelSituation(stats)}
+              ${this._renderTendencyMatrix(stats)}
+              ${this._renderSituational(stats)}
+              ${this.heatMaps.render(stats.offPlays)}
+              ${Visualizations.render(stats.offPlays)}
+              ${this._renderAdvanced(stats)}
+            </div>
+            <div class="stats-tab-pane" data-pane="defense">
+              ${defBody}
+            </div>
+            <div class="stats-tab-pane" data-pane="selfscout">
+              ${selfScout}
+            </div>
           </div>
         </div>
       </div>
     `;
+
+    // Tab switching
+    el.querySelectorAll('.stats-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        el.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
+        el.querySelectorAll('.stats-tab-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        el.querySelector(`.stats-tab-pane[data-pane="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
 
     // Rebind close button
     el.querySelector('#btnCloseStatsInner').addEventListener('click', () => this.hideDashboard());
@@ -1121,11 +1146,17 @@ export class StatsEngine {
     // Export button
     el.querySelector('#btnExportStats').addEventListener('click', () => this._exportStats(stats));
 
-    // Self-scout: flip the scouting lens on our own offense
-    el.querySelector('#btnSelfScout')?.addEventListener('click', () => this.renderSelfScout());
+    // Self-scout export
+    el.querySelector('#btnExportSelfScout')?.addEventListener('click', () => {
+      const report = this.generateSelfScout();
+      if (report) this._exportSelfScout(report, document.getElementById('gameTeamName')?.value || 'Our Offense');
+    });
 
-    // Defensive report: focused defensive analytics view
-    el.querySelector('#btnDefReport')?.addEventListener('click', () => this.renderDefensiveReport());
+    // Defensive report export
+    el.querySelector('#btnExportDef')?.addEventListener('click', () => {
+      const team = document.getElementById('gameTeamName')?.value || 'Our Defense';
+      this._exportDefensiveReport(stats, team);
+    });
 
     // Heat map tab switching
     this.heatMaps.bind(el);
@@ -1136,8 +1167,7 @@ export class StatsEngine {
       row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
     });
 
-    // "Every data point ties to video": click any tagged stat row (formation,
-    // play type, down, situation, defensive front/coverage/blitz) to launch a
+    // "Every data point ties to video": click any tagged stat row to launch a
     // film cut-up of exactly those plays.
     el.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
       row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
@@ -1154,6 +1184,66 @@ export class StatsEngine {
     el.querySelector('.stats-overlay').addEventListener('click', (e) => {
       if (e.target.classList.contains('stats-overlay')) this.hideDashboard();
     });
+  }
+
+  _renderSelfScoutBody(stats) {
+    const report = this.generateSelfScout();
+    if (!report) return '<div class="stats-section"><p style="opacity:.6">No run/pass plays tagged yet. Tag your offense to see tendency analysis.</p></div>';
+    const meterColor = report.predictability >= 70 ? '#ef4444'
+      : report.predictability >= 50 ? '#f59e0b'
+        : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    return `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
+      <div class="stats-section">
+        <h3>Predictability (${report.totalPlays} run/pass plays)</h3>
+        <div class="ss-meter-wrap">
+          <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${meterColor}"></div></div>
+          <div class="ss-meter-val" style="color:${meterColor}">${report.predictability}<span>/100</span></div>
+          <div class="ss-meter-label">${report.predLabel}</div>
+        </div>
+        <p class="viz-caption">Higher = more predictable. A defensive coordinator reads these same numbers — aim to keep key situations balanced.</p>
+      </div>
+      <div class="stats-section">
+        <h3>Your Top Tells</h3>
+        ${this._selfScoutTellsTable(report.tells)}
+      </div>
+      ${report.recommendations.length ? `<div class="stats-section">
+        <h3>Recommendations</h3>
+        <ul class="ss-recs">${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+      </div>` : ''}
+      <div class="stats-section stats-two-col">
+        <div>
+          <h3>By Formation</h3>
+          ${this._selfScoutSplitTable(report.formationRows, 'Formation')}
+        </div>
+        <div>
+          <h3>By Down &amp; Distance</h3>
+          ${this._selfScoutSplitTable(report.downDistRows, 'Down & Dist')}
+        </div>
+      </div>
+      ${report.personnelRows.length ? `<div class="stats-section">
+        <h3>By Personnel</h3>
+        ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
+      </div>` : ''}`;
+  }
+
+  _renderDefenseTabBody(stats) {
+    const hasData = stats.defensive.hasData;
+    if (!hasData) return `
+      <div class="stats-section def-empty">
+        <h3>No defensive data tagged yet</h3>
+        <p>Defensive analytics build from your <b>defensive</b> plays. To populate this report:</p>
+        <ol class="def-empty-steps">
+          <li>Set a play's unit toggle to <b>Defense</b> (or press <kbd>C</kbd> to cycle to it).</li>
+          <li>Tag the <b>Front</b> (4-3, Nickel, 3-4…), <b>Coverage</b>, and <b>Blitz</b>.</li>
+          <li>Or just tag defensive <b>results</b> — Sack, TFL (negative yardage), Interception, Fumble.</li>
+        </ol>
+        <p style="color:var(--text-dim)">Once any defensive data exists, this report shows havoc rate, front &amp; coverage breakdowns with stop%, blitz analysis, and front-by-situation.</p>
+      </div>`;
+    return `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportDef">Export Report</button></div>
+      ${this._renderDefensive(stats)}
+      ${this._renderFrontCoverageCombos(stats)}`;
   }
 
   /** Play every snap this jersey # is involved in, back-to-back (cut-up). */

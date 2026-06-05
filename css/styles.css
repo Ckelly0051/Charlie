@@ -1393,7 +1393,7 @@ body {
   position: sticky;
   top: 0;
   background: var(--bg-secondary);
-  z-index: 1;
+  z-index: 3;
 }
 
 .stats-header h2 {
@@ -1408,6 +1408,37 @@ body {
   display: flex;
   gap: 6px;
 }
+
+.stats-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  padding: 0 20px;
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 53px;
+  z-index: 2;
+}
+.stats-tab {
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim, #888);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.stats-tab:hover { color: var(--text); }
+.stats-tab.active {
+  color: var(--highlight, #ffd23f);
+  border-bottom-color: var(--highlight, #ffd23f);
+}
+.stats-tab-pane { display: none; }
+.stats-tab-pane.active { display: block; }
 
 .stats-body {
   padding: 16px 20px;
@@ -3004,6 +3035,7 @@ input:focus, select:focus, textarea:focus {
 
   /* Stats overlay full screen */
   .stats-container { width: 100vw !important; height: 100vh !important; max-width: none; max-height: none; border-radius: 0; }
+  .stats-tab { padding: 8px 12px; font-size: 12px; }
 }
 
 /* ============  SMALL MOBILE: <= 500px  ============ */
