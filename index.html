@@ -5030,10 +5030,11 @@ body {
 
 /* Save & Next bar sits at the end of the core fields, full width. */
 .tag-section .tag-nav {
-  background: var(--bg-secondary);
-  padding: 12px 0 4px;
+  background: var(--surface);
+  padding: 10px 12px 4px;
   margin-top: 8px;
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* Wide screens: lay the side groups (Off/Def/ST) out in two columns */
@@ -5586,7 +5587,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .tag-section .tag-notes .notes-area { min-height: 30px; }
 
   /* Nav bar: snug to the content above it */
-  .tag-section .tag-nav { padding: 6px 0 0; margin-top: 2px; }
+  .tag-section .tag-nav { padding: 6px 8px 4px; margin-top: 4px; }
 }
 
 /* ================================================================== */
@@ -5600,10 +5601,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     position: sticky;
     bottom: 0;
     z-index: 5;
-    background: var(--canvas);
-    padding-bottom: 8px;
-    margin-top: 4px;
-    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 10px 12px 8px;
+    margin: 4px -12px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
   }
 }
 
@@ -6859,14 +6862,14 @@ body {
                 <div class="chip-section">
                   <label class="chip-label">Personnel</label>
                   <div class="pick-group" id="tagPersonnel">
+                    <button class="pick" data-value="00" type="button">00</button>
+                    <button class="pick" data-value="10" type="button">10</button>
                     <button class="pick" data-value="11" type="button">11</button>
                     <button class="pick" data-value="12" type="button">12</button>
+                    <button class="pick" data-value="13" type="button">13</button>
+                    <button class="pick" data-value="20" type="button">20</button>
                     <button class="pick" data-value="21" type="button">21</button>
                     <button class="pick" data-value="22" type="button">22</button>
-                    <button class="pick" data-value="10" type="button">10</button>
-                    <button class="pick" data-value="20" type="button">20</button>
-                    <button class="pick" data-value="00" type="button">00</button>
-                    <button class="pick" data-value="13" type="button">13</button>
                     <button class="pick" data-value="23" type="button">23</button>
                     <button class="pick" data-value="Jumbo" type="button">Jumbo</button>
                     <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
@@ -6912,6 +6915,7 @@ body {
                   <div class="pick-group" id="tagBlitz">
                     <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
                     <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
+                    <button class="pick" data-value="C-Gap" type="button">C-Gap</button>
                     <button class="pick" data-value="Edge" type="button">Edge</button>
                     <button class="pick" data-value="DB Blitz" type="button">DB Blitz</button>
                     <button class="pick" data-value="Zone Blitz" type="button">Zone Blitz</button>
@@ -8849,7 +8853,7 @@ class PlayTagger {
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
     // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
-    const multiFields = new Set(['formation', 'playType', 'result']);
+    const multiFields = new Set(['formation', 'playType', 'result', 'blitz']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
@@ -13971,6 +13975,10 @@ class StatsEngine {
     return String(result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
+  static splitBlitzes(blitz) {
+    return String(blitz || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+  }
+
   /**
    * Check if a play's result includes a specific value. Handles both
    * single-select ("Touchdown") and multi-select ("Fumble + Touchdown").
@@ -14358,13 +14366,14 @@ class StatsEngine {
       }
 
       if (p.tags.blitz) {
-        const b = p.tags.blitz;
-        if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
-        blitzes[b].count++;
-        blitzes[b].yards += yds;
-        if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
-        if (isHavoc) blitzes[b].havoc++;
-        if (defSuccess) blitzes[b].successes++;
+        StatsEngine.splitBlitzes(p.tags.blitz).forEach(b => {
+          if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
+          blitzes[b].count++;
+          blitzes[b].yards += yds;
+          if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
+          if (isHavoc) blitzes[b].havoc++;
+          if (defSuccess) blitzes[b].successes++;
+        });
       }
     });
 
@@ -15259,7 +15268,7 @@ class StatsEngine {
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'defFront':  return p => isDef(p) && (p.tags.defFront || '') === val;
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
-      case 'blitz':     return p => isDef(p) && (p.tags.blitz || '') === val;
+      case 'blitz':     return p => isDef(p) && StatsEngine.splitBlitzes(p.tags.blitz).includes(val);
       case 'frontCoverage': {
         const [front, cov] = val.split('|');
         return p => isDef(p) && (p.tags.defFront || '') === front && (p.tags.coverage || '') === cov;
