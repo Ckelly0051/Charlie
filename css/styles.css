@@ -5023,10 +5023,11 @@ body {
 
 /* Save & Next bar sits at the end of the core fields, full width. */
 .tag-section .tag-nav {
-  background: var(--bg-secondary);
-  padding: 12px 0 4px;
+  background: var(--surface);
+  padding: 10px 12px 4px;
   margin-top: 8px;
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* Wide screens: lay the side groups (Off/Def/ST) out in two columns */
@@ -5579,7 +5580,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .tag-section .tag-notes .notes-area { min-height: 30px; }
 
   /* Nav bar: snug to the content above it */
-  .tag-section .tag-nav { padding: 6px 0 0; margin-top: 2px; }
+  .tag-section .tag-nav { padding: 6px 8px 4px; margin-top: 4px; }
 }
 
 /* ================================================================== */
@@ -5593,10 +5594,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     position: sticky;
     bottom: 0;
     z-index: 5;
-    background: var(--canvas);
-    padding-bottom: 8px;
-    margin-top: 4px;
-    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 10px 12px 8px;
+    margin: 4px -12px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
   }
 }
 

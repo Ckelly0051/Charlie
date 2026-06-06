@@ -101,7 +101,7 @@ export class PlayTagger {
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
     // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
-    const multiFields = new Set(['formation', 'playType', 'result']);
+    const multiFields = new Set(['formation', 'playType', 'result', 'blitz']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')

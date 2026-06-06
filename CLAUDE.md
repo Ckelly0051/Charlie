@@ -123,7 +123,7 @@ server/                       # Optional local Python backend (YOLO-based)
     hash: '',           // 'Left' | 'Middle' | 'Right'
     defFront: '',       // '4-3' | '3-4' | '4-4' | '5-2' | '4-2-5' | 'Nickel' | 'Dime' | 'Quarter' | '4-6'
     coverage: '',       // 'Cover 0'-'Cover 6' | 'Man' | 'Zone'
-    blitz: '',          // 'A-Gap' | 'B-Gap' | 'Edge' | 'DB Blitz' | 'Zone Blitz'
+    blitz: '',          // MULTI-SELECT. 'A-Gap' | 'B-Gap' | 'C-Gap' | 'Edge' | 'DB Blitz' | 'Zone Blitz', stored as " + "-joined string. ChipField({multi:true}); StatsEngine.splitBlitzes() is the canonical splitter.
     driveNumber: '',    // auto-incremented
     unit: 'offense',    // 'offense' | 'defense' | 'special' — drives tag-form layout
     stType: '',         // 'Kickoff' | 'Kick Return' | 'Punt' | 'Punt Return' | 'Field Goal' | 'XP' | '2-Pt' | 'Onside' | 'Fake'
@@ -310,10 +310,11 @@ The tag form uses **chip buttons** instead of dropdowns. Each field is a `div.pi
 
 **Multi-select chips**: `ChipField(el, { multi: true })` allows multiple chips
 active at once; `.value` then returns a `" + "`-joined string (e.g. `"Pistol +
-Spread"`). Only **Formation** is multi-select today (a QB can be Pistol AND
-Spread). The string interface is unchanged, so all consumers still treat it as
-a plain string; analytics split on `" + "` and attribute the play to each
-component (see `StatsEngine.splitFormations`).
+Spread"`). **Formation**, **Play Type**, **Result**, and **Blitz** are
+multi-select. The string interface is unchanged, so all consumers still treat
+it as a plain string; analytics split on `" + "` and attribute the play to each
+component (see `StatsEngine.splitFormations`, `splitPlayTypes`, `splitResults`,
+`splitBlitzes`).
 
 ### Unit Toggle (Offense / Defense / Special Teams)
 

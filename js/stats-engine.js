@@ -37,6 +37,10 @@ export class StatsEngine {
     return String(result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
+  static splitBlitzes(blitz) {
+    return String(blitz || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+  }
+
   /**
    * Check if a play's result includes a specific value. Handles both
    * single-select ("Touchdown") and multi-select ("Fumble + Touchdown").
@@ -424,13 +428,14 @@ export class StatsEngine {
       }
 
       if (p.tags.blitz) {
-        const b = p.tags.blitz;
-        if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
-        blitzes[b].count++;
-        blitzes[b].yards += yds;
-        if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
-        if (isHavoc) blitzes[b].havoc++;
-        if (defSuccess) blitzes[b].successes++;
+        StatsEngine.splitBlitzes(p.tags.blitz).forEach(b => {
+          if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
+          blitzes[b].count++;
+          blitzes[b].yards += yds;
+          if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
+          if (isHavoc) blitzes[b].havoc++;
+          if (defSuccess) blitzes[b].successes++;
+        });
       }
     });
 
@@ -1325,7 +1330,7 @@ export class StatsEngine {
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'defFront':  return p => isDef(p) && (p.tags.defFront || '') === val;
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
-      case 'blitz':     return p => isDef(p) && (p.tags.blitz || '') === val;
+      case 'blitz':     return p => isDef(p) && StatsEngine.splitBlitzes(p.tags.blitz).includes(val);
       case 'frontCoverage': {
         const [front, cov] = val.split('|');
         return p => isDef(p) && (p.tags.defFront || '') === front && (p.tags.coverage || '') === cov;
