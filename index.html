@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GridIron IQ</title>
   <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 /* ===== CSS Custom Properties ===== */
 :root {
   --bg-primary: #1b1f27;
@@ -6119,6 +6121,309 @@ video.is-buffering { opacity: 0.6; }
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 12px;
+}
+
+/* ================================================================== */
+/* ===================  GRIDIRON PRO — v3  ========================== */
+/* ================================================================== */
+
+:root {
+  /* Gridiron Pro palette — warm gold + cool teal on neutral slate */
+  --bg-primary:      #0d1117;
+  --bg-secondary:    #151b23;
+  --bg-tertiary:     #1c2128;
+  --bg-surface:      #262c36;
+  --bg-elevated:     #2d333b;
+  --accent:          #c9a227;
+  --accent-hover:    #dbb634;
+  --accent-soft:     rgba(201,162,39,0.10);
+  --highlight:       #c9a227;
+  --highlight-hover: #dbb634;
+  --highlight-soft:  rgba(201,162,39,0.10);
+  --info:            #00bcd4;
+  --info-soft:       rgba(0,188,212,0.10);
+  --success:         #22c55e;
+  --warning:         #f59e0b;
+  --danger:          #ef4444;
+  --text:            #e6edf3;
+  --text-dim:        #8b949e;
+  --text-bright:     #ffffff;
+  --border:          #30363d;
+  --border-bright:   #484f58;
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
+  --shadow-glow: 0 0 0 3px rgba(201,162,39,0.18);
+  --radius:    10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --run-color:  #f0b429;
+  --pass-color: #38bdf8;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Top bar: warm gold identity --- */
+.top-bar {
+  background: linear-gradient(180deg, #151b23 0%, #0d1117 100%);
+}
+.app-title {
+  color: var(--highlight);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* --- Stats overlay: frosted dark --- */
+.stats-overlay {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.stats-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(201,162,39,0.08);
+  max-width: 940px;
+}
+
+/* --- Stats header --- */
+.stats-header {
+  background: linear-gradient(180deg, #1a2028 0%, var(--bg-secondary) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 24px;
+}
+.stats-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--highlight);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* --- Stats tabs: underlined gold --- */
+.stats-tabs {
+  padding: 0 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  gap: 4px;
+}
+.stats-tab {
+  padding: 11px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.stats-tab:hover { color: var(--text); }
+.stats-tab.active {
+  color: var(--highlight) !important;
+  border-bottom-color: var(--highlight) !important;
+}
+
+/* --- Stats body --- */
+.stats-body {
+  padding: 20px 24px;
+  color: var(--text);
+}
+
+/* --- Section headings --- */
+.stats-section h3 {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text);
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--highlight);
+  margin-bottom: 12px;
+}
+
+/* --- Stat cards: elevated surface --- */
+.stat-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover {
+  border-color: var(--border-bright);
+  box-shadow: var(--shadow-sm);
+}
+.stat-card-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.stat-card-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+/* --- Stats tables: refined rows --- */
+.stats-table {
+  font-size: 12px;
+}
+.stats-table th {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.stats-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+}
+.stats-table tr:hover td {
+  background: rgba(201, 162, 39, 0.04);
+}
+.stats-table-full td:first-child {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* --- Takeaways: gold-themed --- */
+.takeaways-section {
+  background: rgba(201, 162, 39, 0.06);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  border-radius: var(--radius);
+}
+.takeaways-list {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.takeaways-list li::marker {
+  color: var(--highlight);
+}
+
+/* --- Cut-up hint --- */
+.stats-cut-hint {
+  background: rgba(201, 162, 39, 0.06);
+  border: 1px solid rgba(201, 162, 39, 0.12);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+
+/* --- Charts: track backgrounds --- */
+.chart-hbar-track,
+.chart-eff-track,
+.chart-minibar,
+.viz-q-bars {
+  background: var(--bg-tertiary) !important;
+}
+
+/* --- Effectiveness chart: gold run / blue pass --- */
+.chart-eff-fill { background: var(--pass-color); }
+.chart-eff-run { background: var(--run-color); }
+.chart-eff-row:hover { background: rgba(201, 162, 39, 0.04); }
+.chart-eff-head {
+  border-bottom-color: rgba(201, 162, 39, 0.15);
+}
+.chart-eff-label { font-weight: 700; }
+.chart-eff-n { font-variant-numeric: tabular-nums; }
+
+/* --- Run/pass dots --- */
+.dot.run { background: var(--run-color) !important; }
+.dot.pass { background: var(--pass-color) !important; }
+
+/* --- Gauge tracks --- */
+.chart-gauge svg path[stroke="#1c2128"] { stroke: var(--bg-tertiary); }
+
+/* --- Stacked bar text --- */
+.chart-stack { color: var(--bg-primary); font-weight: 700; }
+
+/* --- Game flow chart background --- */
+.viz-svg { background: var(--bg-tertiary); border-color: var(--border); }
+
+/* --- Self-scout tells --- */
+.self-scout li {
+  background: var(--bg-tertiary);
+  border-left-color: var(--warning);
+  color: var(--text);
+}
+.self-scout li.ok {
+  border-left-color: var(--success);
+  color: var(--text-dim);
+}
+.self-scout li b { color: var(--highlight); }
+
+/* --- Tendency matrix hover --- */
+.tm-cell:hover { outline: 1px solid var(--highlight); }
+
+/* --- Drive colors --- */
+.drive-row { background: var(--bg-tertiary); }
+.drive-row:hover { background: var(--bg-surface); }
+
+/* --- Self-scout meter --- */
+.ss-meter { background: var(--bg-tertiary) !important; }
+.ss-tier-label { color: var(--highlight) !important; }
+
+/* --- Scoreboard emphasis --- */
+.scoreboard-quarters th {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-dim);
+}
+
+/* --- Print button upgrade --- */
+.stats-header-actions .btn {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* --- Two-column layout refinement --- */
+.stats-two-col {
+  gap: 20px;
+}
+
+/* --- Success bar polish --- */
+.success-bar-track { background: var(--bg-tertiary); }
+
+/* --- Film cut hint on rows --- */
+.cut-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cut-row:hover {
+  background: rgba(201, 162, 39, 0.06) !important;
+}
+
+/* --- Self-scout bars: gold run / blue pass --- */
+.ss-bar-run { --c: var(--run-color) !important; }
+.ss-bar-pass { --c: var(--pass-color) !important; }
+
+/* --- Quarter mix bars --- */
+.viz-q-bar.run { background: var(--run-color) !important; }
+.viz-q-bar.pass { background: var(--pass-color) !important; }
+
+/* --- Mobile stats refinement --- */
+@media (max-width: 800px) {
+  .stats-header { padding: 14px 16px; }
+  .stats-header h2 { font-size: 16px; letter-spacing: 1px; }
+  .stats-body { padding: 14px 16px; }
+  .stats-tabs { padding: 0 12px; }
+  .stat-card-value { font-size: 20px; }
 }
   </style>
 </head>
@@ -12729,11 +13034,11 @@ class HeatMaps {
       const yds = parseInt(p.tags.yardage) || 0;
       let color = '#888', radius = 5;
       const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
-      if (rParts.includes('Touchdown')) { color = '#44ff44'; radius = 7; }
-      else if (yds >= 20) { color = '#88ddff'; radius = 6; }
-      else if (yds >= 4) { color = '#ffaa00'; }
-      else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ff4444'; }
-      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#ff00ff'; radius = 6; }
+      if (rParts.includes('Touchdown')) { color = '#22c55e'; radius = 7; }
+      else if (yds >= 20) { color = '#38bdf8'; radius = 6; }
+      else if (yds >= 4) { color = '#f0b429'; }
+      else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ef4444'; }
+      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#a855f7'; radius = 6; }
 
       const desc = `Play ${p.id}: ${p.tags.playType || ''} ${yds}yd ${p.tags.result || ''}`.trim();
       dots += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.5" opacity="0.8"><title>${this._escape(desc)}</title></circle>`;
@@ -12751,12 +13056,12 @@ class HeatMaps {
           ${dots}
         </svg>
         <div class="hm-legend">
-          <span><i style="background:#44ff44"></i> TD</span>
-          <span><i style="background:#88ddff"></i> 20+ yds</span>
-          <span><i style="background:#ffaa00"></i> 4-19 yds</span>
-          <span><i style="background:#888"></i> 1-3 yds</span>
-          <span><i style="background:#ff4444"></i> Loss/Sack</span>
-          <span><i style="background:#ff00ff"></i> Turnover</span>
+          <span><i style="background:#22c55e"></i> TD</span>
+          <span><i style="background:#38bdf8"></i> 20+ yds</span>
+          <span><i style="background:#f0b429"></i> 4-19 yds</span>
+          <span><i style="background:#6b7280"></i> 1-3 yds</span>
+          <span><i style="background:#ef4444"></i> Loss/Sack</span>
+          <span><i style="background:#a855f7"></i> Turnover</span>
         </div>
         <p class="hm-caption">${plotted.length} of ${plays.length} plays plotted (need yard line + side tagged). Hover a dot for details.</p>
       </div>
@@ -13165,7 +13470,7 @@ class Visualizations {
       return { ...z, n, pct };
     });
     const color = (pct) => {
-      if (pct == null) return '#1b2436';
+      if (pct == null) return '#1c2128';
       // red (low) -> yellow -> green (high)
       const h = Math.round((pct / 100) * 120);
       return `hsl(${h} 65% 42%)`;
@@ -13202,18 +13507,18 @@ class Visualizations {
     for (let x = 0; x <= 100; x += 20) {
       const yl = x <= 50 ? x : 100 - x;   // standard field: counts up to 50, back down
       grid += `<line x1="${xOf(x)}" y1="${padT}" x2="${xOf(x)}" y2="${H - padB}" stroke="#243049" stroke-width="1"/>
-               <text x="${xOf(x)}" y="${H - padB + 14}" fill="#7d8aa5" font-size="9" text-anchor="middle">${yl === 0 ? 'G' : yl}</text>`;
+               <text x="${xOf(x)}" y="${H - padB + 14}" fill="#8b949e" font-size="9" text-anchor="middle">${yl === 0 ? 'G' : yl}</text>`;
     }
     const dots = pts.map(p =>
-      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#ffd23f' : '#6cc4ff'}" fill-opacity="0.8"/>`
+      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#f0b429' : '#38bdf8'}" fill-opacity="0.8"/>`
     ).join('');
     return `<div class="viz-block">
       <h4>Yardage Spray <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span></h4>
       <svg class="viz-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
         ${grid}
         <line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#4a5a7d" stroke-width="1.5" stroke-dasharray="4 3"/>
-        <text x="${padL - 4}" y="${zeroY + 3}" fill="#7d8aa5" font-size="9" text-anchor="end">0</text>
-        <text x="${padL - 4}" y="${yOf(yMax) + 3}" fill="#7d8aa5" font-size="9" text-anchor="end">${yMax}</text>
+        <text x="${padL - 4}" y="${zeroY + 3}" fill="#8b949e" font-size="9" text-anchor="end">0</text>
+        <text x="${padL - 4}" y="${yOf(yMax) + 3}" fill="#8b949e" font-size="9" text-anchor="end">${yMax}</text>
         ${dots}
       </svg>
       <p class="viz-caption">Each dot is a play — field position (own goal → opp goal) vs. yards gained.</p>
@@ -13283,7 +13588,7 @@ class Charts {
       return arc;
     }).join('');
 
-    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#e8ecf4)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#7d8aa5)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
+    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#8b949e)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
 
     return `<svg class="chart-donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${arcs}${center}</svg>`;
   }
@@ -13307,7 +13612,7 @@ class Charts {
     if (!maxVal) return '';
     const rows = data.map(d => {
       const pct = Math.max(2, (d.value / maxVal) * 100);
-      const color = d.color || 'var(--accent,#4a9eff)';
+      const color = d.color || 'var(--accent,#c9a227)';
       return `<div class="chart-hbar-row"><span class="chart-hbar-label">${Charts._esc(d.label)}</span><div class="chart-hbar-track"><div class="chart-hbar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>${d.sub ? `<span class="chart-hbar-sub">${d.sub}</span>` : ''}</div><span class="chart-hbar-val">${d.extra || d.value}</span></div>`;
     }).join('');
     return `<div class="chart-hbars">${rows}</div>`;
@@ -13339,7 +13644,7 @@ class Charts {
     const halfCirc = Math.PI * r;
     const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
 
-    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="#1b2436" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e8ecf4)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
+    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="#1c2128" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
   }
 
   /**
@@ -13353,7 +13658,7 @@ class Charts {
     const range = hi - lo || 1;
     const x = (i) => pad + (i / (values.length - 1)) * (W - 2 * pad);
     const y = (v) => H - pad - ((v - lo) / range) * (H - 2 * pad);
-    const color = opts.color || 'var(--accent,#4a9eff)';
+    const color = opts.color || 'var(--accent,#c9a227)';
 
     const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
     const path = `M${pts.join(' L')}`;
@@ -13415,7 +13720,7 @@ class Charts {
     const gridSteps = [hi, Math.round(hi / 2), 0, Math.round(lo / 2), lo].filter((v, i, a) => a.indexOf(v) === i && v !== 0);
     gridSteps.forEach(v => {
       const gy = y(v).toFixed(1);
-      grid += `<text x="${padL - 4}" y="${(parseFloat(gy) + 3).toFixed(1)}" fill="#7d8aa5" font-size="9" text-anchor="end">${v}</text>`;
+      grid += `<text x="${padL - 4}" y="${(parseFloat(gy) + 3).toFixed(1)}" fill="#8b949e" font-size="9" text-anchor="end">${v}</text>`;
     });
 
     const pts = plays.map((p, i) => `${x(i).toFixed(1)},${y(p.cumYards).toFixed(1)}`);
@@ -13423,11 +13728,11 @@ class Charts {
     const areaPath = `${path} L${x(plays.length - 1).toFixed(1)},${zeroY} L${padL},${zeroY} Z`;
 
     const dots = plays.map((p, i) => {
-      const color = p.isRun ? '#ffd23f' : '#6cc4ff';
+      const color = p.isRun ? '#f0b429' : '#38bdf8';
       return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" fill="${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
     }).join('');
 
-    return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#4a9eff)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#4a9eff)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#7d8aa5" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#7d8aa5" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#7d8aa5" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;
+    return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#c9a227)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#c9a227)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#8b949e" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#8b949e" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#8b949e" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;
   }
 }
 
@@ -15217,7 +15522,7 @@ class StatsEngine {
   _renderDrives(stats) {
     const d = stats.drives;
     if (d.total === 0) return '';
-    const colorMap = { TD: '#44ff44', FG: '#88ddff', Punt: '#888', Turnover: '#ff4444', Kneel: '#666', Other: '#ffaa00' };
+    const colorMap = { TD: '#22c55e', FG: '#38bdf8', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
     const outcomeDonut = Charts.donut(
@@ -15277,7 +15582,7 @@ class StatsEngine {
     let rows = '';
     for (const h of stats.hash.list) {
       const runPct = parseInt(h.runPct);
-      const bar = Charts.stackBar([{ value: h.runs, color: '#ffd23f', label: 'Run' }, { value: h.passes, color: '#6cc4ff', label: 'Pass' }]);
+      const bar = Charts.stackBar([{ value: h.runs, color: '#f0b429', label: 'Run' }, { value: h.passes, color: '#38bdf8', label: 'Pass' }]);
       rows += `<tr><td>${h.name}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
     }
     return `
@@ -15293,7 +15598,7 @@ class StatsEngine {
     if (!stats.personnelSituation || !stats.personnelSituation.hasData) return '';
     let rows = '';
     for (const c of stats.personnelSituation.list) {
-      const bar = Charts.stackBar([{ value: c.runs, color: '#ffd23f', label: 'Run' }, { value: c.passes, color: '#6cc4ff', label: 'Pass' }]);
+      const bar = Charts.stackBar([{ value: c.runs, color: '#f0b429', label: 'Run' }, { value: c.passes, color: '#38bdf8', label: 'Pass' }]);
       rows += `<tr><td>${c.personnel}</td><td>${c.situation}</td><td>${c.count}</td><td>${bar}</td><td>${c.runPct}%</td><td>${c.avg}</td><td>${c.successPct}%</td></tr>`;
     }
     return `
@@ -15365,13 +15670,13 @@ class StatsEngine {
     const totalYards = r.yards + p.yards;
 
     const rpDonut = Charts.donut([
-      { value: tend.runs, color: '#ffd23f', label: 'Run' },
-      { value: tend.passes, color: '#6cc4ff', label: 'Pass' }
+      { value: tend.runs, color: '#f0b429', label: 'Run' },
+      { value: tend.passes, color: '#38bdf8', label: 'Pass' }
     ], 110, tend.runPct + '%', 'Run Rate');
 
     const ydsDonut = Charts.donut([
-      { value: Math.max(0, r.yards), color: '#ffd23f', label: 'Rush Yards' },
-      { value: Math.max(0, p.yards), color: '#6cc4ff', label: 'Pass Yards' }
+      { value: Math.max(0, r.yards), color: '#f0b429', label: 'Rush Yards' },
+      { value: Math.max(0, p.yards), color: '#38bdf8', label: 'Pass Yards' }
     ], 110, String(totalYards), 'Total Yds');
 
     return `
@@ -15438,7 +15743,7 @@ class StatsEngine {
       rows += `<tr class="cut-row" data-cut-type="down" data-cut-val="${down}" data-cut-label="${labels[down]} down — ${s.total} plays">
         <td>${labels[down]}</td>
         <td>${s.total}</td>
-        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#ffd23f', label: 'Run' }, { value: parseInt(s.passPct), color: '#6cc4ff', label: 'Pass' }], 18)}</div></td>
+        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#f0b429', label: 'Run' }, { value: parseInt(s.passPct), color: '#38bdf8', label: 'Pass' }], 18)}</div></td>
         <td>${s.avgYards}</td>
         <td>${s.conversionPct}%</td>
       </tr>`;
@@ -15469,7 +15774,7 @@ class StatsEngine {
 
     const playTypeDonut = Charts.donutWithLegend(
       t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = ['#4a9eff', '#ffd23f', '#6cc4ff', '#ff6b6b', '#22c55e', '#a78bfa', '#f97316', '#ec4899'];
+        const colors = ['#38bdf8', '#f0b429', '#22c55e', '#f97316', '#a78bfa', '#ef4444', '#06b6d4', '#ec4899'];
         return { value: pt.count, color: colors[i % colors.length], label: pt.name };
       }),
       120, String(stats.totalPlays), 'plays'
@@ -16007,13 +16312,13 @@ class StatsEngine {
       `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
     ).join('');
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
-table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+<style>body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#1a1a2e;max-width:940px;margin:24px auto;padding:0 24px}
+h1{border-bottom:3px solid #1a1a2e;padding-bottom:8px;font-weight:800;letter-spacing:0.5px}h3{color:#1a1a2e;border-bottom:2px solid #c9a227;padding-bottom:4px;margin-top:24px;font-weight:700}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #e5e7eb;text-align:left;font-size:13px}
+th{background:#1a1a2e;color:#fff;font-weight:700}tr:nth-child(even){background:#f9fafb}
 .overview{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
-.ov-card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
-.ov-val{font-size:24px;font-weight:bold;color:#4169e1}.ov-lbl{font-size:11px;text-transform:uppercase;color:#666}
+.ov-card{border:1px solid #e5e7eb;padding:12px;border-radius:8px;text-align:center}
+.ov-val{font-size:24px;font-weight:800;color:#1a1a2e;font-variant-numeric:tabular-nums}.ov-lbl{font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:700;letter-spacing:0.5px}
 </style></head><body>
 <h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} plays</p>
 ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p>` : ''}
@@ -16457,19 +16762,19 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     if (!w) { alert('Pop-up blocked — allow pop-ups for this site to export PDF.'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #1a3a6b;padding-bottom:8px;color:#1a3a6b;font-size:22px}
-h3{color:#1a3a6b;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px;font-size:14px}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#1a1a2e;max-width:940px;margin:24px auto;padding:0 24px}
+h1{border-bottom:3px solid #1a1a2e;padding-bottom:8px;color:#1a1a2e;font-size:22px;font-weight:800;letter-spacing:0.5px}
+h3{color:#1a1a2e;border-bottom:2px solid #c9a227;padding-bottom:4px;margin-top:24px;font-size:14px;font-weight:700}
 .sub{color:#666;font-size:12px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
-th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:12px}
-th{background:#1a3a6b;color:#fff}tr:nth-child(even){background:#f4f4f8}
+th,td{padding:6px 10px;border:1px solid #e5e7eb;text-align:left;font-size:12px}
+th{background:#1a1a2e;color:#fff;font-weight:700;letter-spacing:0.3px}tr:nth-child(even){background:#f9fafb}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:12px 0}
-.card{border:1px solid #ddd;padding:10px;border-radius:6px;text-align:center}
-.cv{font-size:22px;font-weight:bold;color:#1a3a6b}.cl{font-size:10px;text-transform:uppercase;color:#666;margin-top:2px}
+.card{border:1px solid #e5e7eb;padding:10px;border-radius:8px;text-align:center}
+.cv{font-size:24px;font-weight:800;color:#1a1a2e;font-variant-numeric:tabular-nums}.cl{font-size:9px;text-transform:uppercase;color:#6b7280;margin-top:3px;letter-spacing:0.5px;font-weight:700}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.meter{height:18px;border-radius:9px;background:#eee;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
-.mval{font-size:26px;font-weight:bold}.mlbl{color:#666;font-size:13px}
+.meter{height:18px;border-radius:9px;background:#e5e7eb;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
+.mval{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.mlbl{color:#6b7280;font-size:13px;font-weight:600}
 ul{line-height:1.7;font-size:13px}
 @media print{
   body{margin:0;padding:10px}
