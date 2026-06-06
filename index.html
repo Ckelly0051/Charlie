@@ -6715,6 +6715,7 @@ video.is-buffering { opacity: 0.6; }
               <button class="pick" data-value="No Good" type="button" title="Conversion / kick failed (2-Pt, XP, FG)">No Good</button>
               <button class="pick" data-value="Kneel" type="button">Kneel</button>
               <button class="pick" data-value="Spike" type="button">Spike</button>
+              <button class="pick" data-value="Safety" type="button">Safety</button>
             </div>
           </div>
 
@@ -8553,7 +8554,7 @@ class PlayTagger {
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
     // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
-    const multiFields = new Set(['formation', 'playType']);
+    const multiFields = new Set(['formation', 'playType', 'result']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
@@ -9042,7 +9043,8 @@ class PlayTagger {
     const raw = el ? String(el.value).trim() : String(play.tags.yardage ?? '');
     if (raw === '') { play.tags.yardage = ''; return; }
     const mag = Math.abs(parseInt(raw, 10) || 0);
-    const neg = play.tags.result === 'Loss' || play.tags.result === 'Sack';
+    const parts = String(play.tags.result || '').split(/\s*\+\s*/);
+    const neg = parts.includes('Loss') || parts.includes('Sack');
     play.tags.yardage = String(neg ? -mag : mag);
     if (el) el.value = String(mag); // keep the field showing the magnitude
   }
@@ -9238,8 +9240,9 @@ class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
-    const stop = ['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Penalty'];
-    if (stop.includes(t.result)) return null;
+    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Penalty', 'Safety']);
+    const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    if (resultParts.some(r => stop.has(r))) return null;
 
     const down = parseInt(t.down);
     const distance = parseInt(t.distance);
@@ -9832,15 +9835,19 @@ class PlayFilter {
 
     if (c.quarters.length && !c.quarters.includes(tags.quarter)) return false;
     if (c.downs.length && !c.downs.includes(tags.down)) return false;
-    if (c.playTypes.length && !c.playTypes.includes(tags.playType)) return false;
+    if (c.playTypes.length) {
+      const playParts = String(tags.playType || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      if (!c.playTypes.some(t => playParts.includes(t))) return false;
+    }
     if (c.formations.length) {
-      // Formation is multi-select ("Pistol + Spread") — match if the play uses
-      // ANY of the selected formations.
       const playForms = String(tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
       if (!c.formations.some(f => playForms.includes(f))) return false;
     }
     if (c.personnel.length && !c.personnel.includes(tags.personnel)) return false;
-    if (c.results.length && !c.results.includes(tags.result)) return false;
+    if (c.results.length) {
+      const playResults = String(tags.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      if (!c.results.some(r => playResults.includes(r))) return false;
+    }
 
     if (c.situation) {
       if (!this._matchesSituation(p, c.situation)) return false;
@@ -12721,11 +12728,12 @@ class HeatMaps {
 
       const yds = parseInt(p.tags.yardage) || 0;
       let color = '#888', radius = 5;
-      if (p.tags.result === 'Touchdown') { color = '#44ff44'; radius = 7; }
+      const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
+      if (rParts.includes('Touchdown')) { color = '#44ff44'; radius = 7; }
       else if (yds >= 20) { color = '#88ddff'; radius = 6; }
       else if (yds >= 4) { color = '#ffaa00'; }
-      else if (yds <= 0 || /loss|sack/i.test(p.tags.result || '')) { color = '#ff4444'; }
-      else if (/interception|fumble/i.test(p.tags.result || '')) { color = '#ff00ff'; radius = 6; }
+      else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ff4444'; }
+      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#ff00ff'; radius = 6; }
 
       const desc = `Play ${p.id}: ${p.tags.playType || ''} ${yds}yd ${p.tags.result || ''}`.trim();
       dots += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.5" opacity="0.8"><title>${this._escape(desc)}</title></circle>`;
@@ -12885,7 +12893,7 @@ class HeatMaps {
   _isSuccess(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
-    if (p.tags.result === 'Touchdown') return true;
+    if (String(p.tags.result || '').split(/\s*\+\s*/).includes('Touchdown')) return true;
     if (p.tags.custom?.includes('1st Down')) return true;
     switch (p.tags.down) {
       case '1': return yds >= dist * 0.5;
@@ -13107,7 +13115,7 @@ class Visualizations {
   static isSuccess(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
-    if (p.tags.result === 'Touchdown') return true;
+    if (String(p.tags.result || '').split(/\s*\+\s*/).includes('Touchdown')) return true;
     if (p.tags.custom && p.tags.custom.includes('1st Down')) return true;
     switch (p.tags.down) {
       case '1': return yds >= dist * 0.5;
@@ -13658,6 +13666,23 @@ class StatsEngine {
   }
 
   /**
+   * Split a (possibly multi-select) result string into components.
+   * "Fumble + Touchdown" -> ["Fumble", "Touchdown"]; blank -> [].
+   */
+  static splitResults(result) {
+    return String(result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+  }
+
+  /**
+   * Check if a play's result includes a specific value. Handles both
+   * single-select ("Touchdown") and multi-select ("Fumble + Touchdown").
+   */
+  static hasResult(p, val) {
+    if (!p || !p.tags || !p.tags.result) return false;
+    return StatsEngine.splitResults(p.tags.result).includes(val);
+  }
+
+  /**
    * Split a player attribution value into individual jersey #s. Most roles hold
    * a single number, but Tackler can hold several (shared tackles), stored as a
    * "55, 22"-style string. Returns an array of jersey-# strings (may be empty).
@@ -13693,24 +13718,35 @@ class StatsEngine {
    */
   static playPoints(p) {
     if (!p || !p.tags) return 0;
-    const r = p.tags.result;
+    const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
-    if (r === 'Touchdown') return 6;
-    if (st === '2-Pt') return r === 'Good' ? 2 : 0;
-    if (st === 'XP') return r === 'Good' ? 1 : 0;
-    if (st === 'Field Goal') return r === 'Good' ? 3 : 0;
-    if (r === 'Field Goal') return 3;
+    if (res.includes('Touchdown')) return 6;
+    if (res.includes('Safety')) return 2;
+    if (st === '2-Pt') return res.includes('Good') ? 2 : 0;
+    if (st === 'XP') return res.includes('Good') ? 1 : 0;
+    if (st === 'Field Goal') return res.includes('Good') ? 3 : 0;
+    if (res.includes('Field Goal')) return 3;
     return 0;
   }
 
   /**
-   * Which side a scoring play counts for. Offense / Special Teams plays score
-   * for us; Defense-unit plays are the opponent's offense, so their scores
-   * count against us. (A pick-six is the rare exception — the coach can fix the
-   * Final Score manually.)
+   * Which side a scoring play counts for.
+   * - Offense / Special Teams → 'us' (unless Safety → 'them')
+   * - Defense unit → 'them' by default (opponent's offense scored), BUT
+   *   if the result includes a turnover + TD (pick-six, scoop-and-score)
+   *   or a Safety, our defense scored → 'us'.
    */
   static scoringSide(p) {
-    return (p && p.tags && p.tags.unit) === 'defense' ? 'them' : 'us';
+    if (!p || !p.tags) return 'us';
+    const res = StatsEngine.splitResults(p.tags.result);
+    if (p.tags.unit === 'defense') {
+      if (res.includes('Safety')) return 'us';
+      if (res.includes('Touchdown') &&
+          (res.includes('Fumble') || res.includes('Interception'))) return 'us';
+      return 'them';
+    }
+    if (res.includes('Safety')) return 'them';
+    return 'us';
   }
 
   /**
@@ -13745,12 +13781,13 @@ class StatsEngine {
   }
 
   _scoreType(p) {
-    const r = p.tags.result;
+    const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
-    if (r === 'Touchdown') return 'TD';
+    if (res.includes('Touchdown')) return 'TD';
+    if (res.includes('Safety')) return 'Safety';
     if (st === '2-Pt') return '2-Pt';
     if (st === 'XP') return 'XP';
-    if (st === 'Field Goal' || r === 'Field Goal') return 'FG';
+    if (st === 'Field Goal' || res.includes('Field Goal')) return 'FG';
     return 'Score';
   }
 
@@ -13863,10 +13900,9 @@ class StatsEngine {
   _isSuccessfulPlay(p) {
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
-    if (p.tags.result === 'Touchdown') return true;
-    // Conversion / kick outcomes are explicit success/failure markers.
-    if (p.tags.result === 'Good') return true;
-    if (p.tags.result === 'No Good') return false;
+    if (StatsEngine.hasResult(p, 'Touchdown')) return true;
+    if (StatsEngine.hasResult(p, 'Good')) return true;
+    if (StatsEngine.hasResult(p, 'No Good')) return false;
     if (p.tags.custom?.includes('1st Down')) return true;
     switch (p.tags.down) {
       case '1': return yds >= dist * 0.5;
@@ -13883,13 +13919,15 @@ class StatsEngine {
     // never clicks "New Drive" (which leaves every play on driveNumber "1").
     const list = this._reconstructDrives(plays).map((dp, idx) => {
       const yards = dp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const r = dp[dp.length - 1]?.tags.result || '';
+      const last = dp[dp.length - 1];
+      const res = StatsEngine.splitResults(last?.tags.result);
       let outcome = 'Other';
-      if (r === 'Touchdown') outcome = 'TD';
-      else if (r === 'Field Goal') outcome = 'FG';
-      else if (r === 'Punt') outcome = 'Punt';
-      else if (r === 'Interception' || r === 'Fumble') outcome = 'Turnover';
-      else if (r === 'Kneel') outcome = 'Kneel';
+      if (res.includes('Touchdown')) outcome = 'TD';
+      else if (res.includes('Field Goal')) outcome = 'FG';
+      else if (res.includes('Safety')) outcome = 'Safety';
+      else if (res.includes('Punt')) outcome = 'Punt';
+      else if (res.includes('Interception') || res.includes('Fumble')) outcome = 'Turnover';
+      else if (res.includes('Kneel')) outcome = 'Kneel';
       return { number: idx + 1, plays: dp.length, yards, outcome };
     });
     return {
@@ -13911,7 +13949,7 @@ class StatsEngine {
     };
     const summarize = (arr) => {
       const total = arr.length;
-      const tds = arr.filter(p => p.tags.result === 'Touchdown').length;
+      const tds = arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length;
       const successes = arr.filter(p => this._isSuccessfulPlay(p)).length;
       const yds = arr.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       return {
@@ -13938,7 +13976,7 @@ class StatsEngine {
       result[q] = {
         plays: qp.length,
         yards: qp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0),
-        tds: qp.filter(p => p.tags.result === 'Touchdown').length
+        tds: qp.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length
       };
     });
     return result;
@@ -13980,11 +14018,11 @@ class StatsEngine {
   }
 
   _defensiveStats(plays) {
-    const sacks = plays.filter(p => p.tags.result === 'Sack');
-    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0 && p.tags.result !== 'Sack');
-    const ints = plays.filter(p => p.tags.result === 'Interception');
-    const fumbles = plays.filter(p => p.tags.result === 'Fumble');
-    const incompletions = plays.filter(p => p.tags.result === 'Incomplete');
+    const sacks = plays.filter(p => StatsEngine.hasResult(p, 'Sack'));
+    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0 && !StatsEngine.hasResult(p, 'Sack'));
+    const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception'));
+    const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble'));
+    const incompletions = plays.filter(p => StatsEngine.hasResult(p, 'Incomplete'));
     const havocPlays = sacks.length + tfl.length + ints.length + fumbles.length;
     const threeAndOuts = this._countThreeAndOuts(plays);
 
@@ -13995,8 +14033,8 @@ class StatsEngine {
     plays.forEach(p => {
       const yds = parseInt(p.tags.yardage) || 0;
       const defSuccess = !this._isSuccessfulPlay(p);
-      const isHavoc = p.tags.result === 'Sack' || p.tags.result === 'Interception' ||
-        p.tags.result === 'Fumble' || (yds < 0 && p.tags.result !== 'Sack');
+      const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
+        StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
 
       if (p.tags.defFront) {
         const f = p.tags.defFront;
@@ -14015,10 +14053,10 @@ class StatsEngine {
         coverages[c].count++;
         coverages[c].yards += yds;
         if (defSuccess) coverages[c].successes++;
-        if (p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain') coverages[c].comps++;
-        if (p.tags.result === 'Incomplete') coverages[c].incs++;
-        if (p.tags.result === 'Interception') coverages[c].ints++;
-        if (p.tags.result === 'Sack') coverages[c].sacks++;
+        if (StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')) coverages[c].comps++;
+        if (StatsEngine.hasResult(p, 'Incomplete')) coverages[c].incs++;
+        if (StatsEngine.hasResult(p, 'Interception')) coverages[c].ints++;
+        if (StatsEngine.hasResult(p, 'Sack')) coverages[c].sacks++;
       }
 
       if (p.tags.blitz) {
@@ -14026,7 +14064,7 @@ class StatsEngine {
         if (!blitzes[b]) blitzes[b] = { name: b, count: 0, yards: 0, sacks: 0, havoc: 0, successes: 0 };
         blitzes[b].count++;
         blitzes[b].yards += yds;
-        if (p.tags.result === 'Sack') blitzes[b].sacks++;
+        if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
         if (isHavoc) blitzes[b].havoc++;
         if (defSuccess) blitzes[b].successes++;
       }
@@ -14035,8 +14073,8 @@ class StatsEngine {
     const blitzPlays = plays.filter(p => p.tags.blitz);
     const noBlitzPlays = plays.filter(p => !p.tags.blitz && (p.tags.defFront || p.tags.coverage));
     const blitzHavoc = blitzPlays.filter(p =>
-      p.tags.result === 'Sack' || p.tags.result === 'Interception' ||
-      p.tags.result === 'Fumble' || ((parseInt(p.tags.yardage) || 0) < 0 && p.tags.result !== 'Sack')
+      StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
+      StatsEngine.hasResult(p, 'Fumble') || ((parseInt(p.tags.yardage) || 0) < 0 && !StatsEngine.hasResult(p, 'Sack'))
     ).length;
 
     const passingDowns = plays.filter(p =>
@@ -14086,18 +14124,17 @@ class StatsEngine {
     // Instead, reconstruct drives from the play sequence.
     const drives = this._reconstructDrives(plays);
     // Results that mean the possession ended some other way than a forced punt.
-    const NON_PUNT = ['Touchdown', 'Field Goal', 'Good', 'Interception',
-      'Fumble', 'Kneel', 'Spike'];
+    const NON_PUNT = new Set(['Touchdown', 'Field Goal', 'Good', 'Interception',
+      'Fumble', 'Kneel', 'Spike', 'Safety']);
     return drives.filter((dp, idx) => {
       if (dp.length > 3) return false;
-      if (dp.some(p => NON_PUNT.includes(p.tags.result))) return false;
-      // Any first down extends the possession — no longer a three-and-out.
+      if (dp.some(p => StatsEngine.splitResults(p.tags.result).some(r => NON_PUNT.has(r)))) return false;
       if (dp.some(p => gainedFirstDown(p.tags))) return false;
       // The offense must actually have surrendered the ball: an explicit punt,
       // or another possession follows (so this one ended in an untagged punt).
       // Without this, a short drive cut off by the end of a half/game — or a
       // partially-tagged final drive — would be miscounted as a three-and-out.
-      const punted = dp[dp.length - 1].tags.result === 'Punt';
+      const punted = StatsEngine.hasResult(dp[dp.length - 1], 'Punt');
       const possessionFollowed = idx < drives.length - 1;
       return punted || possessionFollowed;
     }).length;
@@ -14118,12 +14155,12 @@ class StatsEngine {
     ordered.forEach((p, i) => {
       const prev = i > 0 ? ordered[i - 1] : null;
       // A drive ends on a possession-ending result...
-      const possessionEnded = prev && DRIVE_ENDERS.has(prev.tags.result);
+      const possessionEnded = prev && StatsEngine.splitResults(prev.tags.result).some(r => DRIVE_ENDERS.has(r));
       // ...or when the down resets to 1st without a first down being earned (the
       // ball changed hands off-camera). A penalty can legally reset the down
       // within the same drive, so it never starts a new possession on its own.
       const downReset = prev && p.tags.down === '1' &&
-        prev.tags.result !== 'Penalty' && !gainedFirstDown(prev.tags);
+        !StatsEngine.hasResult(prev, 'Penalty') && !gainedFirstDown(prev.tags);
       if ((possessionEnded || downReset) && cur.length) { drives.push(cur); cur = []; }
       cur.push(p);
     });
@@ -14140,8 +14177,8 @@ class StatsEngine {
       attempts,
       yards,
       average: attempts ? (yards / attempts).toFixed(1) : '0.0',
-      touchdowns: rushPlays.filter(p => p.tags.result === 'Touchdown').length,
-      fumbles: rushPlays.filter(p => p.tags.result === 'Fumble').length,
+      touchdowns: rushPlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
+      fumbles: rushPlays.filter(p => StatsEngine.hasResult(p, 'Fumble')).length,
       longest: rushPlays.reduce((max, p) => Math.max(max, parseInt(p.tags.yardage) || 0), 0),
       firstDowns: rushPlays.filter(p => p.tags.custom?.includes('1st Down')).length
     };
@@ -14150,15 +14187,15 @@ class StatsEngine {
   _passingStats(plays) {
     const passPlays = plays.filter(p => StatsEngine.isPass(p));
     const completions = passPlays.filter(p =>
-      p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain'
+      StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')
     );
-    const incompletions = passPlays.filter(p => p.tags.result === 'Incomplete');
+    const incompletions = passPlays.filter(p => StatsEngine.hasResult(p, 'Incomplete'));
     const yards = passPlays.reduce((sum, p) => {
-      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return sum;
+      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return sum;
       return sum + (parseInt(p.tags.yardage) || 0);
     }, 0);
     const attempts = completions.length + incompletions.length +
-      passPlays.filter(p => p.tags.result === 'Interception').length;
+      passPlays.filter(p => StatsEngine.hasResult(p, 'Interception')).length;
 
     return {
       attempts,
@@ -14167,13 +14204,13 @@ class StatsEngine {
       average: attempts ? (yards / attempts).toFixed(1) : '0.0',
       yardsPerCompletion: completions.length ? (yards / completions.length).toFixed(1) : '0.0',
       completionPct: attempts ? ((completions.length / attempts) * 100).toFixed(1) : '0.0',
-      touchdowns: passPlays.filter(p => p.tags.result === 'Touchdown').length,
-      interceptions: passPlays.filter(p => p.tags.result === 'Interception').length,
-      sacks: passPlays.filter(p => p.tags.result === 'Sack').length,
-      sackYards: passPlays.filter(p => p.tags.result === 'Sack')
+      touchdowns: passPlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
+      interceptions: passPlays.filter(p => StatsEngine.hasResult(p, 'Interception')).length,
+      sacks: passPlays.filter(p => StatsEngine.hasResult(p, 'Sack')).length,
+      sackYards: passPlays.filter(p => StatsEngine.hasResult(p, 'Sack'))
         .reduce((sum, p) => sum + Math.abs(parseInt(p.tags.yardage) || 0), 0),
       longest: passPlays.reduce((max, p) => {
-        if (p.tags.result === 'Incomplete') return max;
+        if (StatsEngine.hasResult(p, 'Incomplete')) return max;
         return Math.max(max, parseInt(p.tags.yardage) || 0);
       }, 0),
       firstDowns: passPlays.filter(p => p.tags.custom?.includes('1st Down')).length
@@ -14181,7 +14218,7 @@ class StatsEngine {
   }
 
   _scoringStats(plays) {
-    const tds = plays.filter(p => p.tags.result === 'Touchdown');
+    const tds = plays.filter(p => StatsEngine.hasResult(p, 'Touchdown'));
     return {
       touchdowns: tds.length,
       rushingTDs: tds.filter(p => StatsEngine.isRun(p)).length,
@@ -14195,10 +14232,10 @@ class StatsEngine {
    * even on ST plays that carry no offensive playType.
    */
   _conversionStats(source) {
-    const made = (r) => r === 'Good' || r === 'Touchdown' || r === 'Field Goal';
+    const made = (p) => StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
     const tally = (type) => {
       const att = source.filter(p => p.tags.stType === type);
-      const m = att.filter(p => made(p.tags.result)).length;
+      const m = att.filter(p => made(p)).length;
       return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
     };
     const two = tally('2-Pt');
@@ -14224,7 +14261,7 @@ class StatsEngine {
       const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
       const passes = total - runs;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
+      const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
 
       downStats[down] = {
         total,
@@ -14239,9 +14276,9 @@ class StatsEngine {
 
     const firstDowns = plays.filter(p => p.tags.custom?.includes('1st Down')).length;
     const thirdDown = byDown['3'];
-    const thirdDownConv = thirdDown.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
+    const thirdDownConv = thirdDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
     const fourthDown = byDown['4'];
-    const fourthDownConv = fourthDown.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length;
+    const fourthDownConv = fourthDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
 
     return {
       byDown: downStats,
@@ -14254,8 +14291,8 @@ class StatsEngine {
   }
 
   _turnoverStats(plays) {
-    const ints = plays.filter(p => p.tags.result === 'Interception').length;
-    const fumbles = plays.filter(p => p.tags.result === 'Fumble').length;
+    const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception')).length;
+    const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble')).length;
     return {
       total: ints + fumbles,
       interceptions: ints,
@@ -14307,7 +14344,7 @@ class StatsEngine {
     const passes = plays.length - runs;
     const runYds = plays.filter(p => StatsEngine.isRun(p)).reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
     const passYds = plays.filter(p => StatsEngine.isPass(p)).reduce((s, p) => {
-      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return s;
+      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
       return s + (parseInt(p.tags.yardage) || 0);
     }, 0);
     const runSucc = plays.filter(p => StatsEngine.isRun(p) && this._isSuccessfulPlay(p)).length;
@@ -14327,7 +14364,7 @@ class StatsEngine {
   _bigPlays(plays) {
     return plays.filter(p => {
       const yds = parseInt(p.tags.yardage) || 0;
-      return yds >= 20 || p.tags.result === 'Touchdown';
+      return yds >= 20 || StatsEngine.hasResult(p, 'Touchdown');
     }).map(p => ({
       id: p.id,
       type: p.tags.playType,
@@ -14425,8 +14462,8 @@ class StatsEngine {
       combos[k].count++;
       combos[k].yards += yds;
       if (!this._isSuccessfulPlay(p)) combos[k].successes++;
-      if (p.tags.result === 'Sack' || p.tags.result === 'Interception' ||
-          p.tags.result === 'Fumble' || (yds < 0 && p.tags.result !== 'Sack'))
+      if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
+          StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack')))
         combos[k].havoc++;
       if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
     });
@@ -14452,16 +14489,16 @@ class StatsEngine {
     });
 
     const paRate = dropbacks.length ? ((paPlays.length / dropbacks.length) * 100).toFixed(1) : '0.0';
-    const paComps = paPlays.filter(p => p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain');
-    const paAttempts = paPlays.filter(p => p.tags.result !== 'Sack').length;
+    const paComps = paPlays.filter(p => StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain'));
+    const paAttempts = paPlays.filter(p => !StatsEngine.hasResult(p, 'Sack')).length;
     const paYards = paPlays.reduce((s, p) => {
-      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return s;
+      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
       return s + (parseInt(p.tags.yardage) || 0);
     }, 0);
-    const straightComps = straightDrops.filter(p => p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain');
-    const straightAttempts = straightDrops.filter(p => p.tags.result !== 'Sack').length;
+    const straightComps = straightDrops.filter(p => StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain'));
+    const straightAttempts = straightDrops.filter(p => !StatsEngine.hasResult(p, 'Sack')).length;
     const straightYards = straightDrops.reduce((s, p) => {
-      if (p.tags.result === 'Incomplete' || p.tags.result === 'Interception') return s;
+      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
       return s + (parseInt(p.tags.yardage) || 0);
     }, 0);
 
@@ -14590,8 +14627,8 @@ class StatsEngine {
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
       const isPass = !isRun;
-      const isTD = p.tags.result === 'Touchdown';
-      const isComplete = p.tags.result === 'Gain' || p.tags.result === 'Touchdown' || p.tags.result === 'No Gain';
+      const isTD = StatsEngine.hasResult(p, 'Touchdown');
+      const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
 
       // --- Special teams ---
@@ -14609,7 +14646,7 @@ class StatsEngine {
         if (st === 'Field Goal' || st === 'XP') {
           kickers[id].fgAtt++;
           // 'Good'/'Field Goal' (made) or a scoring result counts as made
-          if (p.tags.result === 'Good' || p.tags.result === 'Field Goal' || p.tags.result === 'Touchdown') kickers[id].fgMade++;
+          if (StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Field Goal') || StatsEngine.hasResult(p, 'Touchdown')) kickers[id].fgMade++;
         } else if (st === 'Punt') {
           kickers[id].punts++;
           kickers[id].puntYds += yds;
@@ -14624,7 +14661,7 @@ class StatsEngine {
         rushers[id].yards += yds;
         if (isTD) rushers[id].tds++;
         if (yds > rushers[id].long) rushers[id].long = yds;
-        if (p.tags.result === 'Fumble') rushers[id].fumbles++;
+        if (StatsEngine.hasResult(p, 'Fumble')) rushers[id].fumbles++;
         if (p.tags.grades?.ballCarrier != null) {
           if (!rushers[id].gradeSum) rushers[id].gradeSum = 0;
           if (!rushers[id].gradeCount) rushers[id].gradeCount = 0;
@@ -14637,14 +14674,14 @@ class StatsEngine {
       if (players.passer && isPass) {
         const id = players.passer;
         if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0 };
-        if (p.tags.result !== 'Sack') passers[id].attempts++;
+        if (!StatsEngine.hasResult(p, 'Sack')) passers[id].attempts++;
         if (isComplete) {
           passers[id].completions++;
           passers[id].yards += yds;
         }
         if (isTD) passers[id].tds++;
-        if (p.tags.result === 'Interception') passers[id].ints++;
-        if (p.tags.result === 'Sack') passers[id].sacks++;
+        if (StatsEngine.hasResult(p, 'Interception')) passers[id].ints++;
+        if (StatsEngine.hasResult(p, 'Sack')) passers[id].sacks++;
         if (p.tags.grades?.passer != null) {
           if (!passers[id].gradeSum) passers[id].gradeSum = 0;
           if (!passers[id].gradeCount) passers[id].gradeCount = 0;
@@ -14677,7 +14714,7 @@ class StatsEngine {
         if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0 };
         tacklers[id].tackles++;
         if (shared) tacklers[id].assists++; else tacklers[id].solo++;
-        if (p.tags.result === 'Sack') tacklers[id].sacks++;
+        if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
         if (yds < 0) tacklers[id].tfl++;
         if (p.tags.grades?.tackler != null) {
           if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
@@ -15828,7 +15865,7 @@ class StatsEngine {
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p);
       const yards = parseInt(p.tags.yardage) || 0;
-      const isTd = p.tags.result === 'Touchdown';
+      const isTd = StatsEngine.hasResult(p, 'Touchdown');
       // Multi-select formation: attribute the play to each component look.
       StatsEngine.splitFormations(p.tags.formation).forEach(f => {
         if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0 };
@@ -15865,8 +15902,8 @@ class StatsEngine {
         .map(([key, d]) => ({ key, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
       fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
       coverages: Object.entries(coverages).sort((a, b) => b[1] - a[1]),
-      redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => p.tags.result === 'Touchdown').length },
-      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => p.tags.custom?.includes('1st Down') || p.tags.result === 'Touchdown').length },
+      redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length },
+      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length },
     };
   }
 
