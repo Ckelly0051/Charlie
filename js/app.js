@@ -985,6 +985,9 @@ class App {
     this.tagger.on('play-updated', () => this._updateTrackedScore());
     this.tagger.on('play-deleted', () => this._updateTrackedScore());
     this._updateTrackedScore();
+
+    // Carry the team identity (name + jersey color) forward from prior games.
+    this._applyTeamProfile();
   }
 
   /** Recompute the running scoreboard from tagged plays and show it. */
@@ -1027,6 +1030,45 @@ class App {
       direction: document.getElementById('gameDirection')?.value || '',
     };
     this.storage._autoSave();
+    this._saveTeamProfile();
+  }
+
+  /**
+   * Persist team-identity fields (team name + jersey color) globally so they
+   * carry forward to every new game. Only the last *non-empty* value is kept,
+   * so editing another field (e.g. opponent) while the name is blank — or an
+   * accidental clear — never wipes the saved identity.
+   */
+  _saveTeamProfile() {
+    try {
+      let prev = {};
+      try { prev = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) {}
+      const profile = {
+        teamName: (this.storage.gameInfo.teamName || prev.teamName || ''),
+        jerseyColor: (this.storage.gameInfo.jerseyColor || prev.jerseyColor || ''),
+      };
+      localStorage.setItem('ffa_team_profile', JSON.stringify(profile));
+    } catch (e) { /* localStorage unavailable — ignore */ }
+  }
+
+  /**
+   * Pre-fill team-identity fields from the saved profile when they're empty
+   * (fresh session, no project loaded yet). A loaded project always wins:
+   * _loadGameInfo overwrites these with the project's own values when present,
+   * and only falls back to the carried-forward identity when the project omits
+   * them.
+   */
+  _applyTeamProfile() {
+    let profile = {};
+    try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return; }
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
+    let applied = false;
+    if (nameEl && !nameEl.value && profile.teamName) { nameEl.value = profile.teamName; applied = true; }
+    if (colorEl && !colorEl.value && profile.jerseyColor) { colorEl.value = profile.jerseyColor; applied = true; }
+    // Mirror into storage.gameInfo so stats/scoreboard/exports pick up the
+    // carried-forward team name without waiting for a manual field edit.
+    if (applied) this._saveGameInfo();
   }
 
   _loadGameInfo(info) {

@@ -6120,54 +6120,44 @@ video.is-buffering { opacity: 0.6; }
 /* ===================  GRIDIRON PRO — v3  ========================== */
 /* ================================================================== */
 
+/* Run/pass chart colors — only consumed inside the dark dashboard, but
+   harmless globally. The full Gridiron Pro palette (gold accent + dark
+   bg/text/border) is SCOPED to .stats-overlay below — setting it globally
+   leaks into the light tag form and makes chip text unreadable (lesson #12). */
 :root {
-  /* Gridiron Pro palette — warm gold + cool teal on neutral slate */
-  --bg-primary:      #0d1117;
-  --bg-secondary:    #151b23;
-  --bg-tertiary:     #1c2128;
-  --bg-surface:      #262c36;
-  --bg-elevated:     #2d333b;
+  --run-color:  #f0b429;
+  --pass-color: #38bdf8;
+}
+
+/* Gridiron Pro dashboard palette — gold accents on dark slate. Scoped to the
+   stats overlay so the light app shell (tag form, top bar) is untouched. */
+.stats-overlay {
+  --bg-primary:    #0d1117;
+  --bg-secondary:  #151b23;
+  --bg-tertiary:   #1c2128;
+  --bg-surface:    #262c36;
+  --bg-elevated:   #2d333b;
   --accent:          #c9a227;
   --accent-hover:    #dbb634;
   --accent-soft:     rgba(201,162,39,0.10);
   --highlight:       #c9a227;
   --highlight-hover: #dbb634;
   --highlight-soft:  rgba(201,162,39,0.10);
-  --info:            #00bcd4;
-  --info-soft:       rgba(0,188,212,0.10);
-  --success:         #22c55e;
-  --warning:         #f59e0b;
-  --danger:          #ef4444;
-  --text:            #e6edf3;
-  --text-dim:        #8b949e;
-  --text-bright:     #ffffff;
-  --border:          #30363d;
-  --border-bright:   #484f58;
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.4);
-  --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
-  --shadow-glow: 0 0 0 3px rgba(201,162,39,0.18);
-  --radius:    10px;
-  --radius-sm: 6px;
-  --radius-lg: 16px;
-  --run-color:  #f0b429;
-  --pass-color: #38bdf8;
+  --info:          #00bcd4;
+  --success:       #22c55e;
+  --warning:       #f59e0b;
+  --danger:        #ef4444;
+  --text:          #e6edf3;
+  --text-dim:      #8b949e;
+  --text-bright:   #ffffff;
+  --border:        #30363d;
+  --border-bright: #484f58;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* --- Top bar: warm gold identity --- */
-.top-bar {
-  background: linear-gradient(180deg, #151b23 0%, #0d1117 100%);
-}
-.app-title {
-  color: var(--highlight);
-  font-weight: 800;
-  letter-spacing: 1px;
 }
 
 /* --- Stats overlay: frosted dark --- */

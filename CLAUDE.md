@@ -595,6 +595,26 @@ JSON + CSV filenames (falling back to the video name), and `_gameTitle()` uses
 it as the stats-dashboard / report heading. Wired through `App._bindGameInfo`
 / `_saveGameInfo` / `_loadGameInfo` like the other Game Info fields.
 
+### Persistent Team Identity (carry-forward across games)
+
+Most `gameInfo` fields are game-specific (opponent, date, score) and live only
+in the per-project save. But the **team-identity** fields — **team name** and
+**jersey color** — carry forward to every new game so the coach never re-enters
+them. Stored in `localStorage` under `ffa_team_profile` (`{ teamName,
+jerseyColor }`), separate from any project save.
+
+- `App._saveTeamProfile()` (called from `_saveGameInfo`) persists the last
+  **non-empty** values, so editing another field while the name is blank — or
+  an accidental clear — never wipes the saved identity.
+- `App._applyTeamProfile()` (called at the end of `_bindGameInfo`) pre-fills the
+  fields on a fresh session **only when empty**. A loaded project always wins:
+  `_loadGameInfo` overwrites these when the project has its own values, and
+  falls back to the carried-forward identity only when the project omits them.
+- **Roster** already persists globally via `ffa_roster` (RosterManager). To stop
+  an older project from wiping it, `StorageManager._deserialize` adopts a
+  project's roster **only when it's a non-empty array** — an empty `roster:[]`
+  no longer clears the coach's persisted roster.
+
 ### Visual Analytics (`js/charts.js`)
 
 Pure-SVG chart primitives used throughout the stats dashboard — no external
@@ -683,3 +703,5 @@ so the feature is never silently missing. The section renders inline as the
 11. **Backward compatibility by fallback**: new tag fields (`runPass`, multi-formation) degrade gracefully for plays/saves that predate them — empty `runPass` falls back to string inference; a single-formation string is just a one-element split. No schema migration needed.
 
 12. **Inherited `color` is literal, not a live `var()`**: the app went light-theme (`--text` dark for the light canvas) while the stats overlays re-scope `--text` to a *light* value. But `.stats-body` set no explicit `color`, so it inherited the already-computed dark color from `<body>` — re-scoping the variable downstream does nothing for inherited values. Stats-table data cells (which had no explicit color) were dark-on-dark and invisible across the whole dashboard. Fix: set `color: var(--text)` directly on the overlay container so descendants inherit the light value. When a container re-scopes theme vars, also set the properties that should consume them, or inheritance silently keeps the old computed color.
+
+13. **Theme vars are global; the app is light, the dashboard is dark**: the main UI (top bar, tag form) is a **light** theme (`--text: #0f172a`, white `--surface` chips); only the analytics overlays are dark, which they get by **re-scoping** the dark palette under `.stats-overlay` / `.season-overlay` / etc. (not at `:root`). A "make the dashboard look better" pass that drops a dark palette (`--text: #e6edf3`, dark `--bg-*`) into a global `:root` block leaks into the light tag form and renders chip labels near-white on white — unreadable. **Scope dashboard palette overrides to `.stats-overlay`, never `:root`.** Only truly global identity tokens (brand accent, run/pass chart colors) belong in `:root`, and even those must stay legible on the light theme's white surfaces (gold `#c9a227` is fine as a chip-hover/border accent but is low-contrast as body text on white).

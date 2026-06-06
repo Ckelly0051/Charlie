@@ -116,7 +116,10 @@ export class StorageManager {
       }
     }
 
-    if (data.roster && window.app && window.app.roster) {
+    // Only adopt a project's roster when it actually has players. An empty
+    // roster array would otherwise wipe the coach's persisted roster, which
+    // is meant to carry forward across games.
+    if (Array.isArray(data.roster) && data.roster.length && window.app && window.app.roster) {
       window.app.roster.loadFrom(data.roster);
     }
 
