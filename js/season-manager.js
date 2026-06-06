@@ -120,15 +120,57 @@ export class SeasonManager {
     if (this.overlayEl) this.overlayEl.classList.add('hidden');
   }
 
+  /**
+   * The currently-loaded in-app game as a season entry, or null when nothing
+   * is tagged. This is what makes the Season view populate the moment a coach
+   * loads/tags a game — without forcing them to separately "Add Games" the
+   * file they already have open.
+   */
+  _currentGame() {
+    const app = window.app;
+    if (!app || !app.tagger) return null;
+    const plays = app.tagger.plays || [];
+    if (!plays.length) return null;
+    const gi = (app.storage && app.storage.gameInfo) || {};
+    const opp = gi.opponent;
+    const base = opp ? `vs ${opp}` : (gi.projectName || 'Current Game');
+    return {
+      name: `${base} (current)`,
+      file: null,
+      isCurrent: true,
+      gameInfo: gi,
+      roster: (app.roster && app.roster.players) || [],
+      plays,
+    };
+  }
+
+  /** Signature used to detect when an added file is the same game as another. */
+  _gameSig(g) {
+    return `${g.gameInfo?.opponent || ''}|${g.gameInfo?.date || ''}|${(g.plays || []).length}`;
+  }
+
+  /**
+   * Combined season list: the current in-app game (if any) plus separately
+   * added project files. The current game is dropped from the front when an
+   * added file already represents it, so it's never double-counted.
+   */
+  _effectiveGames() {
+    const cur = this._currentGame();
+    if (!cur) return this.games;
+    const curSig = this._gameSig(cur);
+    if (this.games.some(g => this._gameSig(g) === curSig)) return this.games;
+    return [cur, ...this.games];
+  }
+
   _allPlays() {
-    return this.games.flatMap(g => g.plays || []);
+    return this._effectiveGames().flatMap(g => g.plays || []);
   }
 
   /** Merge jersey#→name across every loaded game's roster (+ live roster). */
   _mergeRoster() {
     const map = {};
     const live = (window.app && window.app.roster) ? window.app.roster.players : [];
-    [...this.games.flatMap(g => g.roster || []), ...live].forEach(p => {
+    [...this._effectiveGames().flatMap(g => g.roster || []), ...live].forEach(p => {
       if (p && p.num != null && p.name) map[String(p.num)] = p.name;
     });
     return map;
@@ -143,15 +185,16 @@ export class SeasonManager {
     const list = document.getElementById('seasonGameList');
     if (!list) return;
 
-    if (!this.games.length) {
-      list.innerHTML = '<div class="season-empty">No games loaded. Click "Add Games" to load project .json files from past games.</div>';
+    const games = this._effectiveGames();
+    if (!games.length) {
+      list.innerHTML = '<div class="season-empty">No games loaded. Load a game in the app, or click "Add Games" to load past games\' project .json files.</div>';
       return;
     }
 
     list.innerHTML = '';
-    this.games.forEach((g, i) => {
+    games.forEach((g) => {
       const row = document.createElement('div');
-      row.className = 'season-game-row';
+      row.className = 'season-game-row' + (g.isCurrent ? ' season-game-current' : '');
       const u = g.gameInfo?.scoreUs;
       const t = g.gameInfo?.scoreThem;
       let scoreLabel = '';
@@ -162,14 +205,20 @@ export class SeasonManager {
         scoreLabel = `<span class="score-pill ${cls}">${u}-${t}</span>`;
       }
       const date = g.gameInfo?.date || '';
+      // The current in-app game can't be "removed" from the season here — it's
+      // included automatically; only separately-added files get a × button.
+      const removeBtn = g.isCurrent
+        ? '<span class="season-current-tag" title="Automatically included from the game you have open">live</span>'
+        : '<button class="btn btn-sm btn-danger" data-action="remove" title="Remove from season">×</button>';
       row.innerHTML = `
         <div class="season-game-info">
           <div class="season-game-name">${this._escape(g.name)} ${scoreLabel}</div>
           <div class="season-game-meta">${g.plays.length} plays${date ? ' · ' + this._escape(date) : ''}</div>
         </div>
-        <button class="btn btn-sm btn-danger" data-action="remove" title="Remove from season">×</button>
+        ${removeBtn}
       `;
-      row.querySelector('[data-action=remove]').addEventListener('click', () => this.removeGame(i));
+      const btn = row.querySelector('[data-action=remove]');
+      if (btn) btn.addEventListener('click', () => this.removeGame(this.games.indexOf(g)));
       list.appendChild(row);
     });
   }
@@ -178,8 +227,9 @@ export class SeasonManager {
     const body = document.getElementById('seasonStatsBody');
     if (!body) return;
 
-    if (!this.games.length) {
-      body.innerHTML = '<div class="season-empty-stats">Load games above to see season-wide stats, trends, and a self-scout report.</div>';
+    const games = this._effectiveGames();
+    if (!games.length) {
+      body.innerHTML = '<div class="season-empty-stats">Load a game in the app, or add past games above, to see season-wide stats, trends, and a self-scout report.</div>';
       return;
     }
 
@@ -191,7 +241,7 @@ export class SeasonManager {
     const indTables = this.statsEngine._renderIndividualStats(stats);
     const individual = indTables ? `
       <div class="stats-section"><h3>Season Player Roll-Up</h3>
-      <p class="self-scout-intro">Per-player totals across all ${this.games.length} loaded games.</p></div>
+      <p class="self-scout-intro">Per-player totals across all ${games.length} loaded games.</p></div>
       ${indTables}` : '';
 
     body.innerHTML = `
@@ -214,8 +264,9 @@ export class SeasonManager {
   }
 
   _renderHeader(stats) {
+    const games = this._effectiveGames();
     let wins = 0, losses = 0, ties = 0, ptsFor = 0, ptsAgainst = 0;
-    for (const g of this.games) {
+    for (const g of games) {
       const u = parseInt(g.gameInfo?.scoreUs);
       const t = parseInt(g.gameInfo?.scoreThem);
       if (!isNaN(u) && !isNaN(t)) {
@@ -229,7 +280,7 @@ export class SeasonManager {
     const recordStr = ties ? `${wins}-${losses}-${ties}` : `${wins}-${losses}`;
     return `
       <div class="season-summary">
-        <div class="ss-stat"><div class="ss-num">${this.games.length}</div><div class="ss-lbl">Games</div></div>
+        <div class="ss-stat"><div class="ss-num">${games.length}</div><div class="ss-lbl">Games</div></div>
         ${(wins + losses + ties) ? `<div class="ss-stat"><div class="ss-num">${recordStr}</div><div class="ss-lbl">Record</div></div>` : ''}
         <div class="ss-stat"><div class="ss-num">${stats.totalPlays}</div><div class="ss-lbl">Plays</div></div>
         <div class="ss-stat"><div class="ss-num">${stats.rushing.yards + stats.passing.yards}</div><div class="ss-lbl">Total Yds</div></div>
@@ -240,9 +291,10 @@ export class SeasonManager {
   }
 
   _renderTrends() {
-    if (this.games.length < 2) return '';
+    const games = this._effectiveGames();
+    if (games.length < 2) return '';
 
-    const perGame = this.games.map(g => {
+    const perGame = games.map(g => {
       const stats = this.statsEngine.compute(g.plays);
       return {
         name: g.name,
@@ -293,7 +345,7 @@ export class SeasonManager {
 
   _renderPerGameTable() {
     let rows = '';
-    for (const g of this.games) {
+    for (const g of this._effectiveGames()) {
       const s = this.statsEngine.compute(g.plays);
       rows += `<tr>
         <td>${this._escape(g.name)}</td>
@@ -386,10 +438,11 @@ export class SeasonManager {
   }
 
   exportSeasonReport() {
-    if (!this.games.length) return;
+    const games = this._effectiveGames();
+    if (!games.length) return;
     const allPlays = this._allPlays();
     const stats = this.statsEngine.compute(allPlays);
-    const title = `Season Report — ${this.games.length} games`;
+    const title = `Season Report — ${games.length} games`;
 
     this.statsEngine._seasonLabels = this._mergeRoster();
     const indTables = this.statsEngine._renderIndividualStats(stats);

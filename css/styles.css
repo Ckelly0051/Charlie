@@ -2556,6 +2556,23 @@ body {
 .score-pill.win { background: #1f5e1f; }
 .score-pill.loss { background: #5e1f1f; }
 
+/* The currently-loaded in-app game, auto-included in the season. */
+.season-game-row.season-game-current {
+  border-color: var(--run-color);
+  box-shadow: inset 0 0 0 1px rgba(240,180,41,0.35);
+}
+.season-current-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: var(--run-color);
+  color: #1a1205;
+}
+
 .season-stats-body {
   padding: 16px 20px 20px;
 }

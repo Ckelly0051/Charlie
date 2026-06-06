@@ -186,6 +186,20 @@ names come from a merged roster across all loaded games' saved `roster`
 arrays plus the live roster (`_mergeRoster` → `statsEngine._seasonLabels`).
 Included in the exported season HTML report.
 
+**Current game is auto-included.** The Season view always folds in the
+**currently-loaded in-app game** (`window.app.tagger.plays` + its `gameInfo`/
+`roster`) alongside any separately-added project files — so a coach who just
+loads/tags one game and opens Season sees stats immediately, without having to
+re-add the file they already have open. `_currentGame()` builds the virtual
+entry (labeled "… (current)", shown with a gold **live** tag and no × button);
+`_effectiveGames()` returns `[currentGame?, ...this.games]` and is the canonical
+list every render/aggregation path reads (`_allPlays`, `_mergeRoster`,
+`_renderGameList`, `_renderHeader`, `_renderTrends`, `_renderPerGameTable`,
+`exportSeasonReport`). De-dup: if an added file matches the current game's
+signature (`opponent|date|playCount`), the current entry is dropped so it's
+never double-counted. `this.games` still holds only the persisted added files
+(localStorage `ffa_season_games`); the current game is never written there.
+
 ## Import / Export
 
 ### Play Import (CSV / Hudl)
