@@ -657,8 +657,53 @@ no-build/single-file ethos:
    of failing silently. (Fully bundling Tesseract + WASM + lang data ≈ 10–15 MB
    was considered and rejected for now to keep the package lean.)
 
-Not chosen: bundling Tesseract locally (size), and a native Electron/Tauri
-installer (adds a build toolchain + code-signing, against the current design).
+## Native Desktop (Tauri) — Decided, Deferred Until On Desktop
+
+The reliability ceiling of the browser sandbox (storage eviction, no free disk
+access, File System Access being Chromium-only) led to the decision to ship an
+**installed desktop build via Tauri** alongside the web app. The groundwork is
+done — storage goes through the `StorageBackend` seam and a dormant
+`TauriBackend` is already in the bundle (`storage-backend.js`), and `TAURI.md`
+holds the packaging recipe. **The actual Rust shell is deferred until the work
+is done on a machine with the Rust toolchain** (so it can be compiled/tested,
+not committed unverified). The web build remains the zero-install option for
+other coaches to review.
+
+### What native unlocks (the "less constrained" roadmap)
+
+The browser forced the app to stay lean in specific ways; native lifts each
+constraint. Prioritized for the desktop build:
+
+1. **Persistent film library (biggest workflow win).** Today video is never
+   stored — each game only records its `videoFileName`, so the coach **re-links
+   the film every session**. Native = real filesystem: copy/import game film
+   into a managed library folder, **permanently linked** to each game/play; open
+   a game and the film is just there. No re-importing.
+2. **Real MP4 cut-up export.** Bundle `ffmpeg` as a Tauri sidecar so filtered
+   plays / player cut-ups export as **actual video files** (the in-browser
+   `cutup-exporter.js` is limited). Background rendering, no UI block.
+3. **Cached per-play thumbnails / filmstrip.** Precompute and store frame
+   thumbnails on disk → instant play browsing, filmstrip views, and **real
+   images on the printed call sheet / reports**.
+4. **Offline scoreboard OCR.** Bundle Tesseract + WASM + lang data locally
+   (rejected on web for the ~10–15 MB size) → OCR works fully offline.
+5. **Local ML auto-tagging.** Embed the existing Python/YOLO CV (`server/`) as a
+   bundled sidecar instead of a separate localhost server; persist detections.
+6. **Voice notes per play.** Coaches talk faster than they type — record short
+   audio attached to a play (needs the storage headroom native provides).
+7. **Unbounded history + multi-season library.** Larger restore ring, full
+   annotation/version history, and a growing **opponent-scouting database** that
+   carries tendencies year over year.
+8. **System integration.** `.season` file association (double-click to open),
+   drag-drop a folder of clips to auto-create games, native menus, auto-update.
+
+Keep the **lean ethos** even when adding these: feature-detect native
+(`window.__TAURI__`) and degrade gracefully on web, so the single-file browser
+build stays fully functional. Heavy assets (ffmpeg, Tesseract, ML models) ship
+only in the desktop bundle, never inlined into `football-film-analyzer.html`.
+
+Still also valid for the **web** build: the PWA install + offline cache (Option
+1 above) and graceful OCR degradation, independent of the desktop effort.
 
 ## Stats Engine Dependencies
 
