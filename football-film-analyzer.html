@@ -6127,54 +6127,44 @@ video.is-buffering { opacity: 0.6; }
 /* ===================  GRIDIRON PRO — v3  ========================== */
 /* ================================================================== */
 
+/* Run/pass chart colors — only consumed inside the dark dashboard, but
+   harmless globally. The full Gridiron Pro palette (gold accent + dark
+   bg/text/border) is SCOPED to .stats-overlay below — setting it globally
+   leaks into the light tag form and makes chip text unreadable (lesson #12). */
 :root {
-  /* Gridiron Pro palette — warm gold + cool teal on neutral slate */
-  --bg-primary:      #0d1117;
-  --bg-secondary:    #151b23;
-  --bg-tertiary:     #1c2128;
-  --bg-surface:      #262c36;
-  --bg-elevated:     #2d333b;
+  --run-color:  #f0b429;
+  --pass-color: #38bdf8;
+}
+
+/* Gridiron Pro dashboard palette — gold accents on dark slate. Scoped to the
+   stats overlay so the light app shell (tag form, top bar) is untouched. */
+.stats-overlay {
+  --bg-primary:    #0d1117;
+  --bg-secondary:  #151b23;
+  --bg-tertiary:   #1c2128;
+  --bg-surface:    #262c36;
+  --bg-elevated:   #2d333b;
   --accent:          #c9a227;
   --accent-hover:    #dbb634;
   --accent-soft:     rgba(201,162,39,0.10);
   --highlight:       #c9a227;
   --highlight-hover: #dbb634;
   --highlight-soft:  rgba(201,162,39,0.10);
-  --info:            #00bcd4;
-  --info-soft:       rgba(0,188,212,0.10);
-  --success:         #22c55e;
-  --warning:         #f59e0b;
-  --danger:          #ef4444;
-  --text:            #e6edf3;
-  --text-dim:        #8b949e;
-  --text-bright:     #ffffff;
-  --border:          #30363d;
-  --border-bright:   #484f58;
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.4);
-  --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
-  --shadow-glow: 0 0 0 3px rgba(201,162,39,0.18);
-  --radius:    10px;
-  --radius-sm: 6px;
-  --radius-lg: 16px;
-  --run-color:  #f0b429;
-  --pass-color: #38bdf8;
+  --info:          #00bcd4;
+  --success:       #22c55e;
+  --warning:       #f59e0b;
+  --danger:        #ef4444;
+  --text:          #e6edf3;
+  --text-dim:      #8b949e;
+  --text-bright:   #ffffff;
+  --border:        #30363d;
+  --border-bright: #484f58;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* --- Top bar: warm gold identity --- */
-.top-bar {
-  background: linear-gradient(180deg, #151b23 0%, #0d1117 100%);
-}
-.app-title {
-  color: var(--highlight);
-  font-weight: 800;
-  letter-spacing: 1px;
 }
 
 /* --- Stats overlay: frosted dark --- */
@@ -10407,7 +10397,10 @@ class StorageManager {
       }
     }
 
-    if (data.roster && window.app && window.app.roster) {
+    // Only adopt a project's roster when it actually has players. An empty
+    // roster array would otherwise wipe the coach's persisted roster, which
+    // is meant to carry forward across games.
+    if (Array.isArray(data.roster) && data.roster.length && window.app && window.app.roster) {
       window.app.roster.loadFrom(data.roster);
     }
 
@@ -20649,6 +20642,9 @@ class App {
     this.tagger.on('play-updated', () => this._updateTrackedScore());
     this.tagger.on('play-deleted', () => this._updateTrackedScore());
     this._updateTrackedScore();
+
+    // Carry the team identity (name + jersey color) forward from prior games.
+    this._applyTeamProfile();
   }
 
   /** Recompute the running scoreboard from tagged plays and show it. */
@@ -20691,6 +20687,45 @@ class App {
       direction: document.getElementById('gameDirection')?.value || '',
     };
     this.storage._autoSave();
+    this._saveTeamProfile();
+  }
+
+  /**
+   * Persist team-identity fields (team name + jersey color) globally so they
+   * carry forward to every new game. Only the last *non-empty* value is kept,
+   * so editing another field (e.g. opponent) while the name is blank — or an
+   * accidental clear — never wipes the saved identity.
+   */
+  _saveTeamProfile() {
+    try {
+      let prev = {};
+      try { prev = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) {}
+      const profile = {
+        teamName: (this.storage.gameInfo.teamName || prev.teamName || ''),
+        jerseyColor: (this.storage.gameInfo.jerseyColor || prev.jerseyColor || ''),
+      };
+      localStorage.setItem('ffa_team_profile', JSON.stringify(profile));
+    } catch (e) { /* localStorage unavailable — ignore */ }
+  }
+
+  /**
+   * Pre-fill team-identity fields from the saved profile when they're empty
+   * (fresh session, no project loaded yet). A loaded project always wins:
+   * _loadGameInfo overwrites these with the project's own values when present,
+   * and only falls back to the carried-forward identity when the project omits
+   * them.
+   */
+  _applyTeamProfile() {
+    let profile = {};
+    try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return; }
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
+    let applied = false;
+    if (nameEl && !nameEl.value && profile.teamName) { nameEl.value = profile.teamName; applied = true; }
+    if (colorEl && !colorEl.value && profile.jerseyColor) { colorEl.value = profile.jerseyColor; applied = true; }
+    // Mirror into storage.gameInfo so stats/scoreboard/exports pick up the
+    // carried-forward team name without waiting for a manual field edit.
+    if (applied) this._saveGameInfo();
   }
 
   _loadGameInfo(info) {
