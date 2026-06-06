@@ -287,6 +287,23 @@ export class PlaylistManager {
     this._updateClipCount();
   }
 
+  /**
+   * Drop every clip (revoking object URLs) and reset the playlist UI. Used when
+   * switching to a different game in the season so its clips don't linger.
+   * Does not touch tagger.plays — the caller loads the new game's plays.
+   */
+  reset() {
+    for (const clip of this.clips) {
+      if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
+    }
+    this.clips = [];
+    this.activeClipIndex = -1;
+    this._nextClipId = 1;
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
+  }
+
   get hasClips() {
     return this.clips.length > 0;
   }

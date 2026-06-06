@@ -2582,6 +2582,42 @@ body {
   padding: 60px 20px;
   font-size: 14px;
 }
+
+/* Season name (the project IS the season — named up front). */
+.season-title-wrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.season-name-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-dim, #8b949e); font-weight: 700;
+}
+.season-name-input {
+  flex: 1; min-width: 0; max-width: 360px;
+  background: #161d2e; border: 1px solid #2d3454; border-radius: 6px;
+  color: #fff; font-size: 15px; font-weight: 700; padding: 6px 10px;
+}
+.season-name-input::placeholder { color: #5c6680; font-weight: 500; }
+
+/* Season progression cards — better/worse over the year. */
+.prog-headline { font-size: 13px; color: #c9d1d9; margin: 4px 0 10px; }
+.prog-headline .prog-up { color: #3fb950; }
+.prog-headline .prog-down { color: #f85149; }
+.prog-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.prog-card {
+  border: 1px solid #2d3454; border-left-width: 4px;
+  border-radius: 6px; padding: 10px 12px; background: #1a2030;
+}
+.prog-card.prog-better { border-left-color: #3fb950; }
+.prog-card.prog-worse  { border-left-color: #f85149; }
+.prog-card.prog-flat   { border-left-color: #6b7280; }
+.prog-metric { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8b949e; }
+.prog-vals { font-size: 18px; font-weight: 800; color: #fff; margin: 3px 0; font-variant-numeric: tabular-nums; }
+.prog-arrow { font-size: 14px; opacity: .8; margin: 0 2px; }
+.prog-card.prog-better .prog-tag { color: #3fb950; }
+.prog-card.prog-worse  .prog-tag { color: #f85149; }
+.prog-card.prog-flat   .prog-tag { color: #8b949e; }
+.prog-tag { font-size: 11px; font-weight: 700; }
 .season-summary {
   display: flex;
   flex-wrap: wrap;

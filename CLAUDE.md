@@ -74,14 +74,15 @@ js/
 ├── advanced-metrics.js       # Expected Points Added calculations
 ├── heat-maps.js              # Visual heat map generation
 ├── visualizations.js         # SVG charts: field-zone success, yardage spray, quarter mix
-├── storage.js                # Project save/load (JSON + localStorage) + CSV import
+├── season-store.js           # Season-as-project data model + hybrid persistence (localStorage + File System Access API/IndexedDB)
+├── storage.js                # Save/load bridge (live tagger <-> season store) + CSV import
 ├── history-manager.js        # Unified undo/redo (play data + canvas)
 ├── version-manager.js        # Named save points
 ├── notes-manager.js          # Per-play text notes
 ├── scoreboard-ocr.js         # OCR region for scoreboard reading
 ├── suggestion-engine.js      # Pattern-based tag suggestions
 ├── cutup-exporter.js         # Stitch filtered plays into cut-up video
-├── season-manager.js         # Multi-game season aggregation
+├── season-manager.js         # Season view: game switcher + aggregate stats + progression (over season-store)
 ├── call-sheet-builder.js     # Play call sheet generation
 ├── ui-polish.js              # Misc UI enhancements
 ├── wizard.js                 # Step-by-step onboarding wizard
@@ -178,27 +179,80 @@ hover ▶ + tooltip and a one-line `.stats-cut-hint` banner make it
 discoverable. `Charts.effectivenessRows` emits the cut attributes when an
 item carries `cutType`/`cutVal`/`cutLabel`.
 
-### Season Player Roll-Up (`season-manager.js`)
-The Season modal aggregates plays across loaded game files. Because
-`StatsEngine.compute(allPlays)` already produces `individuals`, the season
-view renders the same four box-score tables as **season totals**. Player
-names come from a merged roster across all loaded games' saved `roster`
-arrays plus the live roster (`_mergeRoster` → `statsEngine._seasonLabels`).
-Included in the exported season HTML report.
+## Season-as-Project — Save/Load Architecture (`season-store.js`)
 
-**Current game is auto-included.** The Season view always folds in the
-**currently-loaded in-app game** (`window.app.tagger.plays` + its `gameInfo`/
-`roster`) alongside any separately-added project files — so a coach who just
-loads/tags one game and opens Season sees stats immediately, without having to
-re-add the file they already have open. `_currentGame()` builds the virtual
-entry (labeled "… (current)", shown with a gold **live** tag and no × button);
-`_effectiveGames()` returns `[currentGame?, ...this.games]` and is the canonical
-list every render/aggregation path reads (`_allPlays`, `_mergeRoster`,
-`_renderGameList`, `_renderHeader`, `_renderTrends`, `_renderPerGameTable`,
-`exportSeasonReport`). De-dup: if an added file matches the current game's
-signature (`opponent|date|playCount`), the current entry is dropped so it's
-never double-counted. `this.games` still holds only the persisted added files
-(localStorage `ffa_season_games`); the current game is never written there.
+**The project IS the season.** Instead of a file per game / per save, the unit
+of work is one named **season** that holds many games and is autosaved in place.
+This killed the old per-video autosave (`ffa_<videoFileName>`) and the
+per-save download artifact (`<game>_analysis.json`) that scattered over a year.
+
+**Data model (schema v5)** — `SeasonStore.data`:
+```javascript
+{
+  version: 5, type: 'season',
+  seasonName: '',                 // named up front in the Season modal
+  teamProfile: { teamName, jerseyColor },
+  roster: [...],                  // season-level roster mirror
+  games: [ gameNode, ... ],       // each gameNode is the old per-game object:
+  activeGameId: '<id>',           //   { id, name, gameInfo, plays, annotations,
+}                                 //     nextId, currentPlayId, videoFileName,
+                                  //     clipNames, isMultiClip }
+```
+A `gameNode` is exactly what `StorageManager._serialize()` produces, so
+`version-manager.js` (which round-trips through `_serialize`/`_deserialize`)
+keeps working unchanged — those two methods are still "serialize/deserialize the
+**active game**".
+
+**Hybrid storage (3 tiers, by design):**
+1. **Canonical = the browser.** The whole season lives under one localStorage
+   key `ffa_season`, autosaved continuously (debounced) by
+   `StorageManager._commitAndPersist()` → `commitActive()` +
+   `seasonStore.persist()`. No artifacts proliferate.
+2. **Backup/portability = one season file.** `Save Season` writes a single
+   `<season>_season.json`; `Open Season / Game` (or the Season modal's Import)
+   reads it back.
+3. **Living file = File System Access API.** When supported (Chromium),
+   `seasonStore.saveToFile()` binds one real on-disk file and every save writes
+   back to it in place; the handle is persisted in **IndexedDB** (`ffa_fs`
+   store) so it reconnects next session. Firefox/Safari fall back to
+   download/upload. `SeasonStore.supportsFS()` gates the UI.
+
+**Bridge (`StorageManager`)** owns the live↔store sync:
+- `initSeason()` (called once at startup, next tick so `window.app` is set) loads
+  the season and restores the active game into the tagger/canvas/gameInfo.
+- `commitActive()` writes live tagger/canvas/gameInfo (+ roster, team profile)
+  into the active game node; `_loadActiveGame()` loads a node back out.
+- `switchToGame(id)` / `newGame()` / `removeGame(id)` / `addGameFromData(legacy)`
+  commit the current game, mutate the store, then `_clearForNewGame()` (unloads
+  video via `VideoController.unloadVideo()`, resets the playlist via
+  `PlaylistManager.reset()`, blanks the Game Info form via
+  `App._clearGameInfoForm()` — team identity is intentionally preserved) and
+  load the new active game.
+- Import reuses an empty active game (`seasonStore.isEmptyActive()`) instead of
+  leaving a stray "Game 1" behind.
+- `loadProject(file)`: a **season** file (`has .games`) replaces the season; a
+  **legacy single-game** file (`has .plays`) is appended as a new game.
+
+**Video is never stored** (too large). Each game records its `videoFileName`;
+the coach re-links the film when they open that game.
+
+### Season Player Roll-Up + Progression (`season-manager.js`)
+The Season modal is a *view* over `app.storage.seasonStore` — it owns no game
+data. Every read goes through `_effectiveGames()`, which calls
+`storage.commitActive()` then returns `seasonStore.gamesChrono()` (games sorted
+by `gameInfo.date`), so the live game is always reflected. The active game is
+highlighted and clickable rows switch games.
+
+- **Season totals**: `StatsEngine.compute(allPlays)` over every game's plays
+  renders the same four box-score tables as season roll-ups; player names merge
+  every game's roster + the live roster (`_mergeRoster` →
+  `statsEngine._seasonLabels`).
+- **Season Progression** (`_renderProgression`): splits the chronological games
+  into first half vs. second half and compares Success Rate, Yards/Play, 3rd
+  Down %, TDs/Game, and Turnovers/Game — flagging each **Improving / Slipping /
+  Steady** (deadzone per metric) with a headline ("Getting better: … / Needs
+  work: …"). This is the "better at X, worse at Y over the season" view.
+- Included in the exported season HTML report (titled by `seasonName`).
 
 ## Import / Export
 

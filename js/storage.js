@@ -1,5 +1,13 @@
+import { SeasonStore } from './season-store.js';
+
 /**
  * StorageManager - Handles save/load/export for projects.
+ *
+ * The unit of work is a **season** (see season-store.js): one container holding
+ * many games, autosaved in place to localStorage so the app no longer spawns a
+ * file per game/save. StorageManager bridges the live tagger/canvas/gameInfo
+ * state and the season store — committing the active game on every change and
+ * loading a game's state when the coach switches games.
  */
 export class StorageManager {
   constructor(videoController, playTagger, canvasOverlay) {
@@ -11,6 +19,7 @@ export class StorageManager {
     this.videoFileName = null;
     this.gameInfo = {};
     this.filter = null;
+    this.seasonStore = new SeasonStore();
 
     this.btnSave = document.getElementById('btnSave');
     this.btnLoad = document.getElementById('btnLoad');
@@ -35,10 +44,10 @@ export class StorageManager {
     this.btnExportPng.addEventListener('click', () => this.exportPng());
     this.btnExportCsv.addEventListener('click', () => this.exportCsv());
 
-    // Track video file name for auto-save key
+    // Track the video file name so the active game records which film it used.
     this.vc.on('file-loaded', (data) => {
       this.videoFileName = data.name;
-      this._tryAutoRestore();
+      this._autoSave();
     });
 
     // Playlist reference (set by app.js after construction)
@@ -56,30 +65,99 @@ export class StorageManager {
 
   _autoSave() {
     clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = setTimeout(() => {
-      if (!this.videoFileName) return;
-      const data = this._serialize();
-      try {
-        localStorage.setItem('ffa_' + this.videoFileName, JSON.stringify(data));
-      } catch (e) {
-        // localStorage full — silently fail
-      }
-    }, 1000);
+    this.autoSaveTimer = setTimeout(() => this._commitAndPersist(), 1000);
   }
 
-  _tryAutoRestore() {
-    if (!this.videoFileName) return;
+  /** Write the live active-game state into the season and persist the season. */
+  _commitAndPersist() {
+    if (!this.seasonStore || !this.seasonStore.data) return;
+    this.commitActive();
+    this.seasonStore.persist();
+  }
+
+  // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
+
+  /** Load the season from storage and restore its active game into the app. */
+  initSeason() {
+    this.seasonStore.load();
+    // Reconnect a previously-bound on-disk file in the background (Chromium).
+    if (this.seasonStore.restoreHandle) this.seasonStore.restoreHandle().catch(() => {});
+    this._loadActiveGame();
+  }
+
+  /** Capture the live tagger/canvas/gameInfo state into the active game node. */
+  commitActive() {
+    if (!this.seasonStore || !this.seasonStore.data) return;
+    this.seasonStore.updateActiveGame(this._serialize());
+    const app = window.app;
+    if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
     try {
-      const saved = localStorage.getItem('ffa_' + this.videoFileName);
-      if (saved) {
-        const ok = confirm('Previous session found for this video. Restore it?');
-        if (ok) {
-          this._deserialize(JSON.parse(saved));
-        }
-      }
-    } catch (e) {
-      // Ignore parse errors
-    }
+      this.seasonStore.data.teamProfile =
+        JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
+    } catch (e) {}
+  }
+
+  _loadActiveGame() {
+    const g = this.seasonStore.activeGame();
+    if (g) this._deserialize(g);
+  }
+
+  /** Tear down per-game UI before loading a different game. */
+  _clearForNewGame() {
+    try { if (this.vc && this.vc.unloadVideo) this.vc.unloadVideo(); } catch (e) {}
+    try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
+    this.videoFileName = null;
+    this.canvas.annotations = [];
+    if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
+  }
+
+  /** Switch which game is active, persisting the one we're leaving. */
+  switchToGame(id) {
+    if (!this.seasonStore.data || id === this.seasonStore.data.activeGameId) return;
+    this.commitActive();
+    if (!this.seasonStore.setActive(id)) return;
+    this.seasonStore.persist();
+    this._clearForNewGame();
+    this._loadActiveGame();
+  }
+
+  /** Start a fresh blank game in the season and switch to it. */
+  newGame() {
+    this.commitActive();
+    this.seasonStore.addGame();
+    this.seasonStore.persist();
+    this._clearForNewGame();
+    this._loadActiveGame();
+    return this.seasonStore.activeGame();
+  }
+
+  /** Remove a game; if it was active, load whichever becomes active. */
+  removeGame(id) {
+    const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    this.seasonStore.removeGame(id);
+    this.seasonStore.persist();
+    if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+  }
+
+  /** Add a legacy single-game project object as a game and switch to it. */
+  addGameFromData(parsed) {
+    if (!parsed || !Array.isArray(parsed.plays)) return false;
+    this.commitActive();
+    const node = this.seasonStore.gameFromLegacy(parsed);
+    // Importing into a still-empty game (e.g. the fresh-start blank) fills it
+    // in place instead of leaving a stray empty "Game 1" behind.
+    if (this.seasonStore.isEmptyActive()) this.seasonStore.updateActiveGame(node);
+    else this.seasonStore.addGame(node);
+    this.seasonStore.persist();
+    this._clearForNewGame();
+    this._loadActiveGame();
+    return true;
+  }
+
+  setSeasonName(name) {
+    if (!this.seasonStore.data) return;
+    this.seasonStore.data.seasonName = name || '';
+    this.seasonStore.persist();
   }
 
   _serialize() {
@@ -134,12 +212,22 @@ export class StorageManager {
     this.canvas.render();
   }
 
-  saveProject() {
-    const data = this._serialize();
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const name = this._projectFileBase() + '_analysis.json';
-    this._download(blob, name);
+  /**
+   * Save the whole season. Writes the canonical browser copy, then to the bound
+   * on-disk file (File System Access API) if one exists — updating the same file
+   * in place — or downloads a single season backup file as a fallback.
+   */
+  async saveProject() {
+    this.commitActive();
+    this.seasonStore.persist();
+    return this.seasonStore.saveToFile();
+  }
+
+  /** Open a season file and bind future saves to it (Chromium); else no-op. */
+  async openSeasonFile() {
+    const data = await this.seasonStore.openFromFile();
+    if (data) { this._clearForNewGame(); this._loadActiveGame(); }
+    return !!data;
   }
 
   /**
@@ -153,14 +241,30 @@ export class StorageManager {
     return raw.trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'project';
   }
 
+  /**
+   * Load a file picked via the fallback <input>. A season file (has `games`)
+   * replaces the season; a legacy single-game file (has `plays`) is appended as
+   * a new game so an old save is folded in rather than wiping the season.
+   */
   loadProject(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        this._deserialize(data);
-      } catch (err) {
+      let parsed;
+      try { parsed = JSON.parse(e.target.result); }
+      catch (err) { alert('Invalid project file.'); return; }
+
+      if (parsed && Array.isArray(parsed.games)) {
+        this.seasonStore.adopt(parsed);
+        this._clearForNewGame();
+        this._loadActiveGame();
+      } else if (parsed && Array.isArray(parsed.plays)) {
+        this.addGameFromData(parsed);
+      } else {
         alert('Invalid project file.');
+        return;
+      }
+      if (window.app && window.app.season && window.app.season._renderAll) {
+        window.app.season._renderAll();
       }
     };
     reader.readAsText(file);

@@ -59,16 +59,16 @@
         <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
           <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> <span class="btn-label">Stats</span>
         </button>
-        <button class="btn btn-accent" id="btnSave" title="Save Project (Ctrl+S)">
-          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save</span>
+        <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
+          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save Season</span>
         </button>
         <div class="more-menu">
           <button class="btn" id="btnMoreMenu" title="More actions" aria-haspopup="true" aria-expanded="false">
             More <span class="more-caret">▾</span>
           </button>
           <div class="more-dropdown hidden" id="moreDropdown" role="menu">
-            <button class="btn" id="btnLoad" title="Load Project">
-              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Load Project
+            <button class="btn" id="btnLoad" title="Open a season or game file">
+              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Open Season / Game
               <input type="file" id="projectFileInput" accept=".json" hidden>
             </button>
             <button class="btn" id="btnExportPng" title="Export Frame as PNG">
@@ -1059,11 +1059,16 @@
     <div class="season-overlay hidden" id="seasonOverlay">
       <div class="season-modal">
         <div class="season-header">
-          <h2>Season Stats</h2>
+          <div class="season-title-wrap">
+            <label class="season-name-label" for="seasonNameInput">Season</label>
+            <input type="text" id="seasonNameInput" class="season-name-input" placeholder="Name your season (e.g. Eagles 2026)" maxlength="60">
+          </div>
           <div class="season-header-actions">
-            <button class="btn btn-sm btn-accent" id="btnAddSeasonGames">+ Add Games</button>
-            <button class="btn btn-sm" id="btnExportSeason">Export Report</button>
-            <button class="btn btn-sm btn-danger" id="btnClearSeason">Clear All</button>
+            <button class="btn btn-sm btn-accent" id="btnNewGame" title="Start a new game in this season">+ New Game</button>
+            <button class="btn btn-sm" id="btnAddSeasonGames" title="Import a saved game file into this season">Import Game</button>
+            <button class="btn btn-sm" id="btnSaveSeasonFile" title="Save the whole season to a file">Save Season</button>
+            <button class="btn btn-sm" id="btnOpenSeasonFile" title="Open a season file and keep saving to it">Open File</button>
+            <button class="btn btn-sm" id="btnExportSeason" title="Export a printable season report">Export Report</button>
             <button class="btn btn-sm btn-danger" id="btnCloseSeason">Close</button>
           </div>
           <input type="file" id="seasonFileInput" accept=".json" multiple hidden>

@@ -136,11 +136,26 @@ class App {
     this.canvas.on?.('annotation-added', () => this.history._updateUI());
     this.canvas.on?.('annotations-changed', () => this.history._updateUI());
 
-    // History needs to seed lastSnap *after* all wiring; do it on next tick
+    // Load the season and restore its active game, then seed history. Deferred
+    // to the next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(() => {
+      this.storage.initSeason();
       this.history.init();
       this.versions.renderList();
     }, 0);
+  }
+
+  /** Blank every Game Info input — used when switching to a different game. */
+  _clearGameInfoForm() {
+    ['gameProjectName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
+     'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    // Team identity (team name, jersey color) carries forward across games, so
+    // it's intentionally left in place here.
+    this.storage.gameInfo = {
+      ...this.storage.gameInfo,
+      projectName: '', opponent: '', date: '', scoreUs: '', scoreThem: '', direction: '',
+    };
+    this._trackedScore = null;
   }
 
   _wireEvents() {
