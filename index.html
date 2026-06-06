@@ -2589,6 +2589,42 @@ body {
   padding: 60px 20px;
   font-size: 14px;
 }
+
+/* Season name (the project IS the season — named up front). */
+.season-title-wrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.season-name-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-dim, #8b949e); font-weight: 700;
+}
+.season-name-input {
+  flex: 1; min-width: 0; max-width: 360px;
+  background: #161d2e; border: 1px solid #2d3454; border-radius: 6px;
+  color: #fff; font-size: 15px; font-weight: 700; padding: 6px 10px;
+}
+.season-name-input::placeholder { color: #5c6680; font-weight: 500; }
+
+/* Season progression cards — better/worse over the year. */
+.prog-headline { font-size: 13px; color: #c9d1d9; margin: 4px 0 10px; }
+.prog-headline .prog-up { color: #3fb950; }
+.prog-headline .prog-down { color: #f85149; }
+.prog-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.prog-card {
+  border: 1px solid #2d3454; border-left-width: 4px;
+  border-radius: 6px; padding: 10px 12px; background: #1a2030;
+}
+.prog-card.prog-better { border-left-color: #3fb950; }
+.prog-card.prog-worse  { border-left-color: #f85149; }
+.prog-card.prog-flat   { border-left-color: #6b7280; }
+.prog-metric { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8b949e; }
+.prog-vals { font-size: 18px; font-weight: 800; color: #fff; margin: 3px 0; font-variant-numeric: tabular-nums; }
+.prog-arrow { font-size: 14px; opacity: .8; margin: 0 2px; }
+.prog-card.prog-better .prog-tag { color: #3fb950; }
+.prog-card.prog-worse  .prog-tag { color: #f85149; }
+.prog-card.prog-flat   .prog-tag { color: #8b949e; }
+.prog-tag { font-size: 11px; font-weight: 700; }
 .season-summary {
   display: flex;
   flex-wrap: wrap;
@@ -6670,16 +6706,16 @@ body {
         <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
           <svg class="icon"><use href="#icon-stats"/></svg> <span class="btn-label">Stats</span>
         </button>
-        <button class="btn btn-accent" id="btnSave" title="Save Project (Ctrl+S)">
-          <svg class="icon"><use href="#icon-save"/></svg> <span class="btn-label">Save</span>
+        <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
+          <svg class="icon"><use href="#icon-save"/></svg> <span class="btn-label">Save Season</span>
         </button>
         <div class="more-menu">
           <button class="btn" id="btnMoreMenu" title="More actions" aria-haspopup="true" aria-expanded="false">
             More <span class="more-caret">▾</span>
           </button>
           <div class="more-dropdown hidden" id="moreDropdown" role="menu">
-            <button class="btn" id="btnLoad" title="Load Project">
-              <svg class="icon"><use href="#icon-folder"/></svg> Load Project
+            <button class="btn" id="btnLoad" title="Open a season or game file">
+              <svg class="icon"><use href="#icon-folder"/></svg> Open Season / Game
               <input type="file" id="projectFileInput" accept=".json" hidden>
             </button>
             <button class="btn" id="btnExportPng" title="Export Frame as PNG">
@@ -7670,11 +7706,16 @@ body {
     <div class="season-overlay hidden" id="seasonOverlay">
       <div class="season-modal">
         <div class="season-header">
-          <h2>Season Stats</h2>
+          <div class="season-title-wrap">
+            <label class="season-name-label" for="seasonNameInput">Season</label>
+            <input type="text" id="seasonNameInput" class="season-name-input" placeholder="Name your season (e.g. Eagles 2026)" maxlength="60">
+          </div>
           <div class="season-header-actions">
-            <button class="btn btn-sm btn-accent" id="btnAddSeasonGames">+ Add Games</button>
-            <button class="btn btn-sm" id="btnExportSeason">Export Report</button>
-            <button class="btn btn-sm btn-danger" id="btnClearSeason">Clear All</button>
+            <button class="btn btn-sm btn-accent" id="btnNewGame" title="Start a new game in this season">+ New Game</button>
+            <button class="btn btn-sm" id="btnAddSeasonGames" title="Import a saved game file into this season">Import Game</button>
+            <button class="btn btn-sm" id="btnSaveSeasonFile" title="Save the whole season to a file">Save Season</button>
+            <button class="btn btn-sm" id="btnOpenSeasonFile" title="Open a season file and keep saving to it">Open File</button>
+            <button class="btn btn-sm" id="btnExportSeason" title="Export a printable season report">Export Report</button>
             <button class="btn btn-sm btn-danger" id="btnCloseSeason">Close</button>
           </div>
           <input type="file" id="seasonFileInput" accept=".json" multiple hidden>
@@ -10299,9 +10340,336 @@ class NotesManager {
   }
 }
 
+// ===== season-store.js =====
+/**
+ * SeasonStore — the canonical "project = season" data container.
+ *
+ * One season holds many games; each game is the same per-game object the rest
+ * of the app already serializes (plays, gameInfo, annotations, roster, …). The
+ * season is the unit of work, so the app stops spawning a file artifact per
+ * game / per save.
+ *
+ * Storage is hybrid (see CLAUDE.md "Season-as-Project"):
+ *   1. Canonical store = the browser. The whole season lives under one
+ *      localStorage key (`ffa_season`) and is autosaved continuously in place,
+ *      so nothing proliferates.
+ *   2. Backup / portability = a single Export/Import season file.
+ *   3. Living file = File System Access API. When supported (Chromium), the
+ *      season binds to one real file on disk and every save writes back to it.
+ *      The handle is persisted in IndexedDB so it reconnects across sessions.
+ *      Browsers without the API fall back to download/upload.
+ *
+ * Video is never stored (too large). Each game references its video filename;
+ * the coach re-links the file when they open that game.
+ */
+class SeasonStore {
+  constructor() {
+    this.KEY = 'ffa_season';
+    this.SCHEMA = 5;
+    this.data = null;
+    this.fileHandle = null;       // FileSystemFileHandle when bound
+    this._fileWriteTimer = null;
+    this._writing = false;
+  }
+
+  // ---- lifecycle -----------------------------------------------------------
+
+  load() {
+    let parsed = null;
+    try { parsed = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) {}
+    this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
+    return this.data;
+  }
+
+  _empty() {
+    const g = this.blankGame();
+    return {
+      version: this.SCHEMA, type: 'season',
+      seasonName: '', teamProfile: {}, roster: [],
+      games: [g], activeGameId: g.id,
+    };
+  }
+
+  blankGame() {
+    return {
+      id: this._newId(), name: 'New Game',
+      gameInfo: {}, plays: [], annotations: [],
+      nextId: 1, currentPlayId: null,
+      videoFileName: null, clipNames: [], isMultiClip: false,
+    };
+  }
+
+  _newId() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  /** Coerce any loaded object into a well-formed season (back-compat safe). */
+  _normalize(d) {
+    d.version = this.SCHEMA; d.type = 'season';
+    if (!Array.isArray(d.games) || !d.games.length) d.games = [this.blankGame()];
+    d.games.forEach(g => {
+      if (!g.id) g.id = this._newId();
+      g.plays = g.plays || [];
+      g.annotations = g.annotations || [];
+      g.gameInfo = g.gameInfo || {};
+      if (g.nextId == null) g.nextId = (g.plays.length + 1);
+    });
+    if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
+      d.activeGameId = d.games[0].id;
+    }
+    d.teamProfile = d.teamProfile || {};
+    d.roster = Array.isArray(d.roster) ? d.roster : [];
+    d.seasonName = d.seasonName || '';
+    return d;
+  }
+
+  /** Wrap a legacy single-game project object as a season game node. */
+  gameFromLegacy(obj) {
+    const g = this.blankGame();
+    return {
+      ...g,
+      gameInfo: obj.gameInfo || {},
+      plays: obj.plays || [],
+      annotations: obj.annotations || [],
+      nextId: obj.nextId || ((obj.plays || []).length + 1),
+      currentPlayId: obj.currentPlayId || null,
+      videoFileName: obj.videoFileName || null,
+      clipNames: obj.clipNames || [],
+      isMultiClip: !!obj.isMultiClip,
+      name: this.gameName({ gameInfo: obj.gameInfo || {}, videoFileName: obj.videoFileName }),
+    };
+  }
+
+  // ---- game accessors ------------------------------------------------------
+
+  activeIndex() { return this.data.games.findIndex(g => g.id === this.data.activeGameId); }
+  activeGame() { return this.data.games[this.activeIndex()] || null; }
+
+  /** Friendly label derived from the game's own info. */
+  gameName(g, fallbackIdx) {
+    const gi = (g && g.gameInfo) || {};
+    if (gi.opponent) return `vs ${gi.opponent}`;
+    if (gi.projectName) return gi.projectName;
+    if (g && g.videoFileName) return String(g.videoFileName).replace(/\.[^.]+$/, '');
+    return 'Game ' + ((fallbackIdx != null ? fallbackIdx : 0) + 1);
+  }
+
+  /** Replace the active game's stored state with a freshly serialized game. */
+  updateActiveGame(gameObj) {
+    const i = this.activeIndex();
+    if (i < 0) return;
+    const id = this.data.games[i].id;
+    gameObj.id = id;
+    gameObj.name = this.gameName(gameObj, i);
+    this.data.games[i] = gameObj;
+  }
+
+  addGame(gameObj) {
+    const g = gameObj || this.blankGame();
+    if (!g.id) g.id = this._newId();
+    if (!g.name) g.name = this.gameName(g, this.data.games.length);
+    this.data.games.push(g);
+    this.data.activeGameId = g.id;
+    return g;
+  }
+
+  removeGame(id) {
+    const i = this.data.games.findIndex(g => g.id === id);
+    if (i < 0) return null;
+    this.data.games.splice(i, 1);
+    if (!this.data.games.length) this.data.games.push(this.blankGame());
+    if (this.data.activeGameId === id) {
+      const next = this.data.games[Math.min(i, this.data.games.length - 1)];
+      this.data.activeGameId = next.id;
+    }
+    return this.activeGame();
+  }
+
+  setActive(id) {
+    if (this.data.games.some(g => g.id === id)) { this.data.activeGameId = id; return true; }
+    return false;
+  }
+
+  /** True when the active game has no plays and no identifying game info. */
+  isEmptyActive() {
+    const g = this.activeGame();
+    if (!g) return false;
+    const gi = g.gameInfo || {};
+    return (g.plays || []).length === 0 && !gi.opponent && !gi.projectName && !gi.date;
+  }
+
+  /** Chronological order (by gameInfo.date when present, else insertion). */
+  gamesChrono() {
+    return this.data.games
+      .map((g, i) => ({ g, i, t: Date.parse((g.gameInfo && g.gameInfo.date) || '') }))
+      .sort((a, b) => {
+        const at = isNaN(a.t) ? Infinity : a.t, bt = isNaN(b.t) ? Infinity : b.t;
+        return at === bt ? a.i - b.i : at - bt;
+      })
+      .map(x => x.g);
+  }
+
+  // ---- persistence ---------------------------------------------------------
+
+  /** Fast canonical save to localStorage; schedules a background file write. */
+  persist() {
+    try { localStorage.setItem(this.KEY, JSON.stringify(this.data)); }
+    catch (e) { /* quota — the file/export is the durable backup */ }
+    if (this.fileHandle) this._scheduleFileWrite();
+  }
+
+  json() { return JSON.stringify(this.data, null, 2); }
+
+  fileBase() {
+    const raw = this.data.seasonName || (this.data.teamProfile && this.data.teamProfile.teamName) || 'season';
+    return String(raw).trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'season';
+  }
+
+  // ---- File System Access API (progressive enhancement) --------------------
+
+  static supportsFS() {
+    return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+  }
+
+  _scheduleFileWrite() {
+    clearTimeout(this._fileWriteTimer);
+    this._fileWriteTimer = setTimeout(() => this._writeFile().catch(() => {}), 2500);
+  }
+
+  async _writeFile() {
+    if (!this.fileHandle || this._writing) return;
+    if (!(await this._ensurePermission(true))) return;
+    this._writing = true;
+    try {
+      const w = await this.fileHandle.createWritable();
+      await w.write(this.json());
+      await w.close();
+    } finally { this._writing = false; }
+  }
+
+  async _ensurePermission(write) {
+    if (!this.fileHandle || !this.fileHandle.queryPermission) return true;
+    const opts = { mode: write ? 'readwrite' : 'read' };
+    if ((await this.fileHandle.queryPermission(opts)) === 'granted') return true;
+    return (await this.fileHandle.requestPermission(opts)) === 'granted';
+  }
+
+  /** Bind to a real on-disk file and write the season to it. Returns true on success. */
+  async saveToFile() {
+    if (!SeasonStore.supportsFS()) { this._downloadFallback(); return true; }
+    try {
+      if (!this.fileHandle) {
+        this.fileHandle = await window.showSaveFilePicker({
+          suggestedName: this.fileBase() + '_season.json',
+          types: [{ description: 'GridIron IQ Season', accept: { 'application/json': ['.json'] } }],
+        });
+        await this._persistHandle();
+      }
+      await this._writeFileNow();
+      return true;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false;   // user cancelled the picker
+      this._downloadFallback();
+      return true;
+    }
+  }
+
+  async _writeFileNow() {
+    clearTimeout(this._fileWriteTimer);
+    await this._writeFile();
+  }
+
+  /** Open a season file and bind future saves to it. Returns the loaded data or null. */
+  async openFromFile() {
+    if (!SeasonStore.supportsFS()) return null;   // caller falls back to <input type=file>
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'GridIron IQ Season', accept: { 'application/json': ['.json'] } }],
+      });
+      const file = await handle.getFile();
+      const parsed = JSON.parse(await file.text());
+      this.fileHandle = handle;
+      await this._persistHandle();
+      return this.adopt(parsed);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Adopt a parsed object (season or legacy single game) as the season. */
+  adopt(parsed) {
+    if (parsed && Array.isArray(parsed.games)) this.data = this._normalize(parsed);
+    else if (parsed && Array.isArray(parsed.plays)) this.data = this._normalize({ games: [this.gameFromLegacy(parsed)] });
+    else return null;
+    this.persist();
+    return this.data;
+  }
+
+  _downloadFallback() {
+    const blob = new Blob([this.json()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = this.fileBase() + '_season.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  // ---- IndexedDB handle persistence (so the file reconnects next session) --
+
+  _idb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('ffa_fs', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('handles');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async _persistHandle() {
+    try {
+      const db = await this._idb();
+      await new Promise((res, rej) => {
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').put(this.fileHandle, 'season');
+        tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+      });
+    } catch (e) { /* handle just won't survive reload */ }
+  }
+
+  async restoreHandle() {
+    try {
+      const db = await this._idb();
+      const handle = await new Promise((res, rej) => {
+        const tx = db.transaction('handles', 'readonly');
+        const r = tx.objectStore('handles').get('season');
+        r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error);
+      });
+      if (handle) this.fileHandle = handle;
+      return !!handle;
+    } catch (e) { return false; }
+  }
+
+  async forgetHandle() {
+    this.fileHandle = null;
+    try {
+      const db = await this._idb();
+      await new Promise((res) => {
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').delete('season');
+        tx.oncomplete = res; tx.onerror = res;
+      });
+    } catch (e) {}
+  }
+}
+
 // ===== storage.js =====
+
 /**
  * StorageManager - Handles save/load/export for projects.
+ *
+ * The unit of work is a **season** (see season-store.js): one container holding
+ * many games, autosaved in place to localStorage so the app no longer spawns a
+ * file per game/save. StorageManager bridges the live tagger/canvas/gameInfo
+ * state and the season store — committing the active game on every change and
+ * loading a game's state when the coach switches games.
  */
 class StorageManager {
   constructor(videoController, playTagger, canvasOverlay) {
@@ -10313,6 +10681,7 @@ class StorageManager {
     this.videoFileName = null;
     this.gameInfo = {};
     this.filter = null;
+    this.seasonStore = new SeasonStore();
 
     this.btnSave = document.getElementById('btnSave');
     this.btnLoad = document.getElementById('btnLoad');
@@ -10337,10 +10706,10 @@ class StorageManager {
     this.btnExportPng.addEventListener('click', () => this.exportPng());
     this.btnExportCsv.addEventListener('click', () => this.exportCsv());
 
-    // Track video file name for auto-save key
+    // Track the video file name so the active game records which film it used.
     this.vc.on('file-loaded', (data) => {
       this.videoFileName = data.name;
-      this._tryAutoRestore();
+      this._autoSave();
     });
 
     // Playlist reference (set by app.js after construction)
@@ -10358,30 +10727,99 @@ class StorageManager {
 
   _autoSave() {
     clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = setTimeout(() => {
-      if (!this.videoFileName) return;
-      const data = this._serialize();
-      try {
-        localStorage.setItem('ffa_' + this.videoFileName, JSON.stringify(data));
-      } catch (e) {
-        // localStorage full — silently fail
-      }
-    }, 1000);
+    this.autoSaveTimer = setTimeout(() => this._commitAndPersist(), 1000);
   }
 
-  _tryAutoRestore() {
-    if (!this.videoFileName) return;
+  /** Write the live active-game state into the season and persist the season. */
+  _commitAndPersist() {
+    if (!this.seasonStore || !this.seasonStore.data) return;
+    this.commitActive();
+    this.seasonStore.persist();
+  }
+
+  // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
+
+  /** Load the season from storage and restore its active game into the app. */
+  initSeason() {
+    this.seasonStore.load();
+    // Reconnect a previously-bound on-disk file in the background (Chromium).
+    if (this.seasonStore.restoreHandle) this.seasonStore.restoreHandle().catch(() => {});
+    this._loadActiveGame();
+  }
+
+  /** Capture the live tagger/canvas/gameInfo state into the active game node. */
+  commitActive() {
+    if (!this.seasonStore || !this.seasonStore.data) return;
+    this.seasonStore.updateActiveGame(this._serialize());
+    const app = window.app;
+    if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
     try {
-      const saved = localStorage.getItem('ffa_' + this.videoFileName);
-      if (saved) {
-        const ok = confirm('Previous session found for this video. Restore it?');
-        if (ok) {
-          this._deserialize(JSON.parse(saved));
-        }
-      }
-    } catch (e) {
-      // Ignore parse errors
-    }
+      this.seasonStore.data.teamProfile =
+        JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
+    } catch (e) {}
+  }
+
+  _loadActiveGame() {
+    const g = this.seasonStore.activeGame();
+    if (g) this._deserialize(g);
+  }
+
+  /** Tear down per-game UI before loading a different game. */
+  _clearForNewGame() {
+    try { if (this.vc && this.vc.unloadVideo) this.vc.unloadVideo(); } catch (e) {}
+    try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
+    this.videoFileName = null;
+    this.canvas.annotations = [];
+    if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
+  }
+
+  /** Switch which game is active, persisting the one we're leaving. */
+  switchToGame(id) {
+    if (!this.seasonStore.data || id === this.seasonStore.data.activeGameId) return;
+    this.commitActive();
+    if (!this.seasonStore.setActive(id)) return;
+    this.seasonStore.persist();
+    this._clearForNewGame();
+    this._loadActiveGame();
+  }
+
+  /** Start a fresh blank game in the season and switch to it. */
+  newGame() {
+    this.commitActive();
+    this.seasonStore.addGame();
+    this.seasonStore.persist();
+    this._clearForNewGame();
+    this._loadActiveGame();
+    return this.seasonStore.activeGame();
+  }
+
+  /** Remove a game; if it was active, load whichever becomes active. */
+  removeGame(id) {
+    const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    this.seasonStore.removeGame(id);
+    this.seasonStore.persist();
+    if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+  }
+
+  /** Add a legacy single-game project object as a game and switch to it. */
+  addGameFromData(parsed) {
+    if (!parsed || !Array.isArray(parsed.plays)) return false;
+    this.commitActive();
+    const node = this.seasonStore.gameFromLegacy(parsed);
+    // Importing into a still-empty game (e.g. the fresh-start blank) fills it
+    // in place instead of leaving a stray empty "Game 1" behind.
+    if (this.seasonStore.isEmptyActive()) this.seasonStore.updateActiveGame(node);
+    else this.seasonStore.addGame(node);
+    this.seasonStore.persist();
+    this._clearForNewGame();
+    this._loadActiveGame();
+    return true;
+  }
+
+  setSeasonName(name) {
+    if (!this.seasonStore.data) return;
+    this.seasonStore.data.seasonName = name || '';
+    this.seasonStore.persist();
   }
 
   _serialize() {
@@ -10436,12 +10874,22 @@ class StorageManager {
     this.canvas.render();
   }
 
-  saveProject() {
-    const data = this._serialize();
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const name = this._projectFileBase() + '_analysis.json';
-    this._download(blob, name);
+  /**
+   * Save the whole season. Writes the canonical browser copy, then to the bound
+   * on-disk file (File System Access API) if one exists — updating the same file
+   * in place — or downloads a single season backup file as a fallback.
+   */
+  async saveProject() {
+    this.commitActive();
+    this.seasonStore.persist();
+    return this.seasonStore.saveToFile();
+  }
+
+  /** Open a season file and bind future saves to it (Chromium); else no-op. */
+  async openSeasonFile() {
+    const data = await this.seasonStore.openFromFile();
+    if (data) { this._clearForNewGame(); this._loadActiveGame(); }
+    return !!data;
   }
 
   /**
@@ -10455,14 +10903,30 @@ class StorageManager {
     return raw.trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'project';
   }
 
+  /**
+   * Load a file picked via the fallback <input>. A season file (has `games`)
+   * replaces the season; a legacy single-game file (has `plays`) is appended as
+   * a new game so an old save is folded in rather than wiping the season.
+   */
   loadProject(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        this._deserialize(data);
-      } catch (err) {
+      let parsed;
+      try { parsed = JSON.parse(e.target.result); }
+      catch (err) { alert('Invalid project file.'); return; }
+
+      if (parsed && Array.isArray(parsed.games)) {
+        this.seasonStore.adopt(parsed);
+        this._clearForNewGame();
+        this._loadActiveGame();
+      } else if (parsed && Array.isArray(parsed.plays)) {
+        this.addGameFromData(parsed);
+      } else {
         alert('Invalid project file.');
+        return;
+      }
+      if (window.app && window.app.season && window.app.season._renderAll) {
+        window.app.season._renderAll();
       }
     };
     reader.readAsText(file);
@@ -12506,6 +12970,23 @@ class PlaylistManager {
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
+  }
+
+  /**
+   * Drop every clip (revoking object URLs) and reset the playlist UI. Used when
+   * switching to a different game in the season so its clips don't linger.
+   * Does not touch tagger.plays — the caller loads the new game's plays.
+   */
+  reset() {
+    for (const clip of this.clips) {
+      if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
+    }
+    this.clips = [];
+    this.activeClipIndex = -1;
+    this._nextClipId = 1;
     this._updatePlaylistUI();
     this._updateClipIndicator();
     this._updateClipCount();
@@ -18006,29 +18487,32 @@ class CutupPlayer {
 
 // ===== season-manager.js =====
 /**
- * SeasonManager - Aggregate stats across multiple game project files.
+ * SeasonManager - the season-as-project view.
  *
- * Workflow:
- *   1. User clicks "Season" → modal opens
- *   2. Loads multiple .json project files (or restores from localStorage)
- *   3. Renders aggregated stats reusing StatsEngine + per-game trends + a
- *      self-scout report flagging tendencies opponents would key on
+ * The project IS the season (see season-store.js): one named container of many
+ * games, autosaved in the browser. This modal is the season's home — name it up
+ * front, add games one at a time, switch between them, and watch aggregate stats
+ * + week-over-week progression build over the year.
  *
- * Persists the loaded game list to localStorage so the season survives
- * page reloads.
+ * It is a *view* over `app.storage.seasonStore`; it owns no game data of its
+ * own. Every read goes through `_store()` so the live active game (whatever the
+ * coach is tagging right now) is always reflected.
  */
 class SeasonManager {
   constructor(statsEngine) {
     this.statsEngine = statsEngine;
-    this.games = [];
 
     this.btn = document.getElementById('btnSeason');
     this.overlayEl = document.getElementById('seasonOverlay');
     this.fileInput = document.getElementById('seasonFileInput');
+    this.nameInput = document.getElementById('seasonNameInput');
 
     this._bindEvents();
-    this._loadFromStorage();
   }
+
+  /** The canonical season store (lives on StorageManager). */
+  _store() { return window.app && window.app.storage && window.app.storage.seasonStore; }
+  _storage() { return window.app && window.app.storage; }
 
   _bindEvents() {
     if (this.btn) this.btn.addEventListener('click', () => this.show());
@@ -18040,13 +18524,21 @@ class SeasonManager {
       });
     }
 
+    if (this.nameInput) {
+      this.nameInput.addEventListener('input', () => {
+        const s = this._storage(); if (s) s.setSeasonName(this.nameInput.value);
+      });
+    }
+
     document.addEventListener('click', (e) => {
-      if (e.target?.id === 'btnCloseSeason') this.hide();
-      if (e.target?.id === 'btnAddSeasonGames') this.fileInput?.click();
-      if (e.target?.id === 'btnClearSeason') this.clearAll();
-      if (e.target?.id === 'btnExportSeason') this.exportSeasonReport();
-      // click outside modal closes
-      if (e.target?.id === 'seasonOverlay') this.hide();
+      const id = e.target?.id;
+      if (id === 'btnCloseSeason') this.hide();
+      if (id === 'btnAddSeasonGames') this.fileInput?.click();
+      if (id === 'btnNewGame') this.newGame();
+      if (id === 'btnSaveSeasonFile') this.saveSeasonFile();
+      if (id === 'btnOpenSeasonFile') this.openSeasonFile();
+      if (id === 'btnExportSeason') this.exportSeasonReport();
+      if (id === 'seasonOverlay') this.hide();   // click outside modal closes
     });
 
     document.addEventListener('keydown', (e) => {
@@ -18056,69 +18548,76 @@ class SeasonManager {
     });
   }
 
-  _key() { return 'ffa_season_games'; }
-
-  _loadFromStorage() {
-    try {
-      const saved = localStorage.getItem(this._key());
-      if (saved) this.games = JSON.parse(saved);
-    } catch (e) { this.games = []; }
-  }
-
-  _saveToStorage() {
-    try {
-      localStorage.setItem(this._key(), JSON.stringify(this.games));
-    } catch (e) {
-      console.warn('Season cache too large; not persisted.');
-    }
-  }
-
+  /** Import saved game file(s) into the current season as new games. */
   async addFiles(files) {
+    const storage = this._storage();
+    if (!storage) return;
     let added = 0;
     for (const f of files) {
       try {
-        const text = await f.text();
-        const data = JSON.parse(text);
-        if (!data.plays || !Array.isArray(data.plays)) {
+        const data = JSON.parse(await f.text());
+        if (Array.isArray(data.games)) {
+          // A whole season file — merge its games in.
+          data.games.forEach(g => storage.seasonStore.addGame(storage.seasonStore.gameFromLegacy(g)));
+          storage.seasonStore.persist();
+          added += data.games.length;
+        } else if (Array.isArray(data.plays)) {
+          if (storage.addGameFromData(data)) added++;
+        } else {
           throw new Error('Not a valid project file');
         }
-        const opp = data.gameInfo?.opponent;
-        const name = opp ? `vs ${opp}` : f.name.replace(/\.json$/i, '');
-        this.games.push({
-          name,
-          file: f.name,
-          gameInfo: data.gameInfo || {},
-          roster: data.roster || [],
-          plays: data.plays,
-          loadedAt: new Date().toISOString()
-        });
-        added++;
       } catch (e) {
         alert(`Failed to load ${f.name}: ${e.message}`);
       }
     }
-    if (added) {
-      this._saveToStorage();
-      this._renderAll();
+    if (added) this._renderAll();
+  }
+
+  newGame() {
+    const storage = this._storage();
+    if (storage) storage.newGame();
+    this._renderAll();
+  }
+
+  removeGame(id) {
+    const storage = this._storage();
+    if (!storage) return;
+    storage.removeGame(id);
+    this._renderAll();
+  }
+
+  switchGame(id) {
+    const storage = this._storage();
+    if (!storage) return;
+    storage.switchToGame(id);
+    this._renderAll();
+  }
+
+  async saveSeasonFile() {
+    const storage = this._storage();
+    if (storage) await storage.saveProject();
+  }
+
+  async openSeasonFile() {
+    const storage = this._storage();
+    if (!storage) return;
+    if (storage.seasonStore.constructor.supportsFS && storage.seasonStore.constructor.supportsFS()) {
+      const ok = await storage.openSeasonFile();
+      if (ok) this._renderAll();
+    } else {
+      this.fileInput?.click();   // fallback to <input type=file>
     }
-  }
-
-  removeGame(idx) {
-    this.games.splice(idx, 1);
-    this._saveToStorage();
-    this._renderAll();
-  }
-
-  clearAll() {
-    if (!this.games.length) return;
-    if (!confirm(`Remove all ${this.games.length} games from the season?`)) return;
-    this.games = [];
-    this._saveToStorage();
-    this._renderAll();
   }
 
   show() {
     if (!this.overlayEl) return;
+    // Flush the live game into the season before we read it.
+    const storage = this._storage();
+    if (storage) storage.commitActive();
+    if (this.nameInput) {
+      const st = this._store();
+      this.nameInput.value = (st && st.data && st.data.seasonName) || '';
+    }
     this.overlayEl.classList.remove('hidden');
     this._renderAll();
   }
@@ -18127,53 +18626,24 @@ class SeasonManager {
     if (this.overlayEl) this.overlayEl.classList.add('hidden');
   }
 
-  /**
-   * The currently-loaded in-app game as a season entry, or null when nothing
-   * is tagged. This is what makes the Season view populate the moment a coach
-   * loads/tags a game — without forcing them to separately "Add Games" the
-   * file they already have open.
-   */
-  _currentGame() {
-    const app = window.app;
-    if (!app || !app.tagger) return null;
-    const plays = app.tagger.plays || [];
-    if (!plays.length) return null;
-    const gi = (app.storage && app.storage.gameInfo) || {};
-    const opp = gi.opponent;
-    const base = opp ? `vs ${opp}` : (gi.projectName || 'Current Game');
-    return {
-      name: `${base} (current)`,
-      file: null,
-      isCurrent: true,
-      gameInfo: gi,
-      roster: (app.roster && app.roster.players) || [],
-      plays,
-    };
-  }
-
-  /** Signature used to detect when an added file is the same game as another. */
-  _gameSig(g) {
-    return `${g.gameInfo?.opponent || ''}|${g.gameInfo?.date || ''}|${(g.plays || []).length}`;
-  }
-
-  /**
-   * Combined season list: the current in-app game (if any) plus separately
-   * added project files. The current game is dropped from the front when an
-   * added file already represents it, so it's never double-counted.
-   */
+  /** All games in the season, chronological, with the live state committed. */
   _effectiveGames() {
-    const cur = this._currentGame();
-    if (!cur) return this.games;
-    const curSig = this._gameSig(cur);
-    if (this.games.some(g => this._gameSig(g) === curSig)) return this.games;
-    return [cur, ...this.games];
+    const storage = this._storage();
+    if (storage) storage.commitActive();
+    const st = this._store();
+    return st ? st.gamesChrono() : [];
+  }
+
+  _activeId() {
+    const st = this._store();
+    return st && st.data ? st.data.activeGameId : null;
   }
 
   _allPlays() {
     return this._effectiveGames().flatMap(g => g.plays || []);
   }
 
-  /** Merge jersey#→name across every loaded game's roster (+ live roster). */
+  /** Merge jersey#→name across every game's roster (+ live roster). */
   _mergeRoster() {
     const map = {};
     const live = (window.app && window.app.roster) ? window.app.roster.players : [];
@@ -18193,15 +18663,17 @@ class SeasonManager {
     if (!list) return;
 
     const games = this._effectiveGames();
+    const activeId = this._activeId();
     if (!games.length) {
-      list.innerHTML = '<div class="season-empty">No games loaded. Load a game in the app, or click "Add Games" to load past games\' project .json files.</div>';
+      list.innerHTML = '<div class="season-empty">No games yet. Click "+ New Game" to start tagging, or "Import Game" to bring in a saved file.</div>';
       return;
     }
 
     list.innerHTML = '';
-    games.forEach((g) => {
+    games.forEach((g, idx) => {
+      const isActive = g.id === activeId;
       const row = document.createElement('div');
-      row.className = 'season-game-row' + (g.isCurrent ? ' season-game-current' : '');
+      row.className = 'season-game-row' + (isActive ? ' season-game-current' : '');
       const u = g.gameInfo?.scoreUs;
       const t = g.gameInfo?.scoreThem;
       let scoreLabel = '';
@@ -18212,22 +18684,32 @@ class SeasonManager {
         scoreLabel = `<span class="score-pill ${cls}">${u}-${t}</span>`;
       }
       const date = g.gameInfo?.date || '';
-      // The current in-app game can't be "removed" from the season here — it's
-      // included automatically; only separately-added files get a × button.
-      const removeBtn = g.isCurrent
-        ? '<span class="season-current-tag" title="Automatically included from the game you have open">live</span>'
-        : '<button class="btn btn-sm btn-danger" data-action="remove" title="Remove from season">×</button>';
+      const label = g.name || this._store().gameName(g, idx);
+      const activeTag = isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
       row.innerHTML = `
-        <div class="season-game-info">
-          <div class="season-game-name">${this._escape(g.name)} ${scoreLabel}</div>
-          <div class="season-game-meta">${g.plays.length} plays${date ? ' · ' + this._escape(date) : ''}</div>
+        <div class="season-game-info" data-action="switch">
+          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${activeTag}</div>
+          <div class="season-game-meta">${(g.plays || []).length} plays${date ? ' · ' + this._escape(date) : ''}${isActive ? '' : ' · click to open'}</div>
         </div>
-        ${removeBtn}
+        <button class="btn btn-sm btn-danger" data-action="remove" title="Remove this game from the season">×</button>
       `;
-      const btn = row.querySelector('[data-action=remove]');
-      if (btn) btn.addEventListener('click', () => this.removeGame(this.games.indexOf(g)));
+      row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
+        if (!isActive) this.switchGame(g.id);
+      });
+      row.querySelector('[data-action=remove]')?.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const ok = await this._confirm(`Remove "Game ${idx + 1}: ${label}" from the season?`);
+        if (ok) this.removeGame(g.id);
+      });
       list.appendChild(row);
     });
+  }
+
+  /** Lightweight confirm that reuses the tagger's in-app modal when available. */
+  async _confirm(msg) {
+    const t = window.app && window.app.tagger;
+    if (t && t._confirmDialog) return t._confirmDialog(msg, 'Remove');
+    return confirm(msg);
   }
 
   _renderStats() {
@@ -18253,6 +18735,7 @@ class SeasonManager {
 
     body.innerHTML = `
       ${this._renderHeader(stats)}
+      ${this._renderProgression()}
       ${this._renderTrends()}
       ${this.statsEngine._renderTeamStats(stats)}
       ${this.statsEngine._renderEfficiency(stats)}
@@ -18295,6 +18778,69 @@ class SeasonManager {
         <div class="ss-stat"><div class="ss-num">${stats.efficiency.successRate}%</div><div class="ss-lbl">Success</div></div>
       </div>
     `;
+  }
+
+  /**
+   * Season progression — "what are we getting better/worse at?" Splits the
+   * chronological games into the first vs. second half of the season and
+   * compares key metrics, flagging each as improving / declining / steady.
+   */
+  _renderProgression() {
+    const games = this._effectiveGames().filter(g => (g.plays || []).length);
+    if (games.length < 2) return '';
+
+    const per = games.map(g => this.statsEngine.compute(g.plays));
+    const metrics = [
+      { label: 'Success Rate', better: 'up', eps: 2, fmt: v => v.toFixed(0) + '%',
+        get: s => parseFloat(s.efficiency?.successRate) || 0 },
+      { label: 'Yards / Play', better: 'up', eps: 0.3, fmt: v => v.toFixed(2),
+        get: s => { const p = s.totalPlays || 0; return p ? ((s.rushing.yards + s.passing.yards) / p) : 0; } },
+      { label: '3rd Down %', better: 'up', eps: 3, fmt: v => v.toFixed(0) + '%',
+        get: s => parseFloat(s.downs?.thirdDownPct) || 0 },
+      { label: 'TDs / Game', better: 'up', eps: 0.3, fmt: v => v.toFixed(1),
+        get: s => s.scoring?.touchdowns || 0 },
+      { label: 'Turnovers / Game', better: 'down', eps: 0.3, fmt: v => v.toFixed(1),
+        get: s => s.turnovers?.total || 0 },
+    ];
+
+    const mid = Math.floor(per.length / 2);
+    const early = per.slice(0, mid);
+    const late = per.slice(mid);
+    const avg = (arr, get) => arr.length ? arr.reduce((s, x) => s + get(x), 0) / arr.length : 0;
+
+    const cards = metrics.map(m => {
+      const e = avg(early, m.get), l = avg(late, m.get);
+      const delta = l - e;
+      let dir = 'flat', good = null;
+      if (Math.abs(delta) >= m.eps) { dir = delta > 0 ? 'up' : 'down'; good = (dir === 'up') === (m.better === 'up'); }
+      const cls = good === null ? 'flat' : (good ? 'better' : 'worse');
+      const arrow = dir === 'flat' ? '→' : (dir === 'up' ? '↑' : '↓');
+      const word = good === null ? 'Steady' : (good ? 'Improving' : 'Slipping');
+      return `
+        <div class="prog-card prog-${cls}">
+          <div class="prog-metric">${m.label}</div>
+          <div class="prog-vals">${m.fmt(e)} <span class="prog-arrow">${arrow}</span> ${m.fmt(l)}</div>
+          <div class="prog-tag">${word}</div>
+        </div>`;
+    }).join('');
+
+    const ups = metrics.filter(m => { const d = avg(late, m.get) - avg(early, m.get); return Math.abs(d) >= m.eps && ((d > 0) === (m.better === 'up')); }).map(m => m.label);
+    const downs = metrics.filter(m => { const d = avg(late, m.get) - avg(early, m.get); return Math.abs(d) >= m.eps && ((d > 0) !== (m.better === 'up')); }).map(m => m.label);
+    let headline = '';
+    if (ups.length || downs.length) {
+      const parts = [];
+      if (ups.length) parts.push(`<b class="prog-up">Getting better:</b> ${ups.join(', ')}`);
+      if (downs.length) parts.push(`<b class="prog-down">Needs work:</b> ${downs.join(', ')}`);
+      headline = `<p class="prog-headline">${parts.join(' &nbsp;·&nbsp; ')}</p>`;
+    }
+
+    return `
+      <div class="stats-section">
+        <h3>Season Progression</h3>
+        <p class="self-scout-intro">First half of the season vs. the second half — where the team is trending.</p>
+        ${headline}
+        <div class="prog-grid">${cards}</div>
+      </div>`;
   }
 
   _renderTrends() {
@@ -18449,13 +18995,16 @@ class SeasonManager {
     if (!games.length) return;
     const allPlays = this._allPlays();
     const stats = this.statsEngine.compute(allPlays);
-    const title = `Season Report — ${games.length} games`;
+    const st = this._store();
+    const seasonName = (st && st.data && st.data.seasonName) || '';
+    const title = seasonName ? `${seasonName} — Season Report` : `Season Report — ${games.length} games`;
 
     this.statsEngine._seasonLabels = this._mergeRoster();
     const indTables = this.statsEngine._renderIndividualStats(stats);
     const individual = indTables ? `<div class="stats-section"><h3>Season Player Roll-Up</h3></div>${indTables}` : '';
     const body = [
       this._renderHeader(stats),
+      this._renderProgression(),
       this._renderTrends(),
       this.statsEngine._renderTeamStats(stats),
       this.statsEngine._renderEfficiency(stats),
@@ -18493,6 +19042,16 @@ tr:nth-child(even){background:#f4f4f8}
 .trend-val{width:80px;text-align:right;color:#666}
 .self-scout li{margin:6px 0;line-height:1.4}
 .self-scout li b{color:#06b6d4}
+.prog-headline{font-size:13px;margin:4px 0 10px}
+.prog-headline .prog-up{color:#1f9d4d}.prog-headline .prog-down{color:#d23b3b}
+.prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.prog-card{border:1px solid #ddd;border-left:4px solid #999;border-radius:6px;padding:10px 12px;background:#f9f9fb}
+.prog-card.prog-better{border-left-color:#1f9d4d}.prog-card.prog-worse{border-left-color:#d23b3b}.prog-card.prog-flat{border-left-color:#999}
+.prog-metric{font-size:11px;text-transform:uppercase;color:#666}
+.prog-vals{font-size:18px;font-weight:bold;margin:3px 0}
+.prog-arrow{margin:0 2px}
+.prog-tag{font-size:11px;font-weight:bold}
+.prog-card.prog-better .prog-tag{color:#1f9d4d}.prog-card.prog-worse .prog-tag{color:#d23b3b}.prog-card.prog-flat .prog-tag{color:#888}
 </style></head><body>
 <h1>${title}</h1>
 <p style="color:#666">Generated ${new Date().toLocaleString()}</p>
@@ -19872,11 +20431,26 @@ class App {
     this.canvas.on?.('annotation-added', () => this.history._updateUI());
     this.canvas.on?.('annotations-changed', () => this.history._updateUI());
 
-    // History needs to seed lastSnap *after* all wiring; do it on next tick
+    // Load the season and restore its active game, then seed history. Deferred
+    // to the next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(() => {
+      this.storage.initSeason();
       this.history.init();
       this.versions.renderList();
     }, 0);
+  }
+
+  /** Blank every Game Info input — used when switching to a different game. */
+  _clearGameInfoForm() {
+    ['gameProjectName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
+     'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    // Team identity (team name, jersey color) carries forward across games, so
+    // it's intentionally left in place here.
+    this.storage.gameInfo = {
+      ...this.storage.gameInfo,
+      projectName: '', opponent: '', date: '', scoreUs: '', scoreThem: '', direction: '',
+    };
+    this._trackedScore = null;
   }
 
   _wireEvents() {
