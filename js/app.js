@@ -138,8 +138,8 @@ class App {
 
     // Load the season and restore its active game, then seed history. Deferred
     // to the next tick so `window.app` (referenced by the storage bridge) is set.
-    setTimeout(() => {
-      this.storage.initSeason();
+    setTimeout(async () => {
+      await this.storage.initSeason();
       this.history.init();
       this.versions.renderList();
     }, 0);

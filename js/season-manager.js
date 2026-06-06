@@ -49,6 +49,9 @@ export class SeasonManager {
       if (id === 'btnNewGame') this.newGame();
       if (id === 'btnSaveSeasonFile') this.saveSeasonFile();
       if (id === 'btnOpenSeasonFile') this.openSeasonFile();
+      if (id === 'btnBackupFolder') this.backupFolder();
+      if (id === 'btnRestore') this.toggleRestore();
+      if (id === 'btnCloseRestore') this.toggleRestore(false);
       if (id === 'btnExportSeason') this.exportSeasonReport();
       if (id === 'seasonOverlay') this.hide();   // click outside modal closes
     });
@@ -108,17 +111,43 @@ export class SeasonManager {
   async saveSeasonFile() {
     const storage = this._storage();
     if (storage) await storage.saveProject();
+    this._renderBackupStatus();
   }
 
-  async openSeasonFile() {
+  /** Open a season or game file (universal <input type=file> path). */
+  openSeasonFile() {
+    this.fileInput?.click();
+  }
+
+  /** Bind (or re-bind) the durable backup folder. */
+  async backupFolder() {
     const storage = this._storage();
     if (!storage) return;
-    if (storage.seasonStore.constructor.supportsFS && storage.seasonStore.constructor.supportsFS()) {
-      const ok = await storage.openSeasonFile();
-      if (ok) this._renderAll();
-    } else {
-      this.fileInput?.click();   // fallback to <input type=file>
+    await storage.bindBackupFolder();
+    this._renderBackupStatus();
+  }
+
+  /** Toggle the restore panel; (re)render its list when opening. */
+  async toggleRestore(force) {
+    const panel = document.getElementById('seasonRestorePanel');
+    if (!panel) return;
+    const open = force == null ? panel.classList.contains('hidden') : force;
+    panel.classList.toggle('hidden', !open);
+    if (open) await this._renderRestoreList();
+  }
+
+  async restore(id) {
+    const storage = this._storage();
+    if (!storage) return;
+    const ok = await this._confirm('Restore this save? Your current state is backed up first, so this is reversible.');
+    if (!ok) return;
+    await storage.restoreBackup(id);
+    await this.toggleRestore(false);
+    if (this.nameInput) {
+      const st = this._store();
+      this.nameInput.value = (st && st.data && st.data.seasonName) || '';
     }
+    this._renderAll();
   }
 
   show() {
@@ -166,8 +195,63 @@ export class SeasonManager {
   }
 
   _renderAll() {
+    this._renderBackupStatus();
     this._renderGameList();
     this._renderStats();
+  }
+
+  /** A one-line "where is my data backed up" indicator in the header. */
+  _renderBackupStatus() {
+    const el = document.getElementById('seasonBackupStatus');
+    if (!el) return;
+    const st = this._store();
+    const folderBtn = document.getElementById('btnBackupFolder');
+    if (!st) { el.textContent = ''; return; }
+    const d = st.diskStatus();
+    if (!d.supported) {
+      el.innerHTML = '<span class="bk-warn">⚠ Browser can\'t auto-save to disk — use Save Season to download a backup.</span>';
+      if (folderBtn) folderBtn.style.display = 'none';
+      return;
+    }
+    if (folderBtn) folderBtn.style.display = '';
+    if (d.bound) {
+      const when = d.lastWrite ? new Date(d.lastWrite).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`;
+      if (folderBtn) folderBtn.textContent = 'Change Folder';
+    } else {
+      el.innerHTML = '<span class="bk-warn">⚠ No backup folder linked — your data lives only in this browser.</span>';
+      if (folderBtn) folderBtn.textContent = 'Back up to Folder';
+    }
+  }
+
+  async _renderRestoreList() {
+    const body = document.getElementById('seasonRestoreList');
+    if (!body) return;
+    const st = this._store();
+    const list = st ? await st.listBackups() : [];
+    if (!list.length) {
+      body.innerHTML = '<div class="season-empty">No restore points yet. They\'re created automatically as you work and on every Save Season.</div>';
+      return;
+    }
+    body.innerHTML = list.map(b => {
+      const when = new Date(b.t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const name = b.seasonName ? this._escape(b.seasonName) + ' · ' : '';
+      return `
+        <div class="restore-row">
+          <div class="restore-info">
+            <div class="restore-when">${when} <span class="restore-label">${this._escape(b.label || 'Save')}</span></div>
+            <div class="restore-meta">${name}${b.games} game${b.games === 1 ? '' : 's'} · ${b.plays} plays</div>
+          </div>
+          <button class="btn btn-sm" data-restore="${b.id}">Restore</button>
+        </div>`;
+    }).join('');
+    body.querySelectorAll('[data-restore]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-restore');
+        // ids are numeric (browser) or filename strings (tauri)
+        this.restore(/^\d+$/.test(id) ? Number(id) : id);
+      });
+    });
   }
 
   _renderGameList() {

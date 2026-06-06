@@ -11,29 +11,31 @@
  *      localStorage key (`ffa_season`) and is autosaved continuously in place,
  *      so nothing proliferates.
  *   2. Backup / portability = a single Export/Import season file.
- *   3. Living file = File System Access API. When supported (Chromium), the
- *      season binds to one real file on disk and every save writes back to it.
- *      The handle is persisted in IndexedDB so it reconnects across sessions.
- *      Browsers without the API fall back to download/upload.
+ *   3. Durable disk backup = the backend's disk layer. In the browser that's a
+ *      bound folder (File System Access API) receiving `season.json` + a ring of
+ *      timestamped snapshots; on desktop (Tauri) it's plain app-data files.
+ *
+ * Where bytes actually live is owned by a StorageBackend (storage-backend.js),
+ * so the same SeasonStore runs in the browser or in a native shell unchanged.
  *
  * Video is never stored (too large). Each game references its video filename;
  * the coach re-links the file when they open that game.
  */
+import { detectBackend } from './storage-backend.js';
+
 export class SeasonStore {
-  constructor() {
-    this.KEY = 'ffa_season';
+  constructor(backend) {
     this.SCHEMA = 5;
     this.data = null;
-    this.fileHandle = null;       // FileSystemFileHandle when bound
-    this._fileWriteTimer = null;
-    this._writing = false;
+    this.backend = backend || detectBackend();
+    this._diskTimer = null;
   }
 
   // ---- lifecycle -----------------------------------------------------------
 
-  load() {
+  async load() {
     let parsed = null;
-    try { parsed = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) {}
+    try { parsed = await this.backend.loadSeason(); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
     return this.data;
   }
@@ -164,15 +166,6 @@ export class SeasonStore {
       .map(x => x.g);
   }
 
-  // ---- persistence ---------------------------------------------------------
-
-  /** Fast canonical save to localStorage; schedules a background file write. */
-  persist() {
-    try { localStorage.setItem(this.KEY, JSON.stringify(this.data)); }
-    catch (e) { /* quota — the file/export is the durable backup */ }
-    if (this.fileHandle) this._scheduleFileWrite();
-  }
-
   json() { return JSON.stringify(this.data, null, 2); }
 
   fileBase() {
@@ -180,75 +173,85 @@ export class SeasonStore {
     return String(raw).trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'season';
   }
 
-  // ---- File System Access API (progressive enhancement) --------------------
+  // ---- persistence (delegated to the backend) ------------------------------
 
-  static supportsFS() {
-    return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+  /**
+   * Fast canonical save, then a debounced silent write of the live file to the
+   * durable disk target (if one is bound). No new snapshot here — snapshots are
+   * created on explicit saves / throttled auto-snapshots via snapshot().
+   */
+  persist() {
+    this.backend.saveSeason(this.data);
+    this._scheduleDiskWrite();
   }
 
-  _scheduleFileWrite() {
-    clearTimeout(this._fileWriteTimer);
-    this._fileWriteTimer = setTimeout(() => this._writeFile().catch(() => {}), 2500);
+  _scheduleDiskWrite() {
+    if (!this.backend.diskStatus().bound) return;
+    clearTimeout(this._diskTimer);
+    const snap = JSON.parse(JSON.stringify(this.data));   // freeze the payload
+    this._diskTimer = setTimeout(() => this.backend.writeDisk(snap, { snapshot: false }).catch(() => {}), 2500);
   }
 
-  async _writeFile() {
-    if (!this.fileHandle || this._writing) return;
-    if (!(await this._ensurePermission(true))) return;
-    this._writing = true;
-    try {
-      const w = await this.fileHandle.createWritable();
-      await w.write(this.json());
-      await w.close();
-    } finally { this._writing = false; }
-  }
+  // ---- backups / restore ---------------------------------------------------
 
-  async _ensurePermission(write) {
-    if (!this.fileHandle || !this.fileHandle.queryPermission) return true;
-    const opts = { mode: write ? 'readwrite' : 'read' };
-    if ((await this.fileHandle.queryPermission(opts)) === 'granted') return true;
-    return (await this.fileHandle.requestPermission(opts)) === 'granted';
-  }
-
-  /** Bind to a real on-disk file and write the season to it. Returns true on success. */
-  async saveToFile() {
-    if (!SeasonStore.supportsFS()) { this._downloadFallback(); return true; }
-    try {
-      if (!this.fileHandle) {
-        this.fileHandle = await window.showSaveFilePicker({
-          suggestedName: this.fileBase() + '_season.json',
-          types: [{ description: 'GridIron IQ Season', accept: { 'application/json': ['.json'] } }],
-        });
-        await this._persistHandle();
-      }
-      await this._writeFileNow();
-      return true;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return false;   // user cancelled the picker
-      this._downloadFallback();
-      return true;
+  /** Take a restore point: a disk snapshot (if bound) + an in-app ring entry. */
+  async snapshot(label) {
+    const data = JSON.parse(JSON.stringify(this.data));
+    if (this.backend.diskStatus().bound) {
+      await this.backend.writeDisk(data, { snapshot: true, label });
     }
+    return this.backend.createBackup(data, label);
   }
 
-  async _writeFileNow() {
-    clearTimeout(this._fileWriteTimer);
-    await this._writeFile();
+  listBackups() { return this.backend.listBackups(); }
+
+  /**
+   * Restore a previous save. The current state is snapshotted first, so a
+   * restore is itself undoable — you can never strand yourself on bad data.
+   */
+  async restoreBackup(id) {
+    const data = await this.backend.getBackup(id);
+    if (!data || !Array.isArray(data.games)) return null;
+    await this.snapshot('Before restore');
+    this.data = this._normalize(data);
+    this.persist();
+    return this.data;
   }
 
-  /** Open a season file and bind future saves to it. Returns the loaded data or null. */
-  async openFromFile() {
-    if (!SeasonStore.supportsFS()) return null;   // caller falls back to <input type=file>
-    try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'GridIron IQ Season', accept: { 'application/json': ['.json'] } }],
-      });
-      const file = await handle.getFile();
-      const parsed = JSON.parse(await file.text());
-      this.fileHandle = handle;
-      await this._persistHandle();
-      return this.adopt(parsed);
-    } catch (e) {
-      return null;
+  // ---- durable disk target -------------------------------------------------
+
+  supportsDisk() { return this.backend.supportsDisk(); }
+  diskStatus() { return this.backend.diskStatus(); }
+  async restoreDiskBinding() { return this.backend.restoreDiskBinding(); }
+
+  /** Bind a backup folder/target and immediately write the live file + a snapshot. */
+  async bindDisk() {
+    const ok = await this.backend.bindDisk();
+    if (ok) await this.backend.writeDisk(JSON.parse(JSON.stringify(this.data)), { snapshot: true, label: 'Backup folder linked', prompt: true });
+    return ok;
+  }
+  async forgetDisk() { return this.backend.forgetDisk(); }
+
+  /** Explicit "Save Season": canonical + live disk write + a labelled snapshot. */
+  async saveNow(label) {
+    this.backend.saveSeason(this.data);
+    const data = JSON.parse(JSON.stringify(this.data));
+    let wroteDisk = false;
+    if (this.diskStatus().bound) {
+      wroteDisk = await this.backend.writeDisk(data, { snapshot: true, label: label || 'Manual save', prompt: true });
     }
+    await this.backend.createBackup(data, label || 'Manual save');
+    return wroteDisk;
+  }
+
+  /** Download a one-off season file (portability / browsers without disk binding). */
+  downloadFile() {
+    const blob = new Blob([this.json()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = this.fileBase() + '_season.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   /** Adopt a parsed object (season or legacy single game) as the season. */
@@ -258,61 +261,5 @@ export class SeasonStore {
     else return null;
     this.persist();
     return this.data;
-  }
-
-  _downloadFallback() {
-    const blob = new Blob([this.json()], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = this.fileBase() + '_season.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  }
-
-  // ---- IndexedDB handle persistence (so the file reconnects next session) --
-
-  _idb() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('ffa_fs', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('handles');
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async _persistHandle() {
-    try {
-      const db = await this._idb();
-      await new Promise((res, rej) => {
-        const tx = db.transaction('handles', 'readwrite');
-        tx.objectStore('handles').put(this.fileHandle, 'season');
-        tx.oncomplete = res; tx.onerror = () => rej(tx.error);
-      });
-    } catch (e) { /* handle just won't survive reload */ }
-  }
-
-  async restoreHandle() {
-    try {
-      const db = await this._idb();
-      const handle = await new Promise((res, rej) => {
-        const tx = db.transaction('handles', 'readonly');
-        const r = tx.objectStore('handles').get('season');
-        r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error);
-      });
-      if (handle) this.fileHandle = handle;
-      return !!handle;
-    } catch (e) { return false; }
-  }
-
-  async forgetHandle() {
-    this.fileHandle = null;
-    try {
-      const db = await this._idb();
-      await new Promise((res) => {
-        const tx = db.transaction('handles', 'readwrite');
-        tx.objectStore('handles').delete('season');
-        tx.oncomplete = res; tx.onerror = res;
-      });
-    } catch (e) {}
   }
 }

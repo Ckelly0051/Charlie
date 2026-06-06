@@ -2596,6 +2596,32 @@ body {
 }
 .season-name-input::placeholder { color: #5c6680; font-weight: 500; }
 
+/* Backup status line + restore panel. */
+.season-backup-status {
+  padding: 8px 20px; font-size: 12px; border-bottom: 1px solid #2d3454;
+  background: #12161f;
+}
+.season-backup-status .bk-ok { color: #3fb950; font-weight: 600; }
+.season-backup-status .bk-ok b { color: #fff; }
+.season-backup-status .bk-warn { color: #e3b341; font-weight: 600; }
+.season-backup-status .bk-dim { color: #8b949e; }
+
+.season-restore-panel {
+  margin: 12px 20px; padding: 14px 16px;
+  background: #12161f; border: 1px solid #2d3454; border-radius: 8px;
+}
+.season-restore-panel .restore-head { display: flex; justify-content: space-between; align-items: center; }
+.season-restore-panel h3 { margin: 0; color: #fff; font-size: 15px; }
+.restore-intro { color: #8b949e; font-size: 12px; margin: 6px 0 12px; }
+.season-restore-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.restore-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; background: #1a2030; border: 1px solid #2d3454; border-radius: 6px;
+}
+.restore-when { color: #e6edf3; font-size: 13px; }
+.restore-label { color: #8b949e; font-weight: 500; margin-left: 6px; font-size: 12px; }
+.restore-meta { color: #8b949e; font-size: 11px; margin-top: 2px; }
+
 /* Season progression cards — better/worse over the year. */
 .prog-headline { font-size: 13px; color: #c9d1d9; margin: 4px 0 10px; }
 .prog-headline .prog-up { color: #3fb950; }

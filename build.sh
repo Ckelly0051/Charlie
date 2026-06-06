@@ -53,6 +53,7 @@ for jsfile in \
   js/roster-manager.js \
   js/play-filter.js \
   js/notes-manager.js \
+  js/storage-backend.js \
   js/season-store.js \
   js/storage.js \
   js/play-detector.js \

@@ -73,15 +73,28 @@ export class StorageManager {
     if (!this.seasonStore || !this.seasonStore.data) return;
     this.commitActive();
     this.seasonStore.persist();
+    this._maybeSnapshot();   // throttled auto restore-point
+  }
+
+  /**
+   * Create a restore point, but at most once every few minutes during active
+   * tagging (explicit saves and risky ops pass force=true). Keeps the ring
+   * meaningful without a snapshot per keystroke.
+   */
+  _maybeSnapshot(force, label) {
+    const now = Date.now();
+    if (!force && this._lastSnapAt && (now - this._lastSnapAt) < 180000) return;
+    this._lastSnapAt = now;
+    if (this.seasonStore) this.seasonStore.snapshot(label || 'Auto').catch(() => {});
   }
 
   // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
 
   /** Load the season from storage and restore its active game into the app. */
-  initSeason() {
-    this.seasonStore.load();
-    // Reconnect a previously-bound on-disk file in the background (Chromium).
-    if (this.seasonStore.restoreHandle) this.seasonStore.restoreHandle().catch(() => {});
+  async initSeason() {
+    await this.seasonStore.load();
+    // Reconnect a previously-bound backup folder in the background (Chromium).
+    if (this.seasonStore.restoreDiskBinding) this.seasonStore.restoreDiskBinding().catch(() => {});
     this._loadActiveGame();
   }
 
@@ -213,21 +226,39 @@ export class StorageManager {
   }
 
   /**
-   * Save the whole season. Writes the canonical browser copy, then to the bound
-   * on-disk file (File System Access API) if one exists — updating the same file
-   * in place — or downloads a single season backup file as a fallback.
+   * Explicit "Save Season". Commits the live game, persists canonically, and
+   * makes a durable disk backup with a restore point. On the first save it
+   * offers to bind a backup folder (Chromium); without disk support it falls
+   * back to a downloaded file plus an in-app restore point.
    */
   async saveProject() {
     this.commitActive();
     this.seasonStore.persist();
-    return this.seasonStore.saveToFile();
+    this._maybeSnapshot(true, 'Manual save');
+    const st = this.seasonStore;
+    if (st.supportsDisk() && !st.diskStatus().bound) {
+      const bound = await st.bindDisk();         // prompt once for a backup folder
+      if (!bound) st.downloadFile();             // declined → at least hand them a file
+      return bound;
+    }
+    if (st.diskStatus().bound) return st.saveNow('Manual save');
+    st.downloadFile();                           // Firefox/Safari: file + ring snapshot
+    return true;
   }
 
-  /** Open a season file and bind future saves to it (Chromium); else no-op. */
-  async openSeasonFile() {
-    const data = await this.seasonStore.openFromFile();
-    if (data) { this._clearForNewGame(); this._loadActiveGame(); }
-    return !!data;
+  /** Bind (or re-bind) the durable backup folder. */
+  async bindBackupFolder() {
+    const ok = await this.seasonStore.bindDisk();
+    return ok;
+  }
+
+  /** Restore a previous save; reloads the active game on success. */
+  async restoreBackup(id) {
+    const data = await this.seasonStore.restoreBackup(id);
+    if (!data) return false;
+    this._clearForNewGame();
+    this._loadActiveGame();
+    return true;
   }
 
   /**

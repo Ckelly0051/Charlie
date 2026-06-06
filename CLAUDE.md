@@ -74,8 +74,9 @@ js/
 ├── advanced-metrics.js       # Expected Points Added calculations
 ├── heat-maps.js              # Visual heat map generation
 ├── visualizations.js         # SVG charts: field-zone success, yardage spray, quarter mix
-├── season-store.js           # Season-as-project data model + hybrid persistence (localStorage + File System Access API/IndexedDB)
-├── storage.js                # Save/load bridge (live tagger <-> season store) + CSV import
+├── storage-backend.js        # Storage seam: BrowserBackend (localStorage+IndexedDB+File System Access) / TauriBackend (native files) + backup ring
+├── season-store.js           # Season-as-project data model; delegates persistence/backups to a StorageBackend
+├── storage.js                # Save/load bridge (live tagger <-> season store) + snapshots/restore + CSV import
 ├── history-manager.js        # Unified undo/redo (play data + canvas)
 ├── version-manager.js        # Named save points
 ├── notes-manager.js          # Per-play text notes
@@ -179,6 +180,41 @@ hover ▶ + tooltip and a one-line `.stats-cut-hint` banner make it
 discoverable. `Charts.effectivenessRows` emits the cut attributes when an
 item carries `cutType`/`cutVal`/`cutLabel`.
 
+## Storage Backend Seam (`storage-backend.js`)
+
+The app never touches localStorage / the filesystem directly — it goes through a
+`StorageBackend`. This is the seam that lets the **same UI** run as a browser app
+or an installed desktop app (and, later, a cloud-synced one) without UI changes.
+
+- `detectBackend()` returns `TauriBackend` when `window.__TAURI__` exists, else
+  `BrowserBackend`. `SeasonStore` takes a backend (defaults to `detectBackend()`).
+- **Responsibilities**: (1) canonical season load/save, (2) a **backup ring** of
+  restore points (`createBackup`/`listBackups`/`getBackup`, capped at
+  `RETENTION = 25`), (3) optional **durable disk** target
+  (`supportsDisk`/`bindDisk`/`writeDisk`/`diskStatus`).
+- **`BrowserBackend`**: canonical = `localStorage ffa_season`; backup ring =
+  **IndexedDB** (`ffa_fs` DB, `backups` store; `handles` store keeps the bound
+  directory handle); durable disk = **File System Access API** — a bound folder
+  receives `season.json` (live) + `backups/season_<ts>.json` snapshots, pruned to
+  25. Chromium only; Firefox/Safari fall back to download + the in-app ring.
+- **`TauriBackend`** (desktop): every read/write hits real files via Tauri's fs;
+  the backup ring is real files in `backups/`. Dormant in the browser. See
+  `TAURI.md` for packaging.
+
+### Backups & Restore ("undo a save")
+Because browser storage is not durable, every save also makes a restore point:
+- `SeasonStore.snapshot(label)` writes a disk snapshot (if a folder is bound) +
+  an in-app ring entry. `StorageManager._maybeSnapshot()` throttles auto
+  restore-points to one per ~3 min during tagging; explicit Save and risky ops
+  force one.
+- **Restore is reversible**: `SeasonStore.restoreBackup(id)` snapshots the
+  *current* state ("Before restore") before overwriting, so a coach can never
+  strand themselves on bad data. UI: the Season modal's **Restore** panel lists
+  points (time, label, season/game/play counts) with a Restore button.
+- The Season modal header shows a **backup status** line: green "✓ Backing up to
+  <folder>" when bound, amber warnings otherwise. **Back up to Folder** binds the
+  durable folder (recommended on first explicit Save).
+
 ## Season-as-Project — Save/Load Architecture (`season-store.js`)
 
 **The project IS the season.** Instead of a file per game / per save, the unit
@@ -203,19 +239,19 @@ A `gameNode` is exactly what `StorageManager._serialize()` produces, so
 keeps working unchanged — those two methods are still "serialize/deserialize the
 **active game**".
 
-**Hybrid storage (3 tiers, by design):**
-1. **Canonical = the browser.** The whole season lives under one localStorage
-   key `ffa_season`, autosaved continuously (debounced) by
-   `StorageManager._commitAndPersist()` → `commitActive()` +
-   `seasonStore.persist()`. No artifacts proliferate.
-2. **Backup/portability = one season file.** `Save Season` writes a single
-   `<season>_season.json`; `Open Season / Game` (or the Season modal's Import)
-   reads it back.
-3. **Living file = File System Access API.** When supported (Chromium),
-   `seasonStore.saveToFile()` binds one real on-disk file and every save writes
-   back to it in place; the handle is persisted in **IndexedDB** (`ffa_fs`
-   store) so it reconnects next session. Firefox/Safari fall back to
-   download/upload. `SeasonStore.supportsFS()` gates the UI.
+**Storage tiers (via the backend seam, see above):**
+1. **Canonical** = `backend.saveSeason()` (browser: `localStorage ffa_season`),
+   autosaved continuously (debounced) by `StorageManager._commitAndPersist()` →
+   `commitActive()` + `seasonStore.persist()`. No artifacts proliferate.
+2. **Durable disk backup** = a bound folder (browser: File System Access API)
+   getting `season.json` + a `backups/` snapshot ring; on desktop (Tauri) plain
+   app-data files. Silent live-file writes are debounced on autosave; snapshots
+   are throttled / forced on explicit save.
+3. **Restore ring** = timestamped restore points (IndexedDB in the browser, real
+   files on desktop), capped at 25 — the "undo a save" safety net.
+4. **Portability** = `Save Season` / `downloadFile()` for a one-off
+   `<season>_season.json`; `Open File` (Season modal) imports a season or legacy
+   game file.
 
 **Bridge (`StorageManager`)** owns the live↔store sync:
 - `initSeason()` (called once at startup, next tick so `window.app` is set) loads
