@@ -2603,6 +2603,32 @@ body {
 }
 .season-name-input::placeholder { color: #5c6680; font-weight: 500; }
 
+/* Backup status line + restore panel. */
+.season-backup-status {
+  padding: 8px 20px; font-size: 12px; border-bottom: 1px solid #2d3454;
+  background: #12161f;
+}
+.season-backup-status .bk-ok { color: #3fb950; font-weight: 600; }
+.season-backup-status .bk-ok b { color: #fff; }
+.season-backup-status .bk-warn { color: #e3b341; font-weight: 600; }
+.season-backup-status .bk-dim { color: #8b949e; }
+
+.season-restore-panel {
+  margin: 12px 20px; padding: 14px 16px;
+  background: #12161f; border: 1px solid #2d3454; border-radius: 8px;
+}
+.season-restore-panel .restore-head { display: flex; justify-content: space-between; align-items: center; }
+.season-restore-panel h3 { margin: 0; color: #fff; font-size: 15px; }
+.restore-intro { color: #8b949e; font-size: 12px; margin: 6px 0 12px; }
+.season-restore-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.restore-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; background: #1a2030; border: 1px solid #2d3454; border-radius: 6px;
+}
+.restore-when { color: #e6edf3; font-size: 13px; }
+.restore-label { color: #8b949e; font-weight: 500; margin-left: 6px; font-size: 12px; }
+.restore-meta { color: #8b949e; font-size: 11px; margin-top: 2px; }
+
 /* Season progression cards — better/worse over the year. */
 .prog-headline { font-size: 13px; color: #c9d1d9; margin: 4px 0 10px; }
 .prog-headline .prog-up { color: #3fb950; }
@@ -7713,12 +7739,23 @@ body {
           <div class="season-header-actions">
             <button class="btn btn-sm btn-accent" id="btnNewGame" title="Start a new game in this season">+ New Game</button>
             <button class="btn btn-sm" id="btnAddSeasonGames" title="Import a saved game file into this season">Import Game</button>
-            <button class="btn btn-sm" id="btnSaveSeasonFile" title="Save the whole season to a file">Save Season</button>
-            <button class="btn btn-sm" id="btnOpenSeasonFile" title="Open a season file and keep saving to it">Open File</button>
+            <button class="btn btn-sm" id="btnSaveSeasonFile" title="Save the season + make a disk backup restore point">Save Season</button>
+            <button class="btn btn-sm" id="btnBackupFolder" title="Pick a folder to automatically back up to (recommended)">Back up to Folder</button>
+            <button class="btn btn-sm" id="btnRestore" title="Restore a previous save (undo a mistake)">Restore</button>
+            <button class="btn btn-sm" id="btnOpenSeasonFile" title="Open a season or game file">Open File</button>
             <button class="btn btn-sm" id="btnExportSeason" title="Export a printable season report">Export Report</button>
             <button class="btn btn-sm btn-danger" id="btnCloseSeason">Close</button>
           </div>
           <input type="file" id="seasonFileInput" accept=".json" multiple hidden>
+        </div>
+        <div class="season-backup-status" id="seasonBackupStatus"></div>
+        <div class="season-restore-panel hidden" id="seasonRestorePanel">
+          <div class="restore-head">
+            <h3>Restore a previous save</h3>
+            <button class="btn btn-sm btn-danger" id="btnCloseRestore">Close</button>
+          </div>
+          <p class="restore-intro">Pick a point to roll back to. Your current state is backed up first, so restoring is always reversible.</p>
+          <div class="season-restore-list" id="seasonRestoreList"></div>
         </div>
         <div class="season-game-list" id="seasonGameList"></div>
         <div class="season-stats-body" id="seasonStatsBody"></div>
@@ -10340,6 +10377,311 @@ class NotesManager {
   }
 }
 
+// ===== storage-backend.js =====
+/**
+ * StorageBackend — the seam between the app and *where bytes live*.
+ *
+ * The app (SeasonStore) never talks to localStorage / the filesystem directly;
+ * it goes through a backend. This is what lets the same UI run as:
+ *   - a pure browser app  → BrowserBackend (localStorage + IndexedDB + the
+ *                           File System Access API for real disk backups)
+ *   - an installed desktop app → TauriBackend (unrestricted local files)
+ *   - (future) a cloud-synced app → a network backend, same interface.
+ *
+ * Responsibilities:
+ *   1. Canonical season persistence (load/save the one current season).
+ *   2. A backup ring — timestamped snapshots you can restore from, so a bad
+ *      save is always recoverable ("undo a save").
+ *   3. Optional durable disk backup to a real folder.
+ *
+ * `detectBackend()` picks the right implementation for the environment.
+ */
+class StorageBackend {
+  constructor() { this.RETENTION = 25; }
+  name() { return 'base'; }
+
+  async init() {}
+
+  // ---- canonical season ----
+  async loadSeason() { return null; }
+  async saveSeason(_data) {}
+
+  // ---- backup ring ----
+  async listBackups() { return []; }            // [{id,t,label,seasonName,games,plays}]
+  async getBackup(_id) { return null; }          // full season data
+  async createBackup(_data, _label) { return null; }
+  async deleteBackup(_id) {}
+
+  // ---- durable disk (optional) ----
+  supportsDisk() { return false; }
+  diskStatus() { return { supported: false, bound: false, name: '', lastWrite: 0 }; }
+  async bindDisk() { return false; }
+  async restoreDiskBinding() { return false; }
+  async forgetDisk() {}
+  /** Write the live file (+ a snapshot file when snapshot:true). */
+  async writeDisk(_data, _opts) { return false; }
+
+  // ---- helpers shared by implementations ----
+  _meta(data, label) {
+    return {
+      t: new Date().toISOString(),
+      label: label || 'Save',
+      seasonName: (data && data.seasonName) || '',
+      games: (data && data.games) ? data.games.length : 0,
+      plays: (data && data.games) ? data.games.reduce((s, g) => s + ((g.plays || []).length), 0) : 0,
+    };
+  }
+  _tsSlug(d = new Date()) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+  }
+}
+
+/**
+ * BrowserBackend — canonical season in localStorage, backup ring in IndexedDB,
+ * and (Chromium) real disk backups via the File System Access API: a chosen
+ * folder receives `season.json` (live) plus `backups/season_<ts>.json`
+ * snapshots, pruned to the retention window.
+ */
+class BrowserBackend extends StorageBackend {
+  constructor() {
+    super();
+    this.KEY = 'ffa_season';
+    this.dirHandle = null;
+    this._lastWrite = 0;
+    this._writing = false;
+  }
+  name() { return 'browser'; }
+
+  // ---- canonical ----
+  async loadSeason() {
+    try { return JSON.parse(localStorage.getItem(this.KEY) || 'null'); }
+    catch (e) { return null; }
+  }
+  async saveSeason(data) {
+    try { localStorage.setItem(this.KEY, JSON.stringify(data)); return true; }
+    catch (e) { return false; }   // quota — the disk/backup ring is the durable copy
+  }
+
+  // ---- IndexedDB (handles + backups) ----
+  _idb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('ffa_fs', 2);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
+        if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups');
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  _tx(store, mode, fn) {
+    return this._idb().then(db => new Promise((res, rej) => {
+      const tx = db.transaction(store, mode);
+      const os = tx.objectStore(store);
+      const out = fn(os);
+      tx.oncomplete = () => res(out && out.result !== undefined ? out.result : out);
+      tx.onerror = () => rej(tx.error);
+    }));
+  }
+
+  // ---- backup ring ----
+  async createBackup(data, label) {
+    // Skip a snapshot identical to the most recent one (no churn on no-ops).
+    const json = JSON.stringify(data);
+    const recent = await this.listBackups();
+    if (recent.length) {
+      const last = await this.getBackup(recent[0].id);
+      if (last && JSON.stringify(last) === json) return null;
+    }
+    const id = Date.now();
+    const rec = { id, ...this._meta(data, label), data: JSON.parse(json) };
+    await this._tx('backups', 'readwrite', os => os.put(rec, id));
+    await this._prune();
+    const { data: _omit, ...meta } = rec;
+    return meta;
+  }
+  async listBackups() {
+    const all = await this._tx('backups', 'readonly', os => {
+      const r = os.getAll(); return r;
+    });
+    return (all || [])
+      .map(({ data, ...meta }) => meta)
+      .sort((a, b) => b.id - a.id);
+  }
+  async getBackup(id) {
+    const rec = await this._tx('backups', 'readonly', os => os.get(id));
+    return rec ? rec.data : null;
+  }
+  async deleteBackup(id) { await this._tx('backups', 'readwrite', os => os.delete(id)); }
+  async _prune() {
+    const metas = await this.listBackups();              // newest first
+    const extra = metas.slice(this.RETENTION);
+    for (const m of extra) await this.deleteBackup(m.id);
+  }
+
+  // ---- disk (File System Access API) ----
+  supportsDisk() { return typeof window !== 'undefined' && 'showDirectoryPicker' in window; }
+  diskStatus() {
+    return {
+      supported: this.supportsDisk(),
+      bound: !!this.dirHandle,
+      name: this.dirHandle ? this.dirHandle.name : '',
+      lastWrite: this._lastWrite,
+    };
+  }
+
+  async bindDisk() {
+    if (!this.supportsDisk()) return false;
+    try {
+      this.dirHandle = await window.showDirectoryPicker({ id: 'ffa-season-backup', mode: 'readwrite' });
+      await this._persistDir();
+      return true;
+    } catch (e) { return false; }   // AbortError = user cancelled
+  }
+  async forgetDisk() {
+    this.dirHandle = null;
+    try { await this._tx('handles', 'readwrite', os => os.delete('backupDir')); } catch (e) {}
+  }
+  async _persistDir() {
+    try { await this._tx('handles', 'readwrite', os => os.put(this.dirHandle, 'backupDir')); } catch (e) {}
+  }
+  async restoreDiskBinding() {
+    try {
+      const h = await this._tx('handles', 'readonly', os => os.get('backupDir'));
+      if (h) { this.dirHandle = h; return true; }
+    } catch (e) {}
+    return false;
+  }
+  async _dirPermitted(prompt) {
+    if (!this.dirHandle || !this.dirHandle.queryPermission) return !!this.dirHandle;
+    const opts = { mode: 'readwrite' };
+    if ((await this.dirHandle.queryPermission(opts)) === 'granted') return true;
+    if (!prompt) return false;
+    return (await this.dirHandle.requestPermission(opts)) === 'granted';
+  }
+
+  async writeDisk(data, opts = {}) {
+    if (!this.dirHandle || this._writing) return false;
+    if (!(await this._dirPermitted(!!opts.prompt))) return false;
+    this._writing = true;
+    try {
+      const json = JSON.stringify(data, null, 2);
+      await this._writeInto(this.dirHandle, 'season.json', json);
+      if (opts.snapshot) {
+        const backups = await this.dirHandle.getDirectoryHandle('backups', { create: true });
+        await this._writeInto(backups, `season_${this._tsSlug()}.json`, json);
+        await this._pruneDisk(backups);
+      }
+      this._lastWrite = Date.now();
+      return true;
+    } catch (e) { return false; }
+    finally { this._writing = false; }
+  }
+  async _writeInto(dir, filename, text) {
+    const fh = await dir.getFileHandle(filename, { create: true });
+    const w = await fh.createWritable();
+    await w.write(text);
+    await w.close();
+  }
+  async _pruneDisk(backups) {
+    const names = [];
+    for await (const [name, handle] of backups.entries()) {
+      if (handle.kind === 'file' && /^season_.*\.json$/.test(name)) names.push(name);
+    }
+    names.sort();                                   // timestamp slug sorts chronologically
+    const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
+    for (const n of extra) { try { await backups.removeEntry(n); } catch (e) {} }
+  }
+}
+
+/**
+ * TauriBackend — the installed-desktop path. Same interface, but every read and
+ * write hits real files via Tauri's fs API (no sandbox, no eviction, no
+ * permission dance). Dormant in the browser; activated only when running inside
+ * Tauri. See TAURI.md for packaging. (Compiles/runs only under the desktop
+ * shell — the browser never instantiates this.)
+ */
+class TauriBackend extends StorageBackend {
+  constructor() {
+    super();
+    this.fs = window.__TAURI__ && window.__TAURI__.fs;
+    this.path = window.__TAURI__ && window.__TAURI__.path;
+    this.dir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.AppData : undefined;
+    this.SEASON = 'season.json';
+    this.BACKUPS = 'backups';
+    this._lastWrite = 0;
+  }
+  name() { return 'tauri'; }
+
+  async loadSeason() {
+    try {
+      if (await this.fs.exists(this.SEASON, { dir: this.dir })) {
+        return JSON.parse(await this.fs.readTextFile(this.SEASON, { dir: this.dir }));
+      }
+    } catch (e) {}
+    return null;
+  }
+  async saveSeason(data) {
+    try {
+      await this.fs.writeTextFile(this.SEASON, JSON.stringify(data, null, 2), { dir: this.dir });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Desktop keeps the snapshot ring as real files in backups/.
+  async _ensureBackups() {
+    try { if (!(await this.fs.exists(this.BACKUPS, { dir: this.dir }))) await this.fs.createDir(this.BACKUPS, { dir: this.dir, recursive: true }); } catch (e) {}
+  }
+  async createBackup(data, label) {
+    await this._ensureBackups();
+    const name = `${this.BACKUPS}/season_${this._tsSlug()}.json`;
+    const payload = JSON.stringify({ ...this._meta(data, label), data }, null, 2);
+    try { await this.fs.writeTextFile(name, payload, { dir: this.dir }); } catch (e) { return null; }
+    await this._prune();
+    return this._meta(data, label);
+  }
+  async listBackups() {
+    await this._ensureBackups();
+    let entries = [];
+    try { entries = await this.fs.readDir(this.BACKUPS, { dir: this.dir }); } catch (e) { return []; }
+    const out = [];
+    for (const e of entries) {
+      if (!/season_.*\.json$/.test(e.name || '')) continue;
+      try {
+        const rec = JSON.parse(await this.fs.readTextFile(`${this.BACKUPS}/${e.name}`, { dir: this.dir }));
+        out.push({ id: e.name, t: rec.t, label: rec.label, seasonName: rec.seasonName, games: rec.games, plays: rec.plays });
+      } catch (err) {}
+    }
+    return out.sort((a, b) => (a.id < b.id ? 1 : -1));
+  }
+  async getBackup(id) {
+    try { return JSON.parse(await this.fs.readTextFile(`${this.BACKUPS}/${id}`, { dir: this.dir })).data; }
+    catch (e) { return null; }
+  }
+  async deleteBackup(id) { try { await this.fs.removeFile(`${this.BACKUPS}/${id}`, { dir: this.dir }); } catch (e) {} }
+  async _prune() {
+    const metas = await this.listBackups();
+    for (const m of metas.slice(this.RETENTION)) await this.deleteBackup(m.id);
+  }
+
+  // On desktop the app data dir is already durable; "disk" is always on.
+  supportsDisk() { return true; }
+  diskStatus() { return { supported: true, bound: true, name: 'App data folder', lastWrite: this._lastWrite }; }
+  async writeDisk(data, opts = {}) {
+    const ok = await this.saveSeason(data);
+    if (opts.snapshot) await this.createBackup(data, opts.label);
+    if (ok) this._lastWrite = Date.now();
+    return ok;
+  }
+}
+
+function detectBackend() {
+  if (typeof window !== 'undefined' && window.__TAURI__) return new TauriBackend();
+  return new BrowserBackend();
+}
+
 // ===== season-store.js =====
 /**
  * SeasonStore — the canonical "project = season" data container.
@@ -10354,29 +10696,30 @@ class NotesManager {
  *      localStorage key (`ffa_season`) and is autosaved continuously in place,
  *      so nothing proliferates.
  *   2. Backup / portability = a single Export/Import season file.
- *   3. Living file = File System Access API. When supported (Chromium), the
- *      season binds to one real file on disk and every save writes back to it.
- *      The handle is persisted in IndexedDB so it reconnects across sessions.
- *      Browsers without the API fall back to download/upload.
+ *   3. Durable disk backup = the backend's disk layer. In the browser that's a
+ *      bound folder (File System Access API) receiving `season.json` + a ring of
+ *      timestamped snapshots; on desktop (Tauri) it's plain app-data files.
+ *
+ * Where bytes actually live is owned by a StorageBackend (storage-backend.js),
+ * so the same SeasonStore runs in the browser or in a native shell unchanged.
  *
  * Video is never stored (too large). Each game references its video filename;
  * the coach re-links the file when they open that game.
  */
+
 class SeasonStore {
-  constructor() {
-    this.KEY = 'ffa_season';
+  constructor(backend) {
     this.SCHEMA = 5;
     this.data = null;
-    this.fileHandle = null;       // FileSystemFileHandle when bound
-    this._fileWriteTimer = null;
-    this._writing = false;
+    this.backend = backend || detectBackend();
+    this._diskTimer = null;
   }
 
   // ---- lifecycle -----------------------------------------------------------
 
-  load() {
+  async load() {
     let parsed = null;
-    try { parsed = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) {}
+    try { parsed = await this.backend.loadSeason(); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
     return this.data;
   }
@@ -10507,15 +10850,6 @@ class SeasonStore {
       .map(x => x.g);
   }
 
-  // ---- persistence ---------------------------------------------------------
-
-  /** Fast canonical save to localStorage; schedules a background file write. */
-  persist() {
-    try { localStorage.setItem(this.KEY, JSON.stringify(this.data)); }
-    catch (e) { /* quota — the file/export is the durable backup */ }
-    if (this.fileHandle) this._scheduleFileWrite();
-  }
-
   json() { return JSON.stringify(this.data, null, 2); }
 
   fileBase() {
@@ -10523,75 +10857,85 @@ class SeasonStore {
     return String(raw).trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'season';
   }
 
-  // ---- File System Access API (progressive enhancement) --------------------
+  // ---- persistence (delegated to the backend) ------------------------------
 
-  static supportsFS() {
-    return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+  /**
+   * Fast canonical save, then a debounced silent write of the live file to the
+   * durable disk target (if one is bound). No new snapshot here — snapshots are
+   * created on explicit saves / throttled auto-snapshots via snapshot().
+   */
+  persist() {
+    this.backend.saveSeason(this.data);
+    this._scheduleDiskWrite();
   }
 
-  _scheduleFileWrite() {
-    clearTimeout(this._fileWriteTimer);
-    this._fileWriteTimer = setTimeout(() => this._writeFile().catch(() => {}), 2500);
+  _scheduleDiskWrite() {
+    if (!this.backend.diskStatus().bound) return;
+    clearTimeout(this._diskTimer);
+    const snap = JSON.parse(JSON.stringify(this.data));   // freeze the payload
+    this._diskTimer = setTimeout(() => this.backend.writeDisk(snap, { snapshot: false }).catch(() => {}), 2500);
   }
 
-  async _writeFile() {
-    if (!this.fileHandle || this._writing) return;
-    if (!(await this._ensurePermission(true))) return;
-    this._writing = true;
-    try {
-      const w = await this.fileHandle.createWritable();
-      await w.write(this.json());
-      await w.close();
-    } finally { this._writing = false; }
-  }
+  // ---- backups / restore ---------------------------------------------------
 
-  async _ensurePermission(write) {
-    if (!this.fileHandle || !this.fileHandle.queryPermission) return true;
-    const opts = { mode: write ? 'readwrite' : 'read' };
-    if ((await this.fileHandle.queryPermission(opts)) === 'granted') return true;
-    return (await this.fileHandle.requestPermission(opts)) === 'granted';
-  }
-
-  /** Bind to a real on-disk file and write the season to it. Returns true on success. */
-  async saveToFile() {
-    if (!SeasonStore.supportsFS()) { this._downloadFallback(); return true; }
-    try {
-      if (!this.fileHandle) {
-        this.fileHandle = await window.showSaveFilePicker({
-          suggestedName: this.fileBase() + '_season.json',
-          types: [{ description: 'GridIron IQ Season', accept: { 'application/json': ['.json'] } }],
-        });
-        await this._persistHandle();
-      }
-      await this._writeFileNow();
-      return true;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return false;   // user cancelled the picker
-      this._downloadFallback();
-      return true;
+  /** Take a restore point: a disk snapshot (if bound) + an in-app ring entry. */
+  async snapshot(label) {
+    const data = JSON.parse(JSON.stringify(this.data));
+    if (this.backend.diskStatus().bound) {
+      await this.backend.writeDisk(data, { snapshot: true, label });
     }
+    return this.backend.createBackup(data, label);
   }
 
-  async _writeFileNow() {
-    clearTimeout(this._fileWriteTimer);
-    await this._writeFile();
+  listBackups() { return this.backend.listBackups(); }
+
+  /**
+   * Restore a previous save. The current state is snapshotted first, so a
+   * restore is itself undoable — you can never strand yourself on bad data.
+   */
+  async restoreBackup(id) {
+    const data = await this.backend.getBackup(id);
+    if (!data || !Array.isArray(data.games)) return null;
+    await this.snapshot('Before restore');
+    this.data = this._normalize(data);
+    this.persist();
+    return this.data;
   }
 
-  /** Open a season file and bind future saves to it. Returns the loaded data or null. */
-  async openFromFile() {
-    if (!SeasonStore.supportsFS()) return null;   // caller falls back to <input type=file>
-    try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'GridIron IQ Season', accept: { 'application/json': ['.json'] } }],
-      });
-      const file = await handle.getFile();
-      const parsed = JSON.parse(await file.text());
-      this.fileHandle = handle;
-      await this._persistHandle();
-      return this.adopt(parsed);
-    } catch (e) {
-      return null;
+  // ---- durable disk target -------------------------------------------------
+
+  supportsDisk() { return this.backend.supportsDisk(); }
+  diskStatus() { return this.backend.diskStatus(); }
+  async restoreDiskBinding() { return this.backend.restoreDiskBinding(); }
+
+  /** Bind a backup folder/target and immediately write the live file + a snapshot. */
+  async bindDisk() {
+    const ok = await this.backend.bindDisk();
+    if (ok) await this.backend.writeDisk(JSON.parse(JSON.stringify(this.data)), { snapshot: true, label: 'Backup folder linked', prompt: true });
+    return ok;
+  }
+  async forgetDisk() { return this.backend.forgetDisk(); }
+
+  /** Explicit "Save Season": canonical + live disk write + a labelled snapshot. */
+  async saveNow(label) {
+    this.backend.saveSeason(this.data);
+    const data = JSON.parse(JSON.stringify(this.data));
+    let wroteDisk = false;
+    if (this.diskStatus().bound) {
+      wroteDisk = await this.backend.writeDisk(data, { snapshot: true, label: label || 'Manual save', prompt: true });
     }
+    await this.backend.createBackup(data, label || 'Manual save');
+    return wroteDisk;
+  }
+
+  /** Download a one-off season file (portability / browsers without disk binding). */
+  downloadFile() {
+    const blob = new Blob([this.json()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = this.fileBase() + '_season.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   /** Adopt a parsed object (season or legacy single game) as the season. */
@@ -10601,62 +10945,6 @@ class SeasonStore {
     else return null;
     this.persist();
     return this.data;
-  }
-
-  _downloadFallback() {
-    const blob = new Blob([this.json()], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = this.fileBase() + '_season.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  }
-
-  // ---- IndexedDB handle persistence (so the file reconnects next session) --
-
-  _idb() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('ffa_fs', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('handles');
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async _persistHandle() {
-    try {
-      const db = await this._idb();
-      await new Promise((res, rej) => {
-        const tx = db.transaction('handles', 'readwrite');
-        tx.objectStore('handles').put(this.fileHandle, 'season');
-        tx.oncomplete = res; tx.onerror = () => rej(tx.error);
-      });
-    } catch (e) { /* handle just won't survive reload */ }
-  }
-
-  async restoreHandle() {
-    try {
-      const db = await this._idb();
-      const handle = await new Promise((res, rej) => {
-        const tx = db.transaction('handles', 'readonly');
-        const r = tx.objectStore('handles').get('season');
-        r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error);
-      });
-      if (handle) this.fileHandle = handle;
-      return !!handle;
-    } catch (e) { return false; }
-  }
-
-  async forgetHandle() {
-    this.fileHandle = null;
-    try {
-      const db = await this._idb();
-      await new Promise((res) => {
-        const tx = db.transaction('handles', 'readwrite');
-        tx.objectStore('handles').delete('season');
-        tx.oncomplete = res; tx.onerror = res;
-      });
-    } catch (e) {}
   }
 }
 
@@ -10735,15 +11023,28 @@ class StorageManager {
     if (!this.seasonStore || !this.seasonStore.data) return;
     this.commitActive();
     this.seasonStore.persist();
+    this._maybeSnapshot();   // throttled auto restore-point
+  }
+
+  /**
+   * Create a restore point, but at most once every few minutes during active
+   * tagging (explicit saves and risky ops pass force=true). Keeps the ring
+   * meaningful without a snapshot per keystroke.
+   */
+  _maybeSnapshot(force, label) {
+    const now = Date.now();
+    if (!force && this._lastSnapAt && (now - this._lastSnapAt) < 180000) return;
+    this._lastSnapAt = now;
+    if (this.seasonStore) this.seasonStore.snapshot(label || 'Auto').catch(() => {});
   }
 
   // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
 
   /** Load the season from storage and restore its active game into the app. */
-  initSeason() {
-    this.seasonStore.load();
-    // Reconnect a previously-bound on-disk file in the background (Chromium).
-    if (this.seasonStore.restoreHandle) this.seasonStore.restoreHandle().catch(() => {});
+  async initSeason() {
+    await this.seasonStore.load();
+    // Reconnect a previously-bound backup folder in the background (Chromium).
+    if (this.seasonStore.restoreDiskBinding) this.seasonStore.restoreDiskBinding().catch(() => {});
     this._loadActiveGame();
   }
 
@@ -10875,21 +11176,39 @@ class StorageManager {
   }
 
   /**
-   * Save the whole season. Writes the canonical browser copy, then to the bound
-   * on-disk file (File System Access API) if one exists — updating the same file
-   * in place — or downloads a single season backup file as a fallback.
+   * Explicit "Save Season". Commits the live game, persists canonically, and
+   * makes a durable disk backup with a restore point. On the first save it
+   * offers to bind a backup folder (Chromium); without disk support it falls
+   * back to a downloaded file plus an in-app restore point.
    */
   async saveProject() {
     this.commitActive();
     this.seasonStore.persist();
-    return this.seasonStore.saveToFile();
+    this._maybeSnapshot(true, 'Manual save');
+    const st = this.seasonStore;
+    if (st.supportsDisk() && !st.diskStatus().bound) {
+      const bound = await st.bindDisk();         // prompt once for a backup folder
+      if (!bound) st.downloadFile();             // declined → at least hand them a file
+      return bound;
+    }
+    if (st.diskStatus().bound) return st.saveNow('Manual save');
+    st.downloadFile();                           // Firefox/Safari: file + ring snapshot
+    return true;
   }
 
-  /** Open a season file and bind future saves to it (Chromium); else no-op. */
-  async openSeasonFile() {
-    const data = await this.seasonStore.openFromFile();
-    if (data) { this._clearForNewGame(); this._loadActiveGame(); }
-    return !!data;
+  /** Bind (or re-bind) the durable backup folder. */
+  async bindBackupFolder() {
+    const ok = await this.seasonStore.bindDisk();
+    return ok;
+  }
+
+  /** Restore a previous save; reloads the active game on success. */
+  async restoreBackup(id) {
+    const data = await this.seasonStore.restoreBackup(id);
+    if (!data) return false;
+    this._clearForNewGame();
+    this._loadActiveGame();
+    return true;
   }
 
   /**
@@ -18537,6 +18856,9 @@ class SeasonManager {
       if (id === 'btnNewGame') this.newGame();
       if (id === 'btnSaveSeasonFile') this.saveSeasonFile();
       if (id === 'btnOpenSeasonFile') this.openSeasonFile();
+      if (id === 'btnBackupFolder') this.backupFolder();
+      if (id === 'btnRestore') this.toggleRestore();
+      if (id === 'btnCloseRestore') this.toggleRestore(false);
       if (id === 'btnExportSeason') this.exportSeasonReport();
       if (id === 'seasonOverlay') this.hide();   // click outside modal closes
     });
@@ -18596,17 +18918,43 @@ class SeasonManager {
   async saveSeasonFile() {
     const storage = this._storage();
     if (storage) await storage.saveProject();
+    this._renderBackupStatus();
   }
 
-  async openSeasonFile() {
+  /** Open a season or game file (universal <input type=file> path). */
+  openSeasonFile() {
+    this.fileInput?.click();
+  }
+
+  /** Bind (or re-bind) the durable backup folder. */
+  async backupFolder() {
     const storage = this._storage();
     if (!storage) return;
-    if (storage.seasonStore.constructor.supportsFS && storage.seasonStore.constructor.supportsFS()) {
-      const ok = await storage.openSeasonFile();
-      if (ok) this._renderAll();
-    } else {
-      this.fileInput?.click();   // fallback to <input type=file>
+    await storage.bindBackupFolder();
+    this._renderBackupStatus();
+  }
+
+  /** Toggle the restore panel; (re)render its list when opening. */
+  async toggleRestore(force) {
+    const panel = document.getElementById('seasonRestorePanel');
+    if (!panel) return;
+    const open = force == null ? panel.classList.contains('hidden') : force;
+    panel.classList.toggle('hidden', !open);
+    if (open) await this._renderRestoreList();
+  }
+
+  async restore(id) {
+    const storage = this._storage();
+    if (!storage) return;
+    const ok = await this._confirm('Restore this save? Your current state is backed up first, so this is reversible.');
+    if (!ok) return;
+    await storage.restoreBackup(id);
+    await this.toggleRestore(false);
+    if (this.nameInput) {
+      const st = this._store();
+      this.nameInput.value = (st && st.data && st.data.seasonName) || '';
     }
+    this._renderAll();
   }
 
   show() {
@@ -18654,8 +19002,63 @@ class SeasonManager {
   }
 
   _renderAll() {
+    this._renderBackupStatus();
     this._renderGameList();
     this._renderStats();
+  }
+
+  /** A one-line "where is my data backed up" indicator in the header. */
+  _renderBackupStatus() {
+    const el = document.getElementById('seasonBackupStatus');
+    if (!el) return;
+    const st = this._store();
+    const folderBtn = document.getElementById('btnBackupFolder');
+    if (!st) { el.textContent = ''; return; }
+    const d = st.diskStatus();
+    if (!d.supported) {
+      el.innerHTML = '<span class="bk-warn">⚠ Browser can\'t auto-save to disk — use Save Season to download a backup.</span>';
+      if (folderBtn) folderBtn.style.display = 'none';
+      return;
+    }
+    if (folderBtn) folderBtn.style.display = '';
+    if (d.bound) {
+      const when = d.lastWrite ? new Date(d.lastWrite).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`;
+      if (folderBtn) folderBtn.textContent = 'Change Folder';
+    } else {
+      el.innerHTML = '<span class="bk-warn">⚠ No backup folder linked — your data lives only in this browser.</span>';
+      if (folderBtn) folderBtn.textContent = 'Back up to Folder';
+    }
+  }
+
+  async _renderRestoreList() {
+    const body = document.getElementById('seasonRestoreList');
+    if (!body) return;
+    const st = this._store();
+    const list = st ? await st.listBackups() : [];
+    if (!list.length) {
+      body.innerHTML = '<div class="season-empty">No restore points yet. They\'re created automatically as you work and on every Save Season.</div>';
+      return;
+    }
+    body.innerHTML = list.map(b => {
+      const when = new Date(b.t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const name = b.seasonName ? this._escape(b.seasonName) + ' · ' : '';
+      return `
+        <div class="restore-row">
+          <div class="restore-info">
+            <div class="restore-when">${when} <span class="restore-label">${this._escape(b.label || 'Save')}</span></div>
+            <div class="restore-meta">${name}${b.games} game${b.games === 1 ? '' : 's'} · ${b.plays} plays</div>
+          </div>
+          <button class="btn btn-sm" data-restore="${b.id}">Restore</button>
+        </div>`;
+    }).join('');
+    body.querySelectorAll('[data-restore]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-restore');
+        // ids are numeric (browser) or filename strings (tauri)
+        this.restore(/^\d+$/.test(id) ? Number(id) : id);
+      });
+    });
   }
 
   _renderGameList() {
@@ -20433,8 +20836,8 @@ class App {
 
     // Load the season and restore its active game, then seed history. Deferred
     // to the next tick so `window.app` (referenced by the storage bridge) is set.
-    setTimeout(() => {
-      this.storage.initSeason();
+    setTimeout(async () => {
+      await this.storage.initSeason();
       this.history.init();
       this.versions.renderList();
     }, 0);
