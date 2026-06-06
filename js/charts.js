@@ -31,7 +31,7 @@ export class Charts {
       return arc;
     }).join('');
 
-    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#e8ecf4)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#7d8aa5)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
+    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#8b949e)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
 
     return `<svg class="chart-donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${arcs}${center}</svg>`;
   }
@@ -55,7 +55,7 @@ export class Charts {
     if (!maxVal) return '';
     const rows = data.map(d => {
       const pct = Math.max(2, (d.value / maxVal) * 100);
-      const color = d.color || 'var(--accent,#4a9eff)';
+      const color = d.color || 'var(--accent,#c9a227)';
       return `<div class="chart-hbar-row"><span class="chart-hbar-label">${Charts._esc(d.label)}</span><div class="chart-hbar-track"><div class="chart-hbar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>${d.sub ? `<span class="chart-hbar-sub">${d.sub}</span>` : ''}</div><span class="chart-hbar-val">${d.extra || d.value}</span></div>`;
     }).join('');
     return `<div class="chart-hbars">${rows}</div>`;
@@ -87,7 +87,7 @@ export class Charts {
     const halfCirc = Math.PI * r;
     const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
 
-    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="#1b2436" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e8ecf4)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
+    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="#1c2128" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
   }
 
   /**
@@ -101,7 +101,7 @@ export class Charts {
     const range = hi - lo || 1;
     const x = (i) => pad + (i / (values.length - 1)) * (W - 2 * pad);
     const y = (v) => H - pad - ((v - lo) / range) * (H - 2 * pad);
-    const color = opts.color || 'var(--accent,#4a9eff)';
+    const color = opts.color || 'var(--accent,#c9a227)';
 
     const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
     const path = `M${pts.join(' L')}`;
@@ -163,7 +163,7 @@ export class Charts {
     const gridSteps = [hi, Math.round(hi / 2), 0, Math.round(lo / 2), lo].filter((v, i, a) => a.indexOf(v) === i && v !== 0);
     gridSteps.forEach(v => {
       const gy = y(v).toFixed(1);
-      grid += `<text x="${padL - 4}" y="${(parseFloat(gy) + 3).toFixed(1)}" fill="#7d8aa5" font-size="9" text-anchor="end">${v}</text>`;
+      grid += `<text x="${padL - 4}" y="${(parseFloat(gy) + 3).toFixed(1)}" fill="#8b949e" font-size="9" text-anchor="end">${v}</text>`;
     });
 
     const pts = plays.map((p, i) => `${x(i).toFixed(1)},${y(p.cumYards).toFixed(1)}`);
@@ -171,10 +171,10 @@ export class Charts {
     const areaPath = `${path} L${x(plays.length - 1).toFixed(1)},${zeroY} L${padL},${zeroY} Z`;
 
     const dots = plays.map((p, i) => {
-      const color = p.isRun ? '#ffd23f' : '#6cc4ff';
+      const color = p.isRun ? '#f0b429' : '#38bdf8';
       return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" fill="${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
     }).join('');
 
-    return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#4a9eff)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#4a9eff)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#7d8aa5" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#7d8aa5" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#7d8aa5" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;
+    return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#c9a227)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#c9a227)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#8b949e" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#8b949e" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#8b949e" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;
   }
 }

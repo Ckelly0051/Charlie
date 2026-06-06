@@ -1581,7 +1581,7 @@ export class StatsEngine {
   _renderDrives(stats) {
     const d = stats.drives;
     if (d.total === 0) return '';
-    const colorMap = { TD: '#44ff44', FG: '#88ddff', Punt: '#888', Turnover: '#ff4444', Kneel: '#666', Other: '#ffaa00' };
+    const colorMap = { TD: '#22c55e', FG: '#38bdf8', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
     const outcomeDonut = Charts.donut(
@@ -1641,7 +1641,7 @@ export class StatsEngine {
     let rows = '';
     for (const h of stats.hash.list) {
       const runPct = parseInt(h.runPct);
-      const bar = Charts.stackBar([{ value: h.runs, color: '#ffd23f', label: 'Run' }, { value: h.passes, color: '#6cc4ff', label: 'Pass' }]);
+      const bar = Charts.stackBar([{ value: h.runs, color: '#f0b429', label: 'Run' }, { value: h.passes, color: '#38bdf8', label: 'Pass' }]);
       rows += `<tr><td>${h.name}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
     }
     return `
@@ -1657,7 +1657,7 @@ export class StatsEngine {
     if (!stats.personnelSituation || !stats.personnelSituation.hasData) return '';
     let rows = '';
     for (const c of stats.personnelSituation.list) {
-      const bar = Charts.stackBar([{ value: c.runs, color: '#ffd23f', label: 'Run' }, { value: c.passes, color: '#6cc4ff', label: 'Pass' }]);
+      const bar = Charts.stackBar([{ value: c.runs, color: '#f0b429', label: 'Run' }, { value: c.passes, color: '#38bdf8', label: 'Pass' }]);
       rows += `<tr><td>${c.personnel}</td><td>${c.situation}</td><td>${c.count}</td><td>${bar}</td><td>${c.runPct}%</td><td>${c.avg}</td><td>${c.successPct}%</td></tr>`;
     }
     return `
@@ -1729,13 +1729,13 @@ export class StatsEngine {
     const totalYards = r.yards + p.yards;
 
     const rpDonut = Charts.donut([
-      { value: tend.runs, color: '#ffd23f', label: 'Run' },
-      { value: tend.passes, color: '#6cc4ff', label: 'Pass' }
+      { value: tend.runs, color: '#f0b429', label: 'Run' },
+      { value: tend.passes, color: '#38bdf8', label: 'Pass' }
     ], 110, tend.runPct + '%', 'Run Rate');
 
     const ydsDonut = Charts.donut([
-      { value: Math.max(0, r.yards), color: '#ffd23f', label: 'Rush Yards' },
-      { value: Math.max(0, p.yards), color: '#6cc4ff', label: 'Pass Yards' }
+      { value: Math.max(0, r.yards), color: '#f0b429', label: 'Rush Yards' },
+      { value: Math.max(0, p.yards), color: '#38bdf8', label: 'Pass Yards' }
     ], 110, String(totalYards), 'Total Yds');
 
     return `
@@ -1802,7 +1802,7 @@ export class StatsEngine {
       rows += `<tr class="cut-row" data-cut-type="down" data-cut-val="${down}" data-cut-label="${labels[down]} down — ${s.total} plays">
         <td>${labels[down]}</td>
         <td>${s.total}</td>
-        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#ffd23f', label: 'Run' }, { value: parseInt(s.passPct), color: '#6cc4ff', label: 'Pass' }], 18)}</div></td>
+        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#f0b429', label: 'Run' }, { value: parseInt(s.passPct), color: '#38bdf8', label: 'Pass' }], 18)}</div></td>
         <td>${s.avgYards}</td>
         <td>${s.conversionPct}%</td>
       </tr>`;
@@ -1833,7 +1833,7 @@ export class StatsEngine {
 
     const playTypeDonut = Charts.donutWithLegend(
       t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = ['#4a9eff', '#ffd23f', '#6cc4ff', '#ff6b6b', '#22c55e', '#a78bfa', '#f97316', '#ec4899'];
+        const colors = ['#38bdf8', '#f0b429', '#22c55e', '#f97316', '#a78bfa', '#ef4444', '#06b6d4', '#ec4899'];
         return { value: pt.count, color: colors[i % colors.length], label: pt.name };
       }),
       120, String(stats.totalPlays), 'plays'
@@ -2371,13 +2371,13 @@ export class StatsEngine {
       `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
     ).join('');
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #4169e1;padding-bottom:8px}h3{color:#4169e1;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
-table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#4169e1;color:#fff}tr:nth-child(even){background:#f4f4f8}
+<style>body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#1a1a2e;max-width:940px;margin:24px auto;padding:0 24px}
+h1{border-bottom:3px solid #1a1a2e;padding-bottom:8px;font-weight:800;letter-spacing:0.5px}h3{color:#1a1a2e;border-bottom:2px solid #c9a227;padding-bottom:4px;margin-top:24px;font-weight:700}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #e5e7eb;text-align:left;font-size:13px}
+th{background:#1a1a2e;color:#fff;font-weight:700}tr:nth-child(even){background:#f9fafb}
 .overview{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
-.ov-card{border:1px solid #ddd;padding:12px;border-radius:6px;text-align:center}
-.ov-val{font-size:24px;font-weight:bold;color:#4169e1}.ov-lbl{font-size:11px;text-transform:uppercase;color:#666}
+.ov-card{border:1px solid #e5e7eb;padding:12px;border-radius:8px;text-align:center}
+.ov-val{font-size:24px;font-weight:800;color:#1a1a2e;font-variant-numeric:tabular-nums}.ov-lbl{font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:700;letter-spacing:0.5px}
 </style></head><body>
 <h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} plays</p>
 ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p>` : ''}
@@ -2821,19 +2821,19 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     if (!w) { alert('Pop-up blocked — allow pop-ups for this site to export PDF.'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#222;max-width:900px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #1a3a6b;padding-bottom:8px;color:#1a3a6b;font-size:22px}
-h3{color:#1a3a6b;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px;font-size:14px}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#1a1a2e;max-width:940px;margin:24px auto;padding:0 24px}
+h1{border-bottom:3px solid #1a1a2e;padding-bottom:8px;color:#1a1a2e;font-size:22px;font-weight:800;letter-spacing:0.5px}
+h3{color:#1a1a2e;border-bottom:2px solid #c9a227;padding-bottom:4px;margin-top:24px;font-size:14px;font-weight:700}
 .sub{color:#666;font-size:12px}
 table{width:100%;border-collapse:collapse;margin:8px 0}
-th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:12px}
-th{background:#1a3a6b;color:#fff}tr:nth-child(even){background:#f4f4f8}
+th,td{padding:6px 10px;border:1px solid #e5e7eb;text-align:left;font-size:12px}
+th{background:#1a1a2e;color:#fff;font-weight:700;letter-spacing:0.3px}tr:nth-child(even){background:#f9fafb}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:12px 0}
-.card{border:1px solid #ddd;padding:10px;border-radius:6px;text-align:center}
-.cv{font-size:22px;font-weight:bold;color:#1a3a6b}.cl{font-size:10px;text-transform:uppercase;color:#666;margin-top:2px}
+.card{border:1px solid #e5e7eb;padding:10px;border-radius:8px;text-align:center}
+.cv{font-size:24px;font-weight:800;color:#1a1a2e;font-variant-numeric:tabular-nums}.cl{font-size:9px;text-transform:uppercase;color:#6b7280;margin-top:3px;letter-spacing:0.5px;font-weight:700}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.meter{height:18px;border-radius:9px;background:#eee;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
-.mval{font-size:26px;font-weight:bold}.mlbl{color:#666;font-size:13px}
+.meter{height:18px;border-radius:9px;background:#e5e7eb;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
+.mval{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.mlbl{color:#6b7280;font-size:13px;font-weight:600}
 ul{line-height:1.7;font-size:13px}
 @media print{
   body{margin:0;padding:10px}

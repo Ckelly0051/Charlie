@@ -96,11 +96,11 @@ export class HeatMaps {
       const yds = parseInt(p.tags.yardage) || 0;
       let color = '#888', radius = 5;
       const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
-      if (rParts.includes('Touchdown')) { color = '#44ff44'; radius = 7; }
-      else if (yds >= 20) { color = '#88ddff'; radius = 6; }
-      else if (yds >= 4) { color = '#ffaa00'; }
-      else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ff4444'; }
-      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#ff00ff'; radius = 6; }
+      if (rParts.includes('Touchdown')) { color = '#22c55e'; radius = 7; }
+      else if (yds >= 20) { color = '#38bdf8'; radius = 6; }
+      else if (yds >= 4) { color = '#f0b429'; }
+      else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ef4444'; }
+      else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#a855f7'; radius = 6; }
 
       const desc = `Play ${p.id}: ${p.tags.playType || ''} ${yds}yd ${p.tags.result || ''}`.trim();
       dots += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" stroke="#000" stroke-width="0.5" opacity="0.8"><title>${this._escape(desc)}</title></circle>`;
@@ -118,12 +118,12 @@ export class HeatMaps {
           ${dots}
         </svg>
         <div class="hm-legend">
-          <span><i style="background:#44ff44"></i> TD</span>
-          <span><i style="background:#88ddff"></i> 20+ yds</span>
-          <span><i style="background:#ffaa00"></i> 4-19 yds</span>
-          <span><i style="background:#888"></i> 1-3 yds</span>
-          <span><i style="background:#ff4444"></i> Loss/Sack</span>
-          <span><i style="background:#ff00ff"></i> Turnover</span>
+          <span><i style="background:#22c55e"></i> TD</span>
+          <span><i style="background:#38bdf8"></i> 20+ yds</span>
+          <span><i style="background:#f0b429"></i> 4-19 yds</span>
+          <span><i style="background:#6b7280"></i> 1-3 yds</span>
+          <span><i style="background:#ef4444"></i> Loss/Sack</span>
+          <span><i style="background:#a855f7"></i> Turnover</span>
         </div>
         <p class="hm-caption">${plotted.length} of ${plays.length} plays plotted (need yard line + side tagged). Hover a dot for details.</p>
       </div>
