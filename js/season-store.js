@@ -234,7 +234,7 @@ export class SeasonStore {
 
   /** Explicit "Save Season": canonical + live disk write + a labelled snapshot. */
   async saveNow(label) {
-    this.backend.saveSeason(this.data);
+    await this.backend.saveSeason(this.data);
     const data = JSON.parse(JSON.stringify(this.data));
     let wroteDisk = false;
     if (this.diskStatus().bound) {
