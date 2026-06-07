@@ -1,3 +1,11 @@
+/* Inline SVG icon sprite: keep it out of layout flow. Hidden via this
+   stylesheet rule (not an inline style attribute) because Tauri's CSP
+   nonces the <style> block, which disables 'unsafe-inline' for style
+   attributes — an inline style="display:none" gets blocked in WebView2
+   and the sprite balloons to its default 300x150 box, shoving the whole
+   app down. width=0/height=0 attributes on the <svg> are the backstop. */
+.svg-sprite { display: none !important; }
+
 /* ===== CSS Custom Properties ===== */
 :root {
   --bg-primary: #1b1f27;
@@ -445,6 +453,14 @@ body {
   cursor: pointer;
   transition: all var(--transition);
 }
+/* Swatch colors via CSS (not inline style) so they survive Tauri's CSP,
+   which nonces the <style> block and thereby blocks style="" attributes. */
+.swatch[data-color="#ffffff"] { background: #ffffff; }
+.swatch[data-color="#ffff00"] { background: #ffff00; }
+.swatch[data-color="#ff4444"] { background: #ff4444; }
+.swatch[data-color="#4488ff"] { background: #4488ff; }
+.swatch[data-color="#44ff44"] { background: #44ff44; }
+.swatch[data-color="#ff8800"] { background: #ff8800; }
 
 .swatch:hover {
   transform: scale(1.15);
