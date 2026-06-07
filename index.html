@@ -32,10 +32,21 @@
           <span>Shortcuts</span>
         </button>
         <h1 class="app-title">GridIron IQ</h1>
-        <button class="season-chip" id="seasonChip" title="Switch season / open the Season Library" hidden>
-          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg>
-          <span class="season-chip-text" id="seasonChipText">No season</span>
-        </button>
+        <div class="season-chip-wrap">
+          <button class="season-chip" id="seasonChip" title="Switch games or season" hidden>
+            <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg>
+            <span class="season-chip-text" id="seasonChipText">No season</span>
+            <span class="season-chip-caret">▾</span>
+          </button>
+          <div class="game-dropdown hidden" id="gameDropdown">
+            <div class="game-dropdown-head" id="gameDropdownHead"></div>
+            <div class="game-dropdown-list" id="gameDropdownList"></div>
+            <div class="game-dropdown-foot">
+              <button class="btn btn-sm btn-accent" id="btnDropdownNewGame">+ New Game</button>
+              <button class="btn btn-sm" id="btnDropdownSwitchSeason">Switch Season</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">

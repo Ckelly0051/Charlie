@@ -55,7 +55,7 @@ export class SeasonStore {
 
   blankGame() {
     return {
-      id: this._newId(), name: 'New Game',
+      id: this._newId(), name: 'New Game', status: 'active',
       gameInfo: {}, plays: [], annotations: [],
       nextId: 1, currentPlayId: null,
       videoFileName: null, clipNames: [], isMultiClip: false,
@@ -74,6 +74,7 @@ export class SeasonStore {
       g.annotations = g.annotations || [];
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
+      if (!g.status) g.status = 'active';
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;
@@ -169,9 +170,10 @@ export class SeasonStore {
   updateActiveGame(gameObj) {
     const i = this.activeIndex();
     if (i < 0) return;
-    const id = this.data.games[i].id;
-    gameObj.id = id;
+    const prev = this.data.games[i];
+    gameObj.id = prev.id;
     gameObj.name = this.gameName(gameObj, i);
+    gameObj.status = gameObj.status || prev.status || 'active';
     this.data.games[i] = gameObj;
   }
 
@@ -200,6 +202,13 @@ export class SeasonStore {
     if (this.data.games.some(g => g.id === id)) { this.data.activeGameId = id; return true; }
     return false;
   }
+
+  setGameStatus(id, status) {
+    const g = this.data.games.find(g => g.id === id);
+    if (g) g.status = status;
+  }
+
+  gameStatus(g) { return (g && g.status) || 'active'; }
 
   /** True when the active game has no plays and no identifying game info. */
   isEmptyActive() {

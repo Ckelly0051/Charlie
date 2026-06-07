@@ -171,12 +171,216 @@ class App {
     });
   }
 
-  /** Wire the top-bar season context chip → opens the Season Library to switch. */
+  /** Wire the top-bar season chip → toggles the game-switcher dropdown. */
   _bindSeasonChip() {
     const chip = document.getElementById('seasonChip');
-    if (!chip) return;
-    chip.addEventListener('click', () => this.library.open());
+    const dropdown = document.getElementById('gameDropdown');
+    if (!chip || !dropdown) return;
+
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dropdown.classList.contains('hidden')) this._openGameDropdown();
+      else this._closeGameDropdown();
+    });
+
+    document.getElementById('btnDropdownNewGame')?.addEventListener('click', () => {
+      this._closeGameDropdown();
+      this.storage.newGame();
+      this._updateSeasonChip();
+      this.season._renderAll?.();
+    });
+    document.getElementById('btnDropdownSwitchSeason')?.addEventListener('click', () => {
+      this._closeGameDropdown();
+      this.library.open();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !chip.contains(e.target)) {
+        this._closeGameDropdown();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) this._closeGameDropdown();
+    });
+
     this._updateSeasonChip();
+  }
+
+  _openGameDropdown() {
+    const dropdown = document.getElementById('gameDropdown');
+    if (!dropdown) return;
+    this._renderGameDropdown();
+    dropdown.classList.remove('hidden');
+  }
+
+  _closeGameDropdown() {
+    document.getElementById('gameDropdown')?.classList.add('hidden');
+  }
+
+  _renderGameDropdown() {
+    const head = document.getElementById('gameDropdownHead');
+    const list = document.getElementById('gameDropdownList');
+    const store = this.storage?.seasonStore;
+    if (!head || !list || !store?.hasCurrent()) return;
+
+    head.textContent = store.data.seasonName || 'Season';
+
+    this.storage.commitActive();
+    const games = store.gamesChrono();
+    const activeId = store.data.activeGameId;
+
+    if (!games.length) {
+      list.innerHTML = '<div style="padding:16px;text-align:center;color:rgba(255,255,255,.4)">No games yet</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    games.forEach((g, idx) => {
+      const isActive = g.id === activeId;
+      const status = store.gameStatus(g);
+      const isFinal = status === 'final';
+      const name = store.gameName(g, idx);
+      const plays = (g.plays || []).length;
+      const date = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
+      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+
+      const row = document.createElement('div');
+      row.className = 'gd-row' + (isActive ? ' is-active' : '');
+
+      let dotCls = 'dot-idle';
+      if (isActive) dotCls = 'dot-active';
+      else if (isFinal) dotCls = 'dot-final';
+
+      let badges = '';
+      if (hasScore) {
+        const uN = parseInt(u), tN = parseInt(t);
+        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
+        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
+      }
+      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
+      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+
+      let actions = '';
+      if (isActive && !isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
+
+      row.innerHTML = `
+        <div class="gd-dot ${dotCls}"></div>
+        <div class="gd-info" data-action="switch">
+          <div class="gd-name">${this._esc(name)}</div>
+          <div class="gd-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+        </div>
+        <div class="gd-badges">${badges}</div>
+        <div class="gd-actions">${actions}</div>`;
+
+      row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
+        if (!isActive) {
+          this.storage.switchToGame(g.id);
+          this._updateSeasonChip();
+          this._closeGameDropdown();
+          this.season._renderAll?.();
+        }
+      });
+
+      row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._closeGameDropdown();
+        this._finishGame();
+      });
+
+      list.appendChild(row);
+    });
+  }
+
+  /**
+   * Finish Game flow: prompt for final score if missing, mark game as Final.
+   * Reversible — the status can be cleared by re-opening and editing.
+   */
+  async _finishGame() {
+    const store = this.storage?.seasonStore;
+    if (!store?.hasCurrent()) return;
+
+    this.storage.commitActive();
+    const game = store.activeGame();
+    if (!game) return;
+
+    const gi = game.gameInfo || {};
+    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
+                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+
+    const result = await this._showFinishModal(game, hasScore);
+    if (!result) return;
+
+    if (result.scoreUs !== undefined) {
+      const usEl = document.getElementById('gameScoreUs');
+      const themEl = document.getElementById('gameScoreThem');
+      if (usEl) usEl.value = result.scoreUs;
+      if (themEl) themEl.value = result.scoreThem;
+      this._saveGameInfo();
+    }
+
+    store.setGameStatus(game.id, 'final');
+    this.storage.commitActive();
+    store.persist();
+    this._updateSeasonChip();
+
+    const name = store.gameName(game, store.activeIndex());
+    this.updater._toast(`"${name}" marked as Final`);
+  }
+
+  _showFinishModal(game, hasScore) {
+    return new Promise(resolve => {
+      const existing = document.getElementById('finishGameModal');
+      if (existing) existing.remove();
+
+      const name = this.storage.seasonStore.gameName(game, this.storage.seasonStore.activeIndex());
+      const gi = game.gameInfo || {};
+
+      const modal = document.createElement('div');
+      modal.id = 'finishGameModal';
+      modal.className = 'finish-game-modal';
+      modal.innerHTML = `
+        <div class="finish-game-backdrop"></div>
+        <div class="finish-game-card">
+          <h3>Finish Game: ${this._esc(name)}</h3>
+          ${hasScore
+            ? `<p>Final score: ${gi.scoreUs}-${gi.scoreThem}. Mark this game as complete?</p>`
+            : `<p>Enter the final score, then mark this game as complete.</p>
+               <div class="finish-game-scores">
+                 <label>Us <input type="number" id="finishScoreUs" value="${gi.scoreUs || ''}" min="0" placeholder="0"></label>
+                 <label>Them <input type="number" id="finishScoreThem" value="${gi.scoreThem || ''}" min="0" placeholder="0"></label>
+               </div>`}
+          <div class="finish-game-btns">
+            <button class="btn btn-sm" id="finishCancel">Cancel</button>
+            <button class="btn btn-sm btn-accent" id="finishConfirm">Mark as Final</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+
+      const close = (val) => { modal.remove(); resolve(val); };
+
+      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
+      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
+      modal.querySelector('#finishConfirm').addEventListener('click', () => {
+        if (hasScore) {
+          close({});
+        } else {
+          close({
+            scoreUs: document.getElementById('finishScoreUs')?.value || '',
+            scoreThem: document.getElementById('finishScoreThem')?.value || '',
+          });
+        }
+      });
+
+      modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close(null);
+        if (e.key === 'Enter') modal.querySelector('#finishConfirm')?.click();
+        e.stopPropagation();
+      });
+
+      if (!hasScore) setTimeout(() => document.getElementById('finishScoreUs')?.focus(), 50);
+    });
   }
 
   /** Refresh the season chip with the open season + active game (or hide it). */
@@ -192,6 +396,8 @@ class App {
     text.textContent = gameName ? `${d.seasonName || 'Season'} · ${gameName}` : (d.seasonName || 'Season');
     chip.hidden = false;
   }
+
+  _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   /** Wire the "Open Data Folder" menu item (desktop build only). */
   _bindOpenDataFolder() {
@@ -1307,8 +1513,14 @@ class App {
       return;
     }
 
-    // 3) Nothing left to advance to.
-    this.history?._toast('Last play — all tagged');
+    // 3) Nothing left to advance to — offer to finish the game.
+    const store = this.storage?.seasonStore;
+    const activeGame = store?.activeGame();
+    if (activeGame && store.gameStatus(activeGame) !== 'final') {
+      this.history?._toast('Last play — all tagged. Finish the game from the season chip.');
+    } else {
+      this.history?._toast('Last play — all tagged');
+    }
   }
 
   _handleTagKey(e) {

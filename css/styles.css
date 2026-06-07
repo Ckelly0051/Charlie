@@ -2586,6 +2586,17 @@ body {
   background: var(--run-color);
   color: #1a1205;
 }
+.season-final-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: rgba(34,197,94,.2);
+  color: #22c55e;
+}
 
 .season-stats-body {
   padding: 16px 20px 20px;
@@ -6586,15 +6597,72 @@ body {
 .season-card-del:hover { background: rgba(220,60,60,.15); color: #ff6b6b; }
 
 /* Season context chip (lives in the light top bar) */
+.season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
 .season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
   border: 1px solid rgba(47,109,240,.4); color: #1d4ed8; border-radius: 999px; padding: 5px 12px;
-  font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 12px; max-width: 320px; }
+  font-size: 13px; font-weight: 600; cursor: pointer; max-width: 320px; margin-left: 0; }
 .season-chip:hover { background: rgba(47,109,240,.2); }
 .season-chip .icon { width: 14px; height: 14px; flex: 0 0 auto; }
 .season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.season-chip-caret { font-size: 10px; opacity: .6; margin-left: 2px; }
 .season-chip[hidden] { display: none; }
+
+/* Game switcher dropdown (anchored to season chip) */
+.game-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1100;
+  background: #1e2330; border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.5); min-width: 320px; max-width: 400px;
+  color: #e6edf3; font-size: 13px; overflow: hidden; }
+.game-dropdown.hidden { display: none; }
+.game-dropdown-head { padding: 12px 16px 8px; font-weight: 700; font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08); color: #06b6d4; }
+.game-dropdown-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
+.game-dropdown-foot { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.08); }
+.game-dropdown-foot .btn { flex: 1; font-size: 12px; }
+
+/* Individual game row in the dropdown */
+.gd-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+  cursor: pointer; transition: background .12s; }
+.gd-row:hover { background: rgba(255,255,255,.06); }
+.gd-row.is-active { background: rgba(6,182,212,.1); border-left: 3px solid #06b6d4; }
+.gd-row .gd-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.gd-row .gd-dot.dot-active { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.5); }
+.gd-row .gd-dot.dot-final { background: #22c55e; }
+.gd-row .gd-dot.dot-idle { background: rgba(255,255,255,.25); }
+.gd-info { flex: 1; min-width: 0; }
+.gd-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gd-meta { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 1px; }
+.gd-badges { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+.gd-score { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+.gd-score.win { background: rgba(34,197,94,.2); color: #22c55e; }
+.gd-score.loss { background: rgba(239,68,68,.15); color: #ef4444; }
+.gd-score.tie { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
+.gd-badge { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px; }
+.gd-badge.badge-final { background: rgba(34,197,94,.15); color: #22c55e; }
+.gd-badge.badge-active-tag { background: rgba(6,182,212,.15); color: #06b6d4; }
+.gd-actions { flex: 0 0 auto; }
+.gd-finish-btn { background: none; border: 1px solid rgba(34,197,94,.4); color: #22c55e;
+  font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.gd-finish-btn:hover { background: rgba(34,197,94,.15); }
+
+/* Finish-game modal */
+.finish-game-modal { position: fixed; inset: 0; z-index: 2100; display: flex;
+  align-items: center; justify-content: center; }
+.finish-game-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+.finish-game-card { position: relative; background: #1e2330; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px; padding: 24px; max-width: 380px; width: 90%; color: #e6edf3;
+  box-shadow: 0 16px 48px rgba(0,0,0,.5); }
+.finish-game-card h3 { margin: 0 0 12px; font-size: 16px; color: #06b6d4; }
+.finish-game-card p { margin: 0 0 16px; font-size: 13px; color: rgba(255,255,255,.6); }
+.finish-game-scores { display: flex; gap: 12px; margin-bottom: 20px; }
+.finish-game-scores label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: rgba(255,255,255,.5); }
+.finish-game-scores input { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 6px; padding: 8px 10px; color: #e6edf3; font-size: 15px; text-align: center; }
+.finish-game-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.finish-game-btns .btn { font-size: 13px; }
 
 @media (max-width: 640px) {
   .lib-form-row { grid-template-columns: 1fr; }
   .season-chip { max-width: 160px; }
+  .game-dropdown { min-width: 280px; left: auto; right: -20px; }
 }

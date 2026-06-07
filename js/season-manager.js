@@ -268,6 +268,9 @@ export class SeasonManager {
     list.innerHTML = '';
     games.forEach((g, idx) => {
       const isActive = g.id === activeId;
+      const st = this._store();
+      const status = st.gameStatus(g);
+      const isFinal = status === 'final';
       const row = document.createElement('div');
       row.className = 'season-game-row' + (isActive ? ' season-game-current' : '');
       const u = g.gameInfo?.scoreUs;
@@ -279,12 +282,13 @@ export class SeasonManager {
         const cls = win ? 'win' : (loss ? 'loss' : '');
         scoreLabel = `<span class="score-pill ${cls}">${u}-${t}</span>`;
       }
+      const statusBadge = isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
       const date = g.gameInfo?.date || '';
-      const label = g.name || this._store().gameName(g, idx);
+      const label = g.name || st.gameName(g, idx);
       const activeTag = isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
       row.innerHTML = `
         <div class="season-game-info" data-action="switch">
-          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${activeTag}</div>
+          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
           <div class="season-game-meta">${(g.plays || []).length} plays${date ? ' · ' + this._escape(date) : ''}${isActive ? '' : ' · click to open'}</div>
         </div>
         <button class="btn btn-sm btn-danger" data-action="remove" title="Remove this game from the season">×</button>

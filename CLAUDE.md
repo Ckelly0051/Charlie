@@ -252,7 +252,48 @@ got messy by game 2 and confused users about what was loaded.)
 - **Legacy migration**: an old single `ffa_season` / top-level `season.json`
   becomes the first season in the library automatically (no data loss).
 - A top-bar **season chip** (`#seasonChip`, `App._updateSeasonChip`) shows the
-  open season + active game and reopens the Library to switch.
+  open season + active game. Clicking it opens a **game-switcher dropdown**
+  (`.game-dropdown`, `#gameDropdown`) — a compact list of all games in the
+  season with status badges, scores, play counts, and per-game actions.
+  "Switch Season" in the dropdown footer opens the Library.
+
+### Game Switcher Dropdown (`#gameDropdown`)
+
+The dropdown is the primary game-switching interface (Hudl-style schedule view):
+- Each game row (`.gd-row`) shows: status dot (cyan=open, green=final, dim=idle),
+  name (derived from opponent/project/video), play count, date, W/L score pill,
+  and status badges ("open" / "Final").
+- **Click** a row's info area → `switchToGame(id)` + close dropdown.
+- **Finish Game** button on the active (non-final) row → opens the finish-game
+  modal (see below).
+- **+ New Game** → `storage.newGame()` + update chip.
+- **Switch Season** → opens the Season Library.
+- Closes on Escape, outside click, or game selection.
+
+Wired in `App._bindSeasonChip()`, `_openGameDropdown()`, `_renderGameDropdown()`,
+`_closeGameDropdown()`.
+
+### Game Status & Finish Game Flow
+
+Each game has a `status` field: `'active'` (default, in-progress) or `'final'`
+(completed). Backward-compatible — old games without `status` default to
+`'active'` via `SeasonStore._normalize()`.
+
+**Finish Game** (`App._finishGame` → `_showFinishModal`):
+1. If no final score entered → modal prompts for Us/Them score.
+2. If score already present → modal confirms "Mark as Final?"
+3. On confirm: saves score to Game Info, sets `game.status = 'final'`, persists,
+   shows a toast.
+4. **Reversible**: a Final game can still be opened and edited. The status is
+   informational, not a lock.
+
+The status is preserved across `commitActive()` → `updateActiveGame()` (which
+would otherwise overwrite the game node from `_serialize()` output that doesn't
+include `status` — `updateActiveGame` now carries `prev.status` forward).
+
+`SeasonStore.setGameStatus(id, status)` and `SeasonStore.gameStatus(g)` are the
+accessors. The Season Stats modal (`season-manager.js` `_renderGameList`) shows
+a `✓ Final` badge on completed games.
 
 The within-season schedule + aggregate stats stay in `season-manager.js` (the
 "Season Stats" modal); it operates on whichever season is current.
