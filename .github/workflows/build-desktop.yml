@@ -15,6 +15,10 @@ on:
     tags:
       - 'v*'
 
+# Allow the workflow token to create the GitHub Release on tag builds.
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
