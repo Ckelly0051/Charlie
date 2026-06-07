@@ -148,6 +148,22 @@ class App {
     // Desktop auto-update (no-op on the web build).
     this.updater = new Updater();
     this.updater.init();
+    this._bindUpdateCheck();
+  }
+
+  /** Wire the "Check for Updates" menu item (desktop build only). */
+  _bindUpdateCheck() {
+    const btn = document.getElementById('btnCheckUpdate');
+    const divider = document.getElementById('updateDivider');
+    if (!btn) return;
+    // Only meaningful on the Tauri desktop build; stays hidden on the web.
+    if (!this.updater.available) return;
+    btn.hidden = false;
+    if (divider) divider.hidden = false;
+    btn.addEventListener('click', () => {
+      document.getElementById('moreDropdown')?.classList.add('hidden');
+      this.updater.check(true);
+    });
   }
 
   /** Blank every Game Info input — used when switching to a different game. */

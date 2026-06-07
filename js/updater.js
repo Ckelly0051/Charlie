@@ -33,13 +33,25 @@ export class Updater {
     setTimeout(() => { this.check(false); }, 4000);
   }
 
+  /** Best-effort current app version (Tauri only); '' if unavailable. */
+  async _currentVersion() {
+    try {
+      if (this.tauri && this.tauri.app && this.tauri.app.getVersion) {
+        return await this.tauri.app.getVersion();
+      }
+    } catch (_) { /* ignore */ }
+    return '';
+  }
+
   /**
    * Check for an update.
    * @param {boolean} manual  true when the user explicitly asked — surfaces an
-   *                          "up to date" / error toast; false stays silent.
+   *                          "checking" / "up to date" / error toast; false
+   *                          stays silent.
    */
   async check(manual = false) {
     if (!this.available || this._busy) return;
+    if (manual) this._toast('Checking for updates…');
     let update = null;
     try {
       update = await this.tauri.updater.check();
@@ -51,7 +63,8 @@ export class Updater {
     if (update && update.available) {
       this._showBanner(update);
     } else if (manual) {
-      this._toast("You're on the latest version.");
+      const v = await this._currentVersion();
+      this._toast(v ? `You're on the latest version (v${v}).` : "You're on the latest version.");
     }
   }
 
