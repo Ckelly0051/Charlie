@@ -100,6 +100,16 @@ server/                       # Optional local Python backend (YOLO-based)
 ├── analyzer.py               # Video analysis with OpenCV/YOLO
 ├── start.sh                  # Server launcher
 └── README.md                 # Server setup instructions
+
+src-tauri/                    # Tauri v2 desktop shell
+├── Cargo.toml                # Rust crate (tauri + plugins: fs, dialog, shell)
+├── tauri.conf.json           # App config: window, CSP, bundle, withGlobalTauri
+├── build.rs                  # Tauri build script
+├── capabilities/
+│   └── default.json          # v2 permissions: fs scope, dialog, shell
+├── icons/                    # App icons (placeholder — replace for production)
+└── src/
+    └── main.rs               # Entry point: registers plugins, launches app
 ```
 
 ## Core Data Model
@@ -606,6 +616,59 @@ Sends video frames to Claude's vision API for AI-assisted tagging. Currently a *
 
 **Key lesson**: General-purpose vision models cannot reliably auto-tag football plays. Professional tools (Hudl, Catapult) use either human taggers or custom ML models trained on millions of labeled plays. Our AI integration works best as a suggestion engine, not a definitive tagger.
 
+### AI Auto-Tagging Direction — Decided, Deferred
+
+The current 8-frame-still approach (`vision-analyzer.js`) proved the concept but
+hit a ceiling: static JPEGs from amateur film angles don't carry enough signal
+for scheme-level recognition (formation variants, coverage shells, blitz
+packages). Three things have changed since:
+
+1. **Video-native models** (Gemini, Claude with video, fine-tuned sport models)
+   can ingest whole clips — motion, cadence, and blocking assignments are visible
+   in video but invisible in stills. Replace the 8-frame extraction with a
+   whole-clip pass once the API supports it cost-effectively.
+2. **Native compute pipeline** (Tauri desktop): persistent film library means
+   clips are on disk, not re-linked per session. A background sidecar can run
+   inference on every clip at import time, cache results, and present them when
+   the coach opens the play — no waiting.
+3. **Data flywheel**: every coach correction to a suggestion is a labeled
+   training example. Over a season the app accumulates hundreds of labeled clips
+   from *this team's* film style. Fine-tuning or few-shot prompting from that
+   corpus closes the accuracy gap that a general model can't.
+
+**Field viability tiers** (what AI can realistically tag):
+
+| Tier | Fields | Confidence | Notes |
+|------|--------|------------|-------|
+| **Green** | Play boundaries (start/end), Run/Pass | High (80%+) | Motion detection already works for boundaries; run/pass is the easiest classification task from video. Ship as auto-filled. |
+| **Yellow** | Formation, Ball Carrier (#), Yardage estimate | Medium (50–70%) | Requires decent camera angle. Pre-fill as suggestion with confidence score; coach accepts or corrects. |
+| **Red** | Coverage, Blitz, Defensive Front, Personnel grouping | Low (<40%) | Requires pre-snap reads that even trained humans debate from a single angle. Show only when confidence exceeds a threshold; never auto-fill. |
+
+**Recommended approach — "AI-assisted" not "auto"**:
+- First pass pre-fills **green-tier** fields on every play at import time
+  (background, no UI block). Coach sees them already filled when they open a
+  play.
+- **Yellow-tier** suggestions appear as ghost chips (dimmed, with a confidence
+  badge). Tap to accept, tap a different chip to correct. Correction overwrites
+  the suggestion and feeds the flywheel.
+- **Red-tier** fields stay blank unless the model is >70% confident, in which
+  case a subtle "AI suggests: Cover 3" hint appears below the chip group. Never
+  auto-selects.
+- A per-play **confidence summary** (e.g. "AI: 4/7 fields, avg 72%") lets the
+  coach decide at a glance whether to trust the pre-fill or tag from scratch.
+- All suggestions are non-destructive: coach tags always win, and the raw AI
+  output is stored on `play.analysis` for later review/retraining.
+
+**Prerequisites before building**:
+- Persistent film library (Tauri native #1) — clips must be on disk for
+  background inference and the training-data flywheel.
+- Video-capable API endpoint — whole-clip analysis replaces the 8-frame approach.
+- UI for ghost chips / confidence badges — small play-tagger extension.
+
+**Not planned**: fully autonomous tagging ("load film, get a finished game
+file"). The coaching eye is the product; AI reduces keystrokes, it doesn't
+replace judgment.
+
 ## Build System
 
 `build.sh` concatenates all JS modules into `football-film-analyzer.html`:
@@ -657,16 +720,16 @@ no-build/single-file ethos:
    of failing silently. (Fully bundling Tesseract + WASM + lang data ≈ 10–15 MB
    was considered and rejected for now to keep the package lean.)
 
-## Native Desktop (Tauri) — Decided, Deferred Until On Desktop
+## Native Desktop (Tauri v2) — Built
 
 The reliability ceiling of the browser sandbox (storage eviction, no free disk
-access, File System Access being Chromium-only) led to the decision to ship an
-**installed desktop build via Tauri** alongside the web app. The groundwork is
-done — storage goes through the `StorageBackend` seam and a dormant
-`TauriBackend` is already in the bundle (`storage-backend.js`), and `TAURI.md`
-holds the packaging recipe. **The actual Rust shell is deferred until the work
-is done on a machine with the Rust toolchain** (so it can be compiled/tested,
-not committed unverified). The web build remains the zero-install option for
+access, File System Access being Chromium-only) led to shipping an **installed
+desktop build via Tauri v2** alongside the web app. The Rust shell compiles and
+produces working installers (`.deb`, `.rpm`, `.AppImage` on Linux; `.dmg` on
+macOS; `.msi`/`.exe` on Windows). Storage goes through the `StorageBackend`
+seam — `TauriBackend` uses the Tauri v2 fs plugin API (`mkdir`, `remove`,
+`readDir` with `{ baseDir }` options). `TAURI.md` has the full build recipe
+and production checklist. The web build remains the zero-install option for
 other coaches to review.
 
 ### What native unlocks (the "less constrained" roadmap)

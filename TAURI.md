@@ -1,4 +1,4 @@
-# GridIron IQ — Desktop build (Tauri)
+# GridIron IQ — Desktop build (Tauri v2)
 
 The app already runs as a pure browser app. This doc is the recipe to *also*
 ship it as an installed desktop app, where seasons are stored as **real files**
@@ -9,69 +9,77 @@ The hard part is already done: storage goes through a backend seam
 `window.__TAURI__`, so the same UI uses native files on the desktop and the
 browser backend on the web — no UI changes.
 
-> Status: the JS side (the `TauriBackend`) ships in the bundle and is dormant in
-> the browser. The Rust shell below has **not** been compiled in this repo's CI
-> (it needs the Rust toolchain). Run the steps on a dev machine to produce
-> installers.
+> Status: the Rust shell compiles and produces installers. The `TauriBackend`
+> uses Tauri v2 APIs (`withGlobalTauri: true`) — `mkdir`, `remove`, `readDir`
+> with `{ baseDir }` options.
 
 ## Prerequisites
 
 - Rust (`https://rustup.rs`)
 - Node 18+
-- Tauri CLI: `cargo install tauri-cli` (or `npm i -D @tauri-apps/cli`)
-- Tauri v2 JS API in the page: `@tauri-apps/api` (the `TauriBackend` expects
-  `window.__TAURI__.fs` / `window.__TAURI__.path`; enable
-  `app.withGlobalTauri = true` in `tauri.conf.json` so they're on `window`).
+- Tauri CLI v2: `cargo install tauri-cli --version "^2"`
+- System deps (Ubuntu/Debian):
+  ```bash
+  sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+    librsvg2-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev patchelf
+  ```
 
 ## Layout
 
 ```
 src-tauri/
-├── Cargo.toml
-├── tauri.conf.json
-├── build.rs
-└── src/main.rs
+├── Cargo.toml            # Rust crate: tauri + plugins (fs, dialog, shell)
+├── tauri.conf.json        # App config: window, CSP, bundle settings
+├── build.rs               # Tauri build script
+├── capabilities/
+│   └── default.json       # v2 permissions: fs scope, dialog, shell
+├── icons/                 # App icons (placeholder — replace for production)
+│   ├── 32x32.png
+│   ├── 128x128.png
+│   ├── 128x128@2x.png
+│   ├── icon.icns
+│   └── icon.ico
+└── src/
+    └── main.rs            # Entry point: registers plugins, launches app
 ```
 
-The Tauri `frontendDist` should point at the built single file
-`football-film-analyzer.html` (run `./build.sh` first), or at a folder
-containing it renamed to `index.html`.
-
-## tauri.conf.json (sketch)
-
-```json
-{
-  "productName": "GridIron IQ",
-  "version": "1.0.0",
-  "identifier": "com.gridironiq.app",
-  "build": { "frontendDist": "../dist" },
-  "app": {
-    "withGlobalTauri": true,
-    "windows": [{ "title": "GridIron IQ", "width": 1400, "height": 900 }]
-  },
-  "plugins": {
-    "fs": {
-      "requireLiteralLeadingDot": false,
-      "scope": ["$APPDATA/**", "$DOCUMENT/**"]
-    }
-  },
-  "bundle": { "active": true, "targets": "all" }
-}
-```
-
-`TauriBackend` reads/writes `season.json` and `backups/season_<ts>.json` under
-`BaseDirectory.AppData` by default — covered by the `$APPDATA/**` scope above.
-To let the coach choose a folder (e.g. a Dropbox/Drive-synced one) use the Tauri
-dialog plugin and store the chosen path; the backend can be extended to write
-there instead of AppData.
+The Tauri `frontendDist` points at `../dist`, which contains the built
+single-file app renamed to `index.html`.
 
 ## Build
 
 ```bash
 ./build.sh                 # produce football-film-analyzer.html
 mkdir -p dist && cp football-film-analyzer.html dist/index.html
-cargo tauri build          # -> native installers in src-tauri/target/release/bundle
+cargo tauri build           # -> native installers in src-tauri/target/release/bundle
 ```
+
+For debug builds (faster, includes devtools):
+```bash
+cargo tauri build --debug   # -> src-tauri/target/debug/bundle
+```
+
+## Tauri v2 API notes
+
+With `withGlobalTauri: true` in `tauri.conf.json`, plugin APIs are on
+`window.__TAURI__`:
+- `window.__TAURI__.fs` — `exists()`, `readTextFile()`, `writeTextFile()`,
+  `mkdir()`, `readDir()`, `remove()`
+- Options use `{ baseDir: fs.BaseDirectory.AppData }` (not `dir`)
+- `readDir()` returns `{ name, isFile, isDirectory }` entries
+- Permissions are granted via `src-tauri/capabilities/default.json`
+
+`TauriBackend` reads/writes `season.json` and `backups/season_<ts>.json` under
+`BaseDirectory.AppData` — covered by the `$APPDATA/**` scope.
+
+## Capabilities (permissions)
+
+Tauri v2 requires explicit permission grants in `capabilities/default.json`:
+- `fs:allow-exists`, `fs:allow-read-text-file`, `fs:allow-write-text-file`,
+  `fs:allow-mkdir`, `fs:allow-read-dir`, `fs:allow-remove`
+- `fs:scope` with `$APPDATA/**`, `$DOCUMENT/**`, `$HOME/**`
+- `dialog:allow-open`, `dialog:allow-save`
+- `shell:allow-open`
 
 ## Why this is the robust answer
 
@@ -85,3 +93,11 @@ cargo tauri build          # -> native installers in src-tauri/target/release/bu
   the file can be shared with other coaches, who open it in the zero-install web
   build to review.
 - **Same UI everywhere.** Only the storage backend differs.
+
+## Production checklist
+
+- [ ] Replace placeholder icons with GridIron IQ branding
+- [ ] Test on macOS (`cargo tauri build` produces `.dmg`)
+- [ ] Test on Windows (`cargo tauri build` produces `.msi`/`.exe`)
+- [ ] Set up auto-update (Tauri updater plugin)
+- [ ] Code-sign for macOS notarization + Windows SmartScreen
