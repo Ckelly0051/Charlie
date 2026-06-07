@@ -27,13 +27,16 @@ export class SeasonStore {
   constructor(backend) {
     this.SCHEMA = 5;
     this.data = null;
+    this.currentSeasonId = null;
     this.backend = backend || detectBackend();
     this._diskTimer = null;
   }
 
   // ---- lifecycle -----------------------------------------------------------
 
+  /** Reload the current season's data from storage (after one is selected). */
   async load() {
+    if (!this.currentSeasonId) return null;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
@@ -44,7 +47,8 @@ export class SeasonStore {
     const g = this.blankGame();
     return {
       version: this.SCHEMA, type: 'season',
-      seasonName: '', teamProfile: {}, roster: [],
+      id: '', seasonName: '', team: '', year: '', level: '',
+      teamProfile: {}, roster: [],
       games: [g], activeGameId: g.id,
     };
   }
@@ -77,8 +81,58 @@ export class SeasonStore {
     d.teamProfile = d.teamProfile || {};
     d.roster = Array.isArray(d.roster) ? d.roster : [];
     d.seasonName = d.seasonName || '';
+    d.team = d.team || (d.teamProfile && d.teamProfile.teamName) || '';
+    d.year = d.year || '';
+    d.level = d.level || '';
     return d;
   }
+
+  // ---- season library (multi-season front door) ----------------------------
+
+  /** True once a season is open and its data is loaded. */
+  hasCurrent() { return !!this.currentSeasonId && !!this.data; }
+
+  /** List all seasons in the library (metas only — does not load any). */
+  async listSeasons() { return this.backend.listSeasons(); }
+
+  /**
+   * Create a brand-new season from {name, team, year, level}, make it current,
+   * and seed it with one empty game. Returns the library meta.
+   */
+  async createSeason(meta) {
+    const rec = await this.backend.createSeason(meta || {});
+    if (!rec) return null;
+    this.currentSeasonId = rec.id;
+    this.backend.setCurrentSeason(rec.id);
+    this.data = this._empty();
+    this.data.id = rec.id;
+    this.data.seasonName = rec.name;
+    this.data.team = rec.team; this.data.year = rec.year; this.data.level = rec.level;
+    if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
+    this.persist();
+    return rec;
+  }
+
+  /** Open an existing season by id and load its data as the current season. */
+  async openSeason(id) {
+    this.backend.setCurrentSeason(id);
+    this.currentSeasonId = id;
+    let parsed = null;
+    try { parsed = await this.backend.loadSeason(); } catch (e) {}
+    this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
+    this.data.id = id;
+    try { await this.backend.touchOpened(id); } catch (e) {}
+    return this.data;
+  }
+
+  /** Delete a season from the library (and clear it if it was current). */
+  async deleteSeason(id) {
+    await this.backend.deleteSeason(id);
+    if (this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+  }
+
+  /** Close the current season (back to the library, nothing loaded). */
+  closeSeason() { this.currentSeasonId = null; this.data = null; }
 
   /** Wrap a legacy single-game project object as a season game node. */
   gameFromLegacy(obj) {

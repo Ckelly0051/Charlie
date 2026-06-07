@@ -225,12 +225,45 @@ Because browser storage is not durable, every save also makes a restore point:
   <folder>" when bound, amber warnings otherwise. **Back up to Folder** binds the
   durable folder (recommended on first explicit Save).
 
+## Season Library — multi-season front door (`season-library.js`)
+
+**The app is library-first, like Hudl: Team → Season → Game → Plays.** On launch
+it opens to the **Season Library** (`#libraryOverlay`, `SeasonLibrary`) — a list
+of season cards + **New Season** (year / team / level) — and **nothing loads
+until the coach explicitly opens or creates a season**. (This replaced the old
+behavior where a single shared save auto-loaded silently with no context, which
+got messy by game 2 and confused users about what was loaded.)
+
+- **Each season is its own file/folder**, not one shared blob:
+  - Browser: `localStorage ffa_library` (index) + `ffa_season_<id>` per season;
+    backups in IndexedDB tagged with `seasonId`.
+  - Tauri: `library.json` (index) + `seasons/<id>/season.json` +
+    `seasons/<id>/backups/`.
+- The backend (`storage-backend.js`) scopes the classic per-season ops
+  (`loadSeason`/`saveSeason`/backup ring) to a **current season** set via
+  `setCurrentSeason(id)`, plus library ops `listSeasons` / `createSeason` /
+  `deleteSeason` / `touchOpened`. So `SeasonStore` keeps calling the same methods.
+- `SeasonStore` adds `currentSeasonId`, `hasCurrent()`, `listSeasons()`,
+  `createSeason(meta)`, `openSeason(id)`, `deleteSeason(id)`, `closeSeason()`;
+  `data` is **null until a season is opened** (so autosave no-ops on the Library).
+- `StorageManager.initLibrary()` (startup) loads nothing; `openSeasonById(id)` /
+  `createSeason(meta)` commit+persist the outgoing season, switch, then
+  `_afterSeasonLoaded()` loads the active game + re-seeds history/versions/chip.
+- **Legacy migration**: an old single `ffa_season` / top-level `season.json`
+  becomes the first season in the library automatically (no data loss).
+- A top-bar **season chip** (`#seasonChip`, `App._updateSeasonChip`) shows the
+  open season + active game and reopens the Library to switch.
+
+The within-season schedule + aggregate stats stay in `season-manager.js` (the
+"Season Stats" modal); it operates on whichever season is current.
+
 ## Season-as-Project — Save/Load Architecture (`season-store.js`)
 
-**The project IS the season.** Instead of a file per game / per save, the unit
-of work is one named **season** that holds many games and is autosaved in place.
-This killed the old per-video autosave (`ffa_<videoFileName>`) and the
-per-save download artifact (`<game>_analysis.json`) that scattered over a year.
+**Each season IS a project.** Within a season, the unit of work holds many games
+and is autosaved in place. This killed the old per-video autosave
+(`ffa_<videoFileName>`) and the per-save download artifact
+(`<game>_analysis.json`) that scattered over a year. (Above this sits the
+**Season Library** — multiple seasons, each its own file; see previous section.)
 
 **Data model (schema v5)** — `SeasonStore.data`:
 ```javascript
@@ -250,7 +283,8 @@ keeps working unchanged — those two methods are still "serialize/deserialize t
 **active game**".
 
 **Storage tiers (via the backend seam, see above):**
-1. **Canonical** = `backend.saveSeason()` (browser: `localStorage ffa_season`),
+1. **Canonical** = `backend.saveSeason()` (browser: `localStorage ffa_season_<id>`
+   for the current season; desktop: `seasons/<id>/season.json`),
    autosaved continuously (debounced) by `StorageManager._commitAndPersist()` →
    `commitActive()` + `seasonStore.persist()`. No artifacts proliferate.
 2. **Durable disk backup** = a bound folder (browser: File System Access API)
@@ -892,6 +926,15 @@ so the feature is never silently missing. The section renders inline as the
 2nd-to-last dashboard block, so the button is the quick path to it.
 
 ## Key Decisions & Lessons
+
+0. **Design for long-term usability first; step back when work gets too tactical.**
+   The single-shared-save model worked in a demo but broke down by game 2 — data
+   loaded with no context and everything piled into one file. The fix was the
+   library-first model the pro tools (Hudl/QwikCut) all use (Team → Season →
+   Game → Plays). Lesson: when a thread gets deep in tactical fixes, pause and
+   ask whether the *structure* serves the coach over a whole season. Prefer
+   copying proven workflows from established tools over inventing new ones, and
+   build the durable data model in from the start rather than retrofitting.
 
 1. **Auto-tagging accuracy**: Tried three approaches — in-browser heuristics (poor), local YOLO server (marginal), Claude Vision API (functional but inaccurate for coaching use). Manual chip-based tagging is the primary workflow. **Play Tagger panel order** reflects this: Mark Start/End (primary) → play selector → tag form → "More tools" (OCR/suggestions) → a collapsed "Auto-Detect Plays (experimental)" section at the bottom. Auto-detect was demoted from the top since it isn't reliable yet.
 

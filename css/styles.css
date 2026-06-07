@@ -6541,3 +6541,60 @@ body {
   max-width: min(90vw, 560px); white-space: pre-line; text-align: center; word-break: break-word;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 .gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== SEASON LIBRARY (front door) — dark palette scoped to the overlay ===== */
+.library-overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center;
+  background: rgba(8,12,20,.86); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); padding: 24px; color: #e6edf3; }
+.library-overlay.hidden { display: none; }
+.library-modal { width: min(720px, 96vw); max-height: 90vh; overflow-y: auto;
+  background: #111722; color: #e6edf3; border: 1px solid #243044; border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 24px; }
+.library-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.library-brand { font-size: 22px; font-weight: 700; color: #fff; }
+.library-brand b { color: #c9a227; }
+.library-brand-sub { font-size: 13px; font-weight: 600; color: #8aa0bd; margin-left: 8px; }
+.library-intro { color: #9fb1c9; font-size: 14px; margin: 0 0 18px; }
+.library-new { margin-bottom: 18px; }
+.library-form { margin-top: 14px; background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 16px; }
+.library-form.hidden { display: none; }
+.lib-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.library-form label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600;
+  color: #9fb1c9; text-transform: uppercase; letter-spacing: .4px; }
+.library-form input, .library-form select { background: #161e2b; border: 1px solid #2c3a52; color: #e6edf3;
+  border-radius: 8px; padding: 9px 11px; font-size: 14px; text-transform: none; letter-spacing: 0; }
+.library-form input:focus, .library-form select:focus { outline: none; border-color: #c9a227; }
+.lib-form-name { margin-bottom: 14px; }
+.lib-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.library-list { display: flex; flex-direction: column; gap: 10px; }
+.library-empty { text-align: center; color: #9fb1c9; padding: 30px 10px; }
+.library-empty p { margin: 4px 0; }
+.library-empty-sub { font-size: 13px; color: #6f8197; }
+.season-card { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; cursor: pointer;
+  transition: border-color .15s, transform .05s; }
+.season-card:hover { border-color: #c9a227; }
+.season-card:active { transform: translateY(1px); }
+.season-card.is-current { border-color: #2f6df0; }
+.season-card-main { min-width: 0; }
+.season-card-name { font-size: 16px; font-weight: 700; color: #fff; }
+.season-card-badge { font-size: 11px; font-weight: 700; color: #6ea8ff; border: 1px solid #2f6df0;
+  border-radius: 6px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+.season-card-sub { font-size: 13px; color: #9fb1c9; margin-top: 3px; }
+.season-card-meta { font-size: 12px; color: #6f8197; margin-top: 5px; }
+.season-card-del { background: transparent; border: none; color: #6f8197; font-size: 16px; cursor: pointer;
+  padding: 6px 8px; border-radius: 8px; line-height: 1; flex: 0 0 auto; }
+.season-card-del:hover { background: rgba(220,60,60,.15); color: #ff6b6b; }
+
+/* Season context chip (lives in the light top bar) */
+.season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
+  border: 1px solid rgba(47,109,240,.4); color: #1d4ed8; border-radius: 999px; padding: 5px 12px;
+  font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 12px; max-width: 320px; }
+.season-chip:hover { background: rgba(47,109,240,.2); }
+.season-chip .icon { width: 14px; height: 14px; flex: 0 0 auto; }
+.season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.season-chip[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .lib-form-row { grid-template-columns: 1fr; }
+  .season-chip { max-width: 160px; }
+}

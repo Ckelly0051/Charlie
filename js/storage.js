@@ -90,12 +90,52 @@ export class StorageManager {
 
   // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
 
-  /** Load the season from storage and restore its active game into the app. */
-  async initSeason() {
-    await this.seasonStore.load();
+  /**
+   * Library-first startup: do NOT auto-load any season (that was the confusing
+   * "data appears with no context" behavior). The app opens to the Season
+   * Library; a season is loaded only when the coach explicitly opens or creates
+   * one (openSeasonById / createSeason).
+   */
+  async initLibrary() {
     // Reconnect a previously-bound backup folder in the background (Chromium).
     if (this.seasonStore.restoreDiskBinding) this.seasonStore.restoreDiskBinding().catch(() => {});
+  }
+
+  /** List every season in the library (metas only). */
+  listSeasons() { return this.seasonStore.listSeasons(); }
+
+  /** Open an existing season and restore its active game into the app. */
+  async openSeasonById(id) {
+    if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    await this.seasonStore.openSeason(id);
+    this._afterSeasonLoaded();
+  }
+
+  /** Create a new season ({name, team, year, level}) and open it. */
+  async createSeason(meta) {
+    if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    const rec = await this.seasonStore.createSeason(meta);
+    this._afterSeasonLoaded();
+    return rec;
+  }
+
+  /** Delete a season; clears the editor if it was the open one. */
+  async deleteSeason(id) {
+    const wasCurrent = this.seasonStore.currentSeasonId === id;
+    await this.seasonStore.deleteSeason(id);
+    if (wasCurrent) this._clearForNewGame();
+  }
+
+  /** After a season becomes current: load its active game + refresh app UI. */
+  _afterSeasonLoaded() {
+    this._clearForNewGame();
     this._loadActiveGame();
+    const app = window.app;
+    if (app) {
+      if (app.history) app.history.init();
+      if (app.versions) app.versions.renderList();
+      if (app._updateSeasonChip) app._updateSeasonChip();
+    }
   }
 
   /** Capture the live tagger/canvas/gameInfo state into the active game node. */
@@ -113,6 +153,7 @@ export class StorageManager {
   _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
+    if (window.app && window.app._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   /** Tear down per-game UI before loading a different game. */

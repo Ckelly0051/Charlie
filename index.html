@@ -32,6 +32,10 @@
           <span>Shortcuts</span>
         </button>
         <h1 class="app-title">GridIron IQ</h1>
+        <button class="season-chip" id="seasonChip" title="Switch season / open the Season Library" hidden>
+          <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg>
+          <span class="season-chip-text" id="seasonChipText">No season</span>
+        </button>
       </div>
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">
@@ -1097,6 +1101,45 @@
         </div>
         <div class="season-game-list" id="seasonGameList"></div>
         <div class="season-stats-body" id="seasonStatsBody"></div>
+      </div>
+    </div>
+
+    <!-- Season Library (the app's front door) -->
+    <div class="library-overlay hidden" id="libraryOverlay">
+      <div class="library-modal">
+        <div class="library-head">
+          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub">Season Library</span></div>
+          <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
+        </div>
+        <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
+        <div class="library-new">
+          <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
+          <form class="library-form hidden" id="librarySeasonForm">
+            <div class="lib-form-row">
+              <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
+              <label>Team<input type="text" id="newSeasonTeam" placeholder="Eagles" maxlength="40" autocomplete="off"></label>
+              <label>Level
+                <select id="newSeasonLevel">
+                  <option value="">—</option>
+                  <option>Varsity</option>
+                  <option>JV</option>
+                  <option>Freshman</option>
+                  <option>Youth</option>
+                  <option>College</option>
+                  <option>Other</option>
+                </select>
+              </label>
+            </div>
+            <label class="lib-form-name">Season name (optional)
+              <input type="text" id="newSeasonName" placeholder="e.g. 2026 Varsity — Eagles" maxlength="60" autocomplete="off">
+            </label>
+            <div class="lib-form-actions">
+              <button type="button" class="btn btn-sm" id="btnNewSeasonCancel">Cancel</button>
+              <button type="submit" class="btn btn-sm btn-accent" id="btnNewSeasonCreate">Create Season</button>
+            </div>
+          </form>
+        </div>
+        <div class="library-list" id="libraryList"></div>
       </div>
     </div>
 

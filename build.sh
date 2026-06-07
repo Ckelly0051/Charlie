@@ -77,6 +77,7 @@ for jsfile in \
   js/cutup-exporter.js \
   js/cutup-player.js \
   js/season-manager.js \
+  js/season-library.js \
   js/call-sheet-builder.js \
   js/ui-polish.js \
   js/wizard.js \

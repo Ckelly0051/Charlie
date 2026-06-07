@@ -29,6 +29,7 @@ import { CustomFieldsManager } from './custom-fields.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
+import { SeasonLibrary } from './season-library.js';
 
 class App {
   constructor() {
@@ -68,6 +69,7 @@ class App {
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
     this.season = new SeasonManager(this.stats);
+    this.library = new SeasonLibrary();
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
@@ -137,12 +139,14 @@ class App {
     this.canvas.on?.('annotation-added', () => this.history._updateUI());
     this.canvas.on?.('annotations-changed', () => this.history._updateUI());
 
-    // Load the season and restore its active game, then seed history. Deferred
-    // to the next tick so `window.app` (referenced by the storage bridge) is set.
+    // Library-first startup: open to the Season Library instead of silently
+    // loading a save file. Nothing loads until the coach opens/creates a season
+    // (which then seeds history via storage._afterSeasonLoaded). Deferred to the
+    // next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(async () => {
-      await this.storage.initSeason();
-      this.history.init();
-      this.versions.renderList();
+      await this.storage.initLibrary();
+      this._bindSeasonChip();
+      await this.library.open();
     }, 0);
 
     // Desktop auto-update (no-op on the web build).
@@ -165,6 +169,28 @@ class App {
       document.getElementById('moreDropdown')?.classList.add('hidden');
       this.updater.check(true);
     });
+  }
+
+  /** Wire the top-bar season context chip → opens the Season Library to switch. */
+  _bindSeasonChip() {
+    const chip = document.getElementById('seasonChip');
+    if (!chip) return;
+    chip.addEventListener('click', () => this.library.open());
+    this._updateSeasonChip();
+  }
+
+  /** Refresh the season chip with the open season + active game (or hide it). */
+  _updateSeasonChip() {
+    const chip = document.getElementById('seasonChip');
+    const text = document.getElementById('seasonChipText');
+    if (!chip || !text) return;
+    const store = this.storage && this.storage.seasonStore;
+    if (!store || !store.hasCurrent()) { chip.hidden = true; return; }
+    const d = store.data;
+    const game = store.activeGame && store.activeGame();
+    const gameName = game ? store.gameName(game, store.activeIndex()) : '';
+    text.textContent = gameName ? `${d.seasonName || 'Season'} · ${gameName}` : (d.seasonName || 'Season');
+    chip.hidden = false;
   }
 
   /** Wire the "Open Data Folder" menu item (desktop build only). */
