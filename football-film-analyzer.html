@@ -10597,78 +10597,120 @@ class BrowserBackend extends StorageBackend {
 }
 
 /**
- * TauriBackend — the installed-desktop path. Same interface, but every read and
- * write hits real files via Tauri's fs API (no sandbox, no eviction, no
- * permission dance). Dormant in the browser; activated only when running inside
- * Tauri. See TAURI.md for packaging. (Compiles/runs only under the desktop
- * shell — the browser never instantiates this.)
+ * TauriBackend — the installed-desktop path (Tauri v2). Same interface, but
+ * every read and write hits real files via the Tauri fs plugin (no sandbox, no
+ * eviction, no permission dance). Dormant in the browser; activated only when
+ * running inside Tauri. See TAURI.md for packaging.
+ *
+ * Tauri v2 API notes (withGlobalTauri: true):
+ *   - fs plugin is at window.__TAURI__.fs
+ *   - BaseDirectory enum is on fs (fs.BaseDirectory.AppData = 14)
+ *   - Options use { baseDir } not { dir }
+ *   - createDir → mkdir, removeFile → remove
+ *   - readDir returns { name, isDirectory, isFile }
  */
 class TauriBackend extends StorageBackend {
   constructor() {
     super();
     this.fs = window.__TAURI__ && window.__TAURI__.fs;
-    this.path = window.__TAURI__ && window.__TAURI__.path;
-    this.dir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.AppData : undefined;
+    this.baseDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.AppData : undefined;
     this.SEASON = 'season.json';
     this.BACKUPS = 'backups';
     this._lastWrite = 0;
+    this._backupsReady = false;
+    this._lastBackupJson = null;
   }
   name() { return 'tauri'; }
 
+  _ok() { return !!this.fs; }
+
   async loadSeason() {
+    if (!this._ok()) return null;
     try {
-      if (await this.fs.exists(this.SEASON, { dir: this.dir })) {
-        return JSON.parse(await this.fs.readTextFile(this.SEASON, { dir: this.dir }));
+      if (await this.fs.exists(this.SEASON, { baseDir: this.baseDir })) {
+        return JSON.parse(await this.fs.readTextFile(this.SEASON, { baseDir: this.baseDir }));
       }
     } catch (e) {}
     return null;
   }
   async saveSeason(data) {
+    if (!this._ok()) return false;
     try {
-      await this.fs.writeTextFile(this.SEASON, JSON.stringify(data, null, 2), { dir: this.dir });
+      await this.fs.writeTextFile(this.SEASON, JSON.stringify(data, null, 2), { baseDir: this.baseDir });
       return true;
     } catch (e) { return false; }
   }
 
-  // Desktop keeps the snapshot ring as real files in backups/.
   async _ensureBackups() {
-    try { if (!(await this.fs.exists(this.BACKUPS, { dir: this.dir }))) await this.fs.createDir(this.BACKUPS, { dir: this.dir, recursive: true }); } catch (e) {}
+    if (this._backupsReady) return;
+    try {
+      if (!(await this.fs.exists(this.BACKUPS, { baseDir: this.baseDir })))
+        await this.fs.mkdir(this.BACKUPS, { baseDir: this.baseDir, recursive: true });
+      this._backupsReady = true;
+    } catch (e) {}
   }
   async createBackup(data, label) {
+    if (!this._ok()) return null;
+    const json = JSON.stringify(data);
+    if (this._lastBackupJson && this._lastBackupJson === json) return null;
     await this._ensureBackups();
-    const name = `${this.BACKUPS}/season_${this._tsSlug()}.json`;
-    const payload = JSON.stringify({ ...this._meta(data, label), data }, null, 2);
-    try { await this.fs.writeTextFile(name, payload, { dir: this.dir }); } catch (e) { return null; }
+    const id = `season_${this._tsSlug()}.json`;
+    const meta = this._meta(data, label);
+    meta.id = id;
+    const payload = JSON.stringify({ ...meta, data }, null, 2);
+    try { await this.fs.writeTextFile(`${this.BACKUPS}/${id}`, payload, { baseDir: this.baseDir }); }
+    catch (e) { return null; }
+    this._lastBackupJson = json;
     await this._prune();
-    return this._meta(data, label);
+    return meta;
   }
   async listBackups() {
+    if (!this._ok()) return [];
     await this._ensureBackups();
     let entries = [];
-    try { entries = await this.fs.readDir(this.BACKUPS, { dir: this.dir }); } catch (e) { return []; }
+    try { entries = await this.fs.readDir(this.BACKUPS, { baseDir: this.baseDir }); } catch (e) { return []; }
     const out = [];
+    const reads = [];
     for (const e of entries) {
-      if (!/season_.*\.json$/.test(e.name || '')) continue;
-      try {
-        const rec = JSON.parse(await this.fs.readTextFile(`${this.BACKUPS}/${e.name}`, { dir: this.dir }));
-        out.push({ id: e.name, t: rec.t, label: rec.label, seasonName: rec.seasonName, games: rec.games, plays: rec.plays });
-      } catch (err) {}
+      if (e.isDirectory || !/^season_.*\.json$/.test(e.name || '')) continue;
+      reads.push(
+        this.fs.readTextFile(`${this.BACKUPS}/${e.name}`, { baseDir: this.baseDir })
+          .then(text => {
+            const rec = JSON.parse(text);
+            out.push({ id: e.name, t: rec.t, label: rec.label, seasonName: rec.seasonName, games: rec.games, plays: rec.plays });
+          })
+          .catch(() => {})
+      );
     }
+    await Promise.all(reads);
     return out.sort((a, b) => (a.id < b.id ? 1 : -1));
   }
   async getBackup(id) {
-    try { return JSON.parse(await this.fs.readTextFile(`${this.BACKUPS}/${id}`, { dir: this.dir })).data; }
+    if (!this._ok()) return null;
+    try { return JSON.parse(await this.fs.readTextFile(`${this.BACKUPS}/${id}`, { baseDir: this.baseDir })).data; }
     catch (e) { return null; }
   }
-  async deleteBackup(id) { try { await this.fs.removeFile(`${this.BACKUPS}/${id}`, { dir: this.dir }); } catch (e) {} }
+  async deleteBackup(id) {
+    if (!this._ok()) return;
+    try { await this.fs.remove(`${this.BACKUPS}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
+  }
   async _prune() {
-    const metas = await this.listBackups();
-    for (const m of metas.slice(this.RETENTION)) await this.deleteBackup(m.id);
+    let entries = [];
+    try { entries = await this.fs.readDir(this.BACKUPS, { baseDir: this.baseDir }); } catch (e) { return; }
+    const names = entries
+      .filter(e => !e.isDirectory && /^season_.*\.json$/.test(e.name || ''))
+      .map(e => e.name)
+      .sort();
+    const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
+    for (const n of extra) {
+      try { await this.fs.remove(`${this.BACKUPS}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
+    }
   }
 
-  // On desktop the app data dir is already durable; "disk" is always on.
-  supportsDisk() { return true; }
-  diskStatus() { return { supported: true, bound: true, name: 'App data folder', lastWrite: this._lastWrite }; }
+  supportsDisk() { return this._ok(); }
+  diskStatus() {
+    return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'App data folder' : '', lastWrite: this._lastWrite };
+  }
   async writeDisk(data, opts = {}) {
     const ok = await this.saveSeason(data);
     if (opts.snapshot) await this.createBackup(data, opts.label);
@@ -10918,7 +10960,7 @@ class SeasonStore {
 
   /** Explicit "Save Season": canonical + live disk write + a labelled snapshot. */
   async saveNow(label) {
-    this.backend.saveSeason(this.data);
+    await this.backend.saveSeason(this.data);
     const data = JSON.parse(JSON.stringify(this.data));
     let wroteDisk = false;
     if (this.diskStatus().bound) {
