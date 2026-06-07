@@ -146,6 +146,7 @@ class App {
     setTimeout(async () => {
       await this.storage.initLibrary();
       this._bindSeasonChip();
+      this._bindGamesPanel();
       await this.library.open();
     }, 0);
 
@@ -323,6 +324,7 @@ class App {
     this.storage.commitActive();
     store.persist();
     this._updateSeasonChip();
+    this._renderGamesPanel();
 
     const name = store.gameName(game, store.activeIndex());
     this.updater._toast(`"${name}" marked as Final`);
@@ -395,6 +397,113 @@ class App {
     const gameName = game ? store.gameName(game, store.activeIndex()) : '';
     text.textContent = gameName ? `${d.seasonName || 'Season'} · ${gameName}` : (d.seasonName || 'Season');
     chip.hidden = false;
+  }
+
+  // ---- Games panel (settings drawer) ----------------------------------------
+
+  _bindGamesPanel() {
+    document.getElementById('btnPanelNewGame')?.addEventListener('click', () => {
+      this.storage.newGame();
+      this._updateSeasonChip();
+      this._renderGamesPanel();
+      this.season._renderAll?.();
+    });
+  }
+
+  _renderGamesPanel() {
+    const list = document.getElementById('gamesPanelList');
+    const badge = document.getElementById('gamesBadge');
+    const store = this.storage?.seasonStore;
+    if (!list || !store?.hasCurrent()) { if (list) list.innerHTML = ''; if (badge) badge.textContent = '0'; return; }
+
+    this.storage.commitActive();
+    const games = store.gamesChrono();
+    const activeId = store.data.activeGameId;
+    if (badge) badge.textContent = String(games.length);
+
+    if (!games.length) {
+      list.innerHTML = '<div style="padding:12px;text-align:center;color:rgba(255,255,255,.4);font-size:12px">No games yet.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    games.forEach((g, idx) => {
+      const isActive = g.id === activeId;
+      const status = store.gameStatus(g);
+      const isFinal = status === 'final';
+      const name = store.gameName(g, idx);
+      const plays = (g.plays || []).length;
+      const date = g.gameInfo?.date || '';
+      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
+      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+
+      const card = document.createElement('div');
+      card.className = 'gp-card' + (isActive ? ' is-active' : '');
+
+      let badges = '';
+      if (hasScore) {
+        const uN = parseInt(u), tN = parseInt(t);
+        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
+        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
+      }
+      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
+      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+
+      let actions = '';
+      if (!isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
+      if (isActive && !isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
+      actions += `<button class="btn btn-sm btn-danger" data-action="delete" title="Remove game">Delete</button>`;
+
+      card.innerHTML = `
+        <div class="gp-card-head">
+          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(name)}</span>
+          <div class="gp-card-badges">${badges}</div>
+        </div>
+        <div class="gp-card-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+        <div class="gp-card-actions">${actions}</div>`;
+
+      card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.storage.switchToGame(g.id);
+        this._updateSeasonChip();
+        this._renderGamesPanel();
+        this.season._renderAll?.();
+      });
+
+      card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._finishGame().then(() => this._renderGamesPanel());
+      });
+
+      card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${name}" from the season? This cannot be undone.`, 'Remove');
+        if (!ok) return;
+        this.storage.removeGame(g.id);
+        this._updateSeasonChip();
+        this._renderGamesPanel();
+        this.season._renderAll?.();
+      });
+
+      list.appendChild(card);
+    });
+  }
+
+  // ---- Auto-hint: suggest finishing the game when score is entered ----------
+
+  _checkFinishHint() {
+    const store = this.storage?.seasonStore;
+    if (!store?.hasCurrent()) return;
+    const game = store.activeGame();
+    if (!game) return;
+    const gi = game.gameInfo || {};
+    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
+                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+    const isFinal = store.gameStatus(game) === 'final';
+    if (hasScore && !isFinal && !this._finishHintShown) {
+      this._finishHintShown = true;
+      this.updater._toast('Score entered — you can mark this game as Final from the season chip.');
+    }
   }
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1317,6 +1426,7 @@ class App {
     };
     this.storage._autoSave();
     this._saveTeamProfile();
+    this._checkFinishHint();
   }
 
   /**

@@ -135,6 +135,8 @@ export class StorageManager {
       if (app.history) app.history.init();
       if (app.versions) app.versions.renderList();
       if (app._updateSeasonChip) app._updateSeasonChip();
+      if (app._renderGamesPanel) app._renderGamesPanel();
+      app._finishHintShown = false;
     }
   }
 
@@ -153,7 +155,12 @@ export class StorageManager {
   _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
-    if (window.app && window.app._updateSeasonChip) window.app._updateSeasonChip();
+    const app = window.app;
+    if (app) {
+      if (app._updateSeasonChip) app._updateSeasonChip();
+      if (app._renderGamesPanel) app._renderGamesPanel();
+      app._finishHintShown = false;
+    }
   }
 
   /** Tear down per-game UI before loading a different game. */

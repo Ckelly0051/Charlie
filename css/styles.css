@@ -6661,6 +6661,23 @@ body {
 .finish-game-btns { display: flex; gap: 10px; justify-content: flex-end; }
 .finish-game-btns .btn { font-size: 13px; }
 
+/* Games panel in the settings drawer */
+.games-panel-list { display: flex; flex-direction: column; gap: 6px; }
+.games-panel-foot { margin-top: 10px; }
+.gp-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color .15s; }
+.gp-card:hover { border-color: rgba(6,182,212,.4); }
+.gp-card.is-active { border-color: #06b6d4; background: rgba(6,182,212,.08); }
+.gp-card-head { display: flex; align-items: center; gap: 8px; }
+.gp-card-name { flex: 1; min-width: 0; font-weight: 600; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gp-card-badges { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
+.gp-card-meta { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 3px; }
+.gp-card-actions { display: flex; gap: 6px; margin-top: 8px; }
+.gp-card-actions .btn { font-size: 11px; padding: 3px 8px; }
+.gp-card .gd-score { font-size: 11px; }
+.gp-card .gd-badge { font-size: 9px; }
+
 @media (max-width: 640px) {
   .lib-form-row { grid-template-columns: 1fr; }
   .season-chip { max-width: 160px; }
