@@ -58,15 +58,25 @@ jobs:
         with:
           workspaces: src-tauri
 
+      - name: Normalize signing key
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          RAW_PW: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # The Tauri signer rejects a key with stray newlines ("Invalid symbol
+          # 10"). A pasted GitHub secret often carries a trailing newline, so
+          # strip all CR/LF before handing it to the build. Single-line base64,
+          # so this is safe.
+          echo "TAURI_SIGNING_PRIVATE_KEY=$(printf '%s' "$RAW_KEY" | tr -d '\r\n')" >> "$GITHUB_ENV"
+          echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=$(printf '%s' "$RAW_PW" | tr -d '\r\n')" >> "$GITHUB_ENV"
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Updater signing — required to produce signed update artifacts and
-          # latest.json. Set these as repo secrets (Settings -> Secrets ->
-          # Actions). Without them the app still builds, but auto-update won't.
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # TAURI_SIGNING_PRIVATE_KEY[_PASSWORD] are injected (newline-stripped)
+          # by the "Normalize signing key" step above via $GITHUB_ENV.
         with:
           projectPath: src-tauri
           args: --target ${{ matrix.target }}
