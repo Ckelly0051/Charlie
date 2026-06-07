@@ -760,6 +760,64 @@ After building, deploy by copying the bundle into both `index.html` and
 `football-film-analyzer.html` on `gh-pages` (a git worktree is the clean way),
 then push. Pushing only to the feature branch does **not** update the live URL.
 
+Concrete recipe (worktree, never edit `gh-pages` files by hand — they are
+verbatim copies of the bundle):
+```bash
+git fetch origin gh-pages
+git worktree add /tmp/gh-pages-deploy gh-pages
+cp football-film-analyzer.html /tmp/gh-pages-deploy/index.html
+cp football-film-analyzer.html /tmp/gh-pages-deploy/football-film-analyzer.html
+cd /tmp/gh-pages-deploy && git add -A && git commit -m "Deploy: <summary>" && git push origin gh-pages
+git worktree remove /tmp/gh-pages-deploy   # from the repo root
+```
+> Before overwriting, sanity-check that `gh-pages` only ever receives "Deploy:"
+> commits (`git log --oneline`) — it does, so the bundle is the source of truth.
+> A past deploy added a stray Google-Fonts `@import`; the source uses system
+> fonts now, so dropping it on the next deploy is expected, not a regression.
+
+### Cutting a Desktop Release (Tauri auto-update)
+
+**This is the routine — don't re-derive it. ~9 releases cut this way (v1.0.0+).**
+
+The live desktop app updates via the Tauri auto-updater, which polls the GitHub
+Releases `latest.json`. A release is published by **pushing a `v*` tag**, which
+triggers `.github/workflows/build-desktop.yml`: it copies
+`football-film-analyzer.html` → `dist/index.html`, builds **signed** installers
+on real OS runners (Windows `.msi`/`.exe`, macOS `.dmg`, Linux `.deb`/`.AppImage`),
+and publishes a GitHub Release with the updater artifacts + `latest.json`.
+(`workflow_dispatch` only uploads artifacts — it does **not** publish a release /
+`latest.json`, so it does **not** update the auto-updater.)
+
+Steps to ship version `X.Y.Z`:
+1. **Rebuild the bundle** (`bash build.sh`) so the desktop frontend has the
+   latest code, and make sure it's committed.
+2. **Bump the version in all three** `src-tauri` files (they must match):
+   `Cargo.toml` (`version`), `tauri.conf.json` (`version`), and `Cargo.lock`
+   (the `gridiron-iq` package entry).
+3. **Commit + push** the bump to the feature branch
+   (`claude/football-film-analyzer-GRiCW`).
+4. **Push the tag** (this is the trigger):
+   ```bash
+   git fetch origin
+   git tag vX.Y.Z <commit-sha>      # the version-bump commit
+   git push origin vX.Y.Z
+   ```
+
+> ⚠️ **The agent environment can push branches but NOT tags** (tag pushes return
+> HTTP 403; the GitHub MCP tools don't expose tag/release creation either). So
+> the agent does steps 1–3, then **hands the coach the exact step-4 commands to
+> run locally**. This is by design — it's how every release has been cut.
+
+**Windows SmartScreen caveat (unsigned build):** auto-update download+install
+works, but Windows blocks the unsigned installer with "Windows protected your
+PC / unknown publisher." The user must click **More info → Run anyway**; the
+relaunch follows. Real fix (deferred, user's call): code-sign the build (Azure
+Trusted Signing ≈ $10/mo, or an EV/OV cert). Until then, every update needs that
+one manual click-through.
+
+Deploying to `gh-pages` (web) and cutting a desktop release are **independent** —
+do both when shipping a change to all users.
+
 ## Offline / Self-Contained Distribution
 
 **Current status: the app is already ~95% self-contained.**
