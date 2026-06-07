@@ -6547,6 +6547,7 @@ body {
 .gi-update-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(8px);
   background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 99999;
   opacity: 0; transition: opacity .3s ease, transform .3s ease;
+  max-width: min(90vw, 560px); white-space: pre-line; text-align: center; word-break: break-word;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 .gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
@@ -6816,6 +6817,9 @@ body {
               <svg class="icon"><use href="#icon-upload"/></svg> Import Plays
             </button>
             <div class="more-divider" id="updateDivider" hidden></div>
+            <button class="btn" id="btnOpenDataFolder" title="Open the folder where your seasons are saved" hidden>
+              <svg class="icon"><use href="#icon-folder"/></svg> Open Data Folder
+            </button>
             <button class="btn" id="btnCheckUpdate" title="Check for app updates" hidden>
               <svg class="icon"><use href="#icon-download"/></svg> Check for Updates
             </button>
@@ -10692,19 +10696,29 @@ class TauriBackend extends StorageBackend {
   async saveSeason(data) {
     if (!this._ok()) return false;
     try {
+      // The app-data folder (e.g. %APPDATA%\com.gridironiq.app on Windows) does
+      // not exist on a fresh install. writeTextFile does NOT create parent dirs,
+      // so without this the very first save throws and is silently swallowed —
+      // nothing persists and reopening the app shows an empty season. Ensuring
+      // the dir (recursive mkdir creates the app-data root) is the fix.
+      await this._ensureDataDir();
       await this.fs.writeTextFile(this.SEASON, JSON.stringify(data, null, 2), { baseDir: this.baseDir });
       return true;
     } catch (e) { return false; }
   }
 
-  async _ensureBackups() {
+  /** Create the app-data root (+ backups/) if missing. Idempotent. */
+  async _ensureDataDir() {
     if (this._backupsReady) return;
     try {
+      // recursive mkdir of the backups subfolder also creates the app-data root.
       if (!(await this.fs.exists(this.BACKUPS, { baseDir: this.baseDir })))
         await this.fs.mkdir(this.BACKUPS, { baseDir: this.baseDir, recursive: true });
       this._backupsReady = true;
     } catch (e) {}
   }
+
+  async _ensureBackups() { return this._ensureDataDir(); }
   async createBackup(data, label) {
     if (!this._ok()) return null;
     const json = JSON.stringify(data);
@@ -10766,6 +10780,31 @@ class TauriBackend extends StorageBackend {
   supportsDisk() { return this._ok(); }
   diskStatus() {
     return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'App data folder' : '', lastWrite: this._lastWrite };
+  }
+
+  /** Absolute path of the app-data folder (where season.json lives); '' if N/A. */
+  async dataDirPath() {
+    try {
+      const p = window.__TAURI__ && window.__TAURI__.path;
+      if (p && p.appDataDir) return await p.appDataDir();
+    } catch (e) {}
+    return '';
+  }
+
+  /**
+   * Open the app-data folder in the OS file manager. Returns the folder path so
+   * the caller can show it as a fallback when no opener API is available.
+   */
+  async openDataDir() {
+    if (!this._ok()) return '';
+    await this._ensureDataDir();
+    const dir = await this.dataDirPath();
+    const op = window.__TAURI__ && window.__TAURI__.opener;
+    try {
+      if (op && op.openPath && dir) { await op.openPath(dir); }
+      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir + this.SEASON); }
+    } catch (e) { /* fall through — caller shows the path */ }
+    return dir;
   }
   async writeDisk(data, opts = {}) {
     const ok = await this.saveSeason(data);
@@ -11005,6 +11044,10 @@ class SeasonStore {
   supportsDisk() { return this.backend.supportsDisk(); }
   diskStatus() { return this.backend.diskStatus(); }
   async restoreDiskBinding() { return this.backend.restoreDiskBinding(); }
+
+  /** Desktop only: open (or resolve) the app-data folder where the season is saved. */
+  canOpenDataDir() { return typeof this.backend.openDataDir === 'function'; }
+  async openDataDir() { return this.backend.openDataDir ? this.backend.openDataDir() : ''; }
 
   /** Bind a backup folder/target and immediately write the live file + a snapshot. */
   async bindDisk() {
@@ -21110,6 +21153,7 @@ class App {
     this.updater = new Updater();
     this.updater.init();
     this._bindUpdateCheck();
+    this._bindOpenDataFolder();
   }
 
   /** Wire the "Check for Updates" menu item (desktop build only). */
@@ -21124,6 +21168,23 @@ class App {
     btn.addEventListener('click', () => {
       document.getElementById('moreDropdown')?.classList.add('hidden');
       this.updater.check(true);
+    });
+  }
+
+  /** Wire the "Open Data Folder" menu item (desktop build only). */
+  _bindOpenDataFolder() {
+    const btn = document.getElementById('btnOpenDataFolder');
+    const divider = document.getElementById('updateDivider');
+    const store = this.storage && this.storage.seasonStore;
+    if (!btn || !store || !store.canOpenDataDir || !store.canOpenDataDir()) return;
+    btn.hidden = false;
+    if (divider) divider.hidden = false;
+    btn.addEventListener('click', async () => {
+      document.getElementById('moreDropdown')?.classList.add('hidden');
+      let dir = '';
+      try { dir = await store.openDataDir(); } catch (e) {}
+      // Always surface the location (the OS file manager may also have opened).
+      if (dir) this.updater._toast(`Your seasons are saved in:\n${dir}`);
     });
   }
 

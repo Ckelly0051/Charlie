@@ -224,6 +224,10 @@ export class SeasonStore {
   diskStatus() { return this.backend.diskStatus(); }
   async restoreDiskBinding() { return this.backend.restoreDiskBinding(); }
 
+  /** Desktop only: open (or resolve) the app-data folder where the season is saved. */
+  canOpenDataDir() { return typeof this.backend.openDataDir === 'function'; }
+  async openDataDir() { return this.backend.openDataDir ? this.backend.openDataDir() : ''; }
+
   /** Bind a backup folder/target and immediately write the live file + a snapshot. */
   async bindDisk() {
     const ok = await this.backend.bindDisk();

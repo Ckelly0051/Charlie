@@ -256,19 +256,29 @@ export class TauriBackend extends StorageBackend {
   async saveSeason(data) {
     if (!this._ok()) return false;
     try {
+      // The app-data folder (e.g. %APPDATA%\com.gridironiq.app on Windows) does
+      // not exist on a fresh install. writeTextFile does NOT create parent dirs,
+      // so without this the very first save throws and is silently swallowed —
+      // nothing persists and reopening the app shows an empty season. Ensuring
+      // the dir (recursive mkdir creates the app-data root) is the fix.
+      await this._ensureDataDir();
       await this.fs.writeTextFile(this.SEASON, JSON.stringify(data, null, 2), { baseDir: this.baseDir });
       return true;
     } catch (e) { return false; }
   }
 
-  async _ensureBackups() {
+  /** Create the app-data root (+ backups/) if missing. Idempotent. */
+  async _ensureDataDir() {
     if (this._backupsReady) return;
     try {
+      // recursive mkdir of the backups subfolder also creates the app-data root.
       if (!(await this.fs.exists(this.BACKUPS, { baseDir: this.baseDir })))
         await this.fs.mkdir(this.BACKUPS, { baseDir: this.baseDir, recursive: true });
       this._backupsReady = true;
     } catch (e) {}
   }
+
+  async _ensureBackups() { return this._ensureDataDir(); }
   async createBackup(data, label) {
     if (!this._ok()) return null;
     const json = JSON.stringify(data);
@@ -330,6 +340,31 @@ export class TauriBackend extends StorageBackend {
   supportsDisk() { return this._ok(); }
   diskStatus() {
     return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'App data folder' : '', lastWrite: this._lastWrite };
+  }
+
+  /** Absolute path of the app-data folder (where season.json lives); '' if N/A. */
+  async dataDirPath() {
+    try {
+      const p = window.__TAURI__ && window.__TAURI__.path;
+      if (p && p.appDataDir) return await p.appDataDir();
+    } catch (e) {}
+    return '';
+  }
+
+  /**
+   * Open the app-data folder in the OS file manager. Returns the folder path so
+   * the caller can show it as a fallback when no opener API is available.
+   */
+  async openDataDir() {
+    if (!this._ok()) return '';
+    await this._ensureDataDir();
+    const dir = await this.dataDirPath();
+    const op = window.__TAURI__ && window.__TAURI__.opener;
+    try {
+      if (op && op.openPath && dir) { await op.openPath(dir); }
+      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir + this.SEASON); }
+    } catch (e) { /* fall through — caller shows the path */ }
+    return dir;
   }
   async writeDisk(data, opts = {}) {
     const ok = await this.saveSeason(data);

@@ -149,6 +149,7 @@ class App {
     this.updater = new Updater();
     this.updater.init();
     this._bindUpdateCheck();
+    this._bindOpenDataFolder();
   }
 
   /** Wire the "Check for Updates" menu item (desktop build only). */
@@ -163,6 +164,23 @@ class App {
     btn.addEventListener('click', () => {
       document.getElementById('moreDropdown')?.classList.add('hidden');
       this.updater.check(true);
+    });
+  }
+
+  /** Wire the "Open Data Folder" menu item (desktop build only). */
+  _bindOpenDataFolder() {
+    const btn = document.getElementById('btnOpenDataFolder');
+    const divider = document.getElementById('updateDivider');
+    const store = this.storage && this.storage.seasonStore;
+    if (!btn || !store || !store.canOpenDataDir || !store.canOpenDataDir()) return;
+    btn.hidden = false;
+    if (divider) divider.hidden = false;
+    btn.addEventListener('click', async () => {
+      document.getElementById('moreDropdown')?.classList.add('hidden');
+      let dir = '';
+      try { dir = await store.openDataDir(); } catch (e) {}
+      // Always surface the location (the OS file manager may also have opened).
+      if (dir) this.updater._toast(`Your seasons are saved in:\n${dir}`);
     });
   }
 

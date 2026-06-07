@@ -6538,5 +6538,6 @@ body {
 .gi-update-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(8px);
   background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 99999;
   opacity: 0; transition: opacity .3s ease, transform .3s ease;
+  max-width: min(90vw, 560px); white-space: pre-line; text-align: center; word-break: break-word;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 .gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
