@@ -94,10 +94,49 @@ Tauri v2 requires explicit permission grants in `capabilities/default.json`:
   build to review.
 - **Same UI everywhere.** Only the storage backend differs.
 
+## Auto-update (tauri-plugin-updater)
+
+The desktop app updates itself — no re-downloading installers per change.
+
+**How it works:** on launch (`js/updater.js`, no-op on web) the app fetches
+`latest.json` from the GitHub Releases endpoint configured in
+`tauri.conf.json` → `plugins.updater.endpoints`. If a newer signed build
+exists it shows an "Update & Restart" banner that downloads, verifies the
+signature against `plugins.updater.pubkey`, installs, and relaunches.
+
+**Wiring (already in the repo):**
+- Rust: `tauri-plugin-updater` + `tauri-plugin-process` in `Cargo.toml`,
+  registered in `main.rs`.
+- Permissions: `updater:default`, `process:default` in
+  `capabilities/default.json`.
+- Bundle: `"createUpdaterArtifacts": true` so the build emits the signed
+  update package (`.nsis.zip` / `.app.tar.gz`) + `.sig`.
+- Frontend: `js/updater.js` (in `build.sh` list + imported by `app.js`).
+
+**Signing keys:** Tauri signs every update with its own key (separate from
+OS code-signing). The keypair was generated with `cargo tauri signer
+generate`. The **public** key is committed in `tauri.conf.json`. The
+**private** key + password must be added as repo secrets so CI can sign:
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+(Settings → Secrets and variables → Actions). Lose the private key and you
+can't ship updates the installed apps will accept — back it up.
+
+**Publishing an update:** bump `version` in `tauri.conf.json` + `Cargo.toml`,
+commit, then push a tag (`git tag v1.1.0 && git push origin v1.1.0`). The
+CI workflow builds every platform, signs, generates `latest.json`, and
+attaches everything to a GitHub Release. Installed apps pick it up on next
+launch.
+
+> Note: the matrix jobs each append their platform's signature to the
+> release's `latest.json`. If a multi-platform release ever lands with a
+> missing platform entry (rare race), re-run that platform's job.
+
 ## Production checklist
 
-- [ ] Replace placeholder icons with GridIron IQ branding
-- [ ] Test on macOS (`cargo tauri build` produces `.dmg`)
-- [ ] Test on Windows (`cargo tauri build` produces `.msi`/`.exe`)
-- [ ] Set up auto-update (Tauri updater plugin)
+- [x] Replace placeholder icons with GridIron IQ branding (royal blue)
+- [x] CI builds installers on macOS / Windows / Linux runners
+- [x] Set up auto-update (Tauri updater plugin)
+- [ ] Add `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+      repo secrets (one-time, required for signed updates)
 - [ ] Code-sign for macOS notarization + Windows SmartScreen

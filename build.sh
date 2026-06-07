@@ -82,6 +82,7 @@ for jsfile in \
   js/wizard.js \
   js/custom-fields.js \
   js/play-diagram.js \
+  js/updater.js \
   js/app.js
 do
   echo "" >> "$OUTPUT"

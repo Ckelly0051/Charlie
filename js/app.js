@@ -28,6 +28,7 @@ import { Wizard } from './wizard.js';
 import { CustomFieldsManager } from './custom-fields.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
+import { Updater } from './updater.js';
 
 class App {
   constructor() {
@@ -143,6 +144,10 @@ class App {
       this.history.init();
       this.versions.renderList();
     }, 0);
+
+    // Desktop auto-update (no-op on the web build).
+    this.updater = new Updater();
+    this.updater.init();
   }
 
   /** Blank every Game Info input — used when switching to a different game. */
