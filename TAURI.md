@@ -137,6 +137,27 @@ launch.
 - [x] Replace placeholder icons with GridIron IQ branding (royal blue)
 - [x] CI builds installers on macOS / Windows / Linux runners
 - [x] Set up auto-update (Tauri updater plugin)
-- [ ] Add `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
-      repo secrets (one-time, required for signed updates)
+- [x] Add `TAURI_SIGNING_PRIVATE_KEY` repo secret (confirmed working — first
+      signed release v1.0.3 published & signed on all platforms). The
+      `_PASSWORD` secret is intentionally omitted (empty passphrase); the
+      workflow references it and resolves to "" when absent.
 - [ ] Code-sign for macOS notarization + Windows SmartScreen
+
+### First signed release — verified (v1.0.3)
+
+The first end-to-end signed release shipped as **v1.0.3**
+(`https://github.com/Ckelly0051/Charlie/releases/tag/v1.0.3`): Windows
+`.exe`/`.msi`, macOS `.dmg`/`.app.tar.gz`, Linux `.deb`/`.AppImage`/`.rpm`,
+each with a `.sig`, plus `latest.json` at the updater endpoint.
+
+Two CI fixes were needed to get there, both now baked in:
+1. **Signing key newlines** — a pasted GitHub secret carried a trailing
+   newline the Tauri signer rejected ("Invalid symbol 10"). The "Normalize
+   signing key" step strips CR/LF before the build.
+2. **Release permissions** — the workflow token defaulted to read-only, so
+   Release creation failed ("Resource not accessible by integration"). Fixed
+   with `permissions: contents: write` in the workflow **and** the repo
+   setting (Settings → Actions → General → Workflow permissions → Read and
+   write). Note: a tag-triggered run uses the workflow file *as of the tagged
+   commit*, so the permissions fix had to be in the tag (v1.0.2 had it only on
+   the branch and still failed; v1.0.3 included it and succeeded).
