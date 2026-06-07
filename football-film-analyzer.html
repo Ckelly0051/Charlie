@@ -7,7 +7,13 @@
   <meta name="description" content="Football film analysis for coaches — tag plays, track stats, scout opponents.">
   <title>GridIron IQ</title>
   <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* Inline SVG icon sprite: keep it out of layout flow. Hidden via this
+   stylesheet rule (not an inline style attribute) because Tauri's CSP
+   nonces the <style> block, which disables 'unsafe-inline' for style
+   attributes — an inline style="display:none" gets blocked in WebView2
+   and the sprite balloons to its default 300x150 box, shoving the whole
+   app down. width=0/height=0 attributes on the <svg> are the backstop. */
+.svg-sprite { display: none !important; }
 
 /* ===== CSS Custom Properties ===== */
 :root {
@@ -456,6 +462,14 @@ body {
   cursor: pointer;
   transition: all var(--transition);
 }
+/* Swatch colors via CSS (not inline style) so they survive Tauri's CSP,
+   which nonces the <style> block and thereby blocks style="" attributes. */
+.swatch[data-color="#ffffff"] { background: #ffffff; }
+.swatch[data-color="#ffff00"] { background: #ffff00; }
+.swatch[data-color="#ff4444"] { background: #ff4444; }
+.swatch[data-color="#4488ff"] { background: #4488ff; }
+.swatch[data-color="#44ff44"] { background: #44ff44; }
+.swatch[data-color="#ff8800"] { background: #ff8800; }
 
 .swatch:hover {
   transform: scale(1.15);
@@ -2580,6 +2594,17 @@ body {
   letter-spacing: .04em;
   background: var(--run-color);
   color: #1a1205;
+}
+.season-final-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: rgba(34,197,94,.2);
+  color: #22c55e;
 }
 
 .season-stats-body {
@@ -5206,25 +5231,32 @@ body {
 /* the single-column stack above. Last block => wins the cascade.      */
 /* ================================================================== */
 @media (min-width: 1100px) {
-  /* Use the full viewport height; only the tag column scrolls so the   */
-  /* film stays put. A wide right column keeps chips on few rows =>      */
-  /* minimal scrolling.                                                  */
-  body, html { overflow: hidden; }
+  html { height: 100vh; overflow: hidden; }
+  body { height: 100vh; margin: 0; padding: 0; overflow: hidden; }
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .top-bar { position: static; flex: 0 0 52px; }
 
   .main-content {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) clamp(460px, 40vw, 760px) !important;
-    grid-template-rows: auto !important;
+    grid-template-rows: 1fr !important;
     align-items: stretch;
-    height: calc(100vh - 52px);
+    flex: 1 1 0;
+    min-height: 0;
     gap: 0;
   }
 
   /* Left column: video centered in its column, sized to its 16:9 box. */
   .video-section {
     position: static;
-    height: calc(100vh - 52px);
-    max-height: calc(100vh - 52px);
+    height: 100%;
+    max-height: 100%;
     min-height: 0;
     border-bottom: none;
     border-right: 1px solid var(--border);
@@ -5234,12 +5266,12 @@ body {
     flex: 0 1 auto;
     aspect-ratio: 16 / 9;
     width: 100%;
-    max-height: calc(100vh - 150px);
+    max-height: calc(100% - 100px);
   }
 
   /* Right column owns its own scroll so the page never moves. */
   .tag-section {
-    height: calc(100vh - 52px);
+    height: 100%;
     overflow-y: auto;
     padding: 12px 18px 40px;
     min-height: 0;
@@ -6246,7 +6278,7 @@ video.is-buffering { opacity: 0.6; }
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -6499,10 +6531,171 @@ body {
   .stats-tabs { padding: 0 12px; }
   .stat-card-value { font-size: 20px; }
 }
+
+/* ================================================================== */
+/* ==========  Desktop auto-update banner / toast (updater.js)  ===== */
+/* Must live here (not injected from JS): Tauri nonces this <style>,   */
+/* disabling 'unsafe-inline', so a runtime-injected <style> would be   */
+/* CSP-blocked and the banner/toast would render unstyled/invisible.   */
+/* ================================================================== */
+.gi-update-banner { position: fixed; right: 18px; bottom: 18px; z-index: 99999;
+  max-width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+.gi-update-card { background: #fff; color: #0f172a; border: 1px solid #cbd5e1;
+  border-radius: 12px; box-shadow: 0 16px 40px rgba(15,23,42,0.22); padding: 14px 16px; }
+.gi-update-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.gi-update-dot { width: 8px; height: 8px; border-radius: 50%; background: #4169e1;
+  box-shadow: 0 0 0 3px rgba(65,105,225,0.18); }
+.gi-update-ver { margin-left: auto; color: #64748b; font-size: 12px; font-weight: 600; }
+.gi-update-notes { margin: 10px 0 4px; font-size: 12.5px; line-height: 1.45; color: #475569;
+  max-height: 120px; overflow: auto; white-space: pre-wrap; }
+.gi-update-progress { height: 6px; background: #e2e8f0; border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
+.gi-update-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#5278f0,#4169e1); transition: width .15s ease; }
+.gi-update-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.gi-update-actions button { border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: 1px solid #cbd5e1; background: #f1f5f9; color: #0f172a; }
+.gi-update-actions button:disabled { opacity: .6; cursor: default; }
+.gi-update-go { background: linear-gradient(180deg,#5278f0,#4169e1) !important; border-color: #2f4fc4 !important; color: #fff !important; }
+.gi-update-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(8px);
+  background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 99999;
+  opacity: 0; transition: opacity .3s ease, transform .3s ease;
+  max-width: min(90vw, 560px); white-space: pre-line; text-align: center; word-break: break-word;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+.gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== SEASON LIBRARY (front door) — dark palette scoped to the overlay ===== */
+.library-overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center;
+  background: rgba(8,12,20,.86); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); padding: 24px; color: #e6edf3; }
+.library-overlay.hidden { display: none; }
+.library-modal { width: min(720px, 96vw); max-height: 90vh; overflow-y: auto;
+  background: #111722; color: #e6edf3; border: 1px solid #243044; border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 24px; }
+.library-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.library-brand { font-size: 22px; font-weight: 700; color: #fff; }
+.library-brand b { color: #c9a227; }
+.library-brand-sub { font-size: 13px; font-weight: 600; color: #8aa0bd; margin-left: 8px; }
+.library-intro { color: #9fb1c9; font-size: 14px; margin: 0 0 18px; }
+.library-new { margin-bottom: 18px; }
+.library-form { margin-top: 14px; background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 16px; }
+.library-form.hidden { display: none; }
+.lib-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.library-form label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600;
+  color: #9fb1c9; text-transform: uppercase; letter-spacing: .4px; }
+.library-form input, .library-form select { background: #161e2b; border: 1px solid #2c3a52; color: #e6edf3;
+  border-radius: 8px; padding: 9px 11px; font-size: 14px; text-transform: none; letter-spacing: 0; }
+.library-form input:focus, .library-form select:focus { outline: none; border-color: #c9a227; }
+.lib-form-name { margin-bottom: 14px; }
+.lib-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.library-list { display: flex; flex-direction: column; gap: 10px; }
+.library-empty { text-align: center; color: #9fb1c9; padding: 30px 10px; }
+.library-empty p { margin: 4px 0; }
+.library-empty-sub { font-size: 13px; color: #6f8197; }
+.season-card { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; cursor: pointer;
+  transition: border-color .15s, transform .05s; }
+.season-card:hover { border-color: #c9a227; }
+.season-card:active { transform: translateY(1px); }
+.season-card.is-current { border-color: #2f6df0; }
+.season-card-main { min-width: 0; }
+.season-card-name { font-size: 16px; font-weight: 700; color: #fff; }
+.season-card-badge { font-size: 11px; font-weight: 700; color: #6ea8ff; border: 1px solid #2f6df0;
+  border-radius: 6px; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+.season-card-sub { font-size: 13px; color: #9fb1c9; margin-top: 3px; }
+.season-card-meta { font-size: 12px; color: #6f8197; margin-top: 5px; }
+.season-card-del { background: transparent; border: none; color: #6f8197; font-size: 16px; cursor: pointer;
+  padding: 6px 8px; border-radius: 8px; line-height: 1; flex: 0 0 auto; }
+.season-card-del:hover { background: rgba(220,60,60,.15); color: #ff6b6b; }
+
+/* Season context chip (lives in the light top bar) */
+.season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
+.season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
+  border: 1px solid rgba(47,109,240,.4); color: #1d4ed8; border-radius: 999px; padding: 5px 12px;
+  font-size: 13px; font-weight: 600; cursor: pointer; max-width: 320px; margin-left: 0; }
+.season-chip:hover { background: rgba(47,109,240,.2); }
+.season-chip .icon { width: 14px; height: 14px; flex: 0 0 auto; }
+.season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.season-chip-caret { font-size: 10px; opacity: .6; margin-left: 2px; }
+.season-chip[hidden] { display: none; }
+
+/* Game switcher dropdown (anchored to season chip) */
+.game-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1100;
+  background: #1e2330; border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.5); min-width: 320px; max-width: 400px;
+  color: #e6edf3; font-size: 13px; overflow: hidden; }
+.game-dropdown.hidden { display: none; }
+.game-dropdown-head { padding: 12px 16px 8px; font-weight: 700; font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08); color: #06b6d4; }
+.game-dropdown-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
+.game-dropdown-foot { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.08); }
+.game-dropdown-foot .btn { flex: 1; font-size: 12px; }
+
+/* Individual game row in the dropdown */
+.gd-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+  cursor: pointer; transition: background .12s; }
+.gd-row:hover { background: rgba(255,255,255,.06); }
+.gd-row.is-active { background: rgba(6,182,212,.1); border-left: 3px solid #06b6d4; }
+.gd-row .gd-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.gd-row .gd-dot.dot-active { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.5); }
+.gd-row .gd-dot.dot-final { background: #22c55e; }
+.gd-row .gd-dot.dot-idle { background: rgba(255,255,255,.25); }
+.gd-info { flex: 1; min-width: 0; }
+.gd-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gd-meta { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 1px; }
+.gd-badges { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+.gd-score { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+.gd-score.win { background: rgba(34,197,94,.2); color: #22c55e; }
+.gd-score.loss { background: rgba(239,68,68,.15); color: #ef4444; }
+.gd-score.tie { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
+.gd-badge { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px; }
+.gd-badge.badge-final { background: rgba(34,197,94,.15); color: #22c55e; }
+.gd-badge.badge-active-tag { background: rgba(6,182,212,.15); color: #06b6d4; }
+.gd-actions { flex: 0 0 auto; }
+.gd-finish-btn { background: none; border: 1px solid rgba(34,197,94,.4); color: #22c55e;
+  font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.gd-finish-btn:hover { background: rgba(34,197,94,.15); }
+
+/* Finish-game modal */
+.finish-game-modal { position: fixed; inset: 0; z-index: 2100; display: flex;
+  align-items: center; justify-content: center; }
+.finish-game-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+.finish-game-card { position: relative; background: #1e2330; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px; padding: 24px; max-width: 380px; width: 90%; color: #e6edf3;
+  box-shadow: 0 16px 48px rgba(0,0,0,.5); }
+.finish-game-card h3 { margin: 0 0 12px; font-size: 16px; color: #06b6d4; }
+.finish-game-card p { margin: 0 0 16px; font-size: 13px; color: rgba(255,255,255,.6); }
+.finish-game-scores { display: flex; gap: 12px; margin-bottom: 20px; }
+.finish-game-scores label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: rgba(255,255,255,.5); }
+.finish-game-scores input { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 6px; padding: 8px 10px; color: #e6edf3; font-size: 15px; text-align: center; }
+.finish-game-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.finish-game-btns .btn { font-size: 13px; }
+
+/* Games panel in the settings drawer */
+.games-panel-list { display: flex; flex-direction: column; gap: 6px; }
+.games-panel-foot { margin-top: 10px; }
+.gp-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color .15s; }
+.gp-card:hover { border-color: rgba(6,182,212,.4); }
+.gp-card.is-active { border-color: #06b6d4; background: rgba(6,182,212,.08); }
+.gp-card-head { display: flex; align-items: center; gap: 8px; }
+.gp-card-name { flex: 1; min-width: 0; font-weight: 600; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gp-card-badges { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
+.gp-card-meta { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 3px; }
+.gp-card-actions { display: flex; gap: 6px; margin-top: 8px; }
+.gp-card-actions .btn { font-size: 11px; padding: 3px 8px; }
+.gp-card .gd-score { font-size: 11px; }
+.gp-card .gd-badge { font-size: 9px; }
+
+@media (max-width: 640px) {
+  .lib-form-row { grid-template-columns: 1fr; }
+  .season-chip { max-width: 160px; }
+  .game-dropdown { min-width: 280px; left: auto; right: -20px; }
+}
   </style>
 </head>
 <body>
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false" class="svg-sprite">
 
   <!-- Chart / Quick Chart -->
   <symbol id="icon-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -6703,6 +6896,21 @@ body {
           <span>Shortcuts</span>
         </button>
         <h1 class="app-title">GridIron IQ</h1>
+        <div class="season-chip-wrap">
+          <button class="season-chip" id="seasonChip" title="Switch games or season" hidden>
+            <svg class="icon"><use href="#icon-stats"/></svg>
+            <span class="season-chip-text" id="seasonChipText">No season</span>
+            <span class="season-chip-caret">▾</span>
+          </button>
+          <div class="game-dropdown hidden" id="gameDropdown">
+            <div class="game-dropdown-head" id="gameDropdownHead"></div>
+            <div class="game-dropdown-list" id="gameDropdownList"></div>
+            <div class="game-dropdown-foot">
+              <button class="btn btn-sm btn-accent" id="btnDropdownNewGame">+ New Game</button>
+              <button class="btn btn-sm" id="btnDropdownSwitchSeason">Switch Season</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">
@@ -6764,6 +6972,13 @@ body {
             </button>
             <button class="btn" id="btnImportPlays" title="Import plays from CSV (Hudl, etc.)">
               <svg class="icon"><use href="#icon-upload"/></svg> Import Plays
+            </button>
+            <div class="more-divider" id="updateDivider" hidden></div>
+            <button class="btn" id="btnOpenDataFolder" title="Open the folder where your seasons are saved" hidden>
+              <svg class="icon"><use href="#icon-folder"/></svg> Open Data Folder
+            </button>
+            <button class="btn" id="btnCheckUpdate" title="Check for app updates" hidden>
+              <svg class="icon"><use href="#icon-download"/></svg> Check for Updates
             </button>
           </div>
         </div>
@@ -7438,6 +7653,21 @@ body {
         </div>
       </div>
 
+      <!-- Games -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="gamesPanel">
+          <svg class="icon"><use href="#icon-film"/></svg>
+          Games
+          <span class="panel-badge" id="gamesBadge">0</span>
+        </h3>
+        <div class="panel-body collapsed" id="gamesPanel">
+          <div class="games-panel-list" id="gamesPanelList"></div>
+          <div class="games-panel-foot">
+            <button class="btn btn-sm btn-accent" id="btnPanelNewGame" type="button">+ New Game</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Roster -->
       <div class="sidebar-panel">
         <h3 class="panel-title" data-toggle="rosterPanel">
@@ -7761,6 +7991,45 @@ body {
         </div>
         <div class="season-game-list" id="seasonGameList"></div>
         <div class="season-stats-body" id="seasonStatsBody"></div>
+      </div>
+    </div>
+
+    <!-- Season Library (the app's front door) -->
+    <div class="library-overlay hidden" id="libraryOverlay">
+      <div class="library-modal">
+        <div class="library-head">
+          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub">Season Library</span></div>
+          <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
+        </div>
+        <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
+        <div class="library-new">
+          <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
+          <form class="library-form hidden" id="librarySeasonForm">
+            <div class="lib-form-row">
+              <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
+              <label>Team<input type="text" id="newSeasonTeam" placeholder="Eagles" maxlength="40" autocomplete="off"></label>
+              <label>Level
+                <select id="newSeasonLevel">
+                  <option value="">—</option>
+                  <option>Varsity</option>
+                  <option>JV</option>
+                  <option>Freshman</option>
+                  <option>Youth</option>
+                  <option>College</option>
+                  <option>Other</option>
+                </select>
+              </label>
+            </div>
+            <label class="lib-form-name">Season name (optional)
+              <input type="text" id="newSeasonName" placeholder="e.g. 2026 Varsity — Eagles" maxlength="60" autocomplete="off">
+            </label>
+            <div class="lib-form-actions">
+              <button type="button" class="btn btn-sm" id="btnNewSeasonCancel">Cancel</button>
+              <button type="submit" class="btn btn-sm btn-accent" id="btnNewSeasonCreate">Create Season</button>
+            </div>
+          </form>
+        </div>
+        <div class="library-list" id="libraryList"></div>
       </div>
     </div>
 
@@ -10390,25 +10659,45 @@ class NotesManager {
  *   - an installed desktop app → TauriBackend (unrestricted local files)
  *   - (future) a cloud-synced app → a network backend, same interface.
  *
- * Responsibilities:
- *   1. Canonical season persistence (load/save the one current season).
- *   2. A backup ring — timestamped snapshots you can restore from, so a bad
- *      save is always recoverable ("undo a save").
- *   3. Optional durable disk backup to a real folder.
+ * SEASON LIBRARY (multi-season)
+ * -----------------------------
+ * The app is library-first, like Hudl: many seasons, each its own file/folder,
+ * browsed from a Library screen. The backend therefore manages:
+ *   - a library index (list of season metas), and
+ *   - per-season storage, scoped to a "current season" set via
+ *     `setCurrentSeason(id)`. The classic season ops (loadSeason / saveSeason /
+ *     the backup ring) all operate on whatever season is current, so SeasonStore
+ *     keeps calling them unchanged.
+ *
+ * On-disk / storage layout:
+ *   Browser:  ffa_library            (index, localStorage)
+ *             ffa_season_<id>        (one season per key)
+ *             IndexedDB backups      (records tagged with seasonId)
+ *   Tauri:    library.json           (index, app-data root)
+ *             seasons/<id>/season.json
+ *             seasons/<id>/backups/season_<ts>.json
  *
  * `detectBackend()` picks the right implementation for the environment.
  */
 class StorageBackend {
-  constructor() { this.RETENTION = 25; }
+  constructor() { this.RETENTION = 25; this.currentId = null; }
   name() { return 'base'; }
 
   async init() {}
 
-  // ---- canonical season ----
+  // ---- season library ------------------------------------------------------
+  setCurrentSeason(id) { this.currentId = id; }
+  currentSeason() { return this.currentId; }
+  async listSeasons() { return []; }              // [{id,name,team,year,level,games,plays,created,updated,lastOpened}]
+  async createSeason(_meta) { return null; }       // allocate id + index entry; returns meta
+  async deleteSeason(_id) {}
+  async touchOpened(_id) {}                         // bump lastOpened in the index
+
+  // ---- canonical season (scoped to currentId) ----
   async loadSeason() { return null; }
   async saveSeason(_data) {}
 
-  // ---- backup ring ----
+  // ---- backup ring (scoped to currentId) ----
   async listBackups() { return []; }            // [{id,t,label,seasonName,games,plays}]
   async getBackup(_id) { return null; }          // full season data
   async createBackup(_data, _label) { return null; }
@@ -10433,6 +10722,27 @@ class StorageBackend {
       plays: (data && data.games) ? data.games.reduce((s, g) => s + ((g.plays || []).length), 0) : 0,
     };
   }
+  /** Derive a library-index entry from a season's data. */
+  _seasonMeta(id, data) {
+    const games = (data && data.games) ? data.games.length : 0;
+    const plays = (data && data.games) ? data.games.reduce((s, g) => s + ((g.plays || []).length), 0) : 0;
+    const team = (data && (data.team || (data.teamProfile && data.teamProfile.teamName))) || '';
+    return {
+      id,
+      name: (data && data.seasonName) || team || 'Untitled Season',
+      team, year: (data && data.year) || '', level: (data && data.level) || '',
+      games, plays, updated: new Date().toISOString(),
+    };
+  }
+  slugify(s) {
+    return String(s || '').trim().toLowerCase()
+      .replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'season';
+  }
+  _uniqueId(base, taken) {
+    let id = base, n = 2;
+    while (taken.includes(id)) { id = `${base}-${n++}`; }
+    return id;
+  }
   _tsSlug(d = new Date()) {
     const p = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
@@ -10440,29 +10750,107 @@ class StorageBackend {
 }
 
 /**
- * BrowserBackend — canonical season in localStorage, backup ring in IndexedDB,
- * and (Chromium) real disk backups via the File System Access API: a chosen
- * folder receives `season.json` (live) plus `backups/season_<ts>.json`
- * snapshots, pruned to the retention window.
+ * BrowserBackend — canonical seasons in localStorage (one key per season under a
+ * `ffa_library` index), the backup ring in IndexedDB (records tagged with the
+ * season id), and (Chromium) real disk backups via the File System Access API.
  */
 class BrowserBackend extends StorageBackend {
   constructor() {
     super();
-    this.KEY = 'ffa_season';
+    this.LIB = 'ffa_library';
+    this.LEGACY = 'ffa_season';
     this.dirHandle = null;
     this._lastWrite = 0;
     this._writing = false;
   }
   name() { return 'browser'; }
 
-  // ---- canonical ----
+  _seasonKey(id) { return 'ffa_season_' + id; }
+
+  // ---- library index ----
+  _readLib() {
+    try { return JSON.parse(localStorage.getItem(this.LIB) || 'null') || []; }
+    catch (e) { return []; }
+  }
+  _writeLib(arr) {
+    try { localStorage.setItem(this.LIB, JSON.stringify(arr)); } catch (e) {}
+  }
+  /** One-time migration: an old single `ffa_season` becomes the first season. */
+  _migrateLegacy() {
+    if (localStorage.getItem(this.LIB) != null) return;     // library already exists
+    let legacy = null;
+    try { legacy = JSON.parse(localStorage.getItem(this.LEGACY) || 'null'); } catch (e) {}
+    if (legacy && Array.isArray(legacy.games)) {
+      const id = this._uniqueId(this.slugify(legacy.seasonName || 'my-season'), []);
+      legacy.id = id;
+      try { localStorage.setItem(this._seasonKey(id), JSON.stringify(legacy)); } catch (e) {}
+      const meta = this._seasonMeta(id, legacy);
+      meta.created = new Date().toISOString();
+      meta.lastOpened = meta.created;
+      this._writeLib([meta]);
+    } else {
+      this._writeLib([]);                                   // fresh install
+    }
+  }
+
+  async listSeasons() {
+    this._migrateLegacy();
+    return this._readLib().slice().sort((a, b) =>
+      String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
+  }
+
+  async createSeason(meta) {
+    const lib = this._readLib();
+    const base = this.slugify(meta.name || [meta.year, meta.level, meta.team].filter(Boolean).join('-'));
+    const id = this._uniqueId(base, lib.map(s => s.id));
+    const now = new Date().toISOString();
+    const entry = {
+      id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
+      level: meta.level || '', games: 0, plays: 0, created: now, updated: now, lastOpened: now,
+    };
+    lib.push(entry);
+    this._writeLib(lib);
+    return entry;
+  }
+
+  async deleteSeason(id) {
+    try { localStorage.removeItem(this._seasonKey(id)); } catch (e) {}
+    this._writeLib(this._readLib().filter(s => s.id !== id));
+    // Drop this season's backups.
+    try {
+      const all = await this._tx('backups', 'readonly', os => os.getAll());
+      for (const r of (all || [])) if (r && r.seasonId === id) await this.deleteBackup(r.id);
+    } catch (e) {}
+    if (this.currentId === id) this.currentId = null;
+  }
+
+  async touchOpened(id) {
+    const lib = this._readLib();
+    const e = lib.find(s => s.id === id);
+    if (e) { e.lastOpened = new Date().toISOString(); this._writeLib(lib); }
+  }
+
+  // ---- canonical (scoped to currentId) ----
   async loadSeason() {
-    try { return JSON.parse(localStorage.getItem(this.KEY) || 'null'); }
+    if (!this.currentId) return null;
+    try { return JSON.parse(localStorage.getItem(this._seasonKey(this.currentId)) || 'null'); }
     catch (e) { return null; }
   }
   async saveSeason(data) {
-    try { localStorage.setItem(this.KEY, JSON.stringify(data)); return true; }
+    if (!this.currentId) return false;
+    try { localStorage.setItem(this._seasonKey(this.currentId), JSON.stringify(data)); }
     catch (e) { return false; }   // quota — the disk/backup ring is the durable copy
+    this._touchMeta(data);
+    return true;
+  }
+  /** Refresh the index entry (counts, name, updated) after a save. */
+  _touchMeta(data) {
+    const lib = this._readLib();
+    const i = lib.findIndex(s => s.id === this.currentId);
+    if (i < 0) return;
+    const m = this._seasonMeta(this.currentId, data);
+    lib[i] = { ...lib[i], ...m, created: lib[i].created, lastOpened: lib[i].lastOpened };
+    this._writeLib(lib);
   }
 
   // ---- IndexedDB (handles + backups) ----
@@ -10488,9 +10876,9 @@ class BrowserBackend extends StorageBackend {
     }));
   }
 
-  // ---- backup ring ----
+  // ---- backup ring (scoped to currentId via seasonId field) ----
   async createBackup(data, label) {
-    // Skip a snapshot identical to the most recent one (no churn on no-ops).
+    if (!this.currentId) return null;
     const json = JSON.stringify(data);
     const recent = await this.listBackups();
     if (recent.length) {
@@ -10498,17 +10886,16 @@ class BrowserBackend extends StorageBackend {
       if (last && JSON.stringify(last) === json) return null;
     }
     const id = Date.now();
-    const rec = { id, ...this._meta(data, label), data: JSON.parse(json) };
+    const rec = { id, seasonId: this.currentId, ...this._meta(data, label), data: JSON.parse(json) };
     await this._tx('backups', 'readwrite', os => os.put(rec, id));
     await this._prune();
     const { data: _omit, ...meta } = rec;
     return meta;
   }
   async listBackups() {
-    const all = await this._tx('backups', 'readonly', os => {
-      const r = os.getAll(); return r;
-    });
+    const all = await this._tx('backups', 'readonly', os => os.getAll());
     return (all || [])
+      .filter(r => r && r.seasonId === this.currentId)
       .map(({ data, ...meta }) => meta)
       .sort((a, b) => b.id - a.id);
   }
@@ -10518,7 +10905,7 @@ class BrowserBackend extends StorageBackend {
   }
   async deleteBackup(id) { await this._tx('backups', 'readwrite', os => os.delete(id)); }
   async _prune() {
-    const metas = await this.listBackups();              // newest first
+    const metas = await this.listBackups();              // newest first, this season
     const extra = metas.slice(this.RETENTION);
     for (const m of extra) await this.deleteBackup(m.id);
   }
@@ -10570,11 +10957,13 @@ class BrowserBackend extends StorageBackend {
     this._writing = true;
     try {
       const json = JSON.stringify(data, null, 2);
-      await this._writeInto(this.dirHandle, 'season.json', json);
+      // Per-season filename so multiple seasons don't overwrite one file.
+      const base = this.slugify(data.seasonName || this.currentId || 'season');
+      await this._writeInto(this.dirHandle, `${base}.json`, json);
       if (opts.snapshot) {
         const backups = await this.dirHandle.getDirectoryHandle('backups', { create: true });
-        await this._writeInto(backups, `season_${this._tsSlug()}.json`, json);
-        await this._pruneDisk(backups);
+        await this._writeInto(backups, `${base}_${this._tsSlug()}.json`, json);
+        await this._pruneDisk(backups, base);
       }
       this._lastWrite = Date.now();
       return true;
@@ -10587,10 +10976,10 @@ class BrowserBackend extends StorageBackend {
     await w.write(text);
     await w.close();
   }
-  async _pruneDisk(backups) {
+  async _pruneDisk(backups, base) {
     const names = [];
     for await (const [name, handle] of backups.entries()) {
-      if (handle.kind === 'file' && /^season_.*\.json$/.test(name)) names.push(name);
+      if (handle.kind === 'file' && new RegExp(`^${base}_.*\\.json$`).test(name)) names.push(name);
     }
     names.sort();                                   // timestamp slug sorts chronologically
     const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
@@ -10616,67 +11005,151 @@ class TauriBackend extends StorageBackend {
     super();
     this.fs = window.__TAURI__ && window.__TAURI__.fs;
     this.baseDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.AppData : undefined;
-    this.SEASON = 'season.json';
-    this.BACKUPS = 'backups';
+    this.LIB = 'library.json';
+    this.LEGACY = 'season.json';
     this._lastWrite = 0;
-    this._backupsReady = false;
+    this._dirReady = {};        // per-season "backups dir ensured" cache
     this._lastBackupJson = null;
   }
   name() { return 'tauri'; }
 
   _ok() { return !!this.fs; }
+  _seasonDir(id) { return `seasons/${id}`; }
+  _seasonFile(id) { return `seasons/${id}/season.json`; }
+  _backupsDir(id) { return `seasons/${id}/backups`; }
 
-  async loadSeason() {
-    if (!this._ok()) return null;
+  setCurrentSeason(id) { this.currentId = id; }
+
+  async _exists(p) { try { return await this.fs.exists(p, { baseDir: this.baseDir }); } catch (e) { return false; } }
+  async _readJson(p) {
+    try { return JSON.parse(await this.fs.readTextFile(p, { baseDir: this.baseDir })); } catch (e) { return null; }
+  }
+  async _writeJson(p, obj) {
+    await this.fs.writeTextFile(p, JSON.stringify(obj, null, 2), { baseDir: this.baseDir });
+  }
+
+  /** Create a season's folder (+ backups/) if missing. Idempotent per season. */
+  async _ensureSeasonDir(id) {
+    if (this._dirReady[id]) return;
     try {
-      if (await this.fs.exists(this.SEASON, { baseDir: this.baseDir })) {
-        return JSON.parse(await this.fs.readTextFile(this.SEASON, { baseDir: this.baseDir }));
-      }
+      if (!(await this._exists(this._backupsDir(id))))
+        await this.fs.mkdir(this._backupsDir(id), { baseDir: this.baseDir, recursive: true });
+      this._dirReady[id] = true;
     } catch (e) {}
+  }
+
+  // ---- library index ----
+  async _readLib() { return (await this._readJson(this.LIB)) || []; }
+  async _writeLib(arr) { try { await this._writeJson(this.LIB, arr); } catch (e) {} }
+
+  /** One-time migration: an old top-level season.json becomes the first season. */
+  async _migrateLegacy() {
+    if (!this._ok()) return;
+    if (await this._exists(this.LIB)) return;
+    const legacy = (await this._exists(this.LEGACY)) ? await this._readJson(this.LEGACY) : null;
+    if (legacy && Array.isArray(legacy.games)) {
+      const id = this._uniqueId(this.slugify(legacy.seasonName || 'my-season'), []);
+      legacy.id = id;
+      await this._ensureSeasonDir(id);
+      try { await this._writeJson(this._seasonFile(id), legacy); } catch (e) {}
+      const meta = this._seasonMeta(id, legacy);
+      meta.created = new Date().toISOString();
+      meta.lastOpened = meta.created;
+      await this._writeLib([meta]);
+    } else {
+      await this._writeLib([]);
+    }
+  }
+
+  async listSeasons() {
+    if (!this._ok()) return [];
+    await this._migrateLegacy();
+    const lib = await this._readLib();
+    return lib.slice().sort((a, b) =>
+      String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
+  }
+
+  async createSeason(meta) {
+    if (!this._ok()) return null;
+    const lib = await this._readLib();
+    const base = this.slugify(meta.name || [meta.year, meta.level, meta.team].filter(Boolean).join('-'));
+    const id = this._uniqueId(base, lib.map(s => s.id));
+    await this._ensureSeasonDir(id);
+    const now = new Date().toISOString();
+    const entry = {
+      id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
+      level: meta.level || '', games: 0, plays: 0, created: now, updated: now, lastOpened: now,
+    };
+    lib.push(entry);
+    await this._writeLib(lib);
+    return entry;
+  }
+
+  async deleteSeason(id) {
+    if (!this._ok()) return;
+    try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
+    await this._writeLib((await this._readLib()).filter(s => s.id !== id));
+    delete this._dirReady[id];
+    if (this.currentId === id) this.currentId = null;
+  }
+
+  async touchOpened(id) {
+    const lib = await this._readLib();
+    const e = lib.find(s => s.id === id);
+    if (e) { e.lastOpened = new Date().toISOString(); await this._writeLib(lib); }
+  }
+
+  // ---- canonical (scoped to currentId) ----
+  async loadSeason() {
+    if (!this._ok() || !this.currentId) return null;
+    if (await this._exists(this._seasonFile(this.currentId))) return this._readJson(this._seasonFile(this.currentId));
     return null;
   }
   async saveSeason(data) {
-    if (!this._ok()) return false;
+    if (!this._ok() || !this.currentId) return false;
     try {
-      await this.fs.writeTextFile(this.SEASON, JSON.stringify(data, null, 2), { baseDir: this.baseDir });
+      await this._ensureSeasonDir(this.currentId);
+      await this._writeJson(this._seasonFile(this.currentId), data);
+      await this._touchMeta(data);
       return true;
     } catch (e) { return false; }
   }
-
-  async _ensureBackups() {
-    if (this._backupsReady) return;
-    try {
-      if (!(await this.fs.exists(this.BACKUPS, { baseDir: this.baseDir })))
-        await this.fs.mkdir(this.BACKUPS, { baseDir: this.baseDir, recursive: true });
-      this._backupsReady = true;
-    } catch (e) {}
+  async _touchMeta(data) {
+    const lib = await this._readLib();
+    const i = lib.findIndex(s => s.id === this.currentId);
+    if (i < 0) return;
+    const m = this._seasonMeta(this.currentId, data);
+    lib[i] = { ...lib[i], ...m, created: lib[i].created, lastOpened: lib[i].lastOpened };
+    await this._writeLib(lib);
   }
+
+  // ---- backup ring (scoped to currentId) ----
   async createBackup(data, label) {
-    if (!this._ok()) return null;
+    if (!this._ok() || !this.currentId) return null;
     const json = JSON.stringify(data);
     if (this._lastBackupJson && this._lastBackupJson === json) return null;
-    await this._ensureBackups();
+    await this._ensureSeasonDir(this.currentId);
     const id = `season_${this._tsSlug()}.json`;
     const meta = this._meta(data, label);
     meta.id = id;
     const payload = JSON.stringify({ ...meta, data }, null, 2);
-    try { await this.fs.writeTextFile(`${this.BACKUPS}/${id}`, payload, { baseDir: this.baseDir }); }
+    try { await this.fs.writeTextFile(`${this._backupsDir(this.currentId)}/${id}`, payload, { baseDir: this.baseDir }); }
     catch (e) { return null; }
     this._lastBackupJson = json;
     await this._prune();
     return meta;
   }
   async listBackups() {
-    if (!this._ok()) return [];
-    await this._ensureBackups();
+    if (!this._ok() || !this.currentId) return [];
+    await this._ensureSeasonDir(this.currentId);
     let entries = [];
-    try { entries = await this.fs.readDir(this.BACKUPS, { baseDir: this.baseDir }); } catch (e) { return []; }
+    try { entries = await this.fs.readDir(this._backupsDir(this.currentId), { baseDir: this.baseDir }); } catch (e) { return []; }
     const out = [];
     const reads = [];
     for (const e of entries) {
       if (e.isDirectory || !/^season_.*\.json$/.test(e.name || '')) continue;
       reads.push(
-        this.fs.readTextFile(`${this.BACKUPS}/${e.name}`, { baseDir: this.baseDir })
+        this.fs.readTextFile(`${this._backupsDir(this.currentId)}/${e.name}`, { baseDir: this.baseDir })
           .then(text => {
             const rec = JSON.parse(text);
             out.push({ id: e.name, t: rec.t, label: rec.label, seasonName: rec.seasonName, games: rec.games, plays: rec.plays });
@@ -10688,24 +11161,25 @@ class TauriBackend extends StorageBackend {
     return out.sort((a, b) => (a.id < b.id ? 1 : -1));
   }
   async getBackup(id) {
-    if (!this._ok()) return null;
-    try { return JSON.parse(await this.fs.readTextFile(`${this.BACKUPS}/${id}`, { baseDir: this.baseDir })).data; }
+    if (!this._ok() || !this.currentId) return null;
+    try { return JSON.parse(await this.fs.readTextFile(`${this._backupsDir(this.currentId)}/${id}`, { baseDir: this.baseDir })).data; }
     catch (e) { return null; }
   }
   async deleteBackup(id) {
-    if (!this._ok()) return;
-    try { await this.fs.remove(`${this.BACKUPS}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
+    if (!this._ok() || !this.currentId) return;
+    try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
   }
   async _prune() {
+    if (!this.currentId) return;
     let entries = [];
-    try { entries = await this.fs.readDir(this.BACKUPS, { baseDir: this.baseDir }); } catch (e) { return; }
+    try { entries = await this.fs.readDir(this._backupsDir(this.currentId), { baseDir: this.baseDir }); } catch (e) { return; }
     const names = entries
       .filter(e => !e.isDirectory && /^season_.*\.json$/.test(e.name || ''))
       .map(e => e.name)
       .sort();
     const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
     for (const n of extra) {
-      try { await this.fs.remove(`${this.BACKUPS}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
+      try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
     }
   }
 
@@ -10713,6 +11187,31 @@ class TauriBackend extends StorageBackend {
   diskStatus() {
     return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'App data folder' : '', lastWrite: this._lastWrite };
   }
+
+  /** Absolute path of the app-data folder (where seasons live); '' if N/A. */
+  async dataDirPath() {
+    try {
+      const p = window.__TAURI__ && window.__TAURI__.path;
+      if (p && p.appDataDir) return await p.appDataDir();
+    } catch (e) {}
+    return '';
+  }
+
+  /**
+   * Open the app-data folder in the OS file manager. Returns the folder path so
+   * the caller can show it as a fallback when no opener API is available.
+   */
+  async openDataDir() {
+    if (!this._ok()) return '';
+    const dir = await this.dataDirPath();
+    const op = window.__TAURI__ && window.__TAURI__.opener;
+    try {
+      if (op && op.openPath && dir) { await op.openPath(dir); }
+      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir + this.LIB); }
+    } catch (e) { /* fall through — caller shows the path */ }
+    return dir;
+  }
+
   async writeDisk(data, opts = {}) {
     const ok = await this.saveSeason(data);
     if (opts.snapshot) await this.createBackup(data, opts.label);
@@ -10755,13 +11254,16 @@ class SeasonStore {
   constructor(backend) {
     this.SCHEMA = 5;
     this.data = null;
+    this.currentSeasonId = null;
     this.backend = backend || detectBackend();
     this._diskTimer = null;
   }
 
   // ---- lifecycle -----------------------------------------------------------
 
+  /** Reload the current season's data from storage (after one is selected). */
   async load() {
+    if (!this.currentSeasonId) return null;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(); } catch (e) {}
     this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
@@ -10772,14 +11274,15 @@ class SeasonStore {
     const g = this.blankGame();
     return {
       version: this.SCHEMA, type: 'season',
-      seasonName: '', teamProfile: {}, roster: [],
+      id: '', seasonName: '', team: '', year: '', level: '',
+      teamProfile: {}, roster: [],
       games: [g], activeGameId: g.id,
     };
   }
 
   blankGame() {
     return {
-      id: this._newId(), name: 'New Game',
+      id: this._newId(), name: 'New Game', status: 'active',
       gameInfo: {}, plays: [], annotations: [],
       nextId: 1, currentPlayId: null,
       videoFileName: null, clipNames: [], isMultiClip: false,
@@ -10798,6 +11301,7 @@ class SeasonStore {
       g.annotations = g.annotations || [];
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
+      if (!g.status) g.status = 'active';
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;
@@ -10805,8 +11309,58 @@ class SeasonStore {
     d.teamProfile = d.teamProfile || {};
     d.roster = Array.isArray(d.roster) ? d.roster : [];
     d.seasonName = d.seasonName || '';
+    d.team = d.team || (d.teamProfile && d.teamProfile.teamName) || '';
+    d.year = d.year || '';
+    d.level = d.level || '';
     return d;
   }
+
+  // ---- season library (multi-season front door) ----------------------------
+
+  /** True once a season is open and its data is loaded. */
+  hasCurrent() { return !!this.currentSeasonId && !!this.data; }
+
+  /** List all seasons in the library (metas only — does not load any). */
+  async listSeasons() { return this.backend.listSeasons(); }
+
+  /**
+   * Create a brand-new season from {name, team, year, level}, make it current,
+   * and seed it with one empty game. Returns the library meta.
+   */
+  async createSeason(meta) {
+    const rec = await this.backend.createSeason(meta || {});
+    if (!rec) return null;
+    this.currentSeasonId = rec.id;
+    this.backend.setCurrentSeason(rec.id);
+    this.data = this._empty();
+    this.data.id = rec.id;
+    this.data.seasonName = rec.name;
+    this.data.team = rec.team; this.data.year = rec.year; this.data.level = rec.level;
+    if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
+    this.persist();
+    return rec;
+  }
+
+  /** Open an existing season by id and load its data as the current season. */
+  async openSeason(id) {
+    this.backend.setCurrentSeason(id);
+    this.currentSeasonId = id;
+    let parsed = null;
+    try { parsed = await this.backend.loadSeason(); } catch (e) {}
+    this.data = (parsed && Array.isArray(parsed.games)) ? this._normalize(parsed) : this._empty();
+    this.data.id = id;
+    try { await this.backend.touchOpened(id); } catch (e) {}
+    return this.data;
+  }
+
+  /** Delete a season from the library (and clear it if it was current). */
+  async deleteSeason(id) {
+    await this.backend.deleteSeason(id);
+    if (this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+  }
+
+  /** Close the current season (back to the library, nothing loaded). */
+  closeSeason() { this.currentSeasonId = null; this.data = null; }
 
   /** Wrap a legacy single-game project object as a season game node. */
   gameFromLegacy(obj) {
@@ -10843,9 +11397,10 @@ class SeasonStore {
   updateActiveGame(gameObj) {
     const i = this.activeIndex();
     if (i < 0) return;
-    const id = this.data.games[i].id;
-    gameObj.id = id;
+    const prev = this.data.games[i];
+    gameObj.id = prev.id;
     gameObj.name = this.gameName(gameObj, i);
+    gameObj.status = gameObj.status || prev.status || 'active';
     this.data.games[i] = gameObj;
   }
 
@@ -10874,6 +11429,13 @@ class SeasonStore {
     if (this.data.games.some(g => g.id === id)) { this.data.activeGameId = id; return true; }
     return false;
   }
+
+  setGameStatus(id, status) {
+    const g = this.data.games.find(g => g.id === id);
+    if (g) g.status = status;
+  }
+
+  gameStatus(g) { return (g && g.status) || 'active'; }
 
   /** True when the active game has no plays and no identifying game info. */
   isEmptyActive() {
@@ -10951,6 +11513,10 @@ class SeasonStore {
   supportsDisk() { return this.backend.supportsDisk(); }
   diskStatus() { return this.backend.diskStatus(); }
   async restoreDiskBinding() { return this.backend.restoreDiskBinding(); }
+
+  /** Desktop only: open (or resolve) the app-data folder where the season is saved. */
+  canOpenDataDir() { return typeof this.backend.openDataDir === 'function'; }
+  async openDataDir() { return this.backend.openDataDir ? this.backend.openDataDir() : ''; }
 
   /** Bind a backup folder/target and immediately write the live file + a snapshot. */
   async bindDisk() {
@@ -11084,12 +11650,54 @@ class StorageManager {
 
   // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
 
-  /** Load the season from storage and restore its active game into the app. */
-  async initSeason() {
-    await this.seasonStore.load();
+  /**
+   * Library-first startup: do NOT auto-load any season (that was the confusing
+   * "data appears with no context" behavior). The app opens to the Season
+   * Library; a season is loaded only when the coach explicitly opens or creates
+   * one (openSeasonById / createSeason).
+   */
+  async initLibrary() {
     // Reconnect a previously-bound backup folder in the background (Chromium).
     if (this.seasonStore.restoreDiskBinding) this.seasonStore.restoreDiskBinding().catch(() => {});
+  }
+
+  /** List every season in the library (metas only). */
+  listSeasons() { return this.seasonStore.listSeasons(); }
+
+  /** Open an existing season and restore its active game into the app. */
+  async openSeasonById(id) {
+    if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    await this.seasonStore.openSeason(id);
+    this._afterSeasonLoaded();
+  }
+
+  /** Create a new season ({name, team, year, level}) and open it. */
+  async createSeason(meta) {
+    if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    const rec = await this.seasonStore.createSeason(meta);
+    this._afterSeasonLoaded();
+    return rec;
+  }
+
+  /** Delete a season; clears the editor if it was the open one. */
+  async deleteSeason(id) {
+    const wasCurrent = this.seasonStore.currentSeasonId === id;
+    await this.seasonStore.deleteSeason(id);
+    if (wasCurrent) this._clearForNewGame();
+  }
+
+  /** After a season becomes current: load its active game + refresh app UI. */
+  _afterSeasonLoaded() {
+    this._clearForNewGame();
     this._loadActiveGame();
+    const app = window.app;
+    if (app) {
+      if (app.history) app.history.init();
+      if (app.versions) app.versions.renderList();
+      if (app._updateSeasonChip) app._updateSeasonChip();
+      if (app._renderGamesPanel) app._renderGamesPanel();
+      app._finishHintShown = false;
+    }
   }
 
   /** Capture the live tagger/canvas/gameInfo state into the active game node. */
@@ -11107,6 +11715,12 @@ class StorageManager {
   _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
+    const app = window.app;
+    if (app) {
+      if (app._updateSeasonChip) app._updateSeasonChip();
+      if (app._renderGamesPanel) app._renderGamesPanel();
+      app._finishHintShown = false;
+    }
   }
 
   /** Tear down per-game UI before loading a different game. */
@@ -19119,6 +19733,9 @@ class SeasonManager {
     list.innerHTML = '';
     games.forEach((g, idx) => {
       const isActive = g.id === activeId;
+      const st = this._store();
+      const status = st.gameStatus(g);
+      const isFinal = status === 'final';
       const row = document.createElement('div');
       row.className = 'season-game-row' + (isActive ? ' season-game-current' : '');
       const u = g.gameInfo?.scoreUs;
@@ -19130,12 +19747,13 @@ class SeasonManager {
         const cls = win ? 'win' : (loss ? 'loss' : '');
         scoreLabel = `<span class="score-pill ${cls}">${u}-${t}</span>`;
       }
+      const statusBadge = isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
       const date = g.gameInfo?.date || '';
-      const label = g.name || this._store().gameName(g, idx);
+      const label = g.name || st.gameName(g, idx);
       const activeTag = isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
       row.innerHTML = `
         <div class="season-game-info" data-action="switch">
-          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${activeTag}</div>
+          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
           <div class="season-game-meta">${(g.plays || []).length} plays${date ? ' · ' + this._escape(date) : ''}${isActive ? '' : ' · click to open'}</div>
         </div>
         <button class="btn btn-sm btn-danger" data-action="remove" title="Remove this game from the season">×</button>
@@ -19526,6 +20144,148 @@ ${body}
     if (rp === 'Pass') return false;
     return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
+}
+
+// ===== season-library.js =====
+/**
+ * SeasonLibrary — the app's front door (Hudl-style team home).
+ *
+ * The app is library-first: instead of silently loading one shared save file,
+ * it opens to a Library of seasons. Each season is its own file/folder (see
+ * storage-backend.js) holding many games. The coach explicitly picks a season
+ * to open or creates a new one (year / team / level) — nothing loads with no
+ * context.
+ *
+ * This is purely the *library-level* UI (choose / create / delete a season).
+ * The within-season schedule + aggregate stats live in season-manager.js
+ * (the "Season Stats" modal), which operates on whichever season is open.
+ */
+class SeasonLibrary {
+  constructor() {
+    this.overlay = document.getElementById('libraryOverlay');
+    this.listEl = document.getElementById('libraryList');
+    this.form = document.getElementById('librarySeasonForm');
+    this._bind();
+  }
+
+  _storage() { return window.app && window.app.storage; }
+
+  _bind() {
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.closest && t.closest('#btnNewSeasonToggle')) { this._showForm(true); return; }
+      if (t.closest && t.closest('#btnNewSeasonCancel')) { this._showForm(false); return; }
+      if (t.closest && t.closest('#btnLibraryClose')) { this.hide(); return; }
+
+      const card = t.closest && t.closest('.season-card');
+      if (card) {
+        if (t.closest('[data-lib-del]')) { this._delete(card.dataset.id, card); return; }
+        this._open(card.dataset.id);
+      }
+    });
+
+    if (this.form) {
+      this.form.addEventListener('submit', (e) => { e.preventDefault(); this._create(); });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this._isOpen() && this._storage()?.seasonStore.hasCurrent()) this.hide();
+    });
+  }
+
+  _isOpen() { return this.overlay && !this.overlay.classList.contains('hidden'); }
+
+  /** Show the library (always allowed). Renders the season list. */
+  async open() {
+    if (!this.overlay) return;
+    this._showForm(false);
+    await this._render();
+    const closeBtn = document.getElementById('btnLibraryClose');
+    if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
+    this.overlay.classList.remove('hidden');
+  }
+
+  /** Hide the library — only meaningful once a season is open. */
+  hide() {
+    if (!this.overlay) return;
+    if (!this._storage()?.seasonStore.hasCurrent()) return;  // can't dismiss with nothing loaded
+    this.overlay.classList.add('hidden');
+  }
+
+  _showForm(show) {
+    if (this.form) this.form.classList.toggle('hidden', !show);
+    const toggle = document.getElementById('btnNewSeasonToggle');
+    if (toggle) toggle.classList.toggle('hidden', show);
+    if (show) setTimeout(() => document.getElementById('newSeasonYear')?.focus(), 30);
+  }
+
+  async _render() {
+    if (!this.listEl) return;
+    let seasons = [];
+    try { seasons = await this._storage().listSeasons(); } catch (e) {}
+    if (!seasons.length) {
+      this.listEl.innerHTML = `<div class="library-empty">
+        <p>No seasons yet.</p>
+        <p class="library-empty-sub">Create your first season to get started — give it a year, team, and level.</p>
+      </div>`;
+      return;
+    }
+    const currentId = this._storage().seasonStore.currentSeasonId;
+    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId)).join('');
+  }
+
+  _cardHtml(s, isCurrent) {
+    const sub = [s.year, s.level, s.team].filter(Boolean).join(' · ');
+    const last = s.lastOpened ? new Date(s.lastOpened).toLocaleDateString() : '';
+    return `<div class="season-card${isCurrent ? ' is-current' : ''}" data-id="${esc(s.id)}" title="Open this season">
+      <div class="season-card-main">
+        <div class="season-card-name">${esc(s.name || 'Untitled Season')}${isCurrent ? ' <span class="season-card-badge">Open</span>' : ''}</div>
+        ${sub ? `<div class="season-card-sub">${esc(sub)}</div>` : ''}
+        <div class="season-card-meta">${s.games || 0} game${(s.games || 0) === 1 ? '' : 's'} · ${s.plays || 0} plays${last ? ` · opened ${esc(last)}` : ''}</div>
+      </div>
+      <button class="season-card-del" data-lib-del title="Delete this season" aria-label="Delete season">✕</button>
+    </div>`;
+  }
+
+  async _create() {
+    const meta = {
+      year: val('newSeasonYear'),
+      team: val('newSeasonTeam'),
+      level: val('newSeasonLevel'),
+      name: val('newSeasonName'),
+    };
+    if (!meta.name) {
+      meta.name = [meta.year, meta.level, meta.team].filter(Boolean).join(' ').trim();
+    }
+    if (!meta.name) { alert('Give the season a year, team, or name first.'); return; }
+    await this._storage().createSeason(meta);
+    ['newSeasonYear', 'newSeasonTeam', 'newSeasonName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    this._showForm(false);
+    this.overlay.classList.add('hidden');
+  }
+
+  async _open(id) {
+    await this._storage().openSeasonById(id);
+    this.overlay.classList.add('hidden');
+  }
+
+  async _delete(id, card) {
+    const tagger = window.app && window.app.tagger;
+    const name = card?.querySelector('.season-card-name')?.textContent || 'this season';
+    const msg = `Delete "${name.replace(' Open', '')}"? This removes the season and all its games. This cannot be undone.`;
+    let ok = false;
+    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, 'Delete Season');
+    else ok = confirm(msg);
+    if (!ok) return;
+    await this._storage().deleteSeason(id);
+    await this._render();
+    if (window.app && window.app._updateSeasonChip) window.app._updateSeasonChip();
+  }
+}
+
+function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
 // ===== call-sheet-builder.js =====
@@ -20766,6 +21526,172 @@ class PlayDiagram {
   }
 }
 
+// ===== updater.js =====
+/**
+ * updater.js — In-app auto-update for the Tauri desktop build.
+ *
+ * Web build: this is a no-op. There's nothing to update — the GitHub Pages
+ * URL always serves the latest, so `init()` returns early when not running
+ * under Tauri (`window.__TAURI__` absent).
+ *
+ * Desktop build: on launch (and on demand via `check(true)`) it asks the
+ * GitHub Releases `latest.json` endpoint whether a newer signed build exists.
+ * If so, it shows a non-blocking banner — "What's new / Update & Restart /
+ * Later". "Update & Restart" downloads + installs the signed update and
+ * relaunches. Signature verification (pubkey in tauri.conf.json) is enforced
+ * by the plugin, so a tampered update is refused.
+ *
+ * APIs are reached through `window.__TAURI__` because the app runs with
+ * `withGlobalTauri: true` (no ES-module imports in the single-file bundle):
+ *   - window.__TAURI__.updater.check()  -> Update | null
+ *   - update.downloadAndInstall(onEvent)
+ *   - window.__TAURI__.process.relaunch()
+ */
+class Updater {
+  constructor() {
+    this.tauri = (typeof window !== 'undefined') ? window.__TAURI__ : null;
+    this.available = !!(this.tauri && this.tauri.updater);
+    this._busy = false;
+    this._banner = null;
+  }
+
+  /** Schedule a silent check shortly after launch (desktop only). */
+  init() {
+    if (!this.available) return;
+    // Defer so it never competes with first paint / season load.
+    setTimeout(() => { this.check(false); }, 4000);
+  }
+
+  /** Best-effort current app version (Tauri only); '' if unavailable. */
+  async _currentVersion() {
+    try {
+      if (this.tauri && this.tauri.app && this.tauri.app.getVersion) {
+        return await this.tauri.app.getVersion();
+      }
+    } catch (_) { /* ignore */ }
+    return '';
+  }
+
+  /**
+   * Check for an update.
+   * @param {boolean} manual  true when the user explicitly asked — surfaces an
+   *                          "checking" / "up to date" / error toast; false
+   *                          stays silent.
+   */
+  async check(manual = false) {
+    if (!this.available || this._busy) return;
+    if (manual) this._toast('Checking for updates…');
+    let update = null;
+    try {
+      update = await this.tauri.updater.check();
+    } catch (e) {
+      console.warn('[updater] check failed', e);
+      if (manual) this._toast('Could not check for updates. Try again later.');
+      return;
+    }
+    if (update && update.available) {
+      this._showBanner(update);
+    } else if (manual) {
+      const v = await this._currentVersion();
+      this._toast(v ? `You're on the latest version (v${v}).` : "You're on the latest version.");
+    }
+  }
+
+  _showBanner(update) {
+    this._dismiss();
+    const ver = update.version || '';
+    const notes = (update.body || '').trim();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'gi-update-banner';
+    wrap.innerHTML = `
+      <div class="gi-update-card">
+        <div class="gi-update-head">
+          <span class="gi-update-dot"></span>
+          <strong>Update available</strong>
+          <span class="gi-update-ver">v${ver}</span>
+        </div>
+        ${notes ? `<div class="gi-update-notes"></div>` : ''}
+        <div class="gi-update-progress" hidden><div class="gi-update-bar"></div></div>
+        <div class="gi-update-actions">
+          <button class="gi-update-later" type="button">Later</button>
+          <button class="gi-update-go" type="button">Update &amp; Restart</button>
+        </div>
+      </div>`;
+    if (notes) wrap.querySelector('.gi-update-notes').textContent = notes;
+
+    this._injectStyle();
+    document.body.appendChild(wrap);
+    this._banner = wrap;
+
+    wrap.querySelector('.gi-update-later').addEventListener('click', () => this._dismiss());
+    wrap.querySelector('.gi-update-go').addEventListener('click', () => this._install(update, wrap));
+  }
+
+  async _install(update, wrap) {
+    if (this._busy) return;
+    this._busy = true;
+    const goBtn = wrap.querySelector('.gi-update-go');
+    const laterBtn = wrap.querySelector('.gi-update-later');
+    const prog = wrap.querySelector('.gi-update-progress');
+    const bar = wrap.querySelector('.gi-update-bar');
+    goBtn.disabled = true; laterBtn.disabled = true;
+    goBtn.textContent = 'Downloading…';
+    prog.hidden = false;
+
+    let total = 0, got = 0;
+    try {
+      await update.downloadAndInstall((ev) => {
+        switch (ev.event) {
+          case 'Started':
+            total = (ev.data && ev.data.contentLength) || 0;
+            break;
+          case 'Progress':
+            got += (ev.data && ev.data.chunkLength) || 0;
+            if (total > 0) bar.style.width = Math.min(100, (got / total) * 100) + '%';
+            break;
+          case 'Finished':
+            bar.style.width = '100%';
+            goBtn.textContent = 'Restarting…';
+            break;
+        }
+      });
+      // Relaunch into the new version.
+      if (this.tauri.process && this.tauri.process.relaunch) {
+        await this.tauri.process.relaunch();
+      }
+    } catch (e) {
+      console.error('[updater] install failed', e);
+      this._busy = false;
+      goBtn.disabled = false; laterBtn.disabled = false;
+      goBtn.textContent = 'Update & Restart';
+      prog.hidden = true;
+      this._toast('Update failed to install. Please try again.');
+    }
+  }
+
+  _dismiss() {
+    if (this._banner && this._banner.parentNode) this._banner.parentNode.removeChild(this._banner);
+    this._banner = null;
+  }
+
+  _toast(msg) {
+    const t = document.createElement('div');
+    t.className = 'gi-update-toast';
+    t.textContent = msg;
+    this._injectStyle();
+    document.body.appendChild(t);
+    setTimeout(() => { t.classList.add('gi-show'); }, 10);
+    setTimeout(() => { t.classList.remove('gi-show'); setTimeout(() => t.remove(), 300); }, 3200);
+  }
+
+  // Styles live in css/styles.css (.gi-update-*). They must NOT be injected
+  // at runtime: Tauri nonces the page's <style>, which disables
+  // 'unsafe-inline', so a JS-inserted <style> is CSP-blocked and the banner
+  // / toast would render unstyled (invisible). No-op kept for call sites.
+  _injectStyle() {}
+}
+
 // ===== app.js =====
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
@@ -20809,6 +21735,7 @@ class App {
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
     this.season = new SeasonManager(this.stats);
+    this.library = new SeasonLibrary();
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
@@ -20878,13 +21805,390 @@ class App {
     this.canvas.on?.('annotation-added', () => this.history._updateUI());
     this.canvas.on?.('annotations-changed', () => this.history._updateUI());
 
-    // Load the season and restore its active game, then seed history. Deferred
-    // to the next tick so `window.app` (referenced by the storage bridge) is set.
+    // Library-first startup: open to the Season Library instead of silently
+    // loading a save file. Nothing loads until the coach opens/creates a season
+    // (which then seeds history via storage._afterSeasonLoaded). Deferred to the
+    // next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(async () => {
-      await this.storage.initSeason();
-      this.history.init();
-      this.versions.renderList();
+      await this.storage.initLibrary();
+      this._bindSeasonChip();
+      this._bindGamesPanel();
+      await this.library.open();
     }, 0);
+
+    // Desktop auto-update (no-op on the web build).
+    this.updater = new Updater();
+    this.updater.init();
+    this._bindUpdateCheck();
+    this._bindOpenDataFolder();
+  }
+
+  /** Wire the "Check for Updates" menu item (desktop build only). */
+  _bindUpdateCheck() {
+    const btn = document.getElementById('btnCheckUpdate');
+    const divider = document.getElementById('updateDivider');
+    if (!btn) return;
+    // Only meaningful on the Tauri desktop build; stays hidden on the web.
+    if (!this.updater.available) return;
+    btn.hidden = false;
+    if (divider) divider.hidden = false;
+    btn.addEventListener('click', () => {
+      document.getElementById('moreDropdown')?.classList.add('hidden');
+      this.updater.check(true);
+    });
+  }
+
+  /** Wire the top-bar season chip → toggles the game-switcher dropdown. */
+  _bindSeasonChip() {
+    const chip = document.getElementById('seasonChip');
+    const dropdown = document.getElementById('gameDropdown');
+    if (!chip || !dropdown) return;
+
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dropdown.classList.contains('hidden')) this._openGameDropdown();
+      else this._closeGameDropdown();
+    });
+
+    document.getElementById('btnDropdownNewGame')?.addEventListener('click', () => {
+      this._closeGameDropdown();
+      this.storage.newGame();
+      this._updateSeasonChip();
+      this.season._renderAll?.();
+    });
+    document.getElementById('btnDropdownSwitchSeason')?.addEventListener('click', () => {
+      this._closeGameDropdown();
+      this.library.open();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !chip.contains(e.target)) {
+        this._closeGameDropdown();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) this._closeGameDropdown();
+    });
+
+    this._updateSeasonChip();
+  }
+
+  _openGameDropdown() {
+    const dropdown = document.getElementById('gameDropdown');
+    if (!dropdown) return;
+    this._renderGameDropdown();
+    dropdown.classList.remove('hidden');
+  }
+
+  _closeGameDropdown() {
+    document.getElementById('gameDropdown')?.classList.add('hidden');
+  }
+
+  _renderGameDropdown() {
+    const head = document.getElementById('gameDropdownHead');
+    const list = document.getElementById('gameDropdownList');
+    const store = this.storage?.seasonStore;
+    if (!head || !list || !store?.hasCurrent()) return;
+
+    head.textContent = store.data.seasonName || 'Season';
+
+    this.storage.commitActive();
+    const games = store.gamesChrono();
+    const activeId = store.data.activeGameId;
+
+    if (!games.length) {
+      list.innerHTML = '<div style="padding:16px;text-align:center;color:rgba(255,255,255,.4)">No games yet</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    games.forEach((g, idx) => {
+      const isActive = g.id === activeId;
+      const status = store.gameStatus(g);
+      const isFinal = status === 'final';
+      const name = store.gameName(g, idx);
+      const plays = (g.plays || []).length;
+      const date = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
+      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+
+      const row = document.createElement('div');
+      row.className = 'gd-row' + (isActive ? ' is-active' : '');
+
+      let dotCls = 'dot-idle';
+      if (isActive) dotCls = 'dot-active';
+      else if (isFinal) dotCls = 'dot-final';
+
+      let badges = '';
+      if (hasScore) {
+        const uN = parseInt(u), tN = parseInt(t);
+        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
+        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
+      }
+      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
+      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+
+      let actions = '';
+      if (isActive && !isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
+
+      row.innerHTML = `
+        <div class="gd-dot ${dotCls}"></div>
+        <div class="gd-info" data-action="switch">
+          <div class="gd-name">${this._esc(name)}</div>
+          <div class="gd-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+        </div>
+        <div class="gd-badges">${badges}</div>
+        <div class="gd-actions">${actions}</div>`;
+
+      row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
+        if (!isActive) {
+          this.storage.switchToGame(g.id);
+          this._updateSeasonChip();
+          this._closeGameDropdown();
+          this.season._renderAll?.();
+        }
+      });
+
+      row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._closeGameDropdown();
+        this._finishGame();
+      });
+
+      list.appendChild(row);
+    });
+  }
+
+  /**
+   * Finish Game flow: prompt for final score if missing, mark game as Final.
+   * Reversible — the status can be cleared by re-opening and editing.
+   */
+  async _finishGame() {
+    const store = this.storage?.seasonStore;
+    if (!store?.hasCurrent()) return;
+
+    this.storage.commitActive();
+    const game = store.activeGame();
+    if (!game) return;
+
+    const gi = game.gameInfo || {};
+    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
+                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+
+    const result = await this._showFinishModal(game, hasScore);
+    if (!result) return;
+
+    if (result.scoreUs !== undefined) {
+      const usEl = document.getElementById('gameScoreUs');
+      const themEl = document.getElementById('gameScoreThem');
+      if (usEl) usEl.value = result.scoreUs;
+      if (themEl) themEl.value = result.scoreThem;
+      this._saveGameInfo();
+    }
+
+    store.setGameStatus(game.id, 'final');
+    this.storage.commitActive();
+    store.persist();
+    this._updateSeasonChip();
+    this._renderGamesPanel();
+
+    const name = store.gameName(game, store.activeIndex());
+    this.updater._toast(`"${name}" marked as Final`);
+  }
+
+  _showFinishModal(game, hasScore) {
+    return new Promise(resolve => {
+      const existing = document.getElementById('finishGameModal');
+      if (existing) existing.remove();
+
+      const name = this.storage.seasonStore.gameName(game, this.storage.seasonStore.activeIndex());
+      const gi = game.gameInfo || {};
+
+      const modal = document.createElement('div');
+      modal.id = 'finishGameModal';
+      modal.className = 'finish-game-modal';
+      modal.innerHTML = `
+        <div class="finish-game-backdrop"></div>
+        <div class="finish-game-card">
+          <h3>Finish Game: ${this._esc(name)}</h3>
+          ${hasScore
+            ? `<p>Final score: ${gi.scoreUs}-${gi.scoreThem}. Mark this game as complete?</p>`
+            : `<p>Enter the final score, then mark this game as complete.</p>
+               <div class="finish-game-scores">
+                 <label>Us <input type="number" id="finishScoreUs" value="${gi.scoreUs || ''}" min="0" placeholder="0"></label>
+                 <label>Them <input type="number" id="finishScoreThem" value="${gi.scoreThem || ''}" min="0" placeholder="0"></label>
+               </div>`}
+          <div class="finish-game-btns">
+            <button class="btn btn-sm" id="finishCancel">Cancel</button>
+            <button class="btn btn-sm btn-accent" id="finishConfirm">Mark as Final</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+
+      const close = (val) => { modal.remove(); resolve(val); };
+
+      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
+      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
+      modal.querySelector('#finishConfirm').addEventListener('click', () => {
+        if (hasScore) {
+          close({});
+        } else {
+          close({
+            scoreUs: document.getElementById('finishScoreUs')?.value || '',
+            scoreThem: document.getElementById('finishScoreThem')?.value || '',
+          });
+        }
+      });
+
+      modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close(null);
+        if (e.key === 'Enter') modal.querySelector('#finishConfirm')?.click();
+        e.stopPropagation();
+      });
+
+      if (!hasScore) setTimeout(() => document.getElementById('finishScoreUs')?.focus(), 50);
+    });
+  }
+
+  /** Refresh the season chip with the open season + active game (or hide it). */
+  _updateSeasonChip() {
+    const chip = document.getElementById('seasonChip');
+    const text = document.getElementById('seasonChipText');
+    if (!chip || !text) return;
+    const store = this.storage && this.storage.seasonStore;
+    if (!store || !store.hasCurrent()) { chip.hidden = true; return; }
+    const d = store.data;
+    const game = store.activeGame && store.activeGame();
+    const gameName = game ? store.gameName(game, store.activeIndex()) : '';
+    text.textContent = gameName ? `${d.seasonName || 'Season'} · ${gameName}` : (d.seasonName || 'Season');
+    chip.hidden = false;
+  }
+
+  // ---- Games panel (settings drawer) ----------------------------------------
+
+  _bindGamesPanel() {
+    document.getElementById('btnPanelNewGame')?.addEventListener('click', () => {
+      this.storage.newGame();
+      this._updateSeasonChip();
+      this._renderGamesPanel();
+      this.season._renderAll?.();
+    });
+  }
+
+  _renderGamesPanel() {
+    const list = document.getElementById('gamesPanelList');
+    const badge = document.getElementById('gamesBadge');
+    const store = this.storage?.seasonStore;
+    if (!list || !store?.hasCurrent()) { if (list) list.innerHTML = ''; if (badge) badge.textContent = '0'; return; }
+
+    this.storage.commitActive();
+    const games = store.gamesChrono();
+    const activeId = store.data.activeGameId;
+    if (badge) badge.textContent = String(games.length);
+
+    if (!games.length) {
+      list.innerHTML = '<div style="padding:12px;text-align:center;color:rgba(255,255,255,.4);font-size:12px">No games yet.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    games.forEach((g, idx) => {
+      const isActive = g.id === activeId;
+      const status = store.gameStatus(g);
+      const isFinal = status === 'final';
+      const name = store.gameName(g, idx);
+      const plays = (g.plays || []).length;
+      const date = g.gameInfo?.date || '';
+      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
+      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+
+      const card = document.createElement('div');
+      card.className = 'gp-card' + (isActive ? ' is-active' : '');
+
+      let badges = '';
+      if (hasScore) {
+        const uN = parseInt(u), tN = parseInt(t);
+        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
+        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
+      }
+      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
+      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+
+      let actions = '';
+      if (!isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
+      if (isActive && !isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
+      actions += `<button class="btn btn-sm btn-danger" data-action="delete" title="Remove game">Delete</button>`;
+
+      card.innerHTML = `
+        <div class="gp-card-head">
+          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(name)}</span>
+          <div class="gp-card-badges">${badges}</div>
+        </div>
+        <div class="gp-card-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+        <div class="gp-card-actions">${actions}</div>`;
+
+      card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.storage.switchToGame(g.id);
+        this._updateSeasonChip();
+        this._renderGamesPanel();
+        this.season._renderAll?.();
+      });
+
+      card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._finishGame().then(() => this._renderGamesPanel());
+      });
+
+      card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${name}" from the season? This cannot be undone.`, 'Remove');
+        if (!ok) return;
+        this.storage.removeGame(g.id);
+        this._updateSeasonChip();
+        this._renderGamesPanel();
+        this.season._renderAll?.();
+      });
+
+      list.appendChild(card);
+    });
+  }
+
+  // ---- Auto-hint: suggest finishing the game when score is entered ----------
+
+  _checkFinishHint() {
+    const store = this.storage?.seasonStore;
+    if (!store?.hasCurrent()) return;
+    const game = store.activeGame();
+    if (!game) return;
+    const gi = game.gameInfo || {};
+    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
+                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+    const isFinal = store.gameStatus(game) === 'final';
+    if (hasScore && !isFinal && !this._finishHintShown) {
+      this._finishHintShown = true;
+      this.updater._toast('Score entered — you can mark this game as Final from the season chip.');
+    }
+  }
+
+  _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /** Wire the "Open Data Folder" menu item (desktop build only). */
+  _bindOpenDataFolder() {
+    const btn = document.getElementById('btnOpenDataFolder');
+    const divider = document.getElementById('updateDivider');
+    const store = this.storage && this.storage.seasonStore;
+    if (!btn || !store || !store.canOpenDataDir || !store.canOpenDataDir()) return;
+    btn.hidden = false;
+    if (divider) divider.hidden = false;
+    btn.addEventListener('click', async () => {
+      document.getElementById('moreDropdown')?.classList.add('hidden');
+      let dir = '';
+      try { dir = await store.openDataDir(); } catch (e) {}
+      // Always surface the location (the OS file manager may also have opened).
+      if (dir) this.updater._toast(`Your seasons are saved in:\n${dir}`);
+    });
   }
 
   /** Blank every Game Info input — used when switching to a different game. */
@@ -21788,6 +23092,7 @@ class App {
     };
     this.storage._autoSave();
     this._saveTeamProfile();
+    this._checkFinishHint();
   }
 
   /**
@@ -21984,8 +23289,14 @@ class App {
       return;
     }
 
-    // 3) Nothing left to advance to.
-    this.history?._toast('Last play — all tagged');
+    // 3) Nothing left to advance to — offer to finish the game.
+    const store = this.storage?.seasonStore;
+    const activeGame = store?.activeGame();
+    if (activeGame && store.gameStatus(activeGame) !== 'final') {
+      this.history?._toast('Last play — all tagged. Finish the game from the season chip.');
+    } else {
+      this.history?._toast('Last play — all tagged');
+    }
   }
 
   _handleTagKey(e) {
