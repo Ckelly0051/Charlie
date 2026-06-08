@@ -34,8 +34,8 @@
         <h1 class="app-title">GridIron IQ</h1>
         <div class="season-chip-wrap">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
-            <button class="bc-seg bc-home" id="bcSeasons" title="All seasons (library home)" aria-label="All seasons">
-              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
+            <button class="bc-seg bc-home" id="bcHome" title="Team home">
+              <span id="bcTeamText">Team</span>
             </button>
             <span class="bc-sep">▸</span>
             <button class="bc-seg" id="bcSeason" title="Season schedule"><span id="bcSeasonText">Season</span></button>
@@ -1136,17 +1136,74 @@
       </div>
     </div>
 
-    <!-- Season Library (the app's front door) -->
+    <!-- Season Library (the app's front door — team home) -->
     <div class="library-overlay hidden" id="libraryOverlay">
       <div class="library-modal">
         <div class="library-head">
-          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub" id="libraryBrandSub">Season Library</span></div>
+          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub" id="libraryBrandSub">Team Hub</span></div>
           <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
         </div>
 
-        <!-- SEASONS LEVEL: choose / create a season -->
+        <!-- TEAM SETUP (first time only) -->
+        <div class="team-setup hidden" id="teamSetup">
+          <p class="library-intro">Welcome to GridIron IQ. Set up your team to get started.</p>
+          <div class="team-setup-fields">
+            <input type="text" id="teamSetupName" placeholder="Team name (e.g. Eagles)" maxlength="40" autocomplete="off">
+            <select id="teamSetupColor">
+              <option value="">Jersey color (optional)</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+              <option value="navy">Navy</option>
+              <option value="green">Green</option>
+              <option value="yellow">Yellow / Gold</option>
+              <option value="orange">Orange</option>
+              <option value="purple">Purple</option>
+              <option value="maroon">Maroon</option>
+              <option value="gray">Gray / Silver</option>
+              <option value="teal">Teal</option>
+            </select>
+            <button class="btn btn-accent" id="btnTeamSetupSave">Get Started</button>
+          </div>
+        </div>
+
+        <!-- TEAM HOME / SEASONS LEVEL: team card + choose / create a season -->
         <div id="librarySeasonsView">
-          <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
+          <!-- Team card (visible when team is set up) -->
+          <div class="team-card hidden" id="teamCard">
+            <div class="team-card-swatch" id="teamCardSwatch"></div>
+            <div class="team-card-info">
+              <div class="team-card-name" id="teamCardName">Team</div>
+              <div class="team-card-meta" id="teamCardMeta"></div>
+            </div>
+            <div class="team-card-actions">
+              <button class="btn btn-sm" id="btnTeamRoster" title="Manage roster">Roster</button>
+              <button class="btn btn-sm" id="btnEditTeam" title="Edit team name &amp; colors">Edit</button>
+            </div>
+          </div>
+          <!-- Inline team edit form (hidden by default) -->
+          <div class="team-edit hidden" id="teamEdit">
+            <input type="text" id="teamEditName" placeholder="Team name" maxlength="40" autocomplete="off">
+            <select id="teamEditColor">
+              <option value="">Jersey color</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+              <option value="navy">Navy</option>
+              <option value="green">Green</option>
+              <option value="yellow">Yellow / Gold</option>
+              <option value="orange">Orange</option>
+              <option value="purple">Purple</option>
+              <option value="maroon">Maroon</option>
+              <option value="gray">Gray / Silver</option>
+              <option value="teal">Teal</option>
+            </select>
+            <button class="btn btn-sm btn-accent" id="btnTeamEditSave">Save</button>
+            <button class="btn btn-sm" id="btnTeamEditCancel">Cancel</button>
+          </div>
+          <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
             <form class="library-form hidden" id="librarySeasonForm">

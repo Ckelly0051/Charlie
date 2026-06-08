@@ -1,15 +1,13 @@
 /**
- * SeasonLibrary — the app's front door (Hudl-style team home).
+ * SeasonLibrary — the app's front door (team hub).
  *
- * The app is library-first: instead of silently loading one shared save file,
- * it opens to a Library of seasons. Each season is its own file/folder (see
- * storage-backend.js) holding many games. The coach explicitly picks a season
- * to open or creates a new one (year / team / level) — nothing loads with no
- * context.
+ * The hierarchy is Team → Season → Games → Plays → Stats.
+ * The library opens to the Team Home: a team identity card (name, jersey
+ * color, roster count) with the seasons list below. Coaches start here,
+ * drill into a season (schedule), then into a game (film + tagging).
  *
- * This is purely the *library-level* UI (choose / create / delete a season).
- * The within-season schedule + aggregate stats live in season-manager.js
- * (the "Season Stats" modal), which operates on whichever season is open.
+ * First-time users see a "Set up your team" prompt before anything else.
+ * The team profile is stored in localStorage `ffa_team_profile`.
  */
 export class SeasonLibrary {
   constructor() {
@@ -21,12 +19,34 @@ export class SeasonLibrary {
 
   _storage() { return window.app && window.app.storage; }
 
+  _teamProfile() {
+    try { return JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return {}; }
+  }
+
+  _saveTeamProfile(profile) {
+    try { localStorage.setItem('ffa_team_profile', JSON.stringify(profile)); } catch (e) {}
+  }
+
+  _hasTeam() {
+    const p = this._teamProfile();
+    return !!(p.teamName);
+  }
+
   _bind() {
     document.addEventListener('click', (e) => {
       const t = e.target;
       if (t.closest && t.closest('#btnNewSeasonToggle')) { this._showForm(true); return; }
       if (t.closest && t.closest('#btnNewSeasonCancel')) { this._showForm(false); return; }
       if (t.closest && t.closest('#btnLibraryClose')) { this.hide(); return; }
+
+      // Team setup
+      if (t.closest && t.closest('#btnTeamSetupSave')) { this._saveTeamSetup(); return; }
+
+      // Team card actions
+      if (t.closest && t.closest('#btnEditTeam')) { this._showTeamEdit(true); return; }
+      if (t.closest && t.closest('#btnTeamEditSave')) { this._commitTeamEdit(); return; }
+      if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
+      if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
 
       // Schedule level (the open season's games — the spine)
       if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
@@ -52,11 +72,13 @@ export class SeasonLibrary {
 
   _isOpen() { return this.overlay && !this.overlay.classList.contains('hidden'); }
 
-  /** Show the library at the SEASONS level (choose / create a season). */
+  /** Show the library at the TEAM HOME / SEASONS level. */
   async open() {
     if (!this.overlay) return;
     this._setLevel('seasons');
     this._showForm(false);
+    this._showTeamEdit(false);
+    this._renderTeamCard();
     await this._render();
     const closeBtn = document.getElementById('btnLibraryClose');
     if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
@@ -66,7 +88,7 @@ export class SeasonLibrary {
   /** Show the library at the SCHEDULE level (the open season's games). */
   async openSchedule() {
     const store = this._storage()?.seasonStore;
-    if (!store || !store.hasCurrent()) return this.open();   // nothing open → seasons level
+    if (!store || !store.hasCurrent()) return this.open();
     if (!this.overlay) return;
     this._setLevel('schedule');
     this._renderSchedule();
@@ -82,8 +104,113 @@ export class SeasonLibrary {
     const sub = document.getElementById('libraryBrandSub');
     if (seasonsView) seasonsView.classList.toggle('hidden', level === 'schedule');
     if (scheduleView) scheduleView.classList.toggle('hidden', level !== 'schedule');
-    if (sub) sub.textContent = level === 'schedule' ? 'Schedule' : 'Season Library';
+    if (sub) {
+      if (level === 'schedule') {
+        const store = this._storage()?.seasonStore;
+        sub.textContent = store?.data?.seasonName || 'Schedule';
+      } else {
+        const profile = this._teamProfile();
+        sub.textContent = profile.teamName || 'Team Hub';
+      }
+    }
   }
+
+  // ---- Team card & setup ----
+
+  _renderTeamCard() {
+    const card = document.getElementById('teamCard');
+    const setup = document.getElementById('teamSetup');
+    const seasonsHead = document.querySelector('.team-seasons-head');
+    if (!this._hasTeam()) {
+      if (card) card.classList.add('hidden');
+      if (setup) setup.classList.remove('hidden');
+      if (seasonsHead) seasonsHead.style.display = 'none';
+      return;
+    }
+    if (setup) setup.classList.add('hidden');
+    if (seasonsHead) seasonsHead.style.display = '';
+    if (!card) return;
+
+    const profile = this._teamProfile();
+    const nameEl = document.getElementById('teamCardName');
+    const metaEl = document.getElementById('teamCardMeta');
+    const swatchEl = document.getElementById('teamCardSwatch');
+
+    if (nameEl) nameEl.textContent = profile.teamName || 'Team';
+    if (metaEl) {
+      const roster = window.app?.roster;
+      const count = roster?.players?.length || 0;
+      metaEl.textContent = count ? `${count} player${count !== 1 ? 's' : ''} on roster` : 'No roster yet';
+    }
+    if (swatchEl) {
+      swatchEl.style.background = jerseyHex(profile.jerseyColor) || 'rgba(255,255,255,.15)';
+    }
+    card.classList.remove('hidden');
+  }
+
+  _saveTeamSetup() {
+    const nameEl = document.getElementById('teamSetupName');
+    const colorEl = document.getElementById('teamSetupColor');
+    const name = nameEl?.value.trim();
+    if (!name) { nameEl?.focus(); return; }
+    const profile = { teamName: name, jerseyColor: colorEl?.value || '' };
+    this._saveTeamProfile(profile);
+    this._syncGameInfoFromTeam(profile);
+    this._renderTeamCard();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+  }
+
+  _showTeamEdit(show) {
+    const card = document.getElementById('teamCard');
+    const edit = document.getElementById('teamEdit');
+    if (card) card.classList.toggle('hidden', show);
+    if (edit) edit.classList.toggle('hidden', !show);
+    if (show) {
+      const profile = this._teamProfile();
+      const nameEl = document.getElementById('teamEditName');
+      const colorEl = document.getElementById('teamEditColor');
+      if (nameEl) nameEl.value = profile.teamName || '';
+      if (colorEl) colorEl.value = profile.jerseyColor || '';
+      setTimeout(() => nameEl?.focus(), 30);
+    }
+  }
+
+  _commitTeamEdit() {
+    const nameEl = document.getElementById('teamEditName');
+    const colorEl = document.getElementById('teamEditColor');
+    const name = nameEl?.value.trim();
+    if (!name) { nameEl?.focus(); return; }
+    const profile = { teamName: name, jerseyColor: colorEl?.value || '' };
+    this._saveTeamProfile(profile);
+    this._syncGameInfoFromTeam(profile);
+    this._showTeamEdit(false);
+    this._renderTeamCard();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+  }
+
+  _syncGameInfoFromTeam(profile) {
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
+    if (nameEl && profile.teamName) nameEl.value = profile.teamName;
+    if (colorEl && profile.jerseyColor) colorEl.value = profile.jerseyColor;
+    if (window.app?._saveGameInfo) window.app._saveGameInfo();
+  }
+
+  _openRoster() {
+    this.hide();
+    const drawer = document.getElementById('settingsDrawer');
+    const scrim = document.querySelector('.drawer-scrim');
+    const panel = document.getElementById('rosterPanel');
+    if (drawer && !drawer.classList.contains('open')) {
+      drawer.classList.add('open');
+      if (scrim) scrim.classList.add('active');
+    }
+    if (panel && panel.classList.contains('collapsed')) {
+      panel.classList.remove('collapsed');
+    }
+  }
+
+  // ---- Schedule ----
 
   /** Render the open season's games as a schedule table (the spine). */
   _renderSchedule() {
@@ -97,7 +224,7 @@ export class SeasonLibrary {
     const games = store.gamesChrono();
     const activeId = store.data.activeGameId;
     if (!games.length) {
-      body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click “+ New Game” to start tagging film.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click "+ New Game" to start tagging film.</td></tr>';
       return;
     }
     body.innerHTML = games.map((g, idx) => {
@@ -139,7 +266,7 @@ export class SeasonLibrary {
   /** Hide the library — only meaningful once a season is open. */
   hide() {
     if (!this.overlay) return;
-    if (!this._storage()?.seasonStore.hasCurrent()) return;  // can't dismiss with nothing loaded
+    if (!this._storage()?.seasonStore.hasCurrent()) return;
     this.overlay.classList.add('hidden');
   }
 
@@ -155,10 +282,12 @@ export class SeasonLibrary {
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
     if (!seasons.length) {
-      this.listEl.innerHTML = `<div class="library-empty">
-        <p>No seasons yet.</p>
-        <p class="library-empty-sub">Create your first season to get started — give it a year, team, and level.</p>
-      </div>`;
+      this.listEl.innerHTML = this._hasTeam()
+        ? `<div class="library-empty">
+            <p>No seasons yet.</p>
+            <p class="library-empty-sub">Create your first season to start tracking games and film.</p>
+          </div>`
+        : '';
       return;
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
@@ -193,13 +322,13 @@ export class SeasonLibrary {
     ['newSeasonYear', 'newSeasonTeam', 'newSeasonName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     this._showForm(false);
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
-    this.openSchedule();   // land on the (empty) schedule, ready to add a game
+    this.openSchedule();
   }
 
   async _open(id) {
     await this._storage().openSeasonById(id);
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
-    this.openSchedule();   // land on the schedule (pick a game) — not the player
+    this.openSchedule();
   }
 
   async _delete(id, card) {
@@ -220,3 +349,10 @@ function val(id) { const el = document.getElementById(id); return el ? el.value.
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
+
+const JERSEY_HEX = {
+  white: '#e8e8e8', black: '#222', red: '#cc2233', blue: '#2255cc', navy: '#1a2744',
+  green: '#228844', yellow: '#c9a227', orange: '#dd6622', purple: '#6633aa',
+  maroon: '#772233', gray: '#778899', teal: '#11887a',
+};
+function jerseyHex(v) { return JERSEY_HEX[v] || ''; }

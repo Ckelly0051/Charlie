@@ -172,18 +172,18 @@ class App {
     });
   }
 
-  /** Wire the top-bar season chip → toggles the game-switcher dropdown. */
+  /** Wire the top-bar breadcrumb → Team ▸ Season ▸ Game. */
   _bindSeasonChip() {
     const bc = document.getElementById('breadcrumb');
     const bcGame = document.getElementById('bcGame');
     const dropdown = document.getElementById('gameDropdown');
     if (!bc || !dropdown) return;
 
-    // Breadcrumb: Seasons (home) ▸ Season (schedule) ▸ Game (quick switch)
-    document.getElementById('bcSeasons')?.addEventListener('click', (e) => {
+    // Breadcrumb: Team (home) ▸ Season (schedule) ▸ Game (quick switch)
+    document.getElementById('bcHome')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this._closeGameDropdown();
-      this.library.open();             // all seasons (library home)
+      this.library.open();             // team home (seasons list)
     });
     document.getElementById('bcSeason')?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -208,7 +208,8 @@ class App {
     });
 
     document.addEventListener('click', (e) => {
-      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGame && bcGame.contains(e.target))) {
+      const bcGameEl = document.getElementById('bcGame');
+      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGameEl && bcGameEl.contains(e.target))) {
         this._closeGameDropdown();
       }
     });
@@ -406,14 +407,20 @@ class App {
     });
   }
 
-  /** Refresh the breadcrumb (Season ▸ Game) with the open season + active game. */
+  /** Refresh the breadcrumb (Team ▸ Season ▸ Game). */
   _updateSeasonChip() {
     const bc = document.getElementById('breadcrumb');
+    const teamText = document.getElementById('bcTeamText');
     const seasonText = document.getElementById('bcSeasonText');
     const gameText = document.getElementById('bcGameText');
     const gameSeg = document.getElementById('bcGame');
     const gameSep = document.getElementById('bcGameSep');
     if (!bc) return;
+
+    let profile = {};
+    try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) {}
+    if (teamText) teamText.textContent = profile.teamName || 'Team';
+
     const store = this.storage && this.storage.seasonStore;
     if (!store || !store.hasCurrent()) { bc.hidden = true; return; }
     const d = store.data;
@@ -1508,6 +1515,7 @@ class App {
         jerseyColor: (this.storage.gameInfo.jerseyColor || prev.jerseyColor || ''),
       };
       localStorage.setItem('ffa_team_profile', JSON.stringify(profile));
+      this._updateSeasonChip();
     } catch (e) { /* localStorage unavailable — ignore */ }
   }
 
