@@ -129,14 +129,13 @@ export class StorageManager {
   /** After a season becomes current: load its active game + refresh app UI. */
   _afterSeasonLoaded() {
     this._clearForNewGame();
+    // _loadActiveGame already refreshes the season chip + games panel and resets
+    // the finish hint, so only the season-level UI (history/versions) is left.
     this._loadActiveGame();
     const app = window.app;
     if (app) {
       if (app.history) app.history.init();
       if (app.versions) app.versions.renderList();
-      if (app._updateSeasonChip) app._updateSeasonChip();
-      if (app._renderGamesPanel) app._renderGamesPanel();
-      app._finishHintShown = false;
     }
   }
 

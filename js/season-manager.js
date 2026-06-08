@@ -266,9 +266,9 @@ export class SeasonManager {
     }
 
     list.innerHTML = '';
+    const st = this._store();
     games.forEach((g, idx) => {
       const isActive = g.id === activeId;
-      const st = this._store();
       const status = st.gameStatus(g);
       const isFinal = status === 'final';
       const row = document.createElement('div');
@@ -277,10 +277,10 @@ export class SeasonManager {
       const t = g.gameInfo?.scoreThem;
       let scoreLabel = '';
       if (u !== undefined && u !== '' && t !== undefined && t !== '') {
-        const win = parseInt(u) > parseInt(t);
-        const loss = parseInt(u) < parseInt(t);
+        const win = parseInt(u, 10) > parseInt(t, 10);
+        const loss = parseInt(u, 10) < parseInt(t, 10);
         const cls = win ? 'win' : (loss ? 'loss' : '');
-        scoreLabel = `<span class="score-pill ${cls}">${u}-${t}</span>`;
+        scoreLabel = `<span class="score-pill ${cls}">${this._escape(u)}-${this._escape(t)}</span>`;
       }
       const statusBadge = isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
       const date = g.gameInfo?.date || '';

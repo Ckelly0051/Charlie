@@ -201,7 +201,12 @@ class App {
       }
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) this._closeGameDropdown();
+      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+        // The dropdown owns Escape while open — don't also close the drawer /
+        // deselect the drawing tool from the other document Esc handlers.
+        e.stopImmediatePropagation();
+        this._closeGameDropdown();
+      }
     });
 
     this._updateSeasonChip();
@@ -244,7 +249,7 @@ class App {
       const plays = (g.plays || []).length;
       const date = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
       const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
-      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+      const hasScore = this._hasScore(g.gameInfo);
 
       const row = document.createElement('div');
       row.className = 'gd-row' + (isActive ? ' is-active' : '');
@@ -254,11 +259,7 @@ class App {
       else if (isFinal) dotCls = 'dot-final';
 
       let badges = '';
-      if (hasScore) {
-        const uN = parseInt(u), tN = parseInt(t);
-        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
-      }
+      if (hasScore) badges += this._scorePillHtml(u, t);
       if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
       if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
 
@@ -305,12 +306,13 @@ class App {
     const game = store.activeGame();
     if (!game) return;
 
-    const gi = game.gameInfo || {};
-    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
-                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+    const hasScore = this._hasScore(game.gameInfo);
 
     const result = await this._showFinishModal(game, hasScore);
     if (!result) return;
+    // The modal doesn't lock the app; if the coach switched games while it was
+    // open, don't finalize (or write a score into) the wrong game.
+    if (store.activeGame()?.id !== game.id) return;
 
     if (result.scoreUs !== undefined) {
       const usEl = document.getElementById('gameScoreUs');
@@ -321,10 +323,10 @@ class App {
     }
 
     store.setGameStatus(game.id, 'final');
-    this.storage.commitActive();
-    store.persist();
     this._updateSeasonChip();
-    this._renderGamesPanel();
+    this._renderGamesPanel();   // commits live state (incl. status) into the node
+    store.persist();
+    this.season._renderAll?.();
 
     const name = store.gameName(game, store.activeIndex());
     this.updater._toast(`"${name}" marked as Final`);
@@ -346,11 +348,11 @@ class App {
         <div class="finish-game-card">
           <h3>Finish Game: ${this._esc(name)}</h3>
           ${hasScore
-            ? `<p>Final score: ${gi.scoreUs}-${gi.scoreThem}. Mark this game as complete?</p>`
+            ? `<p>Final score: ${this._esc(gi.scoreUs)}-${this._esc(gi.scoreThem)}. Mark this game as complete?</p>`
             : `<p>Enter the final score, then mark this game as complete.</p>
                <div class="finish-game-scores">
-                 <label>Us <input type="number" id="finishScoreUs" value="${gi.scoreUs || ''}" min="0" placeholder="0"></label>
-                 <label>Them <input type="number" id="finishScoreThem" value="${gi.scoreThem || ''}" min="0" placeholder="0"></label>
+                 <label>Us <input type="number" id="finishScoreUs" value="${this._esc(gi.scoreUs || '')}" min="0" placeholder="0"></label>
+                 <label>Them <input type="number" id="finishScoreThem" value="${this._esc(gi.scoreThem || '')}" min="0" placeholder="0"></label>
                </div>`}
           <div class="finish-game-btns">
             <button class="btn btn-sm" id="finishCancel">Cancel</button>
@@ -360,11 +362,13 @@ class App {
 
       document.body.appendChild(modal);
 
-      const close = (val) => { modal.remove(); resolve(val); };
+      const close = (val) => {
+        document.removeEventListener('keydown', onKey, true);
+        modal.remove();
+        resolve(val);
+      };
 
-      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
-      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
-      modal.querySelector('#finishConfirm').addEventListener('click', () => {
+      const confirm = () => {
         if (hasScore) {
           close({});
         } else {
@@ -373,15 +377,31 @@ class App {
             scoreThem: document.getElementById('finishScoreThem')?.value || '',
           });
         }
-      });
+      };
 
-      modal.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') close(null);
-        if (e.key === 'Enter') modal.querySelector('#finishConfirm')?.click();
-        e.stopPropagation();
-      });
+      // Capture-phase so Esc/Enter act here first and don't leak to the game
+      // dropdown's Esc handler or the document-level tagging shortcuts (matches
+      // PlayTagger._confirmDialog). Tab is trapped inside the modal.
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(null); return; }
+        if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); confirm(); return; }
+        if (e.key === 'Tab') {
+          const f = modal.querySelectorAll('input, button');
+          if (!f.length) return;
+          const first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      };
 
-      if (!hasScore) setTimeout(() => document.getElementById('finishScoreUs')?.focus(), 50);
+      document.addEventListener('keydown', onKey, true);
+      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
+      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
+      modal.querySelector('#finishConfirm').addEventListener('click', confirm);
+
+      setTimeout(() => {
+        (document.getElementById('finishScoreUs') || modal.querySelector('#finishConfirm'))?.focus();
+      }, 50);
     });
   }
 
@@ -435,17 +455,13 @@ class App {
       const plays = (g.plays || []).length;
       const date = g.gameInfo?.date || '';
       const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
-      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+      const hasScore = this._hasScore(g.gameInfo);
 
       const card = document.createElement('div');
       card.className = 'gp-card' + (isActive ? ' is-active' : '');
 
       let badges = '';
-      if (hasScore) {
-        const uN = parseInt(u), tN = parseInt(t);
-        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
-      }
+      if (hasScore) badges += this._scorePillHtml(u, t);
       if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
       if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
 
@@ -472,7 +488,7 @@ class App {
 
       card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        this._finishGame().then(() => this._renderGamesPanel());
+        this._finishGame();   // re-renders the panel itself on success
       });
 
       card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
@@ -496,9 +512,10 @@ class App {
     if (!store?.hasCurrent()) return;
     const game = store.activeGame();
     if (!game) return;
-    const gi = game.gameInfo || {};
-    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
-                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+    // Read the live form state (this.storage.gameInfo) rather than the store
+    // node — the score is set synchronously in _saveGameInfo but only committed
+    // to the node on the debounced autosave, so the node is still stale here.
+    const hasScore = this._hasScore(this.storage.gameInfo);
     const isFinal = store.gameStatus(game) === 'final';
     if (hasScore && !isFinal && !this._finishHintShown) {
       this._finishHintShown = true;
@@ -507,6 +524,19 @@ class App {
   }
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /** True when a gameInfo carries both final-score values. */
+  _hasScore(gi) {
+    return !!(gi && gi.scoreUs !== undefined && gi.scoreUs !== '' &&
+              gi.scoreThem !== undefined && gi.scoreThem !== '');
+  }
+
+  /** Escaped W/L/T score pill shared by the dropdown + games panel. */
+  _scorePillHtml(u, t) {
+    const uN = parseInt(u, 10), tN = parseInt(t, 10);
+    const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
+    return `<span class="gd-score ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
+  }
 
   /** Wire the "Open Data Folder" menu item (desktop build only). */
   _bindOpenDataFolder() {
