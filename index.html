@@ -8351,17 +8351,28 @@ class VideoController {
     }
     this.currentFile = file;
     this.objectUrl = URL.createObjectURL(file);
+    this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
     this.video.load();
     this.fileLabel.textContent = file.name;
+    this.placeholder.classList.add('hidden');
     this._emit('file-loaded', { name: file.name });
   }
 
-  /**
-   * Unload the current video from the player without touching the source
-   * file on disk. Revokes the object URL, clears the <video> element, and
-   * brings back the placeholder so the player shows an empty state again.
-   */
+  loadUrl(url, displayName) {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this.currentFile = null;
+    this.video.crossOrigin = 'anonymous';
+    this.video.src = url;
+    this.video.load();
+    this.placeholder.classList.add('hidden');
+    this.fileLabel.textContent = displayName || 'Film';
+    this._emit('file-loaded', { name: displayName || 'Film' });
+  }
+
   unloadVideo() {
     try { this.video.pause(); } catch {}
     if (this.objectUrl) {
@@ -8370,6 +8381,7 @@ class VideoController {
     }
     this.currentFile = null;
     this.video.removeAttribute('src');
+    this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
     if (this.placeholder) this.placeholder.classList.remove('hidden');
     if (this.fileLabel) this.fileLabel.textContent = 'Drop video(s) / folder or click to load';
@@ -10712,6 +10724,13 @@ class StorageBackend {
   /** Write the live file (+ a snapshot file when snapshot:true). */
   async writeDisk(_data, _opts) { return false; }
 
+  // ---- persistent film library (desktop only) ----
+  supportsFilm() { return false; }
+  async importFilm(_gameId, _files, _onProgress) { return null; }
+  async filmUrl(_gameId, _filename) { return null; }
+  async deleteFilm(_gameId) {}
+  async listFilmFiles(_gameId) { return []; }
+
   // ---- helpers shared by implementations ----
   _meta(data, label) {
     return {
@@ -11182,6 +11201,65 @@ class TauriBackend extends StorageBackend {
       try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
     }
   }
+
+  // ---- persistent film library ----
+
+  supportsFilm() { return this._ok(); }
+
+  _filmsDir(gameId) { return `seasons/${this.currentId}/films/${gameId}`; }
+
+  async importFilm(gameId, files, onProgress) {
+    if (!this._ok() || !this.currentId) return null;
+    const dir = this._filmsDir(gameId);
+    await this.fs.mkdir(dir, { baseDir: this.baseDir, recursive: true });
+    const result = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const dest = `${dir}/${file.name}`;
+      if (await this._exists(dest)) {
+        result.push(file.name);
+        if (onProgress) onProgress(i + 1, files.length, file.name);
+        continue;
+      }
+      const buf = await file.arrayBuffer();
+      await this.fs.writeFile(dest, new Uint8Array(buf), { baseDir: this.baseDir });
+      result.push(file.name);
+      if (onProgress) onProgress(i + 1, files.length, file.name);
+    }
+    return result;
+  }
+
+  async filmUrl(gameId, filename) {
+    if (!this._ok() || !this.currentId) return null;
+    const rel = `${this._filmsDir(gameId)}/${filename}`;
+    if (!(await this._exists(rel))) return null;
+    const convert = window.__TAURI__?.core?.convertFileSrc;
+    if (!convert) return null;
+    const base = await this.dataDirPath();
+    return convert(base + rel);
+  }
+
+  async deleteFilm(gameId) {
+    if (!this._ok() || !this.currentId) return;
+    const dir = this._filmsDir(gameId);
+    try {
+      if (await this._exists(dir))
+        await this.fs.remove(dir, { baseDir: this.baseDir, recursive: true });
+    } catch (e) {}
+  }
+
+  async listFilmFiles(gameId) {
+    if (!this._ok() || !this.currentId) return [];
+    const dir = this._filmsDir(gameId);
+    try {
+      if (!(await this._exists(dir))) return [];
+      const entries = await this.fs.readDir(dir, { baseDir: this.baseDir });
+      return entries.filter(e => !e.isDirectory).map(e => e.name)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    } catch (e) { return []; }
+  }
+
+  // ---- durable disk ----
 
   supportsDisk() { return this._ok(); }
   diskStatus() {
@@ -11720,6 +11798,54 @@ class StorageManager {
       if (app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
     }
+    if (g) this._autoLoadFilm(g).catch(() => {});
+  }
+
+  async _autoLoadFilm(gameNode) {
+    const backend = this.seasonStore.backend;
+    if (!backend.supportsFilm || !backend.supportsFilm()) return;
+    try {
+      const filesOnDisk = await backend.listFilmFiles(gameNode.id);
+      if (filesOnDisk.length === 0) return;
+
+      if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
+        const clips = [];
+        for (const filename of filesOnDisk) {
+          const url = await backend.filmUrl(gameNode.id, filename);
+          if (url) clips.push({ name: filename, url });
+        }
+        if (clips.length > 0 && this.playlist) {
+          await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+          if (this.tagger.currentPlayId) {
+            this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
+          }
+          if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) {
+            this.playlist.switchToClip(0);
+          }
+        }
+      } else if (gameNode.videoFileName) {
+        const match = filesOnDisk.find(f => f === gameNode.videoFileName) || filesOnDisk[0];
+        if (match) {
+          const url = await backend.filmUrl(gameNode.id, match);
+          if (url) this.vc.loadUrl(url, match);
+        }
+      }
+    } catch (e) { /* film not available — coach can re-link manually */ }
+  }
+
+  async importFilm(files) {
+    const backend = this.seasonStore.backend;
+    if (!backend.supportsFilm || !backend.supportsFilm()) return;
+    const game = this.seasonStore.activeGame();
+    if (!game) return;
+    try {
+      await backend.importFilm(game.id, files, (done, total) => {
+        const app = window.app;
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
+      });
+    } catch (e) {
+      console.warn('Film import failed:', e);
+    }
   }
 
   /** Tear down per-game UI before loading a different game. */
@@ -11751,9 +11877,12 @@ class StorageManager {
     return this.seasonStore.activeGame();
   }
 
-  /** Remove a game; if it was active, load whichever becomes active. */
   removeGame(id) {
     const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    const backend = this.seasonStore.backend;
+    if (backend.supportsFilm && backend.supportsFilm()) {
+      backend.deleteFilm(id).catch(() => {});
+    }
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
@@ -13679,7 +13808,7 @@ class PlaylistManager {
     this.tagger = playTagger;
     this.listeners = {};
 
-    // Each entry: { id, file: File, name: string, objectUrl: string|null, duration: number|null, playId: number|null }
+    // Each entry: { id, file: File|null, name: string, assetUrl: string|null, objectUrl: string|null, duration: number|null, playId: number|null }
     this.clips = [];
     this.activeClipIndex = -1;
 
@@ -13780,34 +13909,19 @@ class PlaylistManager {
     this._emit('clips-added', { count: sorted.length, total: this.clips.length });
   }
 
-  /**
-   * Create a play entry in PlayTagger for each clip that doesn't have one yet.
-   * Uses a temporary hidden video to probe each clip's duration.
-   */
   async _autoCreatePlays() {
     for (const clip of this.clips) {
       if (clip.playId !== null) continue;
+      const source = clip.assetUrl || clip.file;
+      if (source) clip.duration = await this._probeDuration(source);
 
-      // Probe duration
-      clip.duration = await this._probeDuration(clip.file);
-
-      // Create a play entry
       const play = {
         id: this.tagger.nextId++,
         timestamp: { start: 0, end: clip.duration || 0 },
         tags: {
-          down: '',
-          distance: '',
-          formation: '',
-          playType: '',
-          runPass: '',
-          defFront: '',
-          coverage: '',
-          blitz: '',
-          result: '',
-          yardage: '',
-          hash: '',
-          custom: []
+          down: '', distance: '', formation: '', playType: '', runPass: '',
+          defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+          hash: '', custom: []
         },
         annotations: [],
         notes: '',
@@ -13824,26 +13938,62 @@ class PlaylistManager {
     this._updatePlaylistUI();
   }
 
-  /**
-   * Get a clip's video duration by briefly loading it in a hidden video element.
-   */
-  _probeDuration(file) {
+  _probeDuration(source) {
     return new Promise((resolve) => {
       const tempVideo = document.createElement('video');
       tempVideo.preload = 'metadata';
-      const url = URL.createObjectURL(file);
+      const isUrl = typeof source === 'string';
+      const url = isUrl ? source : URL.createObjectURL(source);
+      if (isUrl) tempVideo.crossOrigin = 'anonymous';
       tempVideo.src = url;
       tempVideo.addEventListener('loadedmetadata', () => {
         const dur = tempVideo.duration;
-        URL.revokeObjectURL(url);
+        if (!isUrl) URL.revokeObjectURL(url);
         tempVideo.src = '';
         resolve(dur);
       });
       tempVideo.addEventListener('error', () => {
-        URL.revokeObjectURL(url);
+        if (!isUrl) URL.revokeObjectURL(url);
         resolve(0);
       });
     });
+  }
+
+  async rehydrateFromDisk(diskFiles, plays) {
+    const nameToPlay = {};
+    for (const p of plays) {
+      if (p.clipName && !nameToPlay[p.clipName]) nameToPlay[p.clipName] = p;
+    }
+
+    const sorted = diskFiles.slice().sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+    for (const file of sorted) {
+      const displayName = file.name.replace(/\.[^.]+$/, '');
+      const entry = {
+        id: this._nextClipId++,
+        file: null,
+        name: displayName,
+        assetUrl: file.url,
+        objectUrl: null,
+        duration: null,
+        playId: null,
+      };
+
+      const play = nameToPlay[displayName];
+      if (play) {
+        entry.playId = play.id;
+        entry.duration = play.timestamp ? play.timestamp.end : null;
+        play.clipId = entry.id;
+        delete nameToPlay[displayName];
+      }
+
+      this.clips.push(entry);
+    }
+
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
   }
 
   /**
@@ -13855,17 +14005,21 @@ class PlaylistManager {
     const clip = this.clips[index];
     this.activeClipIndex = index;
 
-    // Revoke old URL if this clip had one
-    if (clip.objectUrl) {
-      URL.revokeObjectURL(clip.objectUrl);
+    if (clip.assetUrl) {
+      if (clip.objectUrl) { URL.revokeObjectURL(clip.objectUrl); clip.objectUrl = null; }
+      this.vc.currentFile = null;
+      this.vc.video.crossOrigin = 'anonymous';
+      this.vc.video.src = clip.assetUrl;
+    } else {
+      if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
+      clip.objectUrl = URL.createObjectURL(clip.file);
+      this.vc.currentFile = clip.file;
+      this.vc.video.removeAttribute('crossorigin');
+      this.vc.video.src = clip.objectUrl;
     }
-    clip.objectUrl = URL.createObjectURL(clip.file);
 
-    // Load into video player
-    this.vc.currentFile = clip.file;
-    this.vc.video.src = clip.objectUrl;
     this.vc.video.load();
-    this.vc.fileLabel.textContent = clip.file.name;
+    this.vc.fileLabel.textContent = clip.file ? clip.file.name : clip.name;
     this.vc.placeholder.classList.add('hidden');
 
     // Select the associated play in the tagger
@@ -13994,7 +14148,7 @@ class PlaylistManager {
       const name = document.createElement('span');
       name.className = 'playlist-name';
       name.textContent = clip.name;
-      name.title = clip.file.name;
+      name.title = clip.file ? clip.file.name : clip.name;
 
       const dur = document.createElement('span');
       dur.className = 'playlist-dur';
@@ -22162,7 +22316,22 @@ class App {
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  /** True when a gameInfo carries both final-score values. */
+  _showFilmImportProgress(done, total) {
+    if (done >= total) {
+      this.updater._toast('Film saved to library');
+      return;
+    }
+    let el = document.getElementById('filmImportToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'filmImportToast';
+      el.className = 'gi-update-toast gi-show';
+      document.body.appendChild(el);
+    }
+    el.textContent = `Saving film to library… ${done}/${total}`;
+    if (done >= total - 1) setTimeout(() => el.remove(), 1500);
+  }
+
   _hasScore(gi) {
     return !!(gi && gi.scoreUs !== undefined && gi.scoreUs !== '' &&
               gi.scoreThem !== undefined && gi.scoreThem !== '');
@@ -22238,12 +22407,11 @@ class App {
     // Handle file selection from top bar (single or multi)
     this.vc.on('files-selected', ({ files }) => {
       if (files.length === 1 && !this.playlist.hasClips) {
-        // Single file, no existing playlist — legacy single-video mode
         this.vc.loadFile(files[0]);
       } else {
-        // Multiple files or adding to playlist — multi-clip mode
         this.playlist.addFiles(files);
       }
+      this.storage.importFilm(files);
     });
 
     // Update timeline markers when plays change
