@@ -15,7 +15,7 @@ export class PlaylistManager {
     this.tagger = playTagger;
     this.listeners = {};
 
-    // Each entry: { id, file: File, name: string, objectUrl: string|null, duration: number|null, playId: number|null }
+    // Each entry: { id, file: File|null, name: string, assetUrl: string|null, objectUrl: string|null, duration: number|null, playId: number|null }
     this.clips = [];
     this.activeClipIndex = -1;
 
@@ -116,34 +116,19 @@ export class PlaylistManager {
     this._emit('clips-added', { count: sorted.length, total: this.clips.length });
   }
 
-  /**
-   * Create a play entry in PlayTagger for each clip that doesn't have one yet.
-   * Uses a temporary hidden video to probe each clip's duration.
-   */
   async _autoCreatePlays() {
     for (const clip of this.clips) {
       if (clip.playId !== null) continue;
+      const source = clip.assetUrl || clip.file;
+      if (source) clip.duration = await this._probeDuration(source);
 
-      // Probe duration
-      clip.duration = await this._probeDuration(clip.file);
-
-      // Create a play entry
       const play = {
         id: this.tagger.nextId++,
         timestamp: { start: 0, end: clip.duration || 0 },
         tags: {
-          down: '',
-          distance: '',
-          formation: '',
-          playType: '',
-          runPass: '',
-          defFront: '',
-          coverage: '',
-          blitz: '',
-          result: '',
-          yardage: '',
-          hash: '',
-          custom: []
+          down: '', distance: '', formation: '', playType: '', runPass: '',
+          defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+          hash: '', custom: []
         },
         annotations: [],
         notes: '',
@@ -160,26 +145,62 @@ export class PlaylistManager {
     this._updatePlaylistUI();
   }
 
-  /**
-   * Get a clip's video duration by briefly loading it in a hidden video element.
-   */
-  _probeDuration(file) {
+  _probeDuration(source) {
     return new Promise((resolve) => {
       const tempVideo = document.createElement('video');
       tempVideo.preload = 'metadata';
-      const url = URL.createObjectURL(file);
+      const isUrl = typeof source === 'string';
+      const url = isUrl ? source : URL.createObjectURL(source);
+      if (isUrl) tempVideo.crossOrigin = 'anonymous';
       tempVideo.src = url;
       tempVideo.addEventListener('loadedmetadata', () => {
         const dur = tempVideo.duration;
-        URL.revokeObjectURL(url);
+        if (!isUrl) URL.revokeObjectURL(url);
         tempVideo.src = '';
         resolve(dur);
       });
       tempVideo.addEventListener('error', () => {
-        URL.revokeObjectURL(url);
+        if (!isUrl) URL.revokeObjectURL(url);
         resolve(0);
       });
     });
+  }
+
+  async rehydrateFromDisk(diskFiles, plays) {
+    const nameToPlay = {};
+    for (const p of plays) {
+      if (p.clipName && !nameToPlay[p.clipName]) nameToPlay[p.clipName] = p;
+    }
+
+    const sorted = diskFiles.slice().sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+    for (const file of sorted) {
+      const displayName = file.name.replace(/\.[^.]+$/, '');
+      const entry = {
+        id: this._nextClipId++,
+        file: null,
+        name: displayName,
+        assetUrl: file.url,
+        objectUrl: null,
+        duration: null,
+        playId: null,
+      };
+
+      const play = nameToPlay[displayName];
+      if (play) {
+        entry.playId = play.id;
+        entry.duration = play.timestamp ? play.timestamp.end : null;
+        play.clipId = entry.id;
+        delete nameToPlay[displayName];
+      }
+
+      this.clips.push(entry);
+    }
+
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
   }
 
   /**
@@ -191,17 +212,21 @@ export class PlaylistManager {
     const clip = this.clips[index];
     this.activeClipIndex = index;
 
-    // Revoke old URL if this clip had one
-    if (clip.objectUrl) {
-      URL.revokeObjectURL(clip.objectUrl);
+    if (clip.assetUrl) {
+      if (clip.objectUrl) { URL.revokeObjectURL(clip.objectUrl); clip.objectUrl = null; }
+      this.vc.currentFile = null;
+      this.vc.video.crossOrigin = 'anonymous';
+      this.vc.video.src = clip.assetUrl;
+    } else {
+      if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
+      clip.objectUrl = URL.createObjectURL(clip.file);
+      this.vc.currentFile = clip.file;
+      this.vc.video.removeAttribute('crossorigin');
+      this.vc.video.src = clip.objectUrl;
     }
-    clip.objectUrl = URL.createObjectURL(clip.file);
 
-    // Load into video player
-    this.vc.currentFile = clip.file;
-    this.vc.video.src = clip.objectUrl;
     this.vc.video.load();
-    this.vc.fileLabel.textContent = clip.file.name;
+    this.vc.fileLabel.textContent = clip.file ? clip.file.name : clip.name;
     this.vc.placeholder.classList.add('hidden');
 
     // Select the associated play in the tagger
@@ -330,7 +355,7 @@ export class PlaylistManager {
       const name = document.createElement('span');
       name.className = 'playlist-name';
       name.textContent = clip.name;
-      name.title = clip.file.name;
+      name.title = clip.file ? clip.file.name : clip.name;
 
       const dur = document.createElement('span');
       dur.className = 'playlist-dur';

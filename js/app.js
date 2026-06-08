@@ -502,7 +502,22 @@ class App {
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  /** True when a gameInfo carries both final-score values. */
+  _showFilmImportProgress(done, total) {
+    if (done >= total) {
+      this.updater._toast('Film saved to library');
+      return;
+    }
+    let el = document.getElementById('filmImportToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'filmImportToast';
+      el.className = 'gi-update-toast gi-show';
+      document.body.appendChild(el);
+    }
+    el.textContent = `Saving film to library… ${done}/${total}`;
+    if (done >= total - 1) setTimeout(() => el.remove(), 1500);
+  }
+
   _hasScore(gi) {
     return !!(gi && gi.scoreUs !== undefined && gi.scoreUs !== '' &&
               gi.scoreThem !== undefined && gi.scoreThem !== '');
@@ -578,12 +593,11 @@ class App {
     // Handle file selection from top bar (single or multi)
     this.vc.on('files-selected', ({ files }) => {
       if (files.length === 1 && !this.playlist.hasClips) {
-        // Single file, no existing playlist — legacy single-video mode
         this.vc.loadFile(files[0]);
       } else {
-        // Multiple files or adding to playlist — multi-clip mode
         this.playlist.addFiles(files);
       }
+      this.storage.importFilm(files);
     });
 
     // Update timeline markers when plays change

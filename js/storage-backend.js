@@ -61,6 +61,13 @@ export class StorageBackend {
   /** Write the live file (+ a snapshot file when snapshot:true). */
   async writeDisk(_data, _opts) { return false; }
 
+  // ---- persistent film library (desktop only) ----
+  supportsFilm() { return false; }
+  async importFilm(_gameId, _files, _onProgress) { return null; }
+  async filmUrl(_gameId, _filename) { return null; }
+  async deleteFilm(_gameId) {}
+  async listFilmFiles(_gameId) { return []; }
+
   // ---- helpers shared by implementations ----
   _meta(data, label) {
     return {
@@ -531,6 +538,65 @@ export class TauriBackend extends StorageBackend {
       try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${n}`, { baseDir: this.baseDir }); } catch (e) {}
     }
   }
+
+  // ---- persistent film library ----
+
+  supportsFilm() { return this._ok(); }
+
+  _filmsDir(gameId) { return `seasons/${this.currentId}/films/${gameId}`; }
+
+  async importFilm(gameId, files, onProgress) {
+    if (!this._ok() || !this.currentId) return null;
+    const dir = this._filmsDir(gameId);
+    await this.fs.mkdir(dir, { baseDir: this.baseDir, recursive: true });
+    const result = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const dest = `${dir}/${file.name}`;
+      if (await this._exists(dest)) {
+        result.push(file.name);
+        if (onProgress) onProgress(i + 1, files.length, file.name);
+        continue;
+      }
+      const buf = await file.arrayBuffer();
+      await this.fs.writeFile(dest, new Uint8Array(buf), { baseDir: this.baseDir });
+      result.push(file.name);
+      if (onProgress) onProgress(i + 1, files.length, file.name);
+    }
+    return result;
+  }
+
+  async filmUrl(gameId, filename) {
+    if (!this._ok() || !this.currentId) return null;
+    const rel = `${this._filmsDir(gameId)}/${filename}`;
+    if (!(await this._exists(rel))) return null;
+    const convert = window.__TAURI__?.core?.convertFileSrc;
+    if (!convert) return null;
+    const base = await this.dataDirPath();
+    return convert(base + rel);
+  }
+
+  async deleteFilm(gameId) {
+    if (!this._ok() || !this.currentId) return;
+    const dir = this._filmsDir(gameId);
+    try {
+      if (await this._exists(dir))
+        await this.fs.remove(dir, { baseDir: this.baseDir, recursive: true });
+    } catch (e) {}
+  }
+
+  async listFilmFiles(gameId) {
+    if (!this._ok() || !this.currentId) return [];
+    const dir = this._filmsDir(gameId);
+    try {
+      if (!(await this._exists(dir))) return [];
+      const entries = await this.fs.readDir(dir, { baseDir: this.baseDir });
+      return entries.filter(e => !e.isDirectory).map(e => e.name)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    } catch (e) { return []; }
+  }
+
+  // ---- durable disk ----
 
   supportsDisk() { return this._ok(); }
   diskStatus() {

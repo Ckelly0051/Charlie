@@ -194,17 +194,28 @@ export class VideoController {
     }
     this.currentFile = file;
     this.objectUrl = URL.createObjectURL(file);
+    this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
     this.video.load();
     this.fileLabel.textContent = file.name;
+    this.placeholder.classList.add('hidden');
     this._emit('file-loaded', { name: file.name });
   }
 
-  /**
-   * Unload the current video from the player without touching the source
-   * file on disk. Revokes the object URL, clears the <video> element, and
-   * brings back the placeholder so the player shows an empty state again.
-   */
+  loadUrl(url, displayName) {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this.currentFile = null;
+    this.video.crossOrigin = 'anonymous';
+    this.video.src = url;
+    this.video.load();
+    this.placeholder.classList.add('hidden');
+    this.fileLabel.textContent = displayName || 'Film';
+    this._emit('file-loaded', { name: displayName || 'Film' });
+  }
+
   unloadVideo() {
     try { this.video.pause(); } catch {}
     if (this.objectUrl) {
@@ -213,6 +224,7 @@ export class VideoController {
     }
     this.currentFile = null;
     this.video.removeAttribute('src');
+    this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
     if (this.placeholder) this.placeholder.classList.remove('hidden');
     if (this.fileLabel) this.fileLabel.textContent = 'Drop video(s) / folder or click to load';

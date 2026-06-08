@@ -160,6 +160,54 @@ export class StorageManager {
       if (app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
     }
+    if (g) this._autoLoadFilm(g).catch(() => {});
+  }
+
+  async _autoLoadFilm(gameNode) {
+    const backend = this.seasonStore.backend;
+    if (!backend.supportsFilm || !backend.supportsFilm()) return;
+    try {
+      const filesOnDisk = await backend.listFilmFiles(gameNode.id);
+      if (filesOnDisk.length === 0) return;
+
+      if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
+        const clips = [];
+        for (const filename of filesOnDisk) {
+          const url = await backend.filmUrl(gameNode.id, filename);
+          if (url) clips.push({ name: filename, url });
+        }
+        if (clips.length > 0 && this.playlist) {
+          await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+          if (this.tagger.currentPlayId) {
+            this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
+          }
+          if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) {
+            this.playlist.switchToClip(0);
+          }
+        }
+      } else if (gameNode.videoFileName) {
+        const match = filesOnDisk.find(f => f === gameNode.videoFileName) || filesOnDisk[0];
+        if (match) {
+          const url = await backend.filmUrl(gameNode.id, match);
+          if (url) this.vc.loadUrl(url, match);
+        }
+      }
+    } catch (e) { /* film not available — coach can re-link manually */ }
+  }
+
+  async importFilm(files) {
+    const backend = this.seasonStore.backend;
+    if (!backend.supportsFilm || !backend.supportsFilm()) return;
+    const game = this.seasonStore.activeGame();
+    if (!game) return;
+    try {
+      await backend.importFilm(game.id, files, (done, total) => {
+        const app = window.app;
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
+      });
+    } catch (e) {
+      console.warn('Film import failed:', e);
+    }
   }
 
   /** Tear down per-game UI before loading a different game. */
@@ -191,9 +239,12 @@ export class StorageManager {
     return this.seasonStore.activeGame();
   }
 
-  /** Remove a game; if it was active, load whichever becomes active. */
   removeGame(id) {
     const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    const backend = this.seasonStore.backend;
+    if (backend.supportsFilm && backend.supportsFilm()) {
+      backend.deleteFilm(id).catch(() => {});
+    }
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
