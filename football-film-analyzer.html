@@ -16645,12 +16645,16 @@ class StatsEngine {
       // listed jersey #. A play with 2+ tacklers marks each as an assist.
       const tacklerIds = StatsEngine.splitPlayers(players.tackler);
       const shared = tacklerIds.length > 1;
+      const isDefPlay = p.tags.unit === 'defense';
       tacklerIds.forEach(id => {
-        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0 };
+        if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
         tacklers[id].tackles++;
         if (shared) tacklers[id].assists++; else tacklers[id].solo++;
         if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
         if (yds < 0) tacklers[id].tfl++;
+        // Defensive takeaways credited to the defender(s) on the play.
+        if (isDefPlay && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
+        if (isDefPlay && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
         if (p.tags.grades?.tackler != null) {
           if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
           if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -16705,7 +16709,6 @@ class StatsEngine {
               ${this._renderConversions(stats)}
               ${this._renderBigPlays(stats)}
               ${this._renderGameFlow(stats)}
-              ${this._renderIndividualStats(stats)}
             </div>
             <div class="stats-tab-pane" data-pane="offense">
               ${this._renderPlayAction(stats)}
@@ -16718,9 +16721,12 @@ class StatsEngine {
               ${this.heatMaps.render(stats.offPlays)}
               ${Visualizations.render(stats.offPlays)}
               ${this._renderAdvanced(stats)}
+              ${this._renderIndividualStats(stats, 'offense')}
+              ${this._renderIndividualStats(stats, 'special')}
             </div>
             <div class="stats-tab-pane" data-pane="defense">
               ${defBody}
+              ${this._renderIndividualStats(stats, 'defense')}
             </div>
             <div class="stats-tab-pane" data-pane="selfscout">
               ${selfScout}
@@ -17678,9 +17684,20 @@ class StatsEngine {
     return roster ? roster.getLabel(num) : `#${num}`;
   }
 
-  _renderIndividualStats(stats) {
+  /**
+   * Render the box-score individual tables. `group` scopes which tables show so
+   * they can live under the relevant dashboard tab:
+   *   'offense' → rushing / passing / receiving
+   *   'defense' → tackles (incl. INTs + fumbles recovered)
+   *   'special' → return game / kicking-punting
+   *   'all'     → everything (used by exports)
+   */
+  _renderIndividualStats(stats, group = 'all') {
     const ind = stats.individuals;
     let html = '';
+    const showOff = group === 'all' || group === 'offense';
+    const showDef = group === 'all' || group === 'defense';
+    const showST = group === 'all' || group === 'special';
 
     const fmtGrade = (r) => {
       if (!r.gradeCount) return '—';
@@ -17694,7 +17711,7 @@ class StatsEngine {
       return avg > 0 ? 'grade-pos' : avg < 0 ? 'grade-neg' : '';
     };
 
-    if (ind.rushers.length > 0) {
+    if (showOff && ind.rushers.length > 0) {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
@@ -17710,7 +17727,7 @@ class StatsEngine {
         </div>`;
     }
 
-    if (ind.passers.length > 0) {
+    if (showOff && ind.passers.length > 0) {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
@@ -17726,7 +17743,7 @@ class StatsEngine {
         </div>`;
     }
 
-    if (ind.receivers.length > 0) {
+    if (showOff && ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
         rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
@@ -17741,22 +17758,22 @@ class StatsEngine {
         </div>`;
     }
 
-    if (ind.tacklers.length > 0) {
+    if (showDef && ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td>${t.ints || 0}</td><td>${t.fumblesRec || 0}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
           <h3>Individual Tackles</h3>
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>Grade</th></tr></thead>
+            <thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>INT</th><th>FR</th><th>Grade</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>`;
     }
 
-    if (ind.returners && ind.returners.length > 0) {
+    if (showST && ind.returners && ind.returners.length > 0) {
       let rows = '';
       for (const r of ind.returners) {
         const avg = r.returns ? (r.yards / r.returns).toFixed(1) : '0.0';
@@ -17772,7 +17789,7 @@ class StatsEngine {
         </div>`;
     }
 
-    if (ind.kickers && ind.kickers.length > 0) {
+    if (showST && ind.kickers && ind.kickers.length > 0) {
       let rows = '';
       for (const k of ind.kickers) {
         const fg = k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—';
@@ -18379,8 +18396,8 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
       body += '</tbody></table>';
     }
     if (ind.tacklers.length) {
-      body += '<h3>Individual Tackles</h3><table><thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th></tr></thead><tbody>';
-      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabel(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td></tr>`; });
+      body += '<h3>Individual Tackles</h3><table><thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>INT</th><th>FR</th></tr></thead><tbody>';
+      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabel(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td><td>${tv.ints || 0}</td><td>${tv.fumblesRec || 0}</td></tr>`; });
       body += '</tbody></table>';
     }
 
