@@ -6634,6 +6634,36 @@ body {
 .sch-row:hover .sch-open-link { text-decoration: underline; }
 .sch-empty { text-align: center; color: #9fb1c9; padding: 28px 10px; }
 
+/* Team card (library home — above seasons list) */
+.team-card { display: flex; align-items: center; gap: 14px;
+  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
+.team-card.hidden { display: none; }
+.team-card-swatch { width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto;
+  border: 2px solid rgba(255,255,255,.15); }
+.team-card-info { flex: 1; min-width: 0; }
+.team-card-name { font-size: 18px; font-weight: 700; color: #fff; }
+.team-card-meta { font-size: 12px; color: #6f8197; margin-top: 2px; }
+.team-card-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.team-seasons-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  color: #6f8197; margin: 18px 0 10px; }
+
+/* Team setup (first time) */
+.team-setup { padding: 20px 0 8px; }
+.team-setup.hidden { display: none; }
+.team-setup-fields { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.team-setup-fields input, .team-setup-fields select { background: #161e2b; border: 1px solid #2c3a52;
+  color: #e6edf3; border-radius: 8px; padding: 10px 12px; font-size: 14px; min-width: 0; flex: 1; }
+.team-setup-fields input:focus, .team-setup-fields select:focus { outline: none; border-color: #c9a227; }
+.team-setup-fields .btn { flex: 0 0 auto; }
+
+/* Inline team edit */
+.team-edit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
+.team-edit.hidden { display: none; }
+.team-edit input, .team-edit select { background: #161e2b; border: 1px solid #2c3a52;
+  color: #e6edf3; border-radius: 8px; padding: 9px 11px; font-size: 14px; min-width: 0; flex: 1; }
+.team-edit input:focus, .team-edit select:focus { outline: none; border-color: #c9a227; }
+
 /* Season context chip (lives in the light top bar) */
 .season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
 .season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
@@ -6653,8 +6683,7 @@ body {
   font-size: 13px; font-weight: 600; cursor: pointer; max-width: 240px; transition: background .12s; }
 .bc-seg:hover { background: rgba(47,109,240,.2); }
 .bc-seg > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bc-home { padding: 5px 9px; }
-.bc-home .icon { width: 14px; height: 14px; }
+.bc-home { padding: 5px 11px; font-weight: 700; }
 .bc-game { background: rgba(6,182,212,.1); border-color: rgba(6,182,212,.4); color: #0e7490; }
 .bc-game:hover { background: rgba(6,182,212,.2); }
 .bc-sep { color: rgba(15,23,42,.35); font-size: 11px; flex: 0 0 auto; }
@@ -6942,8 +6971,8 @@ body {
         <h1 class="app-title">GridIron IQ</h1>
         <div class="season-chip-wrap">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
-            <button class="bc-seg bc-home" id="bcSeasons" title="All seasons (library home)" aria-label="All seasons">
-              <svg class="icon"><use href="#icon-folder"/></svg>
+            <button class="bc-seg bc-home" id="bcHome" title="Team home">
+              <span id="bcTeamText">Team</span>
             </button>
             <span class="bc-sep">▸</span>
             <button class="bc-seg" id="bcSeason" title="Season schedule"><span id="bcSeasonText">Season</span></button>
@@ -8044,17 +8073,74 @@ body {
       </div>
     </div>
 
-    <!-- Season Library (the app's front door) -->
+    <!-- Season Library (the app's front door — team home) -->
     <div class="library-overlay hidden" id="libraryOverlay">
       <div class="library-modal">
         <div class="library-head">
-          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub" id="libraryBrandSub">Season Library</span></div>
+          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub" id="libraryBrandSub">Team Hub</span></div>
           <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
         </div>
 
-        <!-- SEASONS LEVEL: choose / create a season -->
+        <!-- TEAM SETUP (first time only) -->
+        <div class="team-setup hidden" id="teamSetup">
+          <p class="library-intro">Welcome to GridIron IQ. Set up your team to get started.</p>
+          <div class="team-setup-fields">
+            <input type="text" id="teamSetupName" placeholder="Team name (e.g. Eagles)" maxlength="40" autocomplete="off">
+            <select id="teamSetupColor">
+              <option value="">Jersey color (optional)</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+              <option value="navy">Navy</option>
+              <option value="green">Green</option>
+              <option value="yellow">Yellow / Gold</option>
+              <option value="orange">Orange</option>
+              <option value="purple">Purple</option>
+              <option value="maroon">Maroon</option>
+              <option value="gray">Gray / Silver</option>
+              <option value="teal">Teal</option>
+            </select>
+            <button class="btn btn-accent" id="btnTeamSetupSave">Get Started</button>
+          </div>
+        </div>
+
+        <!-- TEAM HOME / SEASONS LEVEL: team card + choose / create a season -->
         <div id="librarySeasonsView">
-          <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
+          <!-- Team card (visible when team is set up) -->
+          <div class="team-card hidden" id="teamCard">
+            <div class="team-card-swatch" id="teamCardSwatch"></div>
+            <div class="team-card-info">
+              <div class="team-card-name" id="teamCardName">Team</div>
+              <div class="team-card-meta" id="teamCardMeta"></div>
+            </div>
+            <div class="team-card-actions">
+              <button class="btn btn-sm" id="btnTeamRoster" title="Manage roster">Roster</button>
+              <button class="btn btn-sm" id="btnEditTeam" title="Edit team name &amp; colors">Edit</button>
+            </div>
+          </div>
+          <!-- Inline team edit form (hidden by default) -->
+          <div class="team-edit hidden" id="teamEdit">
+            <input type="text" id="teamEditName" placeholder="Team name" maxlength="40" autocomplete="off">
+            <select id="teamEditColor">
+              <option value="">Jersey color</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+              <option value="navy">Navy</option>
+              <option value="green">Green</option>
+              <option value="yellow">Yellow / Gold</option>
+              <option value="orange">Orange</option>
+              <option value="purple">Purple</option>
+              <option value="maroon">Maroon</option>
+              <option value="gray">Gray / Silver</option>
+              <option value="teal">Teal</option>
+            </select>
+            <button class="btn btn-sm btn-accent" id="btnTeamEditSave">Save</button>
+            <button class="btn btn-sm" id="btnTeamEditCancel">Cancel</button>
+          </div>
+          <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
             <form class="library-form hidden" id="librarySeasonForm">
@@ -20489,17 +20575,15 @@ ${body}
 
 // ===== season-library.js =====
 /**
- * SeasonLibrary — the app's front door (Hudl-style team home).
+ * SeasonLibrary — the app's front door (team hub).
  *
- * The app is library-first: instead of silently loading one shared save file,
- * it opens to a Library of seasons. Each season is its own file/folder (see
- * storage-backend.js) holding many games. The coach explicitly picks a season
- * to open or creates a new one (year / team / level) — nothing loads with no
- * context.
+ * The hierarchy is Team → Season → Games → Plays → Stats.
+ * The library opens to the Team Home: a team identity card (name, jersey
+ * color, roster count) with the seasons list below. Coaches start here,
+ * drill into a season (schedule), then into a game (film + tagging).
  *
- * This is purely the *library-level* UI (choose / create / delete a season).
- * The within-season schedule + aggregate stats live in season-manager.js
- * (the "Season Stats" modal), which operates on whichever season is open.
+ * First-time users see a "Set up your team" prompt before anything else.
+ * The team profile is stored in localStorage `ffa_team_profile`.
  */
 class SeasonLibrary {
   constructor() {
@@ -20511,12 +20595,34 @@ class SeasonLibrary {
 
   _storage() { return window.app && window.app.storage; }
 
+  _teamProfile() {
+    try { return JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return {}; }
+  }
+
+  _saveTeamProfile(profile) {
+    try { localStorage.setItem('ffa_team_profile', JSON.stringify(profile)); } catch (e) {}
+  }
+
+  _hasTeam() {
+    const p = this._teamProfile();
+    return !!(p.teamName);
+  }
+
   _bind() {
     document.addEventListener('click', (e) => {
       const t = e.target;
       if (t.closest && t.closest('#btnNewSeasonToggle')) { this._showForm(true); return; }
       if (t.closest && t.closest('#btnNewSeasonCancel')) { this._showForm(false); return; }
       if (t.closest && t.closest('#btnLibraryClose')) { this.hide(); return; }
+
+      // Team setup
+      if (t.closest && t.closest('#btnTeamSetupSave')) { this._saveTeamSetup(); return; }
+
+      // Team card actions
+      if (t.closest && t.closest('#btnEditTeam')) { this._showTeamEdit(true); return; }
+      if (t.closest && t.closest('#btnTeamEditSave')) { this._commitTeamEdit(); return; }
+      if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
+      if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
 
       // Schedule level (the open season's games — the spine)
       if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
@@ -20542,11 +20648,13 @@ class SeasonLibrary {
 
   _isOpen() { return this.overlay && !this.overlay.classList.contains('hidden'); }
 
-  /** Show the library at the SEASONS level (choose / create a season). */
+  /** Show the library at the TEAM HOME / SEASONS level. */
   async open() {
     if (!this.overlay) return;
     this._setLevel('seasons');
     this._showForm(false);
+    this._showTeamEdit(false);
+    this._renderTeamCard();
     await this._render();
     const closeBtn = document.getElementById('btnLibraryClose');
     if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
@@ -20556,7 +20664,7 @@ class SeasonLibrary {
   /** Show the library at the SCHEDULE level (the open season's games). */
   async openSchedule() {
     const store = this._storage()?.seasonStore;
-    if (!store || !store.hasCurrent()) return this.open();   // nothing open → seasons level
+    if (!store || !store.hasCurrent()) return this.open();
     if (!this.overlay) return;
     this._setLevel('schedule');
     this._renderSchedule();
@@ -20572,8 +20680,113 @@ class SeasonLibrary {
     const sub = document.getElementById('libraryBrandSub');
     if (seasonsView) seasonsView.classList.toggle('hidden', level === 'schedule');
     if (scheduleView) scheduleView.classList.toggle('hidden', level !== 'schedule');
-    if (sub) sub.textContent = level === 'schedule' ? 'Schedule' : 'Season Library';
+    if (sub) {
+      if (level === 'schedule') {
+        const store = this._storage()?.seasonStore;
+        sub.textContent = store?.data?.seasonName || 'Schedule';
+      } else {
+        const profile = this._teamProfile();
+        sub.textContent = profile.teamName || 'Team Hub';
+      }
+    }
   }
+
+  // ---- Team card & setup ----
+
+  _renderTeamCard() {
+    const card = document.getElementById('teamCard');
+    const setup = document.getElementById('teamSetup');
+    const seasonsHead = document.querySelector('.team-seasons-head');
+    if (!this._hasTeam()) {
+      if (card) card.classList.add('hidden');
+      if (setup) setup.classList.remove('hidden');
+      if (seasonsHead) seasonsHead.style.display = 'none';
+      return;
+    }
+    if (setup) setup.classList.add('hidden');
+    if (seasonsHead) seasonsHead.style.display = '';
+    if (!card) return;
+
+    const profile = this._teamProfile();
+    const nameEl = document.getElementById('teamCardName');
+    const metaEl = document.getElementById('teamCardMeta');
+    const swatchEl = document.getElementById('teamCardSwatch');
+
+    if (nameEl) nameEl.textContent = profile.teamName || 'Team';
+    if (metaEl) {
+      const roster = window.app?.roster;
+      const count = roster?.players?.length || 0;
+      metaEl.textContent = count ? `${count} player${count !== 1 ? 's' : ''} on roster` : 'No roster yet';
+    }
+    if (swatchEl) {
+      swatchEl.style.background = jerseyHex(profile.jerseyColor) || 'rgba(255,255,255,.15)';
+    }
+    card.classList.remove('hidden');
+  }
+
+  _saveTeamSetup() {
+    const nameEl = document.getElementById('teamSetupName');
+    const colorEl = document.getElementById('teamSetupColor');
+    const name = nameEl?.value.trim();
+    if (!name) { nameEl?.focus(); return; }
+    const profile = { teamName: name, jerseyColor: colorEl?.value || '' };
+    this._saveTeamProfile(profile);
+    this._syncGameInfoFromTeam(profile);
+    this._renderTeamCard();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+  }
+
+  _showTeamEdit(show) {
+    const card = document.getElementById('teamCard');
+    const edit = document.getElementById('teamEdit');
+    if (card) card.classList.toggle('hidden', show);
+    if (edit) edit.classList.toggle('hidden', !show);
+    if (show) {
+      const profile = this._teamProfile();
+      const nameEl = document.getElementById('teamEditName');
+      const colorEl = document.getElementById('teamEditColor');
+      if (nameEl) nameEl.value = profile.teamName || '';
+      if (colorEl) colorEl.value = profile.jerseyColor || '';
+      setTimeout(() => nameEl?.focus(), 30);
+    }
+  }
+
+  _commitTeamEdit() {
+    const nameEl = document.getElementById('teamEditName');
+    const colorEl = document.getElementById('teamEditColor');
+    const name = nameEl?.value.trim();
+    if (!name) { nameEl?.focus(); return; }
+    const profile = { teamName: name, jerseyColor: colorEl?.value || '' };
+    this._saveTeamProfile(profile);
+    this._syncGameInfoFromTeam(profile);
+    this._showTeamEdit(false);
+    this._renderTeamCard();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+  }
+
+  _syncGameInfoFromTeam(profile) {
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
+    if (nameEl && profile.teamName) nameEl.value = profile.teamName;
+    if (colorEl && profile.jerseyColor) colorEl.value = profile.jerseyColor;
+    if (window.app?._saveGameInfo) window.app._saveGameInfo();
+  }
+
+  _openRoster() {
+    this.hide();
+    const drawer = document.getElementById('settingsDrawer');
+    const scrim = document.querySelector('.drawer-scrim');
+    const panel = document.getElementById('rosterPanel');
+    if (drawer && !drawer.classList.contains('open')) {
+      drawer.classList.add('open');
+      if (scrim) scrim.classList.add('active');
+    }
+    if (panel && panel.classList.contains('collapsed')) {
+      panel.classList.remove('collapsed');
+    }
+  }
+
+  // ---- Schedule ----
 
   /** Render the open season's games as a schedule table (the spine). */
   _renderSchedule() {
@@ -20587,7 +20800,7 @@ class SeasonLibrary {
     const games = store.gamesChrono();
     const activeId = store.data.activeGameId;
     if (!games.length) {
-      body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click “+ New Game” to start tagging film.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click "+ New Game" to start tagging film.</td></tr>';
       return;
     }
     body.innerHTML = games.map((g, idx) => {
@@ -20629,7 +20842,7 @@ class SeasonLibrary {
   /** Hide the library — only meaningful once a season is open. */
   hide() {
     if (!this.overlay) return;
-    if (!this._storage()?.seasonStore.hasCurrent()) return;  // can't dismiss with nothing loaded
+    if (!this._storage()?.seasonStore.hasCurrent()) return;
     this.overlay.classList.add('hidden');
   }
 
@@ -20645,10 +20858,12 @@ class SeasonLibrary {
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
     if (!seasons.length) {
-      this.listEl.innerHTML = `<div class="library-empty">
-        <p>No seasons yet.</p>
-        <p class="library-empty-sub">Create your first season to get started — give it a year, team, and level.</p>
-      </div>`;
+      this.listEl.innerHTML = this._hasTeam()
+        ? `<div class="library-empty">
+            <p>No seasons yet.</p>
+            <p class="library-empty-sub">Create your first season to start tracking games and film.</p>
+          </div>`
+        : '';
       return;
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
@@ -20683,13 +20898,13 @@ class SeasonLibrary {
     ['newSeasonYear', 'newSeasonTeam', 'newSeasonName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     this._showForm(false);
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
-    this.openSchedule();   // land on the (empty) schedule, ready to add a game
+    this.openSchedule();
   }
 
   async _open(id) {
     await this._storage().openSeasonById(id);
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
-    this.openSchedule();   // land on the schedule (pick a game) — not the player
+    this.openSchedule();
   }
 
   async _delete(id, card) {
@@ -20710,6 +20925,13 @@ function val(id) { const el = document.getElementById(id); return el ? el.value.
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
+
+const JERSEY_HEX = {
+  white: '#e8e8e8', black: '#222', red: '#cc2233', blue: '#2255cc', navy: '#1a2744',
+  green: '#228844', yellow: '#c9a227', orange: '#dd6622', purple: '#6633aa',
+  maroon: '#772233', gray: '#778899', teal: '#11887a',
+};
+function jerseyHex(v) { return JERSEY_HEX[v] || ''; }
 
 // ===== call-sheet-builder.js =====
 /**
@@ -22261,18 +22483,18 @@ class App {
     });
   }
 
-  /** Wire the top-bar season chip → toggles the game-switcher dropdown. */
+  /** Wire the top-bar breadcrumb → Team ▸ Season ▸ Game. */
   _bindSeasonChip() {
     const bc = document.getElementById('breadcrumb');
     const bcGame = document.getElementById('bcGame');
     const dropdown = document.getElementById('gameDropdown');
     if (!bc || !dropdown) return;
 
-    // Breadcrumb: Seasons (home) ▸ Season (schedule) ▸ Game (quick switch)
-    document.getElementById('bcSeasons')?.addEventListener('click', (e) => {
+    // Breadcrumb: Team (home) ▸ Season (schedule) ▸ Game (quick switch)
+    document.getElementById('bcHome')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this._closeGameDropdown();
-      this.library.open();             // all seasons (library home)
+      this.library.open();             // team home (seasons list)
     });
     document.getElementById('bcSeason')?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -22297,7 +22519,8 @@ class App {
     });
 
     document.addEventListener('click', (e) => {
-      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGame && bcGame.contains(e.target))) {
+      const bcGameEl = document.getElementById('bcGame');
+      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGameEl && bcGameEl.contains(e.target))) {
         this._closeGameDropdown();
       }
     });
@@ -22495,14 +22718,20 @@ class App {
     });
   }
 
-  /** Refresh the breadcrumb (Season ▸ Game) with the open season + active game. */
+  /** Refresh the breadcrumb (Team ▸ Season ▸ Game). */
   _updateSeasonChip() {
     const bc = document.getElementById('breadcrumb');
+    const teamText = document.getElementById('bcTeamText');
     const seasonText = document.getElementById('bcSeasonText');
     const gameText = document.getElementById('bcGameText');
     const gameSeg = document.getElementById('bcGame');
     const gameSep = document.getElementById('bcGameSep');
     if (!bc) return;
+
+    let profile = {};
+    try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) {}
+    if (teamText) teamText.textContent = profile.teamName || 'Team';
+
     const store = this.storage && this.storage.seasonStore;
     if (!store || !store.hasCurrent()) { bc.hidden = true; return; }
     const d = store.data;
@@ -23597,6 +23826,7 @@ class App {
         jerseyColor: (this.storage.gameInfo.jerseyColor || prev.jerseyColor || ''),
       };
       localStorage.setItem('ffa_team_profile', JSON.stringify(profile));
+      this._updateSeasonChip();
     } catch (e) { /* localStorage unavailable — ignore */ }
   }
 
