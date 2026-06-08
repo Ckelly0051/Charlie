@@ -570,10 +570,16 @@ export class TauriBackend extends StorageBackend {
     if (!this._ok() || !this.currentId) return null;
     const rel = `${this._filmsDir(gameId)}/${filename}`;
     if (!(await this._exists(rel))) return null;
-    const convert = window.__TAURI__?.core?.convertFileSrc;
-    if (!convert) return null;
+    const tauri = window.__TAURI__;
+    const convert = tauri?.core?.convertFileSrc;
+    const join = tauri?.path?.join;
     const base = await this.dataDirPath();
-    return convert(base + rel);
+    if (!convert || !join || !base) return null;
+    // Join with the platform separator. appDataDir() has no trailing slash and
+    // Windows needs backslashes, so string concatenation produced a broken path
+    // ("…/com.gridironiq.appseasons/…") and the asset URL pointed nowhere.
+    const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
+    return convert(abs);
   }
 
   async deleteFilm(gameId) {
