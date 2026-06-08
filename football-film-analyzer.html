@@ -11689,14 +11689,13 @@ class StorageManager {
   /** After a season becomes current: load its active game + refresh app UI. */
   _afterSeasonLoaded() {
     this._clearForNewGame();
+    // _loadActiveGame already refreshes the season chip + games panel and resets
+    // the finish hint, so only the season-level UI (history/versions) is left.
     this._loadActiveGame();
     const app = window.app;
     if (app) {
       if (app.history) app.history.init();
       if (app.versions) app.versions.renderList();
-      if (app._updateSeasonChip) app._updateSeasonChip();
-      if (app._renderGamesPanel) app._renderGamesPanel();
-      app._finishHintShown = false;
     }
   }
 
@@ -19731,39 +19730,34 @@ class SeasonManager {
     }
 
     list.innerHTML = '';
+    const st = this._store();
+    const app = window.app;
     games.forEach((g, idx) => {
-      const isActive = g.id === activeId;
-      const st = this._store();
-      const status = st.gameStatus(g);
-      const isFinal = status === 'final';
+      const r = app ? app._gameRowInfo(g, idx, st, activeId) : {
+        isActive: g.id === activeId, isFinal: false,
+        name: g.name || st.gameName(g, idx), plays: (g.plays || []).length,
+        date: g.gameInfo?.date || '', hasScore: false, u: '', t: ''
+      };
       const row = document.createElement('div');
-      row.className = 'season-game-row' + (isActive ? ' season-game-current' : '');
-      const u = g.gameInfo?.scoreUs;
-      const t = g.gameInfo?.scoreThem;
+      row.className = 'season-game-row' + (r.isActive ? ' season-game-current' : '');
       let scoreLabel = '';
-      if (u !== undefined && u !== '' && t !== undefined && t !== '') {
-        const win = parseInt(u) > parseInt(t);
-        const loss = parseInt(u) < parseInt(t);
-        const cls = win ? 'win' : (loss ? 'loss' : '');
-        scoreLabel = `<span class="score-pill ${cls}">${u}-${t}</span>`;
-      }
-      const statusBadge = isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
-      const date = g.gameInfo?.date || '';
-      const label = g.name || st.gameName(g, idx);
-      const activeTag = isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
+      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t, 'score-pill');
+      else if (r.hasScore) scoreLabel = `<span class="score-pill">${this._escape(r.u)}-${this._escape(r.t)}</span>`;
+      const statusBadge = r.isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
+      const activeTag = r.isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
       row.innerHTML = `
         <div class="season-game-info" data-action="switch">
-          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
-          <div class="season-game-meta">${(g.plays || []).length} plays${date ? ' · ' + this._escape(date) : ''}${isActive ? '' : ' · click to open'}</div>
+          <div class="season-game-name">Game ${idx + 1}: ${this._escape(r.name)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
+          <div class="season-game-meta">${r.plays} plays${r.date ? ' · ' + this._escape(r.date) : ''}${r.isActive ? '' : ' · click to open'}</div>
         </div>
         <button class="btn btn-sm btn-danger" data-action="remove" title="Remove this game from the season">×</button>
       `;
       row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!isActive) this.switchGame(g.id);
+        if (!r.isActive) this.switchGame(g.id);
       });
       row.querySelector('[data-action=remove]')?.addEventListener('click', async (ev) => {
         ev.stopPropagation();
-        const ok = await this._confirm(`Remove "Game ${idx + 1}: ${label}" from the season?`);
+        const ok = await this._confirm(`Remove "Game ${idx + 1}: ${r.name}" from the season?`);
         if (ok) this.removeGame(g.id);
       });
       list.appendChild(row);
@@ -21867,7 +21861,12 @@ class App {
       }
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) this._closeGameDropdown();
+      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+        // The dropdown owns Escape while open — don't also close the drawer /
+        // deselect the drawing tool from the other document Esc handlers.
+        e.stopImmediatePropagation();
+        this._closeGameDropdown();
+      }
     });
 
     this._updateSeasonChip();
@@ -21903,45 +21902,30 @@ class App {
 
     list.innerHTML = '';
     games.forEach((g, idx) => {
-      const isActive = g.id === activeId;
-      const status = store.gameStatus(g);
-      const isFinal = status === 'final';
-      const name = store.gameName(g, idx);
-      const plays = (g.plays || []).length;
-      const date = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
-      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
-      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+      const r = this._gameRowInfo(g, idx, store, activeId);
+      const shortDate = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
 
       const row = document.createElement('div');
-      row.className = 'gd-row' + (isActive ? ' is-active' : '');
+      row.className = 'gd-row' + (r.isActive ? ' is-active' : '');
 
       let dotCls = 'dot-idle';
-      if (isActive) dotCls = 'dot-active';
-      else if (isFinal) dotCls = 'dot-final';
-
-      let badges = '';
-      if (hasScore) {
-        const uN = parseInt(u), tN = parseInt(t);
-        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
-      }
-      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
-      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+      if (r.isActive) dotCls = 'dot-active';
+      else if (r.isFinal) dotCls = 'dot-final';
 
       let actions = '';
-      if (isActive && !isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
+      if (r.isActive && !r.isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
 
       row.innerHTML = `
         <div class="gd-dot ${dotCls}"></div>
         <div class="gd-info" data-action="switch">
-          <div class="gd-name">${this._esc(name)}</div>
-          <div class="gd-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+          <div class="gd-name">${this._esc(r.name)}</div>
+          <div class="gd-meta">${r.plays} play${r.plays !== 1 ? 's' : ''}${shortDate ? ' · ' + shortDate : ''}</div>
         </div>
-        <div class="gd-badges">${badges}</div>
+        <div class="gd-badges">${this._gameBadgesHtml(r)}</div>
         <div class="gd-actions">${actions}</div>`;
 
       row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!isActive) {
+        if (!r.isActive) {
           this.storage.switchToGame(g.id);
           this._updateSeasonChip();
           this._closeGameDropdown();
@@ -21971,12 +21955,13 @@ class App {
     const game = store.activeGame();
     if (!game) return;
 
-    const gi = game.gameInfo || {};
-    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
-                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+    const hasScore = this._hasScore(game.gameInfo);
 
     const result = await this._showFinishModal(game, hasScore);
     if (!result) return;
+    // The modal doesn't lock the app; if the coach switched games while it was
+    // open, don't finalize (or write a score into) the wrong game.
+    if (store.activeGame()?.id !== game.id) return;
 
     if (result.scoreUs !== undefined) {
       const usEl = document.getElementById('gameScoreUs');
@@ -21987,10 +21972,10 @@ class App {
     }
 
     store.setGameStatus(game.id, 'final');
-    this.storage.commitActive();
-    store.persist();
     this._updateSeasonChip();
-    this._renderGamesPanel();
+    this._renderGamesPanel();   // commits live state (incl. status) into the node
+    store.persist();
+    this.season._renderAll?.();
 
     const name = store.gameName(game, store.activeIndex());
     this.updater._toast(`"${name}" marked as Final`);
@@ -22012,11 +21997,11 @@ class App {
         <div class="finish-game-card">
           <h3>Finish Game: ${this._esc(name)}</h3>
           ${hasScore
-            ? `<p>Final score: ${gi.scoreUs}-${gi.scoreThem}. Mark this game as complete?</p>`
+            ? `<p>Final score: ${this._esc(gi.scoreUs)}-${this._esc(gi.scoreThem)}. Mark this game as complete?</p>`
             : `<p>Enter the final score, then mark this game as complete.</p>
                <div class="finish-game-scores">
-                 <label>Us <input type="number" id="finishScoreUs" value="${gi.scoreUs || ''}" min="0" placeholder="0"></label>
-                 <label>Them <input type="number" id="finishScoreThem" value="${gi.scoreThem || ''}" min="0" placeholder="0"></label>
+                 <label>Us <input type="number" id="finishScoreUs" value="${this._esc(gi.scoreUs || '')}" min="0" placeholder="0"></label>
+                 <label>Them <input type="number" id="finishScoreThem" value="${this._esc(gi.scoreThem || '')}" min="0" placeholder="0"></label>
                </div>`}
           <div class="finish-game-btns">
             <button class="btn btn-sm" id="finishCancel">Cancel</button>
@@ -22026,11 +22011,13 @@ class App {
 
       document.body.appendChild(modal);
 
-      const close = (val) => { modal.remove(); resolve(val); };
+      const close = (val) => {
+        document.removeEventListener('keydown', onKey, true);
+        modal.remove();
+        resolve(val);
+      };
 
-      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
-      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
-      modal.querySelector('#finishConfirm').addEventListener('click', () => {
+      const confirm = () => {
         if (hasScore) {
           close({});
         } else {
@@ -22039,15 +22026,31 @@ class App {
             scoreThem: document.getElementById('finishScoreThem')?.value || '',
           });
         }
-      });
+      };
 
-      modal.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') close(null);
-        if (e.key === 'Enter') modal.querySelector('#finishConfirm')?.click();
-        e.stopPropagation();
-      });
+      // Capture-phase so Esc/Enter act here first and don't leak to the game
+      // dropdown's Esc handler or the document-level tagging shortcuts (matches
+      // PlayTagger._confirmDialog). Tab is trapped inside the modal.
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(null); return; }
+        if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); confirm(); return; }
+        if (e.key === 'Tab') {
+          const f = modal.querySelectorAll('input, button');
+          if (!f.length) return;
+          const first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      };
 
-      if (!hasScore) setTimeout(() => document.getElementById('finishScoreUs')?.focus(), 50);
+      document.addEventListener('keydown', onKey, true);
+      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
+      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
+      modal.querySelector('#finishConfirm').addEventListener('click', confirm);
+
+      setTimeout(() => {
+        (document.getElementById('finishScoreUs') || modal.querySelector('#finishConfirm'))?.focus();
+      }, 50);
     });
   }
 
@@ -22094,38 +22097,22 @@ class App {
 
     list.innerHTML = '';
     games.forEach((g, idx) => {
-      const isActive = g.id === activeId;
-      const status = store.gameStatus(g);
-      const isFinal = status === 'final';
-      const name = store.gameName(g, idx);
-      const plays = (g.plays || []).length;
-      const date = g.gameInfo?.date || '';
-      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
-      const hasScore = u !== undefined && u !== '' && t !== undefined && t !== '';
+      const r = this._gameRowInfo(g, idx, store, activeId);
 
       const card = document.createElement('div');
-      card.className = 'gp-card' + (isActive ? ' is-active' : '');
-
-      let badges = '';
-      if (hasScore) {
-        const uN = parseInt(u), tN = parseInt(t);
-        const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-        badges += `<span class="gd-score ${cls}">${u}-${t}</span>`;
-      }
-      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
-      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+      card.className = 'gp-card' + (r.isActive ? ' is-active' : '');
 
       let actions = '';
-      if (!isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
-      if (isActive && !isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
+      if (!r.isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
+      if (r.isActive && !r.isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
       actions += `<button class="btn btn-sm btn-danger" data-action="delete" title="Remove game">Delete</button>`;
 
       card.innerHTML = `
         <div class="gp-card-head">
-          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(name)}</span>
-          <div class="gp-card-badges">${badges}</div>
+          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(r.name)}</span>
+          <div class="gp-card-badges">${this._gameBadgesHtml(r)}</div>
         </div>
-        <div class="gp-card-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+        <div class="gp-card-meta">${r.plays} play${r.plays !== 1 ? 's' : ''}${r.date ? ' · ' + r.date : ''}</div>
         <div class="gp-card-actions">${actions}</div>`;
 
       card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
@@ -22138,12 +22125,12 @@ class App {
 
       card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        this._finishGame().then(() => this._renderGamesPanel());
+        this._finishGame();
       });
 
       card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${name}" from the season? This cannot be undone.`, 'Remove');
+        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season? This cannot be undone.`, 'Remove');
         if (!ok) return;
         this.storage.removeGame(g.id);
         this._updateSeasonChip();
@@ -22162,9 +22149,10 @@ class App {
     if (!store?.hasCurrent()) return;
     const game = store.activeGame();
     if (!game) return;
-    const gi = game.gameInfo || {};
-    const hasScore = gi.scoreUs !== undefined && gi.scoreUs !== '' &&
-                     gi.scoreThem !== undefined && gi.scoreThem !== '';
+    // Read the live form state (this.storage.gameInfo) rather than the store
+    // node — the score is set synchronously in _saveGameInfo but only committed
+    // to the node on the debounced autosave, so the node is still stale here.
+    const hasScore = this._hasScore(this.storage.gameInfo);
     const isFinal = store.gameStatus(game) === 'final';
     if (hasScore && !isFinal && !this._finishHintShown) {
       this._finishHintShown = true;
@@ -22173,6 +22161,43 @@ class App {
   }
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /** True when a gameInfo carries both final-score values. */
+  _hasScore(gi) {
+    return !!(gi && gi.scoreUs !== undefined && gi.scoreUs !== '' &&
+              gi.scoreThem !== undefined && gi.scoreThem !== '');
+  }
+
+  /** Escaped W/L/T score pill. Pass a className for callers with their own CSS. */
+  _scorePillHtml(u, t, className = 'gd-score') {
+    const uN = parseInt(u, 10), tN = parseInt(t, 10);
+    const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
+    return `<span class="${className} ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
+  }
+
+  /**
+   * Derive the display fields for a game row. Called once per game per render
+   * by the dropdown, games panel, and (via SeasonManager) the season-stats list.
+   */
+  _gameRowInfo(g, idx, store, activeId) {
+    const isActive = g.id === activeId;
+    const isFinal = store.gameStatus(g) === 'final';
+    const name = store.gameName(g, idx);
+    const plays = (g.plays || []).length;
+    const date = g.gameInfo?.date || '';
+    const hasScore = this._hasScore(g.gameInfo);
+    const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
+    return { isActive, isFinal, name, plays, date, hasScore, u, t };
+  }
+
+  /** Standard badge HTML (score pill + Final + open) used by dropdown & panel. */
+  _gameBadgesHtml(r) {
+    let h = '';
+    if (r.hasScore) h += this._scorePillHtml(r.u, r.t);
+    if (r.isFinal) h += '<span class="gd-badge badge-final">Final</span>';
+    if (r.isActive) h += '<span class="gd-badge badge-active-tag">open</span>';
+    return h;
+  }
 
   /** Wire the "Open Data Folder" menu item (desktop build only). */
   _bindOpenDataFolder() {
