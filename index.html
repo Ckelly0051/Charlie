@@ -6605,6 +6605,35 @@ body {
   padding: 6px 8px; border-radius: 8px; line-height: 1; flex: 0 0 auto; }
 .season-card-del:hover { background: rgba(220,60,60,.15); color: #ff6b6b; }
 
+/* Schedule level (the open season's games — the spine) */
+.schedule-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.schedule-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.schedule-table-wrap { overflow-x: auto; }
+.schedule-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.schedule-table thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+  color: #6f8197; font-weight: 700; padding: 6px 10px; border-bottom: 1px solid #243044; }
+.schedule-table tbody td { padding: 11px 10px; border-bottom: 1px solid #1b2535; color: #c7d3e3; vertical-align: middle; }
+.sch-row { cursor: pointer; transition: background .12s; }
+.sch-row:hover td { background: rgba(255,255,255,.04); }
+.sch-row.is-active td { background: rgba(6,182,212,.08); }
+.sch-name { font-weight: 600; color: #fff; }
+.sch-dim { color: #6f8197; }
+.sch-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.sch-dot.dot-active { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.5); }
+.sch-dot.dot-final { background: #22c55e; }
+.sch-dot.dot-idle { background: rgba(255,255,255,.25); }
+.sch-score { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+.sch-score.win { background: rgba(34,197,94,.2); color: #4ade80; }
+.sch-score.loss { background: rgba(239,68,68,.15); color: #f87171; }
+.sch-score.tie { background: rgba(255,255,255,.08); color: #9fb1c9; }
+.sch-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.sch-status.final { color: #4ade80; }
+.sch-status.open { color: #22d3ee; }
+.sch-open-link { color: #6ea8ff; font-weight: 600; white-space: nowrap; }
+.sch-row:hover .sch-open-link { text-decoration: underline; }
+.sch-empty { text-align: center; color: #9fb1c9; padding: 28px 10px; }
+
 /* Season context chip (lives in the light top bar) */
 .season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
 .season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
@@ -6615,6 +6644,20 @@ body {
 .season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .season-chip-caret { font-size: 10px; opacity: .6; margin-left: 2px; }
 .season-chip[hidden] { display: none; }
+
+/* Breadcrumb nav (Seasons ▸ Season ▸ Game) — replaces the old season chip */
+.breadcrumb { display: inline-flex; align-items: center; gap: 4px; }
+.breadcrumb[hidden] { display: none; }
+.bc-seg { display: inline-flex; align-items: center; gap: 5px; background: rgba(47,109,240,.1);
+  border: 1px solid rgba(47,109,240,.35); color: #1d4ed8; border-radius: 999px; padding: 5px 11px;
+  font-size: 13px; font-weight: 600; cursor: pointer; max-width: 240px; transition: background .12s; }
+.bc-seg:hover { background: rgba(47,109,240,.2); }
+.bc-seg > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-home { padding: 5px 9px; }
+.bc-home .icon { width: 14px; height: 14px; }
+.bc-game { background: rgba(6,182,212,.1); border-color: rgba(6,182,212,.4); color: #0e7490; }
+.bc-game:hover { background: rgba(6,182,212,.2); }
+.bc-sep { color: rgba(15,23,42,.35); font-size: 11px; flex: 0 0 auto; }
 
 /* Game switcher dropdown (anchored to season chip) */
 .game-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1100;
@@ -6690,6 +6733,7 @@ body {
 @media (max-width: 640px) {
   .lib-form-row { grid-template-columns: 1fr; }
   .season-chip { max-width: 160px; }
+  .bc-seg { max-width: 110px; padding: 5px 8px; font-size: 12px; }
   .game-dropdown { min-width: 280px; left: auto; right: -20px; }
 }
   </style>
@@ -6897,11 +6941,17 @@ body {
         </button>
         <h1 class="app-title">GridIron IQ</h1>
         <div class="season-chip-wrap">
-          <button class="season-chip" id="seasonChip" title="Switch games or season" hidden>
-            <svg class="icon"><use href="#icon-stats"/></svg>
-            <span class="season-chip-text" id="seasonChipText">No season</span>
-            <span class="season-chip-caret">▾</span>
-          </button>
+          <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
+            <button class="bc-seg bc-home" id="bcSeasons" title="All seasons (library home)" aria-label="All seasons">
+              <svg class="icon"><use href="#icon-folder"/></svg>
+            </button>
+            <span class="bc-sep">▸</span>
+            <button class="bc-seg" id="bcSeason" title="Season schedule"><span id="bcSeasonText">Season</span></button>
+            <span class="bc-sep" id="bcGameSep">▸</span>
+            <button class="bc-seg bc-game" id="bcGame" title="Switch game">
+              <span id="bcGameText">Game</span><span class="season-chip-caret">▾</span>
+            </button>
+          </nav>
           <div class="game-dropdown hidden" id="gameDropdown">
             <div class="game-dropdown-head" id="gameDropdownHead"></div>
             <div class="game-dropdown-list" id="gameDropdownList"></div>
@@ -7998,38 +8048,57 @@ body {
     <div class="library-overlay hidden" id="libraryOverlay">
       <div class="library-modal">
         <div class="library-head">
-          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub">Season Library</span></div>
+          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub" id="libraryBrandSub">Season Library</span></div>
           <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
         </div>
-        <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
-        <div class="library-new">
-          <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
-          <form class="library-form hidden" id="librarySeasonForm">
-            <div class="lib-form-row">
-              <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
-              <label>Team<input type="text" id="newSeasonTeam" placeholder="Eagles" maxlength="40" autocomplete="off"></label>
-              <label>Level
-                <select id="newSeasonLevel">
-                  <option value="">—</option>
-                  <option>Varsity</option>
-                  <option>JV</option>
-                  <option>Freshman</option>
-                  <option>Youth</option>
-                  <option>College</option>
-                  <option>Other</option>
-                </select>
+
+        <!-- SEASONS LEVEL: choose / create a season -->
+        <div id="librarySeasonsView">
+          <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
+          <div class="library-new">
+            <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
+            <form class="library-form hidden" id="librarySeasonForm">
+              <div class="lib-form-row">
+                <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
+                <label>Team<input type="text" id="newSeasonTeam" placeholder="Eagles" maxlength="40" autocomplete="off"></label>
+                <label>Level
+                  <select id="newSeasonLevel">
+                    <option value="">—</option>
+                    <option>Varsity</option>
+                    <option>JV</option>
+                    <option>Freshman</option>
+                    <option>Youth</option>
+                    <option>College</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+              </div>
+              <label class="lib-form-name">Season name (optional)
+                <input type="text" id="newSeasonName" placeholder="e.g. 2026 Varsity — Eagles" maxlength="60" autocomplete="off">
               </label>
-            </div>
-            <label class="lib-form-name">Season name (optional)
-              <input type="text" id="newSeasonName" placeholder="e.g. 2026 Varsity — Eagles" maxlength="60" autocomplete="off">
-            </label>
-            <div class="lib-form-actions">
-              <button type="button" class="btn btn-sm" id="btnNewSeasonCancel">Cancel</button>
-              <button type="submit" class="btn btn-sm btn-accent" id="btnNewSeasonCreate">Create Season</button>
-            </div>
-          </form>
+              <div class="lib-form-actions">
+                <button type="button" class="btn btn-sm" id="btnNewSeasonCancel">Cancel</button>
+                <button type="submit" class="btn btn-sm btn-accent" id="btnNewSeasonCreate">Create Season</button>
+              </div>
+            </form>
+          </div>
+          <div class="library-list" id="libraryList"></div>
         </div>
-        <div class="library-list" id="libraryList"></div>
+
+        <!-- SCHEDULE LEVEL: the open season's games (the spine) -->
+        <div id="libraryScheduleView" class="hidden">
+          <div class="schedule-bar">
+            <button class="btn btn-sm" id="btnScheduleBack">← All Seasons</button>
+            <div class="schedule-title" id="scheduleTitle">Season</div>
+            <button class="btn btn-sm btn-accent" id="btnScheduleNewGame">+ New Game</button>
+          </div>
+          <div class="schedule-table-wrap">
+            <table class="schedule-table">
+              <thead><tr><th></th><th>Game</th><th>Date</th><th>Result</th><th>Plays</th><th>Status</th><th></th></tr></thead>
+              <tbody id="scheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -11024,6 +11093,11 @@ class TauriBackend extends StorageBackend {
     super();
     this.fs = window.__TAURI__ && window.__TAURI__.fs;
     this.baseDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.AppData : undefined;
+    // Durable mirror OUTSIDE app data, so "Delete application data" / uninstall
+    // can't take the season + restore ring with it. Lives in the user's
+    // Documents folder under MIRROR_ROOT.
+    this.mirrorDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.Document : undefined;
+    this.MIRROR_ROOT = 'GridIron IQ';
     this.LIB = 'library.json';
     this.LEGACY = 'season.json';
     this._lastWrite = 0;
@@ -11036,6 +11110,10 @@ class TauriBackend extends StorageBackend {
   _seasonDir(id) { return `seasons/${id}`; }
   _seasonFile(id) { return `seasons/${id}/season.json`; }
   _backupsDir(id) { return `seasons/${id}/backups`; }
+  // Durable mirror paths (relative to the Documents base dir).
+  _mirrorSeasonDir(id) { return `${this.MIRROR_ROOT}/seasons/${id}`; }
+  _mirrorSeasonFile(id) { return `${this.MIRROR_ROOT}/seasons/${id}/season.json`; }
+  _mirrorBackupsDir(id) { return `${this.MIRROR_ROOT}/seasons/${id}/backups`; }
 
   setCurrentSeason(id) { this.currentId = id; }
 
@@ -11083,9 +11161,53 @@ class TauriBackend extends StorageBackend {
   async listSeasons() {
     if (!this._ok()) return [];
     await this._migrateLegacy();
-    const lib = await this._readLib();
+    let lib = await this._readLib();
+    // If the library is empty (fresh install, or app data was deleted), try to
+    // rebuild it from the durable Documents mirror so a coach's seasons come
+    // back automatically instead of looking permanently lost.
+    if (lib.length === 0) {
+      const recovered = await this._recoverFromMirror();
+      if (recovered.length) lib = recovered;
+    }
     return lib.slice().sort((a, b) =>
       String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
+  }
+
+  /**
+   * Rebuild the library + per-season files from the Documents mirror. Called
+   * when the app-data library is empty (e.g. after "Delete application data").
+   * Copies each mirrored season.json back into app data and returns the lib.
+   */
+  async _recoverFromMirror() {
+    if (this.mirrorDir === undefined) return [];
+    const root = `${this.MIRROR_ROOT}/seasons`;
+    let dirs = [];
+    try {
+      if (!(await this.fs.exists(root, { baseDir: this.mirrorDir }))) return [];
+      dirs = (await this.fs.readDir(root, { baseDir: this.mirrorDir })).filter(e => e.isDirectory);
+    } catch (e) { return []; }
+    const lib = [];
+    for (const d of dirs) {
+      const id = d.name;
+      const file = `${root}/${id}/season.json`;
+      let data = null;
+      try {
+        if (await this.fs.exists(file, { baseDir: this.mirrorDir }))
+          data = JSON.parse(await this.fs.readTextFile(file, { baseDir: this.mirrorDir }));
+      } catch (e) {}
+      if (!data || !Array.isArray(data.games)) continue;
+      // Restore the canonical app-data copy so normal load/save works.
+      try {
+        await this._ensureSeasonDir(id);
+        await this._writeJson(this._seasonFile(id), data);
+      } catch (e) {}
+      const meta = this._seasonMeta(id, data);
+      meta.created = new Date().toISOString();
+      meta.lastOpened = meta.created;
+      lib.push(meta);
+    }
+    if (lib.length) { try { await this._writeLib(lib); } catch (e) {} }
+    return lib;
   }
 
   async createSeason(meta) {
@@ -11233,10 +11355,16 @@ class TauriBackend extends StorageBackend {
     if (!this._ok() || !this.currentId) return null;
     const rel = `${this._filmsDir(gameId)}/${filename}`;
     if (!(await this._exists(rel))) return null;
-    const convert = window.__TAURI__?.core?.convertFileSrc;
-    if (!convert) return null;
+    const tauri = window.__TAURI__;
+    const convert = tauri?.core?.convertFileSrc;
+    const join = tauri?.path?.join;
     const base = await this.dataDirPath();
-    return convert(base + rel);
+    if (!convert || !join || !base) return null;
+    // Join with the platform separator. appDataDir() has no trailing slash and
+    // Windows needs backslashes, so string concatenation produced a broken path
+    // ("…/com.gridironiq.appseasons/…") and the asset URL pointed nowhere.
+    const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
+    return convert(abs);
   }
 
   async deleteFilm(gameId) {
@@ -11263,7 +11391,8 @@ class TauriBackend extends StorageBackend {
 
   supportsDisk() { return this._ok(); }
   diskStatus() {
-    return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'App data folder' : '', lastWrite: this._lastWrite };
+    // The durable target is the Documents mirror — it survives app-data wipes.
+    return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'Documents › GridIron IQ' : '', lastWrite: this._lastWrite };
   }
 
   /** Absolute path of the app-data folder (where seasons live); '' if N/A. */
@@ -11275,17 +11404,62 @@ class TauriBackend extends StorageBackend {
     return '';
   }
 
+  /** Absolute path of the durable Documents mirror folder; '' if N/A. */
+  async mirrorDirPath() {
+    try {
+      const p = window.__TAURI__ && window.__TAURI__.path;
+      if (p && p.documentDir && p.join) return await p.join(await p.documentDir(), this.MIRROR_ROOT);
+    } catch (e) {}
+    return '';
+  }
+
   /**
-   * Open the app-data folder in the OS file manager. Returns the folder path so
-   * the caller can show it as a fallback when no opener API is available.
+   * Mirror the season (and, on snapshots, a backup) to the Documents folder.
+   * Best-effort: a failure here must never block the canonical app-data save.
+   */
+  async _mirrorToDocuments(data, opts = {}) {
+    if (!this._ok() || !this.currentId || this.mirrorDir === undefined) return;
+    try {
+      await this.fs.mkdir(this._mirrorSeasonDir(this.currentId), { baseDir: this.mirrorDir, recursive: true });
+      await this.fs.writeTextFile(this._mirrorSeasonFile(this.currentId), JSON.stringify(data, null, 2), { baseDir: this.mirrorDir });
+      if (opts.snapshot) {
+        const bdir = this._mirrorBackupsDir(this.currentId);
+        await this.fs.mkdir(bdir, { baseDir: this.mirrorDir, recursive: true });
+        const id = `season_${this._tsSlug()}.json`;
+        const meta = this._meta(data, opts.label); meta.id = id;
+        await this.fs.writeTextFile(`${bdir}/${id}`, JSON.stringify({ ...meta, data }, null, 2), { baseDir: this.mirrorDir });
+        await this._pruneMirror();
+      }
+    } catch (e) { /* mirror is best-effort */ }
+  }
+
+  async _pruneMirror() {
+    if (!this.currentId) return;
+    try {
+      const entries = await this.fs.readDir(this._mirrorBackupsDir(this.currentId), { baseDir: this.mirrorDir });
+      const names = entries
+        .filter(e => !e.isDirectory && /^season_.*\.json$/.test(e.name || ''))
+        .map(e => e.name).sort();
+      const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
+      for (const n of extra) {
+        try { await this.fs.remove(`${this._mirrorBackupsDir(this.currentId)}/${n}`, { baseDir: this.mirrorDir }); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Open the durable Documents mirror folder in the OS file manager (this is the
+   * copy that survives uninstall / "delete app data", so it's the one a coach
+   * wants to find). Falls back to the app-data folder if the mirror path is
+   * unavailable. Returns the folder path for callers that can't open it.
    */
   async openDataDir() {
     if (!this._ok()) return '';
-    const dir = await this.dataDirPath();
+    const dir = (await this.mirrorDirPath()) || (await this.dataDirPath());
     const op = window.__TAURI__ && window.__TAURI__.opener;
     try {
       if (op && op.openPath && dir) { await op.openPath(dir); }
-      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir + this.LIB); }
+      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir); }
     } catch (e) { /* fall through — caller shows the path */ }
     return dir;
   }
@@ -11293,6 +11467,7 @@ class TauriBackend extends StorageBackend {
   async writeDisk(data, opts = {}) {
     const ok = await this.saveSeason(data);
     if (opts.snapshot) await this.createBackup(data, opts.label);
+    await this._mirrorToDocuments(data, opts);
     if (ok) this._lastWrite = Date.now();
     return ok;
   }
@@ -19851,7 +20026,8 @@ class SeasonManager {
     if (folderBtn) folderBtn.style.display = '';
     if (d.bound) {
       const when = d.lastWrite ? new Date(d.lastWrite).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`;
+      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`
+        + `<br><span class="bk-dim">This copy survives uninstall. ⚠ Choosing “Delete application data” when uninstalling still erases the app-data copy — use <b>Save Season</b> to export a file first.</span>`;
       if (folderBtn) folderBtn.textContent = 'Change Folder';
     } else {
       el.innerHTML = '<span class="bk-warn">⚠ No backup folder linked — your data lives only in this browser.</span>';
@@ -20342,6 +20518,12 @@ class SeasonLibrary {
       if (t.closest && t.closest('#btnNewSeasonCancel')) { this._showForm(false); return; }
       if (t.closest && t.closest('#btnLibraryClose')) { this.hide(); return; }
 
+      // Schedule level (the open season's games — the spine)
+      if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
+      if (t.closest && t.closest('#btnScheduleNewGame')) { this._newGameFromSchedule(); return; }
+      const schRow = t.closest && t.closest('.sch-row');
+      if (schRow) { this._openGame(schRow.dataset.game); return; }
+
       const card = t.closest && t.closest('.season-card');
       if (card) {
         if (t.closest('[data-lib-del]')) { this._delete(card.dataset.id, card); return; }
@@ -20360,14 +20542,88 @@ class SeasonLibrary {
 
   _isOpen() { return this.overlay && !this.overlay.classList.contains('hidden'); }
 
-  /** Show the library (always allowed). Renders the season list. */
+  /** Show the library at the SEASONS level (choose / create a season). */
   async open() {
     if (!this.overlay) return;
+    this._setLevel('seasons');
     this._showForm(false);
     await this._render();
     const closeBtn = document.getElementById('btnLibraryClose');
     if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
     this.overlay.classList.remove('hidden');
+  }
+
+  /** Show the library at the SCHEDULE level (the open season's games). */
+  async openSchedule() {
+    const store = this._storage()?.seasonStore;
+    if (!store || !store.hasCurrent()) return this.open();   // nothing open → seasons level
+    if (!this.overlay) return;
+    this._setLevel('schedule');
+    this._renderSchedule();
+    const closeBtn = document.getElementById('btnLibraryClose');
+    if (closeBtn) closeBtn.hidden = !store.hasCurrent();
+    this.overlay.classList.remove('hidden');
+  }
+
+  /** Toggle the overlay between the seasons list and the schedule table. */
+  _setLevel(level) {
+    const seasonsView = document.getElementById('librarySeasonsView');
+    const scheduleView = document.getElementById('libraryScheduleView');
+    const sub = document.getElementById('libraryBrandSub');
+    if (seasonsView) seasonsView.classList.toggle('hidden', level === 'schedule');
+    if (scheduleView) scheduleView.classList.toggle('hidden', level !== 'schedule');
+    if (sub) sub.textContent = level === 'schedule' ? 'Schedule' : 'Season Library';
+  }
+
+  /** Render the open season's games as a schedule table (the spine). */
+  _renderSchedule() {
+    const app = window.app;
+    const store = this._storage()?.seasonStore;
+    const body = document.getElementById('scheduleBody');
+    const title = document.getElementById('scheduleTitle');
+    if (!app || !store || !store.hasCurrent() || !body) return;
+    app.storage.commitActive();
+    if (title) title.textContent = store.data.seasonName || 'Season';
+    const games = store.gamesChrono();
+    const activeId = store.data.activeGameId;
+    if (!games.length) {
+      body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click “+ New Game” to start tagging film.</td></tr>';
+      return;
+    }
+    body.innerHTML = games.map((g, idx) => {
+      const r = app._gameRowInfo(g, idx, store, activeId);
+      const dot = r.isActive ? 'dot-active' : (r.isFinal ? 'dot-final' : 'dot-idle');
+      const date = r.date ? new Date(r.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+      const result = r.hasScore ? app._scorePillHtml(r.u, r.t, 'sch-score') : '<span class="sch-dim">—</span>';
+      const status = r.isFinal ? '<span class="sch-status final">Final</span>'
+        : (r.isActive ? '<span class="sch-status open">Open</span>' : '<span class="sch-dim">—</span>');
+      return `<tr class="sch-row${r.isActive ? ' is-active' : ''}" data-game="${esc(g.id)}" title="Open this game">
+        <td><span class="sch-dot ${dot}"></span></td>
+        <td class="sch-name">${esc(r.name)}</td>
+        <td class="sch-dim">${esc(date)}</td>
+        <td>${result}</td>
+        <td>${r.plays}</td>
+        <td>${status}</td>
+        <td><span class="sch-open-link">${r.isActive ? 'Resume' : 'Open'} →</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  _openGame(id) {
+    const storage = this._storage();
+    const store = storage?.seasonStore;
+    if (!storage || !store) return;
+    if (store.data && store.data.activeGameId !== id) storage.switchToGame(id);
+    this.overlay.classList.add('hidden');
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    if (window.app?.season?._renderAll) window.app.season._renderAll();
+  }
+
+  _newGameFromSchedule() {
+    const storage = this._storage();
+    if (storage) storage.newGame();
+    this.overlay.classList.add('hidden');
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   /** Hide the library — only meaningful once a season is open. */
@@ -20426,12 +20682,14 @@ class SeasonLibrary {
     await this._storage().createSeason(meta);
     ['newSeasonYear', 'newSeasonTeam', 'newSeasonName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     this._showForm(false);
-    this.overlay.classList.add('hidden');
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    this.openSchedule();   // land on the (empty) schedule, ready to add a game
   }
 
   async _open(id) {
     await this._storage().openSeasonById(id);
-    this.overlay.classList.add('hidden');
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    this.openSchedule();   // land on the schedule (pick a game) — not the player
   }
 
   async _delete(id, card) {
@@ -22005,11 +22263,23 @@ class App {
 
   /** Wire the top-bar season chip → toggles the game-switcher dropdown. */
   _bindSeasonChip() {
-    const chip = document.getElementById('seasonChip');
+    const bc = document.getElementById('breadcrumb');
+    const bcGame = document.getElementById('bcGame');
     const dropdown = document.getElementById('gameDropdown');
-    if (!chip || !dropdown) return;
+    if (!bc || !dropdown) return;
 
-    chip.addEventListener('click', (e) => {
+    // Breadcrumb: Seasons (home) ▸ Season (schedule) ▸ Game (quick switch)
+    document.getElementById('bcSeasons')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeGameDropdown();
+      this.library.open();             // all seasons (library home)
+    });
+    document.getElementById('bcSeason')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeGameDropdown();
+      this.library.openSchedule();     // this season's schedule (the spine)
+    });
+    bcGame?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (dropdown.classList.contains('hidden')) this._openGameDropdown();
       else this._closeGameDropdown();
@@ -22027,7 +22297,7 @@ class App {
     });
 
     document.addEventListener('click', (e) => {
-      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !chip.contains(e.target)) {
+      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGame && bcGame.contains(e.target))) {
         this._closeGameDropdown();
       }
     });
@@ -22225,18 +22495,25 @@ class App {
     });
   }
 
-  /** Refresh the season chip with the open season + active game (or hide it). */
+  /** Refresh the breadcrumb (Season ▸ Game) with the open season + active game. */
   _updateSeasonChip() {
-    const chip = document.getElementById('seasonChip');
-    const text = document.getElementById('seasonChipText');
-    if (!chip || !text) return;
+    const bc = document.getElementById('breadcrumb');
+    const seasonText = document.getElementById('bcSeasonText');
+    const gameText = document.getElementById('bcGameText');
+    const gameSeg = document.getElementById('bcGame');
+    const gameSep = document.getElementById('bcGameSep');
+    if (!bc) return;
     const store = this.storage && this.storage.seasonStore;
-    if (!store || !store.hasCurrent()) { chip.hidden = true; return; }
+    if (!store || !store.hasCurrent()) { bc.hidden = true; return; }
     const d = store.data;
     const game = store.activeGame && store.activeGame();
     const gameName = game ? store.gameName(game, store.activeIndex()) : '';
-    text.textContent = gameName ? `${d.seasonName || 'Season'} · ${gameName}` : (d.seasonName || 'Season');
-    chip.hidden = false;
+    if (seasonText) seasonText.textContent = d.seasonName || 'Season';
+    const showGame = !!gameName;
+    if (gameText) gameText.textContent = gameName;
+    if (gameSeg) gameSeg.style.display = showGame ? '' : 'none';
+    if (gameSep) gameSep.style.display = showGame ? '' : 'none';
+    bc.hidden = false;
   }
 
   // ---- Games panel (settings drawer) ----------------------------------------
