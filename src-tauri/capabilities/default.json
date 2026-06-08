@@ -19,7 +19,8 @@
     {
       "identifier": "fs:scope",
       "allow": [
-        { "path": "$APPDATA/**" }
+        { "path": "$APPDATA/**" },
+        { "path": "$DOCUMENT/**" }
       ]
     },
     "dialog:allow-open",
@@ -30,11 +31,11 @@
     "opener:default",
     {
       "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**" }]
+      "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**" }, { "path": "$DOCUMENT" }, { "path": "$DOCUMENT/**" }]
     },
     {
       "identifier": "opener:allow-reveal-item-in-dir",
-      "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**" }]
+      "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**" }, { "path": "$DOCUMENT" }, { "path": "$DOCUMENT/**" }]
     }
   ]
 }

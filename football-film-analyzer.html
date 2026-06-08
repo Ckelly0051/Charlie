@@ -11024,6 +11024,11 @@ class TauriBackend extends StorageBackend {
     super();
     this.fs = window.__TAURI__ && window.__TAURI__.fs;
     this.baseDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.AppData : undefined;
+    // Durable mirror OUTSIDE app data, so "Delete application data" / uninstall
+    // can't take the season + restore ring with it. Lives in the user's
+    // Documents folder under MIRROR_ROOT.
+    this.mirrorDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.Document : undefined;
+    this.MIRROR_ROOT = 'GridIron IQ';
     this.LIB = 'library.json';
     this.LEGACY = 'season.json';
     this._lastWrite = 0;
@@ -11036,6 +11041,10 @@ class TauriBackend extends StorageBackend {
   _seasonDir(id) { return `seasons/${id}`; }
   _seasonFile(id) { return `seasons/${id}/season.json`; }
   _backupsDir(id) { return `seasons/${id}/backups`; }
+  // Durable mirror paths (relative to the Documents base dir).
+  _mirrorSeasonDir(id) { return `${this.MIRROR_ROOT}/seasons/${id}`; }
+  _mirrorSeasonFile(id) { return `${this.MIRROR_ROOT}/seasons/${id}/season.json`; }
+  _mirrorBackupsDir(id) { return `${this.MIRROR_ROOT}/seasons/${id}/backups`; }
 
   setCurrentSeason(id) { this.currentId = id; }
 
@@ -11083,9 +11092,53 @@ class TauriBackend extends StorageBackend {
   async listSeasons() {
     if (!this._ok()) return [];
     await this._migrateLegacy();
-    const lib = await this._readLib();
+    let lib = await this._readLib();
+    // If the library is empty (fresh install, or app data was deleted), try to
+    // rebuild it from the durable Documents mirror so a coach's seasons come
+    // back automatically instead of looking permanently lost.
+    if (lib.length === 0) {
+      const recovered = await this._recoverFromMirror();
+      if (recovered.length) lib = recovered;
+    }
     return lib.slice().sort((a, b) =>
       String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
+  }
+
+  /**
+   * Rebuild the library + per-season files from the Documents mirror. Called
+   * when the app-data library is empty (e.g. after "Delete application data").
+   * Copies each mirrored season.json back into app data and returns the lib.
+   */
+  async _recoverFromMirror() {
+    if (this.mirrorDir === undefined) return [];
+    const root = `${this.MIRROR_ROOT}/seasons`;
+    let dirs = [];
+    try {
+      if (!(await this.fs.exists(root, { baseDir: this.mirrorDir }))) return [];
+      dirs = (await this.fs.readDir(root, { baseDir: this.mirrorDir })).filter(e => e.isDirectory);
+    } catch (e) { return []; }
+    const lib = [];
+    for (const d of dirs) {
+      const id = d.name;
+      const file = `${root}/${id}/season.json`;
+      let data = null;
+      try {
+        if (await this.fs.exists(file, { baseDir: this.mirrorDir }))
+          data = JSON.parse(await this.fs.readTextFile(file, { baseDir: this.mirrorDir }));
+      } catch (e) {}
+      if (!data || !Array.isArray(data.games)) continue;
+      // Restore the canonical app-data copy so normal load/save works.
+      try {
+        await this._ensureSeasonDir(id);
+        await this._writeJson(this._seasonFile(id), data);
+      } catch (e) {}
+      const meta = this._seasonMeta(id, data);
+      meta.created = new Date().toISOString();
+      meta.lastOpened = meta.created;
+      lib.push(meta);
+    }
+    if (lib.length) { try { await this._writeLib(lib); } catch (e) {} }
+    return lib;
   }
 
   async createSeason(meta) {
@@ -11269,7 +11322,8 @@ class TauriBackend extends StorageBackend {
 
   supportsDisk() { return this._ok(); }
   diskStatus() {
-    return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'App data folder' : '', lastWrite: this._lastWrite };
+    // The durable target is the Documents mirror — it survives app-data wipes.
+    return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'Documents › GridIron IQ' : '', lastWrite: this._lastWrite };
   }
 
   /** Absolute path of the app-data folder (where seasons live); '' if N/A. */
@@ -11281,17 +11335,62 @@ class TauriBackend extends StorageBackend {
     return '';
   }
 
+  /** Absolute path of the durable Documents mirror folder; '' if N/A. */
+  async mirrorDirPath() {
+    try {
+      const p = window.__TAURI__ && window.__TAURI__.path;
+      if (p && p.documentDir && p.join) return await p.join(await p.documentDir(), this.MIRROR_ROOT);
+    } catch (e) {}
+    return '';
+  }
+
   /**
-   * Open the app-data folder in the OS file manager. Returns the folder path so
-   * the caller can show it as a fallback when no opener API is available.
+   * Mirror the season (and, on snapshots, a backup) to the Documents folder.
+   * Best-effort: a failure here must never block the canonical app-data save.
+   */
+  async _mirrorToDocuments(data, opts = {}) {
+    if (!this._ok() || !this.currentId || this.mirrorDir === undefined) return;
+    try {
+      await this.fs.mkdir(this._mirrorSeasonDir(this.currentId), { baseDir: this.mirrorDir, recursive: true });
+      await this.fs.writeTextFile(this._mirrorSeasonFile(this.currentId), JSON.stringify(data, null, 2), { baseDir: this.mirrorDir });
+      if (opts.snapshot) {
+        const bdir = this._mirrorBackupsDir(this.currentId);
+        await this.fs.mkdir(bdir, { baseDir: this.mirrorDir, recursive: true });
+        const id = `season_${this._tsSlug()}.json`;
+        const meta = this._meta(data, opts.label); meta.id = id;
+        await this.fs.writeTextFile(`${bdir}/${id}`, JSON.stringify({ ...meta, data }, null, 2), { baseDir: this.mirrorDir });
+        await this._pruneMirror();
+      }
+    } catch (e) { /* mirror is best-effort */ }
+  }
+
+  async _pruneMirror() {
+    if (!this.currentId) return;
+    try {
+      const entries = await this.fs.readDir(this._mirrorBackupsDir(this.currentId), { baseDir: this.mirrorDir });
+      const names = entries
+        .filter(e => !e.isDirectory && /^season_.*\.json$/.test(e.name || ''))
+        .map(e => e.name).sort();
+      const extra = names.slice(0, Math.max(0, names.length - this.RETENTION));
+      for (const n of extra) {
+        try { await this.fs.remove(`${this._mirrorBackupsDir(this.currentId)}/${n}`, { baseDir: this.mirrorDir }); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Open the durable Documents mirror folder in the OS file manager (this is the
+   * copy that survives uninstall / "delete app data", so it's the one a coach
+   * wants to find). Falls back to the app-data folder if the mirror path is
+   * unavailable. Returns the folder path for callers that can't open it.
    */
   async openDataDir() {
     if (!this._ok()) return '';
-    const dir = await this.dataDirPath();
+    const dir = (await this.mirrorDirPath()) || (await this.dataDirPath());
     const op = window.__TAURI__ && window.__TAURI__.opener;
     try {
       if (op && op.openPath && dir) { await op.openPath(dir); }
-      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir + this.LIB); }
+      else if (op && op.revealItemInDir && dir) { await op.revealItemInDir(dir); }
     } catch (e) { /* fall through — caller shows the path */ }
     return dir;
   }
@@ -11299,6 +11398,7 @@ class TauriBackend extends StorageBackend {
   async writeDisk(data, opts = {}) {
     const ok = await this.saveSeason(data);
     if (opts.snapshot) await this.createBackup(data, opts.label);
+    await this._mirrorToDocuments(data, opts);
     if (ok) this._lastWrite = Date.now();
     return ok;
   }
@@ -19857,7 +19957,8 @@ class SeasonManager {
     if (folderBtn) folderBtn.style.display = '';
     if (d.bound) {
       const when = d.lastWrite ? new Date(d.lastWrite).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`;
+      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`
+        + `<br><span class="bk-dim">This copy survives uninstall. ⚠ Choosing “Delete application data” when uninstalling still erases the app-data copy — use <b>Save Season</b> to export a file first.</span>`;
       if (folderBtn) folderBtn.textContent = 'Change Folder';
     } else {
       el.innerHTML = '<span class="bk-warn">⚠ No backup folder linked — your data lives only in this browser.</span>';

@@ -262,6 +262,31 @@ frame export / AI vision.
 **Cleanup**: `StorageManager.removeGame()` calls `backend.deleteFilm(gameId)`.
 Deleting a season deletes the entire `seasons/<id>/` directory, including films.
 
+### Durable Documents mirror (Tauri desktop) — survives "delete app data"
+
+On desktop, the canonical save AND the restore ring both live under `$APPDATA`,
+so uninstalling with **"Delete application data"** (or clearing app data) used to
+wipe the data *and* its own safety net. To fix this, `TauriBackend.writeDisk()`
+now also mirrors every save to the user's **Documents** folder, outside app data:
+
+```
+Documents/GridIron IQ/seasons/<id>/season.json     # live mirror (every autosave)
+Documents/GridIron IQ/seasons/<id>/backups/         # snapshot ring (explicit saves), pruned to RETENTION
+```
+
+- Mirror writes are **best-effort** (`_mirrorToDocuments`) — a Documents failure
+  never blocks the canonical app-data save. Films are NOT mirrored (large; the
+  originals are re-linkable).
+- **Auto-recovery**: `listSeasons()` calls `_recoverFromMirror()` when the
+  app-data library is empty (fresh install or post-wipe). It reads each
+  `Documents/GridIron IQ/seasons/*/season.json`, copies it back into app data,
+  and rebuilds `library.json` — so a coach's seasons reappear automatically.
+- `diskStatus().name` is now **"Documents › GridIron IQ"** (the durable target),
+  and `openDataDir()` opens that mirror folder. The Season modal's backup-status
+  line adds a warning to **Save Season** (export a file) before uninstalling,
+  since "Delete application data" still erases the app-data copy.
+- Capabilities add `$DOCUMENT/**` to `fs:scope` + the opener allow-lists.
+
 ### Backups & Restore ("undo a save")
 Because browser storage is not durable, every save also makes a restore point:
 - `SeasonStore.snapshot(label)` writes a disk snapshot (if a folder is bound) +
