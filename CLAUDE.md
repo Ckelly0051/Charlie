@@ -210,6 +210,57 @@ or an installed desktop app (and, later, a cloud-synced one) without UI changes.
 - **`TauriBackend`** (desktop): every read/write hits real files via Tauri's fs;
   the backup ring is real files in `backups/`. Dormant in the browser. See
   `TAURI.md` for packaging.
+- **Film library** (desktop only, `supportsFilm()`): the backend also manages
+  persistent film storage. See "Persistent Film Library" below.
+
+### Persistent Film Library (Tauri desktop)
+
+On the desktop build, video files are **copied into the season's folder** when
+loaded and **auto-loaded from disk** when the coach opens a game — the biggest
+UX gap vs Hudl, now closed.
+
+**Disk layout** (under `$APPDATA`):
+```
+seasons/<season-id>/
+  films/<game-id>/
+    game_film.mp4           # single-video mode
+    clip_01.mp4             # multi-clip (folder) mode
+    clip_02.mp4
+    …
+```
+
+**Import flow** (`StorageManager.importFilm` → `TauriBackend.importFilm`):
+1. User picks file(s) via the existing file picker / drop zone.
+2. Video loads immediately for tagging (blob URL, same as before).
+3. In the background, the file(s) are read as `ArrayBuffer` and written to
+   `$APPDATA/seasons/<sid>/films/<gid>/` via `fs.writeFile`. A progress toast
+   shows "Saving film to library… N/M". Already-imported files (same filename)
+   are skipped.
+
+**Auto-load flow** (`StorageManager._autoLoadFilm`):
+1. `_loadActiveGame()` fires after a game switch or season open.
+2. If `backend.supportsFilm()`, it lists files in the game's film directory.
+3. **Single-video**: resolves the film's absolute path →
+   `convertFileSrc(path)` (asset protocol URL) → `VideoController.loadUrl()`.
+4. **Multi-clip**: resolves each clip → `PlaylistManager.rehydrateFromDisk()`,
+   which matches disk files to existing plays by `clipName` and sets
+   `clip.assetUrl` / `play.clipId` so playlist navigation works. Then switches
+   to the saved `currentPlayId`'s clip.
+5. If the film isn't on disk (old save, browser import, deleted manually), the
+   load silently falls back to the placeholder — the coach can re-link.
+
+**Playback**: served via the Tauri **asset protocol** (`https://asset.localhost/…`
+or `asset://localhost/…`). Enabled in `tauri.conf.json` (`assetProtocol.enable`,
+scope `$APPDATA/**`), with the CSP updated (`media-src` / `img-src` include
+`asset:` and `https://asset.localhost`). `crossOrigin = 'anonymous'` is set on
+the `<video>` element when using asset URLs to keep the canvas untainted for
+frame export / AI vision.
+
+**Browser build**: completely unchanged — `backend.supportsFilm()` returns
+`false`, so none of the import / auto-load code runs.
+
+**Cleanup**: `StorageManager.removeGame()` calls `backend.deleteFilm(gameId)`.
+Deleting a season deletes the entire `seasons/<id>/` directory, including films.
 
 ### Backups & Restore ("undo a save")
 Because browser storage is not durable, every save also makes a restore point:
@@ -354,8 +405,11 @@ keeps working unchanged — those two methods are still "serialize/deserialize t
 - `loadProject(file)`: a **season** file (`has .games`) replaces the season; a
   **legacy single-game** file (`has .plays`) is appended as a new game.
 
-**Video is never stored** (too large). Each game records its `videoFileName`;
-the coach re-links the film when they open that game.
+**Video is stored on the desktop build** — film files are copied into
+`$APPDATA/seasons/<id>/films/<game-id>/` and auto-loaded via the asset
+protocol on game open. On the **browser build**, video is NOT stored (too
+large for localStorage); each game records its `videoFileName` and the coach
+re-links the film when they open that game.
 
 ### Season Player Roll-Up + Progression (`season-manager.js`)
 The Season modal is a *view* over `app.storage.seasonStore` — it owns no game
@@ -870,11 +924,12 @@ other coaches to review.
 The browser forced the app to stay lean in specific ways; native lifts each
 constraint. Prioritized for the desktop build:
 
-1. **Persistent film library (biggest workflow win).** Today video is never
-   stored — each game only records its `videoFileName`, so the coach **re-links
-   the film every session**. Native = real filesystem: copy/import game film
-   into a managed library folder, **permanently linked** to each game/play; open
-   a game and the film is just there. No re-importing.
+1. **Persistent film library (SHIPPED).** On the desktop build, video files are
+   now copied into the season's folder on disk
+   (`$APPDATA/seasons/<id>/films/<game-id>/`) when loaded. Opening a game
+   auto-loads the film via the Tauri asset protocol — no more re-linking every
+   session. Supports both single-video and multi-clip (folder) modes. The
+   browser build is unchanged (the feature gates behind `backend.supportsFilm()`).
 2. **Real MP4 cut-up export.** Bundle `ffmpeg` as a Tauri sidecar so filtered
    plays / player cut-ups export as **actual video files** (the in-browser
    `cutup-exporter.js` is limited). Background rendering, no UI block.
