@@ -267,38 +267,33 @@ export class SeasonManager {
 
     list.innerHTML = '';
     const st = this._store();
+    const app = window.app;
     games.forEach((g, idx) => {
-      const isActive = g.id === activeId;
-      const status = st.gameStatus(g);
-      const isFinal = status === 'final';
+      const r = app ? app._gameRowInfo(g, idx, st, activeId) : {
+        isActive: g.id === activeId, isFinal: false,
+        name: g.name || st.gameName(g, idx), plays: (g.plays || []).length,
+        date: g.gameInfo?.date || '', hasScore: false, u: '', t: ''
+      };
       const row = document.createElement('div');
-      row.className = 'season-game-row' + (isActive ? ' season-game-current' : '');
-      const u = g.gameInfo?.scoreUs;
-      const t = g.gameInfo?.scoreThem;
+      row.className = 'season-game-row' + (r.isActive ? ' season-game-current' : '');
       let scoreLabel = '';
-      if (u !== undefined && u !== '' && t !== undefined && t !== '') {
-        const win = parseInt(u, 10) > parseInt(t, 10);
-        const loss = parseInt(u, 10) < parseInt(t, 10);
-        const cls = win ? 'win' : (loss ? 'loss' : '');
-        scoreLabel = `<span class="score-pill ${cls}">${this._escape(u)}-${this._escape(t)}</span>`;
-      }
-      const statusBadge = isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
-      const date = g.gameInfo?.date || '';
-      const label = g.name || st.gameName(g, idx);
-      const activeTag = isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
+      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t).replace('gd-score', 'score-pill');
+      else if (r.hasScore) scoreLabel = `<span class="score-pill">${this._escape(r.u)}-${this._escape(r.t)}</span>`;
+      const statusBadge = r.isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
+      const activeTag = r.isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
       row.innerHTML = `
         <div class="season-game-info" data-action="switch">
-          <div class="season-game-name">Game ${idx + 1}: ${this._escape(label)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
-          <div class="season-game-meta">${(g.plays || []).length} plays${date ? ' · ' + this._escape(date) : ''}${isActive ? '' : ' · click to open'}</div>
+          <div class="season-game-name">Game ${idx + 1}: ${this._escape(r.name)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
+          <div class="season-game-meta">${r.plays} plays${r.date ? ' · ' + this._escape(r.date) : ''}${r.isActive ? '' : ' · click to open'}</div>
         </div>
         <button class="btn btn-sm btn-danger" data-action="remove" title="Remove this game from the season">×</button>
       `;
       row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!isActive) this.switchGame(g.id);
+        if (!r.isActive) this.switchGame(g.id);
       });
       row.querySelector('[data-action=remove]')?.addEventListener('click', async (ev) => {
         ev.stopPropagation();
-        const ok = await this._confirm(`Remove "Game ${idx + 1}: ${label}" from the season?`);
+        const ok = await this._confirm(`Remove "Game ${idx + 1}: ${r.name}" from the season?`);
         if (ok) this.removeGame(g.id);
       });
       list.appendChild(row);

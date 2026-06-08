@@ -242,41 +242,30 @@ class App {
 
     list.innerHTML = '';
     games.forEach((g, idx) => {
-      const isActive = g.id === activeId;
-      const status = store.gameStatus(g);
-      const isFinal = status === 'final';
-      const name = store.gameName(g, idx);
-      const plays = (g.plays || []).length;
-      const date = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
-      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
-      const hasScore = this._hasScore(g.gameInfo);
+      const r = this._gameRowInfo(g, idx, store, activeId);
+      const shortDate = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
 
       const row = document.createElement('div');
-      row.className = 'gd-row' + (isActive ? ' is-active' : '');
+      row.className = 'gd-row' + (r.isActive ? ' is-active' : '');
 
       let dotCls = 'dot-idle';
-      if (isActive) dotCls = 'dot-active';
-      else if (isFinal) dotCls = 'dot-final';
-
-      let badges = '';
-      if (hasScore) badges += this._scorePillHtml(u, t);
-      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
-      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+      if (r.isActive) dotCls = 'dot-active';
+      else if (r.isFinal) dotCls = 'dot-final';
 
       let actions = '';
-      if (isActive && !isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
+      if (r.isActive && !r.isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
 
       row.innerHTML = `
         <div class="gd-dot ${dotCls}"></div>
         <div class="gd-info" data-action="switch">
-          <div class="gd-name">${this._esc(name)}</div>
-          <div class="gd-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+          <div class="gd-name">${this._esc(r.name)}</div>
+          <div class="gd-meta">${r.plays} play${r.plays !== 1 ? 's' : ''}${shortDate ? ' · ' + shortDate : ''}</div>
         </div>
-        <div class="gd-badges">${badges}</div>
+        <div class="gd-badges">${this._gameBadgesHtml(r)}</div>
         <div class="gd-actions">${actions}</div>`;
 
       row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!isActive) {
+        if (!r.isActive) {
           this.storage.switchToGame(g.id);
           this._updateSeasonChip();
           this._closeGameDropdown();
@@ -448,34 +437,22 @@ class App {
 
     list.innerHTML = '';
     games.forEach((g, idx) => {
-      const isActive = g.id === activeId;
-      const status = store.gameStatus(g);
-      const isFinal = status === 'final';
-      const name = store.gameName(g, idx);
-      const plays = (g.plays || []).length;
-      const date = g.gameInfo?.date || '';
-      const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
-      const hasScore = this._hasScore(g.gameInfo);
+      const r = this._gameRowInfo(g, idx, store, activeId);
 
       const card = document.createElement('div');
-      card.className = 'gp-card' + (isActive ? ' is-active' : '');
-
-      let badges = '';
-      if (hasScore) badges += this._scorePillHtml(u, t);
-      if (isFinal) badges += '<span class="gd-badge badge-final">Final</span>';
-      if (isActive) badges += '<span class="gd-badge badge-active-tag">open</span>';
+      card.className = 'gp-card' + (r.isActive ? ' is-active' : '');
 
       let actions = '';
-      if (!isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
-      if (isActive && !isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
+      if (!r.isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
+      if (r.isActive && !r.isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
       actions += `<button class="btn btn-sm btn-danger" data-action="delete" title="Remove game">Delete</button>`;
 
       card.innerHTML = `
         <div class="gp-card-head">
-          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(name)}</span>
-          <div class="gp-card-badges">${badges}</div>
+          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(r.name)}</span>
+          <div class="gp-card-badges">${this._gameBadgesHtml(r)}</div>
         </div>
-        <div class="gp-card-meta">${plays} play${plays !== 1 ? 's' : ''}${date ? ' · ' + date : ''}</div>
+        <div class="gp-card-meta">${r.plays} play${r.plays !== 1 ? 's' : ''}${r.date ? ' · ' + r.date : ''}</div>
         <div class="gp-card-actions">${actions}</div>`;
 
       card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
@@ -488,12 +465,12 @@ class App {
 
       card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        this._finishGame();   // re-renders the panel itself on success
+        this._finishGame();
       });
 
       card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${name}" from the season? This cannot be undone.`, 'Remove');
+        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season? This cannot be undone.`, 'Remove');
         if (!ok) return;
         this.storage.removeGame(g.id);
         this._updateSeasonChip();
@@ -536,6 +513,30 @@ class App {
     const uN = parseInt(u, 10), tN = parseInt(t, 10);
     const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
     return `<span class="gd-score ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
+  }
+
+  /**
+   * Derive the display fields for a game row. Called once per game per render
+   * by the dropdown, games panel, and (via SeasonManager) the season-stats list.
+   */
+  _gameRowInfo(g, idx, store, activeId) {
+    const isActive = g.id === activeId;
+    const isFinal = store.gameStatus(g) === 'final';
+    const name = store.gameName(g, idx);
+    const plays = (g.plays || []).length;
+    const date = g.gameInfo?.date || '';
+    const hasScore = this._hasScore(g.gameInfo);
+    const u = g.gameInfo?.scoreUs, t = g.gameInfo?.scoreThem;
+    return { isActive, isFinal, name, plays, date, hasScore, u, t };
+  }
+
+  /** Standard badge HTML (score pill + Final + open) used by dropdown & panel. */
+  _gameBadgesHtml(r) {
+    let h = '';
+    if (r.hasScore) h += this._scorePillHtml(r.u, r.t);
+    if (r.isFinal) h += '<span class="gd-badge badge-final">Final</span>';
+    if (r.isActive) h += '<span class="gd-badge badge-active-tag">open</span>';
+    return h;
   }
 
   /** Wire the "Open Data Folder" menu item (desktop build only). */
