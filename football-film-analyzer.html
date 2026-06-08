@@ -19741,7 +19741,7 @@ class SeasonManager {
       const row = document.createElement('div');
       row.className = 'season-game-row' + (r.isActive ? ' season-game-current' : '');
       let scoreLabel = '';
-      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t).replace('gd-score', 'score-pill');
+      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t, 'score-pill');
       else if (r.hasScore) scoreLabel = `<span class="score-pill">${this._escape(r.u)}-${this._escape(r.t)}</span>`;
       const statusBadge = r.isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
       const activeTag = r.isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
@@ -22168,11 +22168,11 @@ class App {
               gi.scoreThem !== undefined && gi.scoreThem !== '');
   }
 
-  /** Escaped W/L/T score pill shared by the dropdown + games panel. */
-  _scorePillHtml(u, t) {
+  /** Escaped W/L/T score pill. Pass a className for callers with their own CSS. */
+  _scorePillHtml(u, t, className = 'gd-score') {
     const uN = parseInt(u, 10), tN = parseInt(t, 10);
     const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-    return `<span class="gd-score ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
+    return `<span class="${className} ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
   }
 
   /**

@@ -508,11 +508,11 @@ class App {
               gi.scoreThem !== undefined && gi.scoreThem !== '');
   }
 
-  /** Escaped W/L/T score pill shared by the dropdown + games panel. */
-  _scorePillHtml(u, t) {
+  /** Escaped W/L/T score pill. Pass a className for callers with their own CSS. */
+  _scorePillHtml(u, t, className = 'gd-score') {
     const uN = parseInt(u, 10), tN = parseInt(t, 10);
     const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-    return `<span class="gd-score ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
+    return `<span class="${className} ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
   }
 
   /**

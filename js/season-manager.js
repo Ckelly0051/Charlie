@@ -277,7 +277,7 @@ export class SeasonManager {
       const row = document.createElement('div');
       row.className = 'season-game-row' + (r.isActive ? ' season-game-current' : '');
       let scoreLabel = '';
-      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t).replace('gd-score', 'score-pill');
+      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t, 'score-pill');
       else if (r.hasScore) scoreLabel = `<span class="score-pill">${this._escape(r.u)}-${this._escape(r.t)}</span>`;
       const statusBadge = r.isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
       const activeTag = r.isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
