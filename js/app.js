@@ -174,11 +174,23 @@ class App {
 
   /** Wire the top-bar season chip → toggles the game-switcher dropdown. */
   _bindSeasonChip() {
-    const chip = document.getElementById('seasonChip');
+    const bc = document.getElementById('breadcrumb');
+    const bcGame = document.getElementById('bcGame');
     const dropdown = document.getElementById('gameDropdown');
-    if (!chip || !dropdown) return;
+    if (!bc || !dropdown) return;
 
-    chip.addEventListener('click', (e) => {
+    // Breadcrumb: Seasons (home) ▸ Season (schedule) ▸ Game (quick switch)
+    document.getElementById('bcSeasons')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeGameDropdown();
+      this.library.open();             // all seasons (library home)
+    });
+    document.getElementById('bcSeason')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeGameDropdown();
+      this.library.openSchedule();     // this season's schedule (the spine)
+    });
+    bcGame?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (dropdown.classList.contains('hidden')) this._openGameDropdown();
       else this._closeGameDropdown();
@@ -196,7 +208,7 @@ class App {
     });
 
     document.addEventListener('click', (e) => {
-      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !chip.contains(e.target)) {
+      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGame && bcGame.contains(e.target))) {
         this._closeGameDropdown();
       }
     });
@@ -394,18 +406,25 @@ class App {
     });
   }
 
-  /** Refresh the season chip with the open season + active game (or hide it). */
+  /** Refresh the breadcrumb (Season ▸ Game) with the open season + active game. */
   _updateSeasonChip() {
-    const chip = document.getElementById('seasonChip');
-    const text = document.getElementById('seasonChipText');
-    if (!chip || !text) return;
+    const bc = document.getElementById('breadcrumb');
+    const seasonText = document.getElementById('bcSeasonText');
+    const gameText = document.getElementById('bcGameText');
+    const gameSeg = document.getElementById('bcGame');
+    const gameSep = document.getElementById('bcGameSep');
+    if (!bc) return;
     const store = this.storage && this.storage.seasonStore;
-    if (!store || !store.hasCurrent()) { chip.hidden = true; return; }
+    if (!store || !store.hasCurrent()) { bc.hidden = true; return; }
     const d = store.data;
     const game = store.activeGame && store.activeGame();
     const gameName = game ? store.gameName(game, store.activeIndex()) : '';
-    text.textContent = gameName ? `${d.seasonName || 'Season'} · ${gameName}` : (d.seasonName || 'Season');
-    chip.hidden = false;
+    if (seasonText) seasonText.textContent = d.seasonName || 'Season';
+    const showGame = !!gameName;
+    if (gameText) gameText.textContent = gameName;
+    if (gameSeg) gameSeg.style.display = showGame ? '' : 'none';
+    if (gameSep) gameSep.style.display = showGame ? '' : 'none';
+    bc.hidden = false;
   }
 
   // ---- Games panel (settings drawer) ----------------------------------------

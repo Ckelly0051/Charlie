@@ -6596,6 +6596,35 @@ body {
   padding: 6px 8px; border-radius: 8px; line-height: 1; flex: 0 0 auto; }
 .season-card-del:hover { background: rgba(220,60,60,.15); color: #ff6b6b; }
 
+/* Schedule level (the open season's games — the spine) */
+.schedule-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.schedule-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.schedule-table-wrap { overflow-x: auto; }
+.schedule-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.schedule-table thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+  color: #6f8197; font-weight: 700; padding: 6px 10px; border-bottom: 1px solid #243044; }
+.schedule-table tbody td { padding: 11px 10px; border-bottom: 1px solid #1b2535; color: #c7d3e3; vertical-align: middle; }
+.sch-row { cursor: pointer; transition: background .12s; }
+.sch-row:hover td { background: rgba(255,255,255,.04); }
+.sch-row.is-active td { background: rgba(6,182,212,.08); }
+.sch-name { font-weight: 600; color: #fff; }
+.sch-dim { color: #6f8197; }
+.sch-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.sch-dot.dot-active { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.5); }
+.sch-dot.dot-final { background: #22c55e; }
+.sch-dot.dot-idle { background: rgba(255,255,255,.25); }
+.sch-score { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+.sch-score.win { background: rgba(34,197,94,.2); color: #4ade80; }
+.sch-score.loss { background: rgba(239,68,68,.15); color: #f87171; }
+.sch-score.tie { background: rgba(255,255,255,.08); color: #9fb1c9; }
+.sch-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.sch-status.final { color: #4ade80; }
+.sch-status.open { color: #22d3ee; }
+.sch-open-link { color: #6ea8ff; font-weight: 600; white-space: nowrap; }
+.sch-row:hover .sch-open-link { text-decoration: underline; }
+.sch-empty { text-align: center; color: #9fb1c9; padding: 28px 10px; }
+
 /* Season context chip (lives in the light top bar) */
 .season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
 .season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
@@ -6606,6 +6635,20 @@ body {
 .season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .season-chip-caret { font-size: 10px; opacity: .6; margin-left: 2px; }
 .season-chip[hidden] { display: none; }
+
+/* Breadcrumb nav (Seasons ▸ Season ▸ Game) — replaces the old season chip */
+.breadcrumb { display: inline-flex; align-items: center; gap: 4px; }
+.breadcrumb[hidden] { display: none; }
+.bc-seg { display: inline-flex; align-items: center; gap: 5px; background: rgba(47,109,240,.1);
+  border: 1px solid rgba(47,109,240,.35); color: #1d4ed8; border-radius: 999px; padding: 5px 11px;
+  font-size: 13px; font-weight: 600; cursor: pointer; max-width: 240px; transition: background .12s; }
+.bc-seg:hover { background: rgba(47,109,240,.2); }
+.bc-seg > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-home { padding: 5px 9px; }
+.bc-home .icon { width: 14px; height: 14px; }
+.bc-game { background: rgba(6,182,212,.1); border-color: rgba(6,182,212,.4); color: #0e7490; }
+.bc-game:hover { background: rgba(6,182,212,.2); }
+.bc-sep { color: rgba(15,23,42,.35); font-size: 11px; flex: 0 0 auto; }
 
 /* Game switcher dropdown (anchored to season chip) */
 .game-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1100;
@@ -6681,5 +6724,6 @@ body {
 @media (max-width: 640px) {
   .lib-form-row { grid-template-columns: 1fr; }
   .season-chip { max-width: 160px; }
+  .bc-seg { max-width: 110px; padding: 5px 8px; font-size: 12px; }
   .game-dropdown { min-width: 280px; left: auto; right: -20px; }
 }

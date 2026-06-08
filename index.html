@@ -33,11 +33,17 @@
         </button>
         <h1 class="app-title">GridIron IQ</h1>
         <div class="season-chip-wrap">
-          <button class="season-chip" id="seasonChip" title="Switch games or season" hidden>
-            <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg>
-            <span class="season-chip-text" id="seasonChipText">No season</span>
-            <span class="season-chip-caret">▾</span>
-          </button>
+          <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
+            <button class="bc-seg bc-home" id="bcSeasons" title="All seasons (library home)" aria-label="All seasons">
+              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
+            </button>
+            <span class="bc-sep">▸</span>
+            <button class="bc-seg" id="bcSeason" title="Season schedule"><span id="bcSeasonText">Season</span></button>
+            <span class="bc-sep" id="bcGameSep">▸</span>
+            <button class="bc-seg bc-game" id="bcGame" title="Switch game">
+              <span id="bcGameText">Game</span><span class="season-chip-caret">▾</span>
+            </button>
+          </nav>
           <div class="game-dropdown hidden" id="gameDropdown">
             <div class="game-dropdown-head" id="gameDropdownHead"></div>
             <div class="game-dropdown-list" id="gameDropdownList"></div>
@@ -1134,38 +1140,57 @@
     <div class="library-overlay hidden" id="libraryOverlay">
       <div class="library-modal">
         <div class="library-head">
-          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub">Season Library</span></div>
+          <div class="library-brand">GridIron <b>IQ</b> <span class="library-brand-sub" id="libraryBrandSub">Season Library</span></div>
           <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
         </div>
-        <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
-        <div class="library-new">
-          <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
-          <form class="library-form hidden" id="librarySeasonForm">
-            <div class="lib-form-row">
-              <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
-              <label>Team<input type="text" id="newSeasonTeam" placeholder="Eagles" maxlength="40" autocomplete="off"></label>
-              <label>Level
-                <select id="newSeasonLevel">
-                  <option value="">—</option>
-                  <option>Varsity</option>
-                  <option>JV</option>
-                  <option>Freshman</option>
-                  <option>Youth</option>
-                  <option>College</option>
-                  <option>Other</option>
-                </select>
+
+        <!-- SEASONS LEVEL: choose / create a season -->
+        <div id="librarySeasonsView">
+          <p class="library-intro">Pick a season to work on, or start a new one. Each season keeps its own games and data in its own file.</p>
+          <div class="library-new">
+            <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
+            <form class="library-form hidden" id="librarySeasonForm">
+              <div class="lib-form-row">
+                <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
+                <label>Team<input type="text" id="newSeasonTeam" placeholder="Eagles" maxlength="40" autocomplete="off"></label>
+                <label>Level
+                  <select id="newSeasonLevel">
+                    <option value="">—</option>
+                    <option>Varsity</option>
+                    <option>JV</option>
+                    <option>Freshman</option>
+                    <option>Youth</option>
+                    <option>College</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+              </div>
+              <label class="lib-form-name">Season name (optional)
+                <input type="text" id="newSeasonName" placeholder="e.g. 2026 Varsity — Eagles" maxlength="60" autocomplete="off">
               </label>
-            </div>
-            <label class="lib-form-name">Season name (optional)
-              <input type="text" id="newSeasonName" placeholder="e.g. 2026 Varsity — Eagles" maxlength="60" autocomplete="off">
-            </label>
-            <div class="lib-form-actions">
-              <button type="button" class="btn btn-sm" id="btnNewSeasonCancel">Cancel</button>
-              <button type="submit" class="btn btn-sm btn-accent" id="btnNewSeasonCreate">Create Season</button>
-            </div>
-          </form>
+              <div class="lib-form-actions">
+                <button type="button" class="btn btn-sm" id="btnNewSeasonCancel">Cancel</button>
+                <button type="submit" class="btn btn-sm btn-accent" id="btnNewSeasonCreate">Create Season</button>
+              </div>
+            </form>
+          </div>
+          <div class="library-list" id="libraryList"></div>
         </div>
-        <div class="library-list" id="libraryList"></div>
+
+        <!-- SCHEDULE LEVEL: the open season's games (the spine) -->
+        <div id="libraryScheduleView" class="hidden">
+          <div class="schedule-bar">
+            <button class="btn btn-sm" id="btnScheduleBack">← All Seasons</button>
+            <div class="schedule-title" id="scheduleTitle">Season</div>
+            <button class="btn btn-sm btn-accent" id="btnScheduleNewGame">+ New Game</button>
+          </div>
+          <div class="schedule-table-wrap">
+            <table class="schedule-table">
+              <thead><tr><th></th><th>Game</th><th>Date</th><th>Result</th><th>Plays</th><th>Status</th><th></th></tr></thead>
+              <tbody id="scheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
