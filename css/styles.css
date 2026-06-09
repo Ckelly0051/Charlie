@@ -3281,19 +3281,27 @@ select:focus-visible {
 
 /* --- Giant empty-state CTA --- */
 .video-placeholder {
+  position: absolute;
+  inset: 0;                 /* fill the (16:9) container so the CTA truly centers + scales */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 30px;
+  padding: 24px;
   color: var(--text-dim);
   pointer-events: auto;
 }
 .empty-cta-row {
   display: flex;
+  flex-wrap: wrap;          /* wrap to a stack when the box is narrow */
   gap: 12px;
   align-items: stretch;
+  justify-content: center;
+  max-width: 100%;
 }
 .empty-cta {
   display: flex;
@@ -3301,7 +3309,10 @@ select:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 18px 28px;
+  flex: 1 1 170px;          /* share width evenly, shrink on narrow, don't balloon */
+  min-width: 0;
+  max-width: 240px;
+  padding: 16px 22px;
   background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
   border: none;
   border-radius: 14px;
