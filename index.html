@@ -3316,11 +3316,11 @@ select:focus-visible {
 }
 .empty-cta-row {
   display: flex;
-  flex-wrap: wrap;          /* wrap to a stack when the box is narrow */
-  gap: 12px;
+  width: 100%;              /* definite width: buttons sit side-by-side, only wrap when truly narrow */
+  flex-wrap: wrap;
+  gap: 16px;
   align-items: stretch;
   justify-content: center;
-  max-width: 100%;
 }
 .empty-cta {
   display: flex;
@@ -3328,10 +3328,10 @@ select:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  flex: 1 1 170px;          /* share width evenly, shrink on narrow, don't balloon */
-  min-width: 0;
-  max-width: 240px;
-  padding: 16px 22px;
+  flex: 0 0 auto;          /* equal, fixed-size buttons regardless of label length */
+  width: 190px;
+  max-width: 100%;
+  padding: 16px 18px;
   background: linear-gradient(180deg, var(--highlight) 0%, #c93552 100%);
   border: none;
   border-radius: 14px;
