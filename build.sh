@@ -57,6 +57,7 @@ for jsfile in \
   js/notes-manager.js \
   js/storage-backend.js \
   js/season-store.js \
+  js/demo-season.js \
   js/storage.js \
   js/play-detector.js \
   js/clip-analyzer.js \

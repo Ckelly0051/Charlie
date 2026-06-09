@@ -6655,6 +6655,38 @@ body {
   color: #e6edf3; border-radius: 8px; padding: 9px 11px; font-size: 14px; min-width: 0; flex: 1; }
 .team-edit input:focus, .team-edit select:focus { outline: none; border-color: #c9a227; }
 
+/* Get Started checklist (progressive onboarding) */
+.gs-checklist { background: linear-gradient(135deg, #10243a, #0c1726); border: 1px solid #244766;
+  border-radius: 12px; padding: 16px 18px; margin: 4px 0 14px; }
+.gs-checklist.hidden { display: none; }
+.gs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.gs-title { font-size: 14px; font-weight: 700; color: #fff; }
+.gs-count { font-size: 12px; font-weight: 600; color: #6ea8ff; background: rgba(47,109,240,.16);
+  border-radius: 999px; padding: 2px 9px; margin-left: 8px; }
+.gs-dismiss { background: transparent; border: none; color: #6f8197; font-size: 18px; line-height: 1;
+  cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.gs-dismiss:hover { background: rgba(255,255,255,.08); color: #c7d3e3; }
+.gs-bar { height: 4px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.gs-bar-fill { height: 100%; background: linear-gradient(90deg, #2f6df0, #22d3ee); transition: width .3s; }
+.gs-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.gs-item { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 9px;
+  background: rgba(255,255,255,.03); border: 1px solid transparent; }
+.gs-item:not(.done) { cursor: pointer; }
+.gs-item:not(.done):hover { background: rgba(47,109,240,.12); border-color: rgba(47,109,240,.4); }
+.gs-check { width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+  border: 2px solid #3a4a5e; color: #fff; }
+.gs-item.done .gs-check { background: #22c55e; border-color: #22c55e; }
+.gs-label { flex: 1; font-size: 13.5px; color: #dce6f2; }
+.gs-item.done .gs-label { color: #7e8ea0; text-decoration: line-through; }
+.gs-go { color: #6ea8ff; font-weight: 700; }
+
+/* Explore-demo button + demo badge */
+.btn-demo { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.4); color: #4ade80; }
+.btn-demo:hover { background: rgba(34,197,94,.2); }
+.season-card-badge.demo { color: #4ade80; border-color: #22c55e; }
+.season-card.is-demo { border-style: dashed; }
+
 /* Season context chip (lives in the light top bar) */
 .season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
 .season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);

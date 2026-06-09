@@ -1,4 +1,5 @@
 import { SeasonStore } from './season-store.js';
+import { DemoSeason } from './demo-season.js';
 
 /**
  * StorageManager - Handles save/load/export for projects.
@@ -122,8 +123,69 @@ export class StorageManager {
   /** Delete a season; clears the editor if it was the open one. */
   async deleteSeason(id) {
     const wasCurrent = this.seasonStore.currentSeasonId === id;
+    const wasDemo = this.isDemoSeason(id);
     await this.seasonStore.deleteSeason(id);
+    if (wasDemo) this._teardownDemo();
     if (wasCurrent) this._clearForNewGame();
+  }
+
+  // ---- Demo season (onboarding empty-state) --------------------------------
+
+  /** The library id of the bundled demo season, if one has been created. */
+  demoSeasonId() {
+    try { return localStorage.getItem('ffa_demo_season_id') || ''; } catch (e) { return ''; }
+  }
+  isDemoSeason(id) { return !!id && id === this.demoSeasonId(); }
+
+  /**
+   * Load (or create) the explorable demo season. Fully non-destructive: the
+   * demo carries an EMPTY roster, so the coach's real global roster is never
+   * touched. Player names in the demo's stats come from a transient label
+   * overlay (see _applySeasonLabels), not the roster.
+   */
+  async loadDemoSeason() {
+    const existing = this.demoSeasonId();
+    if (existing) {
+      const lib = await this.listSeasons();
+      const meta = lib.find(s => s.id === existing);
+      // Reopen only if the season actually still has content — if the data was
+      // evicted (localStorage quota) but the library entry survived, fall
+      // through and regenerate instead of opening an empty "Demo".
+      if (meta && (meta.plays || 0) > 0) { await this.openSeasonById(existing); return existing; }
+      try { await this.seasonStore.deleteSeason(existing); } catch (e) {}   // clear stale husk
+      try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+    }
+    if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    const data = DemoSeason.build();
+    const rec = await this.seasonStore.createSeason({
+      name: data.seasonName, team: data.team, year: data.year, level: data.level,
+    });
+    if (!rec) return null;
+    data.id = rec.id;
+    this.seasonStore.data = this.seasonStore._normalize(data);
+    this.seasonStore.data.id = rec.id;
+    this.seasonStore.persist();
+    try { localStorage.setItem('ffa_demo_season_id', rec.id); } catch (e) {}
+    this._afterSeasonLoaded();
+    return rec.id;
+  }
+
+  /** Clear the demo flag (the demo never persisted anything else). */
+  _teardownDemo() {
+    try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+  }
+
+  /**
+   * Apply the demo's jersey→name overlay to the stats engine while the demo is
+   * the active season; clear it for any real season (so demo names never leak
+   * into real games). Uses a dedicated `_fixedLabels` field (not `_seasonLabels`,
+   * which the Season Stats view nulls after rendering) so the names survive.
+   */
+  _applySeasonLabels() {
+    const app = window.app;
+    if (!app || !app.stats) return;
+    app.stats._fixedLabels = this.isDemoSeason(this.seasonStore.currentSeasonId)
+      ? DemoSeason.LABELS : null;
   }
 
   /** After a season becomes current: load its active game + refresh app UI. */
@@ -154,6 +216,7 @@ export class StorageManager {
   _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
+    this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = window.app;
     if (app) {
       if (app._updateSeasonChip) app._updateSeasonChip();

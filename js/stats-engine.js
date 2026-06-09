@@ -2112,6 +2112,10 @@ export class StatsEngine {
   }
 
   _playerLabel(num) {
+    // Fixed name overlay (e.g. the demo season) — owned by StorageManager and
+    // independent of _seasonLabels, which the Season Stats view nulls after it
+    // renders. Checked first so the demo's names survive opening that view.
+    if (this._fixedLabels && this._fixedLabels[num]) return `#${num} ${this._fixedLabels[num]}`;
     // Season view supplies a merged name map across loaded games.
     if (this._seasonLabels && this._seasonLabels[num]) return `#${num} ${this._seasonLabels[num]}`;
     const roster = (typeof window !== 'undefined') && window.app && window.app.roster;

@@ -150,6 +150,15 @@ class App {
       await this.library.open();
     }, 0);
 
+    // Mark the onboarding checklist's "See your stats" step once the coach
+    // opens the dashboard for THEIR OWN data (not the demo — exploring the demo
+    // shouldn't silently complete onboarding). Flag read by _checklistItems.
+    document.getElementById('btnShowStats')?.addEventListener('click', () => {
+      const store = this.storage?.seasonStore;
+      if (store && this.storage.isDemoSeason(store.currentSeasonId)) return;
+      try { localStorage.setItem('ffa_seen_stats', '1'); } catch (e) {}
+    });
+
     // Desktop auto-update (no-op on the web build).
     this.updater = new Updater();
     this.updater.init();
@@ -1484,6 +1493,10 @@ class App {
   }
 
   _saveGameInfo() {
+    // Programmatic form population (loading a game) must not trigger a save —
+    // otherwise a loaded game's team name (e.g. the demo's 'GridIron Demo')
+    // cascades through _saveTeamProfile and clobbers the coach's real identity.
+    if (this._loadingGameInfo) return;
     this.storage.gameInfo = {
       projectName: document.getElementById('gameProjectName')?.value || '',
       teamName: document.getElementById('gameTeamName')?.value || '',
@@ -1541,6 +1554,7 @@ class App {
 
   _loadGameInfo(info) {
     if (!info) return;
+    this._loadingGameInfo = true;   // suppress save-on-load cascade (see _saveGameInfo)
     const map = {
       gameProjectName: info.projectName,
       gameTeamName: info.teamName,
@@ -1572,6 +1586,7 @@ class App {
       if (mEl) mEl.value = savedModel;
       this.vision.model = savedModel;
     }
+    this._loadingGameInfo = false;
   }
 
   _bindReportExport() {

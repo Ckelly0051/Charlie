@@ -1203,9 +1203,13 @@
             <button class="btn btn-sm btn-accent" id="btnTeamEditSave">Save</button>
             <button class="btn btn-sm" id="btnTeamEditCancel">Cancel</button>
           </div>
+          <!-- Get Started checklist (progressive onboarding — auto-hides when done) -->
+          <div class="gs-checklist hidden" id="getStartedChecklist"></div>
+
           <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
+            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet">▶ Explore a demo season</button>
             <form class="library-form hidden" id="librarySeasonForm">
               <div class="lib-form-row">
                 <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>

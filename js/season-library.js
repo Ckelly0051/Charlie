@@ -48,6 +48,12 @@ export class SeasonLibrary {
       if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
       if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
 
+      // Demo season + Get Started checklist
+      if (t.closest && t.closest('#btnExploreDemo')) { this._exploreDemo(); return; }
+      if (t.closest && t.closest('#gsDismiss')) { this._dismissChecklist(); return; }
+      const gsItem = t.closest && t.closest('.gs-item:not(.done)');
+      if (gsItem) { this._runChecklistAction(gsItem.dataset.step); return; }
+
       // Schedule level (the open season's games — the spine)
       if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
       if (t.closest && t.closest('#btnScheduleNewGame')) { this._newGameFromSchedule(); return; }
@@ -157,6 +163,7 @@ export class SeasonLibrary {
     this._saveTeamProfile(profile);
     this._syncGameInfoFromTeam(profile);
     this._renderTeamCard();
+    this._render();   // surface the Get Started checklist now that a team exists
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
@@ -281,30 +288,129 @@ export class SeasonLibrary {
     if (!this.listEl) return;
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
+    const demoId = this._storage()?.demoSeasonId?.() || '';
+    this._renderChecklist(seasons, demoId);
     if (!seasons.length) {
       this.listEl.innerHTML = this._hasTeam()
         ? `<div class="library-empty">
             <p>No seasons yet.</p>
-            <p class="library-empty-sub">Create your first season to start tracking games and film.</p>
+            <p class="library-empty-sub">Create your first season — or explore a demo to see what the stats look like.</p>
           </div>`
         : '';
       return;
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
-    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId)).join('');
+    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, s.id === demoId)).join('');
   }
 
-  _cardHtml(s, isCurrent) {
+  _cardHtml(s, isCurrent, isDemo) {
     const sub = [s.year, s.level, s.team].filter(Boolean).join(' · ');
     const last = s.lastOpened ? new Date(s.lastOpened).toLocaleDateString() : '';
-    return `<div class="season-card${isCurrent ? ' is-current' : ''}" data-id="${esc(s.id)}" title="Open this season">
+    const badge = isCurrent ? ' <span class="season-card-badge">Open</span>'
+      : (isDemo ? ' <span class="season-card-badge demo">Demo</span>' : '');
+    const delTitle = isDemo ? 'Remove the demo season' : 'Delete this season';
+    return `<div class="season-card${isCurrent ? ' is-current' : ''}${isDemo ? ' is-demo' : ''}" data-id="${esc(s.id)}" title="Open this season">
       <div class="season-card-main">
-        <div class="season-card-name">${esc(s.name || 'Untitled Season')}${isCurrent ? ' <span class="season-card-badge">Open</span>' : ''}</div>
+        <div class="season-card-name">${esc(s.name || 'Untitled Season')}${badge}</div>
         ${sub ? `<div class="season-card-sub">${esc(sub)}</div>` : ''}
         <div class="season-card-meta">${s.games || 0} game${(s.games || 0) === 1 ? '' : 's'} · ${s.plays || 0} plays${last ? ` · opened ${esc(last)}` : ''}</div>
       </div>
-      <button class="season-card-del" data-lib-del title="Delete this season" aria-label="Delete season">✕</button>
+      <button class="season-card-del" data-lib-del title="${delTitle}" aria-label="${delTitle}">✕</button>
     </div>`;
+  }
+
+  // ---- Get Started checklist (progressive onboarding) ----
+
+  _checklistDismissed() {
+    try { return localStorage.getItem('ffa_checklist_dismissed') === '1'; } catch (e) { return false; }
+  }
+  _dismissChecklist() {
+    try { localStorage.setItem('ffa_checklist_dismissed', '1'); } catch (e) {}
+    const el = document.getElementById('getStartedChecklist');
+    if (el) el.classList.add('hidden');
+  }
+
+  _checklistItems(seasons, demoId) {
+    const profile = this._teamProfile();
+    const roster = window.app?.roster?.players || [];
+    const realSeasons = (seasons || []).filter(s => s.id !== demoId);
+    // Season-meta play counts lag a debounced autosave, so also consult the
+    // live tagger when a real season is open (a play tagged seconds ago counts).
+    const store = this._storage()?.seasonStore;
+    const liveTagged = store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)
+      && (window.app?.tagger?.plays?.length || 0) > 0;
+    const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0);
+    let seenStats = false;
+    try { seenStats = localStorage.getItem('ffa_seen_stats') === '1'; } catch (e) {}
+    return [
+      { step: 'team',   label: 'Set up your team',     done: !!profile.teamName },
+      { step: 'roster', label: 'Add your roster',      done: roster.length > 0 },
+      { step: 'season', label: 'Start a season',       done: realSeasons.length > 0 },
+      { step: 'play',   label: 'Tag your first play',  done: taggedAnywhere },
+      { step: 'stats',  label: 'See your stats',       done: seenStats },
+    ];
+  }
+
+  _renderChecklist(seasons, demoId) {
+    const el = document.getElementById('getStartedChecklist');
+    if (!el) return;
+    // Only show once a team exists (before that, the setup form is the guide),
+    // and never after it's complete or dismissed.
+    const items = this._checklistItems(seasons, demoId);
+    const doneCount = items.filter(i => i.done).length;
+    const complete = doneCount === items.length;
+    if (!this._hasTeam() || complete || this._checklistDismissed()) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="gs-head">
+        <div class="gs-title">Get started <span class="gs-count">${doneCount} of ${items.length}</span></div>
+        <button class="gs-dismiss" id="gsDismiss" title="Hide this checklist" aria-label="Hide checklist">×</button>
+      </div>
+      <div class="gs-bar"><div class="gs-bar-fill" style="width:${Math.round(doneCount / items.length * 100)}%"></div></div>
+      <ul class="gs-items">
+        ${items.map(i => `
+          <li class="gs-item${i.done ? ' done' : ''}" data-step="${i.step}"${i.done ? '' : ' role="button" tabindex="0"'}>
+            <span class="gs-check">${i.done ? '✓' : ''}</span>
+            <span class="gs-label">${i.label}</span>
+            ${i.done ? '' : '<span class="gs-go">→</span>'}
+          </li>`).join('')}
+      </ul>`;
+  }
+
+  _runChecklistAction(step) {
+    if (step === 'team') { this._showTeamEdit(true); return; }
+    if (step === 'roster') { this._openRoster(); return; }
+    if (step === 'season') { this._showForm(true); return; }
+    if (step === 'play') {
+      // If a real season exists, jump into its schedule to add/open a game;
+      // otherwise start the new-season flow.
+      const store = this._storage()?.seasonStore;
+      if (store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)) this.openSchedule();
+      else this._showForm(true);
+      return;
+    }
+    if (step === 'stats') {
+      const store = this._storage()?.seasonStore;
+      if (store?.hasCurrent()) {
+        this.overlay.classList.add('hidden');
+        document.getElementById('btnShowStats')?.click();
+      } else {
+        this._exploreDemo();   // nothing to show yet → demo gives instant stats
+      }
+      return;
+    }
+  }
+
+  async _exploreDemo() {
+    const storage = this._storage();
+    if (!storage || !storage.loadDemoSeason) return;
+    try { await storage.loadDemoSeason(); } catch (e) { return; }
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    window.app?.updater?._toast?.('Demo season loaded — open a game, then tap Stats to explore. (No film attached.)');
+    this.openSchedule();   // land on the populated schedule (two finished games)
   }
 
   async _create() {
@@ -333,10 +439,17 @@ export class SeasonLibrary {
 
   async _delete(id, card) {
     const tagger = window.app && window.app.tagger;
-    const name = card?.querySelector('.season-card-name')?.textContent || 'this season';
-    const msg = `Delete "${name.replace(' Open', '')}"? This removes the season and all its games. This cannot be undone.`;
+    const isDemo = this._storage()?.isDemoSeason?.(id);
+    // Read the season name from the leading text node only — the badge ("Open"/
+    // "Demo") is a sibling <span>, so textContent would wrongly include it (and
+    // truncate real names that legitimately contain "Demo").
+    const nameEl = card?.querySelector('.season-card-name');
+    const cleanName = (nameEl?.firstChild?.textContent || nameEl?.textContent || 'this season').trim();
+    const msg = isDemo
+      ? 'Remove the demo season? Your own seasons and roster are untouched.'
+      : `Delete "${cleanName}"? This removes the season and all its games. This cannot be undone.`;
     let ok = false;
-    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, 'Delete Season');
+    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, isDemo ? 'Remove Demo' : 'Delete Season');
     else ok = confirm(msg);
     if (!ok) return;
     await this._storage().deleteSeason(id);
