@@ -6664,6 +6664,38 @@ body {
   color: #e6edf3; border-radius: 8px; padding: 9px 11px; font-size: 14px; min-width: 0; flex: 1; }
 .team-edit input:focus, .team-edit select:focus { outline: none; border-color: #c9a227; }
 
+/* Get Started checklist (progressive onboarding) */
+.gs-checklist { background: linear-gradient(135deg, #10243a, #0c1726); border: 1px solid #244766;
+  border-radius: 12px; padding: 16px 18px; margin: 4px 0 14px; }
+.gs-checklist.hidden { display: none; }
+.gs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.gs-title { font-size: 14px; font-weight: 700; color: #fff; }
+.gs-count { font-size: 12px; font-weight: 600; color: #6ea8ff; background: rgba(47,109,240,.16);
+  border-radius: 999px; padding: 2px 9px; margin-left: 8px; }
+.gs-dismiss { background: transparent; border: none; color: #6f8197; font-size: 18px; line-height: 1;
+  cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.gs-dismiss:hover { background: rgba(255,255,255,.08); color: #c7d3e3; }
+.gs-bar { height: 4px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.gs-bar-fill { height: 100%; background: linear-gradient(90deg, #2f6df0, #22d3ee); transition: width .3s; }
+.gs-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.gs-item { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 9px;
+  background: rgba(255,255,255,.03); border: 1px solid transparent; }
+.gs-item:not(.done) { cursor: pointer; }
+.gs-item:not(.done):hover { background: rgba(47,109,240,.12); border-color: rgba(47,109,240,.4); }
+.gs-check { width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+  border: 2px solid #3a4a5e; color: #fff; }
+.gs-item.done .gs-check { background: #22c55e; border-color: #22c55e; }
+.gs-label { flex: 1; font-size: 13.5px; color: #dce6f2; }
+.gs-item.done .gs-label { color: #7e8ea0; text-decoration: line-through; }
+.gs-go { color: #6ea8ff; font-weight: 700; }
+
+/* Explore-demo button + demo badge */
+.btn-demo { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.4); color: #4ade80; }
+.btn-demo:hover { background: rgba(34,197,94,.2); }
+.season-card-badge.demo { color: #4ade80; border-color: #22c55e; }
+.season-card.is-demo { border-style: dashed; }
+
 /* Season context chip (lives in the light top bar) */
 .season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
 .season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
@@ -8140,9 +8172,13 @@ body {
             <button class="btn btn-sm btn-accent" id="btnTeamEditSave">Save</button>
             <button class="btn btn-sm" id="btnTeamEditCancel">Cancel</button>
           </div>
+          <!-- Get Started checklist (progressive onboarding — auto-hides when done) -->
+          <div class="gs-checklist hidden" id="getStartedChecklist"></div>
+
           <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
+            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet">▶ Explore a demo season</button>
             <form class="library-form hidden" id="librarySeasonForm">
               <div class="lib-form-row">
                 <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
@@ -11897,6 +11933,250 @@ class SeasonStore {
   }
 }
 
+// ===== demo-season.js =====
+/**
+ * DemoSeason — a fully-tagged sample season the coach can explore instantly.
+ *
+ * The #1 onboarding lesson from Hudl / Notion / Krossover: never show a new user
+ * a blank canvas. `DemoSeason.build()` returns a complete, realistic season
+ * object (the same schema SeasonStore produces) — two finished games of tagged
+ * offense AND defense plays, a roster with real names, and final scores — so a
+ * first-time coach lands on a populated Stats dashboard, Self-Scout, and Call
+ * Sheet in seconds instead of tagging 40 plays first.
+ *
+ * It's deterministic (seeded RNG) so the demo looks the same every time, and it
+ * loads through the exact same code path as real data — nothing about the demo
+ * is special-cased downstream, so what the coach explores is the real product.
+ *
+ * No video is attached (film can't be bundled), so the film player shows its
+ * placeholder; the demo's job is the analytics "aha", which need no video.
+ *
+ * NOTE: the seeded RNG + play-distribution model below is intentionally close
+ * to `tools/generate-sample-report.mjs` (a node-only report generator). They're
+ * kept separate (browser ES module vs build-time tool, and this one adds a
+ * defense loop + multi-game structure), but if you tune the realism here,
+ * consider mirroring it there so the demo and the sample report don't drift.
+ */
+
+const FORMATIONS = ['Shotgun', 'Shotgun + Trips', 'Singleback', 'I-Form', 'Pistol + Spread', 'Empty', 'Under Center'];
+const PERSONNEL = ['11', '12', '21', '10', '22'];
+const FRONTS = ['4-3', '3-4', 'Nickel', '4-2-5', 'Dime', '4-6'];
+const COVERAGES = ['Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 0', 'Man', 'Zone'];
+const BLITZ_TYPES = ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'];
+const HASHES = ['Left', 'Middle', 'Right'];
+
+const RB = ['22', '28', '34'];
+const QB = ['7', '12'];
+const WR = ['80', '11', '84', '3', '17'];
+const DEF = ['55', '9', '24', '40', '52', '31', '90'];
+
+// Roster with real names so the individual-stats tables read "#22 Carter".
+const DEMO_ROSTER = [
+  { num: '7',  name: 'Jordan Hayes',   pos: 'QB', side: 'O' },
+  { num: '12', name: 'Eli Brooks',     pos: 'QB', side: 'O' },
+  { num: '22', name: 'Marcus Carter',  pos: 'RB', side: 'O' },
+  { num: '28', name: 'DeShawn Pierce', pos: 'RB', side: 'O' },
+  { num: '34', name: 'Tyler Nunez',    pos: 'RB', side: 'O' },
+  { num: '80', name: 'Cam Whitfield',  pos: 'WR', side: 'O' },
+  { num: '11', name: 'Andre Sole',     pos: 'WR', side: 'O' },
+  { num: '84', name: 'Reece Lambert',  pos: 'TE', side: 'O' },
+  { num: '3',  name: 'Kavon Reid',     pos: 'WR', side: 'O' },
+  { num: '17', name: 'Drew Halloran',  pos: 'WR', side: 'O' },
+  { num: '55', name: 'Big Mike Osei',  pos: 'LB', side: 'D' },
+  { num: '9',  name: 'Trey Bishop',    pos: 'CB', side: 'D' },
+  { num: '24', name: 'Xavier Mead',    pos: 'S',  side: 'D' },
+  { num: '40', name: 'Sam Okafor',     pos: 'LB', side: 'D' },
+  { num: '52', name: 'Nate Ferraro',   pos: 'LB', side: 'D' },
+  { num: '31', name: 'Quinn Daly',     pos: 'CB', side: 'D' },
+  { num: '90', name: 'Boomer Vance',   pos: 'DL', side: 'D' },
+];
+
+class DemoSeason {
+  static SEASON_NAME = '2026 Varsity — Demo';
+
+  /**
+   * Jersey # → name map. Applied as a *non-persistent* label overlay
+   * (StatsEngine._seasonLabels) only while the demo is the active season, so
+   * the demo's individual-stats tables read "#22 Marcus Carter" WITHOUT ever
+   * writing to the coach's real global roster.
+   */
+  static LABELS = DEMO_ROSTER.reduce((m, p) => { m[p.num] = p.name; return m; }, {});
+
+  /** Build the full season object (deterministic). */
+  static build() {
+    const teamProfile = { teamName: 'GridIron Demo', jerseyColor: 'navy' };
+    const games = [
+      DemoSeason._game({
+        seed: 70021, opponent: 'Riverside Hawks', date: '2026-09-04',
+        scoreUs: 28, scoreThem: 21, oDrives: 11, dDrives: 9,
+      }),
+      DemoSeason._game({
+        seed: 81143, opponent: 'Central Tigers', date: '2026-09-11',
+        scoreUs: 17, scoreThem: 24, oDrives: 10, dDrives: 11,
+      }),
+    ];
+    return {
+      version: 5, type: 'season',
+      id: '', seasonName: DemoSeason.SEASON_NAME,
+      team: teamProfile.teamName, year: '2026', level: 'Varsity',
+      teamProfile,
+      roster: [],   // empty on purpose — names come from the LABELS overlay, never the global roster
+      games,
+      activeGameId: games[0].id,
+    };
+  }
+
+  // ---- one game (offense + defense plays) ----------------------------------
+
+  static _game({ seed, opponent, date, scoreUs, scoreThem, oDrives, dDrives }) {
+    let s = seed;
+    const rng = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const pick = arr => arr[Math.floor(rng() * arr.length)];
+    const chance = p => rng() < p;
+    const randInt = (a, b) => a + Math.floor(rng() * (b - a + 1));
+
+    const plays = [];
+    let pid = 0;
+    let clock = 0;
+    const stamp = () => { const start = clock; clock += randInt(28, 40); return { start, end: start + randInt(5, 9) }; };
+
+    // ----- our OFFENSE -----
+    for (let drive = 1; drive <= oDrives; drive++) {
+      const quarter = `Q${Math.min(4, Math.ceil((drive / oDrives) * 4))}`;
+      let down = 1, distance = 10, fieldSide, yardLine;
+      if (chance(0.25)) { fieldSide = 'opp'; yardLine = randInt(15, 40); }
+      else { fieldSide = 'own'; yardLine = randInt(15, 45); }
+      const driveLen = randInt(3, 9);
+
+      for (let i = 0; i < driveLen; i++) {
+        const isRun = chance(0.54);
+        const blitz = chance(0.30) ? pick(BLITZ_TYPES) : '';
+        const coverage = pick(COVERAGES);
+        const defFront = pick(FRONTS);
+        let result = 'Gain', yardage, playType;
+        const players = {}, grades = {};
+
+        if (isRun) {
+          playType = chance(0.5) ? 'Run Inside' : 'Run Outside';
+          yardage = chance(0.16) ? randInt(-5, -1) : (chance(0.16) ? randInt(12, 55) : randInt(2, 9));
+          players.ballCarrier = pick(RB); grades.ballCarrier = randInt(-1, 2);
+          if (yardage < 0) result = 'Loss';
+          else if (yardage === 0) result = 'No Gain';
+        } else {
+          const r = rng();
+          playType = r < 0.25 ? 'Screen' : r < 0.55 ? 'Short Pass' : r < 0.8 ? 'Medium Pass' : 'Deep Pass';
+          players.passer = pick(QB); grades.passer = randInt(-1, 2);
+          const sackP = blitz ? 0.16 : 0.05, intP = blitz ? 0.06 : 0.035;
+          if (chance(sackP)) { result = 'Sack'; yardage = randInt(-9, -3); }
+          else if (chance(intP)) { result = 'Interception'; yardage = 0; }
+          else if (chance(blitz ? 0.40 : 0.31)) { result = 'Incomplete'; yardage = 0; }
+          else {
+            result = 'Gain';
+            yardage = playType === 'Deep Pass' ? randInt(15, 48) : playType === 'Medium Pass' ? randInt(8, 22) : randInt(1, 12);
+            players.receiver = pick(WR); grades.receiver = randInt(0, 2);
+          }
+        }
+
+        const absYL = fieldSide === 'opp' ? 100 - yardLine : yardLine;
+        if (result === 'Gain' && absYL + yardage >= 100) result = 'Touchdown';
+        if (chance(0.02) && (result === 'Gain' || result === 'Loss')) result = 'Fumble';
+        const gained1st = result === 'Touchdown' ||
+          (yardage >= distance && !['Interception', 'Fumble', 'Sack'].includes(result));
+
+        plays.push({
+          id: ++pid, timestamp: stamp(), clipId: null,
+          tags: {
+            down: String(down), distance: String(distance), quarter, fieldSide, yardLine: String(yardLine),
+            formation: pick(FORMATIONS), personnel: pick(PERSONNEL),
+            runPass: isRun ? 'Run' : 'Pass', playType, result, yardage: String(yardage),
+            hash: pick(HASHES), defFront, coverage, blitz,
+            driveNumber: String(drive), unit: 'offense', stType: '',
+            players, grades, custom: gained1st ? ['1st Down'] : [],
+          },
+          notes: '', analysis: null,
+        });
+
+        if (['Touchdown', 'Interception', 'Fumble'].includes(result)) break;
+        if (gained1st) { down = 1; distance = 10; }
+        else { down++; distance = Math.max(1, distance - Math.max(0, yardage)); }
+        if (down > 4) break;
+        const newAbs = Math.max(1, Math.min(99, absYL + yardage));
+        fieldSide = newAbs >= 50 ? 'opp' : 'own';
+        yardLine = newAbs >= 50 ? 100 - newAbs : newAbs;
+      }
+    }
+
+    // ----- our DEFENSE (powers the Defense tab + tackles / INT / FR) -----
+    for (let drive = 1; drive <= dDrives; drive++) {
+      const quarter = `Q${Math.min(4, Math.ceil((drive / dDrives) * 4))}`;
+      let down = 1, distance = 10;
+      const driveLen = randInt(3, 8);
+      for (let i = 0; i < driveLen; i++) {
+        const isRun = chance(0.5);
+        const blitz = chance(0.34) ? pick(BLITZ_TYPES) : '';
+        const coverage = pick(COVERAGES);
+        const defFront = pick(FRONTS);
+        let result = 'Gain', yardage, playType;
+        const players = {}, grades = {};
+
+        if (isRun) {
+          playType = chance(0.5) ? 'Run Inside' : 'Run Outside';
+          yardage = chance(0.22) ? randInt(-4, -1) : (chance(0.12) ? randInt(11, 40) : randInt(1, 8));
+          if (yardage <= 0) { result = yardage < 0 ? 'Loss' : 'No Gain'; }
+          // credit a tackler (sometimes a shared tackle)
+          players.tackler = chance(0.3) ? `${pick(DEF)}, ${pick(DEF)}` : pick(DEF);
+          grades.tackler = randInt(0, 2);
+        } else {
+          const r = rng();
+          playType = r < 0.25 ? 'Screen' : r < 0.55 ? 'Short Pass' : r < 0.8 ? 'Medium Pass' : 'Deep Pass';
+          const sackP = blitz ? 0.18 : 0.06, intP = blitz ? 0.08 : 0.04;
+          if (chance(sackP)) { result = 'Sack'; yardage = randInt(-9, -3); players.tackler = pick(DEF); grades.tackler = 2; }
+          else if (chance(intP)) { result = 'Interception'; yardage = 0; players.tackler = pick(['9', '24', '31']); grades.tackler = 2; }
+          else if (chance(blitz ? 0.42 : 0.34)) { result = 'Incomplete'; yardage = 0; }
+          else {
+            result = 'Gain';
+            yardage = playType === 'Deep Pass' ? randInt(14, 44) : playType === 'Medium Pass' ? randInt(8, 20) : randInt(1, 11);
+            players.tackler = chance(0.3) ? `${pick(DEF)}, ${pick(DEF)}` : pick(DEF);
+            grades.tackler = randInt(-1, 1);
+          }
+        }
+        if (chance(0.03) && (result === 'Gain' || result === 'Loss')) { result = 'Fumble'; players.tackler = pick(DEF); grades.tackler = 2; }
+
+        plays.push({
+          id: ++pid, timestamp: stamp(), clipId: null,
+          tags: {
+            down: String(down), distance: String(distance), quarter, fieldSide: 'own', yardLine: String(randInt(20, 45)),
+            formation: '', personnel: '',
+            runPass: isRun ? 'Run' : 'Pass', playType, result, yardage: String(yardage),
+            hash: pick(HASHES), defFront, coverage, blitz,
+            driveNumber: String(drive), unit: 'defense', stType: '',
+            players, grades, custom: [],
+          },
+          notes: '', analysis: null,
+        });
+
+        const stop = yardage <= 0 || ['Sack', 'Interception', 'Incomplete', 'Fumble'].includes(result);
+        if (['Interception', 'Fumble'].includes(result)) break;
+        if (!stop && yardage >= distance) { down = 1; distance = 10; }
+        else { down++; distance = Math.max(1, distance - Math.max(0, yardage)); }
+        if (down > 4) break;
+      }
+    }
+
+    return {
+      id: 'g_demo_' + seed, name: `vs ${opponent}`, status: 'final',
+      gameInfo: {
+        projectName: `Week ${date.endsWith('04') ? '1' : '2'} vs ${opponent}`,
+        teamName: 'GridIron Demo', opponent, date,
+        scoreUs, scoreThem, jerseyColor: 'navy', perspective: 'offense',
+      },
+      plays, annotations: [],
+      nextId: pid + 1, currentPlayId: null,
+      videoFileName: null, clipNames: [], isMultiClip: false,
+    };
+  }
+}
+
 // ===== storage.js =====
 
 /**
@@ -12021,8 +12301,69 @@ class StorageManager {
   /** Delete a season; clears the editor if it was the open one. */
   async deleteSeason(id) {
     const wasCurrent = this.seasonStore.currentSeasonId === id;
+    const wasDemo = this.isDemoSeason(id);
     await this.seasonStore.deleteSeason(id);
+    if (wasDemo) this._teardownDemo();
     if (wasCurrent) this._clearForNewGame();
+  }
+
+  // ---- Demo season (onboarding empty-state) --------------------------------
+
+  /** The library id of the bundled demo season, if one has been created. */
+  demoSeasonId() {
+    try { return localStorage.getItem('ffa_demo_season_id') || ''; } catch (e) { return ''; }
+  }
+  isDemoSeason(id) { return !!id && id === this.demoSeasonId(); }
+
+  /**
+   * Load (or create) the explorable demo season. Fully non-destructive: the
+   * demo carries an EMPTY roster, so the coach's real global roster is never
+   * touched. Player names in the demo's stats come from a transient label
+   * overlay (see _applySeasonLabels), not the roster.
+   */
+  async loadDemoSeason() {
+    const existing = this.demoSeasonId();
+    if (existing) {
+      const lib = await this.listSeasons();
+      const meta = lib.find(s => s.id === existing);
+      // Reopen only if the season actually still has content — if the data was
+      // evicted (localStorage quota) but the library entry survived, fall
+      // through and regenerate instead of opening an empty "Demo".
+      if (meta && (meta.plays || 0) > 0) { await this.openSeasonById(existing); return existing; }
+      try { await this.seasonStore.deleteSeason(existing); } catch (e) {}   // clear stale husk
+      try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+    }
+    if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    const data = DemoSeason.build();
+    const rec = await this.seasonStore.createSeason({
+      name: data.seasonName, team: data.team, year: data.year, level: data.level,
+    });
+    if (!rec) return null;
+    data.id = rec.id;
+    this.seasonStore.data = this.seasonStore._normalize(data);
+    this.seasonStore.data.id = rec.id;
+    this.seasonStore.persist();
+    try { localStorage.setItem('ffa_demo_season_id', rec.id); } catch (e) {}
+    this._afterSeasonLoaded();
+    return rec.id;
+  }
+
+  /** Clear the demo flag (the demo never persisted anything else). */
+  _teardownDemo() {
+    try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+  }
+
+  /**
+   * Apply the demo's jersey→name overlay to the stats engine while the demo is
+   * the active season; clear it for any real season (so demo names never leak
+   * into real games). Uses a dedicated `_fixedLabels` field (not `_seasonLabels`,
+   * which the Season Stats view nulls after rendering) so the names survive.
+   */
+  _applySeasonLabels() {
+    const app = window.app;
+    if (!app || !app.stats) return;
+    app.stats._fixedLabels = this.isDemoSeason(this.seasonStore.currentSeasonId)
+      ? DemoSeason.LABELS : null;
   }
 
   /** After a season becomes current: load its active game + refresh app UI. */
@@ -12053,6 +12394,7 @@ class StorageManager {
   _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
+    this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = window.app;
     if (app) {
       if (app._updateSeasonChip) app._updateSeasonChip();
@@ -17939,6 +18281,10 @@ class StatsEngine {
   }
 
   _playerLabel(num) {
+    // Fixed name overlay (e.g. the demo season) — owned by StorageManager and
+    // independent of _seasonLabels, which the Season Stats view nulls after it
+    // renders. Checked first so the demo's names survive opening that view.
+    if (this._fixedLabels && this._fixedLabels[num]) return `#${num} ${this._fixedLabels[num]}`;
     // Season view supplies a merged name map across loaded games.
     if (this._seasonLabels && this._seasonLabels[num]) return `#${num} ${this._seasonLabels[num]}`;
     const roster = (typeof window !== 'undefined') && window.app && window.app.roster;
@@ -20624,6 +20970,12 @@ class SeasonLibrary {
       if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
       if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
 
+      // Demo season + Get Started checklist
+      if (t.closest && t.closest('#btnExploreDemo')) { this._exploreDemo(); return; }
+      if (t.closest && t.closest('#gsDismiss')) { this._dismissChecklist(); return; }
+      const gsItem = t.closest && t.closest('.gs-item:not(.done)');
+      if (gsItem) { this._runChecklistAction(gsItem.dataset.step); return; }
+
       // Schedule level (the open season's games — the spine)
       if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
       if (t.closest && t.closest('#btnScheduleNewGame')) { this._newGameFromSchedule(); return; }
@@ -20733,6 +21085,7 @@ class SeasonLibrary {
     this._saveTeamProfile(profile);
     this._syncGameInfoFromTeam(profile);
     this._renderTeamCard();
+    this._render();   // surface the Get Started checklist now that a team exists
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
@@ -20857,30 +21210,129 @@ class SeasonLibrary {
     if (!this.listEl) return;
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
+    const demoId = this._storage()?.demoSeasonId?.() || '';
+    this._renderChecklist(seasons, demoId);
     if (!seasons.length) {
       this.listEl.innerHTML = this._hasTeam()
         ? `<div class="library-empty">
             <p>No seasons yet.</p>
-            <p class="library-empty-sub">Create your first season to start tracking games and film.</p>
+            <p class="library-empty-sub">Create your first season — or explore a demo to see what the stats look like.</p>
           </div>`
         : '';
       return;
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
-    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId)).join('');
+    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, s.id === demoId)).join('');
   }
 
-  _cardHtml(s, isCurrent) {
+  _cardHtml(s, isCurrent, isDemo) {
     const sub = [s.year, s.level, s.team].filter(Boolean).join(' · ');
     const last = s.lastOpened ? new Date(s.lastOpened).toLocaleDateString() : '';
-    return `<div class="season-card${isCurrent ? ' is-current' : ''}" data-id="${esc(s.id)}" title="Open this season">
+    const badge = isCurrent ? ' <span class="season-card-badge">Open</span>'
+      : (isDemo ? ' <span class="season-card-badge demo">Demo</span>' : '');
+    const delTitle = isDemo ? 'Remove the demo season' : 'Delete this season';
+    return `<div class="season-card${isCurrent ? ' is-current' : ''}${isDemo ? ' is-demo' : ''}" data-id="${esc(s.id)}" title="Open this season">
       <div class="season-card-main">
-        <div class="season-card-name">${esc(s.name || 'Untitled Season')}${isCurrent ? ' <span class="season-card-badge">Open</span>' : ''}</div>
+        <div class="season-card-name">${esc(s.name || 'Untitled Season')}${badge}</div>
         ${sub ? `<div class="season-card-sub">${esc(sub)}</div>` : ''}
         <div class="season-card-meta">${s.games || 0} game${(s.games || 0) === 1 ? '' : 's'} · ${s.plays || 0} plays${last ? ` · opened ${esc(last)}` : ''}</div>
       </div>
-      <button class="season-card-del" data-lib-del title="Delete this season" aria-label="Delete season">✕</button>
+      <button class="season-card-del" data-lib-del title="${delTitle}" aria-label="${delTitle}">✕</button>
     </div>`;
+  }
+
+  // ---- Get Started checklist (progressive onboarding) ----
+
+  _checklistDismissed() {
+    try { return localStorage.getItem('ffa_checklist_dismissed') === '1'; } catch (e) { return false; }
+  }
+  _dismissChecklist() {
+    try { localStorage.setItem('ffa_checklist_dismissed', '1'); } catch (e) {}
+    const el = document.getElementById('getStartedChecklist');
+    if (el) el.classList.add('hidden');
+  }
+
+  _checklistItems(seasons, demoId) {
+    const profile = this._teamProfile();
+    const roster = window.app?.roster?.players || [];
+    const realSeasons = (seasons || []).filter(s => s.id !== demoId);
+    // Season-meta play counts lag a debounced autosave, so also consult the
+    // live tagger when a real season is open (a play tagged seconds ago counts).
+    const store = this._storage()?.seasonStore;
+    const liveTagged = store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)
+      && (window.app?.tagger?.plays?.length || 0) > 0;
+    const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0);
+    let seenStats = false;
+    try { seenStats = localStorage.getItem('ffa_seen_stats') === '1'; } catch (e) {}
+    return [
+      { step: 'team',   label: 'Set up your team',     done: !!profile.teamName },
+      { step: 'roster', label: 'Add your roster',      done: roster.length > 0 },
+      { step: 'season', label: 'Start a season',       done: realSeasons.length > 0 },
+      { step: 'play',   label: 'Tag your first play',  done: taggedAnywhere },
+      { step: 'stats',  label: 'See your stats',       done: seenStats },
+    ];
+  }
+
+  _renderChecklist(seasons, demoId) {
+    const el = document.getElementById('getStartedChecklist');
+    if (!el) return;
+    // Only show once a team exists (before that, the setup form is the guide),
+    // and never after it's complete or dismissed.
+    const items = this._checklistItems(seasons, demoId);
+    const doneCount = items.filter(i => i.done).length;
+    const complete = doneCount === items.length;
+    if (!this._hasTeam() || complete || this._checklistDismissed()) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="gs-head">
+        <div class="gs-title">Get started <span class="gs-count">${doneCount} of ${items.length}</span></div>
+        <button class="gs-dismiss" id="gsDismiss" title="Hide this checklist" aria-label="Hide checklist">×</button>
+      </div>
+      <div class="gs-bar"><div class="gs-bar-fill" style="width:${Math.round(doneCount / items.length * 100)}%"></div></div>
+      <ul class="gs-items">
+        ${items.map(i => `
+          <li class="gs-item${i.done ? ' done' : ''}" data-step="${i.step}"${i.done ? '' : ' role="button" tabindex="0"'}>
+            <span class="gs-check">${i.done ? '✓' : ''}</span>
+            <span class="gs-label">${i.label}</span>
+            ${i.done ? '' : '<span class="gs-go">→</span>'}
+          </li>`).join('')}
+      </ul>`;
+  }
+
+  _runChecklistAction(step) {
+    if (step === 'team') { this._showTeamEdit(true); return; }
+    if (step === 'roster') { this._openRoster(); return; }
+    if (step === 'season') { this._showForm(true); return; }
+    if (step === 'play') {
+      // If a real season exists, jump into its schedule to add/open a game;
+      // otherwise start the new-season flow.
+      const store = this._storage()?.seasonStore;
+      if (store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)) this.openSchedule();
+      else this._showForm(true);
+      return;
+    }
+    if (step === 'stats') {
+      const store = this._storage()?.seasonStore;
+      if (store?.hasCurrent()) {
+        this.overlay.classList.add('hidden');
+        document.getElementById('btnShowStats')?.click();
+      } else {
+        this._exploreDemo();   // nothing to show yet → demo gives instant stats
+      }
+      return;
+    }
+  }
+
+  async _exploreDemo() {
+    const storage = this._storage();
+    if (!storage || !storage.loadDemoSeason) return;
+    try { await storage.loadDemoSeason(); } catch (e) { return; }
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    window.app?.updater?._toast?.('Demo season loaded — open a game, then tap Stats to explore. (No film attached.)');
+    this.openSchedule();   // land on the populated schedule (two finished games)
   }
 
   async _create() {
@@ -20909,10 +21361,17 @@ class SeasonLibrary {
 
   async _delete(id, card) {
     const tagger = window.app && window.app.tagger;
-    const name = card?.querySelector('.season-card-name')?.textContent || 'this season';
-    const msg = `Delete "${name.replace(' Open', '')}"? This removes the season and all its games. This cannot be undone.`;
+    const isDemo = this._storage()?.isDemoSeason?.(id);
+    // Read the season name from the leading text node only — the badge ("Open"/
+    // "Demo") is a sibling <span>, so textContent would wrongly include it (and
+    // truncate real names that legitimately contain "Demo").
+    const nameEl = card?.querySelector('.season-card-name');
+    const cleanName = (nameEl?.firstChild?.textContent || nameEl?.textContent || 'this season').trim();
+    const msg = isDemo
+      ? 'Remove the demo season? Your own seasons and roster are untouched.'
+      : `Delete "${cleanName}"? This removes the season and all its games. This cannot be undone.`;
     let ok = false;
-    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, 'Delete Season');
+    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, isDemo ? 'Remove Demo' : 'Delete Season');
     else ok = confirm(msg);
     if (!ok) return;
     await this._storage().deleteSeason(id);
@@ -22461,6 +22920,15 @@ class App {
       await this.library.open();
     }, 0);
 
+    // Mark the onboarding checklist's "See your stats" step once the coach
+    // opens the dashboard for THEIR OWN data (not the demo — exploring the demo
+    // shouldn't silently complete onboarding). Flag read by _checklistItems.
+    document.getElementById('btnShowStats')?.addEventListener('click', () => {
+      const store = this.storage?.seasonStore;
+      if (store && this.storage.isDemoSeason(store.currentSeasonId)) return;
+      try { localStorage.setItem('ffa_seen_stats', '1'); } catch (e) {}
+    });
+
     // Desktop auto-update (no-op on the web build).
     this.updater = new Updater();
     this.updater.init();
@@ -23795,6 +24263,10 @@ class App {
   }
 
   _saveGameInfo() {
+    // Programmatic form population (loading a game) must not trigger a save —
+    // otherwise a loaded game's team name (e.g. the demo's 'GridIron Demo')
+    // cascades through _saveTeamProfile and clobbers the coach's real identity.
+    if (this._loadingGameInfo) return;
     this.storage.gameInfo = {
       projectName: document.getElementById('gameProjectName')?.value || '',
       teamName: document.getElementById('gameTeamName')?.value || '',
@@ -23852,6 +24324,7 @@ class App {
 
   _loadGameInfo(info) {
     if (!info) return;
+    this._loadingGameInfo = true;   // suppress save-on-load cascade (see _saveGameInfo)
     const map = {
       gameProjectName: info.projectName,
       gameTeamName: info.teamName,
@@ -23883,6 +24356,7 @@ class App {
       if (mEl) mEl.value = savedModel;
       this.vision.model = savedModel;
     }
+    this._loadingGameInfo = false;
   }
 
   _bindReportExport() {
