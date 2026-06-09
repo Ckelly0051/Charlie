@@ -22,21 +22,48 @@ The app is a **single scrollable column**, not a video+sidebar split:
   Mark Start · Mark End · **Clear Tags** · **Delete Play** · play selector
   (filling the dead space under the player). The Offense/Defense/ST unit toggle
   leads the right (tag) column.
-- **Film Room play grid** (`.play-grid-section` / `#playGridSection`,
-  `js/play-grid.js`) — a compact table of every play in the open game, co-equal
-  with the video (Hudl-style). Sits between the video section and the tag
-  section; hidden until the game has plays. Row click → `tagger.selectPlay()`
-  (seeks / switches clip); current play highlighted + kept in view. A visible
-  chip filter bar (Unit / Down / Run-Pass / TD / TO / Pen / Untagged — AND
-  across groups, OR within) with an "X of Y" count, plus row checkboxes and a
-  **▶ Watch** button that plays the selection (or the filtered set) as a
-  `CutupPlayer` cut-up; with no video loaded it falls back to selecting the
-  first play. Collapsible (header click), persisted in
-  `localStorage ffa_film_room_collapsed`; defaults collapsed below 1100px.
-  Refresh: tagger `play-created/updated/deleted` events + an explicit
-  `playGrid.refresh()` from `StorageManager._deserialize` / `_clearForNewGame`.
-  Its quick filters are intentionally independent of the drawer's "Filter
-  Plays" panel (PlayFilter keeps driving the cut-up exporter).
+- **Film Room breakdown grid** (`.play-grid-section` / `#playGridSection`,
+  `js/play-grid.js`) — the Hudl-style breakdown table, co-equal with the
+  video. Sits between the video section and the tag section; hidden until the
+  game has plays. Cell click selects the play (video follows); current play
+  highlighted + kept in view. A visible chip filter bar (Unit / Down /
+  Run-Pass / TD / TO / Pen / Untagged — AND across groups, OR within) with an
+  "X of Y" count, plus row checkboxes and a **▶ Watch** button that plays the
+  selection∩visible pool as a `CutupPlayer` cut-up (no-video → selects first
+  play). Collapsible, persisted (`ffa_film_room_collapsed`); defaults
+  collapsed below 1100px. Refresh: tagger `play-created/updated/deleted` +
+  the `plays-loaded` event from every wholesale plays-replacement path
+  (`_deserialize`, `_clearForNewGame`, undo/redo) which also clears row
+  selections + cell focus. Quick filters are intentionally independent of the
+  drawer's "Filter Plays" panel (PlayFilter keeps driving the cut-up exporter).
+
+  **v2 — spreadsheet editing & power features:**
+  - **Inline editing**: click a cell once to select, again (or Enter /
+    double-click) to edit in place. Enum editors are chip popovers whose
+    options are read live from the tag form's `.pick` groups (single source
+    of truth, cached in `_optionCache`); `sit` is the composite Dn&Dist
+    editor; yardage/notes are inputs. Edit semantics mirror the form exactly
+    (`_applyEdit`: playType → auto Run/Pass via
+    `PlayTagger.runPassForPlayType`; yardage = magnitude, Loss/Sack supply
+    the sign) and reload the form when the edited play is selected.
+    **Commit direction**: keyboard Enter advances DOWN (next play, same
+    column — charting flow), Tab commits + hops sideways, mouse commits
+    (chip pick / Done) stay put — advancing the selection (and seeking
+    video) on a mouse pick is disorienting.
+  - **Keyboard**: roving cell focus (arrows; vertical moves also select the
+    play so the video follows), Enter opens the editor, Esc closes/blurs.
+    The section handler and popovers `stopPropagation` so the app's global
+    single-letter shortcuts can't double-fire.
+  - **Custom columns**: `PlayGrid.COLUMNS` registry + `▦ Columns` popover
+    (checkboxes + Offense/Defense/ST/Default presets), persisted in
+    `ffa_film_room_cols`. `notes` column edits `play.notes` (the call).
+  - **Saved filters**: `☆ Save` (visible when a filter is active) names the
+    current criteria; `Filters ▾` re-applies/deletes them anywhere
+    (`ffa_film_room_filters`).
+  - **Column tendencies**: a sticky line under each header over the VISIBLE
+    plays — top split value + share for enums ("Shotgun 48%"), run/pass lean
+    for R/P, avg for Yds (n ≥ 3–5 gates) — so filtering IS the tendency
+    query.
 - **Tag section** (`.tag-section`) — holds the entire tagging workflow (mark
   controls, play selector, chip-based tag form, notes, OCR/auto-detect). No
   popup/sidebar — tagging is always on-page.
@@ -80,7 +107,7 @@ js/
 ├── play-tagger.js            # Play CRUD + chip-based tag form (ChipField)
 ├── roster-manager.js         # Team roster + per-play player attribution (quick-pick)
 ├── play-filter.js            # Filter plays by tag values (drawer panel; drives cut-up exporter)
-├── play-grid.js              # Film Room play grid (PlayGrid): click-to-seek rows, chip filter bar, bulk Watch
+├── play-grid.js              # Film Room breakdown grid (PlayGrid): inline cell editing, custom columns, saved filters, tendencies, bulk Watch
 ├── play-detector.js          # Motion-based auto-detection of play boundaries
 ├── clip-analyzer.js          # Heuristic auto-tagging (centroid tracking)
 ├── vision-analyzer.js        # Claude Vision API integration

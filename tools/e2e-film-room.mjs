@@ -248,6 +248,169 @@ r = await page.evaluate(async () => {
 ok(r.selected === 0 && r.checked === 0, 'game switch clears row selection', JSON.stringify(r));
 ok(r.rows > 50, 'game 2 plays render after switch', String(r.rows));
 
+console.log('\n== 8c. v2: tendency row + inline editing ==');
+r = await page.evaluate(() => {
+  const tend = document.querySelector('.pg-tend');
+  const formTd = tend && tend.querySelector('.pg-c-formation');
+  // manual top-formation calc over visible plays (no filters active)
+  const counts = {};
+  let total = 0;
+  window.app.tagger.plays.forEach(p => String(p.tags.formation || '').split(/\s*\+\s*/)
+    .map(s => s.trim()).filter(Boolean).forEach(v => { counts[v] = (counts[v] || 0) + 1; total++; }));
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const expected = `${top[0]} ${Math.round(top[1] / total * 100)}%`;
+  return { text: formTd ? formTd.textContent.trim() : null, expected };
+});
+ok(r.text === r.expected, 'formation tendency = top value + share', JSON.stringify(r));
+
+// Multi-enum inline edit: Result cell — click to focus, click again to edit.
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const row = document.querySelectorAll('#pgRows .pg-row')[2];
+  const id = parseInt(row.dataset.id, 10);
+  const cell = row.querySelector('td[data-k="result"]');
+  cell.click(); await raf2();
+  const focused = cell.classList.contains('pg-cell-focus');
+  cell.click(); await new Promise(r => setTimeout(r, 80));
+  const pop = document.querySelector('.pg-pop');
+  if (!pop) return { focused, pop: false };
+  // clear current chips, pick Touchdown, Done
+  pop.querySelectorAll('.pg-chip.active').forEach(c => c.click());
+  [...pop.querySelectorAll('.pg-chip[data-v]')].find(c => c.dataset.v === 'Touchdown').click();
+  [...pop.querySelectorAll('[data-act="done"]')][0].click();
+  await raf2(); await raf2();
+  const play = window.app.tagger.getPlay(id);
+  const cellText = document.querySelector(`#pgRows .pg-row[data-id="${id}"] td[data-k="result"]`).textContent;
+  const formVal = window.app.tagger.tagFields.result.value;   // play is selected → form synced
+  return { focused, pop: true, tag: play.tags.result, cellText, formVal, popGone: !document.querySelector('.pg-pop') };
+});
+ok(r.focused && r.pop, 'click focuses cell, second click opens editor', JSON.stringify(r));
+ok(r.tag === 'Touchdown' && /Touchdown/.test(r.cellText), 'multi-enum edit commits to tags + cell', JSON.stringify(r));
+ok(r.formVal === 'Touchdown', 'tag form synced for the selected play', r.formVal);
+ok(r.popGone, 'editor closes after Done');
+
+// Yardage magnitude + Loss sign rule (mirror of the form).
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const grid = window.app.playGrid;
+  const play = window.app.tagger.plays.find(p => (p.tags.result || '').includes('Loss'));
+  grid._applyEdit(play, { key: 'yardage', type: 'yds' }, '9');
+  await raf2();
+  return { stored: play.tags.yardage };
+});
+ok(r.stored === '-9', 'yardage magnitude gets Loss sign (-9)', r.stored);
+
+// Dn & Dist composite editor.
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const row = document.querySelectorAll('#pgRows .pg-row')[4];
+  const id = parseInt(row.dataset.id, 10);
+  const cell = row.querySelector('td[data-k="sit"]');
+  cell.click(); await raf2();
+  document.querySelector(`#pgRows .pg-row[data-id="${id}"] td[data-k="sit"]`).click();
+  await new Promise(r => setTimeout(r, 80));
+  const pop = document.querySelector('.pg-pop');
+  [...pop.querySelectorAll('.pg-chip[data-v]')].find(c => c.dataset.v === '3').click();
+  pop.querySelector('#pgSitDist').value = '8';
+  pop.querySelector('[data-act="done"]').click();
+  await raf2(); await raf2();
+  const play = window.app.tagger.getPlay(id);
+  return { down: play.tags.down, dist: play.tags.distance,
+           cell: document.querySelector(`#pgRows .pg-row[data-id="${id}"] td[data-k="sit"]`).textContent };
+});
+ok(r.down === '3' && r.dist === '8' && /3rd & 8/.test(r.cell), 'Dn & Dist editor commits both fields', JSON.stringify(r));
+
+console.log('\n== 8d. v2: keyboard navigation ==');
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const grid = window.app.playGrid;
+  const rows = document.querySelectorAll('#pgRows .pg-row');
+  const id0 = parseInt(rows[0].dataset.id, 10);
+  rows[0].querySelector('td[data-k="formation"]').click();
+  await raf2();
+  const sec = document.getElementById('playGridSection');
+  sec.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+  await raf2();
+  const f1 = { ...grid._focus };
+  sec.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  await new Promise(r => setTimeout(r, 80));
+  const popOpen = !!document.querySelector('.pg-pop');
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await new Promise(r => setTimeout(r, 80));
+  return { id0, f1, popOpen, popClosed: !document.querySelector('.pg-pop'),
+           selectedFollows: window.app.tagger.currentPlayId === f1.playId };
+});
+ok(r.f1.playId !== r.id0 && r.f1.colKey === 'formation', 'ArrowDown moves focus to next play, same column', JSON.stringify(r.f1));
+ok(r.selectedFollows, 'video selection follows vertical focus moves');
+ok(r.popOpen && r.popClosed, 'Enter opens editor, Esc closes', JSON.stringify(r));
+
+console.log('\n== 8e. v2: custom columns ==');
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  document.getElementById('pgColsBtn').click();
+  await new Promise(r => setTimeout(r, 80));
+  const pop = document.querySelector('.pg-pop');
+  if (!pop) return { pop: false };
+  // Defense preset
+  pop.querySelector('[data-preset="defense"]').click();
+  await raf2(); await raf2();
+  const defHeads = [...document.querySelectorAll('#pgThead th')].map(h => h.textContent.trim());
+  const saved = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
+  // add Qtr via checkbox
+  pop.querySelector('input[data-col="quarter"]').click();
+  await raf2(); await raf2();
+  const withQtr = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
+  // back to default preset for the rest of the run
+  pop.querySelector('[data-preset="default"]').click();
+  await raf2();
+  document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // close popover
+  await new Promise(r => setTimeout(r, 60));
+  return { pop: true, defHeads, saved, withQtr };
+});
+ok(r.pop && r.defHeads.includes('Front') && r.defHeads.includes('Cover') && !r.defHeads.includes('Formation'),
+  'Defense preset swaps columns', JSON.stringify(r.defHeads));
+ok(JSON.stringify(r.saved) === JSON.stringify(['sit','defFront','coverage','blitz','result','yardage']),
+  'preset persisted to localStorage', JSON.stringify(r.saved));
+ok(r.withQtr.includes('quarter'), 'checkbox adds a column (persisted)', JSON.stringify(r.withQtr));
+
+console.log('\n== 8f. v2: saved filters ==');
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const chip = (g, v) => document.querySelector(`.pg-fgroup[data-group="${g}"] .pg-chip[data-val="${v}"]`);
+  chip('downs', '3').click(); await raf2();
+  chip('rp', 'Pass').click(); await raf2();
+  const filteredCount = document.querySelectorAll('#pgRows .pg-row').length;
+  document.getElementById('pgSaveFilter').click();
+  await new Promise(r => setTimeout(r, 80));
+  const pop = document.querySelector('.pg-pop');
+  pop.querySelector('#pgFilterName').value = '3rd down passes';
+  pop.querySelector('#pgFilterSaveOk').click();
+  await raf2(); await raf2();
+  const stored = JSON.parse(localStorage.getItem('ffa_film_room_filters') || '[]');
+  document.getElementById('pgClear').click(); await raf2();
+  const clearedCount = document.querySelectorAll('#pgRows .pg-row').length;
+  const menuVisible = !document.getElementById('pgFiltersMenu').classList.contains('hidden');
+  document.getElementById('pgFiltersMenu').click();
+  await new Promise(r => setTimeout(r, 80));
+  document.querySelector('.pg-pop [data-apply]').click();
+  await raf2(); await raf2();
+  const reapplied = document.querySelectorAll('#pgRows .pg-row').length;
+  // delete it
+  document.getElementById('pgFiltersMenu').click();
+  await new Promise(r => setTimeout(r, 80));
+  document.querySelector('.pg-pop [data-del]').click();
+  await raf2();
+  const after = JSON.parse(localStorage.getItem('ffa_film_room_filters') || '[]');
+  document.getElementById('pgClear').click(); await raf2();
+  return { filteredCount, stored, clearedCount, menuVisible, reapplied, after };
+});
+ok(r.stored.length === 1 && r.stored[0].name === '3rd down passes' &&
+   JSON.stringify(r.stored[0].f.downs) === '["3"]' && r.stored[0].f.rp === 'Pass',
+  'filter saved with full criteria', JSON.stringify(r.stored));
+ok(r.menuVisible && r.reapplied === r.filteredCount && r.reapplied < r.clearedCount,
+  'saved filter re-applies identically', JSON.stringify({ f: r.filteredCount, re: r.reapplied, all: r.clearedCount }));
+ok(r.after.length === 0, 'saved filter deletable');
+
 console.log('\n== 9. Multi-team: add a JV team, switch between hubs ==');
 await click('#bcHome');
 await sleep(500);
