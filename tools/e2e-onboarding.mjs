@@ -178,7 +178,13 @@ r = await page.evaluate(() => {
 ok(r.hidden || r.done >= 4, 'checklist near/at completion with real data', JSON.stringify(r));
 
 console.log('\n== 11. Upgrade path: existing season, NO team profile ==');
-await page.evaluate(() => { localStorage.removeItem('ffa_team_profile'); });
+// Simulate a genuine pre-team-hub install: no profile AND no team registry
+// (the registry would otherwise self-heal the profile back).
+await page.evaluate(() => {
+  localStorage.removeItem('ffa_team_profile');
+  localStorage.removeItem('ffa_teams');
+  localStorage.removeItem('ffa_active_team_id');
+});
 await page.reload({ waitUntil: 'networkidle0' });
 await sleep(700);
 r = await $('#teamSetup');

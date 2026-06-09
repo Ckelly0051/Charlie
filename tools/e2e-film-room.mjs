@@ -248,48 +248,95 @@ r = await page.evaluate(async () => {
 ok(r.selected === 0 && r.checked === 0, 'game switch clears row selection', JSON.stringify(r));
 ok(r.rows > 50, 'game 2 plays render after switch', String(r.rows));
 
-console.log('\n== 9. Switch team: back out to team setup ==');
+console.log('\n== 9. Multi-team: add a JV team, switch between hubs ==');
 await click('#bcHome');
 await sleep(500);
-await click('#btnEditTeam');
+r = await page.evaluate(() => ({
+  pills: [...document.querySelectorAll('.team-pill[data-team]')].map(p => p.textContent.trim()),
+  add: !!document.getElementById('btnAddTeam') }));
+ok(r.pills.length === 1 && /Mavericks/.test(r.pills[0]), 'one team pill for Mavericks', JSON.stringify(r));
+ok(r.add, '+ Add Team pill present');
+
+await click('#btnAddTeam');
 await sleep(200);
-r = await page.evaluate(() => {
-  const btn = document.getElementById('btnTeamSwitch');
-  const cs = btn && getComputedStyle(btn);
-  return { exists: !!btn, visible: !!btn && cs.display !== 'none' && btn.offsetParent !== null };
-});
-ok(r.exists && r.visible, 'Switch team link visible in edit panel', JSON.stringify(r));
-await click('#btnTeamSwitch');
-await sleep(300);
-r = await page.evaluate(() => document.querySelector('.ffa-confirm-msg')?.textContent || '');
-ok(/different team/i.test(r) && /stay/i.test(r), 'confirm explains non-destructive switch', r);
-await page.evaluate(() => document.querySelector('[data-act="ok"]').click());
-await sleep(500);
 r = await page.evaluate(() => ({
   setup: !document.getElementById('teamSetup').classList.contains('hidden'),
-  card: document.getElementById('teamCard').classList.contains('hidden'),
-  profile: localStorage.getItem('ffa_team_profile'),
-  seasons: document.querySelectorAll('.season-card').length }));
-ok(r.setup && r.card, 'back at team setup after switch', JSON.stringify(r));
-ok(!r.profile, 'team profile cleared');
-ok(r.seasons === 1, 'seasons kept (non-destructive)', String(r.seasons));
-// The resurrection path: a Game Info edit after the switch must NOT re-save
-// the old team (gameInfo team fields were blanked by _switchTeam).
-r = await page.evaluate(() => {
-  const gn = document.getElementById('gameTeamName').value;
-  window.app._saveGameInfo();
-  const prof = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}');
-  return { gn, resurrectedName: prof.teamName || '' };
-});
-ok(r.gn === '' && r.resurrectedName === '', 'Game Info edit cannot resurrect old team', JSON.stringify(r));
-await page.type('#teamSetupName', 'New Squad');
+  cancel: !document.getElementById('btnTeamSetupCancel').classList.contains('hidden') }));
+ok(r.setup && r.cancel, 'add-team form shows with Cancel', JSON.stringify(r));
+await page.type('#teamSetupName', 'JV Squad');
 await click('#btnTeamSetupSave');
-await sleep(400);
+await sleep(600);
 r = await page.evaluate(() => ({
   name: document.getElementById('teamCardName').textContent,
-  checklist: !document.getElementById('getStartedChecklist').classList.contains('hidden') }));
-ok(r.name === 'New Squad', 'new team set up cleanly', r.name);
-ok(r.checklist, 'checklist restarts for the new team');
+  active: document.querySelector('.team-pill.active')?.textContent.trim(),
+  pills: document.querySelectorAll('.team-pill[data-team]').length,
+  seasons: document.querySelectorAll('.season-card').length,
+  profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
+  breadcrumbHidden: document.getElementById('breadcrumb').classList.contains('hidden')
+    || getComputedStyle(document.getElementById('breadcrumb')).display === 'none',
+  hasCurrent: window.app.storage.seasonStore.hasCurrent() }));
+// EXACT match — a regex would also match a concatenation bug like
+// 'MavericksJV Squad' (leftover setup-input value).
+ok(r.pills === 2 && (r.active || '').trim() === 'JV Squad', 'JV team added + active', JSON.stringify(r));
+ok(r.name === 'JV Squad' && r.profile === 'JV Squad', 'card + profile show JV', JSON.stringify(r));
+ok(r.seasons === 0, "JV hub shows NO seasons (demo belongs to Mavericks)", String(r.seasons));
+ok(!r.hasCurrent, 'open season was closed on team switch');
+
+console.log('\n== 10. Per-team rosters ==');
+r = await page.evaluate(async () => {
+  // Give JV a player, then flip to Mavericks and back.
+  window.app.roster.loadFrom([{ num: '7', name: 'JV Kid', pos: 'QB', side: 'O' }]);
+  const mavPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /Mavericks/.test(p.textContent));
+  mavPill.click();
+  await new Promise(r => setTimeout(r, 400));
+  const mavCount = window.app.roster.players.length;
+  const jvPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /JV Squad/.test(p.textContent));
+  jvPill.click();
+  await new Promise(r => setTimeout(r, 400));
+  const jvCount = window.app.roster.players.length;
+  const jvName = (window.app.roster.players[0] || {}).name || '';
+  return { mavCount, jvCount, jvName };
+});
+ok(r.mavCount === 0, 'Mavericks roster untouched by JV player', JSON.stringify(r));
+ok(r.jvCount === 1 && r.jvName === 'JV Kid', 'JV roster restored on switch back', JSON.stringify(r));
+
+console.log('\n== 11. Mavericks hub still owns the demo; remove-team guard ==');
+r = await page.evaluate(async () => {
+  const mavPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /Mavericks/.test(p.textContent));
+  mavPill.click();
+  await new Promise(r => setTimeout(r, 400));
+  return { seasons: document.querySelectorAll('.season-card').length };
+});
+ok(r.seasons === 1, "Mavericks hub still lists the demo season", String(r.seasons));
+await click('#btnEditTeam');
+await sleep(200);
+await click('#btnTeamRemove');
+await sleep(300);
+r = await page.evaluate(() => document.querySelector('.ffa-confirm-msg')?.textContent || '');
+ok(/still has 1 season/i.test(r), 'team with seasons cannot be removed (guard)', r);
+await page.evaluate(() => document.querySelector('[data-act="ok"]')?.click());
+await sleep(300);
+
+// JV has no seasons → removable; active falls back to Mavericks.
+r = await page.evaluate(async () => {
+  const jvPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /JV Squad/.test(p.textContent));
+  jvPill.click();
+  await new Promise(r => setTimeout(r, 400));
+  document.getElementById('btnEditTeam').click();
+  await new Promise(r => setTimeout(r, 150));
+  document.getElementById('btnTeamRemove').click();
+  await new Promise(r => setTimeout(r, 250));
+  const msg = document.querySelector('.ffa-confirm-msg')?.textContent || '';
+  document.querySelector('[data-act="ok"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  return { msg,
+    pills: document.querySelectorAll('.team-pill[data-team]').length,
+    active: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
+    jvRosterKey: localStorage.getItem('ffa_roster_jv-squad') };
+});
+ok(/Remove "JV Squad"/.test(r.msg), 'empty team gets the remove confirm', r.msg);
+ok(r.pills === 1 && r.active === 'Mavericks', 'JV removed, Mavericks active again', JSON.stringify(r));
+ok(!r.jvRosterKey, 'JV roster snapshot deleted');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }

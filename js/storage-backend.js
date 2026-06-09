@@ -162,7 +162,8 @@ export class BrowserBackend extends StorageBackend {
     const now = new Date().toISOString();
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
-      level: meta.level || '', games: 0, plays: 0, created: now, updated: now, lastOpened: now,
+      level: meta.level || '', teamId: meta.teamId || '',
+      games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
     lib.push(entry);
     this._writeLib(lib);
@@ -487,7 +488,8 @@ export class TauriBackend extends StorageBackend {
     const now = new Date().toISOString();
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
-      level: meta.level || '', games: 0, plays: 0, created: now, updated: now, lastOpened: now,
+      level: meta.level || '', teamId: meta.teamId || '',
+      games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
     lib.push(entry);
     await this._writeLib(lib);

@@ -157,8 +157,11 @@ export class StorageManager {
     }
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     const data = DemoSeason.build();
+    let demoTeamId = '';
+    try { demoTeamId = localStorage.getItem('ffa_active_team_id') || ''; } catch (e) {}
     const rec = await this.seasonStore.createSeason({
       name: data.seasonName, team: data.team, year: data.year, level: data.level,
+      teamId: demoTeamId,   // the demo lives in the active team's hub
     });
     if (!rec) return null;
     data.id = rec.id;

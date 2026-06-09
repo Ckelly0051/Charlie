@@ -350,14 +350,34 @@ The library has two views, toggled by `_setLevel('seasons'|'schedule')`:
   (name + jersey color → "Get Started"); once saved, the card replaces it.
   Team identity lives in `localStorage ffa_team_profile` (`{teamName,
   jerseyColor}`), is editable inline (`#teamEdit`), and syncs both ways with Game
-  Info (`_syncGameInfoFromTeam`). The single team is intentional — coaches coach
-  one team; this is the "hub for a team," not multi-team. **Backing out is
-  supported**: the edit panel has a "Switch to a different team…" link
-  (`#btnTeamSwitch` → `_switchTeam()`) that, after an in-app confirm, clears
-  `ffa_team_profile` + `ffa_checklist_dismissed` (fresh checklist) and returns
-  to the setup form. Non-destructive: seasons and the roster stay in the
-  library; the confirm copy tells the coach to delete old-team seasons from the
-  list. True multi-team (seasons scoped per team) is intentionally NOT built.
+  Info (`_syncGameInfoFromTeam`).
+
+  **Multi-team** (a coach on JV + Varsity staffs): the registry is
+  `localStorage ffa_teams` (`[{id, teamName, jerseyColor}]`) with
+  `ffa_active_team_id`; **`ffa_team_profile` remains the ACTIVE team's
+  profile**, so every existing reader (breadcrumb, Game Info sync, checklist,
+  `commitActive`) works unchanged — switching just rewrites it. Team Home shows
+  **switcher pills** (`#teamPills`, `_renderTeamPills`) + "+ Add Team" (reuses
+  `#teamSetup` in adding mode with a Cancel; the form is blanked first — a
+  leftover first-run value used to concatenate into the new name).
+  - **Seasons are scoped per team**: library metas carry `teamId` (whitelisted
+    in BOTH backends' `createSeason`); `_render` filters via `_teamSeasons()`;
+    legacy metas without `teamId` belong to the FIRST registry team. The demo
+    season stamps the active `teamId` (storage.js `loadDemoSeason`).
+  - **Rosters are per team**: snapshots in `ffa_roster_<teamId>`; live
+    `ffa_roster` is always the active team's (RosterManager untouched).
+    `_setActiveTeam` snapshots the outgoing roster, loads the incoming one.
+  - **Switching** (`_setActiveTeam`): commits+persists+**closes** any open
+    season (it belongs to the outgoing team), swaps profile+roster, lands on
+    the new team's Team Home.
+  - **Removing** (`_removeTeam`, "Remove this team…" in the edit panel): only
+    allowed when the team has **no seasons** (guard message otherwise) —
+    removal never silently strands seasons. Removing the last team returns to
+    first-run setup.
+  - **Migration** (`_ensureTeamRegistry`, run on every `open()`): a
+    pre-registry profile becomes the first team owning the existing roster +
+    all legacy seasons; it also self-heals a registry-without-profile state
+    and mirrors Game Info team edits back into the registry entry.
 - **`#libraryScheduleView` (Schedule)** — the open season's games as a Hudl-style
   schedule table (`_renderSchedule` → `#scheduleBody`, using `app._gameRowInfo` /
   `_scorePillHtml`): status dot, name, date, W/L pill, play count, Open/Final.

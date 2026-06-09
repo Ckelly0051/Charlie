@@ -19,6 +19,17 @@ export class SeasonLibrary {
 
   _storage() { return window.app && window.app.storage; }
 
+  // ---- Team registry (multi-team: e.g. JV + Varsity on one device) ----
+  //
+  // `ffa_teams` is the registry [{id, teamName, jerseyColor}]; `ffa_active_team_id`
+  // points at the active one. `ffa_team_profile` REMAINS the active team's
+  // profile — every existing reader (breadcrumb, Game Info sync, checklist,
+  // commitActive) keeps working unchanged; switching teams just rewrites it.
+  // Each team owns a roster snapshot under `ffa_roster_<teamId>`; the live
+  // `ffa_roster` is always the active team's (RosterManager untouched).
+  // Seasons carry `teamId` in their library meta; metas without one (legacy)
+  // belong to the first/migrated team.
+
   _teamProfile() {
     try { return JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return {}; }
   }
@@ -30,6 +41,180 @@ export class SeasonLibrary {
   _hasTeam() {
     const p = this._teamProfile();
     return !!(p.teamName);
+  }
+
+  _teams() {
+    try { return JSON.parse(localStorage.getItem('ffa_teams') || '[]') || []; } catch (e) { return []; }
+  }
+  _saveTeams(arr) {
+    try { localStorage.setItem('ffa_teams', JSON.stringify(arr)); } catch (e) {}
+  }
+  _activeTeamId() {
+    try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (e) { return ''; }
+  }
+  _teamRosterKey(id) { return 'ffa_roster_' + id; }
+
+  /**
+   * One-time migration + reconcile, run on every library open:
+   * - A pre-registry install (single ffa_team_profile) becomes the first
+   *   registry team, owning the existing roster and all existing seasons
+   *   (legacy metas without teamId resolve to the first team).
+   * - Game Info edits update ffa_team_profile directly (_saveTeamProfile in
+   *   app.js) — mirror those edits back into the active registry entry so
+   *   the pills never show a stale name/color.
+   */
+  _ensureTeamRegistry() {
+    let teams = this._teams();
+    const profile = this._teamProfile();
+    if (!teams.length && profile.teamName) {
+      const t = { id: this._newTeamId(profile.teamName, []), teamName: profile.teamName, jerseyColor: profile.jerseyColor || '' };
+      teams = [t];
+      this._saveTeams(teams);
+      try { localStorage.setItem('ffa_active_team_id', t.id); } catch (e) {}
+      // The pre-registry roster belongs to this team.
+      try { localStorage.setItem(this._teamRosterKey(t.id), localStorage.getItem('ffa_roster') || '[]'); } catch (e) {}
+      return;
+    }
+    // Self-heal: a registry without an active profile (partial clear / old
+    // bug) re-adopts a team so the pills and profile never disagree.
+    if (teams.length && !profile.teamName) {
+      const first = teams.find(t => t.id === this._activeTeamId()) || teams[0];
+      try { localStorage.setItem('ffa_active_team_id', first.id); } catch (e) {}
+      this._saveTeamProfile({ teamName: first.teamName, jerseyColor: first.jerseyColor || '' });
+      return;
+    }
+    const active = teams.find(t => t.id === this._activeTeamId());
+    if (active && profile.teamName &&
+        (active.teamName !== profile.teamName || (active.jerseyColor || '') !== (profile.jerseyColor || ''))) {
+      active.teamName = profile.teamName;
+      active.jerseyColor = profile.jerseyColor || '';
+      this._saveTeams(teams);
+    }
+  }
+
+  _newTeamId(name, existingIds) {
+    const base = String(name || 'team').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'team';
+    let id = base, n = 2;
+    while (existingIds.includes(id)) id = `${base}-${n++}`;
+    return id;
+  }
+
+  /** Seasons belonging to a team (legacy metas without teamId → first team). */
+  _teamSeasons(seasons, teamId) {
+    const firstId = (this._teams()[0] || {}).id || '';
+    return (seasons || []).filter(s => (s.teamId || firstId) === teamId);
+  }
+
+  /**
+   * Switch the active team (e.g. JV ↔ Varsity). Commits + closes any open
+   * season (it belongs to the outgoing team), snapshots the outgoing roster,
+   * and loads the incoming team's profile + roster. Library stays open on
+   * Team Home showing the incoming team's seasons.
+   */
+  async _setActiveTeam(id) {
+    const teams = this._teams();
+    const next = teams.find(t => t.id === id);
+    if (!next || id === this._activeTeamId()) return;
+
+    const storage = this._storage();
+    const prevId = this._activeTeamId();
+    // 1. Commit + persist + close the outgoing season (with its roster intact).
+    if (storage?.seasonStore?.hasCurrent()) {
+      storage.commitActive();
+      storage.seasonStore.persist();
+      storage.seasonStore.closeSeason();
+      storage._clearForNewGame();
+    }
+    // 2. Snapshot the outgoing team's roster, then load the incoming one.
+    if (prevId) {
+      try { localStorage.setItem(this._teamRosterKey(prevId), localStorage.getItem('ffa_roster') || '[]'); } catch (e) {}
+    }
+    try { localStorage.setItem('ffa_active_team_id', id); } catch (e) {}
+    this._saveTeamProfile({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
+    let roster = [];
+    try { roster = JSON.parse(localStorage.getItem(this._teamRosterKey(id)) || '[]') || []; } catch (e) {}
+    if (window.app?.roster) window.app.roster.loadFrom(roster);   // persists to ffa_roster
+
+    this._syncGameInfoFromTeam({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
+    this._setLevel('seasons');   // also refreshes the header subtitle to the new team
+    this._renderTeamCard();
+    await this._render();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+  }
+
+  /** "+ Add Team" → show the setup form in adding mode (with a Cancel). */
+  _showAddTeam() {
+    this._addingTeam = true;
+    const setup = document.getElementById('teamSetup');
+    const card = document.getElementById('teamCard');
+    const cancel = document.getElementById('btnTeamSetupCancel');
+    const intro = setup?.querySelector('.library-intro');
+    // Always start blank — a leftover value from first-run setup would be
+    // concatenated into the new team's name.
+    const nameEl = document.getElementById('teamSetupName');
+    const colorEl = document.getElementById('teamSetupColor');
+    if (nameEl) nameEl.value = '';
+    if (colorEl) colorEl.value = '';
+    if (intro) intro.textContent = 'Add another team (e.g. your JV squad).';
+    if (cancel) cancel.classList.remove('hidden');
+    if (card) card.classList.add('hidden');
+    if (setup) setup.classList.remove('hidden');
+    setTimeout(() => document.getElementById('teamSetupName')?.focus(), 30);
+  }
+
+  _cancelAddTeam() {
+    this._addingTeam = false;
+    const cancel = document.getElementById('btnTeamSetupCancel');
+    if (cancel) cancel.classList.add('hidden');
+    this._renderTeamCard();
+  }
+
+  /**
+   * Remove the active team from the registry. Guarded: a team that still has
+   * seasons can't be removed (delete its seasons first) — that keeps removal
+   * non-destructive and unambiguous.
+   */
+  async _removeTeam() {
+    const teams = this._teams();
+    const id = this._activeTeamId();
+    const team = teams.find(t => t.id === id);
+    if (!team) return;
+    let seasons = [];
+    try { seasons = await this._storage().listSeasons(); } catch (e) {}
+    const owned = this._teamSeasons(seasons, id);
+    const tagger = window.app && window.app.tagger;
+    if (owned.length) {
+      const msg = `"${team.teamName}" still has ${owned.length} season${owned.length === 1 ? '' : 's'}. Delete them from the list first — removing a team never deletes its seasons silently.`;
+      if (tagger && tagger._confirmDialog) await tagger._confirmDialog(msg, 'OK');
+      else alert(msg);
+      return;
+    }
+    const msg = `Remove "${team.teamName}"? Its roster snapshot is deleted. This team has no seasons.`;
+    let ok = false;
+    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, 'Remove Team');
+    else ok = confirm(msg);
+    if (!ok) return;
+
+    const rest = teams.filter(t => t.id !== id);
+    this._saveTeams(rest);
+    try { localStorage.removeItem(this._teamRosterKey(id)); } catch (e) {}
+    this._showTeamEdit(false);
+    if (rest.length) {
+      try { localStorage.setItem('ffa_active_team_id', rest[0].id); } catch (e) {}
+      this._saveTeamProfile({ teamName: rest[0].teamName, jerseyColor: rest[0].jerseyColor || '' });
+      let roster = [];
+      try { roster = JSON.parse(localStorage.getItem(this._teamRosterKey(rest[0].id)) || '[]') || []; } catch (e) {}
+      if (window.app?.roster) window.app.roster.loadFrom(roster);
+    } else {
+      try { localStorage.removeItem('ffa_team_profile'); } catch (e) {}
+      try { localStorage.removeItem('ffa_active_team_id'); } catch (e) {}
+      try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}
+      try { localStorage.removeItem('ffa_seen_stats'); } catch (e) {}
+      if (window.app?.roster) window.app.roster.loadFrom([]);
+    }
+    this._renderTeamCard();
+    await this._render();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _bind() {
@@ -46,8 +231,14 @@ export class SeasonLibrary {
       if (t.closest && t.closest('#btnEditTeam')) { this._showTeamEdit(true); return; }
       if (t.closest && t.closest('#btnTeamEditSave')) { this._commitTeamEdit(); return; }
       if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
-      if (t.closest && t.closest('#btnTeamSwitch')) { this._switchTeam(); return; }
+      if (t.closest && t.closest('#btnTeamRemove')) { this._removeTeam(); return; }
       if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
+
+      // Team switcher pills (multi-team: JV / Varsity / …)
+      if (t.closest && t.closest('#btnAddTeam')) { this._showAddTeam(); return; }
+      if (t.closest && t.closest('#btnTeamSetupCancel')) { this._cancelAddTeam(); return; }
+      const pill = t.closest && t.closest('.team-pill[data-team]');
+      if (pill) { this._setActiveTeam(pill.dataset.team); return; }
 
       // Demo season + Get Started checklist
       if (t.closest && t.closest('#btnExploreDemo')) { this._exploreDemo(); return; }
@@ -82,6 +273,7 @@ export class SeasonLibrary {
   /** Show the library at the TEAM HOME / SEASONS level. */
   async open() {
     if (!this.overlay) return;
+    this._ensureTeamRegistry();
     this._setLevel('seasons');
     this._showForm(false);
     this._showTeamEdit(false);
@@ -128,6 +320,7 @@ export class SeasonLibrary {
     const card = document.getElementById('teamCard');
     const setup = document.getElementById('teamSetup');
     const seasonsHead = document.querySelector('.team-seasons-head');
+    this._renderTeamPills();
     if (!this._hasTeam()) {
       if (card) card.classList.add('hidden');
       if (setup) setup.classList.remove('hidden');
@@ -135,6 +328,9 @@ export class SeasonLibrary {
       return;
     }
     if (setup) setup.classList.add('hidden');
+    const cancel = document.getElementById('btnTeamSetupCancel');
+    if (cancel) cancel.classList.add('hidden');
+    this._addingTeam = false;
     if (seasonsHead) seasonsHead.style.display = '';
     if (!card) return;
 
@@ -155,12 +351,48 @@ export class SeasonLibrary {
     card.classList.remove('hidden');
   }
 
+  /** Team switcher: one pill per team (active highlighted) + "+ Add Team".
+   *  This is how a coach on multiple staffs (JV + Varsity) flips between
+   *  hubs — each team has its own seasons list and roster. */
+  _renderTeamPills() {
+    const el = document.getElementById('teamPills');
+    if (!el) return;
+    const teams = this._teams();
+    if (!teams.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    const activeId = this._activeTeamId();
+    el.classList.remove('hidden');
+    el.innerHTML = teams.map(t => `
+      <button class="team-pill${t.id === activeId ? ' active' : ''}" data-team="${esc(t.id)}" type="button"
+        title="${t.id === activeId ? 'Current team' : `Switch to ${esc(t.teamName)}`}">
+        <span class="team-pill-dot" style="background:${jerseyHex(t.jerseyColor) || 'rgba(255,255,255,.2)'}"></span>${esc(t.teamName)}
+      </button>`).join('') +
+      `<button class="team-pill team-pill-add" id="btnAddTeam" type="button" title="Add another team (e.g. JV)">+ Add Team</button>`;
+  }
+
   _saveTeamSetup() {
     const nameEl = document.getElementById('teamSetupName');
     const colorEl = document.getElementById('teamSetupColor');
     const name = nameEl?.value.trim();
     if (!name) { nameEl?.focus(); return; }
-    const profile = { teamName: name, jerseyColor: colorEl?.value || '' };
+    const adding = !!this._addingTeam;
+    this._addingTeam = false;
+
+    // Register the team. First-run: it inherits the existing roster (players
+    // may predate the team). Added teams start with an empty roster.
+    const teams = this._teams();
+    const team = { id: this._newTeamId(name, teams.map(t => t.id)), teamName: name, jerseyColor: colorEl?.value || '' };
+    teams.push(team);
+    this._saveTeams(teams);
+    if (nameEl) nameEl.value = '';
+    if (colorEl) colorEl.value = '';
+    if (adding) {
+      try { localStorage.setItem(this._teamRosterKey(team.id), '[]'); } catch (e) {}
+      this._setActiveTeam(team.id);   // closes any open season, swaps roster, re-renders
+      return;
+    }
+    try { localStorage.setItem('ffa_active_team_id', team.id); } catch (e) {}
+    try { localStorage.setItem(this._teamRosterKey(team.id), localStorage.getItem('ffa_roster') || '[]'); } catch (e) {}
+    const profile = { teamName: name, jerseyColor: team.jerseyColor };
     this._saveTeamProfile(profile);
     this._syncGameInfoFromTeam(profile);
     this._renderTeamCard();
@@ -190,46 +422,13 @@ export class SeasonLibrary {
     if (!name) { nameEl?.focus(); return; }
     const profile = { teamName: name, jerseyColor: colorEl?.value || '' };
     this._saveTeamProfile(profile);
+    // Keep the registry entry in lockstep so the pills show the new identity.
+    const teams = this._teams();
+    const active = teams.find(t => t.id === this._activeTeamId());
+    if (active) { active.teamName = name; active.jerseyColor = profile.jerseyColor; this._saveTeams(teams); }
     this._syncGameInfoFromTeam(profile);
     this._showTeamEdit(false);
     this._renderTeamCard();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
-  }
-
-  /**
-   * Back out of the current team and return to team setup. Non-destructive:
-   * seasons and the roster stay in the library — only the team identity
-   * (name + jersey color) is cleared, and the Get Started checklist restarts
-   * for the new team. The coach can delete old seasons from the list.
-   */
-  async _switchTeam() {
-    const tagger = window.app && window.app.tagger;
-    const msg = 'Switch to a different team? This clears the team name and color so you can set up a new one. ' +
-      'Your seasons and roster stay in the library — delete any that belonged to the old team from the list.';
-    let ok = false;
-    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, 'Switch Team');
-    else ok = confirm(msg);
-    if (!ok) return;
-    try { localStorage.removeItem('ffa_team_profile'); } catch (e) {}
-    try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}   // new team → fresh guide
-    try { localStorage.removeItem('ffa_seen_stats'); } catch (e) {}            // "See your stats" restarts too
-    // Blank the team-identity fields in the live Game Info form + storage —
-    // otherwise the next _saveGameInfo() → _saveTeamProfile() would read the
-    // OLD team name from gameInfo and silently resurrect the cleared profile
-    // (the inverse of _syncGameInfoFromTeam).
-    const nameEl = document.getElementById('gameTeamName');
-    const colorEl = document.getElementById('gameJerseyColor');
-    if (nameEl) nameEl.value = '';
-    if (colorEl) colorEl.value = '';
-    const storage = this._storage();
-    if (storage?.gameInfo) {
-      storage.gameInfo.teamName = '';
-      storage.gameInfo.jerseyColor = '';
-      storage._autoSave?.();
-    }
-    this._showTeamEdit(false);
-    this._renderTeamCard();    // no team now → shows the setup form again
-    await this._render();
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
@@ -326,19 +525,28 @@ export class SeasonLibrary {
     if (this.form) this.form.classList.toggle('hidden', !show);
     const toggle = document.getElementById('btnNewSeasonToggle');
     if (toggle) toggle.classList.toggle('hidden', show);
-    if (show) setTimeout(() => document.getElementById('newSeasonYear')?.focus(), 30);
+    if (show) {
+      // Pre-fill the team field from the active team so JV seasons are born
+      // labeled JV — the coach only types the year.
+      const teamEl = document.getElementById('newSeasonTeam');
+      if (teamEl && !teamEl.value) teamEl.value = this._teamProfile().teamName || '';
+      setTimeout(() => document.getElementById('newSeasonYear')?.focus(), 30);
+    }
   }
 
   async _render() {
     if (!this.listEl) return;
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
+    // Team Home shows only the ACTIVE team's seasons (JV and Varsity each
+    // have their own hub; the pills switch between them).
+    if (this._teams().length) seasons = this._teamSeasons(seasons, this._activeTeamId());
     const demoId = this._storage()?.demoSeasonId?.() || '';
     this._renderChecklist(seasons, demoId);
     if (!seasons.length) {
       this.listEl.innerHTML = this._hasTeam()
         ? `<div class="library-empty">
-            <p>No seasons yet.</p>
+            <p>No seasons yet for this team.</p>
             <p class="library-empty-sub">Create your first season — or explore a demo to see what the stats look like.</p>
           </div>`
         : '';
@@ -472,6 +680,7 @@ export class SeasonLibrary {
       team: val('newSeasonTeam'),
       level: val('newSeasonLevel'),
       name: val('newSeasonName'),
+      teamId: this._activeTeamId(),   // season belongs to the active team's hub
     };
     if (!meta.name) {
       meta.name = [meta.year, meta.level, meta.team].filter(Boolean).join(' ').trim();
