@@ -212,6 +212,21 @@ export class SeasonLibrary {
     if (!ok) return;
     try { localStorage.removeItem('ffa_team_profile'); } catch (e) {}
     try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}   // new team → fresh guide
+    try { localStorage.removeItem('ffa_seen_stats'); } catch (e) {}            // "See your stats" restarts too
+    // Blank the team-identity fields in the live Game Info form + storage —
+    // otherwise the next _saveGameInfo() → _saveTeamProfile() would read the
+    // OLD team name from gameInfo and silently resurrect the cleared profile
+    // (the inverse of _syncGameInfoFromTeam).
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
+    if (nameEl) nameEl.value = '';
+    if (colorEl) colorEl.value = '';
+    const storage = this._storage();
+    if (storage?.gameInfo) {
+      storage.gameInfo.teamName = '';
+      storage.gameInfo.jerseyColor = '';
+      storage._autoSave?.();
+    }
     this._showTeamEdit(false);
     this._renderTeamCard();    // no team now → shows the setup form again
     await this._render();

@@ -138,6 +138,10 @@ export class HistoryManager {
     }
     this.lastSnap = snap;
     this.recording = true;
+    // Wholesale plays replacement — announce it so subscribers that mirror
+    // the play list (the Film Room grid) re-render. Emitted while recording
+    // is back on, but it's not a play-mutation event, so nothing re-records.
+    this.tagger._emit('plays-loaded');
   }
 
   _updateUI() {

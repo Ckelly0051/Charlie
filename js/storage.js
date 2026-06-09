@@ -208,8 +208,10 @@ export class StorageManager {
     const app = window.app;
     if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
     try {
-      this.seasonStore.data.teamProfile =
-        JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
+      const prof = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
+      // Only adopt a real identity — after "Switch team" the profile is empty,
+      // and stamping {} here would strip the old season's saved team.
+      if (prof.teamName) this.seasonStore.data.teamProfile = prof;
     } catch (e) {}
   }
 
@@ -279,8 +281,12 @@ export class StorageManager {
     try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
     this.videoFileName = null;
     this.canvas.annotations = [];
+    // The outgoing game's selection is meaningless in the next one — and play
+    // ids restart per game, so a stale currentPlayId would silently highlight
+    // an unrelated play if the incoming game has no saved selection.
+    this.tagger.currentPlayId = null;
     if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
-    if (window.app && window.app.playGrid) window.app.playGrid.refresh();
+    this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }
 
   /** Switch which game is active, persisting the one we're leaving. */
@@ -379,7 +385,7 @@ export class StorageManager {
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this.tagger.updateScrubBarPlays();
-    if (window.app && window.app.playGrid) window.app.playGrid.refresh();
+    this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
 
     if (data.currentPlayId) {
       this.tagger.selectPlay(data.currentPlayId);

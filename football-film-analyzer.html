@@ -5268,10 +5268,14 @@ body {
   }
   .top-bar { position: static; flex: 0 0 52px; }
 
+  /* Three named areas: video + Film Room play grid stack in the left
+     column, tag form owns the right. The grid row collapses to 0 when
+     #playGridSection is hidden (no plays). */
   .main-content {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) clamp(460px, 40vw, 760px) !important;
-    grid-template-rows: 1fr !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, auto) !important;
+    grid-template-areas: "video tags" "grid tags";
     align-items: stretch;
     flex: 1 1 0;
     min-height: 0;
@@ -5280,6 +5284,7 @@ body {
 
   /* Left column: video centered in its column, sized to its 16:9 box. */
   .video-section {
+    grid-area: video;
     position: static;
     height: 100%;
     max-height: 100%;
@@ -5287,6 +5292,17 @@ body {
     border-bottom: none;
     border-right: 1px solid var(--border);
     justify-content: center;
+  }
+
+  /* Film Room grid fills the dead space under the video. (Child selector =
+     higher specificity than the base .play-grid-section block, which sits
+     LATER in the file and would otherwise win the max-height tie.) */
+  .main-content > .play-grid-section {
+    grid-area: grid;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    max-height: 38vh;
   }
   .video-section .video-container {
     flex: 0 1 auto;
@@ -5297,6 +5313,7 @@ body {
 
   /* Right column owns its own scroll so the page never moves. */
   .tag-section {
+    grid-area: tags;
     height: 100%;
     overflow-y: auto;
     padding: 12px 18px 40px;
@@ -6838,6 +6855,9 @@ body {
   min-height: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  /* Base cap so a 170-play table can never bury the tag form on narrow /
+     fractional-width viewports; the widescreen block overrides to 38vh. */
+  max-height: 42vh;
 }
 .play-grid-section[hidden] { display: none; }
 
@@ -6945,33 +6965,16 @@ body {
 .pg-dim { color: var(--text-dim, #94a3b8); }
 .pg-empty { padding: 18px 14px; font-size: 12.5px; color: var(--text-dim, #64748b); text-align: center; }
 
-/* Narrow screens: cap the grid so the tag form stays one scroll away. */
-@media (max-width: 1099px) {
-  .play-grid-section { max-height: 42vh; }
-}
 @media (max-width: 800px) {
   .pg-table { font-size: 11.5px; }
   .pg-c-look, .pg-table .pg-c-look { display: none; }   /* tight columns on phones */
   .pg-chip { padding: 3px 10px; }                        /* bigger touch targets */
 }
 
-/* Widescreen: grid joins the left column under the video. The earlier
-   TWO-COLUMN block set 1fr rows with !important; this later block wins. */
-@media (min-width: 1100px) {
-  .main-content {
-    grid-template-areas: "video tags" "grid tags";
-    grid-template-rows: minmax(0, 1fr) minmax(0, auto) !important;
-  }
-  .video-section { grid-area: video; }
-  .tag-section { grid-area: tags; }
-  .play-grid-section {
-    grid-area: grid;
-    border-right: 1px solid var(--border);
-    border-bottom: none;
-    border-top: 1px solid var(--border);
-    max-height: 38vh;
-  }
-}
+/* Widescreen layout for the grid lives INSIDE the TWO-COLUMN block above
+   (grid-template-areas "video tags" / "grid tags") — not in a second
+   @media block here, so there's only one place that owns .main-content
+   rows at that breakpoint. */
 
 /* "Switch to a different team…" link in the team edit panel (library overlay
    is dark, so the generic .btn-link dim color needs a light override). */
@@ -9852,12 +9855,11 @@ class PlayTagger {
       // removeClip() filters out the play, revokes its URL, fixes the active
       // index, and switches to an adjacent clip (keeping video + a valid
       // current play so Save & Next keeps working).
-      this.playlist.removeClip(clipIdx);
+      this.playlist.removeClip(clipIdx);   // emits play-deleted itself
       // If that emptied the playlist, clear the player too.
       if (!this.playlist.hasClips && this.vc && typeof this.vc.unloadVideo === 'function') {
         this.vc.unloadVideo();
       }
-      this._emit('play-deleted');
       return;
     }
 
@@ -12574,8 +12576,10 @@ class StorageManager {
     const app = window.app;
     if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
     try {
-      this.seasonStore.data.teamProfile =
-        JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
+      const prof = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {};
+      // Only adopt a real identity — after "Switch team" the profile is empty,
+      // and stamping {} here would strip the old season's saved team.
+      if (prof.teamName) this.seasonStore.data.teamProfile = prof;
     } catch (e) {}
   }
 
@@ -12645,8 +12649,12 @@ class StorageManager {
     try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
     this.videoFileName = null;
     this.canvas.annotations = [];
+    // The outgoing game's selection is meaningless in the next one — and play
+    // ids restart per game, so a stale currentPlayId would silently highlight
+    // an unrelated play if the incoming game has no saved selection.
+    this.tagger.currentPlayId = null;
     if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
-    if (window.app && window.app.playGrid) window.app.playGrid.refresh();
+    this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }
 
   /** Switch which game is active, persisting the one we're leaving. */
@@ -12745,7 +12753,7 @@ class StorageManager {
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this.tagger.updateScrubBarPlays();
-    if (window.app && window.app.playGrid) window.app.playGrid.refresh();
+    this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
 
     if (data.currentPlayId) {
       this.tagger.selectPlay(data.currentPlayId);
@@ -14703,6 +14711,7 @@ class PlaylistManager {
   }
 
   async _autoCreatePlays() {
+    let created = false;
     for (const clip of this.clips) {
       if (clip.playId !== null) continue;
       const source = clip.assetUrl || clip.file;
@@ -14724,11 +14733,16 @@ class PlaylistManager {
 
       this.tagger.plays.push(play);
       clip.playId = play.id;
+      created = true;
     }
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this._updatePlaylistUI();
+    // Plays were pushed directly (not via tagger.createPlay), so listeners —
+    // the Film Room grid, the wizard — only hear about them via this emit
+    // (same pattern as the CSV import path in storage.js).
+    if (created) this.tagger._emit('play-created');
   }
 
   _probeDuration(source) {
@@ -14860,7 +14874,8 @@ class PlaylistManager {
     const clip = this.clips[index];
 
     // Remove the associated play
-    if (clip.playId !== null) {
+    const removedPlay = clip.playId !== null;
+    if (removedPlay) {
       this.tagger.plays = this.tagger.plays.filter(p => p.id !== clip.playId);
       if (this.tagger.currentPlayId === clip.playId) {
         this.tagger.currentPlayId = null;
@@ -14896,6 +14911,10 @@ class PlaylistManager {
     this._updatePlaylistUI();
     this._updateClipIndicator();
     this._updateClipCount();
+    // The playlist panel's per-clip ✕ calls this directly (not through
+    // tagger.deleteCurrentPlay), so the play removal must be announced here
+    // or the Film Room grid keeps a ghost row.
+    if (removedPlay) this.tagger._emit('play-deleted');
   }
 
   /**
@@ -19380,6 +19399,10 @@ class HistoryManager {
     }
     this.lastSnap = snap;
     this.recording = true;
+    // Wholesale plays replacement — announce it so subscribers that mirror
+    // the play list (the Film Room grid) re-render. Emitted while recording
+    // is back on, but it's not a play-mutation event, so nothing re-records.
+    this.tagger._emit('plays-loaded');
   }
 
   _updateUI() {
@@ -20447,6 +20470,7 @@ class CutupPlayer {
  * "Filter Plays" panel (PlayFilter) — that one keeps driving the cut-up
  * exporter; this one is the quick film-review slice.
  */
+
 class PlayGrid {
   constructor(tagger, videoController, cutupPlayer) {
     this.tagger = tagger;
@@ -20573,7 +20597,13 @@ class PlayGrid {
     this.tagger.on('play-created', () => this.refresh());
     this.tagger.on('play-updated', () => this.refresh());
     this.tagger.on('play-deleted', () => this.refresh());
-    this.tagger.on('play-selected', (play) => this._highlight(play && play.id));
+    // Wholesale plays replacement (game switch, undo/redo, project load):
+    // checked ids from the old play set are meaningless (ids restart at 1 per
+    // game, so they'd silently transfer to unrelated plays) — drop them.
+    this.tagger.on('plays-loaded', () => { this.selected.clear(); this.refresh(); });
+    // Only an explicit selection auto-scrolls; re-renders must never yank the
+    // grid (or, on narrow layouts, the page) while the coach is tagging.
+    this.tagger.on('play-selected', (play) => this._highlight(play && play.id, true));
   }
 
   _toggleCollapsed() {
@@ -20593,27 +20623,9 @@ class PlayGrid {
   }
 
   // ---------- Filtering ----------
-
-  /** Mirror of StatsEngine.isRun/isPass (kept self-contained like
-   *  visualizations.js): explicit runPass wins, playType string is the
-   *  legacy fallback. */
-  static isRun(p) {
-    const rp = p.tags && p.tags.runPass;
-    if (rp === 'Run') return true;
-    if (rp === 'Pass') return false;
-    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
-  }
-  static isPass(p) {
-    const rp = p.tags && p.tags.runPass;
-    if (rp === 'Pass') return true;
-    if (rp === 'Run') return false;
-    const t = (p.tags && p.tags.playType || '').toLowerCase();
-    return t.includes('pass') || t.includes('screen');
-  }
-
-  static results(p) {
-    return String(p.tags && p.tags.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
-  }
+  // Run/pass and result splitting go through StatsEngine (the canonical
+  // classifiers) so the grid never disagrees with the stats dashboard —
+  // e.g. legacy 'Play Action'/'RPO' plays without an explicit runPass.
 
   static isUntagged(p) {
     const t = p.tags || {};
@@ -20625,10 +20637,10 @@ class PlayGrid {
     const f = this.f;
     if (f.unit && (t.unit || 'offense') !== f.unit) return false;
     if (f.downs.size && !f.downs.has(String(t.down))) return false;
-    if (f.rp === 'Run' && !PlayGrid.isRun(p)) return false;
-    if (f.rp === 'Pass' && !PlayGrid.isPass(p)) return false;
+    if (f.rp === 'Run' && !StatsEngine.isRun(p)) return false;
+    if (f.rp === 'Pass' && !StatsEngine.isPass(p)) return false;
     if (f.flags.size) {
-      const res = PlayGrid.results(p);
+      const res = StatsEngine.splitResults(t.result);
       const hit = (f.flags.has('td') && res.includes('Touchdown'))
         || (f.flags.has('to') && (res.includes('Interception') || res.includes('Fumble')))
         || (f.flags.has('pen') && res.includes('Penalty'))
@@ -20689,6 +20701,14 @@ class PlayGrid {
     this._highlight(this.tagger.currentPlayId);
   }
 
+  /** The plays Watch actually operates on: checked-AND-visible rows, or every
+   *  visible row when nothing is checked. The button label/disabled state and
+   *  _watch() must use the same pool, or the count lies (e.g. 3 plays checked,
+   *  then a filter hides them — Watch must show 0 and disable, not "(3)"). */
+  _watchPool(visible) {
+    return this.selected.size ? visible.filter(p => this.selected.has(p.id)) : visible;
+  }
+
   _updateBar(visible, plays) {
     visible = visible || this._visiblePlays();
     plays = plays || this.tagger.plays;
@@ -20697,17 +20717,21 @@ class PlayGrid {
     showing.textContent = this._filterActive() ? `${visible.length} of ${plays.length}` : '';
     this.section.querySelector('#pgClear').classList.toggle('hidden', !this._filterActive());
 
-    const n = this.selected.size || visible.length;
+    const pool = this._watchPool(visible);
     const watch = this.section.querySelector('#pgWatch');
-    watch.textContent = this.selected.size ? `▶ Watch (${this.selected.size})` : `▶ Watch (${visible.length})`;
-    watch.disabled = n === 0;
+    watch.textContent = `▶ Watch (${pool.length})`;
+    watch.disabled = pool.length === 0;
   }
 
   _rowHtml(p) {
     const t = p.tags || {};
-    const unit = t.unit || 'offense';
+    // `unit` lands in a class name / chip letter UNescaped — pin it to the
+    // three known values (imported CSVs / foreign season files can hold
+    // arbitrary strings in any tag, and innerHTML would execute them).
+    const unit = t.unit === 'defense' || t.unit === 'special' ? t.unit : 'offense';
     const u = unit === 'defense' ? 'D' : unit === 'special' ? 'S' : 'O';
-    const yds = t.yardage === '' || t.yardage == null ? '' : parseInt(t.yardage, 10);
+    const n = parseInt(t.yardage, 10);
+    const yds = Number.isFinite(n) ? n : '';   // CSV imports can carry junk like '—'
     const ydCls = yds === '' ? '' : (yds > 0 ? 'pos' : (yds < 0 ? 'neg' : ''));
     const checked = this.selected.has(p.id) ? ' checked' : '';
     const cur = p.id === this.tagger.currentPlayId ? ' is-current' : '';
@@ -20727,7 +20751,8 @@ class PlayGrid {
 
   _sit(t) {
     if (!t.down) return '<span class="pg-dim">—</span>';
-    const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || t.down;
+    // The fallback is raw tag data (CSV imports) — escape it.
+    const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || this._esc(t.down);
     return t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
   }
 
@@ -20739,23 +20764,36 @@ class PlayGrid {
     return t.formation || '';
   }
 
-  /** Move the current-row highlight without a full re-render. */
-  _highlight(id) {
+  /** Move the current-row highlight without a full re-render. `scroll` is only
+   *  true on an explicit play selection — never on data re-renders, where
+   *  scrolling would yank the grid (or the whole page, on narrow layouts
+   *  where the document scrolls) on every tag edit. */
+  _highlight(id, scroll = false) {
     if (!this.rowsEl) return;
     this.rowsEl.querySelectorAll('.pg-row.is-current').forEach(r => r.classList.remove('is-current'));
     if (!id) return;
     const row = this.rowsEl.querySelector(`.pg-row[data-id="${id}"]`);
-    if (row) {
-      row.classList.add('is-current');
-      row.scrollIntoView({ block: 'nearest' });
-    }
+    if (!row) return;
+    row.classList.add('is-current');
+    if (scroll) this._scrollRowIntoView(row);
+  }
+
+  /** Scroll ONLY the grid's own body — scrollIntoView would also scroll every
+   *  scrollable ancestor, including the page itself below 1100px. */
+  _scrollRowIntoView(row) {
+    const body = this.section.querySelector('#pgBody');
+    if (!body) return;
+    const headH = 26;   // keep the sticky column headers clear of the row
+    const top = row.offsetTop;
+    const bottom = top + row.offsetHeight;
+    if (top - headH < body.scrollTop) body.scrollTop = top - headH;
+    else if (bottom > body.scrollTop + body.clientHeight) body.scrollTop = bottom - body.clientHeight;
   }
 
   // ---------- Bulk watch ----------
 
   _watch() {
-    const visible = this._visiblePlays();
-    const pool = this.selected.size ? visible.filter(p => this.selected.has(p.id)) : visible;
+    const pool = this._watchPool(this._visiblePlays());
     if (!pool.length) return;
     // Mirror StatsEngine._watchPlays: only plays with a real video region are
     // playable, and with no video loaded a cut-up can't run — fall back to
@@ -20772,11 +20810,7 @@ class PlayGrid {
 
   // ---------- Utils ----------
 
-  _fmt(sec) {
-    const m = Math.floor((sec || 0) / 60);
-    const s = Math.floor((sec || 0) % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  }
+  _fmt(sec) { return this.tagger._fmt(sec || 0); }
 
   _esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -21678,6 +21712,21 @@ class SeasonLibrary {
     if (!ok) return;
     try { localStorage.removeItem('ffa_team_profile'); } catch (e) {}
     try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}   // new team → fresh guide
+    try { localStorage.removeItem('ffa_seen_stats'); } catch (e) {}            // "See your stats" restarts too
+    // Blank the team-identity fields in the live Game Info form + storage —
+    // otherwise the next _saveGameInfo() → _saveTeamProfile() would read the
+    // OLD team name from gameInfo and silently resurrect the cleared profile
+    // (the inverse of _syncGameInfoFromTeam).
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
+    if (nameEl) nameEl.value = '';
+    if (colorEl) colorEl.value = '';
+    const storage = this._storage();
+    if (storage?.gameInfo) {
+      storage.gameInfo.teamName = '';
+      storage.gameInfo.jerseyColor = '';
+      storage._autoSave?.();
+    }
     this._showTeamEdit(false);
     this._renderTeamCard();    // no team now → shows the setup form again
     await this._render();

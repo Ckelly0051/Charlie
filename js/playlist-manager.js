@@ -117,6 +117,7 @@ export class PlaylistManager {
   }
 
   async _autoCreatePlays() {
+    let created = false;
     for (const clip of this.clips) {
       if (clip.playId !== null) continue;
       const source = clip.assetUrl || clip.file;
@@ -138,11 +139,16 @@ export class PlaylistManager {
 
       this.tagger.plays.push(play);
       clip.playId = play.id;
+      created = true;
     }
 
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this._updatePlaylistUI();
+    // Plays were pushed directly (not via tagger.createPlay), so listeners —
+    // the Film Room grid, the wizard — only hear about them via this emit
+    // (same pattern as the CSV import path in storage.js).
+    if (created) this.tagger._emit('play-created');
   }
 
   _probeDuration(source) {
@@ -274,7 +280,8 @@ export class PlaylistManager {
     const clip = this.clips[index];
 
     // Remove the associated play
-    if (clip.playId !== null) {
+    const removedPlay = clip.playId !== null;
+    if (removedPlay) {
       this.tagger.plays = this.tagger.plays.filter(p => p.id !== clip.playId);
       if (this.tagger.currentPlayId === clip.playId) {
         this.tagger.currentPlayId = null;
@@ -310,6 +317,10 @@ export class PlaylistManager {
     this._updatePlaylistUI();
     this._updateClipIndicator();
     this._updateClipCount();
+    // The playlist panel's per-clip ✕ calls this directly (not through
+    // tagger.deleteCurrentPlay), so the play removal must be announced here
+    // or the Film Room grid keeps a ghost row.
+    if (removedPlay) this.tagger._emit('play-deleted');
   }
 
   /**

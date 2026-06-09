@@ -74,14 +74,18 @@ r = await page.evaluate(async () => {
   chip('rp', 'Pass').click();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const thirdPass = rows();
+  // StatsEngine is a top-level class in the bundle's script scope (global
+  // lexical binding) — use the canonical classifier as the expected value.
+  const expectedThirdPass = window.app.tagger.plays.filter(p =>
+    String(p.tags.down) === '3' && StatsEngine.isPass(p)).length;
   const showing = document.getElementById('pgShowing').textContent;
   document.getElementById('pgClear').click();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const cleared = rows();
-  return { all, third, expectedThird, thirdPass, showing, cleared };
+  return { all, third, expectedThird, thirdPass, expectedThirdPass, showing, cleared };
 });
 ok(r.third === r.expectedThird && r.third < r.all, 'down filter narrows to 3rd downs', JSON.stringify(r));
-ok(r.thirdPass <= r.third, 'stacking Pass narrows further', JSON.stringify(r));
+ok(r.thirdPass === r.expectedThirdPass && r.thirdPass < r.third, 'stacking Pass matches StatsEngine.isPass count', JSON.stringify(r));
 ok(new RegExp(`${r.thirdPass} of ${r.all}`).test(r.showing), '"X of Y" count shown', r.showing);
 ok(r.cleared === r.all, 'Clear restores all rows');
 
@@ -139,6 +143,25 @@ r = await page.evaluate(async () => {
 ok(r.checked === r.total && new RegExp(`\\(${r.total}\\)`).test(r.label), 'select-all checks every visible row', JSON.stringify(r));
 ok(r.after === 0, 'select-all toggles off');
 
+// Selected rows hidden by a filter must NOT be counted by Watch (the pool
+// the button advertises is exactly the pool _watch() uses).
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const firstDowns = window.app.tagger.plays.filter(p => String(p.tags.down) === '1');
+  const grid = window.app.playGrid;
+  grid.selected.clear();
+  grid.selected.add(firstDowns[0].id); grid.selected.add(firstDowns[1].id);
+  document.querySelector('.pg-fgroup[data-group="downs"] .pg-chip[data-val="3"]').click();
+  await raf2();
+  const watch = document.getElementById('pgWatch');
+  const out = { label: watch.textContent, disabled: watch.disabled };
+  document.getElementById('pgClear').click();
+  grid.selected.clear();
+  await raf2();
+  return out;
+});
+ok(/\(0\)/.test(r.label) && r.disabled, 'Watch shows 0 + disables when selection is filtered out', JSON.stringify(r));
+
 console.log('\n== 6. Collapse persistence ==');
 await click('#pgCollapse');
 r = await page.evaluate(() => ({
@@ -185,6 +208,46 @@ r = await page.evaluate(async () => {
 });
 ok(/Touchdown/.test(r.cellText), 'play-updated refreshes row content', r.cellText);
 
+console.log('\n== 8b. Undo/redo + game switch keep grid in sync (plays-loaded) ==');
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const t = window.app.tagger;
+  const before = document.querySelectorAll('#pgRows .pg-row').length;
+  // Simulate undo: HistoryManager._restore replaces plays wholesale.
+  const full = JSON.stringify({ plays: t.plays, nextId: t.nextId, currentPlayId: null });
+  const partial = JSON.stringify({ plays: t.plays.slice(0, 10), nextId: t.nextId, currentPlayId: null });
+  window.app.history._restore(partial);
+  await raf2();
+  const afterUndo = document.querySelectorAll('#pgRows .pg-row').length;
+  window.app.history._restore(full);
+  await raf2();
+  const afterRedo = document.querySelectorAll('#pgRows .pg-row').length;
+  return { before, afterUndo, afterRedo };
+});
+ok(r.afterUndo === 10, 'grid re-renders after history restore (undo)', JSON.stringify(r));
+ok(r.afterRedo === r.before, 'grid re-renders after history restore (redo)');
+
+r = await page.evaluate(async () => {
+  const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const grid = window.app.playGrid;
+  const store = window.app.storage.seasonStore;
+  // Check two rows in game 1, then switch to game 2 — selection must clear
+  // (play ids restart per game, so stale ids would silently pre-check rows).
+  document.querySelectorAll('#pgRows .pg-check')[0].click();
+  document.querySelectorAll('#pgRows .pg-check')[1].click();
+  const otherGame = store.data.games.find(g => g.id !== store.data.activeGameId);
+  window.app.storage.switchToGame(otherGame.id);
+  await new Promise(r => setTimeout(r, 300));
+  await raf2();
+  return { selected: grid.selected.size,
+           checked: document.querySelectorAll('#pgRows .pg-check:checked').length,
+           rows: document.querySelectorAll('#pgRows .pg-row').length,
+           current: document.querySelectorAll('#pgRows .pg-row.is-current').length,
+           taggerCur: window.app.tagger.currentPlayId };
+});
+ok(r.selected === 0 && r.checked === 0, 'game switch clears row selection', JSON.stringify(r));
+ok(r.rows > 50, 'game 2 plays render after switch', String(r.rows));
+
 console.log('\n== 9. Switch team: back out to team setup ==');
 await click('#bcHome');
 await sleep(500);
@@ -210,6 +273,15 @@ r = await page.evaluate(() => ({
 ok(r.setup && r.card, 'back at team setup after switch', JSON.stringify(r));
 ok(!r.profile, 'team profile cleared');
 ok(r.seasons === 1, 'seasons kept (non-destructive)', String(r.seasons));
+// The resurrection path: a Game Info edit after the switch must NOT re-save
+// the old team (gameInfo team fields were blanked by _switchTeam).
+r = await page.evaluate(() => {
+  const gn = document.getElementById('gameTeamName').value;
+  window.app._saveGameInfo();
+  const prof = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}');
+  return { gn, resurrectedName: prof.teamName || '' };
+});
+ok(r.gn === '' && r.resurrectedName === '', 'Game Info edit cannot resurrect old team', JSON.stringify(r));
 await page.type('#teamSetupName', 'New Squad');
 await click('#btnTeamSetupSave');
 await sleep(400);

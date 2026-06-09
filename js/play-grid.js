@@ -15,6 +15,8 @@
  * "Filter Plays" panel (PlayFilter) — that one keeps driving the cut-up
  * exporter; this one is the quick film-review slice.
  */
+import { StatsEngine } from './stats-engine.js';
+
 export class PlayGrid {
   constructor(tagger, videoController, cutupPlayer) {
     this.tagger = tagger;
@@ -141,7 +143,13 @@ export class PlayGrid {
     this.tagger.on('play-created', () => this.refresh());
     this.tagger.on('play-updated', () => this.refresh());
     this.tagger.on('play-deleted', () => this.refresh());
-    this.tagger.on('play-selected', (play) => this._highlight(play && play.id));
+    // Wholesale plays replacement (game switch, undo/redo, project load):
+    // checked ids from the old play set are meaningless (ids restart at 1 per
+    // game, so they'd silently transfer to unrelated plays) — drop them.
+    this.tagger.on('plays-loaded', () => { this.selected.clear(); this.refresh(); });
+    // Only an explicit selection auto-scrolls; re-renders must never yank the
+    // grid (or, on narrow layouts, the page) while the coach is tagging.
+    this.tagger.on('play-selected', (play) => this._highlight(play && play.id, true));
   }
 
   _toggleCollapsed() {
@@ -161,27 +169,9 @@ export class PlayGrid {
   }
 
   // ---------- Filtering ----------
-
-  /** Mirror of StatsEngine.isRun/isPass (kept self-contained like
-   *  visualizations.js): explicit runPass wins, playType string is the
-   *  legacy fallback. */
-  static isRun(p) {
-    const rp = p.tags && p.tags.runPass;
-    if (rp === 'Run') return true;
-    if (rp === 'Pass') return false;
-    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
-  }
-  static isPass(p) {
-    const rp = p.tags && p.tags.runPass;
-    if (rp === 'Pass') return true;
-    if (rp === 'Run') return false;
-    const t = (p.tags && p.tags.playType || '').toLowerCase();
-    return t.includes('pass') || t.includes('screen');
-  }
-
-  static results(p) {
-    return String(p.tags && p.tags.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
-  }
+  // Run/pass and result splitting go through StatsEngine (the canonical
+  // classifiers) so the grid never disagrees with the stats dashboard —
+  // e.g. legacy 'Play Action'/'RPO' plays without an explicit runPass.
 
   static isUntagged(p) {
     const t = p.tags || {};
@@ -193,10 +183,10 @@ export class PlayGrid {
     const f = this.f;
     if (f.unit && (t.unit || 'offense') !== f.unit) return false;
     if (f.downs.size && !f.downs.has(String(t.down))) return false;
-    if (f.rp === 'Run' && !PlayGrid.isRun(p)) return false;
-    if (f.rp === 'Pass' && !PlayGrid.isPass(p)) return false;
+    if (f.rp === 'Run' && !StatsEngine.isRun(p)) return false;
+    if (f.rp === 'Pass' && !StatsEngine.isPass(p)) return false;
     if (f.flags.size) {
-      const res = PlayGrid.results(p);
+      const res = StatsEngine.splitResults(t.result);
       const hit = (f.flags.has('td') && res.includes('Touchdown'))
         || (f.flags.has('to') && (res.includes('Interception') || res.includes('Fumble')))
         || (f.flags.has('pen') && res.includes('Penalty'))
@@ -257,6 +247,14 @@ export class PlayGrid {
     this._highlight(this.tagger.currentPlayId);
   }
 
+  /** The plays Watch actually operates on: checked-AND-visible rows, or every
+   *  visible row when nothing is checked. The button label/disabled state and
+   *  _watch() must use the same pool, or the count lies (e.g. 3 plays checked,
+   *  then a filter hides them — Watch must show 0 and disable, not "(3)"). */
+  _watchPool(visible) {
+    return this.selected.size ? visible.filter(p => this.selected.has(p.id)) : visible;
+  }
+
   _updateBar(visible, plays) {
     visible = visible || this._visiblePlays();
     plays = plays || this.tagger.plays;
@@ -265,17 +263,21 @@ export class PlayGrid {
     showing.textContent = this._filterActive() ? `${visible.length} of ${plays.length}` : '';
     this.section.querySelector('#pgClear').classList.toggle('hidden', !this._filterActive());
 
-    const n = this.selected.size || visible.length;
+    const pool = this._watchPool(visible);
     const watch = this.section.querySelector('#pgWatch');
-    watch.textContent = this.selected.size ? `▶ Watch (${this.selected.size})` : `▶ Watch (${visible.length})`;
-    watch.disabled = n === 0;
+    watch.textContent = `▶ Watch (${pool.length})`;
+    watch.disabled = pool.length === 0;
   }
 
   _rowHtml(p) {
     const t = p.tags || {};
-    const unit = t.unit || 'offense';
+    // `unit` lands in a class name / chip letter UNescaped — pin it to the
+    // three known values (imported CSVs / foreign season files can hold
+    // arbitrary strings in any tag, and innerHTML would execute them).
+    const unit = t.unit === 'defense' || t.unit === 'special' ? t.unit : 'offense';
     const u = unit === 'defense' ? 'D' : unit === 'special' ? 'S' : 'O';
-    const yds = t.yardage === '' || t.yardage == null ? '' : parseInt(t.yardage, 10);
+    const n = parseInt(t.yardage, 10);
+    const yds = Number.isFinite(n) ? n : '';   // CSV imports can carry junk like '—'
     const ydCls = yds === '' ? '' : (yds > 0 ? 'pos' : (yds < 0 ? 'neg' : ''));
     const checked = this.selected.has(p.id) ? ' checked' : '';
     const cur = p.id === this.tagger.currentPlayId ? ' is-current' : '';
@@ -295,7 +297,8 @@ export class PlayGrid {
 
   _sit(t) {
     if (!t.down) return '<span class="pg-dim">—</span>';
-    const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || t.down;
+    // The fallback is raw tag data (CSV imports) — escape it.
+    const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || this._esc(t.down);
     return t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
   }
 
@@ -307,23 +310,36 @@ export class PlayGrid {
     return t.formation || '';
   }
 
-  /** Move the current-row highlight without a full re-render. */
-  _highlight(id) {
+  /** Move the current-row highlight without a full re-render. `scroll` is only
+   *  true on an explicit play selection — never on data re-renders, where
+   *  scrolling would yank the grid (or the whole page, on narrow layouts
+   *  where the document scrolls) on every tag edit. */
+  _highlight(id, scroll = false) {
     if (!this.rowsEl) return;
     this.rowsEl.querySelectorAll('.pg-row.is-current').forEach(r => r.classList.remove('is-current'));
     if (!id) return;
     const row = this.rowsEl.querySelector(`.pg-row[data-id="${id}"]`);
-    if (row) {
-      row.classList.add('is-current');
-      row.scrollIntoView({ block: 'nearest' });
-    }
+    if (!row) return;
+    row.classList.add('is-current');
+    if (scroll) this._scrollRowIntoView(row);
+  }
+
+  /** Scroll ONLY the grid's own body — scrollIntoView would also scroll every
+   *  scrollable ancestor, including the page itself below 1100px. */
+  _scrollRowIntoView(row) {
+    const body = this.section.querySelector('#pgBody');
+    if (!body) return;
+    const headH = 26;   // keep the sticky column headers clear of the row
+    const top = row.offsetTop;
+    const bottom = top + row.offsetHeight;
+    if (top - headH < body.scrollTop) body.scrollTop = top - headH;
+    else if (bottom > body.scrollTop + body.clientHeight) body.scrollTop = bottom - body.clientHeight;
   }
 
   // ---------- Bulk watch ----------
 
   _watch() {
-    const visible = this._visiblePlays();
-    const pool = this.selected.size ? visible.filter(p => this.selected.has(p.id)) : visible;
+    const pool = this._watchPool(this._visiblePlays());
     if (!pool.length) return;
     // Mirror StatsEngine._watchPlays: only plays with a real video region are
     // playable, and with no video loaded a cut-up can't run — fall back to
@@ -340,11 +356,7 @@ export class PlayGrid {
 
   // ---------- Utils ----------
 
-  _fmt(sec) {
-    const m = Math.floor((sec || 0) / 60);
-    const s = Math.floor((sec || 0) % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  }
+  _fmt(sec) { return this.tagger._fmt(sec || 0); }
 
   _esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

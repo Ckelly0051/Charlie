@@ -343,12 +343,11 @@ export class PlayTagger {
       // removeClip() filters out the play, revokes its URL, fixes the active
       // index, and switches to an adjacent clip (keeping video + a valid
       // current play so Save & Next keeps working).
-      this.playlist.removeClip(clipIdx);
+      this.playlist.removeClip(clipIdx);   // emits play-deleted itself
       // If that emptied the playlist, clear the player too.
       if (!this.playlist.hasClips && this.vc && typeof this.vc.unloadVideo === 'function') {
         this.vc.unloadVideo();
       }
-      this._emit('play-deleted');
       return;
     }
 
