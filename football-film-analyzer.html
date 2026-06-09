@@ -7007,6 +7007,41 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
 .team-pill-add { border-style: dashed; color: rgba(255,255,255,.5); font-weight: 500; }
 .team-pill-add:hover { color: #fff; border-color: rgba(255,255,255,.4); }
+
+/* ================================================================== */
+/* ====  TOP BAR — progressive collapse for non-fullscreen windows == */
+/* The bar must stay 52px tall (the sticky video offset and the       */
+/* widescreen layout both assume it), so it collapses instead of      */
+/* wrapping: drop text labels first, then the niche status badge.     */
+/* Appended last so it beats the ≤1100px rule that re-enabled         */
+/* .btn-highlight labels.                                             */
+/* ================================================================== */
+.top-bar-left, .top-bar-center, .top-bar-right { min-width: 0; }
+.file-input-label #fileLabel {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: inline-block; max-width: 340px; vertical-align: middle;
+}
+
+@media (max-width: 1450px) {
+  .top-bar .btn-label { display: none !important; }     /* icon-only Quick Chart / Stats / Save / Folder */
+  .top-bar .sidebar-toggle-label { display: none; }
+  #btnShortcuts span { display: none; }
+  .app-title { display: none; }
+  .file-input-label #fileLabel { max-width: 190px; }
+}
+
+@media (max-width: 1200px) {
+  .backend-status-badge { display: none; }              /* status-only; CV server is a niche feature */
+  .file-input-label #fileLabel { max-width: 140px; }
+  .top-bar .bc-seg { max-width: 130px; }
+}
+
+@media (max-width: 1000px) {
+  .file-input-label #fileLabel { max-width: 110px; }
+  .top-bar .bc-seg { max-width: 96px; }
+  .top-bar { gap: 6px; }
+  .top-bar-left { gap: 6px; }
+}
   </style>
 </head>
 <body>
@@ -21814,8 +21849,7 @@ class SeasonLibrary {
     this._showTeamEdit(false);
     this._renderTeamCard();
     await this._render();
-    const closeBtn = document.getElementById('btnLibraryClose');
-    if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
+    this._updateCloseBtn();
     this.overlay.classList.remove('hidden');
   }
 
@@ -21826,9 +21860,19 @@ class SeasonLibrary {
     if (!this.overlay) return;
     this._setLevel('schedule');
     this._renderSchedule();
-    const closeBtn = document.getElementById('btnLibraryClose');
-    if (closeBtn) closeBtn.hidden = !store.hasCurrent();
+    this._updateCloseBtn();
     this.overlay.classList.remove('hidden');
+  }
+
+  /**
+   * Close only makes sense when a season is open behind the overlay —
+   * otherwise there's nothing to return to and hide() would no-op (a visible
+   * button that does nothing). Re-evaluated on every state change that can
+   * open/close a season while the library is up (team switch, season delete).
+   */
+  _updateCloseBtn() {
+    const closeBtn = document.getElementById('btnLibraryClose');
+    if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
   }
 
   /** Toggle the overlay between the seasons list and the schedule table. */
@@ -22071,6 +22115,7 @@ class SeasonLibrary {
 
   async _render() {
     if (!this.listEl) return;
+    this._updateCloseBtn();
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
     // Team Home shows only the ACTIVE team's seasons (JV and Varsity each
@@ -22089,6 +22134,7 @@ class SeasonLibrary {
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
     this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, s.id === demoId)).join('');
+    this._updateCloseBtn();
   }
 
   _cardHtml(s, isCurrent, isDemo) {
@@ -23685,7 +23731,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 class App {
   constructor() {

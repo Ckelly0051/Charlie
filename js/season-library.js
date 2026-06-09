@@ -279,8 +279,7 @@ export class SeasonLibrary {
     this._showTeamEdit(false);
     this._renderTeamCard();
     await this._render();
-    const closeBtn = document.getElementById('btnLibraryClose');
-    if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
+    this._updateCloseBtn();
     this.overlay.classList.remove('hidden');
   }
 
@@ -291,9 +290,19 @@ export class SeasonLibrary {
     if (!this.overlay) return;
     this._setLevel('schedule');
     this._renderSchedule();
-    const closeBtn = document.getElementById('btnLibraryClose');
-    if (closeBtn) closeBtn.hidden = !store.hasCurrent();
+    this._updateCloseBtn();
     this.overlay.classList.remove('hidden');
+  }
+
+  /**
+   * Close only makes sense when a season is open behind the overlay —
+   * otherwise there's nothing to return to and hide() would no-op (a visible
+   * button that does nothing). Re-evaluated on every state change that can
+   * open/close a season while the library is up (team switch, season delete).
+   */
+  _updateCloseBtn() {
+    const closeBtn = document.getElementById('btnLibraryClose');
+    if (closeBtn) closeBtn.hidden = !this._storage()?.seasonStore.hasCurrent();
   }
 
   /** Toggle the overlay between the seasons list and the schedule table. */
@@ -536,6 +545,7 @@ export class SeasonLibrary {
 
   async _render() {
     if (!this.listEl) return;
+    this._updateCloseBtn();
     let seasons = [];
     try { seasons = await this._storage().listSeasons(); } catch (e) {}
     // Team Home shows only the ACTIVE team's seasons (JV and Varsity each
@@ -554,6 +564,7 @@ export class SeasonLibrary {
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
     this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, s.id === demoId)).join('');
+    this._updateCloseBtn();
   }
 
   _cardHtml(s, isCurrent, isDemo) {
