@@ -76,6 +76,7 @@ js/
 ├── visualizations.js         # SVG charts: field-zone success, yardage spray, quarter mix
 ├── storage-backend.js        # Storage seam: BrowserBackend (localStorage+IndexedDB+File System Access) / TauriBackend (native files) + backup ring
 ├── season-store.js           # Season-as-project data model; delegates persistence/backups to a StorageBackend
+├── demo-season.js            # DemoSeason.build() — deterministic fully-tagged sample season for onboarding (empty-state)
 ├── storage.js                # Save/load bridge (live tagger <-> season store) + snapshots/restore + CSV import
 ├── history-manager.js        # Unified undo/redo (play data + canvas)
 ├── version-manager.js        # Named save points
@@ -85,8 +86,9 @@ js/
 ├── cutup-exporter.js         # Stitch filtered plays into cut-up video
 ├── season-manager.js         # Season view: game switcher + aggregate stats + progression (over season-store)
 ├── call-sheet-builder.js     # Play call sheet generation
-├── ui-polish.js              # Misc UI enhancements
-├── wizard.js                 # Step-by-step onboarding wizard
+├── season-library.js         # Team hub front door: team card + setup, seasons list, schedule view, demo, Get Started checklist
+├── ui-polish.js              # Misc UI enhancements (incl. empty-state Add Video/Folder CTA)
+├── wizard.js                 # Step-by-step onboarding wizard (dormant; default-dismissed)
 ├── custom-fields.js          # User-defined tag fields (CustomFieldsManager)
 ├── play-diagram.js           # Per-play X's & O's diagram editor (PlayDiagram)
 └── tag-workspace.js          # Tag workspace utilities (dead code — not wired)
@@ -301,14 +303,70 @@ Because browser storage is not durable, every save also makes a restore point:
   <folder>" when bound, amber warnings otherwise. **Back up to Folder** binds the
   durable folder (recommended on first explicit Save).
 
-## Season Library — multi-season front door (`season-library.js`)
+## Season Library / Team Hub — front door (`season-library.js`)
 
-**The app is library-first, like Hudl: Team → Season → Game → Plays.** On launch
-it opens to the **Season Library** (`#libraryOverlay`, `SeasonLibrary`) — a list
-of season cards + **New Season** (year / team / level) — and **nothing loads
-until the coach explicitly opens or creates a season**. (This replaced the old
-behavior where a single shared save auto-loaded silently with no context, which
-got messy by game 2 and confused users about what was loaded.)
+**The app is library-first, like Hudl. The hierarchy is Team → Season → Game →
+Plays → Stats.** On launch it opens the **library overlay** (`#libraryOverlay`,
+`SeasonLibrary`) to the **Team Home** and **nothing loads until the coach
+explicitly opens or creates a season**. (This replaced the old behavior where a
+single shared save auto-loaded silently with no context, which got messy by game
+2 and confused users about what was loaded.)
+
+### Team level (the hub)
+
+The library has two views, toggled by `_setLevel('seasons'|'schedule')`:
+- **`#librarySeasonsView` (Team Home)** — a **team identity card** (`#teamCard`:
+  name, jersey-color swatch, roster count, **Roster** + **Edit** actions) above
+  the **seasons list**. First-time users (no team) instead see **`#teamSetup`**
+  (name + jersey color → "Get Started"); once saved, the card replaces it.
+  Team identity lives in `localStorage ffa_team_profile` (`{teamName,
+  jerseyColor}`), is editable inline (`#teamEdit`), and syncs both ways with Game
+  Info (`_syncGameInfoFromTeam`). The single team is intentional — coaches coach
+  one team; this is the "hub for a team," not multi-team.
+- **`#libraryScheduleView` (Schedule)** — the open season's games as a Hudl-style
+  schedule table (`_renderSchedule` → `#scheduleBody`, using `app._gameRowInfo` /
+  `_scorePillHtml`): status dot, name, date, W/L pill, play count, Open/Final.
+  Click a row → open that game. "← All Seasons" returns to Team Home.
+
+Opening/creating a season lands on the **schedule** (pick a game), not the
+player — reinforcing drill-down. Each season is still its own file/folder.
+
+### Breadcrumb (top bar) — `#breadcrumb`, replaces the old season chip
+
+`Team ▸ Season ▸ Game`, rebuilt by `App._updateSeasonChip` / wired in
+`_bindSeasonChip`:
+- **Team** (`#bcHome`, shows `ffa_team_profile.teamName`) → `library.open()`
+  (Team Home).
+- **Season** (`#bcSeason`, the season name) → `library.openSchedule()`.
+- **Game** (`#bcGame`, the active game) → toggles the **game-switcher dropdown**
+  (`#gameDropdown`) — the quick in-place game switch; hidden until a game exists.
+The breadcrumb is hidden until a season is open.
+
+### Onboarding: demo season + Get Started checklist
+
+Best-in-class onboarding lesson (Hudl/Notion/Krossover): never show a blank
+canvas; get to value fast on real-looking data.
+- **Explore a demo season** (`#btnExploreDemo` → `StorageManager.loadDemoSeason`)
+  builds a deterministic, fully-tagged sample season (`demo-season.js`,
+  `DemoSeason.build()` — 2 finished games, offense + defense, ~170 plays, final
+  scores W 28-21 / L 17-24) via the **same** `createSeason` path as real data, so
+  the coach lands on populated Stats/Self-Scout/Call-Sheet instantly. It's
+  **non-destructive**: the demo carries an **empty roster**, and player names
+  come from a transient overlay — `StatsEngine._fixedLabels` (checked before
+  `_seasonLabels`, which the Season Stats view nulls), set/cleared per active
+  season by `_applySeasonLabels()` in `_loadActiveGame`. The demo is flagged by
+  `localStorage ffa_demo_season_id` (`isDemoSeason`), shown with a **Demo** badge,
+  and removable with a non-destructive confirm (`_teardownDemo` just clears the
+  flag). No film is attached (can't bundle video) — the demo's job is analytics.
+- **Get Started checklist** (`#getStartedChecklist`, `_renderChecklist`) — a
+  progressive 5-step guide (Set up team → Add roster → Start a season → Tag a
+  play → See your stats) that reflects real state (`_checklistItems` reads the
+  team profile, roster, season metas excluding the demo, and a `ffa_seen_stats`
+  flag set when the dashboard opens for non-demo data). Each open step is
+  click-to-action; it auto-hides when complete or dismissed
+  (`ffa_checklist_dismissed`). Only shown once a team exists.
+
+### Per-season file storage
 
 - **Each season is its own file/folder**, not one shared blob:
   - Browser: `localStorage ffa_library` (index) + `ffa_season_<id>` per season;
@@ -327,11 +385,10 @@ got messy by game 2 and confused users about what was loaded.)
   `_afterSeasonLoaded()` loads the active game + re-seeds history/versions/chip.
 - **Legacy migration**: an old single `ffa_season` / top-level `season.json`
   becomes the first season in the library automatically (no data loss).
-- A top-bar **season chip** (`#seasonChip`, `App._updateSeasonChip`) shows the
-  open season + active game. Clicking it opens a **game-switcher dropdown**
-  (`.game-dropdown`, `#gameDropdown`) — a compact list of all games in the
-  season with status badges, scores, play counts, and per-game actions.
-  "Switch Season" in the dropdown footer opens the Library.
+- The **game-switcher dropdown** (`.game-dropdown`, `#gameDropdown`), opened from
+  the breadcrumb **Game** segment, is the quick in-place switch — a compact list
+  of all games in the season with status badges, scores, play counts, and
+  per-game actions. "Switch Season" in its footer opens the library.
 
 ### Game Switcher Dropdown (`#gameDropdown`)
 
