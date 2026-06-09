@@ -31,6 +31,14 @@ import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
 import { SeasonLibrary } from './season-library.js';
 
+/**
+ * Single source of truth for the displayed app version. Keep in lockstep with
+ * src-tauri/{Cargo.toml,tauri.conf.json,Cargo.lock} on every release (the web
+ * bundle can't read those at runtime). On desktop, the live Tauri config
+ * version overrides this at runtime via Updater._currentVersion().
+ */
+const APP_VERSION = '1.2.6';
+
 class App {
   constructor() {
     // Initialize components
@@ -150,6 +158,8 @@ class App {
       await this.library.open();
     }, 0);
 
+    this._initVersionLabel();
+
     // Mark the onboarding checklist's "See your stats" step once the coach
     // opens the dashboard for THEIR OWN data (not the demo — exploring the demo
     // shouldn't silently complete onboarding). Flag read by _checklistItems.
@@ -164,6 +174,29 @@ class App {
     this.updater.init();
     this._bindUpdateCheck();
     this._bindOpenDataFolder();
+  }
+
+  /**
+   * Render the version footer in the More menu. Web and desktop ship on
+   * independent cadences, so each must show its OWN running version: the web
+   * bundle shows the APP_VERSION compiled into it; the desktop build overrides
+   * it with the actual installed version from the Tauri runtime (which can
+   * legitimately differ from this bundle's constant). The build type is shown
+   * too so a bug report identifies both number and platform.
+   */
+  _initVersionLabel() {
+    const el = document.getElementById('appVersionLabel');
+    if (!el) return;
+    const isDesktop = !!(typeof window !== 'undefined' && window.__TAURI__);
+    el.textContent = `GridIron IQ v${APP_VERSION} · ${isDesktop ? 'Desktop' : 'Web'}`;
+    if (isDesktop) {
+      try {
+        const p = window.__TAURI__?.app?.getVersion?.();
+        if (p && typeof p.then === 'function') {
+          p.then(v => { if (v) el.textContent = `GridIron IQ v${v} · Desktop`; }).catch(() => {});
+        }
+      } catch (_) { /* fall back to APP_VERSION already shown */ }
+    }
   }
 
   /** Wire the "Check for Updates" menu item (desktop build only). */

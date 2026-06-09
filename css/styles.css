@@ -2970,6 +2970,16 @@ body {
   transform: none;
 }
 .more-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+.more-version {
+  margin-top: 4px;
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  letter-spacing: 0.2px;
+  user-select: text;
+}
 
 /* --- Sidebar polish --- */
 .main-content { grid-template-columns: 1fr 300px; }

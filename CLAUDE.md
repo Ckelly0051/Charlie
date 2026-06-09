@@ -872,7 +872,12 @@ Steps to ship version `X.Y.Z`:
    latest code, and make sure it's committed.
 2. **Bump the version in all three** `src-tauri` files (they must match):
    `Cargo.toml` (`version`), `tauri.conf.json` (`version`), and `Cargo.lock`
-   (the `gridiron-iq` package entry).
+   (the `gridiron-iq` package entry). **Also bump `APP_VERSION` in `js/app.js`**
+   — that constant is the version the *web* bundle displays (the More-menu
+   footer). The desktop build overrides the displayed version at runtime from
+   the Tauri config, so web and desktop can legitimately show different numbers
+   (independent release cadences); keep `APP_VERSION` aligned with whatever web
+   bundle you deploy, not necessarily the desktop tag.
 3. **Commit + push** the bump to the feature branch
    (`claude/football-film-analyzer-GRiCW`).
 4. **Push the tag** (this is the trigger):
