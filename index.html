@@ -234,6 +234,10 @@
         </div>
       </div>
 
+      <!-- Film Room: play grid co-equal with the video (PlayGrid builds the
+           inner DOM). Hidden until the open game has plays. -->
+      <section class="play-grid-section" id="playGridSection" hidden></section>
+
       <!-- Tag Section (full-width, below video) -->
       <section class="tag-section">
         <!-- Tag Form -->
@@ -1203,6 +1207,8 @@
             </select>
             <button class="btn btn-sm btn-accent" id="btnTeamEditSave">Save</button>
             <button class="btn btn-sm" id="btnTeamEditCancel">Cancel</button>
+            <button class="btn-link team-switch-link" id="btnTeamSwitch" type="button"
+              title="Clear this team and set up a different one (seasons &amp; roster stay in the library)">Switch to a different team…</button>
           </div>
           <!-- Get Started checklist (progressive onboarding — auto-hides when done) -->
           <div class="gs-checklist hidden" id="getStartedChecklist"></div>

@@ -30,6 +30,7 @@ import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
 import { SeasonLibrary } from './season-library.js';
+import { PlayGrid } from './play-grid.js';
 
 /**
  * Single source of truth for the displayed app version. Keep in lockstep with
@@ -37,7 +38,7 @@ import { SeasonLibrary } from './season-library.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.2.6';
+const APP_VERSION = '1.3.0';
 
 class App {
   constructor() {
@@ -76,6 +77,7 @@ class App {
     this.suggestions = new SuggestionEngine(this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
+    this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer);
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
     this.callSheet = new CallSheetBuilder(this.tagger);

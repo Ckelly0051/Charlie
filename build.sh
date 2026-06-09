@@ -77,6 +77,7 @@ for jsfile in \
   js/suggestion-engine.js \
   js/cutup-exporter.js \
   js/cutup-player.js \
+  js/play-grid.js \
   js/season-manager.js \
   js/season-library.js \
   js/call-sheet-builder.js \

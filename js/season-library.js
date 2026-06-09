@@ -46,6 +46,7 @@ export class SeasonLibrary {
       if (t.closest && t.closest('#btnEditTeam')) { this._showTeamEdit(true); return; }
       if (t.closest && t.closest('#btnTeamEditSave')) { this._commitTeamEdit(); return; }
       if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
+      if (t.closest && t.closest('#btnTeamSwitch')) { this._switchTeam(); return; }
       if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
 
       // Demo season + Get Started checklist
@@ -192,6 +193,28 @@ export class SeasonLibrary {
     this._syncGameInfoFromTeam(profile);
     this._showTeamEdit(false);
     this._renderTeamCard();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+  }
+
+  /**
+   * Back out of the current team and return to team setup. Non-destructive:
+   * seasons and the roster stay in the library — only the team identity
+   * (name + jersey color) is cleared, and the Get Started checklist restarts
+   * for the new team. The coach can delete old seasons from the list.
+   */
+  async _switchTeam() {
+    const tagger = window.app && window.app.tagger;
+    const msg = 'Switch to a different team? This clears the team name and color so you can set up a new one. ' +
+      'Your seasons and roster stay in the library — delete any that belonged to the old team from the list.';
+    let ok = false;
+    if (tagger && tagger._confirmDialog) ok = await tagger._confirmDialog(msg, 'Switch Team');
+    else ok = confirm(msg);
+    if (!ok) return;
+    try { localStorage.removeItem('ffa_team_profile'); } catch (e) {}
+    try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}   // new team → fresh guide
+    this._showTeamEdit(false);
+    this._renderTeamCard();    // no team now → shows the setup form again
+    await this._render();
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 

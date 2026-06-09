@@ -6814,3 +6814,158 @@ body {
   .bc-seg { max-width: 110px; padding: 5px 8px; font-size: 12px; }
   .game-dropdown { min-width: 280px; left: auto; right: -20px; }
 }
+
+/* ================================================================== */
+/* ==========  FILM ROOM — play grid (Phase 2)  ===================== */
+/* The play grid sits between the video and the tag form. Narrow      */
+/* screens: a collapsible block under the sticky video. Widescreen    */
+/* (>=1100px): it fills the dead space under the video in the left    */
+/* column via grid-template-areas (block below). Appended last so it  */
+/* wins the cascade over the layout blocks above.                     */
+/* ================================================================== */
+.play-grid-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.play-grid-section[hidden] { display: none; }
+
+.pg-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.pg-collapse {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--text-dim, #64748b);
+  padding: 2px 4px; transition: transform var(--transition);
+}
+.play-grid-section.collapsed .pg-collapse { transform: rotate(-90deg); }
+.pg-title { font-weight: 600; font-size: 13px; color: var(--text); white-space: nowrap; }
+.pg-count { color: var(--text-dim, #64748b); font-weight: 500; }
+
+.pg-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
+.pg-fgroup { display: inline-flex; gap: 3px; padding-right: 6px; border-right: 1px solid var(--border); }
+.pg-fgroup:last-of-type { border-right: none; }
+.pg-chip {
+  background: var(--surface);
+  border: 1px solid var(--chip-border, #cbd3e0);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 9px;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.pg-chip:hover { border-color: var(--accent, #4169e1); }
+.pg-chip.active {
+  background: var(--accent, #4169e1);
+  border-color: var(--accent, #4169e1);
+  color: #fff;
+}
+.pg-clear {
+  background: none; border: none; cursor: pointer;
+  font-size: 11px; color: var(--accent, #4169e1); text-decoration: underline;
+  padding: 2px 4px;
+}
+.pg-showing { font-size: 11px; color: var(--text-dim, #64748b); margin-left: auto; white-space: nowrap; }
+.pg-watch { flex: 0 0 auto; font-size: 11.5px; padding: 3px 10px; }
+.pg-watch:disabled { opacity: .45; cursor: default; }
+
+.pg-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+.play-grid-section.collapsed .pg-body { display: none; }
+
+.pg-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pg-table th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--surface);
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-dim, #64748b);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.pg-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.pg-c-check { width: 26px; }
+.pg-c-num { width: 52px; }
+.pg-c-yds { width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+.pg-c-yds.pos { color: #15803d; }
+.pg-c-yds.neg { color: #b91c1c; }
+
+.pg-row { cursor: pointer; }
+.pg-row:hover td { background: rgba(65,105,225,.06); }
+.pg-row.is-current td { background: rgba(65,105,225,.13); }
+.pg-row.is-current td:first-child { box-shadow: inset 3px 0 0 var(--accent, #4169e1); }
+.pg-row.is-untagged td { color: var(--text-dim, #94a3b8); }
+
+.pg-unit {
+  display: inline-block;
+  width: 15px; height: 15px; line-height: 15px;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 9px; font-weight: 700;
+  margin-right: 5px;
+  color: #fff;
+}
+.pg-unit-offense { background: #4169e1; }
+.pg-unit-defense { background: #b91c1c; }
+.pg-unit-special { background: #c9a227; }
+
+.pg-dim { color: var(--text-dim, #94a3b8); }
+.pg-empty { padding: 18px 14px; font-size: 12.5px; color: var(--text-dim, #64748b); text-align: center; }
+
+/* Narrow screens: cap the grid so the tag form stays one scroll away. */
+@media (max-width: 1099px) {
+  .play-grid-section { max-height: 42vh; }
+}
+@media (max-width: 800px) {
+  .pg-table { font-size: 11.5px; }
+  .pg-c-look, .pg-table .pg-c-look { display: none; }   /* tight columns on phones */
+  .pg-chip { padding: 3px 10px; }                        /* bigger touch targets */
+}
+
+/* Widescreen: grid joins the left column under the video. The earlier
+   TWO-COLUMN block set 1fr rows with !important; this later block wins. */
+@media (min-width: 1100px) {
+  .main-content {
+    grid-template-areas: "video tags" "grid tags";
+    grid-template-rows: minmax(0, 1fr) minmax(0, auto) !important;
+  }
+  .video-section { grid-area: video; }
+  .tag-section { grid-area: tags; }
+  .play-grid-section {
+    grid-area: grid;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    max-height: 38vh;
+  }
+}
+
+/* "Switch to a different team…" link in the team edit panel (library overlay
+   is dark, so the generic .btn-link dim color needs a light override). */
+.team-switch-link { flex-basis: 100%; text-align: left; font-size: 11px;
+  color: rgba(255,255,255,.45); }
+.team-switch-link:hover { color: #fff; }

@@ -280,6 +280,7 @@ export class StorageManager {
     this.videoFileName = null;
     this.canvas.annotations = [];
     if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
+    if (window.app && window.app.playGrid) window.app.playGrid.refresh();
   }
 
   /** Switch which game is active, persisting the one we're leaving. */
@@ -378,6 +379,7 @@ export class StorageManager {
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this.tagger.updateScrubBarPlays();
+    if (window.app && window.app.playGrid) window.app.playGrid.refresh();
 
     if (data.currentPlayId) {
       this.tagger.selectPlay(data.currentPlayId);

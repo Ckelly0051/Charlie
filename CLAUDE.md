@@ -22,6 +22,21 @@ The app is a **single scrollable column**, not a video+sidebar split:
   Mark Start · Mark End · **Clear Tags** · **Delete Play** · play selector
   (filling the dead space under the player). The Offense/Defense/ST unit toggle
   leads the right (tag) column.
+- **Film Room play grid** (`.play-grid-section` / `#playGridSection`,
+  `js/play-grid.js`) — a compact table of every play in the open game, co-equal
+  with the video (Hudl-style). Sits between the video section and the tag
+  section; hidden until the game has plays. Row click → `tagger.selectPlay()`
+  (seeks / switches clip); current play highlighted + kept in view. A visible
+  chip filter bar (Unit / Down / Run-Pass / TD / TO / Pen / Untagged — AND
+  across groups, OR within) with an "X of Y" count, plus row checkboxes and a
+  **▶ Watch** button that plays the selection (or the filtered set) as a
+  `CutupPlayer` cut-up; with no video loaded it falls back to selecting the
+  first play. Collapsible (header click), persisted in
+  `localStorage ffa_film_room_collapsed`; defaults collapsed below 1100px.
+  Refresh: tagger `play-created/updated/deleted` events + an explicit
+  `playGrid.refresh()` from `StorageManager._deserialize` / `_clearForNewGame`.
+  Its quick filters are intentionally independent of the drawer's "Filter
+  Plays" panel (PlayFilter keeps driving the cut-up exporter).
 - **Tag section** (`.tag-section`) — holds the entire tagging workflow (mark
   controls, play selector, chip-based tag form, notes, OCR/auto-detect). No
   popup/sidebar — tagging is always on-page.
@@ -39,7 +54,10 @@ The app is a **single scrollable column**, not a video+sidebar split:
 
 - **Widescreen (≥1100px)** — two-column grid: video sticky on the left
   (`minmax(0,1fr)`), tag form scrolling on the right (`clamp(430px,33vw,580px)`).
-  CSS block: "TWO-COLUMN LAYOUT" at the end of `css/styles.css`.
+  CSS block: "TWO-COLUMN LAYOUT" at the end of `css/styles.css`. The Film Room
+  play grid joins the **left column under the video** via `grid-template-areas`
+  (`"video tags" "grid tags"`, in the later "FILM ROOM" CSS block, which must
+  stay after the TWO-COLUMN block to win the cascade).
 - **Narrow / tablet (<1100px)** — single-column stack: sticky video on top
   (`min(54vh,620px)`), full-width tag form below. CSS block: "SINGLE-COLUMN
   LAYOUT".
@@ -61,7 +79,8 @@ js/
 ├── canvas-overlay.js         # Drawing annotations on video frames
 ├── play-tagger.js            # Play CRUD + chip-based tag form (ChipField)
 ├── roster-manager.js         # Team roster + per-play player attribution (quick-pick)
-├── play-filter.js            # Filter plays by tag values
+├── play-filter.js            # Filter plays by tag values (drawer panel; drives cut-up exporter)
+├── play-grid.js              # Film Room play grid (PlayGrid): click-to-seek rows, chip filter bar, bulk Watch
 ├── play-detector.js          # Motion-based auto-detection of play boundaries
 ├── clip-analyzer.js          # Heuristic auto-tagging (centroid tracking)
 ├── vision-analyzer.js        # Claude Vision API integration
@@ -96,12 +115,16 @@ js/
 tools/
 ├── generate-sample-report.mjs  # Generates dummy-data analytics report via real StatsEngine
 ├── screenshot-report.mjs       # Puppeteer screenshots of the sample report
-└── e2e-onboarding.mjs          # Headless onboarding regression harness. ALWAYS run before
-                                # deploying UI/onboarding/library changes:
-                                #   bash build.sh && node tools/e2e-onboarding.mjs
-                                # Drives the BUILT bundle through first-run → team setup →
-                                # checklist → demo season → schedule → game → stats → delete →
-                                # upgrade path, asserting each step + zero console errors.
+├── e2e-onboarding.mjs          # Headless onboarding regression harness. ALWAYS run before
+│                               # deploying UI/onboarding/library changes:
+│                               #   bash build.sh && node tools/e2e-onboarding.mjs
+│                               # Drives the BUILT bundle through first-run → team setup →
+│                               # checklist → demo season → schedule → game → stats → delete →
+│                               # upgrade path, asserting each step + zero console errors.
+└── e2e-film-room.mjs           # Headless Film Room harness — run it alongside the onboarding
+                                # one before any deploy: grid render, click-to-select, chip
+                                # filters, bulk select + Watch fallback, collapse persistence,
+                                # switch-team back-out.
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
@@ -328,7 +351,13 @@ The library has two views, toggled by `_setLevel('seasons'|'schedule')`:
   Team identity lives in `localStorage ffa_team_profile` (`{teamName,
   jerseyColor}`), is editable inline (`#teamEdit`), and syncs both ways with Game
   Info (`_syncGameInfoFromTeam`). The single team is intentional — coaches coach
-  one team; this is the "hub for a team," not multi-team.
+  one team; this is the "hub for a team," not multi-team. **Backing out is
+  supported**: the edit panel has a "Switch to a different team…" link
+  (`#btnTeamSwitch` → `_switchTeam()`) that, after an in-app confirm, clears
+  `ffa_team_profile` + `ffa_checklist_dismissed` (fresh checklist) and returns
+  to the setup form. Non-destructive: seasons and the roster stay in the
+  library; the confirm copy tells the coach to delete old-team seasons from the
+  list. True multi-team (seasons scoped per team) is intentionally NOT built.
 - **`#libraryScheduleView` (Schedule)** — the open season's games as a Hudl-style
   schedule table (`_renderSchedule` → `#scheduleBody`, using `app._gameRowInfo` /
   `_scorePillHtml`): status dot, name, date, W/L pill, play count, Open/Final.
