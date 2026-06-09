@@ -55,6 +55,9 @@ export class UIPolish {
     const close = () => {
       drawer.classList.remove('open');
       scrim.classList.remove('active');
+      // Drop the raised z-index used when opened from the library overlay.
+      drawer.classList.remove('drawer-above-library');
+      scrim.classList.remove('drawer-above-library');
     };
     const open = () => {
       drawer.classList.add('open');

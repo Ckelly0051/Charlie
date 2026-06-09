@@ -95,7 +95,13 @@ js/
 
 tools/
 ├── generate-sample-report.mjs  # Generates dummy-data analytics report via real StatsEngine
-└── screenshot-report.mjs       # Puppeteer screenshots of the sample report
+├── screenshot-report.mjs       # Puppeteer screenshots of the sample report
+└── e2e-onboarding.mjs          # Headless onboarding regression harness. ALWAYS run before
+                                # deploying UI/onboarding/library changes:
+                                #   bash build.sh && node tools/e2e-onboarding.mjs
+                                # Drives the BUILT bundle through first-run → team setup →
+                                # checklist → demo season → schedule → game → stats → delete →
+                                # upgrade path, asserting each step + zero console errors.
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
@@ -948,6 +954,12 @@ Steps to ship version `X.Y.Z`:
 > HTTP 403; the GitHub MCP tools don't expose tag/release creation either). So
 > the agent does steps 1–3, then **hands the coach the exact step-4 commands to
 > run locally**. This is by design — it's how every release has been cut.
+
+> ⚠️ **The agent environment sometimes resets the local checkout to an old
+> commit between turns.** All real work lives on the remote. If `git log` looks
+> stale, recover with `git fetch origin && git reset --hard
+> origin/claude/football-film-analyzer-GRiCW` (verify `git status` is clean
+> first so no uncommitted work is lost), then `bash build.sh`.
 
 **Windows SmartScreen caveat (unsigned build):** auto-update download+install
 works, but Windows blocks the unsigned installer with "Windows protected your

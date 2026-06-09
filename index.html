@@ -1145,32 +1145,32 @@
           <button class="btn btn-sm btn-danger" id="btnLibraryClose" hidden>Close</button>
         </div>
 
-        <!-- TEAM SETUP (first time only) -->
-        <div class="team-setup hidden" id="teamSetup">
-          <p class="library-intro">Welcome to GridIron IQ. Set up your team to get started.</p>
-          <div class="team-setup-fields">
-            <input type="text" id="teamSetupName" placeholder="Team name (e.g. Eagles)" maxlength="40" autocomplete="off">
-            <select id="teamSetupColor">
-              <option value="">Jersey color (optional)</option>
-              <option value="white">White</option>
-              <option value="black">Black</option>
-              <option value="red">Red</option>
-              <option value="blue">Blue</option>
-              <option value="navy">Navy</option>
-              <option value="green">Green</option>
-              <option value="yellow">Yellow / Gold</option>
-              <option value="orange">Orange</option>
-              <option value="purple">Purple</option>
-              <option value="maroon">Maroon</option>
-              <option value="gray">Gray / Silver</option>
-              <option value="teal">Teal</option>
-            </select>
-            <button class="btn btn-accent" id="btnTeamSetupSave">Get Started</button>
-          </div>
-        </div>
-
         <!-- TEAM HOME / SEASONS LEVEL: team card + choose / create a season -->
         <div id="librarySeasonsView">
+          <!-- Team setup (first time only) — inside the seasons view so the
+               schedule level hides it (upgrade path: seasons exist, no team) -->
+          <div class="team-setup hidden" id="teamSetup">
+            <p class="library-intro">Welcome to GridIron IQ. Set up your team to get started.</p>
+            <div class="team-setup-fields">
+              <input type="text" id="teamSetupName" placeholder="Team name (e.g. Eagles)" maxlength="40" autocomplete="off">
+              <select id="teamSetupColor">
+                <option value="">Jersey color (optional)</option>
+                <option value="white">White</option>
+                <option value="black">Black</option>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+                <option value="navy">Navy</option>
+                <option value="green">Green</option>
+                <option value="yellow">Yellow / Gold</option>
+                <option value="orange">Orange</option>
+                <option value="purple">Purple</option>
+                <option value="maroon">Maroon</option>
+                <option value="gray">Gray / Silver</option>
+                <option value="teal">Teal</option>
+              </select>
+              <button class="btn btn-accent" id="btnTeamSetupSave">Get Started</button>
+            </div>
+          </div>
           <!-- Team card (visible when team is set up) -->
           <div class="team-card hidden" id="teamCard">
             <div class="team-card-swatch" id="teamCardSwatch"></div>

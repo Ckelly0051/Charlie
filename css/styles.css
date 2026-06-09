@@ -5213,6 +5213,11 @@ body {
   z-index: 599;
 }
 .drawer-scrim.active { display: block; }
+/* When the roster drawer is opened FROM the library overlay (z 4000), raise it
+   above the overlay so the action visibly works even with no season open.
+   Removed on drawer close (ui-polish). */
+.settings-drawer.drawer-above-library { z-index: 4500; }
+.drawer-scrim.drawer-above-library { z-index: 4499; }
 
 /* Old containers no longer rendered — make sure they never reserve space */
 .bottom-panel { display: none !important; }

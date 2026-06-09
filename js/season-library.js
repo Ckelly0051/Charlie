@@ -204,10 +204,17 @@ export class SeasonLibrary {
   }
 
   _openRoster() {
-    this.hide();
+    this.hide();   // no-ops when no season is open (overlay must stay)
     const drawer = document.getElementById('settingsDrawer');
     const scrim = document.querySelector('.drawer-scrim');
     const panel = document.getElementById('rosterPanel');
+    // If the library overlay is still up (no season open), the drawer's normal
+    // z-index (600) would put it BEHIND the overlay (4000) — the click would
+    // look dead. Raise it above; ui-polish strips the class on drawer close.
+    if (this._isOpen()) {
+      drawer?.classList.add('drawer-above-library');
+      scrim?.classList.add('drawer-above-library');
+    }
     if (drawer && !drawer.classList.contains('open')) {
       drawer.classList.add('open');
       if (scrim) scrim.classList.add('active');
@@ -306,8 +313,10 @@ export class SeasonLibrary {
   _cardHtml(s, isCurrent, isDemo) {
     const sub = [s.year, s.level, s.team].filter(Boolean).join(' · ');
     const last = s.lastOpened ? new Date(s.lastOpened).toLocaleDateString() : '';
-    const badge = isCurrent ? ' <span class="season-card-badge">Open</span>'
-      : (isDemo ? ' <span class="season-card-badge demo">Demo</span>' : '');
+    const badge = [
+      isCurrent ? ' <span class="season-card-badge">Open</span>' : '',
+      isDemo ? ' <span class="season-card-badge demo">Demo</span>' : '',
+    ].join('');
     const delTitle = isDemo ? 'Remove the demo season' : 'Delete this season';
     return `<div class="season-card${isCurrent ? ' is-current' : ''}${isDemo ? ' is-demo' : ''}" data-id="${esc(s.id)}" title="Open this season">
       <div class="season-card-main">
@@ -385,11 +394,17 @@ export class SeasonLibrary {
     if (step === 'roster') { this._openRoster(); return; }
     if (step === 'season') { this._showForm(true); return; }
     if (step === 'play') {
-      // If a real season exists, jump into its schedule to add/open a game;
-      // otherwise start the new-season flow.
-      const store = this._storage()?.seasonStore;
-      if (store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)) this.openSchedule();
-      else this._showForm(true);
+      // Jump into a REAL season's schedule to add/open a game. If the current
+      // season is the demo (or nothing is open), prefer an existing real
+      // season over pushing the coach into creating a duplicate one.
+      const storage = this._storage();
+      const store = storage?.seasonStore;
+      if (store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)) { this.openSchedule(); return; }
+      storage?.listSeasons().then(seasons => {
+        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId());
+        if (real) this._open(real.id);     // most recently opened real season
+        else this._showForm(true);
+      }).catch(() => this._showForm(true));
       return;
     }
     if (step === 'stats') {
