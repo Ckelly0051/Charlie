@@ -1290,3 +1290,20 @@ so the feature is never silently missing. The section renders inline as the
 12. **Inherited `color` is literal, not a live `var()`**: the app went light-theme (`--text` dark for the light canvas) while the stats overlays re-scope `--text` to a *light* value. But `.stats-body` set no explicit `color`, so it inherited the already-computed dark color from `<body>` — re-scoping the variable downstream does nothing for inherited values. Stats-table data cells (which had no explicit color) were dark-on-dark and invisible across the whole dashboard. Fix: set `color: var(--text)` directly on the overlay container so descendants inherit the light value. When a container re-scopes theme vars, also set the properties that should consume them, or inheritance silently keeps the old computed color.
 
 13. **Theme vars are global; the app is light, the dashboard is dark**: the main UI (top bar, tag form) is a **light** theme (`--text: #0f172a`, white `--surface` chips); only the analytics overlays are dark, which they get by **re-scoping** the dark palette under `.stats-overlay` / `.season-overlay` / etc. (not at `:root`). A "make the dashboard look better" pass that drops a dark palette (`--text: #e6edf3`, dark `--bg-*`) into a global `:root` block leaks into the light tag form and renders chip labels near-white on white — unreadable. **Scope dashboard palette overrides to `.stats-overlay`, never `:root`.** Only truly global identity tokens (brand accent, run/pass chart colors) belong in `:root`, and even those must stay legible on the light theme's white surfaces (gold `#c9a227` is fine as a chip-hover/border accent but is low-contrast as body text on white).
+
+## Future Projects (Tabled)
+
+These are validated high-impact features, deferred until the core UX is polished:
+
+1. **MP4 cut-up export** — bundle ffmpeg as a Tauri sidecar so filtered plays /
+   player cut-ups export as shareable video files. The #1 feature coaches ask
+   for after tagging. In-browser `cutup-exporter.js` is limited; real export
+   needs native compute.
+2. **Season-file merge** — two coaches tag the same game independently, then
+   merge results into a single canonical breakdown. Multi-staff workflow
+   (HC + OC + DC each tagging their unit). Conflict resolution UI needed.
+3. **Hudl CSV interop hardening** — bulletproof round-trip import/export of
+   Hudl-format breakdowns. Import side is ~70% done (column aliases exist);
+   needs a dedicated Hudl-format CSV writer for export, plus handling of every
+   Hudl export variant (Exchange, Reports, ODK encoding, yardage sign
+   conventions, formation vocabulary mapping). GameStrat's business model.
