@@ -176,6 +176,21 @@ export class PlayTagger {
     // but were silently discarded (_saveField bails). Dim + block the form
     // until a play exists so input can never vanish.
     this._updateFormEnabled();
+
+    // A disabled form must never feel dead: clicking the gray area explains
+    // how to activate it instead of silently doing nothing.
+    this.tagForm?.addEventListener('click', (e) => {
+      if (!this.tagForm.classList.contains('form-disabled')) return;
+      if (e.target.closest('.tag-nav')) return;
+      const plain = this._disabledHintText().replace(/<[^>]+>/g, '').replace(/&amp;/g, '&');
+      this.toast?.(plain);
+      const hint = document.getElementById('tagFormHint');
+      if (hint && !hint.classList.contains('hidden')) {
+        hint.classList.remove('hint-pulse');
+        void hint.offsetWidth;
+        hint.classList.add('hint-pulse');
+      }
+    });
   }
 
   /**
@@ -188,7 +203,16 @@ export class PlayTagger {
     const enabled = !!this.getCurrentPlay();
     this.tagForm.classList.toggle('form-disabled', !enabled);
     const hint = document.getElementById('tagFormHint');
-    if (hint) hint.classList.toggle('hidden', enabled);
+    if (hint) {
+      hint.classList.toggle('hidden', enabled);
+      if (!enabled) hint.innerHTML = this._disabledHintText();
+    }
+  }
+
+  _disabledHintText() {
+    return this.plays.length
+      ? 'Select a play to tag — click a row in the play list, or hit <b>Save &amp; Next</b> to start at play 1'
+      : 'Mark a play to start tagging — press <kbd>[</kbd> at the snap, <kbd>]</kbd> at the whistle (or the Mark Start / Mark End buttons under the video)';
   }
 
   _bindEvents() {

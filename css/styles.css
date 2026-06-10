@@ -7121,15 +7121,16 @@ td.pg-cell-focus {
    discarded (ChipField lights the chip before _saveField finds no play).
    The nav bar stays live — Save & Next recovers by jumping to the first play
    when plays exist but none is selected. */
+/* Disabled form: children are inert but the FORM still receives clicks so a
+   tap on the gray area can explain what to do (a silent dead UI reads as a
+   bug). The nav bar stays fully active (Save & Next can start at play 1). */
 #tagForm.form-disabled {
-  pointer-events: none;
   user-select: none;
+  cursor: not-allowed;
 }
 #tagForm.form-disabled > *:not(.tag-nav) {
   opacity: .45;
-}
-#tagForm.form-disabled .tag-nav {
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .tag-form-hint {
@@ -7137,14 +7138,24 @@ td.pg-cell-focus {
   align-items: center;
   gap: 8px;
   margin: 0 0 10px;
-  padding: 10px 14px;
-  border: 1px dashed var(--chip-border, #cbd3e0);
+  padding: 12px 14px;
+  border: 1px solid rgba(217, 119, 6, .45);
+  border-left: 4px solid #d97706;
   border-radius: 9px;
-  font-size: 13px;
-  color: var(--text-dim, #64748b);
-  background: var(--surface, #fff);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text, #0f172a);
+  background: rgba(245, 158, 11, .08);
 }
 .tag-form-hint.hidden { display: none; }
+.tag-form-hint.hint-pulse { animation: hintPulse .6s ease 2; }
+@keyframes hintPulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, .25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tag-form-hint.hint-pulse { animation: none; }
+}
 .tag-form-hint kbd {
   font-family: inherit;
   font-size: 11px;
