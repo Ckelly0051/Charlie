@@ -12136,12 +12136,14 @@ class SeasonStore {
 
   gameStatus(g) { return (g && g.status) || 'active'; }
 
-  /** True when the active game has no plays and no identifying game info. */
+  /** True when the active game has no plays, no film, and no identifying
+   *  game info — i.e. safe to reuse instead of stacking another blank. */
   isEmptyActive() {
     const g = this.activeGame();
     if (!g) return false;
     const gi = g.gameInfo || {};
-    return (g.plays || []).length === 0 && !gi.opponent && !gi.projectName && !gi.date;
+    return (g.plays || []).length === 0 && !g.videoFileName
+      && !gi.opponent && !gi.projectName && !gi.date;
   }
 
   /** Chronological order (by gameInfo.date when present, else insertion). */
@@ -12790,6 +12792,9 @@ class StorageManager {
     // ids restart per game, so a stale currentPlayId would silently highlight
     // an unrelated play if the incoming game has no saved selection.
     this.tagger.currentPlayId = null;
+    // Blank the tag form too — otherwise the previous game's chips stay lit
+    // and a coach clicking them edits nothing (currentPlayId is null).
+    try { this.tagger._clearTagForm(); } catch (e) {}
     if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }
@@ -12807,7 +12812,12 @@ class StorageManager {
   /** Start a fresh blank game in the season and switch to it. */
   newGame() {
     this.commitActive();
-    this.seasonStore.addGame();
+    // Don't stack empty husks: if the active game is still blank (no plays,
+    // no film, no identity), "New Game" just re-presents it instead of
+    // leaving a stray "Game N — 0 plays" in the schedule.
+    if (!this.seasonStore.isEmptyActive()) {
+      this.seasonStore.addGame();
+    }
     this.seasonStore.persist();
     this._clearForNewGame();
     this._loadActiveGame();
@@ -14849,6 +14859,7 @@ class PlaylistManager {
 
   async _autoCreatePlays() {
     let created = false;
+    let firstNewId = null;
     for (const clip of this.clips) {
       if (clip.playId !== null) continue;
       const source = clip.assetUrl || clip.file;
@@ -14871,6 +14882,7 @@ class PlaylistManager {
       this.tagger.plays.push(play);
       clip.playId = play.id;
       created = true;
+      if (firstNewId === null) firstNewId = play.id;
     }
 
     this.tagger._updatePlaySelect();
@@ -14880,6 +14892,14 @@ class PlaylistManager {
     // the Film Room grid, the wizard — only hear about them via this emit
     // (same pattern as the CSV import path in storage.js).
     if (created) this.tagger._emit('play-created');
+    // Land ready to tag: select the first new play so the selector and the
+    // tag form reflect clip 1 (otherwise the form keeps the PREVIOUS game's
+    // chips lit and taps edit nothing until a play is picked by hand).
+    // Only when nothing is selected — adding clips mid-session must not
+    // steal the coach's current play.
+    if (created && !this.tagger.getCurrentPlay()) {
+      this.tagger.selectPlay(firstNewId);
+    }
   }
 
   _probeDuration(source) {
@@ -21026,7 +21046,13 @@ class PlayGrid {
     if (!this.section) return;
     const plays = this.tagger.plays;
     this.section.hidden = plays.length === 0;
-    if (plays.length === 0) { this.selected.clear(); this._focus = null; return; }
+    if (plays.length === 0) {
+      this.selected.clear();
+      this._focus = null;
+      this.rowsEl.innerHTML = '';        // don't keep stale rows in hidden DOM
+      this.theadEl.innerHTML = '';
+      return;
+    }
 
     // Prune selections for plays that no longer exist.
     const ids = new Set(plays.map(p => p.id));
@@ -24298,7 +24324,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 
 class App {
   constructor() {
