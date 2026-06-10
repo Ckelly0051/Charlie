@@ -1475,21 +1475,7 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.takeaways-section {
-  background: rgba(255, 210, 63, 0.08);
-  border: 1px solid rgba(255, 210, 63, 0.25);
-  border-radius: 8px;
-  padding: 14px 18px;
-}
-.takeaways-list {
-  margin: 0;
-  padding-left: 22px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--text);
-}
-.takeaways-list li { margin-bottom: 4px; }
-.takeaways-list li::marker { color: var(--accent, #ffd23f); }
+/* (old takeaways-section removed — replaced by .game-plan-section) */
 
 .stats-two-col {
   display: grid;
@@ -6440,18 +6426,44 @@ body {
 }
 
 /* --- Takeaways: gold-themed --- */
-.takeaways-section {
-  background: rgba(201, 162, 39, 0.06);
-  border: 1px solid rgba(201, 162, 39, 0.18);
+/* --- Game Plan section --- */
+.game-plan-section {
+  border: 1px solid rgba(201, 162, 39, 0.22);
   border-radius: var(--radius);
+  padding: 16px 18px;
 }
-.takeaways-list {
-  font-size: 13px;
-  line-height: 1.8;
+.game-plan-section h3 { margin-top: 0; }
+.gp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
-.takeaways-list li::marker {
-  color: var(--highlight);
+@media (max-width: 700px) { .gp-grid { grid-template-columns: 1fr; } }
+.gp-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin: 0 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid;
 }
+.gp-head-good { color: #22c55e; border-color: #22c55e; }
+.gp-head-fix  { color: #ef4444; border-color: #ef4444; }
+.gp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.gp-item {
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.gp-item:last-child { border-bottom: none; }
+.gp-good::before { content: '\2713 '; color: #22c55e; font-weight: 700; }
+.gp-fix::before  { content: '\26A0 '; color: #ef4444; }
 
 /* --- Cut-up hint --- */
 .stats-cut-hint {

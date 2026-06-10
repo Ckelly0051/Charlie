@@ -10,6 +10,9 @@ import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
 
+const RUN_COLOR = '#f0b429';
+const PASS_COLOR = '#38bdf8';
+
 export class StatsEngine {
   /**
    * Split a (possibly multi-select) formation string into its component
@@ -282,12 +285,10 @@ export class StatsEngine {
   }
 
   _driveStats(plays) {
-    // Reconstruct drives from the play sequence — the same model the
-    // three-and-out count uses — so the panel stays correct even when the coach
-    // never clicks "New Drive" (which leaves every play on driveNumber "1").
     const list = this._reconstructDrives(plays).map((dp, idx) => {
       const yards = dp.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       const last = dp[dp.length - 1];
+      const first = dp[0];
       const res = StatsEngine.splitResults(last?.tags.result);
       let outcome = 'Other';
       if (res.includes('Touchdown')) outcome = 'TD';
@@ -296,12 +297,25 @@ export class StatsEngine {
       else if (res.includes('Punt')) outcome = 'Punt';
       else if (res.includes('Interception') || res.includes('Fumble')) outcome = 'Turnover';
       else if (res.includes('Kneel')) outcome = 'Kneel';
-      return { number: idx + 1, plays: dp.length, yards, outcome };
+      const startYL = this._absYardLine(first.tags);
+      const points = outcome === 'TD' ? 6 : outcome === 'FG' ? 3 : outcome === 'Safety' ? 2 : 0;
+      let driveType = 'Other';
+      if (dp.length <= 3 && outcome !== 'TD' && outcome !== 'FG') driveType = '3-and-out';
+      else if (dp.length >= 8 || yards >= 60) driveType = 'Sustained';
+      else if (yards >= 30 && dp.length <= 4) driveType = 'Explosive';
+      else if (outcome === 'TD' || outcome === 'FG') driveType = 'Scoring';
+      return { number: idx + 1, plays: dp.length, yards, outcome, startYL, points, driveType };
     });
+    const scoringDrives = list.filter(d => d.outcome === 'TD' || d.outcome === 'FG');
+    const threeAndOuts = list.filter(d => d.driveType === '3-and-out').length;
+    const totalPoints = list.reduce((s, d) => s + d.points, 0);
     return {
       total: list.length,
       list,
-      scoringDrives: list.filter(d => d.outcome === 'TD' || d.outcome === 'FG').length,
+      scoringDrives: scoringDrives.length,
+      threeAndOuts,
+      totalPoints,
+      pointsPerDrive: list.length ? (totalPoints / list.length).toFixed(1) : '0.0',
       avgPlaysPerDrive: list.length ? (list.reduce((s, d) => s + d.plays, 0) / list.length).toFixed(1) : '0',
       avgYardsPerDrive: list.length ? (list.reduce((s, d) => s + d.yards, 0) / list.length).toFixed(1) : '0'
     };
@@ -649,14 +663,55 @@ export class StatsEngine {
     const fourthDown = byDown['4'];
     const fourthDownConv = fourthDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
 
+    const ddBuckets = this._downDistanceBuckets(plays);
+
     return {
       byDown: downStats,
       totalFirstDowns: firstDowns,
       thirdDownConv: `${thirdDownConv}/${thirdDown.length}`,
       thirdDownPct: thirdDown.length ? ((thirdDownConv / thirdDown.length) * 100).toFixed(1) : '0.0',
       fourthDownConv: `${fourthDownConv}/${fourthDown.length}`,
-      fourthDownPct: fourthDown.length ? ((fourthDownConv / fourthDown.length) * 100).toFixed(1) : '0.0'
+      fourthDownPct: fourthDown.length ? ((fourthDownConv / fourthDown.length) * 100).toFixed(1) : '0.0',
+      ddBuckets,
     };
+  }
+
+  _downDistanceBuckets(plays) {
+    const buckets = [];
+    const distBucket = d => d <= 3 ? 'Short' : d <= 6 ? 'Medium' : 'Long';
+    const groups = {};
+    plays.forEach(p => {
+      const down = p.tags.down;
+      const dist = parseInt(p.tags.distance, 10);
+      if (!down || !dist) return;
+      const bk = distBucket(dist);
+      const key = `${down}-${bk}`;
+      if (!groups[key]) groups[key] = { down, bucket: bk, plays: [] };
+      groups[key].plays.push(p);
+    });
+    const order = { '1': 0, '2': 1, '3': 2, '4': 3 };
+    const bOrder = { Short: 0, Medium: 1, Long: 2 };
+    for (const g of Object.values(groups)) {
+      const pl = g.plays;
+      const n = pl.length;
+      const runs = pl.filter(p => StatsEngine.isRun(p)).length;
+      const passes = n - runs;
+      const yards = pl.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      const conv = pl.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+      const succ = pl.filter(p => this._isSuccessfulPlay(p)).length;
+      buckets.push({
+        down: g.down, bucket: g.bucket, count: n,
+        runs, passes,
+        runPct: ((runs / n) * 100).toFixed(0),
+        passPct: ((passes / n) * 100).toFixed(0),
+        avgYards: (yards / n).toFixed(1),
+        convPct: ((conv / n) * 100).toFixed(1),
+        succPct: ((succ / n) * 100).toFixed(1),
+        sortKey: order[g.down] * 10 + bOrder[g.bucket],
+      });
+    }
+    buckets.sort((a, b) => a.sortKey - b.sortKey);
+    return buckets;
   }
 
   _turnoverStats(plays) {
@@ -898,89 +953,124 @@ export class StatsEngine {
     };
   }
 
-  // ===== Feature 1: Top Takeaways (auto-generated insights) ==============
+  // ===== Game Plan — categorized coaching insights =======================
   _generateTakeaways(stats) {
-    const items = [];
+    const working = [];
+    const fix = [];
     const MIN_N = 4;
 
-    // Lopsided formation run/pass tendencies
+    // --- Formation tendencies ---
     (stats.tendencies.formationList || []).forEach(f => {
       if (f.count < MIN_N) return;
       const runPct = f.count ? (f.runs / f.count) * 100 : 50;
-      if (runPct >= 75) items.push({ strength: (runPct - 50) * Math.min(f.count, 15), text: `<strong>${f.name}</strong>: ${runPct.toFixed(0)}% run (${f.runs}R/${f.passes}P, ${f.count} plays, ${f.avg} avg)` });
-      else if (runPct <= 25) items.push({ strength: (50 - runPct) * Math.min(f.count, 15), text: `<strong>${f.name}</strong>: ${(100 - runPct).toFixed(0)}% pass (${f.passes}P/${f.runs}R, ${f.count} plays, ${f.avg} avg)` });
+      const succPct = parseFloat(f.successPct);
+      if (succPct >= 55 && f.count >= 5)
+        working.push({ s: succPct * Math.min(f.count, 15), text: `<strong>${f.name}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
+      if (runPct >= 75)
+        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), text: `<strong>${f.name}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
+      else if (runPct <= 25)
+        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), text: `<strong>${f.name}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
     });
 
-    // Down & distance conversion gaps
-    if (stats.downs) {
-      const thirdDown = stats.downs.find ? null : (stats.downs['3'] || null);
-      // Use the rendered down stats pattern
+    // --- Down & distance buckets ---
+    if (stats.downs?.ddBuckets) {
+      stats.downs.ddBuckets.forEach(b => {
+        if (b.count < MIN_N) return;
+        const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+        const tag = `${labels[b.down]} & ${b.bucket}`;
+        const conv = parseFloat(b.convPct);
+        if (b.down === '3' || b.down === '4') {
+          if (conv >= 55)
+            working.push({ s: conv * Math.min(b.count, 12), text: `<strong>${tag}</strong>: converting ${conv}% (${b.count} plays, ${b.avgYards} avg)` });
+          else if (conv <= 30)
+            fix.push({ s: (50 - conv) * Math.min(b.count, 12), text: `<strong>${tag}</strong>: only ${conv}% conversion (${b.count} plays) — need a better call here` });
+        }
+      });
     }
 
-    // Defensive coverage getting shredded
-    if (stats.defensive && stats.defensive.coverages) {
+    // --- Defensive coverage gaps ---
+    if (stats.defensive?.coverages) {
       stats.defensive.coverages.forEach(c => {
         if (c.count < MIN_N) return;
         const avg = c.count ? c.yards / c.count : 0;
         const stopPct = c.count ? (c.successes / c.count) * 100 : 0;
-        if (avg >= 7) items.push({ strength: avg * Math.min(c.count, 10), text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps, ${stopPct.toFixed(0)}% stop rate) — consider switching` });
+        if (stopPct >= 65 && avg <= 4)
+          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
+        else if (avg >= 7)
+          fix.push({ s: avg * Math.min(c.count, 10), text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
       });
     }
 
-    // Defensive combos that dominate
-    if (stats.frontCoverageCombos && stats.frontCoverageCombos.list) {
+    // --- Front+coverage combos ---
+    if (stats.frontCoverageCombos?.list) {
       stats.frontCoverageCombos.list.forEach(c => {
         if (c.count < MIN_N) return;
         const stopPct = parseInt(c.stopPct);
         const avg = parseFloat(c.avg);
-        if (stopPct >= 65 && avg <= 3.5) items.push({ strength: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct}% stop rate, ${avg} avg allowed (${c.count} snaps) — keep calling it` });
+        if (stopPct >= 65 && avg <= 3.5)
+          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct}% stop rate, ${avg} avg (${c.count} snaps) — keep calling it` });
       });
     }
 
-    // Play-action gap
-    if (stats.playAction && stats.playAction.hasData && stats.tendencies.runs >= MIN_N) {
+    // --- Play-action ---
+    if (stats.playAction?.hasData && stats.tendencies.runs >= MIN_N) {
       const runPct = parseFloat(stats.tendencies.runPct);
       const paRate = parseFloat(stats.playAction.paRate);
-      if (runPct >= 45 && paRate < 15) {
-        items.push({ strength: 600, text: `Running ${runPct}% of the time but only ${paRate}% play-action — opponents aren't being held by fakes` });
-      }
       const paYPA = parseFloat(stats.playAction.paYPA);
       const straightYPA = parseFloat(stats.playAction.straightYPA);
-      if (stats.playAction.paPlays >= 3 && paYPA > straightYPA + 2) {
-        items.push({ strength: (paYPA - straightYPA) * 100, text: `Play-action averaging <strong>${paYPA} YPA</strong> vs ${straightYPA} on straight drops — lean into it` });
-      }
+      if (stats.playAction.paPlays >= 3 && paYPA > straightYPA + 2)
+        working.push({ s: (paYPA - straightYPA) * 100, text: `Play-action: <strong>${paYPA} YPA</strong> vs ${straightYPA} straight — it's working, lean into it` });
+      if (runPct >= 45 && paRate < 15)
+        fix.push({ s: 600, text: `Running ${runPct}% of the time but only ${paRate}% play-action — opponents aren't being held by fakes` });
     }
 
-    // Hash tendencies
-    if (stats.hash && stats.hash.hasData) {
-      stats.hash.list.forEach(h => {
-        if (h.count < MIN_N) return;
-        const runPct = parseInt(h.runPct);
-        if (runPct >= 70) items.push({ strength: (runPct - 50) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
-        else if (runPct <= 30) items.push({ strength: (50 - runPct) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
-      });
+    // --- Drive quality ---
+    if (stats.drives?.total >= 3) {
+      const d = stats.drives;
+      if (d.threeAndOuts >= 3)
+        fix.push({ s: d.threeAndOuts * 100, text: `<strong>${d.threeAndOuts} three-and-outs</strong> in ${d.total} drives — too many stalled possessions` });
+      const ppd = parseFloat(d.pointsPerDrive);
+      if (ppd >= 2.5)
+        working.push({ s: ppd * 100, text: `Scoring <strong>${ppd} pts/drive</strong> — efficient possessions` });
+      else if (ppd <= 1.0 && d.total >= 4)
+        fix.push({ s: (2.5 - ppd) * 100, text: `Only <strong>${ppd} pts/drive</strong> — drives are stalling before the end zone` });
     }
 
-    // Situational efficiency (red zone, 3rd down)
+    // --- Red zone ---
     if (stats.situational) {
       const rz = stats.situational.redZone;
       if (rz && rz.total >= MIN_N) {
         const tdPct = rz.total ? ((rz.tds / rz.total) * 100) : 0;
-        if (tdPct <= 25) items.push({ strength: (50 - tdPct) * 10, text: `Red zone TD rate only <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — settling for field goals or stalling` });
-        else if (tdPct >= 60) items.push({ strength: tdPct * 5, text: `Red zone TD rate <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — finishing drives` });
+        if (tdPct >= 60)
+          working.push({ s: tdPct * 5, text: `Red zone TD rate <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — finishing drives` });
+        else if (tdPct <= 25)
+          fix.push({ s: (50 - tdPct) * 10, text: `Red zone TD rate only <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — settling for FGs or stalling` });
       }
     }
 
-    // Explosive play rate
+    // --- Explosive / negative rates ---
     if (stats.efficiency && stats.totalPlays >= 10) {
       const expPct = parseFloat(stats.efficiency.explosivePct);
-      if (expPct >= 15) items.push({ strength: expPct * 20, text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
+      if (expPct >= 15)
+        working.push({ s: expPct * 20, text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
       const negPct = parseFloat(stats.efficiency.negativePct);
-      if (negPct >= 15) items.push({ strength: negPct * 20, text: `<strong>${negPct}%</strong> negative play rate (${stats.efficiency.negativePlays} plays) — too many losses` });
+      if (negPct >= 15)
+        fix.push({ s: negPct * 20, text: `<strong>${negPct}%</strong> negative play rate (${stats.efficiency.negativePlays} plays) — too many losses behind the line` });
     }
 
-    items.sort((a, b) => b.strength - a.strength);
-    return items.slice(0, 5);
+    // --- Hash predictability ---
+    if (stats.hash?.hasData) {
+      stats.hash.list.forEach(h => {
+        if (h.count < MIN_N) return;
+        const runPct = parseInt(h.runPct);
+        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
+        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
+      });
+    }
+
+    working.sort((a, b) => b.s - a.s);
+    fix.sort((a, b) => b.s - a.s);
+    return { working: working.slice(0, 5), fix: fix.slice(0, 5) };
   }
 
   _individualStats(plays) {
@@ -1592,7 +1682,7 @@ export class StatsEngine {
   _renderDrives(stats) {
     const d = stats.drives;
     if (d.total === 0) return '';
-    const colorMap = { TD: '#22c55e', FG: '#38bdf8', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
+    const colorMap = { TD: '#22c55e', FG: '#06b6d4', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
     const outcomeDonut = Charts.donut(
@@ -1605,10 +1695,11 @@ export class StatsEngine {
     for (const dr of d.list) {
       const color = colorMap[dr.outcome] || '#aaa';
       const barPct = Math.max(3, (Math.abs(dr.yards) / maxYds) * 100);
+      const startLabel = dr.startYL != null ? `Own ${dr.startYL > 50 ? 'Opp ' + (100 - dr.startYL) : dr.startYL}` : '';
       rows += `<div class="drive-row">
         <span class="drive-num">${dr.number}</span>
         <div class="drive-bar"><div style="background:${color};height:100%;width:${barPct.toFixed(1)}%;border-radius:3px"></div></div>
-        <span class="drive-meta">${dr.plays}pl · ${dr.yards}yd</span>
+        <span class="drive-meta">${startLabel ? startLabel + ' · ' : ''}${dr.plays}pl · ${dr.yards}yd</span>
         <span class="drive-outcome" style="color:${color}">${dr.outcome}</span>
       </div>`;
     }
@@ -1618,6 +1709,8 @@ export class StatsEngine {
         <div class="drives-top-row">
           <div class="stats-grid stats-grid-flex">
             <div class="stat-card"><div class="stat-card-title">Scoring</div><div class="stat-card-value">${d.scoringDrives}/${d.total}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Pts/Drive</div><div class="stat-card-value">${d.pointsPerDrive}</div></div>
+            <div class="stat-card"><div class="stat-card-title">3 &amp; Out</div><div class="stat-card-value">${d.threeAndOuts}</div></div>
             <div class="stat-card"><div class="stat-card-title">Avg Plays</div><div class="stat-card-value">${d.avgPlaysPerDrive}</div></div>
             <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${d.avgYardsPerDrive}</div></div>
           </div>
@@ -1635,14 +1728,21 @@ export class StatsEngine {
       </div>`;
   }
 
-  // ===== Feature 1 render: Top Takeaways ===============================
+  // ===== Game Plan render ================================================
   _renderTakeaways(stats) {
-    if (!stats.takeaways || !stats.takeaways.length) return '';
-    const bullets = stats.takeaways.map(t => `<li>${t.text}</li>`).join('');
+    const t = stats.takeaways;
+    if (!t || (!t.working?.length && !t.fix?.length)) return '';
+    const renderList = (items, cls) => items.map(i =>
+      `<li class="gp-item gp-${cls}">${i.text}</li>`
+    ).join('');
+    const workingHtml = t.working?.length
+      ? `<div class="gp-col"><h4 class="gp-head gp-head-good">What's Working</h4><ul class="gp-list">${renderList(t.working, 'good')}</ul></div>` : '';
+    const fixHtml = t.fix?.length
+      ? `<div class="gp-col"><h4 class="gp-head gp-head-fix">Needs Work</h4><ul class="gp-list">${renderList(t.fix, 'fix')}</ul></div>` : '';
     return `
-      <div class="stats-section takeaways-section">
-        <h3>Key Takeaways</h3>
-        <ol class="takeaways-list">${bullets}</ol>
+      <div class="stats-section game-plan-section">
+        <h3>Game Plan</h3>
+        <div class="gp-grid">${workingHtml}${fixHtml}</div>
       </div>`;
   }
 
@@ -1652,7 +1752,7 @@ export class StatsEngine {
     let rows = '';
     for (const h of stats.hash.list) {
       const runPct = parseInt(h.runPct);
-      const bar = Charts.stackBar([{ value: h.runs, color: '#f0b429', label: 'Run' }, { value: h.passes, color: '#38bdf8', label: 'Pass' }]);
+      const bar = Charts.stackBar([{ value: h.runs, color: RUN_COLOR, label: 'Run' }, { value: h.passes, color: PASS_COLOR, label: 'Pass' }]);
       rows += `<tr><td>${h.name}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
     }
     return `
@@ -1668,7 +1768,7 @@ export class StatsEngine {
     if (!stats.personnelSituation || !stats.personnelSituation.hasData) return '';
     let rows = '';
     for (const c of stats.personnelSituation.list) {
-      const bar = Charts.stackBar([{ value: c.runs, color: '#f0b429', label: 'Run' }, { value: c.passes, color: '#38bdf8', label: 'Pass' }]);
+      const bar = Charts.stackBar([{ value: c.runs, color: RUN_COLOR, label: 'Run' }, { value: c.passes, color: PASS_COLOR, label: 'Pass' }]);
       rows += `<tr><td>${c.personnel}</td><td>${c.situation}</td><td>${c.count}</td><td>${bar}</td><td>${c.runPct}%</td><td>${c.avg}</td><td>${c.successPct}%</td></tr>`;
     }
     return `
@@ -1740,13 +1840,13 @@ export class StatsEngine {
     const totalYards = r.yards + p.yards;
 
     const rpDonut = Charts.donut([
-      { value: tend.runs, color: '#f0b429', label: 'Run' },
-      { value: tend.passes, color: '#38bdf8', label: 'Pass' }
+      { value: tend.runs, color: RUN_COLOR, label: 'Run' },
+      { value: tend.passes, color: PASS_COLOR, label: 'Pass' }
     ], 110, tend.runPct + '%', 'Run Rate');
 
     const ydsDonut = Charts.donut([
-      { value: Math.max(0, r.yards), color: '#f0b429', label: 'Rush Yards' },
-      { value: Math.max(0, p.yards), color: '#38bdf8', label: 'Pass Yards' }
+      { value: Math.max(0, r.yards), color: RUN_COLOR, label: 'Rush Yards' },
+      { value: Math.max(0, p.yards), color: PASS_COLOR, label: 'Pass Yards' }
     ], 110, String(totalYards), 'Total Yds');
 
     return `
@@ -1807,16 +1907,33 @@ export class StatsEngine {
     const fourthColor = fourthPct >= 50 ? '#22c55e' : fourthPct >= 30 ? '#eab308' : '#ef4444';
 
     let rows = '';
-    const maxDown = Math.max(...Object.values(d.byDown).map(s => s.total));
     for (const [down, s] of Object.entries(d.byDown)) {
       if (s.total === 0) continue;
       rows += `<tr class="cut-row" data-cut-type="down" data-cut-val="${down}" data-cut-label="${labels[down]} down — ${s.total} plays">
         <td>${labels[down]}</td>
         <td>${s.total}</td>
-        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: '#f0b429', label: 'Run' }, { value: parseInt(s.passPct), color: '#38bdf8', label: 'Pass' }], 18)}</div></td>
+        <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(s.runPct), color: 'var(--run-color)', label: 'Run' }, { value: parseInt(s.passPct), color: 'var(--pass-color)', label: 'Pass' }], 18)}</div></td>
         <td>${s.avgYards}</td>
         <td>${s.conversionPct}%</td>
       </tr>`;
+    }
+
+    let bucketRows = '';
+    if (d.ddBuckets?.length) {
+      for (const b of d.ddBuckets) {
+        const convPct = parseFloat(b.convPct);
+        const convColor = (b.down === '3' || b.down === '4')
+          ? (convPct >= 50 ? '#22c55e' : convPct >= 30 ? '#eab308' : '#ef4444')
+          : '';
+        bucketRows += `<tr>
+          <td>${labels[b.down]} &amp; ${b.bucket}</td>
+          <td>${b.count}</td>
+          <td><div class="dd-split-bar">${Charts.stackBar([{ value: parseInt(b.runPct), color: 'var(--run-color)', label: 'Run' }, { value: parseInt(b.passPct), color: 'var(--pass-color)', label: 'Pass' }], 18)}</div></td>
+          <td>${b.avgYards}</td>
+          <td>${b.succPct}%</td>
+          <td${convColor ? ` style="color:${convColor};font-weight:700"` : ''}>${b.convPct}%</td>
+        </tr>`;
+      }
     }
 
     return `
@@ -1831,6 +1948,11 @@ export class StatsEngine {
           <thead><tr><th>Down</th><th>Plays</th><th>Run / Pass</th><th>Avg Yds</th><th>Conv %</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>` : ''}
+        ${bucketRows ? `<h4 style="margin:16px 0 6px;font-size:13px;opacity:.8">By Distance</h4>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Situation</th><th>#</th><th>Run / Pass</th><th>Avg</th><th>Succ %</th><th>Conv %</th></tr></thead>
+          <tbody>${bucketRows}</tbody>
+        </table>` : ''}
       </div>
     `;
   }
@@ -1844,7 +1966,7 @@ export class StatsEngine {
 
     const playTypeDonut = Charts.donutWithLegend(
       t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = ['#38bdf8', '#f0b429', '#22c55e', '#f97316', '#a78bfa', '#ef4444', '#06b6d4', '#ec4899'];
+        const colors = [PASS_COLOR, RUN_COLOR, '#22c55e', '#f97316', '#a78bfa', '#ef4444', '#06b6d4', '#ec4899'];
         return { value: pt.count, color: colors[i % colors.length], label: pt.name };
       }),
       120, String(stats.totalPlays), 'plays'
@@ -2765,8 +2887,21 @@ ${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th>
     const dn = stats.downs;
     const tend = stats.tendencies;
 
+    // --- Game Plan (coaching insights) ---
+    let gamePlanHtml = '';
+    const tk = stats.takeaways;
+    if (tk?.working?.length || tk?.fix?.length) {
+      gamePlanHtml = '<div class="gp-print">';
+      if (tk.working?.length)
+        gamePlanHtml += `<div class="gp-print-col"><h4 class="gp-h good">What's Working</h4><ul>${tk.working.map(i => `<li>${i.text}</li>`).join('')}</ul></div>`;
+      if (tk.fix?.length)
+        gamePlanHtml += `<div class="gp-print-col"><h4 class="gp-h fix">Needs Work</h4><ul>${tk.fix.map(i => `<li>${i.text}</li>`).join('')}</ul></div>`;
+      gamePlanHtml += '</div>';
+    }
+
     let body = `
 <h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
+${gamePlanHtml}
 <h3>Team Summary</h3>
 <div class="cards">
 <div class="card"><div class="cv">${stats.totalPlays}</div><div class="cl">Total Plays</div></div>
@@ -2795,6 +2930,27 @@ ${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th>
 <div class="card"><div class="cv">${dn.thirdDownConv}</div><div class="cl">3rd Down (${dn.thirdDownPct}%)</div></div>
 <div class="card"><div class="cv">${dn.fourthDownConv}</div><div class="cl">4th Down (${dn.fourthDownPct}%)</div></div>
 </div>`;
+
+    // --- D&D buckets ---
+    if (dn.ddBuckets?.length) {
+      const dlabels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+      const bRows = dn.ddBuckets.map(b =>
+        `<tr><td>${dlabels[b.down]} &amp; ${b.bucket}</td><td>${b.count}</td><td>${b.runPct}%R / ${b.passPct}%P</td><td>${b.avgYards}</td><td>${b.succPct}%</td><td>${b.convPct}%</td></tr>`
+      ).join('');
+      body += `<table><thead><tr><th>Situation</th><th>#</th><th>Run/Pass</th><th>Avg</th><th>Succ%</th><th>Conv%</th></tr></thead><tbody>${bRows}</tbody></table>`;
+    }
+
+    // --- Drives ---
+    if (stats.drives?.total) {
+      const dr = stats.drives;
+      body += `<h3>Drives</h3><div class="cards">
+<div class="card"><div class="cv">${dr.scoringDrives}/${dr.total}</div><div class="cl">Scoring</div></div>
+<div class="card"><div class="cv">${dr.pointsPerDrive}</div><div class="cl">Pts/Drive</div></div>
+<div class="card"><div class="cv">${dr.threeAndOuts}</div><div class="cl">3 &amp; Out</div></div>
+<div class="card"><div class="cv">${dr.avgPlaysPerDrive}</div><div class="cl">Avg Plays</div></div>
+<div class="card"><div class="cv">${dr.avgYardsPerDrive}</div><div class="cl">Avg Yards</div></div>
+</div>`;
+    }
 
     if (stats.defensive.hasData) {
       const d = stats.defensive;
@@ -2858,6 +3014,10 @@ th{background:#1a1a2e;color:#fff;font-weight:700;letter-spacing:0.3px}tr:nth-chi
 .card{border:1px solid #e5e7eb;padding:10px;border-radius:8px;text-align:center}
 .cv{font-size:24px;font-weight:800;color:#1a1a2e;font-variant-numeric:tabular-nums}.cl{font-size:9px;text-transform:uppercase;color:#6b7280;margin-top:3px;letter-spacing:0.5px;font-weight:700}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.gp-print{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#fafbfc}
+.gp-print-col ul{margin:6px 0 0;padding-left:20px;line-height:1.7;font-size:12px}.gp-print-col li{margin-bottom:4px}
+.gp-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:0;padding-bottom:4px;border-bottom:2px solid}
+.gp-h.good{color:#16a34a;border-color:#16a34a}.gp-h.fix{color:#dc2626;border-color:#dc2626}
 .meter{height:18px;border-radius:9px;background:#e5e7eb;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
 .mval{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.mlbl{color:#6b7280;font-size:13px;font-weight:600}
 ul{line-height:1.7;font-size:13px}
