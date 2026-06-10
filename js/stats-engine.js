@@ -45,6 +45,15 @@ export class StatsEngine {
   }
 
   /**
+   * Split a (possibly multi-select) defensive front into its components.
+   * "Maverick + Jumbo Shift" -> ["Maverick", "Jumbo Shift"] — the play is
+   * attributed to both the base front and the shift package in analytics.
+   */
+  static splitFronts(front) {
+    return String(front || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+  }
+
+  /**
    * Check if a play's result includes a specific value. Handles both
    * single-select ("Touchdown") and multi-select ("Fumble + Touchdown").
    */
@@ -246,6 +255,7 @@ export class StatsEngine {
       personnelSituation: this._personnelSituationStats(offPlays),
       frontCoverageCombos: this._frontCoverageCombos(defPlays),
       playAction: this._playActionStats(offPlays),
+      dirMotion: this._directionMotionStats(offPlays),
     };
     stats.takeaways = this._generateTakeaways(stats);
 
@@ -418,8 +428,7 @@ export class StatsEngine {
       const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
         StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
 
-      if (p.tags.defFront) {
-        const f = p.tags.defFront;
+      StatsEngine.splitFronts(p.tags.defFront).forEach(f => {
         if (!fronts[f]) fronts[f] = { name: f, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0 };
         fronts[f].count++;
         fronts[f].yards += yds;
@@ -427,7 +436,7 @@ export class StatsEngine {
         if (isHavoc) fronts[f].havoc++;
         if (StatsEngine.isRun(p)) fronts[f].runs++;
         else fronts[f].passes++;
-      }
+      });
 
       if (p.tags.coverage) {
         const c = p.tags.coverage;
@@ -469,8 +478,9 @@ export class StatsEngine {
     const frontBySituation = (subset, label) => {
       const map = {};
       subset.forEach(p => {
-        if (!p.tags.defFront) return;
-        map[p.tags.defFront] = (map[p.tags.defFront] || 0) + 1;
+        StatsEngine.splitFronts(p.tags.defFront).forEach(f => {
+          map[f] = (map[f] || 0) + 1;
+        });
       });
       return { label, total: subset.length, fronts: Object.entries(map).sort((a, b) => b[1] - a[1]) };
     };
@@ -877,19 +887,20 @@ export class StatsEngine {
   _frontCoverageCombos(plays) {
     const combos = {};
     plays.forEach(p => {
-      const front = p.tags.defFront;
       const cov = p.tags.coverage;
-      if (!front || !cov) return;
-      const k = `${front} + ${cov}`;
-      if (!combos[k]) combos[k] = { name: k, front, coverage: cov, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0 };
-      const yds = parseInt(p.tags.yardage) || 0;
-      combos[k].count++;
-      combos[k].yards += yds;
-      if (!this._isSuccessfulPlay(p)) combos[k].successes++;
-      if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
-          StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack')))
-        combos[k].havoc++;
-      if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
+      if (!cov) return;
+      StatsEngine.splitFronts(p.tags.defFront).forEach(front => {
+        const k = `${front} + ${cov}`;
+        if (!combos[k]) combos[k] = { name: k, front, coverage: cov, count: 0, yards: 0, successes: 0, havoc: 0, runs: 0, passes: 0 };
+        const yds = parseInt(p.tags.yardage) || 0;
+        combos[k].count++;
+        combos[k].yards += yds;
+        if (!this._isSuccessfulPlay(p)) combos[k].successes++;
+        if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
+            StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack')))
+          combos[k].havoc++;
+        if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
+      });
     });
     const list = Object.values(combos).map(c => ({
       ...c,
@@ -950,6 +961,54 @@ export class StatsEngine {
       straightYPA: straightAttempts ? (straightYards / straightAttempts).toFixed(1) : '0.0',
       formationList,
       hasData: paPlays.length > 0,
+    };
+  }
+
+  // ===== Play direction + pre-snap motion tendencies =====================
+  _directionMotionStats(plays) {
+    const mk = name => ({ name, count: 0, runs: 0, passes: 0, yards: 0, succ: 0 });
+    const finish = o => ({
+      ...o,
+      runPct: o.count ? ((o.runs / o.count) * 100).toFixed(0) : '0',
+      passPct: o.count ? ((o.passes / o.count) * 100).toFixed(0) : '0',
+      avg: o.count ? (o.yards / o.count).toFixed(1) : '0.0',
+      succPct: o.count ? ((o.succ / o.count) * 100).toFixed(0) : '0',
+    });
+    const dirs = {};
+    const motions = {};
+    let motionTagged = 0;
+    const noMotion = mk('No Motion');
+
+    plays.forEach(p => {
+      const yds = parseInt(p.tags.yardage) || 0;
+      const isRun = StatsEngine.isRun(p);
+      const succ = this._isSuccessfulPlay(p);
+      const add = o => {
+        o.count++; o.yards += yds;
+        if (isRun) o.runs++; else o.passes++;
+        if (succ) o.succ++;
+      };
+      if (p.tags.playDir) add(dirs[p.tags.playDir] || (dirs[p.tags.playDir] = mk(p.tags.playDir)));
+      if (p.tags.motion) {
+        motionTagged++;
+        add(motions[p.tags.motion] || (motions[p.tags.motion] = mk(p.tags.motion)));
+      } else {
+        add(noMotion);
+      }
+    });
+
+    const dirOrder = { Left: 0, Middle: 1, Right: 2 };
+    const dirList = Object.values(dirs).map(finish)
+      .sort((a, b) => (dirOrder[a.name] ?? 9) - (dirOrder[b.name] ?? 9));
+    const motionList = Object.values(motions).map(finish).sort((a, b) => b.count - a.count);
+
+    return {
+      dirList,
+      motionList,
+      noMotion: finish(noMotion),
+      hasDirData: dirList.length > 0,
+      // Motion table only makes sense once the coach is actually tagging motion.
+      hasMotionData: motionTagged > 0,
     };
   }
 
@@ -1066,6 +1125,28 @@ export class StatsEngine {
         if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
         else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
       });
+    }
+
+    // --- Run direction lean ---
+    if (stats.dirMotion?.hasDirData) {
+      const dirRuns = stats.dirMotion.dirList.map(d => ({ name: d.name, runs: d.runs }));
+      const totalDirRuns = dirRuns.reduce((s, d) => s + d.runs, 0);
+      if (totalDirRuns >= 6) {
+        dirRuns.forEach(d => {
+          const pct = (d.runs / totalDirRuns) * 100;
+          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${d.name}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
+        });
+      }
+    }
+
+    // --- Motion tell ---
+    if (stats.dirMotion?.hasMotionData) {
+      const m = stats.dirMotion.motionList.reduce((acc, x) => ({ count: acc.count + x.count, runs: acc.runs + x.runs }), { count: 0, runs: 0 });
+      if (m.count >= MIN_N) {
+        const runPct = (m.runs / m.count) * 100;
+        if (runPct >= 75) fix.push({ s: (runPct - 50) * Math.min(m.count, 12), text: `When you motion, you run <strong>${runPct.toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
+        else if (runPct <= 25) fix.push({ s: (50 - runPct) * Math.min(m.count, 12), text: `When you motion, you pass <strong>${(100 - runPct).toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
+      }
     }
 
     working.sort((a, b) => b.s - a.s);
@@ -1238,6 +1319,7 @@ export class StatsEngine {
               ${this._renderPlayAction(stats)}
               ${this._renderTendencies(stats)}
               ${this._renderPersonnel(stats)}
+              ${this._renderDirectionMotion(stats)}
               ${this._renderHashStats(stats)}
               ${this._renderPersonnelSituation(stats)}
               ${this._renderTendencyMatrix(stats)}
@@ -1424,12 +1506,14 @@ export class StatsEngine {
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
       case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
-      case 'defFront':  return p => isDef(p) && (p.tags.defFront || '') === val;
+      case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
+      case 'motion':    return p => isOff(p) && (val === 'No Motion' ? !p.tags.motion : (p.tags.motion || '') === val);
+      case 'defFront':  return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(val);
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
       case 'blitz':     return p => isDef(p) && StatsEngine.splitBlitzes(p.tags.blitz).includes(val);
       case 'frontCoverage': {
         const [front, cov] = val.split('|');
-        return p => isDef(p) && (p.tags.defFront || '') === front && (p.tags.coverage || '') === cov;
+        return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(front) && (p.tags.coverage || '') === cov;
       }
       case 'situation': {
         switch (val) {
@@ -1763,6 +1847,43 @@ export class StatsEngine {
       </div>`;
   }
 
+  // ===== Play Direction + Motion render =================================
+  _renderDirectionMotion(stats) {
+    const dm = stats.dirMotion;
+    if (!dm || (!dm.hasDirData && !dm.hasMotionData)) return '';
+
+    let dirHtml = '';
+    if (dm.hasDirData) {
+      let rows = '';
+      for (const d of dm.dirList) {
+        const bar = Charts.stackBar([{ value: d.runs, color: RUN_COLOR, label: 'Run' }, { value: d.passes, color: PASS_COLOR, label: 'Pass' }]);
+        rows += `<tr class="cut-row" data-cut-type="playDir" data-cut-val="${d.name}" data-cut-label="${d.name} — ${d.count} plays"><td>${d.name}</td><td>${d.count}</td><td>${bar}</td><td>${d.avg}</td><td>${d.succPct}%</td></tr>`;
+      }
+      dirHtml = `<div><h3>Play Direction</h3>
+        <table class="stats-table"><thead><tr><th>Direction</th><th>Plays</th><th>Run / Pass</th><th>Avg</th><th>Success%</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    }
+
+    let motionHtml = '';
+    if (dm.hasMotionData) {
+      let rows = '';
+      for (const m of dm.motionList) {
+        const bar = Charts.stackBar([{ value: m.runs, color: RUN_COLOR, label: 'Run' }, { value: m.passes, color: PASS_COLOR, label: 'Pass' }]);
+        rows += `<tr class="cut-row" data-cut-type="motion" data-cut-val="${m.name}" data-cut-label="${m.name} motion — ${m.count} plays"><td>${m.name}</td><td>${m.count}</td><td>${bar}</td><td>${m.avg}</td><td>${m.succPct}%</td></tr>`;
+      }
+      const nm = dm.noMotion;
+      if (nm.count) {
+        const bar = Charts.stackBar([{ value: nm.runs, color: RUN_COLOR, label: 'Run' }, { value: nm.passes, color: PASS_COLOR, label: 'Pass' }]);
+        rows += `<tr class="cut-row" data-cut-type="motion" data-cut-val="No Motion" data-cut-label="No motion — ${nm.count} plays"><td style="opacity:.65">No Motion</td><td>${nm.count}</td><td>${bar}</td><td>${nm.avg}</td><td>${nm.succPct}%</td></tr>`;
+      }
+      motionHtml = `<div><h3>Motion</h3>
+        <table class="stats-table"><thead><tr><th>Motion</th><th>Plays</th><th>Run / Pass</th><th>Avg</th><th>Success%</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    }
+
+    return `<div class="stats-section stats-two-col">${dirHtml}${motionHtml}</div>`;
+  }
+
   // ===== Feature 3 render: Personnel × Situation ========================
   _renderPersonnelSituation(stats) {
     if (!stats.personnelSituation || !stats.personnelSituation.hasData) return '';
@@ -2004,9 +2125,11 @@ export class StatsEngine {
       { id: 'down',       label: 'Down',        extract: p => [p.tags.down ? `${p.tags.down}` : '?'] },
       { id: 'distBucket', label: 'Distance',    extract: p => { const d = parseInt(p.tags.distance) || 0; return [d <= 3 ? 'Short (1-3)' : d <= 6 ? 'Med (4-6)' : 'Long (7+)']; } },
       { id: 'personnel',  label: 'Personnel',   extract: p => [p.tags.personnel || 'Unknown'] },
-      { id: 'defFront',   label: 'Def Front',   extract: p => [p.tags.defFront || ''].filter(Boolean) },
+      { id: 'defFront',   label: 'Def Front',   extract: p => StatsEngine.splitFronts(p.tags.defFront) },
       { id: 'coverage',   label: 'Coverage',    extract: p => [p.tags.coverage || ''].filter(Boolean) },
       { id: 'hash',       label: 'Hash',        extract: p => [p.tags.hash || 'Unknown'] },
+      { id: 'playDir',    label: 'Direction',   extract: p => [p.tags.playDir || ''].filter(Boolean) },
+      { id: 'motion',     label: 'Motion',      extract: p => [p.tags.motion || 'No Motion'] },
       { id: 'quarter',    label: 'Quarter',     extract: p => [p.tags.quarter || '?'] },
       { id: 'runPass',    label: 'Run / Pass',  extract: p => [StatsEngine.isRun(p) ? 'Run' : 'Pass'] },
     ];
@@ -2398,7 +2521,7 @@ export class StatsEngine {
     });
     const fronts = {}, coverages = {};
     plays.forEach(p => {
-      if (p.tags.defFront) fronts[p.tags.defFront] = (fronts[p.tags.defFront] || 0) + 1;
+      StatsEngine.splitFronts(p.tags.defFront).forEach(f => { fronts[f] = (fronts[f] || 0) + 1; });
       if (p.tags.coverage) coverages[p.tags.coverage] = (coverages[p.tags.coverage] || 0) + 1;
     });
     const redZonePlays = plays.filter(p => {

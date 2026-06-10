@@ -1929,7 +1929,7 @@ class App {
     });
 
     const ourFields = ['playType','runPass','result','yardage','down','distance','formation','personnel',
-      'hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
+      'motion','playDir','hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
       'ballCarrier','passer','receiver','tackler','notes'];
 
     parseBtn.addEventListener('click', () => {

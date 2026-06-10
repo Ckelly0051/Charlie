@@ -275,12 +275,12 @@ IMPORTANT:
    */
   static get ALLOWED() {
     return {
-      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Empty', 'Wildcat', 'Goal Line'],
+      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Empty', 'Wildcat', 'Goal Line', 'Wing-T', 'Flexbone', 'Double Wing', 'Power-I', 'Bunch', 'Unbalanced'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
       playType: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play'],
       result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike'],
       hash: ['Left', 'Middle', 'Right'],
-      defFront: ['4-3', '3-4', '4-2-5', 'Nickel', 'Dime', 'Quarter', '4-6'],
+      defFront: ['4-3', '3-4', '4-4', '5-2', '3-3-5', '4-2-5', 'Nickel', 'Dime', 'Quarter', '4-6'],
       coverage: ['Cover 0', 'Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 6', 'Man', 'Zone'],
       blitz: ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'],
       fieldSide: ['own', 'opp'],

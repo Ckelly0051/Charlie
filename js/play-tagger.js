@@ -95,13 +95,14 @@ export class PlayTagger {
       hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
-      runPass: 'tagRunPass',
+      runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
     };
     this.tagFields = {};
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
     // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
-    const multiFields = new Set(['formation', 'playType', 'result', 'blitz']);
+    // Def Front: a base front plus a shift package (e.g. "Maverick + Jumbo Shift").
+    const multiFields = new Set(['formation', 'playType', 'result', 'blitz', 'defFront']);
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
@@ -324,6 +325,8 @@ export class PlayTagger {
         yardLine: '',
         fieldSide: 'own',
         personnel: '',
+        motion: '',
+        playDir: '',
         driveNumber: this.currentDrive.toString(),
         unit: this.defaultUnit || 'offense',
         stType: '',
@@ -425,7 +428,7 @@ export class PlayTagger {
       play.tags = {
         down: '', distance: '', formation: '', playType: '', runPass: '', defFront: '',
         coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
-        yardLine: '', fieldSide: 'own', personnel: '',
+        yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
         unit: play.tags.unit || this.defaultUnit || 'offense',
         stType: '', players: {}, grades: {}, custom: [], customFields: {}
@@ -447,7 +450,7 @@ export class PlayTagger {
   // play concept). Play-specific fields (result, yardage, players, notes,
   // down/distance — owned by Auto D&D) are intentionally NOT copied.
   static get SCHEME_KEYS() {
-    return ['unit', 'formation', 'personnel', 'runPass', 'playType',
+    return ['unit', 'formation', 'personnel', 'motion', 'runPass', 'playType',
             'defFront', 'coverage', 'blitz', 'hash'];
   }
 
@@ -717,6 +720,8 @@ export class PlayTagger {
     this.tagFields.yardLine.value = play.tags.yardLine || '';
     this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
     this.tagFields.personnel.value = play.tags.personnel || '';
+    this.tagFields.motion.value = play.tags.motion || '';
+    this.tagFields.playDir.value = play.tags.playDir || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this.tagFields.stType.value = play.tags.stType || '';
     const players = play.tags.players || {};

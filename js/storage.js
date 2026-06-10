@@ -521,8 +521,8 @@ export class StorageManager {
 
     const headers = [
       'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
-      'Field Side', 'Yard Line', 'Formation', 'Personnel',
-      'Run/Pass', 'Play Type', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Field Side', 'Yard Line', 'Formation', 'Personnel', 'Motion',
+      'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
@@ -543,8 +543,10 @@ export class StorageManager {
       p.tags.yardLine || '',
       p.tags.formation,
       p.tags.personnel || '',
+      p.tags.motion || '',
       p.tags.runPass || '',
       p.tags.playType,
+      p.tags.playDir || '',
       p.tags.stType || '',
       p.tags.defFront,
       p.tags.coverage,
@@ -686,6 +688,8 @@ ${body}
       formation: 'formation', form: 'formation', offform: 'formation', offenseformation: 'formation',
       personnel: 'personnel', pers: 'personnel', offpers: 'personnel',
       hash: 'hash', hashmark: 'hash',
+      motion: 'motion',
+      playdir: 'playDir', direction: 'playDir', playdirection: 'playDir', dir: 'playDir',
       deffront: 'defFront', front: 'defFront', defenseformation: 'defFront', defform: 'defFront',
       coverage: 'coverage', cov: 'coverage',
       blitz: 'blitz',
@@ -721,7 +725,7 @@ ${body}
         down: '', distance: '', formation: '', playType: '', runPass: '',
         defFront: '', coverage: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
-        fieldSide: 'own', personnel: '', driveNumber: '',
+        fieldSide: 'own', personnel: '', motion: '', playDir: '', driveNumber: '',
         players: {}, custom: []
       };
       let notes = '';

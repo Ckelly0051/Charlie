@@ -305,6 +305,12 @@
                     <button class="pick" data-value="Empty" type="button">Empty</button>
                     <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
                     <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                    <button class="pick" data-value="Wing-T" type="button">Wing-T</button>
+                    <button class="pick" data-value="Flexbone" type="button">Flexbone</button>
+                    <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
+                    <button class="pick" data-value="Power-I" type="button">Power-I</button>
+                    <button class="pick" data-value="Bunch" type="button">Bunch</button>
+                    <button class="pick" data-value="Unbalanced" type="button">Unbalanced</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -323,21 +329,32 @@
                     <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
                   </div>
                 </div>
+                <div class="chip-section">
+                  <label class="chip-label">Motion <span class="chip-hint">pre-snap, blank = none</span></label>
+                  <div class="pick-group" id="tagMotion">
+                    <button class="pick" data-value="Jet" type="button">Jet</button>
+                    <button class="pick" data-value="Orbit" type="button">Orbit</button>
+                    <button class="pick" data-value="Shift" type="button">Shift</button>
+                    <button class="pick" data-value="Trade" type="button">Trade</button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="tag-group group-defense" data-group="defense">
               <button class="tag-group-head" type="button">Defense Faced<span class="tag-group-caret">▾</span></button>
               <div class="tag-group-body">
                 <div class="chip-section">
-                  <label class="chip-label">Def Front</label>
-                  <div class="pick-group" id="tagDefFront">
+                  <label class="chip-label">Def Front <span class="chip-hint">base + shift</span></label>
+                  <div class="pick-group multi" id="tagDefFront">
                     <button class="pick our-def-only" data-value="Maverick" type="button">Maverick</button>
                     <button class="pick our-def-only" data-value="Eagle" type="button">Eagle</button>
                     <button class="pick our-def-only" data-value="Falcon" type="button">Falcon</button>
+                    <button class="pick our-def-only" data-value="Jumbo Shift" type="button" title="Shifted to Jumbo — select along with the base front">Jumbo Shift</button>
                     <button class="pick" data-value="4-3" type="button">4-3</button>
                     <button class="pick" data-value="3-4" type="button">3-4</button>
                     <button class="pick" data-value="4-4" type="button">4-4</button>
                     <button class="pick" data-value="5-2" type="button">5-2</button>
+                    <button class="pick" data-value="3-3-5" type="button">3-3-5</button>
                     <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
                     <button class="pick" data-value="Nickel" type="button">Nickel</button>
                     <button class="pick" data-value="Dime" type="button">Dime</button>
@@ -441,6 +458,14 @@
               <button class="pick" data-value="Play Action" type="button">Play Action<kbd>A</kbd></button>
               <button class="pick" data-value="RPO" type="button">RPO<kbd>Q</kbd></button>
               <button class="pick" data-value="Trick Play" type="button">Trick Play<kbd>X</kbd></button>
+            </div>
+          </div>
+          <div class="chip-section core-hide-st">
+            <label class="chip-label">Play Direction <span class="chip-hint">where the ball went</span></label>
+            <div class="pick-group" id="tagPlayDir">
+              <button class="pick" data-value="Left" type="button">Left</button>
+              <button class="pick" data-value="Middle" type="button">Middle</button>
+              <button class="pick" data-value="Right" type="button">Right</button>
             </div>
           </div>
 
