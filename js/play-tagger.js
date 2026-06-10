@@ -148,12 +148,46 @@ export class PlayTagger {
     this.btnNewDrive = document.getElementById('btnNewDrive');
     this.currentDrive = 1;
 
+    // Result chips: the six rare outcomes (FG/Good/No Good/Kneel/Spike/Safety)
+    // hide behind a "More" expander so the common row stays scannable.
+    this.resultRareWrap = document.getElementById('tagResultRare');
+    this.btnResultMore = document.getElementById('tagResultMore');
+    if (this.btnResultMore && this.resultRareWrap) {
+      this.btnResultMore.addEventListener('click', () => {
+        const show = this.resultRareWrap.classList.toggle('show');
+        this.btnResultMore.classList.toggle('open', show);
+        this.btnResultMore.textContent = show ? 'Less ▴' : 'More ▾';
+      });
+    }
+
+    // Optional toast hook (App wires this to the shared toast) for inline
+    // feedback like "Mark the start first".
+    this.toast = null;
+
     this._bindEvents();
 
     // Lay the form out for the default side before any play is selected,
     // otherwise every side group would be visible at once.
     if (this.unitField) this.unitField.value = this.defaultUnit;
     this.applyUnitMode(this.defaultUnit);
+
+    // Start disabled — chip taps with no play selected used to LOOK accepted
+    // but were silently discarded (_saveField bails). Dim + block the form
+    // until a play exists so input can never vanish.
+    this._updateFormEnabled();
+  }
+
+  /**
+   * Enable the tag form only when a play is selected. Without this, ChipField
+   * toggles the chip visuals before _saveField() finds no current play, so
+   * the coach's input looks saved but writes nowhere — silent data loss.
+   */
+  _updateFormEnabled() {
+    if (!this.tagForm) return;
+    const enabled = !!this.getCurrentPlay();
+    this.tagForm.classList.toggle('form-disabled', !enabled);
+    const hint = document.getElementById('tagFormHint');
+    if (hint) hint.classList.toggle('hidden', enabled);
   }
 
   _bindEvents() {
@@ -262,10 +296,14 @@ export class PlayTagger {
 
   markEnd() {
     if (this.pendingStart === null) {
-      this.pendingStart = 0;
+      this.toast?.('Mark the start first — press [ at the snap');
+      return;
     }
     const endTime = this.vc.currentTime;
-    if (endTime <= this.pendingStart) return;
+    if (endTime <= this.pendingStart) {
+      this.toast?.('End must be after start — play forward, then press ]');
+      return;
+    }
 
     const play = {
       id: this.nextId++,
@@ -531,6 +569,7 @@ export class PlayTagger {
   selectPlay(id) {
     this.currentPlayId = id;
     const play = this.getPlay(id);
+    this._updateFormEnabled();
     if (!play) return;
 
     this.playSelect.value = id;
@@ -568,6 +607,17 @@ export class PlayTagger {
       if (auto && play.tags.runPass !== auto) {
         play.tags.runPass = auto;
         if (this.tagFields.runPass) this.tagFields.runPass.value = auto;
+      }
+    }
+
+    // Entering positive yardage with no result yet means a gain — fill the
+    // chip so the coach doesn't tap "Gain" on every routine play. Any explicit
+    // result (or a later edit) still wins.
+    if (key === 'yardage' && !play.tags.result) {
+      const mag = parseInt(this.tagFields.yardage.value, 10);
+      if (mag > 0) {
+        play.tags.result = 'Gain';
+        if (this.tagFields.result) this.tagFields.result.value = 'Gain';
       }
     }
 
@@ -647,6 +697,18 @@ export class PlayTagger {
     this.tagFields.coverage.value = play.tags.coverage;
     this.tagFields.blitz.value = play.tags.blitz;
     this.tagFields.result.value = play.tags.result;
+    // If this play carries a rare result (FG/Good/Kneel/…) keep the "More"
+    // section open so the active chip is visible.
+    if (this.resultRareWrap) {
+      const hasRare = !!this.resultRareWrap.querySelector('.pick.active');
+      if (hasRare && !this.resultRareWrap.classList.contains('show')) {
+        this.resultRareWrap.classList.add('show');
+        if (this.btnResultMore) {
+          this.btnResultMore.classList.add('open');
+          this.btnResultMore.textContent = 'Less ▴';
+        }
+      }
+    }
     // Yardage is stored signed but shown as a magnitude (sign comes from Result).
     this.tagFields.yardage.value = (play.tags.yardage === '' || play.tags.yardage == null)
       ? '' : String(Math.abs(parseInt(play.tags.yardage, 10) || 0));
@@ -710,6 +772,7 @@ export class PlayTagger {
     for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
     for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
     this.tagChips.innerHTML = '';
+    this._updateFormEnabled();
   }
 
   nextPlay() {
@@ -786,13 +849,29 @@ export class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
-    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Penalty', 'Safety']);
+    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Safety']);
     const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (resultParts.some(r => stop.has(r))) return null;
 
     const down = parseInt(t.down);
     const distance = parseInt(t.distance);
     if (!down || isNaN(distance)) return null;
+
+    // A penalty usually replays the down (possibly at a new distance the
+    // penalty set). Pre-fill the SAME down & distance instead of blanking the
+    // form — the coach adjusts distance if the flag moved the sticks, which is
+    // still faster than re-entering everything. Field position carries as-is.
+    if (resultParts.includes('Penalty')) {
+      const sameSpot = { fieldSide: null, yardLine: null };
+      if (t.unit === 'offense' || !t.unit) {
+        const abs = this._absYL(t);
+        if (abs != null) {
+          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
+          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
+        }
+      }
+      return { down: String(down), distance: String(distance), ...sameSpot };
+    }
 
     let gained = parseInt(t.yardage);
     if (isNaN(gained)) gained = 0;
@@ -872,6 +951,7 @@ export class PlayTagger {
       this.playSelect.appendChild(opt);
     });
     if (currentVal) this.playSelect.value = currentVal;
+    this._updateFormEnabled();
   }
 
   _updateTimeline() {

@@ -7100,3 +7100,58 @@ td.pg-cell-focus {
 .pg-pop-del { background: none; border: none; color: var(--text-dim, #94a3b8);
   cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .pg-pop-del:hover { color: #b91c1c; }
+
+/* ============================================================
+   TAGGING-SPEED PASS — form guard, rare-result expander, hint
+   ============================================================ */
+
+/* No play selected: dim + block the form so chip taps can't be silently
+   discarded (ChipField lights the chip before _saveField finds no play).
+   The nav bar stays live — Save & Next recovers by jumping to the first play
+   when plays exist but none is selected. */
+#tagForm.form-disabled {
+  pointer-events: none;
+  user-select: none;
+}
+#tagForm.form-disabled > *:not(.tag-nav) {
+  opacity: .45;
+}
+#tagForm.form-disabled .tag-nav {
+  pointer-events: auto;
+}
+
+.tag-form-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  border: 1px dashed var(--chip-border, #cbd3e0);
+  border-radius: 9px;
+  font-size: 13px;
+  color: var(--text-dim, #64748b);
+  background: var(--surface, #fff);
+}
+.tag-form-hint.hidden { display: none; }
+.tag-form-hint kbd {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 1px 6px;
+  border: 1px solid var(--chip-border, #cbd3e0);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg, #f4f6fa);
+}
+
+/* Rare result chips (FG / Good / No Good / Kneel / Spike / Safety) collapse
+   behind "More" so the common row stays scannable. display:contents keeps the
+   revealed chips flowing in the same wrap as the rest of the group. */
+.pick-rare { display: none; }
+.pick-rare.show { display: contents; }
+.pick.pick-more {
+  border-style: dashed;
+  color: var(--text-dim, #64748b);
+}
+.pick.pick-more.open {
+  border-style: solid;
+}

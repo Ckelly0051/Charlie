@@ -240,6 +240,11 @@
 
       <!-- Tag Section (full-width, below video) -->
       <section class="tag-section">
+        <!-- Shown while no play is selected — the form below is disabled so
+             chip taps can't be silently discarded. -->
+        <div class="tag-form-hint hidden" id="tagFormHint">
+          Mark a play to start tagging — press <kbd>[</kbd> at the snap, <kbd>]</kbd> at the whistle
+        </div>
         <!-- Tag Form -->
         <div class="tag-form" id="tagForm">
           <!-- Offense / Defense / Special Teams toggle (top right) -->
@@ -451,13 +456,16 @@
               <button class="pick" data-value="Interception" type="button">INT<kbd>U</kbd></button>
               <button class="pick" data-value="Fumble" type="button">Fumble<kbd>F</kbd></button>
               <button class="pick" data-value="Penalty" type="button">Penalty<kbd>E</kbd></button>
-              <button class="pick" data-value="Punt" type="button">Punt</button>
-              <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
-              <button class="pick" data-value="Good" type="button" title="Conversion / kick is good (2-Pt, XP, FG)">Good</button>
-              <button class="pick" data-value="No Good" type="button" title="Conversion / kick failed (2-Pt, XP, FG)">No Good</button>
-              <button class="pick" data-value="Kneel" type="button">Kneel</button>
-              <button class="pick" data-value="Spike" type="button">Spike</button>
-              <button class="pick" data-value="Safety" type="button">Safety</button>
+              <button class="pick" data-value="Punt" type="button">Punt<kbd>K</kbd></button>
+              <span class="pick-rare" id="tagResultRare">
+                <button class="pick" data-value="Field Goal" type="button">Field Goal</button>
+                <button class="pick" data-value="Good" type="button" title="Conversion / kick is good (2-Pt, XP, FG)">Good</button>
+                <button class="pick" data-value="No Good" type="button" title="Conversion / kick failed (2-Pt, XP, FG)">No Good</button>
+                <button class="pick" data-value="Kneel" type="button">Kneel</button>
+                <button class="pick" data-value="Spike" type="button">Spike</button>
+                <button class="pick" data-value="Safety" type="button">Safety</button>
+              </span>
+              <button class="pick pick-more" id="tagResultMore" type="button" title="Show kicking / clock / rare results">More ▾</button>
             </div>
           </div>
 
@@ -465,7 +473,7 @@
             <label class="chip-label">Yards</label>
             <div class="yards-row">
               <button class="btn-nudge" id="yardsMinus" type="button">−</button>
-              <input type="number" id="tagYardage" min="0" max="99" placeholder="0" class="yards-input" title="Enter yards as a positive number — Result (Gain / Loss / Sack) sets the direction">
+              <input type="number" id="tagYardage" min="0" max="99" placeholder="0" class="yards-input" title="Press Y to jump here. Enter yards as a positive number — Result (Gain / Loss / Sack) sets the direction. Enter saves &amp; advances.">
               <button class="btn-nudge" id="yardsPlus" type="button">+</button>
             </div>
           </div>
@@ -596,7 +604,7 @@
           <div class="tag-nav">
             <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
             <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
-            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Skip to next">Skip</button>
+            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Move on without carrying this play's situation forward">Skip</button>
           </div>
 
           <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
@@ -1325,9 +1333,10 @@
               <dt><kbd>R</kbd><kbd>O</kbd><kbd>S</kbd><kbd>P</kbd><kbd>M</kbd><kbd>D</kbd><kbd>A</kbd><kbd>Q</kbd><kbd>X</kbd></dt><dd>Play type (Run In/Out, Screen, Short, Med, Deep, PA, RPO, Trick)</dd>
               <dt><kbd>G</kbd><kbd>L</kbd><kbd>N</kbd><kbd>I</kbd><kbd>T</kbd><kbd>W</kbd><kbd>U</kbd><kbd>F</kbd><kbd>E</kbd><kbd>K</kbd></dt><dd>Result (Gain, Loss, No Gain, Inc, TD, Sack, INT, Fum, Pen, Punt)</dd>
               <dt><kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd></dt><dd>Down number</dd>
+              <dt><kbd>Y</kbd></dt><dd>Jump to yardage (type the number, Enter advances)</dd>
               <dt><kbd>C</kbd></dt><dd>Cycle unit (Offense → Defense → Special Teams)</dd>
               <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>ST play type (in Special Teams mode)</dd>
-              <dt><kbd>Enter</kbd></dt><dd>Save &amp; next play (carries down &amp; distance)</dd>
+              <dt><kbd>Enter</kbd></dt><dd>Save &amp; next play (works inside yardage/distance too)</dd>
             </dl>
           </div>
           <div class="shortcuts-group">

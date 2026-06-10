@@ -777,23 +777,26 @@ class App {
           e.preventDefault();
           this.tagger.markEnd();
           break;
+        // Drawing-tool digits only arm when NO play is selected — while
+        // tagging, a stray digit must never silently switch to the crosshair
+        // (the next video click would drop an annotation).
         case 'Digit1':
-          this._selectTool('line');
+          if (!this.tagger.currentPlayId) this._selectTool('line');
           break;
         case 'Digit2':
-          this._selectTool('arrow');
+          if (!this.tagger.currentPlayId) this._selectTool('arrow');
           break;
         case 'Digit3':
-          this._selectTool('circle');
+          if (!this.tagger.currentPlayId) this._selectTool('circle');
           break;
         case 'Digit4':
-          this._selectTool('rect');
+          if (!this.tagger.currentPlayId) this._selectTool('rect');
           break;
         case 'Digit5':
-          this._selectTool('freehand');
+          if (!this.tagger.currentPlayId) this._selectTool('freehand');
           break;
         case 'Digit6':
-          this._selectTool('text');
+          if (!this.tagger.currentPlayId) this._selectTool('text');
           break;
         case 'Escape':
           this._selectTool(null);
@@ -1682,7 +1685,25 @@ class App {
       this._autoPlayCurrent();
     });
     btnNext?.addEventListener('click', () => this._advancePlay());
-    btnSkip?.addEventListener('click', () => this._advancePlay());
+    // Skip = move on WITHOUT carrying this play's situation forward (it was
+    // previously identical to Save & Next — a fake choice).
+    btnSkip?.addEventListener('click', () => this._advancePlay({ skip: true }));
+
+    // Surface tagger feedback (e.g. "Mark the start first") through the
+    // shared toast. Lazy lambda — history may not exist yet at bind time.
+    this.tagger.toast = (msg) => this.history?._toast(msg);
+
+    // Enter inside yardage/distance saves & advances — the global Enter
+    // shortcut ignores inputs, which forced a mouse trip to Save & Next on
+    // every play. This is the hottest path in the whole tagging flow.
+    [yardsInput, document.getElementById('tagDistance')].forEach(inp => {
+      inp?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this._advancePlay();
+        }
+      });
+    });
 
     // Auto down & distance toggle
     const autoDD = document.getElementById('autoDDToggle');
@@ -1723,15 +1744,21 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
-  _advancePlay() {
-    // Commit a value still being edited (yardage/notes) before advancing.
+  _advancePlay(opts = {}) {
+    // Commit a value still being edited (yardage/notes) before advancing,
+    // then blur so the next keystrokes hit the shortcuts, not the input.
     const el = document.activeElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
       el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.blur();
     }
 
     // 1) Next play in the list (also switches clip in folder mode).
-    if (this.tagger.nextPlayWithSituation()) {
+    //    Skip advances plainly; Save & Next carries situation/unit forward.
+    const advanced = opts.skip
+      ? this.tagger.nextPlay()
+      : this.tagger.nextPlayWithSituation();
+    if (advanced) {
       this._autoPlayCurrent();
       return;
     }
@@ -1803,6 +1830,15 @@ class App {
 
     const curPlay = this.tagger.getCurrentPlay();
     const curUnit = (curPlay && curPlay.tags.unit) || this.tagger.defaultUnit || 'offense';
+
+    // Y jumps to the yardage input (type the number, Enter advances) —
+    // closing the only step that still forced a mouse trip every play.
+    if (e.code === 'KeyY' && !e.shiftKey) {
+      e.preventDefault();
+      const yd = document.getElementById('tagYardage');
+      if (yd) { yd.focus(); yd.select(); }
+      return true;
+    }
 
     // C cycles the unit toggle (Offense → Defense → Special Teams).
     if (e.code === 'KeyC' && !e.shiftKey) {
