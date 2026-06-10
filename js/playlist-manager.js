@@ -118,6 +118,7 @@ export class PlaylistManager {
 
   async _autoCreatePlays() {
     let created = false;
+    let firstNewId = null;
     for (const clip of this.clips) {
       if (clip.playId !== null) continue;
       const source = clip.assetUrl || clip.file;
@@ -140,6 +141,7 @@ export class PlaylistManager {
       this.tagger.plays.push(play);
       clip.playId = play.id;
       created = true;
+      if (firstNewId === null) firstNewId = play.id;
     }
 
     this.tagger._updatePlaySelect();
@@ -149,6 +151,14 @@ export class PlaylistManager {
     // the Film Room grid, the wizard — only hear about them via this emit
     // (same pattern as the CSV import path in storage.js).
     if (created) this.tagger._emit('play-created');
+    // Land ready to tag: select the first new play so the selector and the
+    // tag form reflect clip 1 (otherwise the form keeps the PREVIOUS game's
+    // chips lit and taps edit nothing until a play is picked by hand).
+    // Only when nothing is selected — adding clips mid-session must not
+    // steal the coach's current play.
+    if (created && !this.tagger.getCurrentPlay()) {
+      this.tagger.selectPlay(firstNewId);
+    }
   }
 
   _probeDuration(source) {

@@ -210,12 +210,14 @@ export class SeasonStore {
 
   gameStatus(g) { return (g && g.status) || 'active'; }
 
-  /** True when the active game has no plays and no identifying game info. */
+  /** True when the active game has no plays, no film, and no identifying
+   *  game info — i.e. safe to reuse instead of stacking another blank. */
   isEmptyActive() {
     const g = this.activeGame();
     if (!g) return false;
     const gi = g.gameInfo || {};
-    return (g.plays || []).length === 0 && !gi.opponent && !gi.projectName && !gi.date;
+    return (g.plays || []).length === 0 && !g.videoFileName
+      && !gi.opponent && !gi.projectName && !gi.date;
   }
 
   /** Chronological order (by gameInfo.date when present, else insertion). */

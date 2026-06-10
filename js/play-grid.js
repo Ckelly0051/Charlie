@@ -436,7 +436,13 @@ export class PlayGrid {
     if (!this.section) return;
     const plays = this.tagger.plays;
     this.section.hidden = plays.length === 0;
-    if (plays.length === 0) { this.selected.clear(); this._focus = null; return; }
+    if (plays.length === 0) {
+      this.selected.clear();
+      this._focus = null;
+      this.rowsEl.innerHTML = '';        // don't keep stale rows in hidden DOM
+      this.theadEl.innerHTML = '';
+      return;
+    }
 
     // Prune selections for plays that no longer exist.
     const ids = new Set(plays.map(p => p.id));

@@ -288,6 +288,9 @@ export class StorageManager {
     // ids restart per game, so a stale currentPlayId would silently highlight
     // an unrelated play if the incoming game has no saved selection.
     this.tagger.currentPlayId = null;
+    // Blank the tag form too — otherwise the previous game's chips stay lit
+    // and a coach clicking them edits nothing (currentPlayId is null).
+    try { this.tagger._clearTagForm(); } catch (e) {}
     if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }
@@ -305,7 +308,12 @@ export class StorageManager {
   /** Start a fresh blank game in the season and switch to it. */
   newGame() {
     this.commitActive();
-    this.seasonStore.addGame();
+    // Don't stack empty husks: if the active game is still blank (no plays,
+    // no film, no identity), "New Game" just re-presents it instead of
+    // leaving a stray "Game N — 0 plays" in the schedule.
+    if (!this.seasonStore.isEmptyActive()) {
+      this.seasonStore.addGame();
+    }
     this.seasonStore.persist();
     this._clearForNewGame();
     this._loadActiveGame();
