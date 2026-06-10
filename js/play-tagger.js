@@ -313,6 +313,51 @@ export class PlayTagger {
     });
   }
 
+  /**
+   * Marking start/end is OPTIONAL when film arrives as one clip per play:
+   * loading a video into an empty game auto-creates a play spanning the whole
+   * file so the coach can tag immediately. The play carries `autoFull` so the
+   * first manual [ / ] mark RE-TIMES it (continuous-film workflow) instead of
+   * leaving a stray whole-film play behind.
+   */
+  createWholeVideoPlay(duration, name) {
+    if (this.plays.length) return null;
+    const play = {
+      id: this.nextId++,
+      timestamp: { start: 0, end: duration || 0 },
+      autoFull: true,
+      tags: {
+        down: '', distance: '', formation: '', playType: '', runPass: '',
+        defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+        hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '',
+        motion: '', playDir: '',
+        driveNumber: this.currentDrive.toString(),
+        unit: this.defaultUnit || 'offense',
+        stType: '', players: {}, grades: {}, custom: []
+      },
+      annotations: [],
+      notes: '',
+      clipName: name || ''
+    };
+    this.plays.push(play);
+    this._updatePlaySelect();
+    this._updateTimeline();
+    this.selectPlay(play.id);
+    this._emit('play-created', play);
+    return play;
+  }
+
+  /** The reusable whole-video placeholder: sole play, auto-created, untagged. */
+  _wholeVideoPlaceholder() {
+    if (this.plays.length !== 1) return null;
+    const p = this.plays[0];
+    if (!p.autoFull) return null;
+    const t = p.tags || {};
+    const untouched = !t.playType && !t.result && !t.formation && !t.runPass &&
+      !t.yardage && !(p.notes || '').trim();
+    return untouched ? p : null;
+  }
+
   markStart() {
     this.pendingStart = this.vc.currentTime;
     this.btnMarkStart.textContent = `Start: ${this._fmt(this.pendingStart)}`;
@@ -327,6 +372,22 @@ export class PlayTagger {
     const endTime = this.vc.currentTime;
     if (endTime <= this.pendingStart) {
       this.toast?.('End must be after start — play forward, then press ]');
+      return;
+    }
+
+    // First manual mark in a fresh single-video game: re-time the auto-created
+    // whole-video placeholder instead of stacking a second play on top of it.
+    const placeholder = this._wholeVideoPlaceholder();
+    if (placeholder) {
+      placeholder.timestamp = { start: this.pendingStart, end: endTime };
+      delete placeholder.autoFull;
+      this.pendingStart = null;
+      this.btnMarkStart.textContent = 'Mark Start';
+      this.btnMarkStart.classList.remove('btn-active');
+      this._updatePlaySelect();
+      this._updateTimeline();
+      this.selectPlay(placeholder.id);
+      this._emit('play-updated', placeholder);
       return;
     }
 

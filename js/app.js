@@ -670,6 +670,17 @@ class App {
       this.storage.importFilm(files);
     });
 
+    // Marking start/end is optional: a single video loaded into an empty game
+    // auto-creates a play spanning the whole file (film usually arrives as one
+    // clip per play). Folder mode already does this per clip; this covers the
+    // "Add Video" path. The first manual [ / ] mark re-times the placeholder.
+    this.vc.on('video-loaded', ({ duration }) => {
+      if (this.playlist.hasClips) return;            // folder mode handles its own
+      if (this.tagger.plays.length) return;           // existing game data wins
+      if (!duration || !isFinite(duration)) return;
+      this.tagger.createWholeVideoPlay(duration, this.vc.currentFile?.name || '');
+    });
+
     // Update timeline markers when plays change
     this.tagger.on('play-created', () => {
       this.tagger.updateScrubBarPlays();

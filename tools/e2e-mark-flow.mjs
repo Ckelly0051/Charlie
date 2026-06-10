@@ -55,36 +55,51 @@ const loaded = await page.evaluate(async () => {
   return { duration: v.duration, ready: v.readyState };
 });
 
-// THE USER'S EXACT FLOW: click Mark Start, let video advance, click Mark End
+// MARKING IS OPTIONAL: loading a video into an empty game auto-creates a
+// whole-video play and the form is live immediately. The first manual
+// Mark Start/End RE-TIMES that placeholder; later marks add new plays.
 const result = await page.evaluate(async () => {
   const v = document.getElementById('videoPlayer');
   const form = document.getElementById('tagForm');
-  const stateBefore = form.classList.contains('form-disabled');
+  const t = window.app.tagger;
 
+  // 1. Right after load: placeholder play exists, selected, form live
+  const onLoad = {
+    plays: t.plays.length,
+    selected: t.currentPlayId,
+    disabled: form.classList.contains('form-disabled'),
+    spansVideo: t.plays[0] && Math.abs(t.plays[0].timestamp.end - v.duration) < 0.5,
+    autoFull: !!t.plays[0]?.autoFull,
+  };
+
+  // 2. First manual mark re-times the placeholder instead of adding a play
   document.getElementById('btnMarkStart').click();
-  v.currentTime = 2.5;            // coach scrubs/plays forward
+  v.currentTime = 2.5;
   await new Promise(r => setTimeout(r, 400));
   document.getElementById('btnMarkEnd').click();
   await new Promise(r => setTimeout(r, 400));
+  const afterMark = {
+    plays: t.plays.length,
+    start: t.plays[0].timestamp.start,
+    end: t.plays[0].timestamp.end,
+    autoFull: !!t.plays[0].autoFull,
+    disabled: form.classList.contains('form-disabled'),
+  };
 
-  const t = window.app.tagger;
-  const stateAfter = form.classList.contains('form-disabled');
-
-  // Try actually clicking a chip (Run Inside) and check it saves
+  // 3. Chip click saves to the (re-timed) play
   const chip = document.querySelector('#tagPlayType .pick[data-value="Run Inside"]');
-  const chipStyle = getComputedStyle(chip);
   chip.click();
   await new Promise(r => setTimeout(r, 150));
-  const play = t.getCurrentPlay();
+  const chipSaved = t.getCurrentPlay()?.tags.playType;
 
-  return {
-    disabledBeforeMark: stateBefore,
-    playsCreated: t.plays.length,
-    currentPlayId: t.currentPlayId,
-    disabledAfterMark: stateAfter,
-    chipPointerEvents: chipStyle.pointerEvents,
-    chipSavedPlayType: play?.tags.playType,
-  };
+  // 4. A second mark now ADDS a play (placeholder already consumed)
+  document.getElementById('btnMarkStart').click();
+  v.currentTime = Math.min(v.duration - 0.1, 3.6);
+  await new Promise(r => setTimeout(r, 400));
+  document.getElementById('btnMarkEnd').click();
+  await new Promise(r => setTimeout(r, 300));
+
+  return { onLoad, afterMark, chipSaved, finalPlays: t.plays.length };
 });
 
 let pass = 0, fail = 0;
@@ -95,12 +110,15 @@ const ok = (cond, label) => {
 
 ok(seasonSetup.hasSeason, 'season created');
 ok(loaded.ready >= 2 && loaded.duration > 3, 'real video loaded and decodable');
-ok(result.disabledBeforeMark, 'form starts disabled (guard active)');
-ok(result.playsCreated === 1, 'Mark Start -> Mark End creates a play');
-ok(result.currentPlayId === 1, 'new play is auto-selected');
-ok(!result.disabledAfterMark, 'form enables after marking');
-ok(result.chipPointerEvents === 'auto', 'chips are clickable after marking');
-ok(result.chipSavedPlayType === 'Run Inside', 'chip click saves to the play');
+ok(result.onLoad.plays === 1, 'video load auto-creates a whole-video play');
+ok(result.onLoad.selected === 1, 'placeholder play is auto-selected');
+ok(!result.onLoad.disabled, 'form is live immediately — no marking required');
+ok(result.onLoad.spansVideo && result.onLoad.autoFull, 'placeholder spans the whole video');
+ok(result.afterMark.plays === 1, 'first manual mark re-times the placeholder (no extra play)');
+ok(Math.abs(result.afterMark.start) < 0.3 && Math.abs(result.afterMark.end - 2.5) < 0.3, 'placeholder got the marked start/end');
+ok(!result.afterMark.autoFull && !result.afterMark.disabled, 'placeholder becomes a normal play, form stays live');
+ok(result.chipSaved === 'Run Inside', 'chip click saves to the play');
+ok(result.finalPlays === 2, 'second mark adds a new play');
 if (errors.length) { fail++; console.log('ERRORS:\n' + errors.join('\n')); }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

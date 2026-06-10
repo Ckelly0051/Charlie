@@ -786,6 +786,31 @@ Special-teams stats (return game, kicking/punting) roll up in
 `StatsEngine._individualStats` from `players.returner` / `players.kicker` keyed
 on `stType`, and render as extra tables in the stats dashboard.
 
+### Marking start/end is OPTIONAL (clip-per-play film)
+
+Game film usually arrives pre-cut, one clip per play, so the coach must never
+be forced to mark boundaries before tagging:
+
+- **Folder / multi-clip mode** (`PlaylistManager._autoCreatePlays`): each clip
+  auto-creates a whole-clip play; the first is auto-selected, form live.
+- **Single video** (`App` `video-loaded` handler → `PlayTagger.
+  createWholeVideoPlay`): loading a video into an **empty** game auto-creates
+  Play 1 spanning the whole file (flagged `autoFull`) and selects it — tag
+  immediately, no marking. Games with existing plays (reopened save, CSV
+  import) are untouched.
+- **Continuous-film workflow still works**: the first manual `[`/`]` mark
+  **re-times** the pristine placeholder (`PlayTagger._wholeVideoPlaceholder`:
+  sole play, `autoFull`, untagged) instead of stacking a second play; later
+  marks add plays as before. Once the placeholder is tagged or re-timed it's a
+  normal play.
+- **Form guard** (`_updateFormEnabled` / `.form-disabled`): the tag form
+  disables only when NO play is selected (rare now — empty game with no
+  video). Clicking the gray form toasts contextual guidance and pulses the
+  amber hint banner; the nav bar stays active. Never let the disabled form sit
+  silent — it reads as a bug (field-reported).
+- Regression harness: `tools/e2e-mark-flow.mjs` (real video + real button
+  clicks; the other harnesses select plays via API).
+
 ### Clear Tags vs Delete Play (play-control bar)
 
 Two distinct destructive actions live in `.video-play-controls`:
