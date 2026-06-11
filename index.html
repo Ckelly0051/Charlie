@@ -2116,7 +2116,10 @@ body {
     overflow: visible;
     height: auto;
   }
-  .stats-overlay {
+  /* body-prefixed so these light-theme vars out-rank the dark dashboard
+     palette block (also `.stats-overlay`, but later in the file — equal
+     specificity would let it win even inside @media print). */
+  body .stats-overlay {
     position: static;
     background: none;
     padding: 0;
@@ -2128,6 +2131,7 @@ body {
     --bg: #fff;
     --bg-card: #f5f5f5;
     --border: #ccc;
+    --gauge-track: #e5e7eb;
   }
   .stats-overlay, .stats-overlay * {
     color-adjust: exact;
@@ -6337,6 +6341,7 @@ video.is-buffering { opacity: 0.6; }
   --bg-tertiary:   #1c2128;
   --bg-surface:    #262c36;
   --bg-elevated:   #2d333b;
+  --gauge-track:   var(--bg-tertiary);
   --accent:          #c9a227;
   --accent-hover:    #dbb634;
   --accent-soft:     rgba(201,162,39,0.10);
@@ -6554,9 +6559,6 @@ body {
 /* --- Run/pass dots --- */
 .dot.run { background: var(--run-color) !important; }
 .dot.pass { background: var(--pass-color) !important; }
-
-/* --- Gauge tracks --- */
-.chart-gauge svg path[stroke="#1c2128"] { stroke: var(--bg-tertiary); }
 
 /* --- Stacked bar text --- */
 .chart-stack { color: var(--bg-primary); font-weight: 700; }
@@ -16818,7 +16820,7 @@ class Charts {
     const halfCirc = Math.PI * r;
     const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
 
-    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="#1c2128" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
+    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
   }
 
   /**
@@ -17639,11 +17641,15 @@ class StatsEngine {
       if (dp.some(p => StatsEngine.splitResults(p.tags.result).some(r => NON_PUNT.has(r)))) return false;
       if (dp.some(p => gainedFirstDown(p.tags))) return false;
       // The offense must actually have surrendered the ball: an explicit punt,
-      // or another possession follows (so this one ended in an untagged punt).
-      // Without this, a short drive cut off by the end of a half/game — or a
-      // partially-tagged final drive — would be miscounted as a three-and-out.
+      // or another possession follows IN THE SAME GAME (so this one ended in
+      // an untagged punt). Without this, a short drive cut off by the end of a
+      // half/game — or a partially-tagged final drive — would be miscounted as
+      // a three-and-out (in season roll-ups, the next game's first drive must
+      // not vouch for the previous game's last one).
       const punted = StatsEngine.hasResult(dp[dp.length - 1], 'Punt');
-      const possessionFollowed = idx < drives.length - 1;
+      const next = drives[idx + 1];
+      const possessionFollowed = !!next &&
+        (next[0].__seasonGameIdx ?? 0) === (dp[0].__seasonGameIdx ?? 0);
       return punted || possessionFollowed;
     }).length;
   }
@@ -17655,9 +17661,15 @@ class StatsEngine {
    * play did NOT earn (down reset to 1 ⇒ the ball changed hands off-camera).
    */
   _reconstructDrives(plays) {
+    // Season roll-ups concatenate plays from several games whose video clocks
+    // all start at 0 — sort by game first (SeasonManager._allPlays stamps
+    // __seasonGameIdx) so a timestamp sort can't interleave games, and break
+    // every drive at a game boundary. Single-game lists are unstamped (all 0).
+    const gameOf = p => p.__seasonGameIdx ?? 0;
     const ordered = [...plays].sort((a, b) =>
-      ((a.timestamp && a.timestamp.start) ?? a.id ?? 0) -
-      ((b.timestamp && b.timestamp.start) ?? b.id ?? 0));
+      (gameOf(a) - gameOf(b)) ||
+      (((a.timestamp && a.timestamp.start) ?? a.id ?? 0) -
+        ((b.timestamp && b.timestamp.start) ?? b.id ?? 0)));
     const drives = [];
     let cur = [];
     ordered.forEach((p, i) => {
@@ -17669,7 +17681,8 @@ class StatsEngine {
       // within the same drive, so it never starts a new possession on its own.
       const downReset = prev && p.tags.down === '1' &&
         !StatsEngine.hasResult(prev, 'Penalty') && !gainedFirstDown(prev.tags);
-      if ((possessionEnded || downReset) && cur.length) { drives.push(cur); cur = []; }
+      const newGame = prev && gameOf(prev) !== gameOf(p);
+      if ((possessionEnded || downReset || newGame) && cur.length) { drives.push(cur); cur = []; }
       cur.push(p);
     });
     if (cur.length) drives.push(cur);
@@ -18731,11 +18744,13 @@ class StatsEngine {
       const body = rows.slice(0, 8).map(r =>
         `<tr><td>${r.name}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
       ).join('');
+      const note = rows.length > 8
+        ? `<div style="font-size:11px;opacity:.6;margin:2px 0 6px">Top 8 of ${rows.length} by EPA/play</div>` : '';
       return `<div><h4 style="margin:8px 0 4px">${title}</h4>
         <table class="stats-table stats-table-full epa-table">
           <thead><tr><th>${title}</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
           <tbody>${body}</tbody>
-        </table></div>`;
+        </table>${note}</div>`;
     };
 
     const playRow = (x) => {
@@ -22576,7 +22591,17 @@ class SeasonManager {
   }
 
   _allPlays() {
-    return this._effectiveGames().flatMap(g => g.plays || []);
+    // Stamp each play with its game's chronological index so order-sensitive
+    // stats (drive reconstruction) can keep games separate — every game's
+    // video clock starts at 0, so a plain timestamp sort would interleave
+    // plays across games and merge drives over game boundaries.
+    // Non-enumerable: JSON.stringify (persist/save/export) never sees it.
+    return this._effectiveGames().flatMap((g, gi) =>
+      (g.plays || []).map(p => {
+        Object.defineProperty(p, '__seasonGameIdx',
+          { value: gi, configurable: true, writable: true, enumerable: false });
+        return p;
+      }));
   }
 
   /** Merge jersey#→name across every game's roster (+ live roster). */
@@ -22923,66 +22948,33 @@ class SeasonManager {
   }
 
   _renderSelfScout() {
-    const allPlays = this._allPlays().filter(p => p.tags && p.tags.playType);
-
-    // Formation tendencies. Formation is multi-select ("Pistol + Spread"),
-    // so a play is attributed to each of its component looks.
-    const formMap = {};
-    allPlays.forEach(p => {
-      const isRun = this._isRun(p);
-      String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(f => {
-        if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
-        formMap[f].total++;
-        if (isRun) formMap[f].runs++;
-      });
-    });
-
-    let formationFlags = '';
-    for (const [f, d] of Object.entries(formMap)) {
-      if (d.total < 5) continue;
-      const runPct = (d.runs / d.total) * 100;
-      if (runPct >= 75) {
-        formationFlags += `<li><b>${this._escape(f)}</b>: ${runPct.toFixed(0)}% run (${d.runs}/${d.total}) — opponents will key the run when they see this look</li>`;
-      } else if (runPct <= 25) {
-        formationFlags += `<li><b>${this._escape(f)}</b>: ${(100 - runPct).toFixed(0)}% pass (${d.total - d.runs}/${d.total}) — opponents will drop into coverage</li>`;
-      }
+    // Thin view over StatsEngine's canonical self-scout — single source of
+    // truth for run/pass classification, lean thresholds, and min-sample
+    // gates (previously duplicated here with its own _isRun and cutoffs).
+    const report = this.statsEngine.generateSelfScout(
+      this._allPlays().filter(p => p.tags));
+    if (!report) {
+      return `
+        <div class="stats-section">
+          <h3>Self-Scout Report</h3>
+          <p class="self-scout-intro">Tag Run/Pass on your offensive plays to see what an opponent watching your film would key on.</p>
+        </div>
+      `;
     }
 
-    // Down & distance: 3rd & long pass tell?
-    const thirdLong = allPlays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7);
-    const thirdLongPass = thirdLong.filter(p => !this._isRun(p)).length;
-    let ddFlags = '';
-    if (thirdLong.length >= 5) {
-      const passPct = (thirdLongPass / thirdLong.length) * 100;
-      if (passPct >= 90) ddFlags += `<li><b>3rd &amp; Long</b>: ${passPct.toFixed(0)}% pass (${thirdLongPass}/${thirdLong.length}) — predictable; consider a draw or screen</li>`;
-    }
-
-    // Hash tendencies
-    const hashMap = { Left: { runs: 0, total: 0 }, Right: { runs: 0, total: 0 }, Middle: { runs: 0, total: 0 } };
-    allPlays.forEach(p => {
-      const h = p.tags.hash;
-      if (!hashMap[h]) return;
-      hashMap[h].total++;
-      if (this._isRun(p)) hashMap[h].runs++;
-    });
-    let hashFlags = '';
-    for (const [h, d] of Object.entries(hashMap)) {
-      if (d.total < 5) continue;
-      const runPct = (d.runs / d.total) * 100;
-      if (runPct >= 75 || runPct <= 25) {
-        const tendency = runPct >= 75 ? 'run' : 'pass';
-        hashFlags += `<li><b>${h} hash</b>: ${tendency === 'run' ? runPct : 100 - runPct}% ${tendency} (${d.total} plays) — strong hash tendency</li>`;
-      }
-    }
-
-    let allFlags = formationFlags + ddFlags + hashFlags;
-    if (!allFlags) allFlags = '<li class="ok">No major tendencies detected (need 5+ plays per category to flag).</li>';
+    let flags = report.tells.map(t => {
+      const counter = t.lean === 'Run'
+        ? 'play-action or a quick game pass off the same look'
+        : 'a draw, screen, or run off the same look';
+      return `<li><b>${this._escape(t.label)}</b>: ${t.lean.toLowerCase()} ${t.leanPct}% (${t.n} plays) — consider ${counter}</li>`;
+    }).join('');
+    if (!flags) flags = '<li class="ok">No strong tells detected at the current sample size — your run/pass mix is well balanced.</li>';
 
     return `
       <div class="stats-section">
         <h3>Self-Scout Report</h3>
-        <p class="self-scout-intro">What an opponent watching your film would notice:</p>
-        <ul class="self-scout">${allFlags}</ul>
+        <p class="self-scout-intro">Predictability <b>${report.predictability}/100</b> (${report.predLabel}) across ${report.totalPlays} run/pass plays. What an opponent watching your film would notice:</p>
+        <ul class="self-scout">${flags}</ul>
       </div>
     `;
   }
@@ -23052,7 +23044,7 @@ tr:nth-child(even){background:#f4f4f8}
 /* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
    stack bars) reference app CSS vars and chart classes — define them here so
    the standalone report isn't half-blank. */
-body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd}
+body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
 .tendency-run{background:#f0b429;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
@@ -23104,14 +23096,6 @@ ${body}
 
   _escape(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
-
-  // Run/pass classification: explicit runPass tag wins, else infer from playType.
-  _isRun(p) {
-    const rp = p.tags && p.tags.runPass;
-    if (rp === 'Run') return true;
-    if (rp === 'Pass') return false;
-    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
 }
 
@@ -25389,7 +25373,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 
 class App {
   constructor() {
