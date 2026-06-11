@@ -524,11 +524,15 @@ export class StatsEngine {
       if (dp.some(p => StatsEngine.splitResults(p.tags.result).some(r => NON_PUNT.has(r)))) return false;
       if (dp.some(p => gainedFirstDown(p.tags))) return false;
       // The offense must actually have surrendered the ball: an explicit punt,
-      // or another possession follows (so this one ended in an untagged punt).
-      // Without this, a short drive cut off by the end of a half/game — or a
-      // partially-tagged final drive — would be miscounted as a three-and-out.
+      // or another possession follows IN THE SAME GAME (so this one ended in
+      // an untagged punt). Without this, a short drive cut off by the end of a
+      // half/game — or a partially-tagged final drive — would be miscounted as
+      // a three-and-out (in season roll-ups, the next game's first drive must
+      // not vouch for the previous game's last one).
       const punted = StatsEngine.hasResult(dp[dp.length - 1], 'Punt');
-      const possessionFollowed = idx < drives.length - 1;
+      const next = drives[idx + 1];
+      const possessionFollowed = !!next &&
+        (next[0].__seasonGameIdx ?? 0) === (dp[0].__seasonGameIdx ?? 0);
       return punted || possessionFollowed;
     }).length;
   }
@@ -540,9 +544,15 @@ export class StatsEngine {
    * play did NOT earn (down reset to 1 ⇒ the ball changed hands off-camera).
    */
   _reconstructDrives(plays) {
+    // Season roll-ups concatenate plays from several games whose video clocks
+    // all start at 0 — sort by game first (SeasonManager._allPlays stamps
+    // __seasonGameIdx) so a timestamp sort can't interleave games, and break
+    // every drive at a game boundary. Single-game lists are unstamped (all 0).
+    const gameOf = p => p.__seasonGameIdx ?? 0;
     const ordered = [...plays].sort((a, b) =>
-      ((a.timestamp && a.timestamp.start) ?? a.id ?? 0) -
-      ((b.timestamp && b.timestamp.start) ?? b.id ?? 0));
+      (gameOf(a) - gameOf(b)) ||
+      (((a.timestamp && a.timestamp.start) ?? a.id ?? 0) -
+        ((b.timestamp && b.timestamp.start) ?? b.id ?? 0)));
     const drives = [];
     let cur = [];
     ordered.forEach((p, i) => {
@@ -554,7 +564,8 @@ export class StatsEngine {
       // within the same drive, so it never starts a new possession on its own.
       const downReset = prev && p.tags.down === '1' &&
         !StatsEngine.hasResult(prev, 'Penalty') && !gainedFirstDown(prev.tags);
-      if ((possessionEnded || downReset) && cur.length) { drives.push(cur); cur = []; }
+      const newGame = prev && gameOf(prev) !== gameOf(p);
+      if ((possessionEnded || downReset || newGame) && cur.length) { drives.push(cur); cur = []; }
       cur.push(p);
     });
     if (cur.length) drives.push(cur);
@@ -1616,11 +1627,13 @@ export class StatsEngine {
       const body = rows.slice(0, 8).map(r =>
         `<tr><td>${r.name}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
       ).join('');
+      const note = rows.length > 8
+        ? `<div style="font-size:11px;opacity:.6;margin:2px 0 6px">Top 8 of ${rows.length} by EPA/play</div>` : '';
       return `<div><h4 style="margin:8px 0 4px">${title}</h4>
         <table class="stats-table stats-table-full epa-table">
           <thead><tr><th>${title}</th><th>#</th><th>EPA</th><th>EPA/Play</th></tr></thead>
           <tbody>${body}</tbody>
-        </table></div>`;
+        </table>${note}</div>`;
     };
 
     const playRow = (x) => {

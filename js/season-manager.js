@@ -181,7 +181,17 @@ export class SeasonManager {
   }
 
   _allPlays() {
-    return this._effectiveGames().flatMap(g => g.plays || []);
+    // Stamp each play with its game's chronological index so order-sensitive
+    // stats (drive reconstruction) can keep games separate — every game's
+    // video clock starts at 0, so a plain timestamp sort would interleave
+    // plays across games and merge drives over game boundaries.
+    // Non-enumerable: JSON.stringify (persist/save/export) never sees it.
+    return this._effectiveGames().flatMap((g, gi) =>
+      (g.plays || []).map(p => {
+        Object.defineProperty(p, '__seasonGameIdx',
+          { value: gi, configurable: true, writable: true, enumerable: false });
+        return p;
+      }));
   }
 
   /** Merge jersey#→name across every game's roster (+ live roster). */
@@ -528,66 +538,33 @@ export class SeasonManager {
   }
 
   _renderSelfScout() {
-    const allPlays = this._allPlays().filter(p => p.tags && p.tags.playType);
-
-    // Formation tendencies. Formation is multi-select ("Pistol + Spread"),
-    // so a play is attributed to each of its component looks.
-    const formMap = {};
-    allPlays.forEach(p => {
-      const isRun = this._isRun(p);
-      String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(f => {
-        if (!formMap[f]) formMap[f] = { total: 0, runs: 0 };
-        formMap[f].total++;
-        if (isRun) formMap[f].runs++;
-      });
-    });
-
-    let formationFlags = '';
-    for (const [f, d] of Object.entries(formMap)) {
-      if (d.total < 5) continue;
-      const runPct = (d.runs / d.total) * 100;
-      if (runPct >= 75) {
-        formationFlags += `<li><b>${this._escape(f)}</b>: ${runPct.toFixed(0)}% run (${d.runs}/${d.total}) — opponents will key the run when they see this look</li>`;
-      } else if (runPct <= 25) {
-        formationFlags += `<li><b>${this._escape(f)}</b>: ${(100 - runPct).toFixed(0)}% pass (${d.total - d.runs}/${d.total}) — opponents will drop into coverage</li>`;
-      }
+    // Thin view over StatsEngine's canonical self-scout — single source of
+    // truth for run/pass classification, lean thresholds, and min-sample
+    // gates (previously duplicated here with its own _isRun and cutoffs).
+    const report = this.statsEngine.generateSelfScout(
+      this._allPlays().filter(p => p.tags));
+    if (!report) {
+      return `
+        <div class="stats-section">
+          <h3>Self-Scout Report</h3>
+          <p class="self-scout-intro">Tag Run/Pass on your offensive plays to see what an opponent watching your film would key on.</p>
+        </div>
+      `;
     }
 
-    // Down & distance: 3rd & long pass tell?
-    const thirdLong = allPlays.filter(p => p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7);
-    const thirdLongPass = thirdLong.filter(p => !this._isRun(p)).length;
-    let ddFlags = '';
-    if (thirdLong.length >= 5) {
-      const passPct = (thirdLongPass / thirdLong.length) * 100;
-      if (passPct >= 90) ddFlags += `<li><b>3rd &amp; Long</b>: ${passPct.toFixed(0)}% pass (${thirdLongPass}/${thirdLong.length}) — predictable; consider a draw or screen</li>`;
-    }
-
-    // Hash tendencies
-    const hashMap = { Left: { runs: 0, total: 0 }, Right: { runs: 0, total: 0 }, Middle: { runs: 0, total: 0 } };
-    allPlays.forEach(p => {
-      const h = p.tags.hash;
-      if (!hashMap[h]) return;
-      hashMap[h].total++;
-      if (this._isRun(p)) hashMap[h].runs++;
-    });
-    let hashFlags = '';
-    for (const [h, d] of Object.entries(hashMap)) {
-      if (d.total < 5) continue;
-      const runPct = (d.runs / d.total) * 100;
-      if (runPct >= 75 || runPct <= 25) {
-        const tendency = runPct >= 75 ? 'run' : 'pass';
-        hashFlags += `<li><b>${h} hash</b>: ${tendency === 'run' ? runPct : 100 - runPct}% ${tendency} (${d.total} plays) — strong hash tendency</li>`;
-      }
-    }
-
-    let allFlags = formationFlags + ddFlags + hashFlags;
-    if (!allFlags) allFlags = '<li class="ok">No major tendencies detected (need 5+ plays per category to flag).</li>';
+    let flags = report.tells.map(t => {
+      const counter = t.lean === 'Run'
+        ? 'play-action or a quick game pass off the same look'
+        : 'a draw, screen, or run off the same look';
+      return `<li><b>${this._escape(t.label)}</b>: ${t.lean.toLowerCase()} ${t.leanPct}% (${t.n} plays) — consider ${counter}</li>`;
+    }).join('');
+    if (!flags) flags = '<li class="ok">No strong tells detected at the current sample size — your run/pass mix is well balanced.</li>';
 
     return `
       <div class="stats-section">
         <h3>Self-Scout Report</h3>
-        <p class="self-scout-intro">What an opponent watching your film would notice:</p>
-        <ul class="self-scout">${allFlags}</ul>
+        <p class="self-scout-intro">Predictability <b>${report.predictability}/100</b> (${report.predLabel}) across ${report.totalPlays} run/pass plays. What an opponent watching your film would notice:</p>
+        <ul class="self-scout">${flags}</ul>
       </div>
     `;
   }
@@ -657,7 +634,7 @@ tr:nth-child(even){background:#f4f4f8}
 /* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
    stack bars) reference app CSS vars and chart classes — define them here so
    the standalone report isn't half-blank. */
-body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd}
+body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
 .tendency-run{background:#f0b429;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
@@ -709,13 +686,5 @@ ${body}
 
   _escape(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
-
-  // Run/pass classification: explicit runPass tag wins, else infer from playType.
-  _isRun(p) {
-    const rp = p.tags && p.tags.runPass;
-    if (rp === 'Run') return true;
-    if (rp === 'Pass') return false;
-    return !!(p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
   }
 }
