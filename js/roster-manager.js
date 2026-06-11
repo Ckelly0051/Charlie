@@ -63,10 +63,36 @@ export class RosterManager {
       el.addEventListener('focus', () => { this.activeRole = role; this._markActiveRole(); });
     }
 
-    // Refresh chip highlights when a different play is selected.
+    // Refresh chip highlights when a different play is selected, and default
+    // the stamped role to the play's unit (defense → tackler, ST → kicker/
+    // returner) — otherwise every defensive series silently stamps Ball
+    // Carrier until the coach remembers to tap the Tackler input first.
     if (this.tagger) {
-      this.tagger.on('play-selected', () => this.refreshActiveChips());
+      this.tagger.on('play-selected', (play) => {
+        this._defaultRoleForUnit(play?.tags?.unit);
+        this.refreshActiveChips();
+      });
+      this.tagger.on('play-updated', (play) => {
+        // Unit toggle changes arrive as play-updated; follow them too.
+        if (play && play.id === this.tagger.currentPlayId) {
+          this._defaultRoleForUnit(play.tags?.unit);
+        }
+      });
     }
+  }
+
+  /** Pick the natural stamping role for the play's unit, unless the coach has
+   *  explicitly focused a role input on this play (focus always wins). */
+  _defaultRoleForUnit(unit) {
+    const wanted = unit === 'defense' ? 'tackler'
+      : unit === 'special' ? (this.tagger?.getCurrentPlay()?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
+      : 'ballCarrier';
+    if (this.activeRole === wanted) return;
+    // Don't fight an input the coach is actively typing in.
+    const focused = document.activeElement;
+    if (focused && Object.values(this.roleInputs).includes(focused)) return;
+    this.activeRole = wanted;
+    this._markActiveRole();
   }
 
   // --- Roster CRUD ---
@@ -160,8 +186,10 @@ export class RosterManager {
     });
   }
 
-  /** Players relevant to the active role: offense roles show O/B, tackler shows D/B. */
+  /** Players relevant to the active role: offense roles show O/B, tackler
+   *  shows D/B, special-teams roles (kicker/returner) show everyone. */
   _playersForRole(role) {
+    if (role === 'kicker' || role === 'returner') return this.players;
     const wantSide = role === 'tackler' ? 'D' : 'O';
     const filtered = this.players.filter(p => p.side === wantSide || p.side === 'B' || !p.side);
     return filtered.length ? filtered : this.players;

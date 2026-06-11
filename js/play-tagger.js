@@ -618,10 +618,13 @@ export class PlayTagger {
   }
 
   /** Save the current play's scheme tags as a named, reusable template. */
-  saveTemplate() {
+  async saveTemplate() {
     const play = this.getCurrentPlay();
-    if (!play) { alert('Select a play first, then save its tags as a template.'); return; }
-    const name = (prompt('Template name (e.g. "Gun Trips Rt / 4-3 Cover 3"):') || '').trim();
+    if (!play) { this.toast?.('Select a play first, then save its tags as a template.'); return; }
+    // In-app prompt: window.prompt() gets suppressed like confirm() does
+    // (Key Decision #8) and then "Save…" silently does nothing.
+    const name = ((await this._promptDialog(
+      'Template name', 'Save Template', 'e.g. "Gun Trips Rt / 4-3 Cover 3"')) || '').trim();
     if (!name) return;
     const store = this._templateStore();
     const subset = {};
@@ -643,9 +646,11 @@ export class PlayTagger {
     this._emit('play-updated', play);
   }
 
-  deleteSelectedTemplate() {
+  async deleteSelectedTemplate() {
     if (!this.templateSelect || !this.templateSelect.value) return;
     const name = this.templateSelect.value;
+    const ok = await this._confirmDialog(`Delete the template "${name}"?`, 'Delete Template');
+    if (!ok) return;
     const store = this._templateStore();
     delete store[name];
     this._saveTemplateStore(store);
@@ -701,6 +706,55 @@ export class PlayTagger {
     });
   }
 
+  /**
+   * In-app text prompt (same shell as _confirmDialog — window.prompt() gets
+   * suppressed by browsers too). Resolves the entered string, or null on
+   * cancel/Esc/backdrop.
+   */
+  _promptDialog(message, confirmLabel = 'Save', placeholder = '') {
+    return new Promise(resolve => {
+      const prev = document.getElementById('ffaConfirmModal');
+      if (prev) prev.remove();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'ffa-confirm-modal';
+      overlay.id = 'ffaConfirmModal';
+      overlay.innerHTML = `
+        <div class="ffa-confirm-backdrop"></div>
+        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
+          <p class="ffa-confirm-msg"></p>
+          <input type="text" class="ffa-confirm-input" />
+          <div class="ffa-confirm-actions">
+            <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary" data-act="ok"></button>
+          </div>
+        </div>`;
+      overlay.querySelector('.ffa-confirm-msg').textContent = message;
+      overlay.querySelector('[data-act="ok"]').textContent = confirmLabel;
+      const input = overlay.querySelector('.ffa-confirm-input');
+      input.placeholder = placeholder;
+      document.body.appendChild(overlay);
+
+      const cleanup = (val) => {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        resolve(val);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
+        else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(input.value); }
+        else e.stopPropagation();   // typing must not fire tagging shortcuts
+      };
+      overlay.addEventListener('click', (e) => {
+        const act = e.target.dataset ? e.target.dataset.act : null;
+        if (act === 'ok') cleanup(input.value);
+        else if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) cleanup(null);
+      });
+      document.addEventListener('keydown', onKey, true);
+      input.focus();
+    });
+  }
+
   selectPlay(id) {
     this.currentPlayId = id;
     const play = this.getPlay(id);
@@ -733,6 +787,12 @@ export class PlayTagger {
     const play = this.getCurrentPlay();
     if (!play) return;
     play.tags[key] = this.tagFields[key].value;
+
+    // The coach edited the situation by hand — it's theirs now. Auto D&D
+    // stops refreshing these values on this play.
+    if (play._autoSit && (key === 'down' || key === 'distance' || key === 'fieldSide' || key === 'yardLine')) {
+      play._autoSit = false;
+    }
 
     // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
     // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
@@ -1067,11 +1127,31 @@ export class PlayTagger {
     return { down: String(nextDown), distance: String(nextDist), fieldSide, yardLine };
   }
 
-  /** Pre-fill the next play's situation, without overwriting existing tags. */
+  /**
+   * Pre-fill the next play's situation. The coach's own entries always win:
+   * a down the coach typed (or imported data) is never touched. But values
+   * THIS feature wrote earlier are marked (`play._autoSit`) and stay live —
+   * correcting the previous play's yardage/result and advancing again
+   * re-computes them, so a fixed play never strands a stale auto-filled
+   * situation downstream. Any manual edit to down/distance/field position
+   * clears the mark and freezes the values (see _saveField).
+   */
   applyNextSituation(prev, next) {
-    if (next.tags.down) return; // already has a down — respect manual/imported data
+    if (next.tags.down && !next._autoSit) return; // coach/imported data — hands off
     const sit = this.computeNextSituation(prev);
-    if (!sit) return;
+    if (!sit) {
+      // Possession now ends on the corrected previous play — the situation we
+      // auto-filled before is wrong. Blank it (only ever touches auto values).
+      if (next._autoSit) {
+        next.tags.down = '';
+        next.tags.distance = '';
+        next._autoSit = false;
+        this._loadTagForm(next);
+        this._updateTimeline();
+        this._emit('play-updated', next);
+      }
+      return;
+    }
     next.tags.down = sit.down;
     next.tags.distance = sit.distance;
     if (sit.fieldSide != null) next.tags.fieldSide = sit.fieldSide;
@@ -1079,6 +1159,7 @@ export class PlayTagger {
     // Same drive/quarter continues unless already set.
     if (!next.tags.quarter && prev.tags.quarter) next.tags.quarter = prev.tags.quarter;
     if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
+    next._autoSit = true;
     this._loadTagForm(next);
     this._updateTimeline();
     this._emit('play-updated', next);

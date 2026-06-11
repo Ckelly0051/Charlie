@@ -38,7 +38,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.6.3';
+const APP_VERSION = '1.7.0';
 
 class App {
   constructor() {
@@ -794,26 +794,28 @@ class App {
           e.preventDefault();
           this.tagger.markEnd();
           break;
-        // Drawing-tool digits only arm when NO play is selected — while
-        // tagging, a stray digit must never silently switch to the crosshair
-        // (the next video click would drop an annotation).
+        // Drawing-tool digits arm when no play is selected OR the settings
+        // drawer (Drawing Tools panel) is open — a play is now auto-selected
+        // the moment film loads, so "no play selected" alone was unreachable.
+        // While tagging with the drawer closed, a stray digit must never
+        // silently switch to the crosshair.
         case 'Digit1':
-          if (!this.tagger.currentPlayId) this._selectTool('line');
+          if (this._drawingArmed()) this._selectTool('line');
           break;
         case 'Digit2':
-          if (!this.tagger.currentPlayId) this._selectTool('arrow');
+          if (this._drawingArmed()) this._selectTool('arrow');
           break;
         case 'Digit3':
-          if (!this.tagger.currentPlayId) this._selectTool('circle');
+          if (this._drawingArmed()) this._selectTool('circle');
           break;
         case 'Digit4':
-          if (!this.tagger.currentPlayId) this._selectTool('rect');
+          if (this._drawingArmed()) this._selectTool('rect');
           break;
         case 'Digit5':
-          if (!this.tagger.currentPlayId) this._selectTool('freehand');
+          if (this._drawingArmed()) this._selectTool('freehand');
           break;
         case 'Digit6':
-          if (!this.tagger.currentPlayId) this._selectTool('text');
+          if (this._drawingArmed()) this._selectTool('text');
           break;
         case 'Escape':
           this._selectTool(null);
@@ -877,6 +879,12 @@ class App {
         this.canvas.clearAllAnnotations();
       }
     });
+  }
+
+  /** Digits switch drawing tools only when drawing is plausibly intended. */
+  _drawingArmed() {
+    return !this.tagger.currentPlayId ||
+      document.querySelector('.settings-drawer')?.classList.contains('open');
   }
 
   _selectTool(toolName) {
@@ -1828,7 +1836,8 @@ class App {
 
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      this._advancePlay();
+      if (e.shiftKey) this.tagger.prevPlay();   // Shift+Enter = back one play
+      else this._advancePlay();
       return true;
     }
 

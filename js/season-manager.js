@@ -654,6 +654,43 @@ tr:nth-child(even){background:#f4f4f8}
 .prog-arrow{margin:0 2px}
 .prog-tag{font-size:11px;font-weight:bold}
 .prog-card.prog-better .prog-tag{color:#1f9d4d}.prog-card.prog-worse .prog-tag{color:#d23b3b}.prog-card.prog-flat .prog-tag{color:#888}
+/* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
+   stack bars) reference app CSS vars and chart classes — define them here so
+   the standalone report isn't half-blank. */
+body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd}
+.stats-section{margin:18px 0}
+.tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
+.tendency-run{background:#f0b429;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
+.tendency-pass{background:#38bdf8;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
+.chart-gauge{display:inline-block;vertical-align:top;margin:6px 12px 6px 0;text-align:center}
+.chart-gauge-label{font-size:11px;color:#666;margin-top:2px}
+.chart-donut{vertical-align:top}
+.chart-donut-wrap{display:inline-flex;align-items:center;gap:10px;margin:6px 14px 6px 0}
+.chart-legend{font-size:12px}
+.chart-leg-item{display:flex;align-items:center;gap:6px;margin:2px 0}
+.chart-leg-item i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.eff-gauges-row,.sit-gauges-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.eff-side-cards{display:flex;gap:10px}
+.stat-card-sm{border:1px solid #ddd;border-radius:6px;padding:8px 12px;background:#f9f9fb;text-align:center}
+.stat-card-title{font-size:10px;text-transform:uppercase;color:#666}
+.chart-eff{font-size:12px}
+.chart-eff-head{display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:4px}
+.chart-eff-head .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 3px 0 8px}
+.dot.run{background:#f0b429}.dot.pass{background:#38bdf8}
+.chart-eff-row{display:flex;align-items:center;gap:8px;margin:4px 0}
+.chart-eff-label{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.chart-eff-bar-wrap{flex:1}
+.chart-eff-track{height:16px;background:#eee;border-radius:3px;overflow:hidden}
+.chart-eff-fill{height:100%;background:#38bdf8;border-radius:3px;overflow:hidden}
+.chart-eff-run{height:100%;background:#f0b429}
+.chart-eff-meta,.chart-eff-meta-head{display:flex;gap:4px;font-variant-numeric:tabular-nums}
+.chart-eff-meta span{display:inline-block;width:50px;text-align:right}
+.chart-stack{display:flex;min-width:90px;border-radius:3px;overflow:hidden;background:#eee}
+.chart-stack-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#111}
+.stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cut-row{cursor:default}
+.stats-cut-hint{display:none}
+svg text{fill:#222}
 </style></head><body>
 <h1>${title}</h1>
 <p style="color:#666">Generated ${new Date().toLocaleString()}</p>
