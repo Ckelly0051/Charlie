@@ -4798,6 +4798,12 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 }
 .cut-row:hover td:first-child::before,
 .chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
+/* Season overlay reuses the same renderers but never binds the click —
+   neutralize the affordance there so rows don't look clickable. */
+#seasonOverlay .cut-row { cursor: default; }
+#seasonOverlay .cut-row:hover { background: transparent; }
+#seasonOverlay .cut-row td:first-child::before,
+#seasonOverlay .chart-eff-row.cut-row .chart-eff-label::before { content: none; }
 .stats-cut-hint {
   font-size: 12px;
   color: var(--text-dim);
@@ -5750,18 +5756,41 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* Pin the nav bar to the bottom so the coach never has to scroll     */
 /* past the form to reach Save & Next.                                */
 /* ================================================================== */
-@media (min-width: 1100px) {
+.tag-section .tag-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--surface);
+  padding: 10px 12px 8px;
+  margin: 4px -12px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
+}
+/* Mobile: clear the bottom tab bar so Save & Next isn't hidden behind it. */
+@media (max-width: 800px) {
   .tag-section .tag-nav {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    background: var(--surface);
-    padding: 10px 12px 8px;
-    margin: 4px -12px 0;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    margin: 4px 0 0;
   }
+}
+
+/* Multi-select affordance: these groups ADD on tap instead of replacing.
+   Active chips get a small corner tick so a second selection reads as
+   intentional stacking, not a UI bug. */
+.pick-group.multi .pick.active::after {
+  content: '✓';
+  font-size: 8px;
+  font-weight: 800;
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+/* Tablets: width-based breakpoints leave 801–1099px iPads with mouse-size
+   chips. Key comfortable tap targets on coarse pointers instead. */
+@media (pointer: coarse) {
+  .tag-section .pick-group { gap: 8px; }
+  .tag-section .pick { padding: 11px 15px; font-size: 14px; min-height: 42px; }
 }
 
 /* ================================================================== */
@@ -6703,6 +6732,14 @@ body {
 .sch-status.open { color: #22d3ee; }
 .sch-open-link { color: #6ea8ff; font-weight: 600; white-space: nowrap; }
 .sch-row:hover .sch-open-link { text-decoration: underline; }
+.sch-del {
+  background: none; border: none; color: #9fb1c9; cursor: pointer;
+  font-size: 12px; padding: 4px 7px; margin-left: 8px; border-radius: 4px;
+  opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.sch-row:hover .sch-del { opacity: 1; }
+.sch-del:hover { color: #f87171; background: rgba(248,113,113,0.12); }
+@media (pointer: coarse) { .sch-del { opacity: 0.6; } }
 .sch-empty { text-align: center; color: #9fb1c9; padding: 28px 10px; }
 
 /* Team card (library home — above seasons list) */
@@ -7484,6 +7521,9 @@ td.pg-cell-focus {
               <svg class="icon"><use href="#icon-film"/></svg> Cut-Up Video
             </button>
             <div class="more-divider"></div>
+            <button class="btn" id="btnSaveMenu" title="Save the season now and create a restore point">
+              <svg class="icon"><use href="#icon-save"/></svg> Save Season
+            </button>
             <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
               <svg class="icon"><use href="#icon-stats"/></svg> Season Stats
             </button>
@@ -7752,7 +7792,7 @@ td.pg-cell-focus {
                 </div>
                 <div class="chip-section">
                   <label class="chip-label">Blitz</label>
-                  <div class="pick-group" id="tagBlitz">
+                  <div class="pick-group multi" id="tagBlitz">
                     <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
                     <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
                     <button class="pick" data-value="C-Gap" type="button">C-Gap</button>
@@ -7823,7 +7863,7 @@ td.pg-cell-focus {
           </div>
           <div class="chip-section core-hide-st">
             <label class="chip-label">Play Type</label>
-            <div class="pick-group" id="tagPlayType">
+            <div class="pick-group multi" id="tagPlayType">
               <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
               <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
               <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
@@ -7846,7 +7886,7 @@ td.pg-cell-focus {
 
           <div class="chip-section">
             <label class="chip-label">Result</label>
-            <div class="pick-group" id="tagResult">
+            <div class="pick-group multi" id="tagResult">
               <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
               <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
               <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>
@@ -8897,6 +8937,8 @@ class VideoController {
       if (files.length > 0) {
         this._showFolderBadge(files);
         this._emit('files-selected', { files });
+      } else if (e.dataTransfer.files.length || (items && items.length)) {
+        alert('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
       }
     });
 
@@ -8978,6 +9020,13 @@ class VideoController {
     this.video.addEventListener('error', () => {
       this.video.classList.remove('is-buffering');
       this._updatePlayPauseIcon(false);
+      // Only surface decode failures for a real attempted load — not the
+      // empty-src error fired by unloadVideo()'s load() call.
+      if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
+      const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
+      this.placeholder.classList.remove('hidden');
+      this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
+      this._emit('video-error', { name });
     });
     this.video.addEventListener('seeked', () => {
       this.video.classList.remove('is-buffering');
@@ -9793,6 +9842,10 @@ class ChipField {
   constructor(el, opts = {}) {
     this.el = el;
     this.multi = !!opts.multi;       // allow multiple chips active at once
+    // Groups of mutually exclusive values within a multi field: adding one
+    // removes its rivals (e.g. a play can't be both Gain and Loss, but can be
+    // Fumble + Touchdown). Array of arrays.
+    this.exclusive = opts.exclusive || [];
     this._value = '';
     this._values = [];               // selected values when multi
     this._listeners = {};
@@ -9804,7 +9857,7 @@ class ChipField {
         if (this.multi) {
           const i = this._values.indexOf(v);
           if (i >= 0) this._values.splice(i, 1);
-          else this._values.push(v);
+          else { this._dropRivals(v); this._values.push(v); }
           this._syncMulti();
         } else {
           this.value = this._value === v ? '' : v;
@@ -9812,6 +9865,13 @@ class ChipField {
         this._fire('change');
       });
     });
+  }
+  /** Remove values that are mutually exclusive with v (multi mode). */
+  _dropRivals(v) {
+    for (const group of this.exclusive) {
+      if (!group.includes(v)) continue;
+      this._values = this._values.filter(x => x === v || !group.includes(x));
+    }
   }
   // For multi fields .value is a " + "-joined string (e.g. "Pistol + Spread")
   // so the rest of the tagger and all downstream consumers keep treating the
@@ -9834,7 +9894,8 @@ class ChipField {
   toggle(v) {
     if (this.multi) {
       const i = this._values.indexOf(v);
-      if (i >= 0) this._values.splice(i, 1); else this._values.push(v);
+      if (i >= 0) this._values.splice(i, 1);
+      else { this._dropRivals(v); this._values.push(v); }
       this._syncMulti();
     } else {
       this.value = this._value === v ? '' : v;
@@ -9888,10 +9949,22 @@ class PlayTagger {
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
     // Def Front: a base front plus a shift package (e.g. "Maverick + Jumbo Shift").
     const multiFields = new Set(['formation', 'playType', 'result', 'blitz', 'defFront']);
+    // Within multi-select Result, the base outcomes are mutually exclusive —
+    // a play can't be Gain AND Loss. Picking one replaces its rivals, so a
+    // correction tap (or keyboard key) never leaves "Gain + Loss" behind.
+    // Combinable results (Fumble + Touchdown, Interception + Touchdown,
+    // Sack + Fumble, Penalty + anything) are unaffected.
+    const exclusiveMap = {
+      result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
+               ['Good', 'No Good']],
+      // One realized look per play; RPO / Play Action / Trick Play combine
+      // with the look ("RPO + Short Pass"), not with each other's looks.
+      playType: [['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass']],
+    };
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
-        ? new ChipField(el, { multi: multiFields.has(key) })
+        ? new ChipField(el, { multi: multiFields.has(key), exclusive: exclusiveMap[key] })
         : el;
     }
 
@@ -10208,7 +10281,14 @@ class PlayTagger {
       notes: ''
     };
 
-    this.plays.push(play);
+    // Insert in chronological order — a play marked after scrubbing back must
+    // not land at the end of the list, or Save & Next and Auto D&D would jump
+    // from it to the wrong neighbor. (Single-video mode only; multi-clip plays
+    // are clip-relative and stay in playlist order.)
+    const insertAt = (this.playlist && this.playlist.hasClips) ? this.plays.length
+      : this.plays.findIndex(p => (p.timestamp?.start ?? 0) > play.timestamp.start);
+    if (insertAt === -1 || insertAt >= this.plays.length) this.plays.push(play);
+    else this.plays.splice(insertAt, 0, play);
     this.pendingStart = null;
     this.btnMarkStart.textContent = 'Mark Start';
     this.btnMarkStart.classList.remove('btn-active');
@@ -10242,10 +10322,15 @@ class PlayTagger {
     // Use an in-app modal instead of native confirm(): browsers suppress
     // repeated confirm() dialogs ("prevent additional dialogs"), which made
     // delete silently do nothing.
+    // Single-video mode: only the LAST play takes the video with it — deleting
+    // one of several marked plays must not nuke the film and every other play.
+    const lastSingle = !inPlaylist && this.plays.length <= 1;
     const ok = await this._confirmDialog(
       inPlaylist
         ? `Delete Play ${id} and remove its clip from the playlist? The remaining videos stay loaded (your source file is not deleted).`
-        : `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
+        : lastSingle
+          ? `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`
+          : `Delete Play ${id}? The video and your other plays stay loaded.`,
       'Delete Play'
     );
     if (!ok) return;
@@ -10262,14 +10347,21 @@ class PlayTagger {
       return;
     }
 
-    // Single-video mode: remove the play and clear the player.
+    // Single-video mode: remove the play. Keep the film loaded while other
+    // plays remain — select the adjacent play so tagging flows on.
+    const idx = this.plays.findIndex(p => p.id === id);
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
     this._updatePlaySelect();
     this._updateTimeline();
     this._emit('play-deleted');
-    // Remove the loaded video from the player (does NOT delete the file).
+    if (this.plays.length > 0) {
+      const next = this.plays[Math.min(Math.max(idx, 0), this.plays.length - 1)];
+      if (next) this.selectPlay(next.id);
+      return;
+    }
+    // Last play gone: clear the player too (does NOT delete the file).
     if (this.vc && typeof this.vc.unloadVideo === 'function') {
       this.vc.unloadVideo();
     }
@@ -10289,7 +10381,7 @@ class PlayTagger {
     const play = id ? this.getPlay(id) : null;
 
     const msg = play
-      ? `Clear all tags on Play ${id}? Only the tag values reset — the play and video stay.`
+      ? `Clear all tags and notes on Play ${id}? The play and video stay.`
       : 'Clear the current tag selections?';
     const ok = await this._confirmDialog(msg, 'Clear Tags');
     if (!ok) return;
@@ -10313,6 +10405,10 @@ class PlayTagger {
     this._clearTagForm();
     const notesEl = document.getElementById('notesArea');
     if (notesEl) notesEl.value = '';
+    // Custom-field chips and roster quick-pick chips render outside the core
+    // form and only refresh on play-selected — re-announce the (now blank)
+    // play so they don't stay lit and read as "the clear didn't work".
+    if (play) this._emit('play-selected', play);
   }
 
   // --- Copy-from-previous + reusable tag templates ----------------------
@@ -10640,6 +10736,16 @@ class PlayTagger {
       groups.offense && groups.offense.classList.add('is-hidden');
       groups.defense && groups.defense.classList.add('is-hidden');
     }
+
+    // Special teams: the results that matter (Good / No Good / Field Goal)
+    // live in the "More" expander — open it so charting the kicking game
+    // doesn't cost an extra tap on every play.
+    if (this.resultRareWrap && this.btnResultMore) {
+      const showRare = unit === 'special' || !!this.resultRareWrap.querySelector('.pick.active');
+      this.resultRareWrap.classList.toggle('show', showRare);
+      this.btnResultMore.classList.toggle('open', showRare);
+      this.btnResultMore.textContent = showRare ? 'Less ▴' : 'More ▾';
+    }
   }
 
   _clearTagForm() {
@@ -10724,9 +10830,27 @@ class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
-    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Safety']);
+    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Safety']);
     const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (resultParts.some(r => stop.has(r))) return null;
+
+    // Spike/Kneel burn a down within the same possession (2nd & 10 → spike →
+    // 3rd & 10) — exactly the two-minute / victory situations where re-typing
+    // the situation hurts most. Treat as a 0-yard play at the same spot.
+    if (resultParts.includes('Spike') || resultParts.includes('Kneel')) {
+      const down = parseInt(t.down);
+      const distance = parseInt(t.distance);
+      if (!down || isNaN(distance) || down >= 4) return null;
+      const sameSpot = { fieldSide: null, yardLine: null };
+      if (t.unit === 'offense' || !t.unit) {
+        const abs = this._absYL(t);
+        if (abs != null) {
+          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
+          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
+        }
+      }
+      return { down: String(down + 1), distance: String(distance), ...sameSpot };
+    }
 
     const down = parseInt(t.down);
     const distance = parseInt(t.distance);
@@ -10831,6 +10955,33 @@ class PlayTagger {
 
   _updateTimeline() {
     this.timelineBar.innerHTML = '';
+
+    // Multi-clip mode: per-play timestamps are all clip-relative (0..clipDur),
+    // so positioning them against the CURRENT clip's duration stacks every
+    // play at left:0. Render one equal segment per play in playlist order
+    // instead — the strip becomes a clip navigator.
+    const playlist = this.playlist;
+    if (playlist && playlist.hasClips) {
+      const n = this.plays.length;
+      if (!n) return;
+      this.plays.forEach((p, i) => {
+        const div = document.createElement('div');
+        let typeClass = 'other';
+        const rp = p.tags.runPass;
+        const t = (p.tags.playType || '').toLowerCase();
+        if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
+        else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
+        div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
+        div.style.left = (i / n) * 100 + '%';
+        div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
+        div.textContent = n <= 40 ? `${p.id}` : '';
+        div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+        div.addEventListener('click', () => this.selectPlay(p.id));
+        this.timelineBar.appendChild(div);
+      });
+      return;
+    }
+
     const duration = this.vc.duration;
     if (!duration) return;
 
@@ -10860,6 +11011,9 @@ class PlayTagger {
     const container = document.getElementById('scrubBarPlays');
     if (!container) return;
     container.innerHTML = '';
+    // Multi-clip mode: clip-relative timestamps would draw one overlapping
+    // blob over the whole bar — the scrub bar tracks ONE clip, so skip them.
+    if (this.playlist && this.playlist.hasClips) return;
     const duration = this.vc.duration;
     if (!duration) return;
 
@@ -12848,6 +13002,8 @@ class StorageManager {
 
   _bindEvents() {
     this.btnSave.addEventListener('click', () => this.saveProject());
+    // Mobile hides the top-bar Save; the More menu keeps a first-class one.
+    document.getElementById('btnSaveMenu')?.addEventListener('click', () => this.saveProject());
 
     this.btnLoad.addEventListener('click', () => {
       this.projectFileInput.click();
@@ -13125,9 +13281,13 @@ class StorageManager {
     this.commitActive();
     // Don't stack empty husks: if the active game is still blank (no plays,
     // no film, no identity), "New Game" just re-presents it instead of
-    // leaving a stray "Game N — 0 plays" in the schedule.
-    if (!this.seasonStore.isEmptyActive()) {
+    // leaving a stray "Game N — 0 plays" in the schedule. Tell the coach —
+    // a click that closes the menu and changes nothing reads as broken.
+    const reused = this.seasonStore.isEmptyActive();
+    if (!reused) {
       this.seasonStore.addGame();
+    } else {
+      window.app?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
     }
     this.seasonStore.persist();
     this._clearForNewGame();
@@ -13136,6 +13296,8 @@ class StorageManager {
   }
 
   removeGame(id) {
+    // Risky op: force a restore point of the pre-delete state.
+    this._maybeSnapshot(true, 'Before deleting game');
     const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
     const backend = this.seasonStore.backend;
     if (backend.supportsFilm && backend.supportsFilm()) {
@@ -15150,14 +15312,24 @@ class PlaylistManager {
   async _autoCreatePlays() {
     let created = false;
     let firstNewId = null;
-    for (const clip of this.clips) {
-      if (clip.playId !== null) continue;
-      const source = clip.assetUrl || clip.file;
-      if (source) clip.duration = await this._probeDuration(source);
-
+    const newClips = this.clips.filter(c => c.playId === null);
+    // Probe durations in parallel (capped) — serial probing made a 100-clip
+    // folder take many seconds before the first play existed.
+    const POOL = 8;
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(POOL, newClips.length) }, async () => {
+      while (next < newClips.length) {
+        const clip = newClips[next++];
+        const source = clip.assetUrl || clip.file;
+        if (source) clip.duration = await this._probeDuration(source);
+      }
+    }));
+    for (const clip of newClips) {
       const play = {
         id: this.tagger.nextId++,
-        timestamp: { start: 0, end: clip.duration || 0 },
+        // Unknown duration (probe failed / corrupt clip) → large sentinel end,
+        // so a cut-up doesn't instantly skip a play whose end would be 0.
+        timestamp: { start: 0, end: clip.duration || 999 },
         tags: {
           down: '', distance: '', formation: '', playType: '', runPass: '',
           defFront: '', coverage: '', blitz: '', result: '', yardage: '',
@@ -17036,9 +17208,9 @@ class StatsEngine {
     // playType and would otherwise be filtered out below.
     let convSource = (playsOverride || (this.tagger ? this.tagger.plays : [])).filter(p => p && p.tags);
     if (playsOverride) {
-      plays = playsOverride.filter(p => p.tags && p.tags.playType);
+      plays = playsOverride.filter(p => p.tags && (p.tags.playType || p.tags.runPass));
     } else {
-      plays = this.tagger.plays.filter(p => p.tags.playType);
+      plays = this.tagger.plays.filter(p => p.tags.playType || p.tags.runPass);
       filterActive = this.filter && this.filter.active;
       if (filterActive) {
         plays = this.filter.filter(plays);
@@ -17992,7 +18164,7 @@ class StatsEngine {
       const players = p.tags.players || {};
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
-      const isPass = !isRun;
+      const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
@@ -18040,7 +18212,8 @@ class StatsEngine {
       if (players.passer && isPass) {
         const id = players.passer;
         if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0 };
-        if (!StatsEngine.hasResult(p, 'Sack')) passers[id].attempts++;
+        // Attempts = completions + incompletions + INTs (matches team C/A).
+        if (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) passers[id].attempts++;
         if (isComplete) {
           passers[id].completions++;
           passers[id].yards += yds;
@@ -18082,7 +18255,8 @@ class StatsEngine {
         tacklers[id].tackles++;
         if (shared) tacklers[id].assists++; else tacklers[id].solo++;
         if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
-        if (yds < 0) tacklers[id].tfl++;
+        // TFL excludes sacks — matches the team-level definition.
+        else if (yds < 0) tacklers[id].tfl++;
         // Defensive takeaways credited to the defender(s) on the play.
         if (isDefPlay && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
         if (isDefPlay && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
@@ -18175,15 +18349,20 @@ class StatsEngine {
       </div>
     `;
 
-    // Tab switching
+    // Tab switching (remember the last tab so re-opening lands where the
+    // coach left off instead of resetting to Game every time)
     el.querySelectorAll('.stats-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         el.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
         el.querySelectorAll('.stats-tab-pane').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         el.querySelector(`.stats-tab-pane[data-pane="${tab.dataset.tab}"]`).classList.add('active');
+        this._lastTab = tab.dataset.tab;
       });
     });
+    if (this._lastTab && this._lastTab !== 'game') {
+      el.querySelector(`.stats-tab[data-tab="${this._lastTab}"]`)?.click();
+    }
 
     // Rebind close button
     el.querySelector('#btnCloseStatsInner').addEventListener('click', () => this.hideDashboard());
@@ -18309,8 +18488,12 @@ class StatsEngine {
    */
   _watchPlays(filter, label) {
     if (typeof filter !== 'function') return;
-    const matches = this.tagger.plays
-      .filter(p => p && p.tags && filter(p))
+    // Stats were computed over the filtered pool — the cut-up must match it,
+    // or the row's count and what actually plays disagree.
+    let pool = this.tagger.plays.filter(p => p && p.tags);
+    if (this.filter && this.filter.active) pool = this.filter.filter(pool);
+    const matches = pool
+      .filter(p => filter(p))
       .sort((a, b) => (a.timestamp?.start || 0) - (b.timestamp?.start || 0));
     if (matches.length === 0) return;
     const playable = matches.filter(p => p.timestamp && p.timestamp.end > p.timestamp.start);
@@ -18320,6 +18503,7 @@ class StatsEngine {
       window.app.cutupPlayer.start(ids, label || `${ids.length} plays`);
     } else {
       this.tagger.selectPlay(ids[0]);
+      this.tagger.toast?.('No video on these plays — selected the first one instead');
     }
   }
 
@@ -18495,14 +18679,21 @@ class StatsEngine {
     const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
     const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
 
-    // Per-quarter table (only quarters that actually have scoring tagged)
-    const order = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'];
-    const quarters = Object.keys(sb.byQuarter).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    // Per-quarter table. Show all four quarters (zeros included) so the row
+    // reads like a real scoreboard; points from plays with no quarter tag go
+    // into an "N/Q" column so the quarters always sum to the Final.
     let qTable = '';
-    if (quarters.length) {
-      const head = quarters.map(q => `<th>${q}</th>`).join('');
-      const usRow = quarters.map(q => `<td>${sb.byQuarter[q].us}</td>`).join('');
-      const themRow = quarters.map(q => `<td>${sb.byQuarter[q].them}</td>`).join('');
+    if (Object.keys(sb.byQuarter).length) {
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+      if (sb.byQuarter['OT']) quarters.push('OT');
+      const qUs = quarters.reduce((s, q) => s + (sb.byQuarter[q]?.us || 0), 0);
+      const qThem = quarters.reduce((s, q) => s + (sb.byQuarter[q]?.them || 0), 0);
+      const untrackedUs = sb.us - qUs;
+      const untrackedThem = sb.them - qThem;
+      const hasUntracked = untrackedUs > 0 || untrackedThem > 0;
+      const head = quarters.map(q => `<th>${q}</th>`).join('') + (hasUntracked ? '<th title="Scoring plays with no quarter tag">N/Q</th>' : '');
+      const usRow = quarters.map(q => `<td>${sb.byQuarter[q]?.us || 0}</td>`).join('') + (hasUntracked ? `<td>${untrackedUs}</td>` : '');
+      const themRow = quarters.map(q => `<td>${sb.byQuarter[q]?.them || 0}</td>`).join('') + (hasUntracked ? `<td>${untrackedThem}</td>` : '');
       qTable = `
         <table class="stats-table scoreboard-quarters">
           <thead><tr><th></th>${head}<th>Final</th></tr></thead>
@@ -18510,7 +18701,7 @@ class StatsEngine {
             <tr><td>${team}</td>${usRow}<td><strong>${sb.us}</strong></td></tr>
             <tr><td>${opp}</td>${themRow}<td><strong>${sb.them}</strong></td></tr>
           </tbody>
-        </table>`;
+        </table>${hasUntracked ? '<p class="viz-caption">N/Q = scoring plays missing a Quarter tag.</p>' : ''}`;
     }
     return `
       <div class="stats-section">
@@ -22510,10 +22701,11 @@ class SeasonManager {
     const games = this._effectiveGames();
     if (games.length < 2) return '';
 
-    const perGame = games.map(g => {
+    const store = window.app?.storage?.seasonStore;
+    const perGame = games.map((g, i) => {
       const stats = this.statsEngine.compute(g.plays);
       return {
-        name: g.name,
+        name: g.name || (store ? store.gameName(g, i) : `Game ${i + 1}`),
         yards: stats.rushing.yards + stats.passing.yards,
         successPct: parseFloat(stats.efficiency.successRate),
         tos: stats.turnovers.total,
@@ -22538,11 +22730,12 @@ class SeasonManager {
         <span class="trend-val">${g.successPct.toFixed(0)}%</span>
       </div>`).join('');
 
+    const maxTdTo = Math.max(1, ...perGame.map(g => g.tds + g.tos));
     const tdToBars = perGame.map(g => `
       <div class="trend-row">
         <span class="trend-label">${this._escape(g.name)}</span>
         <div class="trend-bar">
-          <div style="width:${g.tds * 12}%;background:#44ff44;display:inline-block;height:100%"></div><div style="width:${g.tos * 12}%;background:#ff4444;display:inline-block;height:100%"></div>
+          <div style="width:${(g.tds / maxTdTo) * 100}%;background:#44ff44;display:inline-block;height:100%"></div><div style="width:${(g.tos / maxTdTo) * 100}%;background:#ff4444;display:inline-block;height:100%"></div>
         </div>
         <span class="trend-val">${g.tds}TD / ${g.tos}TO</span>
       </div>`).join('');
@@ -22561,10 +22754,14 @@ class SeasonManager {
 
   _renderPerGameTable() {
     let rows = '';
+    const store = window.app?.storage?.seasonStore;
+    let gi = 0;
     for (const g of this._effectiveGames()) {
       const s = this.statsEngine.compute(g.plays);
+      const label = g.name || (store ? store.gameName(g, gi) : `Game ${gi + 1}`);
+      gi++;
       rows += `<tr>
-        <td>${this._escape(g.name)}</td>
+        <td>${this._escape(label)}</td>
         <td>${s.totalPlays}</td>
         <td>${s.rushing.yards + s.passing.yards}</td>
         <td>${s.rushing.attempts}/${s.rushing.yards}</td>
@@ -22892,10 +23089,14 @@ class SeasonLibrary {
   /** "+ Add Team" → show the setup form in adding mode (with a Cancel). */
   _showAddTeam() {
     this._addingTeam = true;
+    this._showTeamEdit(false);   // don't stack the edit panel under the form
     const setup = document.getElementById('teamSetup');
     const card = document.getElementById('teamCard');
     const cancel = document.getElementById('btnTeamSetupCancel');
     const intro = setup?.querySelector('.library-intro');
+    // Stash the first-run welcome copy so it can be restored if this team is
+    // later removed and the app returns to first-run state.
+    if (intro && !this._introOriginal) this._introOriginal = intro.textContent;
     // Always start blank — a leftover value from first-run setup would be
     // concatenated into the new team's name.
     const nameEl = document.getElementById('teamSetupName');
@@ -22913,6 +23114,8 @@ class SeasonLibrary {
     this._addingTeam = false;
     const cancel = document.getElementById('btnTeamSetupCancel');
     if (cancel) cancel.classList.add('hidden');
+    const intro = document.querySelector('#teamSetup .library-intro');
+    if (intro && this._introOriginal) intro.textContent = this._introOriginal;
     this._renderTeamCard();
   }
 
@@ -22958,6 +23161,10 @@ class SeasonLibrary {
       try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}
       try { localStorage.removeItem('ffa_seen_stats'); } catch (e) {}
       if (window.app?.roster) window.app.roster.loadFrom([]);
+      // Back to first-run: restore the welcome copy "Add another team…"
+      // replaced when _showAddTeam ran.
+      const intro = document.querySelector('#teamSetup .library-intro');
+      if (intro && this._introOriginal) intro.textContent = this._introOriginal;
     }
     this._renderTeamCard();
     await this._render();
@@ -22996,6 +23203,8 @@ class SeasonLibrary {
       // Schedule level (the open season's games — the spine)
       if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
       if (t.closest && t.closest('#btnScheduleNewGame')) { this._newGameFromSchedule(); return; }
+      const delGame = t.closest && t.closest('[data-del-game]');
+      if (delGame) { this._deleteGameFromSchedule(delGame.dataset.delGame); return; }
       const schRow = t.closest && t.closest('.sch-row');
       if (schRow) { this._openGame(schRow.dataset.game); return; }
 
@@ -23012,6 +23221,11 @@ class SeasonLibrary {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this._isOpen() && this._storage()?.seasonStore.hasCurrent()) this.hide();
+      // Checklist items are role=button tabindex=0 — honor Enter/Space.
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.closest) {
+        const gsItem = e.target.closest('.gs-item:not(.done)');
+        if (gsItem) { e.preventDefault(); this._runChecklistAction(gsItem.dataset.step); }
+      }
     });
   }
 
@@ -23077,12 +23291,17 @@ class SeasonLibrary {
     const setup = document.getElementById('teamSetup');
     const seasonsHead = document.querySelector('.team-seasons-head');
     this._renderTeamPills();
+    const newSection = document.querySelector('.library-new');
     if (!this._hasTeam()) {
       if (card) card.classList.add('hidden');
       if (setup) setup.classList.remove('hidden');
       if (seasonsHead) seasonsHead.style.display = 'none';
+      // One guided path on first run: set up the team first. The New Season /
+      // demo CTAs would let a coach create team-less seasons.
+      if (newSection) newSection.style.display = 'none';
       return;
     }
+    if (newSection) newSection.style.display = '';
     if (setup) setup.classList.add('hidden');
     const cancel = document.getElementById('btnTeamSetupCancel');
     if (cancel) cancel.classList.add('hidden');
@@ -23237,7 +23456,7 @@ class SeasonLibrary {
     body.innerHTML = games.map((g, idx) => {
       const r = app._gameRowInfo(g, idx, store, activeId);
       const dot = r.isActive ? 'dot-active' : (r.isFinal ? 'dot-final' : 'dot-idle');
-      const date = r.date ? new Date(r.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+      const date = r.date ? libLocalDate(r.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
       const result = r.hasScore ? app._scorePillHtml(r.u, r.t, 'sch-score') : '<span class="sch-dim">—</span>';
       const status = r.isFinal ? '<span class="sch-status final">Final</span>'
         : (r.isActive ? '<span class="sch-status open">Open</span>' : '<span class="sch-dim">—</span>');
@@ -23248,9 +23467,27 @@ class SeasonLibrary {
         <td>${result}</td>
         <td>${r.plays}</td>
         <td>${status}</td>
-        <td><span class="sch-open-link">${r.isActive ? 'Resume' : 'Open'} →</span></td>
+        <td><span class="sch-open-link">${r.isActive ? 'Resume' : 'Open'} →</span>
+            <button class="sch-del" data-del-game="${esc(g.id)}" title="Delete this game" aria-label="Delete game">✕</button></td>
       </tr>`;
     }).join('');
+  }
+
+  async _deleteGameFromSchedule(id) {
+    const storage = this._storage();
+    const store = storage?.seasonStore;
+    if (!storage || !store) return;
+    const g = (store.data?.games || []).find(x => x.id === id);
+    if (!g) return;
+    const name = g.name || 'this game';
+    const plays = (g.plays || []).length;
+    const tagger = window.app?.tagger;
+    const msg = `Delete "${name}"${plays ? ` and its ${plays} tagged play${plays === 1 ? '' : 's'}` : ''}? This can't be undone (a restore point is saved first).`;
+    const ok = tagger?._confirmDialog ? await tagger._confirmDialog(msg, 'Delete Game') : confirm(msg);
+    if (!ok) return;
+    storage.removeGame(id);
+    this._renderSchedule();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _openGame(id) {
@@ -23349,10 +23586,13 @@ class SeasonLibrary {
     const realSeasons = (seasons || []).filter(s => s.id !== demoId);
     // Season-meta play counts lag a debounced autosave, so also consult the
     // live tagger when a real season is open (a play tagged seconds ago counts).
+    // "Tagged" means the coach actually applied a tag — loading a video
+    // auto-creates placeholder plays, which must NOT check this step off.
     const store = this._storage()?.seasonStore;
+    const hasRealTag = p => p?.tags && (p.tags.playType || p.tags.runPass || p.tags.result || p.tags.formation);
     const liveTagged = store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)
-      && (window.app?.tagger?.plays?.length || 0) > 0;
-    const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0);
+      && (window.app?.tagger?.plays || []).some(hasRealTag);
+    const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0 && s.id !== store?.currentSeasonId);
     let seenStats = false;
     try { seenStats = localStorage.getItem('ffa_seen_stats') === '1'; } catch (e) {}
     return [
@@ -23412,13 +23652,30 @@ class SeasonLibrary {
       return;
     }
     if (step === 'stats') {
-      const store = this._storage()?.seasonStore;
-      if (store?.hasCurrent()) {
+      // Demo stats never set ffa_seen_stats, so the step can't complete from
+      // the demo — prefer an open REAL season; otherwise the demo is still
+      // the best teaching tool (the step completes later on real data).
+      const storage = this._storage();
+      const store = storage?.seasonStore;
+      if (store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)) {
         this.overlay.classList.add('hidden');
         document.getElementById('btnShowStats')?.click();
-      } else {
-        this._exploreDemo();   // nothing to show yet → demo gives instant stats
+        return;
       }
+      storage?.listSeasons().then(seasons => {
+        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId() && (s.plays || 0) > 0);
+        if (real) {
+          this._open(real.id).then(() => {
+            this.overlay.classList.add('hidden');
+            document.getElementById('btnShowStats')?.click();
+          });
+        } else if (store?.hasCurrent()) {
+          this.overlay.classList.add('hidden');
+          document.getElementById('btnShowStats')?.click();
+        } else {
+          this._exploreDemo();   // nothing to show yet → demo gives instant stats
+        }
+      }).catch(() => this._exploreDemo());
       return;
     }
   }
@@ -23426,7 +23683,12 @@ class SeasonLibrary {
   async _exploreDemo() {
     const storage = this._storage();
     if (!storage || !storage.loadDemoSeason) return;
-    try { await storage.loadDemoSeason(); } catch (e) { return; }
+    let demoOk = null;
+    try { demoOk = await storage.loadDemoSeason(); } catch (e) { demoOk = null; }
+    if (demoOk == null) {
+      window.app?.updater?._toast?.('Could not load the demo season — browser storage may be full.');
+      return;
+    }
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     window.app?.updater?._toast?.('Demo season loaded — open a game, then tap Stats to explore. (No film attached.)');
     this.openSchedule();   // land on the populated schedule (two finished games)
@@ -23479,6 +23741,12 @@ class SeasonLibrary {
 }
 
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+/* Parse a YYYY-MM-DD game date as LOCAL time. new Date('2026-09-04') is UTC
+   midnight, which toLocaleDateString renders as Sep 3 anywhere west of UTC. */
+function libLocalDate(str) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(str);
+}
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -23818,6 +24086,12 @@ class CallSheetBuilder {
  * UIPolish - Small interactions for the UX pass: More menu dropdown,
  * mobile sidebar drawer, and outside-click handling.
  */
+/** True when the game-switcher dropdown is NOT open (it owns Esc while open). */
+function uiDropdownClosed() {
+  const dd = document.getElementById('gameDropdown');
+  return !dd || dd.classList.contains('hidden');
+}
+
 class UIPolish {
   constructor() {
     this._initMoreMenu();
@@ -23852,7 +24126,8 @@ class UIPolish {
       if (!menu.contains(e.target) && e.target !== btn) close();
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
+      // The game dropdown owns Escape while open (its own handler closes it).
+      if (e.key === 'Escape' && uiDropdownClosed()) close();
     });
   }
 
@@ -23869,11 +24144,18 @@ class UIPolish {
       document.body.appendChild(scrim);
     }
     const close = () => {
+      const wasAboveLibrary = drawer.classList.contains('drawer-above-library');
       drawer.classList.remove('open');
       scrim.classList.remove('active');
       // Drop the raised z-index used when opened from the library overlay.
       drawer.classList.remove('drawer-above-library');
       scrim.classList.remove('drawer-above-library');
+      // The library underneath shows roster count + checklist state — refresh
+      // them so adding players is acknowledged the moment the drawer closes.
+      if (wasAboveLibrary && window.app?.library) {
+        window.app.library._renderTeamCard?.();
+        window.app.library._render?.();
+      }
     };
     const open = () => {
       drawer.classList.add('open');
@@ -23885,7 +24167,9 @@ class UIPolish {
     scrim.addEventListener('click', close);
     document.getElementById('settingsDrawerClose')?.addEventListener('click', close);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
+      // Yield Escape to the game dropdown when it's open — registration
+      // order means stopImmediatePropagation there can't shield us.
+      if (e.key === 'Escape' && uiDropdownClosed()) close();
     });
     // Expose for the bottom tab bar
     this._closeDrawer = close;
@@ -23923,8 +24207,8 @@ class UIPolish {
         <span>Self-Scout</span>
       </button>
       <button class="bt-tab" data-tab="more" aria-label="More">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        <span>More</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Menu</span>
       </button>
     `;
     document.body.appendChild(nav);
@@ -23974,6 +24258,28 @@ class UIPolish {
 
     // Keep Video tab active by default when closing drawers elsewhere
     this._setBottomTab = setActive;
+
+    // The stats overlay and the drawer both close via their own ✕/backdrop,
+    // which this tab bar can't see — watch them so the highlight never lies
+    // about where the user is.
+    const statsEl = document.getElementById('statsDashboard');
+    if (statsEl) {
+      new MutationObserver(() => {
+        if (statsEl.classList.contains('hidden') &&
+            nav.querySelector('.bt-tab.active')?.dataset.tab !== 'more' &&
+            !drawer?.classList.contains('open')) {
+          setActive('video');
+        }
+      }).observe(statsEl, { attributes: true, attributeFilter: ['class'] });
+    }
+    if (drawer) {
+      new MutationObserver(() => {
+        if (!drawer.classList.contains('open') &&
+            nav.querySelector('.bt-tab.active')?.dataset.tab === 'more') {
+          setActive('video');
+        }
+      }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
+    }
   }
 
   /**
@@ -24031,8 +24337,9 @@ class UIPolish {
       hint.className = 'onboard-hint';
       hint.innerHTML = `
         <div class="onboard-hint-body">
-          <strong>Next step:</strong> Mark a play with <b>[</b> and <b>]</b>,
-          then tag it right below the video.
+          <strong>Ready to tag:</strong> Play 1 was created for this film —
+          tap the chips in the tag form to chart it. (For one continuous game
+          video, use <b>[</b> and <b>]</b> to mark each play's start/end.)
           <button class="onboard-close">Got it</button>
         </div>`;
       document.body.appendChild(hint);
@@ -25170,7 +25477,11 @@ class App {
     list.innerHTML = '';
     games.forEach((g, idx) => {
       const r = this._gameRowInfo(g, idx, store, activeId);
-      const shortDate = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+      // Parse YYYY-MM-DD as LOCAL (a bare ISO date parses as UTC midnight and
+      // shows a day early for US coaches).
+      const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(g.gameInfo?.date || '');
+      const shortDate = dm ? new Date(+dm[1], +dm[2] - 1, +dm[3]).toLocaleDateString([], { month: 'short', day: 'numeric' })
+        : (g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
 
       const row = document.createElement('div');
       row.className = 'gd-row' + (r.isActive ? ' is-active' : '');
@@ -25195,9 +25506,10 @@ class App {
         if (!r.isActive) {
           this.storage.switchToGame(g.id);
           this._updateSeasonChip();
-          this._closeGameDropdown();
           this.season._renderAll?.();
         }
+        // Clicking the game you're already in = dismiss and return to it.
+        this._closeGameDropdown();
       });
 
       row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
@@ -25577,8 +25889,14 @@ class App {
       this.canvas.render();
     });
 
-    // When playlist switches clips, re-sync canvas
+    // When playlist switches clips, re-sync canvas. A-B loop regions belong
+    // to the previous clip's timeline — clear them so they can't snap
+    // playback around the new clip. ('play' loops retarget on play-selected.)
     this.playlist.on('clip-switched', () => {
+      if (this.vc.loopMode === 'ab') this.vc.clearLoop();
+      // Angle 2 was loaded against the previous clip — drift-syncing it
+      // against a different play's timeline shows two unrelated plays.
+      if (this.multiAngle.enabled) this.multiAngle.removeAngle2();
       this.canvas.render();
     });
 
@@ -25586,11 +25904,6 @@ class App {
     this.multiAngle.on('view-changed', () => requestAnimationFrame(() => this.canvas._syncSize()));
     this.multiAngle.on('angle-loaded', () => requestAnimationFrame(() => this.canvas._syncSize()));
     this.multiAngle.on('angle-removed', () => requestAnimationFrame(() => this.canvas._syncSize()));
-
-    // Auto-advance to next clip when current clip ends (optional behavior)
-    this.vc.videoElement.addEventListener('ended', () => {
-      // Don't auto-advance; let user control navigation
-    });
   }
 
   _bindKeyboard() {
@@ -26690,7 +27003,7 @@ class App {
       'KeyK': ['result', 'Punt'],
     };
 
-    if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
+    if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       this._advancePlay();
       return true;
