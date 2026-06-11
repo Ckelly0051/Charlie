@@ -145,10 +145,14 @@ export class SeasonLibrary {
   /** "+ Add Team" → show the setup form in adding mode (with a Cancel). */
   _showAddTeam() {
     this._addingTeam = true;
+    this._showTeamEdit(false);   // don't stack the edit panel under the form
     const setup = document.getElementById('teamSetup');
     const card = document.getElementById('teamCard');
     const cancel = document.getElementById('btnTeamSetupCancel');
     const intro = setup?.querySelector('.library-intro');
+    // Stash the first-run welcome copy so it can be restored if this team is
+    // later removed and the app returns to first-run state.
+    if (intro && !this._introOriginal) this._introOriginal = intro.textContent;
     // Always start blank — a leftover value from first-run setup would be
     // concatenated into the new team's name.
     const nameEl = document.getElementById('teamSetupName');
@@ -166,6 +170,8 @@ export class SeasonLibrary {
     this._addingTeam = false;
     const cancel = document.getElementById('btnTeamSetupCancel');
     if (cancel) cancel.classList.add('hidden');
+    const intro = document.querySelector('#teamSetup .library-intro');
+    if (intro && this._introOriginal) intro.textContent = this._introOriginal;
     this._renderTeamCard();
   }
 
@@ -211,6 +217,10 @@ export class SeasonLibrary {
       try { localStorage.removeItem('ffa_checklist_dismissed'); } catch (e) {}
       try { localStorage.removeItem('ffa_seen_stats'); } catch (e) {}
       if (window.app?.roster) window.app.roster.loadFrom([]);
+      // Back to first-run: restore the welcome copy "Add another team…"
+      // replaced when _showAddTeam ran.
+      const intro = document.querySelector('#teamSetup .library-intro');
+      if (intro && this._introOriginal) intro.textContent = this._introOriginal;
     }
     this._renderTeamCard();
     await this._render();
@@ -249,6 +259,8 @@ export class SeasonLibrary {
       // Schedule level (the open season's games — the spine)
       if (t.closest && t.closest('#btnScheduleBack')) { this._setLevel('seasons'); this._render(); return; }
       if (t.closest && t.closest('#btnScheduleNewGame')) { this._newGameFromSchedule(); return; }
+      const delGame = t.closest && t.closest('[data-del-game]');
+      if (delGame) { this._deleteGameFromSchedule(delGame.dataset.delGame); return; }
       const schRow = t.closest && t.closest('.sch-row');
       if (schRow) { this._openGame(schRow.dataset.game); return; }
 
@@ -265,6 +277,11 @@ export class SeasonLibrary {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this._isOpen() && this._storage()?.seasonStore.hasCurrent()) this.hide();
+      // Checklist items are role=button tabindex=0 — honor Enter/Space.
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.closest) {
+        const gsItem = e.target.closest('.gs-item:not(.done)');
+        if (gsItem) { e.preventDefault(); this._runChecklistAction(gsItem.dataset.step); }
+      }
     });
   }
 
@@ -330,12 +347,17 @@ export class SeasonLibrary {
     const setup = document.getElementById('teamSetup');
     const seasonsHead = document.querySelector('.team-seasons-head');
     this._renderTeamPills();
+    const newSection = document.querySelector('.library-new');
     if (!this._hasTeam()) {
       if (card) card.classList.add('hidden');
       if (setup) setup.classList.remove('hidden');
       if (seasonsHead) seasonsHead.style.display = 'none';
+      // One guided path on first run: set up the team first. The New Season /
+      // demo CTAs would let a coach create team-less seasons.
+      if (newSection) newSection.style.display = 'none';
       return;
     }
+    if (newSection) newSection.style.display = '';
     if (setup) setup.classList.add('hidden');
     const cancel = document.getElementById('btnTeamSetupCancel');
     if (cancel) cancel.classList.add('hidden');
@@ -490,7 +512,7 @@ export class SeasonLibrary {
     body.innerHTML = games.map((g, idx) => {
       const r = app._gameRowInfo(g, idx, store, activeId);
       const dot = r.isActive ? 'dot-active' : (r.isFinal ? 'dot-final' : 'dot-idle');
-      const date = r.date ? new Date(r.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+      const date = r.date ? libLocalDate(r.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
       const result = r.hasScore ? app._scorePillHtml(r.u, r.t, 'sch-score') : '<span class="sch-dim">—</span>';
       const status = r.isFinal ? '<span class="sch-status final">Final</span>'
         : (r.isActive ? '<span class="sch-status open">Open</span>' : '<span class="sch-dim">—</span>');
@@ -501,9 +523,27 @@ export class SeasonLibrary {
         <td>${result}</td>
         <td>${r.plays}</td>
         <td>${status}</td>
-        <td><span class="sch-open-link">${r.isActive ? 'Resume' : 'Open'} →</span></td>
+        <td><span class="sch-open-link">${r.isActive ? 'Resume' : 'Open'} →</span>
+            <button class="sch-del" data-del-game="${esc(g.id)}" title="Delete this game" aria-label="Delete game">✕</button></td>
       </tr>`;
     }).join('');
+  }
+
+  async _deleteGameFromSchedule(id) {
+    const storage = this._storage();
+    const store = storage?.seasonStore;
+    if (!storage || !store) return;
+    const g = (store.data?.games || []).find(x => x.id === id);
+    if (!g) return;
+    const name = g.name || 'this game';
+    const plays = (g.plays || []).length;
+    const tagger = window.app?.tagger;
+    const msg = `Delete "${name}"${plays ? ` and its ${plays} tagged play${plays === 1 ? '' : 's'}` : ''}? This can't be undone (a restore point is saved first).`;
+    const ok = tagger?._confirmDialog ? await tagger._confirmDialog(msg, 'Delete Game') : confirm(msg);
+    if (!ok) return;
+    storage.removeGame(id);
+    this._renderSchedule();
+    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _openGame(id) {
@@ -602,10 +642,13 @@ export class SeasonLibrary {
     const realSeasons = (seasons || []).filter(s => s.id !== demoId);
     // Season-meta play counts lag a debounced autosave, so also consult the
     // live tagger when a real season is open (a play tagged seconds ago counts).
+    // "Tagged" means the coach actually applied a tag — loading a video
+    // auto-creates placeholder plays, which must NOT check this step off.
     const store = this._storage()?.seasonStore;
+    const hasRealTag = p => p?.tags && (p.tags.playType || p.tags.runPass || p.tags.result || p.tags.formation);
     const liveTagged = store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)
-      && (window.app?.tagger?.plays?.length || 0) > 0;
-    const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0);
+      && (window.app?.tagger?.plays || []).some(hasRealTag);
+    const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0 && s.id !== store?.currentSeasonId);
     let seenStats = false;
     try { seenStats = localStorage.getItem('ffa_seen_stats') === '1'; } catch (e) {}
     return [
@@ -665,13 +708,30 @@ export class SeasonLibrary {
       return;
     }
     if (step === 'stats') {
-      const store = this._storage()?.seasonStore;
-      if (store?.hasCurrent()) {
+      // Demo stats never set ffa_seen_stats, so the step can't complete from
+      // the demo — prefer an open REAL season; otherwise the demo is still
+      // the best teaching tool (the step completes later on real data).
+      const storage = this._storage();
+      const store = storage?.seasonStore;
+      if (store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)) {
         this.overlay.classList.add('hidden');
         document.getElementById('btnShowStats')?.click();
-      } else {
-        this._exploreDemo();   // nothing to show yet → demo gives instant stats
+        return;
       }
+      storage?.listSeasons().then(seasons => {
+        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId() && (s.plays || 0) > 0);
+        if (real) {
+          this._open(real.id).then(() => {
+            this.overlay.classList.add('hidden');
+            document.getElementById('btnShowStats')?.click();
+          });
+        } else if (store?.hasCurrent()) {
+          this.overlay.classList.add('hidden');
+          document.getElementById('btnShowStats')?.click();
+        } else {
+          this._exploreDemo();   // nothing to show yet → demo gives instant stats
+        }
+      }).catch(() => this._exploreDemo());
       return;
     }
   }
@@ -679,7 +739,12 @@ export class SeasonLibrary {
   async _exploreDemo() {
     const storage = this._storage();
     if (!storage || !storage.loadDemoSeason) return;
-    try { await storage.loadDemoSeason(); } catch (e) { return; }
+    let demoOk = null;
+    try { demoOk = await storage.loadDemoSeason(); } catch (e) { demoOk = null; }
+    if (demoOk == null) {
+      window.app?.updater?._toast?.('Could not load the demo season — browser storage may be full.');
+      return;
+    }
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     window.app?.updater?._toast?.('Demo season loaded — open a game, then tap Stats to explore. (No film attached.)');
     this.openSchedule();   // land on the populated schedule (two finished games)
@@ -732,6 +797,12 @@ export class SeasonLibrary {
 }
 
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+/* Parse a YYYY-MM-DD game date as LOCAL time. new Date('2026-09-04') is UTC
+   midnight, which toLocaleDateString renders as Sep 3 anywhere west of UTC. */
+function libLocalDate(str) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(str);
+}
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }

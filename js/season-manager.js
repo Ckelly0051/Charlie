@@ -443,10 +443,11 @@ export class SeasonManager {
     const games = this._effectiveGames();
     if (games.length < 2) return '';
 
-    const perGame = games.map(g => {
+    const store = window.app?.storage?.seasonStore;
+    const perGame = games.map((g, i) => {
       const stats = this.statsEngine.compute(g.plays);
       return {
-        name: g.name,
+        name: g.name || (store ? store.gameName(g, i) : `Game ${i + 1}`),
         yards: stats.rushing.yards + stats.passing.yards,
         successPct: parseFloat(stats.efficiency.successRate),
         tos: stats.turnovers.total,
@@ -471,11 +472,12 @@ export class SeasonManager {
         <span class="trend-val">${g.successPct.toFixed(0)}%</span>
       </div>`).join('');
 
+    const maxTdTo = Math.max(1, ...perGame.map(g => g.tds + g.tos));
     const tdToBars = perGame.map(g => `
       <div class="trend-row">
         <span class="trend-label">${this._escape(g.name)}</span>
         <div class="trend-bar">
-          <div style="width:${g.tds * 12}%;background:#44ff44;display:inline-block;height:100%"></div><div style="width:${g.tos * 12}%;background:#ff4444;display:inline-block;height:100%"></div>
+          <div style="width:${(g.tds / maxTdTo) * 100}%;background:#44ff44;display:inline-block;height:100%"></div><div style="width:${(g.tos / maxTdTo) * 100}%;background:#ff4444;display:inline-block;height:100%"></div>
         </div>
         <span class="trend-val">${g.tds}TD / ${g.tos}TO</span>
       </div>`).join('');
@@ -494,10 +496,14 @@ export class SeasonManager {
 
   _renderPerGameTable() {
     let rows = '';
+    const store = window.app?.storage?.seasonStore;
+    let gi = 0;
     for (const g of this._effectiveGames()) {
       const s = this.statsEngine.compute(g.plays);
+      const label = g.name || (store ? store.gameName(g, gi) : `Game ${gi + 1}`);
+      gi++;
       rows += `<tr>
-        <td>${this._escape(g.name)}</td>
+        <td>${this._escape(label)}</td>
         <td>${s.totalPlays}</td>
         <td>${s.rushing.yards + s.passing.yards}</td>
         <td>${s.rushing.attempts}/${s.rushing.yards}</td>

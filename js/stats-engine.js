@@ -210,9 +210,9 @@ export class StatsEngine {
     // playType and would otherwise be filtered out below.
     let convSource = (playsOverride || (this.tagger ? this.tagger.plays : [])).filter(p => p && p.tags);
     if (playsOverride) {
-      plays = playsOverride.filter(p => p.tags && p.tags.playType);
+      plays = playsOverride.filter(p => p.tags && (p.tags.playType || p.tags.runPass));
     } else {
-      plays = this.tagger.plays.filter(p => p.tags.playType);
+      plays = this.tagger.plays.filter(p => p.tags.playType || p.tags.runPass);
       filterActive = this.filter && this.filter.active;
       if (filterActive) {
         plays = this.filter.filter(plays);
@@ -1166,7 +1166,7 @@ export class StatsEngine {
       const players = p.tags.players || {};
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
-      const isPass = !isRun;
+      const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
@@ -1214,7 +1214,8 @@ export class StatsEngine {
       if (players.passer && isPass) {
         const id = players.passer;
         if (!passers[id]) passers[id] = { num: id, attempts: 0, completions: 0, yards: 0, tds: 0, ints: 0, sacks: 0 };
-        if (!StatsEngine.hasResult(p, 'Sack')) passers[id].attempts++;
+        // Attempts = completions + incompletions + INTs (matches team C/A).
+        if (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) passers[id].attempts++;
         if (isComplete) {
           passers[id].completions++;
           passers[id].yards += yds;
@@ -1256,7 +1257,8 @@ export class StatsEngine {
         tacklers[id].tackles++;
         if (shared) tacklers[id].assists++; else tacklers[id].solo++;
         if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
-        if (yds < 0) tacklers[id].tfl++;
+        // TFL excludes sacks — matches the team-level definition.
+        else if (yds < 0) tacklers[id].tfl++;
         // Defensive takeaways credited to the defender(s) on the play.
         if (isDefPlay && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
         if (isDefPlay && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
@@ -1349,15 +1351,20 @@ export class StatsEngine {
       </div>
     `;
 
-    // Tab switching
+    // Tab switching (remember the last tab so re-opening lands where the
+    // coach left off instead of resetting to Game every time)
     el.querySelectorAll('.stats-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         el.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
         el.querySelectorAll('.stats-tab-pane').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         el.querySelector(`.stats-tab-pane[data-pane="${tab.dataset.tab}"]`).classList.add('active');
+        this._lastTab = tab.dataset.tab;
       });
     });
+    if (this._lastTab && this._lastTab !== 'game') {
+      el.querySelector(`.stats-tab[data-tab="${this._lastTab}"]`)?.click();
+    }
 
     // Rebind close button
     el.querySelector('#btnCloseStatsInner').addEventListener('click', () => this.hideDashboard());
@@ -1483,8 +1490,12 @@ export class StatsEngine {
    */
   _watchPlays(filter, label) {
     if (typeof filter !== 'function') return;
-    const matches = this.tagger.plays
-      .filter(p => p && p.tags && filter(p))
+    // Stats were computed over the filtered pool — the cut-up must match it,
+    // or the row's count and what actually plays disagree.
+    let pool = this.tagger.plays.filter(p => p && p.tags);
+    if (this.filter && this.filter.active) pool = this.filter.filter(pool);
+    const matches = pool
+      .filter(p => filter(p))
       .sort((a, b) => (a.timestamp?.start || 0) - (b.timestamp?.start || 0));
     if (matches.length === 0) return;
     const playable = matches.filter(p => p.timestamp && p.timestamp.end > p.timestamp.start);
@@ -1494,6 +1505,7 @@ export class StatsEngine {
       window.app.cutupPlayer.start(ids, label || `${ids.length} plays`);
     } else {
       this.tagger.selectPlay(ids[0]);
+      this.tagger.toast?.('No video on these plays — selected the first one instead');
     }
   }
 
@@ -1669,14 +1681,21 @@ export class StatsEngine {
     const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
     const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
 
-    // Per-quarter table (only quarters that actually have scoring tagged)
-    const order = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'];
-    const quarters = Object.keys(sb.byQuarter).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    // Per-quarter table. Show all four quarters (zeros included) so the row
+    // reads like a real scoreboard; points from plays with no quarter tag go
+    // into an "N/Q" column so the quarters always sum to the Final.
     let qTable = '';
-    if (quarters.length) {
-      const head = quarters.map(q => `<th>${q}</th>`).join('');
-      const usRow = quarters.map(q => `<td>${sb.byQuarter[q].us}</td>`).join('');
-      const themRow = quarters.map(q => `<td>${sb.byQuarter[q].them}</td>`).join('');
+    if (Object.keys(sb.byQuarter).length) {
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+      if (sb.byQuarter['OT']) quarters.push('OT');
+      const qUs = quarters.reduce((s, q) => s + (sb.byQuarter[q]?.us || 0), 0);
+      const qThem = quarters.reduce((s, q) => s + (sb.byQuarter[q]?.them || 0), 0);
+      const untrackedUs = sb.us - qUs;
+      const untrackedThem = sb.them - qThem;
+      const hasUntracked = untrackedUs > 0 || untrackedThem > 0;
+      const head = quarters.map(q => `<th>${q}</th>`).join('') + (hasUntracked ? '<th title="Scoring plays with no quarter tag">N/Q</th>' : '');
+      const usRow = quarters.map(q => `<td>${sb.byQuarter[q]?.us || 0}</td>`).join('') + (hasUntracked ? `<td>${untrackedUs}</td>` : '');
+      const themRow = quarters.map(q => `<td>${sb.byQuarter[q]?.them || 0}</td>`).join('') + (hasUntracked ? `<td>${untrackedThem}</td>` : '');
       qTable = `
         <table class="stats-table scoreboard-quarters">
           <thead><tr><th></th>${head}<th>Final</th></tr></thead>
@@ -1684,7 +1703,7 @@ export class StatsEngine {
             <tr><td>${team}</td>${usRow}<td><strong>${sb.us}</strong></td></tr>
             <tr><td>${opp}</td>${themRow}<td><strong>${sb.them}</strong></td></tr>
           </tbody>
-        </table>`;
+        </table>${hasUntracked ? '<p class="viz-caption">N/Q = scoring plays missing a Quarter tag.</p>' : ''}`;
     }
     return `
       <div class="stats-section">

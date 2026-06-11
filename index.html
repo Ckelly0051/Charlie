@@ -109,6 +109,9 @@
               <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg> Cut-Up Video
             </button>
             <div class="more-divider"></div>
+            <button class="btn" id="btnSaveMenu" title="Save the season now and create a restore point">
+              <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> Save Season
+            </button>
             <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
               <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season Stats
             </button>
@@ -377,7 +380,7 @@
                 </div>
                 <div class="chip-section">
                   <label class="chip-label">Blitz</label>
-                  <div class="pick-group" id="tagBlitz">
+                  <div class="pick-group multi" id="tagBlitz">
                     <button class="pick" data-value="A-Gap" type="button">A-Gap</button>
                     <button class="pick" data-value="B-Gap" type="button">B-Gap</button>
                     <button class="pick" data-value="C-Gap" type="button">C-Gap</button>
@@ -448,7 +451,7 @@
           </div>
           <div class="chip-section core-hide-st">
             <label class="chip-label">Play Type</label>
-            <div class="pick-group" id="tagPlayType">
+            <div class="pick-group multi" id="tagPlayType">
               <button class="pick" data-value="Run Inside" type="button">Run Inside<kbd>R</kbd></button>
               <button class="pick" data-value="Run Outside" type="button">Run Outside<kbd>O</kbd></button>
               <button class="pick" data-value="Screen" type="button">Screen<kbd>S</kbd></button>
@@ -471,7 +474,7 @@
 
           <div class="chip-section">
             <label class="chip-label">Result</label>
-            <div class="pick-group" id="tagResult">
+            <div class="pick-group multi" id="tagResult">
               <button class="pick" data-value="Gain" type="button">Gain<kbd>G</kbd></button>
               <button class="pick" data-value="Loss" type="button">Loss<kbd>L</kbd></button>
               <button class="pick" data-value="No Gain" type="button">No Gain<kbd>N</kbd></button>

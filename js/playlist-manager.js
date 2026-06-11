@@ -94,14 +94,24 @@ export class PlaylistManager {
   async _autoCreatePlays() {
     let created = false;
     let firstNewId = null;
-    for (const clip of this.clips) {
-      if (clip.playId !== null) continue;
-      const source = clip.assetUrl || clip.file;
-      if (source) clip.duration = await this._probeDuration(source);
-
+    const newClips = this.clips.filter(c => c.playId === null);
+    // Probe durations in parallel (capped) — serial probing made a 100-clip
+    // folder take many seconds before the first play existed.
+    const POOL = 8;
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(POOL, newClips.length) }, async () => {
+      while (next < newClips.length) {
+        const clip = newClips[next++];
+        const source = clip.assetUrl || clip.file;
+        if (source) clip.duration = await this._probeDuration(source);
+      }
+    }));
+    for (const clip of newClips) {
       const play = {
         id: this.tagger.nextId++,
-        timestamp: { start: 0, end: clip.duration || 0 },
+        // Unknown duration (probe failed / corrupt clip) → large sentinel end,
+        // so a cut-up doesn't instantly skip a play whose end would be 0.
+        timestamp: { start: 0, end: clip.duration || 999 },
         tags: {
           down: '', distance: '', formation: '', playType: '', runPass: '',
           defFront: '', coverage: '', blitz: '', result: '', yardage: '',

@@ -4789,6 +4789,12 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 }
 .cut-row:hover td:first-child::before,
 .chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
+/* Season overlay reuses the same renderers but never binds the click —
+   neutralize the affordance there so rows don't look clickable. */
+#seasonOverlay .cut-row { cursor: default; }
+#seasonOverlay .cut-row:hover { background: transparent; }
+#seasonOverlay .cut-row td:first-child::before,
+#seasonOverlay .chart-eff-row.cut-row .chart-eff-label::before { content: none; }
 .stats-cut-hint {
   font-size: 12px;
   color: var(--text-dim);
@@ -5741,18 +5747,41 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* Pin the nav bar to the bottom so the coach never has to scroll     */
 /* past the form to reach Save & Next.                                */
 /* ================================================================== */
-@media (min-width: 1100px) {
+.tag-section .tag-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--surface);
+  padding: 10px 12px 8px;
+  margin: 4px -12px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
+}
+/* Mobile: clear the bottom tab bar so Save & Next isn't hidden behind it. */
+@media (max-width: 800px) {
   .tag-section .tag-nav {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    background: var(--surface);
-    padding: 10px 12px 8px;
-    margin: 4px -12px 0;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 -2px 8px rgba(15,23,42,0.10);
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    margin: 4px 0 0;
   }
+}
+
+/* Multi-select affordance: these groups ADD on tap instead of replacing.
+   Active chips get a small corner tick so a second selection reads as
+   intentional stacking, not a UI bug. */
+.pick-group.multi .pick.active::after {
+  content: '✓';
+  font-size: 8px;
+  font-weight: 800;
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+/* Tablets: width-based breakpoints leave 801–1099px iPads with mouse-size
+   chips. Key comfortable tap targets on coarse pointers instead. */
+@media (pointer: coarse) {
+  .tag-section .pick-group { gap: 8px; }
+  .tag-section .pick { padding: 11px 15px; font-size: 14px; min-height: 42px; }
 }
 
 /* ================================================================== */
@@ -6694,6 +6723,14 @@ body {
 .sch-status.open { color: #22d3ee; }
 .sch-open-link { color: #6ea8ff; font-weight: 600; white-space: nowrap; }
 .sch-row:hover .sch-open-link { text-decoration: underline; }
+.sch-del {
+  background: none; border: none; color: #9fb1c9; cursor: pointer;
+  font-size: 12px; padding: 4px 7px; margin-left: 8px; border-radius: 4px;
+  opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.sch-row:hover .sch-del { opacity: 1; }
+.sch-del:hover { color: #f87171; background: rgba(248,113,113,0.12); }
+@media (pointer: coarse) { .sch-del { opacity: 0.6; } }
 .sch-empty { text-align: center; color: #9fb1c9; padding: 28px 10px; }
 
 /* Team card (library home — above seasons list) */

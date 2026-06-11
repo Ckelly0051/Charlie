@@ -2,6 +2,12 @@
  * UIPolish - Small interactions for the UX pass: More menu dropdown,
  * mobile sidebar drawer, and outside-click handling.
  */
+/** True when the game-switcher dropdown is NOT open (it owns Esc while open). */
+function uiDropdownClosed() {
+  const dd = document.getElementById('gameDropdown');
+  return !dd || dd.classList.contains('hidden');
+}
+
 export class UIPolish {
   constructor() {
     this._initMoreMenu();
@@ -36,7 +42,8 @@ export class UIPolish {
       if (!menu.contains(e.target) && e.target !== btn) close();
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
+      // The game dropdown owns Escape while open (its own handler closes it).
+      if (e.key === 'Escape' && uiDropdownClosed()) close();
     });
   }
 
@@ -53,11 +60,18 @@ export class UIPolish {
       document.body.appendChild(scrim);
     }
     const close = () => {
+      const wasAboveLibrary = drawer.classList.contains('drawer-above-library');
       drawer.classList.remove('open');
       scrim.classList.remove('active');
       // Drop the raised z-index used when opened from the library overlay.
       drawer.classList.remove('drawer-above-library');
       scrim.classList.remove('drawer-above-library');
+      // The library underneath shows roster count + checklist state — refresh
+      // them so adding players is acknowledged the moment the drawer closes.
+      if (wasAboveLibrary && window.app?.library) {
+        window.app.library._renderTeamCard?.();
+        window.app.library._render?.();
+      }
     };
     const open = () => {
       drawer.classList.add('open');
@@ -69,7 +83,9 @@ export class UIPolish {
     scrim.addEventListener('click', close);
     document.getElementById('settingsDrawerClose')?.addEventListener('click', close);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
+      // Yield Escape to the game dropdown when it's open — registration
+      // order means stopImmediatePropagation there can't shield us.
+      if (e.key === 'Escape' && uiDropdownClosed()) close();
     });
     // Expose for the bottom tab bar
     this._closeDrawer = close;
@@ -107,8 +123,8 @@ export class UIPolish {
         <span>Self-Scout</span>
       </button>
       <button class="bt-tab" data-tab="more" aria-label="More">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        <span>More</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Menu</span>
       </button>
     `;
     document.body.appendChild(nav);
@@ -158,6 +174,28 @@ export class UIPolish {
 
     // Keep Video tab active by default when closing drawers elsewhere
     this._setBottomTab = setActive;
+
+    // The stats overlay and the drawer both close via their own ✕/backdrop,
+    // which this tab bar can't see — watch them so the highlight never lies
+    // about where the user is.
+    const statsEl = document.getElementById('statsDashboard');
+    if (statsEl) {
+      new MutationObserver(() => {
+        if (statsEl.classList.contains('hidden') &&
+            nav.querySelector('.bt-tab.active')?.dataset.tab !== 'more' &&
+            !drawer?.classList.contains('open')) {
+          setActive('video');
+        }
+      }).observe(statsEl, { attributes: true, attributeFilter: ['class'] });
+    }
+    if (drawer) {
+      new MutationObserver(() => {
+        if (!drawer.classList.contains('open') &&
+            nav.querySelector('.bt-tab.active')?.dataset.tab === 'more') {
+          setActive('video');
+        }
+      }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
+    }
   }
 
   /**
@@ -215,8 +253,9 @@ export class UIPolish {
       hint.className = 'onboard-hint';
       hint.innerHTML = `
         <div class="onboard-hint-body">
-          <strong>Next step:</strong> Mark a play with <b>[</b> and <b>]</b>,
-          then tag it right below the video.
+          <strong>Ready to tag:</strong> Play 1 was created for this film —
+          tap the chips in the tag form to chart it. (For one continuous game
+          video, use <b>[</b> and <b>]</b> to mark each play's start/end.)
           <button class="onboard-close">Got it</button>
         </div>`;
       document.body.appendChild(hint);

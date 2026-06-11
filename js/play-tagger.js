@@ -8,6 +8,10 @@ class ChipField {
   constructor(el, opts = {}) {
     this.el = el;
     this.multi = !!opts.multi;       // allow multiple chips active at once
+    // Groups of mutually exclusive values within a multi field: adding one
+    // removes its rivals (e.g. a play can't be both Gain and Loss, but can be
+    // Fumble + Touchdown). Array of arrays.
+    this.exclusive = opts.exclusive || [];
     this._value = '';
     this._values = [];               // selected values when multi
     this._listeners = {};
@@ -19,7 +23,7 @@ class ChipField {
         if (this.multi) {
           const i = this._values.indexOf(v);
           if (i >= 0) this._values.splice(i, 1);
-          else this._values.push(v);
+          else { this._dropRivals(v); this._values.push(v); }
           this._syncMulti();
         } else {
           this.value = this._value === v ? '' : v;
@@ -27,6 +31,13 @@ class ChipField {
         this._fire('change');
       });
     });
+  }
+  /** Remove values that are mutually exclusive with v (multi mode). */
+  _dropRivals(v) {
+    for (const group of this.exclusive) {
+      if (!group.includes(v)) continue;
+      this._values = this._values.filter(x => x === v || !group.includes(x));
+    }
   }
   // For multi fields .value is a " + "-joined string (e.g. "Pistol + Spread")
   // so the rest of the tagger and all downstream consumers keep treating the
@@ -49,7 +60,8 @@ class ChipField {
   toggle(v) {
     if (this.multi) {
       const i = this._values.indexOf(v);
-      if (i >= 0) this._values.splice(i, 1); else this._values.push(v);
+      if (i >= 0) this._values.splice(i, 1);
+      else { this._dropRivals(v); this._values.push(v); }
       this._syncMulti();
     } else {
       this.value = this._value === v ? '' : v;
@@ -103,10 +115,22 @@ export class PlayTagger {
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
     // Def Front: a base front plus a shift package (e.g. "Maverick + Jumbo Shift").
     const multiFields = new Set(['formation', 'playType', 'result', 'blitz', 'defFront']);
+    // Within multi-select Result, the base outcomes are mutually exclusive —
+    // a play can't be Gain AND Loss. Picking one replaces its rivals, so a
+    // correction tap (or keyboard key) never leaves "Gain + Loss" behind.
+    // Combinable results (Fumble + Touchdown, Interception + Touchdown,
+    // Sack + Fumble, Penalty + anything) are unaffected.
+    const exclusiveMap = {
+      result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
+               ['Good', 'No Good']],
+      // One realized look per play; RPO / Play Action / Trick Play combine
+      // with the look ("RPO + Short Pass"), not with each other's looks.
+      playType: [['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass']],
+    };
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
-        ? new ChipField(el, { multi: multiFields.has(key) })
+        ? new ChipField(el, { multi: multiFields.has(key), exclusive: exclusiveMap[key] })
         : el;
     }
 
@@ -423,7 +447,14 @@ export class PlayTagger {
       notes: ''
     };
 
-    this.plays.push(play);
+    // Insert in chronological order — a play marked after scrubbing back must
+    // not land at the end of the list, or Save & Next and Auto D&D would jump
+    // from it to the wrong neighbor. (Single-video mode only; multi-clip plays
+    // are clip-relative and stay in playlist order.)
+    const insertAt = (this.playlist && this.playlist.hasClips) ? this.plays.length
+      : this.plays.findIndex(p => (p.timestamp?.start ?? 0) > play.timestamp.start);
+    if (insertAt === -1 || insertAt >= this.plays.length) this.plays.push(play);
+    else this.plays.splice(insertAt, 0, play);
     this.pendingStart = null;
     this.btnMarkStart.textContent = 'Mark Start';
     this.btnMarkStart.classList.remove('btn-active');
@@ -457,10 +488,15 @@ export class PlayTagger {
     // Use an in-app modal instead of native confirm(): browsers suppress
     // repeated confirm() dialogs ("prevent additional dialogs"), which made
     // delete silently do nothing.
+    // Single-video mode: only the LAST play takes the video with it — deleting
+    // one of several marked plays must not nuke the film and every other play.
+    const lastSingle = !inPlaylist && this.plays.length <= 1;
     const ok = await this._confirmDialog(
       inPlaylist
         ? `Delete Play ${id} and remove its clip from the playlist? The remaining videos stay loaded (your source file is not deleted).`
-        : `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`,
+        : lastSingle
+          ? `Delete Play ${id} and unload the video? The play is removed and the video clears from the player (your source file is not deleted).`
+          : `Delete Play ${id}? The video and your other plays stay loaded.`,
       'Delete Play'
     );
     if (!ok) return;
@@ -477,14 +513,21 @@ export class PlayTagger {
       return;
     }
 
-    // Single-video mode: remove the play and clear the player.
+    // Single-video mode: remove the play. Keep the film loaded while other
+    // plays remain — select the adjacent play so tagging flows on.
+    const idx = this.plays.findIndex(p => p.id === id);
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
     this._updatePlaySelect();
     this._updateTimeline();
     this._emit('play-deleted');
-    // Remove the loaded video from the player (does NOT delete the file).
+    if (this.plays.length > 0) {
+      const next = this.plays[Math.min(Math.max(idx, 0), this.plays.length - 1)];
+      if (next) this.selectPlay(next.id);
+      return;
+    }
+    // Last play gone: clear the player too (does NOT delete the file).
     if (this.vc && typeof this.vc.unloadVideo === 'function') {
       this.vc.unloadVideo();
     }
@@ -504,7 +547,7 @@ export class PlayTagger {
     const play = id ? this.getPlay(id) : null;
 
     const msg = play
-      ? `Clear all tags on Play ${id}? Only the tag values reset — the play and video stay.`
+      ? `Clear all tags and notes on Play ${id}? The play and video stay.`
       : 'Clear the current tag selections?';
     const ok = await this._confirmDialog(msg, 'Clear Tags');
     if (!ok) return;
@@ -528,6 +571,10 @@ export class PlayTagger {
     this._clearTagForm();
     const notesEl = document.getElementById('notesArea');
     if (notesEl) notesEl.value = '';
+    // Custom-field chips and roster quick-pick chips render outside the core
+    // form and only refresh on play-selected — re-announce the (now blank)
+    // play so they don't stay lit and read as "the clear didn't work".
+    if (play) this._emit('play-selected', play);
   }
 
   // --- Copy-from-previous + reusable tag templates ----------------------
@@ -855,6 +902,16 @@ export class PlayTagger {
       groups.offense && groups.offense.classList.add('is-hidden');
       groups.defense && groups.defense.classList.add('is-hidden');
     }
+
+    // Special teams: the results that matter (Good / No Good / Field Goal)
+    // live in the "More" expander — open it so charting the kicking game
+    // doesn't cost an extra tap on every play.
+    if (this.resultRareWrap && this.btnResultMore) {
+      const showRare = unit === 'special' || !!this.resultRareWrap.querySelector('.pick.active');
+      this.resultRareWrap.classList.toggle('show', showRare);
+      this.btnResultMore.classList.toggle('open', showRare);
+      this.btnResultMore.textContent = showRare ? 'Less ▴' : 'More ▾';
+    }
   }
 
   _clearTagForm() {
@@ -939,9 +996,27 @@ export class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
-    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike', 'Safety']);
+    const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Safety']);
     const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (resultParts.some(r => stop.has(r))) return null;
+
+    // Spike/Kneel burn a down within the same possession (2nd & 10 → spike →
+    // 3rd & 10) — exactly the two-minute / victory situations where re-typing
+    // the situation hurts most. Treat as a 0-yard play at the same spot.
+    if (resultParts.includes('Spike') || resultParts.includes('Kneel')) {
+      const down = parseInt(t.down);
+      const distance = parseInt(t.distance);
+      if (!down || isNaN(distance) || down >= 4) return null;
+      const sameSpot = { fieldSide: null, yardLine: null };
+      if (t.unit === 'offense' || !t.unit) {
+        const abs = this._absYL(t);
+        if (abs != null) {
+          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
+          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
+        }
+      }
+      return { down: String(down + 1), distance: String(distance), ...sameSpot };
+    }
 
     const down = parseInt(t.down);
     const distance = parseInt(t.distance);
@@ -1046,6 +1121,33 @@ export class PlayTagger {
 
   _updateTimeline() {
     this.timelineBar.innerHTML = '';
+
+    // Multi-clip mode: per-play timestamps are all clip-relative (0..clipDur),
+    // so positioning them against the CURRENT clip's duration stacks every
+    // play at left:0. Render one equal segment per play in playlist order
+    // instead — the strip becomes a clip navigator.
+    const playlist = this.playlist;
+    if (playlist && playlist.hasClips) {
+      const n = this.plays.length;
+      if (!n) return;
+      this.plays.forEach((p, i) => {
+        const div = document.createElement('div');
+        let typeClass = 'other';
+        const rp = p.tags.runPass;
+        const t = (p.tags.playType || '').toLowerCase();
+        if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
+        else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
+        div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
+        div.style.left = (i / n) * 100 + '%';
+        div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
+        div.textContent = n <= 40 ? `${p.id}` : '';
+        div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+        div.addEventListener('click', () => this.selectPlay(p.id));
+        this.timelineBar.appendChild(div);
+      });
+      return;
+    }
+
     const duration = this.vc.duration;
     if (!duration) return;
 
@@ -1075,6 +1177,9 @@ export class PlayTagger {
     const container = document.getElementById('scrubBarPlays');
     if (!container) return;
     container.innerHTML = '';
+    // Multi-clip mode: clip-relative timestamps would draw one overlapping
+    // blob over the whole bar — the scrub bar tracks ONE clip, so skip them.
+    if (this.playlist && this.playlist.hasClips) return;
     const duration = this.vc.duration;
     if (!duration) return;
 

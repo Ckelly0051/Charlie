@@ -98,6 +98,8 @@ export class VideoController {
       if (files.length > 0) {
         this._showFolderBadge(files);
         this._emit('files-selected', { files });
+      } else if (e.dataTransfer.files.length || (items && items.length)) {
+        alert('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
       }
     });
 
@@ -179,6 +181,13 @@ export class VideoController {
     this.video.addEventListener('error', () => {
       this.video.classList.remove('is-buffering');
       this._updatePlayPauseIcon(false);
+      // Only surface decode failures for a real attempted load — not the
+      // empty-src error fired by unloadVideo()'s load() call.
+      if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
+      const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
+      this.placeholder.classList.remove('hidden');
+      this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
+      this._emit('video-error', { name });
     });
     this.video.addEventListener('seeked', () => {
       this.video.classList.remove('is-buffering');

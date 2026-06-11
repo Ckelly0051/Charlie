@@ -33,6 +33,8 @@ export class StorageManager {
 
   _bindEvents() {
     this.btnSave.addEventListener('click', () => this.saveProject());
+    // Mobile hides the top-bar Save; the More menu keeps a first-class one.
+    document.getElementById('btnSaveMenu')?.addEventListener('click', () => this.saveProject());
 
     this.btnLoad.addEventListener('click', () => {
       this.projectFileInput.click();
@@ -310,9 +312,13 @@ export class StorageManager {
     this.commitActive();
     // Don't stack empty husks: if the active game is still blank (no plays,
     // no film, no identity), "New Game" just re-presents it instead of
-    // leaving a stray "Game N — 0 plays" in the schedule.
-    if (!this.seasonStore.isEmptyActive()) {
+    // leaving a stray "Game N — 0 plays" in the schedule. Tell the coach —
+    // a click that closes the menu and changes nothing reads as broken.
+    const reused = this.seasonStore.isEmptyActive();
+    if (!reused) {
       this.seasonStore.addGame();
+    } else {
+      window.app?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
     }
     this.seasonStore.persist();
     this._clearForNewGame();
@@ -321,6 +327,8 @@ export class StorageManager {
   }
 
   removeGame(id) {
+    // Risky op: force a restore point of the pre-delete state.
+    this._maybeSnapshot(true, 'Before deleting game');
     const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
     const backend = this.seasonStore.backend;
     if (backend.supportsFilm && backend.supportsFilm()) {

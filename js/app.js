@@ -300,7 +300,11 @@ class App {
     list.innerHTML = '';
     games.forEach((g, idx) => {
       const r = this._gameRowInfo(g, idx, store, activeId);
-      const shortDate = g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+      // Parse YYYY-MM-DD as LOCAL (a bare ISO date parses as UTC midnight and
+      // shows a day early for US coaches).
+      const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(g.gameInfo?.date || '');
+      const shortDate = dm ? new Date(+dm[1], +dm[2] - 1, +dm[3]).toLocaleDateString([], { month: 'short', day: 'numeric' })
+        : (g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
 
       const row = document.createElement('div');
       row.className = 'gd-row' + (r.isActive ? ' is-active' : '');
@@ -325,9 +329,10 @@ class App {
         if (!r.isActive) {
           this.storage.switchToGame(g.id);
           this._updateSeasonChip();
-          this._closeGameDropdown();
           this.season._renderAll?.();
         }
+        // Clicking the game you're already in = dismiss and return to it.
+        this._closeGameDropdown();
       });
 
       row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
@@ -707,8 +712,14 @@ class App {
       this.canvas.render();
     });
 
-    // When playlist switches clips, re-sync canvas
+    // When playlist switches clips, re-sync canvas. A-B loop regions belong
+    // to the previous clip's timeline — clear them so they can't snap
+    // playback around the new clip. ('play' loops retarget on play-selected.)
     this.playlist.on('clip-switched', () => {
+      if (this.vc.loopMode === 'ab') this.vc.clearLoop();
+      // Angle 2 was loaded against the previous clip — drift-syncing it
+      // against a different play's timeline shows two unrelated plays.
+      if (this.multiAngle.enabled) this.multiAngle.removeAngle2();
       this.canvas.render();
     });
 
@@ -716,11 +727,6 @@ class App {
     this.multiAngle.on('view-changed', () => requestAnimationFrame(() => this.canvas._syncSize()));
     this.multiAngle.on('angle-loaded', () => requestAnimationFrame(() => this.canvas._syncSize()));
     this.multiAngle.on('angle-removed', () => requestAnimationFrame(() => this.canvas._syncSize()));
-
-    // Auto-advance to next clip when current clip ends (optional behavior)
-    this.vc.videoElement.addEventListener('ended', () => {
-      // Don't auto-advance; let user control navigation
-    });
   }
 
   _bindKeyboard() {
@@ -1820,7 +1826,7 @@ class App {
       'KeyK': ['result', 'Punt'],
     };
 
-    if (e.code === 'Enter' && !e.ctrlKey && !e.metaKey) {
+    if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       this._advancePlay();
       return true;
