@@ -552,11 +552,15 @@ export class SeasonManager {
       `;
     }
 
+    const vIcon = v => v === 'dominant' ? '▲' : v === 'effective' ? '▬' : '▼';
+    const vLabel = v => v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable';
     let flags = report.tells.map(t => {
-      const counter = t.lean === 'Run'
-        ? 'play-action or a quick game pass off the same look'
-        : 'a draw, screen, or run off the same look';
-      return `<li><b>${this._escape(t.label)}</b>: ${t.lean.toLowerCase()} ${t.leanPct}% (${t.n} plays) — consider ${counter}</li>`;
+      const ctx = t.verdict === 'dominant'
+        ? `working at ${t.leanAvg} yds/${t.leanSuccRate}% success — keep riding it`
+        : t.verdict === 'effective'
+          ? `productive (${t.leanAvg} yds/${t.leanSuccRate}% succ) but a DC will see it`
+          : `underperforming at ${t.leanAvg} yds/${t.leanSuccRate}% success — mix it up`;
+      return `<li class="ss-v-${t.verdict}"><b>${this._escape(t.label)}</b>: ${t.lean.toLowerCase()} ${t.leanPct}% (${t.n} plays) — <span class="ss-verdict-tag ${t.verdict}">${vIcon(t.verdict)} ${vLabel(t.verdict)}</span> ${ctx}</li>`;
     }).join('');
     if (!flags) flags = '<li class="ok">No strong tells detected at the current sample size — your run/pass mix is well balanced.</li>';
 
@@ -621,6 +625,11 @@ tr:nth-child(even){background:#f4f4f8}
 .trend-val{width:80px;text-align:right;color:#666}
 .self-scout li{margin:6px 0;line-height:1.4}
 .self-scout li b{color:#06b6d4}
+.ss-verdict-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:.3px}
+.ss-verdict-tag.dominant{background:rgba(34,197,94,.15);color:#1f9d4d}
+.ss-verdict-tag.effective{background:rgba(245,158,11,.15);color:#d97706}
+.ss-verdict-tag.exploitable{background:rgba(239,68,68,.15);color:#dc2626}
+.ss-v-dominant{opacity:.8}
 .prog-headline{font-size:13px;margin:4px 0 10px}
 .prog-headline .prog-up{color:#1f9d4d}.prog-headline .prog-down{color:#d23b3b}
 .prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}

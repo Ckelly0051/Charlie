@@ -6215,9 +6215,48 @@ video.is-buffering { opacity: 0.6; }
 
 /* ================================================================== */
 /* ====  SELF-SCOUT REPORT                                         == */
-/* Predictability meter, tell bars/badges. Lives in the stats        */
-/* overlay (dark surface).                                            */
+/* Predictability meter, verdict badges, hero summary, coaching      */
+/* notes, tell bars. Lives in the stats overlay (dark surface).      */
 /* ================================================================== */
+
+/* Hero banner */
+.ss-hero {
+  text-align: center;
+  padding: 18px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: -8px -8px 16px;
+}
+.ss-hero-title { font-size: 22px; font-weight: 800; letter-spacing: 0.3px; }
+.ss-hero-sub { font-size: 12px; color: #7d8aa5; margin-top: 4px; font-weight: 500; }
+
+/* Summary row: meter + assessment side-by-side */
+.ss-summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.ss-summary-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.ss-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #7d8aa5;
+  margin-bottom: 8px;
+}
+.ss-card-meter .ss-meter-wrap {
+  justify-content: center;
+  margin: 0;
+}
+.ss-card-hint { font-size: 11px; color: #6b7a99; margin-top: 6px; }
+
 .ss-meter-wrap {
   display: flex;
   align-items: center;
@@ -6225,33 +6264,55 @@ video.is-buffering { opacity: 0.6; }
   flex-wrap: wrap;
   margin: 6px 0 4px;
 }
-.ss-meter {
-  flex: 1 1 220px;
-  min-width: 180px;
-  height: 16px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-.ss-meter-fill {
-  height: 100%;
-  border-radius: 8px;
-  transition: width 400ms cubic-bezier(.4, 0, .2, 1);
-}
-.ss-meter-val { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.ss-meter-val span { font-size: 13px; color: #7d8aa5; font-weight: 600; }
 .ss-meter-label {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: #b9c4da;
-  padding: 3px 10px;
-  border: 1px solid #2a3552;
-  border-radius: 999px;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
 }
 
-/* Tells table: severity-tinted rows + lean bars */
+/* Assessment card headline */
+.ss-headline-text {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 12px 0 8px;
+}
+.ss-headline-detail {
+  font-size: 12px;
+  color: #b9c4da;
+  font-weight: 500;
+}
+.ss-ct-bad { color: #f87171; font-weight: 700; }
+.ss-ct-good { color: #4ade80; font-weight: 700; }
+.ss-headline-warn .ss-headline-text { color: #f87171; }
+.ss-headline-good .ss-headline-text { color: #4ade80; }
+.ss-headline-neutral .ss-headline-text { color: #e6ebf5; }
+
+/* Coaching notes (replaces the old <ul> recs) */
+.ss-recs-section { margin-top: 4px; }
+.ss-recs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+.ss-rec {
+  padding: 10px 14px;
+  border-left: 3px solid #3d4f7c;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cdd6e6;
+}
+.ss-rec:first-child { border-left-color: var(--accent, #c9a227); }
+.ss-rec .ss-rec-label { font-weight: 700; color: #e6ebf5; }
+.ss-rec .ss-rec-strength { color: #4ade80; }
+.ss-rec strong { color: #e6ebf5; }
+
+/* Tells table: severity-tinted rows + lean bars + verdict badges */
 .ss-tells .ss-dim {
   font-size: 11px;
   color: #8b97b0;
@@ -6269,18 +6330,46 @@ video.is-buffering { opacity: 0.6; }
 }
 .ss-bar-run { --c: #ffd23f; }
 .ss-bar-pass { --c: #6cc4ff; }
-.ss-badge {
-  font-size: 10px;
+
+/* Verdict badges (replaces the old tier badges) */
+.ss-verdict {
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 999px;
+  white-space: nowrap;
 }
-.ss-badge-strong { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
-.ss-badge-notable { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); }
-.ss-badge-slight { background: rgba(234, 179, 8, 0.14); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
-.ss-tells tr.ss-tier-strong td { background: rgba(239, 68, 68, 0.07); }
+.ss-verdict-dominant {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+.ss-verdict-effective {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.ss-verdict-exploitable {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+.ss-tells tr.ss-verdict-exploitable td { background: rgba(239, 68, 68, 0.06); }
+.ss-tells tr.ss-verdict-dominant td { background: rgba(34, 197, 94, 0.05); }
+
+/* Split tables: enhanced with mini bars + effectiveness cols */
+.ss-split-bar {
+  display: inline-block;
+  min-width: 52px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0b1020;
+  background: linear-gradient(90deg, var(--c, #ffd23f) var(--p, 50%), rgba(255, 255, 255, 0.08) var(--p, 50%));
+}
+.ss-split-tell td { font-weight: 600; }
+.ss-split-tell td:first-child { border-left: 3px solid #fbbf24; }
 
 /* Split tables: tell vs balanced flags */
 .ss-flag {
@@ -6290,14 +6379,9 @@ video.is-buffering { opacity: 0.6; }
 }
 .ss-ok { color: #6b7a99; font-size: 12px; }
 
-.ss-recs {
-  margin: 4px 0 0;
-  padding-left: 20px;
-  line-height: 1.6;
+@media (max-width: 700px) {
+  .ss-summary-row { grid-template-columns: 1fr; }
 }
-.ss-recs li { margin-bottom: 5px; color: #cdd6e6; font-size: 13px; }
-.ss-recs li:first-child:only-child,
-.ss-recs li:first-child { color: #e6ebf5; }
 
 /* Defensive report empty state */
 .def-empty p { color: #cdd6e6; line-height: 1.55; }
@@ -6576,9 +6660,8 @@ body {
 .drive-row { background: var(--bg-tertiary); }
 .drive-row:hover { background: var(--bg-surface); }
 
-/* --- Self-scout meter --- */
-.ss-meter { background: var(--bg-tertiary) !important; }
-.ss-tier-label { color: var(--highlight) !important; }
+/* --- Self-scout --- */
+.ss-summary-card { background: var(--bg-tertiary); border-color: var(--bg-surface); }
 
 /* --- Scoreboard emphasis --- */
 .scoreboard-quarters th {
@@ -6615,8 +6698,8 @@ body {
 }
 
 /* --- Self-scout bars: gold run / blue pass --- */
-.ss-bar-run { --c: var(--run-color) !important; }
-.ss-bar-pass { --c: var(--pass-color) !important; }
+.ss-bar-run, .ss-split-bar.ss-bar-run { --c: var(--run-color) !important; }
+.ss-bar-pass, .ss-split-bar.ss-bar-pass { --c: var(--pass-color) !important; }
 
 /* --- Quarter mix bars --- */
 .viz-q-bar.run { background: var(--run-color) !important; }

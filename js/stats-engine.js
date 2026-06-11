@@ -2762,43 +2762,69 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
   /**
    * Bucket plays by a key function, counting only run/pass-classifiable
    * plays. keyFn may return a single key or an array (multi-formation).
+   * Tracks per-bucket effectiveness: run/pass yards, successes, explosive
+   * plays, and turnovers for context-aware self-scout analysis.
    */
   _selfScoutGroup(plays, keyFn) {
     const g = {};
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p);
       const isPass = StatsEngine.isPass(p);
-      if (!isRun && !isPass) return; // skip unclassifiable (e.g. trick/blank)
+      if (!isRun && !isPass) return;
       let keys = keyFn(p);
       if (!Array.isArray(keys)) keys = [keys];
+      const yds = parseInt(p.tags.yardage) || 0;
+      const succ = this._isSuccessfulPlay(p);
+      const explosive = yds >= (isRun ? 12 : 16);
+      const td = StatsEngine.hasResult(p, 'Touchdown');
+      const to = StatsEngine.hasResult(p, 'Interception') || StatsEngine.hasResult(p, 'Fumble');
       keys.forEach(k => {
         if (k == null || k === '' || k === '?' || /(^|&)\?($|&)/.test(String(k))) return;
-        if (!g[k]) g[k] = { key: k, n: 0, runs: 0, passes: 0, yards: 0 };
+        if (!g[k]) g[k] = { key: k, n: 0, runs: 0, passes: 0, yards: 0,
+          runYards: 0, passYards: 0, runSucc: 0, passSucc: 0,
+          explosives: 0, tds: 0, turnovers: 0 };
         g[k].n++;
-        if (isRun) g[k].runs++; else g[k].passes++;
-        g[k].yards += parseInt(p.tags.yardage) || 0;
+        g[k].yards += yds;
+        if (td) g[k].tds++;
+        if (to) g[k].turnovers++;
+        if (explosive) g[k].explosives++;
+        if (isRun) {
+          g[k].runs++;
+          g[k].runYards += yds;
+          if (succ) g[k].runSucc++;
+        } else {
+          g[k].passes++;
+          g[k].passYards += yds;
+          if (succ) g[k].passSucc++;
+        }
       });
     });
     return g;
   }
 
-  /** Turn a group map into rows with runPct / lean / tell flag. */
+  /** Turn a group map into rows with runPct / lean / tell flag + effectiveness. */
   _selfScoutRows(groups) {
     return Object.values(groups)
       .map(grp => {
         const runPct = grp.n ? Math.round(grp.runs / grp.n * 100) : 0;
         const lean = runPct >= 50 ? 'Run' : 'Pass';
         const leanPct = Math.max(runPct, 100 - runPct);
+        const succRate = grp.n ? Math.round((grp.runSucc + grp.passSucc) / grp.n * 100) : 0;
+        const runAvg = grp.runs ? +(grp.runYards / grp.runs).toFixed(1) : 0;
+        const passAvg = grp.passes ? +(grp.passYards / grp.passes).toFixed(1) : 0;
         return {
           ...grp, runPct, passPct: 100 - runPct, lean, leanPct,
           avg: grp.n ? +(grp.yards / grp.n).toFixed(1) : 0,
+          succRate, runAvg, passAvg,
           tell: grp.n >= StatsEngine._SELF_SCOUT_MIN_N && leanPct >= 70,
         };
       })
       .sort((a, b) => b.n - a.n);
   }
 
-  /** Extract ranked tells from a group map, tagged with a dimension label. */
+  /** Extract ranked tells from a group map, tagged with a dimension label.
+   *  Each tell carries effectiveness context so recommendations can
+   *  distinguish "dominant strength" from "exploitable tendency". */
   _tellsFrom(groups, dim, fmt) {
     const min = StatsEngine._SELF_SCOUT_MIN_N;
     return Object.values(groups)
@@ -2807,10 +2833,31 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const runPct = Math.round(grp.runs / grp.n * 100);
         const leanPct = Math.max(runPct, 100 - runPct);
         const lean = runPct >= 50 ? 'Run' : 'Pass';
+        const leanPlays = lean === 'Run' ? grp.runs : grp.passes;
+        const leanYards = lean === 'Run' ? grp.runYards : grp.passYards;
+        const leanSucc = lean === 'Run' ? grp.runSucc : grp.passSucc;
+        const leanAvg = leanPlays ? +(leanYards / leanPlays).toFixed(1) : 0;
+        const leanSuccRate = leanPlays ? Math.round(leanSucc / leanPlays * 100) : 0;
+        const overallAvg = grp.n ? +(grp.yards / grp.n).toFixed(1) : 0;
+        const overallSucc = grp.n ? Math.round((grp.runSucc + grp.passSucc) / grp.n * 100) : 0;
+        // Classify: a lopsided split that's highly effective is a "dominant"
+        // strength, not a vulnerability. Only truly exploitable tells (low
+        // effectiveness on the leaned side) warrant a "fix this" recommendation.
+        // dominant: lean side avg >= 6 ypc/ypa AND success >= 50%
+        // effective: lean side avg >= 4 AND success >= 40%
+        // exploitable: everything else
+        const dominant = leanAvg >= 6 && leanSuccRate >= 50;
+        const effective = !dominant && leanAvg >= 4 && leanSuccRate >= 40;
+        const verdict = dominant ? 'dominant' : effective ? 'effective' : 'exploitable';
         return {
           dim, label: fmt(grp.key), n: grp.n, lean, leanPct,
+          leanAvg, leanSuccRate, overallAvg, overallSucc,
+          tds: grp.tds, turnovers: grp.turnovers, explosives: grp.explosives,
+          verdict,
           tier: leanPct >= 85 ? 'strong' : leanPct >= 75 ? 'notable' : 'slight',
-          score: (leanPct - 50) * Math.min(grp.n, 12),
+          // Score: exploitable tells rank higher (they're actionable).
+          // Dominant tells rank lower — they're information, not problems.
+          score: (leanPct - 50) * Math.min(grp.n, 12) * (dominant ? 0.3 : effective ? 0.6 : 1),
         };
       })
       .filter(t => t.leanPct >= 70);
@@ -2860,19 +2907,34 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       : predictability >= 50 ? 'Predictable'
         : predictability >= 30 ? 'Moderate' : 'Balanced';
 
-    // Auto coaching recommendations from the top tells.
+    // Context-aware coaching recommendations: factor in effectiveness
+    // so a dominant tendency ("we run 88% from Power-I at 16 YPC") is
+    // praised as a strength, not flagged as a problem.
     const recommendations = [];
-    if (predictability >= 60) {
-      recommendations.push('Your offense is reading as predictable — defenses can key these tells. Prioritize the situations below.');
+    const exploitable = tells.filter(t => t.verdict === 'exploitable');
+    const effective = tells.filter(t => t.verdict === 'effective');
+    const dominant = tells.filter(t => t.verdict === 'dominant');
+
+    if (exploitable.length > 0) {
+      recommendations.push(`<strong>${exploitable.length} exploitable tendency${exploitable.length > 1 ? 'ies' : 'y'}</strong> — these situations are both predictable and underperforming. A prepared DC will take away your lean.`);
     }
-    tells.slice(0, 5).forEach(t => {
+    exploitable.slice(0, 4).forEach(t => {
       const counter = t.lean === 'Run'
-        ? 'play-action or a quick game pass off the same look'
-        : 'a draw, screen, or run off the same look';
-      recommendations.push(`${t.label}: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) — add ${counter}.`);
+        ? 'play-action, a quick pass, or a screen off the same pre-snap look'
+        : 'a draw, QB run, or misdirection off the same formation';
+      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) averaging ${t.leanAvg} yds at ${t.leanSuccRate}% success — the lean isn't paying off. Mix in ${counter}.`);
+    });
+    effective.slice(0, 3).forEach(t => {
+      const prod = t.leanAvg >= 5 ? 'productive' : 'adequate';
+      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: your ${t.lean.toLowerCase()} lean (${t.leanPct}%) is ${prod} at ${t.leanAvg} yds/${t.leanSuccRate}% success, but a good DC will still key on it. Consider one constraint play per game off this look.`);
+    });
+    dominant.slice(0, 3).forEach(t => {
+      recommendations.push(`<span class="ss-rec-label ss-rec-strength">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% and it's <strong>working</strong> — ${t.leanAvg} yds, ${t.leanSuccRate}% success${t.tds ? `, ${t.tds} TD${t.tds > 1 ? 's' : ''}` : ''}. Keep riding it. The tendency is a feature, not a bug.`);
     });
     if (tells.length === 0) {
-      recommendations.push('No strong tells detected at the current sample size — your run/pass mix is well balanced. Keep tagging for finer detail.');
+      recommendations.push('No strong tells at the current sample size — your run/pass mix is well balanced across situations. Keep tagging for finer-grained insight.');
+    } else if (exploitable.length === 0 && tells.length > 0) {
+      recommendations.push('Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans.');
     }
 
     return {
@@ -2888,24 +2950,32 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   _selfScoutTellsTable(tells) {
     if (!tells.length) return '<p style="color:var(--text-dim)">No strong tells at the current sample size.</p>';
+    const verdictIcon = v => v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;';
+    const verdictLabel = v => v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable';
     return `<table class="stats-table stats-table-full ss-tells">
-      <thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Lean</th><th>n</th></tr></thead>
-      <tbody>${tells.map(t => `<tr class="ss-tier-${t.tier}">
+      <thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead>
+      <tbody>${tells.map(t => `<tr class="ss-tier-${t.tier} ss-verdict-${t.verdict}">
         <td>${t.label}</td>
         <td><span class="ss-dim">${t.dim}</span></td>
         <td><span class="ss-bar ss-bar-${t.lean === 'Run' ? 'run' : 'pass'}" style="--p:${t.leanPct}%">${t.lean} ${t.leanPct}%</span></td>
-        <td><span class="ss-badge ss-badge-${t.tier}">${t.tier}</span></td>
+        <td>${t.leanAvg}</td>
+        <td>${t.leanSuccRate}%</td>
+        <td><span class="ss-verdict ss-verdict-${t.verdict}">${verdictIcon(t.verdict)} ${verdictLabel(t.verdict)}</span></td>
         <td>${t.n}</td>
       </tr>`).join('')}</tbody>
     </table>`;
   }
 
   _selfScoutSplitTable(rows, label) {
-    return `<table class="stats-table stats-table-full">
-      <thead><tr><th>${label}</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead>
-      <tbody>${rows.map(r => `<tr>
+    return `<table class="stats-table stats-table-full ss-split">
+      <thead><tr><th>${label}</th><th>#</th><th>Run</th><th>Pass</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead>
+      <tbody>${rows.map(r => `<tr${r.tell ? ' class="ss-split-tell"' : ''}>
         <td>${r.dim ? this._ddPretty(r.key) : (label === 'Down & Dist' ? this._ddPretty(r.key) : r.key)}</td>
-        <td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.avg}</td>
+        <td>${r.n}</td>
+        <td><span class="ss-split-bar ss-bar-run" style="--p:${r.runPct}%">${r.runPct}%</span></td>
+        <td><span class="ss-split-bar ss-bar-pass" style="--p:${r.passPct}%">${r.passPct}%</span></td>
+        <td>${r.runAvg}</td><td>${r.passAvg}</td>
+        <td>${r.succRate}%</td>
         <td>${r.tell ? `<span class="ss-flag">${r.lean} ${r.leanPct}%</span>` : '<span class="ss-ok">balanced</span>'}</td>
       </tr>`).join('')}</tbody>
     </table>`;
@@ -2918,35 +2988,53 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     const meterColor = report.predictability >= 70 ? '#ef4444'
       : report.predictability >= 50 ? '#f59e0b'
         : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;
+    const dominant = report.tells.filter(t => t.verdict === 'dominant').length;
+    const headlineClass = exploitable > 0 ? 'ss-headline-warn' : dominant > 0 ? 'ss-headline-good' : 'ss-headline-neutral';
+    const headline = exploitable > 0
+      ? `${exploitable} exploitable tell${exploitable > 1 ? 's' : ''} found`
+      : dominant > 0 ? `Tendencies backed by production` : 'Well balanced';
 
     const html = `
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Self-Scout: ${team}</h2>
+            <h2>Self-Scout Report</h2>
             <div class="stats-header-actions">
-              <button class="btn btn-sm" id="btnExportSelfScout">Export Report</button>
+              <button class="btn btn-sm" id="btnExportSelfScout">Export</button>
               <button class="btn btn-sm btn-danger" id="btnCloseSelfScout">Close</button>
             </div>
           </div>
-          <div class="stats-body">
-            <div class="stats-section">
-              <h3>Predictability (${report.totalPlays} run/pass plays)</h3>
-              <div class="ss-meter-wrap">
-                <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${meterColor}"></div></div>
-                <div class="ss-meter-val" style="color:${meterColor}">${report.predictability}<span>/100</span></div>
-                <div class="ss-meter-label">${report.predLabel}</div>
-              </div>
-              <p class="viz-caption">Higher = more predictable (run/pass leans heavily by formation &amp; down). A defensive coordinator reads the same numbers — aim to keep your key situations balanced.</p>
+          <div class="stats-body ss-report">
+            <div class="ss-hero">
+              <div class="ss-hero-title">${team}</div>
+              <div class="ss-hero-sub">${report.totalPlays} classifiable plays analyzed</div>
             </div>
+            <div class="ss-summary-row">
+              <div class="ss-summary-card ss-card-meter">
+                <div class="ss-card-label">Predictability Index</div>
+                <div class="ss-meter-wrap">
+                  ${Charts.gauge(report.predictability, '', meterColor, 130)}
+                </div>
+                <div class="ss-meter-label" style="color:${meterColor}">${report.predLabel}</div>
+                <div class="ss-card-hint">Run/pass lean across formations &amp; situations</div>
+              </div>
+              <div class="ss-summary-card ss-card-headline ${headlineClass}">
+                <div class="ss-card-label">Assessment</div>
+                <div class="ss-headline-text">${headline}</div>
+                <div class="ss-headline-detail">
+                  ${report.tells.length} total tell${report.tells.length !== 1 ? 's' : ''}${exploitable ? ` &middot; <span class="ss-ct-bad">${exploitable} exploitable</span>` : ''}${dominant ? ` &middot; <span class="ss-ct-good">${dominant} dominant</span>` : ''}
+                </div>
+              </div>
+            </div>
+            ${report.recommendations.length ? `<div class="stats-section ss-recs-section">
+              <h3>Coaching Notes</h3>
+              <div class="ss-recs">${report.recommendations.map(r => `<div class="ss-rec">${r}</div>`).join('')}</div>
+            </div>` : ''}
             <div class="stats-section">
-              <h3>Your Top Tells</h3>
+              <h3>Tendency Breakdown</h3>
               ${this._selfScoutTellsTable(report.tells)}
             </div>
-            ${report.recommendations.length ? `<div class="stats-section">
-              <h3>Recommendations</h3>
-              <ul class="ss-recs">${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
-            </div>` : ''}
             <div class="stats-section stats-two-col">
               <div>
                 <h3>By Formation</h3>
@@ -2975,30 +3063,44 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
   }
 
   _exportSelfScout(report, team) {
-    const title = `Self-Scout: ${team}`;
+    const title = `Self-Scout Report: ${team}`;
+    const verdictLabel = v => v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable';
+    const verdictColor = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#eab308' : '#ef4444';
     const tellRows = report.tells.map(t =>
-      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.tier}</td><td>${t.n}</td></tr>`
-    ).join('') || '<tr><td colspan="5">No strong tells at current sample size.</td></tr>';
+      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${verdictColor(t.verdict)};font-weight:600">${verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
+    ).join('') || '<tr><td colspan="7">No strong tells at current sample size.</td></tr>';
     const formRows = report.formationRows.map(r =>
-      `<tr><td>${r.key}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.avg}</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
+      `<tr${r.tell ? ' style="font-weight:600"' : ''}><td>${r.key}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.runAvg}</td><td>${r.passAvg}</td><td>${r.succRate}%</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
     ).join('');
     const ddRows = report.downDistRows.map(r =>
-      `<tr><td>${this._ddPretty(r.key)}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.avg}</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
+      `<tr${r.tell ? ' style="font-weight:600"' : ''}><td>${this._ddPretty(r.key)}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.runAvg}</td><td>${r.passAvg}</td><td>${r.succRate}%</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
     ).join('');
     const meterColor = report.predictability >= 70 ? '#ef4444'
       : report.predictability >= 50 ? '#f59e0b'
         : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;
+    const dominant = report.tells.filter(t => t.verdict === 'dominant').length;
     const body = `
-<h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} run/pass plays</p>
-<h3>Predictability Index</h3>
-<div class="meter"><div style="width:${report.predictability}%;background:${meterColor}"></div></div>
-<div class="mval" style="color:${meterColor}">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; <span class="mlbl">${report.predLabel}</span></div>
-<p class="sub">Higher = more predictable. A DC reads the same tendencies; keep key situations balanced.</p>
-<h3>Top Tells</h3><table><thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Severity</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
-${report.recommendations.length ? `<h3>Recommendations</h3><ul>${report.recommendations.map(r => `<li>${r.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : ''}
-<h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
-<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>`;
-    this._openPrintWindow(title, body);
+<div class="print-hero">
+  <h1>${title}</h1>
+  <p class="sub">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} run/pass plays</p>
+</div>
+<div class="print-summary">
+  <div class="print-card">
+    <div class="print-card-label">Predictability</div>
+    <div class="meter"><div style="width:${report.predictability}%;background:${meterColor}"></div></div>
+    <div class="mval" style="color:${meterColor}">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; ${report.predLabel}</div>
+  </div>
+  <div class="print-card">
+    <div class="print-card-label">Assessment</div>
+    <div class="print-assessment">${report.tells.length} tell${report.tells.length !== 1 ? 's' : ''}${exploitable ? ` &middot; <span style="color:#ef4444">${exploitable} exploitable</span>` : ''}${dominant ? ` &middot; <span style="color:#22c55e">${dominant} dominant</span>` : ''}</div>
+  </div>
+</div>
+${report.recommendations.length ? `<h3>Coaching Notes</h3><div class="print-recs">${report.recommendations.map(r => `<div class="print-rec">${r}</div>`).join('')}</div>` : ''}
+<h3>Tendency Breakdown</h3><table><thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg Yds</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
+<h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
+<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>`;
+    this._openPrintWindow(title, body, 'ss-print');
   }
 
   // ================================================================
@@ -3191,7 +3293,7 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     this._openPrintWindow(title, body);
   }
 
-  _openPrintWindow(title, bodyHtml) {
+  _openPrintWindow(title, bodyHtml, extraClass) {
     const w = window.open('', '_blank');
     if (!w) { alert('Pop-up blocked — allow pop-ups for this site to export PDF.'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${Charts._esc(title)}</title>
@@ -3214,6 +3316,13 @@ th{background:#1a1a2e;color:#fff;font-weight:700;letter-spacing:0.3px}tr:nth-chi
 .meter{height:18px;border-radius:9px;background:#e5e7eb;overflow:hidden;margin:10px 0 4px}.meter>div{height:100%;border-radius:9px}
 .mval{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.mlbl{color:#6b7280;font-size:13px;font-weight:600}
 ul{line-height:1.7;font-size:13px}
+/* Self-Scout print styles */
+.print-hero{text-align:center;margin-bottom:8px}.print-hero h1{border:none;padding:0;margin:0 0 4px}
+.print-summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;padding:16px;border:1px solid #e5e7eb;border-radius:8px;background:#fafbfc}
+.print-card-label{font-size:10px;text-transform:uppercase;color:#6b7280;letter-spacing:.5px;font-weight:700;margin-bottom:6px}
+.print-assessment{font-size:16px;font-weight:700;margin:8px 0 4px}
+.print-recs{margin:12px 0}.print-rec{padding:8px 12px;margin:6px 0;border-left:3px solid #c9a227;background:#fafbfc;font-size:12px;line-height:1.6}
+.print-rec strong{color:#1a1a2e}.ss-rec-label{font-weight:700;color:#1a1a2e}.ss-rec-strength{color:#16a34a}
 @media print{
   body{margin:0;padding:10px}
   h1{font-size:18px}h3{font-size:12px}
@@ -3221,8 +3330,9 @@ ul{line-height:1.7;font-size:13px}
   .card{padding:6px}.cv{font-size:16px}
   table{font-size:11px}th,td{padding:4px 6px}
   .no-print{display:none}
+  .print-summary{border:1px solid #ccc}
 }
-</style></head><body>
+</style></head><body${extraClass ? ` class="${extraClass}"` : ''}>
 ${bodyHtml}
 <div class="no-print" style="text-align:center;margin:32px 0">
 <p style="color:#999;font-size:12px">Use your browser's <b>Save as PDF</b> option in the print dialog, or press Ctrl/Cmd+P.</p>
