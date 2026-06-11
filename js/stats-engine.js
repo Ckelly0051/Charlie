@@ -573,7 +573,7 @@ export class StatsEngine {
       touchdowns: rushPlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
       fumbles: rushPlays.filter(p => StatsEngine.hasResult(p, 'Fumble')).length,
       longest: rushPlays.reduce((max, p) => Math.max(max, parseInt(p.tags.yardage) || 0), 0),
-      firstDowns: rushPlays.filter(p => p.tags.custom?.includes('1st Down')).length
+      firstDowns: rushPlays.filter(p => gainedFirstDown(p.tags)).length
     };
   }
 
@@ -606,7 +606,7 @@ export class StatsEngine {
         if (StatsEngine.hasResult(p, 'Incomplete')) return max;
         return Math.max(max, parseInt(p.tags.yardage) || 0);
       }, 0),
-      firstDowns: passPlays.filter(p => p.tags.custom?.includes('1st Down')).length
+      firstDowns: passPlays.filter(p => gainedFirstDown(p.tags)).length
     };
   }
 
@@ -654,7 +654,7 @@ export class StatsEngine {
       const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
       const passes = total - runs;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+      const conversions = downPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
 
       downStats[down] = {
         total,
@@ -667,11 +667,11 @@ export class StatsEngine {
       };
     }
 
-    const firstDowns = plays.filter(p => p.tags.custom?.includes('1st Down')).length;
+    const firstDowns = plays.filter(p => gainedFirstDown(p.tags)).length;
     const thirdDown = byDown['3'];
-    const thirdDownConv = thirdDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+    const thirdDownConv = thirdDown.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
     const fourthDown = byDown['4'];
-    const fourthDownConv = fourthDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+    const fourthDownConv = fourthDown.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
 
     const ddBuckets = this._downDistanceBuckets(plays);
 
@@ -707,7 +707,7 @@ export class StatsEngine {
       const runs = pl.filter(p => StatsEngine.isRun(p)).length;
       const passes = n - runs;
       const yards = pl.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const conv = pl.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+      const conv = pl.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
       const succ = pl.filter(p => this._isSuccessfulPlay(p)).length;
       buckets.push({
         down: g.down, bucket: g.bucket, count: n,
@@ -1285,6 +1285,7 @@ export class StatsEngine {
     const el = this.dashboardEl;
     const selfScout = this._renderSelfScoutBody(stats);
     const defBody = this._renderDefenseTabBody(stats);
+    const noData = stats.allPlays === 0;
 
     el.innerHTML = `
       <div class="stats-overlay">
@@ -1304,6 +1305,12 @@ export class StatsEngine {
           </div>
           <div class="stats-body">
             <div class="stats-tab-pane active" data-pane="game">
+              ${noData ? `<div style="text-align:center;padding:48px 24px;color:var(--text-dim)">
+                <div style="font-size:36px;margin-bottom:12px">📊</div>
+                <div style="font-size:16px;font-weight:600;margin-bottom:8px">No tagged plays yet</div>
+                <div style="font-size:13px;line-height:1.5">Tag plays with Play Type + Result + Yardage to see stats.<br>
+                Down & Distance adds conversion rates. Formation adds tendencies.</div>
+              </div>` : ''}
               <div class="stats-cut-hint">▶ Tip: click any highlighted stat row to watch those exact plays as a film cut-up.</div>
               ${this._renderTakeaways(stats)}
               ${this._renderScoreboard(stats)}
@@ -1769,7 +1776,7 @@ export class StatsEngine {
     const colorMap = { TD: '#22c55e', FG: '#06b6d4', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
-    const outcomeDonut = Charts.donut(
+    const outcomeDonut = Charts.donutWithLegend(
       Object.entries(outcomeCounts).map(([k, v]) => ({ value: v, color: colorMap[k] || '#aaa', label: k })),
       100, String(d.total), 'drives'
     );
@@ -1779,7 +1786,7 @@ export class StatsEngine {
     for (const dr of d.list) {
       const color = colorMap[dr.outcome] || '#aaa';
       const barPct = Math.max(3, (Math.abs(dr.yards) / maxYds) * 100);
-      const startLabel = dr.startYL != null ? `Own ${dr.startYL > 50 ? 'Opp ' + (100 - dr.startYL) : dr.startYL}` : '';
+      const startLabel = dr.startYL != null ? (dr.startYL > 50 ? `Opp ${100 - dr.startYL}` : `Own ${dr.startYL}`) : '';
       rows += `<div class="drive-row">
         <span class="drive-num">${dr.number}</span>
         <div class="drive-bar"><div style="background:${color};height:100%;width:${barPct.toFixed(1)}%;border-radius:3px"></div></div>
@@ -2087,7 +2094,7 @@ export class StatsEngine {
 
     const playTypeDonut = Charts.donutWithLegend(
       t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = [PASS_COLOR, RUN_COLOR, '#22c55e', '#f97316', '#a78bfa', '#ef4444', '#06b6d4', '#ec4899'];
+        const colors = ['#22c55e', '#f97316', '#a78bfa', '#06b6d4', '#ec4899', '#ef4444', '#8b5cf6', '#14b8a6'];
         return { value: pt.count, color: colors[i % colors.length], label: pt.name };
       }),
       120, String(stats.totalPlays), 'plays'
@@ -2538,7 +2545,7 @@ export class StatsEngine {
       fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
       coverages: Object.entries(coverages).sort((a, b) => b[1] - a[1]),
       redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length },
-      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length },
+      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length },
     };
   }
 
@@ -3099,7 +3106,7 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     const ind = stats.individuals;
     if (ind.rushers.length) {
       body += '<h3>Individual Rushing</h3><table><thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>TD</th></tr></thead><tbody>';
-      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.avg}</td><td>${rv.tds}</td></tr>`; });
+      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.attempts ? (rv.yards / rv.attempts).toFixed(1) : '0.0'}</td><td>${rv.tds}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.passers.length) {

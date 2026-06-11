@@ -125,6 +125,9 @@ export class VideoController {
     this.video.addEventListener('loadedmetadata', () => {
       this.placeholder.classList.add('hidden');
       this._updateTime();
+      // Reapply playback speed — the load algorithm resets playbackRate to 1.0
+      const rate = parseFloat(this.speedSelect.value) || 1;
+      if (this.video.playbackRate !== rate) this.video.playbackRate = rate;
       this._emit('video-loaded', {
         duration: this.video.duration,
         width: this.video.videoWidth,
@@ -168,7 +171,10 @@ export class VideoController {
       this.video.classList.remove('is-buffering');
     });
     this.video.addEventListener('stalled', () => {
-      this.video.classList.add('is-buffering');
+      if (this.video.readyState < 3) this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('canplay', () => {
+      this.video.classList.remove('is-buffering');
     });
     this.video.addEventListener('error', () => {
       this.video.classList.remove('is-buffering');
@@ -178,13 +184,19 @@ export class VideoController {
       this.video.classList.remove('is-buffering');
     });
 
-    // Scrub bar interaction
-    this.scrubBar.addEventListener('mousedown', (e) => this._startScrub(e));
-    document.addEventListener('mousemove', (e) => {
+    // Scrub bar interaction (pointer events cover mouse + touch)
+    this.scrubBar.addEventListener('pointerdown', (e) => {
+      this.scrubBar.setPointerCapture(e.pointerId);
+      this._startScrub(e);
+    });
+    this.scrubBar.addEventListener('pointermove', (e) => {
       if (this.isScrubbing) this._doScrub(e);
     });
-    document.addEventListener('mouseup', () => {
-      if (this.isScrubbing) this._endScrub();
+    this.scrubBar.addEventListener('pointerup', (e) => {
+      if (this.isScrubbing) {
+        this.scrubBar.releasePointerCapture(e.pointerId);
+        this._endScrub();
+      }
     });
   }
 
@@ -218,6 +230,7 @@ export class VideoController {
 
   unloadVideo() {
     try { this.video.pause(); } catch {}
+    this.clearLoop();
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
       this.objectUrl = null;
@@ -376,7 +389,7 @@ export class VideoController {
   }
 
   seekTo(time) {
-    if (!this.video.src) return;
+    if (!this.video.src || !isFinite(this.video.duration)) return;
     this.video.currentTime = Math.max(0, Math.min(time, this.video.duration));
     this._updateScrubBar();
     this._updateTime();

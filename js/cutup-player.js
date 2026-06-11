@@ -31,6 +31,7 @@ export class CutupPlayer {
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
     if (!plays.length) return;
 
+    this.vc.clearLoop();
     this.queue = plays;
     this.label = label;
     this.active = true;

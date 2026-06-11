@@ -1454,7 +1454,7 @@ body {
   border-bottom-color: var(--highlight, #ffd23f);
 }
 .stats-tab-pane { display: none; }
-.stats-tab-pane.active { display: block; }
+.stats-tab-pane.active { display: block; overflow-x: auto; }
 
 .stats-body {
   padding: 16px 20px;
@@ -1579,8 +1579,8 @@ body {
 }
 
 .tendency-run {
-  background: #2266cc;
-  color: var(--text-bright);
+  background: var(--run-color, #f0b429);
+  color: #111;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1588,8 +1588,8 @@ body {
 }
 
 .tendency-pass {
-  background: #22aa44;
-  color: var(--text-bright);
+  background: var(--pass-color, #38bdf8);
+  color: #111;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2111,6 +2111,18 @@ body {
     position: static;
     background: none;
     padding: 0;
+    --text: #111;
+    --text-dim: #555;
+    --text-bright: #000;
+    --highlight: #1a1a2e;
+    --surface: #fff;
+    --bg: #fff;
+    --bg-card: #f5f5f5;
+    --border: #ccc;
+  }
+  .stats-overlay, .stats-overlay * {
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   .stats-container {
     max-height: none;
@@ -2118,22 +2130,22 @@ body {
     border: none;
     background: #fff;
   }
-  .stats-header-actions {
-    display: none;
-  }
+  .stats-body { color: #111; }
+  .stats-header { background: #1a1a2e; }
+  .stats-header-actions { display: none; }
+  .stats-tabs { display: none; }
+  .stats-tab-pane { display: block !important; }
   .stat-card {
     border: 1px solid #ccc;
     background: #f5f5f5;
   }
-  .stat-card-value {
-    color: #000;
-  }
+  .stat-card-value { color: #000; }
+  .stat-card-label { color: #555; }
   .stats-table td, .stats-table th {
     border-bottom: 1px solid #ddd;
+    color: #111;
   }
-  .tendency-run, .tendency-pass {
-    color: #fff;
-  }
+  .tendency-run, .tendency-pass { color: #fff; }
 }
 
 
@@ -6548,6 +6560,9 @@ body {
 .stats-two-col {
   gap: 20px;
 }
+@media (max-width: 800px) {
+  .stats-two-col { grid-template-columns: 1fr; }
+}
 
 /* --- Success bar polish --- */
 .success-bar-track { background: var(--bg-tertiary); }
@@ -6573,10 +6588,11 @@ body {
 @media (max-width: 800px) {
   .stats-header { padding: 14px 16px; }
   .stats-header h2 { font-size: 16px; letter-spacing: 1px; }
-  .stats-body { padding: 14px 16px; }
-  .stats-tabs { padding: 0 12px; }
+  .stats-body { padding: 14px 16px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  .stats-tabs { padding: 0 12px; overflow-x: auto; }
   .stat-card-value { font-size: 20px; }
 }
+.stats-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ================================================================== */
 /* ==========  Desktop auto-update banner / toast (updater.js)  ===== */

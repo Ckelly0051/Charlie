@@ -1463,7 +1463,7 @@ body {
   border-bottom-color: var(--highlight, #ffd23f);
 }
 .stats-tab-pane { display: none; }
-.stats-tab-pane.active { display: block; }
+.stats-tab-pane.active { display: block; overflow-x: auto; }
 
 .stats-body {
   padding: 16px 20px;
@@ -1588,8 +1588,8 @@ body {
 }
 
 .tendency-run {
-  background: #2266cc;
-  color: var(--text-bright);
+  background: var(--run-color, #f0b429);
+  color: #111;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1597,8 +1597,8 @@ body {
 }
 
 .tendency-pass {
-  background: #22aa44;
-  color: var(--text-bright);
+  background: var(--pass-color, #38bdf8);
+  color: #111;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2120,6 +2120,18 @@ body {
     position: static;
     background: none;
     padding: 0;
+    --text: #111;
+    --text-dim: #555;
+    --text-bright: #000;
+    --highlight: #1a1a2e;
+    --surface: #fff;
+    --bg: #fff;
+    --bg-card: #f5f5f5;
+    --border: #ccc;
+  }
+  .stats-overlay, .stats-overlay * {
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   .stats-container {
     max-height: none;
@@ -2127,22 +2139,22 @@ body {
     border: none;
     background: #fff;
   }
-  .stats-header-actions {
-    display: none;
-  }
+  .stats-body { color: #111; }
+  .stats-header { background: #1a1a2e; }
+  .stats-header-actions { display: none; }
+  .stats-tabs { display: none; }
+  .stats-tab-pane { display: block !important; }
   .stat-card {
     border: 1px solid #ccc;
     background: #f5f5f5;
   }
-  .stat-card-value {
-    color: #000;
-  }
+  .stat-card-value { color: #000; }
+  .stat-card-label { color: #555; }
   .stats-table td, .stats-table th {
     border-bottom: 1px solid #ddd;
+    color: #111;
   }
-  .tendency-run, .tendency-pass {
-    color: #fff;
-  }
+  .tendency-run, .tendency-pass { color: #fff; }
 }
 
 
@@ -6557,6 +6569,9 @@ body {
 .stats-two-col {
   gap: 20px;
 }
+@media (max-width: 800px) {
+  .stats-two-col { grid-template-columns: 1fr; }
+}
 
 /* --- Success bar polish --- */
 .success-bar-track { background: var(--bg-tertiary); }
@@ -6582,10 +6597,11 @@ body {
 @media (max-width: 800px) {
   .stats-header { padding: 14px 16px; }
   .stats-header h2 { font-size: 16px; letter-spacing: 1px; }
-  .stats-body { padding: 14px 16px; }
-  .stats-tabs { padding: 0 12px; }
+  .stats-body { padding: 14px 16px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  .stats-tabs { padding: 0 12px; overflow-x: auto; }
   .stat-card-value { font-size: 20px; }
 }
+.stats-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ================================================================== */
 /* ==========  Desktop auto-update banner / toast (updater.js)  ===== */
@@ -8908,6 +8924,9 @@ class VideoController {
     this.video.addEventListener('loadedmetadata', () => {
       this.placeholder.classList.add('hidden');
       this._updateTime();
+      // Reapply playback speed — the load algorithm resets playbackRate to 1.0
+      const rate = parseFloat(this.speedSelect.value) || 1;
+      if (this.video.playbackRate !== rate) this.video.playbackRate = rate;
       this._emit('video-loaded', {
         duration: this.video.duration,
         width: this.video.videoWidth,
@@ -8951,7 +8970,10 @@ class VideoController {
       this.video.classList.remove('is-buffering');
     });
     this.video.addEventListener('stalled', () => {
-      this.video.classList.add('is-buffering');
+      if (this.video.readyState < 3) this.video.classList.add('is-buffering');
+    });
+    this.video.addEventListener('canplay', () => {
+      this.video.classList.remove('is-buffering');
     });
     this.video.addEventListener('error', () => {
       this.video.classList.remove('is-buffering');
@@ -8961,13 +8983,19 @@ class VideoController {
       this.video.classList.remove('is-buffering');
     });
 
-    // Scrub bar interaction
-    this.scrubBar.addEventListener('mousedown', (e) => this._startScrub(e));
-    document.addEventListener('mousemove', (e) => {
+    // Scrub bar interaction (pointer events cover mouse + touch)
+    this.scrubBar.addEventListener('pointerdown', (e) => {
+      this.scrubBar.setPointerCapture(e.pointerId);
+      this._startScrub(e);
+    });
+    this.scrubBar.addEventListener('pointermove', (e) => {
       if (this.isScrubbing) this._doScrub(e);
     });
-    document.addEventListener('mouseup', () => {
-      if (this.isScrubbing) this._endScrub();
+    this.scrubBar.addEventListener('pointerup', (e) => {
+      if (this.isScrubbing) {
+        this.scrubBar.releasePointerCapture(e.pointerId);
+        this._endScrub();
+      }
     });
   }
 
@@ -9001,6 +9029,7 @@ class VideoController {
 
   unloadVideo() {
     try { this.video.pause(); } catch {}
+    this.clearLoop();
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
       this.objectUrl = null;
@@ -9159,7 +9188,7 @@ class VideoController {
   }
 
   seekTo(time) {
-    if (!this.video.src) return;
+    if (!this.video.src || !isFinite(this.video.duration)) return;
     this.video.currentTime = Math.max(0, Math.min(time, this.video.duration));
     this._updateScrubBar();
     this._updateTime();
@@ -15077,33 +15106,8 @@ class PlaylistManager {
     this.btnPrevClip.addEventListener('click', () => this.prevClip());
     this.btnNextClip.addEventListener('click', () => this.nextClip());
 
-    // Also support drop zone for multiple files
-    const dropZone = document.getElementById('videoDropZone');
-    const origDropHandler = dropZone.ondrop;
-
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-
-      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
-      if (files.length === 0) return;
-
-      if (files.length === 1 && this.clips.length === 0) {
-        // Single file with no existing playlist — use legacy single-video mode
-        this.vc.loadFile(files[0]);
-      } else {
-        // Multiple files or adding to existing playlist
-        this.addFiles(files);
-      }
-    }, true); // capture phase to override existing handler
-
-    // When the main file input loads a single file and there's no playlist,
-    // that's fine — single-video mode still works. But if there IS a playlist,
-    // treat it as adding a clip.
-    this.vc.on('file-loaded', (data) => {
-      // If we have an active playlist, don't let single-file loads break it
-      // (the single load was initiated by us via switchToClip)
-    });
+    // Drop handling is centralized in VideoController → files-selected → App.
+    // No duplicate handler here — that caused double-adds.
   }
 
   /**
@@ -15199,7 +15203,8 @@ class PlaylistManager {
       tempVideo.addEventListener('loadedmetadata', () => {
         const dur = tempVideo.duration;
         if (!isUrl) URL.revokeObjectURL(url);
-        tempVideo.src = '';
+        tempVideo.removeAttribute('src');
+        tempVideo.load();
         resolve(dur);
       });
       tempVideo.addEventListener('error', () => {
@@ -15336,11 +15341,10 @@ class PlaylistManager {
     // Adjust active index.
     if (this.clips.length === 0) {
       this.activeClipIndex = -1;
+      this.vc.unloadVideo();
     } else if (index < this.activeClipIndex) {
-      // Removed a clip before the active one: shift the pointer left so it
-      // still points at the same (active) clip.
+      // Removed a clip before the active one: shift pointer, no reload needed.
       this.activeClipIndex -= 1;
-      this.switchToClip(this.activeClipIndex);
     } else if (index === this.activeClipIndex) {
       // Removed the active clip: stay at this index, which now holds the NEXT
       // clip, so deleting flows forward. Clamp when we removed the last one.
@@ -16155,24 +16159,25 @@ class AdvancedMetrics {
     const yds = parseInt(t.yardage) || 0;
     const ylAfter = Math.max(0, Math.min(100, ylBefore + yds));
     const result = t.result || '';
+    const results = result.split(' + ').map(r => r.trim()).filter(Boolean);
+    const has = r => results.includes(r);
     let epAfter = null;
 
-    // Scoring & special outcomes
-    if (result === 'Touchdown') {
+    // Scoring & special outcomes (multi-select aware)
+    if (has('Touchdown')) {
       epAfter = 7;
-    } else if (result === 'Field Goal') {
+    } else if (has('Field Goal')) {
       epAfter = 3;
-    } else if (result === 'Interception' || result === 'Fumble') {
+    } else if (has('Interception') || has('Fumble')) {
       const oppEp = this.ep(100 - ylAfter, 1, 10);
       if (oppEp == null) return null;
       epAfter = -oppEp;
-    } else if (result === 'Punt') {
-      // Average net punt of ~40 yards
+    } else if (has('Punt')) {
       const oppStart = Math.max(20, 100 - (ylAfter + 40));
       const oppEp = this.ep(oppStart, 1, 10);
       if (oppEp == null) return null;
       epAfter = -oppEp;
-    } else if (result === 'Safety') {
+    } else if (has('Safety')) {
       epAfter = -2;
     } else {
       // Compute next down/distance
@@ -17394,7 +17399,7 @@ class StatsEngine {
       touchdowns: rushPlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
       fumbles: rushPlays.filter(p => StatsEngine.hasResult(p, 'Fumble')).length,
       longest: rushPlays.reduce((max, p) => Math.max(max, parseInt(p.tags.yardage) || 0), 0),
-      firstDowns: rushPlays.filter(p => p.tags.custom?.includes('1st Down')).length
+      firstDowns: rushPlays.filter(p => gainedFirstDown(p.tags)).length
     };
   }
 
@@ -17427,7 +17432,7 @@ class StatsEngine {
         if (StatsEngine.hasResult(p, 'Incomplete')) return max;
         return Math.max(max, parseInt(p.tags.yardage) || 0);
       }, 0),
-      firstDowns: passPlays.filter(p => p.tags.custom?.includes('1st Down')).length
+      firstDowns: passPlays.filter(p => gainedFirstDown(p.tags)).length
     };
   }
 
@@ -17475,7 +17480,7 @@ class StatsEngine {
       const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
       const passes = total - runs;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const conversions = downPlays.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+      const conversions = downPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
 
       downStats[down] = {
         total,
@@ -17488,11 +17493,11 @@ class StatsEngine {
       };
     }
 
-    const firstDowns = plays.filter(p => p.tags.custom?.includes('1st Down')).length;
+    const firstDowns = plays.filter(p => gainedFirstDown(p.tags)).length;
     const thirdDown = byDown['3'];
-    const thirdDownConv = thirdDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+    const thirdDownConv = thirdDown.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
     const fourthDown = byDown['4'];
-    const fourthDownConv = fourthDown.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+    const fourthDownConv = fourthDown.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
 
     const ddBuckets = this._downDistanceBuckets(plays);
 
@@ -17528,7 +17533,7 @@ class StatsEngine {
       const runs = pl.filter(p => StatsEngine.isRun(p)).length;
       const passes = n - runs;
       const yards = pl.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-      const conv = pl.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length;
+      const conv = pl.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
       const succ = pl.filter(p => this._isSuccessfulPlay(p)).length;
       buckets.push({
         down: g.down, bucket: g.bucket, count: n,
@@ -18106,6 +18111,7 @@ class StatsEngine {
     const el = this.dashboardEl;
     const selfScout = this._renderSelfScoutBody(stats);
     const defBody = this._renderDefenseTabBody(stats);
+    const noData = stats.allPlays === 0;
 
     el.innerHTML = `
       <div class="stats-overlay">
@@ -18125,6 +18131,12 @@ class StatsEngine {
           </div>
           <div class="stats-body">
             <div class="stats-tab-pane active" data-pane="game">
+              ${noData ? `<div style="text-align:center;padding:48px 24px;color:var(--text-dim)">
+                <div style="font-size:36px;margin-bottom:12px">📊</div>
+                <div style="font-size:16px;font-weight:600;margin-bottom:8px">No tagged plays yet</div>
+                <div style="font-size:13px;line-height:1.5">Tag plays with Play Type + Result + Yardage to see stats.<br>
+                Down & Distance adds conversion rates. Formation adds tendencies.</div>
+              </div>` : ''}
               <div class="stats-cut-hint">▶ Tip: click any highlighted stat row to watch those exact plays as a film cut-up.</div>
               ${this._renderTakeaways(stats)}
               ${this._renderScoreboard(stats)}
@@ -18590,7 +18602,7 @@ class StatsEngine {
     const colorMap = { TD: '#22c55e', FG: '#06b6d4', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
-    const outcomeDonut = Charts.donut(
+    const outcomeDonut = Charts.donutWithLegend(
       Object.entries(outcomeCounts).map(([k, v]) => ({ value: v, color: colorMap[k] || '#aaa', label: k })),
       100, String(d.total), 'drives'
     );
@@ -18600,7 +18612,7 @@ class StatsEngine {
     for (const dr of d.list) {
       const color = colorMap[dr.outcome] || '#aaa';
       const barPct = Math.max(3, (Math.abs(dr.yards) / maxYds) * 100);
-      const startLabel = dr.startYL != null ? `Own ${dr.startYL > 50 ? 'Opp ' + (100 - dr.startYL) : dr.startYL}` : '';
+      const startLabel = dr.startYL != null ? (dr.startYL > 50 ? `Opp ${100 - dr.startYL}` : `Own ${dr.startYL}`) : '';
       rows += `<div class="drive-row">
         <span class="drive-num">${dr.number}</span>
         <div class="drive-bar"><div style="background:${color};height:100%;width:${barPct.toFixed(1)}%;border-radius:3px"></div></div>
@@ -18908,7 +18920,7 @@ class StatsEngine {
 
     const playTypeDonut = Charts.donutWithLegend(
       t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = [PASS_COLOR, RUN_COLOR, '#22c55e', '#f97316', '#a78bfa', '#ef4444', '#06b6d4', '#ec4899'];
+        const colors = ['#22c55e', '#f97316', '#a78bfa', '#06b6d4', '#ec4899', '#ef4444', '#8b5cf6', '#14b8a6'];
         return { value: pt.count, color: colors[i % colors.length], label: pt.name };
       }),
       120, String(stats.totalPlays), 'plays'
@@ -19359,7 +19371,7 @@ class StatsEngine {
       fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
       coverages: Object.entries(coverages).sort((a, b) => b[1] - a[1]),
       redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length },
-      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => p.tags.custom?.includes('1st Down') || StatsEngine.hasResult(p, 'Touchdown')).length },
+      thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length },
     };
   }
 
@@ -19920,7 +19932,7 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     const ind = stats.individuals;
     if (ind.rushers.length) {
       body += '<h3>Individual Rushing</h3><table><thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>TD</th></tr></thead><tbody>';
-      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.avg}</td><td>${rv.tds}</td></tr>`; });
+      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.attempts ? (rv.yards / rv.attempts).toFixed(1) : '0.0'}</td><td>${rv.tds}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.passers.length) {
@@ -21085,6 +21097,7 @@ class CutupPlayer {
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
     if (!plays.length) return;
 
+    this.vc.clearLoop();
     this.queue = plays;
     this.label = label;
     this.active = true;

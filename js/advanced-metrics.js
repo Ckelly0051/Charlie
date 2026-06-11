@@ -56,24 +56,25 @@ export class AdvancedMetrics {
     const yds = parseInt(t.yardage) || 0;
     const ylAfter = Math.max(0, Math.min(100, ylBefore + yds));
     const result = t.result || '';
+    const results = result.split(' + ').map(r => r.trim()).filter(Boolean);
+    const has = r => results.includes(r);
     let epAfter = null;
 
-    // Scoring & special outcomes
-    if (result === 'Touchdown') {
+    // Scoring & special outcomes (multi-select aware)
+    if (has('Touchdown')) {
       epAfter = 7;
-    } else if (result === 'Field Goal') {
+    } else if (has('Field Goal')) {
       epAfter = 3;
-    } else if (result === 'Interception' || result === 'Fumble') {
+    } else if (has('Interception') || has('Fumble')) {
       const oppEp = this.ep(100 - ylAfter, 1, 10);
       if (oppEp == null) return null;
       epAfter = -oppEp;
-    } else if (result === 'Punt') {
-      // Average net punt of ~40 yards
+    } else if (has('Punt')) {
       const oppStart = Math.max(20, 100 - (ylAfter + 40));
       const oppEp = this.ep(oppStart, 1, 10);
       if (oppEp == null) return null;
       epAfter = -oppEp;
-    } else if (result === 'Safety') {
+    } else if (has('Safety')) {
       epAfter = -2;
     } else {
       // Compute next down/distance

@@ -50,33 +50,8 @@ export class PlaylistManager {
     this.btnPrevClip.addEventListener('click', () => this.prevClip());
     this.btnNextClip.addEventListener('click', () => this.nextClip());
 
-    // Also support drop zone for multiple files
-    const dropZone = document.getElementById('videoDropZone');
-    const origDropHandler = dropZone.ondrop;
-
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-
-      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
-      if (files.length === 0) return;
-
-      if (files.length === 1 && this.clips.length === 0) {
-        // Single file with no existing playlist — use legacy single-video mode
-        this.vc.loadFile(files[0]);
-      } else {
-        // Multiple files or adding to existing playlist
-        this.addFiles(files);
-      }
-    }, true); // capture phase to override existing handler
-
-    // When the main file input loads a single file and there's no playlist,
-    // that's fine — single-video mode still works. But if there IS a playlist,
-    // treat it as adding a clip.
-    this.vc.on('file-loaded', (data) => {
-      // If we have an active playlist, don't let single-file loads break it
-      // (the single load was initiated by us via switchToClip)
-    });
+    // Drop handling is centralized in VideoController → files-selected → App.
+    // No duplicate handler here — that caused double-adds.
   }
 
   /**
@@ -172,7 +147,8 @@ export class PlaylistManager {
       tempVideo.addEventListener('loadedmetadata', () => {
         const dur = tempVideo.duration;
         if (!isUrl) URL.revokeObjectURL(url);
-        tempVideo.src = '';
+        tempVideo.removeAttribute('src');
+        tempVideo.load();
         resolve(dur);
       });
       tempVideo.addEventListener('error', () => {
@@ -309,11 +285,10 @@ export class PlaylistManager {
     // Adjust active index.
     if (this.clips.length === 0) {
       this.activeClipIndex = -1;
+      this.vc.unloadVideo();
     } else if (index < this.activeClipIndex) {
-      // Removed a clip before the active one: shift the pointer left so it
-      // still points at the same (active) clip.
+      // Removed a clip before the active one: shift pointer, no reload needed.
       this.activeClipIndex -= 1;
-      this.switchToClip(this.activeClipIndex);
     } else if (index === this.activeClipIndex) {
       // Removed the active clip: stay at this index, which now holds the NEXT
       // clip, so deleting flows forward. Clamp when we removed the last one.
