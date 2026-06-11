@@ -64,6 +64,13 @@ export class PlaylistManager {
       return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
     });
 
+    // Clip ids regenerate every session, so plays restored from a save point
+    // at clips that no longer exist. Note which clips were already live, add
+    // the new ones, then re-link orphaned plays to them by clip name — so
+    // re-uploading the game folder restores the tagged game instead of
+    // duplicating every play (the desktop rehydrate path uses the same key).
+    const liveIds = new Set(this.clips.map(c => c.id));
+    const newClips = [];
     for (const file of sorted) {
       const clip = {
         id: this._nextClipId++,
@@ -74,7 +81,10 @@ export class PlaylistManager {
         playId: null
       };
       this.clips.push(clip);
+      newClips.push(clip);
     }
+
+    const relinked = this._relinkSavedPlays(newClips, liveIds);
 
     this._updatePlaylistUI();
     this._updateClipIndicator();
@@ -83,12 +93,67 @@ export class PlaylistManager {
     // Auto-create play entries for each new clip
     this._autoCreatePlays();
 
-    // If nothing is playing, activate the first clip
+    // If nothing is playing, activate the first clip — except after a
+    // re-link, where the saved current play's clip is where the coach was.
     if (this.activeClipIndex === -1) {
-      this.switchToClip(0);
+      const cur = relinked ? this.tagger.getCurrentPlay() : null;
+      if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
+        this.switchToClipByPlayId(cur.id);
+      } else {
+        this.switchToClip(0);
+      }
+    }
+
+    if (relinked) {
+      this.tagger.toast?.(`Re-linked ${relinked} clip${relinked === 1 ? '' : 's'} to your saved plays`);
     }
 
     this._emit('clips-added', { count: sorted.length, total: this.clips.length });
+  }
+
+  /**
+   * Match incoming clips back to plays saved in a previous session, keyed by
+   * clip name (the only stable identifier across sessions). The first
+   * orphaned play per name is the auto-created whole-clip play; any extra
+   * plays marked inside that clip share its stale clipId and follow it to
+   * the new id. Returns how many clips were re-linked.
+   */
+  _relinkSavedPlays(newClips, liveIds) {
+    const stale = id => id != null && !liveIds.has(id);
+    const primaryByName = new Map();
+    for (const p of this.tagger.plays) {
+      if (p.clipName && (p.clipId == null || stale(p.clipId)) && !primaryByName.has(p.clipName)) {
+        primaryByName.set(p.clipName, p);
+      }
+    }
+    if (!primaryByName.size) return 0;
+
+    // Snapshot original clipIds before mutating — new ids can numerically
+    // collide with stale ones (both sequences start at 1).
+    const origId = new Map(this.tagger.plays.map(p => [p, p.clipId]));
+    const staleToNew = new Map();
+    let relinked = 0;
+    for (const clip of newClips) {
+      const primary = primaryByName.get(clip.name);
+      if (!primary) continue;
+      primaryByName.delete(clip.name);
+      clip.playId = primary.id;
+      // Reuse the saved play's end time so this clip skips the duration probe
+      // (999 is the failed-probe sentinel — don't adopt it as a real length).
+      if (primary.timestamp && primary.timestamp.end && primary.timestamp.end !== 999) {
+        clip.duration = primary.timestamp.end;
+      }
+      if (stale(origId.get(primary))) staleToNew.set(origId.get(primary), clip.id);
+      primary.clipId = clip.id;
+      relinked++;
+    }
+    if (staleToNew.size) {
+      for (const p of this.tagger.plays) {
+        const o = origId.get(p);
+        if (stale(o) && staleToNew.has(o) && p.clipId === o) p.clipId = staleToNew.get(o);
+      }
+    }
+    return relinked;
   }
 
   async _autoCreatePlays() {

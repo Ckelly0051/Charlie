@@ -558,6 +558,18 @@
                   <option value="-2">−−</option>
                 </select>
               </label>
+              <label class="player-role" data-role="takeaway">
+                <span class="player-role-label">Takeaway (INT/FR)</span>
+                <input type="number" id="tagPlayerTakeaway" class="player-num" min="0" max="99" placeholder="#" title="Defender credited with the interception or fumble recovery">
+                <select id="tagGradeTakeaway" class="player-grade" title="Grade">
+                  <option value="">—</option>
+                  <option value="2">++</option>
+                  <option value="1">+</option>
+                  <option value="0">0</option>
+                  <option value="-1">−</option>
+                  <option value="-2">−−</option>
+                </select>
+              </label>
             </div>
             <div class="player-quickpick" id="rosterQuickPick"></div>
           </div>
@@ -627,6 +639,11 @@
           <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
             <input type="checkbox" id="autoDDToggle" checked>
             <span>Auto down &amp; distance</span>
+          </label>
+
+          <label class="auto-dd-toggle" title="Carry Formation, Personnel, Def Front & Coverage to the next untagged play — for teams that don't change looks often. Only fills blanks; one tap changes any of them.">
+            <input type="checkbox" id="carrySchemeToggle">
+            <span>Carry formation to next play</span>
           </label>
 
           <div class="tag-nav">

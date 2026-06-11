@@ -140,6 +140,7 @@ export class PlayTagger {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      takeaway: document.getElementById('tagPlayerTakeaway'),
       kicker: document.getElementById('tagPlayerKicker'),
       returner: document.getElementById('tagPlayerReturner'),
     };
@@ -150,6 +151,7 @@ export class PlayTagger {
       passer: document.getElementById('tagGradePasser'),
       receiver: document.getElementById('tagGradeReceiver'),
       tackler: document.getElementById('tagGradeTackler'),
+      takeaway: document.getElementById('tagGradeTakeaway'),
       kicker: document.getElementById('tagGradeKicker'),
       returner: document.getElementById('tagGradeReturner'),
     };
@@ -166,6 +168,12 @@ export class PlayTagger {
     // its down/distance/field position from the previous play's result.
     this.autoDD = (typeof localStorage === 'undefined')
       || localStorage.getItem('ffa_auto_dd') !== '0';
+
+    // Carry scheme: pre-fill the next play's alignment fields (formation,
+    // personnel, def front, coverage) from the previous play. Opt-in — teams
+    // that rarely change looks save four taps a snap. Default OFF.
+    this.carryScheme = (typeof localStorage !== 'undefined')
+      && localStorage.getItem('ffa_carry_scheme') === '1';
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
@@ -1025,9 +1033,33 @@ export class PlayTagger {
         // Carry the side forward only when the next play hasn't been set yet,
         // so we never overwrite a play already tagged as a different unit.
         if (carryUnit && !next.tags.unit) this.setUnit(carryUnit);
+        if (this.carryScheme && prev) this.applyCarryScheme(prev, next);
       }
     }
     return advanced;
+  }
+
+  /** Alignment fields the carry-scheme toggle copies forward — pre-snap looks
+   *  only, never what happened on the snap (play type / result / yardage). */
+  static get CARRY_SCHEME_KEYS() {
+    return ['formation', 'personnel', 'defFront', 'coverage'];
+  }
+
+  /** Fill the next play's blank alignment fields from the previous play.
+   *  Existing values are never overwritten — a different look the coach
+   *  already tagged always wins, and one tap changes any carried chip. */
+  applyCarryScheme(prev, next) {
+    let changed = false;
+    PlayTagger.CARRY_SCHEME_KEYS.forEach(k => {
+      if (!next.tags[k] && prev.tags[k]) {
+        next.tags[k] = prev.tags[k];
+        changed = true;
+      }
+    });
+    if (changed) {
+      this._loadTagForm(next);
+      this._emit('play-updated', next);
+    }
   }
 
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
@@ -1046,6 +1078,19 @@ export class PlayTagger {
     const yl = parseInt(tags.yardLine);
     if (!yl) return null;
     return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  /** Carry the previous play's spot unchanged (spike/kneel/penalty replay).
+   *  The spot is unit-agnostic — only special teams (possession flip) skips it. */
+  _sameSpot(t) {
+    const spot = { fieldSide: null, yardLine: null };
+    if (t.unit === 'special') return spot;
+    const abs = this._absYL(t);
+    if (abs != null) {
+      if (abs <= 50) { spot.fieldSide = 'own'; spot.yardLine = abs; }
+      else { spot.fieldSide = 'opp'; spot.yardLine = 100 - abs; }
+    }
+    return spot;
   }
 
   /**
@@ -1067,15 +1112,7 @@ export class PlayTagger {
       const down = parseInt(t.down);
       const distance = parseInt(t.distance);
       if (!down || isNaN(distance) || down >= 4) return null;
-      const sameSpot = { fieldSide: null, yardLine: null };
-      if (t.unit === 'offense' || !t.unit) {
-        const abs = this._absYL(t);
-        if (abs != null) {
-          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
-          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
-        }
-      }
-      return { down: String(down + 1), distance: String(distance), ...sameSpot };
+      return { down: String(down + 1), distance: String(distance), ...this._sameSpot(t) };
     }
 
     const down = parseInt(t.down);
@@ -1087,15 +1124,7 @@ export class PlayTagger {
     // form — the coach adjusts distance if the flag moved the sticks, which is
     // still faster than re-entering everything. Field position carries as-is.
     if (resultParts.includes('Penalty')) {
-      const sameSpot = { fieldSide: null, yardLine: null };
-      if (t.unit === 'offense' || !t.unit) {
-        const abs = this._absYL(t);
-        if (abs != null) {
-          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
-          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
-        }
-      }
-      return { down: String(down), distance: String(distance), ...sameSpot };
+      return { down: String(down), distance: String(distance), ...this._sameSpot(t) };
     }
 
     let gained = parseInt(t.yardage);
@@ -1103,26 +1132,33 @@ export class PlayTagger {
 
     const firstDown = gainedFirstDown(t);
 
-    // Field position only makes sense for the offense's own yardage.
-    let fieldSide = null, yardLine = null, newAbs = null;
-    if (t.unit === 'offense' || !t.unit) {
+    // Field position: our offense drives the ball UP the field (abs grows);
+    // when we're tagging defense, the opponent's offense has the ball and
+    // their gains move it toward OUR goal (abs shrinks). Either way the spot
+    // advances — only special teams is left blank (possession flips).
+    const unit = t.unit || 'offense';
+    let fieldSide = null, yardLine = null, distToGoal = null;
+    if (unit === 'offense' || unit === 'defense') {
       const abs = this._absYL(t);
       if (abs != null) {
-        newAbs = Math.min(99, Math.max(1, abs + gained));
+        const newAbs = Math.min(99, Math.max(1, unit === 'defense' ? abs - gained : abs + gained));
         if (newAbs <= 50) { fieldSide = 'own'; yardLine = newAbs; }
         else { fieldSide = 'opp'; yardLine = 100 - newAbs; }
+        // Goal-to-go is measured toward whichever goal the ball is moving:
+        // the opponent's for our offense, ours for theirs.
+        distToGoal = unit === 'defense' ? newAbs : 100 - newAbs;
       }
     }
 
     let nextDown, nextDist;
     if (firstDown) {
       nextDown = 1;
-      nextDist = (newAbs != null && (100 - newAbs) < 10) ? (100 - newAbs) : 10;
+      nextDist = (distToGoal != null && distToGoal < 10) ? distToGoal : 10;
     } else {
       if (down >= 4) return null; // turnover on downs — new possession
       nextDown = down + 1;
       nextDist = Math.max(1, distance - gained);
-      if (newAbs != null && (100 - newAbs) < nextDist) nextDist = Math.max(1, 100 - newAbs);
+      if (distToGoal != null && distToGoal < nextDist) nextDist = Math.max(1, distToGoal);
     }
     return { down: String(nextDown), distance: String(nextDist), fieldSide, yardLine };
   }
@@ -1137,15 +1173,30 @@ export class PlayTagger {
    * clears the mark and freezes the values (see _saveField).
    */
   applyNextSituation(prev, next) {
-    if (next.tags.down && !next._autoSit) return; // coach/imported data — hands off
+    // The game clock doesn't reset when the ball changes hands — carry the
+    // quarter into a blank field no matter how the previous play ended (it
+    // used to carry only mid-possession, so every score/punt/turnover dropped
+    // it and the next series came up unquartered).
+    const carriedQuarter = !next.tags.quarter && !!prev.tags.quarter;
+    if (carriedQuarter) next.tags.quarter = prev.tags.quarter;
+
+    if (next.tags.down && !next._autoSit) {
+      // Coach/imported situation — hands off, but still show the carried quarter.
+      if (carriedQuarter) { this._loadTagForm(next); this._emit('play-updated', next); }
+      return;
+    }
     const sit = this.computeNextSituation(prev);
     if (!sit) {
       // Possession now ends on the corrected previous play — the situation we
       // auto-filled before is wrong. Blank it (only ever touches auto values).
+      let changed = carriedQuarter;
       if (next._autoSit) {
         next.tags.down = '';
         next.tags.distance = '';
         next._autoSit = false;
+        changed = true;
+      }
+      if (changed) {
         this._loadTagForm(next);
         this._updateTimeline();
         this._emit('play-updated', next);
@@ -1156,8 +1207,7 @@ export class PlayTagger {
     next.tags.distance = sit.distance;
     if (sit.fieldSide != null) next.tags.fieldSide = sit.fieldSide;
     if (sit.yardLine != null) next.tags.yardLine = String(sit.yardLine);
-    // Same drive/quarter continues unless already set.
-    if (!next.tags.quarter && prev.tags.quarter) next.tags.quarter = prev.tags.quarter;
+    // Same drive continues unless already set.
     if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
     next._autoSit = true;
     this._loadTagForm(next);

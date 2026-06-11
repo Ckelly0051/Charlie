@@ -1263,6 +1263,11 @@ export class StatsEngine {
       const tacklerIds = StatsEngine.splitPlayers(players.tackler);
       const shared = tacklerIds.length > 1;
       const isDefPlay = p.tags.unit === 'defense';
+      // Takeaway (INT / fumble recovery) goes to the dedicated role when set —
+      // it doesn't imply a tackle. Plays tagged before the role existed fall
+      // back to crediting the listed tackler(s), the old behavior.
+      const takeawayIds = StatsEngine.splitPlayers(players.takeaway);
+      const creditTakeawayViaTackler = isDefPlay && takeawayIds.length === 0;
       tacklerIds.forEach(id => {
         if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
         tacklers[id].tackles++;
@@ -1270,9 +1275,8 @@ export class StatsEngine {
         if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
         // TFL excludes sacks — matches the team-level definition.
         else if (yds < 0) tacklers[id].tfl++;
-        // Defensive takeaways credited to the defender(s) on the play.
-        if (isDefPlay && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
-        if (isDefPlay && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
+        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
+        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
         if (p.tags.grades?.tackler != null) {
           if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
           if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -1280,6 +1284,19 @@ export class StatsEngine {
           tacklers[id].gradeCount++;
         }
       });
+      if (isDefPlay) {
+        takeawayIds.forEach(id => {
+          if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
+          if (StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
+          if (StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
+          if (p.tags.grades?.takeaway != null) {
+            if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
+            if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
+            tacklers[id].gradeSum += p.tags.grades.takeaway;
+            tacklers[id].gradeCount++;
+          }
+        });
+      }
     });
 
     return {

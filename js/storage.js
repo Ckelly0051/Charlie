@@ -231,6 +231,23 @@ export class StorageManager {
       app._finishHintShown = false;
     }
     if (g) this._autoLoadFilm(g).catch(() => {});
+    this._maybeShowRelinkHint(g);
+  }
+
+  /**
+   * Browser build only: film files aren't stored (too large), so reopening a
+   * tagged game shows a dead player with no explanation — tell the coach
+   * exactly what to re-add. Plays re-link automatically by clip name.
+   */
+  _maybeShowRelinkHint(g) {
+    const backend = this.seasonStore && this.seasonStore.backend;
+    if (!g || !backend || (backend.supportsFilm && backend.supportsFilm())) return;
+    if (!(g.plays && g.plays.length)) return;
+    const what = (g.isMultiClip && g.clipNames && g.clipNames.length)
+      ? `the clip folder (${g.clipNames.length} clips)`
+      : g.videoFileName ? `"${g.videoFileName}"` : null;
+    if (!what) return;
+    this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically.`);
   }
 
   async _autoLoadFilm(gameNode) {
@@ -532,8 +549,8 @@ export class StorageManager {
       'Field Side', 'Yard Line', 'Formation', 'Personnel', 'Motion',
       'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
-      'Kicker', 'Returner',
-      'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
+      'Takeaway', 'Kicker', 'Returner',
+      'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade', 'Takeaway Grade',
       'Custom Tags', 'Notes'
     ];
 
@@ -566,12 +583,14 @@ export class StorageManager {
       p.tags.players?.passer || '',
       p.tags.players?.receiver || '',
       p.tags.players?.tackler || '',
+      p.tags.players?.takeaway || '',
       p.tags.players?.kicker || '',
       p.tags.players?.returner || '',
       p.tags.grades?.ballCarrier ?? '',
       p.tags.grades?.passer ?? '',
       p.tags.grades?.receiver ?? '',
       p.tags.grades?.tackler ?? '',
+      p.tags.grades?.takeaway ?? '',
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);

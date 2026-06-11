@@ -31,6 +31,7 @@ export class RosterManager {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      takeaway: document.getElementById('tagPlayerTakeaway'),
       kicker: document.getElementById('tagPlayerKicker'),
       returner: document.getElementById('tagPlayerReturner'),
     };
@@ -84,8 +85,12 @@ export class RosterManager {
   /** Pick the natural stamping role for the play's unit, unless the coach has
    *  explicitly focused a role input on this play (focus always wins). */
   _defaultRoleForUnit(unit) {
-    const wanted = unit === 'defense' ? 'tackler'
-      : unit === 'special' ? (this.tagger?.getCurrentPlay()?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
+    // Defense with an INT/Fumble result → the next # the coach taps is almost
+    // always the defender who made the takeaway, not a tackler.
+    const cur = this.tagger?.getCurrentPlay();
+    const turnover = unit === 'defense' && /Interception|Fumble/.test(String(cur?.tags?.result || ''));
+    const wanted = unit === 'defense' ? (turnover ? 'takeaway' : 'tackler')
+      : unit === 'special' ? (cur?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
       : 'ballCarrier';
     if (this.activeRole === wanted) return;
     // Don't fight an input the coach is actively typing in.
@@ -190,7 +195,7 @@ export class RosterManager {
    *  shows D/B, special-teams roles (kicker/returner) show everyone. */
   _playersForRole(role) {
     if (role === 'kicker' || role === 'returner') return this.players;
-    const wantSide = role === 'tackler' ? 'D' : 'O';
+    const wantSide = (role === 'tackler' || role === 'takeaway') ? 'D' : 'O';
     const filtered = this.players.filter(p => p.side === wantSide || p.side === 'B' || !p.side);
     return filtered.length ? filtered : this.players;
   }

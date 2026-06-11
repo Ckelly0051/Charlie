@@ -38,7 +38,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 
 class App {
   constructor() {
@@ -1737,6 +1737,16 @@ class App {
       autoDD.addEventListener('change', () => {
         this.tagger.autoDD = autoDD.checked;
         try { localStorage.setItem('ffa_auto_dd', autoDD.checked ? '1' : '0'); } catch (e) {}
+      });
+    }
+
+    // Carry formation/personnel/front/coverage to the next play (opt-in).
+    const carryScheme = document.getElementById('carrySchemeToggle');
+    if (carryScheme) {
+      carryScheme.checked = this.tagger.carryScheme;
+      carryScheme.addEventListener('change', () => {
+        this.tagger.carryScheme = carryScheme.checked;
+        try { localStorage.setItem('ffa_carry_scheme', carryScheme.checked ? '1' : '0'); } catch (e) {}
       });
     }
 
