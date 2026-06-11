@@ -4998,6 +4998,13 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .ffa-confirm-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 .ffa-confirm-card { position: relative; background: var(--surface, #fff); color: var(--text); border: 1px solid var(--chip-border, var(--border)); border-radius: var(--radius-lg, 12px); box-shadow: var(--shadow-lg, 0 22px 50px rgba(15,23,42,.2)); width: 92%; max-width: 380px; padding: 22px 22px 18px; }
 .ffa-confirm-msg { margin: 0 0 18px; font-size: 15px; line-height: 1.45; }
+.ffa-confirm-input {
+  width: 100%; box-sizing: border-box; margin: -8px 0 16px;
+  padding: 9px 11px; font-size: 14px; color: var(--text);
+  background: var(--bg, #fff); border: 1px solid var(--chip-border, var(--border));
+  border-radius: var(--radius-sm, 6px);
+}
+.ffa-confirm-input:focus { outline: 2px solid var(--accent, #4169e1); outline-offset: -1px; }
 .ffa-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .ffa-confirm-actions .btn { min-width: 88px; justify-content: center; }
 
@@ -8777,10 +8784,11 @@ td.pg-cell-focus {
               <dt><kbd>C</kbd></dt><dd>Cycle unit (Offense → Defense → Special Teams)</dd>
               <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>ST play type (in Special Teams mode)</dd>
               <dt><kbd>Enter</kbd></dt><dd>Save &amp; next play (works inside yardage/distance too)</dd>
+              <dt><kbd>Shift</kbd>+<kbd>Enter</kbd></dt><dd>Back to previous play</dd>
             </dl>
           </div>
           <div class="shortcuts-group">
-            <h4>Drawing <span class="shortcuts-note">(no play selected)</span></h4>
+            <h4>Drawing <span class="shortcuts-note">(Drawing Tools panel open)</span></h4>
             <dl>
               <dt><kbd>1</kbd>–<kbd>6</kbd></dt><dd>Line, Arrow, Circle, Rect, Draw, Text</dd>
               <dt><kbd>Esc</kbd></dt><dd>Deselect tool</dd>
@@ -10452,10 +10460,13 @@ class PlayTagger {
   }
 
   /** Save the current play's scheme tags as a named, reusable template. */
-  saveTemplate() {
+  async saveTemplate() {
     const play = this.getCurrentPlay();
-    if (!play) { alert('Select a play first, then save its tags as a template.'); return; }
-    const name = (prompt('Template name (e.g. "Gun Trips Rt / 4-3 Cover 3"):') || '').trim();
+    if (!play) { this.toast?.('Select a play first, then save its tags as a template.'); return; }
+    // In-app prompt: window.prompt() gets suppressed like confirm() does
+    // (Key Decision #8) and then "Save…" silently does nothing.
+    const name = ((await this._promptDialog(
+      'Template name', 'Save Template', 'e.g. "Gun Trips Rt / 4-3 Cover 3"')) || '').trim();
     if (!name) return;
     const store = this._templateStore();
     const subset = {};
@@ -10477,9 +10488,11 @@ class PlayTagger {
     this._emit('play-updated', play);
   }
 
-  deleteSelectedTemplate() {
+  async deleteSelectedTemplate() {
     if (!this.templateSelect || !this.templateSelect.value) return;
     const name = this.templateSelect.value;
+    const ok = await this._confirmDialog(`Delete the template "${name}"?`, 'Delete Template');
+    if (!ok) return;
     const store = this._templateStore();
     delete store[name];
     this._saveTemplateStore(store);
@@ -10535,6 +10548,55 @@ class PlayTagger {
     });
   }
 
+  /**
+   * In-app text prompt (same shell as _confirmDialog — window.prompt() gets
+   * suppressed by browsers too). Resolves the entered string, or null on
+   * cancel/Esc/backdrop.
+   */
+  _promptDialog(message, confirmLabel = 'Save', placeholder = '') {
+    return new Promise(resolve => {
+      const prev = document.getElementById('ffaConfirmModal');
+      if (prev) prev.remove();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'ffa-confirm-modal';
+      overlay.id = 'ffaConfirmModal';
+      overlay.innerHTML = `
+        <div class="ffa-confirm-backdrop"></div>
+        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
+          <p class="ffa-confirm-msg"></p>
+          <input type="text" class="ffa-confirm-input" />
+          <div class="ffa-confirm-actions">
+            <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary" data-act="ok"></button>
+          </div>
+        </div>`;
+      overlay.querySelector('.ffa-confirm-msg').textContent = message;
+      overlay.querySelector('[data-act="ok"]').textContent = confirmLabel;
+      const input = overlay.querySelector('.ffa-confirm-input');
+      input.placeholder = placeholder;
+      document.body.appendChild(overlay);
+
+      const cleanup = (val) => {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        resolve(val);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
+        else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(input.value); }
+        else e.stopPropagation();   // typing must not fire tagging shortcuts
+      };
+      overlay.addEventListener('click', (e) => {
+        const act = e.target.dataset ? e.target.dataset.act : null;
+        if (act === 'ok') cleanup(input.value);
+        else if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) cleanup(null);
+      });
+      document.addEventListener('keydown', onKey, true);
+      input.focus();
+    });
+  }
+
   selectPlay(id) {
     this.currentPlayId = id;
     const play = this.getPlay(id);
@@ -10567,6 +10629,12 @@ class PlayTagger {
     const play = this.getCurrentPlay();
     if (!play) return;
     play.tags[key] = this.tagFields[key].value;
+
+    // The coach edited the situation by hand — it's theirs now. Auto D&D
+    // stops refreshing these values on this play.
+    if (play._autoSit && (key === 'down' || key === 'distance' || key === 'fieldSide' || key === 'yardLine')) {
+      play._autoSit = false;
+    }
 
     // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
     // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
@@ -10901,11 +10969,31 @@ class PlayTagger {
     return { down: String(nextDown), distance: String(nextDist), fieldSide, yardLine };
   }
 
-  /** Pre-fill the next play's situation, without overwriting existing tags. */
+  /**
+   * Pre-fill the next play's situation. The coach's own entries always win:
+   * a down the coach typed (or imported data) is never touched. But values
+   * THIS feature wrote earlier are marked (`play._autoSit`) and stay live —
+   * correcting the previous play's yardage/result and advancing again
+   * re-computes them, so a fixed play never strands a stale auto-filled
+   * situation downstream. Any manual edit to down/distance/field position
+   * clears the mark and freezes the values (see _saveField).
+   */
   applyNextSituation(prev, next) {
-    if (next.tags.down) return; // already has a down — respect manual/imported data
+    if (next.tags.down && !next._autoSit) return; // coach/imported data — hands off
     const sit = this.computeNextSituation(prev);
-    if (!sit) return;
+    if (!sit) {
+      // Possession now ends on the corrected previous play — the situation we
+      // auto-filled before is wrong. Blank it (only ever touches auto values).
+      if (next._autoSit) {
+        next.tags.down = '';
+        next.tags.distance = '';
+        next._autoSit = false;
+        this._loadTagForm(next);
+        this._updateTimeline();
+        this._emit('play-updated', next);
+      }
+      return;
+    }
     next.tags.down = sit.down;
     next.tags.distance = sit.distance;
     if (sit.fieldSide != null) next.tags.fieldSide = sit.fieldSide;
@@ -10913,6 +11001,7 @@ class PlayTagger {
     // Same drive/quarter continues unless already set.
     if (!next.tags.quarter && prev.tags.quarter) next.tags.quarter = prev.tags.quarter;
     if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
+    next._autoSit = true;
     this._loadTagForm(next);
     this._updateTimeline();
     this._emit('play-updated', next);
@@ -11111,10 +11200,36 @@ class RosterManager {
       el.addEventListener('focus', () => { this.activeRole = role; this._markActiveRole(); });
     }
 
-    // Refresh chip highlights when a different play is selected.
+    // Refresh chip highlights when a different play is selected, and default
+    // the stamped role to the play's unit (defense → tackler, ST → kicker/
+    // returner) — otherwise every defensive series silently stamps Ball
+    // Carrier until the coach remembers to tap the Tackler input first.
     if (this.tagger) {
-      this.tagger.on('play-selected', () => this.refreshActiveChips());
+      this.tagger.on('play-selected', (play) => {
+        this._defaultRoleForUnit(play?.tags?.unit);
+        this.refreshActiveChips();
+      });
+      this.tagger.on('play-updated', (play) => {
+        // Unit toggle changes arrive as play-updated; follow them too.
+        if (play && play.id === this.tagger.currentPlayId) {
+          this._defaultRoleForUnit(play.tags?.unit);
+        }
+      });
     }
+  }
+
+  /** Pick the natural stamping role for the play's unit, unless the coach has
+   *  explicitly focused a role input on this play (focus always wins). */
+  _defaultRoleForUnit(unit) {
+    const wanted = unit === 'defense' ? 'tackler'
+      : unit === 'special' ? (this.tagger?.getCurrentPlay()?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
+      : 'ballCarrier';
+    if (this.activeRole === wanted) return;
+    // Don't fight an input the coach is actively typing in.
+    const focused = document.activeElement;
+    if (focused && Object.values(this.roleInputs).includes(focused)) return;
+    this.activeRole = wanted;
+    this._markActiveRole();
   }
 
   // --- Roster CRUD ---
@@ -11208,8 +11323,10 @@ class RosterManager {
     });
   }
 
-  /** Players relevant to the active role: offense roles show O/B, tackler shows D/B. */
+  /** Players relevant to the active role: offense roles show O/B, tackler
+   *  shows D/B, special-teams roles (kicker/returner) show everyone. */
   _playersForRole(role) {
+    if (role === 'kicker' || role === 'returner') return this.players;
     const wantSide = role === 'tackler' ? 'D' : 'O';
     const filtered = this.players.filter(p => p.side === wantSide || p.side === 'B' || !p.side);
     return filtered.length ? filtered : this.players;
@@ -18022,11 +18139,11 @@ class StatsEngine {
       const runPct = f.count ? (f.runs / f.count) * 100 : 50;
       const succPct = parseFloat(f.successPct);
       if (succPct >= 55 && f.count >= 5)
-        working.push({ s: succPct * Math.min(f.count, 15), text: `<strong>${f.name}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
+        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
       if (runPct >= 75)
-        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), text: `<strong>${f.name}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
+        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
       else if (runPct <= 25)
-        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), text: `<strong>${f.name}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
+        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
     });
 
     // --- Down & distance buckets ---
@@ -18038,9 +18155,9 @@ class StatsEngine {
         const conv = parseFloat(b.convPct);
         if (b.down === '3' || b.down === '4') {
           if (conv >= 55)
-            working.push({ s: conv * Math.min(b.count, 12), text: `<strong>${tag}</strong>: converting ${conv}% (${b.count} plays, ${b.avgYards} avg)` });
+            working.push({ s: conv * Math.min(b.count, 12), cut: ['dd', `${b.down}|${b.bucket}`], text: `<strong>${tag}</strong>: converting ${conv}% (${b.count} plays, ${b.avgYards} avg)` });
           else if (conv <= 30)
-            fix.push({ s: (50 - conv) * Math.min(b.count, 12), text: `<strong>${tag}</strong>: only ${conv}% conversion (${b.count} plays) — need a better call here` });
+            fix.push({ s: (50 - conv) * Math.min(b.count, 12), cut: ['dd', `${b.down}|${b.bucket}`], text: `<strong>${tag}</strong>: only ${conv}% conversion (${b.count} plays) — need a better call here` });
         }
       });
     }
@@ -18052,9 +18169,9 @@ class StatsEngine {
         const avg = c.count ? c.yards / c.count : 0;
         const stopPct = c.count ? (c.successes / c.count) * 100 : 0;
         if (stopPct >= 65 && avg <= 4)
-          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
+          working.push({ s: stopPct * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${c.name}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
         else if (avg >= 7)
-          fix.push({ s: avg * Math.min(c.count, 10), text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
+          fix.push({ s: avg * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
       });
     }
 
@@ -18076,7 +18193,7 @@ class StatsEngine {
       const paYPA = parseFloat(stats.playAction.paYPA);
       const straightYPA = parseFloat(stats.playAction.straightYPA);
       if (stats.playAction.paPlays >= 3 && paYPA > straightYPA + 2)
-        working.push({ s: (paYPA - straightYPA) * 100, text: `Play-action: <strong>${paYPA} YPA</strong> vs ${straightYPA} straight — it's working, lean into it` });
+        working.push({ s: (paYPA - straightYPA) * 100, cut: ['playType', 'Play Action'], text: `Play-action: <strong>${paYPA} YPA</strong> vs ${straightYPA} straight — it's working, lean into it` });
       if (runPct >= 45 && paRate < 15)
         fix.push({ s: 600, text: `Running ${runPct}% of the time but only ${paRate}% play-action — opponents aren't being held by fakes` });
     }
@@ -18099,9 +18216,9 @@ class StatsEngine {
       if (rz && rz.total >= MIN_N) {
         const tdPct = rz.total ? ((rz.tds / rz.total) * 100) : 0;
         if (tdPct >= 60)
-          working.push({ s: tdPct * 5, text: `Red zone TD rate <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — finishing drives` });
+          working.push({ s: tdPct * 5, cut: ['situation', 'redZone'], text: `Red zone TD rate <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — finishing drives` });
         else if (tdPct <= 25)
-          fix.push({ s: (50 - tdPct) * 10, text: `Red zone TD rate only <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — settling for FGs or stalling` });
+          fix.push({ s: (50 - tdPct) * 10, cut: ['situation', 'redZone'], text: `Red zone TD rate only <strong>${tdPct.toFixed(0)}%</strong> (${rz.tds}/${rz.total}) — settling for FGs or stalling` });
       }
     }
 
@@ -18109,10 +18226,10 @@ class StatsEngine {
     if (stats.efficiency && stats.totalPlays >= 10) {
       const expPct = parseFloat(stats.efficiency.explosivePct);
       if (expPct >= 15)
-        working.push({ s: expPct * 20, text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
+        working.push({ s: expPct * 20, cut: ['situation', 'explosive'], text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
       const negPct = parseFloat(stats.efficiency.negativePct);
       if (negPct >= 15)
-        fix.push({ s: negPct * 20, text: `<strong>${negPct}%</strong> negative play rate (${stats.efficiency.negativePlays} plays) — too many losses behind the line` });
+        fix.push({ s: negPct * 20, cut: ['situation', 'negative'], text: `<strong>${negPct}%</strong> negative play rate (${stats.efficiency.negativePlays} plays) — too many losses behind the line` });
     }
 
     // --- Hash predictability ---
@@ -18120,8 +18237,8 @@ class StatsEngine {
       stats.hash.list.forEach(h => {
         if (h.count < MIN_N) return;
         const runPct = parseInt(h.runPct);
-        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
-        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
+        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
+        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
       });
     }
 
@@ -18132,7 +18249,7 @@ class StatsEngine {
       if (totalDirRuns >= 6) {
         dirRuns.forEach(d => {
           const pct = (d.runs / totalDirRuns) * 100;
-          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${d.name}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
+          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), cut: ['playDir', d.name], text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${d.name}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
         });
       }
     }
@@ -18142,8 +18259,8 @@ class StatsEngine {
       const m = stats.dirMotion.motionList.reduce((acc, x) => ({ count: acc.count + x.count, runs: acc.runs + x.runs }), { count: 0, runs: 0 });
       if (m.count >= MIN_N) {
         const runPct = (m.runs / m.count) * 100;
-        if (runPct >= 75) fix.push({ s: (runPct - 50) * Math.min(m.count, 12), text: `When you motion, you run <strong>${runPct.toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
-        else if (runPct <= 25) fix.push({ s: (50 - runPct) * Math.min(m.count, 12), text: `When you motion, you pass <strong>${(100 - runPct).toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
+        if (runPct >= 75) fix.push({ s: (runPct - 50) * Math.min(m.count, 12), cut: ['motion', 'Any'], text: `When you motion, you run <strong>${runPct.toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
+        else if (runPct <= 25) fix.push({ s: (50 - runPct) * Math.min(m.count, 12), cut: ['motion', 'Any'], text: `When you motion, you pass <strong>${(100 - runPct).toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
       }
     }
 
@@ -18524,7 +18641,15 @@ class StatsEngine {
       case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
-      case 'motion':    return p => isOff(p) && (val === 'No Motion' ? !p.tags.motion : (p.tags.motion || '') === val);
+      case 'motion':    return p => isOff(p) && (val === 'No Motion' ? !p.tags.motion
+                                  : val === 'Any' ? !!p.tags.motion
+                                  : (p.tags.motion || '') === val);
+      case 'hash':      return p => isOff(p) && (p.tags.hash || '') === val;
+      case 'dd': {      // down + distance bucket, e.g. "3|Long"
+        const [down, bucket] = val.split('|');
+        const inBucket = d => bucket === 'Short' ? d <= 3 : bucket === 'Medium' ? (d >= 4 && d <= 6) : d >= 7;
+        return p => isOff(p) && p.tags.down === down && inBucket(parseInt(p.tags.distance) || 0);
+      }
       case 'defFront':  return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(val);
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
       case 'blitz':     return p => isDef(p) && StatsEngine.splitBlitzes(p.tags.blitz).includes(val);
@@ -18539,6 +18664,8 @@ class StatsEngine {
           case 'backedUp':   return p => isOff(p) && absYL(p) !== null && absYL(p) <= 10;
           case 'thirdLong':  return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 7;
           case 'thirdShort': return p => isOff(p) && p.tags.down === '3' && (parseInt(p.tags.distance) || 0) >= 1 && (parseInt(p.tags.distance) || 0) <= 3;
+          case 'explosive':  return p => isOff(p) && (StatsEngine.isRun(p) ? (parseInt(p.tags.yardage) || 0) >= 12 : (parseInt(p.tags.yardage) || 0) >= 16);
+          case 'negative':   return p => isOff(p) && (parseInt(p.tags.yardage) || 0) < 0;
           default: return null;
         }
       }
@@ -18547,16 +18674,17 @@ class StatsEngine {
   }
 
   _gameTitle() {
-    const name = document.getElementById('gameProjectName')?.value || '';
-    const t = document.getElementById('gameTeamName')?.value || '';
-    const o = document.getElementById('gameOpponent')?.value || '';
+    const esc = Charts._esc;
+    const name = esc(document.getElementById('gameProjectName')?.value || '');
+    const t = esc(document.getElementById('gameTeamName')?.value || '');
+    const o = esc(document.getElementById('gameOpponent')?.value || '');
     const u = document.getElementById('gameScoreUs')?.value;
     const th = document.getElementById('gameScoreThem')?.value;
-    const d = document.getElementById('gameDate')?.value || '';
+    const d = esc(document.getElementById('gameDate')?.value || '');
     let title = 'Game Stats';
     if (name) title = name;
     else if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
-    if (u !== '' && th !== '' && u != null && th != null) title += ` &mdash; ${u}-${th}`;
+    if (u !== '' && th !== '' && u != null && th != null) title += ` &mdash; ${esc(u)}-${esc(th)}`;
     if (d) title += ` (${d})`;
     return title;
   }
@@ -18673,8 +18801,8 @@ class StatsEngine {
   _renderScoreboard(stats) {
     const sb = stats.scoreboard;
     if (!sb || !sb.hasData) return '';
-    const team = document.getElementById('gameTeamName')?.value || 'Us';
-    const opp = document.getElementById('gameOpponent')?.value || 'Opponent';
+    const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Us');
+    const opp = Charts._esc(document.getElementById('gameOpponent')?.value || 'Opponent');
     const winColor = '#22c55e', loseColor = '#ef4444', tieColor = 'var(--text)';
     const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
     const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
@@ -18840,9 +18968,12 @@ class StatsEngine {
   _renderTakeaways(stats) {
     const t = stats.takeaways;
     if (!t || (!t.working?.length && !t.fix?.length)) return '';
-    const renderList = (items, cls) => items.map(i =>
-      `<li class="gp-item gp-${cls}">${i.text}</li>`
-    ).join('');
+    // Items that map to a play set are clickable straight into a cut-up —
+    // the headline insight shouldn't be the one thing you can't watch.
+    const renderList = (items, cls) => items.map(i => {
+      const cutAttrs = i.cut ? ` data-cut-type="${i.cut[0]}" data-cut-val="${Charts._esc(i.cut[1])}" data-cut-label="Game Plan" role="button" tabindex="0"` : '';
+      return `<li class="gp-item gp-${cls}${i.cut ? ' cut-row' : ''}"${cutAttrs}>${i.text}</li>`;
+    }).join('');
     const workingHtml = t.working?.length
       ? `<div class="gp-col"><h4 class="gp-head gp-head-good">What's Working</h4><ul class="gp-list">${renderList(t.working, 'good')}</ul></div>` : '';
     const fixHtml = t.fix?.length
@@ -19868,7 +19999,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
   renderSelfScout() {
     const report = this.generateSelfScout();
     if (!report) { alert('No run/pass plays tagged yet. Tag your offense first.'); return; }
-    const team = document.getElementById('gameTeamName')?.value || 'Our Offense';
+    const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Our Offense');
     const meterColor = report.predictability >= 70 ? '#ef4444'
       : report.predictability >= 50 ? '#f59e0b'
         : report.predictability >= 30 ? '#eab308' : '#22c55e';
@@ -20148,7 +20279,7 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
   _openPrintWindow(title, bodyHtml) {
     const w = window.open('', '_blank');
     if (!w) { alert('Pop-up blocked — allow pop-ups for this site to export PDF.'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${Charts._esc(title)}</title>
 <style>
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#1a1a2e;max-width:940px;margin:24px auto;padding:0 24px}
 h1{border-bottom:3px solid #1a1a2e;padding-bottom:8px;color:#1a1a2e;font-size:22px;font-weight:800;letter-spacing:0.5px}
@@ -20183,7 +20314,13 @@ ${bodyHtml}
 </div>
 </body></html>`);
     w.document.close();
-    setTimeout(() => w.print(), 400);
+    // Print once layout has settled (a fixed timeout fires early on slow
+    // machines); the timeout stays as a fallback for browsers that don't
+    // fire load on document.write content.
+    let printed = false;
+    const doPrint = () => { if (!printed) { printed = true; w.print(); } };
+    w.addEventListener('load', () => requestAnimationFrame(doPrint));
+    setTimeout(doPrint, 900);
   }
 }
 
@@ -22912,6 +23049,43 @@ tr:nth-child(even){background:#f4f4f8}
 .prog-arrow{margin:0 2px}
 .prog-tag{font-size:11px;font-weight:bold}
 .prog-card.prog-better .prog-tag{color:#1f9d4d}.prog-card.prog-worse .prog-tag{color:#d23b3b}.prog-card.prog-flat .prog-tag{color:#888}
+/* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
+   stack bars) reference app CSS vars and chart classes — define them here so
+   the standalone report isn't half-blank. */
+body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd}
+.stats-section{margin:18px 0}
+.tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
+.tendency-run{background:#f0b429;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
+.tendency-pass{background:#38bdf8;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
+.chart-gauge{display:inline-block;vertical-align:top;margin:6px 12px 6px 0;text-align:center}
+.chart-gauge-label{font-size:11px;color:#666;margin-top:2px}
+.chart-donut{vertical-align:top}
+.chart-donut-wrap{display:inline-flex;align-items:center;gap:10px;margin:6px 14px 6px 0}
+.chart-legend{font-size:12px}
+.chart-leg-item{display:flex;align-items:center;gap:6px;margin:2px 0}
+.chart-leg-item i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.eff-gauges-row,.sit-gauges-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.eff-side-cards{display:flex;gap:10px}
+.stat-card-sm{border:1px solid #ddd;border-radius:6px;padding:8px 12px;background:#f9f9fb;text-align:center}
+.stat-card-title{font-size:10px;text-transform:uppercase;color:#666}
+.chart-eff{font-size:12px}
+.chart-eff-head{display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:4px}
+.chart-eff-head .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 3px 0 8px}
+.dot.run{background:#f0b429}.dot.pass{background:#38bdf8}
+.chart-eff-row{display:flex;align-items:center;gap:8px;margin:4px 0}
+.chart-eff-label{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.chart-eff-bar-wrap{flex:1}
+.chart-eff-track{height:16px;background:#eee;border-radius:3px;overflow:hidden}
+.chart-eff-fill{height:100%;background:#38bdf8;border-radius:3px;overflow:hidden}
+.chart-eff-run{height:100%;background:#f0b429}
+.chart-eff-meta,.chart-eff-meta-head{display:flex;gap:4px;font-variant-numeric:tabular-nums}
+.chart-eff-meta span{display:inline-block;width:50px;text-align:right}
+.chart-stack{display:flex;min-width:90px;border-radius:3px;overflow:hidden;background:#eee}
+.chart-stack-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#111}
+.stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cut-row{cursor:default}
+.stats-cut-hint{display:none}
+svg text{fill:#222}
 </style></head><body>
 <h1>${title}</h1>
 <p style="color:#666">Generated ${new Date().toLocaleString()}</p>
@@ -25215,7 +25389,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.6.3';
+const APP_VERSION = '1.7.0';
 
 class App {
   constructor() {
@@ -25971,26 +26145,28 @@ class App {
           e.preventDefault();
           this.tagger.markEnd();
           break;
-        // Drawing-tool digits only arm when NO play is selected — while
-        // tagging, a stray digit must never silently switch to the crosshair
-        // (the next video click would drop an annotation).
+        // Drawing-tool digits arm when no play is selected OR the settings
+        // drawer (Drawing Tools panel) is open — a play is now auto-selected
+        // the moment film loads, so "no play selected" alone was unreachable.
+        // While tagging with the drawer closed, a stray digit must never
+        // silently switch to the crosshair.
         case 'Digit1':
-          if (!this.tagger.currentPlayId) this._selectTool('line');
+          if (this._drawingArmed()) this._selectTool('line');
           break;
         case 'Digit2':
-          if (!this.tagger.currentPlayId) this._selectTool('arrow');
+          if (this._drawingArmed()) this._selectTool('arrow');
           break;
         case 'Digit3':
-          if (!this.tagger.currentPlayId) this._selectTool('circle');
+          if (this._drawingArmed()) this._selectTool('circle');
           break;
         case 'Digit4':
-          if (!this.tagger.currentPlayId) this._selectTool('rect');
+          if (this._drawingArmed()) this._selectTool('rect');
           break;
         case 'Digit5':
-          if (!this.tagger.currentPlayId) this._selectTool('freehand');
+          if (this._drawingArmed()) this._selectTool('freehand');
           break;
         case 'Digit6':
-          if (!this.tagger.currentPlayId) this._selectTool('text');
+          if (this._drawingArmed()) this._selectTool('text');
           break;
         case 'Escape':
           this._selectTool(null);
@@ -26054,6 +26230,12 @@ class App {
         this.canvas.clearAllAnnotations();
       }
     });
+  }
+
+  /** Digits switch drawing tools only when drawing is plausibly intended. */
+  _drawingArmed() {
+    return !this.tagger.currentPlayId ||
+      document.querySelector('.settings-drawer')?.classList.contains('open');
   }
 
   _selectTool(toolName) {
@@ -27005,7 +27187,8 @@ class App {
 
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      this._advancePlay();
+      if (e.shiftKey) this.tagger.prevPlay();   // Shift+Enter = back one play
+      else this._advancePlay();
       return true;
     }
 
