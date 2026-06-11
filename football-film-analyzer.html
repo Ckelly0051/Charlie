@@ -7979,6 +7979,18 @@ td.pg-cell-focus {
                   <option value="-2">−−</option>
                 </select>
               </label>
+              <label class="player-role" data-role="takeaway">
+                <span class="player-role-label">Takeaway (INT/FR)</span>
+                <input type="number" id="tagPlayerTakeaway" class="player-num" min="0" max="99" placeholder="#" title="Defender credited with the interception or fumble recovery">
+                <select id="tagGradeTakeaway" class="player-grade" title="Grade">
+                  <option value="">—</option>
+                  <option value="2">++</option>
+                  <option value="1">+</option>
+                  <option value="0">0</option>
+                  <option value="-1">−</option>
+                  <option value="-2">−−</option>
+                </select>
+              </label>
             </div>
             <div class="player-quickpick" id="rosterQuickPick"></div>
           </div>
@@ -8048,6 +8060,11 @@ td.pg-cell-focus {
           <label class="auto-dd-toggle" title="Pre-fill the next play's down, distance & field position from this play's result">
             <input type="checkbox" id="autoDDToggle" checked>
             <span>Auto down &amp; distance</span>
+          </label>
+
+          <label class="auto-dd-toggle" title="Carry Formation, Personnel, Def Front & Coverage to the next untagged play — for teams that don't change looks often. Only fills blanks; one tap changes any of them.">
+            <input type="checkbox" id="carrySchemeToggle">
+            <span>Carry formation to next play</span>
           </label>
 
           <div class="tag-nav">
@@ -9984,6 +10001,7 @@ class PlayTagger {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      takeaway: document.getElementById('tagPlayerTakeaway'),
       kicker: document.getElementById('tagPlayerKicker'),
       returner: document.getElementById('tagPlayerReturner'),
     };
@@ -9994,6 +10012,7 @@ class PlayTagger {
       passer: document.getElementById('tagGradePasser'),
       receiver: document.getElementById('tagGradeReceiver'),
       tackler: document.getElementById('tagGradeTackler'),
+      takeaway: document.getElementById('tagGradeTakeaway'),
       kicker: document.getElementById('tagGradeKicker'),
       returner: document.getElementById('tagGradeReturner'),
     };
@@ -10010,6 +10029,12 @@ class PlayTagger {
     // its down/distance/field position from the previous play's result.
     this.autoDD = (typeof localStorage === 'undefined')
       || localStorage.getItem('ffa_auto_dd') !== '0';
+
+    // Carry scheme: pre-fill the next play's alignment fields (formation,
+    // personnel, def front, coverage) from the previous play. Opt-in — teams
+    // that rarely change looks save four taps a snap. Default OFF.
+    this.carryScheme = (typeof localStorage !== 'undefined')
+      && localStorage.getItem('ffa_carry_scheme') === '1';
 
     this.tagChips = document.getElementById('tagChips');
     this.customTagInput = document.getElementById('customTagInput');
@@ -10869,9 +10894,33 @@ class PlayTagger {
         // Carry the side forward only when the next play hasn't been set yet,
         // so we never overwrite a play already tagged as a different unit.
         if (carryUnit && !next.tags.unit) this.setUnit(carryUnit);
+        if (this.carryScheme && prev) this.applyCarryScheme(prev, next);
       }
     }
     return advanced;
+  }
+
+  /** Alignment fields the carry-scheme toggle copies forward — pre-snap looks
+   *  only, never what happened on the snap (play type / result / yardage). */
+  static get CARRY_SCHEME_KEYS() {
+    return ['formation', 'personnel', 'defFront', 'coverage'];
+  }
+
+  /** Fill the next play's blank alignment fields from the previous play.
+   *  Existing values are never overwritten — a different look the coach
+   *  already tagged always wins, and one tap changes any carried chip. */
+  applyCarryScheme(prev, next) {
+    let changed = false;
+    PlayTagger.CARRY_SCHEME_KEYS.forEach(k => {
+      if (!next.tags[k] && prev.tags[k]) {
+        next.tags[k] = prev.tags[k];
+        changed = true;
+      }
+    });
+    if (changed) {
+      this._loadTagForm(next);
+      this._emit('play-updated', next);
+    }
   }
 
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
@@ -10890,6 +10939,19 @@ class PlayTagger {
     const yl = parseInt(tags.yardLine);
     if (!yl) return null;
     return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
+  }
+
+  /** Carry the previous play's spot unchanged (spike/kneel/penalty replay).
+   *  The spot is unit-agnostic — only special teams (possession flip) skips it. */
+  _sameSpot(t) {
+    const spot = { fieldSide: null, yardLine: null };
+    if (t.unit === 'special') return spot;
+    const abs = this._absYL(t);
+    if (abs != null) {
+      if (abs <= 50) { spot.fieldSide = 'own'; spot.yardLine = abs; }
+      else { spot.fieldSide = 'opp'; spot.yardLine = 100 - abs; }
+    }
+    return spot;
   }
 
   /**
@@ -10911,15 +10973,7 @@ class PlayTagger {
       const down = parseInt(t.down);
       const distance = parseInt(t.distance);
       if (!down || isNaN(distance) || down >= 4) return null;
-      const sameSpot = { fieldSide: null, yardLine: null };
-      if (t.unit === 'offense' || !t.unit) {
-        const abs = this._absYL(t);
-        if (abs != null) {
-          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
-          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
-        }
-      }
-      return { down: String(down + 1), distance: String(distance), ...sameSpot };
+      return { down: String(down + 1), distance: String(distance), ...this._sameSpot(t) };
     }
 
     const down = parseInt(t.down);
@@ -10931,15 +10985,7 @@ class PlayTagger {
     // form — the coach adjusts distance if the flag moved the sticks, which is
     // still faster than re-entering everything. Field position carries as-is.
     if (resultParts.includes('Penalty')) {
-      const sameSpot = { fieldSide: null, yardLine: null };
-      if (t.unit === 'offense' || !t.unit) {
-        const abs = this._absYL(t);
-        if (abs != null) {
-          if (abs <= 50) { sameSpot.fieldSide = 'own'; sameSpot.yardLine = abs; }
-          else { sameSpot.fieldSide = 'opp'; sameSpot.yardLine = 100 - abs; }
-        }
-      }
-      return { down: String(down), distance: String(distance), ...sameSpot };
+      return { down: String(down), distance: String(distance), ...this._sameSpot(t) };
     }
 
     let gained = parseInt(t.yardage);
@@ -10947,26 +10993,33 @@ class PlayTagger {
 
     const firstDown = gainedFirstDown(t);
 
-    // Field position only makes sense for the offense's own yardage.
-    let fieldSide = null, yardLine = null, newAbs = null;
-    if (t.unit === 'offense' || !t.unit) {
+    // Field position: our offense drives the ball UP the field (abs grows);
+    // when we're tagging defense, the opponent's offense has the ball and
+    // their gains move it toward OUR goal (abs shrinks). Either way the spot
+    // advances — only special teams is left blank (possession flips).
+    const unit = t.unit || 'offense';
+    let fieldSide = null, yardLine = null, distToGoal = null;
+    if (unit === 'offense' || unit === 'defense') {
       const abs = this._absYL(t);
       if (abs != null) {
-        newAbs = Math.min(99, Math.max(1, abs + gained));
+        const newAbs = Math.min(99, Math.max(1, unit === 'defense' ? abs - gained : abs + gained));
         if (newAbs <= 50) { fieldSide = 'own'; yardLine = newAbs; }
         else { fieldSide = 'opp'; yardLine = 100 - newAbs; }
+        // Goal-to-go is measured toward whichever goal the ball is moving:
+        // the opponent's for our offense, ours for theirs.
+        distToGoal = unit === 'defense' ? newAbs : 100 - newAbs;
       }
     }
 
     let nextDown, nextDist;
     if (firstDown) {
       nextDown = 1;
-      nextDist = (newAbs != null && (100 - newAbs) < 10) ? (100 - newAbs) : 10;
+      nextDist = (distToGoal != null && distToGoal < 10) ? distToGoal : 10;
     } else {
       if (down >= 4) return null; // turnover on downs — new possession
       nextDown = down + 1;
       nextDist = Math.max(1, distance - gained);
-      if (newAbs != null && (100 - newAbs) < nextDist) nextDist = Math.max(1, 100 - newAbs);
+      if (distToGoal != null && distToGoal < nextDist) nextDist = Math.max(1, distToGoal);
     }
     return { down: String(nextDown), distance: String(nextDist), fieldSide, yardLine };
   }
@@ -10981,15 +11034,30 @@ class PlayTagger {
    * clears the mark and freezes the values (see _saveField).
    */
   applyNextSituation(prev, next) {
-    if (next.tags.down && !next._autoSit) return; // coach/imported data — hands off
+    // The game clock doesn't reset when the ball changes hands — carry the
+    // quarter into a blank field no matter how the previous play ended (it
+    // used to carry only mid-possession, so every score/punt/turnover dropped
+    // it and the next series came up unquartered).
+    const carriedQuarter = !next.tags.quarter && !!prev.tags.quarter;
+    if (carriedQuarter) next.tags.quarter = prev.tags.quarter;
+
+    if (next.tags.down && !next._autoSit) {
+      // Coach/imported situation — hands off, but still show the carried quarter.
+      if (carriedQuarter) { this._loadTagForm(next); this._emit('play-updated', next); }
+      return;
+    }
     const sit = this.computeNextSituation(prev);
     if (!sit) {
       // Possession now ends on the corrected previous play — the situation we
       // auto-filled before is wrong. Blank it (only ever touches auto values).
+      let changed = carriedQuarter;
       if (next._autoSit) {
         next.tags.down = '';
         next.tags.distance = '';
         next._autoSit = false;
+        changed = true;
+      }
+      if (changed) {
         this._loadTagForm(next);
         this._updateTimeline();
         this._emit('play-updated', next);
@@ -11000,8 +11068,7 @@ class PlayTagger {
     next.tags.distance = sit.distance;
     if (sit.fieldSide != null) next.tags.fieldSide = sit.fieldSide;
     if (sit.yardLine != null) next.tags.yardLine = String(sit.yardLine);
-    // Same drive/quarter continues unless already set.
-    if (!next.tags.quarter && prev.tags.quarter) next.tags.quarter = prev.tags.quarter;
+    // Same drive continues unless already set.
     if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
     next._autoSit = true;
     this._loadTagForm(next);
@@ -11170,6 +11237,7 @@ class RosterManager {
       passer: document.getElementById('tagPlayerPasser'),
       receiver: document.getElementById('tagPlayerReceiver'),
       tackler: document.getElementById('tagPlayerTackler'),
+      takeaway: document.getElementById('tagPlayerTakeaway'),
       kicker: document.getElementById('tagPlayerKicker'),
       returner: document.getElementById('tagPlayerReturner'),
     };
@@ -11223,8 +11291,12 @@ class RosterManager {
   /** Pick the natural stamping role for the play's unit, unless the coach has
    *  explicitly focused a role input on this play (focus always wins). */
   _defaultRoleForUnit(unit) {
-    const wanted = unit === 'defense' ? 'tackler'
-      : unit === 'special' ? (this.tagger?.getCurrentPlay()?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
+    // Defense with an INT/Fumble result → the next # the coach taps is almost
+    // always the defender who made the takeaway, not a tackler.
+    const cur = this.tagger?.getCurrentPlay();
+    const turnover = unit === 'defense' && /Interception|Fumble/.test(String(cur?.tags?.result || ''));
+    const wanted = unit === 'defense' ? (turnover ? 'takeaway' : 'tackler')
+      : unit === 'special' ? (cur?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
       : 'ballCarrier';
     if (this.activeRole === wanted) return;
     // Don't fight an input the coach is actively typing in.
@@ -11329,7 +11401,7 @@ class RosterManager {
    *  shows D/B, special-teams roles (kicker/returner) show everyone. */
   _playersForRole(role) {
     if (role === 'kicker' || role === 'returner') return this.players;
-    const wantSide = role === 'tackler' ? 'D' : 'O';
+    const wantSide = (role === 'tackler' || role === 'takeaway') ? 'D' : 'O';
     const filtered = this.players.filter(p => p.side === wantSide || p.side === 'B' || !p.side);
     return filtered.length ? filtered : this.players;
   }
@@ -13319,6 +13391,23 @@ class StorageManager {
       app._finishHintShown = false;
     }
     if (g) this._autoLoadFilm(g).catch(() => {});
+    this._maybeShowRelinkHint(g);
+  }
+
+  /**
+   * Browser build only: film files aren't stored (too large), so reopening a
+   * tagged game shows a dead player with no explanation — tell the coach
+   * exactly what to re-add. Plays re-link automatically by clip name.
+   */
+  _maybeShowRelinkHint(g) {
+    const backend = this.seasonStore && this.seasonStore.backend;
+    if (!g || !backend || (backend.supportsFilm && backend.supportsFilm())) return;
+    if (!(g.plays && g.plays.length)) return;
+    const what = (g.isMultiClip && g.clipNames && g.clipNames.length)
+      ? `the clip folder (${g.clipNames.length} clips)`
+      : g.videoFileName ? `"${g.videoFileName}"` : null;
+    if (!what) return;
+    this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically.`);
   }
 
   async _autoLoadFilm(gameNode) {
@@ -13620,8 +13709,8 @@ class StorageManager {
       'Field Side', 'Yard Line', 'Formation', 'Personnel', 'Motion',
       'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
-      'Kicker', 'Returner',
-      'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade',
+      'Takeaway', 'Kicker', 'Returner',
+      'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade', 'Takeaway Grade',
       'Custom Tags', 'Notes'
     ];
 
@@ -13654,12 +13743,14 @@ class StorageManager {
       p.tags.players?.passer || '',
       p.tags.players?.receiver || '',
       p.tags.players?.tackler || '',
+      p.tags.players?.takeaway || '',
       p.tags.players?.kicker || '',
       p.tags.players?.returner || '',
       p.tags.grades?.ballCarrier ?? '',
       p.tags.grades?.passer ?? '',
       p.tags.grades?.receiver ?? '',
       p.tags.grades?.tackler ?? '',
+      p.tags.grades?.takeaway ?? '',
       (p.tags.custom || []).join('; '),
       (p.notes || '').replace(/"/g, '""')
     ]);
@@ -15401,6 +15492,13 @@ class PlaylistManager {
       return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
     });
 
+    // Clip ids regenerate every session, so plays restored from a save point
+    // at clips that no longer exist. Note which clips were already live, add
+    // the new ones, then re-link orphaned plays to them by clip name — so
+    // re-uploading the game folder restores the tagged game instead of
+    // duplicating every play (the desktop rehydrate path uses the same key).
+    const liveIds = new Set(this.clips.map(c => c.id));
+    const newClips = [];
     for (const file of sorted) {
       const clip = {
         id: this._nextClipId++,
@@ -15411,7 +15509,10 @@ class PlaylistManager {
         playId: null
       };
       this.clips.push(clip);
+      newClips.push(clip);
     }
+
+    const relinked = this._relinkSavedPlays(newClips, liveIds);
 
     this._updatePlaylistUI();
     this._updateClipIndicator();
@@ -15420,12 +15521,67 @@ class PlaylistManager {
     // Auto-create play entries for each new clip
     this._autoCreatePlays();
 
-    // If nothing is playing, activate the first clip
+    // If nothing is playing, activate the first clip — except after a
+    // re-link, where the saved current play's clip is where the coach was.
     if (this.activeClipIndex === -1) {
-      this.switchToClip(0);
+      const cur = relinked ? this.tagger.getCurrentPlay() : null;
+      if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
+        this.switchToClipByPlayId(cur.id);
+      } else {
+        this.switchToClip(0);
+      }
+    }
+
+    if (relinked) {
+      this.tagger.toast?.(`Re-linked ${relinked} clip${relinked === 1 ? '' : 's'} to your saved plays`);
     }
 
     this._emit('clips-added', { count: sorted.length, total: this.clips.length });
+  }
+
+  /**
+   * Match incoming clips back to plays saved in a previous session, keyed by
+   * clip name (the only stable identifier across sessions). The first
+   * orphaned play per name is the auto-created whole-clip play; any extra
+   * plays marked inside that clip share its stale clipId and follow it to
+   * the new id. Returns how many clips were re-linked.
+   */
+  _relinkSavedPlays(newClips, liveIds) {
+    const stale = id => id != null && !liveIds.has(id);
+    const primaryByName = new Map();
+    for (const p of this.tagger.plays) {
+      if (p.clipName && (p.clipId == null || stale(p.clipId)) && !primaryByName.has(p.clipName)) {
+        primaryByName.set(p.clipName, p);
+      }
+    }
+    if (!primaryByName.size) return 0;
+
+    // Snapshot original clipIds before mutating — new ids can numerically
+    // collide with stale ones (both sequences start at 1).
+    const origId = new Map(this.tagger.plays.map(p => [p, p.clipId]));
+    const staleToNew = new Map();
+    let relinked = 0;
+    for (const clip of newClips) {
+      const primary = primaryByName.get(clip.name);
+      if (!primary) continue;
+      primaryByName.delete(clip.name);
+      clip.playId = primary.id;
+      // Reuse the saved play's end time so this clip skips the duration probe
+      // (999 is the failed-probe sentinel — don't adopt it as a real length).
+      if (primary.timestamp && primary.timestamp.end && primary.timestamp.end !== 999) {
+        clip.duration = primary.timestamp.end;
+      }
+      if (stale(origId.get(primary))) staleToNew.set(origId.get(primary), clip.id);
+      primary.clipId = clip.id;
+      relinked++;
+    }
+    if (staleToNew.size) {
+      for (const p of this.tagger.plays) {
+        const o = origId.get(p);
+        if (stale(o) && staleToNew.has(o) && p.clipId === o) p.clipId = staleToNew.get(o);
+      }
+    }
+    return relinked;
   }
 
   async _autoCreatePlays() {
@@ -18380,6 +18536,11 @@ class StatsEngine {
       const tacklerIds = StatsEngine.splitPlayers(players.tackler);
       const shared = tacklerIds.length > 1;
       const isDefPlay = p.tags.unit === 'defense';
+      // Takeaway (INT / fumble recovery) goes to the dedicated role when set —
+      // it doesn't imply a tackle. Plays tagged before the role existed fall
+      // back to crediting the listed tackler(s), the old behavior.
+      const takeawayIds = StatsEngine.splitPlayers(players.takeaway);
+      const creditTakeawayViaTackler = isDefPlay && takeawayIds.length === 0;
       tacklerIds.forEach(id => {
         if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
         tacklers[id].tackles++;
@@ -18387,9 +18548,8 @@ class StatsEngine {
         if (StatsEngine.hasResult(p, 'Sack')) tacklers[id].sacks++;
         // TFL excludes sacks — matches the team-level definition.
         else if (yds < 0) tacklers[id].tfl++;
-        // Defensive takeaways credited to the defender(s) on the play.
-        if (isDefPlay && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
-        if (isDefPlay && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
+        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
+        if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
         if (p.tags.grades?.tackler != null) {
           if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
           if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
@@ -18397,6 +18557,19 @@ class StatsEngine {
           tacklers[id].gradeCount++;
         }
       });
+      if (isDefPlay) {
+        takeawayIds.forEach(id => {
+          if (!tacklers[id]) tacklers[id] = { num: id, tackles: 0, solo: 0, assists: 0, sacks: 0, tfl: 0, ints: 0, fumblesRec: 0 };
+          if (StatsEngine.hasResult(p, 'Interception')) tacklers[id].ints++;
+          if (StatsEngine.hasResult(p, 'Fumble')) tacklers[id].fumblesRec++;
+          if (p.tags.grades?.takeaway != null) {
+            if (!tacklers[id].gradeSum) tacklers[id].gradeSum = 0;
+            if (!tacklers[id].gradeCount) tacklers[id].gradeCount = 0;
+            tacklers[id].gradeSum += p.tags.grades.takeaway;
+            tacklers[id].gradeCount++;
+          }
+        });
+      }
     });
 
     return {
@@ -25373,7 +25546,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 
 class App {
   constructor() {
@@ -27072,6 +27245,16 @@ class App {
       autoDD.addEventListener('change', () => {
         this.tagger.autoDD = autoDD.checked;
         try { localStorage.setItem('ffa_auto_dd', autoDD.checked ? '1' : '0'); } catch (e) {}
+      });
+    }
+
+    // Carry formation/personnel/front/coverage to the next play (opt-in).
+    const carryScheme = document.getElementById('carrySchemeToggle');
+    if (carryScheme) {
+      carryScheme.checked = this.tagger.carryScheme;
+      carryScheme.addEventListener('change', () => {
+        this.tagger.carryScheme = carryScheme.checked;
+        try { localStorage.setItem('ffa_carry_scheme', carryScheme.checked ? '1' : '0'); } catch (e) {}
       });
     }
 
