@@ -613,12 +613,47 @@ export class TauriBackend extends StorageBackend {
         if (onProgress) onProgress(i + 1, files.length, file.name);
         continue;
       }
-      const buf = await file.arrayBuffer();
-      await this.fs.writeFile(dest, new Uint8Array(buf), { baseDir: this.baseDir });
+      // STREAM in chunks. file.arrayBuffer() on a whole-game film (often
+      // 1-4+ GB) exceeds the WebView's single-buffer limit and threw, the
+      // import silently died, and the game reopened to a dead player
+      // (field-reported). Chunked appends use the same write-file
+      // permission and keep memory flat regardless of film size.
+      await this._writeFileStreamed(dest, file);
       result.push(file.name);
       if (onProgress) onProgress(i + 1, files.length, file.name);
     }
     return result;
+  }
+
+  /** Write a Blob/File to disk in ~32 MB appends (no whole-file buffering). */
+  async _writeFileStreamed(dest, file) {
+    const CHUNK = 32 * 1024 * 1024;
+    const reader = file.stream().getReader();
+    let parts = [], partBytes = 0, first = true;
+    const flush = async () => {
+      if (!partBytes && !first) return;
+      const merged = new Uint8Array(partBytes);
+      let off = 0;
+      for (const p of parts) { merged.set(p, off); off += p.byteLength; }
+      await this.fs.writeFile(dest, merged,
+        first ? { baseDir: this.baseDir } : { baseDir: this.baseDir, append: true });
+      first = false; parts = []; partBytes = 0;
+    };
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        parts.push(value);
+        partBytes += value.byteLength;
+        if (partBytes >= CHUNK) await flush();
+      }
+      await flush();   // tail (or creates an empty file for 0-byte input)
+    } catch (e) {
+      // Don't leave a truncated video behind — it would "exist" and block
+      // re-import while being unplayable.
+      try { await this.fs.remove(dest, { baseDir: this.baseDir }); } catch (e2) {}
+      throw e;
+    }
   }
 
   async filmUrl(gameId, filename) {
