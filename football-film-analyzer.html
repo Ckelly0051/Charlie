@@ -9219,13 +9219,27 @@ class VideoController {
     this.video.addEventListener('error', () => {
       this.video.classList.remove('is-buffering');
       this._updatePlayPauseIcon(false);
-      // Only surface decode failures for a real attempted load — not the
-      // empty-src error fired by unloadVideo()'s load() call.
       if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
+      const me = this.video.error;
+      const code = me ? me.code : '?';
+      const msg = me ? me.message : '';
+      const src = this.video.currentSrc || this.video.getAttribute('src') || '';
+      console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
+      // Retry once without crossOrigin — the asset protocol may not serve
+      // CORS headers, so the crossOrigin attribute causes a network error
+      // even though the video is playable.
+      if (this._loadUrlSrc && !this._loadUrlRetried) {
+        this._loadUrlRetried = true;
+        console.log('Retrying without crossOrigin...');
+        this.video.removeAttribute('crossorigin');
+        this.video.src = this._loadUrlSrc;
+        this.video.load();
+        return;
+      }
       const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
       this.placeholder.classList.remove('hidden');
       this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
-      this._emit('video-error', { name });
+      this._emit('video-error', { name, code, msg, src });
     });
     this.video.addEventListener('seeked', () => {
       this.video.classList.remove('is-buffering');
@@ -9252,6 +9266,7 @@ class VideoController {
       URL.revokeObjectURL(this.objectUrl);
     }
     this.currentFile = file;
+    this._loadUrlSrc = null;
     this.objectUrl = URL.createObjectURL(file);
     this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
@@ -9267,12 +9282,15 @@ class VideoController {
       this.objectUrl = null;
     }
     this.currentFile = null;
+    this._loadUrlSrc = url;
+    this._loadUrlName = displayName || 'Film';
+    this._loadUrlRetried = false;
     this.video.crossOrigin = 'anonymous';
     this.video.src = url;
     this.video.load();
     this.placeholder.classList.add('hidden');
-    this.fileLabel.textContent = displayName || 'Film';
-    this._emit('file-loaded', { name: displayName || 'Film' });
+    this.fileLabel.textContent = this._loadUrlName;
+    this._emit('file-loaded', { name: this._loadUrlName });
   }
 
   unloadVideo() {
@@ -9283,6 +9301,7 @@ class VideoController {
       this.objectUrl = null;
     }
     this.currentFile = null;
+    this._loadUrlSrc = null;
     this.video.removeAttribute('src');
     this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
@@ -12669,11 +12688,10 @@ class TauriBackend extends StorageBackend {
     const join = tauri?.path?.join;
     const base = await this.dataDirPath();
     if (!convert || !join || !base) return null;
-    // Join with the platform separator. appDataDir() has no trailing slash and
-    // Windows needs backslashes, so string concatenation produced a broken path
-    // ("…/com.gridironiq.appseasons/…") and the asset URL pointed nowhere.
     const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
-    return convert(abs);
+    const url = convert(abs);
+    console.log('filmUrl:', { rel, abs, url: url?.slice(0, 200) });
+    return url;
   }
 
   async deleteFilm(gameId) {
@@ -13684,9 +13702,7 @@ class StorageManager {
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     try {
       const filesOnDisk = await backend.listFilmFiles(gameNode.id);
-      // Nothing in the library for this game (film loaded before the library
-      // feature, or a failed import): say so — a silently dead player was
-      // field-reported as "videos won't play when I re-open a game".
+      console.log('Film auto-load:', { gameId: gameNode.id, filesOnDisk, isMultiClip: gameNode.isMultiClip, videoFileName: gameNode.videoFileName });
       if (filesOnDisk.length === 0) { this._relinkToast(gameNode, true); return; }
 
       if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
@@ -13695,6 +13711,7 @@ class StorageManager {
           const url = await backend.filmUrl(gameNode.id, filename);
           if (url) clips.push({ name: filename, url });
         }
+        console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && this.playlist) {
           await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
           if (this.tagger.currentPlayId) {
@@ -13708,7 +13725,13 @@ class StorageManager {
         const match = filesOnDisk.find(f => f === gameNode.videoFileName) || filesOnDisk[0];
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
-          if (url) this.vc.loadUrl(url, match);
+          console.log('Single-video URL:', url?.slice(0, 200));
+          if (url) {
+            this.vc.loadUrl(url, match);
+          } else {
+            console.warn('filmUrl returned null for', match);
+            this._relinkToast(gameNode, true);
+          }
         }
       }
     } catch (e) {
