@@ -564,11 +564,31 @@ export class SeasonManager {
     }).join('');
     if (!flags) flags = '<li class="ok">No strong tells detected at the current sample size — your run/pass mix is well balanced.</li>';
 
+    // Defensive scheme tells (front/coverage/blitz leans by situation) —
+    // same data as the Self-Scout overlay's defensive section.
+    let defBlock = '';
+    const ds = report.defScout;
+    if (ds && !ds.insufficient && ds.tells.length) {
+      const defFlags = ds.tells.map(t => {
+        const ctx = t.verdict === 'dominant'
+          ? `working (${t.stopRate}% stops) — fine to lean on`
+          : `only ${t.stopRate}% stops — an OC will attack it`;
+        return `<li class="ss-v-${t.verdict}"><b>${this._escape(t.label)}</b>: ${this._escape(t.tellVal)} ${t.tellPct}% of the time (${t.n} plays) — <span class="ss-verdict-tag ${t.verdict}">${vIcon(t.verdict)} ${vLabel(t.verdict)}</span> ${ctx}</li>`;
+      }).join('');
+      defBlock = `
+        <p class="self-scout-intro" style="margin-top:14px"><b>Your defense</b> — scheme tells an opposing OC would key on (${ds.totalPlays} defensive plays, predictability ${ds.predictability}/100):</p>
+        <ul class="self-scout">${defFlags}</ul>`;
+    } else if (ds && ds.insufficient && ds.defPlays > 0) {
+      defBlock = `
+        <p class="self-scout-intro" style="margin-top:14px"><b>Your defense</b>: ${ds.defPlays} defensive play${ds.defPlays === 1 ? '' : 's'} tagged, but only ${ds.schemePlays} with Def Front / Coverage / Blitz — tag at least 6 with scheme fields to see what your calls are tipping.</p>`;
+    }
+
     return `
       <div class="stats-section">
         <h3>Self-Scout Report</h3>
         <p class="self-scout-intro">Predictability <b>${report.predictability}/100</b> (${report.predLabel}) across ${report.totalPlays} run/pass plays. What an opponent watching your film would notice:</p>
         <ul class="self-scout">${flags}</ul>
+        ${defBlock}
       </div>
     `;
   }
@@ -684,9 +704,11 @@ ${body}
 </body></html>`;
 
     const blob = new Blob([html], { type: 'text/html' });
+    const fname = `season_report_${new Date().toISOString().slice(0, 10)}.html`;
+    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, fname); return; }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `season_report_${new Date().toISOString().slice(0, 10)}.html`;
+    a.download = fname;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

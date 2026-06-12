@@ -99,10 +99,89 @@ export class SeasonLibrary {
     return id;
   }
 
-  /** Seasons belonging to a team (legacy metas without teamId → first team). */
+  /**
+   * Post-wipe auto-recovery. A desktop app update (or a browser storage
+   * clear that spares the season files) can wipe localStorage — team
+   * registry, profile, roster — while the seasons survive on disk. Without
+   * this, the app showed FIRST-RUN SETUP over the coach's data and the
+   * rebuilt registry's new teamId matched no season, so every season was
+   * filtered out of view (field-reported as "you deleted my season").
+   * Each season file carries teamProfile + roster, so identity is fully
+   * reconstructable: rebuild a registry entry per distinct stamped teamId
+   * (KEEPING the original ids so the metas still match), restore the
+   * profile and roster, and never show setup over recoverable data.
+   */
+  async _recoverFromWipe() {
+    try {
+      if (this._teams().length || this._hasTeam()) return; // identity intact
+      const store = this._storage()?.seasonStore;
+      if (!store) return;
+      const metas = await store.listSeasons();
+      if (!metas || !metas.length) return;                 // true first run
+      const backend = store.backend;
+      const prevId = store.currentSeasonId || null;
+      const peek = async (id) => {
+        try { backend.setCurrentSeason(id); return await backend.loadSeason(); }
+        catch (e) { return null; }
+      };
+      const newestFirst = metas.slice().sort((a, b) =>
+        (b.openedAt || b.created || 0) - (a.openedAt || a.created || 0));
+      // Group by stamped teamId ('' = legacy/unstamped) so multi-team
+      // installs recover every hub, not just the active one.
+      const groups = new Map();
+      newestFirst.forEach(m => {
+        const tid = m.teamId || '';
+        if (!groups.has(tid)) groups.set(tid, []);
+        groups.get(tid).push(m);
+      });
+      const teams = [];
+      const rosters = {};
+      for (const [tid, group] of groups) {
+        let profile = null, roster = null;
+        for (const m of group) {                 // newest first wins
+          const data = await peek(m.id);
+          if (!data) continue;
+          if (!roster && Array.isArray(data.roster) && data.roster.length) roster = data.roster;
+          if (data.teamProfile && data.teamProfile.teamName) { profile = data.teamProfile; break; }
+        }
+        const name = (profile && profile.teamName) || group[0].name || 'My Team';
+        const id = tid || this._newTeamId(name, teams.map(t => t.id));
+        teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
+        if (roster) rosters[id] = roster;
+      }
+      backend.setCurrentSeason(prevId);
+      if (!teams.length) return;
+      this._saveTeams(teams);
+      try { localStorage.setItem('ffa_active_team_id', teams[0].id); } catch (e) {}
+      this._saveTeamProfile({ teamName: teams[0].teamName, jerseyColor: teams[0].jerseyColor || '' });
+      Object.entries(rosters).forEach(([id, roster]) => {
+        try { localStorage.setItem(this._teamRosterKey(id), JSON.stringify(roster)); } catch (e) {}
+      });
+      // Live roster = active team's. Refresh RosterManager's in-memory copy
+      // too, or its next _save() would clobber the recovery with [].
+      const rm = window.app && window.app.roster;
+      const liveEmpty = !(rm && rm.players && rm.players.length);
+      if (liveEmpty && rosters[teams[0].id]) {
+        try { localStorage.setItem('ffa_roster', JSON.stringify(rosters[teams[0].id])); } catch (e) {}
+        if (rm) { rm._load(); rm.renderList(); rm.renderQuickPick(); }
+      }
+      console.warn('GridIron IQ: rebuilt team identity from season files after a storage wipe.');
+      window.app?.history?._toast?.('Recovered your team, seasons, and roster from disk.');
+    } catch (e) { console.warn('Wipe recovery failed:', e); }
+  }
+
+  /** Seasons belonging to a team (legacy metas without teamId → first team).
+   *  Metas stamped with a teamId that NO registry team owns (registry was
+   *  wiped by an app update / storage clear and rebuilt) also resolve to the
+   *  first team — a season that exists on disk must never be invisible. */
   _teamSeasons(seasons, teamId) {
-    const firstId = (this._teams()[0] || {}).id || '';
-    return (seasons || []).filter(s => (s.teamId || firstId) === teamId);
+    const teams = this._teams();
+    const firstId = (teams[0] || {}).id || '';
+    const known = new Set(teams.map(t => t.id));
+    return (seasons || []).filter(s => {
+      const tid = (s.teamId && known.has(s.teamId)) ? s.teamId : firstId;
+      return tid === teamId;
+    });
   }
 
   /**
@@ -236,6 +315,13 @@ export class SeasonLibrary {
 
       // Team setup
       if (t.closest && t.closest('#btnTeamSetupSave')) { this._saveTeamSetup(); return; }
+      // First-run escape hatch: import a season file saved on another copy of
+      // the app (desktop/web don't sync) WITHOUT having to create a team
+      // first — the imported file carries the team identity.
+      if (t.closest && t.closest('#btnSetupOpenFile')) {
+        document.getElementById('projectFileInput')?.click();
+        return;
+      }
 
       // Team card actions
       if (t.closest && t.closest('#btnEditTeam')) { this._showTeamEdit(true); return; }
@@ -290,6 +376,7 @@ export class SeasonLibrary {
   /** Show the library at the TEAM HOME / SEASONS level. */
   async open() {
     if (!this.overlay) return;
+    await this._recoverFromWipe();   // rebuild identity from disk post-update-wipe
     this._ensureTeamRegistry();
     this._setLevel('seasons');
     this._showForm(false);

@@ -242,12 +242,17 @@ export class StorageManager {
   _maybeShowRelinkHint(g) {
     const backend = this.seasonStore && this.seasonStore.backend;
     if (!g || !backend || (backend.supportsFilm && backend.supportsFilm())) return;
-    if (!(g.plays && g.plays.length)) return;
+    this._relinkToast(g);
+  }
+
+  /** Tell the coach exactly which file to re-add — never a silent dead player. */
+  _relinkToast(g, savedNote) {
+    if (!g || !(g.plays && g.plays.length)) return;
     const what = (g.isMultiClip && g.clipNames && g.clipNames.length)
       ? `the clip folder (${g.clipNames.length} clips)`
       : g.videoFileName ? `"${g.videoFileName}"` : null;
     if (!what) return;
-    this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically.`);
+    this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically${savedNote ? ', and the film saves to the library this time' : ''}.`);
   }
 
   async _autoLoadFilm(gameNode) {
@@ -255,7 +260,10 @@ export class StorageManager {
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     try {
       const filesOnDisk = await backend.listFilmFiles(gameNode.id);
-      if (filesOnDisk.length === 0) return;
+      // Nothing in the library for this game (film loaded before the library
+      // feature, or a failed import): say so — a silently dead player was
+      // field-reported as "videos won't play when I re-open a game".
+      if (filesOnDisk.length === 0) { this._relinkToast(gameNode, true); return; }
 
       if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
         const clips = [];
@@ -279,7 +287,10 @@ export class StorageManager {
           if (url) this.vc.loadUrl(url, match);
         }
       }
-    } catch (e) { /* film not available — coach can re-link manually */ }
+    } catch (e) {
+      console.warn('Film auto-load failed:', e);
+      this._relinkToast(gameNode, true);
+    }
   }
 
   async importFilm(files) {
@@ -294,6 +305,7 @@ export class StorageManager {
       });
     } catch (e) {
       console.warn('Film import failed:', e);
+      this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
     }
   }
 
@@ -484,12 +496,22 @@ export class StorageManager {
    */
   loadProject(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       let parsed;
       try { parsed = JSON.parse(e.target.result); }
       catch (err) { alert('Invalid project file.'); return; }
 
       if (parsed && Array.isArray(parsed.games)) {
+        // First-run / library-only state (e.g. importing a season saved on
+        // the desktop app into a fresh web app): there's no current season,
+        // so register a library entry first — adopt() persists into the
+        // CURRENT season's slot and silently went nowhere without one.
+        if (!this.seasonStore.hasCurrent()) {
+          await this.seasonStore.createSeason({
+            name: parsed.seasonName || String(file.name || 'Imported Season').replace(/\.json$/i, ''),
+            teamId: (() => { try { return localStorage.getItem('ffa_active_team_id') || ''; } catch (err2) { return ''; } })(),
+          });
+        }
         this.seasonStore.adopt(parsed);
         this._clearForNewGame();
         this._loadActiveGame();
@@ -502,6 +524,11 @@ export class StorageManager {
       if (window.app && window.app.season && window.app.season._renderAll) {
         window.app.season._renderAll();
       }
+      // If the library overlay is up (first-run import), re-open it: the
+      // recovery pass rebuilds team identity from the imported season's
+      // teamProfile, so the coach lands on a populated Team Home, not setup.
+      const lib = window.app && window.app.library;
+      if (lib && lib._isOpen && lib._isOpen()) await lib.open();
     };
     reader.readAsText(file);
   }
@@ -667,6 +694,9 @@ ${body}
   }
 
   _download(blob, filename) {
+    // Native-aware: anchor download in the browser, save dialog on desktop
+    // (anchor clicks are silently ignored by the desktop WebView).
+    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, filename); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

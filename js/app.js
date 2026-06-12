@@ -38,7 +38,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.7.4';
+const APP_VERSION = '1.7.5';
 
 class App {
   constructor() {

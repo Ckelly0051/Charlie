@@ -178,17 +178,19 @@ r = await page.evaluate(() => {
 ok(r.hidden || r.done >= 4, 'checklist near/at completion with real data', JSON.stringify(r));
 
 console.log('\n== 11. Upgrade path: existing season, NO team profile ==');
-// Simulate a genuine pre-team-hub install: no profile AND no team registry
-// (the registry would otherwise self-heal the profile back).
+// Simulate a genuine pre-team-hub install: no profile AND no team registry.
+// Since the wipe-recovery fix, the library REBUILDS team identity from the
+// season files instead of showing first-run setup over existing data
+// (field-reported as "the update deleted my season").
 await page.evaluate(() => {
   localStorage.removeItem('ffa_team_profile');
   localStorage.removeItem('ffa_teams');
   localStorage.removeItem('ffa_active_team_id');
 });
 await page.reload({ waitUntil: 'networkidle0' });
-await sleep(700);
+await sleep(900);
 r = await $('#teamSetup');
-ok(r && r.visible, 'upgrade user sees team setup');
+ok(r && (r.hidden || !r.visible), 'upgrade user does NOT see setup over existing data (auto-recovery)', JSON.stringify(r));
 // open their existing season straight from the card
 await page.evaluate(() => document.querySelector('.season-card').click());
 await sleep(700);

@@ -6,7 +6,7 @@ OUTPUT="football-film-analyzer.html"
 
 # Function to strip import/export from JS files
 strip_modules() {
-  sed -E '/^import /d; /^export (class|function|const|let|var|default)/s/^export //; /^export \{/d' "$1"
+  sed -E '/^import /d; /^export (async )?(class|function|const|let|var|default)/s/^export //; /^export \{/d' "$1"
 }
 
 cat > "$OUTPUT" << 'HTMLHEAD'

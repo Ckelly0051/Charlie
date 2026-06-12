@@ -2732,10 +2732,12 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 <h3>Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead><tbody>${ddRows}</tbody></table>
 </body></html>`;
     const blob = new Blob([htmlContent], { type: 'text/html' });
+    const fname = `scout_${opponent.replace(/\s+/g, '_')}.html`;
+    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, fname); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scout_${opponent.replace(/\s+/g, '_')}.html`;
+    a.download = fname;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -2959,9 +2961,14 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   generateDefensiveSelfScout(playsOverride = null) {
     const all = playsOverride || this._currentPlays();
-    const plays = all.filter(p => (p.tags.unit) === 'defense' &&
-      (p.tags.defFront || p.tags.coverage || p.tags.blitz));
-    if (plays.length < 6) return null;
+    const defAll = all.filter(p => (p.tags.unit) === 'defense');
+    const plays = defAll.filter(p => p.tags.defFront || p.tags.coverage || p.tags.blitz);
+    // Below the sample gate: return a DIAGNOSTIC, not null — the section
+    // must explain exactly what's missing instead of silently vanishing
+    // (field-reported: "not a single defensive stat in self-scout").
+    if (plays.length < 6) {
+      return { insufficient: true, defPlays: defAll.length, schemePlays: plays.length };
+    }
 
     const byDD = this._defScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
     const byFront = this._defScoutGroup(plays, p => StatsEngine.splitFronts(p.tags.defFront));
@@ -2971,7 +2978,11 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       ...this._defTellsFrom(byDD, 'Down & Dist', k => this._ddPretty(k)),
       ...this._defTellsFrom(byFront, 'vs Front', k => k),
       ...this._defTellsFrom(byCov, 'vs Coverage', k => k),
-    ].sort((a, b) => b.score - a.score).slice(0, 10);
+    ];
+    // "No blitz" is only a tell when the coach tags blitzes at all —
+    // otherwise it's an artifact of untagged data, not a tendency.
+    if (!plays.some(p => p.tags.blitz)) tells = tells.filter(t => t.tellType !== 'Blitz');
+    tells = tells.sort((a, b) => b.score - a.score).slice(0, 10);
 
     // Predictability: how often does the DC lean heavily on one scheme element?
     let wsum = 0, w = 0;
@@ -3277,6 +3288,39 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     </table>`;
   }
 
+  /** Diagnostic empty state: say exactly why the defensive analysis can't
+   *  run yet — never hide the section silently. */
+  _defScoutEmptyState(ds) {
+    const defPlays = (ds && ds.defPlays) || 0;
+    const schemePlays = (ds && ds.schemePlays) || 0;
+    let why;
+    if (defPlays === 0) {
+      why = `No plays are tagged as <b>Defense</b> yet. Set the unit toggle at
+        the top of the tag form to <b>Defense</b> (or press <kbd>C</kbd>) on
+        your defensive snaps.`;
+    } else if (schemePlays === 0) {
+      why = `You have <b>${defPlays} defensive play${defPlays === 1 ? '' : 's'}</b> tagged,
+        but none include the scheme fields this analysis reads —
+        <b>Def Front</b>, <b>Coverage</b>, or <b>Blitz</b>. Results and yardage
+        power the Defensive Report (the Defense button); the self-scout needs
+        the alignment tags to see what your <i>calls</i> are tipping.`;
+    } else {
+      why = `You have <b>${defPlays} defensive play${defPlays === 1 ? '' : 's'}</b> tagged,
+        but only <b>${schemePlays}</b> include Def Front / Coverage / Blitz —
+        it takes at least <b>6</b> to find scheme tendencies. Tag a few more
+        and this section fills in.`;
+    }
+    return `
+      <div class="stats-section ss-def-section">
+        <div class="ss-def-header"><h3>Defensive Self-Scout</h3></div>
+        <p style="color:var(--text-dim);line-height:1.65;font-size:13px">
+          This section analyzes what <b>your defense</b> is tipping — front,
+          coverage, and blitz leans by down &amp; distance, scored by whether
+          the lean is working (stop rate / havoc).</p>
+        <p style="color:var(--text-dim);line-height:1.65;font-size:13px">${why}</p>
+      </div>`;
+  }
+
   _renderDefScoutSection(ds) {
     const meterColor = ds.predictability >= 70 ? '#ef4444'
       : ds.predictability >= 50 ? '#f59e0b'
@@ -3397,7 +3441,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
                 <span class="ss-insight-text">${ins.text}</span>
               </div>`).join('')}</div>
             </div>` : ''}
-            ${report.defScout ? this._renderDefScoutSection(report.defScout) : ''}
+            ${report.defScout && !report.defScout.insufficient
+    ? this._renderDefScoutSection(report.defScout)
+    : this._defScoutEmptyState(report.defScout)}
           </div>
         </div>
       </div>`;
@@ -3450,7 +3496,7 @@ ${report.recommendations.length ? `<h3>Coaching Notes</h3><div class="print-recs
 <h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
 <h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>
 ${report.insights.length ? `<h3>Film Room Insights</h3><div class="print-recs">${report.insights.map(ins => `<div class="print-rec"><strong style="color:#1a1a2e">[${ins.tag}]</strong> ${ins.text}</div>`).join('')}</div>` : ''}
-${report.defScout ? this._exportDefScoutSection(report.defScout) : ''}`;
+${report.defScout && !report.defScout.insufficient ? this._exportDefScoutSection(report.defScout) : ''}`;
     this._openPrintWindow(title, body, 'ss-print');
   }
 

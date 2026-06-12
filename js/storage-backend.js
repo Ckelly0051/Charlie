@@ -747,3 +747,38 @@ export function detectBackend() {
   if (typeof window !== 'undefined' && window.__TAURI__) return new TauriBackend();
   return new BrowserBackend();
 }
+
+/**
+ * Save a generated file (CSV / HTML report / PNG / season JSON / cut-up).
+ * Browser: classic anchor download. Desktop (Tauri): anchor downloads are
+ * SILENTLY IGNORED by the WebView (field-reported: "export buttons do
+ * nothing"), so route through the native save dialog + fs plugin instead.
+ * Exposed on window so every module reaches it without import surgery
+ * (the bundle shares one scope; the modular build gets it at load time).
+ */
+export async function ffaSaveBlob(blob, filename) {
+  const t = typeof window !== 'undefined' && window.__TAURI__;
+  if (t && t.dialog && t.fs) {
+    try {
+      const path = await t.dialog.save({ defaultPath: filename });
+      if (!path) return false;                       // user cancelled
+      const data = new Uint8Array(await blob.arrayBuffer());
+      await t.fs.writeFile(path, data);
+      try { window.app?.history?._toast?.(`Saved: ${path}`); } catch (e) { /* toast is best-effort */ }
+      return true;
+    } catch (e) {
+      console.warn('Native save failed; falling back to anchor download', e);
+      try { window.app?.history?._toast?.('Save failed — try saving into Documents or Downloads.'); } catch (e2) {}
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return true;
+}
+if (typeof window !== 'undefined') window.ffaSaveBlob = ffaSaveBlob;
