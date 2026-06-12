@@ -260,9 +260,7 @@ export class StorageManager {
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     try {
       const filesOnDisk = await backend.listFilmFiles(gameNode.id);
-      // Nothing in the library for this game (film loaded before the library
-      // feature, or a failed import): say so — a silently dead player was
-      // field-reported as "videos won't play when I re-open a game".
+      console.log('Film auto-load:', { gameId: gameNode.id, filesOnDisk, isMultiClip: gameNode.isMultiClip, videoFileName: gameNode.videoFileName });
       if (filesOnDisk.length === 0) { this._relinkToast(gameNode, true); return; }
 
       if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
@@ -271,6 +269,7 @@ export class StorageManager {
           const url = await backend.filmUrl(gameNode.id, filename);
           if (url) clips.push({ name: filename, url });
         }
+        console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && this.playlist) {
           await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
           if (this.tagger.currentPlayId) {
@@ -284,7 +283,13 @@ export class StorageManager {
         const match = filesOnDisk.find(f => f === gameNode.videoFileName) || filesOnDisk[0];
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
-          if (url) this.vc.loadUrl(url, match);
+          console.log('Single-video URL:', url?.slice(0, 200));
+          if (url) {
+            this.vc.loadUrl(url, match);
+          } else {
+            console.warn('filmUrl returned null for', match);
+            this._relinkToast(gameNode, true);
+          }
         }
       }
     } catch (e) {

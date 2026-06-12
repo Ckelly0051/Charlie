@@ -181,13 +181,27 @@ export class VideoController {
     this.video.addEventListener('error', () => {
       this.video.classList.remove('is-buffering');
       this._updatePlayPauseIcon(false);
-      // Only surface decode failures for a real attempted load — not the
-      // empty-src error fired by unloadVideo()'s load() call.
       if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
+      const me = this.video.error;
+      const code = me ? me.code : '?';
+      const msg = me ? me.message : '';
+      const src = this.video.currentSrc || this.video.getAttribute('src') || '';
+      console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
+      // Retry once without crossOrigin — the asset protocol may not serve
+      // CORS headers, so the crossOrigin attribute causes a network error
+      // even though the video is playable.
+      if (this._loadUrlSrc && !this._loadUrlRetried) {
+        this._loadUrlRetried = true;
+        console.log('Retrying without crossOrigin...');
+        this.video.removeAttribute('crossorigin');
+        this.video.src = this._loadUrlSrc;
+        this.video.load();
+        return;
+      }
       const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
       this.placeholder.classList.remove('hidden');
       this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
-      this._emit('video-error', { name });
+      this._emit('video-error', { name, code, msg, src });
     });
     this.video.addEventListener('seeked', () => {
       this.video.classList.remove('is-buffering');
@@ -214,6 +228,7 @@ export class VideoController {
       URL.revokeObjectURL(this.objectUrl);
     }
     this.currentFile = file;
+    this._loadUrlSrc = null;
     this.objectUrl = URL.createObjectURL(file);
     this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
@@ -229,12 +244,15 @@ export class VideoController {
       this.objectUrl = null;
     }
     this.currentFile = null;
+    this._loadUrlSrc = url;
+    this._loadUrlName = displayName || 'Film';
+    this._loadUrlRetried = false;
     this.video.crossOrigin = 'anonymous';
     this.video.src = url;
     this.video.load();
     this.placeholder.classList.add('hidden');
-    this.fileLabel.textContent = displayName || 'Film';
-    this._emit('file-loaded', { name: displayName || 'Film' });
+    this.fileLabel.textContent = this._loadUrlName;
+    this._emit('file-loaded', { name: this._loadUrlName });
   }
 
   unloadVideo() {
@@ -245,6 +263,7 @@ export class VideoController {
       this.objectUrl = null;
     }
     this.currentFile = null;
+    this._loadUrlSrc = null;
     this.video.removeAttribute('src');
     this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
