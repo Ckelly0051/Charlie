@@ -797,8 +797,33 @@ export async function ffaSaveBlob(blob, filename) {
     try {
       const path = await t.dialog.save({ defaultPath: filename });
       if (!path) return false;                       // user cancelled
-      const data = new Uint8Array(await blob.arrayBuffer());
-      await t.fs.writeFile(path, data);
+      // Stream the blob in ~32 MB chunks to avoid buffering multi-GB files
+      // in memory all at once (same pattern as TauriBackend._writeFileStreamed).
+      const CHUNK = 32 * 1024 * 1024;
+      const reader = blob.stream().getReader();
+      let parts = [], partBytes = 0, first = true;
+      const flush = async () => {
+        if (!partBytes && !first) return;
+        const merged = new Uint8Array(partBytes);
+        let off = 0;
+        for (const p of parts) { merged.set(p, off); off += p.byteLength; }
+        await t.fs.writeFile(path, merged, first ? undefined : { append: true });
+        first = false; parts = []; partBytes = 0;
+      };
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          parts.push(value);
+          partBytes += value.byteLength;
+          if (partBytes >= CHUNK) await flush();
+        }
+        await flush();   // tail (or creates an empty file for 0-byte input)
+      } catch (streamErr) {
+        // Don't leave a partial file behind.
+        try { await t.fs.remove(path); } catch (_) {}
+        throw streamErr;
+      }
       try { window.app?.history?._toast?.(`Saved: ${path}`); } catch (e) { /* toast is best-effort */ }
       return true;
     } catch (e) {

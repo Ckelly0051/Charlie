@@ -171,14 +171,7 @@ export class CutupExporter {
     const blob = new Blob(chunks, { type: mimeType });
     const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
     const fname = `cutup_${stamp}.webm`;
-    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, fname); return; }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    window.ffaSaveBlob(blob, fname);
   }
 
   async _drawTitleCard(ctx, W, H, p, n, total) {

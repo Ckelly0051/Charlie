@@ -694,17 +694,7 @@ ${body}
   }
 
   _download(blob, filename) {
-    // Native-aware: anchor download in the browser, save dialog on desktop
-    // (anchor clicks are silently ignored by the desktop WebView).
-    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, filename); return; }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    window.ffaSaveBlob(blob, filename);
   }
 
   importPlaysFromText(text) {

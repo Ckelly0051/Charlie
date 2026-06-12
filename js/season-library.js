@@ -136,20 +136,23 @@ export class SeasonLibrary {
       });
       const teams = [];
       const rosters = {};
-      for (const [tid, group] of groups) {
-        let profile = null, roster = null;
-        for (const m of group) {                 // newest first wins
-          const data = await peek(m.id);
-          if (!data) continue;
-          if (!roster && Array.isArray(data.roster) && data.roster.length) roster = data.roster;
-          if (data.teamProfile && data.teamProfile.teamName) { profile = data.teamProfile; break; }
+      try {
+        for (const [tid, group] of groups) {
+          let profile = null, roster = null;
+          for (const m of group) {                 // newest first wins
+            const data = await peek(m.id);
+            if (!data) continue;
+            if (!roster && Array.isArray(data.roster) && data.roster.length) roster = data.roster;
+            if (data.teamProfile && data.teamProfile.teamName) { profile = data.teamProfile; break; }
+          }
+          const name = (profile && profile.teamName) || group[0].name || 'My Team';
+          const id = tid || this._newTeamId(name, teams.map(t => t.id));
+          teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
+          if (roster) rosters[id] = roster;
         }
-        const name = (profile && profile.teamName) || group[0].name || 'My Team';
-        const id = tid || this._newTeamId(name, teams.map(t => t.id));
-        teams.push({ id, teamName: name, jerseyColor: (profile && profile.jerseyColor) || '' });
-        if (roster) rosters[id] = roster;
+      } finally {
+        backend.setCurrentSeason(prevId);
       }
-      backend.setCurrentSeason(prevId);
       if (!teams.length) return;
       this._saveTeams(teams);
       try { localStorage.setItem('ffa_active_team_id', teams[0].id); } catch (e) {}

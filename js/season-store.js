@@ -317,12 +317,7 @@ export class SeasonStore {
   downloadFile() {
     const blob = new Blob([this.json()], { type: 'application/json' });
     const name = this.fileBase() + '_season.json';
-    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, name); return; }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    window.ffaSaveBlob(blob, name);
   }
 
   /** Adopt a parsed object (season or legacy single game) as the season. */

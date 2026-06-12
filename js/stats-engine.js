@@ -1443,16 +1443,14 @@ export class StatsEngine {
   _renderSelfScoutBody(stats) {
     const report = this.generateSelfScout();
     if (!report) return '<div class="stats-section"><p style="opacity:.6">No run/pass plays tagged yet. Tag your offense to see tendency analysis.</p></div>';
-    const meterColor = report.predictability >= 70 ? '#ef4444'
-      : report.predictability >= 50 ? '#f59e0b'
-        : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    const mc = StatsEngine._meterColor(report.predictability);
     return `
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
       <div class="stats-section">
         <h3>Predictability (${report.totalPlays} run/pass plays)</h3>
         <div class="ss-meter-wrap">
-          <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${meterColor}"></div></div>
-          <div class="ss-meter-val" style="color:${meterColor}">${report.predictability}<span>/100</span></div>
+          <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${mc}"></div></div>
+          <div class="ss-meter-val" style="color:${mc}">${report.predictability}<span>/100</span></div>
           <div class="ss-meter-label">${report.predLabel}</div>
         </div>
         <p class="viz-caption">Higher = more predictable. A defensive coordinator reads these same numbers — aim to keep key situations balanced.</p>
@@ -2733,15 +2731,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 </body></html>`;
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const fname = `scout_${opponent.replace(/\s+/g, '_')}.html`;
-    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, fname); return; }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    window.ffaSaveBlob(blob, fname);
   }
 
   // ================================================================
@@ -2753,6 +2743,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   /** Minimum sample for a grouping to be considered a tell / counted. */
   static get _SELF_SCOUT_MIN_N() { return 4; }
+  static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#eab308' : '#22c55e'; }
+  static _verdictIcon(v) { return v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;'; }
+  static _verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
 
   /** Pretty-print a "down&distance" key like "1&10" → "1st & 10". */
   _ddPretty(key) {
@@ -2852,11 +2845,10 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const effective = !dominant && leanAvg >= 4 && leanSuccRate >= 40;
         const verdict = dominant ? 'dominant' : effective ? 'effective' : 'exploitable';
         return {
-          dim, label: fmt(grp.key), n: grp.n, lean, leanPct,
+          dim, label: Charts._esc(fmt(grp.key)), n: grp.n, lean, leanPct,
           leanAvg, leanSuccRate, overallAvg, overallSucc,
           tds: grp.tds, turnovers: grp.turnovers, explosives: grp.explosives,
           verdict,
-          tier: leanPct >= 85 ? 'strong' : leanPct >= 75 ? 'notable' : 'slight',
           // Score: exploitable tells rank higher (they're actionable).
           // Dominant tells rank lower — they're information, not problems.
           score: (leanPct - 50) * Math.min(grp.n, 12) * (dominant ? 0.3 : effective ? 0.6 : 1),
@@ -2917,7 +2909,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     const min = StatsEngine._SELF_SCOUT_MIN_N;
     const out = [];
     Object.values(groups).filter(grp => grp.n >= min).forEach(grp => {
-      const label = fmt(grp.key);
+      const label = Charts._esc(fmt(grp.key));
       const stopRate = Math.round(grp.stops / grp.n * 100);
       const havocRate = Math.round(grp.havoc / grp.n * 100);
       const avgYds = +(grp.yards / grp.n).toFixed(1);
@@ -2932,7 +2924,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       if (topFrontPct >= 70 && topFront) {
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Front',
-          tellVal: topFront[0], tellPct: topFrontPct,
+          tellVal: Charts._esc(topFront[0]), tellPct: topFrontPct,
           stopRate, havocRate, avgYds,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topFrontPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
@@ -2940,7 +2932,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       if (topCovPct >= 70 && topCov) {
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Coverage',
-          tellVal: topCov[0], tellPct: topCovPct,
+          tellVal: Charts._esc(topCov[0]), tellPct: topCovPct,
           stopRate, havocRate, avgYds,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topCovPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
@@ -3006,8 +2998,8 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         stopRate: Math.round(grp.stops / grp.n * 100),
         havocRate: Math.round(grp.havoc / grp.n * 100),
         blitzPct: Math.round(grp.blitzN / grp.n * 100),
-        topFront: topF ? `${topF[0]} ${Math.round(topF[1] / grp.n * 100)}%` : '—',
-        topCov: topC ? `${topC[0]} ${Math.round(topC[1] / grp.n * 100)}%` : '—',
+        topFront: topF ? `${Charts._esc(topF[0])} ${Math.round(topF[1] / grp.n * 100)}%` : '—',
+        topCov: topC ? `${Charts._esc(topC[0])} ${Math.round(topC[1] / grp.n * 100)}%` : '—',
       };
     }).sort((a, b) => b.n - a.n).slice(0, 15);
 
@@ -3056,7 +3048,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const passSucc = grp.passSucc / grp.passes * 100;
         if (passAvg >= overallAvg * 1.3 || passSucc >= 60) {
           insights.push({ type: 'counter', priority: passAvg * 2,
-            text: `When you <strong>pass</strong> from <strong>${grp.key}</strong> (only ${100 - Math.round(runPct)}% of the time), you average ${passAvg.toFixed(1)} yds at ${Math.round(passSucc)}% success. The run tendency may be setting up the big play — protect this wrinkle.`,
+            text: `When you <strong>pass</strong> from <strong>${Charts._esc(grp.key)}</strong> (only ${100 - Math.round(runPct)}% of the time), you average ${passAvg.toFixed(1)} yds at ${Math.round(passSucc)}% success. The run tendency may be setting up the big play — protect this wrinkle.`,
             tag: 'Hidden Weapon' });
         }
       }
@@ -3065,7 +3057,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const runSucc = grp.runSucc / grp.runs * 100;
         if (runAvg >= overallAvg * 1.3 || runSucc >= 60) {
           insights.push({ type: 'counter', priority: runAvg * 2,
-            text: `When you <strong>run</strong> from <strong>${grp.key}</strong> (only ${Math.round(runPct)}% of the time), you average ${runAvg.toFixed(1)} yds at ${Math.round(runSucc)}% success. The pass tendency may be setting up the ground game — protect this wrinkle.`,
+            text: `When you <strong>run</strong> from <strong>${Charts._esc(grp.key)}</strong> (only ${Math.round(runPct)}% of the time), you average ${runAvg.toFixed(1)} yds at ${Math.round(runSucc)}% success. The pass tendency may be setting up the ground game — protect this wrinkle.`,
             tag: 'Hidden Weapon' });
         }
       }
@@ -3105,8 +3097,8 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         Object.entries(dirs).forEach(([dir, count]) => {
           const pct = Math.round(count / total * 100);
           if (pct >= 75) {
-            insights.push({ type: 'direction', priority: (pct - 50) * 1.2,
-              text: `From <strong>${form}</strong>, you go <strong>${dir.toLowerCase()}</strong> ${pct}% of the time (${count}/${total} plays). A DC with film will shade that direction.`,
+            insights.push({ type: 'direction', priority: (pct - 50) * 1.2 * Math.min(count, 10),
+              text: `From <strong>${Charts._esc(form)}</strong>, you go <strong>${Charts._esc(dir.toLowerCase())}</strong> ${pct}% of the time (${count}/${total} plays). A DC with film will shade that direction.`,
               tag: 'Direction Tell' });
           }
         });
@@ -3133,12 +3125,12 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       const succR = g.succ / g.n * 100;
       if (avg >= overallAvg * 2 && succR >= 55) {
         insights.push({ type: 'outlier', priority: avg * 1.5,
-          text: `<strong>${g.f} + ${g.t}</strong> averages ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays) — well above your ${overallAvg.toFixed(1)} baseline. Consider featuring this combo.`,
+          text: `<strong>${Charts._esc(g.f)} + ${Charts._esc(g.t)}</strong> averages ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays) — well above your ${overallAvg.toFixed(1)} baseline. Consider featuring this combo.`,
           tag: 'Outperformer' });
       }
       if (avg <= 1 && g.n >= min && succR < 30) {
         insights.push({ type: 'outlier', priority: (overallAvg - avg) * 1.5,
-          text: `<strong>${g.f} + ${g.t}</strong> averages only ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays). Well below your ${overallAvg.toFixed(1)} baseline — this combo isn't working.`,
+          text: `<strong>${Charts._esc(g.f)} + ${Charts._esc(g.t)}</strong> averages only ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays). Well below your ${overallAvg.toFixed(1)} baseline — this combo isn't working.`,
           tag: 'Underperformer' });
       }
     });
@@ -3257,17 +3249,15 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   _selfScoutTellsTable(tells) {
     if (!tells.length) return '<p style="color:var(--text-dim)">No strong tells at the current sample size.</p>';
-    const verdictIcon = v => v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;';
-    const verdictLabel = v => v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable';
     return `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead>
-      <tbody>${tells.map(t => `<tr class="ss-tier-${t.tier} ss-verdict-${t.verdict}">
+      <tbody>${tells.map(t => `<tr class="ss-verdict-${t.verdict}">
         <td>${t.label}</td>
         <td><span class="ss-dim">${t.dim}</span></td>
         <td><span class="ss-bar ss-bar-${t.lean === 'Run' ? 'run' : 'pass'}" style="--p:${t.leanPct}%">${t.lean} ${t.leanPct}%</span></td>
         <td>${t.leanAvg}</td>
         <td>${t.leanSuccRate}%</td>
-        <td><span class="ss-verdict ss-verdict-${t.verdict}">${verdictIcon(t.verdict)} ${verdictLabel(t.verdict)}</span></td>
+        <td><span class="ss-verdict ss-verdict-${t.verdict}">${StatsEngine._verdictIcon(t.verdict)} ${StatsEngine._verdictLabel(t.verdict)}</span></td>
         <td>${t.n}</td>
       </tr>`).join('')}</tbody>
     </table>`;
@@ -3277,7 +3267,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     return `<table class="stats-table stats-table-full ss-split">
       <thead><tr><th>${label}</th><th>#</th><th>Run</th><th>Pass</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead>
       <tbody>${rows.map(r => `<tr${r.tell ? ' class="ss-split-tell"' : ''}>
-        <td>${r.dim ? this._ddPretty(r.key) : (label === 'Down & Dist' ? this._ddPretty(r.key) : r.key)}</td>
+        <td>${r.dim ? this._ddPretty(r.key) : (label === 'Down & Dist' ? this._ddPretty(r.key) : Charts._esc(r.key))}</td>
         <td>${r.n}</td>
         <td><span class="ss-split-bar ss-bar-run" style="--p:${r.runPct}%">${r.runPct}%</span></td>
         <td><span class="ss-split-bar ss-bar-pass" style="--p:${r.passPct}%">${r.passPct}%</span></td>
@@ -3322,11 +3312,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
   }
 
   _renderDefScoutSection(ds) {
-    const meterColor = ds.predictability >= 70 ? '#ef4444'
-      : ds.predictability >= 50 ? '#f59e0b'
-        : ds.predictability >= 30 ? '#eab308' : '#22c55e';
-    const verdictIcon = v => v === 'dominant' ? '&#9650;' : '&#9660;';
-    const verdictLabel = v => v === 'dominant' ? 'Dominant' : 'Exploitable';
+    const mc = StatsEngine._meterColor(ds.predictability);
     const tellsHtml = ds.tells.length ? `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
       <tbody>${ds.tells.map(t => `<tr class="ss-verdict-${t.verdict}">
@@ -3336,7 +3322,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         <td><span class="ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}" style="--p:${t.tellPct}%">${t.tellVal} ${t.tellPct}%</span></td>
         <td>${t.stopRate}%</td>
         <td>${t.havocRate}%</td>
-        <td><span class="ss-verdict ss-verdict-${t.verdict}">${verdictIcon(t.verdict)} ${verdictLabel(t.verdict)}</span></td>
+        <td><span class="ss-verdict ss-verdict-${t.verdict}">${StatsEngine._verdictIcon(t.verdict)} ${StatsEngine._verdictLabel(t.verdict)}</span></td>
         <td>${t.n}</td>
       </tr>`).join('')}</tbody>
     </table>` : '<p style="color:var(--text-dim)">No defensive scheme tells at the current sample size.</p>';
@@ -3356,7 +3342,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         <div class="ss-def-header">
           <h3>Defensive Self-Scout</h3>
           <div class="ss-def-summary">
-            ${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${meterColor};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span>
+            ${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${mc};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span>
           </div>
         </div>
         ${ds.recommendations.length ? `<div class="ss-recs" style="margin-bottom:12px">${ds.recommendations.map(r => `<div class="ss-rec">${r}</div>`).join('')}</div>` : ''}
@@ -3370,9 +3356,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     const report = this.generateSelfScout();
     if (!report) { alert('No run/pass plays tagged yet. Tag your offense first.'); return; }
     const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Our Offense');
-    const meterColor = report.predictability >= 70 ? '#ef4444'
-      : report.predictability >= 50 ? '#f59e0b'
-        : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    const mc = StatsEngine._meterColor(report.predictability);
     const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;
     const dominant = report.tells.filter(t => t.verdict === 'dominant').length;
     const headlineClass = exploitable > 0 ? 'ss-headline-warn' : dominant > 0 ? 'ss-headline-good' : 'ss-headline-neutral';
@@ -3399,9 +3383,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
               <div class="ss-summary-card ss-card-meter">
                 <div class="ss-card-label">Predictability Index</div>
                 <div class="ss-meter-wrap">
-                  ${Charts.gauge(report.predictability, '', meterColor, 130)}
+                  ${Charts.gauge(report.predictability, '', mc, 130)}
                 </div>
-                <div class="ss-meter-label" style="color:${meterColor}">${report.predLabel}</div>
+                <div class="ss-meter-label" style="color:${mc}">${report.predLabel}</div>
                 <div class="ss-card-hint">Run/pass lean across formations &amp; situations</div>
               </div>
               <div class="ss-summary-card ss-card-headline ${headlineClass}">
@@ -3459,20 +3443,17 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   _exportSelfScout(report, team) {
     const title = `Self-Scout Report: ${team}`;
-    const verdictLabel = v => v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable';
-    const verdictColor = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#eab308' : '#ef4444';
+    const vc = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#eab308' : '#ef4444';
     const tellRows = report.tells.map(t =>
-      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${verdictColor(t.verdict)};font-weight:600">${verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
+      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${vc(t.verdict)};font-weight:600">${StatsEngine._verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
     ).join('') || '<tr><td colspan="7">No strong tells at current sample size.</td></tr>';
     const formRows = report.formationRows.map(r =>
-      `<tr${r.tell ? ' style="font-weight:600"' : ''}><td>${r.key}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.runAvg}</td><td>${r.passAvg}</td><td>${r.succRate}%</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
+      `<tr${r.tell ? ' style="font-weight:600"' : ''}><td>${Charts._esc(r.key)}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.runAvg}</td><td>${r.passAvg}</td><td>${r.succRate}%</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
     ).join('');
     const ddRows = report.downDistRows.map(r =>
       `<tr${r.tell ? ' style="font-weight:600"' : ''}><td>${this._ddPretty(r.key)}</td><td>${r.n}</td><td>${r.runPct}%</td><td>${r.passPct}%</td><td>${r.runAvg}</td><td>${r.passAvg}</td><td>${r.succRate}%</td><td>${r.tell ? r.lean + ' ' + r.leanPct + '%' : '—'}</td></tr>`
     ).join('');
-    const meterColor = report.predictability >= 70 ? '#ef4444'
-      : report.predictability >= 50 ? '#f59e0b'
-        : report.predictability >= 30 ? '#eab308' : '#22c55e';
+    const mc = StatsEngine._meterColor(report.predictability);
     const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;
     const dominant = report.tells.filter(t => t.verdict === 'dominant').length;
     const body = `
@@ -3483,8 +3464,8 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 <div class="print-summary">
   <div class="print-card">
     <div class="print-card-label">Predictability</div>
-    <div class="meter"><div style="width:${report.predictability}%;background:${meterColor}"></div></div>
-    <div class="mval" style="color:${meterColor}">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; ${report.predLabel}</div>
+    <div class="meter"><div style="width:${report.predictability}%;background:${mc}"></div></div>
+    <div class="mval" style="color:${mc}">${report.predictability}<span style="font-size:14px;color:#999">/100</span> &mdash; ${report.predLabel}</div>
   </div>
   <div class="print-card">
     <div class="print-card-label">Assessment</div>
@@ -3501,20 +3482,17 @@ ${report.defScout && !report.defScout.insufficient ? this._exportDefScoutSection
   }
 
   _exportDefScoutSection(ds) {
-    const verdictLabel = v => v === 'dominant' ? 'Dominant' : 'Exploitable';
-    const verdictColor = v => v === 'dominant' ? '#22c55e' : '#ef4444';
-    const meterColor = ds.predictability >= 70 ? '#ef4444'
-      : ds.predictability >= 50 ? '#f59e0b'
-        : ds.predictability >= 30 ? '#eab308' : '#22c55e';
+    const vc = v => v === 'dominant' ? '#22c55e' : '#ef4444';
+    const mc = StatsEngine._meterColor(ds.predictability);
     const tellRows = ds.tells.map(t =>
-      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.tellType}</td><td>${t.tellVal} ${t.tellPct}%</td><td>${t.stopRate}%</td><td>${t.havocRate}%</td><td style="color:${verdictColor(t.verdict)};font-weight:600">${verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
+      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.tellType}</td><td>${t.tellVal} ${t.tellPct}%</td><td>${t.stopRate}%</td><td>${t.havocRate}%</td><td style="color:${vc(t.verdict)};font-weight:600">${StatsEngine._verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
     ).join('') || '<tr><td colspan="8">No defensive scheme tells at current sample size.</td></tr>';
     const ddRows = ds.ddRows.map(r =>
       `<tr><td>${this._ddPretty(r.key)}</td><td>${r.n}</td><td>${r.topFront}</td><td>${r.topCov}</td><td>${r.blitzPct}%</td><td>${r.stopRate}%</td><td>${r.havocRate}%</td><td>${r.avgYds}</td></tr>`
     ).join('');
     return `
 <h3 style="border-bottom-color:#3b82f6">Defensive Self-Scout</h3>
-<p class="sub">${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${meterColor};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span></p>
+<p class="sub">${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${mc};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span></p>
 ${ds.recommendations.length ? `<div class="print-recs">${ds.recommendations.map(r => `<div class="print-rec">${r}</div>`).join('')}</div>` : ''}
 <table><thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
 ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situation</h4><table><thead><tr><th>Situation</th><th>#</th><th>Top Front</th><th>Top Coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg Yds</th></tr></thead><tbody>${ddRows}</tbody></table>` : ''}`;

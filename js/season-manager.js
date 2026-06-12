@@ -705,14 +705,7 @@ ${body}
 
     const blob = new Blob([html], { type: 'text/html' });
     const fname = `season_report_${new Date().toISOString().slice(0, 10)}.html`;
-    if (window.ffaSaveBlob) { window.ffaSaveBlob(blob, fname); return; }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    window.ffaSaveBlob(blob, fname);
   }
 
   _escape(s) {
