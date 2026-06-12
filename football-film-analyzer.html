@@ -6388,8 +6388,71 @@ video.is-buffering { opacity: 0.6; }
 }
 .ss-ok { color: #6b7a99; font-size: 12px; }
 
+/* Film Room Insights */
+.ss-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ss-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border-left: 3px solid #3d4f7c;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cdd6e6;
+}
+.ss-insight-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.ss-tag-counter { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.4); }
+.ss-tag-motion  { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+.ss-tag-direction { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+.ss-tag-outlier { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
+.ss-tag-tempo   { background: rgba(236, 72, 153, 0.18); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+.ss-tag-situation { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+.ss-insight strong { color: #e6ebf5; }
+.ss-insight-counter { border-left-color: #7c3aed; }
+.ss-insight-motion  { border-left-color: #f59e0b; }
+.ss-insight-direction { border-left-color: #3b82f6; }
+.ss-insight-outlier { border-left-color: #22c55e; }
+.ss-insight-tempo   { border-left-color: #ec4899; }
+.ss-insight-situation { border-left-color: #ef4444; }
+
+/* Defensive Self-Scout section */
+.ss-def-section {
+  border-top: 2px solid rgba(59, 130, 246, 0.25);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+.ss-def-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.ss-def-header h3 { margin: 0; border: none; padding: 0; }
+.ss-def-summary {
+  font-size: 12px;
+  color: #8b97b0;
+}
+
 @media (max-width: 700px) {
   .ss-summary-row { grid-template-columns: 1fr; }
+  .ss-insight { flex-direction: column; gap: 6px; }
 }
 
 /* Defensive report empty state */
@@ -20231,6 +20294,296 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     return Math.round(Math.max(0, Math.min(100, (avgMax - 50) * 2)));
   }
 
+  // ================================================================
+  // DEFENSIVE SELF-SCOUT — what tendencies is YOUR defense tipping?
+  // Mirrors the offensive self-scout: front/coverage/blitz leans by
+  // down & distance, so you can see if you're predictable too.
+  // ================================================================
+
+  /** Group defensive plays by a key, counting front/coverage/blitz distribution. */
+  _defScoutGroup(plays, keyFn) {
+    const g = {};
+    plays.forEach(p => {
+      let keys = keyFn(p);
+      if (!Array.isArray(keys)) keys = [keys];
+      const yds = parseInt(p.tags.yardage) || 0;
+      const stop = !this._isSuccessfulPlay(p);
+      const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
+        StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
+      const fronts = StatsEngine.splitFronts(p.tags.defFront);
+      const cov = p.tags.coverage || '';
+      const blitz = !!p.tags.blitz;
+      keys.forEach(k => {
+        if (k == null || k === '' || k === '?' || /(^|&)\?($|&)/.test(String(k))) return;
+        if (!g[k]) g[k] = { key: k, n: 0, yards: 0, stops: 0, havoc: 0,
+          frontMap: {}, covMap: {}, blitzN: 0 };
+        g[k].n++;
+        g[k].yards += yds;
+        if (stop) g[k].stops++;
+        if (isHavoc) g[k].havoc++;
+        if (blitz) g[k].blitzN++;
+        fronts.forEach(f => { if (f) g[k].frontMap[f] = (g[k].frontMap[f] || 0) + 1; });
+        if (cov) g[k].covMap[cov] = (g[k].covMap[cov] || 0) + 1;
+      });
+    });
+    return g;
+  }
+
+  /** Extract defensive tells: situations where front/coverage/blitz is lopsided. */
+  _defTellsFrom(groups, dim, fmt) {
+    const min = StatsEngine._SELF_SCOUT_MIN_N;
+    const out = [];
+    Object.values(groups).filter(grp => grp.n >= min).forEach(grp => {
+      const label = fmt(grp.key);
+      const stopRate = Math.round(grp.stops / grp.n * 100);
+      const havocRate = Math.round(grp.havoc / grp.n * 100);
+      const avgYds = +(grp.yards / grp.n).toFixed(1);
+      const blitzPct = Math.round(grp.blitzN / grp.n * 100);
+      // Top front
+      const topFront = Object.entries(grp.frontMap).sort((a, b) => b[1] - a[1])[0];
+      const topFrontPct = topFront ? Math.round(topFront[1] / grp.n * 100) : 0;
+      // Top coverage
+      const topCov = Object.entries(grp.covMap).sort((a, b) => b[1] - a[1])[0];
+      const topCovPct = topCov ? Math.round(topCov[1] / grp.n * 100) : 0;
+      // A tell exists when any one scheme element is dominant (>=70%)
+      if (topFrontPct >= 70 && topFront) {
+        const effective = stopRate >= 50;
+        out.push({ dim, label, n: grp.n, tellType: 'Front',
+          tellVal: topFront[0], tellPct: topFrontPct,
+          stopRate, havocRate, avgYds,
+          verdict: effective ? 'dominant' : 'exploitable',
+          score: (topFrontPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
+      }
+      if (topCovPct >= 70 && topCov) {
+        const effective = stopRate >= 50;
+        out.push({ dim, label, n: grp.n, tellType: 'Coverage',
+          tellVal: topCov[0], tellPct: topCovPct,
+          stopRate, havocRate, avgYds,
+          verdict: effective ? 'dominant' : 'exploitable',
+          score: (topCovPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
+      }
+      if (blitzPct >= 70 || (blitzPct === 0 && grp.n >= min)) {
+        const blitzLean = blitzPct >= 70 ? 'Blitz' : 'No blitz';
+        const pct = blitzPct >= 70 ? blitzPct : 100 - blitzPct;
+        const effective = stopRate >= 50;
+        out.push({ dim, label, n: grp.n, tellType: 'Blitz',
+          tellVal: blitzLean, tellPct: pct,
+          stopRate, havocRate, avgYds,
+          verdict: effective ? 'dominant' : 'exploitable',
+          score: (pct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
+      }
+    });
+    return out;
+  }
+
+  generateDefensiveSelfScout(playsOverride = null) {
+    const all = playsOverride || this._currentPlays();
+    const plays = all.filter(p => (p.tags.unit) === 'defense' &&
+      (p.tags.defFront || p.tags.coverage || p.tags.blitz));
+    if (plays.length < 6) return null;
+
+    const byDD = this._defScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
+    const byFront = this._defScoutGroup(plays, p => StatsEngine.splitFronts(p.tags.defFront));
+    const byCov = this._defScoutGroup(plays, p => p.tags.coverage);
+
+    let tells = [
+      ...this._defTellsFrom(byDD, 'Down & Dist', k => this._ddPretty(k)),
+      ...this._defTellsFrom(byFront, 'vs Front', k => k),
+      ...this._defTellsFrom(byCov, 'vs Coverage', k => k),
+    ].sort((a, b) => b.score - a.score).slice(0, 10);
+
+    // Predictability: how often does the DC lean heavily on one scheme element?
+    let wsum = 0, w = 0;
+    Object.values(byDD).forEach(grp => {
+      if (grp.n < 3) return;
+      const topF = Object.values(grp.frontMap).sort((a, b) => b - a)[0] || 0;
+      const topC = Object.values(grp.covMap).sort((a, b) => b - a)[0] || 0;
+      const maxPct = Math.max(topF, topC, grp.blitzN) / grp.n * 100;
+      wsum += maxPct * grp.n; w += grp.n;
+    });
+    const predictability = w ? Math.round(Math.max(0, Math.min(100, ((wsum / w) - 50) * 2))) : 0;
+    const predLabel = predictability >= 70 ? 'Very Predictable'
+      : predictability >= 50 ? 'Predictable'
+        : predictability >= 30 ? 'Moderate' : 'Balanced';
+
+    // Build rows for tables
+    const ddRows = Object.values(byDD).map(grp => {
+      const topF = Object.entries(grp.frontMap).sort((a, b) => b[1] - a[1])[0];
+      const topC = Object.entries(grp.covMap).sort((a, b) => b[1] - a[1])[0];
+      return { key: grp.key, n: grp.n, avgYds: +(grp.yards / grp.n).toFixed(1),
+        stopRate: Math.round(grp.stops / grp.n * 100),
+        havocRate: Math.round(grp.havoc / grp.n * 100),
+        blitzPct: Math.round(grp.blitzN / grp.n * 100),
+        topFront: topF ? `${topF[0]} ${Math.round(topF[1] / grp.n * 100)}%` : '—',
+        topCov: topC ? `${topC[0]} ${Math.round(topC[1] / grp.n * 100)}%` : '—',
+      };
+    }).sort((a, b) => b.n - a.n).slice(0, 15);
+
+    const recommendations = [];
+    const exploitable = tells.filter(t => t.verdict === 'exploitable');
+    const dominant = tells.filter(t => t.verdict === 'dominant');
+    if (exploitable.length > 0) {
+      recommendations.push(`<strong>${exploitable.length} exploitable defensive tendency${exploitable.length > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.`);
+    }
+    exploitable.slice(0, 4).forEach(t => {
+      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: ${t.tellType} tell — ${t.tellVal} ${t.tellPct}% of the time (n=${t.n}), but only ${t.stopRate}% stop rate. Mix in alternative looks.`);
+    });
+    dominant.slice(0, 3).forEach(t => {
+      recommendations.push(`<span class="ss-rec-label ss-rec-strength">${t.label}</span>: ${t.tellVal} ${t.tellPct}% is predictable but <strong>working</strong> — ${t.stopRate}% stop rate${t.havocRate >= 15 ? `, ${t.havocRate}% havoc` : ''}. The alignment is earning its keep.`);
+    });
+    if (tells.length === 0) {
+      recommendations.push('No strong defensive tells at the current sample size — your scheme mix looks balanced across situations.');
+    }
+
+    return { totalPlays: plays.length, predictability, predLabel, tells, ddRows, recommendations };
+  }
+
+  // ================================================================
+  // INSIGHTS ENGINE — non-obvious patterns a coordinator might miss
+  // in raw splits. Counter-tendency success, motion tells, direction
+  // tells, under-utilized plays, formation-type outliers, half shifts.
+  // ================================================================
+
+  _findInsights(plays) {
+    const insights = [];
+    const min = StatsEngine._SELF_SCOUT_MIN_N;
+    const classifiable = plays.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
+    if (classifiable.length < 10) return insights;
+
+    const overallRunPct = classifiable.filter(p => StatsEngine.isRun(p)).length / classifiable.length * 100;
+    const overallAvg = classifiable.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0) / classifiable.length;
+    const overallSucc = classifiable.filter(p => this._isSuccessfulPlay(p)).length / classifiable.length * 100;
+
+    // 1. Counter-tendency success: when you DO the rare thing, how well does it work?
+    const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(p.tags.formation));
+    Object.values(byFormation).forEach(grp => {
+      if (grp.n < min + 2) return;
+      const runPct = grp.runs / grp.n * 100;
+      if (runPct >= 70 && grp.passes >= 2) {
+        const passAvg = grp.passYards / grp.passes;
+        const passSucc = grp.passSucc / grp.passes * 100;
+        if (passAvg >= overallAvg * 1.3 || passSucc >= 60) {
+          insights.push({ type: 'counter', priority: passAvg * 2,
+            text: `When you <strong>pass</strong> from <strong>${grp.key}</strong> (only ${100 - Math.round(runPct)}% of the time), you average ${passAvg.toFixed(1)} yds at ${Math.round(passSucc)}% success. The run tendency may be setting up the big play — protect this wrinkle.`,
+            tag: 'Hidden Weapon' });
+        }
+      }
+      if (runPct <= 30 && grp.runs >= 2) {
+        const runAvg = grp.runYards / grp.runs;
+        const runSucc = grp.runSucc / grp.runs * 100;
+        if (runAvg >= overallAvg * 1.3 || runSucc >= 60) {
+          insights.push({ type: 'counter', priority: runAvg * 2,
+            text: `When you <strong>run</strong> from <strong>${grp.key}</strong> (only ${Math.round(runPct)}% of the time), you average ${runAvg.toFixed(1)} yds at ${Math.round(runSucc)}% success. The pass tendency may be setting up the ground game — protect this wrinkle.`,
+            tag: 'Hidden Weapon' });
+        }
+      }
+    });
+
+    // 2. Motion as a tell
+    const motionPlays = classifiable.filter(p => p.tags.motion && p.tags.motion !== '');
+    const noMotionPlays = classifiable.filter(p => !p.tags.motion || p.tags.motion === '');
+    if (motionPlays.length >= min && noMotionPlays.length >= min) {
+      const motionRunPct = Math.round(motionPlays.filter(p => StatsEngine.isRun(p)).length / motionPlays.length * 100);
+      const noMotionRunPct = Math.round(noMotionPlays.filter(p => StatsEngine.isRun(p)).length / noMotionPlays.length * 100);
+      const diff = Math.abs(motionRunPct - noMotionRunPct);
+      if (diff >= 25) {
+        const motionLean = motionRunPct > noMotionRunPct ? 'run' : 'pass';
+        const motionAvg = motionPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0) / motionPlays.length;
+        insights.push({ type: 'motion', priority: diff * 1.5,
+          text: `Pre-snap <strong>motion</strong> shifts your run/pass mix by ${diff} points (${motionRunPct}% run w/ motion vs ${noMotionRunPct}% without). Motion ${motionLean === 'run' ? 'telegraphs the run' : 'tips the pass'} — averaging ${motionAvg.toFixed(1)} yds with motion.`,
+          tag: 'Motion Tell' });
+      }
+    }
+
+    // 3. Play direction tells from formation
+    const playDirPlays = classifiable.filter(p => p.tags.playDir);
+    if (playDirPlays.length >= min * 2) {
+      const formDirGroup = {};
+      playDirPlays.forEach(p => {
+        StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+          if (!f) return;
+          if (!formDirGroup[f]) formDirGroup[f] = {};
+          const dir = p.tags.playDir;
+          formDirGroup[f][dir] = (formDirGroup[f][dir] || 0) + 1;
+        });
+      });
+      Object.entries(formDirGroup).forEach(([form, dirs]) => {
+        const total = Object.values(dirs).reduce((s, v) => s + v, 0);
+        if (total < min) return;
+        Object.entries(dirs).forEach(([dir, count]) => {
+          const pct = Math.round(count / total * 100);
+          if (pct >= 75) {
+            insights.push({ type: 'direction', priority: (pct - 50) * 1.2,
+              text: `From <strong>${form}</strong>, you go <strong>${dir.toLowerCase()}</strong> ${pct}% of the time (${count}/${total} plays). A DC with film will shade that direction.`,
+              tag: 'Direction Tell' });
+          }
+        });
+      });
+    }
+
+    // 4. Formation-PlayType outliers: a specific combo that dramatically out/under-performs
+    const formTypeGroup = {};
+    classifiable.forEach(p => {
+      const forms = StatsEngine.splitFormations(p.tags.formation);
+      const types = StatsEngine.splitPlayTypes(p.tags.playType);
+      forms.forEach(f => { types.forEach(t => {
+        if (!f || !t) return;
+        const k = `${f}|${t}`;
+        if (!formTypeGroup[k]) formTypeGroup[k] = { f, t, n: 0, yds: 0, succ: 0 };
+        formTypeGroup[k].n++;
+        formTypeGroup[k].yds += parseInt(p.tags.yardage) || 0;
+        if (this._isSuccessfulPlay(p)) formTypeGroup[k].succ++;
+      });});
+    });
+    Object.values(formTypeGroup).forEach(g => {
+      if (g.n < 3) return;
+      const avg = g.yds / g.n;
+      const succR = g.succ / g.n * 100;
+      if (avg >= overallAvg * 2 && succR >= 55) {
+        insights.push({ type: 'outlier', priority: avg * 1.5,
+          text: `<strong>${g.f} + ${g.t}</strong> averages ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays) — well above your ${overallAvg.toFixed(1)} baseline. Consider featuring this combo.`,
+          tag: 'Outperformer' });
+      }
+      if (avg <= 1 && g.n >= min && succR < 30) {
+        insights.push({ type: 'outlier', priority: (overallAvg - avg) * 1.5,
+          text: `<strong>${g.f} + ${g.t}</strong> averages only ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays). Well below your ${overallAvg.toFixed(1)} baseline — this combo isn't working.`,
+          tag: 'Underperformer' });
+      }
+    });
+
+    // 5. Half-to-half shift: does your offense change in the 2nd half?
+    const tagged = classifiable.filter(p => p.tags.quarter);
+    const firstHalf = tagged.filter(p => p.tags.quarter === 'Q1' || p.tags.quarter === 'Q2');
+    const secondHalf = tagged.filter(p => p.tags.quarter === 'Q3' || p.tags.quarter === 'Q4');
+    if (firstHalf.length >= min * 2 && secondHalf.length >= min * 2) {
+      const h1Run = Math.round(firstHalf.filter(p => StatsEngine.isRun(p)).length / firstHalf.length * 100);
+      const h2Run = Math.round(secondHalf.filter(p => StatsEngine.isRun(p)).length / secondHalf.length * 100);
+      const shift = Math.abs(h1Run - h2Run);
+      if (shift >= 20) {
+        const dir = h2Run > h1Run ? 'run-heavy' : 'pass-heavy';
+        const h2Avg = secondHalf.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0) / secondHalf.length;
+        insights.push({ type: 'tempo', priority: shift * 1.3,
+          text: `Your offense gets <strong>${dir}</strong> in the 2nd half (${h1Run}% run in H1 → ${h2Run}% in H2, a ${shift}-point swing). 2nd-half yds/play: ${h2Avg.toFixed(1)}. A DC who notices will adjust at the half.`,
+          tag: 'Half-to-Half Shift' });
+      }
+    }
+
+    // 6. Down-and-distance success anomalies vs baseline
+    const byDD = this._selfScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
+    Object.values(byDD).forEach(grp => {
+      if (grp.n < min) return;
+      const succRate = (grp.runSucc + grp.passSucc) / grp.n * 100;
+      const diff = succRate - overallSucc;
+      if (Math.abs(diff) >= 20 && succRate < 30) {
+        insights.push({ type: 'situation', priority: Math.abs(diff) * 1.1,
+          text: `On <strong>${this._ddPretty(grp.key)}</strong> your success rate is only ${Math.round(succRate)}% (vs ${Math.round(overallSucc)}% overall, n=${grp.n}). Something about this situation isn't working — the play call, protection, or a tendency the defense has keyed.`,
+          tag: 'Struggle Spot' });
+      }
+    });
+
+    return insights.sort((a, b) => b.priority - a.priority).slice(0, 6);
+  }
+
   generateSelfScout(playsOverride = null) {
     const all = playsOverride || this._currentPlays();
     // Self-scout is about your own offense's tendencies.
@@ -20293,6 +20646,10 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       recommendations.push('Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans.');
     }
 
+    const insights = this._findInsights(plays);
+
+    const defScout = this.generateDefensiveSelfScout(playsOverride);
+
     return {
       totalPlays: classifiable.length,
       predictability, predLabel,
@@ -20301,6 +20658,8 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       downDistRows: this._selfScoutRows(byDownDist).sort((a, b) => b.n - a.n).slice(0, 15),
       personnelRows: this._selfScoutRows(byPersonnel),
       recommendations,
+      insights,
+      defScout,
     };
   }
 
@@ -20335,6 +20694,51 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         <td>${r.tell ? `<span class="ss-flag">${r.lean} ${r.leanPct}%</span>` : '<span class="ss-ok">balanced</span>'}</td>
       </tr>`).join('')}</tbody>
     </table>`;
+  }
+
+  _renderDefScoutSection(ds) {
+    const meterColor = ds.predictability >= 70 ? '#ef4444'
+      : ds.predictability >= 50 ? '#f59e0b'
+        : ds.predictability >= 30 ? '#eab308' : '#22c55e';
+    const verdictIcon = v => v === 'dominant' ? '&#9650;' : '&#9660;';
+    const verdictLabel = v => v === 'dominant' ? 'Dominant' : 'Exploitable';
+    const tellsHtml = ds.tells.length ? `<table class="stats-table stats-table-full ss-tells">
+      <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
+      <tbody>${ds.tells.map(t => `<tr class="ss-verdict-${t.verdict}">
+        <td>${t.label}</td>
+        <td><span class="ss-dim">${t.dim}</span></td>
+        <td>${t.tellType}</td>
+        <td><span class="ss-bar ss-bar-${t.tellType === 'Blitz' ? 'pass' : 'run'}" style="--p:${t.tellPct}%">${t.tellVal} ${t.tellPct}%</span></td>
+        <td>${t.stopRate}%</td>
+        <td>${t.havocRate}%</td>
+        <td><span class="ss-verdict ss-verdict-${t.verdict}">${verdictIcon(t.verdict)} ${verdictLabel(t.verdict)}</span></td>
+        <td>${t.n}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '<p style="color:var(--text-dim)">No defensive scheme tells at the current sample size.</p>';
+
+    const ddTableHtml = ds.ddRows.length ? `<table class="stats-table stats-table-full ss-split">
+      <thead><tr><th>Situation</th><th>#</th><th>Top Front</th><th>Top Coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg Yds</th></tr></thead>
+      <tbody>${ds.ddRows.map(r => `<tr>
+        <td>${this._ddPretty(r.key)}</td><td>${r.n}</td>
+        <td>${r.topFront}</td><td>${r.topCov}</td>
+        <td>${r.blitzPct}%</td><td>${r.stopRate}%</td>
+        <td>${r.havocRate}%</td><td>${r.avgYds}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '';
+
+    return `
+      <div class="stats-section ss-def-section">
+        <div class="ss-def-header">
+          <h3>Defensive Self-Scout</h3>
+          <div class="ss-def-summary">
+            ${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${meterColor};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span>
+          </div>
+        </div>
+        ${ds.recommendations.length ? `<div class="ss-recs" style="margin-bottom:12px">${ds.recommendations.map(r => `<div class="ss-rec">${r}</div>`).join('')}</div>` : ''}
+        <h4 style="margin:12px 0 6px;font-size:13px;color:var(--text-dim)">Defensive Tendency Tells</h4>
+        ${tellsHtml}
+        ${ddTableHtml ? `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--text-dim)">Scheme by Situation</h4>${ddTableHtml}` : ''}
+      </div>`;
   }
 
   renderSelfScout() {
@@ -20405,6 +20809,14 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
               <h3>By Personnel</h3>
               ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
             </div>` : ''}
+            ${report.insights.length ? `<div class="stats-section ss-insights-section">
+              <h3>Film Room Insights</h3>
+              <div class="ss-insights">${report.insights.map(ins => `<div class="ss-insight ss-insight-${ins.type}">
+                <span class="ss-insight-tag ss-tag-${ins.type}">${ins.tag}</span>
+                <span class="ss-insight-text">${ins.text}</span>
+              </div>`).join('')}</div>
+            </div>` : ''}
+            ${report.defScout ? this._renderDefScoutSection(report.defScout) : ''}
           </div>
         </div>
       </div>`;
@@ -20455,8 +20867,30 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 ${report.recommendations.length ? `<h3>Coaching Notes</h3><div class="print-recs">${report.recommendations.map(r => `<div class="print-rec">${r}</div>`).join('')}</div>` : ''}
 <h3>Tendency Breakdown</h3><table><thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg Yds</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
 <h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
-<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>`;
+<h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>
+${report.insights.length ? `<h3>Film Room Insights</h3><div class="print-recs">${report.insights.map(ins => `<div class="print-rec"><strong style="color:#1a1a2e">[${ins.tag}]</strong> ${ins.text}</div>`).join('')}</div>` : ''}
+${report.defScout ? this._exportDefScoutSection(report.defScout) : ''}`;
     this._openPrintWindow(title, body, 'ss-print');
+  }
+
+  _exportDefScoutSection(ds) {
+    const verdictLabel = v => v === 'dominant' ? 'Dominant' : 'Exploitable';
+    const verdictColor = v => v === 'dominant' ? '#22c55e' : '#ef4444';
+    const meterColor = ds.predictability >= 70 ? '#ef4444'
+      : ds.predictability >= 50 ? '#f59e0b'
+        : ds.predictability >= 30 ? '#eab308' : '#22c55e';
+    const tellRows = ds.tells.map(t =>
+      `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.tellType}</td><td>${t.tellVal} ${t.tellPct}%</td><td>${t.stopRate}%</td><td>${t.havocRate}%</td><td style="color:${verdictColor(t.verdict)};font-weight:600">${verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
+    ).join('') || '<tr><td colspan="8">No defensive scheme tells at current sample size.</td></tr>';
+    const ddRows = ds.ddRows.map(r =>
+      `<tr><td>${this._ddPretty(r.key)}</td><td>${r.n}</td><td>${r.topFront}</td><td>${r.topCov}</td><td>${r.blitzPct}%</td><td>${r.stopRate}%</td><td>${r.havocRate}%</td><td>${r.avgYds}</td></tr>`
+    ).join('');
+    return `
+<h3 style="border-bottom-color:#3b82f6">Defensive Self-Scout</h3>
+<p class="sub">${ds.totalPlays} defensive plays &middot; Predictability: <span style="color:${meterColor};font-weight:700">${ds.predictability}/100 (${ds.predLabel})</span></p>
+${ds.recommendations.length ? `<div class="print-recs">${ds.recommendations.map(r => `<div class="print-rec">${r}</div>`).join('')}</div>` : ''}
+<table><thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
+${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situation</h4><table><thead><tr><th>Situation</th><th>#</th><th>Top Front</th><th>Top Coverage</th><th>Blitz%</th><th>Stop%</th><th>Havoc%</th><th>Avg Yds</th></tr></thead><tbody>${ddRows}</tbody></table>` : ''}`;
   }
 
   // ================================================================
@@ -25748,7 +26182,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.7.3';
+const APP_VERSION = '1.7.4';
 
 class App {
   constructor() {
