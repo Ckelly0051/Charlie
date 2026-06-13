@@ -289,6 +289,11 @@ export class VideoController {
     const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
     this.placeholder.classList.remove('hidden');
     this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
+    if (src && (src.includes('asset.localhost') || src.startsWith('asset:'))) {
+      const detail = `Video load failed (asset protocol) | Error code: ${code} | Message: ${msg} | URL: ${src.slice(0, 300)}`;
+      console.warn('ASSET-DIAG:', detail);
+      try { window.app?.tagger?.toast?.(detail, 12000); } catch (_) {}
+    }
     this._emit('video-error', { name, code, msg, src });
   }
 

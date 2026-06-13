@@ -9327,6 +9327,11 @@ class VideoController {
     const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
     this.placeholder.classList.remove('hidden');
     this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
+    if (src && (src.includes('asset.localhost') || src.startsWith('asset:'))) {
+      const detail = `Video load failed (asset protocol) | Error code: ${code} | Message: ${msg} | URL: ${src.slice(0, 300)}`;
+      console.warn('ASSET-DIAG:', detail);
+      try { window.app?.tagger?.toast?.(detail, 12000); } catch (_) {}
+    }
     this._emit('video-error', { name, code, msg, src });
   }
 
@@ -13759,6 +13764,15 @@ class StorageManager {
           if (url) clips.push({ name: filename, url });
         }
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
+        if (clips.length > 0 && clips[0].url) {
+          try {
+            const probe = await fetch(clips[0].url, { method: 'HEAD', mode: 'no-cors' });
+            console.log('Asset probe:', probe.type, probe.status, probe.ok);
+          } catch (probeErr) {
+            console.warn('Asset probe failed:', probeErr.message);
+            this.tagger.toast?.(`Asset protocol probe failed for ${clips[0].name}: ${probeErr.message}`, 10000);
+          }
+        }
         if (clips.length > 0 && this.playlist) {
           await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
           if (this.tagger.currentPlayId) {
@@ -26550,7 +26564,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 
 class App {
   constructor() {

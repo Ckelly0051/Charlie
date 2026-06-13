@@ -270,6 +270,15 @@ export class StorageManager {
           if (url) clips.push({ name: filename, url });
         }
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
+        if (clips.length > 0 && clips[0].url) {
+          try {
+            const probe = await fetch(clips[0].url, { method: 'HEAD', mode: 'no-cors' });
+            console.log('Asset probe:', probe.type, probe.status, probe.ok);
+          } catch (probeErr) {
+            console.warn('Asset probe failed:', probeErr.message);
+            this.tagger.toast?.(`Asset protocol probe failed for ${clips[0].name}: ${probeErr.message}`, 10000);
+          }
+        }
         if (clips.length > 0 && this.playlist) {
           await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
           if (this.tagger.currentPlayId) {
