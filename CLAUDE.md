@@ -321,12 +321,29 @@ seasons/<season-id>/
 5. If the film isn't on disk (old save, browser import, deleted manually), the
    load silently falls back to the placeholder — the coach can re-link.
 
-**Playback**: served via the Tauri **asset protocol** (`https://asset.localhost/…`
-or `asset://localhost/…`). Enabled in `tauri.conf.json` (`assetProtocol.enable`,
+**Playback**: served via the Tauri **asset protocol**. On Windows (WebView2)
+the URL scheme is **`http://asset.localhost/…`** (NOT `https://`); on macOS it
+is `asset://localhost/…`. Enabled in `tauri.conf.json` (`assetProtocol.enable`,
 scope `$APPDATA/**`), with the CSP updated (`media-src` / `img-src` include
-`asset:` and `https://asset.localhost`). `crossOrigin = 'anonymous'` is set on
-the `<video>` element when using asset URLs to keep the canvas untainted for
-frame export / AI vision.
+`asset:`, `http://asset.localhost`, and `https://asset.localhost`; `connect-src`
+includes `http://asset.localhost` for diagnostic probes).
+
+> **Lesson (v1.8.2)**: the original CSP listed only `https://asset.localhost`,
+> but Tauri v2 on Windows generates `http://` URLs. WebView2 rejected every
+> video load with "Media load rejected by URL safety check" — a CSP violation,
+> not a CORS or codec error. Always include **both** `http://asset.localhost`
+> and `https://asset.localhost` in `media-src` / `img-src`.
+
+**Cross-origin handling** (`VideoController`): `crossOrigin = 'anonymous'` is
+set on the `<video>` element via `setSrc()` when using asset URLs to keep the
+canvas untainted for frame export / AI vision. If the asset protocol doesn't
+serve CORS headers (which causes the video to error), a retry-without-crossOrigin
+mechanism fires once per clip (`_shouldCorsRetry` → `_handleMediaError` →
+`_promoteCorsRetry`). The `corsBlocked` flag latches **only on confirmed
+success** of the retry (not on the error itself), so a corrupt clip can never
+taint the canvas for subsequent good clips. `setSrc(url)` is the single owner
+of the crossOrigin decision — both `loadUrl()` (single-video) and
+`PlaylistManager.switchToClip()` (multi-clip) route through it.
 
 **Browser build**: completely unchanged — `backend.supportsFilm()` returns
 `false`, so none of the import / auto-load code runs.
@@ -686,9 +703,20 @@ offensive plays only (`unit === 'offense'` and `isRun || isPass`).
   tell-vs-balanced flag per row.
 - **Exportable** as a standalone HTML report (`self_scout_<team>.html`).
 
+**Defensive Self-Scout** (`generateDefensiveSelfScout()`): companion analysis
+for the defense, rendered as a `.ss-def-section` block in both the **Self-Scout
+TAB** and the **Defense TAB**. Sources defensive plays directly from
+`tagger.plays` (filtered `unit === 'defense'` + any scheme tag), NOT from
+`_currentPlays()` (which gates on offensive `playType` and would silently drop
+pure-defense plays). Shows scheme tells: front/coverage combos that correlate
+with down/distance, blitz frequency patterns, and coverage tips. The dashboard
+pre-computes `defScout` once and passes it to both tab renderers (dedup).
+
 Methods in `StatsEngine`: `generateSelfScout()`, `renderSelfScout()`,
 `_exportSelfScout()`, plus helpers `_selfScoutGroup()`, `_selfScoutRows()`,
 `_tellsFrom()`, `_predictabilityIndex()`, `_ddPretty()`.
+`generateDefensiveSelfScout()`, `_renderDefScoutSection()`,
+`_defScoutBlock()`, `_defScoutEmptyState()`.
 
 ## Multi-Angle Video Sync (`multi-angle.js`)
 
@@ -893,6 +921,14 @@ events toggle an `is-buffering` class that shows a spinner; the `<video>` has
 `playsinline`. Native `<select>` arrows are replaced with a larger custom SVG
 chevron (cascade-proofed with `!important` against class-based `background`
 shorthands).
+
+**Asset-protocol error diagnostics** (desktop only): when a video load fails
+and the URL is an `asset.localhost` or `asset:` URL, the error handler shows a
+**visible toast** with the error code, message, and full URL so the coach (or
+support) can diagnose without opening dev tools. The `_autoLoadFilm` path also
+probes the first asset URL with a HEAD fetch before loading videos, surfacing
+protocol/scope issues early. All diagnostic output uses `console.warn` (not
+`console.error`) so the e2e harness doesn't flag it.
 
 ### Shortcuts Legend
 A **Shortcuts** button in the top bar (always visible, even on the first screen
@@ -1329,6 +1365,12 @@ so the feature is never silently missing. The section renders inline as the
 12. **Inherited `color` is literal, not a live `var()`**: the app went light-theme (`--text` dark for the light canvas) while the stats overlays re-scope `--text` to a *light* value. But `.stats-body` set no explicit `color`, so it inherited the already-computed dark color from `<body>` — re-scoping the variable downstream does nothing for inherited values. Stats-table data cells (which had no explicit color) were dark-on-dark and invisible across the whole dashboard. Fix: set `color: var(--text)` directly on the overlay container so descendants inherit the light value. When a container re-scopes theme vars, also set the properties that should consume them, or inheritance silently keeps the old computed color.
 
 13. **Theme vars are global; the app is light, the dashboard is dark**: the main UI (top bar, tag form) is a **light** theme (`--text: #0f172a`, white `--surface` chips); only the analytics overlays are dark, which they get by **re-scoping** the dark palette under `.stats-overlay` / `.season-overlay` / etc. (not at `:root`). A "make the dashboard look better" pass that drops a dark palette (`--text: #e6edf3`, dark `--bg-*`) into a global `:root` block leaks into the light tag form and renders chip labels near-white on white — unreadable. **Scope dashboard palette overrides to `.stats-overlay`, never `:root`.** Only truly global identity tokens (brand accent, run/pass chart colors) belong in `:root`, and even those must stay legible on the light theme's white surfaces (gold `#c9a227` is fine as a chip-hover/border accent but is low-contrast as body text on white).
+
+14. **Tauri asset protocol is `http://`, not `https://`**: `convertFileSrc()` on Windows (WebView2) returns `http://asset.localhost/…` URLs. The CSP must list `http://asset.localhost` (not just `https://`). The mismatch silently blocked every video load with "Media load rejected by URL safety check" — no CORS error, no codec error, just a CSP violation. This was the multi-session desktop video playback bug across v1.7.6–v1.8.1. **Always test the actual URL scheme the runtime produces, not the one the docs imply.**
+
+15. **Filter gates must match the data's unit**: `_currentPlays()` filtered on `playType` (an offensive field). Defensive plays tagged with only Front/Coverage/Blitz had no `playType` and were silently dropped before reaching `generateDefensiveSelfScout()`. Fix: `generateDefensiveSelfScout()` now sources from `tagger.plays` directly and filters for `unit === 'defense'` + scheme tags. **When a function serves a specific unit, gate on that unit's fields, not on a cross-unit field.**
+
+16. **Enable devtools in production Tauri builds**: `features = ["devtools"]` in `Cargo.toml` so coaches (and support) can open the console with F12. Without it, diagnostic logging is invisible in production — the v1.7.6–v1.8.1 video bug was undiagnosable until devtools was enabled in v1.8.1. The devtools feature adds negligible binary size.
 
 ## Future Projects (Tabled)
 
