@@ -1313,8 +1313,13 @@ export class StatsEngine {
 
   _renderDashboard(stats) {
     const el = this.dashboardEl;
-    const selfScout = this._renderSelfScoutBody(stats);
-    const defBody = this._renderDefenseTabBody(stats);
+    // Compute the self-scout once and reuse its defScout for both tabs —
+    // generateSelfScout already produces defScout internally, so recomputing it
+    // in _renderDefenseTabBody was duplicate work every dashboard open.
+    const ssReport = this.generateSelfScout();
+    const defScout = ssReport ? ssReport.defScout : this.generateDefensiveSelfScout();
+    const selfScout = this._renderSelfScoutBody(ssReport, defScout);
+    const defBody = this._renderDefenseTabBody(stats, defScout);
     const noData = stats.allPlays === 0;
 
     el.innerHTML = `
@@ -1440,14 +1445,12 @@ export class StatsEngine {
     });
   }
 
-  _renderSelfScoutBody(stats) {
-    const report = this.generateSelfScout();
+  _renderSelfScoutBody(report, defScout) {
     // No classifiable OFFENSIVE plays must not blank the DEFENSIVE half —
     // a defense-heavy game still gets its scheme-tell analysis.
     if (!report) {
-      const ds = this.generateDefensiveSelfScout();
       return `<div class="stats-section"><p style="opacity:.6">No offensive run/pass plays tagged yet. Tag your offense to see tendency analysis.</p></div>
-        ${ds && !ds.insufficient ? this._renderDefScoutSection(ds) : this._defScoutEmptyState(ds)}`;
+        ${this._defScoutBlock(defScout)}`;
     }
     const mc = StatsEngine._meterColor(report.predictability);
     return `
@@ -1490,12 +1493,19 @@ export class StatsEngine {
           <span class="ss-insight-text">${ins.text}</span>
         </div>`).join('')}</div>
       </div>` : ''}
-      ${report.defScout && !report.defScout.insufficient
-    ? this._renderDefScoutSection(report.defScout)
-    : this._defScoutEmptyState(report.defScout)}`;
+      ${this._defScoutBlock(defScout)}`;
   }
 
-  _renderDefenseTabBody(stats) {
+  /** Render the defensive self-scout section, or its diagnostic empty state.
+   *  Single source for the "sufficient? section : empty" decision so the
+   *  several call sites can't drift. showEmpty=false suppresses the empty
+   *  state where another section already explains the gap (the Defense tab). */
+  _defScoutBlock(ds, showEmpty = true) {
+    if (ds && !ds.insufficient) return this._renderDefScoutSection(ds);
+    return showEmpty ? this._defScoutEmptyState(ds) : '';
+  }
+
+  _renderDefenseTabBody(stats, defScout) {
     const hasData = stats.defensive.hasData;
     if (!hasData) return `
       <div class="stats-section def-empty">
@@ -1508,12 +1518,11 @@ export class StatsEngine {
         </ol>
         <p style="color:var(--text-dim)">Once any defensive data exists, this report shows havoc rate, front &amp; coverage breakdowns with stop%, blitz analysis, and front-by-situation.</p>
       </div>`;
-    const ds = this.generateDefensiveSelfScout();
     return `
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportDef">Export Report</button></div>
       ${this._renderDefensive(stats)}
       ${this._renderFrontCoverageCombos(stats)}
-      ${ds && !ds.insufficient ? this._renderDefScoutSection(ds) : ''}`;
+      ${this._defScoutBlock(defScout, false)}`;
   }
 
   /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
@@ -2970,7 +2979,16 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
   }
 
   generateDefensiveSelfScout(playsOverride = null) {
-    const all = playsOverride || this._currentPlays();
+    // Source defensive plays directly, NOT via _currentPlays() — that gates on
+    // an offensive playType, which silently dropped defensive snaps tagged with
+    // only Front/Coverage/Blitz (no offensive play type), leaving the section
+    // thin even when the defense was fully tagged. Apply the active filter so
+    // filtered views still narrow correctly.
+    let all = playsOverride;
+    if (!all) {
+      all = (this.tagger ? this.tagger.plays : []).filter(p => p && p.tags);
+      if (this.filter && this.filter.active) all = this.filter.filter(all);
+    }
     const defAll = all.filter(p => (p.tags.unit) === 'defense');
     const plays = defAll.filter(p => p.tags.defFront || p.tags.coverage || p.tags.blitz);
     // Below the sample gate: return a DIAGNOSTIC, not null — the section
@@ -3443,9 +3461,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
                 <span class="ss-insight-text">${ins.text}</span>
               </div>`).join('')}</div>
             </div>` : ''}
-            ${report.defScout && !report.defScout.insufficient
-    ? this._renderDefScoutSection(report.defScout)
-    : this._defScoutEmptyState(report.defScout)}
+            ${this._defScoutBlock(report.defScout)}
           </div>
         </div>
       </div>`;

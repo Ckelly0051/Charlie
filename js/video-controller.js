@@ -34,6 +34,13 @@ export class VideoController {
     this.loopMode = null;
     this._abA = null;
     this.listeners = {};
+    // Cross-origin handling for the desktop asset protocol. corsBlocked latches
+    // true only once a no-crossOrigin RETRY is confirmed to load (see
+    // _handleMediaError / _promoteCorsRetry) — so a corrupt clip can't strand
+    // the canvas in tainted mode. _corsRetryPending holds the src we're
+    // mid-retry on.
+    this.corsBlocked = false;
+    this._corsRetryPending = null;
 
     this._bindEvents();
   }
@@ -125,6 +132,10 @@ export class VideoController {
 
     // Video events
     this.video.addEventListener('loadedmetadata', () => {
+      // A load that reaches metadata is valid — if it was a no-crossOrigin
+      // retry, that proves crossOrigin was the culprit. Latch it now, before
+      // the next clip switch, so we don't re-error+retry on every clip.
+      this._promoteCorsRetry();
       this.placeholder.classList.add('hidden');
       this._updateTime();
       // Reapply playback speed — the load algorithm resets playbackRate to 1.0
@@ -178,35 +189,7 @@ export class VideoController {
     this.video.addEventListener('canplay', () => {
       this.video.classList.remove('is-buffering');
     });
-    this.video.addEventListener('error', () => {
-      this.video.classList.remove('is-buffering');
-      this._updatePlayPauseIcon(false);
-      if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
-      const me = this.video.error;
-      const code = me ? me.code : '?';
-      const msg = me ? me.message : '';
-      const src = this.video.currentSrc || this.video.getAttribute('src') || '';
-      console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
-      // Retry once without crossOrigin — the asset protocol may not serve
-      // CORS headers, so the crossOrigin attribute makes the browser reject
-      // an otherwise-playable video. Generic on purpose: covers BOTH the
-      // single-video loadUrl path and the multi-clip switchToClip path
-      // (which sets video.src directly). corsBlocked makes every later
-      // asset load skip crossOrigin so a 69-clip game retries once, not 69×.
-      if (src && !src.startsWith('blob:') && this.video.hasAttribute('crossorigin') && this._corsRetrySrc !== src) {
-        this._corsRetrySrc = src;
-        this.corsBlocked = true;
-        console.log('Retrying without crossOrigin...');
-        this.video.removeAttribute('crossorigin');
-        this.video.src = src;
-        this.video.load();
-        return;
-      }
-      const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
-      this.placeholder.classList.remove('hidden');
-      this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
-      this._emit('video-error', { name, code, msg, src });
-    });
+    this.video.addEventListener('error', () => this._handleMediaError());
     this.video.addEventListener('seeked', () => {
       this.video.classList.remove('is-buffering');
     });
@@ -227,12 +210,25 @@ export class VideoController {
     });
   }
 
+  /**
+   * Point the <video> at a non-blob URL (desktop asset protocol), applying the
+   * crossOrigin attribute unless a confirmed prior CORS failure proved the
+   * protocol doesn't serve CORS headers. SINGLE owner of that decision — both
+   * loadUrl (single-video) and the multi-clip playlist path call this so the
+   * two can never drift.
+   */
+  setSrc(url) {
+    if (this.corsBlocked) this.video.removeAttribute('crossorigin');
+    else this.video.crossOrigin = 'anonymous';
+    this.video.src = url;
+    this.video.load();
+  }
+
   loadFile(file) {
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
     }
     this.currentFile = file;
-    this._loadUrlSrc = null;
     this.objectUrl = URL.createObjectURL(file);
     this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
@@ -248,15 +244,62 @@ export class VideoController {
       this.objectUrl = null;
     }
     this.currentFile = null;
-    this._loadUrlSrc = url;
     this._loadUrlName = displayName || 'Film';
-    if (this.corsBlocked) this.video.removeAttribute('crossorigin');
-    else this.video.crossOrigin = 'anonymous';
-    this.video.src = url;
-    this.video.load();
+    this.setSrc(url);
     this.placeholder.classList.add('hidden');
     this.fileLabel.textContent = this._loadUrlName;
     this._emit('file-loaded', { name: this._loadUrlName });
+  }
+
+  /** True when an errored load is worth retrying without crossOrigin: a real
+   *  (non-blob) source still carrying the attribute that we haven't already
+   *  retried. The MediaError CODE is deliberately ignored — a CORS rejection
+   *  and a decode error aren't reliably distinguishable by code across
+   *  WebViews, so the RETRY's outcome decides (_promoteCorsRetry). */
+  _shouldCorsRetry(src) {
+    return !!src && !src.startsWith('blob:') &&
+      this.video.hasAttribute('crossorigin') && this._corsRetryPending !== src;
+  }
+
+  _handleMediaError() {
+    this.video.classList.remove('is-buffering');
+    this._updatePlayPauseIcon(false);
+    if (!this.video.currentSrc && !this.video.getAttribute('src')) return;
+    const me = this.video.error;
+    const code = me ? me.code : '?';
+    const msg = me ? me.message : '';
+    const src = this.video.currentSrc || this.video.getAttribute('src') || '';
+    console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
+    if (this._shouldCorsRetry(src)) {
+      // Retry WITHOUT crossOrigin. Don't latch corsBlocked yet — only if this
+      // retry actually loads (_promoteCorsRetry, on loadedmetadata) do we know
+      // crossOrigin was the cause. A genuinely corrupt clip errors again and
+      // falls through below, leaving corsBlocked false so subsequent good clips
+      // keep an untainted canvas for frame export / AI vision.
+      this._corsRetryPending = src;
+      console.log('Retrying without crossOrigin...');
+      this.video.removeAttribute('crossorigin');
+      this.video.src = src;
+      this.video.load();
+      return;
+    }
+    // Not retryable, or the retry itself just failed: not a CORS problem. Clear
+    // the pending mark so a later unrelated success can't falsely latch.
+    this._corsRetryPending = null;
+    const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
+    this.placeholder.classList.remove('hidden');
+    this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
+    this._emit('video-error', { name, code, msg, src });
+  }
+
+  /** A load reached metadata. If it was a no-crossOrigin retry, the asset
+   *  protocol really lacks CORS headers — latch corsBlocked so every later
+   *  load skips crossOrigin up front (a 69-clip game retries once, not 69×). */
+  _promoteCorsRetry() {
+    if (this._corsRetryPending != null) {
+      this.corsBlocked = true;
+      this._corsRetryPending = null;
+    }
   }
 
   unloadVideo() {
@@ -267,7 +310,7 @@ export class VideoController {
       this.objectUrl = null;
     }
     this.currentFile = null;
-    this._loadUrlSrc = null;
+    this._corsRetryPending = null;
     this.video.removeAttribute('src');
     this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}

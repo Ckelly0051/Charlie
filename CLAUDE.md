@@ -148,10 +148,22 @@ tools/
 │                               # Drives the BUILT bundle through first-run → team setup →
 │                               # checklist → demo season → schedule → game → stats → delete →
 │                               # upgrade path, asserting each step + zero console errors.
-└── e2e-film-room.mjs           # Headless Film Room harness — run it alongside the onboarding
-                                # one before any deploy: grid render, click-to-select, chip
-                                # filters, bulk select + Watch fallback, collapse persistence,
-                                # switch-team back-out.
+├── e2e-film-room.mjs           # Headless Film Room harness — run it alongside the onboarding
+│                               # one before any deploy: grid render, click-to-select, chip
+│                               # filters, bulk select + Watch fallback, collapse persistence,
+│                               # switch-team back-out.
+├── e2e-video-cors.mjs          # VideoController cross-origin retry logic (the desktop
+│                               # asset-protocol playback path other harnesses skip): drives
+│                               # the error/promote handlers directly with video.load() stubbed.
+│                               # Guards that a corrupt clip does NOT latch corsBlocked (which
+│                               # would taint the canvas) while a confirmed CORS failure does,
+│                               # and that loadUrl + multi-clip switchToClip both route through
+│                               # VideoController.setSrc.
+└── e2e-self-scout.mjs          # Defensive self-scout rendering: the Self-Scout TAB shows the
+                                # defensive section, scheme-tagged defensive plays with no
+                                # offensive playType still count (gating fix), the Defense tab
+                                # shows the scheme-tells section, and generateDefensiveSelfScout
+                                # runs once per dashboard render.
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server

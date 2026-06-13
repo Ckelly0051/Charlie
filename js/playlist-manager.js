@@ -283,21 +283,18 @@ export class PlaylistManager {
     if (clip.assetUrl) {
       if (clip.objectUrl) { URL.revokeObjectURL(clip.objectUrl); clip.objectUrl = null; }
       this.vc.currentFile = null;
-      // crossOrigin keeps the canvas untainted for frame export, but if the
-      // asset protocol doesn't serve CORS headers it breaks playback outright
-      // — vc.corsBlocked is set by the controller's one-shot retry.
-      if (this.vc.corsBlocked) this.vc.video.removeAttribute('crossorigin');
-      else this.vc.video.crossOrigin = 'anonymous';
-      this.vc.video.src = clip.assetUrl;
+      // VideoController.setSrc owns the crossOrigin-vs-corsBlocked decision (and
+      // the load() call) so this path can't drift from the single-video one.
+      this.vc.setSrc(clip.assetUrl);
     } else {
       if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
       clip.objectUrl = URL.createObjectURL(clip.file);
       this.vc.currentFile = clip.file;
       this.vc.video.removeAttribute('crossorigin');
       this.vc.video.src = clip.objectUrl;
+      this.vc.video.load();
     }
 
-    this.vc.video.load();
     this.vc.fileLabel.textContent = clip.file ? clip.file.name : clip.name;
     this.vc.placeholder.classList.add('hidden');
 
