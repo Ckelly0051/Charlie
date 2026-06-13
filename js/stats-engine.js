@@ -1442,7 +1442,13 @@ export class StatsEngine {
 
   _renderSelfScoutBody(stats) {
     const report = this.generateSelfScout();
-    if (!report) return '<div class="stats-section"><p style="opacity:.6">No run/pass plays tagged yet. Tag your offense to see tendency analysis.</p></div>';
+    // No classifiable OFFENSIVE plays must not blank the DEFENSIVE half —
+    // a defense-heavy game still gets its scheme-tell analysis.
+    if (!report) {
+      const ds = this.generateDefensiveSelfScout();
+      return `<div class="stats-section"><p style="opacity:.6">No offensive run/pass plays tagged yet. Tag your offense to see tendency analysis.</p></div>
+        ${ds && !ds.insufficient ? this._renderDefScoutSection(ds) : this._defScoutEmptyState(ds)}`;
+    }
     const mc = StatsEngine._meterColor(report.predictability);
     return `
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
@@ -1476,7 +1482,17 @@ export class StatsEngine {
       ${report.personnelRows.length ? `<div class="stats-section">
         <h3>By Personnel</h3>
         ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
-      </div>` : ''}`;
+      </div>` : ''}
+      ${report.insights.length ? `<div class="stats-section ss-insights-section">
+        <h3>Film Room Insights</h3>
+        <div class="ss-insights">${report.insights.map(ins => `<div class="ss-insight ss-insight-${ins.type}">
+          <span class="ss-insight-tag ss-tag-${ins.type}">${ins.tag}</span>
+          <span class="ss-insight-text">${ins.text}</span>
+        </div>`).join('')}</div>
+      </div>` : ''}
+      ${report.defScout && !report.defScout.insufficient
+    ? this._renderDefScoutSection(report.defScout)
+    : this._defScoutEmptyState(report.defScout)}`;
   }
 
   _renderDefenseTabBody(stats) {
@@ -1492,10 +1508,12 @@ export class StatsEngine {
         </ol>
         <p style="color:var(--text-dim)">Once any defensive data exists, this report shows havoc rate, front &amp; coverage breakdowns with stop%, blitz analysis, and front-by-situation.</p>
       </div>`;
+    const ds = this.generateDefensiveSelfScout();
     return `
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportDef">Export Report</button></div>
       ${this._renderDefensive(stats)}
-      ${this._renderFrontCoverageCombos(stats)}`;
+      ${this._renderFrontCoverageCombos(stats)}
+      ${ds && !ds.insufficient ? this._renderDefScoutSection(ds) : ''}`;
   }
 
   /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
