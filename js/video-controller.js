@@ -188,13 +188,17 @@ export class VideoController {
       const src = this.video.currentSrc || this.video.getAttribute('src') || '';
       console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
       // Retry once without crossOrigin — the asset protocol may not serve
-      // CORS headers, so the crossOrigin attribute causes a network error
-      // even though the video is playable.
-      if (this._loadUrlSrc && !this._loadUrlRetried) {
-        this._loadUrlRetried = true;
+      // CORS headers, so the crossOrigin attribute makes the browser reject
+      // an otherwise-playable video. Generic on purpose: covers BOTH the
+      // single-video loadUrl path and the multi-clip switchToClip path
+      // (which sets video.src directly). corsBlocked makes every later
+      // asset load skip crossOrigin so a 69-clip game retries once, not 69×.
+      if (src && !src.startsWith('blob:') && this.video.hasAttribute('crossorigin') && this._corsRetrySrc !== src) {
+        this._corsRetrySrc = src;
+        this.corsBlocked = true;
         console.log('Retrying without crossOrigin...');
         this.video.removeAttribute('crossorigin');
-        this.video.src = this._loadUrlSrc;
+        this.video.src = src;
         this.video.load();
         return;
       }
@@ -246,8 +250,8 @@ export class VideoController {
     this.currentFile = null;
     this._loadUrlSrc = url;
     this._loadUrlName = displayName || 'Film';
-    this._loadUrlRetried = false;
-    this.video.crossOrigin = 'anonymous';
+    if (this.corsBlocked) this.video.removeAttribute('crossorigin');
+    else this.video.crossOrigin = 'anonymous';
     this.video.src = url;
     this.video.load();
     this.placeholder.classList.add('hidden');

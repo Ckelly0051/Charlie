@@ -217,7 +217,8 @@ export class PlaylistManager {
       tempVideo.preload = 'metadata';
       const isUrl = typeof source === 'string';
       const url = isUrl ? source : URL.createObjectURL(source);
-      if (isUrl) tempVideo.crossOrigin = 'anonymous';
+      // No crossOrigin: a detached metadata probe never touches the canvas,
+      // and the attribute makes the probe fail when CORS headers are absent.
       tempVideo.src = url;
       tempVideo.addEventListener('loadedmetadata', () => {
         const dur = tempVideo.duration;
@@ -282,7 +283,11 @@ export class PlaylistManager {
     if (clip.assetUrl) {
       if (clip.objectUrl) { URL.revokeObjectURL(clip.objectUrl); clip.objectUrl = null; }
       this.vc.currentFile = null;
-      this.vc.video.crossOrigin = 'anonymous';
+      // crossOrigin keeps the canvas untainted for frame export, but if the
+      // asset protocol doesn't serve CORS headers it breaks playback outright
+      // — vc.corsBlocked is set by the controller's one-shot retry.
+      if (this.vc.corsBlocked) this.vc.video.removeAttribute('crossorigin');
+      else this.vc.video.crossOrigin = 'anonymous';
       this.vc.video.src = clip.assetUrl;
     } else {
       if (clip.objectUrl) URL.revokeObjectURL(clip.objectUrl);
