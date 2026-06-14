@@ -1468,6 +1468,7 @@ export class StatsEngine {
         <h3>Your Top Tells</h3>
         ${this._selfScoutTellsTable(report.tells)}
       </div>
+      ${this._renderSelfScoutMatrix(report.matrix)}
       ${report.recommendations.length ? `<div class="stats-section">
         <h3>Recommendations</h3>
         <ul class="ss-recs">${report.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
@@ -1599,6 +1600,11 @@ export class StatsEngine {
         return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(form)
           && p.tags.down === down && (parseInt(p.tags.distance) || 0) > 0
           && StatsEngine._distBucket(parseInt(p.tags.distance)) === bucket;
+      }
+      case 'comboFS': { // formation on a heat-map situation, e.g. "Shotgun__3|Long" or "I-Form__1"
+        const [form, sit] = val.split('__');
+        const sp = this._situationPred(sit || '');
+        return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(form) && sp(p);
       }
       case 'defFront':  return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(val);
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
@@ -2944,6 +2950,109 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     return Math.round(Math.max(0, Math.min(100, (avgMax - 50) * 2)));
   }
 
+  // --- Predictability Map (Formation × Situation heat-map) ---------------
+  // The coordinator's mental grid: formations down the side, the down &
+  // distance situations a DC keys on across the top. Cells are colored by how
+  // lopsided your run/pass lean is (red = predictable tell, green = balanced),
+  // NOT by volume like the offense-tab Tendency Matrix — so your leaks pop.
+
+  /** Heat-map situation column for a play: 1st and 4th collapse to the down
+   *  (distance is ~always 10 / a different beast); 2nd & 3rd bucket by
+   *  distance. Null when the down (or 2nd/3rd distance) isn't tagged. */
+  _matrixSit(tags) {
+    const d = tags.down;
+    if (!d) return null;
+    if (d === '1') return '1';
+    if (d === '4') return '4';
+    const dist = parseInt(tags.distance);
+    if (!dist) return null;
+    return `${d}|${StatsEngine._distBucket(dist)}`;
+  }
+
+  /** Predicate for a heat-map situation key ('1', '4', or 'down|bucket'). */
+  _situationPred(sit) {
+    if (sit.includes('|')) {
+      const [d, b] = sit.split('|');
+      return p => p.tags.down === d && (parseInt(p.tags.distance) || 0) > 0
+        && StatsEngine._distBucket(parseInt(p.tags.distance)) === b;
+    }
+    return p => p.tags.down === sit;
+  }
+
+  /** Build the Formation × Situation matrix from classifiable offensive plays. */
+  _selfScoutMatrix(plays) {
+    const SITS = [
+      { key: '1', label: '1st' },
+      { key: '2|Short', label: '2nd & Short' },
+      { key: '2|Medium', label: '2nd & Med' },
+      { key: '2|Long', label: '2nd & Long' },
+      { key: '3|Short', label: '3rd & Short' },
+      { key: '3|Medium', label: '3rd & Med' },
+      { key: '3|Long', label: '3rd & Long' },
+      { key: '4', label: '4th' },
+    ];
+    const cells = {}, rowN = {}, colHas = {};
+    plays.forEach(p => {
+      const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
+      if (!isRun && !isPass) return;
+      const sit = this._matrixSit(p.tags);
+      if (!sit) return;
+      const forms = StatsEngine.splitFormations(p.tags.formation).filter(Boolean);
+      if (!forms.length) return;
+      const yds = parseInt(p.tags.yardage) || 0;
+      const succ = this._isSuccessfulPlay(p);
+      forms.forEach(f => {
+        const k = `${f}${sit}`;
+        if (!cells[k]) cells[k] = { n: 0, runs: 0, passes: 0, succ: 0, yards: 0 };
+        const c = cells[k];
+        c.n++; if (isRun) c.runs++; else c.passes++;
+        if (succ) c.succ++; c.yards += yds;
+        rowN[f] = (rowN[f] || 0) + 1;
+        colHas[sit] = (colHas[sit] || 0) + 1;
+      });
+    });
+    const cols = SITS.filter(s => colHas[s.key]);
+    const rows = Object.keys(rowN).sort((a, b) => rowN[b] - rowN[a]).slice(0, 10);
+    return { cols, rows, cells, rowN };
+  }
+
+  _renderSelfScoutMatrix(m) {
+    if (!m || m.rows.length < 2 || m.cols.length < 2) return '';
+    const MINC = 3;   // below this, a cell's lean is noise — render it faint
+    let header = '<th class="sm-corner">Formation \\ Situation</th>';
+    m.cols.forEach(c => { header += `<th>${c.label}</th>`; });
+    let body = '';
+    m.rows.forEach(f => {
+      let row = `<td class="sm-row-label">${Charts._esc(f)} <span class="sm-rown">${m.rowN[f]}</span></td>`;
+      m.cols.forEach(c => {
+        const cell = m.cells[`${f}${c.key}`];
+        if (!cell || !cell.n) { row += '<td class="sm-cell sm-empty">·</td>'; return; }
+        const runPct = Math.round(cell.runs / cell.n * 100);
+        const lean = runPct >= 50 ? 'R' : 'P';
+        const leanPct = Math.max(runPct, 100 - runPct);
+        const pred = Math.round((leanPct - 50) * 2);          // 50%→0, 100%→100
+        const strong = cell.n >= MINC;
+        const color = strong ? StatsEngine._meterColor(pred) : '#94a3b8';
+        const bg = strong ? `${color}26` : 'transparent';
+        const succ = Math.round(cell.succ / cell.n * 100);
+        const avg = (cell.yards / cell.n).toFixed(1);
+        const cut = ` cut-row" data-cut-type="comboFS" data-cut-val="${Charts._esc(f)}__${c.key}" data-cut-label="${Charts._esc(f)} on ${c.label} — ${cell.n} plays`;
+        row += `<td class="sm-cell${cut}" style="background:${bg};border-color:${strong ? color + '66' : 'transparent'}" title="${Charts._esc(f)} · ${c.label}: ${cell.n} plays, ${runPct}% run, ${succ}% success, ${avg} avg">
+          <span class="sm-lean" style="color:${color}">${lean} ${leanPct}%</span>
+          <span class="sm-n">${cell.n}</span>
+        </td>`;
+      });
+      body += `<tr>${row}</tr>`;
+    });
+    return `<div class="stats-section">
+      <h3>Predictability Map — Formation × Situation</h3>
+      <p class="viz-caption">Your run/pass lean in each spot. <span style="color:#ef4444;font-weight:600">Red = predictable</span> (a DC keys it), <span style="color:#22c55e;font-weight:600">green = balanced</span>; faint cells are small samples. Click any cell to watch those plays.</p>
+      <div class="sm-wrap"><table class="stats-table stats-table-full sm-table">
+        <thead><tr>${header}</tr></thead><tbody>${body}</tbody>
+      </table></div>
+    </div>`;
+  }
+
   // ================================================================
   // DEFENSIVE SELF-SCOUT — what tendencies is YOUR defense tipping?
   // Mirrors the offensive self-scout: front/coverage/blitz leans by
@@ -3328,6 +3437,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       totalPlays: classifiable.length,
       predictability, predLabel,
       tells,
+      matrix: this._selfScoutMatrix(plays),
       formationRows: this._selfScoutRows(byFormation),
       downDistRows: this._selfScoutRows(byDownDist).sort((a, b) => b.n - a.n).slice(0, 15),
       personnelRows: this._selfScoutRows(byPersonnel),

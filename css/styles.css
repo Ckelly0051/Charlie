@@ -6361,6 +6361,25 @@ video.is-buffering { opacity: 0.6; }
 .ss-tells tr.cut-row td:first-child::before { opacity: .55; }
 .ss-tells tr.cut-row:hover td:first-child::before { opacity: 1; }
 
+/* Predictability Map — Formation × Situation heat-map. Cells colored by lean
+   intensity (red = predictable tell, green = balanced); each is click-to-film. */
+.sm-wrap { overflow-x: auto; }
+.sm-table { border-collapse: separate; border-spacing: 3px; }
+.sm-table th { font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap; padding: 4px 6px; color: var(--text-dim); }
+.sm-table th.sm-corner { text-align: left; }
+.sm-row-label { font-weight: 600; white-space: nowrap; font-size: 12px; padding: 4px 8px; }
+.sm-row-label .sm-rown { color: var(--text-dim); font-weight: 400; font-size: 10px; margin-left: 2px; }
+.sm-cell {
+  text-align: center; padding: 4px 6px; border: 1px solid transparent;
+  border-radius: 5px; min-width: 58px; line-height: 1.15;
+}
+.sm-cell.sm-empty { color: var(--text-dim); opacity: .35; }
+.sm-cell .sm-lean { display: block; font-weight: 700; font-size: 12px; }
+.sm-cell .sm-n { display: block; font-size: 9px; color: var(--text-dim); }
+.sm-cell.cut-row { cursor: pointer; }
+.sm-cell.cut-row:hover { outline: 2px solid var(--accent); outline-offset: -1px; }
+.sm-cell.cut-row td:first-child::before { content: none; }   /* it's a cell, not a row — suppress the row ▶ */
+
 /* Split tables: enhanced with mini bars + effectiveness cols */
 .ss-split-bar {
   display: inline-block;

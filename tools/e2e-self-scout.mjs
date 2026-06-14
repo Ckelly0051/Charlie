@@ -169,6 +169,39 @@ ok(r.cutRows >= 1, 'tells render as clickable cut-rows', JSON.stringify(r));
 ok(r.bucketLabel, 'bucket label "3rd & Long" shown in the pane', JSON.stringify(r));
 ok(r.threat, 'recommendations name what the defense does (the "so what")', JSON.stringify(r));
 
+console.log('\n== 6. Predictability Map: Formation × Situation heat-map, click-to-film ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk;
+  const plays = [];
+  // I-Form 1st = run-heavy; Shotgun 3rd & Long = pass-heavy; Singleback 2nd & Med = balanced.
+  for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
+    formation: 'I-Form', playType: i < 7 ? 'Run Inside' : 'Short Pass', runPass: i < 7 ? 'Run' : 'Pass', result: 'Gain', yardage: '4' }));
+  for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '3', distance: String(8 + i % 4),
+    formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
+  for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '5',
+    formation: 'Singleback', playType: i % 2 ? 'Short Pass' : 'Run Inside', runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
+  window.app.tagger.plays = plays;
+  window.app.stats.filter.active = false;
+  const m = window.app.stats.generateSelfScout().matrix;
+  // 1st & 4th collapse to the down; 2nd/3rd bucket by distance.
+  const iformFirst = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'I-Form__1')).length;
+  const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Shotgun__3|Long')).length;
+  window.app.stats.showDashboard();
+  const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  return {
+    rows: m.rows, cols: m.cols.map(c => c.key),
+    iformFirst, shotgun3L,
+    hasMap: /Predictability Map/.test(pane.innerHTML),
+    clickableCells: pane.querySelectorAll('.sm-table .sm-cell.cut-row').length,
+  };
+});
+ok(r.hasMap, 'Predictability Map section renders', JSON.stringify(r));
+ok(r.rows.length === 3 && r.cols.length === 3, 'matrix has 3 formations × 3 situations present in data', JSON.stringify(r));
+ok(r.cols.includes('1') && r.cols.includes('3|Long'), '1st collapses to the down; 3rd buckets by distance', JSON.stringify(r));
+ok(r.iformFirst === 8, 'I-Form × 1st cell cut resolves to its 8 plays', JSON.stringify(r));
+ok(r.shotgun3L === 8, 'Shotgun × 3rd & Long cell cut resolves to its 8 plays', JSON.stringify(r));
+ok(r.clickableCells >= 3, 'populated cells are clickable to film', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

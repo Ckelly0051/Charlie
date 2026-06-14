@@ -703,6 +703,16 @@ offensive plays only (`unit === 'offense'` and `isRun || isPass`).
   / `hash` / `comboFD`) and renders as a `.cut-row`, so the dashboard's shared
   cut-up wiring plays exactly the plays composing the tell — "show me those 11
   snaps", not a static number.
+- **Predictability Map** (`_selfScoutMatrix` / `_renderSelfScoutMatrix`) — a
+  Formation (rows) × Situation (cols) heat-map, the coordinator's mental grid.
+  Columns are the spots a DC keys on: 1st and 4th collapse to the down
+  (`_matrixSit`); 2nd & 3rd bucket by distance (Short/Med/Long). Cells are
+  colored by **lean intensity** — red = predictable tell, green = balanced
+  (`_meterColor((leanPct−50)×2)`) — NOT by volume like the offense-tab
+  Tendency Matrix, so your leaks pop. Faint cells = small samples (n<3). Each
+  populated cell is **click-to-film** via the `comboFS` cut
+  (`formation__situation`, `_situationPred`). Only renders with ≥2 formations
+  and ≥2 situations of data.
 - **Distance buckets, not exact yards** — down & distance groups on
   Short (1-3) / Medium (4-6) / Long (7+) via `StatsEngine._distBucket()` +
   `_ddKey()`, the way coordinators game-plan. Bucketing keeps per-situation
@@ -741,9 +751,8 @@ Methods in `StatsEngine`: `generateSelfScout()`, `renderSelfScout()`,
 
 > The self-scout research that drove this (how elite HS / college / NFL staffs
 > self-scout: cross-dimensional tells, distance buckets, success-paired
-> urgency, tendency breakers, "so what → now what") is the design north star.
-> Still to do: a lean-colored Formation × Down heat-map *in* the self-scout
-> (the offense tab's Tendency Matrix colors by volume, not predictability),
+> urgency, tendency breakers, "so what → now what", the coordinator's
+> Formation × Situation grid) is the design north star. Still to do:
 > personnel→formation diversity tells (predictable before the snap), and
 > trend-over-games ("are we getting more predictable as opponents bank film?",
 > needs the season play set fed via `generateSelfScout(playsOverride)`).
