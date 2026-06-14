@@ -1487,6 +1487,7 @@ export class StatsEngine {
         <h3>By Personnel</h3>
         ${this._selfScoutSplitTable(report.personnelRows, 'Personnel')}
       </div>` : ''}
+      ${this._renderPersonnelDiversity(report.personnelDiversity)}
       ${report.insights.length ? `<div class="stats-section ss-insights-section">
         <h3>Film Room Insights</h3>
         <div class="ss-insights">${report.insights.map(ins => `<div class="ss-insight ss-insight-${ins.type}">
@@ -3364,7 +3365,49 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       }
     });
 
+    // 7. Personnel→formation diversity: a personnel group that maps to only 1-2 formations
+    // is readable from the huddle — the DC knows the look before the offense lines up.
+    const persFormDiv = this._personnelFormationDiversity(plays);
+    persFormDiv.forEach(pf => {
+      if (pf.topPct < 80) return;
+      insights.push({ type: 'personnel', priority: (pf.topPct - 50) * Math.min(pf.n, 12) * 0.9,
+        text: `<strong>${Charts._esc(pf.personnel)} personnel</strong> lines up in <strong>${Charts._esc(pf.topFormation)}</strong> ${pf.topPct}% of the time (${pf.topCount}/${pf.n} plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.`,
+        tag: 'Personnel Tell' });
+    });
+
     return insights.sort((a, b) => b.priority - a.priority).slice(0, 6);
+  }
+
+  _personnelFormationDiversity(plays) {
+    const min = StatsEngine._SELF_SCOUT_MIN_N;
+    const classifiable = plays.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
+    const groups = {};
+    classifiable.forEach(p => {
+      const pers = p.tags.personnel;
+      if (!pers) return;
+      if (!groups[pers]) groups[pers] = { formations: {}, n: 0 };
+      groups[pers].n++;
+      StatsEngine.splitFormations(p.tags.formation).forEach(f => {
+        if (!f) return;
+        groups[pers].formations[f] = (groups[pers].formations[f] || 0) + 1;
+      });
+    });
+    const results = [];
+    Object.entries(groups).forEach(([pers, g]) => {
+      if (g.n < min) return;
+      const sorted = Object.entries(g.formations).sort((a, b) => b[1] - a[1]);
+      if (sorted.length === 0) return;
+      const unique = sorted.length;
+      const topFormation = sorted[0][0];
+      const topCount = sorted[0][1];
+      const topPct = Math.round(topCount / g.n * 100);
+      results.push({
+        personnel: pers, n: g.n, uniqueFormations: unique,
+        topFormation, topCount, topPct,
+        formations: sorted.map(([f, count]) => ({ formation: f, count, pct: Math.round(count / g.n * 100) })),
+      });
+    });
+    return results.sort((a, b) => b.topPct - a.topPct);
   }
 
   generateSelfScout(playsOverride = null) {
@@ -3430,6 +3473,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     }
 
     const insights = this._findInsights(plays);
+    const personnelDiversity = this._personnelFormationDiversity(plays);
 
     const defScout = this.generateDefensiveSelfScout(playsOverride);
 
@@ -3441,6 +3485,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       formationRows: this._selfScoutRows(byFormation),
       downDistRows: this._selfScoutRows(byDownDist).sort((a, b) => b.n - a.n).slice(0, 15),
       personnelRows: this._selfScoutRows(byPersonnel),
+      personnelDiversity,
       recommendations,
       insights,
       defScout,
@@ -3479,6 +3524,49 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         <td>${r.tell ? `<span class="ss-flag">${r.lean} ${r.leanPct}%</span>` : '<span class="ss-ok">balanced</span>'}</td>
       </tr>`).join('')}</tbody>
     </table>`;
+  }
+
+  _renderPersonnelDiversity(items) {
+    if (!items || !items.length) return '';
+    const locked = items.filter(pf => pf.topPct >= 75);
+    if (!locked.length) return '';
+    const rows = locked.map(pf => {
+      const bars = pf.formations.map(f =>
+        `<span class="pd-bar" style="flex:${f.pct}" title="${Charts._esc(f.formation)} ${f.pct}%">${f.pct >= 15 ? Charts._esc(f.formation) : ''}</span>`
+      ).join('');
+      const flag = pf.topPct >= 90 ? 'locked' : pf.topPct >= 75 ? 'leaning' : '';
+      const label = pf.topPct >= 90 ? 'Locked' : 'Leaning';
+      return `<tr class="cut-row" data-cut-type="personnel" data-cut-val="${Charts._esc(pf.personnel)}" data-cut-label="${pf.personnel} personnel — ${pf.n} plays">
+        <td>${Charts._esc(pf.personnel)}</td>
+        <td>${pf.n}</td>
+        <td>${pf.uniqueFormations}</td>
+        <td>${Charts._esc(pf.topFormation)}</td>
+        <td>${pf.topPct}%</td>
+        <td><div class="pd-bars">${bars}</div></td>
+        <td><span class="pd-flag pd-flag-${flag}">${label}</span></td>
+      </tr>`;
+    }).join('');
+    return `<div class="stats-section ss-personnel-diversity">
+      <h3>Personnel → Formation Diversity</h3>
+      <p class="viz-caption">When a personnel group maps to one or two formations, the defense reads the grouping from the huddle and knows the look before you line up.</p>
+      <table class="stats-table stats-table-full ss-pd-table">
+        <thead><tr><th>Personnel</th><th>#</th><th>Forms</th><th>Top Formation</th><th>Top %</th><th>Distribution</th><th>Read</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  _exportPersonnelDiversity(items) {
+    if (!items || !items.length) return '';
+    const locked = items.filter(pf => pf.topPct >= 75);
+    if (!locked.length) return '';
+    const rows = locked.map(pf => {
+      const flag = pf.topPct >= 90 ? 'Locked' : 'Leaning';
+      const color = pf.topPct >= 90 ? '#ef4444' : '#eab308';
+      const formList = pf.formations.map(f => `${f.formation} (${f.pct}%)`).join(', ');
+      return `<tr><td>${Charts._esc(pf.personnel)}</td><td>${pf.n}</td><td>${pf.uniqueFormations}</td><td>${Charts._esc(pf.topFormation)}</td><td>${pf.topPct}%</td><td style="font-size:11px">${formList}</td><td style="color:${color};font-weight:600">${flag}</td></tr>`;
+    }).join('');
+    return `<h3>Personnel → Formation Diversity</h3><p style="font-size:12px;color:#666;margin-bottom:8px">Groups that map to 1-2 formations are readable from the huddle.</p><table><thead><tr><th>Personnel</th><th>#</th><th>Forms</th><th>Top Formation</th><th>Top %</th><th>Distribution</th><th>Read</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
 
   /** Diagnostic empty state: say exactly why the defensive analysis can't
@@ -3680,6 +3768,7 @@ ${report.recommendations.length ? `<h3>Coaching Notes</h3><div class="print-recs
 <h3>Tendency Breakdown</h3><table><thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg Yds</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead><tbody>${tellRows}</tbody></table>
 <h3>By Formation</h3><table><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${formRows}</tbody></table>
 <h3>By Down &amp; Distance</h3><table><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>R Avg</th><th>P Avg</th><th>Succ%</th><th>Tell</th></tr></thead><tbody>${ddRows}</tbody></table>
+${this._exportPersonnelDiversity(report.personnelDiversity)}
 ${report.insights.length ? `<h3>Film Room Insights</h3><div class="print-recs">${report.insights.map(ins => `<div class="print-rec"><strong style="color:#1a1a2e">[${ins.tag}]</strong> ${ins.text}</div>`).join('')}</div>` : ''}
 ${report.defScout && !report.defScout.insufficient ? this._exportDefScoutSection(report.defScout) : ''}`;
     this._openPrintWindow(title, body, 'ss-print');

@@ -726,9 +726,16 @@ offensive plays only (`unit === 'offense'` and `isRun || isPass`).
   `StatsEngine._offenseTellCounter(lean)`.
 - **By Formation / By Down & Distance / By Personnel** split tables with a
   tell-vs-balanced flag per row.
+- **Personnel → Formation Diversity** (`_personnelFormationDiversity`,
+  `_renderPersonnelDiversity`) — flags personnel groups that map to only 1–2
+  formations. A group at ≥90% one formation is **Locked** (the DC reads the
+  huddle and knows the look); 75–89% is **Leaning**. Each row shows a stacked
+  distribution bar and is **clickable to film** (`personnel` cut). Also surfaces
+  as a **Personnel Tell** insight in Film Room Insights when ≥80%.
 - **Film Room Insights** (`_findInsights`) — non-obvious patterns: hidden
   weapons (the rare counter-call that overperforms), motion tells, direction
-  tells, formation×play-type outliers, half-to-half shifts, struggle spots.
+  tells, formation×play-type outliers, half-to-half shifts, personnel tells,
+  struggle spots.
 - **Exportable** as a standalone HTML report (`self_scout_<team>.html`).
 
 **Defensive Self-Scout** (`generateDefensiveSelfScout()`): companion analysis
@@ -745,7 +752,9 @@ pre-computes `defScout` once and passes it to both tab renderers (dedup).
 Methods in `StatsEngine`: `generateSelfScout()`, `renderSelfScout()`,
 `_exportSelfScout()`, plus helpers `_selfScoutGroup()`, `_selfScoutRows()`,
 `_tellsFrom(groups, dim, fmt, cutFn)`, `_offenseTellCounter()`,
-`_predictabilityIndex()`, `_distBucket()`, `_ddKey()`, `_ddPretty()`.
+`_predictabilityIndex()`, `_distBucket()`, `_ddKey()`, `_ddPretty()`,
+`_personnelFormationDiversity()`, `_renderPersonnelDiversity()`,
+`_exportPersonnelDiversity()`.
 `generateDefensiveSelfScout()`, `_defTellsFrom(groups, dim, fmt, cutFn)`,
 `_renderDefScoutSection()`, `_defScoutBlock()`, `_defScoutEmptyState()`.
 
@@ -753,7 +762,6 @@ Methods in `StatsEngine`: `generateSelfScout()`, `renderSelfScout()`,
 > self-scout: cross-dimensional tells, distance buckets, success-paired
 > urgency, tendency breakers, "so what → now what", the coordinator's
 > Formation × Situation grid) is the design north star. Still to do:
-> personnel→formation diversity tells (predictable before the snap), and
 > trend-over-games ("are we getting more predictable as opponents bank film?",
 > needs the season play set fed via `generateSelfScout(playsOverride)`).
 

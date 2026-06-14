@@ -6380,6 +6380,25 @@ video.is-buffering { opacity: 0.6; }
 .sm-cell.cut-row:hover { outline: 2px solid var(--accent); outline-offset: -1px; }
 .sm-cell.cut-row td:first-child::before { content: none; }   /* it's a cell, not a row — suppress the row ▶ */
 
+/* Personnel → Formation Diversity */
+.ss-pd-table td:nth-child(3),
+.ss-pd-table td:nth-child(5) { text-align: center; }
+.pd-bars {
+  display: flex; height: 18px; border-radius: 3px; overflow: hidden; min-width: 100px;
+}
+.pd-bar {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden;
+  padding: 0 2px;
+}
+.pd-bar:nth-child(1) { background: var(--accent); }
+.pd-bar:nth-child(2) { background: #3b82f6; }
+.pd-bar:nth-child(3) { background: #6366f1; }
+.pd-bar:nth-child(n+4) { background: #64748b; }
+.pd-flag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+.pd-flag-locked { background: rgba(239,68,68,.15); color: #ef4444; }
+.pd-flag-leaning { background: rgba(234,179,8,.15); color: #eab308; }
+
 /* Split tables: enhanced with mini bars + effectiveness cols */
 .ss-split-bar {
   display: inline-block;

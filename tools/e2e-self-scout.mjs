@@ -202,6 +202,62 @@ ok(r.iformFirst === 8, 'I-Form × 1st cell cut resolves to its 8 plays', JSON.st
 ok(r.shotgun3L === 8, 'Shotgun × 3rd & Long cell cut resolves to its 8 plays', JSON.stringify(r));
 ok(r.clickableCells >= 3, 'populated cells are clickable to film', JSON.stringify(r));
 
+console.log('\n== 7. Personnel → Formation Diversity: locked/leaning tells, click-to-film ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk;
+  const plays = [];
+  // 11 personnel → always Shotgun (locked, 100%)
+  for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
+    personnel: '11', formation: 'Shotgun', playType: i % 2 ? 'Short Pass' : 'Run Inside',
+    runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
+  // 12 personnel → I-Form 6/8 (75%, leaning), Singleback 2/8
+  for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
+    personnel: '12', formation: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4' }));
+  for (let i = 0; i < 2; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '6',
+    personnel: '12', formation: 'Singleback', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' }));
+  // 21 personnel → diverse (no tell) — 3 formations roughly equal
+  for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '5',
+    personnel: '21', formation: ['I-Form', 'Singleback', 'Pistol'][i % 3],
+    playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3' }));
+  window.app.tagger.plays = plays;
+  window.app.stats.filter.active = false;
+  const rep = window.app.stats.generateSelfScout();
+  const pd = rep.personnelDiversity;
+  const p11 = pd.find(p => p.personnel === '11');
+  const p12 = pd.find(p => p.personnel === '12');
+  const p21 = pd.find(p => p.personnel === '21');
+  // Render and check DOM
+  window.app.stats.showDashboard();
+  const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  const section = pane?.querySelector('.ss-personnel-diversity');
+  const cutRows = section ? section.querySelectorAll('tr.cut-row') : [];
+  const deadLinks = Array.from(cutRows).filter(row => {
+    const f = window.app.stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
+    return !f || window.app.tagger.plays.filter(p => f(p)).length === 0;
+  }).length;
+  // Check Film Room Insights for the Personnel Tell
+  const insightTags = rep.insights.map(i => i.tag);
+  return {
+    p11TopPct: p11?.topPct, p11TopForm: p11?.topFormation, p11Unique: p11?.uniqueFormations,
+    p12TopPct: p12?.topPct, p12TopForm: p12?.topFormation,
+    p21TopPct: p21?.topPct,
+    hasSection: !!section,
+    cutRowCount: cutRows.length,
+    deadLinks,
+    hasLockedFlag: /Locked/.test(section?.innerHTML || ''),
+    hasLeaningFlag: /Leaning/.test(section?.innerHTML || ''),
+    hasPersonnelTell: insightTags.includes('Personnel Tell'),
+  };
+});
+ok(r.p11TopPct === 100 && r.p11TopForm === 'Shotgun', '11 personnel locked to Shotgun at 100%', JSON.stringify(r));
+ok(r.p12TopPct === 75 && r.p12TopForm === 'I-Form', '12 personnel leaning to I-Form at 75%', JSON.stringify(r));
+ok(r.p21TopPct <= 50, '21 personnel is diverse (no tell)', JSON.stringify(r));
+ok(r.hasSection, 'Personnel → Formation Diversity section renders', JSON.stringify(r));
+ok(r.cutRowCount === 2, 'only locked/leaning groups render (11 and 12, not 21)', JSON.stringify(r));
+ok(r.deadLinks === 0, 'all cut-rows resolve to plays', JSON.stringify(r));
+ok(r.hasLockedFlag && r.hasLeaningFlag, 'Locked and Leaning flags both shown', JSON.stringify(r));
+ok(r.hasPersonnelTell, 'Personnel Tell appears in Film Room Insights', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
