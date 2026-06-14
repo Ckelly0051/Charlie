@@ -6356,6 +6356,10 @@ video.is-buffering { opacity: 0.6; }
 }
 .ss-tells tr.ss-verdict-exploitable td { background: rgba(239, 68, 68, 0.06); }
 .ss-tells tr.ss-verdict-dominant td { background: rgba(34, 197, 94, 0.05); }
+/* Tells are clickable to film — show the ▶ affordance persistently (not just
+   on hover) so the centerpiece reads as "watch these plays", not a static row. */
+.ss-tells tr.cut-row td:first-child::before { opacity: .55; }
+.ss-tells tr.cut-row:hover td:first-child::before { opacity: 1; }
 
 /* Split tables: enhanced with mini bars + effectiveness cols */
 .ss-split-bar {

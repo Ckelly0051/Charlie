@@ -695,12 +695,30 @@ offensive plays only (`unit === 'offense'` and `isRun || isPass`).
   readable, drawn from Formation, Down & Distance, Personnel, Hash, and the
   combined **Formation × Down** view a DC actually keys on. A "tell" needs
   n ≥ `_SELF_SCOUT_MIN_N` (4) and a lean ≥ 70 % one way; ranked by
-  `(leanPct − 50) × min(n, 12)`; tiered Strong (≥85 %) / Notable (≥75 %) /
-  Slight (≥70 %). Lean shown as a fill bar (amber = run, blue = pass).
-- **Recommendations** — auto-generated counters per top tell (run-heavy →
-  "add play-action"; pass-heavy → "add a draw/screen").
+  `(leanPct − 50) × min(n, 12)`, de-weighted when the lean is *working*
+  (verdict dominant/effective vs exploitable — a lopsided split that's
+  productive is a strength, not a leak). Lean shown as a fill bar (amber =
+  run, blue = pass). **Each tell is clickable to film**: the row carries a
+  `cutType`/`cutVal` (`_buildCutFilter` cases `formation` / `dd` / `personnel`
+  / `hash` / `comboFD`) and renders as a `.cut-row`, so the dashboard's shared
+  cut-up wiring plays exactly the plays composing the tell — "show me those 11
+  snaps", not a static number.
+- **Distance buckets, not exact yards** — down & distance groups on
+  Short (1-3) / Medium (4-6) / Long (7+) via `StatsEngine._distBucket()` +
+  `_ddKey()`, the way coordinators game-plan. Bucketing keeps per-situation
+  samples large enough to mean something (15/20 on "3rd & Long" is a pattern;
+  3/4 on "3rd & 7" is noise). Keys are `down|bucket` (e.g. `3|Long`);
+  `_ddPretty()` renders the bucket form, the legacy exact form, and bare downs.
+- **Recommendations name the "so what → now what"** — each exploitable tell
+  pairs the threat (what the defense does: "a DC keys run — loads the box and
+  cheats a safety down") with the constraint that breaks it ("add play-action,
+  a quick throw, or a screen off the same look"), via
+  `StatsEngine._offenseTellCounter(lean)`.
 - **By Formation / By Down & Distance / By Personnel** split tables with a
   tell-vs-balanced flag per row.
+- **Film Room Insights** (`_findInsights`) — non-obvious patterns: hidden
+  weapons (the rare counter-call that overperforms), motion tells, direction
+  tells, formation×play-type outliers, half-to-half shifts, struggle spots.
 - **Exportable** as a standalone HTML report (`self_scout_<team>.html`).
 
 **Defensive Self-Scout** (`generateDefensiveSelfScout()`): companion analysis
@@ -709,14 +727,26 @@ TAB** and the **Defense TAB**. Sources defensive plays directly from
 `tagger.plays` (filtered `unit === 'defense'` + any scheme tag), NOT from
 `_currentPlays()` (which gates on offensive `playType` and would silently drop
 pure-defense plays). Shows scheme tells: front/coverage combos that correlate
-with down/distance, blitz frequency patterns, and coverage tips. The dashboard
+with down/distance, blitz frequency patterns, and coverage tips — also
+**clickable to film** (`ddDef` cut = the situation's defensive snaps;
+`defFront`/`coverage` cuts = all snaps with that scheme element). The dashboard
 pre-computes `defScout` once and passes it to both tab renderers (dedup).
 
 Methods in `StatsEngine`: `generateSelfScout()`, `renderSelfScout()`,
 `_exportSelfScout()`, plus helpers `_selfScoutGroup()`, `_selfScoutRows()`,
-`_tellsFrom()`, `_predictabilityIndex()`, `_ddPretty()`.
-`generateDefensiveSelfScout()`, `_renderDefScoutSection()`,
-`_defScoutBlock()`, `_defScoutEmptyState()`.
+`_tellsFrom(groups, dim, fmt, cutFn)`, `_offenseTellCounter()`,
+`_predictabilityIndex()`, `_distBucket()`, `_ddKey()`, `_ddPretty()`.
+`generateDefensiveSelfScout()`, `_defTellsFrom(groups, dim, fmt, cutFn)`,
+`_renderDefScoutSection()`, `_defScoutBlock()`, `_defScoutEmptyState()`.
+
+> The self-scout research that drove this (how elite HS / college / NFL staffs
+> self-scout: cross-dimensional tells, distance buckets, success-paired
+> urgency, tendency breakers, "so what → now what") is the design north star.
+> Still to do: a lean-colored Formation × Down heat-map *in* the self-scout
+> (the offense tab's Tendency Matrix colors by volume, not predictability),
+> personnel→formation diversity tells (predictable before the snap), and
+> trend-over-games ("are we getting more predictable as opponents bank film?",
+> needs the season play set fed via `generateSelfScout(playsOverride)`).
 
 ## Multi-Angle Video Sync (`multi-angle.js`)
 

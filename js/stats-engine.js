@@ -1585,8 +1585,20 @@ export class StatsEngine {
       case 'hash':      return p => isOff(p) && (p.tags.hash || '') === val;
       case 'dd': {      // down + distance bucket, e.g. "3|Long"
         const [down, bucket] = val.split('|');
-        const inBucket = d => bucket === 'Short' ? d <= 3 : bucket === 'Medium' ? (d >= 4 && d <= 6) : d >= 7;
-        return p => isOff(p) && p.tags.down === down && inBucket(parseInt(p.tags.distance) || 0);
+        return p => isOff(p) && p.tags.down === down && (parseInt(p.tags.distance) || 0) > 0
+          && StatsEngine._distBucket(parseInt(p.tags.distance)) === bucket;
+      }
+      case 'ddDef': {   // same situation bucket, but our defensive snaps
+        const [down, bucket] = val.split('|');
+        return p => isDef(p) && p.tags.down === down && (parseInt(p.tags.distance) || 0) > 0
+          && StatsEngine._distBucket(parseInt(p.tags.distance)) === bucket;
+      }
+      case 'comboFD': { // formation on a down+distance bucket, e.g. "Shotgun__3|Long"
+        const [form, dd] = val.split('__');
+        const [down, bucket] = (dd || '').split('|');
+        return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(form)
+          && p.tags.down === down && (parseInt(p.tags.distance) || 0) > 0
+          && StatsEngine._distBucket(parseInt(p.tags.distance)) === bucket;
       }
       case 'defFront':  return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(val);
       case 'coverage':  return p => isDef(p) && (p.tags.coverage || '') === val;
@@ -2774,11 +2786,34 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
   static _verdictIcon(v) { return v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;'; }
   static _verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
 
-  /** Pretty-print a "down&distance" key like "1&10" → "1st & 10". */
+  /** Coordinator distance buckets — coaches game-plan by Short/Medium/Long,
+   *  not by exact yards. Bucketing also keeps per-situation samples large
+   *  enough for a tendency to mean something (15 of 20 on "3rd & Long" is a
+   *  pattern; 3 of 4 on "3rd & 7" is noise). */
+  static _distBucket(dist) { return dist <= 3 ? 'Short' : dist <= 6 ? 'Medium' : 'Long'; }
+
+  /** Down + distance-bucket key like "3|Long"; null when down/distance are
+   *  missing so the bucket can be skipped rather than charted as "?". */
+  _ddKey(tags) {
+    const d = tags.down;
+    const dist = parseInt(tags.distance);
+    if (!d || !dist) return null;
+    return `${d}|${StatsEngine._distBucket(dist)}`;
+  }
+
+  /** Pretty-print a down&distance key. Handles the bucket form ("3|Long" →
+   *  "3rd & Long"), the legacy exact form ("3&7" → "3rd & 7"), and a bare
+   *  down ("3" → "3rd"). */
   _ddPretty(key) {
-    const [d, dist] = String(key).split('&');
-    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[d] || `${d}`;
-    return dist != null && dist !== '?' && dist !== '' ? `${ord} & ${dist}` : ord;
+    const s = String(key);
+    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
+    if (s.includes('|')) {
+      const [d, bucket] = s.split('|');
+      return `${ord[d] || d} & ${bucket}`;
+    }
+    const [d, dist] = s.split('&');
+    const o = ord[d] || `${d}`;
+    return dist != null && dist !== '?' && dist !== '' ? `${o} & ${dist}` : o;
   }
 
   /**
@@ -2844,10 +2879,20 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       .sort((a, b) => b.n - a.n);
   }
 
+  /** What a defense does about a one-sided offensive tendency (the "so what")
+   *  plus the constraint that breaks it (the "now what"). */
+  static _offenseTellCounter(lean) {
+    return lean === 'Run'
+      ? { threat: 'a DC keys run — loads the box and cheats a safety down', fix: 'play-action, a quick throw, or a screen off the same look' }
+      : { threat: 'a DC keys pass — drops into coverage and sits on the sticks', fix: 'a draw, QB run, or screen off the same formation' };
+  }
+
   /** Extract ranked tells from a group map, tagged with a dimension label.
    *  Each tell carries effectiveness context so recommendations can
-   *  distinguish "dominant strength" from "exploitable tendency". */
-  _tellsFrom(groups, dim, fmt) {
+   *  distinguish "dominant strength" from "exploitable tendency", plus a
+   *  cut spec ({type,val}) so the tell is clickable to its film. `cutFn`
+   *  maps a group key → {type, val} understood by `_buildCutFilter`. */
+  _tellsFrom(groups, dim, fmt, cutFn) {
     const min = StatsEngine._SELF_SCOUT_MIN_N;
     return Object.values(groups)
       .filter(grp => grp.n >= min)
@@ -2871,11 +2916,14 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const dominant = leanAvg >= 6 && leanSuccRate >= 50;
         const effective = !dominant && leanAvg >= 4 && leanSuccRate >= 40;
         const verdict = dominant ? 'dominant' : effective ? 'effective' : 'exploitable';
+        const cut = cutFn ? cutFn(grp.key) : null;
         return {
           dim, label: Charts._esc(fmt(grp.key)), n: grp.n, lean, leanPct,
           leanAvg, leanSuccRate, overallAvg, overallSucc,
           tds: grp.tds, turnovers: grp.turnovers, explosives: grp.explosives,
           verdict,
+          counter: StatsEngine._offenseTellCounter(lean),
+          cutType: cut ? cut.type : null, cutVal: cut ? cut.val : null,
           // Score: exploitable tells rank higher (they're actionable).
           // Dominant tells rank lower — they're information, not problems.
           score: (leanPct - 50) * Math.min(grp.n, 12) * (dominant ? 0.3 : effective ? 0.6 : 1),
@@ -2931,12 +2979,18 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     return g;
   }
 
-  /** Extract defensive tells: situations where front/coverage/blitz is lopsided. */
-  _defTellsFrom(groups, dim, fmt) {
+  /** Extract defensive tells: situations where front/coverage/blitz is
+   *  lopsided. `cutFn` maps a group key → {type,val} so each tell links to
+   *  its film (the situation's defensive snaps, or all snaps with that
+   *  front/coverage). */
+  _defTellsFrom(groups, dim, fmt, cutFn) {
     const min = StatsEngine._SELF_SCOUT_MIN_N;
     const out = [];
     Object.values(groups).filter(grp => grp.n >= min).forEach(grp => {
       const label = Charts._esc(fmt(grp.key));
+      const cut = cutFn ? cutFn(grp.key) : null;
+      const cutType = cut ? cut.type : null;
+      const cutVal = cut ? cut.val : null;
       const stopRate = Math.round(grp.stops / grp.n * 100);
       const havocRate = Math.round(grp.havoc / grp.n * 100);
       const avgYds = +(grp.yards / grp.n).toFixed(1);
@@ -2952,7 +3006,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Front',
           tellVal: Charts._esc(topFront[0]), tellPct: topFrontPct,
-          stopRate, havocRate, avgYds,
+          stopRate, havocRate, avgYds, cutType, cutVal,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topFrontPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
@@ -2960,7 +3014,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Coverage',
           tellVal: Charts._esc(topCov[0]), tellPct: topCovPct,
-          stopRate, havocRate, avgYds,
+          stopRate, havocRate, avgYds, cutType, cutVal,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (topCovPct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
@@ -2970,7 +3024,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         const effective = stopRate >= 50;
         out.push({ dim, label, n: grp.n, tellType: 'Blitz',
           tellVal: blitzLean, tellPct: pct,
-          stopRate, havocRate, avgYds,
+          stopRate, havocRate, avgYds, cutType, cutVal,
           verdict: effective ? 'dominant' : 'exploitable',
           score: (pct - 50) * Math.min(grp.n, 12) * (effective ? 0.4 : 1) });
       }
@@ -2998,14 +3052,14 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       return { insufficient: true, defPlays: defAll.length, schemePlays: plays.length };
     }
 
-    const byDD = this._defScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
+    const byDD = this._defScoutGroup(plays, p => this._ddKey(p.tags));
     const byFront = this._defScoutGroup(plays, p => StatsEngine.splitFronts(p.tags.defFront));
     const byCov = this._defScoutGroup(plays, p => p.tags.coverage);
 
     let tells = [
-      ...this._defTellsFrom(byDD, 'Down & Dist', k => this._ddPretty(k)),
-      ...this._defTellsFrom(byFront, 'vs Front', k => k),
-      ...this._defTellsFrom(byCov, 'vs Coverage', k => k),
+      ...this._defTellsFrom(byDD, 'Down & Dist', k => this._ddPretty(k), k => ({ type: 'ddDef', val: k })),
+      ...this._defTellsFrom(byFront, 'vs Front', k => k, k => ({ type: 'defFront', val: k })),
+      ...this._defTellsFrom(byCov, 'vs Coverage', k => k, k => ({ type: 'coverage', val: k })),
     ];
     // "No blitz" is only a tell when the coach tags blitzes at all —
     // otherwise it's an artifact of untagged data, not a tendency.
@@ -3189,7 +3243,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     }
 
     // 6. Down-and-distance success anomalies vs baseline
-    const byDD = this._selfScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
+    const byDD = this._selfScoutGroup(plays, p => this._ddKey(p.tags));
     Object.values(byDD).forEach(grp => {
       if (grp.n < min) return;
       const succRate = (grp.runSucc + grp.passSucc) / grp.n * 100;
@@ -3212,23 +3266,24 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     if (classifiable.length === 0) return null;
 
     const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(p.tags.formation));
-    const byDownDist = this._selfScoutGroup(plays, p => `${p.tags.down || '?'}&${p.tags.distance || '?'}`);
+    const byDownDist = this._selfScoutGroup(plays, p => this._ddKey(p.tags));
     const byPersonnel = this._selfScoutGroup(plays, p => p.tags.personnel);
     const byHash = this._selfScoutGroup(plays, p => p.tags.hash);
     // Combined formation-on-down — what a DC actually keys on.
     const byCombo = this._selfScoutGroup(plays, p => {
-      const dd = `${p.tags.down || '?'}&${p.tags.distance || '?'}`;
+      const dd = this._ddKey(p.tags);
+      if (!dd) return [];
       return StatsEngine.splitFormations(p.tags.formation).map(f => `${f}__${dd}`);
     });
 
     let tells = [
       ...this._tellsFrom(byCombo, 'Formation × Down', k => {
         const [f, dd] = k.split('__'); return `${f} on ${this._ddPretty(dd)}`;
-      }),
-      ...this._tellsFrom(byFormation, 'Formation', k => `From ${k}`),
-      ...this._tellsFrom(byDownDist, 'Down & Dist', k => this._ddPretty(k)),
-      ...this._tellsFrom(byPersonnel, 'Personnel', k => `${k} personnel`),
-      ...this._tellsFrom(byHash, 'Hash', k => `${k} hash`),
+      }, k => ({ type: 'comboFD', val: k })),
+      ...this._tellsFrom(byFormation, 'Formation', k => `From ${k}`, k => ({ type: 'formation', val: k })),
+      ...this._tellsFrom(byDownDist, 'Down & Dist', k => this._ddPretty(k), k => ({ type: 'dd', val: k })),
+      ...this._tellsFrom(byPersonnel, 'Personnel', k => `${k} personnel`, k => ({ type: 'personnel', val: k })),
+      ...this._tellsFrom(byHash, 'Hash', k => `${k} hash`, k => ({ type: 'hash', val: k })),
     ].sort((a, b) => b.score - a.score).slice(0, 12);
 
     const predictability = this._predictabilityIndex(byFormation, byDownDist);
@@ -3248,14 +3303,13 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       recommendations.push(`<strong>${exploitable.length} exploitable tendency${exploitable.length > 1 ? 'ies' : 'y'}</strong> — these situations are both predictable and underperforming. A prepared DC will take away your lean.`);
     }
     exploitable.slice(0, 4).forEach(t => {
-      const counter = t.lean === 'Run'
-        ? 'play-action, a quick pass, or a screen off the same pre-snap look'
-        : 'a draw, QB run, or misdirection off the same formation';
-      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) averaging ${t.leanAvg} yds at ${t.leanSuccRate}% success — the lean isn't paying off. Mix in ${counter}.`);
+      const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
+      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) at ${t.leanAvg} yds/${t.leanSuccRate}% success — the lean isn't paying off, and ${c.threat}. Add ${c.fix}.`);
     });
     effective.slice(0, 3).forEach(t => {
+      const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
       const prod = t.leanAvg >= 5 ? 'productive' : 'adequate';
-      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: your ${t.lean.toLowerCase()} lean (${t.leanPct}%) is ${prod} at ${t.leanAvg} yds/${t.leanSuccRate}% success, but a good DC will still key on it. Consider one constraint play per game off this look.`);
+      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: your ${t.lean.toLowerCase()} lean (${t.leanPct}%) is ${prod} at ${t.leanAvg} yds/${t.leanSuccRate}% success, but ${c.threat}. Carry one constraint (${c.fix}) per game to hold them honest.`);
     });
     dominant.slice(0, 3).forEach(t => {
       recommendations.push(`<span class="ss-rec-label ss-rec-strength">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% and it's <strong>working</strong> — ${t.leanAvg} yds, ${t.leanSuccRate}% success${t.tds ? `, ${t.tds} TD${t.tds > 1 ? 's' : ''}` : ''}. Keep riding it. The tendency is a feature, not a bug.`);
@@ -3287,7 +3341,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     if (!tells.length) return '<p style="color:var(--text-dim)">No strong tells at the current sample size.</p>';
     return `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tendency</th><th>Avg</th><th>Succ%</th><th>Assessment</th><th>n</th></tr></thead>
-      <tbody>${tells.map(t => `<tr class="ss-verdict-${t.verdict}">
+      <tbody>${tells.map(t => {
+        const cut = t.cutType ? ` cut-row" data-cut-type="${t.cutType}" data-cut-val="${Charts._esc(t.cutVal)}" data-cut-label="${t.label} — ${t.n} plays` : '';
+        return `<tr class="ss-verdict-${t.verdict}${cut}">
         <td>${t.label}</td>
         <td><span class="ss-dim">${t.dim}</span></td>
         <td><span class="ss-bar ss-bar-${t.lean === 'Run' ? 'run' : 'pass'}" style="--p:${t.leanPct}%">${t.lean} ${t.leanPct}%</span></td>
@@ -3295,7 +3351,8 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         <td>${t.leanSuccRate}%</td>
         <td><span class="ss-verdict ss-verdict-${t.verdict}">${StatsEngine._verdictIcon(t.verdict)} ${StatsEngine._verdictLabel(t.verdict)}</span></td>
         <td>${t.n}</td>
-      </tr>`).join('')}</tbody>
+      </tr>`;
+      }).join('')}</tbody>
     </table>`;
   }
 
@@ -3351,7 +3408,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     const mc = StatsEngine._meterColor(ds.predictability);
     const tellsHtml = ds.tells.length ? `<table class="stats-table stats-table-full ss-tells">
       <thead><tr><th>Situation</th><th>Type</th><th>Tell</th><th>Lean</th><th>Stop%</th><th>Havoc%</th><th>Assessment</th><th>n</th></tr></thead>
-      <tbody>${ds.tells.map(t => `<tr class="ss-verdict-${t.verdict}">
+      <tbody>${ds.tells.map(t => {
+        const cut = t.cutType ? ` cut-row" data-cut-type="${t.cutType}" data-cut-val="${Charts._esc(t.cutVal)}" data-cut-label="${t.label} — ${t.n} plays` : '';
+        return `<tr class="ss-verdict-${t.verdict}${cut}">
         <td>${t.label}</td>
         <td><span class="ss-dim">${t.dim}</span></td>
         <td>${t.tellType}</td>
@@ -3360,7 +3419,8 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
         <td>${t.havocRate}%</td>
         <td><span class="ss-verdict ss-verdict-${t.verdict}">${StatsEngine._verdictIcon(t.verdict)} ${StatsEngine._verdictLabel(t.verdict)}</span></td>
         <td>${t.n}</td>
-      </tr>`).join('')}</tbody>
+      </tr>`;
+      }).join('')}</tbody>
     </table>` : '<p style="color:var(--text-dim)">No defensive scheme tells at the current sample size.</p>';
 
     const ddTableHtml = ds.ddRows.length ? `<table class="stats-table stats-table-full ss-split">

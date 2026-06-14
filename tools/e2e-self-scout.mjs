@@ -126,6 +126,49 @@ r = await page.evaluate(() => {
 });
 ok(r.count === 1, 'one defensive-self-scout computation per dashboard render', JSON.stringify(r));
 
+console.log('\n== 5. Actionable tells: distance buckets, clickable-to-film, defensive counter ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk;
+  // 10 offensive plays: Shotgun on 3rd down, varied exact distances 8-12
+  // (all "Long"), every one a pass — a strong, exploitable, single tell that
+  // ONLY emerges if exact distances are bucketed together.
+  const plays = [];
+  for (let i = 0; i < 10; i++) plays.push(mk({ unit: 'offense', down: '3',
+    distance: String(8 + (i % 5)), formation: 'Shotgun', playType: 'Short Pass',
+    runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
+  window.app.tagger.plays = plays;
+  window.app.stats.filter.active = false;
+  const rep = window.app.stats.generateSelfScout();
+  // The combined Formation × Down tell should exist and bucket all 10 plays.
+  const combo = rep.tells.find(t => t.cutType === 'comboFD');
+  let matched = 0;
+  if (combo) {
+    const f = window.app.stats._buildCutFilter(combo.cutType, combo.cutVal);
+    matched = window.app.tagger.plays.filter(p => f(p)).length;
+  }
+  // Every tell that carries a cut must resolve to >=1 play (no dead links).
+  const deadLinks = rep.tells.filter(t => t.cutType).filter(t => {
+    const f = window.app.stats._buildCutFilter(t.cutType, t.cutVal);
+    return !f || window.app.tagger.plays.filter(p => f(p)).length === 0;
+  }).length;
+  window.app.stats.showDashboard();
+  const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  return {
+    comboVal: combo?.cutVal || null,
+    comboMatched: matched,
+    deadLinks,
+    cutRows: pane.querySelectorAll('.ss-tells tr.cut-row').length,
+    bucketLabel: /3rd &amp; Long/.test(pane.innerHTML),
+    threat: /DC keys (run|pass)/.test(pane.innerHTML),
+  };
+});
+ok(r.comboVal === 'Shotgun__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
+ok(r.comboMatched === 10, 'exact distances 8-12 all bucket into "3rd & Long" (n=10)', JSON.stringify(r));
+ok(r.deadLinks === 0, 'every clickable tell resolves to at least one play', JSON.stringify(r));
+ok(r.cutRows >= 1, 'tells render as clickable cut-rows', JSON.stringify(r));
+ok(r.bucketLabel, 'bucket label "3rd & Long" shown in the pane', JSON.stringify(r));
+ok(r.threat, 'recommendations name what the defense does (the "so what")', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
