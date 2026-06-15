@@ -1600,7 +1600,7 @@ body {
 }
 
 .tendency-run {
-  background: var(--run-color, #f0b429);
+  background: var(--run-color, #f97316);
   color: #111;
   display: flex;
   align-items: center;
@@ -6530,12 +6530,13 @@ video.is-buffering { opacity: 0.6; }
    bg/text/border) is SCOPED to .stats-overlay below — setting it globally
    leaks into the light tag form and makes chip text unreadable (lesson #12). */
 :root {
-  --run-color:  #f0b429;
+  --run-color:  #f97316;
   --pass-color: #38bdf8;
 }
 
-/* Gridiron Pro dashboard palette — gold accents on dark slate. Scoped to the
-   stats overlay so the light app shell (tag form, top bar) is untouched. */
+/* Gridiron Pro dashboard palette — blue accents on dark slate (was gold; the
+   coach scrapped it). Scoped to the stats overlay so the light app shell
+   (tag form, top bar) is untouched. */
 .stats-overlay {
   --bg-primary:    #0d1117;
   --bg-secondary:  #151b23;
@@ -6543,12 +6544,12 @@ video.is-buffering { opacity: 0.6; }
   --bg-surface:    #262c36;
   --bg-elevated:   #2d333b;
   --gauge-track:   var(--bg-tertiary);
-  --accent:          #c9a227;
-  --accent-hover:    #dbb634;
-  --accent-soft:     rgba(201,162,39,0.10);
-  --highlight:       #c9a227;
-  --highlight-hover: #dbb634;
-  --highlight-soft:  rgba(201,162,39,0.10);
+  --accent:          #3b82f6;
+  --accent-hover:    #60a5fa;
+  --accent-soft:     rgba(59,130,246,0.10);
+  --highlight:       #3b82f6;
+  --highlight-hover: #60a5fa;
+  --highlight-soft:  rgba(59,130,246,0.10);
   --info:          #00bcd4;
   --success:       #22c55e;
   --warning:       #f59e0b;
@@ -7487,7 +7488,7 @@ td.pg-cell-focus {
   --gi-line-soft: #1a2129;
   --gi-text:    #e8edf4;
   --gi-dim:     #93a1b2;
-  --gi-faint:   #6b7787;
+  --gi-faint:   #8a97a8;
   --gi-blue:    #3b82f6;
   --gi-amber:   #f59e0b;
   --gi-green:   #22c55e;
@@ -7666,6 +7667,12 @@ td.pg-cell-focus {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--gi-text);
+}
+
+/* Narrow / mobile: a fixed 2-col KPI hero reads more intentionally than the
+   auto-fit 4+1 orphan that ~500px produces. */
+@media (max-width: 600px) {
+  .stats-overlay .gi-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
   </style>
 </head>
@@ -16989,7 +16996,7 @@ class HeatMaps {
       const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
       if (rParts.includes('Touchdown')) { color = '#22c55e'; radius = 7; }
       else if (yds >= 20) { color = '#38bdf8'; radius = 6; }
-      else if (yds >= 4) { color = '#f0b429'; }
+      else if (yds >= 4) { color = '#f97316'; }
       else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ef4444'; }
       else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#a855f7'; radius = 6; }
 
@@ -17011,7 +17018,7 @@ class HeatMaps {
         <div class="hm-legend">
           <span><i style="background:#22c55e"></i> TD</span>
           <span><i style="background:#38bdf8"></i> 20+ yds</span>
-          <span><i style="background:#f0b429"></i> 4-19 yds</span>
+          <span><i style="background:#f97316"></i> 4-19 yds</span>
           <span><i style="background:#6b7280"></i> 1-3 yds</span>
           <span><i style="background:#ef4444"></i> Loss/Sack</span>
           <span><i style="background:#a855f7"></i> Turnover</span>
@@ -17464,7 +17471,7 @@ class Visualizations {
                <text x="${xOf(x)}" y="${H - padB + 14}" fill="#8b949e" font-size="9" text-anchor="middle">${yl === 0 ? 'G' : yl}</text>`;
     }
     const dots = pts.map(p =>
-      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#f0b429' : '#38bdf8'}" fill-opacity="0.8"/>`
+      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#f97316' : '#38bdf8'}" fill-opacity="0.8"/>`
     ).join('');
     return `<div class="viz-block">
       <h4>Yardage Spray <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span></h4>
@@ -17644,7 +17651,7 @@ class Charts {
     const rows = items.map(item => {
       const countPct = maxCount ? (item.count / maxCount) * 100 : 0;
       const runPct = item.count ? Math.round((item.runs / item.count) * 100) : 0;
-      const succColor = parseFloat(item.successPct) >= 50 ? '#22c55e' : parseFloat(item.successPct) >= 35 ? '#eab308' : '#ef4444';
+      const succColor = parseFloat(item.successPct) >= 50 ? '#22c55e' : parseFloat(item.successPct) >= 35 ? '#f59e0b' : '#ef4444';
       // Optional click-to-film: when an item carries cut filter data, emit
       // data attributes the stats dashboard wires to a film cut-up.
       const cut = item.cutType
@@ -17682,7 +17689,7 @@ class Charts {
     const areaPath = `${path} L${x(plays.length - 1).toFixed(1)},${zeroY} L${padL},${zeroY} Z`;
 
     const dots = plays.map((p, i) => {
-      const color = p.isRun ? '#f0b429' : '#38bdf8';
+      const color = p.isRun ? '#f97316' : '#38bdf8';
       return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" fill="${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
     }).join('');
 
@@ -17905,7 +17912,7 @@ class MultiAngle {
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
 
-const RUN_COLOR = '#f0b429';
+const RUN_COLOR = '#f97316';
 const PASS_COLOR = '#38bdf8';
 
 class StatsEngine {
@@ -19548,9 +19555,9 @@ class StatsEngine {
   _renderEfficiency(stats) {
     const e = stats.efficiency;
     const t = stats.tendencies;
-    const succColor = parseFloat(e.successRate) >= 50 ? '#22c55e' : parseFloat(e.successRate) >= 35 ? '#eab308' : '#ef4444';
-    const runSuccColor = parseFloat(t.runSuccRate) >= 50 ? '#22c55e' : parseFloat(t.runSuccRate) >= 35 ? '#eab308' : '#ef4444';
-    const passSuccColor = parseFloat(t.passSuccRate) >= 50 ? '#22c55e' : parseFloat(t.passSuccRate) >= 35 ? '#eab308' : '#ef4444';
+    const succColor = parseFloat(e.successRate) >= 50 ? '#22c55e' : parseFloat(e.successRate) >= 35 ? '#f59e0b' : '#ef4444';
+    const runSuccColor = parseFloat(t.runSuccRate) >= 50 ? '#22c55e' : parseFloat(t.runSuccRate) >= 35 ? '#f59e0b' : '#ef4444';
+    const passSuccColor = parseFloat(t.passSuccRate) >= 50 ? '#22c55e' : parseFloat(t.passSuccRate) >= 35 ? '#f59e0b' : '#ef4444';
     return `
       <div class="stats-section">
         <h3>Efficiency</h3>
@@ -19713,7 +19720,7 @@ class StatsEngine {
     if (!c || !c.hasData) return '';
     const card = (label, d) => {
       if (!d.att) return '';
-      const color = d.pct >= 60 ? '#22c55e' : d.pct >= 40 ? '#eab308' : '#ef4444';
+      const color = d.pct >= 60 ? '#22c55e' : d.pct >= 40 ? '#f59e0b' : '#ef4444';
       return `${Charts.gauge(d.pct, `${label} ${d.made}/${d.att}`, color, 110)}`;
     };
     const cards = [card('2-Point', c.two), card('PAT (XP)', c.xp)].filter(Boolean).join('');
@@ -19739,9 +19746,9 @@ class StatsEngine {
     if (!rows) return '';
 
     const rzPct = s.redZone.total ? Math.round(s.redZone.tds / s.redZone.total * 100) : 0;
-    const rzColor = rzPct >= 60 ? '#22c55e' : rzPct >= 40 ? '#eab308' : '#ef4444';
+    const rzColor = rzPct >= 60 ? '#22c55e' : rzPct >= 40 ? '#f59e0b' : '#ef4444';
     const buPct = parseFloat(s.backedUp.successPct) || 0;
-    const buColor = buPct >= 45 ? '#22c55e' : buPct >= 30 ? '#eab308' : '#ef4444';
+    const buColor = buPct >= 45 ? '#22c55e' : buPct >= 30 ? '#f59e0b' : '#ef4444';
 
     let qRows = '';
     for (const [q, qs] of Object.entries(s.byQuarter)) {
@@ -19776,7 +19783,7 @@ class StatsEngine {
   _renderDrives(stats) {
     const d = stats.drives;
     if (d.total === 0) return '';
-    const colorMap = { TD: '#22c55e', FG: '#06b6d4', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
+    const colorMap = { TD: '#22c55e', FG: '#3b82f6', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
     const outcomeDonut = Charts.donutWithLegend(
@@ -19983,7 +19990,7 @@ class StatsEngine {
     const kpis = [{ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` }];
     if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33) });
     if (third != null) kpis.push({ label: '3rd down', value: Math.round(third) + '%', sub: d.thirdDownConv || '', tone: tone(third, 40, 28) });
-    kpis.push({ label: 'Run rate', value: (tend.runPct || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
+    kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     if (dr.total >= 3) kpis.push({ label: 'Pts / drive', value: dr.pointsPerDrive, sub: `${dr.total} drives`, tone: tone(parseFloat(dr.pointsPerDrive), 2.5, 1.5) });
     else kpis.push({ label: 'Total yards', value: String(totalYards), sub: `${stats.scoring?.touchdowns || 0} TD` });
     return `<div class="gi-hero">${kpis.map(k => `
@@ -20016,7 +20023,7 @@ class StatsEngine {
     if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
     if (neg != null) kpis.push({ label: 'Negative', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
     kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
-    kpis.push({ label: 'Run rate', value: (tend.runPct || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
+    kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     return `<div class="gi-hero">${kpis.map(k => `
       <div class="gi-kpi">
         <div class="gi-kpi-label">${k.label}</div>
@@ -20094,8 +20101,8 @@ class StatsEngine {
     const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
     const thirdPct = parseFloat(d.thirdDownPct);
     const fourthPct = parseFloat(d.fourthDownPct);
-    const thirdColor = thirdPct >= 45 ? '#22c55e' : thirdPct >= 30 ? '#eab308' : '#ef4444';
-    const fourthColor = fourthPct >= 50 ? '#22c55e' : fourthPct >= 30 ? '#eab308' : '#ef4444';
+    const thirdColor = thirdPct >= 45 ? '#22c55e' : thirdPct >= 30 ? '#f59e0b' : '#ef4444';
+    const fourthColor = fourthPct >= 50 ? '#22c55e' : fourthPct >= 30 ? '#f59e0b' : '#ef4444';
 
     let rows = '';
     for (const [down, s] of Object.entries(d.byDown)) {
@@ -20114,7 +20121,7 @@ class StatsEngine {
       for (const b of d.ddBuckets) {
         const convPct = parseFloat(b.convPct);
         const convColor = (b.down === '3' || b.down === '4')
-          ? (convPct >= 50 ? '#22c55e' : convPct >= 30 ? '#eab308' : '#ef4444')
+          ? (convPct >= 50 ? '#22c55e' : convPct >= 30 ? '#f59e0b' : '#ef4444')
           : '';
         bucketRows += `<tr>
           <td>${labels[b.down]} &amp; ${b.bucket}</td>
@@ -20155,14 +20162,6 @@ class StatsEngine {
       t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg, cutType: 'formation', cutVal: f.name, cutLabel: `${f.name} — ${f.count} plays` }))
     );
 
-    const playTypeDonut = Charts.donutWithLegend(
-      t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = ['#22c55e', '#f97316', '#a78bfa', '#06b6d4', '#ec4899', '#ef4444', '#8b5cf6', '#14b8a6'];
-        return { value: pt.count, color: colors[i % colors.length], label: pt.name };
-      }),
-      120, String(stats.totalPlays), 'plays'
-    );
-
     const typeChart = Charts.effectivenessRows(
       t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg, cutType: 'playType', cutVal: pt.name, cutLabel: `${pt.name} — ${pt.count} plays` }))
     );
@@ -20178,10 +20177,7 @@ class StatsEngine {
       </div>
       <div class="stats-section">
         <h3>Play Type Breakdown</h3>
-        <div class="play-type-visual">
-          <div class="play-type-donut-col">${playTypeDonut}</div>
-          <div class="play-type-chart-col">${typeChart}</div>
-        </div>
+        ${typeChart}
       </div>
     `;
   }
@@ -20362,7 +20358,7 @@ class StatsEngine {
     });
 
     const havocPctVal = parseFloat(d.havocRate);
-    const havocColor = havocPctVal >= 20 ? '#22c55e' : havocPctVal >= 12 ? '#eab308' : '#ef4444';
+    const havocColor = havocPctVal >= 20 ? '#22c55e' : havocPctVal >= 12 ? '#f59e0b' : '#ef4444';
     const blitzPctVal = parseFloat(d.blitzRate);
 
     return `
@@ -20747,7 +20743,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   /** Minimum sample for a grouping to be considered a tell / counted. */
   static get _SELF_SCOUT_MIN_N() { return 4; }
-  static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#eab308' : '#22c55e'; }
+  static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#f59e0b' : '#22c55e'; }
   static _verdictIcon(v) { return v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;'; }
   static _verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
 
@@ -21520,7 +21516,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     if (!locked.length) return '';
     const rows = locked.map(pf => {
       const flag = pf.topPct >= 90 ? 'Locked' : 'Leaning';
-      const color = pf.topPct >= 90 ? '#ef4444' : '#eab308';
+      const color = pf.topPct >= 90 ? '#ef4444' : '#f59e0b';
       const formList = pf.formations.map(f => `${f.formation} (${f.pct}%)`).join(', ');
       return `<tr><td>${Charts._esc(pf.personnel)}</td><td>${pf.n}</td><td>${pf.uniqueFormations}</td><td>${Charts._esc(pf.topFormation)}</td><td>${pf.topPct}%</td><td style="font-size:11px">${formList}</td><td style="color:${color};font-weight:600">${flag}</td></tr>`;
     }).join('');
@@ -21693,7 +21689,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   _exportSelfScout(report, team) {
     const title = `Self-Scout Report: ${team}`;
-    const vc = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#eab308' : '#ef4444';
+    const vc = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#f59e0b' : '#ef4444';
     const tellRows = report.tells.map(t =>
       `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${vc(t.verdict)};font-weight:600">${StatsEngine._verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
     ).join('') || '<tr><td colspan="7">No strong tells at current sample size.</td></tr>';
@@ -21850,7 +21846,7 @@ ${gamePlanHtml}
 <div class="card"><div class="cv">${stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0'}</div><div class="cl">Yds/Play</div></div>
 <div class="card"><div class="cv">${s.touchdowns}</div><div class="cl">Touchdowns</div></div>
 <div class="card"><div class="cv">${t.total}</div><div class="cl">Turnovers</div></div>
-<div class="card"><div class="cv">${tend.runPct}%/${tend.passPct}%</div><div class="cl">Run/Pass</div></div>
+<div class="card"><div class="cv">${Math.round(parseFloat(tend.runPct))}%/${Math.round(parseFloat(tend.passPct))}%</div><div class="cl">Run/Pass</div></div>
 </div>
 <div class="two-col">
 <div><h3>Rushing</h3><table>
@@ -24747,10 +24743,10 @@ tr:nth-child(even){background:#f4f4f8}
 /* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
    stack bars) reference app CSS vars and chart classes — define them here so
    the standalone report isn't half-blank. */
-body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
+body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f97316;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
-.tendency-run{background:#f0b429;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
+.tendency-run{background:#f97316;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
 .tendency-pass{background:#38bdf8;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
 .chart-gauge{display:inline-block;vertical-align:top;margin:6px 12px 6px 0;text-align:center}
 .chart-gauge-label{font-size:11px;color:#666;margin-top:2px}
@@ -24766,13 +24762,13 @@ body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-c
 .chart-eff{font-size:12px}
 .chart-eff-head{display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:4px}
 .chart-eff-head .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 3px 0 8px}
-.dot.run{background:#f0b429}.dot.pass{background:#38bdf8}
+.dot.run{background:#f97316}.dot.pass{background:#38bdf8}
 .chart-eff-row{display:flex;align-items:center;gap:8px;margin:4px 0}
 .chart-eff-label{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .chart-eff-bar-wrap{flex:1}
 .chart-eff-track{height:16px;background:#eee;border-radius:3px;overflow:hidden}
 .chart-eff-fill{height:100%;background:#38bdf8;border-radius:3px;overflow:hidden}
-.chart-eff-run{height:100%;background:#f0b429}
+.chart-eff-run{height:100%;background:#f97316}
 .chart-eff-meta,.chart-eff-meta-head{display:flex;gap:4px;font-variant-numeric:tabular-nums}
 .chart-eff-meta span{display:inline-block;width:50px;text-align:right}
 .chart-stack{display:flex;min-width:90px;border-radius:3px;overflow:hidden;background:#eee}
@@ -27168,7 +27164,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 
 class App {
   constructor() {
