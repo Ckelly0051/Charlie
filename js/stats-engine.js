@@ -1347,17 +1347,21 @@ export class StatsEngine {
                 Down & Distance adds conversion rates. Formation adds tendencies.</div>
               </div>` : ''}
               <div class="stats-cut-hint">▶ Tip: click any highlighted stat row to watch those exact plays as a film cut-up.</div>
+              ${this._renderKpiHero(stats)}
               ${this._renderTakeaways(stats)}
               ${this._renderScoreboard(stats)}
               ${this._renderTeamStats(stats)}
               ${this._renderDownAnalysis(stats)}
-              ${this._renderEfficiency(stats)}
-              ${this._renderDrives(stats)}
-              ${this._renderConversions(stats)}
-              ${this._renderBigPlays(stats)}
+              <div class="gi-card-grid">
+                ${this._renderEfficiency(stats)}
+                ${this._renderDrives(stats)}
+                ${this._renderConversions(stats)}
+                ${this._renderBigPlays(stats)}
+              </div>
               ${this._renderGameFlow(stats)}
             </div>
             <div class="stats-tab-pane" data-pane="offense">
+              ${this._renderOffenseHero(stats)}
               ${this._renderPlayAction(stats)}
               ${this._renderTendencies(stats)}
               ${this._renderPersonnel(stats)}
@@ -2066,6 +2070,66 @@ export class StatsEngine {
       </div>`;
   }
 
+  // Broadcast-style KPI hero row — the handful of numbers a coach scans first,
+  // big and tabular at the top of the Game tab (instead of buried mid-scroll in
+  // Team Summary). All values are real, pulled from the same stats object the
+  // sections below use. Tone classes color success/3rd-down/pts-per-drive.
+  _renderKpiHero(stats) {
+    if (!stats || !stats.totalPlays) return '';
+    const totalYards = (stats.rushing?.yards || 0) + (stats.passing?.yards || 0);
+    const ypp = stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0';
+    const e = stats.efficiency || {};
+    const d = stats.downs || {};
+    const tend = stats.tendencies || {};
+    const dr = stats.drives || {};
+    const succ = e.successRate != null ? parseFloat(e.successRate) : null;
+    const third = d.thirdDownPct != null ? parseFloat(d.thirdDownPct) : null;
+    const tone = (v, good, ok) => (v == null || isNaN(v)) ? '' : (v >= good ? 'is-good' : v >= ok ? 'is-warn' : 'is-bad');
+    const kpis = [{ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` }];
+    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33) });
+    if (third != null) kpis.push({ label: '3rd down', value: Math.round(third) + '%', sub: d.thirdDownConv || '', tone: tone(third, 40, 28) });
+    kpis.push({ label: 'Run rate', value: (tend.runPct || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
+    if (dr.total >= 3) kpis.push({ label: 'Pts / drive', value: dr.pointsPerDrive, sub: `${dr.total} drives`, tone: tone(parseFloat(dr.pointsPerDrive), 2.5, 1.5) });
+    else kpis.push({ label: 'Total yards', value: String(totalYards), sub: `${stats.scoring?.touchdowns || 0} TD` });
+    return `<div class="gi-hero">${kpis.map(k => `
+      <div class="gi-kpi">
+        <div class="gi-kpi-label">${k.label}</div>
+        <div class="gi-kpi-value ${k.tone || ''}">${k.value}</div>
+        ${k.sub ? `<div class="gi-kpi-sub">${k.sub}</div>` : ''}
+      </div>`).join('')}</div>`;
+  }
+
+  // Offense-tab hero — efficiency/explosiveness/balance, the lens the Offense
+  // tab is about. Differentiated from the Game hero (explosive/negative/PA vs
+  // 3rd-down/pts-drive) so the two heroes aren't redundant.
+  _renderOffenseHero(stats) {
+    if (!stats || !stats.totalPlays) return '';
+    const totalYards = (stats.rushing?.yards || 0) + (stats.passing?.yards || 0);
+    const ypp = stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0';
+    const e = stats.efficiency || {};
+    const tend = stats.tendencies || {};
+    const num = (v) => (v == null ? null : parseFloat(v));
+    // higher-is-better tone, unless invert (negative-play rate: lower is better)
+    const tone = (v, good, ok, invert) => {
+      if (v == null || isNaN(v)) return '';
+      return invert ? (v <= good ? 'is-good' : v <= ok ? 'is-warn' : 'is-bad')
+                    : (v >= good ? 'is-good' : v >= ok ? 'is-warn' : 'is-bad');
+    };
+    const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
+    const kpis = [];
+    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33) });
+    if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
+    if (neg != null) kpis.push({ label: 'Negative', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
+    kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
+    kpis.push({ label: 'Run rate', value: (tend.runPct || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
+    return `<div class="gi-hero">${kpis.map(k => `
+      <div class="gi-kpi">
+        <div class="gi-kpi-label">${k.label}</div>
+        <div class="gi-kpi-value ${k.tone || ''}">${k.value}</div>
+        ${k.sub ? `<div class="gi-kpi-sub">${k.sub}</div>` : ''}
+      </div>`).join('')}</div>`;
+  }
+
   _renderTeamStats(stats) {
     const r = stats.rushing;
     const p = stats.passing;
@@ -2089,9 +2153,6 @@ export class StatsEngine {
         <h3>Team Summary</h3>
         <div class="team-summary-row">
           <div class="stats-grid stats-grid-flex">
-            <div class="stat-card"><div class="stat-card-title">Total Plays</div><div class="stat-card-value">${stats.totalPlays}</div></div>
-            <div class="stat-card"><div class="stat-card-title">Total Yards</div><div class="stat-card-value">${totalYards}</div></div>
-            <div class="stat-card"><div class="stat-card-title">Yds/Play</div><div class="stat-card-value">${stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0'}</div></div>
             <div class="stat-card"><div class="stat-card-title">TDs</div><div class="stat-card-value">${s.touchdowns}</div><div style="font-size:11px;opacity:.6">${s.rushingTDs}R / ${s.passingTDs}P</div></div>
             <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${t.total}</div><div style="font-size:11px;opacity:.6">${t.interceptions} INT / ${t.fumbles} Fum</div></div>
           </div>

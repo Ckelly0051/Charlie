@@ -438,16 +438,23 @@ export class SeasonLibrary {
     const seasonsHead = document.querySelector('.team-seasons-head');
     this._renderTeamPills();
     const newSection = document.querySelector('.library-new');
+    const newToggle = document.getElementById('btnNewSeasonToggle');
     if (!this._hasTeam()) {
       if (card) card.classList.add('hidden');
       if (setup) setup.classList.remove('hidden');
       if (seasonsHead) seasonsHead.style.display = 'none';
-      // One guided path on first run: set up the team first. The New Season /
-      // demo CTAs would let a coach create team-less seasons.
-      if (newSection) newSection.style.display = 'none';
+      // First run is team-first for REAL seasons, but keep "Explore a demo
+      // season" reachable — the demo is disposable, carries its own identity,
+      // and is how most coaches peek at the stats before committing. Show the
+      // section (for the demo CTA) while hiding the New Season toggle + form so
+      // no team-less real season can be created.
+      if (newSection) newSection.style.display = '';
+      if (newToggle) newToggle.classList.add('hidden');
+      if (this.form) this.form.classList.add('hidden');
       return;
     }
     if (newSection) newSection.style.display = '';
+    if (newToggle) newToggle.classList.remove('hidden');
     if (setup) setup.classList.add('hidden');
     const cancel = document.getElementById('btnTeamSetupCancel');
     if (cancel) cancel.classList.add('hidden');

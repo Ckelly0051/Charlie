@@ -5,7 +5,7 @@
      bash build.sh && node tools/e2e-film-room.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = 'file:///home/user/Charlie/football-film-analyzer.html';
+const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

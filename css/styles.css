@@ -35,6 +35,14 @@
   padding: 0;
 }
 
+/* The native `hidden` attribute must always win. Author rules that set an
+   explicit `display` (e.g. `.btn { display: inline-flex }`) out-cascade the UA
+   `[hidden] { display:none }` rule, silently defeating `el.hidden = true`
+   toggles — this is what left the Library "Close" button visible-but-dead on
+   first run. One global rule ends the per-element whack-a-mole
+   (`.season-chip[hidden]`, `.breadcrumb[hidden]`, …). */
+[hidden] { display: none !important; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: var(--bg-primary);

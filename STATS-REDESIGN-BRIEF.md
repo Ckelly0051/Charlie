@@ -1,9 +1,15 @@
 # Stats Dashboard Re-Design — Working Brief
 
-> **Status: ACTIVE / NOT STARTED.** This is a handoff brief for continuing the
-> stats-dashboard visual re-work in a **local** Claude Code session (so the
-> assistant can actually *see* the rendered UI via the Claude-in-Chrome
+> **Status: ACTIVE / IN PROGRESS — direction LOCKED.** This is a handoff brief
+> for the stats-dashboard visual re-work in a **local** Claude Code session (so
+> the assistant can actually *see* the rendered UI via the Claude-in-Chrome
 > extension). Delete this file once the re-design ships.
+>
+> **DIRECTION LOCKED (2026-06-14, with the coach, against an inline mockup of the
+> Game tab built with real demo data):** **broadcast dark + bundled condensed
+> display face + KPI hero row + responsive card grid**, explicitly **matching
+> Hudl IQ**. Coach reaction: "huge improvement." See "Open design decisions"
+> below for the specifics chosen.
 
 ## Why this file exists
 
@@ -64,8 +70,11 @@ real screenshots once browsing works)
 
 ## Open design decisions (decide WITH the coach, ideally showing mockups)
 
-These were proposed but **not yet chosen** (the coach dismissed the question to
-set up local browsing first):
+**DECIDED (2026-06-14):** the coach picked option (a) on all three — see the
+**bold-marked** choices below. Net: **broadcast dark + bundled condensed display
+face + KPI hero + card grid, matching Hudl IQ.** (Note: typography was upgraded
+from the original "system-only" recommendation to a **bundled** face for the
+broadcast feel.) Original framing kept for reference:
 
 1. **Theme** — (a) Broadcast dark: deep navy/charcoal `#0d1117/#161b22`, crisp
    white text, vivid data accents (blue `#3b82f6`, amber `#f59e0b`, green
@@ -83,6 +92,15 @@ set up local browsing first):
 Recommendation going in: **Broadcast dark + refined system/tabular nums + KPI
 hero + card grid** — matches Hudl, film-room friendly, no bytes added — but
 confirm with the coach against real Hudl screenshots first.
+
+> **LOCKED CHOICE (2026-06-14):** (1) Theme = **Broadcast dark** (Hudl match);
+> (2) Typography = **bundle a condensed sports face** (Barlow/Archivo Condensed,
+> inlined as base64 in `build.sh` so the bundle stays offline) — for headers +
+> big hero numbers, body stays system stack; (3) Layout = **KPI hero row +
+> responsive card grid** across all four tabs (Game/Offense/Defense/Self-Scout),
+> killing the long single-column scroll. Cut-to-film (`.cut-row`/`data-cut-*`)
+> preserved on every card and row. Palette scoped to `.stats-overlay` (never
+> `:root`).
 
 ## Hard constraints (do NOT break these)
 

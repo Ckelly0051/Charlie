@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build a single self-contained HTML file from the modular source files
-cd /home/user/Charlie
+# Run from the repo root regardless of where the script is invoked from.
+cd "$(dirname "$0")"
 
 OUTPUT="football-film-analyzer.html"
 
@@ -21,8 +22,12 @@ cat > "$OUTPUT" << 'HTMLHEAD'
   <style>
 HTMLHEAD
 
-# Inline CSS
+# Inline CSS — fonts.css first (base64 @font-face for the bundled display face,
+# so the offline single-file build needs zero font network calls), then styles.
+cat css/fonts.css >> "$OUTPUT"
 cat css/styles.css >> "$OUTPUT"
+# Stats-dashboard redesign overrides — last so it wins the cascade.
+cat css/redesign-stats.css >> "$OUTPUT"
 
 cat >> "$OUTPUT" << 'STYLEEND'
   </style>
