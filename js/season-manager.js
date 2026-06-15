@@ -663,10 +663,10 @@ tr:nth-child(even){background:#f4f4f8}
 /* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
    stack bars) reference app CSS vars and chart classes — define them here so
    the standalone report isn't half-blank. */
-body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
+body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f97316;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
 .stats-section{margin:18px 0}
 .tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
-.tendency-run{background:#f0b429;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
+.tendency-run{background:#f97316;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
 .tendency-pass{background:#38bdf8;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
 .chart-gauge{display:inline-block;vertical-align:top;margin:6px 12px 6px 0;text-align:center}
 .chart-gauge-label{font-size:11px;color:#666;margin-top:2px}
@@ -682,13 +682,13 @@ body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f0b429;--pass-c
 .chart-eff{font-size:12px}
 .chart-eff-head{display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:4px}
 .chart-eff-head .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 3px 0 8px}
-.dot.run{background:#f0b429}.dot.pass{background:#38bdf8}
+.dot.run{background:#f97316}.dot.pass{background:#38bdf8}
 .chart-eff-row{display:flex;align-items:center;gap:8px;margin:4px 0}
 .chart-eff-label{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .chart-eff-bar-wrap{flex:1}
 .chart-eff-track{height:16px;background:#eee;border-radius:3px;overflow:hidden}
 .chart-eff-fill{height:100%;background:#38bdf8;border-radius:3px;overflow:hidden}
-.chart-eff-run{height:100%;background:#f0b429}
+.chart-eff-run{height:100%;background:#f97316}
 .chart-eff-meta,.chart-eff-meta-head{display:flex;gap:4px;font-variant-numeric:tabular-nums}
 .chart-eff-meta span{display:inline-block;width:50px;text-align:right}
 .chart-stack{display:flex;min-width:90px;border-radius:3px;overflow:hidden;background:#eee}

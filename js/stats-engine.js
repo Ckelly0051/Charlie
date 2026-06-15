@@ -10,7 +10,7 @@ import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
 
-const RUN_COLOR = '#f0b429';
+const RUN_COLOR = '#f97316';
 const PASS_COLOR = '#38bdf8';
 
 export class StatsEngine {
@@ -1653,9 +1653,9 @@ export class StatsEngine {
   _renderEfficiency(stats) {
     const e = stats.efficiency;
     const t = stats.tendencies;
-    const succColor = parseFloat(e.successRate) >= 50 ? '#22c55e' : parseFloat(e.successRate) >= 35 ? '#eab308' : '#ef4444';
-    const runSuccColor = parseFloat(t.runSuccRate) >= 50 ? '#22c55e' : parseFloat(t.runSuccRate) >= 35 ? '#eab308' : '#ef4444';
-    const passSuccColor = parseFloat(t.passSuccRate) >= 50 ? '#22c55e' : parseFloat(t.passSuccRate) >= 35 ? '#eab308' : '#ef4444';
+    const succColor = parseFloat(e.successRate) >= 50 ? '#22c55e' : parseFloat(e.successRate) >= 35 ? '#f59e0b' : '#ef4444';
+    const runSuccColor = parseFloat(t.runSuccRate) >= 50 ? '#22c55e' : parseFloat(t.runSuccRate) >= 35 ? '#f59e0b' : '#ef4444';
+    const passSuccColor = parseFloat(t.passSuccRate) >= 50 ? '#22c55e' : parseFloat(t.passSuccRate) >= 35 ? '#f59e0b' : '#ef4444';
     return `
       <div class="stats-section">
         <h3>Efficiency</h3>
@@ -1818,7 +1818,7 @@ export class StatsEngine {
     if (!c || !c.hasData) return '';
     const card = (label, d) => {
       if (!d.att) return '';
-      const color = d.pct >= 60 ? '#22c55e' : d.pct >= 40 ? '#eab308' : '#ef4444';
+      const color = d.pct >= 60 ? '#22c55e' : d.pct >= 40 ? '#f59e0b' : '#ef4444';
       return `${Charts.gauge(d.pct, `${label} ${d.made}/${d.att}`, color, 110)}`;
     };
     const cards = [card('2-Point', c.two), card('PAT (XP)', c.xp)].filter(Boolean).join('');
@@ -1844,9 +1844,9 @@ export class StatsEngine {
     if (!rows) return '';
 
     const rzPct = s.redZone.total ? Math.round(s.redZone.tds / s.redZone.total * 100) : 0;
-    const rzColor = rzPct >= 60 ? '#22c55e' : rzPct >= 40 ? '#eab308' : '#ef4444';
+    const rzColor = rzPct >= 60 ? '#22c55e' : rzPct >= 40 ? '#f59e0b' : '#ef4444';
     const buPct = parseFloat(s.backedUp.successPct) || 0;
-    const buColor = buPct >= 45 ? '#22c55e' : buPct >= 30 ? '#eab308' : '#ef4444';
+    const buColor = buPct >= 45 ? '#22c55e' : buPct >= 30 ? '#f59e0b' : '#ef4444';
 
     let qRows = '';
     for (const [q, qs] of Object.entries(s.byQuarter)) {
@@ -1881,7 +1881,7 @@ export class StatsEngine {
   _renderDrives(stats) {
     const d = stats.drives;
     if (d.total === 0) return '';
-    const colorMap = { TD: '#22c55e', FG: '#06b6d4', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
+    const colorMap = { TD: '#22c55e', FG: '#3b82f6', Safety: '#a78bfa', Punt: '#6b7280', Turnover: '#ef4444', Kneel: '#4b5563', Other: '#f59e0b' };
     const outcomeCounts = {};
     d.list.forEach(dr => { outcomeCounts[dr.outcome] = (outcomeCounts[dr.outcome] || 0) + 1; });
     const outcomeDonut = Charts.donutWithLegend(
@@ -2088,7 +2088,7 @@ export class StatsEngine {
     const kpis = [{ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` }];
     if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33) });
     if (third != null) kpis.push({ label: '3rd down', value: Math.round(third) + '%', sub: d.thirdDownConv || '', tone: tone(third, 40, 28) });
-    kpis.push({ label: 'Run rate', value: (tend.runPct || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
+    kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     if (dr.total >= 3) kpis.push({ label: 'Pts / drive', value: dr.pointsPerDrive, sub: `${dr.total} drives`, tone: tone(parseFloat(dr.pointsPerDrive), 2.5, 1.5) });
     else kpis.push({ label: 'Total yards', value: String(totalYards), sub: `${stats.scoring?.touchdowns || 0} TD` });
     return `<div class="gi-hero">${kpis.map(k => `
@@ -2121,7 +2121,7 @@ export class StatsEngine {
     if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
     if (neg != null) kpis.push({ label: 'Negative', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
     kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
-    kpis.push({ label: 'Run rate', value: (tend.runPct || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
+    kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     return `<div class="gi-hero">${kpis.map(k => `
       <div class="gi-kpi">
         <div class="gi-kpi-label">${k.label}</div>
@@ -2199,8 +2199,8 @@ export class StatsEngine {
     const labels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
     const thirdPct = parseFloat(d.thirdDownPct);
     const fourthPct = parseFloat(d.fourthDownPct);
-    const thirdColor = thirdPct >= 45 ? '#22c55e' : thirdPct >= 30 ? '#eab308' : '#ef4444';
-    const fourthColor = fourthPct >= 50 ? '#22c55e' : fourthPct >= 30 ? '#eab308' : '#ef4444';
+    const thirdColor = thirdPct >= 45 ? '#22c55e' : thirdPct >= 30 ? '#f59e0b' : '#ef4444';
+    const fourthColor = fourthPct >= 50 ? '#22c55e' : fourthPct >= 30 ? '#f59e0b' : '#ef4444';
 
     let rows = '';
     for (const [down, s] of Object.entries(d.byDown)) {
@@ -2219,7 +2219,7 @@ export class StatsEngine {
       for (const b of d.ddBuckets) {
         const convPct = parseFloat(b.convPct);
         const convColor = (b.down === '3' || b.down === '4')
-          ? (convPct >= 50 ? '#22c55e' : convPct >= 30 ? '#eab308' : '#ef4444')
+          ? (convPct >= 50 ? '#22c55e' : convPct >= 30 ? '#f59e0b' : '#ef4444')
           : '';
         bucketRows += `<tr>
           <td>${labels[b.down]} &amp; ${b.bucket}</td>
@@ -2260,14 +2260,6 @@ export class StatsEngine {
       t.formationList.map(f => ({ label: f.name, count: f.count, runs: f.runs, passes: f.passes, yards: f.yards, successPct: f.successPct, avg: f.avg, cutType: 'formation', cutVal: f.name, cutLabel: `${f.name} — ${f.count} plays` }))
     );
 
-    const playTypeDonut = Charts.donutWithLegend(
-      t.playTypeList.slice(0, 8).map((pt, i) => {
-        const colors = ['#22c55e', '#f97316', '#a78bfa', '#06b6d4', '#ec4899', '#ef4444', '#8b5cf6', '#14b8a6'];
-        return { value: pt.count, color: colors[i % colors.length], label: pt.name };
-      }),
-      120, String(stats.totalPlays), 'plays'
-    );
-
     const typeChart = Charts.effectivenessRows(
       t.playTypeList.map(pt => ({ label: pt.name, count: pt.count, runs: pt.runs, passes: pt.passes, yards: pt.yards, successPct: pt.successPct, avg: pt.avg, cutType: 'playType', cutVal: pt.name, cutLabel: `${pt.name} — ${pt.count} plays` }))
     );
@@ -2283,10 +2275,7 @@ export class StatsEngine {
       </div>
       <div class="stats-section">
         <h3>Play Type Breakdown</h3>
-        <div class="play-type-visual">
-          <div class="play-type-donut-col">${playTypeDonut}</div>
-          <div class="play-type-chart-col">${typeChart}</div>
-        </div>
+        ${typeChart}
       </div>
     `;
   }
@@ -2467,7 +2456,7 @@ export class StatsEngine {
     });
 
     const havocPctVal = parseFloat(d.havocRate);
-    const havocColor = havocPctVal >= 20 ? '#22c55e' : havocPctVal >= 12 ? '#eab308' : '#ef4444';
+    const havocColor = havocPctVal >= 20 ? '#22c55e' : havocPctVal >= 12 ? '#f59e0b' : '#ef4444';
     const blitzPctVal = parseFloat(d.blitzRate);
 
     return `
@@ -2852,7 +2841,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   /** Minimum sample for a grouping to be considered a tell / counted. */
   static get _SELF_SCOUT_MIN_N() { return 4; }
-  static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#eab308' : '#22c55e'; }
+  static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#f59e0b' : '#22c55e'; }
   static _verdictIcon(v) { return v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;'; }
   static _verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
 
@@ -3625,7 +3614,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
     if (!locked.length) return '';
     const rows = locked.map(pf => {
       const flag = pf.topPct >= 90 ? 'Locked' : 'Leaning';
-      const color = pf.topPct >= 90 ? '#ef4444' : '#eab308';
+      const color = pf.topPct >= 90 ? '#ef4444' : '#f59e0b';
       const formList = pf.formations.map(f => `${f.formation} (${f.pct}%)`).join(', ');
       return `<tr><td>${Charts._esc(pf.personnel)}</td><td>${pf.n}</td><td>${pf.uniqueFormations}</td><td>${Charts._esc(pf.topFormation)}</td><td>${pf.topPct}%</td><td style="font-size:11px">${formList}</td><td style="color:${color};font-weight:600">${flag}</td></tr>`;
     }).join('');
@@ -3798,7 +3787,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
 
   _exportSelfScout(report, team) {
     const title = `Self-Scout Report: ${team}`;
-    const vc = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#eab308' : '#ef4444';
+    const vc = v => v === 'dominant' ? '#22c55e' : v === 'effective' ? '#f59e0b' : '#ef4444';
     const tellRows = report.tells.map(t =>
       `<tr><td>${t.label}</td><td>${t.dim}</td><td>${t.lean} ${t.leanPct}%</td><td>${t.leanAvg} yds</td><td>${t.leanSuccRate}%</td><td style="color:${vc(t.verdict)};font-weight:600">${StatsEngine._verdictLabel(t.verdict)}</td><td>${t.n}</td></tr>`
     ).join('') || '<tr><td colspan="7">No strong tells at current sample size.</td></tr>';
@@ -3955,7 +3944,7 @@ ${gamePlanHtml}
 <div class="card"><div class="cv">${stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0'}</div><div class="cl">Yds/Play</div></div>
 <div class="card"><div class="cv">${s.touchdowns}</div><div class="cl">Touchdowns</div></div>
 <div class="card"><div class="cv">${t.total}</div><div class="cl">Turnovers</div></div>
-<div class="card"><div class="cv">${tend.runPct}%/${tend.passPct}%</div><div class="cl">Run/Pass</div></div>
+<div class="card"><div class="cv">${Math.round(parseFloat(tend.runPct))}%/${Math.round(parseFloat(tend.passPct))}%</div><div class="cl">Run/Pass</div></div>
 </div>
 <div class="two-col">
 <div><h3>Rushing</h3><table>

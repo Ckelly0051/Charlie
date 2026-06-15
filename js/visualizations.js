@@ -111,7 +111,7 @@ export class Visualizations {
                <text x="${xOf(x)}" y="${H - padB + 14}" fill="#8b949e" font-size="9" text-anchor="middle">${yl === 0 ? 'G' : yl}</text>`;
     }
     const dots = pts.map(p =>
-      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#f0b429' : '#38bdf8'}" fill-opacity="0.8"/>`
+      `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.y).toFixed(1)}" r="4" fill="${p.run ? '#f97316' : '#38bdf8'}" fill-opacity="0.8"/>`
     ).join('');
     return `<div class="viz-block">
       <h4>Yardage Spray <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</span></h4>

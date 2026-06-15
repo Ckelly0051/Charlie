@@ -16,7 +16,7 @@
   --gi-line-soft: #1a2129;
   --gi-text:    #e8edf4;
   --gi-dim:     #93a1b2;
-  --gi-faint:   #6b7787;
+  --gi-faint:   #8a97a8;
   --gi-blue:    #3b82f6;
   --gi-amber:   #f59e0b;
   --gi-green:   #22c55e;
@@ -195,4 +195,10 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--gi-text);
+}
+
+/* Narrow / mobile: a fixed 2-col KPI hero reads more intentionally than the
+   auto-fit 4+1 orphan that ~500px produces. */
+@media (max-width: 600px) {
+  .stats-overlay .gi-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -133,7 +133,7 @@ export class Charts {
     const rows = items.map(item => {
       const countPct = maxCount ? (item.count / maxCount) * 100 : 0;
       const runPct = item.count ? Math.round((item.runs / item.count) * 100) : 0;
-      const succColor = parseFloat(item.successPct) >= 50 ? '#22c55e' : parseFloat(item.successPct) >= 35 ? '#eab308' : '#ef4444';
+      const succColor = parseFloat(item.successPct) >= 50 ? '#22c55e' : parseFloat(item.successPct) >= 35 ? '#f59e0b' : '#ef4444';
       // Optional click-to-film: when an item carries cut filter data, emit
       // data attributes the stats dashboard wires to a film cut-up.
       const cut = item.cutType
@@ -171,7 +171,7 @@ export class Charts {
     const areaPath = `${path} L${x(plays.length - 1).toFixed(1)},${zeroY} L${padL},${zeroY} Z`;
 
     const dots = plays.map((p, i) => {
-      const color = p.isRun ? '#f0b429' : '#38bdf8';
+      const color = p.isRun ? '#f97316' : '#38bdf8';
       return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" fill="${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
     }).join('');
 

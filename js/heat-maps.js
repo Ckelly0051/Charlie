@@ -98,7 +98,7 @@ export class HeatMaps {
       const rParts = String(p.tags.result || '').split(/\s*\+\s*/);
       if (rParts.includes('Touchdown')) { color = '#22c55e'; radius = 7; }
       else if (yds >= 20) { color = '#38bdf8'; radius = 6; }
-      else if (yds >= 4) { color = '#f0b429'; }
+      else if (yds >= 4) { color = '#f97316'; }
       else if (yds <= 0 || rParts.includes('Loss') || rParts.includes('Sack')) { color = '#ef4444'; }
       else if (rParts.includes('Interception') || rParts.includes('Fumble')) { color = '#a855f7'; radius = 6; }
 
@@ -120,7 +120,7 @@ export class HeatMaps {
         <div class="hm-legend">
           <span><i style="background:#22c55e"></i> TD</span>
           <span><i style="background:#38bdf8"></i> 20+ yds</span>
-          <span><i style="background:#f0b429"></i> 4-19 yds</span>
+          <span><i style="background:#f97316"></i> 4-19 yds</span>
           <span><i style="background:#6b7280"></i> 1-3 yds</span>
           <span><i style="background:#ef4444"></i> Loss/Sack</span>
           <span><i style="background:#a855f7"></i> Turnover</span>

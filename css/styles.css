@@ -1587,7 +1587,7 @@ body {
 }
 
 .tendency-run {
-  background: var(--run-color, #f0b429);
+  background: var(--run-color, #f97316);
   color: #111;
   display: flex;
   align-items: center;
@@ -6517,12 +6517,13 @@ video.is-buffering { opacity: 0.6; }
    bg/text/border) is SCOPED to .stats-overlay below — setting it globally
    leaks into the light tag form and makes chip text unreadable (lesson #12). */
 :root {
-  --run-color:  #f0b429;
+  --run-color:  #f97316;
   --pass-color: #38bdf8;
 }
 
-/* Gridiron Pro dashboard palette — gold accents on dark slate. Scoped to the
-   stats overlay so the light app shell (tag form, top bar) is untouched. */
+/* Gridiron Pro dashboard palette — blue accents on dark slate (was gold; the
+   coach scrapped it). Scoped to the stats overlay so the light app shell
+   (tag form, top bar) is untouched. */
 .stats-overlay {
   --bg-primary:    #0d1117;
   --bg-secondary:  #151b23;
@@ -6530,12 +6531,12 @@ video.is-buffering { opacity: 0.6; }
   --bg-surface:    #262c36;
   --bg-elevated:   #2d333b;
   --gauge-track:   var(--bg-tertiary);
-  --accent:          #c9a227;
-  --accent-hover:    #dbb634;
-  --accent-soft:     rgba(201,162,39,0.10);
-  --highlight:       #c9a227;
-  --highlight-hover: #dbb634;
-  --highlight-soft:  rgba(201,162,39,0.10);
+  --accent:          #3b82f6;
+  --accent-hover:    #60a5fa;
+  --accent-soft:     rgba(59,130,246,0.10);
+  --highlight:       #3b82f6;
+  --highlight-hover: #60a5fa;
+  --highlight-soft:  rgba(59,130,246,0.10);
   --info:          #00bcd4;
   --success:       #22c55e;
   --warning:       #f59e0b;
