@@ -411,6 +411,13 @@
                   </div>
                 </div>
                 <div class="chip-section">
+                  <label class="chip-label">Scored by</label>
+                  <div class="pick-group" id="tagScoreFor" title="Who the points count for — tap Them for the opponent's kick or score (XP, FG, 2-Pt, return TD). Blank = us.">
+                    <button class="pick" data-value="us" type="button">Us</button>
+                    <button class="pick" data-value="them" type="button">Them</button>
+                  </div>
+                </div>
+                <div class="chip-section">
                   <label class="chip-label">ST Players — jersey #</label>
                   <div class="player-roles">
                     <label class="player-role" data-role="kicker">
@@ -797,7 +804,7 @@
           <div class="tag-row">
             <label>Tracked</label>
             <div class="tag-row-inline">
-              <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense plays count for us, Defense plays for the opponent; an extra point / 2-pt follows whoever scored the touchdown before it.">0 – 0</span>
+              <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense plays count for us, Defense plays for the opponent; for a special-teams score (XP, FG, 2-Pt, return TD), the play's 'Scored by' picks the team (blank = us).">0 – 0</span>
               <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into the Final Score above">Apply →</button>
             </div>
           </div>

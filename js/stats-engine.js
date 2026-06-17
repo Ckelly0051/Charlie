@@ -118,6 +118,11 @@ export class StatsEngine {
    */
   static scoringSide(p) {
     if (!p || !p.tags) return 'us';
+    // Explicit "Scored by" wins — the one consistent way to attribute any kick /
+    // special-teams score (XP, FG, 2-Pt, return TD) to us or the opponent, since
+    // there is no "their special teams" unit. Blank falls through to unit logic.
+    if (p.tags.scoreFor === 'them') return 'them';
+    if (p.tags.scoreFor === 'us') return 'us';
     const res = StatsEngine.splitResults(p.tags.result);
     if (p.tags.unit === 'defense') {
       if (res.includes('Safety')) return 'us';
@@ -142,18 +147,11 @@ export class StatsEngine {
     let us = 0, them = 0;
     const events = [];
     const byQuarter = {};
-    // Track the team that scored the most recent touchdown: an extra point or
-    // 2-point try belongs to THAT team, not to whichever unit kicked it. There
-    // is no "their special teams" unit, so an opponent's XP — tagged Special
-    // Teams — would otherwise be credited to us (the 13-0 bug).
-    let lastTdSide = null;
     plays.forEach(p => {
       const pts = StatsEngine.playPoints(p);
       if (!pts) return;
-      const res = StatsEngine.splitResults(p.tags.result);
-      const isConversion = p.tags.stType === 'XP' || p.tags.stType === '2-Pt';
-      const side = (isConversion && lastTdSide) ? lastTdSide : StatsEngine.scoringSide(p);
-      if (res.includes('Touchdown')) lastTdSide = side;
+      // scoringSide honors the play's explicit "Scored by" (us/them) for kicks.
+      const side = StatsEngine.scoringSide(p);
       if (side === 'them') them += pts; else us += pts;
       const q = p.tags.quarter || '';
       if (q) {
@@ -645,24 +643,10 @@ export class StatsEngine {
    */
   _conversionStats(source) {
     const made = (p) => StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
-    // Only OUR conversions count toward our PAT% — a conversion belongs to
-    // whoever scored the TD it follows (same rule as the scoreboard), so an
-    // opponent's XP doesn't inflate our numbers.
-    let lastTdSide = null;
-    const ours = { 'XP': [], '2-Pt': [] };
-    for (const p of source) {
-      if (!p || !p.tags) continue;
-      const st = p.tags.stType || '';
-      if ((st === 'XP' || st === '2-Pt')) {
-        const side = lastTdSide || StatsEngine.scoringSide(p);
-        if (side === 'us' && ours[st]) ours[st].push(p);
-      }
-      if (StatsEngine.splitResults(p.tags.result).includes('Touchdown')) {
-        lastTdSide = StatsEngine.scoringSide(p);
-      }
-    }
+    // Only OUR conversions count toward our PAT% — a kick marked 'Scored by:
+    // Them' belongs to the opponent.
     const tally = (type) => {
-      const att = ours[type];
+      const att = source.filter(p => p.tags.stType === type && StatsEngine.scoringSide(p) === 'us');
       const m = att.filter(p => made(p)).length;
       return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
     };

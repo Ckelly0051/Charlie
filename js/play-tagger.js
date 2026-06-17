@@ -108,6 +108,7 @@ export class PlayTagger {
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
       runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
+      scoreFor: 'tagScoreFor',
     };
     this.tagFields = {};
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
@@ -924,6 +925,7 @@ export class PlayTagger {
     this.tagFields.playDir.value = play.tags.playDir || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this.tagFields.stType.value = play.tags.stType || '';
+    this.tagFields.scoreFor.value = play.tags.scoreFor || '';
     const players = play.tags.players || {};
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (el) el.value = players[role] || '';
