@@ -325,6 +325,7 @@ export class SeasonManager {
     if (!body) return;
     body.innerHTML = this.statsHtml();
     this.statsEngine.heatMaps.bind(body);
+    this.statsEngine._makeSortable(body);
   }
 
   /**

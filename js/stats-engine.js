@@ -1421,6 +1421,7 @@ export class StatsEngine {
             : '<div style="padding:40px;text-align:center;color:var(--gi-dim,#93a1b2)">Season stats unavailable — open a season first.</div>';
           pane.dataset.seasonLoaded = '1';
           try { this.heatMaps.bind(pane); } catch (e) {}
+          try { this._makeSortable(pane); } catch (e) {}
         }
         this._lastTab = tab.dataset.tab;
       });
@@ -1455,6 +1456,9 @@ export class StatsEngine {
       row.title = "Jump to this player's plays";
       row.addEventListener('click', () => this._watchPlayer(row.dataset.player));
     });
+
+    // Click-to-sort leaderboard tables (Offense/Defense/ST individual stats).
+    this._makeSortable(el);
 
     // "Every data point ties to video": click any tagged stat row to launch a
     // film cut-up of exactly those plays.
@@ -2680,6 +2684,49 @@ export class StatsEngine {
     }
 
     return html;
+  }
+
+  // Make the individual-stat leaderboard tables click-to-sort. A header click
+  // sorts by that column — numeric columns (Yds, TD, Grade…) sort by value with
+  // blanks ("—") sinking to the bottom; the Player column sorts as text.
+  // Re-clicking a header flips direction. Non-destructive: existing <tr>s are
+  // re-appended, so the .player-row "jump to film" handlers stay live. Targets
+  // leaderboard tables by their .player-row rows, so EPA/situational tables
+  // (also .stats-table-full) are left alone.
+  _makeSortable(root) {
+    if (!root || !root.querySelectorAll) return;
+    const num = (s) => {
+      const m = String(s).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+      return m ? parseFloat(m[0]) : null;
+    };
+    root.querySelectorAll('table.stats-table-full').forEach(table => {
+      const tbody = table.querySelector('tbody');
+      if (!tbody || !tbody.querySelector('tr.player-row')) return;
+      const heads = Array.from(table.querySelectorAll('thead th'));
+      if (heads.length < 2) return;
+      heads.forEach((th, idx) => {
+        th.classList.add('gi-sort-th');
+        th.title = 'Click to sort';
+        th.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const asc = th.dataset.sortDir !== 'asc';
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {
+            const av = (a.children[idx]?.textContent || '').trim();
+            const bv = (b.children[idx]?.textContent || '').trim();
+            const an = num(av), bn = num(bv);
+            if (an !== null && bn !== null) return asc ? an - bn : bn - an;
+            if (an !== null) return -1;     // real numbers ahead of blanks (—)
+            if (bn !== null) return 1;
+            return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+          });
+          heads.forEach(h => h.classList.remove('gi-sort-asc', 'gi-sort-desc'));
+          th.dataset.sortDir = asc ? 'asc' : 'desc';
+          th.classList.add(asc ? 'gi-sort-asc' : 'gi-sort-desc');
+          rows.forEach(r => tbody.appendChild(r));
+        });
+      });
+    });
   }
 
   generateScoutReport(playsOverride = null) {

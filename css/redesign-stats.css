@@ -224,3 +224,54 @@
   margin-bottom: 4px;
 }
 .stats-overlay .gi-trend-svg { width: 100%; height: auto; display: block; }
+
+/* ---- Sortable leaderboard headers (individual-stat tables) ---- */
+table.stats-table-full th.gi-sort-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color .12s ease;
+}
+table.stats-table-full th.gi-sort-th:hover { color: var(--gi-accent, #3b82f6); }
+table.stats-table-full th.gi-sort-asc,
+table.stats-table-full th.gi-sort-desc { color: var(--gi-accent, #3b82f6); }
+table.stats-table-full th.gi-sort-asc::after { content: '▲'; font-size: 8px; margin-left: 4px; vertical-align: middle; }
+table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; margin-left: 4px; vertical-align: middle; }
+
+/* ---- Season tab header: map the legacy .season-summary onto the .gi-hero
+   KPI-card look so it matches the Game/Offense heroes. Scoped to .stats-overlay
+   only — the legacy Season modal (.season-overlay) and the standalone export
+   keep their own .season-summary styling untouched. ---- */
+.stats-overlay .season-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 10px;
+  background: none;
+  padding: 0;
+  margin-bottom: 16px;
+  justify-content: stretch;
+}
+.stats-overlay .season-summary .ss-stat {
+  background: var(--gi-card);
+  border: 1px solid var(--gi-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+}
+.stats-overlay .season-summary .ss-num {
+  font-family: var(--gi-display);
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 1;
+  color: var(--gi-text);
+  font-variant-numeric: tabular-nums;
+}
+.stats-overlay .season-summary .ss-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gi-faint);
+  opacity: 1;
+  margin-top: 6px;
+}
