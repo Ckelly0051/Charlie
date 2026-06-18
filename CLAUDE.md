@@ -159,11 +159,17 @@ tools/
 │                               # would taint the canvas) while a confirmed CORS failure does,
 │                               # and that loadUrl + multi-clip switchToClip both route through
 │                               # VideoController.setSrc.
-└── e2e-self-scout.mjs          # Defensive self-scout rendering: the Self-Scout TAB shows the
-                                # defensive section, scheme-tagged defensive plays with no
-                                # offensive playType still count (gating fix), the Defense tab
-                                # shows the scheme-tells section, and generateDefensiveSelfScout
-                                # runs once per dashboard render.
+├── e2e-self-scout.mjs          # Defensive self-scout rendering: the Self-Scout TAB shows the
+│                               # defensive section, scheme-tagged defensive plays with no
+│                               # offensive playType still count (gating fix), the Defense tab
+│                               # shows the scheme-tells section, and generateDefensiveSelfScout
+│                               # runs once per dashboard render.
+└── e2e-season-tab.mjs          # Season tab in the stats dashboard (v1.9.4/1.9.5). Run it with
+                                # the others before any deploy: sortable leaderboards (header
+                                # click sorts asc/desc, Player sorts as text, class toggles),
+                                # the Season tab lazy-render (KPI header + trend line charts +
+                                # player roll-up), the leaderboard sort-wiring, and that the
+                                # .season-summary header actually wears the .gi-hero card look.
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
