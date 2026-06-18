@@ -10,6 +10,8 @@
  * own. Every read goes through `_store()` so the live active game (whatever the
  * coach is tagging right now) is always reflected.
  */
+import { Charts } from './charts.js';
+
 export class SeasonManager {
   constructor(statsEngine) {
     this.statsEngine = statsEngine;
@@ -321,11 +323,20 @@ export class SeasonManager {
   _renderStats() {
     const body = document.getElementById('seasonStatsBody');
     if (!body) return;
+    body.innerHTML = this.statsHtml();
+    this.statsEngine.heatMaps.bind(body);
+  }
 
+  /**
+   * Season stats as an HTML string. Extracted from _renderStats so the per-game
+   * dashboard's "Season" tab and this modal share ONE season render — drop it
+   * inside the dashboard's .stats-overlay and it inherits the broadcast-dark
+   * redesign for free. Caller binds heat maps to the container afterward.
+   */
+  statsHtml() {
     const games = this._effectiveGames();
     if (!games.length) {
-      body.innerHTML = '<div class="season-empty-stats">Load a game in the app, or add past games above, to see season-wide stats, trends, and a self-scout report.</div>';
-      return;
+      return '<div class="season-empty-stats">Load a game in the app, or add past games above, to see season-wide stats, trends, and a self-scout report.</div>';
     }
 
     const allPlays = this._allPlays();
@@ -339,7 +350,7 @@ export class SeasonManager {
       <p class="self-scout-intro">Per-player totals across all ${games.length} loaded games.</p></div>
       ${indTables}` : '';
 
-    body.innerHTML = `
+    const html = `
       ${this._renderHeader(stats)}
       ${this._renderProgression()}
       ${this._renderTrends()}
@@ -355,8 +366,7 @@ export class SeasonManager {
       ${this._renderSelfScout()}
     `;
     this.statsEngine._seasonLabels = null;
-
-    this.statsEngine.heatMaps.bind(body);
+    return html;
   }
 
   _renderHeader(stats) {
@@ -465,40 +475,15 @@ export class SeasonManager {
       };
     });
 
-    const maxY = Math.max(1, ...perGame.map(g => g.yards));
-    const maxS = Math.max(60, ...perGame.map(g => g.successPct));
-
-    const yardsBars = perGame.map(g => `
-      <div class="trend-row">
-        <span class="trend-label">${this._escape(g.name)}</span>
-        <div class="trend-bar"><div style="width:${(g.yards / maxY) * 100}%;background:#ffaa00"></div></div>
-        <span class="trend-val">${g.yards}</span>
-      </div>`).join('');
-
-    const successBars = perGame.map(g => `
-      <div class="trend-row">
-        <span class="trend-label">${this._escape(g.name)}</span>
-        <div class="trend-bar"><div style="width:${(g.successPct / maxS) * 100}%;background:#44aa44"></div></div>
-        <span class="trend-val">${g.successPct.toFixed(0)}%</span>
-      </div>`).join('');
-
-    const maxTdTo = Math.max(1, ...perGame.map(g => g.tds + g.tos));
-    const tdToBars = perGame.map(g => `
-      <div class="trend-row">
-        <span class="trend-label">${this._escape(g.name)}</span>
-        <div class="trend-bar">
-          <div style="width:${(g.tds / maxTdTo) * 100}%;background:#44ff44;display:inline-block;height:100%"></div><div style="width:${(g.tos / maxTdTo) * 100}%;background:#ff4444;display:inline-block;height:100%"></div>
-        </div>
-        <span class="trend-val">${g.tds}TD / ${g.tos}TO</span>
-      </div>`).join('');
-
+    const series = (key) => perGame.map(g => ({ label: g.name, value: g[key] }));
     return `
       <div class="stats-section">
         <h3>Game-by-Game Trends</h3>
-        <div class="trend-grid">
-          <div><h4>Total Yards</h4>${yardsBars}</div>
-          <div><h4>Success Rate</h4>${successBars}</div>
-          <div><h4>TDs vs Turnovers</h4>${tdToBars}</div>
+        <div class="gi-trend-grid">
+          ${Charts.trendLine(series('yards'), { title: 'Total Yards', color: '#3b82f6' })}
+          ${Charts.trendLine(series('successPct'), { title: 'Success Rate', color: '#22c55e', fmt: v => Math.round(v) + '%' })}
+          ${Charts.trendLine(series('tds'), { title: 'Touchdowns', color: '#f59e0b' })}
+          ${Charts.trendLine(series('tos'), { title: 'Turnovers', color: '#ef4444' })}
         </div>
       </div>
     `;

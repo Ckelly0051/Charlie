@@ -12,6 +12,9 @@ import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
 
 const RUN_COLOR = '#f97316';
 const PASS_COLOR = '#38bdf8';
+// Shown as a hover tooltip wherever Success Rate appears, so the metric is
+// self-explanatory in-app. Matches _isSuccessfulPlay().
+const SUCCESS_RATE_TIP = 'Share of plays that stay on schedule for the down/distance: 1st down needs 50% of the yards to go, 2nd down 70%, 3rd/4th must convert (plus any TD or made kick). Situation-aware: a 4-yard gain is a success on 1st-and-10 but not on 3rd-and-10.';
 
 export class StatsEngine {
   /**
@@ -1345,6 +1348,7 @@ export class StatsEngine {
             <button class="stats-tab" data-tab="offense">Offense</button>
             <button class="stats-tab" data-tab="defense">Defense</button>
             <button class="stats-tab" data-tab="selfscout">Self-Scout</button>
+            <button class="stats-tab" data-tab="season">Season</button>
           </div>
           <div class="stats-body">
             <div class="stats-tab-pane active" data-pane="game">
@@ -1391,6 +1395,9 @@ export class StatsEngine {
             <div class="stats-tab-pane" data-pane="selfscout">
               ${selfScout}
             </div>
+            <div class="stats-tab-pane" data-pane="season" data-season-loaded="0">
+              <div class="season-tab-placeholder" style="padding:40px 24px;text-align:center;color:var(--gi-dim,#93a1b2)">Loading season stats…</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1403,7 +1410,18 @@ export class StatsEngine {
         el.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
         el.querySelectorAll('.stats-tab-pane').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
-        el.querySelector(`.stats-tab-pane[data-pane="${tab.dataset.tab}"]`).classList.add('active');
+        const pane = el.querySelector(`.stats-tab-pane[data-pane="${tab.dataset.tab}"]`);
+        pane.classList.add('active');
+        // Season tab aggregates every game — render it lazily on first open and
+        // reuse SeasonManager's single season render (inherits the .stats-overlay
+        // broadcast-dark look). Cut-ups across games are deferred (rows inert).
+        if (tab.dataset.tab === 'season' && pane.dataset.seasonLoaded !== '1') {
+          pane.innerHTML = (window.app && window.app.season && window.app.season.statsHtml)
+            ? window.app.season.statsHtml()
+            : '<div style="padding:40px;text-align:center;color:var(--gi-dim,#93a1b2)">Season stats unavailable — open a season first.</div>';
+          pane.dataset.seasonLoaded = '1';
+          try { this.heatMaps.bind(pane); } catch (e) {}
+        }
         this._lastTab = tab.dataset.tab;
       });
     });
@@ -1668,7 +1686,7 @@ export class StatsEngine {
       <div class="stats-section">
         <h3>Efficiency</h3>
         <div class="eff-gauges-row">
-          ${Charts.gauge(parseFloat(e.successRate), 'Success Rate', succColor, 110)}
+          ${Charts.gauge(parseFloat(e.successRate), 'Success Rate', succColor, 110, SUCCESS_RATE_TIP)}
           ${Charts.gauge(parseFloat(t.runSuccRate), 'Run Success', runSuccColor, 110)}
           ${Charts.gauge(parseFloat(t.passSuccRate), 'Pass Success', passSuccColor, 110)}
           <div class="eff-side-cards">
@@ -2094,13 +2112,13 @@ export class StatsEngine {
     const third = d.thirdDownPct != null ? parseFloat(d.thirdDownPct) : null;
     const tone = (v, good, ok) => (v == null || isNaN(v)) ? '' : (v >= good ? 'is-good' : v >= ok ? 'is-warn' : 'is-bad');
     const kpis = [{ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` }];
-    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33) });
+    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33), tip: SUCCESS_RATE_TIP });
     if (third != null) kpis.push({ label: '3rd down', value: Math.round(third) + '%', sub: d.thirdDownConv || '', tone: tone(third, 40, 28) });
     kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     if (dr.total >= 3) kpis.push({ label: 'Pts / drive', value: dr.pointsPerDrive, sub: `${dr.total} drives`, tone: tone(parseFloat(dr.pointsPerDrive), 2.5, 1.5) });
     else kpis.push({ label: 'Total yards', value: String(totalYards), sub: `${stats.scoring?.touchdowns || 0} TD` });
     return `<div class="gi-hero">${kpis.map(k => `
-      <div class="gi-kpi">
+      <div class="gi-kpi"${k.tip ? ` title="${k.tip}"` : ''}>
         <div class="gi-kpi-label">${k.label}</div>
         <div class="gi-kpi-value ${k.tone || ''}">${k.value}</div>
         ${k.sub ? `<div class="gi-kpi-sub">${k.sub}</div>` : ''}
@@ -2125,13 +2143,13 @@ export class StatsEngine {
     };
     const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
     const kpis = [];
-    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33) });
+    if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33), tip: SUCCESS_RATE_TIP });
     if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
     if (neg != null) kpis.push({ label: 'Negative', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
     kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
     kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     return `<div class="gi-hero">${kpis.map(k => `
-      <div class="gi-kpi">
+      <div class="gi-kpi"${k.tip ? ` title="${k.tip}"` : ''}>
         <div class="gi-kpi-label">${k.label}</div>
         <div class="gi-kpi-value ${k.tone || ''}">${k.value}</div>
         ${k.sub ? `<div class="gi-kpi-sub">${k.sub}</div>` : ''}

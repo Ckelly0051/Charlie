@@ -78,7 +78,7 @@ export class Charts {
   /**
    * Semicircular gauge for a percentage metric.
    */
-  static gauge(pct, label = '', color = 'var(--accent)', size = 100) {
+  static gauge(pct, label = '', color = 'var(--accent)', size = 100, tip = '') {
     const clamped = Math.min(100, Math.max(0, pct));
     const frac = clamped / 100;
     const r = size * 0.38;
@@ -87,7 +87,7 @@ export class Charts {
     const halfCirc = Math.PI * r;
     const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
 
-    return `<div class="chart-gauge"><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
+    return `<div class="chart-gauge"${tip ? ` title="${Charts._esc(tip)}"` : ''}><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
   }
 
   /**
@@ -121,6 +121,39 @@ export class Charts {
     if (!max) return '';
     const pct = Math.min(100, Math.max(0, (value / max) * 100));
     return `<div class="chart-minibar"><div style="width:${pct.toFixed(1)}%;background:${color}"></div></div>`;
+  }
+
+  /**
+   * Game-by-game trend line — one metric across the season's games, as a clean
+   * line chart with a dot + value at each game. points: [{ label, value }].
+   * Used by the Season tab's trend grid.
+   */
+  static trendLine(points, opts = {}) {
+    if (!points || points.length < 2) return '';
+    const W = 400, H = 150;
+    const color = opts.color || '#3b82f6';
+    const fmt = opts.fmt || ((v) => String(Math.round(v)));
+    const padL = 12, padR = 12, padT = 22, padB = 26;
+    const vals = points.map(p => p.value);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const range = (hi - lo) || 1;
+    const x = (i) => padL + (i / (points.length - 1)) * (W - padL - padR);
+    const y = (v) => padT + (1 - (v - lo) / range) * (H - padT - padB);
+    const path = 'M' + points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' L');
+    const base = (H - padB).toFixed(1);
+    const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padL.toFixed(1)},${base} Z`;
+    const marks = points.map((p, i) => {
+      const cx = x(i).toFixed(1), cy = y(p.value);
+      const short = Charts._esc((p.label || '').replace(/^vs\s+/i, '').slice(0, 9));
+      return `<circle cx="${cx}" cy="${cy.toFixed(1)}" r="3.5" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
+        + `<text x="${cx}" y="${(cy - 7).toFixed(1)}" fill="#e2e8f0" font-size="12" font-weight="700" text-anchor="middle" style="font-variant-numeric:tabular-nums">${fmt(p.value)}</text>`
+        + `<text x="${cx}" y="${H - 8}" fill="#7b8794" font-size="9" text-anchor="middle">${short}</text>`;
+    }).join('');
+    return `<div class="gi-trend"><div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
+      + `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="gi-trend-svg" role="img" aria-label="${Charts._esc(opts.title || 'trend')}">`
+      + `<path d="${area}" fill="${color}" fill-opacity="0.10"/>`
+      + `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`
+      + `${marks}</svg></div>`;
   }
 
   /**
