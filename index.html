@@ -7747,6 +7747,39 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
   opacity: 1;
   margin-top: 6px;
 }
+
+/* ---- Season tab sub-navigation (Overview / Breakdown / Players / Self-Scout).
+   The structural show/hide is UNSCOPED so it also drives the legacy Season
+   modal (.season-overlay), which renders the same statsHtml(); the nav colors
+   use var fallbacks so they read in either overlay. ---- */
+.gi-subnav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 2px 0 16px;
+  border-bottom: 1px solid var(--gi-line, #2a3340);
+}
+.gi-subtab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--gi-faint, #8a97a8);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: color .12s ease, border-color .12s ease;
+}
+.gi-subtab:hover { color: var(--gi-text, #e6edf3); }
+.gi-subtab.active {
+  color: var(--gi-accent, #3b82f6);
+  border-bottom-color: var(--gi-accent, #3b82f6);
+}
+.gi-subpane { display: none; }
+.gi-subpane.active { display: block; }
   </style>
 </head>
 <body>
@@ -19439,6 +19472,7 @@ class StatsEngine {
           pane.dataset.seasonLoaded = '1';
           try { this.heatMaps.bind(pane); } catch (e) {}
           try { this._makeSortable(pane); } catch (e) {}
+          try { this._wireSubtabs(pane); } catch (e) {}
         }
         this._lastTab = tab.dataset.tab;
       });
@@ -20742,6 +20776,25 @@ class StatsEngine {
           th.classList.add(asc ? 'gi-sort-asc' : 'gi-sort-desc');
           rows.forEach(r => tbody.appendChild(r));
         });
+      });
+    });
+  }
+
+  // Wire the Season view's secondary sub-nav (Overview / Breakdown / Players /
+  // Self-Scout): clicking a .gi-subtab shows its .gi-subpane and hides the
+  // rest. Panes stay in the DOM, so heat-map binding + sortable wiring done once
+  // by the caller still hold. Used by the dashboard's lazy Season render and the
+  // legacy Season modal.
+  _wireSubtabs(root) {
+    if (!root || !root.querySelectorAll) return;
+    const tabs = Array.from(root.querySelectorAll('.gi-subtab'));
+    if (!tabs.length) return;
+    const panes = Array.from(root.querySelectorAll('.gi-subpane'));
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const key = tab.dataset.subtab;
+        tabs.forEach(t => t.classList.toggle('active', t === tab));
+        panes.forEach(p => p.classList.toggle('active', p.dataset.subpane === key));
       });
     });
   }
@@ -24593,6 +24646,7 @@ class SeasonManager {
     body.innerHTML = this.statsHtml();
     this.statsEngine.heatMaps.bind(body);
     this.statsEngine._makeSortable(body);
+    this.statsEngine._wireSubtabs(body);
   }
 
   /**
@@ -24618,20 +24672,40 @@ class SeasonManager {
       <p class="self-scout-intro">Per-player totals across all ${games.length} loaded games.</p></div>
       ${indTables}` : '';
 
+    // The season view is 13 sections deep — too long to scroll. Group them into
+    // secondary sub-tabs (Overview / Breakdown / Players / Self-Scout) under the
+    // always-visible KPI header. Panes stay in the DOM (CSS show/hide), so the
+    // heat-map binding + leaderboard sort-wiring done once by the caller still
+    // apply. StatsEngine._wireSubtabs() activates the nav; the dashboard tab and
+    // the legacy modal both call it after injecting this HTML.
     const html = `
       ${this._renderHeader(stats)}
-      ${this._renderProgression()}
-      ${this._renderTrends()}
-      ${this.statsEngine._renderTeamStats(stats)}
-      ${this.statsEngine._renderEfficiency(stats)}
-      ${this.statsEngine.heatMaps.render(allPlays)}
-      ${this.statsEngine._renderDownAnalysis(stats)}
-      ${this.statsEngine._renderSituational(stats)}
-      ${this.statsEngine._renderTendencies(stats)}
-      ${this.statsEngine._renderPersonnel(stats)}
-      ${individual}
-      ${this._renderPerGameTable()}
-      ${this._renderSelfScout()}
+      <div class="gi-subnav" role="tablist">
+        <button class="gi-subtab active" data-subtab="overview" role="tab">Overview</button>
+        <button class="gi-subtab" data-subtab="breakdown" role="tab">Breakdown</button>
+        <button class="gi-subtab" data-subtab="players" role="tab">Players</button>
+        <button class="gi-subtab" data-subtab="scout" role="tab">Self-Scout</button>
+      </div>
+      <div class="gi-subpane active" data-subpane="overview">
+        ${this.statsEngine._renderTeamStats(stats)}
+        ${this.statsEngine._renderEfficiency(stats)}
+        ${this._renderProgression()}
+        ${this._renderTrends()}
+      </div>
+      <div class="gi-subpane" data-subpane="breakdown">
+        ${this.statsEngine._renderDownAnalysis(stats)}
+        ${this.statsEngine._renderSituational(stats)}
+        ${this.statsEngine._renderTendencies(stats)}
+        ${this.statsEngine._renderPersonnel(stats)}
+        ${this.statsEngine.heatMaps.render(allPlays)}
+      </div>
+      <div class="gi-subpane" data-subpane="players">
+        ${individual}
+        ${this._renderPerGameTable()}
+      </div>
+      <div class="gi-subpane" data-subpane="scout">
+        ${this._renderSelfScout()}
+      </div>
     `;
     this.statsEngine._seasonLabels = null;
     return html;
@@ -27337,7 +27411,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.5';
+const APP_VERSION = '1.9.6';
 
 class App {
   constructor() {
