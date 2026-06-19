@@ -206,6 +206,37 @@ ok(seq(r.allUndated) === seq(['A', 'B', 'C']), 'all-undated falls back to creati
 ok(seq(r.middleUndated) === seq(['A', 'B', 'C']), 'a mid-list undated game keeps its slot', JSON.stringify(r.middleUndated));
 ok(seq(r.trailingUndated) === seq(['A', 'B', 'C']), 'a trailing undated game stays last', JSON.stringify(r.trailingUndated));
 
+console.log('\n== 6. Game entry: fields relocated to the header + New Game modal dates the game ==');
+r = await page.evaluate(() => {
+  const inHeader = (id) => { const el = document.getElementById(id); return !!el && !!el.closest('#gameHeaderBar'); };
+  const dup = (id) => document.querySelectorAll('#' + id).length;
+  // Drive the New Game modal directly (no dropdown navigation needed).
+  window.app._openNewGameModal();
+  const modal = document.getElementById('newGameModal');
+  const shown = modal && !modal.classList.contains('hidden');
+  const dateDefault = document.getElementById('ngDate').value;
+  document.getElementById('ngOpponent').value = 'Probe Rivals';
+  document.getElementById('ngDate').value = '2025-10-01';
+  window.app._confirmNewGame();
+  // _saveGameInfo persists via a debounced autosave; flush it so the active
+  // game NODE reflects the new gameInfo right now.
+  window.app.storage.commitActive();
+  const active = window.app.storage.seasonStore.activeGame();
+  return {
+    oppInHeader: inHeader('gameOpponent'), dateInHeader: inHeader('gameDate'),
+    scoreInHeader: inHeader('gameScoreUs'),
+    oppDup: dup('gameOpponent'), dateDup: dup('gameDate'), scoreDup: dup('gameScoreUs'),
+    shown, dateDefaultLen: (dateDefault || '').length,
+    newDate: active?.gameInfo?.date, newOpp: active?.gameInfo?.opponent,
+    closed: modal.classList.contains('hidden'),
+  };
+});
+ok(r.oppInHeader && r.dateInHeader && r.scoreInHeader, 'Opponent/Date/Score inputs live in the on-screen game header', JSON.stringify(r));
+ok(r.oppDup === 1 && r.dateDup === 1 && r.scoreDup === 1, 'no duplicate game-field IDs (relocated, not copied)', JSON.stringify(r));
+ok(r.shown && r.dateDefaultLen === 10, 'New Game modal opens with the date defaulted to today', JSON.stringify(r));
+ok(r.newDate === '2025-10-01' && r.newOpp === 'Probe Rivals', 'creating via the modal dates + names the game', JSON.stringify(r));
+ok(r.closed, 'modal closes after creating the game', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

@@ -38,7 +38,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.7';
+const APP_VERSION = '1.9.8';
 
 class App {
   constructor() {
@@ -94,6 +94,7 @@ class App {
 
     // Wire game info form
     this._bindGameInfo();
+    this._bindNewGameModal();
 
     // Wire report export
     this._bindReportExport();
@@ -242,9 +243,7 @@ class App {
 
     document.getElementById('btnDropdownNewGame')?.addEventListener('click', () => {
       this._closeGameDropdown();
-      this.storage.newGame();
-      this._updateSeasonChip();
-      this.season._renderAll?.();
+      this._openNewGameModal();
     });
     document.getElementById('btnDropdownSwitchSeason')?.addEventListener('click', () => {
       this._closeGameDropdown();
@@ -487,10 +486,7 @@ class App {
 
   _bindGamesPanel() {
     document.getElementById('btnPanelNewGame')?.addEventListener('click', () => {
-      this.storage.newGame();
-      this._updateSeasonChip();
-      this._renderGamesPanel();
-      this.season._renderAll?.();
+      this._openNewGameModal();
     });
   }
 
@@ -657,6 +653,63 @@ class App {
       projectName: '', opponent: '', date: '', scoreUs: '', scoreThem: '', direction: '',
     };
     this._trackedScore = null;
+  }
+
+  // ---- New Game modal — capture opponent + date at creation -----------------
+  // A new game used to be created blank, with date/opponent only reachable in
+  // the collapsed Game Info panel inside Settings — so they got skipped and the
+  // season trends had no chronological anchor. This quick prompt (date defaults
+  // to today) makes every game dated from the start.
+  _bindNewGameModal() {
+    document.getElementById('ngCreate')?.addEventListener('click', () => this._confirmNewGame());
+    document.getElementById('ngCancel')?.addEventListener('click', () => this._closeNewGameModal());
+    const modal = document.getElementById('newGameModal');
+    modal?.addEventListener('click', (e) => { if (e.target === modal) this._closeNewGameModal(); });
+    document.getElementById('ngOpponent')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); this._confirmNewGame(); }
+    });
+    modal?.addEventListener('keydown', (e) => { if (e.key === 'Escape') this._closeNewGameModal(); });
+  }
+
+  _openNewGameModal() {
+    const modal = document.getElementById('newGameModal');
+    if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('ngOpponent', '');
+    set('ngDate', new Date().toISOString().slice(0, 10));   // default to today → always dated
+    set('ngScoreUs', '');
+    set('ngScoreThem', '');
+    modal.classList.remove('hidden');
+    setTimeout(() => document.getElementById('ngOpponent')?.focus(), 30);
+  }
+
+  _closeNewGameModal() {
+    document.getElementById('newGameModal')?.classList.add('hidden');
+  }
+
+  _confirmNewGame() {
+    const val = (id) => (document.getElementById(id)?.value || '').trim();
+    const opp = val('ngOpponent'), date = val('ngDate');
+    const us = val('ngScoreUs'), them = val('ngScoreThem');
+    this.storage.newGame();   // creates (or reuses an empty husk) and loads it
+    // The essential fields now live in the on-screen header; set them by ID and
+    // persist through the normal save path.
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('gameOpponent', opp);
+    set('gameDate', date);
+    set('gameScoreUs', us);
+    set('gameScoreThem', them);
+    const projEl = document.getElementById('gameProjectName');
+    if (projEl && !projEl.value && opp) projEl.value = `vs ${opp}`;
+    this._saveGameInfo();
+    this._closeNewGameModal();
+    this._afterNewGame();
+  }
+
+  _afterNewGame() {
+    this._updateSeasonChip();
+    this._renderGamesPanel?.();
+    this.season?._renderAll?.();
   }
 
   _wireEvents() {
