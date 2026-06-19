@@ -326,6 +326,7 @@ export class SeasonManager {
     body.innerHTML = this.statsHtml();
     this.statsEngine.heatMaps.bind(body);
     this.statsEngine._makeSortable(body);
+    this.statsEngine._wireSubtabs(body);
   }
 
   /**
@@ -351,20 +352,40 @@ export class SeasonManager {
       <p class="self-scout-intro">Per-player totals across all ${games.length} loaded games.</p></div>
       ${indTables}` : '';
 
+    // The season view is 13 sections deep — too long to scroll. Group them into
+    // secondary sub-tabs (Overview / Breakdown / Players / Self-Scout) under the
+    // always-visible KPI header. Panes stay in the DOM (CSS show/hide), so the
+    // heat-map binding + leaderboard sort-wiring done once by the caller still
+    // apply. StatsEngine._wireSubtabs() activates the nav; the dashboard tab and
+    // the legacy modal both call it after injecting this HTML.
     const html = `
       ${this._renderHeader(stats)}
-      ${this._renderProgression()}
-      ${this._renderTrends()}
-      ${this.statsEngine._renderTeamStats(stats)}
-      ${this.statsEngine._renderEfficiency(stats)}
-      ${this.statsEngine.heatMaps.render(allPlays)}
-      ${this.statsEngine._renderDownAnalysis(stats)}
-      ${this.statsEngine._renderSituational(stats)}
-      ${this.statsEngine._renderTendencies(stats)}
-      ${this.statsEngine._renderPersonnel(stats)}
-      ${individual}
-      ${this._renderPerGameTable()}
-      ${this._renderSelfScout()}
+      <div class="gi-subnav" role="tablist">
+        <button class="gi-subtab active" data-subtab="overview" role="tab">Overview</button>
+        <button class="gi-subtab" data-subtab="breakdown" role="tab">Breakdown</button>
+        <button class="gi-subtab" data-subtab="players" role="tab">Players</button>
+        <button class="gi-subtab" data-subtab="scout" role="tab">Self-Scout</button>
+      </div>
+      <div class="gi-subpane active" data-subpane="overview">
+        ${this.statsEngine._renderTeamStats(stats)}
+        ${this.statsEngine._renderEfficiency(stats)}
+        ${this._renderProgression()}
+        ${this._renderTrends()}
+      </div>
+      <div class="gi-subpane" data-subpane="breakdown">
+        ${this.statsEngine._renderDownAnalysis(stats)}
+        ${this.statsEngine._renderSituational(stats)}
+        ${this.statsEngine._renderTendencies(stats)}
+        ${this.statsEngine._renderPersonnel(stats)}
+        ${this.statsEngine.heatMaps.render(allPlays)}
+      </div>
+      <div class="gi-subpane" data-subpane="players">
+        ${individual}
+        ${this._renderPerGameTable()}
+      </div>
+      <div class="gi-subpane" data-subpane="scout">
+        ${this._renderSelfScout()}
+      </div>
     `;
     this.statsEngine._seasonLabels = null;
     return html;

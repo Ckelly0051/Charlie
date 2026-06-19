@@ -10,7 +10,11 @@
         the .gi-hero card treatment (display font + card surface), not the legacy
         flat style.
      4. Season leaderboards are wired sortable too (gi-sort-th on the pane).
-     5. No console / page errors across the whole flow.
+     5. Sub-tabs (v1.9.6): the 13 season sections group into Overview / Breakdown
+        / Players / Self-Scout; the KPI header stays above the nav; clicking a
+        sub-tab swaps the visible pane; leaderboards/heat maps land in the right
+        panes.
+     6. No console / page errors across the whole flow.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -144,6 +148,35 @@ r = await page.evaluate(() => {
 ok(r.radius === '10px', 'KPI cards use the 10px hero radius (header CSS applied)', JSON.stringify(r));
 ok(r.bg === 'rgb(22, 27, 34)', 'KPI cards use the --gi-card surface', JSON.stringify(r));
 ok(/Barlow Condensed/i.test(r.numFont), 'KPI numbers use the broadcast display font', JSON.stringify(r));
+
+console.log('\n== 4. Sub-tabs organize the 13 sections (Overview/Breakdown/Players/Self-Scout) ==');
+r = await page.evaluate(() => {
+  const pane = document.querySelector('#statsDashboard [data-pane="season"]');
+  const subtabs = Array.from(pane.querySelectorAll('.gi-subnav .gi-subtab')).map(t => t.dataset.subtab);
+  const disp = (key) => {
+    const p = pane.querySelector(`.gi-subpane[data-subpane="${key}"]`);
+    return p ? getComputedStyle(p).display : 'missing';
+  };
+  const overviewBefore = disp('overview'), playersBefore = disp('players');
+  // The header KPI bar sits ABOVE the sub-nav (always visible, not inside a pane).
+  const headerOutsidePanes = !!pane.querySelector('.season-summary') &&
+    !pane.querySelector('.gi-subpane .season-summary');
+  // Switch to the Players sub-tab.
+  pane.querySelector('.gi-subtab[data-subtab="players"]').click();
+  const overviewAfter = disp('overview'), playersAfter = disp('players');
+  const playersPane = pane.querySelector('.gi-subpane[data-subpane="players"]');
+  const leaderboardUnderPlayers = !!playersPane?.querySelector('table.stats-table-full tr.player-row');
+  // Heat maps (SVG) live under Breakdown and still carry their inner tabs.
+  const heatUnderBreakdown = !!pane.querySelector('.gi-subpane[data-subpane="breakdown"] .heatmap-tabs');
+  return { subtabs, overviewBefore, playersBefore, overviewAfter, playersAfter,
+    headerOutsidePanes, leaderboardUnderPlayers, heatUnderBreakdown };
+});
+ok(JSON.stringify(r.subtabs) === JSON.stringify(['overview', 'breakdown', 'players', 'scout']), 'four season sub-tabs render in order', JSON.stringify(r));
+ok(r.headerOutsidePanes, 'KPI header stays above the sub-nav (always visible)', JSON.stringify(r));
+ok(r.overviewBefore === 'block' && r.playersBefore === 'none', 'Overview is the default sub-pane', JSON.stringify(r));
+ok(r.overviewAfter === 'none' && r.playersAfter === 'block', 'clicking a sub-tab swaps the visible pane', JSON.stringify(r));
+ok(r.leaderboardUnderPlayers, 'player leaderboard lives under the Players sub-tab', JSON.stringify(r));
+ok(r.heatUnderBreakdown, 'heat maps live under the Breakdown sub-tab', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

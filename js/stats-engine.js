@@ -1422,6 +1422,7 @@ export class StatsEngine {
           pane.dataset.seasonLoaded = '1';
           try { this.heatMaps.bind(pane); } catch (e) {}
           try { this._makeSortable(pane); } catch (e) {}
+          try { this._wireSubtabs(pane); } catch (e) {}
         }
         this._lastTab = tab.dataset.tab;
       });
@@ -2725,6 +2726,25 @@ export class StatsEngine {
           th.classList.add(asc ? 'gi-sort-asc' : 'gi-sort-desc');
           rows.forEach(r => tbody.appendChild(r));
         });
+      });
+    });
+  }
+
+  // Wire the Season view's secondary sub-nav (Overview / Breakdown / Players /
+  // Self-Scout): clicking a .gi-subtab shows its .gi-subpane and hides the
+  // rest. Panes stay in the DOM, so heat-map binding + sortable wiring done once
+  // by the caller still hold. Used by the dashboard's lazy Season render and the
+  // legacy Season modal.
+  _wireSubtabs(root) {
+    if (!root || !root.querySelectorAll) return;
+    const tabs = Array.from(root.querySelectorAll('.gi-subtab'));
+    if (!tabs.length) return;
+    const panes = Array.from(root.querySelectorAll('.gi-subpane'));
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const key = tab.dataset.subtab;
+        tabs.forEach(t => t.classList.toggle('active', t === tab));
+        panes.forEach(p => p.classList.toggle('active', p.dataset.subpane === key));
       });
     });
   }

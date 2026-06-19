@@ -275,3 +275,36 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
   opacity: 1;
   margin-top: 6px;
 }
+
+/* ---- Season tab sub-navigation (Overview / Breakdown / Players / Self-Scout).
+   The structural show/hide is UNSCOPED so it also drives the legacy Season
+   modal (.season-overlay), which renders the same statsHtml(); the nav colors
+   use var fallbacks so they read in either overlay. ---- */
+.gi-subnav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 2px 0 16px;
+  border-bottom: 1px solid var(--gi-line, #2a3340);
+}
+.gi-subtab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--gi-faint, #8a97a8);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: color .12s ease, border-color .12s ease;
+}
+.gi-subtab:hover { color: var(--gi-text, #e6edf3); }
+.gi-subtab.active {
+  color: var(--gi-accent, #3b82f6);
+  border-bottom-color: var(--gi-accent, #3b82f6);
+}
+.gi-subpane { display: none; }
+.gi-subpane.active { display: block; }
