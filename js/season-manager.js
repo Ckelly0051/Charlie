@@ -482,7 +482,9 @@ export class SeasonManager {
   }
 
   _renderTrends() {
-    const games = this._effectiveGames();
+    // Skip games with no tagged plays (untagged/future games would otherwise
+    // plot as a misleading dip to zero); matches _renderProgression's filter.
+    const games = this._effectiveGames().filter(g => (g.plays || []).length);
     if (games.length < 2) return '';
 
     const store = window.app?.storage?.seasonStore;

@@ -13513,15 +13513,37 @@ class SeasonStore {
       && !gi.opponent && !gi.projectName && !gi.date;
   }
 
-  /** Chronological order (by gameInfo.date when present, else insertion). */
+  /**
+   * Chronological order, by gameInfo.date when present.
+   *
+   * Coaches commonly leave Game 1 undated, then date later games. The old code
+   * treated a missing date as +Infinity, which shoved that first game to the
+   * END — so a season like [Patriots(no date), Irish(Aug), Ravens(Sep)] rendered
+   * as [Irish, Ravens, Patriots] and every trend line drew Week 1 on the far
+   * right ("the graphs are backwards"). Instead, fill a missing date from the
+   * nearest dated game: carry the previous game's date forward, and for a
+   * leading undated game borrow the first later date. Creation (array) order is
+   * the final tiebreaker, so a run of undated games — or same-day games — stays
+   * in the order it was added. When NO game has a date, it's pure creation order.
+   */
   gamesChrono() {
-    return this.data.games
-      .map((g, i) => ({ g, i, t: Date.parse((g.gameInfo && g.gameInfo.date) || '') }))
-      .sort((a, b) => {
-        const at = isNaN(a.t) ? Infinity : a.t, bt = isNaN(b.t) ? Infinity : b.t;
-        return at === bt ? a.i - b.i : at - bt;
-      })
-      .map(x => x.g);
+    const raw = (this.data.games || []).map((g, i) => ({
+      g, i, t: Date.parse((g.gameInfo && g.gameInfo.date) || ''), fill: null,
+    }));
+    let carry = null;                         // previous dated game, going forward
+    raw.forEach(x => { if (!isNaN(x.t)) carry = x.t; else x.fill = carry; });
+    let future = null;                        // first dated game, going backward
+    for (let k = raw.length - 1; k >= 0; k--) {
+      const x = raw[k];
+      if (!isNaN(x.t)) future = x.t;
+      else if (x.fill == null) x.fill = future;
+    }
+    const key = (x) => (!isNaN(x.t) ? x.t : x.fill);   // null only if no dates exist at all
+    return raw.sort((a, b) => {
+      const ak = key(a), bk = key(b);
+      if (ak == null || bk == null) return a.i - b.i;  // no date signal → creation order
+      return ak === bk ? a.i - b.i : ak - bk;
+    }).map(x => x.g);
   }
 
   json() { return JSON.stringify(this.data, null, 2); }
@@ -24802,7 +24824,9 @@ class SeasonManager {
   }
 
   _renderTrends() {
-    const games = this._effectiveGames();
+    // Skip games with no tagged plays (untagged/future games would otherwise
+    // plot as a misleading dip to zero); matches _renderProgression's filter.
+    const games = this._effectiveGames().filter(g => (g.plays || []).length);
     if (games.length < 2) return '';
 
     const store = window.app?.storage?.seasonStore;
@@ -27411,7 +27435,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.6';
+const APP_VERSION = '1.9.7';
 
 class App {
   constructor() {

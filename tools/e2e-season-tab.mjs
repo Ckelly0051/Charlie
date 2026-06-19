@@ -14,7 +14,10 @@
         / Players / Self-Scout; the KPI header stays above the nav; clicking a
         sub-tab swaps the visible pane; leaderboards/heat maps land in the right
         panes.
-     6. No console / page errors across the whole flow.
+     6. Chronological order (v1.9.7): gamesChrono keeps an undated Game 1 in its
+        real slot instead of shoving it to the end — the "trends are backwards"
+        fix — while fully-dated games still sort by date.
+     7. No console / page errors across the whole flow.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -177,6 +180,31 @@ ok(r.overviewBefore === 'block' && r.playersBefore === 'none', 'Overview is the 
 ok(r.overviewAfter === 'none' && r.playersAfter === 'block', 'clicking a sub-tab swaps the visible pane', JSON.stringify(r));
 ok(r.leaderboardUnderPlayers, 'player leaderboard lives under the Players sub-tab', JSON.stringify(r));
 ok(r.heatUnderBreakdown, 'heat maps live under the Breakdown sub-tab', JSON.stringify(r));
+
+console.log('\n== 5. gamesChrono: undated games keep their slot (trends/progression order) ==');
+r = await page.evaluate(() => {
+  const SeasonStore = window.app.storage.seasonStore.constructor;
+  const order = (defs) => {
+    const s = Object.create(SeasonStore.prototype);
+    s.data = { games: defs.map(d => ({ id: d.n, name: d.n, gameInfo: { date: d.d || '' }, plays: [] })) };
+    return s.gamesChrono().map(g => g.name);
+  };
+  return {
+    // The real St. Joseph case: Week 1 undated, later weeks dated — must NOT be
+    // shoved to the end (the "trends are backwards" bug).
+    leadingUndated: order([{ n: 'Patriots', d: '' }, { n: 'Irish', d: '2025-08-06' }, { n: 'Ravens', d: '2025-09-13' }]),
+    outOfOrderDated: order([{ n: 'Sep', d: '2025-09-13' }, { n: 'Aug', d: '2025-08-06' }, { n: 'Jul', d: '2025-07-01' }]),
+    allUndated: order([{ n: 'A', d: '' }, { n: 'B', d: '' }, { n: 'C', d: '' }]),
+    middleUndated: order([{ n: 'A', d: '2025-08-01' }, { n: 'B', d: '' }, { n: 'C', d: '2025-09-01' }]),
+    trailingUndated: order([{ n: 'A', d: '2025-08-01' }, { n: 'B', d: '2025-08-15' }, { n: 'C', d: '' }]),
+  };
+});
+const seq = (a) => JSON.stringify(a);
+ok(seq(r.leadingUndated) === seq(['Patriots', 'Irish', 'Ravens']), 'undated Game 1 stays first, not shoved to the end', JSON.stringify(r.leadingUndated));
+ok(seq(r.outOfOrderDated) === seq(['Jul', 'Aug', 'Sep']), 'fully-dated games still sort by date (no regression)', JSON.stringify(r.outOfOrderDated));
+ok(seq(r.allUndated) === seq(['A', 'B', 'C']), 'all-undated falls back to creation order', JSON.stringify(r.allUndated));
+ok(seq(r.middleUndated) === seq(['A', 'B', 'C']), 'a mid-list undated game keeps its slot', JSON.stringify(r.middleUndated));
+ok(seq(r.trailingUndated) === seq(['A', 'B', 'C']), 'a trailing undated game stays last', JSON.stringify(r.trailingUndated));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
