@@ -7459,46 +7459,32 @@ td.pg-cell-focus {
 }
 
 /* ============================================================================
-   GAME HEADER BAR — game identity (opponent / date / score) on the main screen,
-   relocated out of the Settings drawer so games actually get dated. Light theme
-   (matches the main UI), explicit colors to avoid theme-var pitfalls.
+   GAME HEADER BAR — an always-visible summary of the current game that opens the
+   single Game menu (#gameModal). Light theme (matches the main UI), explicit
+   colors to avoid theme-var pitfalls.
    ============================================================================ */
 .game-header-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 10px 14px;
-  margin: 0 0 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; box-sizing: border-box; text-align: left;
+  padding: 11px 16px; margin: 0 0 12px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  cursor: pointer; font: inherit; color: #0f172a;
+  transition: border-color .12s ease, background .12s ease;
 }
-.game-header-bar .ghb-field { display: flex; align-items: center; gap: 6px; }
-.game-header-bar .ghb-opp-field { flex: 1 1 160px; min-width: 0; }
-.game-header-bar .ghb-lbl {
-  font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .04em; color: #64748b;
+.game-header-bar:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.game-header-bar:focus-visible { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15); }
+.game-header-bar .ghb-summary { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
+.game-header-bar .ghb-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-header-bar .ghb-name.is-empty { color: #94a3b8; font-weight: 500; }
+.game-header-bar .ghb-meta { font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-header-bar .ghb-edit-hint {
+  flex: none; font-size: 12px; font-weight: 600; color: #3b82f6;
+  border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 10px;
 }
-.game-header-bar .ghb-vs { font-size: 14px; font-weight: 700; color: #94a3b8; }
-.game-header-bar .ghb-input {
-  font: inherit; padding: 6px 9px; border: 1px solid #cbd5e1;
-  border-radius: 7px; background: #fff; color: #0f172a;
-}
-.game-header-bar .ghb-input:focus {
-  outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15);
-}
-.game-header-bar .ghb-opp { width: 100%; font-weight: 600; }
-.game-header-bar .ghb-date { width: 152px; }
-.game-header-bar .ghb-score { width: 52px; text-align: center; }
-.game-header-bar .ghb-dash { color: #94a3b8; font-weight: 700; }
-.settings-relocated-note { font-size: 12px; color: #94a3b8; font-style: italic; }
-@media (max-width: 800px) {
-  .game-header-bar { gap: 8px 12px; padding: 9px 11px; }
-  .game-header-bar .ghb-date { width: 140px; }
-}
+.game-header-bar:hover .ghb-edit-hint { border-color: #3b82f6; }
+.settings-note { font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 12px; }
 
-/* ---- New Game modal — quick opponent + date capture at creation ---- */
+/* ---- Game menu modal — single create/edit surface ---- */
 .ng-modal-backdrop {
   position: fixed; inset: 0; z-index: 9000;
   background: rgba(15, 23, 42, .55);
@@ -7510,6 +7496,7 @@ td.pg-cell-focus {
   background: #fff; color: #0f172a; border-radius: 14px;
   padding: 22px 22px 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
 }
+.ng-modal.ng-modal-wide { width: min(470px, 100%); }
 .ng-modal-title { margin: 0 0 4px; font-size: 19px; }
 .ng-modal-sub { margin: 0 0 14px; font-size: 13px; color: #64748b; }
 .ng-modal .ng-lbl {
@@ -7520,10 +7507,17 @@ td.pg-cell-focus {
   width: 100%; box-sizing: border-box; font: inherit; padding: 9px 11px;
   border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a;
 }
+.ng-modal select.ng-input { height: 38px; cursor: pointer; }
 .ng-modal .ng-input:focus {
   outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15);
 }
-.ng-modal .ng-score-row { display: flex; align-items: center; gap: 8px; }
+.ng-modal .ng-row-2 { display: flex; gap: 12px; }
+.ng-modal .ng-row-2 .ng-col { display: flex; flex-direction: column; }
+.ng-modal .ng-col-grow { flex: 1; min-width: 0; }
+.ng-modal .ng-col-week { width: 96px; flex: none; }
+.ng-modal .ng-score-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .ng-modal .ng-score { width: 72px; text-align: center; }
 .ng-modal .ng-dash { color: #94a3b8; font-weight: 700; }
+.ng-modal .ng-tracked-wrap { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.ng-modal .ng-tracked-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; }
 .ng-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }

@@ -245,27 +245,13 @@
 
       <!-- Tag Section (full-width, below video) -->
       <section class="tag-section">
-        <!-- Game header — the game's identity (opponent / date / score) lives on
-             the main screen instead of buried in the Settings drawer, so games
-             actually get dated. These inputs keep the IDs that
-             _saveGameInfo/_loadGameInfo expect (relocated from the old Game Info
-             panel), so persistence is unchanged. -->
-        <div class="game-header-bar" id="gameHeaderBar">
-          <div class="ghb-field ghb-opp-field">
-            <span class="ghb-vs">vs</span>
-            <input type="text" id="gameOpponent" class="ghb-input ghb-opp" placeholder="Opponent" title="Opponent for this game">
-          </div>
-          <div class="ghb-field">
-            <label class="ghb-lbl" for="gameDate">Date</label>
-            <input type="date" id="gameDate" class="ghb-input ghb-date" title="Game date — orders your season trends chronologically">
-          </div>
-          <div class="ghb-field ghb-score-field">
-            <label class="ghb-lbl">Score</label>
-            <input type="number" id="gameScoreUs" class="ghb-input ghb-score" placeholder="Us" min="0" title="Our final score">
-            <span class="ghb-dash">–</span>
-            <input type="number" id="gameScoreThem" class="ghb-input ghb-score" placeholder="Them" min="0" title="Opponent final score">
-          </div>
-        </div>
+        <!-- Game header — an always-visible summary of the current game that
+             opens the single Game menu (#gameModal) to create or edit. The
+             actual inputs live in that menu; this is just the launcher. -->
+        <button class="game-header-bar" id="btnEditGame" type="button" title="Edit game details — opponent, date, score…">
+          <span class="ghb-summary" id="gameHeaderSummary">Set up this game</span>
+          <span class="ghb-edit-hint">Edit</span>
+        </button>
         <!-- Shown while no play is selected — the form below is disabled so
              chip taps can't be silently discarded. -->
         <div class="tag-form-hint hidden" id="tagFormHint">
@@ -798,24 +784,10 @@
           Game Info
         </h3>
         <div class="panel-body collapsed" id="gameInfoPanel">
-          <div class="tag-row">
-            <label>Game / Project</label>
-            <input type="text" id="gameProjectName" placeholder="e.g. Week 5 vs Tigers" title="Name this project so you can label it by game — used for the save file name and report titles">
-          </div>
+          <p class="settings-note">Per-game details — opponent, date, score, week, home/away, type — live in the <strong>game header</strong> above the tag form. Click it to add or edit a game.</p>
           <div class="tag-row">
             <label>Team Name</label>
             <input type="text" id="gameTeamName" placeholder="Our Team">
-          </div>
-          <div class="tag-row tag-row-note">
-            <label>Opponent · Date · Score</label>
-            <span class="settings-relocated-note">Now in the game header above the tag form ↑</span>
-          </div>
-          <div class="tag-row">
-            <label>Tracked</label>
-            <div class="tag-row-inline">
-              <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense plays count for us, Defense plays for the opponent; for a special-teams score (XP, FG, 2-Pt, return TD), the play's 'Scored by' picks the team (blank = us).">0 – 0</span>
-              <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into the Final Score above">Apply →</button>
-            </div>
           </div>
           <div class="tag-row">
             <label>Our Jersey</label>
@@ -1431,25 +1403,64 @@
     </div>
   </div>
 
-  <!-- New Game — quick capture of opponent + date (defaults to today) so games
-       are dated from the start instead of going in blank. -->
-  <div class="ng-modal-backdrop hidden" id="newGameModal">
-    <div class="ng-modal" role="dialog" aria-modal="true" aria-label="New game">
-      <h3 class="ng-modal-title">New Game</h3>
-      <p class="ng-modal-sub">Name the matchup so it lands in the right spot on your schedule and trends.</p>
-      <label class="ng-lbl" for="ngOpponent">Opponent</label>
-      <input type="text" id="ngOpponent" class="ng-input" placeholder="e.g. Central Tigers" autocomplete="off">
-      <label class="ng-lbl" for="ngDate">Date</label>
-      <input type="date" id="ngDate" class="ng-input">
-      <label class="ng-lbl">Final score <span class="ng-opt">(optional — add later)</span></label>
-      <div class="ng-score-row">
-        <input type="number" id="ngScoreUs" class="ng-input ng-score" placeholder="Us" min="0">
-        <span class="ng-dash">–</span>
-        <input type="number" id="ngScoreThem" class="ng-input ng-score" placeholder="Them" min="0">
+  <!-- Game menu — the single place to create AND edit a game. Opened by
+       + New Game (create) and by the game header's Edit (edit). These inputs
+       are the canonical home for the gameInfo fields (_saveGameInfo /
+       _loadGameInfo reference them by ID). Date is the sort key (Hudl model). -->
+  <div class="ng-modal-backdrop hidden" id="gameModal">
+    <div class="ng-modal ng-modal-wide" role="dialog" aria-modal="true" aria-label="Game settings">
+      <h3 class="ng-modal-title" id="gmTitle">New Game</h3>
+      <p class="ng-modal-sub">Everything about this game in one place.</p>
+
+      <div class="ng-row-2">
+        <div class="ng-col ng-col-week">
+          <label class="ng-lbl" for="gameWeek">Week <span class="ng-opt">(optional)</span></label>
+          <input type="text" id="gameWeek" class="ng-input" placeholder="1" autocomplete="off" title="Optional label — shows as 'Week 1 vs …'. Does not affect ordering (games sort by date).">
+        </div>
+        <div class="ng-col ng-col-grow">
+          <label class="ng-lbl" for="gameOpponent">Opponent</label>
+          <input type="text" id="gameOpponent" class="ng-input" placeholder="e.g. Central Tigers" autocomplete="off">
+        </div>
       </div>
+
+      <label class="ng-lbl" for="gameDate">Date</label>
+      <input type="date" id="gameDate" class="ng-input" title="Game date — your schedule and season trends sort by this.">
+
+      <div class="ng-row-2">
+        <div class="ng-col ng-col-grow">
+          <label class="ng-lbl" for="gameHomeAway">Location</label>
+          <select id="gameHomeAway" class="ng-input">
+            <option value="">— Home / Away —</option>
+            <option value="home">Home</option>
+            <option value="away">Away</option>
+            <option value="neutral">Neutral</option>
+          </select>
+        </div>
+        <div class="ng-col ng-col-grow">
+          <label class="ng-lbl" for="gameType">Type</label>
+          <select id="gameType" class="ng-input">
+            <option value="game">Game</option>
+            <option value="scrimmage">Scrimmage</option>
+            <option value="playoff">Playoff</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="ng-lbl">Final score <span class="ng-opt">(optional — add after the game)</span></label>
+      <div class="ng-score-row">
+        <input type="number" id="gameScoreUs" class="ng-input ng-score" placeholder="Us" min="0">
+        <span class="ng-dash">–</span>
+        <input type="number" id="gameScoreThem" class="ng-input ng-score" placeholder="Them" min="0">
+        <span class="ng-tracked-wrap">
+          <span class="ng-tracked-lbl">Tracked</span>
+          <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense plays count for us, Defense for the opponent; a special-teams score uses the play's 'Scored by'.">0 – 0</span>
+          <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into Final Score">Apply →</button>
+        </span>
+      </div>
+
       <div class="ng-modal-actions">
-        <button class="btn" id="ngCancel" type="button">Cancel</button>
-        <button class="btn btn-accent" id="ngCreate" type="button">Create Game</button>
+        <button class="btn" id="gmCancel" type="button">Cancel</button>
+        <button class="btn btn-accent" id="gmSave" type="button">Create Game</button>
       </div>
     </div>
   </div>

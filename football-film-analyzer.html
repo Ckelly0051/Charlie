@@ -7472,46 +7472,32 @@ td.pg-cell-focus {
 }
 
 /* ============================================================================
-   GAME HEADER BAR — game identity (opponent / date / score) on the main screen,
-   relocated out of the Settings drawer so games actually get dated. Light theme
-   (matches the main UI), explicit colors to avoid theme-var pitfalls.
+   GAME HEADER BAR — an always-visible summary of the current game that opens the
+   single Game menu (#gameModal). Light theme (matches the main UI), explicit
+   colors to avoid theme-var pitfalls.
    ============================================================================ */
 .game-header-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 10px 14px;
-  margin: 0 0 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; box-sizing: border-box; text-align: left;
+  padding: 11px 16px; margin: 0 0 12px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  cursor: pointer; font: inherit; color: #0f172a;
+  transition: border-color .12s ease, background .12s ease;
 }
-.game-header-bar .ghb-field { display: flex; align-items: center; gap: 6px; }
-.game-header-bar .ghb-opp-field { flex: 1 1 160px; min-width: 0; }
-.game-header-bar .ghb-lbl {
-  font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .04em; color: #64748b;
+.game-header-bar:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.game-header-bar:focus-visible { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15); }
+.game-header-bar .ghb-summary { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
+.game-header-bar .ghb-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-header-bar .ghb-name.is-empty { color: #94a3b8; font-weight: 500; }
+.game-header-bar .ghb-meta { font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-header-bar .ghb-edit-hint {
+  flex: none; font-size: 12px; font-weight: 600; color: #3b82f6;
+  border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 10px;
 }
-.game-header-bar .ghb-vs { font-size: 14px; font-weight: 700; color: #94a3b8; }
-.game-header-bar .ghb-input {
-  font: inherit; padding: 6px 9px; border: 1px solid #cbd5e1;
-  border-radius: 7px; background: #fff; color: #0f172a;
-}
-.game-header-bar .ghb-input:focus {
-  outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15);
-}
-.game-header-bar .ghb-opp { width: 100%; font-weight: 600; }
-.game-header-bar .ghb-date { width: 152px; }
-.game-header-bar .ghb-score { width: 52px; text-align: center; }
-.game-header-bar .ghb-dash { color: #94a3b8; font-weight: 700; }
-.settings-relocated-note { font-size: 12px; color: #94a3b8; font-style: italic; }
-@media (max-width: 800px) {
-  .game-header-bar { gap: 8px 12px; padding: 9px 11px; }
-  .game-header-bar .ghb-date { width: 140px; }
-}
+.game-header-bar:hover .ghb-edit-hint { border-color: #3b82f6; }
+.settings-note { font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 12px; }
 
-/* ---- New Game modal — quick opponent + date capture at creation ---- */
+/* ---- Game menu modal — single create/edit surface ---- */
 .ng-modal-backdrop {
   position: fixed; inset: 0; z-index: 9000;
   background: rgba(15, 23, 42, .55);
@@ -7523,6 +7509,7 @@ td.pg-cell-focus {
   background: #fff; color: #0f172a; border-radius: 14px;
   padding: 22px 22px 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
 }
+.ng-modal.ng-modal-wide { width: min(470px, 100%); }
 .ng-modal-title { margin: 0 0 4px; font-size: 19px; }
 .ng-modal-sub { margin: 0 0 14px; font-size: 13px; color: #64748b; }
 .ng-modal .ng-lbl {
@@ -7533,12 +7520,19 @@ td.pg-cell-focus {
   width: 100%; box-sizing: border-box; font: inherit; padding: 9px 11px;
   border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a;
 }
+.ng-modal select.ng-input { height: 38px; cursor: pointer; }
 .ng-modal .ng-input:focus {
   outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15);
 }
-.ng-modal .ng-score-row { display: flex; align-items: center; gap: 8px; }
+.ng-modal .ng-row-2 { display: flex; gap: 12px; }
+.ng-modal .ng-row-2 .ng-col { display: flex; flex-direction: column; }
+.ng-modal .ng-col-grow { flex: 1; min-width: 0; }
+.ng-modal .ng-col-week { width: 96px; flex: none; }
+.ng-modal .ng-score-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .ng-modal .ng-score { width: 72px; text-align: center; }
 .ng-modal .ng-dash { color: #94a3b8; font-weight: 700; }
+.ng-modal .ng-tracked-wrap { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.ng-modal .ng-tracked-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; }
 .ng-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
@@ -8265,27 +8259,13 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 
       <!-- Tag Section (full-width, below video) -->
       <section class="tag-section">
-        <!-- Game header — the game's identity (opponent / date / score) lives on
-             the main screen instead of buried in the Settings drawer, so games
-             actually get dated. These inputs keep the IDs that
-             _saveGameInfo/_loadGameInfo expect (relocated from the old Game Info
-             panel), so persistence is unchanged. -->
-        <div class="game-header-bar" id="gameHeaderBar">
-          <div class="ghb-field ghb-opp-field">
-            <span class="ghb-vs">vs</span>
-            <input type="text" id="gameOpponent" class="ghb-input ghb-opp" placeholder="Opponent" title="Opponent for this game">
-          </div>
-          <div class="ghb-field">
-            <label class="ghb-lbl" for="gameDate">Date</label>
-            <input type="date" id="gameDate" class="ghb-input ghb-date" title="Game date — orders your season trends chronologically">
-          </div>
-          <div class="ghb-field ghb-score-field">
-            <label class="ghb-lbl">Score</label>
-            <input type="number" id="gameScoreUs" class="ghb-input ghb-score" placeholder="Us" min="0" title="Our final score">
-            <span class="ghb-dash">–</span>
-            <input type="number" id="gameScoreThem" class="ghb-input ghb-score" placeholder="Them" min="0" title="Opponent final score">
-          </div>
-        </div>
+        <!-- Game header — an always-visible summary of the current game that
+             opens the single Game menu (#gameModal) to create or edit. The
+             actual inputs live in that menu; this is just the launcher. -->
+        <button class="game-header-bar" id="btnEditGame" type="button" title="Edit game details — opponent, date, score…">
+          <span class="ghb-summary" id="gameHeaderSummary">Set up this game</span>
+          <span class="ghb-edit-hint">Edit</span>
+        </button>
         <!-- Shown while no play is selected — the form below is disabled so
              chip taps can't be silently discarded. -->
         <div class="tag-form-hint hidden" id="tagFormHint">
@@ -8818,24 +8798,10 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           Game Info
         </h3>
         <div class="panel-body collapsed" id="gameInfoPanel">
-          <div class="tag-row">
-            <label>Game / Project</label>
-            <input type="text" id="gameProjectName" placeholder="e.g. Week 5 vs Tigers" title="Name this project so you can label it by game — used for the save file name and report titles">
-          </div>
+          <p class="settings-note">Per-game details — opponent, date, score, week, home/away, type — live in the <strong>game header</strong> above the tag form. Click it to add or edit a game.</p>
           <div class="tag-row">
             <label>Team Name</label>
             <input type="text" id="gameTeamName" placeholder="Our Team">
-          </div>
-          <div class="tag-row tag-row-note">
-            <label>Opponent · Date · Score</label>
-            <span class="settings-relocated-note">Now in the game header above the tag form ↑</span>
-          </div>
-          <div class="tag-row">
-            <label>Tracked</label>
-            <div class="tag-row-inline">
-              <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense plays count for us, Defense plays for the opponent; for a special-teams score (XP, FG, 2-Pt, return TD), the play's 'Scored by' picks the team (blank = us).">0 – 0</span>
-              <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into the Final Score above">Apply →</button>
-            </div>
           </div>
           <div class="tag-row">
             <label>Our Jersey</label>
@@ -9451,25 +9417,64 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
     </div>
   </div>
 
-  <!-- New Game — quick capture of opponent + date (defaults to today) so games
-       are dated from the start instead of going in blank. -->
-  <div class="ng-modal-backdrop hidden" id="newGameModal">
-    <div class="ng-modal" role="dialog" aria-modal="true" aria-label="New game">
-      <h3 class="ng-modal-title">New Game</h3>
-      <p class="ng-modal-sub">Name the matchup so it lands in the right spot on your schedule and trends.</p>
-      <label class="ng-lbl" for="ngOpponent">Opponent</label>
-      <input type="text" id="ngOpponent" class="ng-input" placeholder="e.g. Central Tigers" autocomplete="off">
-      <label class="ng-lbl" for="ngDate">Date</label>
-      <input type="date" id="ngDate" class="ng-input">
-      <label class="ng-lbl">Final score <span class="ng-opt">(optional — add later)</span></label>
-      <div class="ng-score-row">
-        <input type="number" id="ngScoreUs" class="ng-input ng-score" placeholder="Us" min="0">
-        <span class="ng-dash">–</span>
-        <input type="number" id="ngScoreThem" class="ng-input ng-score" placeholder="Them" min="0">
+  <!-- Game menu — the single place to create AND edit a game. Opened by
+       + New Game (create) and by the game header's Edit (edit). These inputs
+       are the canonical home for the gameInfo fields (_saveGameInfo /
+       _loadGameInfo reference them by ID). Date is the sort key (Hudl model). -->
+  <div class="ng-modal-backdrop hidden" id="gameModal">
+    <div class="ng-modal ng-modal-wide" role="dialog" aria-modal="true" aria-label="Game settings">
+      <h3 class="ng-modal-title" id="gmTitle">New Game</h3>
+      <p class="ng-modal-sub">Everything about this game in one place.</p>
+
+      <div class="ng-row-2">
+        <div class="ng-col ng-col-week">
+          <label class="ng-lbl" for="gameWeek">Week <span class="ng-opt">(optional)</span></label>
+          <input type="text" id="gameWeek" class="ng-input" placeholder="1" autocomplete="off" title="Optional label — shows as 'Week 1 vs …'. Does not affect ordering (games sort by date).">
+        </div>
+        <div class="ng-col ng-col-grow">
+          <label class="ng-lbl" for="gameOpponent">Opponent</label>
+          <input type="text" id="gameOpponent" class="ng-input" placeholder="e.g. Central Tigers" autocomplete="off">
+        </div>
       </div>
+
+      <label class="ng-lbl" for="gameDate">Date</label>
+      <input type="date" id="gameDate" class="ng-input" title="Game date — your schedule and season trends sort by this.">
+
+      <div class="ng-row-2">
+        <div class="ng-col ng-col-grow">
+          <label class="ng-lbl" for="gameHomeAway">Location</label>
+          <select id="gameHomeAway" class="ng-input">
+            <option value="">— Home / Away —</option>
+            <option value="home">Home</option>
+            <option value="away">Away</option>
+            <option value="neutral">Neutral</option>
+          </select>
+        </div>
+        <div class="ng-col ng-col-grow">
+          <label class="ng-lbl" for="gameType">Type</label>
+          <select id="gameType" class="ng-input">
+            <option value="game">Game</option>
+            <option value="scrimmage">Scrimmage</option>
+            <option value="playoff">Playoff</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="ng-lbl">Final score <span class="ng-opt">(optional — add after the game)</span></label>
+      <div class="ng-score-row">
+        <input type="number" id="gameScoreUs" class="ng-input ng-score" placeholder="Us" min="0">
+        <span class="ng-dash">–</span>
+        <input type="number" id="gameScoreThem" class="ng-input ng-score" placeholder="Them" min="0">
+        <span class="ng-tracked-wrap">
+          <span class="ng-tracked-lbl">Tracked</span>
+          <span id="trackedScore" class="tracked-score" title="Score computed live from your tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense plays count for us, Defense for the opponent; a special-teams score uses the play's 'Scored by'.">0 – 0</span>
+          <button class="btn btn-sm" id="btnApplyTrackedScore" type="button" title="Copy the tracked score into Final Score">Apply →</button>
+        </span>
+      </div>
+
       <div class="ng-modal-actions">
-        <button class="btn" id="ngCancel" type="button">Cancel</button>
-        <button class="btn btn-accent" id="ngCreate" type="button">Create Game</button>
+        <button class="btn" id="gmCancel" type="button">Cancel</button>
+        <button class="btn btn-accent" id="gmSave" type="button">Create Game</button>
       </div>
     </div>
   </div>
@@ -13555,7 +13560,12 @@ class SeasonStore {
   /** Friendly label derived from the game's own info. */
   gameName(g, fallbackIdx) {
     const gi = (g && g.gameInfo) || {};
-    if (gi.opponent) return `vs ${gi.opponent}`;
+    // Optional week label leads the name when present: a bare number becomes
+    // "Week 3", anything else is used verbatim ("Playoffs", "Scrimmage").
+    const wk = String(gi.week || '').trim();
+    const wkLabel = wk ? (/^\d+$/.test(wk) ? `Week ${wk}` : wk) : '';
+    if (gi.opponent) return wkLabel ? `${wkLabel} vs ${gi.opponent}` : `vs ${gi.opponent}`;
+    if (wkLabel) return wkLabel;
     if (gi.projectName) return gi.projectName;
     if (g && g.videoFileName) return String(g.videoFileName).replace(/\.[^.]+$/, '');
     return 'Game ' + ((fallbackIdx != null ? fallbackIdx : 0) + 1);
@@ -19841,7 +19851,9 @@ class StatsEngine {
 
   _gameTitle() {
     const esc = Charts._esc;
-    const name = esc(document.getElementById('gameProjectName')?.value || '');
+    // projectName is derived (week + opponent) and lives on gameInfo now — there
+    // is no #gameProjectName input.
+    const name = esc((window.app && window.app.storage && window.app.storage.gameInfo && window.app.storage.gameInfo.projectName) || '');
     const t = esc(document.getElementById('gameTeamName')?.value || '');
     const o = esc(document.getElementById('gameOpponent')?.value || '');
     const u = document.getElementById('gameScoreUs')?.value;
@@ -27537,7 +27549,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.8';
+const APP_VERSION = '1.9.9';
 
 class App {
   constructor() {
@@ -27593,7 +27605,7 @@ class App {
 
     // Wire game info form
     this._bindGameInfo();
-    this._bindNewGameModal();
+    this._bindGameModal();
 
     // Wire report export
     this._bindReportExport();
@@ -27742,7 +27754,7 @@ class App {
 
     document.getElementById('btnDropdownNewGame')?.addEventListener('click', () => {
       this._closeGameDropdown();
-      this._openNewGameModal();
+      this._openGameModal('create');
     });
     document.getElementById('btnDropdownSwitchSeason')?.addEventListener('click', () => {
       this._closeGameDropdown();
@@ -27985,7 +27997,7 @@ class App {
 
   _bindGamesPanel() {
     document.getElementById('btnPanelNewGame')?.addEventListener('click', () => {
-      this._openNewGameModal();
+      this._openGameModal('create');
     });
   }
 
@@ -28143,66 +28155,123 @@ class App {
 
   /** Blank every Game Info input — used when switching to a different game. */
   _clearGameInfoForm() {
-    ['gameProjectName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
-     'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['gameWeek', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
+     'gameHomeAway', 'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = 'game';
     // Team identity (team name, jersey color) carries forward across games, so
     // it's intentionally left in place here.
     this.storage.gameInfo = {
       ...this.storage.gameInfo,
-      projectName: '', opponent: '', date: '', scoreUs: '', scoreThem: '', direction: '',
+      projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
+      homeAway: '', gameType: '', direction: '',
     };
     this._trackedScore = null;
+    this._renderGameSummary();
   }
 
-  // ---- New Game modal — capture opponent + date at creation -----------------
-  // A new game used to be created blank, with date/opponent only reachable in
-  // the collapsed Game Info panel inside Settings — so they got skipped and the
-  // season trends had no chronological anchor. This quick prompt (date defaults
-  // to today) makes every game dated from the start.
-  _bindNewGameModal() {
-    document.getElementById('ngCreate')?.addEventListener('click', () => this._confirmNewGame());
-    document.getElementById('ngCancel')?.addEventListener('click', () => this._closeNewGameModal());
-    const modal = document.getElementById('newGameModal');
-    modal?.addEventListener('click', (e) => { if (e.target === modal) this._closeNewGameModal(); });
-    document.getElementById('ngOpponent')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); this._confirmNewGame(); }
+  // ---- Game menu — single create/edit surface ------------------------------
+  // A game used to be created blank, with its details (date/opponent/score) only
+  // reachable in the collapsed Game Info panel inside Settings — skipped, so the
+  // season had no chronological anchor. This one menu is the canonical home for
+  // game details: + New Game opens it to CREATE, the header opens it to EDIT.
+  // Date defaults to today, so games are always dated. While the menu is open,
+  // _saveGameInfo is suppressed (_gameModalOpen) so a draft/in-progress edit
+  // doesn't auto-write until Save; Cancel restores the inputs from the active
+  // game. Games are ordered by date (Hudl model); Week is a label only.
+  _bindGameModal() {
+    document.getElementById('gmSave')?.addEventListener('click', () => this._confirmGameModal());
+    document.getElementById('gmCancel')?.addEventListener('click', () => this._cancelGameModal());
+    document.getElementById('btnEditGame')?.addEventListener('click', () => this._openGameModal('edit'));
+    const modal = document.getElementById('gameModal');
+    modal?.addEventListener('click', (e) => { if (e.target === modal) this._cancelGameModal(); });
+    modal?.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this._cancelGameModal();
+      else if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); this._confirmGameModal(); }
     });
-    modal?.addEventListener('keydown', (e) => { if (e.key === 'Escape') this._closeNewGameModal(); });
+    this._renderGameSummary();
   }
 
-  _openNewGameModal() {
-    const modal = document.getElementById('newGameModal');
+  _openGameModal(mode) {
+    const modal = document.getElementById('gameModal');
     if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
+    this._gameModalMode = mode;
+    this._gameModalOpen = true;   // suppress auto-save while the menu is open
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    set('ngOpponent', '');
-    set('ngDate', new Date().toISOString().slice(0, 10));   // default to today → always dated
-    set('ngScoreUs', '');
-    set('ngScoreThem', '');
+    const title = document.getElementById('gmTitle');
+    const saveBtn = document.getElementById('gmSave');
+    if (mode === 'create') {
+      set('gameWeek', ''); set('gameOpponent', ''); set('gameScoreUs', ''); set('gameScoreThem', '');
+      set('gameHomeAway', ''); set('gameType', 'game');
+      set('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
+      if (title) title.textContent = 'New game';
+      if (saveBtn) saveBtn.textContent = 'Create game';
+    } else {
+      // Edit: inputs already reflect the active game (kept by _loadGameInfo).
+      if (title) title.textContent = 'Game settings';
+      if (saveBtn) saveBtn.textContent = 'Save';
+    }
+    this._updateTrackedScore();
     modal.classList.remove('hidden');
-    setTimeout(() => document.getElementById('ngOpponent')?.focus(), 30);
+    setTimeout(() => document.getElementById(mode === 'create' ? 'gameWeek' : 'gameOpponent')?.focus(), 30);
   }
 
-  _closeNewGameModal() {
-    document.getElementById('newGameModal')?.classList.add('hidden');
+  _closeGameModal() {
+    this._gameModalOpen = false;
+    document.getElementById('gameModal')?.classList.add('hidden');
   }
 
-  _confirmNewGame() {
+  _cancelGameModal() {
+    // Discard: restore inputs from the (unchanged) active game. A create draft
+    // committed nothing, so this just clears the draft back to the current game.
+    this._gameModalOpen = false;
+    this._loadGameInfo(this.storage.gameInfo || {});
+    this._closeGameModal();
+  }
+
+  _confirmGameModal() {
     const val = (id) => (document.getElementById(id)?.value || '').trim();
-    const opp = val('ngOpponent'), date = val('ngDate');
-    const us = val('ngScoreUs'), them = val('ngScoreThem');
-    this.storage.newGame();   // creates (or reuses an empty husk) and loads it
-    // The essential fields now live in the on-screen header; set them by ID and
-    // persist through the normal save path.
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    set('gameOpponent', opp);
-    set('gameDate', date);
-    set('gameScoreUs', us);
-    set('gameScoreThem', them);
-    const projEl = document.getElementById('gameProjectName');
-    if (projEl && !projEl.value && opp) projEl.value = `vs ${opp}`;
-    this._saveGameInfo();
-    this._closeNewGameModal();
+    const draft = {
+      week: val('gameWeek'), opponent: val('gameOpponent'), date: val('gameDate'),
+      homeAway: val('gameHomeAway'), gameType: val('gameType') || 'game',
+      scoreUs: val('gameScoreUs'), scoreThem: val('gameScoreThem'),
+    };
+    this._gameModalOpen = false;
+    if (this._gameModalMode === 'create') {
+      this.storage.newGame();   // commits current game, creates/reuses a blank, loads it (clears inputs)
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set('gameWeek', draft.week); set('gameOpponent', draft.opponent); set('gameDate', draft.date);
+      set('gameHomeAway', draft.homeAway); set('gameType', draft.gameType);
+      set('gameScoreUs', draft.scoreUs); set('gameScoreThem', draft.scoreThem);
+    }
+    this._saveGameInfo();   // reads inputs → storage.gameInfo (composes projectName + name)
+    this._renderGameSummary();
+    this._closeGameModal();
     this._afterNewGame();
+  }
+
+  /** Build the always-visible header summary from the active game's info. */
+  _renderGameSummary(giOverride) {
+    const el = document.getElementById('gameHeaderSummary');
+    if (!el) return;
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const gi = giOverride || this.storage.gameInfo || {};
+    const store = this.storage.seasonStore;
+    const hasGame = !!(store && store.hasCurrent && store.hasCurrent());
+    const wk = String(gi.week || '').trim();
+    const hasDetails = !!(gi.opponent || wk);
+    let name = '';
+    if (hasGame && hasDetails) {
+      try { name = store.gameName({ gameInfo: gi }, store.activeIndex ? store.activeIndex() : 0); } catch (e) { name = ''; }
+    }
+    const meta = [];
+    if (gi.date) { const d = new Date(gi.date + 'T00:00:00'); if (!isNaN(d)) meta.push(d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })); }
+    if (gi.homeAway) meta.push(gi.homeAway.charAt(0).toUpperCase() + gi.homeAway.slice(1));
+    if (gi.gameType && gi.gameType !== 'game') meta.push(gi.gameType.charAt(0).toUpperCase() + gi.gameType.slice(1));
+    const us = gi.scoreUs, them = gi.scoreThem;
+    if (us !== '' && us != null && them !== '' && them != null) meta.push(`${us}–${them}`);
+    const label = name || (hasGame ? 'Set up this game' : 'No game open');
+    el.innerHTML = `<span class="${name ? 'ghb-name' : 'ghb-name is-empty'}">${esc(label)}</span>`
+      + (name && meta.length ? `<span class="ghb-meta">${esc(meta.join(' · '))}</span>` : '');
   }
 
   _afterNewGame() {
@@ -29039,7 +29108,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameProjectName', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
+    const fields = ['gameWeek', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameHomeAway', 'gameType', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -29111,12 +29180,24 @@ class App {
     // Programmatic form population (loading a game) must not trigger a save —
     // otherwise a loaded game's team name (e.g. the demo's 'GridIron Demo')
     // cascades through _saveTeamProfile and clobbers the coach's real identity.
-    if (this._loadingGameInfo) return;
+    // While the Game menu is open, a draft/in-progress edit must not auto-write
+    // until Save (see _openGameModal / _confirmGameModal).
+    if (this._loadingGameInfo || this._gameModalOpen) return;
+    const week = document.getElementById('gameWeek')?.value || '';
+    const opponent = document.getElementById('gameOpponent')?.value || '';
+    // projectName (file names / report titles) is now DERIVED from week +
+    // opponent — there's no separate field; it mirrors the game's display name.
+    const wk = week.trim();
+    const wkLabel = wk ? (/^\d+$/.test(wk) ? `Week ${wk}` : wk) : '';
+    const projectName = opponent ? (wkLabel ? `${wkLabel} vs ${opponent}` : `vs ${opponent}`) : wkLabel;
     this.storage.gameInfo = {
-      projectName: document.getElementById('gameProjectName')?.value || '',
+      projectName,
+      week,
       teamName: document.getElementById('gameTeamName')?.value || '',
-      opponent: document.getElementById('gameOpponent')?.value || '',
+      opponent,
       date: document.getElementById('gameDate')?.value || '',
+      homeAway: document.getElementById('gameHomeAway')?.value || '',
+      gameType: document.getElementById('gameType')?.value || 'game',
       scoreUs: document.getElementById('gameScoreUs')?.value || '',
       scoreThem: document.getElementById('gameScoreThem')?.value || '',
       jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
@@ -29126,6 +29207,7 @@ class App {
     this.storage._autoSave();
     this._saveTeamProfile();
     this._checkFinishHint();
+    this._renderGameSummary();
   }
 
   /**
@@ -29171,7 +29253,6 @@ class App {
     if (!info) return;
     this._loadingGameInfo = true;   // suppress save-on-load cascade (see _saveGameInfo)
     const map = {
-      gameProjectName: info.projectName,
       gameTeamName: info.teamName,
       gameOpponent: info.opponent,
       gameDate: info.date,
@@ -29185,6 +29266,12 @@ class App {
       const el = document.getElementById(id);
       if (el && val) el.value = val;
     }
+    // Week + the selects are set explicitly (even when empty) so a value never
+    // carries over from the previously loaded game.
+    const weekEl = document.getElementById('gameWeek'); if (weekEl) weekEl.value = info.week || '';
+    const haEl = document.getElementById('gameHomeAway'); if (haEl) haEl.value = info.homeAway || '';
+    const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = info.gameType || 'game';
+    this._renderGameSummary(info);
     // Loading sets the perspective programmatically (no native change event),
     // so fire one to re-sync the scout UI and the new-play unit default.
     const perspectiveEl = document.getElementById('gamePerspective');

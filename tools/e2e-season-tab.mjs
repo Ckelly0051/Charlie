@@ -206,36 +206,59 @@ ok(seq(r.allUndated) === seq(['A', 'B', 'C']), 'all-undated falls back to creati
 ok(seq(r.middleUndated) === seq(['A', 'B', 'C']), 'a mid-list undated game keeps its slot', JSON.stringify(r.middleUndated));
 ok(seq(r.trailingUndated) === seq(['A', 'B', 'C']), 'a trailing undated game stays last', JSON.stringify(r.trailingUndated));
 
-console.log('\n== 6. Game entry: fields relocated to the header + New Game modal dates the game ==');
+console.log('\n== 6. Single Game menu: create + edit, fields in the menu, week-aware name ==');
 r = await page.evaluate(() => {
-  const inHeader = (id) => { const el = document.getElementById(id); return !!el && !!el.closest('#gameHeaderBar'); };
+  const inMenu = (id) => { const el = document.getElementById(id); return !!el && !!el.closest('#gameModal'); };
   const dup = (id) => document.querySelectorAll('#' + id).length;
-  // Drive the New Game modal directly (no dropdown navigation needed).
-  window.app._openNewGameModal();
-  const modal = document.getElementById('newGameModal');
-  const shown = modal && !modal.classList.contains('hidden');
-  const dateDefault = document.getElementById('ngDate').value;
-  document.getElementById('ngOpponent').value = 'Probe Rivals';
-  document.getElementById('ngDate').value = '2025-10-01';
-  window.app._confirmNewGame();
-  // _saveGameInfo persists via a debounced autosave; flush it so the active
-  // game NODE reflects the new gameInfo right now.
+  const modal = document.getElementById('gameModal');
+  const store = window.app.storage.seasonStore;
+
+  // --- CREATE via the single menu ---
+  window.app._openGameModal('create');
+  const shownCreate = modal && !modal.classList.contains('hidden');
+  const dateDefault = document.getElementById('gameDate').value;
+  document.getElementById('gameWeek').value = '5';
+  document.getElementById('gameOpponent').value = 'Probe Rivals';
+  document.getElementById('gameDate').value = '2025-10-01';
+  document.getElementById('gameHomeAway').value = 'home';
+  document.getElementById('gameType').value = 'playoff';
+  window.app._confirmGameModal();
+  window.app.storage.commitActive();   // flush debounced autosave into the node
+  const active = store.activeGame();
+  const createdName = store.gameName(active, 0);
+  const closedAfterCreate = modal.classList.contains('hidden');
+
+  // --- EDIT the same game via the SAME menu ---
+  window.app._openGameModal('edit');
+  const titleEdit = document.getElementById('gmTitle').textContent;
+  const prefillOpp = document.getElementById('gameOpponent').value;
+  document.getElementById('gameOpponent').value = 'Probe Rivals B';
+  window.app._confirmGameModal();
   window.app.storage.commitActive();
-  const active = window.app.storage.seasonStore.activeGame();
+  const editedOpp = store.activeGame()?.gameInfo?.opponent;
+  const summaryText = document.getElementById('gameHeaderSummary')?.textContent || '';
+
   return {
-    oppInHeader: inHeader('gameOpponent'), dateInHeader: inHeader('gameDate'),
-    scoreInHeader: inHeader('gameScoreUs'),
-    oppDup: dup('gameOpponent'), dateDup: dup('gameDate'), scoreDup: dup('gameScoreUs'),
-    shown, dateDefaultLen: (dateDefault || '').length,
+    inMenu: inMenu('gameWeek') && inMenu('gameOpponent') && inMenu('gameDate') && inMenu('gameHomeAway') && inMenu('gameType') && inMenu('gameScoreUs'),
+    oppDup: dup('gameOpponent'), weekDup: dup('gameWeek'), typeDup: dup('gameType'),
+    shownCreate, dateDefaultLen: (dateDefault || '').length,
     newDate: active?.gameInfo?.date, newOpp: active?.gameInfo?.opponent,
-    closed: modal.classList.contains('hidden'),
+    newHome: active?.gameInfo?.homeAway, newType: active?.gameInfo?.gameType,
+    createdName, closedAfterCreate, titleEdit, prefillOpp, editedOpp, summaryText,
+    headerIsButton: !!document.getElementById('btnEditGame'),
+    headerHasSummary: !!document.getElementById('gameHeaderSummary'),
   };
 });
-ok(r.oppInHeader && r.dateInHeader && r.scoreInHeader, 'Opponent/Date/Score inputs live in the on-screen game header', JSON.stringify(r));
-ok(r.oppDup === 1 && r.dateDup === 1 && r.scoreDup === 1, 'no duplicate game-field IDs (relocated, not copied)', JSON.stringify(r));
-ok(r.shown && r.dateDefaultLen === 10, 'New Game modal opens with the date defaulted to today', JSON.stringify(r));
-ok(r.newDate === '2025-10-01' && r.newOpp === 'Probe Rivals', 'creating via the modal dates + names the game', JSON.stringify(r));
-ok(r.closed, 'modal closes after creating the game', JSON.stringify(r));
+ok(r.inMenu, 'all game-detail inputs live inside the single Game menu (#gameModal)', JSON.stringify(r));
+ok(r.oppDup === 1 && r.weekDup === 1 && r.typeDup === 1, 'no duplicate game-field IDs', JSON.stringify(r));
+ok(r.shownCreate && r.dateDefaultLen === 10, 'create mode opens with the date defaulted to today', JSON.stringify(r));
+ok(r.newDate === '2025-10-01' && r.newOpp === 'Probe Rivals', 'create saves opponent + date', JSON.stringify(r));
+ok(r.newHome === 'home' && r.newType === 'playoff', 'create saves Home/Away + Game type', JSON.stringify(r));
+ok(r.createdName === 'Week 5 vs Probe Rivals', 'game name is week-aware ("Week 5 vs …")', JSON.stringify(r));
+ok(r.closedAfterCreate, 'menu closes after create', JSON.stringify(r));
+ok(r.titleEdit === 'Game settings' && r.prefillOpp === 'Probe Rivals', 'edit reopens the SAME menu, pre-filled', JSON.stringify(r));
+ok(r.editedOpp === 'Probe Rivals B', 'editing in the menu updates the active game', JSON.stringify(r));
+ok(r.headerIsButton && r.headerHasSummary && /Rivals/.test(r.summaryText), 'header is a summary launcher reflecting the game', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

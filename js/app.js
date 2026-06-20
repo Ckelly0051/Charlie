@@ -38,7 +38,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.8';
+const APP_VERSION = '1.9.9';
 
 class App {
   constructor() {
@@ -94,7 +94,7 @@ class App {
 
     // Wire game info form
     this._bindGameInfo();
-    this._bindNewGameModal();
+    this._bindGameModal();
 
     // Wire report export
     this._bindReportExport();
@@ -243,7 +243,7 @@ class App {
 
     document.getElementById('btnDropdownNewGame')?.addEventListener('click', () => {
       this._closeGameDropdown();
-      this._openNewGameModal();
+      this._openGameModal('create');
     });
     document.getElementById('btnDropdownSwitchSeason')?.addEventListener('click', () => {
       this._closeGameDropdown();
@@ -486,7 +486,7 @@ class App {
 
   _bindGamesPanel() {
     document.getElementById('btnPanelNewGame')?.addEventListener('click', () => {
-      this._openNewGameModal();
+      this._openGameModal('create');
     });
   }
 
@@ -644,66 +644,123 @@ class App {
 
   /** Blank every Game Info input — used when switching to a different game. */
   _clearGameInfoForm() {
-    ['gameProjectName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
-     'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['gameWeek', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
+     'gameHomeAway', 'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = 'game';
     // Team identity (team name, jersey color) carries forward across games, so
     // it's intentionally left in place here.
     this.storage.gameInfo = {
       ...this.storage.gameInfo,
-      projectName: '', opponent: '', date: '', scoreUs: '', scoreThem: '', direction: '',
+      projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
+      homeAway: '', gameType: '', direction: '',
     };
     this._trackedScore = null;
+    this._renderGameSummary();
   }
 
-  // ---- New Game modal — capture opponent + date at creation -----------------
-  // A new game used to be created blank, with date/opponent only reachable in
-  // the collapsed Game Info panel inside Settings — so they got skipped and the
-  // season trends had no chronological anchor. This quick prompt (date defaults
-  // to today) makes every game dated from the start.
-  _bindNewGameModal() {
-    document.getElementById('ngCreate')?.addEventListener('click', () => this._confirmNewGame());
-    document.getElementById('ngCancel')?.addEventListener('click', () => this._closeNewGameModal());
-    const modal = document.getElementById('newGameModal');
-    modal?.addEventListener('click', (e) => { if (e.target === modal) this._closeNewGameModal(); });
-    document.getElementById('ngOpponent')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); this._confirmNewGame(); }
+  // ---- Game menu — single create/edit surface ------------------------------
+  // A game used to be created blank, with its details (date/opponent/score) only
+  // reachable in the collapsed Game Info panel inside Settings — skipped, so the
+  // season had no chronological anchor. This one menu is the canonical home for
+  // game details: + New Game opens it to CREATE, the header opens it to EDIT.
+  // Date defaults to today, so games are always dated. While the menu is open,
+  // _saveGameInfo is suppressed (_gameModalOpen) so a draft/in-progress edit
+  // doesn't auto-write until Save; Cancel restores the inputs from the active
+  // game. Games are ordered by date (Hudl model); Week is a label only.
+  _bindGameModal() {
+    document.getElementById('gmSave')?.addEventListener('click', () => this._confirmGameModal());
+    document.getElementById('gmCancel')?.addEventListener('click', () => this._cancelGameModal());
+    document.getElementById('btnEditGame')?.addEventListener('click', () => this._openGameModal('edit'));
+    const modal = document.getElementById('gameModal');
+    modal?.addEventListener('click', (e) => { if (e.target === modal) this._cancelGameModal(); });
+    modal?.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this._cancelGameModal();
+      else if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); this._confirmGameModal(); }
     });
-    modal?.addEventListener('keydown', (e) => { if (e.key === 'Escape') this._closeNewGameModal(); });
+    this._renderGameSummary();
   }
 
-  _openNewGameModal() {
-    const modal = document.getElementById('newGameModal');
+  _openGameModal(mode) {
+    const modal = document.getElementById('gameModal');
     if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
+    this._gameModalMode = mode;
+    this._gameModalOpen = true;   // suppress auto-save while the menu is open
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    set('ngOpponent', '');
-    set('ngDate', new Date().toISOString().slice(0, 10));   // default to today → always dated
-    set('ngScoreUs', '');
-    set('ngScoreThem', '');
+    const title = document.getElementById('gmTitle');
+    const saveBtn = document.getElementById('gmSave');
+    if (mode === 'create') {
+      set('gameWeek', ''); set('gameOpponent', ''); set('gameScoreUs', ''); set('gameScoreThem', '');
+      set('gameHomeAway', ''); set('gameType', 'game');
+      set('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
+      if (title) title.textContent = 'New game';
+      if (saveBtn) saveBtn.textContent = 'Create game';
+    } else {
+      // Edit: inputs already reflect the active game (kept by _loadGameInfo).
+      if (title) title.textContent = 'Game settings';
+      if (saveBtn) saveBtn.textContent = 'Save';
+    }
+    this._updateTrackedScore();
     modal.classList.remove('hidden');
-    setTimeout(() => document.getElementById('ngOpponent')?.focus(), 30);
+    setTimeout(() => document.getElementById(mode === 'create' ? 'gameWeek' : 'gameOpponent')?.focus(), 30);
   }
 
-  _closeNewGameModal() {
-    document.getElementById('newGameModal')?.classList.add('hidden');
+  _closeGameModal() {
+    this._gameModalOpen = false;
+    document.getElementById('gameModal')?.classList.add('hidden');
   }
 
-  _confirmNewGame() {
+  _cancelGameModal() {
+    // Discard: restore inputs from the (unchanged) active game. A create draft
+    // committed nothing, so this just clears the draft back to the current game.
+    this._gameModalOpen = false;
+    this._loadGameInfo(this.storage.gameInfo || {});
+    this._closeGameModal();
+  }
+
+  _confirmGameModal() {
     const val = (id) => (document.getElementById(id)?.value || '').trim();
-    const opp = val('ngOpponent'), date = val('ngDate');
-    const us = val('ngScoreUs'), them = val('ngScoreThem');
-    this.storage.newGame();   // creates (or reuses an empty husk) and loads it
-    // The essential fields now live in the on-screen header; set them by ID and
-    // persist through the normal save path.
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    set('gameOpponent', opp);
-    set('gameDate', date);
-    set('gameScoreUs', us);
-    set('gameScoreThem', them);
-    const projEl = document.getElementById('gameProjectName');
-    if (projEl && !projEl.value && opp) projEl.value = `vs ${opp}`;
-    this._saveGameInfo();
-    this._closeNewGameModal();
+    const draft = {
+      week: val('gameWeek'), opponent: val('gameOpponent'), date: val('gameDate'),
+      homeAway: val('gameHomeAway'), gameType: val('gameType') || 'game',
+      scoreUs: val('gameScoreUs'), scoreThem: val('gameScoreThem'),
+    };
+    this._gameModalOpen = false;
+    if (this._gameModalMode === 'create') {
+      this.storage.newGame();   // commits current game, creates/reuses a blank, loads it (clears inputs)
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set('gameWeek', draft.week); set('gameOpponent', draft.opponent); set('gameDate', draft.date);
+      set('gameHomeAway', draft.homeAway); set('gameType', draft.gameType);
+      set('gameScoreUs', draft.scoreUs); set('gameScoreThem', draft.scoreThem);
+    }
+    this._saveGameInfo();   // reads inputs → storage.gameInfo (composes projectName + name)
+    this._renderGameSummary();
+    this._closeGameModal();
     this._afterNewGame();
+  }
+
+  /** Build the always-visible header summary from the active game's info. */
+  _renderGameSummary(giOverride) {
+    const el = document.getElementById('gameHeaderSummary');
+    if (!el) return;
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const gi = giOverride || this.storage.gameInfo || {};
+    const store = this.storage.seasonStore;
+    const hasGame = !!(store && store.hasCurrent && store.hasCurrent());
+    const wk = String(gi.week || '').trim();
+    const hasDetails = !!(gi.opponent || wk);
+    let name = '';
+    if (hasGame && hasDetails) {
+      try { name = store.gameName({ gameInfo: gi }, store.activeIndex ? store.activeIndex() : 0); } catch (e) { name = ''; }
+    }
+    const meta = [];
+    if (gi.date) { const d = new Date(gi.date + 'T00:00:00'); if (!isNaN(d)) meta.push(d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })); }
+    if (gi.homeAway) meta.push(gi.homeAway.charAt(0).toUpperCase() + gi.homeAway.slice(1));
+    if (gi.gameType && gi.gameType !== 'game') meta.push(gi.gameType.charAt(0).toUpperCase() + gi.gameType.slice(1));
+    const us = gi.scoreUs, them = gi.scoreThem;
+    if (us !== '' && us != null && them !== '' && them != null) meta.push(`${us}–${them}`);
+    const label = name || (hasGame ? 'Set up this game' : 'No game open');
+    el.innerHTML = `<span class="${name ? 'ghb-name' : 'ghb-name is-empty'}">${esc(label)}</span>`
+      + (name && meta.length ? `<span class="ghb-meta">${esc(meta.join(' · '))}</span>` : '');
   }
 
   _afterNewGame() {
@@ -1540,7 +1597,7 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameProjectName', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
+    const fields = ['gameWeek', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameHomeAway', 'gameType', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -1612,12 +1669,24 @@ class App {
     // Programmatic form population (loading a game) must not trigger a save —
     // otherwise a loaded game's team name (e.g. the demo's 'GridIron Demo')
     // cascades through _saveTeamProfile and clobbers the coach's real identity.
-    if (this._loadingGameInfo) return;
+    // While the Game menu is open, a draft/in-progress edit must not auto-write
+    // until Save (see _openGameModal / _confirmGameModal).
+    if (this._loadingGameInfo || this._gameModalOpen) return;
+    const week = document.getElementById('gameWeek')?.value || '';
+    const opponent = document.getElementById('gameOpponent')?.value || '';
+    // projectName (file names / report titles) is now DERIVED from week +
+    // opponent — there's no separate field; it mirrors the game's display name.
+    const wk = week.trim();
+    const wkLabel = wk ? (/^\d+$/.test(wk) ? `Week ${wk}` : wk) : '';
+    const projectName = opponent ? (wkLabel ? `${wkLabel} vs ${opponent}` : `vs ${opponent}`) : wkLabel;
     this.storage.gameInfo = {
-      projectName: document.getElementById('gameProjectName')?.value || '',
+      projectName,
+      week,
       teamName: document.getElementById('gameTeamName')?.value || '',
-      opponent: document.getElementById('gameOpponent')?.value || '',
+      opponent,
       date: document.getElementById('gameDate')?.value || '',
+      homeAway: document.getElementById('gameHomeAway')?.value || '',
+      gameType: document.getElementById('gameType')?.value || 'game',
       scoreUs: document.getElementById('gameScoreUs')?.value || '',
       scoreThem: document.getElementById('gameScoreThem')?.value || '',
       jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
@@ -1627,6 +1696,7 @@ class App {
     this.storage._autoSave();
     this._saveTeamProfile();
     this._checkFinishHint();
+    this._renderGameSummary();
   }
 
   /**
@@ -1672,7 +1742,6 @@ class App {
     if (!info) return;
     this._loadingGameInfo = true;   // suppress save-on-load cascade (see _saveGameInfo)
     const map = {
-      gameProjectName: info.projectName,
       gameTeamName: info.teamName,
       gameOpponent: info.opponent,
       gameDate: info.date,
@@ -1686,6 +1755,12 @@ class App {
       const el = document.getElementById(id);
       if (el && val) el.value = val;
     }
+    // Week + the selects are set explicitly (even when empty) so a value never
+    // carries over from the previously loaded game.
+    const weekEl = document.getElementById('gameWeek'); if (weekEl) weekEl.value = info.week || '';
+    const haEl = document.getElementById('gameHomeAway'); if (haEl) haEl.value = info.homeAway || '';
+    const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = info.gameType || 'game';
+    this._renderGameSummary(info);
     // Loading sets the perspective programmatically (no native change event),
     // so fire one to re-sync the scout UI and the new-play unit default.
     const perspectiveEl = document.getElementById('gamePerspective');

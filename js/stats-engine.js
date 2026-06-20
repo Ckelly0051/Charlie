@@ -1667,7 +1667,9 @@ export class StatsEngine {
 
   _gameTitle() {
     const esc = Charts._esc;
-    const name = esc(document.getElementById('gameProjectName')?.value || '');
+    // projectName is derived (week + opponent) and lives on gameInfo now — there
+    // is no #gameProjectName input.
+    const name = esc((window.app && window.app.storage && window.app.storage.gameInfo && window.app.storage.gameInfo.projectName) || '');
     const t = esc(document.getElementById('gameTeamName')?.value || '');
     const o = esc(document.getElementById('gameOpponent')?.value || '');
     const u = document.getElementById('gameScoreUs')?.value;

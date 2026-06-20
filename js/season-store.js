@@ -160,7 +160,12 @@ export class SeasonStore {
   /** Friendly label derived from the game's own info. */
   gameName(g, fallbackIdx) {
     const gi = (g && g.gameInfo) || {};
-    if (gi.opponent) return `vs ${gi.opponent}`;
+    // Optional week label leads the name when present: a bare number becomes
+    // "Week 3", anything else is used verbatim ("Playoffs", "Scrimmage").
+    const wk = String(gi.week || '').trim();
+    const wkLabel = wk ? (/^\d+$/.test(wk) ? `Week ${wk}` : wk) : '';
+    if (gi.opponent) return wkLabel ? `${wkLabel} vs ${gi.opponent}` : `vs ${gi.opponent}`;
+    if (wkLabel) return wkLabel;
     if (gi.projectName) return gi.projectName;
     if (g && g.videoFileName) return String(g.videoFileName).replace(/\.[^.]+$/, '');
     return 'Game ' + ((fallbackIdx != null ? fallbackIdx : 0) + 1);
