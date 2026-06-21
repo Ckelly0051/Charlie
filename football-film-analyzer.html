@@ -28196,13 +28196,12 @@ class App {
     if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
     this._gameModalMode = mode;
     this._gameModalOpen = true;   // suppress auto-save while the menu is open
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
     const title = document.getElementById('gmTitle');
     const saveBtn = document.getElementById('gmSave');
     if (mode === 'create') {
-      set('gameWeek', ''); set('gameOpponent', ''); set('gameScoreUs', ''); set('gameScoreThem', '');
-      set('gameHomeAway', ''); set('gameType', 'game');
-      set('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
+      ['gameWeek', 'gameOpponent', 'gameScoreUs', 'gameScoreThem', 'gameHomeAway'].forEach(id => this._setVal(id, ''));
+      this._setVal('gameType', 'game');
+      this._setVal('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
       if (title) title.textContent = 'New game';
       if (saveBtn) saveBtn.textContent = 'Create game';
     } else {
@@ -28238,10 +28237,9 @@ class App {
     this._gameModalOpen = false;
     if (this._gameModalMode === 'create') {
       this.storage.newGame();   // commits current game, creates/reuses a blank, loads it (clears inputs)
-      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      set('gameWeek', draft.week); set('gameOpponent', draft.opponent); set('gameDate', draft.date);
-      set('gameHomeAway', draft.homeAway); set('gameType', draft.gameType);
-      set('gameScoreUs', draft.scoreUs); set('gameScoreThem', draft.scoreThem);
+      this._setVal('gameWeek', draft.week); this._setVal('gameOpponent', draft.opponent); this._setVal('gameDate', draft.date);
+      this._setVal('gameHomeAway', draft.homeAway); this._setVal('gameType', draft.gameType);
+      this._setVal('gameScoreUs', draft.scoreUs); this._setVal('gameScoreThem', draft.scoreThem);
     }
     this._saveGameInfo();   // reads inputs → storage.gameInfo (composes projectName + name)
     this._renderGameSummary();
@@ -28253,25 +28251,24 @@ class App {
   _renderGameSummary(giOverride) {
     const el = document.getElementById('gameHeaderSummary');
     if (!el) return;
-    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
     const gi = giOverride || this.storage.gameInfo || {};
     const store = this.storage.seasonStore;
     const hasGame = !!(store && store.hasCurrent && store.hasCurrent());
-    const wk = String(gi.week || '').trim();
-    const hasDetails = !!(gi.opponent || wk);
+    const hasDetails = !!(gi.opponent || String(gi.week || '').trim());
     let name = '';
     if (hasGame && hasDetails) {
       try { name = store.gameName({ gameInfo: gi }, store.activeIndex ? store.activeIndex() : 0); } catch (e) { name = ''; }
     }
     const meta = [];
     if (gi.date) { const d = new Date(gi.date + 'T00:00:00'); if (!isNaN(d)) meta.push(d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })); }
-    if (gi.homeAway) meta.push(gi.homeAway.charAt(0).toUpperCase() + gi.homeAway.slice(1));
-    if (gi.gameType && gi.gameType !== 'game') meta.push(gi.gameType.charAt(0).toUpperCase() + gi.gameType.slice(1));
+    if (gi.homeAway) meta.push(cap(gi.homeAway));
+    if (gi.gameType && gi.gameType !== 'game') meta.push(cap(gi.gameType));
     const us = gi.scoreUs, them = gi.scoreThem;
     if (us !== '' && us != null && them !== '' && them != null) meta.push(`${us}–${them}`);
     const label = name || (hasGame ? 'Set up this game' : 'No game open');
-    el.innerHTML = `<span class="${name ? 'ghb-name' : 'ghb-name is-empty'}">${esc(label)}</span>`
-      + (name && meta.length ? `<span class="ghb-meta">${esc(meta.join(' · '))}</span>` : '');
+    el.innerHTML = `<span class="${name ? 'ghb-name' : 'ghb-name is-empty'}">${this._esc(label)}</span>`
+      + (name && meta.length ? `<span class="ghb-meta">${this._esc(meta.join(' · '))}</span>` : '');
   }
 
   _afterNewGame() {
@@ -28279,6 +28276,9 @@ class App {
     this._renderGamesPanel?.();
     this.season?._renderAll?.();
   }
+
+  /** Set an input/select value by id (no-op when the element is absent). */
+  _setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
 
   _wireEvents() {
     // Re-render canvas annotations when video time changes
@@ -29185,11 +29185,12 @@ class App {
     if (this._loadingGameInfo || this._gameModalOpen) return;
     const week = document.getElementById('gameWeek')?.value || '';
     const opponent = document.getElementById('gameOpponent')?.value || '';
-    // projectName (file names / report titles) is now DERIVED from week +
-    // opponent — there's no separate field; it mirrors the game's display name.
-    const wk = week.trim();
-    const wkLabel = wk ? (/^\d+$/.test(wk) ? `Week ${wk}` : wk) : '';
-    const projectName = opponent ? (wkLabel ? `${wkLabel} vs ${opponent}` : `vs ${opponent}`) : wkLabel;
+    // projectName (file names / report titles) mirrors the game's display name —
+    // derive it from the single source (SeasonStore.gameName) rather than
+    // re-implementing the week/opponent composition here.
+    const projectName = (week.trim() || opponent)
+      ? this.storage.seasonStore.gameName({ gameInfo: { week, opponent } })
+      : '';
     this.storage.gameInfo = {
       projectName,
       week,
