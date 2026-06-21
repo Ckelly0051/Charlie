@@ -38,7 +38,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.10';
+const APP_VERSION = '1.9.11';
 
 class App {
   constructor() {
@@ -95,6 +95,7 @@ class App {
     // Wire game info form
     this._bindGameInfo();
     this._bindGameModal();
+    this._bindExpandVideo();
 
     // Wire report export
     this._bindReportExport();
@@ -768,6 +769,38 @@ class App {
 
   /** Set an input/select value by id (no-op when the element is absent). */
   _setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
+
+  // "Expand" toggles the video to full screen so a coach can watch a play
+  // bigger; the default size is unchanged. Native Fullscreen API on
+  // #videoContainer (video + canvas + playback controls). The Fullscreen target
+  // is resolved at click time (not bind time) so it stays correct if support
+  // changes. The drawing canvas is re-fit whenever the video resizes.
+  _bindExpandVideo() {
+    const btn = document.getElementById('btnExpandVideo');
+    const target = document.getElementById('videoContainer');
+    if (!btn || !target) return;
+    btn.addEventListener('click', () => {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fsEl) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); return; }
+      const enter = target.requestFullscreen || target.webkitRequestFullscreen;
+      if (!enter) { this.tagger?.toast?.("Full screen isn't supported here."); return; }
+      const p = enter.call(target);
+      if (p && p.catch) p.catch(() => this.tagger?.toast?.("Couldn't enter full screen."));
+    });
+    const onChange = () => {
+      const on = (document.fullscreenElement || document.webkitFullscreenElement) === target;
+      btn.textContent = on ? 'Exit Full Screen' : 'Expand';
+      btn.classList.toggle('is-active', on);
+      this._onVideoResize();
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+  }
+
+  /** Re-fit the drawing canvas after the video element resizes. */
+  _onVideoResize() {
+    requestAnimationFrame(() => { try { this.canvas && this.canvas._syncSize && this.canvas._syncSize(); } catch (e) {} });
+  }
 
   _wireEvents() {
     // Re-render canvas annotations when video time changes

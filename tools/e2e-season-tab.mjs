@@ -260,6 +260,19 @@ ok(r.titleEdit === 'Game settings' && r.prefillOpp === 'Probe Rivals', 'edit reo
 ok(r.editedOpp === 'Probe Rivals B', 'editing in the menu updates the active game', JSON.stringify(r));
 ok(r.headerIsButton && r.headerHasSummary && /Rivals/.test(r.summaryText), 'header is a summary launcher reflecting the game', JSON.stringify(r));
 
+console.log('\n== 7. Expand-video toggle wires to the Fullscreen API ==');
+r = await page.evaluate(() => {
+  const btn = document.getElementById('btnExpandVideo');
+  const target = document.getElementById('videoContainer');
+  if (!btn || !target) return { btnExists: false };
+  let called = 0;
+  target.requestFullscreen = () => { called++; return Promise.resolve(); };  // spy (headless can't really fullscreen)
+  btn.click();
+  return { btnExists: true, called };
+});
+ok(r.btnExists, 'Expand button is present in the play controls', JSON.stringify(r));
+ok(r.called === 1, 'clicking Expand requests fullscreen on #videoContainer', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
