@@ -308,3 +308,20 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 }
 .gi-subpane { display: none; }
 .gi-subpane.active { display: block; }
+
+/* ---- Drive chart (Game tab): one row per offensive possession ---- */
+.stats-overlay .drive-chart { display: flex; flex-direction: column; gap: 4px; }
+.stats-overlay .drive-row { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+.stats-overlay .drive-row:hover { background: var(--gi-card-2, #1c232d); }
+.stats-overlay .drive-num { width: 46px; font-size: 12px; font-weight: 600; color: var(--gi-faint, #8a97a8); flex: none; }
+.stats-overlay .drive-bar-wrap { flex: 1; height: 14px; background: var(--gi-card-2, #1c232d); border-radius: 4px; overflow: hidden; }
+.stats-overlay .drive-bar { display: block; height: 100%; border-radius: 4px; min-width: 3px; }
+.stats-overlay .drive-yards { width: 120px; text-align: right; font-size: 12px; color: var(--gi-dim, #93a1b2); flex: none; font-variant-numeric: tabular-nums; }
+.stats-overlay .drive-out { width: 66px; text-align: right; font-size: 12px; font-weight: 700; flex: none; }
+
+/* ---- Matchup tab: our offense beside the opponent's defense ---- */
+.stats-overlay .gi-matchup { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.stats-overlay .gi-matchup-col { min-width: 0; }
+.stats-overlay .gi-matchup-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
+.stats-overlay .gi-mh-off { background: rgba(34, 197, 94, .15); color: #22c55e; }
+.stats-overlay .gi-mh-def { background: rgba(239, 68, 68, .15); color: #ef4444; }

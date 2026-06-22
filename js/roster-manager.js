@@ -43,8 +43,52 @@ export class RosterManager {
     this._load();
     this._bind();
     this._bindImport();
+    document.getElementById('btnDepthChart')?.addEventListener('click', () => this.exportDepthChart());
     this.renderList();
     this.renderQuickPick();
+  }
+
+  /**
+   * Open a printable depth chart: the roster grouped by side (Offense / Defense /
+   * Other) and position, players ordered by jersey #. Read-only — the order is
+   * the roster order; explicit per-position reordering is a future nicety.
+   */
+  exportDepthChart() {
+    if (!this.players.length) { alert('Add players to the roster first.'); return; }
+    let team = 'Team';
+    try { team = (JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}).teamName || 'Team'; } catch (e) {}
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const ORDER = { O: ['QB', 'RB', 'FB', 'HB', 'WR', 'TE', 'OL', 'C', 'G', 'T', 'OT', 'OG'], D: ['DL', 'DE', 'DT', 'NT', 'EDGE', 'LB', 'OLB', 'ILB', 'MLB', 'CB', 'S', 'FS', 'SS', 'DB'] };
+    const sideName = { O: 'Offense', D: 'Defense', X: 'Other / Special' };
+    const col = (sideKey) => {
+      const byPos = {};
+      this.players.filter(p => (sideKey === 'X' ? !['O', 'D'].includes(p.side) : p.side === sideKey))
+        .forEach(p => { const pos = (p.pos || '—').toUpperCase(); (byPos[pos] = byPos[pos] || []).push(p); });
+      const positions = Object.keys(byPos).sort((a, b) => {
+        const o = ORDER[sideKey] || []; const ia = o.indexOf(a), ib = o.indexOf(b);
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+      });
+      if (!positions.length) return '';
+      const blocks = positions.map(pos => {
+        const players = byPos[pos].slice().sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0))
+          .map(p => `<div class="pl">#${esc(p.num)} ${esc(p.name) || ''}</div>`).join('');
+        return `<div class="pos"><div class="pos-name">${esc(pos)}</div>${players}</div>`;
+      }).join('');
+      return `<div class="col"><h2>${sideName[sideKey]}</h2>${blocks}</div>`;
+    };
+    const cols = ['O', 'D', 'X'].map(col).filter(Boolean).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Depth Chart — ${esc(team)}</title>
+      <style>*{box-sizing:border-box}body{font-family:-apple-system,Helvetica,Arial,sans-serif;margin:0;padding:16px;color:#000;background:#fff}
+      h1{font-size:18px;margin:0 0 12px}.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+      .col h2{font-size:12px;margin:0 0 6px;padding:4px 8px;background:#1e293b;color:#fff;text-transform:uppercase;letter-spacing:.5px}
+      .pos{border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;margin-bottom:8px;break-inside:avoid}
+      .pos-name{font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+      .pl{font-size:13px;padding:1px 0}@media print{body{padding:0}}</style></head>
+      <body><h1>Depth Chart — ${esc(team)}</h1><div class="cols">${cols}</div></body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('Popup blocked — allow popups and try again.'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
   }
 
   _bind() {

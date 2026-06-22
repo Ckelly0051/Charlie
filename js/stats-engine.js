@@ -323,7 +323,7 @@ export class StatsEngine {
       else if (dp.length >= 8 || yards >= 60) driveType = 'Sustained';
       else if (yards >= 30 && dp.length <= 4) driveType = 'Explosive';
       else if (outcome === 'TD' || outcome === 'FG') driveType = 'Scoring';
-      return { number: idx + 1, plays: dp.length, yards, outcome, startYL, points, driveType };
+      return { number: idx + 1, plays: dp.length, yards, outcome, startYL, points, driveType, playIds: dp.map(p => p.id) };
     });
     const scoringDrives = list.filter(d => d.outcome === 'TD' || d.outcome === 'FG');
     const threeAndOuts = list.filter(d => d.driveType === '3-and-out').length;
@@ -338,6 +338,92 @@ export class StatsEngine {
       avgPlaysPerDrive: list.length ? (list.reduce((s, d) => s + d.plays, 0) / list.length).toFixed(1) : '0',
       avgYardsPerDrive: list.length ? (list.reduce((s, d) => s + d.yards, 0) / list.length).toFixed(1) : '0'
     };
+  }
+
+  // Drive-by-drive visual for the Game tab. Reuses the already-computed
+  // stats.drives.list; each row carries its play ids so it's click-to-film.
+  _renderDriveChart(stats) {
+    const list = (stats.drives && stats.drives.list) || [];
+    if (!list.length) return '';
+    const color = { TD: '#22c55e', FG: '#3b82f6', Safety: '#a855f7', Turnover: '#ef4444', Punt: '#94a3b8', Kneel: '#64748b', Other: '#64748b' };
+    const maxY = Math.max(10, ...list.map(d => Math.abs(d.yards)));
+    const rows = list.map(d => {
+      const c = color[d.outcome] || '#64748b';
+      const w = Math.round(Math.min(100, Math.abs(d.yards) / maxY * 100));
+      return `<div class="drive-row cut-row" data-drive-ids="${(d.playIds || []).join(',')}" title="Watch drive ${d.number}">
+        <span class="drive-num">Dr ${d.number}</span>
+        <span class="drive-bar-wrap"><span class="drive-bar" style="width:${w}%;background:${c}"></span></span>
+        <span class="drive-yards">${d.yards >= 0 ? '+' : ''}${d.yards} yd · ${d.plays} pl</span>
+        <span class="drive-out" style="color:${c}">${d.outcome}</span>
+      </div>`;
+    }).join('');
+    return `<div class="stats-section"><h3>Drive Chart</h3>
+      <p class="self-scout-intro">Every offensive possession — click a drive to watch it on film.</p>
+      <div class="drive-chart">${rows}</div></div>`;
+  }
+
+  // Matchup data: your offense (from your games) + each scouted opponent's
+  // defense (from games whose "Film shows" is Opponent Scout, defensive snaps).
+  _matchupData() {
+    const app = window.app;
+    try { if (app && app.storage && app.storage.commitActive) app.storage.commitActive(); } catch (e) {}
+    const store = app && app.storage && app.storage.seasonStore;
+    const games = (store && store.gamesChrono) ? store.gamesChrono() : [];
+    const yourOff = [];
+    const oppMap = {};
+    games.forEach(g => {
+      const scout = ((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
+      (g.plays || []).forEach(p => {
+        const t = p.tags || {};
+        if (scout) {
+          if (t.unit === 'defense') {
+            const name = (g.gameInfo && g.gameInfo.opponent) || 'Opponent';
+            (oppMap[name] = oppMap[name] || []).push(p);
+          }
+        } else if ((t.unit || 'offense') === 'offense') {
+          yourOff.push(p);
+        }
+      });
+    });
+    const opponents = Object.entries(oppMap).map(([name, defPlays]) => ({ name, defPlays }))
+      .sort((a, b) => b.defPlays.length - a.defPlays.length);
+    return { opponents, yourOff };
+  }
+
+  // Renders the Matchup tab: our offense beside a scouted opponent's defense,
+  // reusing the proven efficiency/tendency/defensive renderers. Cut-rows are
+  // left inert (cross-game film is deferred, same as the Season tab).
+  _renderMatchupInto(pane, oppName) {
+    if (!pane) return;
+    const data = this._matchupData();
+    if (!data.opponents.length) {
+      pane.innerHTML = `<div class="stats-section" style="max-width:640px;margin:24px auto;text-align:center">
+        <h3>Opponent Matchup</h3>
+        <p class="self-scout-intro" style="line-height:1.6">Scout an opponent's defense to see this side-by-side. In that game's settings set <b>Film shows → Opponent Scout</b>, tag their defensive snaps (front / coverage / blitz), and your offense will line up against them here.</p></div>`;
+      return;
+    }
+    const esc = Charts._esc;
+    const opp = data.opponents.find(o => o.name === oppName) || data.opponents[0];
+    const offStats = this.compute(data.yourOff);
+    const defStats = this.compute(opp.defPlays);
+    const picker = data.opponents.length > 1
+      ? `<select id="matchupOpp" class="play-select" style="margin-left:8px">${data.opponents.map(o =>
+          `<option value="${esc(o.name)}"${o.name === opp.name ? ' selected' : ''}>${esc(o.name)} (${o.defPlays.length} D)</option>`).join('')}</select>`
+      : `<b>${esc(opp.name)}</b>`;
+    pane.innerHTML = `
+      <div class="stats-section"><h3>Matchup — Our Offense vs ${picker}</h3>
+        <p class="self-scout-intro">What we run, lined up against what they do on defense. Read-only (cross-game cut-ups are deferred).</p></div>
+      <div class="gi-matchup">
+        <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-off">Our Offense</div>
+          ${this._renderEfficiency(offStats)}
+          ${this._renderTendencies(offStats)}
+        </div>
+        <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-def">${esc(opp.name)} Defense</div>
+          ${this._renderDefensive(defStats)}
+        </div>
+      </div>`;
+    const sel = pane.querySelector('#matchupOpp');
+    if (sel) sel.addEventListener('change', (e) => this._renderMatchupInto(pane, e.target.value));
   }
 
   _situationalStats(plays) {
@@ -1349,6 +1435,7 @@ export class StatsEngine {
             <button class="stats-tab" data-tab="defense">Defense</button>
             <button class="stats-tab" data-tab="selfscout">Self-Scout</button>
             <button class="stats-tab" data-tab="season">Season</button>
+            <button class="stats-tab" data-tab="matchup">Matchup</button>
           </div>
           <div class="stats-body">
             <div class="stats-tab-pane active" data-pane="game">
@@ -1371,6 +1458,7 @@ export class StatsEngine {
                 ${this._renderBigPlays(stats)}
               </div>
               ${this._renderGameFlow(stats)}
+              ${this._renderDriveChart(stats)}
             </div>
             <div class="stats-tab-pane" data-pane="offense">
               ${this._renderOffenseHero(stats)}
@@ -1398,6 +1486,9 @@ export class StatsEngine {
             <div class="stats-tab-pane" data-pane="season" data-season-loaded="0">
               <div class="season-tab-placeholder" style="padding:40px 24px;text-align:center;color:var(--gi-dim,#93a1b2)">Loading season stats…</div>
             </div>
+            <div class="stats-tab-pane" data-pane="matchup" data-matchup-loaded="0">
+              <div style="padding:40px 24px;text-align:center;color:var(--gi-dim,#93a1b2)">Loading matchup…</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1423,6 +1514,11 @@ export class StatsEngine {
           try { this.heatMaps.bind(pane); } catch (e) {}
           try { this._makeSortable(pane); } catch (e) {}
           try { this._wireSubtabs(pane); } catch (e) {}
+        }
+        // Matchup: your offense vs a scouted opponent's defense (cross-game).
+        if (tab.dataset.tab === 'matchup' && pane.dataset.matchupLoaded !== '1') {
+          try { this._renderMatchupInto(pane); } catch (e) { pane.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gi-dim,#93a1b2)">Matchup unavailable.</div>'; }
+          pane.dataset.matchupLoaded = '1';
         }
         this._lastTab = tab.dataset.tab;
       });
@@ -1468,6 +1564,15 @@ export class StatsEngine {
       row.addEventListener('click', () => {
         const filter = this._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);
         this._watchPlays(filter, row.dataset.cutLabel || '');
+      });
+    });
+
+    // Drive-chart rows carry their own play ids (drives are reconstructed, not a
+    // single tag), so they film by id membership rather than _buildCutFilter.
+    el.querySelectorAll('.drive-row[data-drive-ids]').forEach(row => {
+      row.addEventListener('click', () => {
+        const ids = new Set((row.dataset.driveIds || '').split(',').filter(Boolean));
+        if (ids.size) this._watchPlays(p => ids.has(String(p.id)), row.querySelector('.drive-num')?.textContent || 'Drive');
       });
     });
 

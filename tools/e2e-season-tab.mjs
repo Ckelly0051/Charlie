@@ -273,6 +273,66 @@ r = await page.evaluate(() => {
 ok(r.btnExists, 'Expand button is present in the play controls', JSON.stringify(r));
 ok(r.called === 1, 'clicking Expand requests fullscreen on #videoContainer', JSON.stringify(r));
 
+console.log('\n== 8. Drive chart: reconstructs drives + rows carry play ids ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats, mk = window.__mk;
+  const plays = [
+    mk({ unit: 'offense', down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4' }),
+    mk({ unit: 'offense', down: '2', distance: '6', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '3' }),
+    mk({ unit: 'offense', down: '3', distance: '3', playType: 'Run Inside', runPass: 'Run', result: 'No Gain', yardage: '0' }),
+    mk({ unit: 'offense', down: '4', distance: '3', stType: 'Punt', result: 'Punt', yardage: '0' }),
+    mk({ unit: 'offense', down: '1', distance: '10', playType: 'Deep Pass', runPass: 'Pass', result: 'Gain', yardage: '40' }),
+    mk({ unit: 'offense', down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Touchdown', yardage: '10' }),
+  ];
+  const ds = eng._driveStats(plays);
+  const html = eng._renderDriveChart({ drives: ds });
+  return {
+    driveCount: ds.list.length,
+    hasIds: ds.list.length > 0 && ds.list.every(d => Array.isArray(d.playIds)),
+    htmlRows: /drive-row/.test(html) && /data-drive-ids/.test(html),
+  };
+});
+ok(r.driveCount >= 1, 'drives reconstructed from the play sequence', JSON.stringify(r));
+ok(r.hasIds, 'each drive carries playIds (click-to-film)', JSON.stringify(r));
+ok(r.htmlRows, 'drive chart renders rows with play ids', JSON.stringify(r));
+
+console.log('\n== 9. Matchup: empty state with no scout data, side-by-side with it ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats, mk = window.__mk;
+  const pane = document.createElement('div');
+  const orig = eng._matchupData.bind(eng);
+  eng._matchupData = () => ({ opponents: [], yourOff: [] });
+  eng._renderMatchupInto(pane);
+  const emptyOk = /Opponent Scout/i.test(pane.innerHTML);
+  eng._matchupData = () => ({
+    opponents: [{ name: 'Test Foe', defPlays: Array.from({ length: 6 }, () => mk({ unit: 'defense', down: '2', distance: '8', defFront: 'Nickel', coverage: 'Cover 3', result: 'Incomplete', yardage: '0' })) }],
+    yourOff: Array.from({ length: 6 }, () => mk({ unit: 'offense', down: '1', distance: '10', formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' })),
+  });
+  eng._renderMatchupInto(pane);
+  const populatedOk = /gi-matchup/.test(pane.innerHTML) && /Test Foe/.test(pane.innerHTML);
+  eng._matchupData = orig;
+  return { emptyOk, populatedOk };
+});
+ok(r.emptyOk, 'Matchup shows the "scout an opponent" empty state with no scout data', JSON.stringify(r));
+ok(r.populatedOk, 'Matchup renders our offense vs the opponent defense when scouted', JSON.stringify(r));
+
+console.log('\n== 10. Depth chart: groups roster by side + position ==');
+r = await page.evaluate(() => {
+  const roster = window.app.roster;
+  roster.players = [
+    { num: '7', name: 'Hayes', pos: 'QB', side: 'O' },
+    { num: '22', name: 'Carter', pos: 'RB', side: 'O' },
+    { num: '55', name: 'Osei', pos: 'LB', side: 'D' },
+  ];
+  let html = '';
+  const origOpen = window.open;
+  window.open = () => ({ document: { open() {}, write(s) { html += s; }, close() {} }, focus() {}, print() {} });
+  try { roster.exportDepthChart(); } finally { window.open = origOpen; }
+  return { hasOffense: /Offense/.test(html), hasDefense: /Defense/.test(html), hasQB: /QB/.test(html), hasPlayer: /Hayes/.test(html) };
+});
+ok(r.hasOffense && r.hasDefense, 'depth chart groups by side (Offense / Defense)', JSON.stringify(r));
+ok(r.hasQB && r.hasPlayer, 'depth chart lists positions + players', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
