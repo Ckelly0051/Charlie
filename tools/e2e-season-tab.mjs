@@ -353,7 +353,7 @@ r = await page.evaluate(() => {
     htmlHasPunts: /Punts/.test(html) && /Special Teams/.test(html), xpPts,
   };
 });
-ok(r.puntN === 2 && r.gross === 42.5 && r.net === 40, 'punt count + gross/net avg', JSON.stringify(r));
+ok(r.puntN === 2 && r.gross === 42.5 && r.net === 30, 'punt count + gross/net avg (touchback nets gross−20)', JSON.stringify(r));
 ok(r.tb === 50, 'punt touchback % from kick outcome', JSON.stringify(r));
 ok(r.fgMade === 1 && r.fgAtt === 2, 'field goals made/att via kickOutcome', JSON.stringify(r));
 ok(r.prTd === 1 && r.krAvg === 30, 'return game (punt-return TD + kick-return avg)', JSON.stringify(r));
@@ -371,12 +371,21 @@ r = await page.evaluate(() => {
   const fg = { hangHidden: fieldHidden('tagHangTime') === true, good: chipHidden('Good') === false };
   tagger._applyStPhase('');
   const cleared = fieldHidden('tagKickDistance') === true;
-  return { punt, fg, cleared };
+  // Stale-field clearing on a user phase switch (_onStPhaseChange).
+  tagger.tagFields.kickOutcome.value = 'Downed';
+  tagger._onStPhaseChange('Field Goal');
+  const staleCleared = tagger.tagFields.kickOutcome.value === '';
+  tagger.tagFields.kickOutcome.value = 'Good';
+  tagger._onStPhaseChange('Field Goal');
+  const validKept = tagger.tagFields.kickOutcome.value === 'Good';
+  return { punt, fg, cleared, staleCleared, validKept };
 });
 ok(r.punt.hang && r.punt.dist, 'Punt phase shows hang time + kick distance', JSON.stringify(r));
 ok(r.punt.good && r.punt.downed, 'Punt shows coverage outcomes, hides Good/No Good', JSON.stringify(r));
 ok(r.fg.hangHidden && r.fg.good, 'FG phase hides hang time, shows Good', JSON.stringify(r));
 ok(r.cleared, 'no ST phase hides the detail fields', JSON.stringify(r));
+ok(r.staleCleared, 'switching phase clears an outcome the new phase cannot use', JSON.stringify(r));
+ok(r.validKept, 'switching phase keeps an outcome the new phase still allows', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

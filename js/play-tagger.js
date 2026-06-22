@@ -281,7 +281,7 @@ export class PlayTagger {
     // detail fields/chips that phase uses (kickoff hang time, punt net, FG
     // result, etc.).
     if (this.tagFields.stType) {
-      this.tagFields.stType.addEventListener('change', () => this._applyStPhase(this.tagFields.stType.value));
+      this.tagFields.stType.addEventListener('change', () => this._onStPhaseChange(this.tagFields.stType.value));
     }
 
     // Player-role inputs save into play.tags.players.
@@ -955,6 +955,27 @@ export class PlayTagger {
     this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
+  }
+
+  /**
+   * User switched ST Play Type: drop any ST detail values the new phase doesn't
+   * use, so a corrected phase can't leave stale data behind (e.g. a Punt's
+   * "Downed" outcome on a play the coach re-tagged as a Field Goal — which would
+   * silently keep that FG out of the made-kick count). Loading a saved play
+   * calls _applyStPhase directly, so saved values are never cleared.
+   */
+  _onStPhaseChange(stType) {
+    const phase = stType || '';
+    const ok = (el) => !!el && (el.dataset.phases || '').split('|').includes(phase);
+    const ko = this.tagFields.kickOutcome;
+    if (ko && ko.value && !ok(document.querySelector(`#tagKickOutcome .pick[data-value="${ko.value}"]`))) {
+      ko.value = ''; this._saveField('kickOutcome');
+    }
+    ['kickDistance', 'hangTime', 'returnYards', 'kickedTo'].forEach(key => {
+      const el = this.tagFields[key];
+      if (el && el.value && !ok(el.closest && el.closest('.st-field'))) { el.value = ''; this._saveField(key); }
+    });
+    this._applyStPhase(stType);
   }
 
   /**

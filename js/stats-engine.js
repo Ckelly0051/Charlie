@@ -761,7 +761,9 @@ export class StatsEngine {
     const punts = {
       n: pp.length,
       grossAvg: avg(pp, p => num(p.tags.kickDistance)),
-      netAvg: avg(pp, p => { const d = num(p.tags.kickDistance); return d == null ? null : d - (num(p.tags.returnYards) || 0); }),
+      // Standard net punt: gross − return − 20 yards for a touchback (the ball
+      // comes out to the 20), so a touchback no longer reads as a full-net punt.
+      netAvg: avg(pp, p => { const d = num(p.tags.kickDistance); return d == null ? null : d - (num(p.tags.returnYards) || 0) - (p.tags.kickOutcome === 'Touchback' ? 20 : 0); }),
       hangAvg: avg(pp, p => num(p.tags.hangTime)),
       tbPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Touchback').length / pp.length * 100) : 0,
       blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
