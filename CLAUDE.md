@@ -217,6 +217,18 @@ src-tauri/                    # Tauri v2 desktop shell
     driveNumber: '',    // auto-incremented
     unit: 'offense',    // 'offense' | 'defense' | 'special' — drives tag-form layout
     stType: '',         // 'Kickoff' | 'Kick Return' | 'Punt' | 'Punt Return' | 'Field Goal' | 'XP' | '2-Pt' | 'Onside' | 'Fake'
+    // Phase-aware special-teams detail (v1.9.13). The tag form's ST section is
+    // PHASE-AWARE: PlayTagger._applyStPhase(stType) shows only the fields/chips
+    // that ST Play Type uses (each .st-field + each #tagKickOutcome chip carries
+    // a "|"-joined data-phases list). StatsEngine._specialTeamsStats reads these
+    // into the Game-tab Special Teams section (punt gross/net/hang/TB%, kickoff
+    // avg/TB%/return-allowed, FG made-att by distance, return game). playPoints()
+    // + _conversionStats() treat kickOutcome==='Good' as a made FG/XP/2-Pt.
+    kickOutcome: '',    // ST result/coverage: 'Returned'|'Touchback'|'Fair Catch'|'Downed'|'Out of Bounds'|'Muffed'|'Blocked'|'Recovered' (KO/Punt) ; 'Good'|'No Good'|'Blocked' (FG/XP/2-Pt)
+    kickDistance: '',   // gross kick yards (KO/Punt/FG)
+    returnYards: '',    // return yards (KO/Punt + their returns); net = kickDistance − returnYards
+    hangTime: '',       // seconds (KO/Punt)
+    kickedTo: '',       // landing yard line (KO/Punt)
     players: {},        // { ballCarrier, passer, receiver, tackler, kicker, returner } -> jersey # strings. Most roles hold a single #; tackler may hold MULTIPLE (shared tackles), stored as a "55, 22"-style string. StatsEngine.splitPlayers() splits any player value into individual #s.
     grades: {},         // same role keys -> integer (-2 to +2)
     custom: []          // freeform string array
