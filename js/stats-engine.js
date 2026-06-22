@@ -103,11 +103,13 @@ export class StatsEngine {
     if (!p || !p.tags) return 0;
     const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
+    // "Made" via the explicit Kick Outcome (phase-aware ST) or a legacy Good result.
+    const made = p.tags.kickOutcome === 'Good' || res.includes('Good');
     if (res.includes('Touchdown')) return 6;
     if (res.includes('Safety')) return 2;
-    if (st === '2-Pt') return res.includes('Good') ? 2 : 0;
-    if (st === 'XP') return res.includes('Good') ? 1 : 0;
-    if (st === 'Field Goal') return res.includes('Good') ? 3 : 0;
+    if (st === '2-Pt') return made ? 2 : 0;
+    if (st === 'XP') return made ? 1 : 0;
+    if (st === 'Field Goal') return made ? 3 : 0;
     if (res.includes('Field Goal')) return 3;
     return 0;
   }
@@ -259,6 +261,7 @@ export class StatsEngine {
       defensive: this._defensiveStats(defPlays),
       gameFlow: this._gameFlowStats(offPlays),
       conversions: this._conversionStats(convSource),
+      specialTeams: this._specialTeamsStats(plays),
       scoreboard: this.computeScoreboard(convSource),
       hash: this._hashStats(offPlays),
       personnelSituation: this._personnelSituationStats(offPlays),
@@ -731,7 +734,7 @@ export class StatsEngine {
    * even on ST plays that carry no offensive playType.
    */
   _conversionStats(source) {
-    const made = (p) => StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
+    const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
     // Only OUR conversions count toward our PAT% — a kick marked 'Scored by:
     // Them' belongs to the opponent.
     const tally = (type) => {
@@ -742,6 +745,65 @@ export class StatsEngine {
     const two = tally('2-Pt');
     const xp = tally('XP');
     return { two, xp, hasData: two.att > 0 || xp.att > 0 };
+  }
+
+  // Phase-aware special teams: punts (gross/net/hang/TB%), kickoffs (avg/TB%/
+  // return allowed), field goals (made-att + by distance), and the return game.
+  // Reads the new ST detail fields (kickDistance/returnYards/hangTime/kickedTo/
+  // kickOutcome); falls back gracefully when they're blank (legacy plays).
+  _specialTeamsStats(plays) {
+    const num = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+    const by = (type) => plays.filter(p => p.tags && p.tags.stType === type);
+    const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
+    const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good');
+
+    const pp = by('Punt');
+    const punts = {
+      n: pp.length,
+      grossAvg: avg(pp, p => num(p.tags.kickDistance)),
+      netAvg: avg(pp, p => { const d = num(p.tags.kickDistance); return d == null ? null : d - (num(p.tags.returnYards) || 0); }),
+      hangAvg: avg(pp, p => num(p.tags.hangTime)),
+      tbPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Touchback').length / pp.length * 100) : 0,
+      blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
+    };
+    const ko = by('Kickoff');
+    const kickoffs = {
+      n: ko.length,
+      avg: avg(ko, p => num(p.tags.kickDistance)),
+      tbPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Touchback').length / ko.length * 100) : 0,
+      retAllowedAvg: avg(ko.filter(p => p.tags.kickOutcome === 'Returned'), p => num(p.tags.returnYards)),
+    };
+    const fgp = by('Field Goal');
+    const fg = {
+      att: fgp.length, made: fgp.filter(made).length,
+      pct: fgp.length ? Math.round(fgp.filter(made).length / fgp.length * 100) : 0,
+      long: fgp.filter(made).reduce((m, p) => Math.max(m, num(p.tags.kickDistance) || 0), 0),
+      byDist: [['<30', 0, 29], ['30-39', 30, 39], ['40-49', 40, 49], ['50+', 50, 99]].map(([label, lo, hi]) => {
+        const att = fgp.filter(p => { const d = num(p.tags.kickDistance); return d != null && d >= lo && d <= hi; });
+        return { label, att: att.length, made: att.filter(made).length };
+      }).filter(b => b.att > 0),
+    };
+    const ret = (type) => {
+      const arr = by(type);
+      const yds = arr.map(p => num(p.tags.returnYards)).filter(x => x != null);
+      return { n: arr.length, avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null, long: yds.length ? Math.max(...yds) : 0, td: arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length };
+    };
+    const returns = { kick: ret('Kick Return'), punt: ret('Punt Return') };
+    return { punts, kickoffs, fg, returns, hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n) };
+  }
+
+  _renderSpecialTeams(stats) {
+    const st = stats.specialTeams;
+    if (!st || !st.hasData) return '';
+    const v = (x, suf = '') => (x == null ? '—' : x + suf);
+    const kpi = (label, value, sub) => `<div class="gi-kpi"><div class="gi-kpi-label">${label}</div><div class="gi-kpi-value">${value}</div><div class="gi-kpi-sub">${sub}</div></div>`;
+    const cards = [];
+    if (st.punts.n) cards.push(kpi('Punts', st.punts.n, `${v(st.punts.grossAvg)} gross · ${v(st.punts.netAvg)} net · ${v(st.punts.hangAvg)}s hang · ${st.punts.tbPct}% TB`));
+    if (st.kickoffs.n) cards.push(kpi('Kickoffs', st.kickoffs.n, `${v(st.kickoffs.avg)} avg · ${st.kickoffs.tbPct}% TB · ${v(st.kickoffs.retAllowedAvg)} ret allowed`));
+    if (st.fg.att) cards.push(kpi('Field Goals', `${st.fg.made}/${st.fg.att}`, `${st.fg.pct}% · long ${st.fg.long}${st.fg.byDist.length ? ' · ' + st.fg.byDist.map(b => `${b.label} ${b.made}/${b.att}`).join(' · ') : ''}`));
+    if (st.returns.kick.n) cards.push(kpi('Kick Returns', st.returns.kick.n, `${v(st.returns.kick.avg)} avg · long ${st.returns.kick.long}${st.returns.kick.td ? ` · ${st.returns.kick.td} TD` : ''}`));
+    if (st.returns.punt.n) cards.push(kpi('Punt Returns', st.returns.punt.n, `${v(st.returns.punt.avg)} avg · long ${st.returns.punt.long}${st.returns.punt.td ? ` · ${st.returns.punt.td} TD` : ''}`));
+    return `<div class="stats-section"><h3>Special Teams</h3><div class="gi-hero">${cards.join('')}</div></div>`;
   }
 
   _downStats(plays) {
@@ -1459,6 +1521,7 @@ export class StatsEngine {
               </div>
               ${this._renderGameFlow(stats)}
               ${this._renderDriveChart(stats)}
+              ${this._renderSpecialTeams(stats)}
             </div>
             <div class="stats-tab-pane" data-pane="offense">
               ${this._renderOffenseHero(stats)}

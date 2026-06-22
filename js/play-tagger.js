@@ -109,6 +109,8 @@ export class PlayTagger {
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
       runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
       scoreFor: 'tagScoreFor',
+      kickOutcome: 'tagKickOutcome', kickDistance: 'tagKickDistance',
+      returnYards: 'tagReturnYards', hangTime: 'tagHangTime', kickedTo: 'tagKickedTo',
     };
     this.tagFields = {};
     // Multi-select fields stored as " + "-joined strings. Formation: a QB can
@@ -273,6 +275,13 @@ export class PlayTagger {
     // so clicking one chip doesn't overwrite other fields with stale values.
     for (const [key, el] of Object.entries(this.tagFields)) {
       el.addEventListener('change', () => this._saveField(key));
+    }
+
+    // Phase-aware special teams: when the ST Play Type changes, show only the
+    // detail fields/chips that phase uses (kickoff hang time, punt net, FG
+    // result, etc.).
+    if (this.tagFields.stType) {
+      this.tagFields.stType.addEventListener('change', () => this._applyStPhase(this.tagFields.stType.value));
     }
 
     // Player-role inputs save into play.tags.players.
@@ -926,6 +935,11 @@ export class PlayTagger {
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this.tagFields.stType.value = play.tags.stType || '';
     this.tagFields.scoreFor.value = play.tags.scoreFor || '';
+    this.tagFields.kickOutcome.value = play.tags.kickOutcome || '';
+    this.tagFields.kickDistance.value = play.tags.kickDistance || '';
+    this.tagFields.returnYards.value = play.tags.returnYards || '';
+    this.tagFields.hangTime.value = play.tags.hangTime || '';
+    this.tagFields.kickedTo.value = play.tags.kickedTo || '';
     const players = play.tags.players || {};
     for (const [role, el] of Object.entries(this.playerFields)) {
       if (el) el.value = players[role] || '';
@@ -937,9 +951,22 @@ export class PlayTagger {
     const unit = play.tags.unit || this.defaultUnit || 'offense';
     if (this.unitField) this.unitField.value = unit;
     this.applyUnitMode(unit);
+    this._applyStPhase(play.tags.stType || '');
     this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
+  }
+
+  /**
+   * Show only the special-teams detail fields/chips the selected ST Play Type
+   * uses. Each .st-field and each Kick Outcome chip carries data-phases (the
+   * stTypes it belongs to, "|"-separated); an empty stType hides them all.
+   */
+  _applyStPhase(stType) {
+    const phase = stType || '';
+    const inPhase = (el) => (el.dataset.phases || '').split('|').filter(Boolean).includes(phase);
+    document.querySelectorAll('.st-field').forEach(el => el.classList.toggle('st-hidden', !phase || !inPhase(el)));
+    document.querySelectorAll('#tagKickOutcome .pick[data-phases]').forEach(chip => chip.classList.toggle('st-hidden', !phase || !inPhase(chip)));
   }
 
   /**

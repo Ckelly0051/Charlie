@@ -333,6 +333,51 @@ r = await page.evaluate(() => {
 ok(r.hasOffense && r.hasDefense, 'depth chart groups by side (Offense / Defense)', JSON.stringify(r));
 ok(r.hasQB && r.hasPlayer, 'depth chart lists positions + players', JSON.stringify(r));
 
+console.log('\n== 11. Special teams: phase stats (gross/net/TB%, FG, returns) + scoring ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats, mk = window.__mk;
+  const plays = [
+    mk({ unit: 'special', stType: 'Punt', kickDistance: '45', returnYards: '5', hangTime: '4.2', kickOutcome: 'Returned' }),
+    mk({ unit: 'special', stType: 'Punt', kickDistance: '40', returnYards: '0', hangTime: '4.6', kickOutcome: 'Touchback' }),
+    mk({ unit: 'special', stType: 'Field Goal', kickDistance: '25', kickOutcome: 'Good' }),
+    mk({ unit: 'special', stType: 'Field Goal', kickDistance: '45', kickOutcome: 'No Good' }),
+    mk({ unit: 'special', stType: 'Kick Return', returnYards: '30' }),
+    mk({ unit: 'special', stType: 'Punt Return', returnYards: '12', result: 'Touchdown' }),
+  ];
+  const st = eng._specialTeamsStats(plays);
+  const html = eng._renderSpecialTeams({ specialTeams: st });
+  const xpPts = eng.constructor.playPoints({ tags: { stType: 'XP', kickOutcome: 'Good' } });
+  return {
+    puntN: st.punts.n, gross: st.punts.grossAvg, net: st.punts.netAvg, tb: st.punts.tbPct,
+    fgMade: st.fg.made, fgAtt: st.fg.att, prTd: st.returns.punt.td, krAvg: st.returns.kick.avg,
+    htmlHasPunts: /Punts/.test(html) && /Special Teams/.test(html), xpPts,
+  };
+});
+ok(r.puntN === 2 && r.gross === 42.5 && r.net === 40, 'punt count + gross/net avg', JSON.stringify(r));
+ok(r.tb === 50, 'punt touchback % from kick outcome', JSON.stringify(r));
+ok(r.fgMade === 1 && r.fgAtt === 2, 'field goals made/att via kickOutcome', JSON.stringify(r));
+ok(r.prTd === 1 && r.krAvg === 30, 'return game (punt-return TD + kick-return avg)', JSON.stringify(r));
+ok(r.htmlHasPunts, 'Special Teams section renders', JSON.stringify(r));
+ok(r.xpPts === 1, 'XP scores via kickOutcome=Good (playPoints)', JSON.stringify(r));
+
+console.log('\n== 12. Phase-aware ST form: fields/chips show per ST Play Type ==');
+r = await page.evaluate(() => {
+  const tagger = window.app.tagger;
+  const fieldHidden = (id) => document.getElementById(id)?.closest('.st-field')?.classList.contains('st-hidden');
+  const chipHidden = (val) => document.querySelector(`#tagKickOutcome .pick[data-value="${val}"]`)?.classList.contains('st-hidden');
+  tagger._applyStPhase('Punt');
+  const punt = { hang: fieldHidden('tagHangTime') === false, dist: fieldHidden('tagKickDistance') === false, good: chipHidden('Good') === true, downed: chipHidden('Downed') === false };
+  tagger._applyStPhase('Field Goal');
+  const fg = { hangHidden: fieldHidden('tagHangTime') === true, good: chipHidden('Good') === false };
+  tagger._applyStPhase('');
+  const cleared = fieldHidden('tagKickDistance') === true;
+  return { punt, fg, cleared };
+});
+ok(r.punt.hang && r.punt.dist, 'Punt phase shows hang time + kick distance', JSON.stringify(r));
+ok(r.punt.good && r.punt.downed, 'Punt shows coverage outcomes, hides Good/No Good', JSON.stringify(r));
+ok(r.fg.hangHidden && r.fg.good, 'FG phase hides hang time, shows Good', JSON.stringify(r));
+ok(r.cleared, 'no ST phase hides the detail fields', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
