@@ -18,6 +18,13 @@
         real slot instead of shoving it to the end — the "trends are backwards"
         fix — while fully-dated games still sort by date.
      7. No console / page errors across the whole flow.
+     8. Opponent Scout (v1.9.17): generate an opponent's tendencies from games
+        you've ALREADY tagged — no re-tagging. Their offense is read from your
+        DEFENSIVE snaps (the formation/play type you faced), their defense from
+        the fronts/coverages you faced on OFFENSE; auto-aggregated across every
+        game vs them, INCLUDING prior seasons read from localStorage. Covers the
+        header button, the offense/defense split, case-insensitive matching, the
+        cross-season merge, the rendered overlay, and the empty state.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -449,6 +456,71 @@ r = await page.evaluate(() => {
 ok(r.hasStrengthTell, 'Self-Scout surfaces a strength / Formation×Strength tell', JSON.stringify(r));
 ok(r.fsMatched === 10, 'comboFStr cut (Trips × Right) resolves to those plays', JSON.stringify(r));
 ok(r.hasBackfieldDim && r.hasStrengthDim, 'Tendency Matrix gains Backfield + Strength dimensions', JSON.stringify(r));
+
+console.log('\n== 16. Opponent Scout: auto-aggregate from already-tagged games, across seasons ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats, mk = window.__mk;
+  const store = window.app.storage.seasonStore;
+  // The Scout-Opponent button lives in the dashboard header.
+  eng.showDashboard();
+  const hasBtn = !!document.querySelector('#statsDashboard #btnScoutOpp');
+  // A game we PLAYED vs "Test Rivals": our DEFENSIVE snaps captured their offense
+  // (Trips, mostly run), our OFFENSIVE snaps captured the fronts they showed (3-4).
+  const game = {
+    id: 'oppscout_cur', name: 'vs Test Rivals',
+    gameInfo: { opponent: 'Test Rivals', perspective: '' },
+    plays: [
+      mk({ unit: 'defense', formation: 'Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '6', down: '1', distance: '10' }),
+      mk({ unit: 'defense', formation: 'Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', down: '2', distance: '4' }),
+      mk({ unit: 'defense', formation: 'Trips', playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '8', down: '1', distance: '10' }),
+      mk({ unit: 'defense', formation: 'Empty', playType: 'Deep Pass', runPass: 'Pass', result: 'Incomplete', yardage: '0', down: '3', distance: '8' }),
+      mk({ unit: 'offense', formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '7', defFront: '3-4', coverage: 'Cover 2' }),
+      mk({ unit: 'offense', formation: 'Shotgun', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3', defFront: '3-4', coverage: 'Man' }),
+    ],
+    annotations: {}, nextId: 50, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false
+  };
+  store.data.games.push(game);
+  const one = eng.generateOpponentScout('Test Rivals');
+  const trips1 = one.offReport && one.offReport.formationDetail.find(f => f.name === 'Trips');
+  const front34 = one.defFronts.find(([f]) => f === '3-4');
+  const ci = eng.generateOpponentScout('test rivals');     // case-insensitive
+  // Now stash a PRIOR SEASON in localStorage with another game vs the same team.
+  const other = { version: 5, type: 'season', games: [
+    { id: 'g_old', gameInfo: { opponent: 'Test Rivals' }, plays: [
+      mk({ unit: 'defense', formation: 'Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5' }) ] } ] };
+  localStorage.setItem('ffa_season_xtest', JSON.stringify(other));
+  const lib = JSON.parse(localStorage.getItem('ffa_library') || '[]');
+  lib.push({ id: 'xtest', name: 'Last Year' });
+  localStorage.setItem('ffa_library', JSON.stringify(lib));
+  const agg = eng.generateOpponentScout('Test Rivals');
+  const trips2 = agg.offReport && agg.offReport.formationDetail.find(f => f.name === 'Trips');
+  // Render the overlay and read it back.
+  eng.renderOpponentScout('Test Rivals');
+  const ov = document.querySelector('#statsDashboard .stats-overlay');
+  const txt = ov ? ov.textContent : '';
+  // Empty-state for an unknown opponent.
+  eng.renderOpponentScout('Nobody United');
+  const emptyTxt = (document.querySelector('#statsDashboard .stats-overlay') || {}).textContent || '';
+  return {
+    hasBtn,
+    oneGames: one.games, oneOff: one.offCount, oneDef: one.defCount,
+    tripsTotal1: trips1 ? trips1.total : 0, tripsRunPct: trips1 ? trips1.runPct : -1,
+    front34: front34 ? front34[1] : 0,
+    ciGames: ci ? ci.games : 0,
+    aggGames: agg.games, aggOff: agg.offCount, tripsTotal2: trips2 ? trips2.total : 0,
+    rendered: !!ov, theirOff: /Their Offense/.test(txt), theirFronts: /Their Defensive Fronts/.test(txt),
+    aggLine: /aggregated/i.test(txt),
+    emptyState: /No games found/.test(emptyTxt),
+  };
+});
+ok(r.hasBtn, 'Scout-Opponent button sits in the dashboard header', JSON.stringify(r));
+ok(r.oneGames === 1 && r.oneOff === 4 && r.oneDef === 2, 'one tagged game: their offense=our 4 D-snaps, their defense=our 2 O-snaps', JSON.stringify(r));
+ok(r.tripsTotal1 === 3 && r.tripsRunPct === 100, 'their offensive tendency built from our defensive snaps (Trips ×3, 100% run)', JSON.stringify(r));
+ok(r.front34 === 2, 'their defensive front (3-4) tallied from the fronts we faced', JSON.stringify(r));
+ok(r.ciGames === 1, 'opponent matching is case-insensitive', JSON.stringify(r));
+ok(r.aggGames === 2 && r.aggOff === 5 && r.tripsTotal2 === 4, 'aggregates a prior SEASON too (2 games, Trips ×4 merged)', JSON.stringify(r));
+ok(r.rendered && r.theirOff && r.theirFronts && r.aggLine, 'renderOpponentScout shows their offense, their fronts, and provenance', JSON.stringify(r));
+ok(r.emptyState, 'unknown opponent shows the "tag a game / no re-tag" empty state', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

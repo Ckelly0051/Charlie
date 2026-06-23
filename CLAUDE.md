@@ -697,6 +697,39 @@ Set "Film shows" to **Opponent Scout** in Game Info to reveal the scouting panel
 
 Methods in `StatsEngine`: `generateScoutReport()`, `renderScoutReport()`, `_exportScoutReport()`.
 
+### Scout an opponent you've already played — no re-tagging (v1.9.17)
+
+Opponent Scout mode above is for **fresh** opponent film (e.g. their game vs
+someone else). But if you've **already played** an opponent, their tendencies
+are already in that game — just on the other side of the ball — so re-tagging is
+redundant. The **🔍 Scout Opponent** button in the stats dashboard header
+generates an opponent report by **auto-aggregating every game you've tagged
+against them, across ALL seasons**, with zero re-tagging:
+
+- **Their offense** ← your **defensive** snaps (in a game you played, a
+  `unit:'defense'` play carries the formation / play type / result you *faced* =
+  their offense). Fed straight into `generateScoutReport(offPlays)` for run/pass,
+  formation tendencies, and down & distance.
+- **Their defense** ← the fronts & coverages you faced on your **offensive**
+  snaps (`unit:'offense'` plays' `defFront` / `coverage`).
+- A `perspective:'scout'` game (their film, tagged directly) is taken **as-is**
+  (offense = offensive snaps, defense = defensive snaps).
+
+**Cross-season aggregation** (`_allSeasonGames`): the current season comes from
+`seasonStore.data` in-memory (freshest, after `commitActive`); other seasons are
+read straight from `localStorage ffa_season_<id>` (enumerated via `ffa_library`),
+so two years of reps against the same team roll into one sheet. Browser-path
+only; on desktop other seasons live in files (the current season still works).
+Honest limitation: the *formation* breakdown is only as rich as how often you
+tagged the formation you were facing on defense (down/distance + run/pass are
+always there).
+
+Methods in `StatsEngine`: `generateOpponentScout(opponentName)`,
+`renderOpponentScout(opponentName)`, `_allSeasonGames()`, `_activeOpponent()`.
+Verified by `tools/e2e-season-tab.mjs` Test 16. (This delivers the backlog's
+"reusable opponent — aggregate across every game/season" idea for the scouting
+use case.)
+
 ## Self-Scout Report
 
 The flip side of opponent scouting: run the same lens on **your own offense**
