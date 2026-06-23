@@ -19916,6 +19916,7 @@ class StatsEngine {
           <div class="stats-header">
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
+              <button class="btn btn-sm" id="btnScoutOpp" title="Auto-scout this opponent from every game you've already tagged against them — no re-tagging">🔍 Scout Opponent</button>
               <button class="btn btn-sm" id="btnExportStats">Export PDF</button>
               <button class="btn btn-sm btn-danger" id="btnCloseStatsInner">Close</button>
             </div>
@@ -20025,6 +20026,8 @@ class StatsEngine {
 
     // Export button
     el.querySelector('#btnExportStats').addEventListener('click', () => this._exportStats(stats));
+    const scoutOppBtn = el.querySelector('#btnScoutOpp');
+    if (scoutOppBtn) scoutOppBtn.addEventListener('click', () => this.renderOpponentScout(this._activeOpponent()));
 
     // Self-scout export
     el.querySelector('#btnExportSelfScout')?.addEventListener('click', () => {
@@ -21402,6 +21405,162 @@ class StatsEngine {
       redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length },
       thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length },
     };
+  }
+
+  // ---- Opponent Scout: aggregate from games you've ALREADY tagged ----
+  // No re-tagging. In a game you played them, their tendencies are already on
+  // the other side of the ball: your DEFENSIVE snaps carry their offense
+  // (formation / play type / result you faced), your OFFENSIVE snaps carry the
+  // fronts & coverages they showed you. A perspective:'scout' game (you tagged
+  // their film directly) is taken as-tagged. Aggregates EVERY game vs them
+  // across ALL seasons — current season in-memory (freshest), others read
+  // straight from localStorage (browser: ffa_season_<id>).
+  _allSeasonGames() {
+    const games = [];
+    const store = window.app && window.app.storage && window.app.storage.seasonStore;
+    let curId = null;
+    if (store) {
+      try { window.app.storage.commitActive(); } catch (e) {}
+      curId = store.currentSeasonId;
+      if (store.data && Array.isArray(store.data.games)) store.data.games.forEach(g => games.push(g));
+    }
+    let lib = [];
+    try { lib = JSON.parse(localStorage.getItem('ffa_library') || '[]') || []; } catch (e) {}
+    lib.forEach(meta => {
+      if (!meta || !meta.id || meta.id === curId) return;
+      try {
+        const sd = JSON.parse(localStorage.getItem('ffa_season_' + meta.id) || 'null');
+        if (sd && Array.isArray(sd.games)) sd.games.forEach(g => games.push(g));
+      } catch (e) {}
+    });
+    return games;
+  }
+
+  _activeOpponent() {
+    try {
+      const d = window.app.storage.seasonStore.data;
+      if (d && Array.isArray(d.games)) {
+        const g = d.games.find(x => x.id === d.activeGameId) || d.games[0];
+        const o = g && g.gameInfo && g.gameInfo.opponent;
+        if (o && String(o).trim()) return String(o).trim();
+      }
+    } catch (e) {}
+    const dom = document.getElementById('gameOpponent');
+    return dom && dom.value ? dom.value.trim() : '';
+  }
+
+  generateOpponentScout(opponentName) {
+    const target = String(opponentName || '').trim().toLowerCase();
+    if (!target) return null;
+    const matched = this._allSeasonGames().filter(g =>
+      String((g.gameInfo && g.gameInfo.opponent) || '').trim().toLowerCase() === target);
+    const offPlays = [], defPlays = [];
+    matched.forEach(g => {
+      const scout = String((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
+      (g.plays || []).forEach(p => {
+        const unit = (p.tags && p.tags.unit) || 'offense';
+        if (scout ? unit === 'offense' : unit === 'defense') offPlays.push(p);
+        else if (scout ? unit === 'defense' : unit === 'offense') defPlays.push(p);
+      });
+    });
+    const frontCounts = {}, covCounts = {};
+    defPlays.forEach(p => {
+      StatsEngine.splitFronts(p.tags.defFront).forEach(f => { if (f) frontCounts[f] = (frontCounts[f] || 0) + 1; });
+      if (p.tags.coverage) covCounts[p.tags.coverage] = (covCounts[p.tags.coverage] || 0) + 1;
+    });
+    const sortDesc = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    return {
+      opponent: opponentName,
+      games: matched.length,
+      offReport: offPlays.length ? this.generateScoutReport(offPlays) : null,
+      offCount: offPlays.length,
+      defFronts: sortDesc(frontCounts),
+      defCoverages: sortDesc(covCounts),
+      defCount: defPlays.length
+    };
+  }
+
+  renderOpponentScout(opponentName) {
+    const esc = Charts._esc;
+    const data = this.generateOpponentScout(opponentName);
+    const name = esc(opponentName || 'Opponent');
+    let body;
+    if (!data || data.games === 0) {
+      body = `<div class="stats-section"><p style="color:var(--text-dim);line-height:1.7">
+        No games found against <strong>${name}</strong>. Set the opponent in the Game menu and tag a game
+        against them — your <strong>defensive</strong> snaps capture their offense (the formation &amp; play type
+        you faced), your <strong>offensive</strong> snaps capture their defense (the fronts &amp; coverages they
+        showed). Re-open this report and it builds automatically — no separate scout film needed.</p></div>`;
+    } else {
+      const r = data.offReport;
+      const off = r ? `
+        <div class="stats-section">
+          <h3>Their Offense — Overview (${r.totalPlays} plays)</h3>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-card-title">Run/Pass</div><div class="stat-card-value">${r.stats.tendencies.runPassRatio}</div></div>
+            <div class="stat-card"><div class="stat-card-title">Run %</div><div class="stat-card-value">${r.stats.tendencies.runPct}%</div></div>
+            <div class="stat-card"><div class="stat-card-title">Avg Yards</div><div class="stat-card-value">${r.totalPlays ? ((r.stats.rushing.yards + r.stats.passing.yards) / r.totalPlays).toFixed(1) : '0.0'}</div></div>
+            <div class="stat-card"><div class="stat-card-title">3rd Down</div><div class="stat-card-value">${r.thirdDown.total ? `${r.thirdDown.converted}/${r.thirdDown.total}` : 'N/A'}</div></div>
+          </div>
+        </div>
+        <div class="stats-section">
+          <h3>Their Formation Tendencies</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead>
+            <tbody>${r.formationDetail.map(f => `<tr><td>${esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+        <div class="stats-section">
+          <h3>Their Down &amp; Distance Tendencies</h3>
+          <table class="stats-table stats-table-full">
+            <thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead>
+            <tbody>${r.downTendency.map(d => `<tr><td>${esc(d.key)}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`).join('')}</tbody>
+          </table>
+        </div>` : `<div class="stats-section"><p style="color:var(--text-dim)">No offensive snaps tagged against them yet. Tag your <strong>defensive</strong> plays (the formation &amp; play type you faced) to build their offensive tendencies.</p></div>`;
+      const td = data.defCount || 0;
+      const defSection = (data.defFronts.length || data.defCoverages.length) ? `
+        <div class="stats-section stats-two-col">
+          ${data.defFronts.length ? `<div>
+            <h3>Their Defensive Fronts</h3>
+            <table class="stats-table stats-table-full">
+              <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
+              <tbody>${data.defFronts.map(([f, c]) => `<tr><td>${esc(f)}</td><td>${c}</td><td>${td ? Math.round(c / td * 100) : 0}%</td></tr>`).join('')}</tbody>
+            </table>
+          </div>` : ''}
+          ${data.defCoverages.length ? `<div>
+            <h3>Their Coverages</h3>
+            <table class="stats-table stats-table-full">
+              <thead><tr><th>Coverage</th><th>#</th><th>%</th></tr></thead>
+              <tbody>${data.defCoverages.map(([c, n]) => `<tr><td>${esc(c)}</td><td>${n}</td><td>${td ? Math.round(n / td * 100) : 0}%</td></tr>`).join('')}</tbody>
+            </table>
+          </div>` : ''}
+        </div>` : '';
+      body = `
+        <div class="stats-section">
+          <p style="color:var(--text-dim);margin:0;line-height:1.6">Auto-aggregated from <strong>${data.games}</strong> game${data.games === 1 ? '' : 's'} you've tagged against ${name}
+          — ${data.offCount} of their offensive snaps, ${data.defCount} defensive. Pulled straight from your film; nothing re-tagged.</p>
+        </div>
+        ${off}
+        ${defSection}`;
+    }
+    const html = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>Opponent Report: ${name}</h2>
+            <div class="stats-header-actions">
+              <button class="btn btn-sm btn-danger" id="btnCloseOppScout">Close</button>
+            </div>
+          </div>
+          <div class="stats-body">${body}</div>
+        </div>
+      </div>`;
+    this.dashboardEl.innerHTML = html;
+    this.dashboardEl.classList.remove('hidden');
+    const closeBtn = this.dashboardEl.querySelector('#btnCloseOppScout');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.hideDashboard());
+    const overlay = this.dashboardEl.querySelector('.stats-overlay');
+    if (overlay) overlay.addEventListener('click', (e) => { if (e.target.classList.contains('stats-overlay')) this.hideDashboard(); });
   }
 
   renderScoutReport() {
@@ -27980,7 +28139,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.16';
+const APP_VERSION = '1.9.17';
 
 class App {
   constructor() {
