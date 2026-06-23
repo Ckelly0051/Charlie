@@ -64,6 +64,28 @@ export class SeasonStore {
 
   _newId() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
+  // Hudl-model migration (v1.9.15): backfield alignment used to be mixed into the
+  // multi-select Formation field. Split it into the new single `backfield` tag so
+  // Formation holds STRUCTURE only. Idempotent (after the move there's no backfield
+  // type left in formation) and non-destructive (formation + backfield reconstruct
+  // the original); never clobbers a backfield the coach set deliberately.
+  static BACKFIELD_FROM_FORMATION = { 'I-Form': 'I', 'Singleback': 'Single', 'Split Back': 'Split', 'Power-I': 'Power' };
+  static migratePlayFormation(p) {
+    if (!p || !p.tags) return;
+    const t = p.tags;
+    if (typeof t.backfield !== 'string') t.backfield = '';
+    if (typeof t.strength !== 'string') t.strength = '';
+    if (!t.formation || typeof t.formation !== 'string') return;
+    const map = SeasonStore.BACKFIELD_FROM_FORMATION;
+    const parts = t.formation.split(' + ').map(s => s.trim()).filter(Boolean);
+    let bf = '';
+    const kept = parts.filter(part => { if (map[part]) { bf = map[part]; return false; } return true; });
+    if (bf) {
+      if (!t.backfield) t.backfield = bf;   // don't overwrite a deliberate pick
+      t.formation = kept.join(' + ');
+    }
+  }
+
   /** Coerce any loaded object into a well-formed season (back-compat safe). */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
@@ -75,6 +97,7 @@ export class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
+      g.plays.forEach(p => SeasonStore.migratePlayFormation(p));
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;

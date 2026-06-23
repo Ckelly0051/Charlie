@@ -108,7 +108,7 @@ export class PlayTagger {
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
       runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
-      scoreFor: 'tagScoreFor',
+      scoreFor: 'tagScoreFor', backfield: 'tagBackfield', strength: 'tagStrength',
       kickOutcome: 'tagKickOutcome', kickDistance: 'tagKickDistance',
       returnYards: 'tagReturnYards', hangTime: 'tagHangTime', kickedTo: 'tagKickedTo',
     };
@@ -932,6 +932,8 @@ export class PlayTagger {
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.motion.value = play.tags.motion || '';
     this.tagFields.playDir.value = play.tags.playDir || '';
+    this.tagFields.backfield.value = play.tags.backfield || '';
+    this.tagFields.strength.value = play.tags.strength || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this.tagFields.stType.value = play.tags.stType || '';
     this.tagFields.scoreFor.value = play.tags.scoreFor || '';

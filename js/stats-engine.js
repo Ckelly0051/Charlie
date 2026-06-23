@@ -365,6 +365,33 @@ export class StatsEngine {
       <div class="drive-chart">${rows}</div></div>`;
   }
 
+  // Backfield + Strength tendency tables (the new Hudl-model dimensions). Each
+  // row is click-to-film via the shared cut wiring (backfield / strength cuts).
+  _renderBackfieldStrength(stats) {
+    const plays = stats.offPlays || [];
+    const build = (cutType, label, get) => {
+      const groups = {};
+      plays.forEach(p => { const v = get(p); if (v) (groups[v] = groups[v] || []).push(p); });
+      return Object.entries(groups).map(([name, ps]) => {
+        const runs = ps.filter(p => StatsEngine.isRun(p)).length;
+        const passes = ps.filter(p => StatsEngine.isPass(p)).length;
+        const yards = ps.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+        const succ = ps.filter(p => this._isSuccessfulPlay(p)).length;
+        return { label: name, count: ps.length, runs, passes, yards,
+          successPct: ps.length ? Math.round(succ / ps.length * 100) : 0,
+          avg: ps.length ? (yards / ps.length).toFixed(1) : '0.0',
+          cutType, cutVal: name, cutLabel: `${label}: ${name}` };
+      }).sort((a, b) => b.count - a.count);
+    };
+    const bf = build('backfield', 'Backfield', p => p.tags.backfield);
+    const str = build('strength', 'Strength', p => p.tags.strength);
+    if (!bf.length && !str.length) return '';
+    return `<div class="stats-section"><h3>Backfield &amp; Strength</h3>`
+      + (bf.length ? `<h4 class="ss-subhead">Backfield</h4>${Charts.effectivenessRows(bf)}` : '')
+      + (str.length ? `<h4 class="ss-subhead">Strength</h4>${Charts.effectivenessRows(str)}` : '')
+      + `</div>`;
+  }
+
   // Matchup data: your offense (from your games) + each scouted opponent's
   // defense (from games whose "Film shows" is Opponent Scout, defensive snaps).
   _matchupData() {
@@ -1530,6 +1557,7 @@ export class StatsEngine {
               ${this._renderPlayAction(stats)}
               ${this._renderTendencies(stats)}
               ${this._renderPersonnel(stats)}
+              ${this._renderBackfieldStrength(stats)}
               ${this._renderDirectionMotion(stats)}
               ${this._renderHashStats(stats)}
               ${this._renderPersonnelSituation(stats)}
@@ -1783,6 +1811,8 @@ export class StatsEngine {
       case 'formation': return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(val);
       case 'playType':  return p => isOff(p) && StatsEngine.splitPlayTypes(p.tags.playType).includes(val);
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
+      case 'backfield': return p => isOff(p) && (p.tags.backfield || '') === val;
+      case 'strength':  return p => isOff(p) && (p.tags.strength || '') === val;
       case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;

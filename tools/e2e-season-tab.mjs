@@ -387,6 +387,48 @@ ok(r.cleared, 'no ST phase hides the detail fields', JSON.stringify(r));
 ok(r.staleCleared, 'switching phase clears an outcome the new phase cannot use', JSON.stringify(r));
 ok(r.validKept, 'switching phase keeps an outcome the new phase still allows', JSON.stringify(r));
 
+console.log('\n== 13. Formation→Backfield migration (Hudl model): split, idempotent, safe ==');
+r = await page.evaluate(() => {
+  const SeasonStore = window.app.storage.seasonStore.constructor;
+  const mig = (formation, backfield) => {
+    const p = { tags: { formation, backfield } };
+    SeasonStore.migratePlayFormation(p);
+    return { f: p.tags.formation, b: p.tags.backfield, s: p.tags.strength };
+  };
+  const a = mig('Pistol + Singleback + Trips', undefined);
+  const b = mig('I-Form', undefined);
+  const c = mig('Shotgun + Empty', undefined);
+  const d = mig('Shotgun + Trips', 'Strong');
+  const a2 = { tags: { formation: a.f, backfield: a.b } };
+  SeasonStore.migratePlayFormation(a2);
+  return { a, b, c, d, idempotent: a2.tags.formation === a.f && a2.tags.backfield === a.b };
+});
+ok(r.a.f === 'Pistol + Trips' && r.a.b === 'Single', 'splits the backfield out of formation', JSON.stringify(r.a));
+ok(r.b.f === '' && r.b.b === 'I', 'bare backfield formation → backfield, formation empties', JSON.stringify(r.b));
+ok(r.c.f === 'Shotgun + Empty' && r.c.b === '', 'Empty stays in formation (dual citizen)', JSON.stringify(r.c));
+ok(r.d.f === 'Shotgun + Trips' && r.d.b === 'Strong', 'new-style play + deliberate backfield untouched', JSON.stringify(r.d));
+ok(r.idempotent, 'migration is idempotent (re-run is a no-op)', JSON.stringify(r));
+
+console.log('\n== 14. Backfield + Strength dimensions render + cut-to-film ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats, mk = window.__mk;
+  const plays = [
+    mk({ unit: 'offense', backfield: 'I', strength: 'Right', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5' }),
+    mk({ unit: 'offense', backfield: 'I', strength: 'Right', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '7' }),
+    mk({ unit: 'offense', backfield: 'Single', strength: 'Left', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' }),
+  ];
+  const html = eng._renderBackfieldStrength({ offPlays: plays });
+  const bfCut = eng._buildCutFilter('backfield', 'I');
+  const strCut = eng._buildCutFilter('strength', 'Right');
+  return {
+    rendered: /Backfield/.test(html) && /Strength/.test(html) && /chart-eff/.test(html),
+    bfMatched: plays.filter(p => bfCut(p)).length,
+    strMatched: plays.filter(p => strCut(p)).length,
+  };
+});
+ok(r.rendered, 'Backfield & Strength tables render', JSON.stringify(r));
+ok(r.bfMatched === 2 && r.strMatched === 2, 'backfield + strength cut filters resolve to film', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

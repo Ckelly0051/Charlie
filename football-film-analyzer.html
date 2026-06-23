@@ -8355,24 +8355,47 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
                 <div class="chip-section">
                   <label class="chip-label">Formation <span class="chip-hint">select all that apply</span></label>
                   <div class="pick-group multi" id="tagFormation">
-                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                    <!-- QB alignment -->
                     <button class="pick" data-value="Under Center" type="button">Under Center</button>
                     <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                    <button class="pick" data-value="I-Form" type="button">I-Form</button>
-                    <button class="pick" data-value="Singleback" type="button">Singleback</button>
-                    <button class="pick" data-value="Trips" type="button">Trips</button>
-                    <button class="pick" data-value="Spread" type="button">Spread</button>
-                    <button class="pick" data-value="Split Back" type="button">Split Back</button>
+                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                    <!-- Named / system formations -->
                     <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
-                    <button class="pick" data-value="Empty" type="button">Empty</button>
-                    <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
-                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                    <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
                     <button class="pick" data-value="Wing-T" type="button">Wing-T</button>
                     <button class="pick" data-value="Flexbone" type="button">Flexbone</button>
-                    <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
-                    <button class="pick" data-value="Power-I" type="button">Power-I</button>
-                    <button class="pick" data-value="Bunch" type="button">Bunch</button>
+                    <button class="pick" data-value="Wishbone" type="button">Wishbone</button>
+                    <button class="pick" data-value="Spread" type="button">Spread</button>
+                    <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
                     <button class="pick" data-value="Unbalanced" type="button">Unbalanced</button>
+                    <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                    <!-- Receiver structure -->
+                    <button class="pick" data-value="Trips" type="button">Trips</button>
+                    <button class="pick" data-value="Bunch" type="button">Bunch</button>
+                    <button class="pick" data-value="Empty" type="button">Empty</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Backfield <span class="chip-hint">back alignment</span></label>
+                  <div class="pick-group" id="tagBackfield">
+                    <button class="pick" data-value="Single" type="button">Single</button>
+                    <button class="pick" data-value="Split" type="button">Split</button>
+                    <button class="pick" data-value="I" type="button">I</button>
+                    <button class="pick" data-value="Power" type="button">Power</button>
+                    <button class="pick" data-value="Offset" type="button">Offset</button>
+                    <button class="pick" data-value="Strong" type="button">Strong</button>
+                    <button class="pick" data-value="Weak" type="button">Weak</button>
+                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                    <button class="pick" data-value="Diamond" type="button">Diamond</button>
+                    <button class="pick" data-value="Empty" type="button">Empty</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Strength <span class="chip-hint">strong side</span></label>
+                  <div class="pick-group" id="tagStrength">
+                    <button class="pick" data-value="Right" type="button">Right</button>
+                    <button class="pick" data-value="Left" type="button">Left</button>
+                    <button class="pick" data-value="Balanced" type="button">Balanced</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -8416,6 +8439,8 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
                     <button class="pick" data-value="3-4" type="button">3-4</button>
                     <button class="pick" data-value="4-4" type="button">4-4</button>
                     <button class="pick" data-value="5-2" type="button">5-2</button>
+                    <button class="pick" data-value="5-3" type="button">5-3</button>
+                    <button class="pick" data-value="6-2" type="button">6-2</button>
                     <button class="pick" data-value="3-3-5" type="button">3-3-5</button>
                     <button class="pick" data-value="4-2-5" type="button">4-2-5</button>
                     <button class="pick" data-value="Nickel" type="button">Nickel</button>
@@ -10763,7 +10788,7 @@ class PlayTagger {
       fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
       runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
-      scoreFor: 'tagScoreFor',
+      scoreFor: 'tagScoreFor', backfield: 'tagBackfield', strength: 'tagStrength',
       kickOutcome: 'tagKickOutcome', kickDistance: 'tagKickDistance',
       returnYards: 'tagReturnYards', hangTime: 'tagHangTime', kickedTo: 'tagKickedTo',
     };
@@ -11587,6 +11612,8 @@ class PlayTagger {
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.motion.value = play.tags.motion || '';
     this.tagFields.playDir.value = play.tags.playDir || '';
+    this.tagFields.backfield.value = play.tags.backfield || '';
+    this.tagFields.strength.value = play.tags.strength || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this.tagFields.stType.value = play.tags.stType || '';
     this.tagFields.scoreFor.value = play.tags.scoreFor || '';
@@ -13628,6 +13655,28 @@ class SeasonStore {
 
   _newId() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
+  // Hudl-model migration (v1.9.15): backfield alignment used to be mixed into the
+  // multi-select Formation field. Split it into the new single `backfield` tag so
+  // Formation holds STRUCTURE only. Idempotent (after the move there's no backfield
+  // type left in formation) and non-destructive (formation + backfield reconstruct
+  // the original); never clobbers a backfield the coach set deliberately.
+  static BACKFIELD_FROM_FORMATION = { 'I-Form': 'I', 'Singleback': 'Single', 'Split Back': 'Split', 'Power-I': 'Power' };
+  static migratePlayFormation(p) {
+    if (!p || !p.tags) return;
+    const t = p.tags;
+    if (typeof t.backfield !== 'string') t.backfield = '';
+    if (typeof t.strength !== 'string') t.strength = '';
+    if (!t.formation || typeof t.formation !== 'string') return;
+    const map = SeasonStore.BACKFIELD_FROM_FORMATION;
+    const parts = t.formation.split(' + ').map(s => s.trim()).filter(Boolean);
+    let bf = '';
+    const kept = parts.filter(part => { if (map[part]) { bf = map[part]; return false; } return true; });
+    if (bf) {
+      if (!t.backfield) t.backfield = bf;   // don't overwrite a deliberate pick
+      t.formation = kept.join(' + ');
+    }
+  }
+
   /** Coerce any loaded object into a well-formed season (back-compat safe). */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
@@ -13639,6 +13688,7 @@ class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
+      g.plays.forEach(p => SeasonStore.migratePlayFormation(p));
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;
@@ -18713,6 +18763,33 @@ class StatsEngine {
       <div class="drive-chart">${rows}</div></div>`;
   }
 
+  // Backfield + Strength tendency tables (the new Hudl-model dimensions). Each
+  // row is click-to-film via the shared cut wiring (backfield / strength cuts).
+  _renderBackfieldStrength(stats) {
+    const plays = stats.offPlays || [];
+    const build = (cutType, label, get) => {
+      const groups = {};
+      plays.forEach(p => { const v = get(p); if (v) (groups[v] = groups[v] || []).push(p); });
+      return Object.entries(groups).map(([name, ps]) => {
+        const runs = ps.filter(p => StatsEngine.isRun(p)).length;
+        const passes = ps.filter(p => StatsEngine.isPass(p)).length;
+        const yards = ps.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+        const succ = ps.filter(p => this._isSuccessfulPlay(p)).length;
+        return { label: name, count: ps.length, runs, passes, yards,
+          successPct: ps.length ? Math.round(succ / ps.length * 100) : 0,
+          avg: ps.length ? (yards / ps.length).toFixed(1) : '0.0',
+          cutType, cutVal: name, cutLabel: `${label}: ${name}` };
+      }).sort((a, b) => b.count - a.count);
+    };
+    const bf = build('backfield', 'Backfield', p => p.tags.backfield);
+    const str = build('strength', 'Strength', p => p.tags.strength);
+    if (!bf.length && !str.length) return '';
+    return `<div class="stats-section"><h3>Backfield &amp; Strength</h3>`
+      + (bf.length ? `<h4 class="ss-subhead">Backfield</h4>${Charts.effectivenessRows(bf)}` : '')
+      + (str.length ? `<h4 class="ss-subhead">Strength</h4>${Charts.effectivenessRows(str)}` : '')
+      + `</div>`;
+  }
+
   // Matchup data: your offense (from your games) + each scouted opponent's
   // defense (from games whose "Film shows" is Opponent Scout, defensive snaps).
   _matchupData() {
@@ -19878,6 +19955,7 @@ class StatsEngine {
               ${this._renderPlayAction(stats)}
               ${this._renderTendencies(stats)}
               ${this._renderPersonnel(stats)}
+              ${this._renderBackfieldStrength(stats)}
               ${this._renderDirectionMotion(stats)}
               ${this._renderHashStats(stats)}
               ${this._renderPersonnelSituation(stats)}
@@ -20131,6 +20209,8 @@ class StatsEngine {
       case 'formation': return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(val);
       case 'playType':  return p => isOff(p) && StatsEngine.splitPlayTypes(p.tags.playType).includes(val);
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
+      case 'backfield': return p => isOff(p) && (p.tags.backfield || '') === val;
+      case 'strength':  return p => isOff(p) && (p.tags.strength || '') === val;
       case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
@@ -27883,7 +27963,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.14';
+const APP_VERSION = '1.9.15';
 
 class App {
   constructor() {
