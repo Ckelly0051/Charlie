@@ -1813,6 +1813,7 @@ export class StatsEngine {
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
       case 'backfield': return p => isOff(p) && (p.tags.backfield || '') === val;
       case 'strength':  return p => isOff(p) && (p.tags.strength || '') === val;
+      case 'comboFStr': { const [form, str] = val.split('__'); return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(form) && (p.tags.strength || '') === str; }
       case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
@@ -2518,6 +2519,8 @@ export class StatsEngine {
   static _matrixDimensions() {
     return [
       { id: 'formation',  label: 'Formation',  extract: p => StatsEngine.splitFormations(p.tags.formation) },
+      { id: 'backfield',  label: 'Backfield',  extract: p => [p.tags.backfield || ''].filter(Boolean) },
+      { id: 'strength',   label: 'Strength',   extract: p => [p.tags.strength || ''].filter(Boolean) },
       { id: 'playType',   label: 'Play Type',  extract: p => StatsEngine.splitPlayTypes(p.tags.playType) },
       { id: 'down',       label: 'Down',        extract: p => [p.tags.down ? `${p.tags.down}` : '?'] },
       { id: 'distBucket', label: 'Distance',    extract: p => { const d = parseInt(p.tags.distance) || 0; return [d <= 3 ? 'Short (1-3)' : d <= 6 ? 'Med (4-6)' : 'Long (7+)']; } },
@@ -3774,6 +3777,15 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       if (!dd) return [];
       return StatsEngine.splitFormations(p.tags.formation).map(f => `${f}__${dd}`);
     });
+    // Hudl-model dimensions: backfield, strength, and the high-value Formation ×
+    // Strength grid (e.g. "Trips Right is 90% run" — what a DC keys on).
+    const byBackfield = this._selfScoutGroup(plays, p => p.tags.backfield);
+    const byStrength = this._selfScoutGroup(plays, p => p.tags.strength);
+    const byFormStr = this._selfScoutGroup(plays, p => {
+      const s = p.tags.strength;
+      if (!s) return [];
+      return StatsEngine.splitFormations(p.tags.formation).map(f => `${f}__${s}`);
+    });
 
     let tells = [
       ...this._tellsFrom(byCombo, 'Formation × Down', k => {
@@ -3783,6 +3795,9 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '
       ...this._tellsFrom(byDownDist, 'Down & Dist', k => this._ddPretty(k), k => ({ type: 'dd', val: k })),
       ...this._tellsFrom(byPersonnel, 'Personnel', k => `${k} personnel`, k => ({ type: 'personnel', val: k })),
       ...this._tellsFrom(byHash, 'Hash', k => `${k} hash`, k => ({ type: 'hash', val: k })),
+      ...this._tellsFrom(byBackfield, 'Backfield', k => `From ${k} backfield`, k => ({ type: 'backfield', val: k })),
+      ...this._tellsFrom(byStrength, 'Strength', k => `Strong ${k}`, k => ({ type: 'strength', val: k })),
+      ...this._tellsFrom(byFormStr, 'Formation × Strength', k => { const [f, s] = k.split('__'); return `${f} ${s}`; }, k => ({ type: 'comboFStr', val: k })),
     ].sort((a, b) => b.score - a.score).slice(0, 12);
 
     const predictability = this._predictabilityIndex(byFormation, byDownDist);

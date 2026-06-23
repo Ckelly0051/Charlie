@@ -429,6 +429,27 @@ r = await page.evaluate(() => {
 ok(r.rendered, 'Backfield & Strength tables render', JSON.stringify(r));
 ok(r.bfMatched === 2 && r.strMatched === 2, 'backfield + strength cut filters resolve to film', JSON.stringify(r));
 
+console.log('\n== 15. Stage 2: Self-Scout strength tell + Formation×Strength + matrix dims ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats, mk = window.__mk;
+  const plays = [];
+  for (let i = 0; i < 10; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10', formation: 'Shotgun + Trips', strength: 'Right', backfield: 'Single', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5' }));
+  for (let i = 0; i < 4; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '8', formation: 'Shotgun + Doubles', strength: 'Balanced', backfield: 'Empty', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' }));
+  window.app.tagger.plays = plays;
+  eng.filter.active = false;
+  const rep = eng.generateSelfScout();
+  const fsCut = eng._buildCutFilter('comboFStr', 'Trips__Right');
+  const dims = eng.constructor._matrixDimensions().map(d => d.id);
+  return {
+    hasStrengthTell: rep.tells.some(t => t.cutType === 'strength' || t.cutType === 'comboFStr'),
+    fsMatched: window.app.tagger.plays.filter(p => fsCut(p)).length,
+    hasBackfieldDim: dims.includes('backfield'), hasStrengthDim: dims.includes('strength'),
+  };
+});
+ok(r.hasStrengthTell, 'Self-Scout surfaces a strength / Formation×Strength tell', JSON.stringify(r));
+ok(r.fsMatched === 10, 'comboFStr cut (Trips × Right) resolves to those plays', JSON.stringify(r));
+ok(r.hasBackfieldDim && r.hasStrengthDim, 'Tendency Matrix gains Backfield + Strength dimensions', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
