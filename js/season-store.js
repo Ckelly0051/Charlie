@@ -86,6 +86,19 @@ export class SeasonStore {
     }
   }
 
+  // Special-teams plays can't carry offensive/defensive alignment — the ST tag
+  // form hides the Formation/Personnel and Front/Coverage/Blitz groups entirely,
+  // so there is no way to set them on an ST snap. Any such value on a
+  // unit:'special' play is therefore a leak (classically: an offensive formation
+  // that propagated play-to-play through the Save-&-Next carry, coding every ST
+  // play as "Under Center"). Strip it. Idempotent and safe — nothing intentional
+  // can ever live in these fields on an ST play.
+  static ST_ALIGNMENT_KEYS = ['formation', 'personnel', 'defFront', 'coverage', 'blitz'];
+  static stripStAlignment(p) {
+    if (!p || !p.tags || (p.tags.unit || 'offense') !== 'special') return;
+    SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
+  }
+
   /** Coerce any loaded object into a well-formed season (back-compat safe). */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
@@ -97,7 +110,7 @@ export class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
-      g.plays.forEach(p => SeasonStore.migratePlayFormation(p));
+      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;

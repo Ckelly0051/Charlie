@@ -1472,6 +1472,8 @@ so the feature is never silently missing. The section renders inline as the
 
 16. **Enable devtools in production Tauri builds**: `features = ["devtools"]` in `Cargo.toml` so coaches (and support) can open the console with F12. Without it, diagnostic logging is invisible in production — the v1.7.6–v1.8.1 video bug was undiagnosable until devtools was enabled in v1.8.1. The devtools feature adds negligible binary size.
 
+17. **Carry-forward must respect the unit; enforce per-unit field invariants**: the Save-&-Next alignment carry (`PlayTagger.applyCarryScheme`, `CARRY_SCHEME_KEYS`) copied `formation`/`personnel` into the next play's blank fields with no unit check. On a **special-teams** play — whose form *hides* the Formation/Personnel + Front/Coverage/Blitz groups, so the coach can't see or clear them — the carried formation stuck, then propagated snap-to-snap, coding **every ST play "Under Center"** (the first formation chip after the v1.9.x reorder) (v1.9.19). Fix was three-layered: (a) `applyCarryScheme` skips `unit:'special'` plays; (b) switching a play to ST (`setUnit` + the unit-toggle handler) strips the now-invalid alignment via `_stripStAlignment`; (c) `SeasonStore.stripStAlignment` (in `_normalize`) retroactively cleans plays already saved with the leak. The invariant — *a field a unit's form can't set must never hold a value for that unit* — is safe to enforce destructively precisely because the form makes it unreachable. When a feature carries/auto-fills data across plays, gate it on the target play's unit (cf. lesson #15: gate on the unit's own fields).
+
 ## Future Projects (Tabled)
 
 These are validated high-impact features, deferred until the core UX is polished:

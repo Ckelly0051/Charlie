@@ -25,6 +25,11 @@
         game vs them, INCLUDING prior seasons read from localStorage. Covers the
         header button, the offense/defense split, case-insensitive matching, the
         cross-season merge, the rendered overlay, and the empty state.
+     9. Special-teams alignment leak (v1.9.19): a special-teams play can't hold a
+        formation/personnel/front (the ST form hides those groups), so the
+        Save-&-Next carry must not propagate one onto it — the bug where every ST
+        snap got coded "Under Center". Covers the unit-aware carry, the
+        strip-on-convert (setUnit), and the retroactive SeasonStore cleanup.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -521,6 +526,40 @@ ok(r.ciGames === 1, 'opponent matching is case-insensitive', JSON.stringify(r));
 ok(r.aggGames === 2 && r.aggOff === 5 && r.tripsTotal2 === 4, 'aggregates a prior SEASON too (2 games, Trips ×4 merged)', JSON.stringify(r));
 ok(r.rendered && r.theirOff && r.theirFronts && r.aggLine, 'renderOpponentScout shows their offense, their fronts, and provenance', JSON.stringify(r));
 ok(r.emptyState, 'unknown opponent shows the "tag a game / no re-tag" empty state', JSON.stringify(r));
+
+console.log('\n== 17. Special-teams plays never carry offensive alignment ("Under Center" bug) ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, tagger = window.app.tagger;
+  const SeasonStore = window.app.storage.seasonStore.constructor;
+  // (a) The Save-&-Next carry must NOT push a formation onto a special-teams play.
+  const prevOff = mk({ unit: 'offense', formation: 'Under Center', personnel: '11' });
+  const nextSt = mk({ unit: 'special', stType: 'Punt' });
+  tagger.applyCarryScheme(prevOff, nextSt);
+  const carryClean = !nextSt.tags.formation && !nextSt.tags.personnel;
+  // (b) ...but the carry still fills a following OFFENSE play (regression guard).
+  const nextOff = mk({ unit: 'offense' });
+  tagger.applyCarryScheme(prevOff, nextOff);
+  const carryOffWorks = nextOff.tags.formation === 'Under Center' && nextOff.tags.personnel === '11';
+  // (c) Switching a play to Special Teams strips leaked alignment (setUnit path).
+  const p = mk({ unit: 'offense', formation: 'Under Center', personnel: '11', defFront: '4-3' });
+  tagger.plays = [p]; tagger.currentPlayId = p.id;
+  tagger.setUnit('special');
+  const convertClean = !p.tags.formation && !p.tags.personnel && !p.tags.defFront && p.tags.unit === 'special';
+  // (d) Retroactive cleanup fixes ST plays already saved with a leaked formation.
+  const legacy = mk({ unit: 'special', stType: 'Kickoff', formation: 'Under Center', personnel: '11', coverage: 'Cover 3' });
+  SeasonStore.stripStAlignment(legacy);
+  const normalizeClean = !legacy.tags.formation && !legacy.tags.personnel && !legacy.tags.coverage;
+  // (e) ...and it leaves a real offense play untouched.
+  const keep = mk({ unit: 'offense', formation: 'Under Center' });
+  SeasonStore.stripStAlignment(keep);
+  const offUntouched = keep.tags.formation === 'Under Center';
+  return { carryClean, carryOffWorks, convertClean, normalizeClean, offUntouched };
+});
+ok(r.carryClean, 'Save-&-Next carry does NOT put a formation on a special-teams play', JSON.stringify(r));
+ok(r.carryOffWorks, 'carry still fills a following offense play (regression guard)', JSON.stringify(r));
+ok(r.convertClean, 'switching a play to Special Teams strips leaked formation/personnel/front', JSON.stringify(r));
+ok(r.normalizeClean, 'stripStAlignment cleans existing ST plays on load', JSON.stringify(r));
+ok(r.offUntouched, 'stripStAlignment leaves offense plays alone', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

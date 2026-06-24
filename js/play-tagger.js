@@ -309,6 +309,7 @@ export class PlayTagger {
         }
         if (play) {
           play.tags.unit = unit;
+          if (this._stripStAlignment(play)) this._loadTagForm(play);
           this._emit('play-updated', play);
         }
         // Make the side "sticky": the user's choice carries forward to the
@@ -1101,6 +1102,11 @@ export class PlayTagger {
    *  Existing values are never overwritten — a different look the coach
    *  already tagged always wins, and one tap changes any carried chip. */
   applyCarryScheme(prev, next) {
+    // Special teams uses none of these alignment fields (the ST form hides them),
+    // so never carry a formation/personnel/front/coverage onto an ST play — that
+    // is the bug where an offensive formation propagates snap-to-snap and every
+    // special-teams play ends up coded "Under Center".
+    if ((next.tags.unit || 'offense') === 'special') return;
     let changed = false;
     PlayTagger.CARRY_SCHEME_KEYS.forEach(k => {
       if (!next.tags[k] && prev.tags[k]) {
@@ -1114,6 +1120,19 @@ export class PlayTagger {
     }
   }
 
+  /** The ST tag form hides Formation/Personnel + Front/Coverage/Blitz, so those
+   *  fields can't be set on a special-teams play — any value there is a leak
+   *  (e.g. a formation carried over from an offense snap). Clear them when a play
+   *  is special. Returns true if anything changed. */
+  _stripStAlignment(play) {
+    if (!play || (play.tags.unit || 'offense') !== 'special') return false;
+    let changed = false;
+    ['formation', 'personnel', 'defFront', 'coverage', 'blitz'].forEach(k => {
+      if (play.tags[k]) { play.tags[k] = ''; changed = true; }
+    });
+    return changed;
+  }
+
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
   setUnit(unit) {
     unit = unit || 'offense';
@@ -1121,6 +1140,7 @@ export class PlayTagger {
     const play = this.getCurrentPlay();
     if (play) {
       play.tags.unit = unit;
+      if (this._stripStAlignment(play)) this._loadTagForm(play);
       this._emit('play-updated', play);
     }
     this.applyUnitMode(unit);
