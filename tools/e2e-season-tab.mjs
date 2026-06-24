@@ -29,7 +29,13 @@
         formation/personnel/front (the ST form hides those groups), so the
         Save-&-Next carry must not propagate one onto it — the bug where every ST
         snap got coded "Under Center". Covers the unit-aware carry, the
-        strip-on-convert (setUnit), and the retroactive SeasonStore cleanup.
+        strip-on-convert (setUnit), and the retroactive SeasonStore cleanup, plus
+        that the carry never crosses the offense/defense boundary either.
+    10. Opponent Scout data fixes (v1.9.20): the their-offense overview KPIs now
+        aggregate (the snaps are presented as offense so compute()'s unit
+        partition counts run/pass), and our OWN custom fronts (.our-def-only) are
+        excluded from "their defensive fronts" so a carry-leaked Maverick can't
+        masquerade as the opponent's front.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -553,13 +559,51 @@ r = await page.evaluate(() => {
   const keep = mk({ unit: 'offense', formation: 'Under Center' });
   SeasonStore.stripStAlignment(keep);
   const offUntouched = keep.tags.formation === 'Under Center';
-  return { carryClean, carryOffWorks, convertClean, normalizeClean, offUntouched };
+  // (f) Carry must NOT cross the offense/defense boundary — our defensive
+  //     front/coverage can't ride onto an offense snap (the Maverick-in-their-
+  //     fronts leak that contaminated the opponent scout).
+  const prevDef = mk({ unit: 'defense', defFront: 'Maverick', coverage: 'Cover 3' });
+  const nextOffBlank = mk({ unit: 'offense' });
+  tagger.applyCarryScheme(prevDef, nextOffBlank);
+  const crossUnitClean = !nextOffBlank.tags.defFront && !nextOffBlank.tags.coverage;
+  return { carryClean, carryOffWorks, convertClean, normalizeClean, offUntouched, crossUnitClean };
 });
 ok(r.carryClean, 'Save-&-Next carry does NOT put a formation on a special-teams play', JSON.stringify(r));
 ok(r.carryOffWorks, 'carry still fills a following offense play (regression guard)', JSON.stringify(r));
 ok(r.convertClean, 'switching a play to Special Teams strips leaked formation/personnel/front', JSON.stringify(r));
 ok(r.normalizeClean, 'stripStAlignment cleans existing ST plays on load', JSON.stringify(r));
 ok(r.offUntouched, 'stripStAlignment leaves offense plays alone', JSON.stringify(r));
+ok(r.crossUnitClean, 'carry does NOT leak defensive front/coverage onto an offense snap', JSON.stringify(r));
+
+console.log('\n== 18. Opponent Scout: overview aggregates + our own fronts excluded from "their D" ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, eng = window.app.stats;
+  const store = window.app.storage.seasonStore;
+  // A game we PLAYED (perspective 'offense') vs "Carry Bug U".
+  store.data.games.push({
+    id: 'oppscout_agg', name: 'vs Carry Bug U',
+    gameInfo: { opponent: 'Carry Bug U', perspective: 'offense' },
+    plays: [
+      // their offense = our DEFENSE snaps (3 run, 1 pass) — overview must aggregate.
+      mk({ unit: 'defense', formation: 'Flexbone', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6' }),
+      mk({ unit: 'defense', formation: 'Flexbone', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4' }),
+      mk({ unit: 'defense', formation: 'Flexbone', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '5' }),
+      mk({ unit: 'defense', formation: 'Shotgun', runPass: 'Pass', playType: 'Deep Pass', result: 'Incomplete', yardage: '0' }),
+      // their defense = our OFFENSE snaps; two carry our OWN front (Maverick) leaked in.
+      mk({ unit: 'offense', defFront: 'Maverick + 5-2', coverage: 'Cover 3' }),
+      mk({ unit: 'offense', defFront: '5-2', coverage: 'Cover 3' }),
+      mk({ unit: 'offense', defFront: 'Maverick', coverage: 'Cover 3' }),
+    ],
+    annotations: {}, nextId: 50, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false
+  });
+  const d = eng.generateOpponentScout('Carry Bug U');
+  const t = d.offReport && d.offReport.stats.tendencies;
+  const fronts = Object.fromEntries(d.defFronts);
+  return { runPct: t ? parseFloat(t.runPct) : -1, hasMaverick: 'Maverick' in fronts, five2: fronts['5-2'] || 0 };
+});
+ok(r.runPct === 75, 'their-offense overview aggregates run/pass from our defensive snaps (3 of 4 = 75% run)', JSON.stringify(r));
+ok(!r.hasMaverick, 'our own custom front (Maverick) is excluded from "their defensive fronts"', JSON.stringify(r));
+ok(r.five2 === 2, 'the real opponent front (5-2) still counts (from "Maverick + 5-2" and "5-2")', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

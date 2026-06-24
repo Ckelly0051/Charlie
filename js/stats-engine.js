@@ -3063,16 +3063,28 @@ export class StatsEngine {
         else if (scout ? unit === 'defense' : unit === 'offense') defPlays.push(p);
       });
     });
+    // Their offense is read from snaps we tagged as DEFENSE, but compute()
+    // partitions run/pass BY UNIT — so present those snaps AS offense or the
+    // overview KPIs (run/pass, run%, avg yards) read 0/0 even though the plays
+    // carry runPass. (formationDetail/downTendency use isRun directly, which is
+    // why the tables were right while the overview was empty.)
+    const asOffense = offPlays.map(p => ({ ...p, tags: { ...p.tags, unit: 'offense' } }));
+    // Their defense = the fronts/coverages we faced on our OFFENSE snaps. Exclude
+    // our OWN custom fronts (the .our-def-only chips, read live from the form) —
+    // they can never be the opponent's call, so any occurrence here is carry leak
+    // from our defensive snaps (the "Maverick shows up in their fronts" bug).
+    let ourOnly = new Set();
+    try { ourOnly = new Set([...document.querySelectorAll('#tagDefFront .our-def-only')].map(c => c.dataset.value)); } catch (e) {}
     const frontCounts = {}, covCounts = {};
     defPlays.forEach(p => {
-      StatsEngine.splitFronts(p.tags.defFront).forEach(f => { if (f) frontCounts[f] = (frontCounts[f] || 0) + 1; });
+      StatsEngine.splitFronts(p.tags.defFront).forEach(f => { if (f && !ourOnly.has(f)) frontCounts[f] = (frontCounts[f] || 0) + 1; });
       if (p.tags.coverage) covCounts[p.tags.coverage] = (covCounts[p.tags.coverage] || 0) + 1;
     });
     const sortDesc = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
     return {
       opponent: opponentName,
       games: matched.length,
-      offReport: offPlays.length ? this.generateScoutReport(offPlays) : null,
+      offReport: asOffense.length ? this.generateScoutReport(asOffense) : null,
       offCount: offPlays.length,
       defFronts: sortDesc(frontCounts),
       defCoverages: sortDesc(covCounts),

@@ -1102,11 +1102,15 @@ export class PlayTagger {
    *  Existing values are never overwritten — a different look the coach
    *  already tagged always wins, and one tap changes any carried chip. */
   applyCarryScheme(prev, next) {
-    // Special teams uses none of these alignment fields (the ST form hides them),
-    // so never carry a formation/personnel/front/coverage onto an ST play — that
-    // is the bug where an offensive formation propagates snap-to-snap and every
-    // special-teams play ends up coded "Under Center".
-    if ((next.tags.unit || 'offense') === 'special') return;
+    // Carry alignment ONLY within the same unit. These fields flip meaning across
+    // a possession change: on an OFFENSE snap defFront/coverage are the DEFENSE
+    // FACED (the opponent's), on a DEFENSE snap they're OUR defense — so carrying
+    // across the boundary leaks our own front/coverage onto the "defense faced"
+    // (e.g. our Maverick front showing up as the opponent's), and an offensive
+    // formation onto a defensive snap. Special teams uses none of these fields.
+    // Same class of bug as the ST "Under Center" leak.
+    const pu = prev.tags.unit || 'offense', nu = next.tags.unit || 'offense';
+    if (nu === 'special' || pu !== nu) return;
     let changed = false;
     PlayTagger.CARRY_SCHEME_KEYS.forEach(k => {
       if (!next.tags[k] && prev.tags[k]) {
