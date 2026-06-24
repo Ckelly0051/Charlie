@@ -57,7 +57,7 @@ export class RosterManager {
     if (!this.players.length) { alert('Add players to the roster first.'); return; }
     let team = 'Team';
     try { team = (JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}).teamName || 'Team'; } catch (e) {}
-    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const ORDER = { O: ['QB', 'RB', 'FB', 'HB', 'WR', 'TE', 'OL', 'C', 'G', 'T', 'OT', 'OG'], D: ['DL', 'DE', 'DT', 'NT', 'EDGE', 'LB', 'OLB', 'ILB', 'MLB', 'CB', 'S', 'FS', 'SS', 'DB'] };
     const sideName = { O: 'Offense', D: 'Defense', X: 'Other / Special' };
     const col = (sideKey) => {
@@ -70,7 +70,7 @@ export class RosterManager {
       });
       if (!positions.length) return '';
       const blocks = positions.map(pos => {
-        const players = byPos[pos].slice().sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0))
+        const players = byPos[pos].slice().sort((a, b) => (parseInt(a.num, 10) || 0) - (parseInt(b.num, 10) || 0))
           .map(p => `<div class="pl">#${esc(p.num)} ${esc(p.name) || ''}</div>`).join('');
         return `<div class="pos"><div class="pos-name">${esc(pos)}</div>${players}</div>`;
       }).join('');
@@ -171,7 +171,7 @@ export class RosterManager {
     } else {
       this.players.push({ num, name, pos, side });
     }
-    this.players.sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0));
+    this.players.sort((a, b) => (parseInt(a.num, 10) || 0) - (parseInt(b.num, 10) || 0));
     this._save();
     this.renderList();
     this.renderQuickPick();

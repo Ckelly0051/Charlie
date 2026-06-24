@@ -1168,7 +1168,7 @@ dependencies = [
 
 [[package]]
 name = "gridiron-iq"
-version = "1.9.20"
+version = "1.9.21"
 dependencies = [
  "serde",
  "serde_json",

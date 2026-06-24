@@ -10,6 +10,35 @@ strip_modules() {
   sed -E '/^import /d; /^export (async )?(class|function|const|let|var|default)/s/^export //; /^export \{/d' "$1"
 }
 
+# All bundled JS, in dependency order. Defined once so the collision guard below
+# and the concatenation loop stay in sync.
+JS_FILES="
+  js/football-rules.js js/video-controller.js js/canvas-overlay.js js/play-tagger.js
+  js/roster-manager.js js/play-filter.js js/notes-manager.js js/storage-backend.js
+  js/season-store.js js/demo-season.js js/storage.js js/play-detector.js
+  js/clip-analyzer.js js/backend-client.js js/vision-analyzer.js js/playlist-manager.js
+  js/quick-chart.js js/heat-maps.js js/advanced-metrics.js js/visualizations.js
+  js/charts.js js/multi-angle.js js/stats-engine.js js/history-manager.js
+  js/version-manager.js js/scoreboard-ocr.js js/suggestion-engine.js js/cutup-exporter.js
+  js/cutup-player.js js/play-grid.js js/season-manager.js js/season-library.js
+  js/call-sheet-builder.js js/ui-polish.js js/wizard.js js/custom-fields.js
+  js/play-diagram.js js/updater.js js/app.js
+"
+
+# Collision guard: every module shares ONE scope in the concatenated bundle, so a
+# top-level const/let/var/class/function declared in two files silently clobbers
+# the other (a runtime-error class CLAUDE.md explicitly warns about). Fail the
+# build if any top-level name is declared in more than one module.
+collisions=$(for f in $JS_FILES; do
+  grep -hoE '^(export )?(class|function|const|let|var) [A-Za-z_$][A-Za-z0-9_$]*' "$f" \
+    | sed -E 's/^(export )?(class|function|const|let|var) //'
+done | sort | uniq -d)
+if [ -n "$collisions" ]; then
+  echo "BUILD FAILED — top-level name(s) collide across modules (shared bundle scope):" >&2
+  echo "$collisions" | sed 's/^/  - /' >&2
+  exit 1
+fi
+
 cat > "$OUTPUT" << 'HTMLHEAD'
 <!DOCTYPE html>
 <html lang="en">
@@ -51,47 +80,8 @@ cat >> "$OUTPUT" << 'SCRIPTSTART'
   <script>
 SCRIPTSTART
 
-# Inline all JS in dependency order, stripping module syntax
-for jsfile in \
-  js/football-rules.js \
-  js/video-controller.js \
-  js/canvas-overlay.js \
-  js/play-tagger.js \
-  js/roster-manager.js \
-  js/play-filter.js \
-  js/notes-manager.js \
-  js/storage-backend.js \
-  js/season-store.js \
-  js/demo-season.js \
-  js/storage.js \
-  js/play-detector.js \
-  js/clip-analyzer.js \
-  js/backend-client.js \
-  js/vision-analyzer.js \
-  js/playlist-manager.js \
-  js/quick-chart.js \
-  js/heat-maps.js \
-  js/advanced-metrics.js \
-  js/visualizations.js \
-  js/charts.js \
-  js/multi-angle.js \
-  js/stats-engine.js \
-  js/history-manager.js \
-  js/version-manager.js \
-  js/scoreboard-ocr.js \
-  js/suggestion-engine.js \
-  js/cutup-exporter.js \
-  js/cutup-player.js \
-  js/play-grid.js \
-  js/season-manager.js \
-  js/season-library.js \
-  js/call-sheet-builder.js \
-  js/ui-polish.js \
-  js/wizard.js \
-  js/custom-fields.js \
-  js/play-diagram.js \
-  js/updater.js \
-  js/app.js
+# Inline all JS in dependency order (JS_FILES defined above), stripping module syntax
+for jsfile in $JS_FILES
 do
   echo "" >> "$OUTPUT"
   echo "// ===== $(basename $jsfile) =====" >> "$OUTPUT"

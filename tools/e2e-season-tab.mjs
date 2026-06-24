@@ -36,6 +36,9 @@
         partition counts run/pass), and our OWN custom fronts (.our-def-only) are
         excluded from "their defensive fronts" so a carry-leaked Maverick can't
         masquerade as the opponent's front.
+    11. XSS-inert player names (v1.9.21): a roster name carrying an <img onerror>
+        payload renders escaped in the dashboard (no live element, handler never
+        fires) — names/notes travel in importable season + CSV files.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -604,6 +607,30 @@ r = await page.evaluate(() => {
 ok(r.runPct === 75, 'their-offense overview aggregates run/pass from our defensive snaps (3 of 4 = 75% run)', JSON.stringify(r));
 ok(!r.hasMaverick, 'our own custom front (Maverick) is excluded from "their defensive fronts"', JSON.stringify(r));
 ok(r.five2 === 2, 'the real opponent front (5-2) still counts (from "Maverick + 5-2" and "5-2")', JSON.stringify(r));
+
+console.log('\n== 19. Player names are HTML-escaped in the dashboard (stored-XSS inert) ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk;
+  window.__xss = 0;
+  const payload = '<img src=x onerror="window.__xss=1">';
+  window.app.roster.players.push({ num: '99', name: payload, pos: 'RB', side: 'O' });
+  window.app.tagger.plays = [mk({ unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', players: { ballCarrier: '99' } })];
+  window.app.stats.filter.active = false;
+  window.app.stats.showDashboard();
+  document.querySelector('#statsDashboard .stats-tab[data-tab="offense"]').click();
+  const pane = document.querySelector('#statsDashboard [data-pane="offense"]');
+  const cell = Array.from(pane.querySelectorAll('tr.player-row td')).find(td => td.textContent.includes('99'));
+  return {
+    found: !!cell,
+    escaped: cell ? cell.innerHTML.includes('&lt;img') : false,
+    textPreserved: cell ? cell.textContent.includes('<img') : false,  // shown as literal text
+    noLiveImg: !pane.querySelector('img'),
+    xssFired: window.__xss === 1,
+  };
+});
+ok(r.found, 'the #99 player row rendered', JSON.stringify(r));
+ok(r.escaped && r.noLiveImg && !r.xssFired, 'a script-payload player name renders inert — escaped, no live element, handler never fired', JSON.stringify(r));
+ok(r.textPreserved, 'the name is preserved as literal text (escaped, not stripped)', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

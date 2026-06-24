@@ -21,6 +21,11 @@ export class StorageManager {
     this.gameInfo = {};
     this.filter = null;
     this.seasonStore = new SeasonStore();
+    // Tell the coach when a save fails (browser storage full) instead of losing
+    // work silently. window.app/updater resolve lazily — this fires rarely.
+    this.seasonStore.onPersistError = () => {
+      try { window.app.updater._toast('⚠ Save failed — browser storage may be full. Use "Save Season" to export a backup file before you lose work.'); } catch (e) {}
+    };
 
     this.btnSave = document.getElementById('btnSave');
     this.btnLoad = document.getElementById('btnLoad');
@@ -565,7 +570,7 @@ export class StorageManager {
 
     // Draw annotations on top (scale from normalized to video resolution)
     const currentTime = this.vc.currentTime;
-    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value, 10) || 30);
 
     for (const a of this.canvas.annotations) {
       if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
@@ -792,7 +797,7 @@ ${body}
       let notes = '';
 
       for (const [colIdx, field] of Object.entries(colMap)) {
-        const val = cells[parseInt(colIdx)] || '';
+        const val = cells[parseInt(colIdx, 10)] || '';
         if (!val) continue;
         if (field === 'notes') { notes = val; continue; }
         if (playerFields.includes(field)) {

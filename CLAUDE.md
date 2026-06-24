@@ -136,8 +136,7 @@ js/
 ├── ui-polish.js              # Misc UI enhancements (incl. empty-state Add Video/Folder CTA)
 ├── wizard.js                 # Step-by-step onboarding wizard (dormant; default-dismissed)
 ├── custom-fields.js          # User-defined tag fields (CustomFieldsManager)
-├── play-diagram.js           # Per-play X's & O's diagram editor (PlayDiagram)
-└── tag-workspace.js          # Tag workspace utilities (dead code — not wired)
+└── play-diagram.js           # Per-play X's & O's diagram editor (PlayDiagram)
 
 tools/
 ├── generate-sample-report.mjs  # Generates dummy-data analytics report via real StatsEngine
@@ -164,12 +163,17 @@ tools/
 │                               # offensive playType still count (gating fix), the Defense tab
 │                               # shows the scheme-tells section, and generateDefensiveSelfScout
 │                               # runs once per dashboard render.
-└── e2e-season-tab.mjs          # Season tab in the stats dashboard (v1.9.4/1.9.5). Run it with
+├── e2e-season-tab.mjs          # Season tab in the stats dashboard (v1.9.4/1.9.5). Run it with
                                 # the others before any deploy: sortable leaderboards (header
                                 # click sorts asc/desc, Player sorts as text, class toggles),
                                 # the Season tab lazy-render (KPI header + trend line charts +
                                 # player roll-up), the leaderboard sort-wiring, and that the
                                 # .season-summary header actually wears the .gi-hero card look.
+└── e2e-core.mjs                # Unit tests for the PURE core logic (v1.9.21): the static
+                                # splitters (splitFormations/PlayTypes/Results/Fronts/Blitzes/
+                                # Players), run/pass classification (explicit field + playType
+                                # fallback), hasResult, playPoints, and Charts._esc HTML escaping
+                                # (the XSS boundary). Run with the others before any deploy.
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
@@ -1473,6 +1477,8 @@ so the feature is never silently missing. The section renders inline as the
 16. **Enable devtools in production Tauri builds**: `features = ["devtools"]` in `Cargo.toml` so coaches (and support) can open the console with F12. Without it, diagnostic logging is invisible in production — the v1.7.6–v1.8.1 video bug was undiagnosable until devtools was enabled in v1.8.1. The devtools feature adds negligible binary size.
 
 17. **Carry-forward must respect the unit; enforce per-unit field invariants**: the Save-&-Next alignment carry (`PlayTagger.applyCarryScheme`, `CARRY_SCHEME_KEYS`) copied `formation`/`personnel` into the next play's blank fields with no unit check. On a **special-teams** play — whose form *hides* the Formation/Personnel + Front/Coverage/Blitz groups, so the coach can't see or clear them — the carried formation stuck, then propagated snap-to-snap, coding **every ST play "Under Center"** (the first formation chip after the v1.9.x reorder) (v1.9.19). Fix was three-layered: (a) `applyCarryScheme` skips `unit:'special'` plays; (b) switching a play to ST (`setUnit` + the unit-toggle handler) strips the now-invalid alignment via `_stripStAlignment`; (c) `SeasonStore.stripStAlignment` (in `_normalize`) retroactively cleans plays already saved with the leak. The invariant — *a field a unit's form can't set must never hold a value for that unit* — is safe to enforce destructively precisely because the form makes it unreachable. When a feature carries/auto-fills data across plays, gate it on the target play's unit (cf. lesson #15: gate on the unit's own fields).
+
+18. **Escape user text at the HTML sink, not the producer**: coach-entered text (player names, notes) renders into `innerHTML` across the dashboard *and* exported reports. The fix is to escape where the string meets `innerHTML` (`_playerLabelHtml` = `Charts._esc(_playerLabel(...))`), NOT inside the producer (`_playerLabel`/`roster.getLabel`) — the raw label also feeds **text** contexts (the cut-up banner's `textContent`, a chip's `.title`) where pre-escaping would double-encode (`A&amp;B` shown literally). One canonical escaper (`Charts._esc`, full `[&<>"']`); names/notes travel in importable season + CSV files, so this is stored-XSS-via-import, not just self-XSS — and even absent malice, an unescaped `<`/`&` in a name silently corrupts the table. Pinned by `e2e-core.mjs` (the escaper) + `e2e-season-tab.mjs` Test 19 (a payload name renders inert). (v1.9.21, from the whole-app code review.)
 
 ## Future Projects (Tabled)
 

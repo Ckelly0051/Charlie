@@ -309,8 +309,20 @@ export class SeasonStore {
    * created on explicit saves / throttled auto-snapshots via snapshot().
    */
   persist() {
-    this.backend.saveSeason(this.data);
+    // saveSeason returns false (or rejects) when the canonical write fails —
+    // classically a localStorage quota error on a big season. Surfacing it ONCE
+    // per failure streak lets the coach export a file before losing work; the
+    // old fire-and-forget swallowed it, so a full quota meant silent data loss.
+    Promise.resolve(this.backend.saveSeason(this.data))
+      .then(ok => { if (ok === false) this._persistFailed(); else this._persistWarned = false; })
+      .catch(() => this._persistFailed());
     this._scheduleDiskWrite();
+  }
+
+  _persistFailed() {
+    if (this._persistWarned) return;            // warn once until the next success
+    this._persistWarned = true;
+    if (typeof this.onPersistError === 'function') { try { this.onPersistError(); } catch (e) {} }
   }
 
   _scheduleDiskWrite() {

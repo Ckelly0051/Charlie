@@ -2770,6 +2770,12 @@ export class StatsEngine {
     return roster ? roster.getLabel(num) : `#${num}`;
   }
 
+  /** HTML-safe player label for innerHTML sinks. _playerLabel stays RAW because
+   *  it also feeds text contexts (the cut-up banner's textContent) where escaping
+   *  would double-encode; escape here, at the HTML boundary. Player names come
+   *  from the roster, which travels in importable/shareable season + CSV files. */
+  _playerLabelHtml(num) { return Charts._esc(this._playerLabel(num)); }
+
   /**
    * Render the box-score individual tables. `group` scopes which tables show so
    * they can live under the relevant dashboard tab:
@@ -2801,7 +2807,7 @@ export class StatsEngine {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabelHtml(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -2817,7 +2823,7 @@ export class StatsEngine {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td><td class="${gradeClass(p)}">${fmtGrade(p)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabelHtml(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td><td class="${gradeClass(p)}">${fmtGrade(p)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -2832,7 +2838,7 @@ export class StatsEngine {
     if (showOff && ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabelHtml(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -2847,7 +2853,7 @@ export class StatsEngine {
     if (showDef && ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td>${t.ints || 0}</td><td>${t.fumblesRec || 0}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabelHtml(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td>${t.ints || 0}</td><td>${t.fumblesRec || 0}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -2863,7 +2869,7 @@ export class StatsEngine {
       let rows = '';
       for (const r of ind.returners) {
         const avg = r.returns ? (r.yards / r.returns).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.returns}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabelHtml(r.num)}</td><td>${r.returns}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -2880,7 +2886,7 @@ export class StatsEngine {
       for (const k of ind.kickers) {
         const fg = k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—';
         const puntAvg = k.punts ? (k.puntYds / k.punts).toFixed(1) : '—';
-        rows += `<tr class="player-row" data-player="${k.num}"><td>${this._playerLabel(k.num)}</td><td>${fg}</td><td>${k.punts || '—'}</td><td>${puntAvg}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${k.num}"><td>${this._playerLabelHtml(k.num)}</td><td>${fg}</td><td>${k.punts || '—'}</td><td>${puntAvg}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -3193,7 +3199,7 @@ export class StatsEngine {
             </div>
           </div>
           <div class="stats-body">
-            ${notes ? `<div class="stats-section"><h3>Scouting Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p></div>` : ''}
+            ${notes ? `<div class="stats-section"><h3>Scouting Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</p></div>` : ''}
             <div class="stats-section">
               <h3>Overview (${report.totalPlays} plays)</h3>
               <div class="stats-grid">
@@ -3286,7 +3292,7 @@ th{font-family:var(--display);background:none;color:var(--muted);font-weight:700
 .ov-val{font-family:var(--display);font-size:32px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}.ov-lbl{font-size:9px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.06em}
 </style></head><body>
 <h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} plays</p>
-${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p>` : ''}
+${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</p>` : ''}
 <h3>Overview</h3><div class="overview">
 <div class="ov-card"><div class="ov-val">${t.runPassRatio}</div><div class="ov-lbl">Run/Pass</div></div>
 <div class="ov-card"><div class="ov-val">${t.runPct}%</div><div class="ov-lbl">Run Rate</div></div>
@@ -4492,22 +4498,22 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     const ind = stats.individuals;
     if (ind.rushers.length) {
       body += '<h3>Individual Rushing</h3><table><thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>TD</th></tr></thead><tbody>';
-      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.attempts ? (rv.yards / rv.attempts).toFixed(1) : '0.0'}</td><td>${rv.tds}</td></tr>`; });
+      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabelHtml(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.attempts ? (rv.yards / rv.attempts).toFixed(1) : '0.0'}</td><td>${rv.tds}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.passers.length) {
       body += '<h3>Individual Passing</h3><table><thead><tr><th>Player</th><th>C/A</th><th>Yds</th><th>TD</th><th>INT</th></tr></thead><tbody>';
-      ind.passers.forEach(pv => { body += `<tr><td>${this._playerLabel(pv.num)}</td><td>${pv.completions}/${pv.attempts}</td><td>${pv.yards}</td><td>${pv.tds}</td><td>${pv.ints}</td></tr>`; });
+      ind.passers.forEach(pv => { body += `<tr><td>${this._playerLabelHtml(pv.num)}</td><td>${pv.completions}/${pv.attempts}</td><td>${pv.yards}</td><td>${pv.tds}</td><td>${pv.ints}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.receivers.length) {
       body += '<h3>Individual Receiving</h3><table><thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>TD</th></tr></thead><tbody>';
-      ind.receivers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.receptions}</td><td>${rv.yards}</td><td>${rv.tds}</td></tr>`; });
+      ind.receivers.forEach(rv => { body += `<tr><td>${this._playerLabelHtml(rv.num)}</td><td>${rv.receptions}</td><td>${rv.yards}</td><td>${rv.tds}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.tacklers.length) {
       body += '<h3>Individual Tackles</h3><table><thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>INT</th><th>FR</th></tr></thead><tbody>';
-      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabel(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td><td>${tv.ints || 0}</td><td>${tv.fumblesRec || 0}</td></tr>`; });
+      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabelHtml(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td><td>${tv.ints || 0}</td><td>${tv.fumblesRec || 0}</td></tr>`; });
       body += '</tbody></table>';
     }
 
