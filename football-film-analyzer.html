@@ -12165,7 +12165,7 @@ class RosterManager {
     if (!this.players.length) { alert('Add players to the roster first.'); return; }
     let team = 'Team';
     try { team = (JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}).teamName || 'Team'; } catch (e) {}
-    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const ORDER = { O: ['QB', 'RB', 'FB', 'HB', 'WR', 'TE', 'OL', 'C', 'G', 'T', 'OT', 'OG'], D: ['DL', 'DE', 'DT', 'NT', 'EDGE', 'LB', 'OLB', 'ILB', 'MLB', 'CB', 'S', 'FS', 'SS', 'DB'] };
     const sideName = { O: 'Offense', D: 'Defense', X: 'Other / Special' };
     const col = (sideKey) => {
@@ -12178,7 +12178,7 @@ class RosterManager {
       });
       if (!positions.length) return '';
       const blocks = positions.map(pos => {
-        const players = byPos[pos].slice().sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0))
+        const players = byPos[pos].slice().sort((a, b) => (parseInt(a.num, 10) || 0) - (parseInt(b.num, 10) || 0))
           .map(p => `<div class="pl">#${esc(p.num)} ${esc(p.name) || ''}</div>`).join('');
         return `<div class="pos"><div class="pos-name">${esc(pos)}</div>${players}</div>`;
       }).join('');
@@ -12279,7 +12279,7 @@ class RosterManager {
     } else {
       this.players.push({ num, name, pos, side });
     }
-    this.players.sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0));
+    this.players.sort((a, b) => (parseInt(a.num, 10) || 0) - (parseInt(b.num, 10) || 0));
     this._save();
     this.renderList();
     this.renderQuickPick();
@@ -13931,8 +13931,20 @@ class SeasonStore {
    * created on explicit saves / throttled auto-snapshots via snapshot().
    */
   persist() {
-    this.backend.saveSeason(this.data);
+    // saveSeason returns false (or rejects) when the canonical write fails —
+    // classically a localStorage quota error on a big season. Surfacing it ONCE
+    // per failure streak lets the coach export a file before losing work; the
+    // old fire-and-forget swallowed it, so a full quota meant silent data loss.
+    Promise.resolve(this.backend.saveSeason(this.data))
+      .then(ok => { if (ok === false) this._persistFailed(); else this._persistWarned = false; })
+      .catch(() => this._persistFailed());
     this._scheduleDiskWrite();
+  }
+
+  _persistFailed() {
+    if (this._persistWarned) return;            // warn once until the next success
+    this._persistWarned = true;
+    if (typeof this.onPersistError === 'function') { try { this.onPersistError(); } catch (e) {} }
   }
 
   _scheduleDiskWrite() {
@@ -14281,6 +14293,11 @@ class StorageManager {
     this.gameInfo = {};
     this.filter = null;
     this.seasonStore = new SeasonStore();
+    // Tell the coach when a save fails (browser storage full) instead of losing
+    // work silently. window.app/updater resolve lazily — this fires rarely.
+    this.seasonStore.onPersistError = () => {
+      try { window.app.updater._toast('⚠ Save failed — browser storage may be full. Use "Save Season" to export a backup file before you lose work.'); } catch (e) {}
+    };
 
     this.btnSave = document.getElementById('btnSave');
     this.btnLoad = document.getElementById('btnLoad');
@@ -14825,7 +14842,7 @@ class StorageManager {
 
     // Draw annotations on top (scale from normalized to video resolution)
     const currentTime = this.vc.currentTime;
-    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value, 10) || 30);
 
     for (const a of this.canvas.annotations) {
       if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
@@ -15052,7 +15069,7 @@ ${body}
       let notes = '';
 
       for (const [colIdx, field] of Object.entries(colMap)) {
-        const val = cells[parseInt(colIdx)] || '';
+        const val = cells[parseInt(colIdx, 10)] || '';
         if (!val) continue;
         if (field === 'notes') { notes = val; continue; }
         if (playerFields.includes(field)) {
@@ -21212,6 +21229,12 @@ class StatsEngine {
     return roster ? roster.getLabel(num) : `#${num}`;
   }
 
+  /** HTML-safe player label for innerHTML sinks. _playerLabel stays RAW because
+   *  it also feeds text contexts (the cut-up banner's textContent) where escaping
+   *  would double-encode; escape here, at the HTML boundary. Player names come
+   *  from the roster, which travels in importable/shareable season + CSV files. */
+  _playerLabelHtml(num) { return Charts._esc(this._playerLabel(num)); }
+
   /**
    * Render the box-score individual tables. `group` scopes which tables show so
    * they can live under the relevant dashboard tab:
@@ -21243,7 +21266,7 @@ class StatsEngine {
       let rows = '';
       for (const r of ind.rushers) {
         const avg = r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabelHtml(r.num)}</td><td>${r.attempts}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td><td>${r.fumbles}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -21259,7 +21282,7 @@ class StatsEngine {
       let rows = '';
       for (const p of ind.passers) {
         const pct = p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabel(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td><td class="${gradeClass(p)}">${fmtGrade(p)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${p.num}"><td>${this._playerLabelHtml(p.num)}</td><td>${p.completions}/${p.attempts}</td><td>${pct}%</td><td>${p.yards}</td><td>${p.tds}</td><td>${p.ints}</td><td>${p.sacks}</td><td class="${gradeClass(p)}">${fmtGrade(p)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -21274,7 +21297,7 @@ class StatsEngine {
     if (showOff && ind.receivers.length > 0) {
       let rows = '';
       for (const r of ind.receivers) {
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabelHtml(r.num)}</td><td>${r.receptions}</td><td>${r.yards}</td><td>${r.long}</td><td>${r.tds}</td><td class="${gradeClass(r)}">${fmtGrade(r)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -21289,7 +21312,7 @@ class StatsEngine {
     if (showDef && ind.tacklers.length > 0) {
       let rows = '';
       for (const t of ind.tacklers) {
-        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabel(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td>${t.ints || 0}</td><td>${t.fumblesRec || 0}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${t.num}"><td>${this._playerLabelHtml(t.num)}</td><td>${t.tackles}</td><td>${t.solo || 0}</td><td>${t.assists || 0}</td><td>${t.sacks}</td><td>${t.tfl}</td><td>${t.ints || 0}</td><td>${t.fumblesRec || 0}</td><td class="${gradeClass(t)}">${fmtGrade(t)}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -21305,7 +21328,7 @@ class StatsEngine {
       let rows = '';
       for (const r of ind.returners) {
         const avg = r.returns ? (r.yards / r.returns).toFixed(1) : '0.0';
-        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabel(r.num)}</td><td>${r.returns}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${r.num}"><td>${this._playerLabelHtml(r.num)}</td><td>${r.returns}</td><td>${r.yards}</td><td>${avg}</td><td>${r.long}</td><td>${r.tds}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -21322,7 +21345,7 @@ class StatsEngine {
       for (const k of ind.kickers) {
         const fg = k.fgAtt ? `${k.fgMade}/${k.fgAtt}` : '—';
         const puntAvg = k.punts ? (k.puntYds / k.punts).toFixed(1) : '—';
-        rows += `<tr class="player-row" data-player="${k.num}"><td>${this._playerLabel(k.num)}</td><td>${fg}</td><td>${k.punts || '—'}</td><td>${puntAvg}</td></tr>`;
+        rows += `<tr class="player-row" data-player="${k.num}"><td>${this._playerLabelHtml(k.num)}</td><td>${fg}</td><td>${k.punts || '—'}</td><td>${puntAvg}</td></tr>`;
       }
       html += `
         <div class="stats-section">
@@ -21635,7 +21658,7 @@ class StatsEngine {
             </div>
           </div>
           <div class="stats-body">
-            ${notes ? `<div class="stats-section"><h3>Scouting Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p></div>` : ''}
+            ${notes ? `<div class="stats-section"><h3>Scouting Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</p></div>` : ''}
             <div class="stats-section">
               <h3>Overview (${report.totalPlays} plays)</h3>
               <div class="stats-grid">
@@ -21728,7 +21751,7 @@ th{font-family:var(--display);background:none;color:var(--muted);font-weight:700
 .ov-val{font-family:var(--display);font-size:32px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}.ov-lbl{font-size:9px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.06em}
 </style></head><body>
 <h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} &middot; ${report.totalPlays} plays</p>
-${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${notes.replace(/</g, '&lt;')}</p>` : ''}
+${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</p>` : ''}
 <h3>Overview</h3><div class="overview">
 <div class="ov-card"><div class="ov-val">${t.runPassRatio}</div><div class="ov-lbl">Run/Pass</div></div>
 <div class="ov-card"><div class="ov-val">${t.runPct}%</div><div class="ov-lbl">Run Rate</div></div>
@@ -22934,22 +22957,22 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     const ind = stats.individuals;
     if (ind.rushers.length) {
       body += '<h3>Individual Rushing</h3><table><thead><tr><th>Player</th><th>Att</th><th>Yds</th><th>Avg</th><th>TD</th></tr></thead><tbody>';
-      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.attempts ? (rv.yards / rv.attempts).toFixed(1) : '0.0'}</td><td>${rv.tds}</td></tr>`; });
+      ind.rushers.forEach(rv => { body += `<tr><td>${this._playerLabelHtml(rv.num)}</td><td>${rv.attempts}</td><td>${rv.yards}</td><td>${rv.attempts ? (rv.yards / rv.attempts).toFixed(1) : '0.0'}</td><td>${rv.tds}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.passers.length) {
       body += '<h3>Individual Passing</h3><table><thead><tr><th>Player</th><th>C/A</th><th>Yds</th><th>TD</th><th>INT</th></tr></thead><tbody>';
-      ind.passers.forEach(pv => { body += `<tr><td>${this._playerLabel(pv.num)}</td><td>${pv.completions}/${pv.attempts}</td><td>${pv.yards}</td><td>${pv.tds}</td><td>${pv.ints}</td></tr>`; });
+      ind.passers.forEach(pv => { body += `<tr><td>${this._playerLabelHtml(pv.num)}</td><td>${pv.completions}/${pv.attempts}</td><td>${pv.yards}</td><td>${pv.tds}</td><td>${pv.ints}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.receivers.length) {
       body += '<h3>Individual Receiving</h3><table><thead><tr><th>Player</th><th>Rec</th><th>Yds</th><th>TD</th></tr></thead><tbody>';
-      ind.receivers.forEach(rv => { body += `<tr><td>${this._playerLabel(rv.num)}</td><td>${rv.receptions}</td><td>${rv.yards}</td><td>${rv.tds}</td></tr>`; });
+      ind.receivers.forEach(rv => { body += `<tr><td>${this._playerLabelHtml(rv.num)}</td><td>${rv.receptions}</td><td>${rv.yards}</td><td>${rv.tds}</td></tr>`; });
       body += '</tbody></table>';
     }
     if (ind.tacklers.length) {
       body += '<h3>Individual Tackles</h3><table><thead><tr><th>Player</th><th>Tkl</th><th>Solo</th><th>Ast</th><th>Sack</th><th>TFL</th><th>INT</th><th>FR</th></tr></thead><tbody>';
-      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabel(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td><td>${tv.ints || 0}</td><td>${tv.fumblesRec || 0}</td></tr>`; });
+      ind.tacklers.forEach(tv => { body += `<tr><td>${this._playerLabelHtml(tv.num)}</td><td>${tv.tackles}</td><td>${tv.solo}</td><td>${tv.assists}</td><td>${tv.sacks}</td><td>${tv.tfl}</td><td>${tv.ints || 0}</td><td>${tv.fumblesRec || 0}</td></tr>`; });
       body += '</tbody></table>';
     }
 
@@ -28193,7 +28216,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.20';
+const APP_VERSION = '1.9.21';
 
 class App {
   constructor() {
