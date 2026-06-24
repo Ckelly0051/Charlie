@@ -10996,6 +10996,7 @@ class PlayTagger {
         }
         if (play) {
           play.tags.unit = unit;
+          if (this._stripStAlignment(play)) this._loadTagForm(play);
           this._emit('play-updated', play);
         }
         // Make the side "sticky": the user's choice carries forward to the
@@ -11788,6 +11789,11 @@ class PlayTagger {
    *  Existing values are never overwritten — a different look the coach
    *  already tagged always wins, and one tap changes any carried chip. */
   applyCarryScheme(prev, next) {
+    // Special teams uses none of these alignment fields (the ST form hides them),
+    // so never carry a formation/personnel/front/coverage onto an ST play — that
+    // is the bug where an offensive formation propagates snap-to-snap and every
+    // special-teams play ends up coded "Under Center".
+    if ((next.tags.unit || 'offense') === 'special') return;
     let changed = false;
     PlayTagger.CARRY_SCHEME_KEYS.forEach(k => {
       if (!next.tags[k] && prev.tags[k]) {
@@ -11801,6 +11807,19 @@ class PlayTagger {
     }
   }
 
+  /** The ST tag form hides Formation/Personnel + Front/Coverage/Blitz, so those
+   *  fields can't be set on a special-teams play — any value there is a leak
+   *  (e.g. a formation carried over from an offense snap). Clear them when a play
+   *  is special. Returns true if anything changed. */
+  _stripStAlignment(play) {
+    if (!play || (play.tags.unit || 'offense') !== 'special') return false;
+    let changed = false;
+    ['formation', 'personnel', 'defFront', 'coverage', 'blitz'].forEach(k => {
+      if (play.tags[k]) { play.tags[k] = ''; changed = true; }
+    });
+    return changed;
+  }
+
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
   setUnit(unit) {
     unit = unit || 'offense';
@@ -11808,6 +11827,7 @@ class PlayTagger {
     const play = this.getCurrentPlay();
     if (play) {
       play.tags.unit = unit;
+      if (this._stripStAlignment(play)) this._loadTagForm(play);
       this._emit('play-updated', play);
     }
     this.applyUnitMode(unit);
@@ -13684,6 +13704,19 @@ class SeasonStore {
     }
   }
 
+  // Special-teams plays can't carry offensive/defensive alignment — the ST tag
+  // form hides the Formation/Personnel and Front/Coverage/Blitz groups entirely,
+  // so there is no way to set them on an ST snap. Any such value on a
+  // unit:'special' play is therefore a leak (classically: an offensive formation
+  // that propagated play-to-play through the Save-&-Next carry, coding every ST
+  // play as "Under Center"). Strip it. Idempotent and safe — nothing intentional
+  // can ever live in these fields on an ST play.
+  static ST_ALIGNMENT_KEYS = ['formation', 'personnel', 'defFront', 'coverage', 'blitz'];
+  static stripStAlignment(p) {
+    if (!p || !p.tags || (p.tags.unit || 'offense') !== 'special') return;
+    SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
+  }
+
   /** Coerce any loaded object into a well-formed season (back-compat safe). */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
@@ -13695,7 +13728,7 @@ class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
-      g.plays.forEach(p => SeasonStore.migratePlayFormation(p));
+      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;
@@ -28144,7 +28177,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.18';
+const APP_VERSION = '1.9.19';
 
 class App {
   constructor() {
