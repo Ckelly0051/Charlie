@@ -325,3 +325,12 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 .stats-overlay .gi-matchup-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
 .stats-overlay .gi-mh-off { background: rgba(34, 197, 94, .15); color: #22c55e; }
 .stats-overlay .gi-mh-def { background: rgba(239, 68, 68, .15); color: #ef4444; }
+
+/* "Big 12" core-calls report */
+.stats-overlay .bt-table td.bt-call { font-weight: 600; }
+.stats-overlay .bt-arrow { color: var(--text-dim, #8b949e); margin: 0 2px; }
+.stats-overlay .bt-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: rgba(201, 162, 39, .18); color: #c9a227; vertical-align: middle; }
+.stats-overlay .bt-tag.bt-mot { background: rgba(99, 102, 241, .18); color: #818cf8; }
+/* The rows that together cover ~90% of snaps — the calls that ARE the offense. */
+.stats-overlay .bt-row.bt-in90 td { box-shadow: inset 2px 0 0 var(--highlight, #c9a227); }
+.stats-overlay .bt-row:not(.bt-in90) { opacity: .6; }

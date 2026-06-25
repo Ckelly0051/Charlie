@@ -48,6 +48,11 @@
         offense snaps, relabeled as defensive reps), not only perspective:'scout'
         games — so the Matchup tab stops showing its empty state for a game you
         fully tagged.
+    14. "Big 12" core-calls report (v1.9.24): _bigTwelveData rolls offense snaps
+        into formation·strength·motion → play "calls", ranks by frequency with
+        cumulative %, and reports how few calls cover 75/90% of the offense
+        (Hudl's scouting axiom). bigCall cut filter plays an exact call; shown on
+        the Offense tab (ours, click-to-film) and the Opponent Scout (theirs).
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -697,6 +702,29 @@ ok(r.found, 'a game we PLAYED surfaces its opponent in the matchup', JSON.string
 ok(r.defCount === 3, 'their defense = our 3 offensive snaps that carried a faced front/coverage', JSON.stringify(r));
 ok(r.allRelabeled, 'faced snaps are relabeled as defensive reps for the defensive renderer', JSON.stringify(r));
 ok(r.rendered, 'the matchup renders their defense, not the empty state', JSON.stringify(r));
+
+console.log('\n== 22. "Big 12" core-calls report (formation·strength·motion → play rollup) ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, eng = window.app.stats;
+  const plays = [];
+  for (let i = 0; i < 10; i++) plays.push(mk({ unit: 'offense', formation: 'Shotgun + Trips', strength: 'Right', motion: 'Jet', playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '6' }));
+  for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', formation: 'Empty', strength: 'Balanced', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '5' }));
+  ['I-Form', 'Pistol', 'Wing-T', 'Bunch'].forEach(f => plays.push(mk({ unit: 'offense', formation: f, playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3' })));
+  const d = eng._bigTwelveData(plays);
+  const top = d.calls[0];
+  const cut = eng._buildCutFilter('bigCall', top.key);
+  const html = eng._renderBigTwelve(plays, 'Test Offense');
+  return {
+    total: d.total, unique: d.unique, topN: top.n, topPct: top.pct, to75: d.to75, to90: d.to90,
+    cutN: plays.filter(p => cut(p)).length,
+    rendered: /Core Calls/.test(html) && /Shotgun \+ Trips/.test(html) && /Jet mo/.test(html),
+  };
+});
+ok(r.total === 20 && r.unique === 6, 'Big 12 rolls 20 snaps into 6 unique calls', JSON.stringify(r));
+ok(r.topN === 10 && r.topPct === 50, 'dominant call (Shotgun Trips Right · Jet → Run Outside) = 10 snaps / 50%', JSON.stringify(r));
+ok(r.to75 === 2 && r.to90 === 4, 'cumulative coverage: 2 calls = 75%, 4 calls = 90%', JSON.stringify(r));
+ok(r.cutN === 10, 'the bigCall cut filter resolves to exactly that call\'s 10 snaps', JSON.stringify(r));
+ok(r.rendered, 'the report renders the core-calls table with the call signature', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));

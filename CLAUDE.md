@@ -1317,6 +1317,14 @@ The stats engine (`js/stats-engine.js`) computes:
 - Success rate, average yards per play/type/formation
 - Down & distance conversion rates
 - Formation tendencies (with per-formation effectiveness: run/pass split, success%, avg)
+- **"Big 12" core calls** (`_bigTwelveData` / `_renderBigTwelve`, v1.9.24) — rolls
+  offensive snaps into formation·strength·motion → play "calls", ranks by
+  frequency with cumulative %, and reports how few calls cover 75/90% of the
+  offense (Hudl's scouting axiom: most offenses live in ~8-14 calls). The title's
+  N is the actual 90%-coverage count. Rows are click-to-film via the `bigCall`
+  cut filter (exact-call match); rendered on the Offense tab (ours, clickable)
+  and inside the Opponent Scout (theirs, read-only). The first Hudl-research-doc
+  feature (see [[feature-backlog]]).
 - Play type effectiveness (same breakdown per play type)
 - Defensive analytics (see below)
 - Red zone, goal line, backed-up situational stats

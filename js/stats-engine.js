@@ -1566,6 +1566,7 @@ export class StatsEngine {
               ${this._renderOffenseHero(stats)}
               ${this._renderPlayAction(stats)}
               ${this._renderTendencies(stats)}
+              ${this._renderBigTwelve(stats.offPlays, document.getElementById('gameTeamName')?.value || 'Our Offense')}
               ${this._renderPersonnel(stats)}
               ${this._renderBackfieldStrength(stats)}
               ${this._renderDirectionMotion(stats)}
@@ -1815,6 +1816,63 @@ export class StatsEngine {
    * plays; defensive dimensions (front/coverage/blitz) match our defensive
    * plays — mirroring how the dashboard partitions stats by unit.
    */
+  // The "Big 12": the handful of formation·strength·motion → play calls that make
+  // up the bulk of an offense's snaps. Hudl's scouting axiom — most teams live in
+  // ~8-14 calls (≈90% of snaps); find them and you've found the offense. Pure
+  // rollup over data already tagged. The call signature is the EXACT tagged look,
+  // so the cut-up plays precisely those snaps.
+  _bigTwelveData(plays) {
+    const off = (plays || []).filter(p => p && p.tags && (p.tags.unit || 'offense') === 'offense'
+      && (StatsEngine.isRun(p) || StatsEngine.isPass(p)));
+    const total = off.length;
+    const map = {};
+    off.forEach(p => {
+      const t = p.tags;
+      const form = (t.formation || '').trim(), str = (t.strength || '').trim();
+      const mot = (t.motion || '').trim(), pt = (t.playType || '').trim();
+      const key = [form, str, mot, pt].join('|||');
+      const e = map[key] || (map[key] = { key, form, str, mot, pt, n: 0, runs: 0, yards: 0, succ: 0 });
+      e.n++;
+      if (StatsEngine.isRun(p)) e.runs++;
+      e.yards += parseInt(t.yardage, 10) || 0;
+      if (this._isSuccessfulPlay(p)) e.succ++;
+    });
+    const calls = Object.values(map).sort((a, b) => b.n - a.n);
+    let cum = 0;
+    calls.forEach(c => { c.pct = total ? Math.round(c.n / total * 100) : 0; cum += c.n; c.cumPct = total ? Math.round(cum / total * 100) : 0; });
+    const callsTo = (target) => { let s = 0; for (let i = 0; i < calls.length; i++) { s += calls[i].n; if (total && s / total * 100 >= target) return i + 1; } return calls.length; };
+    return { calls, total, unique: calls.length, to75: callsTo(75), to90: callsTo(90) };
+  }
+
+  _renderBigTwelve(plays, label, opts = {}) {
+    const d = this._bigTwelveData(plays);
+    if (d.total < 8) return '';   // too few snaps to call it a tendency
+    const esc = Charts._esc;
+    const cut = opts.cut !== false;
+    const rows = d.calls.slice(0, 15).map((c, i) => {
+      const name = `${esc(c.form || '—')}`
+        + (c.str ? ` <span class="bt-tag">${esc(c.str)}</span>` : '')
+        + (c.mot ? ` <span class="bt-tag bt-mot">${esc(c.mot)} mo</span>` : '')
+        + ` <span class="bt-arrow">→</span> ${esc(c.pt || '—')}`;
+      const runPct = c.n ? Math.round(c.runs / c.n * 100) : 0;
+      const avg = c.n ? (c.yards / c.n).toFixed(1) : '0.0';
+      const succ = c.n ? Math.round(c.succ / c.n * 100) : 0;
+      const cls = `bt-row${i < d.to90 ? ' bt-in90' : ''}`;
+      const cutAttr = cut
+        ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc((c.form || '—') + ' ' + (c.pt || ''))} — ${c.n} plays"`
+        : '"';
+      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${name}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
+    }).join('');
+    const more = d.unique > 15 ? `<p class="self-scout-intro" style="margin-top:6px">…and ${d.unique - 15} more rare looks.</p>` : '';
+    return `<div class="stats-section">
+      <h3>The “Big ${d.to90}” — ${esc(label)}'s Core Calls</h3>
+      <p class="self-scout-intro"><b>${d.to90} call${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Find these and you've found the offense.${cut ? ' Click a row to watch it.' : ''}</p>
+      <table class="stats-table stats-table-full bt-table">
+        <thead><tr><th>#</th><th>Call — formation · strength · motion → play</th><th>Plays</th><th>%</th><th>Cum%</th><th>Run</th><th>Yds</th><th>Succ</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>${more}</div>`;
+  }
+
   _buildCutFilter(type, val) {
     const isOff = p => (p.tags.unit || 'offense') === 'offense';
     const isDef = p => p.tags.unit === 'defense';
@@ -1826,6 +1884,13 @@ export class StatsEngine {
       case 'backfield': return p => isOff(p) && (p.tags.backfield || '') === val;
       case 'strength':  return p => isOff(p) && (p.tags.strength || '') === val;
       case 'comboFStr': { const [form, str] = val.split('__'); return p => isOff(p) && StatsEngine.splitFormations(p.tags.formation).includes(form) && (p.tags.strength || '') === str; }
+      case 'bigCall': {  // an exact "Big 12" call: formation|||strength|||motion|||playType
+        const [form, str, mot, pt] = val.split('|||');
+        return p => isOff(p) && (p.tags.formation || '').trim() === (form || '')
+          && (p.tags.strength || '').trim() === (str || '')
+          && (p.tags.motion || '').trim() === (mot || '')
+          && (p.tags.playType || '').trim() === (pt || '');
+      }
       case 'down':      return p => isOff(p) && (p.tags.down || '') === val;
       case 'runpass':   return p => isOff(p) && (val === 'Run' ? StatsEngine.isRun(p) : StatsEngine.isPass(p));
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
@@ -3100,6 +3165,7 @@ export class StatsEngine {
       opponent: opponentName,
       games: matched.length,
       offReport: asOffense.length ? this.generateScoutReport(asOffense) : null,
+      offPlays: asOffense,
       offCount: offPlays.length,
       defFronts: sortDesc(frontCounts),
       defCoverages: sortDesc(covCounts),
@@ -3137,6 +3203,7 @@ export class StatsEngine {
             <tbody>${r.formationDetail.map(f => `<tr><td>${esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`).join('')}</tbody>
           </table>
         </div>
+        ${this._renderBigTwelve(data.offPlays, opponentName, { cut: false })}
         <div class="stats-section">
           <h3>Their Down &amp; Distance Tendencies</h3>
           <table class="stats-table stats-table-full">
