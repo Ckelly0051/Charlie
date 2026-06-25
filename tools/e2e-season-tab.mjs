@@ -43,6 +43,11 @@
         graceful empty state instead of a blocking alert() when nothing is
         tagged, and SeasonStore.stripLeakedFronts cleans our-own defensive fronts
         that leaked onto offense snaps (carry artifact) out of "defense faced".
+    13. Matchup from a played game (v1.9.23): _matchupData now surfaces the
+        opponent's defense from games you PLAYED (the front/coverage faced on your
+        offense snaps, relabeled as defensive reps), not only perspective:'scout'
+        games — so the Matchup tab stops showing its empty state for a game you
+        fully tagged.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -661,6 +666,37 @@ ok(r.offLeak === '5-2', 'stripLeakedFronts: "Maverick + 5-2" on offense → "5-2
 ok(r.offBare === '', 'stripLeakedFronts: bare "Maverick" on offense → "" (pure leak removed)', JSON.stringify(r));
 ok(r.defKeep === 'Maverick', 'stripLeakedFronts leaves our front on a DEFENSE snap (it is ours there)', JSON.stringify(r));
 ok(r.emptyShown && !r.alerted, 'Self-Scout with no run/pass plays shows a graceful empty state, no blocking alert()', JSON.stringify(r));
+
+console.log('\n== 21. Matchup populates from a game you PLAYED (faced defense), not only scout games ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, eng = window.app.stats;
+  window.app.storage.seasonStore.data.games.push({
+    id: 'matchup_played', name: 'vs Faced D U',
+    gameInfo: { opponent: 'Faced D U', perspective: 'offense' },
+    plays: [
+      // our offense, with the defense we FACED tagged (front/coverage)
+      mk({ unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '6', defFront: '5-2', coverage: 'Cover 3' }),
+      mk({ unit: 'offense', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '8', defFront: '5-2', coverage: 'Cover 1' }),
+      mk({ unit: 'offense', playType: 'Run Outside', runPass: 'Run', result: 'No Gain', yardage: '0', defFront: 'Nickel', coverage: 'Cover 2' }),
+      mk({ unit: 'defense', formation: 'Trips', defFront: 'Maverick', coverage: 'Cover 3' }),  // their offense — not their defense
+    ],
+    annotations: {}, nextId: 50, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false
+  });
+  const data = eng._matchupData();
+  const opp = data.opponents.find(o => o.name === 'Faced D U');
+  const pane = document.createElement('div');
+  eng._renderMatchupInto(pane, 'Faced D U');
+  return {
+    found: !!opp,
+    defCount: opp ? opp.defPlays.length : 0,
+    allRelabeled: opp ? opp.defPlays.every(p => p.tags.unit === 'defense') : false,
+    rendered: /Faced D U Defense/.test(pane.innerHTML) && !/Tag the/.test(pane.innerHTML),
+  };
+});
+ok(r.found, 'a game we PLAYED surfaces its opponent in the matchup', JSON.stringify(r));
+ok(r.defCount === 3, 'their defense = our 3 offensive snaps that carried a faced front/coverage', JSON.stringify(r));
+ok(r.allRelabeled, 'faced snaps are relabeled as defensive reps for the defensive renderer', JSON.stringify(r));
+ok(r.rendered, 'the matchup renders their defense, not the empty state', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
