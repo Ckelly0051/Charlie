@@ -18876,15 +18876,23 @@ class StatsEngine {
     const oppMap = {};
     games.forEach(g => {
       const scout = ((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
+      const rawOpp = String((g.gameInfo && g.gameInfo.opponent) || '').trim();
       (g.plays || []).forEach(p => {
         const t = p.tags || {};
+        const u = t.unit || 'offense';
         if (scout) {
-          if (t.unit === 'defense') {
-            const name = (g.gameInfo && g.gameInfo.opponent) || 'Opponent';
-            (oppMap[name] = oppMap[name] || []).push(p);
-          }
-        } else if ((t.unit || 'offense') === 'offense') {
+          // Opponent film tagged directly: their defense = their defensive snaps.
+          if (u === 'defense') (oppMap[rawOpp || 'Opponent'] = oppMap[rawOpp || 'Opponent'] || []).push(p);
+        } else if (u === 'offense') {
           yourOff.push(p);
+          // A game we PLAYED: their defense = the front/coverage we FACED on this
+          // offensive snap. Relabel the rep as defensive so _renderDefensive reads
+          // it — the yards we gained are the yards their defense allowed. (This is
+          // why "I played them" games now populate the matchup, not just scout
+          // games — same model as the Opponent Scout.)
+          if (rawOpp && (t.defFront || t.coverage)) {
+            (oppMap[rawOpp] = oppMap[rawOpp] || []).push({ ...p, tags: { ...t, unit: 'defense' } });
+          }
         }
       });
     });
@@ -18902,11 +18910,12 @@ class StatsEngine {
     if (!data.opponents.length) {
       pane.innerHTML = `<div class="stats-section" style="max-width:640px;margin:24px auto;text-align:center">
         <h3>Opponent Matchup</h3>
-        <p class="self-scout-intro" style="line-height:1.6">Scout an opponent's defense to see this side-by-side. In that game's settings set <b>Film shows → Opponent Scout</b>, tag their defensive snaps (front / coverage / blitz), and your offense will line up against them here.</p></div>`;
+        <p class="self-scout-intro" style="line-height:1.6">Tag the <b>defense you face</b> on your offensive snaps (front / coverage) and your offense will line up against it here — that's all it takes for a game you played. (Or scout a fresh opponent directly: their game's settings → <b>Film shows → Opponent Scout</b>, then tag their defensive snaps.)</p></div>`;
       return;
     }
     const esc = Charts._esc;
-    const opp = data.opponents.find(o => o.name === oppName) || data.opponents[0];
+    const want = oppName || this._activeOpponent();
+    const opp = data.opponents.find(o => o.name === want) || data.opponents[0];
     const offStats = this.compute(data.yourOff);
     const defStats = this.compute(opp.defPlays);
     const picker = data.opponents.length > 1
@@ -28253,7 +28262,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.22';
+const APP_VERSION = '1.9.23';
 
 class App {
   constructor() {
