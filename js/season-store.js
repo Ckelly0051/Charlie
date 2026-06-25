@@ -99,6 +99,20 @@ export class SeasonStore {
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
   }
 
+  // Our custom defensive fronts (the .our-def-only chips in index.html) can never
+  // be a "defense faced" on an OFFENSE snap — the opponent doesn't run our team's
+  // named fronts. So an our-own front on a non-defense play is carry leak (the
+  // Save-&-Next carry copied our defensive front onto an offense snap before the
+  // v1.9.20 same-unit fix). Strip just those components, keeping any real faced
+  // front: "Maverick + 5-2" → "5-2", "Maverick" → "". Mirrors the chip list.
+  static OUR_DEF_ONLY_FRONTS = ['Maverick', 'Eagle', 'Falcon', 'Jumbo Shift'];
+  static stripLeakedFronts(p) {
+    if (!p || !p.tags || (p.tags.unit || 'offense') === 'defense') return;
+    if (!p.tags.defFront) return;
+    p.tags.defFront = String(p.tags.defFront).split('+').map(s => s.trim())
+      .filter(x => x && !SeasonStore.OUR_DEF_ONLY_FRONTS.includes(x)).join(' + ');
+  }
+
   /** Coerce any loaded object into a well-formed season (back-compat safe). */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
@@ -110,7 +124,7 @@ export class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
-      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); });
+      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); SeasonStore.stripLeakedFronts(p); });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;

@@ -3183,7 +3183,7 @@ export class StatsEngine {
 
   renderScoutReport() {
     const report = this.generateScoutReport();
-    if (!report) { alert('No plays tagged. Tag opponent plays first.'); return; }
+    if (!report) { this._emptyOverlay('Scout Report', 'No opponent plays tagged yet. Tag the opponent’s formations, play types, and results, then generate the report.'); return; }
     const notes = document.getElementById('scoutNotes')?.value || '';
     const opponent = document.getElementById('gameOpponent')?.value || 'Opponent';
     const t = report.stats.tendencies;
@@ -4185,9 +4185,32 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       </div>`;
   }
 
+  /** Graceful in-overlay empty state — use instead of a blocking alert() when a
+   *  report has nothing to show (no plays tagged for it yet). */
+  _emptyOverlay(title, msg) {
+    this.dashboardEl.innerHTML = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>${Charts._esc(title)}</h2>
+            <div class="stats-header-actions"><button class="btn btn-sm btn-danger" id="btnCloseEmptyOv">Close</button></div>
+          </div>
+          <div class="stats-body"><div class="stats-section" style="text-align:center;padding:40px 24px">
+            <div style="font-size:34px;margin-bottom:10px">📋</div>
+            <p style="color:var(--text-dim);line-height:1.7;max-width:520px;margin:0 auto">${Charts._esc(msg)}</p>
+          </div></div>
+        </div>
+      </div>`;
+    this.dashboardEl.classList.remove('hidden');
+    const b = this.dashboardEl.querySelector('#btnCloseEmptyOv');
+    if (b) b.addEventListener('click', () => this.hideDashboard());
+    const ov = this.dashboardEl.querySelector('.stats-overlay');
+    if (ov) ov.addEventListener('click', e => { if (e.target.classList.contains('stats-overlay')) this.hideDashboard(); });
+  }
+
   renderSelfScout() {
     const report = this.generateSelfScout();
-    if (!report) { alert('No run/pass plays tagged yet. Tag your offense first.'); return; }
+    if (!report) { this._emptyOverlay('Self-Scout', 'No run/pass-tagged offensive plays yet. Tag your offense’s Run/Pass (and Play Type) on a few snaps, then re-open Self-Scout to see your tendencies and the tells you’re giving away.'); return; }
     const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Our Offense');
     const mc = StatsEngine._meterColor(report.predictability);
     const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;

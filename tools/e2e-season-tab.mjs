@@ -39,6 +39,10 @@
     11. XSS-inert player names (v1.9.21): a roster name carrying an <img onerror>
         payload renders escaped in the dashboard (no live element, handler never
         fires) — names/notes travel in importable season + CSV files.
+    12. Real-data E2E follow-ups (v1.9.22): Self-Scout/Opponent-Scout show a
+        graceful empty state instead of a blocking alert() when nothing is
+        tagged, and SeasonStore.stripLeakedFronts cleans our-own defensive fronts
+        that leaked onto offense snaps (carry artifact) out of "defense faced".
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -631,6 +635,32 @@ r = await page.evaluate(() => {
 ok(r.found, 'the #99 player row rendered', JSON.stringify(r));
 ok(r.escaped && r.noLiveImg && !r.xssFired, 'a script-payload player name renders inert — escaped, no live element, handler never fired', JSON.stringify(r));
 ok(r.textPreserved, 'the name is preserved as literal text (escaped, not stripped)', JSON.stringify(r));
+
+console.log('\n== 20. Self-Scout empty-state (no blocking alert) + leaked-front cleanup ==');
+r = await page.evaluate(() => {
+  const SeasonStore = window.app.storage.seasonStore.constructor;
+  const mk = window.__mk, eng = window.app.stats;
+  // (a) stripLeakedFronts: our-own front on an offense snap is leak; real faced front kept.
+  const offLeak = mk({ unit: 'offense', defFront: 'Maverick + 5-2' }); SeasonStore.stripLeakedFronts(offLeak);
+  const offBare = mk({ unit: 'offense', defFront: 'Maverick' });       SeasonStore.stripLeakedFronts(offBare);
+  const defKeep = mk({ unit: 'defense', defFront: 'Maverick' });       SeasonStore.stripLeakedFronts(defKeep);
+  // (b) renderSelfScout with no run/pass plays → graceful overlay, NOT a blocking
+  //     alert (a real alert would also hang this evaluate; we trap it to be sure).
+  window.app.tagger.plays = [mk({ unit: 'offense', playType: '', runPass: '', result: 'Gain', yardage: '3' })];
+  eng.filter.active = false;
+  let alerted = false; const realAlert = window.alert; window.alert = () => { alerted = true; };
+  eng.renderSelfScout();
+  window.alert = realAlert;
+  const ov = document.querySelector('#statsDashboard .stats-overlay');
+  return {
+    offLeak: offLeak.tags.defFront, offBare: offBare.tags.defFront, defKeep: defKeep.tags.defFront,
+    emptyShown: ov ? /No run\/pass-tagged/.test(ov.textContent) : false, alerted,
+  };
+});
+ok(r.offLeak === '5-2', 'stripLeakedFronts: "Maverick + 5-2" on offense → "5-2" (keeps the real faced front)', JSON.stringify(r));
+ok(r.offBare === '', 'stripLeakedFronts: bare "Maverick" on offense → "" (pure leak removed)', JSON.stringify(r));
+ok(r.defKeep === 'Maverick', 'stripLeakedFronts leaves our front on a DEFENSE snap (it is ours there)', JSON.stringify(r));
+ok(r.emptyShown && !r.alerted, 'Self-Scout with no run/pass plays shows a graceful empty state, no blocking alert()', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
