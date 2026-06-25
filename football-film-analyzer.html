@@ -13721,6 +13721,20 @@ class SeasonStore {
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
   }
 
+  // Our custom defensive fronts (the .our-def-only chips in index.html) can never
+  // be a "defense faced" on an OFFENSE snap — the opponent doesn't run our team's
+  // named fronts. So an our-own front on a non-defense play is carry leak (the
+  // Save-&-Next carry copied our defensive front onto an offense snap before the
+  // v1.9.20 same-unit fix). Strip just those components, keeping any real faced
+  // front: "Maverick + 5-2" → "5-2", "Maverick" → "". Mirrors the chip list.
+  static OUR_DEF_ONLY_FRONTS = ['Maverick', 'Eagle', 'Falcon', 'Jumbo Shift'];
+  static stripLeakedFronts(p) {
+    if (!p || !p.tags || (p.tags.unit || 'offense') === 'defense') return;
+    if (!p.tags.defFront) return;
+    p.tags.defFront = String(p.tags.defFront).split('+').map(s => s.trim())
+      .filter(x => x && !SeasonStore.OUR_DEF_ONLY_FRONTS.includes(x)).join(' + ');
+  }
+
   /** Coerce any loaded object into a well-formed season (back-compat safe). */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
@@ -13732,7 +13746,7 @@ class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
-      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); });
+      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); SeasonStore.stripLeakedFronts(p); });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;
@@ -21642,7 +21656,7 @@ class StatsEngine {
 
   renderScoutReport() {
     const report = this.generateScoutReport();
-    if (!report) { alert('No plays tagged. Tag opponent plays first.'); return; }
+    if (!report) { this._emptyOverlay('Scout Report', 'No opponent plays tagged yet. Tag the opponent’s formations, play types, and results, then generate the report.'); return; }
     const notes = document.getElementById('scoutNotes')?.value || '';
     const opponent = document.getElementById('gameOpponent')?.value || 'Opponent';
     const t = report.stats.tendencies;
@@ -22644,9 +22658,32 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       </div>`;
   }
 
+  /** Graceful in-overlay empty state — use instead of a blocking alert() when a
+   *  report has nothing to show (no plays tagged for it yet). */
+  _emptyOverlay(title, msg) {
+    this.dashboardEl.innerHTML = `
+      <div class="stats-overlay">
+        <div class="stats-container">
+          <div class="stats-header">
+            <h2>${Charts._esc(title)}</h2>
+            <div class="stats-header-actions"><button class="btn btn-sm btn-danger" id="btnCloseEmptyOv">Close</button></div>
+          </div>
+          <div class="stats-body"><div class="stats-section" style="text-align:center;padding:40px 24px">
+            <div style="font-size:34px;margin-bottom:10px">📋</div>
+            <p style="color:var(--text-dim);line-height:1.7;max-width:520px;margin:0 auto">${Charts._esc(msg)}</p>
+          </div></div>
+        </div>
+      </div>`;
+    this.dashboardEl.classList.remove('hidden');
+    const b = this.dashboardEl.querySelector('#btnCloseEmptyOv');
+    if (b) b.addEventListener('click', () => this.hideDashboard());
+    const ov = this.dashboardEl.querySelector('.stats-overlay');
+    if (ov) ov.addEventListener('click', e => { if (e.target.classList.contains('stats-overlay')) this.hideDashboard(); });
+  }
+
   renderSelfScout() {
     const report = this.generateSelfScout();
-    if (!report) { alert('No run/pass plays tagged yet. Tag your offense first.'); return; }
+    if (!report) { this._emptyOverlay('Self-Scout', 'No run/pass-tagged offensive plays yet. Tag your offense’s Run/Pass (and Play Type) on a few snaps, then re-open Self-Scout to see your tendencies and the tells you’re giving away.'); return; }
     const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Our Offense');
     const mc = StatsEngine._meterColor(report.predictability);
     const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;
@@ -28216,7 +28253,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.21';
+const APP_VERSION = '1.9.22';
 
 class App {
   constructor() {
