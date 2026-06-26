@@ -98,6 +98,23 @@ ok(r.amp === 'A&amp;B', 'escapes & (entity-safe)', JSON.stringify(r));
 ok(r.quote.includes('&quot;') && r.quote.includes('&#39;'), 'escapes both quote styles', JSON.stringify(r));
 ok(r.plain === 'Smith', 'leaves a plain name untouched', JSON.stringify(r));
 
+console.log('\n== 5. isPlayTagged — one canonical "is this play tagged?" rule ==');
+r = await page.evaluate(() => {
+  const t = tags => isPlayTagged({ tags });
+  return {
+    offense: t({ playType: 'Run Inside', result: 'Gain' }),
+    stKickReturn: t({ unit: 'special', stType: 'Kick Return', result: 'Fumble' }),  // no playType
+    defenseScheme: t({ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }),     // no playType
+    runPassOnly: t({ runPass: 'Run' }),
+    formationOnly: t({ formation: 'Shotgun' }),
+    ddOnly: t({ down: '1', distance: '10' }),   // situational pre-fill only → NOT tagged
+    blank: t({}),
+  };
+});
+ok(r.offense && r.stKickReturn && r.defenseScheme, 'offense, special-teams (Kick Return), and defense plays all read as TAGGED', JSON.stringify(r));
+ok(r.runPassOnly && r.formationOnly, 'a run/pass call or a formation alone counts as tagged', JSON.stringify(r));
+ok(!r.ddOnly && !r.blank, 'down/distance pre-fill alone (or nothing) is NOT tagged', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

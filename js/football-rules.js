@@ -28,3 +28,17 @@ export const DRIVE_ENDERS = new Set([
   'Touchdown', 'Field Goal', 'Punt', 'Interception', 'Fumble',
   'Good', 'No Good', 'Safety', 'Kneel', 'Spike',
 ]);
+
+/**
+ * Has the coach put any meaningful tag on this play? The single source of truth
+ * for "tagged" across the progress counter, the play selector, and the Film Room
+ * grid (they used to disagree — some checked playType ONLY, so a Kick Return or a
+ * defensive snap that the coach fully tagged still read as "Untagged"). A play
+ * counts as tagged if it carries an offensive play type, a result, a
+ * special-teams type, a run/pass call, a formation, or any defensive scheme tag.
+ */
+export function isPlayTagged(play) {
+  const t = (play && play.tags) || {};
+  return !!(t.playType || t.result || t.stType || t.runPass
+    || t.formation || t.defFront || t.coverage || t.blitz);
+}

@@ -1,4 +1,4 @@
-import { gainedFirstDown } from './football-rules.js';
+import { gainedFirstDown, isPlayTagged } from './football-rules.js';
 
 /**
  * ChipField — lightweight wrapper so a div.pick-group behaves like a
@@ -1391,7 +1391,7 @@ export class PlayTagger {
         div.style.left = (i / n) * 100 + '%';
         div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
         div.textContent = n <= 40 ? `${p.id}` : '';
-        div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+        div.title = `Play ${p.id}: ${p.tags.playType || p.tags.stType || p.tags.defFront || (isPlayTagged(p) ? 'tagged' : 'Untagged')}`;
         div.addEventListener('click', () => this.selectPlay(p.id));
         this.timelineBar.appendChild(div);
       });
@@ -1416,7 +1416,7 @@ export class PlayTagger {
       div.style.left = left + '%';
       div.style.width = Math.max(width, 0.5) + '%';
       div.textContent = `${p.id}`;
-      div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+      div.title = `Play ${p.id}: ${p.tags.playType || p.tags.stType || p.tags.defFront || (isPlayTagged(p) ? 'tagged' : 'Untagged')}`;
       div.addEventListener('click', () => this.selectPlay(p.id));
       this.timelineBar.appendChild(div);
     });

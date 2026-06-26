@@ -6,6 +6,8 @@
  * Each step auto-advances when its completion condition is met; users can
  * also jump freely by tapping any step pill.
  */
+import { isPlayTagged } from './football-rules.js';
+
 export class Wizard {
   constructor({ videoController, tagger, stats, history }) {
     this.vc = videoController;
@@ -125,7 +127,7 @@ export class Wizard {
 
     // Update step pill states.
     const total = this.tagger.plays.length;
-    const tagged = this.tagger.plays.filter(p => p.tags && p.tags.playType).length;
+    const tagged = this.tagger.plays.filter(isPlayTagged).length;
     document.querySelectorAll('.wiz-step').forEach(btn => {
       const s = parseInt(btn.dataset.step, 10);
       btn.classList.toggle('active', s === this.currentStep);

@@ -1,3 +1,4 @@
+import { isPlayTagged } from './football-rules.js';
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
  */
@@ -38,7 +39,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.25';
+const APP_VERSION = '1.9.26';
 
 class App {
   constructor() {
@@ -2083,7 +2084,7 @@ class App {
     const fill = document.getElementById('tagProgressFill');
     if (!label || !fill) return;
     const total = this.tagger.plays.length;
-    const tagged = this.tagger.plays.filter(p => p.tags.playType && p.tags.result).length;
+    const tagged = this.tagger.plays.filter(isPlayTagged).length;
     label.textContent = `${tagged} / ${total} tagged`;
     fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
   }

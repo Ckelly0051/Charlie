@@ -9627,6 +9627,20 @@ const DRIVE_ENDERS = new Set([
   'Good', 'No Good', 'Safety', 'Kneel', 'Spike',
 ]);
 
+/**
+ * Has the coach put any meaningful tag on this play? The single source of truth
+ * for "tagged" across the progress counter, the play selector, and the Film Room
+ * grid (they used to disagree — some checked playType ONLY, so a Kick Return or a
+ * defensive snap that the coach fully tagged still read as "Untagged"). A play
+ * counts as tagged if it carries an offensive play type, a result, a
+ * special-teams type, a run/pass call, a formation, or any defensive scheme tag.
+ */
+function isPlayTagged(play) {
+  const t = (play && play.tags) || {};
+  return !!(t.playType || t.result || t.stType || t.runPass
+    || t.formation || t.defFront || t.coverage || t.blitz);
+}
+
 // ===== video-controller.js =====
 /**
  * VideoController - Manages video loading, playback, and frame-by-frame controls.
@@ -12087,7 +12101,7 @@ class PlayTagger {
         div.style.left = (i / n) * 100 + '%';
         div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
         div.textContent = n <= 40 ? `${p.id}` : '';
-        div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+        div.title = `Play ${p.id}: ${p.tags.playType || p.tags.stType || p.tags.defFront || (isPlayTagged(p) ? 'tagged' : 'Untagged')}`;
         div.addEventListener('click', () => this.selectPlay(p.id));
         this.timelineBar.appendChild(div);
       });
@@ -12112,7 +12126,7 @@ class PlayTagger {
       div.style.left = left + '%';
       div.style.width = Math.max(width, 0.5) + '%';
       div.textContent = `${p.id}`;
-      div.title = `Play ${p.id}: ${p.tags.playType || 'Untagged'}`;
+      div.title = `Play ${p.id}: ${p.tags.playType || p.tags.stType || p.tags.defFront || (isPlayTagged(p) ? 'tagged' : 'Untagged')}`;
       div.addEventListener('click', () => this.selectPlay(p.id));
       this.timelineBar.appendChild(div);
     });
@@ -24477,6 +24491,7 @@ class CutupPlayer {
  * panel (PlayFilter keeps driving the cut-up exporter).
  */
 
+
 class PlayGrid {
   /**
    * Column registry. `src` is the tag-form chip group whose options the
@@ -24735,8 +24750,7 @@ class PlayGrid {
   // e.g. legacy 'Play Action'/'RPO' plays without an explicit runPass.
 
   static isUntagged(p) {
-    const t = p.tags || {};
-    return !t.playType && !t.result && !t.stType;
+    return !isPlayTagged(p);
   }
 
   _matches(p) {
@@ -27556,6 +27570,7 @@ class UIPolish {
  * Each step auto-advances when its completion condition is met; users can
  * also jump freely by tapping any step pill.
  */
+
 class Wizard {
   constructor({ videoController, tagger, stats, history }) {
     this.vc = videoController;
@@ -27675,7 +27690,7 @@ class Wizard {
 
     // Update step pill states.
     const total = this.tagger.plays.length;
-    const tagged = this.tagger.plays.filter(p => p.tags && p.tags.playType).length;
+    const tagged = this.tagger.plays.filter(isPlayTagged).length;
     document.querySelectorAll('.wiz-step').forEach(btn => {
       const s = parseInt(btn.dataset.step, 10);
       btn.classList.toggle('active', s === this.currentStep);
@@ -28412,7 +28427,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.25';
+const APP_VERSION = '1.9.26';
 
 class App {
   constructor() {
@@ -30457,7 +30472,7 @@ class App {
     const fill = document.getElementById('tagProgressFill');
     if (!label || !fill) return;
     const total = this.tagger.plays.length;
-    const tagged = this.tagger.plays.filter(p => p.tags.playType && p.tags.result).length;
+    const tagged = this.tagger.plays.filter(isPlayTagged).length;
     label.textContent = `${tagged} / ${total} tagged`;
     fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
   }

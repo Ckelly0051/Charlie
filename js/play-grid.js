@@ -32,6 +32,8 @@
 import { StatsEngine } from './stats-engine.js';
 import { PlayTagger } from './play-tagger.js';
 
+import { isPlayTagged } from './football-rules.js';
+
 export class PlayGrid {
   /**
    * Column registry. `src` is the tag-form chip group whose options the
@@ -290,8 +292,7 @@ export class PlayGrid {
   // e.g. legacy 'Play Action'/'RPO' plays without an explicit runPass.
 
   static isUntagged(p) {
-    const t = p.tags || {};
-    return !t.playType && !t.result && !t.stType;
+    return !isPlayTagged(p);
   }
 
   _matches(p) {
