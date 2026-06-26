@@ -682,6 +682,49 @@ export class PlayTagger {
    * Reliable replacement for window.confirm (which can be suppressed by the
    * browser). Enter / the Delete button confirm; Esc / Cancel / backdrop reject.
    */
+  /**
+   * Multi-choice modal (Windows-conflict-dialog style). buttons is an array of
+   * { key, label, variant }; resolves to the chosen key, or null on Esc/backdrop.
+   * Reuses the confirm-modal chrome + capture-phase keydown so the app's global
+   * single-letter shortcuts can't fire underneath.
+   */
+  _choiceDialog(message, buttons) {
+    return new Promise(resolve => {
+      const prev = document.getElementById('ffaConfirmModal');
+      if (prev) prev.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'ffa-confirm-modal';
+      overlay.id = 'ffaConfirmModal';
+      overlay.innerHTML = `
+        <div class="ffa-confirm-backdrop"></div>
+        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
+          <p class="ffa-confirm-msg"></p>
+          <div class="ffa-confirm-actions"></div>
+        </div>`;
+      overlay.querySelector('.ffa-confirm-msg').textContent = message;
+      const actions = overlay.querySelector('.ffa-confirm-actions');
+      (buttons || []).forEach(b => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm ' + (b.variant || '');
+        btn.dataset.key = b.key;
+        btn.textContent = b.label;
+        actions.appendChild(btn);
+      });
+      document.body.appendChild(overlay);
+      const cleanup = (val) => { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(val); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); } };
+      overlay.addEventListener('click', (e) => {
+        const key = e.target.dataset ? e.target.dataset.key : null;
+        if (key) cleanup(key);
+        else if (e.target.classList.contains('ffa-confirm-backdrop')) cleanup(null);
+      });
+      document.addEventListener('keydown', onKey, true);
+      const first = overlay.querySelector('[data-key]');
+      if (first) first.focus();
+    });
+  }
+
   _confirmDialog(message, confirmLabel = 'Delete') {
     return new Promise(resolve => {
       const prev = document.getElementById('ffaConfirmModal');

@@ -937,6 +937,14 @@ be forced to mark boundaries before tagging:
 
 - **Folder / multi-clip mode** (`PlaylistManager._autoCreatePlays`): each clip
   auto-creates a whole-clip play; the first is auto-selected, form live.
+  **Re-adding film** (`addFiles`, v1.9.25): append-only (never wipes tagging).
+  Files whose name matches a **saved** play (reopened game, stale/null clipId)
+  re-link automatically by filename (`_relinkSavedPlays`). Files whose name
+  matches a **live** clip prompt a Windows-conflict-style dialog
+  (`PlayTagger._choiceDialog`): **Skip** (re-add the folder, import only what's
+  new) or **Re-link** (repoint the existing tagged play at the freshly-selected
+  file + refresh its video, keep tags). Dedup key is the filename (minus ext) —
+  keep clip names stable across sessions.
 - **Single video** (`App` `video-loaded` handler → `PlayTagger.
   createWholeVideoPlay`): loading a video into an **empty** game auto-creates
   Play 1 spanning the whole file (flagged `autoFull`) and selects it — tag

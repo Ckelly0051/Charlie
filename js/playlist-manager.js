@@ -58,28 +58,59 @@ export class PlaylistManager {
    * Add multiple video files to the playlist.
    * Sorts them naturally by filename.
    */
-  addFiles(files) {
+  async addFiles(files) {
     // Sort files naturally by name (play_01, play_02, etc.)
-    const sorted = files.slice().sort((a, b) => {
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-    });
+    const sorted = files.slice().sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    const nameOf = f => f.name.replace(/\.[^.]+$/, '');   // strip extension (== clip.name)
 
-    // Clip ids regenerate every session, so plays restored from a save point
-    // at clips that no longer exist. Note which clips were already live, add
-    // the new ones, then re-link orphaned plays to them by clip name — so
-    // re-uploading the game folder restores the tagged game instead of
-    // duplicating every play (the desktop rehydrate path uses the same key).
+    // A file whose name already matches a LIVE clip is a duplicate. The coach
+    // chooses (Windows-conflict-dialog style): SKIP it — re-add a folder and
+    // import only what's new — or RE-LINK it: repoint the existing (possibly
+    // tagged) play at the freshly-selected file and refresh its video, keeping
+    // the tags. Cross-session re-link of SAVED plays (stale/null clipId) stays
+    // automatic below and needs no prompt.
+    const liveByName = new Map(this.clips.map(c => [c.name, c]));
+    const dups = sorted.filter(f => liveByName.has(nameOf(f)));
+    const fresh = sorted.filter(f => !liveByName.has(nameOf(f)));
+
+    let relinkDups = false;
+    if (dups.length) {
+      const choice = await this.tagger._choiceDialog(
+        `${dups.length} of these ${sorted.length} clip${sorted.length === 1 ? '' : 's'} ` +
+        `${dups.length === 1 ? 'is' : 'are'} already in this game` +
+        (fresh.length ? `, ${fresh.length} ${fresh.length === 1 ? 'is' : 'are'} new. ` : '. ') +
+        `Skip the duplicates and add only what's new, or re-link them to your existing ` +
+        `plays (refreshes the video, keeps your tags)?`,
+        [
+          { key: 'skip', label: fresh.length ? `Skip dupes · add ${fresh.length} new` : 'Skip (nothing new)', variant: 'btn-accent' },
+          { key: 'relink', label: 'Re-link duplicates' },
+          { key: 'cancel', label: 'Cancel' },
+        ]);
+      if (!choice || choice === 'cancel') return;
+      relinkDups = choice === 'relink';
+    }
+
     const liveIds = new Set(this.clips.map(c => c.id));
     const newClips = [];
-    for (const file of sorted) {
-      const clip = {
-        id: this._nextClipId++,
-        file: file,
-        name: file.name.replace(/\.[^.]+$/, ''), // strip extension for display
-        objectUrl: null,
-        duration: null,
-        playId: null
-      };
+
+    // Re-link duplicates: repoint the existing clip at the new file + drop its
+    // stale URL so it reloads. The play and its tags are untouched.
+    if (relinkDups) {
+      let refreshActive = false;
+      for (const f of dups) {
+        const clip = liveByName.get(nameOf(f));
+        if (!clip) continue;
+        if (clip.objectUrl) { try { URL.revokeObjectURL(clip.objectUrl); } catch (e) {} }
+        clip.file = f; clip.objectUrl = null; clip.assetUrl = null;
+        if (this.clips[this.activeClipIndex] === clip) refreshActive = true;
+      }
+      if (refreshActive && this.activeClipIndex >= 0) this.switchToClip(this.activeClipIndex);
+    }
+
+    // Add the genuinely-new files as clips.
+    for (const file of fresh) {
+      const clip = { id: this._nextClipId++, file, name: nameOf(file), objectUrl: null, duration: null, playId: null };
       this.clips.push(clip);
       newClips.push(clip);
     }
@@ -93,22 +124,22 @@ export class PlaylistManager {
     // Auto-create play entries for each new clip
     this._autoCreatePlays();
 
-    // If nothing is playing, activate the first clip — except after a
+    // If nothing is playing, activate the first clip — except after a save
     // re-link, where the saved current play's clip is where the coach was.
     if (this.activeClipIndex === -1) {
       const cur = relinked ? this.tagger.getCurrentPlay() : null;
       if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
         this.switchToClipByPlayId(cur.id);
-      } else {
+      } else if (this.clips.length) {
         this.switchToClip(0);
       }
     }
 
-    if (relinked) {
-      this.tagger.toast?.(`Re-linked ${relinked} clip${relinked === 1 ? '' : 's'} to your saved plays`);
-    }
+    if (relinked) this.tagger.toast?.(`Re-linked ${relinked} clip${relinked === 1 ? '' : 's'} to your saved plays`);
+    if (relinkDups) this.tagger.toast?.(`Re-linked ${dups.length} duplicate${dups.length === 1 ? '' : 's'} — tags kept`);
+    else if (dups.length) this.tagger.toast?.(`Skipped ${dups.length} clip${dups.length === 1 ? '' : 's'} already loaded`);
 
-    this._emit('clips-added', { count: sorted.length, total: this.clips.length });
+    this._emit('clips-added', { count: fresh.length, total: this.clips.length });
   }
 
   /**

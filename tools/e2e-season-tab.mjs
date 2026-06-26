@@ -53,6 +53,10 @@
         cumulative %, and reports how few calls cover 75/90% of the offense
         (Hudl's scouting axiom). bigCall cut filter plays an exact call; shown on
         the Offense tab (ours, click-to-film) and the Opponent Scout (theirs).
+    15. Re-add clips de-dup (v1.9.25): PlaylistManager.addFiles detects files
+        whose name already matches a LIVE clip and prompts (PlayTagger._choiceDialog)
+        to SKIP (import only what's new) or RE-LINK (repoint the existing tagged
+        play at the new file); covers the dialog render + skip/relink/cancel.
 
    Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
@@ -725,6 +729,41 @@ ok(r.topN === 10 && r.topPct === 50, 'dominant call (Shotgun Trips Right · Jet 
 ok(r.to75 === 2 && r.to90 === 4, 'cumulative coverage: 2 calls = 75%, 4 calls = 90%', JSON.stringify(r));
 ok(r.cutN === 10, 'the bigCall cut filter resolves to exactly that call\'s 10 snaps', JSON.stringify(r));
 ok(r.rendered, 'the report renders the core-calls table with the call signature', JSON.stringify(r));
+
+console.log('\n== 23. Re-adding clips: duplicate prompt (skip / re-link), no silent dupes ==');
+r = await page.evaluate(async () => {
+  const pl = window.app.playlist, tagger = window.app.tagger;
+  const mkFile = n => new File([new Blob(['x'])], n, { type: 'video/mp4' });
+  // Neutralize heavy side effects (video probe / DOM / playback).
+  pl._autoCreatePlays = async () => {};
+  pl._updatePlaylistUI = () => {}; pl._updateClipIndicator = () => {}; pl._updateClipCount = () => {};
+  pl.switchToClip = () => {}; pl.switchToClipByPlayId = () => {};
+  // (a) the choice dialog renders its buttons and resolves to the clicked key.
+  const dlg = tagger._choiceDialog('msg?', [{ key: 'skip', label: 'Skip' }, { key: 'relink', label: 'Re-link' }, { key: 'cancel', label: 'Cancel' }]);
+  const modal = document.getElementById('ffaConfirmModal');
+  const hasBtns = ['skip', 'relink', 'cancel'].every(k => modal && modal.querySelector(`[data-key="${k}"]`));
+  modal.querySelector('[data-key="relink"]').click();
+  const dialogResult = await dlg;
+  const seed = () => { pl.clips = [{ id: 1, name: 'clip_01', file: { name: 'clip_01.mp4' }, objectUrl: null, duration: 5, playId: 100 }]; pl._nextClipId = 2; pl.activeClipIndex = -1; tagger.plays = [{ id: 100, clipName: 'clip_01', clipId: 1 }]; };
+  // (b) SKIP: re-add the folder (clip_01 dup + clip_02 new) → only clip_02 added.
+  seed(); tagger._choiceDialog = async () => 'skip';
+  await pl.addFiles([mkFile('clip_01.mp4'), mkFile('clip_02.mp4')]);
+  const afterSkip = pl.clips.map(c => c.name);
+  // (c) RE-LINK: re-add clip_01 → existing clip repointed at the new file, NOT duplicated.
+  seed(); tagger._choiceDialog = async () => 'relink';
+  const newFile = mkFile('clip_01.mp4');
+  await pl.addFiles([newFile]);
+  const relinkClips = pl.clips.length, relinkFile = pl.clips[0].file === newFile;
+  // (d) CANCEL: nothing is added.
+  seed(); tagger._choiceDialog = async () => 'cancel';
+  await pl.addFiles([mkFile('clip_01.mp4'), mkFile('clip_02.mp4')]);
+  const afterCancel = pl.clips.map(c => c.name);
+  return { hasBtns, dialogResult, afterSkip, relinkClips, relinkFile, afterCancel };
+});
+ok(r.hasBtns && r.dialogResult === 'relink', 'choice dialog renders skip/relink/cancel and resolves to the clicked key', JSON.stringify(r));
+ok(JSON.stringify(r.afterSkip) === JSON.stringify(['clip_01', 'clip_02']), 'SKIP: re-adding the folder adds only the new clip (clip_01 not duplicated)', JSON.stringify(r));
+ok(r.relinkClips === 1 && r.relinkFile, 'RE-LINK: the existing clip is repointed at the new file, not duplicated', JSON.stringify(r));
+ok(JSON.stringify(r.afterCancel) === JSON.stringify(['clip_01']), 'CANCEL: nothing is added', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
