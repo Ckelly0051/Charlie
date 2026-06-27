@@ -169,11 +169,23 @@ tools/
                                 # the Season tab lazy-render (KPI header + trend line charts +
                                 # player roll-up), the leaderboard sort-wiring, and that the
                                 # .season-summary header actually wears the .gi-hero card look.
-└── e2e-core.mjs                # Unit tests for the PURE core logic (v1.9.21): the static
-                                # splitters (splitFormations/PlayTypes/Results/Fronts/Blitzes/
-                                # Players), run/pass classification (explicit field + playType
-                                # fallback), hasResult, playPoints, and Charts._esc HTML escaping
-                                # (the XSS boundary). Run with the others before any deploy.
+├── e2e-core.mjs                # Unit tests for the PURE core logic (v1.9.21): the static
+│                               # splitters (splitFormations/PlayTypes/Results/Fronts/Blitzes/
+│                               # Players), run/pass classification (explicit field + playType
+│                               # fallback), hasResult, playPoints, and Charts._esc HTML escaping
+│                               # (the XSS boundary). Run with the others before any deploy.
+└── e2e-integrity.mjs           # DATA-INTEGRITY STRESS HARNESS (v1.9.28) — the test the suite
+                                # was missing. Loads COPIES of real seasons (or a synthetic
+                                # multi-game fallback) into the bundle in isolated storage, then
+                                # FUZZES the real data path (switchToGame/restoreBackup/newGame/
+                                # removeGame/addFiles/tag/commitActive/persist+reload/undo/redo +
+                                # a diabolical desync-commit) and re-checks invariants after EVERY
+                                # op: cross-game ISOLATION (no game's plays bleed into another),
+                                # lossless ROUNDTRIP, referential INTEGRITY (no two games share a
+                                # clip name), and zero exceptions. Caught BOTH cross-game
+                                # corruption bugs (commitActive + undo-not-game-scoped); fails
+                                # loudly on the buggy code, clean on the fixed code. Run before
+                                # any deploy with the rest.
 
 server/                       # Optional local Python backend (YOLO-based)
 ├── app.py                    # Flask server
@@ -1495,6 +1507,8 @@ so the feature is never silently missing. The section renders inline as the
 17. **Carry-forward must respect the unit; enforce per-unit field invariants**: the Save-&-Next alignment carry (`PlayTagger.applyCarryScheme`, `CARRY_SCHEME_KEYS`) copied `formation`/`personnel` into the next play's blank fields with no unit check. On a **special-teams** play — whose form *hides* the Formation/Personnel + Front/Coverage/Blitz groups, so the coach can't see or clear them — the carried formation stuck, then propagated snap-to-snap, coding **every ST play "Under Center"** (the first formation chip after the v1.9.x reorder) (v1.9.19). Fix was three-layered: (a) `applyCarryScheme` skips `unit:'special'` plays; (b) switching a play to ST (`setUnit` + the unit-toggle handler) strips the now-invalid alignment via `_stripStAlignment`; (c) `SeasonStore.stripStAlignment` (in `_normalize`) retroactively cleans plays already saved with the leak. The invariant — *a field a unit's form can't set must never hold a value for that unit* — is safe to enforce destructively precisely because the form makes it unreachable. When a feature carries/auto-fills data across plays, gate it on the target play's unit (cf. lesson #15: gate on the unit's own fields).
 
 18. **Escape user text at the HTML sink, not the producer**: coach-entered text (player names, notes) renders into `innerHTML` across the dashboard *and* exported reports. The fix is to escape where the string meets `innerHTML` (`_playerLabelHtml` = `Charts._esc(_playerLabel(...))`), NOT inside the producer (`_playerLabel`/`roster.getLabel`) — the raw label also feeds **text** contexts (the cut-up banner's `textContent`, a chip's `.title`) where pre-escaping would double-encode (`A&amp;B` shown literally). One canonical escaper (`Charts._esc`, full `[&<>"']`); names/notes travel in importable season + CSV files, so this is stored-XSS-via-import, not just self-XSS — and even absent malice, an unescaped `<`/`&` in a name silently corrupts the table. Pinned by `e2e-core.mjs` (the escaper) + `e2e-season-tab.mjs` Test 19 (a payload name renders inert). (v1.9.21, from the whole-app code review.)
+
+19. **Cross-game state must be game-scoped — and stress-test it, because the render gate won't catch corruption.** Two separate data-corruption bugs shipped: (a) `commitActive()` wrote the live tagger into whatever `activeGameId` named, with no check it matched the LOADED game, so a stale-tagger commit (after restore / mid game-switch) stamped one game's plays onto another and could drop a game entirely; (b) the undo `HistoryManager` stack was reset only on **season** load (`init()` doesn't even clear the stack), never on **game** switch, so an Undo after switching games restored the previous game's plays into the current one. Fixes: `StorageManager._loadedGameId` + a `commitActive` guard that refuses to write a mismatched tagger (v1.9.27), and `HistoryManager.reset()` called from `_loadActiveGame` on every game load (v1.9.28). The meta-lesson: **250+ green e2e assertions meant nothing here** — they tested synthetic *rendering* in isolation and never the *data* path (save/load, switch, restore, undo). `tools/e2e-integrity.mjs` closes that gap: it loads COPIES of real seasons into isolated storage and **fuzzes real operations**, asserting INVARIANTS after every step — **cross-game isolation** (an op declares which game it may touch; every other game must be byte-identical), lossless persist→reload, referential integrity (no two games share a clip name = the corruption signature), zero exceptions. It found BOTH bugs, fails loudly on the buggy code and is clean on the fixed code, and every fix carries a **failing-first** regression (Test 24 = the commit guard, Test 25 = undo scoping). When state is per-entity, assert it can never leak across entities, fuzz the operation sequences no human writes by hand, and never trust a test you haven't watched fail on the bug. **Recovery footnote:** the backup ring is the safety net — `restoreBackup` snapshots "Before restore" first, and the desktop mirrors to `Documents/GridIron IQ`; a clean season can always be rebuilt from `backup.data` and loaded via Open File without touching the live store.
 
 ## Future Projects (Tabled)
 

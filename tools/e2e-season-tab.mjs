@@ -794,6 +794,21 @@ ok(r.loadedA, 'setup: loading game A puts A in the tagger and records the loaded
 ok(r.bSafe, 'a stale tagger (A) does NOT overwrite game B when the active pointer moved — B keeps its own plays', JSON.stringify(r));
 ok(r.aSaved, 'a matched commit still saves normally (guard does not over-block)', JSON.stringify(r));
 
+console.log('\n== 25. Undo is game-scoped — switching games resets the history (no cross-game undo) ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, sm = window.app.storage, store = sm.seasonStore, tagger = window.app.tagger, hist = window.app.history;
+  const game = (id, opp) => ({ id, name: 'vs ' + opp, gameInfo: { opponent: opp }, status: 'active', plays: [mk({ unit: 'offense', playType: 'Run Inside', result: 'Gain' })], annotations: [], nextId: 50, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false });
+  store.data.games = [game('hA', 'Alpha'), game('hB', 'Bravo')];
+  store.data.activeGameId = 'hA'; sm._loadActiveGame();
+  tagger.plays[0].tags.yardage = '12';
+  if (tagger._emit) tagger._emit('play-updated', tagger.plays[0]);   // record an undo entry in game A
+  const canUndoInA = hist.canUndo();
+  sm.switchToGame('hB');                                              // → history must reset
+  return { canUndoInA, canUndoAfterSwitch: hist.canUndo() };
+});
+ok(r.canUndoInA, 'an edit in game A creates an undo entry', JSON.stringify(r));
+ok(!r.canUndoAfterSwitch, 'switching to game B RESETS the undo stack — Undo can no longer reach game A', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

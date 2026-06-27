@@ -14593,6 +14593,11 @@ class StorageManager {
     this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = window.app;
     if (app) {
+      // Undo/redo is per-GAME: reset the history on every game load (switch, new,
+      // restore — not just season open) so an Undo after switching games can't
+      // restore the PREVIOUS game's plays into this one. (Cross-game corruption
+      // the integrity harness caught: switchToGame never re-init'd history.)
+      if (app.history && app.history.reset) app.history.reset();
       if (app._updateSeasonChip) app._updateSeasonChip();
       if (app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
@@ -23321,6 +23326,20 @@ class HistoryManager {
     this._updateUI();
   }
 
+  /**
+   * Clear the undo/redo stack and re-baseline to the current state. Called on
+   * every GAME load (not just season open) — the stack is per-game, so without
+   * this an Undo after switching games would restore the PREVIOUS game's plays
+   * into the current one (cross-game corruption the integrity harness caught).
+   * Unlike init() it does NOT re-bind DOM listeners, so it's safe to call often.
+   */
+  reset() {
+    this.stack = [];
+    this.index = -1;
+    this.lastSnap = this._snapshot();
+    this._updateUI();
+  }
+
   _snapshot() {
     return JSON.stringify({
       plays: this.tagger.plays,
@@ -28438,7 +28457,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.27';
+const APP_VERSION = '1.9.28';
 
 class App {
   constructor() {

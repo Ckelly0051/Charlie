@@ -39,6 +39,20 @@ export class HistoryManager {
     this._updateUI();
   }
 
+  /**
+   * Clear the undo/redo stack and re-baseline to the current state. Called on
+   * every GAME load (not just season open) — the stack is per-game, so without
+   * this an Undo after switching games would restore the PREVIOUS game's plays
+   * into the current one (cross-game corruption the integrity harness caught).
+   * Unlike init() it does NOT re-bind DOM listeners, so it's safe to call often.
+   */
+  reset() {
+    this.stack = [];
+    this.index = -1;
+    this.lastSnap = this._snapshot();
+    this._updateUI();
+  }
+
   _snapshot() {
     return JSON.stringify({
       plays: this.tagger.plays,

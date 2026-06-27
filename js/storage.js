@@ -241,6 +241,11 @@ export class StorageManager {
     this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = window.app;
     if (app) {
+      // Undo/redo is per-GAME: reset the history on every game load (switch, new,
+      // restore — not just season open) so an Undo after switching games can't
+      // restore the PREVIOUS game's plays into this one. (Cross-game corruption
+      // the integrity harness caught: switchToGame never re-init'd history.)
+      if (app.history && app.history.reset) app.history.reset();
       if (app._updateSeasonChip) app._updateSeasonChip();
       if (app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
