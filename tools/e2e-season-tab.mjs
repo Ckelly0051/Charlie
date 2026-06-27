@@ -765,6 +765,35 @@ ok(JSON.stringify(r.afterSkip) === JSON.stringify(['clip_01', 'clip_02']), 'SKIP
 ok(r.relinkClips === 1 && r.relinkFile, 'RE-LINK: the existing clip is repointed at the new file, not duplicated', JSON.stringify(r));
 ok(JSON.stringify(r.afterCancel) === JSON.stringify(['clip_01']), 'CANCEL: nothing is added', JSON.stringify(r));
 
+console.log('\n== 24. commitActive guard — a stale tagger can NEVER overwrite another game ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, sm = window.app.storage, store = sm.seasonStore, tagger = window.app.tagger;
+  const game = (id, opp, pt, res) => ({
+    id, name: 'vs ' + opp, gameInfo: { opponent: opp }, status: 'active',
+    plays: [mk({ unit: 'offense', playType: pt, runPass: pt.includes('Run') ? 'Run' : 'Pass', result: res, yardage: '5' })],
+    annotations: [], nextId: 50, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false,
+  });
+  store.data.games = [game('gA', 'Alpha', 'Run Inside', 'Gain'), game('gB', 'Bravo', 'Deep Pass', 'Touchdown')];
+  store.data.activeGameId = 'gA';
+  sm._loadActiveGame();                       // tagger now holds Alpha; _loadedGameId = 'gA'
+  const loadedA = sm._loadedGameId === 'gA' && tagger.plays[0].tags.playType === 'Run Inside';
+  // Reproduce the exact corruption trigger: active pointer moves to B while the
+  // tagger still holds Alpha (mid-restore / mid-switch). OLD code wrote Alpha into gB.
+  store.data.activeGameId = 'gB';
+  sm.commitActive();
+  const gB = store.data.games.find(g => g.id === 'gB');
+  const bSafe = gB.plays[0].tags.playType === 'Deep Pass';   // unchanged → guard held
+  // Positive control: a matched commit still saves normally (guard isn't over-blocking).
+  store.data.activeGameId = 'gA'; sm._loadActiveGame();
+  tagger.plays[0].tags.yardage = '99';
+  sm.commitActive();
+  const gA = store.data.games.find(g => g.id === 'gA');
+  return { loadedA, bSafe, bPlayType: gB.plays[0].tags.playType, aSaved: gA.plays[0].tags.yardage === '99' };
+});
+ok(r.loadedA, 'setup: loading game A puts A in the tagger and records the loaded id', JSON.stringify(r));
+ok(r.bSafe, 'a stale tagger (A) does NOT overwrite game B when the active pointer moved — B keeps its own plays', JSON.stringify(r));
+ok(r.aSaved, 'a matched commit still saves normally (guard does not over-block)', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

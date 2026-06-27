@@ -21,6 +21,7 @@ export class StorageManager {
     this.gameInfo = {};
     this.filter = null;
     this.seasonStore = new SeasonStore();
+    this._loadedGameId = null;   // which game the live tagger holds (guards commitActive vs cross-game writes)
     // Tell the coach when a save fails (browser storage full) instead of losing
     // work silently. window.app/updater resolve lazily — this fires rarely.
     this.seasonStore.onPersistError = () => {
@@ -214,6 +215,14 @@ export class StorageManager {
   /** Capture the live tagger/canvas/gameInfo state into the active game node. */
   commitActive() {
     if (!this.seasonStore || !this.seasonStore.data) return;
+    // CRITICAL: only flush the live tagger into the game it was actually loaded
+    // from. updateActiveGame() writes to whatever activeGameId points at, with no
+    // check that the tagger belongs there — so if the pointer moved (restore /
+    // mid game-switch) while the tagger still holds the previous game, a blind
+    // commit stamps THIS game's plays onto ANOTHER game (the cross-game
+    // corruption that put Lakers tags on the Lancers game). Mismatch, or nothing
+    // loaded → skip the write entirely.
+    if (this._loadedGameId == null || this._loadedGameId !== this.seasonStore.data.activeGameId) return;
     this.seasonStore.updateActiveGame(this._serialize());
     const app = window.app;
     if (app && app.roster) this.seasonStore.data.roster = app.roster.toJSON();
@@ -228,6 +237,7 @@ export class StorageManager {
   _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
+    this._loadedGameId = g ? g.id : null;   // the tagger now holds THIS game; commitActive guards on it
     this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = window.app;
     if (app) {
@@ -334,6 +344,7 @@ export class StorageManager {
     try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
     this.videoFileName = null;
     this.canvas.annotations = [];
+    this._loadedGameId = null;   // nothing loaded → commitActive must not write a blank/stale tagger over a game
     // The outgoing game's selection is meaningless in the next one — and play
     // ids restart per game, so a stale currentPlayId would silently highlight
     // an unrelated play if the incoming game has no saved selection.

@@ -1,6 +1,6 @@
 [package]
 name = "gridiron-iq"
-version = "1.9.26"
+version = "1.9.27"
 edition = "2021"
 description = "GridIron IQ — Football film analysis for coaches"
 
