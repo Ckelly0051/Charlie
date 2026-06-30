@@ -1,5 +1,15 @@
 # GridIron IQ — Code Audit (verified)
 
+> ⚠️ **STALENESS WARNING:** this audit was performed against commit **`738a36a`
+> (~v1.8.3-era)**. The live branch has since advanced to **v1.9.28**, and several
+> of those commits overlap these findings — notably **v1.9.27** "Fix cross-game
+> data corruption (commitActive wrote the tagger into the wrong game)",
+> **v1.9.28** "Second cross-game corruption fix (undo not game-scoped)", and
+> **v1.9.26** "tagged plays showing as Untagged". So **§1 and §2 may already be
+> fixed**, and **all line numbers below are from the old tree** and will not
+> match current code. Re-verify each finding against the current HEAD before
+> acting on it.
+
 > Full-codebase review (every JS module, CSS, Python CV server, build script,
 > Tauri entry) followed by an adversarial verification pass that re-read the
 > actual code for each top finding. Severity reflects the **verified** verdict,
