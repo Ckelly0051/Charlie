@@ -4622,7 +4622,12 @@ input:focus, select:focus, textarea:focus {
 /* --- Timeline play blocks --- */
 .timeline-play.run   { background: #4169e1; }
 .timeline-play.pass  { background: #0ea5e9; }
-.timeline-play.other { background: #94a3b8; }
+/* Tagged but not run/pass (special teams, penalty, defense w/o run-pass): a
+   distinct solid hue so these read as TAGGED, never gray/empty. */
+.timeline-play.other { background: #8b5cf6; }
+/* Genuinely untagged: a faint ghost, clearly distinct from every tagged
+   segment above (it previously shared the gray 'other' and looked identical). */
+.timeline-play.untagged { background: rgba(148,163,184,0.25); }
 .timeline-play.active { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
 
 /* --- Playlist --- */

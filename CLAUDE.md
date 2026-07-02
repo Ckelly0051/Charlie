@@ -1510,6 +1510,35 @@ so the feature is never silently missing. The section renders inline as the
 
 19. **Cross-game state must be game-scoped — and stress-test it, because the render gate won't catch corruption.** Two separate data-corruption bugs shipped: (a) `commitActive()` wrote the live tagger into whatever `activeGameId` named, with no check it matched the LOADED game, so a stale-tagger commit (after restore / mid game-switch) stamped one game's plays onto another and could drop a game entirely; (b) the undo `HistoryManager` stack was reset only on **season** load (`init()` doesn't even clear the stack), never on **game** switch, so an Undo after switching games restored the previous game's plays into the current one. Fixes: `StorageManager._loadedGameId` + a `commitActive` guard that refuses to write a mismatched tagger (v1.9.27), and `HistoryManager.reset()` called from `_loadActiveGame` on every game load (v1.9.28). The meta-lesson: **250+ green e2e assertions meant nothing here** — they tested synthetic *rendering* in isolation and never the *data* path (save/load, switch, restore, undo). `tools/e2e-integrity.mjs` closes that gap: it loads COPIES of real seasons into isolated storage and **fuzzes real operations**, asserting INVARIANTS after every step — **cross-game isolation** (an op declares which game it may touch; every other game must be byte-identical), lossless persist→reload, referential integrity (no two games share a clip name = the corruption signature), zero exceptions. It found BOTH bugs, fails loudly on the buggy code and is clean on the fixed code, and every fix carries a **failing-first** regression (Test 24 = the commit guard, Test 25 = undo scoping). When state is per-entity, assert it can never leak across entities, fuzz the operation sequences no human writes by hand, and never trust a test you haven't watched fail on the bug. **Recovery footnote:** the backup ring is the safety net — `restoreBackup` snapshots "Before restore" first, and the desktop mirrors to `Documents/GridIron IQ`; a clean season can always be rebuilt from `backup.data` and loaded via Open File without touching the live store.
 
+20. **"Tagged plays show as untagged" was a DISPLAY bug (×2), never a data bug —
+   and it was only caught by reproducing against the SHIPPED artifact.** Every
+   play was correctly tagged on disk and `isPlayTagged` returned true; the file
+   was fine. Two independent *render* defects made tagged plays LOOK untagged:
+   (a) the "X / Y tagged" progress counter (`App._updateTagProgress`) was wired
+   to `play-created/updated/deleted` but NOT `plays-loaded`, so opening a game
+   left it stuck at its startup "0 / 0 tagged" until the first edit — it claimed
+   nothing was tagged; (b) the timeline strip (`PlayTagger._updateTimeline`)
+   colored run (gold) / pass (blue) and dumped *everything else* into one gray
+   `other`, so a tagged special-teams / no-run-pass snap rendered identically to
+   a truly empty play. Both fixes are display-only (touch zero play data): wire
+   the counter to `plays-loaded`; split the timeline `other` (tagged) from a new
+   `untagged` class via `PlayTagger._timelineTypeClass` (ONE source of truth for
+   both render branches — multi-clip + single-video — so they can't drift), with
+   `.timeline-play.untagged` styled as a faint ghost distinct from every tagged
+   color. **This is the same class of misread that caused the earlier data
+   catastrophe** — a display bug diagnosed as a data problem and "fixed" by
+   deleting/rewriting plays that were actually correct. Process lessons: (1)
+   **reproduce before fixing** — headlessly load the coach's REAL season into the
+   exact SHIPPED bundle (`git show <tag>:football-film-analyzer.html`), not the
+   working tree; here the working-tree bundle was silently AHEAD of shipped (an
+   uncommitted counter fix), so testing it would have hidden the bug. (2) When "X
+   looks wrong," inspect each RENDERER of X independently (counter, timeline,
+   grid, play-selector) — they read the same data through different code and can
+   disagree. (3) Any UI that summarizes the play set must refresh on
+   `plays-loaded` (wholesale replace on game open / undo / import), not only on
+   per-play events. Pinned by e2e-season-tab Test 26 (counter after game-open) +
+   Test 27 (`_timelineTypeClass` tagged-vs-untagged). (v1.9.29.)
+
 ## Future Projects (Tabled)
 
 These are validated high-impact features, deferred until the core UX is polished:

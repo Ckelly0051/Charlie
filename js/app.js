@@ -39,7 +39,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.28';
+const APP_VERSION = '1.9.29';
 
 class App {
   constructor() {
@@ -141,6 +141,10 @@ class App {
     this.tagger.on('play-created', () => this._updateTagProgress());
     this.tagger.on('play-deleted', () => this._updateTagProgress());
     this.tagger.on('play-updated', () => this._updateTagProgress());
+    // Wholesale plays-replacement (open game, new game, undo/redo) emits
+    // plays-loaded, NOT play-created/updated — without this the counter shows
+    // a stale "0 / 0 tagged" on every game open until the first edit.
+    this.tagger.on('plays-loaded', () => this._updateTagProgress());
 
     // The single top-bar undo/redo also drives canvas annotation undo when
     // there's no play-data action left to undo (mirrors Ctrl+Z).
