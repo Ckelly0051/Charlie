@@ -4635,7 +4635,12 @@ input:focus, select:focus, textarea:focus {
 /* --- Timeline play blocks --- */
 .timeline-play.run   { background: #4169e1; }
 .timeline-play.pass  { background: #0ea5e9; }
-.timeline-play.other { background: #94a3b8; }
+/* Tagged but not run/pass (special teams, penalty, defense w/o run-pass): a
+   distinct solid hue so these read as TAGGED, never gray/empty. */
+.timeline-play.other { background: #8b5cf6; }
+/* Genuinely untagged: a faint ghost, clearly distinct from every tagged
+   segment above (it previously shared the gray 'other' and looked identical). */
+.timeline-play.untagged { background: rgba(148,163,184,0.25); }
 .timeline-play.active { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
 
 /* --- Playlist --- */
@@ -12079,6 +12084,23 @@ class PlayTagger {
     this._updateFormEnabled();
   }
 
+  /**
+   * Timeline segment color class. Run/pass come from the run-pass classifier;
+   * otherwise a TAGGED non-run/pass snap (special teams, penalty, defense with
+   * no run/pass) is 'other', and only a genuinely UNTAGGED play is 'untagged'.
+   * Without the split, a tagged kick-return rendered identically to an empty
+   * play (both fell through to the gray 'other'), so tagged ST/defense snaps
+   * looked untagged on the strip. isPlayTagged is the shared "is this tagged"
+   * rule (same one the counter + Film Room grid use).
+   */
+  _timelineTypeClass(p) {
+    const rp = p.tags.runPass;
+    const t = (p.tags.playType || '').toLowerCase();
+    if (rp === 'Run' || (!rp && t.includes('run'))) return 'run';
+    if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) return 'pass';
+    return isPlayTagged(p) ? 'other' : 'untagged';
+  }
+
   _updateTimeline() {
     this.timelineBar.innerHTML = '';
 
@@ -12092,11 +12114,7 @@ class PlayTagger {
       if (!n) return;
       this.plays.forEach((p, i) => {
         const div = document.createElement('div');
-        let typeClass = 'other';
-        const rp = p.tags.runPass;
-        const t = (p.tags.playType || '').toLowerCase();
-        if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
-        else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
+        const typeClass = this._timelineTypeClass(p);
         div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
         div.style.left = (i / n) * 100 + '%';
         div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
@@ -12116,11 +12134,7 @@ class PlayTagger {
       const width = ((p.timestamp.end - p.timestamp.start) / duration) * 100;
       const div = document.createElement('div');
 
-      let typeClass = 'other';
-      const rp = p.tags.runPass;
-      const t = (p.tags.playType || '').toLowerCase();
-      if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
-      else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
+      const typeClass = this._timelineTypeClass(p);
 
       div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
       div.style.left = left + '%';
@@ -28457,7 +28471,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.28';
+const APP_VERSION = '1.9.29';
 
 class App {
   constructor() {
@@ -28559,6 +28573,10 @@ class App {
     this.tagger.on('play-created', () => this._updateTagProgress());
     this.tagger.on('play-deleted', () => this._updateTagProgress());
     this.tagger.on('play-updated', () => this._updateTagProgress());
+    // Wholesale plays-replacement (open game, new game, undo/redo) emits
+    // plays-loaded, NOT play-created/updated — without this the counter shows
+    // a stale "0 / 0 tagged" on every game open until the first edit.
+    this.tagger.on('plays-loaded', () => this._updateTagProgress());
 
     // The single top-bar undo/redo also drives canvas annotation undo when
     // there's no play-data action left to undo (mirrors Ctrl+Z).
