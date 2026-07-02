@@ -1369,6 +1369,23 @@ export class PlayTagger {
     this._updateFormEnabled();
   }
 
+  /**
+   * Timeline segment color class. Run/pass come from the run-pass classifier;
+   * otherwise a TAGGED non-run/pass snap (special teams, penalty, defense with
+   * no run/pass) is 'other', and only a genuinely UNTAGGED play is 'untagged'.
+   * Without the split, a tagged kick-return rendered identically to an empty
+   * play (both fell through to the gray 'other'), so tagged ST/defense snaps
+   * looked untagged on the strip. isPlayTagged is the shared "is this tagged"
+   * rule (same one the counter + Film Room grid use).
+   */
+  _timelineTypeClass(p) {
+    const rp = p.tags.runPass;
+    const t = (p.tags.playType || '').toLowerCase();
+    if (rp === 'Run' || (!rp && t.includes('run'))) return 'run';
+    if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) return 'pass';
+    return isPlayTagged(p) ? 'other' : 'untagged';
+  }
+
   _updateTimeline() {
     this.timelineBar.innerHTML = '';
 
@@ -1382,11 +1399,7 @@ export class PlayTagger {
       if (!n) return;
       this.plays.forEach((p, i) => {
         const div = document.createElement('div');
-        let typeClass = 'other';
-        const rp = p.tags.runPass;
-        const t = (p.tags.playType || '').toLowerCase();
-        if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
-        else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
+        const typeClass = this._timelineTypeClass(p);
         div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
         div.style.left = (i / n) * 100 + '%';
         div.style.width = Math.max(100 / n - 0.15, 0.4) + '%';
@@ -1406,11 +1419,7 @@ export class PlayTagger {
       const width = ((p.timestamp.end - p.timestamp.start) / duration) * 100;
       const div = document.createElement('div');
 
-      let typeClass = 'other';
-      const rp = p.tags.runPass;
-      const t = (p.tags.playType || '').toLowerCase();
-      if (rp === 'Run' || (!rp && t.includes('run'))) typeClass = 'run';
-      else if (rp === 'Pass' || (!rp && (t.includes('pass') || t.includes('screen')))) typeClass = 'pass';
+      const typeClass = this._timelineTypeClass(p);
 
       div.className = `timeline-play ${typeClass}${p.id === this.currentPlayId ? ' active' : ''}`;
       div.style.left = left + '%';

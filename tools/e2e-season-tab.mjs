@@ -809,6 +809,45 @@ r = await page.evaluate(() => {
 ok(r.canUndoInA, 'an edit in game A creates an undo entry', JSON.stringify(r));
 ok(!r.canUndoAfterSwitch, 'switching to game B RESETS the undo stack — Undo can no longer reach game A', JSON.stringify(r));
 
+console.log('\n== 26. Tag-progress counter refreshes on wholesale plays load (game open), not just per-play edits ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, sm = window.app.storage, store = sm.seasonStore;
+  // A game with 2 tagged + 1 untagged play, loaded through the REAL game-open
+  // path (_loadActiveGame → _deserialize → plays-loaded). The counter used to
+  // keep its startup value ("0 / 0 tagged") until the first per-play edit —
+  // so every fresh app open read as "nothing is tagged" (v1.9.29 field bug).
+  const plays = [
+    mk({ unit: 'special', stType: 'Kick Return', result: 'Fumble' }),   // tagged, no playType (the v1.9.26 class)
+    mk({ unit: 'offense', playType: 'Run Inside', result: 'Gain' }),    // tagged
+    mk({}),                                                             // untagged
+  ];
+  store.data.games = [{ id: 'tp1', name: 'vs Counter', gameInfo: { opponent: 'Counter' }, status: 'active', plays, annotations: [], nextId: 90, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false }];
+  store.data.activeGameId = 'tp1';
+  sm._loadActiveGame();
+  const label = document.getElementById('tagProgressLabel');
+  return { text: label ? label.textContent : '(no element)' };
+});
+ok(r.text === '2 / 3 tagged', 'after opening a game the counter shows the real tagged count (was stale "0 / 0 tagged")', JSON.stringify(r));
+
+console.log('\n== 27. Timeline strip: a tagged non-run/pass play is NOT styled like an untagged one ==');
+r = await page.evaluate(() => {
+  const mk = window.__mk, tagger = window.app.tagger;
+  const cls = (tags) => tagger._timelineTypeClass(mk(tags));
+  return {
+    run:       cls({ unit: 'offense', runPass: 'Run', result: 'Gain' }),
+    pass:      cls({ unit: 'offense', runPass: 'Pass', result: 'Gain' }),
+    runByType: cls({ unit: 'offense', playType: 'Run Inside' }),      // legacy inference path
+    stTagged:  cls({ unit: 'special', stType: 'Kick Return', result: 'Fumble' }), // tagged, no run/pass
+    defTagged: cls({ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }),    // tagged, no run/pass
+    untagged:  cls({}),                                               // nothing tagged at all
+  };
+});
+ok(r.run === 'run' && r.pass === 'pass' && r.runByType === 'run', 'run/pass plays keep run/pass classes', JSON.stringify(r));
+ok(r.stTagged === 'other', 'tagged kick-return → "other" (a tagged class), not "untagged"', JSON.stringify(r));
+ok(r.defTagged === 'other', 'tagged defensive front/coverage snap → "other", not "untagged"', JSON.stringify(r));
+ok(r.untagged === 'untagged', 'a genuinely empty play → "untagged" (its own class)', JSON.stringify(r));
+ok(r.stTagged !== r.untagged, 'tagged ST play and untagged play get DIFFERENT timeline classes (the bug: both were "other")', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
