@@ -17,7 +17,7 @@
 export class VisionAnalyzer {
   constructor(opts = {}) {
     this.apiKey = opts.apiKey || '';
-    this.model = opts.model || 'claude-opus-4-6';
+    this.model = opts.model || 'claude-opus-4-8';   // opus-4-6 was retired → 404s
     this.maxFrames = opts.maxFrames || 8;
     this.jpegQuality = opts.jpegQuality || 0.92;
     this.maxDimension = opts.maxDimension || 1280;

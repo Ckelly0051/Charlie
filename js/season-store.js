@@ -151,6 +151,7 @@ export class SeasonStore {
    * and seed it with one empty game. Returns the library meta.
    */
   async createSeason(meta) {
+    this.cancelPendingDiskWrite();   // see openSeason — same stale-debounce hazard
     const rec = await this.backend.createSeason(meta || {});
     if (!rec) return null;
     this.currentSeasonId = rec.id;
@@ -166,6 +167,7 @@ export class SeasonStore {
 
   /** Open an existing season by id and load its data as the current season. */
   async openSeason(id) {
+    this.cancelPendingDiskWrite();   // a stale debounce must not target the new season
     this.backend.setCurrentSeason(id);
     this.currentSeasonId = id;
     let parsed = null;
@@ -178,12 +180,13 @@ export class SeasonStore {
 
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
+    if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
     await this.backend.deleteSeason(id);
     if (this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
   }
 
   /** Close the current season (back to the library, nothing loaded). */
-  closeSeason() { this.currentSeasonId = null; this.data = null; }
+  closeSeason() { this.cancelPendingDiskWrite(); this.currentSeasonId = null; this.data = null; }
 
   /** Wrap a legacy single-game project object as a season game node. */
   gameFromLegacy(obj) {
@@ -343,7 +346,21 @@ export class SeasonStore {
     if (!this.backend.diskStatus().bound) return;
     clearTimeout(this._diskTimer);
     const snap = JSON.parse(JSON.stringify(this.data));   // freeze the payload
-    this._diskTimer = setTimeout(() => this.backend.writeDisk(snap, { snapshot: false }).catch(() => {}), 2500);
+    // Pin the owning season: writeDisk resolves the TARGET at fire time (via
+    // backend.currentId), so a debounce surviving a season switch would write
+    // this frozen payload into the NEXT season's file. Transitions also cancel
+    // the timer (cancelPendingDiskWrite); the pin covers any path that forgets.
+    const sid = this.currentSeasonId;
+    this._diskTimer = setTimeout(() => {
+      if (this.currentSeasonId !== sid) return;
+      this.backend.writeDisk(snap, { snapshot: false }).catch(() => {});
+    }, 2500);
+  }
+
+  /** Cancel the debounced disk write (must be called before leaving a season). */
+  cancelPendingDiskWrite() {
+    clearTimeout(this._diskTimer);
+    this._diskTimer = null;
   }
 
   // ---- backups / restore ---------------------------------------------------

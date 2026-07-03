@@ -848,6 +848,203 @@ ok(r.defTagged === 'other', 'tagged defensive front/coverage snap → "other", n
 ok(r.untagged === 'untagged', 'a genuinely empty play → "untagged" (its own class)', JSON.stringify(r));
 ok(r.stTagged !== r.untagged, 'tagged ST play and untagged play get DIFFERENT timeline classes (the bug: both were "other")', JSON.stringify(r));
 
+console.log('\n== 28. Season-switch race: a pending autosave can NEVER write season A into season B ==');
+r = await page.evaluate(async () => {
+  const sm = window.app.storage, store = sm.seasonStore, tagger = window.app.tagger;
+  // Two REAL seasons through the real backend. Edit in A arms the 1s autosave;
+  // opening B stalls on a latency-stubbed load. Before the fix, the autosave
+  // fired mid-open (backend pointer already on B, memory still A) and stamped
+  // A's whole season into B's slot — reproduced, then fixed by cancelling
+  // debounced saves on every season transition + pinning the season id.
+  const a = await sm.createSeason({ name: 'RaceAlpha', team: 'A' });
+  tagger.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, notes: 'ALPHA-MARKER', clipName: 'ra1',
+    tags: { unit: 'offense', playType: 'Run Inside', result: 'Gain', runPass: 'Run', down: '1', distance: '10',
+      formation: '', personnel: '', motion: '', yardage: '5', hash: '', playDir: '', defFront: '', coverage: '',
+      blitz: '', stType: '', quarter: '', fieldSide: 'own', yardLine: '', players: {}, grades: {}, custom: [] } }];
+  tagger.nextId = 2;
+  sm.commitActive(); store.persist();
+  const b = await sm.createSeason({ name: 'RaceBravo', team: 'B' });
+  await sm.openSeasonById(a.id);
+  const origLoad = store.backend.loadSeason.bind(store.backend);
+  store.backend.loadSeason = async function () { await new Promise(rs => setTimeout(rs, 1600)); return origLoad(); };
+  tagger._emit('play-updated', tagger.plays[0]);          // arms the 1s autosave
+  const opening = sm.openSeasonById(b.id);
+  await new Promise(rs => setTimeout(rs, 1250));          // the window where the autosave used to fire
+  await opening;
+  store.backend.loadSeason = origLoad;
+  const bravo = JSON.parse(localStorage.getItem('ffa_season_' + b.id) || 'null');
+  return {
+    bravoName: bravo && bravo.seasonName,
+    bravoPoisoned: JSON.stringify(bravo || {}).includes('ALPHA-MARKER'),
+    memoryName: store.data && store.data.seasonName,
+  };
+});
+ok(r.bravoName === 'RaceBravo', 'season B file keeps ITS OWN data through the switch', JSON.stringify(r));
+ok(!r.bravoPoisoned, 'season A play never leaks into season B (the race wrote A over B)', JSON.stringify(r));
+ok(r.memoryName === 'RaceBravo', 'the opened season loads as itself, not as a clone of the previous one', JSON.stringify(r));
+
+console.log('\n== 29. Version snapshots are game-scoped — no cross-game restore (3rd corruption path) ==');
+r = await page.evaluate(async () => {
+  const mk = window.__mk, sm = window.app.storage, store = sm.seasonStore, tagger = window.app.tagger, vm = window.app.versions;
+  tagger._confirmDialog = async () => true;   // auto-accept the app confirm
+  const game = (id, name, marker, n) => ({ id, name, gameInfo: { opponent: name }, status: 'active',
+    plays: Array.from({ length: n }, (_, i) => ({ ...mk({ playType: 'Run Inside', result: 'Gain', runPass: 'Run' }), id: i + 1, notes: marker })),
+    annotations: [], nextId: n + 1, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: false });
+  store.data = store._normalize({ version: 5, type: 'season', id: 'vmscope', seasonName: 'VM Scope',
+    games: [game('vA', 'vs Alpha', 'VM-A', 3), game('vB', 'vs Bravo', 'VM-B', 5)], activeGameId: 'vA' });
+  store.currentSeasonId = 'vmscope';
+  sm._loadActiveGame();
+
+  vm.snapshot('made in game A', true);
+  const keyA = vm._key();
+  // Positive control: restoring A's own version inside game A still works.
+  tagger.plays[0].tags.result = 'Loss';
+  const own = vm._list().find(v => v.label === 'made in game A');
+  await vm.restore(own.id);
+  const restoredOwn = tagger.plays[0].tags.result === 'Gain';
+
+  sm.switchToGame('vB');
+  const keyB = vm._key();
+  const visibleInB = vm._list().map(v => v.label);
+  // Belt+braces: even a version FORCED into B's list with A's provenance is refused.
+  const forged = { id: 987654321, label: 'forged-from-A', time: new Date().toISOString(), manual: true,
+    playCount: 3, seasonId: 'vmscope', gameId: 'vA', data: { version: 4, plays: [], gameInfo: {}, annotations: [], nextId: 1, currentPlayId: null, clipNames: [], isMultiClip: false } };
+  localStorage.setItem(vm._key(), JSON.stringify([forged]));
+  await vm.restore(987654321);
+  const gB = store.data.games.find(g => g.id === 'vB');
+  sm.commitActive();
+  return { keyA, keyB, scoped: keyA !== keyB, visibleInB, restoredOwn,
+    bPlays: tagger.plays.length, bIntact: tagger.plays.length === 5 && !JSON.stringify(gB.plays).includes('VM-A') };
+});
+ok(r.scoped, 'version storage key differs per game (was shared "ffa_versions_default")', JSON.stringify({ keyA: r.keyA, keyB: r.keyB }));
+ok(r.visibleInB.length === 0, 'game B does NOT see game A\'s versions', JSON.stringify(r.visibleInB));
+ok(r.restoredOwn, 'positive control: restoring a version inside its OWN game still works', JSON.stringify(r));
+ok(r.bIntact && r.bPlays === 5, 'a version stamped for another game is REFUSED even if forced into the list', JSON.stringify(r));
+
+console.log('\n== 30. Stored-XSS: coach names/filenames render inert in the older report renderers ==');
+r = await page.evaluate(async () => {
+  const eng = window.app.stats;
+  // Own counter (not the shared window.__xss that Test 11/19 also mutate) + drop
+  // any payload roster player an earlier test left, so this measures ONLY this
+  // test's own report-renderer payloads — a deferred onerror from elsewhere
+  // must not be attributed here.
+  window.__xss30 = 0;
+  window.app.roster.players = window.app.roster.players.filter(p => !/onerror/i.test(p.name || ''));
+  const payload = `<img src=x onerror="window.__xss30=(window.__xss30||0)+1">`;
+  const teamInput = document.getElementById('gameTeamName');
+  const oppInput = document.getElementById('gameOpponent');
+  const out = {};
+  // Defensive report header interpolates ${team} (raw before the fix).
+  teamInput.value = payload;
+  eng.renderDefensiveReport();
+  await new Promise(rs => setTimeout(rs, 200));
+  out.defImg = !!document.querySelector('.stats-overlay h2 img');
+  if (eng.hideDashboard) eng.hideDashboard();
+  // Scout report header interpolates ${opponent}.
+  oppInput.value = payload;
+  // seed a scout-eligible defensive play so the report renders
+  window.app.tagger.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, clipName: payload, notes: '',
+    tags: { unit: 'defense', playType: 'Run Inside', result: 'Gain', runPass: 'Run', down: '1', distance: '10',
+      formation: 'Under Center', personnel: '', motion: '', yardage: '4', hash: '', playDir: '', defFront: '4-3', coverage: 'Cover 3',
+      blitz: '', stType: '', quarter: '', fieldSide: 'own', yardLine: '', players: {}, grades: {}, custom: [] } }];
+  document.getElementById('gameScoutMode') && (document.getElementById('gameScoutMode').value = 'opponent');
+  try { eng.renderScoutReport(); } catch (e) {}
+  await new Promise(rs => setTimeout(rs, 200));
+  out.scoutImg = !!document.querySelector('.stats-overlay h2 img');
+  if (eng.hideDashboard) eng.hideDashboard();
+  // Big-plays renderer as a pure function (clipName = uploaded filename).
+  out.bigPlaysHasImg = eng._renderBigPlays({ bigPlays: [{ clipName: payload, type: 'Run Inside', result: 'Gain', yards: 30 }] }).includes('<img');
+  await new Promise(rs => setTimeout(rs, 100));   // let any (would-be) onerror fire
+  out.xssFired = window.__xss30;
+  return out;
+});
+ok(r.xssFired === 0, 'no injected onerror ever executes across the report renderers', JSON.stringify(r));
+ok(!r.defImg, 'defensive report header renders a payload team name as inert text', JSON.stringify(r));
+ok(!r.scoutImg, 'scout report header renders a payload opponent name as inert text', JSON.stringify(r));
+ok(!r.bigPlaysHasImg, 'big-plays table escapes the clip filename', JSON.stringify(r));
+
+console.log('\n== 31. Call sheet: recency sort works + multi-select results map correctly ==');
+r = await page.evaluate(() => {
+  const cs = window.app.callSheet;
+  const P = (id, result, yds) => ({ id, timestamp: { start: 0, end: 5 }, notes: '', tags: { result, yardage: String(yds), playType: 'Run Inside', formation: 'Under Center' } });
+  const score = p => p.id || 0;   // the fixed recency comparator (was p.timestamp -> NaN)
+  const recent = [P(3, 'Gain', 5), P(1, 'Gain', 5), P(2, 'Gain', 5)].slice().sort((a, b) => score(b) - score(a)).map(p => p.id).join(',');
+  return {
+    recent,
+    pickSix: cs._playResult(P(1, 'Interception + Touchdown', 40)),
+    scoopScore: cs._playResult(P(2, 'Fumble + Touchdown', 20)),
+    strip: cs._playResult(P(3, 'Sack + Fumble', -7)),
+    gain: cs._playResult(P(4, 'Gain', 8)),
+    inc: cs._playResult(P(5, 'Incomplete', 0)),
+  };
+});
+ok(r.recent === '3,2,1', 'recency ranking actually reorders (was a NaN comparator that never sorted)', JSON.stringify(r));
+ok(r.pickSix === 'TD 40', 'pick-six "Interception + Touchdown" shows TD (was the raw joined string)', JSON.stringify(r));
+ok(r.scoopScore === 'TD 20', 'scoop-and-score "Fumble + Touchdown" shows TD', JSON.stringify(r));
+ok(r.strip === 'Fum' && r.gain === '+8' && r.inc === 'Inc', 'other multi/single results map (strip-sack→Fum, gain→+8, incomplete→Inc)', JSON.stringify(r));
+
+console.log('\n== 32. Cut-up export: real-region filter + seek never hangs ==');
+r = await page.evaluate(async () => {
+  const cut = window.app.cutup;
+  const plays = [
+    { id: 1, timestamp: { start: 0, end: 0 }, tags: { playType: 'Run Inside' } },
+    { id: 2, timestamp: { start: 2, end: 8 }, tags: {} },
+    { id: 3, timestamp: { start: 5, end: 5 }, tags: {} },
+  ];
+  const kept = plays.filter(p => p.timestamp && (p.timestamp.end - p.timestamp.start) > 0.05).map(p => p.id).join(',');
+  const atFake = { currentTime: 0, addEventListener() {}, removeEventListener() {} };
+  const t0 = Date.now(); await cut._waitForSeek(atFake, 0); const atMs = Date.now() - t0;
+  const neverFake = { currentTime: 10, addEventListener() {}, removeEventListener() {} };
+  const t1 = Date.now(); await cut._waitForSeek(neverFake, 99); const toMs = Date.now() - t1;
+  return { kept, atMs, toMs };
+});
+ok(r.kept === '2', 'export filter keeps only plays with a real region (drops zero-length, was always-true)', JSON.stringify(r));
+ok(r.atMs < 200, 'a seek to the current position resolves immediately (no infinite hang)', JSON.stringify(r));
+ok(r.toMs >= 2500 && r.toMs < 5000, 'a seek that never fires "seeked" is bounded by the timeout (~3s), not forever', JSON.stringify(r));
+
+console.log('\n== 33. Persist hardening: max-id nextId + same-ms backups don\'t collide ==');
+r = await page.evaluate(async () => {
+  const sm = window.app.storage, store = sm.seasonStore, tagger = window.app.tagger;
+  const P = (id) => ({ id, timestamp: { start: 0, end: 5 }, notes: '', tags: {} });
+  // Non-contiguous ids (post-delete) must not mint a duplicate.
+  sm._deserialize({ plays: [P(1), P(3)], annotations: [] });
+  const nextIdMax = tagger.nextId;
+  sm._deserialize({ plays: [], nextId: 0, annotations: [] });
+  const nextIdZero = tagger.nextId;
+  // Two backups back-to-back (likely same millisecond) both survive.
+  await sm.createSeason({ name: 'BKcollide', team: 'B' });
+  tagger.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, notes: 'v1', tags: { unit: 'offense', playType: 'Run Inside', result: 'Gain', runPass: 'Run' } }];
+  sm.commitActive();
+  const b1 = await store.snapshot('Before X');
+  tagger.plays[0].notes = 'v2'; sm.commitActive();
+  const b2 = await store.snapshot('Autosave');
+  const list = await store.listBackups();
+  return { nextIdMax, nextIdZero, distinct: !!(b1 && b2 && b1.id !== b2.id), ring: list.length };
+});
+ok(r.nextIdMax === 4, 'nextId derives from max existing id (4), not plays.length+1 (3, which would dup id 3)', JSON.stringify(r));
+ok(r.nextIdZero === 0, 'a stored nextId of 0 is preserved (?? not ||)', JSON.stringify(r));
+ok(r.distinct && r.ring >= 2, 'two same-millisecond restore points get distinct ids and both survive (was an overwrite)', JSON.stringify(r));
+
+console.log('\n== 34. Stats correctness: pass attempts not double-counted + TFL excludes penalty/kneel ==');
+r = await page.evaluate(() => {
+  const eng = window.app.stats;
+  const P = (id, tags) => ({ id, timestamp: { start: 0, end: 5 }, notes: '', tags: Object.assign({ unit: 'offense', runPass: '', playType: '', result: '', yardage: '' }, tags) });
+  const ps = eng._passingStats([
+    P(1, { runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '8' }),
+    P(2, { runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete' }),
+    P(3, { runPass: 'Pass', playType: 'Deep Pass', result: 'Incomplete + Interception' }),   // one play, two result tags
+  ]);
+  const ds = eng._defensiveStats([
+    P(10, { unit: 'defense', result: 'Penalty', yardage: '-5' }),
+    P(11, { unit: 'defense', result: 'Kneel', yardage: '-2' }),
+    P(12, { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'Loss', yardage: '-3' }),
+    P(13, { unit: 'defense', result: 'Sack', yardage: '-7' }),
+  ]);
+  return { attempts: ps.attempts, tfl: ds.tfl, sacks: ds.sacks };
+});
+ok(r.attempts === 3, 'pass attempts count each play once — "Incomplete + Interception" is 1 attempt, not 2', JSON.stringify(r));
+ok(r.tfl === 1, 'TFL counts only the real behind-the-line run — penalty, kneel and sack are excluded', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');

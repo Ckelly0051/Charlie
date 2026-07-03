@@ -104,6 +104,20 @@ const campaign = async (fixture, seed, nOps) => {
       async undo() { try { window.app.history && window.app.history.undo && window.app.history.undo(); } catch (e) {} sm.commitActive(); return { affected: [store.data.activeGameId] }; },
       async redo() { try { window.app.history && window.app.history.redo && window.app.history.redo(); } catch (e) {} sm.commitActive(); return { affected: [store.data.activeGameId] }; },
       async delPlay() { if (tagger.plays.length > 1) { const v = pick(tagger.plays); tagger.plays = tagger.plays.filter(p => p.id !== v.id); } sm.commitActive(); return { affected: [store.data.activeGameId] }; },
+      // Version-manager ops — the THIRD cross-game corruption path lived here
+      // (shared 'ffa_versions_default' key + restore bypassing the commit
+      // guard) and the fuzzer never exercised it. Now it does: snapshots and
+      // restores must only ever touch the ACTIVE game.
+      async vmSnapshot() { const vm = window.app.versions; if (!vm) return { skip: 1 }; vm.snapshot('fuzz', rnd() < 0.5); return { affected: [] }; },
+      async vmRestore() {
+        const vm = window.app.versions; if (!vm) return { skip: 1 };
+        const list = vm._list(); if (!list.length) return { skip: 1 };
+        tagger._confirmDialog = async () => true;
+        window.confirm = () => true;   // pre-fix builds used native confirm — keep the op runnable there so the fuzzer provably fails on them
+        await vm.restore(pick(list).id);
+        sm.commitActive();
+        return { affected: [store.data.activeGameId] };   // ONLY the active game may change
+      },
     };
     const names = Object.keys(ops);
 

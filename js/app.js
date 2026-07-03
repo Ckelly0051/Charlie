@@ -39,7 +39,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.29';
+const APP_VERSION = '1.9.30';
 
 class App {
   constructor() {
@@ -1015,15 +1015,20 @@ class App {
       });
     });
 
-    // Line width slider
+    // Line width slider. Guarded: an absent element must not throw here and
+    // abort the rest of the constructor's wiring (the whole app init runs in
+    // one chain, so one missing node used to silently break everything below).
     const slider = document.getElementById('lineWidthSlider');
-    slider.addEventListener('input', () => {
-      this.canvas.lineWidth = parseInt(slider.value);
+    if (slider) slider.addEventListener('input', () => {
+      this.canvas.lineWidth = parseInt(slider.value, 10);
     });
 
-    // Clear annotations (undo/redo now live as a single pair in the top bar)
-    document.getElementById('btnClearAnnotations').addEventListener('click', () => {
-      if (confirm('Clear all annotations?')) {
+    // Clear annotations (undo/redo now live as a single pair in the top bar).
+    // Uses the in-app confirm (lesson #8: native confirm() gets suppressed on
+    // repeat and silently returns false, making the button look broken).
+    const btnClear = document.getElementById('btnClearAnnotations');
+    if (btnClear) btnClear.addEventListener('click', async () => {
+      if (await this.tagger._confirmDialog('Clear all annotations on this play?', 'Clear Annotations')) {
         this.canvas.clearAllAnnotations();
       }
     });
@@ -2169,12 +2174,14 @@ class App {
       const preview = lastParsed.lines.slice(0, 5);
       const mapped = Object.values(lastParsed.colMap);
       let html = '<table class="stats-table stats-table-full"><thead><tr>';
-      mapped.forEach(f => { html += `<th>${f}</th>`; });
+      // Header labels + cell values come straight from the imported file — escape
+      // both (a crafted CSV is stored-XSS the moment the preview hits innerHTML).
+      mapped.forEach(f => { html += `<th>${this._esc(f)}</th>`; });
       html += '</tr></thead><tbody>';
       preview.forEach(cells => {
         html += '<tr>';
         Object.entries(lastParsed.colMap).forEach(([idx]) => {
-          html += `<td>${cells[parseInt(idx)] || ''}</td>`;
+          html += `<td>${this._esc(cells[parseInt(idx, 10)] || '')}</td>`;
         });
         html += '</tr>';
       });

@@ -501,6 +501,28 @@ ok(/Remove "JV Squad"/.test(r.msg), 'empty team gets the remove confirm', r.msg)
 ok(r.pills === 1 && r.active === 'Mavericks', 'JV removed, Mavericks active again', JSON.stringify(r));
 ok(!r.jvRosterKey, 'JV roster snapshot deleted');
 
+// Grid inline editor must match the tag form's semantics exactly (v1.9.30):
+// exclusivity (no "Gain + Loss"), auto-Gain on positive yardage, and clearing
+// _autoSit so Save & Next can't overwrite a grid Dn&Dist correction.
+r = await page.evaluate(() => {
+  const grid = window.app.playGrid;
+  const col = (key, multi, type) => ({ key, multi, type: type || (multi ? 'enum' : 'text') });
+  const mk = () => ({ id: 9001, timestamp: { start: 0, end: 5 }, notes: '', tags: { unit: 'offense', playType: '', result: '', runPass: '', yardage: '', down: '', distance: '', players: {}, grades: {}, custom: [] } });
+  const out = {};
+  let p = mk(); p.tags.yardage = '8';
+  grid._applyEdit(p, col('result', true, 'enum'), 'Gain + Loss');
+  out.exclusive = p.tags.result; out.exclSign = p.tags.yardage;
+  p = mk(); grid._applyEdit(p, col('yardage', false, 'text'), '12');
+  out.autoGain = p.tags.result; out.autoGainSign = p.tags.yardage;
+  p = mk(); p._autoSit = true; grid._applyEdit(p, col('sit', false, 'sit'), { down: '3', distance: '7' });
+  out.autoSitCleared = p._autoSit === false; out.sit = p.tags.down + '&' + p.tags.distance;
+  return out;
+});
+ok(r.exclusive === 'Loss', 'grid drops the exclusive rival: "Gain + Loss" → "Loss" (was stored as-is)', JSON.stringify(r));
+ok(r.exclSign === '-8', 'yardage then takes the Loss sign (-8), not flipped from a stale "Gain + Loss"', JSON.stringify(r));
+ok(r.autoGain === 'Gain' && r.autoGainSign === '12', 'positive yardage with no result auto-sets Gain (mirror of the form)', JSON.stringify(r));
+ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so Save & Next cannot overwrite it', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }
 else console.log('No console/page errors.');

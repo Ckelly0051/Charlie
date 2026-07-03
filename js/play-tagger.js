@@ -123,17 +123,12 @@ export class PlayTagger {
     // correction tap (or keyboard key) never leaves "Gain + Loss" behind.
     // Combinable results (Fumble + Touchdown, Interception + Touchdown,
     // Sack + Fumble, Penalty + anything) are unaffected.
-    const exclusiveMap = {
-      result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
-               ['Good', 'No Good']],
-      // One realized look per play; RPO / Play Action / Trick Play combine
-      // with the look ("RPO + Short Pass"), not with each other's looks.
-      playType: [['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass']],
-    };
+    // Exclusivity groups live on PlayTagger (static) so the Film Room grid's
+    // inline editor applies the identical rule — see PlayTagger.EXCLUSIVE_GROUPS.
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
-        ? new ChipField(el, { multi: multiFields.has(key), exclusive: exclusiveMap[key] })
+        ? new ChipField(el, { multi: multiFields.has(key), exclusive: PlayTagger.EXCLUSIVE_GROUPS[key] })
         : el;
     }
 
@@ -900,6 +895,35 @@ export class PlayTagger {
     const neg = parts.includes('Loss') || parts.includes('Sack');
     play.tags.yardage = String(neg ? -mag : mag);
     if (el) el.value = String(mag); // keep the field showing the magnitude
+  }
+
+  // Mutually-exclusive members within a multi-select field: a play can't be
+  // both Gain and Loss, or two realized pass looks. Single source of truth for
+  // BOTH the tag-form chips (ChipField.exclusive) and the Film Room grid's
+  // inline editor, so the two can never disagree (they used to: the grid had no
+  // exclusivity and could store "Gain + Loss", which then flipped a gain
+  // negative in _applyEdit).
+  static EXCLUSIVE_GROUPS = {
+    result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
+             ['Good', 'No Good']],
+    playType: [['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass']],
+  };
+
+  /** Normalize a " + "-joined multi value so no exclusive group has two members
+   *  (keeps the LAST selected of each group — mirrors the form's drop-rivals). */
+  static normalizeMulti(key, value) {
+    let parts = String(value || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    const groups = PlayTagger.EXCLUSIVE_GROUPS[key];
+    if (groups) {
+      for (const group of groups) {
+        const inGroup = parts.filter(p => group.includes(p));
+        if (inGroup.length > 1) {
+          const keep = inGroup[inGroup.length - 1];
+          parts = parts.filter(p => !group.includes(p) || p === keep);
+        }
+      }
+    }
+    return parts.join(' + ');
   }
 
   /**

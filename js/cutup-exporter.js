@@ -34,7 +34,12 @@ export class CutupExporter {
   async export() {
     if (this.recording) return;
 
-    let plays = this.tagger.plays.filter(p => p.tags.playType || p.timestamp);
+    // A cut-up can only stitch plays with a real, playable region. The old
+    // `p.tags.playType || p.timestamp` was always true (every play has a
+    // timestamp OBJECT), so untagged / zero-length plays were exported and a
+    // zero-length region later stalled the recorder. Require end > start.
+    let plays = this.tagger.plays.filter(p =>
+      p.timestamp && (p.timestamp.end - p.timestamp.start) > 0.05);
     if (this.filter && this.filter.active) {
       plays = this.filter.filter(plays);
     }
@@ -44,7 +49,10 @@ export class CutupExporter {
       return;
     }
 
-    const totalSec = plays.reduce((s, p) => s + (p.timestamp.end - p.timestamp.start), 0);
+    // Clamp each play's duration for the ESTIMATE only: a failed duration probe
+    // can leave end at a sentinel (~999s), which otherwise inflates the quoted
+    // render time to hours. The record loop itself is bounded by video.ended.
+    const totalSec = plays.reduce((s, p) => s + Math.min(p.timestamp.end - p.timestamp.start, 120), 0);
     const titleSec = this.showTitleCards ? plays.length * 1.0 : 0;
     const estTotal = totalSec + titleSec;
     const m = Math.floor(estTotal / 60);
@@ -146,7 +154,7 @@ export class CutupExporter {
         }
 
         video.currentTime = p.timestamp.start;
-        await this._waitForSeek(video);
+        await this._waitForSeek(video, p.timestamp.start);
         video.muted = false;
         try { await video.play(); } catch (e) { /* user gesture issue */ }
 
@@ -208,10 +216,18 @@ export class CutupExporter {
     return ({ '1': 'st', '2': 'nd', '3': 'rd', '4': 'th' })[d] || '';
   }
 
-  _waitForSeek(video) {
+  _waitForSeek(video, target) {
     return new Promise(resolve => {
-      const h = () => { video.removeEventListener('seeked', h); resolve(); };
+      // A seek to the position the video is ALREADY at fires no 'seeked' event,
+      // so waiting for one hangs the whole export forever (classically start:0
+      // on a clip already at 0). Resolve immediately when we're there.
+      if (typeof target === 'number' && Math.abs(video.currentTime - target) < 0.05) { resolve(); return; }
+      let done = false;
+      const finish = () => { if (done) return; done = true; video.removeEventListener('seeked', h); clearTimeout(timer); resolve(); };
+      const h = () => finish();
       video.addEventListener('seeked', h);
+      // Never hang if 'seeked' never arrives (stall / codec / no-op seek).
+      const timer = setTimeout(finish, 3000);
     });
   }
 

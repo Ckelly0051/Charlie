@@ -74,7 +74,23 @@ export class StorageManager {
 
   _autoSave() {
     clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = setTimeout(() => this._commitAndPersist(), 1000);
+    // Pin the season the edit belongs to. If the coach switches seasons before
+    // the debounce fires, the backend pointer has moved — flushing then would
+    // write THIS season's data into the OTHER season's slot (reproduced: a 1s
+    // autosave firing during openSeason(B)'s awaited load stamped season A over
+    // B's file). Transitions also cancel this timer; the pin is belt-and-braces.
+    const sid = this.seasonStore ? this.seasonStore.currentSeasonId : null;
+    this.autoSaveTimer = setTimeout(() => {
+      if (this.seasonStore && this.seasonStore.currentSeasonId !== sid) return;
+      this._commitAndPersist();
+    }, 1000);
+  }
+
+  /** Cancel debounced writes armed for the CURRENT season (call before leaving it). */
+  _cancelPendingSaves() {
+    clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = null;
+    if (this.seasonStore && this.seasonStore.cancelPendingDiskWrite) this.seasonStore.cancelPendingDiskWrite();
   }
 
   /** Write the live active-game state into the season and persist the season. */
@@ -116,6 +132,7 @@ export class StorageManager {
   /** Open an existing season and restore its active game into the app. */
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    this._cancelPendingSaves();   // a debounced save must never straddle the switch
     await this.seasonStore.openSeason(id);
     this._afterSeasonLoaded();
   }
@@ -123,6 +140,7 @@ export class StorageManager {
   /** Create a new season ({name, team, year, level}) and open it. */
   async createSeason(meta) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    this._cancelPendingSaves();
     const rec = await this.seasonStore.createSeason(meta);
     this._afterSeasonLoaded();
     return rec;
@@ -132,6 +150,7 @@ export class StorageManager {
   async deleteSeason(id) {
     const wasCurrent = this.seasonStore.currentSeasonId === id;
     const wasDemo = this.isDemoSeason(id);
+    if (wasCurrent) this._cancelPendingSaves();
     await this.seasonStore.deleteSeason(id);
     if (wasDemo) this._teardownDemo();
     if (wasCurrent) this._clearForNewGame();
@@ -448,7 +467,11 @@ export class StorageManager {
   _deserialize(data) {
     if (!data) return;
     this.tagger.plays = data.plays || [];
-    this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
+    // Use the stored nextId if present (?? keeps a legitimate 0); otherwise
+    // derive it from the HIGHEST existing id, not plays.length — with
+    // non-contiguous ids (after deletes) plays.length+1 can equal an existing
+    // id and mint a duplicate, which breaks selection / undo / cut-ups.
+    this.tagger.nextId = data.nextId ?? (Math.max(0, ...this.tagger.plays.map(p => Number(p.id) || 0)) + 1);
     this.canvas.annotations = data.annotations || [];
 
     if (data.gameInfo) {

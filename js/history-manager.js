@@ -137,7 +137,9 @@ export class HistoryManager {
     const data = JSON.parse(snap);
     this.recording = false;
     this.tagger.plays = data.plays || [];
-    this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
+    // ?? keeps a stored 0; fall back to max-id+1 (not plays.length+1, which can
+    // duplicate an existing id when ids are non-contiguous after deletes).
+    this.tagger.nextId = data.nextId ?? (Math.max(0, ...this.tagger.plays.map(p => Number(p.id) || 0)) + 1);
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this.tagger.updateScrubBarPlays();

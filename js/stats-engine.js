@@ -545,7 +545,12 @@ export class StatsEngine {
 
   _defensiveStats(plays) {
     const sacks = plays.filter(p => StatsEngine.hasResult(p, 'Sack'));
-    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0 && !StatsEngine.hasResult(p, 'Sack'));
+    // TFL = a defensive stop behind the line on a run/pass. Negative yardage
+    // from a Penalty, Kneel or Spike is NOT a tackle for loss and must not
+    // inflate havoc rate (or the defense's TFL count).
+    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0
+      && !StatsEngine.hasResult(p, 'Sack') && !StatsEngine.hasResult(p, 'Penalty')
+      && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike'));
     const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception'));
     const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble'));
     const incompletions = plays.filter(p => StatsEngine.hasResult(p, 'Incomplete'));
@@ -732,8 +737,11 @@ export class StatsEngine {
       if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return sum;
       return sum + (parseInt(p.tags.yardage) || 0);
     }, 0);
-    const attempts = completions.length + incompletions.length +
-      passPlays.filter(p => StatsEngine.hasResult(p, 'Interception')).length;
+    // Count each attempt PLAY once. Summing the three filters double-counted a
+    // play carrying two of the results (e.g. "Incomplete + Interception"), so a
+    // single pick could inflate attempts and deflate completion %.
+    const ints = passPlays.filter(p => StatsEngine.hasResult(p, 'Interception'));
+    const attempts = new Set([...completions, ...incompletions, ...ints].map(p => p.id)).size;
 
     return {
       attempts,
@@ -2815,9 +2823,9 @@ export class StatsEngine {
     let rows = '';
     for (const bp of stats.bigPlays) {
       rows += `<tr>
-        <td>${bp.clipName}</td>
-        <td>${bp.type}</td>
-        <td>${bp.result}</td>
+        <td>${Charts._esc(bp.clipName)}</td>
+        <td>${Charts._esc(bp.type)}</td>
+        <td>${Charts._esc(bp.result)}</td>
         <td>${bp.yards}</td>
       </tr>`;
     }
@@ -3268,7 +3276,7 @@ export class StatsEngine {
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Scout Report: ${opponent}</h2>
+            <h2>Scout Report: ${Charts._esc(opponent)}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnExportScoutReport">Export Report</button>
               <button class="btn btn-sm btn-danger" id="btnCloseScoutReport">Close</button>
@@ -3349,7 +3357,7 @@ export class StatsEngine {
 
   _exportScoutReport(report, opponent, notes) {
     const t = report.stats.tendencies;
-    const title = `Scout Report: ${opponent}`;
+    const title = `Scout Report: ${Charts._esc(opponent)}`;   // feeds <title> + <h1> (HTML); filename below uses the raw value
     const formRows = report.formationDetail.map(f =>
       `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
     ).join('');
@@ -4454,7 +4462,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Defensive Report: ${team}</h2>
+            <h2>Defensive Report: ${Charts._esc(team)}</h2>
             <div class="stats-header-actions">
               ${hasData ? '<button class="btn btn-sm" id="btnExportDef">Export Report</button>' : ''}
               <button class="btn btn-sm btn-danger" id="btnCloseDef">Close</button>
@@ -4473,7 +4481,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
 
   _exportDefensiveReport(stats, team) {
     const d = stats.defensive;
-    const title = `Defensive Report: ${team}`;
+    const title = `Defensive Report: ${Charts._esc(team)}`;
     const frontRows = d.fronts.map(f =>
       `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
     ).join('');

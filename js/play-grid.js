@@ -689,9 +689,23 @@ export class PlayGrid {
           <button class="btn btn-sm" data-act="clear" type="button">Clear</button>
           <button class="btn btn-sm btn-accent" data-act="done" type="button">Done</button>
         </div>`;
+      const groups = PlayTagger.EXCLUSIVE_GROUPS[col.key] || [];
       wrap.addEventListener('click', (e) => {
         const chip = e.target.closest('.pg-chip[data-v]');
-        if (chip) { chip.classList.toggle('active'); return; }
+        if (chip) {
+          const turningOn = !chip.classList.contains('active');
+          chip.classList.toggle('active');
+          // Mirror the tag form: activating a member of an exclusive group
+          // deselects its rivals so the cell can never become "Gain + Loss".
+          if (turningOn) {
+            const v = chip.dataset.v;
+            const grp = groups.find(g => g.includes(v));
+            if (grp) wrap.querySelectorAll('.pg-chip.active').forEach(c => {
+              if (c !== chip && grp.includes(c.dataset.v)) c.classList.remove('active');
+            });
+          }
+          return;
+        }
         const act = e.target.closest('[data-act]');
         if (!act) return;
         if (act.dataset.act === 'clear') commit('');
@@ -766,13 +780,25 @@ export class PlayGrid {
     } else if (col.type === 'sit') {
       play.tags.down = value.down;
       play.tags.distance = value.distance;
+      // Mirror _saveField: a manual Dn&Dist edit clears the auto-fill flag so
+      // the next Save & Next can't overwrite the correction (applyNextSituation
+      // gates on !_autoSit).
+      play._autoSit = false;
     } else {
+      // Multi-select fields: drop mutually-exclusive rivals exactly like the
+      // form (no more "Gain + Loss", which flipped a gain negative below).
+      if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).
       if (col.key === 'playType') {
         const auto = PlayTagger.runPassForPlayType(value);
         if (auto && play.tags.runPass !== auto) play.tags.runPass = auto;
       }
+    }
+    // Positive yardage with no result yet = a gain (mirror of _saveField), so a
+    // yardage-only grid edit is classified the same as one typed in the form.
+    if (col.key === 'yardage' && !play.tags.result) {
+      if ((parseInt(String(play.tags.yardage), 10) || 0) > 0) play.tags.result = 'Gain';
     }
     // Yardage is a magnitude; Loss/Sack supply the sign (mirror of
     // _applyYardageSign — keep stored values consistent with form entry).

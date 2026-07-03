@@ -10838,17 +10838,12 @@ class PlayTagger {
     // correction tap (or keyboard key) never leaves "Gain + Loss" behind.
     // Combinable results (Fumble + Touchdown, Interception + Touchdown,
     // Sack + Fumble, Penalty + anything) are unaffected.
-    const exclusiveMap = {
-      result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
-               ['Good', 'No Good']],
-      // One realized look per play; RPO / Play Action / Trick Play combine
-      // with the look ("RPO + Short Pass"), not with each other's looks.
-      playType: [['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass']],
-    };
+    // Exclusivity groups live on PlayTagger (static) so the Film Room grid's
+    // inline editor applies the identical rule — see PlayTagger.EXCLUSIVE_GROUPS.
     for (const [key, id] of Object.entries(fieldMap)) {
       const el = document.getElementById(id);
       this.tagFields[key] = el?.classList.contains('pick-group')
-        ? new ChipField(el, { multi: multiFields.has(key), exclusive: exclusiveMap[key] })
+        ? new ChipField(el, { multi: multiFields.has(key), exclusive: PlayTagger.EXCLUSIVE_GROUPS[key] })
         : el;
     }
 
@@ -11615,6 +11610,35 @@ class PlayTagger {
     const neg = parts.includes('Loss') || parts.includes('Sack');
     play.tags.yardage = String(neg ? -mag : mag);
     if (el) el.value = String(mag); // keep the field showing the magnitude
+  }
+
+  // Mutually-exclusive members within a multi-select field: a play can't be
+  // both Gain and Loss, or two realized pass looks. Single source of truth for
+  // BOTH the tag-form chips (ChipField.exclusive) and the Film Room grid's
+  // inline editor, so the two can never disagree (they used to: the grid had no
+  // exclusivity and could store "Gain + Loss", which then flipped a gain
+  // negative in _applyEdit).
+  static EXCLUSIVE_GROUPS = {
+    result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
+             ['Good', 'No Good']],
+    playType: [['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass']],
+  };
+
+  /** Normalize a " + "-joined multi value so no exclusive group has two members
+   *  (keeps the LAST selected of each group — mirrors the form's drop-rivals). */
+  static normalizeMulti(key, value) {
+    let parts = String(value || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    const groups = PlayTagger.EXCLUSIVE_GROUPS[key];
+    if (groups) {
+      for (const group of groups) {
+        const inGroup = parts.filter(p => group.includes(p));
+        if (inGroup.length > 1) {
+          const keep = inGroup[inGroup.length - 1];
+          parts = parts.filter(p => !group.includes(p) || p === keep);
+        }
+      }
+    }
+    return parts.join(' + ');
   }
 
   /**
@@ -12958,8 +12982,12 @@ class StorageBackend {
     return id;
   }
   _tsSlug(d = new Date()) {
-    const p = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+    const p = (n, w = 2) => String(n).padStart(w, '0');
+    // Millisecond suffix: backup/snapshot filenames are keyed on this slug, and
+    // two snapshots in the same SECOND (forced restore-point + autosave) used to
+    // produce an identical filename and overwrite each other. Zero-padded ms
+    // preserves chronological sort.
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}-${p(d.getMilliseconds(), 3)}`;
   }
 }
 
@@ -13100,7 +13128,12 @@ class BrowserBackend extends StorageBackend {
       const last = await this.getBackup(recent[0].id);
       if (last && JSON.stringify(last) === json) return null;
     }
-    const id = Date.now();
+    // Monotonic id: two backups in the same millisecond (a forced "Before X"
+    // snapshot immediately followed by an autosave) would otherwise share
+    // Date.now() and the second os.put would OVERWRITE the first — silently
+    // eating exactly the restore point the coach might need.
+    const id = Math.max(Date.now(), (this._lastBackupId || 0) + 1);
+    this._lastBackupId = id;
     const rec = { id, seasonId: this.currentId, ...this._meta(data, label), data: JSON.parse(json) };
     await this._tx('backups', 'readwrite', os => os.put(rec, id));
     await this._prune();
@@ -13524,9 +13557,7 @@ class TauriBackend extends StorageBackend {
     const base = await this.dataDirPath();
     if (!convert || !join || !base) return null;
     const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
-    const url = convert(abs);
-    console.log('filmUrl:', { rel, abs, url: url?.slice(0, 200) });
-    return url;
+    return convert(abs);
   }
 
   async deleteFilm(gameId) {
@@ -13853,6 +13884,7 @@ class SeasonStore {
    * and seed it with one empty game. Returns the library meta.
    */
   async createSeason(meta) {
+    this.cancelPendingDiskWrite();   // see openSeason — same stale-debounce hazard
     const rec = await this.backend.createSeason(meta || {});
     if (!rec) return null;
     this.currentSeasonId = rec.id;
@@ -13868,6 +13900,7 @@ class SeasonStore {
 
   /** Open an existing season by id and load its data as the current season. */
   async openSeason(id) {
+    this.cancelPendingDiskWrite();   // a stale debounce must not target the new season
     this.backend.setCurrentSeason(id);
     this.currentSeasonId = id;
     let parsed = null;
@@ -13880,12 +13913,13 @@ class SeasonStore {
 
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
+    if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
     await this.backend.deleteSeason(id);
     if (this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
   }
 
   /** Close the current season (back to the library, nothing loaded). */
-  closeSeason() { this.currentSeasonId = null; this.data = null; }
+  closeSeason() { this.cancelPendingDiskWrite(); this.currentSeasonId = null; this.data = null; }
 
   /** Wrap a legacy single-game project object as a season game node. */
   gameFromLegacy(obj) {
@@ -14045,7 +14079,21 @@ class SeasonStore {
     if (!this.backend.diskStatus().bound) return;
     clearTimeout(this._diskTimer);
     const snap = JSON.parse(JSON.stringify(this.data));   // freeze the payload
-    this._diskTimer = setTimeout(() => this.backend.writeDisk(snap, { snapshot: false }).catch(() => {}), 2500);
+    // Pin the owning season: writeDisk resolves the TARGET at fire time (via
+    // backend.currentId), so a debounce surviving a season switch would write
+    // this frozen payload into the NEXT season's file. Transitions also cancel
+    // the timer (cancelPendingDiskWrite); the pin covers any path that forgets.
+    const sid = this.currentSeasonId;
+    this._diskTimer = setTimeout(() => {
+      if (this.currentSeasonId !== sid) return;
+      this.backend.writeDisk(snap, { snapshot: false }).catch(() => {});
+    }, 2500);
+  }
+
+  /** Cancel the debounced disk write (must be called before leaving a season). */
+  cancelPendingDiskWrite() {
+    clearTimeout(this._diskTimer);
+    this._diskTimer = null;
   }
 
   // ---- backups / restore ---------------------------------------------------
@@ -14440,7 +14488,23 @@ class StorageManager {
 
   _autoSave() {
     clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = setTimeout(() => this._commitAndPersist(), 1000);
+    // Pin the season the edit belongs to. If the coach switches seasons before
+    // the debounce fires, the backend pointer has moved — flushing then would
+    // write THIS season's data into the OTHER season's slot (reproduced: a 1s
+    // autosave firing during openSeason(B)'s awaited load stamped season A over
+    // B's file). Transitions also cancel this timer; the pin is belt-and-braces.
+    const sid = this.seasonStore ? this.seasonStore.currentSeasonId : null;
+    this.autoSaveTimer = setTimeout(() => {
+      if (this.seasonStore && this.seasonStore.currentSeasonId !== sid) return;
+      this._commitAndPersist();
+    }, 1000);
+  }
+
+  /** Cancel debounced writes armed for the CURRENT season (call before leaving it). */
+  _cancelPendingSaves() {
+    clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = null;
+    if (this.seasonStore && this.seasonStore.cancelPendingDiskWrite) this.seasonStore.cancelPendingDiskWrite();
   }
 
   /** Write the live active-game state into the season and persist the season. */
@@ -14482,6 +14546,7 @@ class StorageManager {
   /** Open an existing season and restore its active game into the app. */
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    this._cancelPendingSaves();   // a debounced save must never straddle the switch
     await this.seasonStore.openSeason(id);
     this._afterSeasonLoaded();
   }
@@ -14489,6 +14554,7 @@ class StorageManager {
   /** Create a new season ({name, team, year, level}) and open it. */
   async createSeason(meta) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
+    this._cancelPendingSaves();
     const rec = await this.seasonStore.createSeason(meta);
     this._afterSeasonLoaded();
     return rec;
@@ -14498,6 +14564,7 @@ class StorageManager {
   async deleteSeason(id) {
     const wasCurrent = this.seasonStore.currentSeasonId === id;
     const wasDemo = this.isDemoSeason(id);
+    if (wasCurrent) this._cancelPendingSaves();
     await this.seasonStore.deleteSeason(id);
     if (wasDemo) this._teardownDemo();
     if (wasCurrent) this._clearForNewGame();
@@ -14814,7 +14881,11 @@ class StorageManager {
   _deserialize(data) {
     if (!data) return;
     this.tagger.plays = data.plays || [];
-    this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
+    // Use the stored nextId if present (?? keeps a legitimate 0); otherwise
+    // derive it from the HIGHEST existing id, not plays.length — with
+    // non-contiguous ids (after deletes) plays.length+1 can equal an existing
+    // id and mint a duplicate, which breaks selection / undo / cut-ups.
+    this.tagger.nextId = data.nextId ?? (Math.max(0, ...this.tagger.plays.map(p => Number(p.id) || 0)) + 1);
     this.canvas.annotations = data.annotations || [];
 
     if (data.gameInfo) {
@@ -16354,7 +16425,7 @@ class BackendClient {
 class VisionAnalyzer {
   constructor(opts = {}) {
     this.apiKey = opts.apiKey || '';
-    this.model = opts.model || 'claude-opus-4-6';
+    this.model = opts.model || 'claude-opus-4-8';   // opus-4-6 was retired → 404s
     this.maxFrames = opts.maxFrames || 8;
     this.jpegQuality = opts.jpegQuality || 0.92;
     this.maxDimension = opts.maxDimension || 1280;
@@ -19145,7 +19216,12 @@ class StatsEngine {
 
   _defensiveStats(plays) {
     const sacks = plays.filter(p => StatsEngine.hasResult(p, 'Sack'));
-    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0 && !StatsEngine.hasResult(p, 'Sack'));
+    // TFL = a defensive stop behind the line on a run/pass. Negative yardage
+    // from a Penalty, Kneel or Spike is NOT a tackle for loss and must not
+    // inflate havoc rate (or the defense's TFL count).
+    const tfl = plays.filter(p => (parseInt(p.tags.yardage) || 0) < 0
+      && !StatsEngine.hasResult(p, 'Sack') && !StatsEngine.hasResult(p, 'Penalty')
+      && !StatsEngine.hasResult(p, 'Kneel') && !StatsEngine.hasResult(p, 'Spike'));
     const ints = plays.filter(p => StatsEngine.hasResult(p, 'Interception'));
     const fumbles = plays.filter(p => StatsEngine.hasResult(p, 'Fumble'));
     const incompletions = plays.filter(p => StatsEngine.hasResult(p, 'Incomplete'));
@@ -19332,8 +19408,11 @@ class StatsEngine {
       if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return sum;
       return sum + (parseInt(p.tags.yardage) || 0);
     }, 0);
-    const attempts = completions.length + incompletions.length +
-      passPlays.filter(p => StatsEngine.hasResult(p, 'Interception')).length;
+    // Count each attempt PLAY once. Summing the three filters double-counted a
+    // play carrying two of the results (e.g. "Incomplete + Interception"), so a
+    // single pick could inflate attempts and deflate completion %.
+    const ints = passPlays.filter(p => StatsEngine.hasResult(p, 'Interception'));
+    const attempts = new Set([...completions, ...incompletions, ...ints].map(p => p.id)).size;
 
     return {
       attempts,
@@ -21415,9 +21494,9 @@ class StatsEngine {
     let rows = '';
     for (const bp of stats.bigPlays) {
       rows += `<tr>
-        <td>${bp.clipName}</td>
-        <td>${bp.type}</td>
-        <td>${bp.result}</td>
+        <td>${Charts._esc(bp.clipName)}</td>
+        <td>${Charts._esc(bp.type)}</td>
+        <td>${Charts._esc(bp.result)}</td>
         <td>${bp.yards}</td>
       </tr>`;
     }
@@ -21868,7 +21947,7 @@ class StatsEngine {
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Scout Report: ${opponent}</h2>
+            <h2>Scout Report: ${Charts._esc(opponent)}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnExportScoutReport">Export Report</button>
               <button class="btn btn-sm btn-danger" id="btnCloseScoutReport">Close</button>
@@ -21949,7 +22028,7 @@ class StatsEngine {
 
   _exportScoutReport(report, opponent, notes) {
     const t = report.stats.tendencies;
-    const title = `Scout Report: ${opponent}`;
+    const title = `Scout Report: ${Charts._esc(opponent)}`;   // feeds <title> + <h1> (HTML); filename below uses the raw value
     const formRows = report.formationDetail.map(f =>
       `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
     ).join('');
@@ -23054,7 +23133,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Defensive Report: ${team}</h2>
+            <h2>Defensive Report: ${Charts._esc(team)}</h2>
             <div class="stats-header-actions">
               ${hasData ? '<button class="btn btn-sm" id="btnExportDef">Export Report</button>' : ''}
               <button class="btn btn-sm btn-danger" id="btnCloseDef">Close</button>
@@ -23073,7 +23152,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
 
   _exportDefensiveReport(stats, team) {
     const d = stats.defensive;
-    const title = `Defensive Report: ${team}`;
+    const title = `Defensive Report: ${Charts._esc(team)}`;
     const frontRows = d.fronts.map(f =>
       `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
     ).join('');
@@ -23438,7 +23517,9 @@ class HistoryManager {
     const data = JSON.parse(snap);
     this.recording = false;
     this.tagger.plays = data.plays || [];
-    this.tagger.nextId = data.nextId || (this.tagger.plays.length + 1);
+    // ?? keeps a stored 0; fall back to max-id+1 (not plays.length+1, which can
+    // duplicate an existing id when ids are non-contiguous after deletes).
+    this.tagger.nextId = data.nextId ?? (Math.max(0, ...this.tagger.plays.map(p => Number(p.id) || 0)) + 1);
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this.tagger.updateScrubBarPlays();
@@ -23523,10 +23604,25 @@ class VersionManager {
     this.tagger.on('play-created', () => this._maybeAutoSnap());
     this.tagger.on('play-updated', () => this._maybeAutoSnap());
     this.tagger.on('play-deleted', () => this._maybeAutoSnap());
+    // Versions are per-GAME (see _key): when a different game loads, show ITS
+    // list and restart the edit counter so game B doesn't inherit A's tally.
+    this.tagger.on('plays-loaded', () => { this.changeCount = 0; this.renderList(); });
   }
 
+  /**
+   * Versions are scoped to the season + game they were taken in. The old key
+   * ('ffa_versions_' + videoFileName) collided: videoFileName is null on the
+   * web build after a reopen, so EVERY game shared 'ffa_versions_default' and
+   * a restore could stamp another game's plays onto the current one — a third
+   * cross-game corruption path (alongside the commitActive and undo ones).
+   * Old shared-key entries are deliberately orphaned rather than migrated:
+   * they carry no game identity, and guessing is the exact bug being fixed.
+   */
   _key() {
-    return 'ffa_versions_' + (this.storage.videoFileName || 'default');
+    const s = this.storage && this.storage.seasonStore;
+    const sid = (s && s.currentSeasonId) || 'na';
+    const gid = (s && s.data && s.data.activeGameId) || 'na';
+    return `ffa_versions_${sid}::${gid}`;
   }
 
   _list() {
@@ -23542,12 +23638,17 @@ class VersionManager {
   snapshot(label, manual = false) {
     const data = this.storage._serialize();
     const versions = this._list();
+    const s = this.storage && this.storage.seasonStore;
     versions.push({
       id: Date.now(),
       label: label || (manual ? 'Manual save' : 'Auto-save'),
       time: new Date().toISOString(),
       manual,
       playCount: data.plays.length,
+      // Provenance stamp — restore() refuses a version taken in another
+      // season/game even if a future key change reintroduces sharing.
+      seasonId: (s && s.currentSeasonId) || 'na',
+      gameId: (s && s.data && s.data.activeGameId) || 'na',
       data
     });
 
@@ -23562,22 +23663,37 @@ class VersionManager {
     this.renderList();
   }
 
-  restore(id) {
+  async restore(id) {
     const v = this._list().find(x => x.id === id);
     if (!v) return;
-    if (!confirm(`Restore version "${v.label}" (${v.playCount} plays)?\n\nA backup of your current state will be saved first.`)) return;
+    // Never restore across a season/game boundary: v.data is a whole-tagger
+    // snapshot, and deserializing another game's snapshot here would hand the
+    // next commit that game's plays as THIS game's content.
+    const s = this.storage && this.storage.seasonStore;
+    const sid = (s && s.currentSeasonId) || 'na';
+    const gid = (s && s.data && s.data.activeGameId) || 'na';
+    if ((v.seasonId && v.seasonId !== sid) || (v.gameId && v.gameId !== gid)) {
+      this.tagger.toast?.('That version belongs to a different game — open that game to restore it.');
+      return;
+    }
+    const ok = await this.tagger._confirmDialog(
+      `Restore version "${v.label}" (${v.playCount} plays)? A backup of your current state is saved first.`,
+      'Restore Version');
+    if (!ok) return;
     this.snapshot('Backup before restore', false);
     this.storage._deserialize(v.data);
-    if (window.app && window.app.history) {
-      window.app.history.lastSnap = window.app.history._snapshot();
-      window.app.history.stack = [];
-      window.app.history.index = -1;
-      window.app.history._updateUI();
-    }
+    // Undo history is per-game state; re-baseline it the same way a game load does.
+    if (window.app && window.app.history && window.app.history.reset) window.app.history.reset();
+    // Persist the restored state through the normal guarded path so the season
+    // store and disk reflect what's on screen (a crash before the next edit
+    // would otherwise resurrect the pre-restore data).
+    this.storage.commitActive();
+    if (s) s.persist();
   }
 
-  delete(id) {
-    if (!confirm('Delete this version?')) return;
+  async delete(id) {
+    const ok = await this.tagger._confirmDialog('Delete this version?', 'Delete Version');
+    if (!ok) return;
     const versions = this._list().filter(x => x.id !== id);
     this._save(versions);
     this.renderList();
@@ -24144,7 +24260,12 @@ class CutupExporter {
   async export() {
     if (this.recording) return;
 
-    let plays = this.tagger.plays.filter(p => p.tags.playType || p.timestamp);
+    // A cut-up can only stitch plays with a real, playable region. The old
+    // `p.tags.playType || p.timestamp` was always true (every play has a
+    // timestamp OBJECT), so untagged / zero-length plays were exported and a
+    // zero-length region later stalled the recorder. Require end > start.
+    let plays = this.tagger.plays.filter(p =>
+      p.timestamp && (p.timestamp.end - p.timestamp.start) > 0.05);
     if (this.filter && this.filter.active) {
       plays = this.filter.filter(plays);
     }
@@ -24154,7 +24275,10 @@ class CutupExporter {
       return;
     }
 
-    const totalSec = plays.reduce((s, p) => s + (p.timestamp.end - p.timestamp.start), 0);
+    // Clamp each play's duration for the ESTIMATE only: a failed duration probe
+    // can leave end at a sentinel (~999s), which otherwise inflates the quoted
+    // render time to hours. The record loop itself is bounded by video.ended.
+    const totalSec = plays.reduce((s, p) => s + Math.min(p.timestamp.end - p.timestamp.start, 120), 0);
     const titleSec = this.showTitleCards ? plays.length * 1.0 : 0;
     const estTotal = totalSec + titleSec;
     const m = Math.floor(estTotal / 60);
@@ -24256,7 +24380,7 @@ class CutupExporter {
         }
 
         video.currentTime = p.timestamp.start;
-        await this._waitForSeek(video);
+        await this._waitForSeek(video, p.timestamp.start);
         video.muted = false;
         try { await video.play(); } catch (e) { /* user gesture issue */ }
 
@@ -24318,10 +24442,18 @@ class CutupExporter {
     return ({ '1': 'st', '2': 'nd', '3': 'rd', '4': 'th' })[d] || '';
   }
 
-  _waitForSeek(video) {
+  _waitForSeek(video, target) {
     return new Promise(resolve => {
-      const h = () => { video.removeEventListener('seeked', h); resolve(); };
+      // A seek to the position the video is ALREADY at fires no 'seeked' event,
+      // so waiting for one hangs the whole export forever (classically start:0
+      // on a clip already at 0). Resolve immediately when we're there.
+      if (typeof target === 'number' && Math.abs(video.currentTime - target) < 0.05) { resolve(); return; }
+      let done = false;
+      const finish = () => { if (done) return; done = true; video.removeEventListener('seeked', h); clearTimeout(timer); resolve(); };
+      const h = () => finish();
       video.addEventListener('seeked', h);
+      // Never hang if 'seeked' never arrives (stall / codec / no-op seek).
+      const timer = setTimeout(finish, 3000);
     });
   }
 
@@ -25191,9 +25323,23 @@ class PlayGrid {
           <button class="btn btn-sm" data-act="clear" type="button">Clear</button>
           <button class="btn btn-sm btn-accent" data-act="done" type="button">Done</button>
         </div>`;
+      const groups = PlayTagger.EXCLUSIVE_GROUPS[col.key] || [];
       wrap.addEventListener('click', (e) => {
         const chip = e.target.closest('.pg-chip[data-v]');
-        if (chip) { chip.classList.toggle('active'); return; }
+        if (chip) {
+          const turningOn = !chip.classList.contains('active');
+          chip.classList.toggle('active');
+          // Mirror the tag form: activating a member of an exclusive group
+          // deselects its rivals so the cell can never become "Gain + Loss".
+          if (turningOn) {
+            const v = chip.dataset.v;
+            const grp = groups.find(g => g.includes(v));
+            if (grp) wrap.querySelectorAll('.pg-chip.active').forEach(c => {
+              if (c !== chip && grp.includes(c.dataset.v)) c.classList.remove('active');
+            });
+          }
+          return;
+        }
         const act = e.target.closest('[data-act]');
         if (!act) return;
         if (act.dataset.act === 'clear') commit('');
@@ -25268,13 +25414,25 @@ class PlayGrid {
     } else if (col.type === 'sit') {
       play.tags.down = value.down;
       play.tags.distance = value.distance;
+      // Mirror _saveField: a manual Dn&Dist edit clears the auto-fill flag so
+      // the next Save & Next can't overwrite the correction (applyNextSituation
+      // gates on !_autoSit).
+      play._autoSit = false;
     } else {
+      // Multi-select fields: drop mutually-exclusive rivals exactly like the
+      // form (no more "Gain + Loss", which flipped a gain negative below).
+      if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).
       if (col.key === 'playType') {
         const auto = PlayTagger.runPassForPlayType(value);
         if (auto && play.tags.runPass !== auto) play.tags.runPass = auto;
       }
+    }
+    // Positive yardage with no result yet = a gain (mirror of _saveField), so a
+    // yardage-only grid edit is classified the same as one typed in the form.
+    if (col.key === 'yardage' && !play.tags.result) {
+      if ((parseInt(String(play.tags.yardage), 10) || 0) > 0) play.tags.result = 'Gain';
     }
     // Yardage is a magnitude; Loss/Sack supply the sign (mirror of
     // _applyYardageSign — keep stored values consistent with form entry).
@@ -27155,8 +27313,11 @@ class CallSheetBuilder {
     all.forEach(p => epaMap.set(p.id, this.advanced.computeEPA(p)));
 
     const score = (p) => {
-      if (rankMode === 'yards') return parseInt(p.tags.yardage) || 0;
-      if (rankMode === 'recent') return p.timestamp || p.id;
+      if (rankMode === 'yards') return parseInt(p.tags.yardage, 10) || 0;
+      // "Recent" ranks by creation order. p.timestamp is a {start,end} OBJECT,
+      // so the old `p.timestamp || p.id` fed the sort NaN and never reordered;
+      // p.id is monotonic with tagging order and always numeric.
+      if (rankMode === 'recent') return p.id || 0;
       const e = epaMap.get(p.id);
       return e == null ? -999 : e;
     };
@@ -27202,19 +27363,22 @@ class CallSheetBuilder {
   /** Compact performance tag so an EPA-ranked call shows why it's ranked. */
   _playResult(p) {
     const t = p.tags || {};
-    const yds = parseInt(t.yardage);
-    switch (t.result) {
-      case 'Touchdown': return `TD${isNaN(yds) ? '' : ' ' + yds}`;
-      case 'Incomplete': return 'Inc';
-      case 'Interception': return 'INT';
-      case 'Fumble': return 'Fum';
-      case 'Sack': return `Sack${isNaN(yds) ? '' : ' ' + yds}`;
-      case 'Field Goal': return 'FG';
-      case 'Punt': return 'Punt';
-      default:
-        if (isNaN(yds)) return t.result || '';
-        return (yds > 0 ? '+' : '') + yds;
-    }
+    const yds = parseInt(t.yardage, 10);
+    // result is a " + "-joined multi-select ("Interception + Touchdown" for a
+    // pick-six, "Fumble + Touchdown" for a scoop-score). The old exact switch
+    // matched none of those and fell through to the raw string. Split and rank
+    // the most salient outcome.
+    const res = StatsEngine.splitResults(t.result);
+    const has = v => res.includes(v);
+    if (has('Touchdown')) return `TD${isNaN(yds) ? '' : ' ' + yds}`;
+    if (has('Interception')) return 'INT';
+    if (has('Fumble')) return 'Fum';
+    if (has('Sack')) return `Sack${isNaN(yds) ? '' : ' ' + yds}`;
+    if (has('Field Goal')) return 'FG';
+    if (has('Punt')) return 'Punt';
+    if (has('Incomplete')) return 'Inc';
+    if (isNaN(yds)) return t.result || '';
+    return (yds > 0 ? '+' : '') + yds;
   }
 
   build() {
@@ -28471,7 +28635,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.29';
+const APP_VERSION = '1.9.30';
 
 class App {
   constructor() {
@@ -29447,15 +29611,20 @@ class App {
       });
     });
 
-    // Line width slider
+    // Line width slider. Guarded: an absent element must not throw here and
+    // abort the rest of the constructor's wiring (the whole app init runs in
+    // one chain, so one missing node used to silently break everything below).
     const slider = document.getElementById('lineWidthSlider');
-    slider.addEventListener('input', () => {
-      this.canvas.lineWidth = parseInt(slider.value);
+    if (slider) slider.addEventListener('input', () => {
+      this.canvas.lineWidth = parseInt(slider.value, 10);
     });
 
-    // Clear annotations (undo/redo now live as a single pair in the top bar)
-    document.getElementById('btnClearAnnotations').addEventListener('click', () => {
-      if (confirm('Clear all annotations?')) {
+    // Clear annotations (undo/redo now live as a single pair in the top bar).
+    // Uses the in-app confirm (lesson #8: native confirm() gets suppressed on
+    // repeat and silently returns false, making the button look broken).
+    const btnClear = document.getElementById('btnClearAnnotations');
+    if (btnClear) btnClear.addEventListener('click', async () => {
+      if (await this.tagger._confirmDialog('Clear all annotations on this play?', 'Clear Annotations')) {
         this.canvas.clearAllAnnotations();
       }
     });
@@ -30601,12 +30770,14 @@ class App {
       const preview = lastParsed.lines.slice(0, 5);
       const mapped = Object.values(lastParsed.colMap);
       let html = '<table class="stats-table stats-table-full"><thead><tr>';
-      mapped.forEach(f => { html += `<th>${f}</th>`; });
+      // Header labels + cell values come straight from the imported file — escape
+      // both (a crafted CSV is stored-XSS the moment the preview hits innerHTML).
+      mapped.forEach(f => { html += `<th>${this._esc(f)}</th>`; });
       html += '</tr></thead><tbody>';
       preview.forEach(cells => {
         html += '<tr>';
         Object.entries(lastParsed.colMap).forEach(([idx]) => {
-          html += `<td>${cells[parseInt(idx)] || ''}</td>`;
+          html += `<td>${this._esc(cells[parseInt(idx, 10)] || '')}</td>`;
         });
         html += '</tr>';
       });

@@ -11,6 +11,7 @@
  */
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { PlayDiagram } from './play-diagram.js';
+import { StatsEngine } from './stats-engine.js';
 
 const BUCKETS = [
   { id: 'openers',   label: 'Openers',        count: 8,  filter: (p, i) => i < 15 },
@@ -141,8 +142,11 @@ export class CallSheetBuilder {
     all.forEach(p => epaMap.set(p.id, this.advanced.computeEPA(p)));
 
     const score = (p) => {
-      if (rankMode === 'yards') return parseInt(p.tags.yardage) || 0;
-      if (rankMode === 'recent') return p.timestamp || p.id;
+      if (rankMode === 'yards') return parseInt(p.tags.yardage, 10) || 0;
+      // "Recent" ranks by creation order. p.timestamp is a {start,end} OBJECT,
+      // so the old `p.timestamp || p.id` fed the sort NaN and never reordered;
+      // p.id is monotonic with tagging order and always numeric.
+      if (rankMode === 'recent') return p.id || 0;
       const e = epaMap.get(p.id);
       return e == null ? -999 : e;
     };
@@ -188,19 +192,22 @@ export class CallSheetBuilder {
   /** Compact performance tag so an EPA-ranked call shows why it's ranked. */
   _playResult(p) {
     const t = p.tags || {};
-    const yds = parseInt(t.yardage);
-    switch (t.result) {
-      case 'Touchdown': return `TD${isNaN(yds) ? '' : ' ' + yds}`;
-      case 'Incomplete': return 'Inc';
-      case 'Interception': return 'INT';
-      case 'Fumble': return 'Fum';
-      case 'Sack': return `Sack${isNaN(yds) ? '' : ' ' + yds}`;
-      case 'Field Goal': return 'FG';
-      case 'Punt': return 'Punt';
-      default:
-        if (isNaN(yds)) return t.result || '';
-        return (yds > 0 ? '+' : '') + yds;
-    }
+    const yds = parseInt(t.yardage, 10);
+    // result is a " + "-joined multi-select ("Interception + Touchdown" for a
+    // pick-six, "Fumble + Touchdown" for a scoop-score). The old exact switch
+    // matched none of those and fell through to the raw string. Split and rank
+    // the most salient outcome.
+    const res = StatsEngine.splitResults(t.result);
+    const has = v => res.includes(v);
+    if (has('Touchdown')) return `TD${isNaN(yds) ? '' : ' ' + yds}`;
+    if (has('Interception')) return 'INT';
+    if (has('Fumble')) return 'Fum';
+    if (has('Sack')) return `Sack${isNaN(yds) ? '' : ' ' + yds}`;
+    if (has('Field Goal')) return 'FG';
+    if (has('Punt')) return 'Punt';
+    if (has('Incomplete')) return 'Inc';
+    if (isNaN(yds)) return t.result || '';
+    return (yds > 0 ? '+' : '') + yds;
   }
 
   build() {

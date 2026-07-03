@@ -1539,6 +1539,70 @@ so the feature is never silently missing. The section renders inline as the
    per-play events. Pinned by e2e-season-tab Test 26 (counter after game-open) +
    Test 27 (`_timelineTypeClass` tagged-vs-untagged). (v1.9.29.)
 
+21. **The full-app hardening pass (v1.9.30): a green gate is not a correct app —
+   audit the paths the gate never touches.** After the display-bug fixes, a
+   whole-app review + adversarial verification found ten real defects the 130+
+   green assertions had never exercised, including a THIRD and FOURTH cross-game
+   data-loss path. Each was fixed one-at-a-time under the debugging rules
+   (reproduce → root-cause → smallest fix → regression test → verify):
+   - **Season-switch autosave race (data loss):** the 1s autosave / 2.5s disk
+     debounce weren't cancelled on a season transition, and `openSeason` moved
+     the backend pointer *before* the awaited load — so a timer firing in that
+     window wrote season A into season B's slot (past the v1.9.27 commit guard,
+     which only checks the game). Fix: `StorageManager._cancelPendingSaves()` +
+     `SeasonStore.cancelPendingDiskWrite()` on every open/create/delete/close,
+     plus a season-id pin inside both debounce callbacks. Test 28.
+   - **Version-manager cross-game restore (data loss):** the key was
+     `ffa_versions_' + (videoFileName || 'default')`, and `videoFileName` is
+     null on the web build, so EVERY game shared `ffa_versions_default`;
+     `restore()` deserialized straight into the tagger, bypassing the guard.
+     Fix: key per `season::game`, stamp each snapshot with its `seasonId/gameId`
+     and refuse a cross-scope restore, route restore through the in-app confirm +
+     `history.reset()` + guarded persist. Test 29 + the integrity fuzzer now runs
+     version snapshot/restore ops (was 195 violations on the old bundle, 0 on the
+     fixed one).
+   - **Stored XSS in the OLDER report renderers** (scout / defensive report
+     headers + export titles, big-plays clip filename, CSV import preview) —
+     escaped at each HTML sink with `Charts._esc` / `App._esc` (the newer
+     renderers already did). Test 30. Note: use a per-test XSS counter — the
+     shared `window.__xss` + a leftover payload roster player from Test 19 caused
+     a false positive.
+   - **Film Room grid editor diverged from the tag form:** no result exclusivity
+     (could store "Gain + Loss", which flipped a gain negative), no auto-Gain on
+     positive yardage, `_autoSit` not cleared. Fixed by a shared
+     `PlayTagger.EXCLUSIVE_GROUPS` + `normalizeMulti` (one source of truth for
+     form chips AND grid), auto-Gain, and clearing `_autoSit`. Film-room test.
+   - **Call sheet:** recency sort compared `p.timestamp` (an object) → NaN → no
+     reorder (use `p.id`); `_playResult` exact-matched a multi-select string, so
+     a pick-six showed the raw "Interception + Touchdown" (split + rank). Test 31.
+   - **Cut-up export:** `p.tags.playType || p.timestamp` was always true (every
+     play has a timestamp object) → untagged/zero-length plays exported;
+     `_waitForSeek` had no timeout / at-target guard → a same-position seek hung
+     the export forever; a 999-sentinel end inflated the estimate. Test 32.
+   - **Persist hardening:** BrowserBackend backup ids were `Date.now()` (ms) →
+     two same-ms restore points overwrote each other (now monotonic); `_tsSlug`
+     was second-resolution (now ms); `nextId ||` discarded a stored 0 and could
+     recompute a colliding id when ids are non-contiguous after deletes (now
+     `?? max(id)+1`). Test 33.
+   - **Init fragility:** unguarded `getElementById(...).addEventListener` in the
+     App constructor could abort all later wiring; a native `confirm()` violated
+     lesson #8; dead `command-palette.js` removed; a per-open `filmUrl`
+     `console.log` dropped.
+   - **Stats correctness:** pass attempts summed three overlapping filters
+     (double-counting "Incomplete + Interception"); TFL/havoc counted penalties
+     and kneel-downs. Both now count distinct plays / exclude non-TFL results.
+     Test 34. Plus the CV server (optional/local): CORS narrowed off `*` to the
+     app's real origins, a 2 GB upload cap added; stale vision model id
+     `claude-opus-4-6` → `claude-opus-4-8`.
+   - **Deliberately NOT fixed:** atomic Tauri season writes (temp+rename) — the
+     path can't be reproduced/verified in the headless browser harness, a bad
+     rename could break every save, and the backup ring + Documents mirror
+     already recover crash-corruption. Shipping an unverifiable change to the
+     canonical write path would violate the reproduce-first rule.
+   The meta-lesson reinforces #19: the fuzzer only catches what its op-set
+   covers, so when a new corruption class is found, ADD the operation (here:
+   version snapshot/restore) so the class is fuzzed forever after.
+
 ## Future Projects (Tabled)
 
 These are validated high-impact features, deferred until the core UX is polished:

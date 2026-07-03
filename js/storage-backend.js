@@ -100,8 +100,12 @@ export class StorageBackend {
     return id;
   }
   _tsSlug(d = new Date()) {
-    const p = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+    const p = (n, w = 2) => String(n).padStart(w, '0');
+    // Millisecond suffix: backup/snapshot filenames are keyed on this slug, and
+    // two snapshots in the same SECOND (forced restore-point + autosave) used to
+    // produce an identical filename and overwrite each other. Zero-padded ms
+    // preserves chronological sort.
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}-${p(d.getMilliseconds(), 3)}`;
   }
 }
 
@@ -242,7 +246,12 @@ export class BrowserBackend extends StorageBackend {
       const last = await this.getBackup(recent[0].id);
       if (last && JSON.stringify(last) === json) return null;
     }
-    const id = Date.now();
+    // Monotonic id: two backups in the same millisecond (a forced "Before X"
+    // snapshot immediately followed by an autosave) would otherwise share
+    // Date.now() and the second os.put would OVERWRITE the first — silently
+    // eating exactly the restore point the coach might need.
+    const id = Math.max(Date.now(), (this._lastBackupId || 0) + 1);
+    this._lastBackupId = id;
     const rec = { id, seasonId: this.currentId, ...this._meta(data, label), data: JSON.parse(json) };
     await this._tx('backups', 'readwrite', os => os.put(rec, id));
     await this._prune();
@@ -666,9 +675,7 @@ export class TauriBackend extends StorageBackend {
     const base = await this.dataDirPath();
     if (!convert || !join || !base) return null;
     const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
-    const url = convert(abs);
-    console.log('filmUrl:', { rel, abs, url: url?.slice(0, 200) });
-    return url;
+    return convert(abs);
   }
 
   async deleteFilm(gameId) {

@@ -31,7 +31,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -43,12 +43,24 @@ DEFAULT_PORT = 8765
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
 
-# Allow the browser app to call us from any local origin. For a production
-# setup you'd restrict this, but for a local companion server "*" is fine.
+# Restrict CORS to the origins the GridIron IQ app actually loads from. A
+# wildcard ("*") let ANY web page open in the same browser read this local
+# server's responses (and, with the unbounded upload below, fill the disk).
+# Add your own origin here if you serve the app from somewhere else.
+ALLOWED_ORIGINS = [
+    "https://ckelly0051.github.io",   # GitHub Pages (production web build)
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "tauri://localhost",              # desktop (macOS/Linux webview)
+    "http://tauri.localhost",         # desktop (Windows WebView2)
+    "https://tauri.localhost",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -219,15 +231,32 @@ async def analyze_batch(
         _safe_unlink(tmp_path)
 
 
+# Hard cap on an uploaded clip. Without it, a single request could stream an
+# unbounded body and fill the disk (a trivial DoS from any allowed origin). A
+# game clip is at most a few hundred MB; 2 GB is a generous ceiling.
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
+
+
 def _save_upload(upload: UploadFile) -> Path:
-    """Write an uploaded file to a temp location and return the path."""
+    """Write an uploaded file to a temp location and return the path.
+
+    Aborts (and cleans up) if the body exceeds MAX_UPLOAD_BYTES.
+    """
     suffix = Path(upload.filename or "clip.mp4").suffix or ".mp4"
     fd, tmp = tempfile.mkstemp(suffix=suffix, prefix="ffa_")
     os.close(fd)
     tmp_path = Path(tmp)
-    with tmp_path.open("wb") as f:
-        while chunk := upload.file.read(1024 * 1024):
-            f.write(chunk)
+    total = 0
+    try:
+        with tmp_path.open("wb") as f:
+            while chunk := upload.file.read(1024 * 1024):
+                total += len(chunk)
+                if total > MAX_UPLOAD_BYTES:
+                    raise HTTPException(status_code=413, detail="Upload too large")
+                f.write(chunk)
+    except BaseException:
+        _safe_unlink(tmp_path)   # never leave a partial temp file behind
+        raise
     return tmp_path
 
 

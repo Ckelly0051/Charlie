@@ -38,10 +38,25 @@ export class VersionManager {
     this.tagger.on('play-created', () => this._maybeAutoSnap());
     this.tagger.on('play-updated', () => this._maybeAutoSnap());
     this.tagger.on('play-deleted', () => this._maybeAutoSnap());
+    // Versions are per-GAME (see _key): when a different game loads, show ITS
+    // list and restart the edit counter so game B doesn't inherit A's tally.
+    this.tagger.on('plays-loaded', () => { this.changeCount = 0; this.renderList(); });
   }
 
+  /**
+   * Versions are scoped to the season + game they were taken in. The old key
+   * ('ffa_versions_' + videoFileName) collided: videoFileName is null on the
+   * web build after a reopen, so EVERY game shared 'ffa_versions_default' and
+   * a restore could stamp another game's plays onto the current one — a third
+   * cross-game corruption path (alongside the commitActive and undo ones).
+   * Old shared-key entries are deliberately orphaned rather than migrated:
+   * they carry no game identity, and guessing is the exact bug being fixed.
+   */
   _key() {
-    return 'ffa_versions_' + (this.storage.videoFileName || 'default');
+    const s = this.storage && this.storage.seasonStore;
+    const sid = (s && s.currentSeasonId) || 'na';
+    const gid = (s && s.data && s.data.activeGameId) || 'na';
+    return `ffa_versions_${sid}::${gid}`;
   }
 
   _list() {
@@ -57,12 +72,17 @@ export class VersionManager {
   snapshot(label, manual = false) {
     const data = this.storage._serialize();
     const versions = this._list();
+    const s = this.storage && this.storage.seasonStore;
     versions.push({
       id: Date.now(),
       label: label || (manual ? 'Manual save' : 'Auto-save'),
       time: new Date().toISOString(),
       manual,
       playCount: data.plays.length,
+      // Provenance stamp — restore() refuses a version taken in another
+      // season/game even if a future key change reintroduces sharing.
+      seasonId: (s && s.currentSeasonId) || 'na',
+      gameId: (s && s.data && s.data.activeGameId) || 'na',
       data
     });
 
@@ -77,22 +97,37 @@ export class VersionManager {
     this.renderList();
   }
 
-  restore(id) {
+  async restore(id) {
     const v = this._list().find(x => x.id === id);
     if (!v) return;
-    if (!confirm(`Restore version "${v.label}" (${v.playCount} plays)?\n\nA backup of your current state will be saved first.`)) return;
+    // Never restore across a season/game boundary: v.data is a whole-tagger
+    // snapshot, and deserializing another game's snapshot here would hand the
+    // next commit that game's plays as THIS game's content.
+    const s = this.storage && this.storage.seasonStore;
+    const sid = (s && s.currentSeasonId) || 'na';
+    const gid = (s && s.data && s.data.activeGameId) || 'na';
+    if ((v.seasonId && v.seasonId !== sid) || (v.gameId && v.gameId !== gid)) {
+      this.tagger.toast?.('That version belongs to a different game — open that game to restore it.');
+      return;
+    }
+    const ok = await this.tagger._confirmDialog(
+      `Restore version "${v.label}" (${v.playCount} plays)? A backup of your current state is saved first.`,
+      'Restore Version');
+    if (!ok) return;
     this.snapshot('Backup before restore', false);
     this.storage._deserialize(v.data);
-    if (window.app && window.app.history) {
-      window.app.history.lastSnap = window.app.history._snapshot();
-      window.app.history.stack = [];
-      window.app.history.index = -1;
-      window.app.history._updateUI();
-    }
+    // Undo history is per-game state; re-baseline it the same way a game load does.
+    if (window.app && window.app.history && window.app.history.reset) window.app.history.reset();
+    // Persist the restored state through the normal guarded path so the season
+    // store and disk reflect what's on screen (a crash before the next edit
+    // would otherwise resurrect the pre-restore data).
+    this.storage.commitActive();
+    if (s) s.persist();
   }
 
-  delete(id) {
-    if (!confirm('Delete this version?')) return;
+  async delete(id) {
+    const ok = await this.tagger._confirmDialog('Delete this version?', 'Delete Version');
+    if (!ok) return;
     const versions = this._list().filter(x => x.id !== id);
     this._save(versions);
     this.renderList();
