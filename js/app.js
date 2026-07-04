@@ -1328,7 +1328,7 @@ class App {
         badge.textContent = '⚪ Heuristics';
         badge.classList.add('offline');
         badge.classList.remove('online');
-        badge.title = 'Using in-browser heuristics. Optional local CV server is off.\nRun `cd server && ./start.sh`, then click to connect.';
+        badge.title = 'Auto-detect play boundaries — requires the companion server. See Settings → Setup.';
       }
     };
 

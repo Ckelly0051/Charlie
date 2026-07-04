@@ -207,25 +207,18 @@ export class UIPolish {
     if (!placeholder || !fileInput) return;
 
     placeholder.innerHTML = `
-      <div class="empty-cta-row">
-        <button class="empty-cta" type="button" data-action="file">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          <span class="empty-cta-title">Add Video</span>
-          <span class="empty-cta-sub">Select a game film file</span>
-        </button>
-        <button class="empty-cta empty-cta-folder" type="button" data-action="folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span class="empty-cta-title">Add Folder</span>
-          <span class="empty-cta-sub">Load a folder of plays</span>
-        </button>
+      <div class="dropzone-card">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>
+        </svg>
+        <div class="dropzone-title">Add game film</div>
+        <div class="dropzone-actions">
+          <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
+          <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
+        </div>
+        <div class="empty-hint">or drop a video or folder anywhere</div>
       </div>
-      <div class="empty-hint">or drop a video file anywhere</div>
     `;
     placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
       e.stopPropagation();

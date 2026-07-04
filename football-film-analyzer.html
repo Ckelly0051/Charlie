@@ -7705,6 +7705,67 @@ body { font-size: 13px; }
 
 /* Unit toggle stays a full-width segmented control (single-choice colors). */
 .unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — buttons & toolbar & dropzone (§4.2–4.4).
+   Flat solid buttons (no gradients), four tiers, one dashed dropzone.
+   ===================================================================== */
+/* Primary — solid accent, flat (was a 2-stop gradient). */
+.btn-accent, .btn-highlight, .btn-demo {
+  background: var(--accent); border: 1px solid var(--accent); color: #fff; box-shadow: none;
+}
+.btn-accent:hover, .btn-highlight:hover, .btn-demo:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+}
+.btn-highlight.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Secondary — white surface, hairline border. Base .btn adopts this so a
+   plain .btn no longer floods solid blue on hover. */
+.btn, .btn-secondary {
+  background: var(--surface); border: 1px solid var(--border-bright); color: var(--text);
+}
+.btn:hover, .btn-secondary:hover {
+  background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text);
+}
+
+/* Ghost — transparent (toolbar/nav icon buttons). */
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); box-shadow: none; }
+.btn-ghost:hover { background: var(--bg-tertiary); color: var(--text); border-color: transparent; }
+
+/* Danger — ghost red; solid red only inside confirm dialogs. */
+.btn-danger { background: transparent; border: 1px solid transparent; color: var(--danger); }
+.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Toolbar — white, single hairline bottom border, no shadow. */
+.top-bar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
+
+/* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
+   one accent (the primary). No glow tiles, no cyan. */
+.dropzone-card {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 26px 34px; background: transparent;
+  border: 1.5px dashed rgba(255,255,255,0.22); border-radius: var(--radius-lg);
+}
+.dropzone-icon { width: 28px; height: 28px; color: rgba(255,255,255,0.5); }
+.dropzone-title { font-size: 15px; font-weight: 700; color: #F1F3F7; }
+.dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
+/* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
+.dropzone-actions .btn-secondary {
+  background: transparent; border-color: rgba(255,255,255,0.28); color: rgba(255,255,255,0.88);
+}
+.dropzone-actions .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.dropzone-card .empty-hint { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; }
+
+/* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
+   single-class, and .btn is later in source). Raise specificity so the primary
+   fill always wins regardless of order — Save Season stays the one blue button. */
+.btn.btn-accent, .btn.btn-highlight, .btn.btn-demo {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.btn.btn-accent:hover, .btn.btn-highlight:hover, .btn.btn-demo:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+}
+.btn.btn-highlight.active { background: var(--accent); border-color: var(--accent); }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8291,10 +8352,10 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
         <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" disabled>
           <svg class="icon"><use href="#icon-next-clip"/></svg>
         </button>
-        <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
+        <button class="btn btn-secondary" id="btnQuickChart" title="Toggle Quick Chart Mode">
           <svg class="icon"><use href="#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
         </button>
-        <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
+        <button class="btn btn-secondary" id="btnShowStats" title="View Game Stats">
           <svg class="icon"><use href="#icon-stats"/></svg> <span class="btn-label">Stats</span>
         </button>
         <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
@@ -27863,25 +27924,18 @@ class UIPolish {
     if (!placeholder || !fileInput) return;
 
     placeholder.innerHTML = `
-      <div class="empty-cta-row">
-        <button class="empty-cta" type="button" data-action="file">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          <span class="empty-cta-title">Add Video</span>
-          <span class="empty-cta-sub">Select a game film file</span>
-        </button>
-        <button class="empty-cta empty-cta-folder" type="button" data-action="folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span class="empty-cta-title">Add Folder</span>
-          <span class="empty-cta-sub">Load a folder of plays</span>
-        </button>
+      <div class="dropzone-card">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>
+        </svg>
+        <div class="dropzone-title">Add game film</div>
+        <div class="dropzone-actions">
+          <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
+          <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
+        </div>
+        <div class="empty-hint">or drop a video or folder anywhere</div>
       </div>
-      <div class="empty-hint">or drop a video file anywhere</div>
     `;
     placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -30077,7 +30131,7 @@ class App {
         badge.textContent = '⚪ Heuristics';
         badge.classList.add('offline');
         badge.classList.remove('online');
-        badge.title = 'Using in-browser heuristics. Optional local CV server is off.\nRun `cd server && ./start.sh`, then click to connect.';
+        badge.title = 'Auto-detect play boundaries — requires the companion server. See Settings → Setup.';
       }
     };
 

@@ -7692,3 +7692,64 @@ body { font-size: 13px; }
 
 /* Unit toggle stays a full-width segmented control (single-choice colors). */
 .unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — buttons & toolbar & dropzone (§4.2–4.4).
+   Flat solid buttons (no gradients), four tiers, one dashed dropzone.
+   ===================================================================== */
+/* Primary — solid accent, flat (was a 2-stop gradient). */
+.btn-accent, .btn-highlight, .btn-demo {
+  background: var(--accent); border: 1px solid var(--accent); color: #fff; box-shadow: none;
+}
+.btn-accent:hover, .btn-highlight:hover, .btn-demo:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+}
+.btn-highlight.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Secondary — white surface, hairline border. Base .btn adopts this so a
+   plain .btn no longer floods solid blue on hover. */
+.btn, .btn-secondary {
+  background: var(--surface); border: 1px solid var(--border-bright); color: var(--text);
+}
+.btn:hover, .btn-secondary:hover {
+  background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text);
+}
+
+/* Ghost — transparent (toolbar/nav icon buttons). */
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); box-shadow: none; }
+.btn-ghost:hover { background: var(--bg-tertiary); color: var(--text); border-color: transparent; }
+
+/* Danger — ghost red; solid red only inside confirm dialogs. */
+.btn-danger { background: transparent; border: 1px solid transparent; color: var(--danger); }
+.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Toolbar — white, single hairline bottom border, no shadow. */
+.top-bar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
+
+/* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
+   one accent (the primary). No glow tiles, no cyan. */
+.dropzone-card {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 26px 34px; background: transparent;
+  border: 1.5px dashed rgba(255,255,255,0.22); border-radius: var(--radius-lg);
+}
+.dropzone-icon { width: 28px; height: 28px; color: rgba(255,255,255,0.5); }
+.dropzone-title { font-size: 15px; font-weight: 700; color: #F1F3F7; }
+.dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
+/* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
+.dropzone-actions .btn-secondary {
+  background: transparent; border-color: rgba(255,255,255,0.28); color: rgba(255,255,255,0.88);
+}
+.dropzone-actions .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.dropzone-card .empty-hint { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; }
+
+/* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
+   single-class, and .btn is later in source). Raise specificity so the primary
+   fill always wins regardless of order — Save Season stays the one blue button. */
+.btn.btn-accent, .btn.btn-highlight, .btn.btn-demo {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.btn.btn-accent:hover, .btn.btn-highlight:hover, .btn.btn-demo:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+}
+.btn.btn-highlight.active { background: var(--accent); border-color: var(--accent); }
