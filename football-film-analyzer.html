@@ -7766,6 +7766,46 @@ body { font-size: 13px; }
   background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
 }
 .btn.btn-highlight.active { background: var(--accent); border-color: var(--accent); }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — play table, transport & the signature D&D badge
+   (§4.5–4.7).
+   ===================================================================== */
+/* Signature scorebug badge — used in the play table, tagging readout, header. */
+.dd-badge {
+  display: inline-block; padding: 2px 7px;
+  background: var(--bg-tertiary); border-radius: 4px;
+  font-size: 11.5px; font-weight: 650; letter-spacing: .05em; line-height: 1.35;
+  text-transform: uppercase; color: var(--text);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+}
+.dd-badge--key { background: var(--accent-soft); color: var(--accent-hover); }  /* 3rd/4th down */
+
+/* Play table (§4.6) — quiet header, crisp row states, colored numeric text. */
+.pg-table th {
+  background: var(--surface); font-size: 11px; font-weight: 650;
+  letter-spacing: .06em; color: var(--text-hint); border-bottom: 1px solid var(--border);
+}
+.pg-row td { height: 32px; }
+.pg-row:hover td { background: #F7F8FA; }
+.pg-row.is-current td { background: var(--accent-soft); }
+.pg-row.is-current td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.pg-c-yardage .pos { color: var(--success); font-weight: 600; }
+.pg-c-yardage .neg { color: var(--danger); font-weight: 600; }
+/* Tendency summary row under the header — informative, not shouting. */
+.pg-tend td { font-size: 11px; color: var(--text-hint); font-weight: 450; font-variant-numeric: tabular-nums; }
+
+/* Video transport (§4.7) — thin track, accent progress, hover-only handle. */
+.scrub-bar { background: var(--border); }
+.scrub-bar-fill { background: var(--accent); }
+.scrub-bar-handle { background: var(--accent); box-shadow: none; opacity: 0; transition: opacity var(--transition); }
+.scrub-bar-container:hover .scrub-bar-handle { opacity: 1; }
+.scrub-bar-plays .play-marker { background: var(--text-hint); }
+
+/* D&D readout badge in the tag form — hidden until a down is set. */
+.dd-label { display: flex; align-items: center; gap: 8px; }
+.dd-readout { text-transform: uppercase; }
+.dd-readout:empty { display: none; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8557,7 +8597,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           </div>
 
           <div class="chip-section">
-            <label class="chip-label">Down &amp; Distance</label>
+            <label class="chip-label dd-label">Down &amp; Distance <span class="dd-badge dd-readout" id="ddReadout"></span></label>
             <div class="chip-inline">
               <div class="pick-group" id="tagDown">
                 <button class="pick" data-value="1" type="button">1st</button>
@@ -11779,6 +11819,7 @@ class PlayTagger {
     if (play._autoSit && (key === 'down' || key === 'distance' || key === 'fieldSide' || key === 'yardLine')) {
       play._autoSit = false;
     }
+    if (key === 'down' || key === 'distance') this._updateDdReadout();
 
     // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
     // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
@@ -11954,6 +11995,22 @@ class PlayTagger {
     this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
+    this._updateDdReadout();
+  }
+
+  /** Live scorebug readout of the current Down & Distance in the tag form —
+   *  the signature .dd-badge, mirroring how it renders in the play table. */
+  _updateDdReadout() {
+    const el = this.ddReadout !== undefined ? this.ddReadout
+      : (this.ddReadout = document.getElementById('ddReadout'));
+    if (!el) return;
+    const down = this.tagFields.down.value;
+    const dist = this.tagFields.distance.value;
+    if (!down) { el.textContent = ''; el.style.display = 'none'; return; }
+    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[down] || down;
+    el.textContent = dist ? `${ord} & ${dist}` : ord;
+    el.classList.toggle('dd-badge--key', down === '3' || down === '4');
+    el.style.display = '';
   }
 
   /**
@@ -25415,7 +25472,9 @@ class PlayGrid {
       const n = parseInt(t.yardage, 10);
       if (!Number.isFinite(n)) return '';   // CSV imports can carry junk like '—'
       const cls = n > 0 ? 'pos' : (n < 0 ? 'neg' : '');
-      return `<span class="${cls}">${n > 0 ? '+' + n : n}</span>`;
+      // True minus sign (−, U+2212) for losses, not an ASCII hyphen.
+      const disp = n > 0 ? '+' + n : (n < 0 ? '−' + Math.abs(n) : '0');
+      return `<span class="${cls}">${disp}</span>`;
     }
     if (col.key === 'notes') return this._esc(p.notes || '');
     return this._esc(t[col.key] || '');
@@ -25425,7 +25484,11 @@ class PlayGrid {
     if (!t.down) return '<span class="pg-dim">—</span>';
     // The fallback is raw tag data (CSV imports) — escape it.
     const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || this._esc(t.down);
-    return t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
+    const txt = t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
+    // Signature scorebug badge; 3rd & 4th down get the emphasis variant (a
+    // football-true use of accent). CSS uppercases + tabular-figures it.
+    const key = (String(t.down) === '3' || String(t.down) === '4') ? ' dd-badge--key' : '';
+    return `<span class="dd-badge${key}">${txt}</span>`;
   }
 
   /** Move the current-row highlight without a full re-render. `scroll` is only

@@ -567,7 +567,9 @@ export class PlayGrid {
       const n = parseInt(t.yardage, 10);
       if (!Number.isFinite(n)) return '';   // CSV imports can carry junk like '—'
       const cls = n > 0 ? 'pos' : (n < 0 ? 'neg' : '');
-      return `<span class="${cls}">${n > 0 ? '+' + n : n}</span>`;
+      // True minus sign (−, U+2212) for losses, not an ASCII hyphen.
+      const disp = n > 0 ? '+' + n : (n < 0 ? '−' + Math.abs(n) : '0');
+      return `<span class="${cls}">${disp}</span>`;
     }
     if (col.key === 'notes') return this._esc(p.notes || '');
     return this._esc(t[col.key] || '');
@@ -577,7 +579,11 @@ export class PlayGrid {
     if (!t.down) return '<span class="pg-dim">—</span>';
     // The fallback is raw tag data (CSV imports) — escape it.
     const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || this._esc(t.down);
-    return t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
+    const txt = t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
+    // Signature scorebug badge; 3rd & 4th down get the emphasis variant (a
+    // football-true use of accent). CSS uppercases + tabular-figures it.
+    const key = (String(t.down) === '3' || String(t.down) === '4') ? ' dd-badge--key' : '';
+    return `<span class="dd-badge${key}">${txt}</span>`;
   }
 
   /** Move the current-row highlight without a full re-render. `scroll` is only

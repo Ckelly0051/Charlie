@@ -855,6 +855,7 @@ export class PlayTagger {
     if (play._autoSit && (key === 'down' || key === 'distance' || key === 'fieldSide' || key === 'yardLine')) {
       play._autoSit = false;
     }
+    if (key === 'down' || key === 'distance') this._updateDdReadout();
 
     // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
     // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
@@ -1030,6 +1031,22 @@ export class PlayTagger {
     this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
+    this._updateDdReadout();
+  }
+
+  /** Live scorebug readout of the current Down & Distance in the tag form —
+   *  the signature .dd-badge, mirroring how it renders in the play table. */
+  _updateDdReadout() {
+    const el = this.ddReadout !== undefined ? this.ddReadout
+      : (this.ddReadout = document.getElementById('ddReadout'));
+    if (!el) return;
+    const down = this.tagFields.down.value;
+    const dist = this.tagFields.distance.value;
+    if (!down) { el.textContent = ''; el.style.display = 'none'; return; }
+    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[down] || down;
+    el.textContent = dist ? `${ord} & ${dist}` : ord;
+    el.classList.toggle('dd-badge--key', down === '3' || down === '4');
+    el.style.display = '';
   }
 
   /**
