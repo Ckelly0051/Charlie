@@ -45,7 +45,7 @@ cat > "$OUTPUT" << 'HTMLHEAD'
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4169e1">
+  <meta name="theme-color" content="#1D4ED8">
   <meta name="description" content="Football film analysis for coaches — tag plays, track stats, scout opponents.">
   <title>GridIron IQ</title>
   <style>
