@@ -7793,3 +7793,24 @@ body { font-size: 13px; }
 .dd-label { display: flex; align-items: center; gap: 8px; }
 .dd-readout { text-transform: uppercase; }
 .dd-readout:empty { display: none; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — overlays & cards (§4.8). Light overlays already
+   inherit the new tokens (white cards, flat shadows); this unifies the
+   modal backdrop and adds a subtle, reduced-motion-safe entrance.
+   ===================================================================== */
+.ffa-confirm-backdrop, .play-import-backdrop, .shortcuts-backdrop,
+.detect-review-backdrop { background: rgba(16,24,40,0.45); }
+
+@keyframes ffaModalIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+.ffa-confirm-card, .season-modal-content, .play-import-card,
+.shortcuts-card, .modal-card, .finish-modal-card {
+  animation: ffaModalIn 140ms cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ffa-confirm-card, .season-modal-content, .play-import-card,
+  .shortcuts-card, .modal-card, .finish-modal-card { animation: none; }
+}
+
+/* Cards are border-only; shadows are reserved for floating layers. */
+.gi-card, .season-card, .team-card, .sidebar-panel, .stat-card { box-shadow: none; }
