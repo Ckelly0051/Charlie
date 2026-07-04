@@ -7848,6 +7848,20 @@ body { font-size: 13px; }
    until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
 .angle-controls { display: none; }
 .angle-controls.ang-open { display: flex; }
+
+/* The timeline strip only carries content when film is loaded (one segment per
+   clip/play). With no film its .timeline-bar is empty and the row is just a
+   gray pad eating vertical space — collapse it until segments render. Degrades
+   gracefully (worst case: the pad stays) where :has is unsupported. */
+.video-timeline:has(.timeline-bar:empty) { display: none; }
+
+/* Fold the timeline into the transport line's center column (under the seek
+   bar) instead of its own dedicated row — reclaims the vertical space while
+   keeping the play/clip navigator exactly where film segments render. When
+   there's no film (empty .timeline-bar) it takes no space at all. */
+.transport-center { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+.transport-center .video-timeline { padding: 0; margin: 0; border: none; background: none; }
+.transport-center .video-timeline:has(.timeline-bar:empty) { display: none; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8529,11 +8543,19 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
             <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
             <span class="clip-indicator" id="clipIndicator"></span>
           </div>
-          <div class="scrub-bar-container">
-            <div class="scrub-bar" id="scrubBar">
-              <div class="scrub-bar-fill" id="scrubBarFill"></div>
-              <div class="scrub-bar-plays" id="scrubBarPlays"></div>
-              <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+          <div class="transport-center">
+            <div class="scrub-bar-container">
+              <div class="scrub-bar" id="scrubBar">
+                <div class="scrub-bar-fill" id="scrubBarFill"></div>
+                <div class="scrub-bar-plays" id="scrubBarPlays"></div>
+                <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+              </div>
+            </div>
+            <!-- Timeline folds into the transport line's center (no dedicated row) -->
+            <div class="video-timeline">
+              <div class="timeline-strip" id="timelineStrip">
+                <div class="timeline-bar" id="timelineBar"></div>
+              </div>
             </div>
           </div>
           <div class="controls-right">
@@ -8574,13 +8596,6 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
             </label>
             <button class="ctrl-btn angle-remove-btn" id="btnRemoveAngle" title="Remove second angle">✕</button>
           </span>
-        </div>
-
-        <!-- Timeline (moved from bottom-panel into video-section) -->
-        <div class="video-timeline">
-          <div class="timeline-strip" id="timelineStrip">
-            <div class="timeline-bar" id="timelineBar"></div>
-          </div>
         </div>
 
         <!-- Play marking + selector (moved under the video to use the dead space) -->

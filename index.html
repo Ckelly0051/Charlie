@@ -175,11 +175,19 @@
             <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
             <span class="clip-indicator" id="clipIndicator"></span>
           </div>
-          <div class="scrub-bar-container">
-            <div class="scrub-bar" id="scrubBar">
-              <div class="scrub-bar-fill" id="scrubBarFill"></div>
-              <div class="scrub-bar-plays" id="scrubBarPlays"></div>
-              <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+          <div class="transport-center">
+            <div class="scrub-bar-container">
+              <div class="scrub-bar" id="scrubBar">
+                <div class="scrub-bar-fill" id="scrubBarFill"></div>
+                <div class="scrub-bar-plays" id="scrubBarPlays"></div>
+                <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+              </div>
+            </div>
+            <!-- Timeline folds into the transport line's center (no dedicated row) -->
+            <div class="video-timeline">
+              <div class="timeline-strip" id="timelineStrip">
+                <div class="timeline-bar" id="timelineBar"></div>
+              </div>
             </div>
           </div>
           <div class="controls-right">
@@ -220,13 +228,6 @@
             </label>
             <button class="ctrl-btn angle-remove-btn" id="btnRemoveAngle" title="Remove second angle">✕</button>
           </span>
-        </div>
-
-        <!-- Timeline (moved from bottom-panel into video-section) -->
-        <div class="video-timeline">
-          <div class="timeline-strip" id="timelineStrip">
-            <div class="timeline-bar" id="timelineBar"></div>
-          </div>
         </div>
 
         <!-- Play marking + selector (moved under the video to use the dead space) -->

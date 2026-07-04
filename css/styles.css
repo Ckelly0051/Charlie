@@ -7835,3 +7835,17 @@ body { font-size: 13px; }
    until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
 .angle-controls { display: none; }
 .angle-controls.ang-open { display: flex; }
+
+/* The timeline strip only carries content when film is loaded (one segment per
+   clip/play). With no film its .timeline-bar is empty and the row is just a
+   gray pad eating vertical space — collapse it until segments render. Degrades
+   gracefully (worst case: the pad stays) where :has is unsupported. */
+.video-timeline:has(.timeline-bar:empty) { display: none; }
+
+/* Fold the timeline into the transport line's center column (under the seek
+   bar) instead of its own dedicated row — reclaims the vertical space while
+   keeping the play/clip navigator exactly where film segments render. When
+   there's no film (empty .timeline-bar) it takes no space at all. */
+.transport-center { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+.transport-center .video-timeline { padding: 0; margin: 0; border: none; background: none; }
+.transport-center .video-timeline:has(.timeline-bar:empty) { display: none; }
