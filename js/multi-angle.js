@@ -164,6 +164,11 @@ export class MultiAngle {
     const label2 = document.getElementById('angleLabel2');
 
     if (info) info.classList.toggle('hidden', !this.enabled);
+    // The angle-controls row now collapses when no 2nd angle is loaded (the
+    // +Angle button moved into the play-control bar), so only reveal the row's
+    // 2nd-angle controls when one is actually active.
+    const ac = document.getElementById('angleControls');
+    if (ac) ac.classList.toggle('ang-open', this.enabled);
     if (nameEl) nameEl.textContent = this.enabled ? this.angle2Name : '';
 
     c.classList.toggle('has-angle2', this.enabled);

@@ -7814,3 +7814,24 @@ body { font-size: 13px; }
 
 /* Cards are border-only; shadows are reserved for floating layers. */
 .gi-card, .season-card, .team-card, .sidebar-panel, .stat-card { box-shadow: none; }
+
+/* =====================================================================
+   DESIGN REFRESH — post-review polish (user feedback)
+   ===================================================================== */
+/* Chips washed out on the white tag-form panel — darker tonal fill, still
+   borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
+.pick, .tag-section .pick { background: #E4E7EE; }
+.pick:hover, .tag-section .pick:hover { background: #D6DBE4; }
+
+/* Library actions: one aligned row (was inline-block → the demo button's icon
+   knocked the baseline off), one primary (New Season); demo → secondary. */
+.library-new { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.library-new .library-form { flex-basis: 100%; }
+.btn.btn-demo { background: var(--surface); border: 1px solid var(--border-bright); color: var(--text); }
+.btn.btn-demo:hover { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text); }
+.btn.btn-demo .icon { color: var(--accent); }
+
+/* +Angle moved into the play-control bar; its old standalone row now collapses
+   until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
+.angle-controls { display: none; }
+.angle-controls.ang-open { display: flex; }

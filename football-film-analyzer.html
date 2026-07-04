@@ -7827,6 +7827,27 @@ body { font-size: 13px; }
 
 /* Cards are border-only; shadows are reserved for floating layers. */
 .gi-card, .season-card, .team-card, .sidebar-panel, .stat-card { box-shadow: none; }
+
+/* =====================================================================
+   DESIGN REFRESH — post-review polish (user feedback)
+   ===================================================================== */
+/* Chips washed out on the white tag-form panel — darker tonal fill, still
+   borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
+.pick, .tag-section .pick { background: #E4E7EE; }
+.pick:hover, .tag-section .pick:hover { background: #D6DBE4; }
+
+/* Library actions: one aligned row (was inline-block → the demo button's icon
+   knocked the baseline off), one primary (New Season); demo → secondary. */
+.library-new { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.library-new .library-form { flex-basis: 100%; }
+.btn.btn-demo { background: var(--surface); border: 1px solid var(--border-bright); color: var(--text); }
+.btn.btn-demo:hover { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text); }
+.btn.btn-demo .icon { color: var(--accent); }
+
+/* +Angle moved into the play-control bar; its old standalone row now collapses
+   until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
+.angle-controls { display: none; }
+.angle-controls.ang-open { display: flex; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8531,12 +8552,14 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
             <label class="fps-label" title="Video frame rate">
               FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
             </label>
+            <button class="ctrl-btn" id="btnExpandVideo" title="Expand the video to full screen (Esc to exit)">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
           </div>
         </div>
 
         <!-- Multi-angle controls -->
         <div class="angle-controls" id="angleControls">
-          <button class="ctrl-btn" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
           <input type="file" id="angle2FileInput" accept="video/*" hidden>
           <span class="angle2-info hidden" id="angle2Info">
             <span class="angle2-name" id="angle2Name"></span>
@@ -8566,7 +8589,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
           <button class="btn btn-sm" id="btnClearTags" title="Reset this play's tags (keeps the play and video)">Clear Tags</button>
           <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
-          <button class="btn btn-sm" id="btnExpandVideo" title="Expand the video to full screen (Esc to exit)">Expand</button>
+          <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
           <select id="playSelect" class="play-select" title="Current play">
             <option value="">-- No plays tagged --</option>
           </select>
@@ -18925,6 +18948,11 @@ class MultiAngle {
     const label2 = document.getElementById('angleLabel2');
 
     if (info) info.classList.toggle('hidden', !this.enabled);
+    // The angle-controls row now collapses when no 2nd angle is loaded (the
+    // +Angle button moved into the play-control bar), so only reveal the row's
+    // 2nd-angle controls when one is actually active.
+    const ac = document.getElementById('angleControls');
+    if (ac) ac.classList.toggle('ang-open', this.enabled);
     if (nameEl) nameEl.textContent = this.enabled ? this.angle2Name : '';
 
     c.classList.toggle('has-angle2', this.enabled);
