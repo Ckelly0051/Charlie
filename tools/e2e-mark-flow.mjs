@@ -6,7 +6,7 @@
    skips exactly the path a "form stays grayed out" field report exercises.)
    Run after build:  bash build.sh && node tools/e2e-mark-flow.mjs */
 import puppeteer from 'puppeteer';
-const URL = 'file:///home/user/Charlie/football-film-analyzer.html';
+const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const browser = await puppeteer.launch({ args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage();
