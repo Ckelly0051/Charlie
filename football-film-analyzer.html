@@ -7617,6 +7617,49 @@ td.pg-cell-focus {
 
 /* Focus: one crisp ring everywhere; no colored glow rings. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — typography scale (§3). A tuned scale + tabular
+   numerals; imposed over the historical per-element sizes.
+   ===================================================================== */
+body { font-size: 13px; }
+
+/* Section micro-labels (DOWN & DISTANCE, FORMATION, PERSONNEL …) */
+.chip-label {
+  font-size: 11px; font-weight: 650; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-hint);
+}
+/* Helper microcopy — quiet hint text: sentence case, never blue, no pill */
+.chip-hint {
+  font-size: 11px; font-weight: 450; letter-spacing: normal;
+  text-transform: none; color: var(--text-hint);
+  background: none; padding: 0; border-radius: 0;
+}
+
+/* Chips & buttons — one size; selected is heavier not louder */
+.pick, .pg-chip { font-size: 12.5px; font-weight: 500; }
+.pick.active { font-weight: 600; }
+.btn-label { font-size: 12.5px; font-weight: 500; }
+
+/* Tabular numerals wherever numbers appear (scorebug discipline) */
+.time-display, .fps-input, .stat-card-value, .ov-val, .dd-badge,
+.pg-rows td, .pg-num, td.pg-num, .sb-score, .stat-num, .kpi-value,
+.season-chip, .gd-plays, .sch-score {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+}
+
+/* Stat card numerals (light-UI cards; the dark dashboard keeps its own
+   heavier treatment from redesign-stats.css, which loads after this) */
+.stat-card-value, .ov-val { font-size: 24px; font-weight: 650; }
+
+/* Wordmark — GRIDIRON IQ, letterspaced, IQ in accent, no gradient fill */
+.app-title {
+  font-size: 13px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--text);
+  background: none; -webkit-text-fill-color: currentColor;
+  background-clip: border-box; -webkit-background-clip: border-box;
+}
+.app-iq { color: var(--accent); -webkit-text-fill-color: var(--accent); }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8156,7 +8199,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           </svg>
           <span>Shortcuts</span>
         </button>
-        <h1 class="app-title">GridIron IQ</h1>
+        <h1 class="app-title">GridIron <span class="app-iq">IQ</span></h1>
         <div class="season-chip-wrap">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
             <button class="bc-seg bc-home" id="bcHome" title="Team home">
