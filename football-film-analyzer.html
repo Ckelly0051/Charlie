@@ -7660,6 +7660,51 @@ body { font-size: 13px; }
   background-clip: border-box; -webkit-background-clip: border-box;
 }
 .app-iq { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — chips & segmented controls (§4.1). The single
+   biggest upgrade: two legible variants (radio vs checkbox), no borders
+   on idle chips, no glow on selected, dim hotkey badges. Appended last +
+   matched specificity so it wins over the historical .tag-section .pick.
+   ===================================================================== */
+/* Single-choice: tonal borderless idle → solid-blue selected. */
+.pick,
+.tag-section .pick {
+  box-sizing: border-box; height: 28px; padding: 0 10px; gap: 5px;
+  border: none; background: var(--bg-tertiary);
+  color: var(--text-dim); font-weight: 500; font-size: 12.5px;
+  border-radius: var(--radius-sm); box-shadow: none; line-height: 1;
+}
+.pick:hover,
+.tag-section .pick:hover {
+  background: #E9ECF2; color: var(--text); border: none;
+}
+.pick.active,
+.tag-section .pick.active {
+  background: var(--accent); color: #fff; font-weight: 600;
+  border: none; box-shadow: none;
+}
+.pick-group { gap: 6px; }
+
+/* Multi-select: tinted fill + border + ✓ prefix (checkbox semantics). */
+.cf-multi .pick.active,
+.tag-section .cf-multi .pick.active {
+  background: var(--accent-soft); border: 1px solid var(--accent-border);
+  color: var(--accent-hover); font-weight: 600; box-shadow: none;
+}
+.cf-multi .pick.active::before { content: "✓"; font-weight: 700; margin-right: 2px; }
+
+/* Hotkey badges — dim, tabular, never brighter than the label. */
+.pick kbd {
+  font-size: 10px; font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+  padding: 0 3px; border: 1px solid var(--border-bright); border-radius: 3px;
+  opacity: .55; color: var(--text-dim); background: transparent; margin-left: 2px;
+}
+.pick.active kbd { opacity: 1; color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.35); }
+.cf-multi .pick.active kbd { color: var(--accent-hover); border-color: var(--accent-border); opacity: .7; }
+
+/* Unit toggle stays a full-width segmented control (single-choice colors). */
+.unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -10826,6 +10871,11 @@ class ChipField {
   constructor(el, opts = {}) {
     this.el = el;
     this.multi = !!opts.multi;       // allow multiple chips active at once
+    // Presentational marker so CSS can style multi-select groups (tinted +
+    // border + ✓) distinctly from single-choice groups (solid fill). No logic
+    // change — the design refresh keys off this to make radio-vs-checkbox
+    // groups legible at a glance (§4.1).
+    if (this.multi) el.classList.add('cf-multi');
     // Groups of mutually exclusive values within a multi field: adding one
     // removes its rivals (e.g. a play can't be both Gain and Loss, but can be
     // Fumble + Touchdown). Array of arrays.

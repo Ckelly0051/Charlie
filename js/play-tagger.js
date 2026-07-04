@@ -8,6 +8,11 @@ class ChipField {
   constructor(el, opts = {}) {
     this.el = el;
     this.multi = !!opts.multi;       // allow multiple chips active at once
+    // Presentational marker so CSS can style multi-select groups (tinted +
+    // border + ✓) distinctly from single-choice groups (solid fill). No logic
+    // change — the design refresh keys off this to make radio-vs-checkbox
+    // groups legible at a glance (§4.1).
+    if (this.multi) el.classList.add('cf-multi');
     // Groups of mutually exclusive values within a multi field: adding one
     // removes its rivals (e.g. a play can't be both Gain and Loss, but can be
     // Fumble + Touchdown). Array of arrays.
