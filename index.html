@@ -5800,16 +5800,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   }
 }
 
-/* Multi-select affordance: these groups ADD on tap instead of replacing.
-   Active chips get a small corner tick so a second selection reads as
-   intentional stacking, not a UI bug. */
-.pick-group.multi .pick.active::after {
-  content: '✓';
-  font-size: 8px;
-  font-weight: 800;
-  margin-left: 4px;
-  opacity: 0.85;
-}
+/* (Removed the multi-select ✓ corner tick: selected chips are now ONE
+   consistent solid-blue style across single- and multi-select groups.) */
+.pick-group.multi .pick.active::after { content: none; }
 
 /* Tablets: width-based breakpoints leave 801–1099px iPads with mouse-size
    chips. Key comfortable tap targets on coarse pointers instead. */
@@ -6330,7 +6323,7 @@ video.is-buffering { opacity: 0.6; }
   line-height: 1.6;
   color: #cdd6e6;
 }
-.ss-rec:first-child { border-left-color: var(--accent, #c9a227); }
+.ss-rec:first-child { border-left-color: var(--accent, #1D4ED8); }
 .ss-rec .ss-rec-label { font-weight: 700; color: #e6ebf5; }
 .ss-rec .ss-rec-strength { color: #4ade80; }
 .ss-rec strong { color: #e6ebf5; }
@@ -6883,7 +6876,7 @@ body {
   box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 24px; }
 .library-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .library-brand { font-size: 22px; font-weight: 700; color: #fff; }
-.library-brand b { color: #c9a227; }
+.library-brand b { color: #3b82f6; }
 .library-brand-sub { font-size: 13px; font-weight: 600; color: #8aa0bd; margin-left: 8px; }
 .library-intro { color: #9fb1c9; font-size: 14px; margin: 0 0 18px; }
 .library-new { margin-bottom: 18px; }
@@ -6894,7 +6887,7 @@ body {
   color: #9fb1c9; text-transform: uppercase; letter-spacing: .4px; }
 .library-form input, .library-form select { background: #161e2b; border: 1px solid #2c3a52; color: #e6edf3;
   border-radius: 8px; padding: 9px 11px; font-size: 14px; text-transform: none; letter-spacing: 0; }
-.library-form input:focus, .library-form select:focus { outline: none; border-color: #c9a227; }
+.library-form input:focus, .library-form select:focus { outline: none; border-color: #3b82f6; }
 .lib-form-name { margin-bottom: 14px; }
 .lib-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .library-list { display: flex; flex-direction: column; gap: 10px; }
@@ -6904,7 +6897,7 @@ body {
 .season-card { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: #0c121c; border: 1px solid #243044; border-radius: 12px; padding: 14px 16px; cursor: pointer;
   transition: border-color .15s, transform .05s; }
-.season-card:hover { border-color: #c9a227; }
+.season-card:hover { border-color: #3b82f6; }
 .season-card:active { transform: translateY(1px); }
 .season-card.is-current { border-color: #2f6df0; }
 .season-card-main { min-width: 0; }
@@ -6973,7 +6966,7 @@ body {
 .team-setup-fields { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
 .team-setup-fields input, .team-setup-fields select { background: #161e2b; border: 1px solid #2c3a52;
   color: #e6edf3; border-radius: 8px; padding: 10px 12px; font-size: 14px; min-width: 0; flex: 1; }
-.team-setup-fields input:focus, .team-setup-fields select:focus { outline: none; border-color: #c9a227; }
+.team-setup-fields input:focus, .team-setup-fields select:focus { outline: none; border-color: #3b82f6; }
 .team-setup-fields .btn { flex: 0 0 auto; }
 .team-setup-import {
   margin-top: 14px;
@@ -7002,7 +6995,7 @@ body {
 .team-edit.hidden { display: none; }
 .team-edit input, .team-edit select { background: #161e2b; border: 1px solid #2c3a52;
   color: #e6edf3; border-radius: 8px; padding: 9px 11px; font-size: 14px; min-width: 0; flex: 1; }
-.team-edit input:focus, .team-edit select:focus { outline: none; border-color: #c9a227; }
+.team-edit input:focus, .team-edit select:focus { outline: none; border-color: #3b82f6; }
 
 /* Get Started checklist (progressive onboarding) */
 .gs-checklist { background: linear-gradient(135deg, #10243a, #0c1726); border: 1px solid #244766;
@@ -7292,10 +7285,10 @@ body {
   cursor: pointer;
   transition: border-color .15s, background .15s, color .15s;
 }
-.team-pill:hover { border-color: rgba(201,162,39,.6); color: #fff; }
+.team-pill:hover { border-color: rgba(59,130,246,.6); color: #fff; }
 .team-pill.active {
-  background: rgba(201,162,39,.14);
-  border-color: #c9a227;
+  background: rgba(59,130,246,.14);
+  border-color: #3b82f6;
   color: #fff;
   cursor: default;
 }
@@ -7686,13 +7679,10 @@ body { font-size: 13px; }
 }
 .pick-group { gap: 6px; }
 
-/* Multi-select: tinted fill + border + ✓ prefix (checkbox semantics). */
-.cf-multi .pick.active,
-.tag-section .cf-multi .pick.active {
-  background: var(--accent-soft); border: 1px solid var(--accent-border);
-  color: var(--accent-hover); font-weight: 600; box-shadow: none;
-}
-.cf-multi .pick.active::before { content: "✓"; font-weight: 700; margin-right: 2px; }
+/* Selected chips are ONE consistent style — solid blue — for BOTH single- and
+   multi-select groups. (An earlier pass gave multi-select a tint+border+✓ as a
+   radio-vs-checkbox cue, but in practice it just read as inconsistent.) Multi
+   groups now fall through to the plain .pick.active solid fill above. */
 
 /* Hotkey badges — dim, tabular, never brighter than the label. */
 .pick kbd {
@@ -7701,7 +7691,6 @@ body { font-size: 13px; }
   opacity: .55; color: var(--text-dim); background: transparent; margin-left: 2px;
 }
 .pick.active kbd { opacity: 1; color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.35); }
-.cf-multi .pick.active kbd { color: var(--accent-hover); border-color: var(--accent-border); opacity: .7; }
 
 /* Unit toggle stays a full-width segmented control (single-choice colors). */
 .unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
@@ -7862,6 +7851,162 @@ body { font-size: 13px; }
 .transport-center { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
 .transport-center .video-timeline { padding: 0; margin: 0; border: none; background: none; }
 .transport-center .video-timeline:has(.timeline-bar:empty) { display: none; }
+
+/* Custom user chips (CustomChips): a "+" add affordance + custom chips that
+   carry a × remove. Idle/active states otherwise inherit the normal chip look. */
+.pick-add { color: var(--text-hint); font-weight: 700; padding: 0 11px; }
+.pick-add:hover { background: var(--accent-soft); color: var(--accent); }
+.pick-custom { padding-right: 7px; }
+.pick-custom .pick-x { margin-left: 5px; opacity: .5; font-weight: 700; line-height: 1; cursor: pointer; }
+.pick-custom .pick-x:hover { opacity: 1; color: var(--danger); }
+.pick-custom.active .pick-x { color: rgba(255,255,255,.8); opacity: .85; }   /* on the solid-blue selected chip */
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P1 — one broadcast type voice, one wordmark.
+   The condensed display face (Barlow Condensed, already embedded offline
+   for the dark stats dashboard) extends to the LIGHT chrome's display
+   roles — the scorebug voice the app already speaks when it shows stats.
+   Body text, chips and controls stay system: the face is for names,
+   labels-of-record and numerals, never for reading.
+   ===================================================================== */
+:root { --display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif; }
+
+/* Wordmark — ONE mark. Condensed caps, IQ in blue (the hub's gold IQ dies). */
+.app-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; }
+.library-brand { font-family: var(--display); text-transform: uppercase; letter-spacing: .07em; }
+.library-brand b { color: #3b82f6; }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
+.brand-bug { font-family: var(--display); text-transform: uppercase; letter-spacing: .08em; }
+.brand-bug b { color: #3b82f6; }
+
+/* Game header — the matchup reads like a broadcast lower third. */
+.game-header-bar .ghb-name {
+  font-family: var(--display); font-size: 19px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .015em;
+}
+
+/* Signature D&D badge speaks the same voice. */
+.dd-badge { font-family: var(--display); font-size: 12.5px; letter-spacing: .06em; }
+
+/* Panel titles, drawer header, Film Room title. */
+.panel-title, .settings-drawer-head h2 {
+  font-family: var(--display); text-transform: uppercase; letter-spacing: .05em;
+}
+.pg-title { font-family: var(--display); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Unit toggle — the O / D / ST call is a scorebug moment. */
+.unit-toggle .pick { font-family: var(--display); font-size: 14.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.unit-toggle .pick.active { font-weight: 700; }
+
+/* Light-UI stat numerals match the dashboard's. */
+.stat-card-value, .ov-val { font-family: var(--display); font-weight: 700; }
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P2 — THE LOBBY. The library stops being a dialog
+   floating over the dimmed workspace and becomes a full-screen film-room
+   surface: slate, faint chalk yard lines, the team name as a nameplate.
+   Same DOM, same ids — presentation only.
+   ===================================================================== */
+/* The overlay IS the page: opaque slate + chalk yard lines (pure CSS,
+   ~3% white so it reads as texture, not decoration). Top-aligned like a
+   page, scrolls itself; nothing behind it to blur. */
+.library-overlay {
+  align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 0;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 119px, rgba(255,255,255,0.03) 119px 120px),
+    linear-gradient(to right, rgba(255,255,255,0.035) 0 2px, transparent 2px 100%),
+    #0D1117;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+/* The "modal" becomes the page column. */
+.library-modal {
+  width: min(920px, 94vw); max-height: none; overflow: visible;
+  background: transparent; border: none; border-radius: 0; box-shadow: none;
+  padding: 44px 24px 72px;
+}
+.library-head { margin-bottom: 22px; }
+
+/* First-run — one clear headline, one action. */
+.setup-headline {
+  font-family: var(--display); font-size: clamp(30px, 4.5vw, 42px);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .02em;
+  color: #fff; margin: 18px 0 4px;
+}
+.team-setup .library-intro { font-size: 14.5px; margin-bottom: 20px; }
+.team-setup-import { font-size: 12px; color: #6b7b93; margin-top: 22px; }
+
+/* Team nameplate — the hero of Team Home. Not a boxed card: a name on the
+   slate with a hairline under it, actions kept quietly to the right. */
+.team-card { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,.09);
+  border-radius: 0; padding: 8px 0 18px; }
+.team-card-name {
+  font-family: var(--display); font-size: clamp(30px, 4.5vw, 44px);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05;
+}
+.team-card-meta { font-size: 13px; color: #8aa0bd; margin-top: 2px; }
+
+/* Schedule — the season reads like a scorebug line: name + record. */
+.schedule-title {
+  font-family: var(--display); font-size: clamp(22px, 3vw, 30px);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: #fff;
+}
+.season-record {
+  font-family: var(--display); font-size: 19px; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: .04em;
+  color: #3b82f6; padding: 1px 9px; border: 1px solid rgba(59,130,246,.35);
+  border-radius: 5px; margin-left: 2px; align-self: center;
+}
+.schedule-bar { display: flex; align-items: center; gap: 12px; }
+.schedule-bar .btn-accent { margin-left: auto; }
+.schedule-table .sch-row td { height: 46px; }
+.sch-name { font-family: var(--display); font-size: 16.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .02em; }
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P3 — rail rhythm, dead weight, quiet guidance.
+   ===================================================================== */
+/* The guidance banner directs, it doesn't alarm: neutral well + a blue
+   directional edge instead of the amber warning treatment. */
+.tag-form-hint {
+  background: var(--bg-tertiary);
+  border: none; border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text-dim); font-size: 12.5px;
+  padding: 10px 12px;
+}
+
+/* The empty play-diagram field was ~150px of dead green even when the play
+   had no diagram. Collapse the canvas until it has content (the section
+   toggles .has-diagram in PlayDiagram.renderPreview); ✎ Draw stays. */
+#playDiagramSection:not(.has-diagram) .pd-preview { display: none; }
+
+/* Rail rhythm: a touch more air between tag groups so sections read as
+   sections while scanning fast. */
+.tag-section .chip-section { margin-bottom: 12px; }
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P4 — micro-feedback. State changes, not motion: press
+   states are instant color, the save acknowledgment is a brief ✓ + green
+   settle on the one hottest button. No transforms, no glows.
+   ===================================================================== */
+/* Chip + button press: instant tactile darkening. */
+.pick:active { background: #CBD2DC; }
+.pick.active:active { background: var(--accent-hover); }
+.btn:active { background: var(--bg-tertiary); }
+.btn.btn-accent:active, .btn.btn-highlight:active { background: var(--accent-hover); }
+
+/* Save & Next acknowledgment — "SAVED ✓" settles green for ~0.6s, then the
+   button returns to its blue call-to-action. The ✓ is state (kept under
+   prefers-reduced-motion); only the color ease is motion. */
+#btnTagSaveNext { transition: background 160ms cubic-bezier(.4,0,.2,1), border-color 160ms cubic-bezier(.4,0,.2,1); }
+#btnTagSaveNext.just-saved { background: var(--success); border-color: var(--success); color: #fff; }
+#btnTagSaveNext.just-saved::after { content: " ✓"; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  #btnTagSaveNext { transition: none; }
+}
+
+/* Play-table row focus eases in rather than snapping (background only). */
+.pg-row td { transition: background 100ms ease; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8606,7 +8751,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
           <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
           <select id="playSelect" class="play-select" title="Current play">
-            <option value="">-- No plays tagged --</option>
+            <option value="">No plays yet</option>
           </select>
         </div>
       </div>
@@ -9640,7 +9785,8 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <!-- Team setup (first run, or "+ Add Team") — inside the seasons view
                so the schedule level hides it (upgrade path: seasons, no team) -->
           <div class="team-setup hidden" id="teamSetup">
-            <p class="library-intro">Welcome to GridIron IQ. Set up your team to get started.</p>
+            <h2 class="setup-headline">Set up your team</h2>
+            <p class="library-intro">Name your squad — film, rosters and seasons all hang off it.</p>
             <div class="team-setup-fields">
               <input type="text" id="teamSetupName" placeholder="Team name (e.g. Eagles)" maxlength="40" autocomplete="off">
               <select id="teamSetupColor">
@@ -9662,10 +9808,8 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
               <button class="btn hidden" id="btnTeamSetupCancel">Cancel</button>
             </div>
             <p class="team-setup-import">
-              Already use GridIron IQ on the desktop app or another computer?
-              Copies of the app <b>don't sync automatically</b> — save a season
-              there (Save Season &rarr; <code>_season.json</code>), then
-              <button class="btn-link" id="btnSetupOpenFile">open that season file here</button>.
+              Moving from another computer? Copies don't sync automatically —
+              <button class="btn-link" id="btnSetupOpenFile">open a saved season file</button> instead.
             </p>
           </div>
           <!-- Team card (visible when team is set up) -->
@@ -9743,6 +9887,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <div class="schedule-bar">
             <button class="btn btn-sm" id="btnScheduleBack">← All Seasons</button>
             <div class="schedule-title" id="scheduleTitle">Season</div>
+            <span class="season-record" id="seasonRecord" title="Season record from final scores"></span>
             <button class="btn btn-sm btn-accent" id="btnScheduleNewGame">+ New Game</button>
           </div>
           <div class="schedule-table-wrap">
@@ -11044,21 +11189,38 @@ class ChipField {
     this._values = [];               // selected values when multi
     this._listeners = {};
     this.chips = [...el.querySelectorAll('[data-value]')];
-    this.chips.forEach(chip => {
-      chip.addEventListener('click', (e) => {
-        e.preventDefault();
-        const v = chip.dataset.value;
-        if (this.multi) {
-          const i = this._values.indexOf(v);
-          if (i >= 0) this._values.splice(i, 1);
-          else { this._dropRivals(v); this._values.push(v); }
-          this._syncMulti();
-        } else {
-          this.value = this._value === v ? '' : v;
-        }
-        this._fire('change');
-      });
+    this.chips.forEach(chip => this._bindChip(chip));
+  }
+  /** Wire a chip's toggle behavior (shared by the constructor + runtime chips). */
+  _bindChip(chip) {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      const v = chip.dataset.value;
+      if (this.multi) {
+        const i = this._values.indexOf(v);
+        if (i >= 0) this._values.splice(i, 1);
+        else { this._dropRivals(v); this._values.push(v); }
+        this._syncMulti();
+      } else {
+        this.value = this._value === v ? '' : v;
+      }
+      this._fire('change');
     });
+  }
+  /** Bind + track an externally-created chip button (custom user chips), so it
+   *  behaves exactly like a built-in chip. Re-syncs active state for the case a
+   *  play carrying this value is already loaded. */
+  registerChip(btn) {
+    if (!btn || this.chips.includes(btn)) return;
+    this._bindChip(btn);
+    this.chips.push(btn);
+    if (this.multi) this._syncMulti();
+    else if (this._value === btn.dataset.value) btn.classList.add('active');
+  }
+  /** Stop tracking a chip (removed custom chip). Does not touch stored values. */
+  unregisterChip(btn) {
+    const i = this.chips.indexOf(btn);
+    if (i >= 0) this.chips.splice(i, 1);
   }
   /** Remove values that are mutually exclusive with v (multi mode). */
   _dropRivals(v) {
@@ -12420,7 +12582,9 @@ class PlayTagger {
 
   _updatePlaySelect() {
     const currentVal = this.currentPlayId;
-    this.playSelect.innerHTML = '<option value="">-- No plays tagged --</option>';
+    // "No plays yet" — this placeholder shows when the game has NO plays; it
+    // used to say "No plays tagged", which misread as a tagging-status claim.
+    this.playSelect.innerHTML = '<option value="">No plays yet</option>';
     this.plays.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
@@ -26817,6 +26981,8 @@ class SeasonLibrary {
     let roster = [];
     try { roster = JSON.parse(localStorage.getItem(this._teamRosterKey(id)) || '[]') || []; } catch (e) {}
     if (window.app?.roster) window.app.roster.loadFrom(roster);   // persists to ffa_roster
+    // Custom Formation/Backfield chips are per-team too — swap them to the new team's.
+    if (window.app?.customChips) window.app.customChips.reload();
 
     this._syncGameInfoFromTeam({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
     this._setLevel('seasons');   // also refreshes the header subtitle to the new team
@@ -27203,6 +27369,22 @@ class SeasonLibrary {
     if (title) title.textContent = store.data.seasonName || 'Season';
     const games = store.gamesChrono();
     const activeId = store.data.activeGameId;
+    // Season record (W–L, ties appended) from games that have a final score —
+    // display-only, the lobby's scoreboard line next to the season name.
+    const rec = document.getElementById('seasonRecord');
+    if (rec) {
+      let w = 0, l = 0, t = 0;
+      for (let i = 0; i < games.length; i++) {
+        const info = app._gameRowInfo(games[i], i, store, activeId);
+        if (!info.hasScore) continue;
+        const u = parseInt(info.u, 10), th = parseInt(info.t, 10);
+        if (!Number.isFinite(u) || !Number.isFinite(th)) continue;
+        if (u > th) w++; else if (u < th) l++; else t++;
+      }
+      const any = (w + l + t) > 0;
+      rec.textContent = any ? `${w}–${l}${t ? '–' + t : ''}` : '';
+      rec.style.display = any ? '' : 'none';
+    }
     if (!games.length) {
       body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click "+ New Game" to start tagging film.</td></tr>';
       return;
@@ -28550,6 +28732,137 @@ class CustomFieldsManager {
   _attr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
 }
 
+// ===== custom-chips.js =====
+/**
+ * CustomChips — lets a coach add their own Formation & Backfield chips.
+ *
+ * Scoped to the ACTIVE TEAM (localStorage `ffa_custom_chips_<teamId>`), the way
+ * the roster is — a team's formation vocabulary is part of its identity, and a
+ * JV vs Varsity staff keep their own. Custom chips are injected as first-class
+ * `.pick` buttons and registered with the group's ChipField, so:
+ *   - keyboard tagging + click behave exactly like built-in chips,
+ *   - the Film Room grid editor picks them up (it reads options live from the
+ *     DOM: `#tagFormation .pick`), and
+ *   - every analytic works unchanged (formation splits on " + ", backfield is a
+ *     plain string) — a custom value is just another value.
+ *
+ * Removing a custom chip only drops the affordance; plays already tagged with
+ * that value keep it (same as any tag value the coach later stops using).
+ */
+class CustomChips {
+  static GROUPS = [
+    { key: 'formation', groupId: 'tagFormation', field: 'formation', label: 'formation' },
+    { key: 'backfield', groupId: 'tagBackfield', field: 'backfield', label: 'backfield' },
+  ];
+
+  constructor(tagger) {
+    this.tagger = tagger;
+    this.groups = [];
+    for (const g of CustomChips.GROUPS) this._initGroup({ ...g });
+  }
+
+  // ---- storage (per active team) ----
+  _teamId() {
+    try { return localStorage.getItem('ffa_active_team_id') || 'default'; } catch (e) { return 'default'; }
+  }
+  _key() { return 'ffa_custom_chips_' + this._teamId(); }
+  _load() {
+    try { return JSON.parse(localStorage.getItem(this._key()) || '{}') || {}; } catch (e) { return {}; }
+  }
+  _save(data) { try { localStorage.setItem(this._key(), JSON.stringify(data)); } catch (e) {} }
+
+  // ---- setup ----
+  _initGroup(g) {
+    g.groupEl = document.getElementById(g.groupId);
+    g.fieldObj = this.tagger.tagFields && this.tagger.tagFields[g.field];
+    if (!g.groupEl || !g.fieldObj || !g.fieldObj.registerChip) return;
+    // "+ Add" affordance. Not a [data-value] chip, so ChipField ignores it.
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'pick pick-add';
+    add.title = `Add a custom ${g.label} chip`;
+    add.setAttribute('aria-label', `Add a custom ${g.label} chip`);
+    add.textContent = '+';
+    add.addEventListener('click', (e) => { e.preventDefault(); this._promptAdd(g); });
+    g.groupEl.appendChild(add);
+    g.addBtn = add;
+    g.customBtns = [];
+    this.groups.push(g);
+    this._injectSaved(g);
+  }
+
+  _injectSaved(g) {
+    for (const v of (this._load()[g.key] || [])) this._injectChip(g, v);
+  }
+
+  /** True if a chip with this value already exists in the group (built-in or custom). */
+  _exists(g, v) {
+    return [...g.groupEl.querySelectorAll('.pick[data-value]')].some(c => c.dataset.value === v);
+  }
+
+  _injectChip(g, value) {
+    const v = String(value || '').trim();
+    if (!v || this._exists(g, v)) return null;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pick pick-custom';
+    btn.dataset.value = v;
+    btn.dataset.custom = '1';
+    btn.appendChild(document.createTextNode(v));   // safe text (no innerHTML)
+    // × remove — only on custom chips. stopPropagation so it doesn't toggle.
+    const x = document.createElement('span');
+    x.className = 'pick-x';
+    x.textContent = '×';
+    x.title = 'Remove this custom chip';
+    x.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this._remove(g, v, btn); });
+    btn.appendChild(x);
+    g.groupEl.insertBefore(btn, g.addBtn);      // keep the +Add button last
+    g.fieldObj.registerChip(btn);
+    g.customBtns.push(btn);
+    return btn;
+  }
+
+  async _promptAdd(g) {
+    let name = '';
+    try {
+      name = ((await this.tagger._promptDialog(`Add a custom ${g.label} chip`, 'Add', `e.g. ${g.key === 'formation' ? 'Trey' : 'Ace'}`)) || '').trim();
+    } catch (e) { return; }
+    if (!name) return;
+    if (this._exists(g, name)) { this.tagger.toast && this.tagger.toast(`"${name}" already exists`); return; }
+    this._injectChip(g, name);
+    const data = this._load();
+    data[g.key] = [...(data[g.key] || []), name];
+    this._save(data);
+    this._clearGridCache();
+    this.tagger.toast && this.tagger.toast(`Added ${g.label}: ${name}`);
+  }
+
+  _remove(g, value, btn) {
+    const data = this._load();
+    data[g.key] = (data[g.key] || []).filter(x => x !== value);
+    this._save(data);
+    g.fieldObj.unregisterChip(btn);
+    btn.remove();
+    g.customBtns = g.customBtns.filter(b => b !== btn);
+    this._clearGridCache();
+  }
+
+  /** Re-render all custom chips for the CURRENT active team — call after a team
+   *  switch so the tag form shows that team's vocabulary, not the last one's. */
+  reload() {
+    for (const g of this.groups) {
+      for (const b of g.customBtns) { g.fieldObj.unregisterChip(b); b.remove(); }
+      g.customBtns = [];
+      this._injectSaved(g);
+    }
+    this._clearGridCache();
+  }
+
+  _clearGridCache() {
+    try { if (window.app && window.app.playGrid) window.app.playGrid._optionCache = {}; } catch (e) {}
+  }
+}
+
 // ===== play-diagram.js =====
 /**
  * PlayDiagram — schematic X's & O's drawing per play.
@@ -28969,7 +29282,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.31';
+const APP_VERSION = '1.9.32';
 
 class App {
   constructor() {
@@ -28980,6 +29293,7 @@ class App {
     this.roster = new RosterManager(this.tagger);
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
+    this.customChips = new CustomChips(this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
@@ -30881,6 +31195,17 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
+  /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest
+   *  action in the app. Pure class toggle; CSS renders it (and the ✓ shows
+   *  even under prefers-reduced-motion — it's state, not motion). */
+  _flashSaved() {
+    const btn = document.getElementById('btnTagSaveNext');
+    if (!btn) return;
+    btn.classList.add('just-saved');
+    clearTimeout(this._savedFlashTimer);
+    this._savedFlashTimer = setTimeout(() => btn.classList.remove('just-saved'), 650);
+  }
+
   _advancePlay(opts = {}) {
     // Commit a value still being edited (yardage/notes) before advancing,
     // then blur so the next keystrokes hit the shortcuts, not the input.
@@ -30896,6 +31221,7 @@ class App {
       ? this.tagger.nextPlay()
       : this.tagger.nextPlayWithSituation();
     if (advanced) {
+      if (!opts.skip) this._flashSaved();
       this._autoPlayCurrent();
       return;
     }
