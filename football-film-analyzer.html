@@ -7961,6 +7961,28 @@ body { font-size: 13px; }
 .schedule-table .sch-row td { height: 46px; }
 .sch-name { font-family: var(--display); font-size: 16.5px; font-weight: 600;
   text-transform: uppercase; letter-spacing: .02em; }
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P3 — rail rhythm, dead weight, quiet guidance.
+   ===================================================================== */
+/* The guidance banner directs, it doesn't alarm: neutral well + a blue
+   directional edge instead of the amber warning treatment. */
+.tag-form-hint {
+  background: var(--bg-tertiary);
+  border: none; border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text-dim); font-size: 12.5px;
+  padding: 10px 12px;
+}
+
+/* The empty play-diagram field was ~150px of dead green even when the play
+   had no diagram. Collapse the canvas until it has content (the section
+   toggles .has-diagram in PlayDiagram.renderPreview); ✎ Draw stays. */
+#playDiagramSection:not(.has-diagram) .pd-preview { display: none; }
+
+/* Rail rhythm: a touch more air between tag groups so sections read as
+   sections while scanning fast. */
+.tag-section .chip-section { margin-bottom: 12px; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8705,7 +8727,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
           <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
           <select id="playSelect" class="play-select" title="Current play">
-            <option value="">-- No plays tagged --</option>
+            <option value="">No plays yet</option>
           </select>
         </div>
       </div>
@@ -12536,7 +12558,9 @@ class PlayTagger {
 
   _updatePlaySelect() {
     const currentVal = this.currentPlayId;
-    this.playSelect.innerHTML = '<option value="">-- No plays tagged --</option>';
+    // "No plays yet" — this placeholder shows when the game has NO plays; it
+    // used to say "No plays tagged", which misread as a tagging-status claim.
+    this.playSelect.innerHTML = '<option value="">No plays yet</option>';
     this.plays.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;

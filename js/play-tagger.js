@@ -1414,7 +1414,9 @@ export class PlayTagger {
 
   _updatePlaySelect() {
     const currentVal = this.currentPlayId;
-    this.playSelect.innerHTML = '<option value="">-- No plays tagged --</option>';
+    // "No plays yet" — this placeholder shows when the game has NO plays; it
+    // used to say "No plays tagged", which misread as a tagging-status claim.
+    this.playSelect.innerHTML = '<option value="">No plays yet</option>';
     this.plays.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
