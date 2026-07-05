@@ -604,6 +604,22 @@ export class SeasonLibrary {
     if (title) title.textContent = store.data.seasonName || 'Season';
     const games = store.gamesChrono();
     const activeId = store.data.activeGameId;
+    // Season record (W–L, ties appended) from games that have a final score —
+    // display-only, the lobby's scoreboard line next to the season name.
+    const rec = document.getElementById('seasonRecord');
+    if (rec) {
+      let w = 0, l = 0, t = 0;
+      for (let i = 0; i < games.length; i++) {
+        const info = app._gameRowInfo(games[i], i, store, activeId);
+        if (!info.hasScore) continue;
+        const u = parseInt(info.u, 10), th = parseInt(info.t, 10);
+        if (!Number.isFinite(u) || !Number.isFinite(th)) continue;
+        if (u > th) w++; else if (u < th) l++; else t++;
+      }
+      const any = (w + l + t) > 0;
+      rec.textContent = any ? `${w}–${l}${t ? '–' + t : ''}` : '';
+      rec.style.display = any ? '' : 'none';
+    }
     if (!games.length) {
       body.innerHTML = '<tr><td colspan="7" class="sch-empty">No games yet. Click "+ New Game" to start tagging film.</td></tr>';
       return;

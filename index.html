@@ -1272,7 +1272,8 @@
           <!-- Team setup (first run, or "+ Add Team") — inside the seasons view
                so the schedule level hides it (upgrade path: seasons, no team) -->
           <div class="team-setup hidden" id="teamSetup">
-            <p class="library-intro">Welcome to GridIron IQ. Set up your team to get started.</p>
+            <h2 class="setup-headline">Set up your team</h2>
+            <p class="library-intro">Name your squad — film, rosters and seasons all hang off it.</p>
             <div class="team-setup-fields">
               <input type="text" id="teamSetupName" placeholder="Team name (e.g. Eagles)" maxlength="40" autocomplete="off">
               <select id="teamSetupColor">
@@ -1294,10 +1295,8 @@
               <button class="btn hidden" id="btnTeamSetupCancel">Cancel</button>
             </div>
             <p class="team-setup-import">
-              Already use GridIron IQ on the desktop app or another computer?
-              Copies of the app <b>don't sync automatically</b> — save a season
-              there (Save Season &rarr; <code>_season.json</code>), then
-              <button class="btn-link" id="btnSetupOpenFile">open that season file here</button>.
+              Moving from another computer? Copies don't sync automatically —
+              <button class="btn-link" id="btnSetupOpenFile">open a saved season file</button> instead.
             </p>
           </div>
           <!-- Team card (visible when team is set up) -->
@@ -1375,6 +1374,7 @@
           <div class="schedule-bar">
             <button class="btn btn-sm" id="btnScheduleBack">← All Seasons</button>
             <div class="schedule-title" id="scheduleTitle">Season</div>
+            <span class="season-record" id="seasonRecord" title="Season record from final scores"></span>
             <button class="btn btn-sm btn-accent" id="btnScheduleNewGame">+ New Game</button>
           </div>
           <div class="schedule-table-wrap">
