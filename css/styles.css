@@ -7970,3 +7970,27 @@ body { font-size: 13px; }
 /* Rail rhythm: a touch more air between tag groups so sections read as
    sections while scanning fast. */
 .tag-section .chip-section { margin-bottom: 12px; }
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P4 — micro-feedback. State changes, not motion: press
+   states are instant color, the save acknowledgment is a brief ✓ + green
+   settle on the one hottest button. No transforms, no glows.
+   ===================================================================== */
+/* Chip + button press: instant tactile darkening. */
+.pick:active { background: #CBD2DC; }
+.pick.active:active { background: var(--accent-hover); }
+.btn:active { background: var(--bg-tertiary); }
+.btn.btn-accent:active, .btn.btn-highlight:active { background: var(--accent-hover); }
+
+/* Save & Next acknowledgment — "SAVED ✓" settles green for ~0.6s, then the
+   button returns to its blue call-to-action. The ✓ is state (kept under
+   prefers-reduced-motion); only the color ease is motion. */
+#btnTagSaveNext { transition: background 160ms cubic-bezier(.4,0,.2,1), border-color 160ms cubic-bezier(.4,0,.2,1); }
+#btnTagSaveNext.just-saved { background: var(--success); border-color: var(--success); color: #fff; }
+#btnTagSaveNext.just-saved::after { content: " ✓"; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  #btnTagSaveNext { transition: none; }
+}
+
+/* Play-table row focus eases in rather than snapping (background only). */
+.pg-row td { transition: background 100ms ease; }

@@ -1953,6 +1953,17 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
+  /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest
+   *  action in the app. Pure class toggle; CSS renders it (and the ✓ shows
+   *  even under prefers-reduced-motion — it's state, not motion). */
+  _flashSaved() {
+    const btn = document.getElementById('btnTagSaveNext');
+    if (!btn) return;
+    btn.classList.add('just-saved');
+    clearTimeout(this._savedFlashTimer);
+    this._savedFlashTimer = setTimeout(() => btn.classList.remove('just-saved'), 650);
+  }
+
   _advancePlay(opts = {}) {
     // Commit a value still being edited (yardage/notes) before advancing,
     // then blur so the next keystrokes hit the shortcuts, not the input.
@@ -1968,6 +1979,7 @@ class App {
       ? this.tagger.nextPlay()
       : this.tagger.nextPlayWithSituation();
     if (advanced) {
+      if (!opts.skip) this._flashSaved();
       this._autoPlayCurrent();
       return;
     }

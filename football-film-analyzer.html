@@ -7983,6 +7983,30 @@ body { font-size: 13px; }
 /* Rail rhythm: a touch more air between tag groups so sections read as
    sections while scanning fast. */
 .tag-section .chip-section { margin-bottom: 12px; }
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P4 — micro-feedback. State changes, not motion: press
+   states are instant color, the save acknowledgment is a brief ✓ + green
+   settle on the one hottest button. No transforms, no glows.
+   ===================================================================== */
+/* Chip + button press: instant tactile darkening. */
+.pick:active { background: #CBD2DC; }
+.pick.active:active { background: var(--accent-hover); }
+.btn:active { background: var(--bg-tertiary); }
+.btn.btn-accent:active, .btn.btn-highlight:active { background: var(--accent-hover); }
+
+/* Save & Next acknowledgment — "SAVED ✓" settles green for ~0.6s, then the
+   button returns to its blue call-to-action. The ✓ is state (kept under
+   prefers-reduced-motion); only the color ease is motion. */
+#btnTagSaveNext { transition: background 160ms cubic-bezier(.4,0,.2,1), border-color 160ms cubic-bezier(.4,0,.2,1); }
+#btnTagSaveNext.just-saved { background: var(--success); border-color: var(--success); color: #fff; }
+#btnTagSaveNext.just-saved::after { content: " ✓"; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  #btnTagSaveNext { transition: none; }
+}
+
+/* Play-table row focus eases in rather than snapping (background only). */
+.pg-row td { transition: background 100ms ease; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -31171,6 +31195,17 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
+  /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest
+   *  action in the app. Pure class toggle; CSS renders it (and the ✓ shows
+   *  even under prefers-reduced-motion — it's state, not motion). */
+  _flashSaved() {
+    const btn = document.getElementById('btnTagSaveNext');
+    if (!btn) return;
+    btn.classList.add('just-saved');
+    clearTimeout(this._savedFlashTimer);
+    this._savedFlashTimer = setTimeout(() => btn.classList.remove('just-saved'), 650);
+  }
+
   _advancePlay(opts = {}) {
     // Commit a value still being edited (yardage/notes) before advancing,
     // then blur so the next keystrokes hit the shortcuts, not the input.
@@ -31186,6 +31221,7 @@ class App {
       ? this.tagger.nextPlay()
       : this.tagger.nextPlayWithSituation();
     if (advanced) {
+      if (!opts.skip) this._flashSaved();
       this._autoPlayCurrent();
       return;
     }
