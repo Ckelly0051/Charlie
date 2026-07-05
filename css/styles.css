@@ -7847,3 +7847,42 @@ body { font-size: 13px; }
 .pick-custom .pick-x { margin-left: 5px; opacity: .5; font-weight: 700; line-height: 1; cursor: pointer; }
 .pick-custom .pick-x:hover { opacity: 1; color: var(--danger); }
 .pick-custom.active .pick-x { color: rgba(255,255,255,.8); opacity: .85; }   /* on the solid-blue selected chip */
+
+/* =====================================================================
+   DESIGN DEEP-DIVE P1 — one broadcast type voice, one wordmark.
+   The condensed display face (Barlow Condensed, already embedded offline
+   for the dark stats dashboard) extends to the LIGHT chrome's display
+   roles — the scorebug voice the app already speaks when it shows stats.
+   Body text, chips and controls stay system: the face is for names,
+   labels-of-record and numerals, never for reading.
+   ===================================================================== */
+:root { --display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif; }
+
+/* Wordmark — ONE mark. Condensed caps, IQ in blue (the hub's gold IQ dies). */
+.app-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; }
+.library-brand { font-family: var(--display); text-transform: uppercase; letter-spacing: .07em; }
+.library-brand b { color: #3b82f6; }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
+.brand-bug { font-family: var(--display); text-transform: uppercase; letter-spacing: .08em; }
+.brand-bug b { color: #3b82f6; }
+
+/* Game header — the matchup reads like a broadcast lower third. */
+.game-header-bar .ghb-name {
+  font-family: var(--display); font-size: 19px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .015em;
+}
+
+/* Signature D&D badge speaks the same voice. */
+.dd-badge { font-family: var(--display); font-size: 12.5px; letter-spacing: .06em; }
+
+/* Panel titles, drawer header, Film Room title. */
+.panel-title, .settings-drawer-head h2 {
+  font-family: var(--display); text-transform: uppercase; letter-spacing: .05em;
+}
+.pg-title { font-family: var(--display); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Unit toggle — the O / D / ST call is a scorebug moment. */
+.unit-toggle .pick { font-family: var(--display); font-size: 14.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.unit-toggle .pick.active { font-weight: 700; }
+
+/* Light-UI stat numerals match the dashboard's. */
+.stat-card-value, .ov-val { font-family: var(--display); font-weight: 700; }
