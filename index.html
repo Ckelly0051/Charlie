@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4169e1">
+  <meta name="theme-color" content="#1D4ED8">
   <meta name="description" content="Football film analysis for coaches — tag plays, track stats, scout opponents.">
   <title>GridIron IQ</title>
   <style>
@@ -654,7 +654,7 @@ body {
   border-color: var(--highlight);
   color: var(--text-bright);
   font-weight: 600;
-  box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+  box-shadow: none;
 }
 .pick kbd {
   font-size: 8px;
@@ -3458,7 +3458,6 @@ select:focus-visible {
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
   --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
-  --shadow-glow: 0 0 0 3px rgba(244,63,94,0.2);
   --radius: 10px;
   --radius-sm: 6px;
   --radius-lg: 16px;
@@ -4475,12 +4474,12 @@ body.qc-active .tw-reopen { display: none; }
   --bg-tertiary:   #e4e8ef;   /* chips, inputs */
   --bg-surface:    #d8dde6;   /* hover */
   --bg-elevated:   #eef1f5;
-  --accent:        #4169e1;   /* royal blue */
+  --accent:        #1D4ED8;   /* royal blue */
   --accent-hover:  #2f4fc4;   /* deeper royal */
-  --accent-soft:   rgba(65,105,225,0.12);
-  --highlight:     #4169e1;
+  --accent-soft:   rgba(16,24,40,0.12);
+  --highlight:     #1D4ED8;
   --highlight-hover: #2f4fc4;
-  --highlight-soft: rgba(65,105,225,0.12);
+  --highlight-soft: rgba(16,24,40,0.12);
   --success:       #16a34a;
   --warning:       #d97706;
   --danger:        #dc2626;
@@ -4492,7 +4491,6 @@ body.qc-active .tw-reopen { display: none; }
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
   --shadow-md: 0 6px 18px rgba(15,23,42,0.10);
   --shadow-lg: 0 16px 40px rgba(15,23,42,0.18);
-  --shadow-glow: 0 0 0 3px rgba(65,105,225,0.18);
 }
 
 body { background: var(--bg-primary); color: var(--text); }
@@ -4517,7 +4515,7 @@ body { background: var(--bg-primary); color: var(--text); }
   box-shadow: 0 1px 3px rgba(15,23,42,0.06);
 }
 .app-title {
-  background: linear-gradient(90deg, #4169e1 0%, #2f4fc4 100%);
+  background: linear-gradient(90deg, #1D4ED8 0%, #2f4fc4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4561,21 +4559,21 @@ body { background: var(--bg-primary); color: var(--text); }
   background: var(--accent);
   border-color: var(--accent-hover);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(65,105,225,0.30);
+  box-shadow: 0 2px 6px rgba(16,24,40,0.30);
 }
 .btn:hover .icon { color: #fff; }
 .btn-accent {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
   color: #fff;
 }
-.btn-accent:hover { background: linear-gradient(180deg, #4169e1 0%, #2f4fc4 100%); color: #fff; }
+.btn-accent:hover { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); color: #fff; }
 .btn-highlight {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
   color: #fff;
 }
-.btn-highlight:hover { background: linear-gradient(180deg, #4169e1 0%, #2f4fc4 100%); }
+.btn-highlight:hover { background: linear-gradient(180deg, #1D4ED8 0%, #2f4fc4 100%); }
 .btn-danger { border-color: var(--danger); color: var(--danger); background: var(--bg-tertiary); }
 .btn-danger:hover { background: var(--danger); color: #fff; }
 .btn-detect { background: #dcfce7; border-color: #86efac; color: #15803d; }
@@ -4610,11 +4608,11 @@ input:focus, select:focus, textarea:focus {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(65,105,225,0.30);
+  box-shadow: 0 2px 8px rgba(16,24,40,0.30);
 }
 .pick kbd { color: var(--text-dim); border-color: var(--border-bright); }
 .pick.active kbd { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.4); }
-.tag-progress-fill { background: linear-gradient(90deg, #5278f0, #4169e1); }
+.tag-progress-fill { background: linear-gradient(90deg, #5278f0, #1D4ED8); }
 .tag-progress-bar { background: var(--bg-surface); }
 .tag-chip { background: var(--accent); color: #fff; }
 .chip-details { border-top-color: var(--border); }
@@ -4628,12 +4626,12 @@ input:focus, select:focus, textarea:focus {
 .ctrl-btn:hover { background: var(--accent); border-color: var(--accent-hover); color: #fff; }
 .scrub-bar { background: var(--bg-surface); }
 .scrub-bar-fill { background: var(--accent); }
-.scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(65,105,225,0.20); }
+.scrub-bar-handle { background: var(--accent); box-shadow: 0 0 0 3px rgba(16,24,40,0.20); }
 .scrub-bar-plays .play-marker { background: var(--accent); opacity: 0.45; }
 .speed-select, .fps-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
 /* --- Timeline play blocks --- */
-.timeline-play.run   { background: #4169e1; }
+.timeline-play.run   { background: #1D4ED8; }
 .timeline-play.pass  { background: #0ea5e9; }
 /* Tagged but not run/pass (special teams, penalty, defense w/o run-pass): a
    distinct solid hue so these read as TAGGED, never gray/empty. */
@@ -4657,29 +4655,29 @@ input:focus, select:focus, textarea:focus {
 
 /* --- Wizard: light card, blue accents --- */
 .wiz-step.active {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(65,105,225,0.30);
+  box-shadow: 0 4px 14px rgba(16,24,40,0.30);
 }
 .wiz-card-inner { background: var(--bg-secondary); border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg); }
 .wiz-card-step { color: var(--accent); }
 .wiz-card-title { color: var(--text); }
 .wiz-primary {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(65,105,225,0.30);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.30);
 }
-.wiz-primary:hover { box-shadow: 0 10px 24px rgba(65,105,225,0.40); }
+.wiz-primary:hover { box-shadow: 0 10px 24px rgba(16,24,40,0.40); }
 .empty-cta {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
-  box-shadow: 0 14px 40px rgba(65,105,225,0.35), 0 4px 12px rgba(15,23,42,0.12);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
+  box-shadow: 0 14px 40px rgba(16,24,40,0.35), 0 4px 12px rgba(15,23,42,0.12);
 }
 .empty-cta-folder {
   background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
   box-shadow: 0 14px 40px rgba(56,189,248,0.3), 0 4px 12px rgba(15,23,42,0.12);
 }
-.empty-cta:hover { box-shadow: 0 16px 44px rgba(65,105,225,0.45); }
+.empty-cta:hover { box-shadow: 0 16px 44px rgba(16,24,40,0.45); }
 .empty-cta-folder:hover { box-shadow: 0 16px 44px rgba(56,189,248,0.4); }
 
 /* --- Full-screen DATA OVERLAYS stay dark (analytics-modal look). 
@@ -4710,7 +4708,7 @@ input:focus, select:focus, textarea:focus {
 .quick-chart-panel { background: #0b1020; border-top: 2px solid var(--accent); }
 
 /* --- Final light-theme contrast polish --- */
-.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(65,105,225,0.30); }
+.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16,24,40,0.30); }
 /* On-video text annotation input: light field, dark text */
 .text-input-overlay input { background: var(--bg-secondary); color: var(--text); border-color: var(--accent); }
 /* Generic input focus ring recolor (was rose) */
@@ -4802,12 +4800,12 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 
 /* Clickable player stat rows in the dashboard */
 .player-row { cursor: pointer; transition: background var(--transition); }
-.player-row:hover { background: rgba(65,105,225,0.12); }
+.player-row:hover { background: rgba(16,24,40,0.12); }
 
 /* Click-to-film: any stat row that maps to a set of plays. A small ▶ hint
    appears on hover so it's discoverable as a "watch these plays" control. */
 .cut-row { cursor: pointer; transition: background var(--transition); }
-.cut-row:hover { background: rgba(65,105,225,0.12); }
+.cut-row:hover { background: rgba(16,24,40,0.12); }
 .cut-row td:first-child::before,
 .chart-eff-row.cut-row .chart-eff-label::before {
   content: '▶';
@@ -4828,8 +4826,8 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .stats-cut-hint {
   font-size: 12px;
   color: var(--text-dim);
-  background: rgba(65,105,225,0.08);
-  border: 1px solid rgba(65,105,225,0.2);
+  background: rgba(16,24,40,0.08);
+  border: 1px solid rgba(16,24,40,0.2);
   border-radius: var(--radius-sm);
   padding: 7px 12px;
   margin-bottom: 14px;
@@ -4862,13 +4860,13 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .cutup-dot {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 0 rgba(65,105,225,0.6);
+  box-shadow: 0 0 0 0 rgba(16,24,40,0.6);
   animation: cutupPulse 1.4s infinite;
 }
 @keyframes cutupPulse {
-  0% { box-shadow: 0 0 0 0 rgba(65,105,225,0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(65,105,225,0); }
-  100% { box-shadow: 0 0 0 0 rgba(65,105,225,0); }
+  0% { box-shadow: 0 0 0 0 rgba(16,24,40,0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(16,24,40,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,24,40,0); }
 }
 .cutup-label { letter-spacing: 0.2px; }
 .cutup-count { color: #cbd5e1; font-variant-numeric: tabular-nums; font-weight: 700; }
@@ -5025,7 +5023,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
   background: var(--bg, #fff); border: 1px solid var(--chip-border, var(--border));
   border-radius: var(--radius-sm, 6px);
 }
-.ffa-confirm-input:focus { outline: 2px solid var(--accent, #4169e1); outline-offset: -1px; }
+.ffa-confirm-input:focus { outline: 2px solid var(--accent, #1D4ED8); outline-offset: -1px; }
 .ffa-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .ffa-confirm-actions .btn { min-width: 88px; justify-content: center; }
 
@@ -5388,7 +5386,6 @@ body {
   --shadow-sm: 0 1px 3px rgba(15,23,42,0.10), 0 1px 2px rgba(15,23,42,0.05);
   --shadow-md: 0 8px 24px rgba(15,23,42,0.12);
   --shadow-lg: 0 22px 50px rgba(15,23,42,0.20);
-  --shadow-blue: 0 2px 10px rgba(65,105,225,0.40);
   --transition: 140ms cubic-bezier(.4,0,.2,1);
 }
 
@@ -5427,16 +5424,16 @@ body { background: var(--canvas); }
 }
 .pick:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
 .pick.active {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
   color: #fff;
   font-weight: 600;
-  box-shadow: var(--shadow-blue);
+  box-shadow: none;
 }
 .pick.active:hover {
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(65,105,225,0.50);
+  box-shadow: 0 4px 16px rgba(16,24,40,0.50);
 }
 .pick kbd {
   color: var(--text-dim);
@@ -5508,7 +5505,7 @@ body { background: var(--canvas); }
 .pd-editor { max-width: 700px; width: 96%; text-align: left; }
 .pd-title { margin: 0 0 8px; font-size: 16px; }
 .pd-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.pd-tool.active { background: var(--accent, #4169e1); border-color: var(--accent, #4169e1); color: #fff; }
+.pd-tool.active { background: var(--accent, #1D4ED8); border-color: var(--accent, #1D4ED8); color: #fff; }
 .pd-canvas {
   width: 100%;
   height: auto;
@@ -5567,18 +5564,18 @@ body { background: var(--canvas); }
 }
 #btnLoop.active,
 .ctrl-btn.ab-btn.set {
-  background: var(--accent, #4169e1);
-  border-color: var(--accent, #4169e1);
+  background: var(--accent, #1D4ED8);
+  border-color: var(--accent, #1D4ED8);
   color: #fff;
 }
-#btnLoop.active { box-shadow: 0 0 0 2px rgba(65,105,225,0.25); }
+#btnLoop.active { box-shadow: 0 0 0 2px rgba(16,24,40,0.25); }
 .chip-hint {
   font-weight: 600;
   font-size: 9.5px;
   letter-spacing: 0.3px;
   text-transform: none;
-  color: var(--accent, #4169e1);
-  background: rgba(65,105,225,0.10);
+  color: var(--accent, #1D4ED8);
+  background: rgba(16,24,40,0.10);
   padding: 1px 6px;
   border-radius: 999px;
   margin-left: 6px;
@@ -5609,9 +5606,9 @@ body { background: var(--canvas); }
   box-shadow: none;
 }
 .unit-toggle .pick.active {
-  background: linear-gradient(180deg, #5278f0 0%, #4169e1 100%);
+  background: linear-gradient(180deg, #5278f0 0%, #1D4ED8 100%);
   border-color: var(--accent-hover);
-  box-shadow: var(--shadow-blue);
+  box-shadow: none;
   transform: none;
 }
 
@@ -5626,8 +5623,8 @@ body { background: var(--canvas); }
 }
 .btn:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: #fff; }
 .btn:active { transform: translateY(0); }
-.btn-accent, .btn-highlight { box-shadow: var(--shadow-blue); }
-.btn-accent:hover, .btn-highlight:hover { box-shadow: 0 4px 16px rgba(65,105,225,0.45); }
+.btn-accent, .btn-highlight { box-shadow: none; }
+.btn-accent:hover, .btn-highlight:hover { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
 .ctrl-btn { border-radius: var(--radius-sm); transition: all var(--transition); }
 .ctrl-btn:hover { transform: translateY(-1px); }
 
@@ -6858,18 +6855,18 @@ body {
 .gi-update-card { background: #fff; color: #0f172a; border: 1px solid #cbd5e1;
   border-radius: 12px; box-shadow: 0 16px 40px rgba(15,23,42,0.22); padding: 14px 16px; }
 .gi-update-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.gi-update-dot { width: 8px; height: 8px; border-radius: 50%; background: #4169e1;
-  box-shadow: 0 0 0 3px rgba(65,105,225,0.18); }
+.gi-update-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D4ED8;
+  box-shadow: 0 0 0 3px rgba(16,24,40,0.18); }
 .gi-update-ver { margin-left: auto; color: #64748b; font-size: 12px; font-weight: 600; }
 .gi-update-notes { margin: 10px 0 4px; font-size: 12.5px; line-height: 1.45; color: #475569;
   max-height: 120px; overflow: auto; white-space: pre-wrap; }
 .gi-update-progress { height: 6px; background: #e2e8f0; border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
-.gi-update-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#5278f0,#4169e1); transition: width .15s ease; }
+.gi-update-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#5278f0,#1D4ED8); transition: width .15s ease; }
 .gi-update-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .gi-update-actions button { border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600;
   cursor: pointer; border: 1px solid #cbd5e1; background: #f1f5f9; color: #0f172a; }
 .gi-update-actions button:disabled { opacity: .6; cursor: default; }
-.gi-update-go { background: linear-gradient(180deg,#5278f0,#4169e1) !important; border-color: #2f4fc4 !important; color: #fff !important; }
+.gi-update-go { background: linear-gradient(180deg,#5278f0,#1D4ED8) !important; border-color: #2f4fc4 !important; color: #fff !important; }
 .gi-update-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(8px);
   background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 99999;
   opacity: 0; transition: opacity .3s ease, transform .3s ease;
@@ -6935,7 +6932,7 @@ body {
 .sch-name { font-weight: 600; color: #fff; }
 .sch-dim { color: #6f8197; }
 .sch-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
-.sch-dot.dot-active { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.5); }
+.sch-dot.dot-active { background: var(--accent); box-shadow: none; }
 .sch-dot.dot-final { background: #22c55e; }
 .sch-dot.dot-idle { background: rgba(255,255,255,.25); }
 .sch-score { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
@@ -7081,7 +7078,7 @@ body {
 .gd-row:hover { background: rgba(255,255,255,.06); }
 .gd-row.is-active { background: rgba(6,182,212,.1); border-left: 3px solid #06b6d4; }
 .gd-row .gd-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
-.gd-row .gd-dot.dot-active { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,.5); }
+.gd-row .gd-dot.dot-active { background: var(--accent); box-shadow: none; }
 .gd-row .gd-dot.dot-final { background: #22c55e; }
 .gd-row .gd-dot.dot-idle { background: rgba(255,255,255,.25); }
 .gd-info { flex: 1; min-width: 0; }
@@ -7196,15 +7193,15 @@ body {
   box-shadow: var(--shadow-xs);
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.pg-chip:hover { border-color: var(--accent, #4169e1); }
+.pg-chip:hover { border-color: var(--accent, #1D4ED8); }
 .pg-chip.active {
-  background: var(--accent, #4169e1);
-  border-color: var(--accent, #4169e1);
+  background: var(--accent, #1D4ED8);
+  border-color: var(--accent, #1D4ED8);
   color: #fff;
 }
 .pg-clear {
   background: none; border: none; cursor: pointer;
-  font-size: 11px; color: var(--accent, #4169e1); text-decoration: underline;
+  font-size: 11px; color: var(--accent, #1D4ED8); text-decoration: underline;
   padding: 2px 4px;
 }
 .pg-showing { font-size: 11px; color: var(--text-dim, #64748b); margin-left: auto; white-space: nowrap; }
@@ -7244,9 +7241,9 @@ body {
 .pg-c-yardage .neg { color: #b91c1c; }
 
 .pg-row { cursor: pointer; }
-.pg-row:hover td { background: rgba(65,105,225,.06); }
-.pg-row.is-current td { background: rgba(65,105,225,.13); }
-.pg-row.is-current td:first-child { box-shadow: inset 3px 0 0 var(--accent, #4169e1); }
+.pg-row:hover td { background: rgba(16,24,40,.06); }
+.pg-row.is-current td { background: rgba(16,24,40,.13); }
+.pg-row.is-current td:first-child { box-shadow: inset 3px 0 0 var(--accent, #1D4ED8); }
 .pg-row.is-untagged td { color: var(--text-dim, #94a3b8); }
 
 .pg-unit {
@@ -7258,7 +7255,7 @@ body {
   margin-right: 5px;
   color: #fff;
 }
-.pg-unit-offense { background: #4169e1; }
+.pg-unit-offense { background: #1D4ED8; }
 .pg-unit-defense { background: #b91c1c; }
 .pg-unit-special { background: #c9a227; }
 
@@ -7353,7 +7350,7 @@ body {
 .pg-tend td {
   padding: 1px 8px 5px;
   font-size: 10px;
-  color: var(--accent, #4169e1);
+  color: var(--accent, #1D4ED8);
   font-weight: 600;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -7363,7 +7360,7 @@ body {
 
 /* Roving cell focus (spreadsheet navigation) */
 td.pg-cell-focus {
-  box-shadow: inset 0 0 0 2px var(--accent, #4169e1);
+  box-shadow: inset 0 0 0 2px var(--accent, #1D4ED8);
   border-radius: 3px;
 }
 .pg-edit { cursor: pointer; }
@@ -7396,7 +7393,7 @@ td.pg-cell-focus {
   border: 1px solid var(--chip-border, #cbd3e0); border-radius: 7px;
   font-size: 13px; background: var(--surface, #fff); color: var(--text);
 }
-.pg-pop-input:focus { outline: none; border-color: var(--accent, #4169e1); }
+.pg-pop-input:focus { outline: none; border-color: var(--accent, #1D4ED8); }
 .pg-pop-wide { min-width: 190px; margin-top: 0; }
 .pg-pop-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 9px; }
 .pg-pop-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 9px; }
@@ -7405,7 +7402,7 @@ td.pg-cell-focus {
 .pg-pop-row { display: flex; align-items: center; gap: 4px; }
 .pg-pop-item { flex: 1 1 auto; text-align: left; background: none; border: none;
   font-size: 12.5px; color: var(--text); padding: 6px 6px; cursor: pointer; border-radius: 6px; }
-.pg-pop-item:hover { background: rgba(65,105,225,.08); }
+.pg-pop-item:hover { background: rgba(16,24,40,.08); }
 .pg-pop-del { background: none; border: none; color: var(--text-dim, #94a3b8);
   cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .pg-pop-del:hover { color: #b91c1c; }
@@ -7557,6 +7554,314 @@ td.pg-cell-focus {
 .st-hidden { display: none !important; }
 .st-detail-row { display: flex; flex-wrap: wrap; gap: 8px 14px; }
 .st-detail-row .st-field { margin: 0; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 (v1.9.31) — consolidated token layer.
+   Appended LAST so it wins the cascade over the historical :root blocks
+   above for the LIGHT app UI. The stats dashboard re-scopes its own dark
+   palette under .stats-overlay (higher specificity), so it is unaffected
+   (CLAUDE.md lesson #13). "coach-grade desktop": flat, crisp, one tuned blue.
+   ===================================================================== */
+:root {
+  /* Accent — tuned blue replaces the old royal-blue browser default */
+  --accent:            #1D4ED8;
+  --accent-hover:      #1741B6;
+  --accent-soft:       #EEF3FE;   /* solid tint */
+  --accent-border:     #B9CDF8;   /* border for multi-select selected chips */
+  --highlight:         var(--accent);
+  --highlight-hover:   var(--accent-hover);
+  --highlight-soft:    var(--accent-soft);
+
+  /* Neutrals — one canvas, white surfaces, neutral (not blue-tinted) grays */
+  --canvas:            #F7F8FA;
+  --bg-primary:        #F7F8FA;
+  --bg-secondary:      #FFFFFF;
+  --bg-elevated:       #FFFFFF;
+  --bg-tertiary:       #F2F4F7;   /* sunken wells, inputs, idle chips */
+  --bg-surface:        #FFFFFF;
+  --surface:           #FFFFFF;
+  --border:            #E4E7EC;
+  --border-bright:     #CBD2DC;
+  --chip-border:       transparent;
+
+  /* Text — contrast-safe scale */
+  --text:              #131A26;
+  --text-dim:          #4B5565;   /* 7.5:1 on white */
+  --text-hint:         #667085;   /* placeholders, helper microcopy; 5.1:1 */
+  --text-bright:       #FFFFFF;
+
+  /* Data ink — reserved for data, never chrome */
+  --run-color:         #EA580C;
+  --run-text:          #C2410C;
+  --run-soft:          #FFF1E7;
+  --pass-color:        #0284C7;
+  --pass-text:         #0369A1;
+  --pass-soft:         #E8F4FD;
+  --success:           #15803D;
+  --danger:            #B91C1C;
+  --warning:           #B45309;
+
+  /* Geometry — sharper */
+  --radius:            6px;
+  --radius-lg:         10px;
+  --radius-sm:         4px;
+
+  /* Shadows — flat by default; elevation only for floating layers */
+  --shadow-xs:         none;
+  --shadow-sm:         0 1px 2px rgba(16,24,40,0.05);
+  --shadow-md:         0 4px 12px rgba(16,24,40,0.08);
+  --shadow-lg:         0 16px 40px rgba(16,24,40,0.16);
+
+  --transition:        120ms cubic-bezier(.4,0,.2,1);
+}
+
+/* Focus: one crisp ring everywhere; no colored glow rings. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — typography scale (§3). A tuned scale + tabular
+   numerals; imposed over the historical per-element sizes.
+   ===================================================================== */
+body { font-size: 13px; }
+
+/* Section micro-labels (DOWN & DISTANCE, FORMATION, PERSONNEL …) */
+.chip-label {
+  font-size: 11px; font-weight: 650; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-hint);
+}
+/* Helper microcopy — quiet hint text: sentence case, never blue, no pill */
+.chip-hint {
+  font-size: 11px; font-weight: 450; letter-spacing: normal;
+  text-transform: none; color: var(--text-hint);
+  background: none; padding: 0; border-radius: 0;
+}
+
+/* Chips & buttons — one size; selected is heavier not louder */
+.pick, .pg-chip { font-size: 12.5px; font-weight: 500; }
+.pick.active { font-weight: 600; }
+.btn-label { font-size: 12.5px; font-weight: 500; }
+
+/* Tabular numerals wherever numbers appear (scorebug discipline) */
+.time-display, .fps-input, .stat-card-value, .ov-val, .dd-badge,
+.pg-rows td, .pg-num, td.pg-num, .sb-score, .stat-num, .kpi-value,
+.season-chip, .gd-plays, .sch-score {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+}
+
+/* Stat card numerals (light-UI cards; the dark dashboard keeps its own
+   heavier treatment from redesign-stats.css, which loads after this) */
+.stat-card-value, .ov-val { font-size: 24px; font-weight: 650; }
+
+/* Wordmark — GRIDIRON IQ, letterspaced, IQ in accent, no gradient fill */
+.app-title {
+  font-size: 13px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--text);
+  background: none; -webkit-text-fill-color: currentColor;
+  background-clip: border-box; -webkit-background-clip: border-box;
+}
+.app-iq { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — chips & segmented controls (§4.1). The single
+   biggest upgrade: two legible variants (radio vs checkbox), no borders
+   on idle chips, no glow on selected, dim hotkey badges. Appended last +
+   matched specificity so it wins over the historical .tag-section .pick.
+   ===================================================================== */
+/* Single-choice: tonal borderless idle → solid-blue selected. */
+.pick,
+.tag-section .pick {
+  box-sizing: border-box; height: 28px; padding: 0 10px; gap: 5px;
+  border: none; background: var(--bg-tertiary);
+  color: var(--text-dim); font-weight: 500; font-size: 12.5px;
+  border-radius: var(--radius-sm); box-shadow: none; line-height: 1;
+}
+.pick:hover,
+.tag-section .pick:hover {
+  background: #E9ECF2; color: var(--text); border: none;
+}
+.pick.active,
+.tag-section .pick.active {
+  background: var(--accent); color: #fff; font-weight: 600;
+  border: none; box-shadow: none;
+}
+.pick-group { gap: 6px; }
+
+/* Multi-select: tinted fill + border + ✓ prefix (checkbox semantics). */
+.cf-multi .pick.active,
+.tag-section .cf-multi .pick.active {
+  background: var(--accent-soft); border: 1px solid var(--accent-border);
+  color: var(--accent-hover); font-weight: 600; box-shadow: none;
+}
+.cf-multi .pick.active::before { content: "✓"; font-weight: 700; margin-right: 2px; }
+
+/* Hotkey badges — dim, tabular, never brighter than the label. */
+.pick kbd {
+  font-size: 10px; font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+  padding: 0 3px; border: 1px solid var(--border-bright); border-radius: 3px;
+  opacity: .55; color: var(--text-dim); background: transparent; margin-left: 2px;
+}
+.pick.active kbd { opacity: 1; color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.35); }
+.cf-multi .pick.active kbd { color: var(--accent-hover); border-color: var(--accent-border); opacity: .7; }
+
+/* Unit toggle stays a full-width segmented control (single-choice colors). */
+.unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — buttons & toolbar & dropzone (§4.2–4.4).
+   Flat solid buttons (no gradients), four tiers, one dashed dropzone.
+   ===================================================================== */
+/* Primary — solid accent, flat (was a 2-stop gradient). */
+.btn-accent, .btn-highlight, .btn-demo {
+  background: var(--accent); border: 1px solid var(--accent); color: #fff; box-shadow: none;
+}
+.btn-accent:hover, .btn-highlight:hover, .btn-demo:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+}
+.btn-highlight.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Secondary — white surface, hairline border. Base .btn adopts this so a
+   plain .btn no longer floods solid blue on hover. */
+.btn, .btn-secondary {
+  background: var(--surface); border: 1px solid var(--border-bright); color: var(--text);
+}
+.btn:hover, .btn-secondary:hover {
+  background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text);
+}
+
+/* Ghost — transparent (toolbar/nav icon buttons). */
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); box-shadow: none; }
+.btn-ghost:hover { background: var(--bg-tertiary); color: var(--text); border-color: transparent; }
+
+/* Danger — ghost red; solid red only inside confirm dialogs. */
+.btn-danger { background: transparent; border: 1px solid transparent; color: var(--danger); }
+.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Toolbar — white, single hairline bottom border, no shadow. */
+.top-bar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
+
+/* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
+   one accent (the primary). No glow tiles, no cyan. */
+.dropzone-card {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 26px 34px; background: transparent;
+  border: 1.5px dashed rgba(255,255,255,0.22); border-radius: var(--radius-lg);
+}
+.dropzone-icon { width: 28px; height: 28px; color: rgba(255,255,255,0.5); }
+.dropzone-title { font-size: 15px; font-weight: 700; color: #F1F3F7; }
+.dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
+/* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
+.dropzone-actions .btn-secondary {
+  background: transparent; border-color: rgba(255,255,255,0.28); color: rgba(255,255,255,0.88);
+}
+.dropzone-actions .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.dropzone-card .empty-hint { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; }
+
+/* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
+   single-class, and .btn is later in source). Raise specificity so the primary
+   fill always wins regardless of order — Save Season stays the one blue button. */
+.btn.btn-accent, .btn.btn-highlight, .btn.btn-demo {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.btn.btn-accent:hover, .btn.btn-highlight:hover, .btn.btn-demo:hover {
+  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+}
+.btn.btn-highlight.active { background: var(--accent); border-color: var(--accent); }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — play table, transport & the signature D&D badge
+   (§4.5–4.7).
+   ===================================================================== */
+/* Signature scorebug badge — used in the play table, tagging readout, header. */
+.dd-badge {
+  display: inline-block; padding: 2px 7px;
+  background: var(--bg-tertiary); border-radius: 4px;
+  font-size: 11.5px; font-weight: 650; letter-spacing: .05em; line-height: 1.35;
+  text-transform: uppercase; color: var(--text);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+}
+.dd-badge--key { background: var(--accent-soft); color: var(--accent-hover); }  /* 3rd/4th down */
+
+/* Play table (§4.6) — quiet header, crisp row states, colored numeric text. */
+.pg-table th {
+  background: var(--surface); font-size: 11px; font-weight: 650;
+  letter-spacing: .06em; color: var(--text-hint); border-bottom: 1px solid var(--border);
+}
+.pg-row td { height: 32px; }
+.pg-row:hover td { background: #F7F8FA; }
+.pg-row.is-current td { background: var(--accent-soft); }
+.pg-row.is-current td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.pg-c-yardage .pos { color: var(--success); font-weight: 600; }
+.pg-c-yardage .neg { color: var(--danger); font-weight: 600; }
+/* Tendency summary row under the header — informative, not shouting. */
+.pg-tend td { font-size: 11px; color: var(--text-hint); font-weight: 450; font-variant-numeric: tabular-nums; }
+
+/* Video transport (§4.7) — thin track, accent progress, hover-only handle. */
+.scrub-bar { background: var(--border); }
+.scrub-bar-fill { background: var(--accent); }
+.scrub-bar-handle { background: var(--accent); box-shadow: none; opacity: 0; transition: opacity var(--transition); }
+.scrub-bar-container:hover .scrub-bar-handle { opacity: 1; }
+.scrub-bar-plays .play-marker { background: var(--text-hint); }
+
+/* D&D readout badge in the tag form — hidden until a down is set. */
+.dd-label { display: flex; align-items: center; gap: 8px; }
+.dd-readout { text-transform: uppercase; }
+.dd-readout:empty { display: none; }
+
+/* =====================================================================
+   DESIGN REFRESH v2 — overlays & cards (§4.8). Light overlays already
+   inherit the new tokens (white cards, flat shadows); this unifies the
+   modal backdrop and adds a subtle, reduced-motion-safe entrance.
+   ===================================================================== */
+.ffa-confirm-backdrop, .play-import-backdrop, .shortcuts-backdrop,
+.detect-review-backdrop { background: rgba(16,24,40,0.45); }
+
+@keyframes ffaModalIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+.ffa-confirm-card, .season-modal-content, .play-import-card,
+.shortcuts-card, .modal-card, .finish-modal-card {
+  animation: ffaModalIn 140ms cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ffa-confirm-card, .season-modal-content, .play-import-card,
+  .shortcuts-card, .modal-card, .finish-modal-card { animation: none; }
+}
+
+/* Cards are border-only; shadows are reserved for floating layers. */
+.gi-card, .season-card, .team-card, .sidebar-panel, .stat-card { box-shadow: none; }
+
+/* =====================================================================
+   DESIGN REFRESH — post-review polish (user feedback)
+   ===================================================================== */
+/* Chips washed out on the white tag-form panel — darker tonal fill, still
+   borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
+.pick, .tag-section .pick { background: #E4E7EE; }
+.pick:hover, .tag-section .pick:hover { background: #D6DBE4; }
+
+/* Library actions: one aligned row (was inline-block → the demo button's icon
+   knocked the baseline off), one primary (New Season); demo → secondary. */
+.library-new { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.library-new .library-form { flex-basis: 100%; }
+.btn.btn-demo { background: var(--surface); border: 1px solid var(--border-bright); color: var(--text); }
+.btn.btn-demo:hover { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text); }
+.btn.btn-demo .icon { color: var(--accent); }
+
+/* +Angle moved into the play-control bar; its old standalone row now collapses
+   until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
+.angle-controls { display: none; }
+.angle-controls.ang-open { display: flex; }
+
+/* The timeline strip only carries content when film is loaded (one segment per
+   clip/play). With no film its .timeline-bar is empty and the row is just a
+   gray pad eating vertical space — collapse it until segments render. Degrades
+   gracefully (worst case: the pad stays) where :has is unsupported. */
+.video-timeline:has(.timeline-bar:empty) { display: none; }
+
+/* Fold the timeline into the transport line's center column (under the seek
+   bar) instead of its own dedicated row — reclaims the vertical space while
+   keeping the play/clip navigator exactly where film segments render. When
+   there's no film (empty .timeline-bar) it takes no space at all. */
+.transport-center { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+.transport-center .video-timeline { padding: 0; margin: 0; border: none; background: none; }
+.transport-center .video-timeline:has(.timeline-bar:empty) { display: none; }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8096,7 +8401,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           </svg>
           <span>Shortcuts</span>
         </button>
-        <h1 class="app-title">GridIron IQ</h1>
+        <h1 class="app-title">GridIron <span class="app-iq">IQ</span></h1>
         <div class="season-chip-wrap">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
             <button class="bc-seg bc-home" id="bcHome" title="Team home">
@@ -8143,10 +8448,10 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
         <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" disabled>
           <svg class="icon"><use href="#icon-next-clip"/></svg>
         </button>
-        <button class="btn btn-highlight" id="btnQuickChart" title="Toggle Quick Chart Mode">
+        <button class="btn btn-secondary" id="btnQuickChart" title="Toggle Quick Chart Mode">
           <svg class="icon"><use href="#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
         </button>
-        <button class="btn btn-highlight" id="btnShowStats" title="View Game Stats">
+        <button class="btn btn-secondary" id="btnShowStats" title="View Game Stats">
           <svg class="icon"><use href="#icon-stats"/></svg> <span class="btn-label">Stats</span>
         </button>
         <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
@@ -8238,11 +8543,19 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
             <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
             <span class="clip-indicator" id="clipIndicator"></span>
           </div>
-          <div class="scrub-bar-container">
-            <div class="scrub-bar" id="scrubBar">
-              <div class="scrub-bar-fill" id="scrubBarFill"></div>
-              <div class="scrub-bar-plays" id="scrubBarPlays"></div>
-              <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+          <div class="transport-center">
+            <div class="scrub-bar-container">
+              <div class="scrub-bar" id="scrubBar">
+                <div class="scrub-bar-fill" id="scrubBarFill"></div>
+                <div class="scrub-bar-plays" id="scrubBarPlays"></div>
+                <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+              </div>
+            </div>
+            <!-- Timeline folds into the transport line's center (no dedicated row) -->
+            <div class="video-timeline">
+              <div class="timeline-strip" id="timelineStrip">
+                <div class="timeline-bar" id="timelineBar"></div>
+              </div>
             </div>
           </div>
           <div class="controls-right">
@@ -8261,12 +8574,14 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
             <label class="fps-label" title="Video frame rate">
               FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
             </label>
+            <button class="ctrl-btn" id="btnExpandVideo" title="Expand the video to full screen (Esc to exit)">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
           </div>
         </div>
 
         <!-- Multi-angle controls -->
         <div class="angle-controls" id="angleControls">
-          <button class="ctrl-btn" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
           <input type="file" id="angle2FileInput" accept="video/*" hidden>
           <span class="angle2-info hidden" id="angle2Info">
             <span class="angle2-name" id="angle2Name"></span>
@@ -8283,20 +8598,13 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           </span>
         </div>
 
-        <!-- Timeline (moved from bottom-panel into video-section) -->
-        <div class="video-timeline">
-          <div class="timeline-strip" id="timelineStrip">
-            <div class="timeline-bar" id="timelineBar"></div>
-          </div>
-        </div>
-
         <!-- Play marking + selector (moved under the video to use the dead space) -->
         <div class="video-play-controls">
           <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
           <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
           <button class="btn btn-sm" id="btnClearTags" title="Reset this play's tags (keeps the play and video)">Clear Tags</button>
           <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
-          <button class="btn btn-sm" id="btnExpandVideo" title="Expand the video to full screen (Esc to exit)">Expand</button>
+          <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
           <select id="playSelect" class="play-select" title="Current play">
             <option value="">-- No plays tagged --</option>
           </select>
@@ -8348,7 +8656,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           </div>
 
           <div class="chip-section">
-            <label class="chip-label">Down &amp; Distance</label>
+            <label class="chip-label dd-label">Down &amp; Distance <span class="dd-badge dd-readout" id="ddReadout"></span></label>
             <div class="chip-inline">
               <div class="pick-group" id="tagDown">
                 <button class="pick" data-value="1" type="button">1st</button>
@@ -9401,7 +9709,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
-            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet">▶ Explore a demo season</button>
+            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="#icon-play"/></svg> Explore a demo season</button>
             <form class="library-form hidden" id="librarySeasonForm">
               <div class="lib-form-row">
                 <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
@@ -10723,6 +11031,11 @@ class ChipField {
   constructor(el, opts = {}) {
     this.el = el;
     this.multi = !!opts.multi;       // allow multiple chips active at once
+    // Presentational marker so CSS can style multi-select groups (tinted +
+    // border + ✓) distinctly from single-choice groups (solid fill). No logic
+    // change — the design refresh keys off this to make radio-vs-checkbox
+    // groups legible at a glance (§4.1).
+    if (this.multi) el.classList.add('cf-multi');
     // Groups of mutually exclusive values within a multi field: adding one
     // removes its rivals (e.g. a play can't be both Gain and Loss, but can be
     // Fumble + Touchdown). Array of arrays.
@@ -11565,6 +11878,7 @@ class PlayTagger {
     if (play._autoSit && (key === 'down' || key === 'distance' || key === 'fieldSide' || key === 'yardLine')) {
       play._autoSit = false;
     }
+    if (key === 'down' || key === 'distance') this._updateDdReadout();
 
     // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
     // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
@@ -11740,6 +12054,22 @@ class PlayTagger {
     this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
+    this._updateDdReadout();
+  }
+
+  /** Live scorebug readout of the current Down & Distance in the tag form —
+   *  the signature .dd-badge, mirroring how it renders in the play table. */
+  _updateDdReadout() {
+    const el = this.ddReadout !== undefined ? this.ddReadout
+      : (this.ddReadout = document.getElementById('ddReadout'));
+    if (!el) return;
+    const down = this.tagFields.down.value;
+    const dist = this.tagFields.distance.value;
+    if (!down) { el.textContent = ''; el.style.display = 'none'; return; }
+    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[down] || down;
+    el.textContent = dist ? `${ord} & ${dist}` : ord;
+    el.classList.toggle('dd-badge--key', down === '3' || down === '4');
+    el.style.display = '';
   }
 
   /**
@@ -18633,6 +18963,11 @@ class MultiAngle {
     const label2 = document.getElementById('angleLabel2');
 
     if (info) info.classList.toggle('hidden', !this.enabled);
+    // The angle-controls row now collapses when no 2nd angle is loaded (the
+    // +Angle button moved into the play-control bar), so only reveal the row's
+    // 2nd-angle controls when one is actually active.
+    const ac = document.getElementById('angleControls');
+    if (ac) ac.classList.toggle('ang-open', this.enabled);
     if (nameEl) nameEl.textContent = this.enabled ? this.angle2Name : '';
 
     c.classList.toggle('has-angle2', this.enabled);
@@ -25201,7 +25536,9 @@ class PlayGrid {
       const n = parseInt(t.yardage, 10);
       if (!Number.isFinite(n)) return '';   // CSV imports can carry junk like '—'
       const cls = n > 0 ? 'pos' : (n < 0 ? 'neg' : '');
-      return `<span class="${cls}">${n > 0 ? '+' + n : n}</span>`;
+      // True minus sign (−, U+2212) for losses, not an ASCII hyphen.
+      const disp = n > 0 ? '+' + n : (n < 0 ? '−' + Math.abs(n) : '0');
+      return `<span class="${cls}">${disp}</span>`;
     }
     if (col.key === 'notes') return this._esc(p.notes || '');
     return this._esc(t[col.key] || '');
@@ -25211,7 +25548,11 @@ class PlayGrid {
     if (!t.down) return '<span class="pg-dim">—</span>';
     // The fallback is raw tag data (CSV imports) — escape it.
     const ord = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }[t.down] || this._esc(t.down);
-    return t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
+    const txt = t.distance ? `${ord} & ${this._esc(t.distance)}` : ord;
+    // Signature scorebug badge; 3rd & 4th down get the emphasis variant (a
+    // football-true use of accent). CSS uppercases + tabular-figures it.
+    const key = (String(t.down) === '3' || String(t.down) === '4') ? ' dd-badge--key' : '';
+    return `<span class="dd-badge${key}">${txt}</span>`;
   }
 
   /** Move the current-row highlight without a full re-render. `scroll` is only
@@ -27710,25 +28051,18 @@ class UIPolish {
     if (!placeholder || !fileInput) return;
 
     placeholder.innerHTML = `
-      <div class="empty-cta-row">
-        <button class="empty-cta" type="button" data-action="file">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          <span class="empty-cta-title">Add Video</span>
-          <span class="empty-cta-sub">Select a game film file</span>
-        </button>
-        <button class="empty-cta empty-cta-folder" type="button" data-action="folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span class="empty-cta-title">Add Folder</span>
-          <span class="empty-cta-sub">Load a folder of plays</span>
-        </button>
+      <div class="dropzone-card">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>
+        </svg>
+        <div class="dropzone-title">Add game film</div>
+        <div class="dropzone-actions">
+          <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
+          <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
+        </div>
+        <div class="empty-hint">or drop a video or folder anywhere</div>
       </div>
-      <div class="empty-hint">or drop a video file anywhere</div>
     `;
     placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -28635,7 +28969,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.30';
+const APP_VERSION = '1.9.31';
 
 class App {
   constructor() {
@@ -29924,7 +30258,7 @@ class App {
         badge.textContent = '⚪ Heuristics';
         badge.classList.add('offline');
         badge.classList.remove('online');
-        badge.title = 'Using in-browser heuristics. Optional local CV server is off.\nRun `cd server && ./start.sh`, then click to connect.';
+        badge.title = 'Auto-detect play boundaries — requires the companion server. See Settings → Setup.';
       }
     };
 
