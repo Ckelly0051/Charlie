@@ -21,21 +21,38 @@ class ChipField {
     this._values = [];               // selected values when multi
     this._listeners = {};
     this.chips = [...el.querySelectorAll('[data-value]')];
-    this.chips.forEach(chip => {
-      chip.addEventListener('click', (e) => {
-        e.preventDefault();
-        const v = chip.dataset.value;
-        if (this.multi) {
-          const i = this._values.indexOf(v);
-          if (i >= 0) this._values.splice(i, 1);
-          else { this._dropRivals(v); this._values.push(v); }
-          this._syncMulti();
-        } else {
-          this.value = this._value === v ? '' : v;
-        }
-        this._fire('change');
-      });
+    this.chips.forEach(chip => this._bindChip(chip));
+  }
+  /** Wire a chip's toggle behavior (shared by the constructor + runtime chips). */
+  _bindChip(chip) {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      const v = chip.dataset.value;
+      if (this.multi) {
+        const i = this._values.indexOf(v);
+        if (i >= 0) this._values.splice(i, 1);
+        else { this._dropRivals(v); this._values.push(v); }
+        this._syncMulti();
+      } else {
+        this.value = this._value === v ? '' : v;
+      }
+      this._fire('change');
     });
+  }
+  /** Bind + track an externally-created chip button (custom user chips), so it
+   *  behaves exactly like a built-in chip. Re-syncs active state for the case a
+   *  play carrying this value is already loaded. */
+  registerChip(btn) {
+    if (!btn || this.chips.includes(btn)) return;
+    this._bindChip(btn);
+    this.chips.push(btn);
+    if (this.multi) this._syncMulti();
+    else if (this._value === btn.dataset.value) btn.classList.add('active');
+  }
+  /** Stop tracking a chip (removed custom chip). Does not touch stored values. */
+  unregisterChip(btn) {
+    const i = this.chips.indexOf(btn);
+    if (i >= 0) this.chips.splice(i, 1);
   }
   /** Remove values that are mutually exclusive with v (multi mode). */
   _dropRivals(v) {

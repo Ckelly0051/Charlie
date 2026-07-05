@@ -27,6 +27,7 @@ import { CallSheetBuilder } from './call-sheet-builder.js';
 import { UIPolish } from './ui-polish.js';
 import { Wizard } from './wizard.js';
 import { CustomFieldsManager } from './custom-fields.js';
+import { CustomChips } from './custom-chips.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
@@ -50,6 +51,7 @@ class App {
     this.roster = new RosterManager(this.tagger);
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
+    this.customChips = new CustomChips(this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.

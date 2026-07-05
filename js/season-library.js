@@ -216,6 +216,8 @@ export class SeasonLibrary {
     let roster = [];
     try { roster = JSON.parse(localStorage.getItem(this._teamRosterKey(id)) || '[]') || []; } catch (e) {}
     if (window.app?.roster) window.app.roster.loadFrom(roster);   // persists to ffa_roster
+    // Custom Formation/Backfield chips are per-team too — swap them to the new team's.
+    if (window.app?.customChips) window.app.customChips.reload();
 
     this._syncGameInfoFromTeam({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
     this._setLevel('seasons');   // also refreshes the header subtitle to the new team

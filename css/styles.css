@@ -5787,16 +5787,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   }
 }
 
-/* Multi-select affordance: these groups ADD on tap instead of replacing.
-   Active chips get a small corner tick so a second selection reads as
-   intentional stacking, not a UI bug. */
-.pick-group.multi .pick.active::after {
-  content: '✓';
-  font-size: 8px;
-  font-weight: 800;
-  margin-left: 4px;
-  opacity: 0.85;
-}
+/* (Removed the multi-select ✓ corner tick: selected chips are now ONE
+   consistent solid-blue style across single- and multi-select groups.) */
+.pick-group.multi .pick.active::after { content: none; }
 
 /* Tablets: width-based breakpoints leave 801–1099px iPads with mouse-size
    chips. Key comfortable tap targets on coarse pointers instead. */
@@ -7673,13 +7666,10 @@ body { font-size: 13px; }
 }
 .pick-group { gap: 6px; }
 
-/* Multi-select: tinted fill + border + ✓ prefix (checkbox semantics). */
-.cf-multi .pick.active,
-.tag-section .cf-multi .pick.active {
-  background: var(--accent-soft); border: 1px solid var(--accent-border);
-  color: var(--accent-hover); font-weight: 600; box-shadow: none;
-}
-.cf-multi .pick.active::before { content: "✓"; font-weight: 700; margin-right: 2px; }
+/* Selected chips are ONE consistent style — solid blue — for BOTH single- and
+   multi-select groups. (An earlier pass gave multi-select a tint+border+✓ as a
+   radio-vs-checkbox cue, but in practice it just read as inconsistent.) Multi
+   groups now fall through to the plain .pick.active solid fill above. */
 
 /* Hotkey badges — dim, tabular, never brighter than the label. */
 .pick kbd {
@@ -7688,7 +7678,6 @@ body { font-size: 13px; }
   opacity: .55; color: var(--text-dim); background: transparent; margin-left: 2px;
 }
 .pick.active kbd { opacity: 1; color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.35); }
-.cf-multi .pick.active kbd { color: var(--accent-hover); border-color: var(--accent-border); opacity: .7; }
 
 /* Unit toggle stays a full-width segmented control (single-choice colors). */
 .unit-toggle .pick { flex: 1; justify-content: center; height: 32px; padding: 0 6px; }
@@ -7849,3 +7838,12 @@ body { font-size: 13px; }
 .transport-center { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
 .transport-center .video-timeline { padding: 0; margin: 0; border: none; background: none; }
 .transport-center .video-timeline:has(.timeline-bar:empty) { display: none; }
+
+/* Custom user chips (CustomChips): a "+" add affordance + custom chips that
+   carry a × remove. Idle/active states otherwise inherit the normal chip look. */
+.pick-add { color: var(--text-hint); font-weight: 700; padding: 0 11px; }
+.pick-add:hover { background: var(--accent-soft); color: var(--accent); }
+.pick-custom { padding-right: 7px; }
+.pick-custom .pick-x { margin-left: 5px; opacity: .5; font-weight: 700; line-height: 1; cursor: pointer; }
+.pick-custom .pick-x:hover { opacity: 1; color: var(--danger); }
+.pick-custom.active .pick-x { color: rgba(255,255,255,.8); opacity: .85; }   /* on the solid-blue selected chip */

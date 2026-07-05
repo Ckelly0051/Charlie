@@ -22,7 +22,7 @@ JS_FILES="
   js/version-manager.js js/scoreboard-ocr.js js/suggestion-engine.js js/cutup-exporter.js
   js/cutup-player.js js/play-grid.js js/season-manager.js js/season-library.js
   js/call-sheet-builder.js js/ui-polish.js js/wizard.js js/custom-fields.js
-  js/play-diagram.js js/updater.js js/app.js
+  js/custom-chips.js js/play-diagram.js js/updater.js js/app.js
 "
 
 # Collision guard: every module shares ONE scope in the concatenated bundle, so a
