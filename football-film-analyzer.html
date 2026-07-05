@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1D4ED8">
+  <meta name="theme-color" content="#0B0F14">
   <meta name="description" content="Football film analysis for coaches — tag plays, track stats, scout opponents.">
   <title>GridIron IQ</title>
   <style>
@@ -7450,7 +7450,7 @@ td.pg-cell-focus {
   border: 1px solid var(--chip-border, #cbd3e0);
   border-bottom-width: 2px;
   border-radius: 4px;
-  background: var(--bg, #f4f6fa);
+  background: var(--bg-elevated);
 }
 
 /* Rare result chips (FG / Good / No Good / Kneel / Spike / Safety) collapse
@@ -7549,61 +7549,63 @@ td.pg-cell-focus {
 .st-detail-row .st-field { margin: 0; }
 
 /* =====================================================================
-   DESIGN REFRESH v2 (v1.9.31) — consolidated token layer.
-   Appended LAST so it wins the cascade over the historical :root blocks
-   above for the LIGHT app UI. The stats dashboard re-scopes its own dark
-   palette under .stats-overlay (higher specificity), so it is unaffected
-   (CLAUDE.md lesson #13). "coach-grade desktop": flat, crisp, one tuned blue.
+   THE THEATER (v1.10.0) — consolidated token layer. THE winning :root:
+   appended last so it beats the historical blocks above (same proven
+   mechanism the light theme used — edit THIS block, never append another).
+   One identity: the film room, lights off. The video is the brightest
+   object on screen; chrome recedes; data ink glows. The stats dashboard
+   keeps its own scoped palette under .stats-overlay (untouched — e2e pins
+   its literals); the Lobby is already this world.
    ===================================================================== */
 :root {
-  /* Accent — tuned blue replaces the old royal-blue browser default */
-  --accent:            #1D4ED8;
-  --accent-hover:      #1741B6;
-  --accent-soft:       #EEF3FE;   /* solid tint */
-  --accent-border:     #B9CDF8;   /* border for multi-select selected chips */
+  /* Accent — broadcast blue, re-tuned for dark (brand #1D4ED8 goes muddy on slate) */
+  --accent:            #3D7BFD;
+  --accent-hover:      #5B90FF;
+  --accent-soft:       rgba(61,123,253,0.14);   /* selected-row / key-badge tint */
+  --accent-border:     rgba(61,123,253,0.45);
   --highlight:         var(--accent);
   --highlight-hover:   var(--accent-hover);
   --highlight-soft:    var(--accent-soft);
 
-  /* Neutrals — one canvas, white surfaces, neutral (not blue-tinted) grays */
-  --canvas:            #F7F8FA;
-  --bg-primary:        #F7F8FA;
-  --bg-secondary:      #FFFFFF;
-  --bg-elevated:       #FFFFFF;
-  --bg-tertiary:       #F2F4F7;   /* sunken wells, inputs, idle chips */
-  --bg-surface:        #FFFFFF;
-  --surface:           #FFFFFF;
-  --border:            #E4E7EC;
-  --border-bright:     #CBD2DC;
+  /* Neutrals — Midnight canvas, Booth-slate surfaces; elevation by luminance */
+  --canvas:            #0B0F14;
+  --bg-primary:        #0B0F14;
+  --bg-secondary:      #141A22;
+  --bg-elevated:       #1A212B;
+  --bg-tertiary:       #1A212B;   /* sunken wells, inputs, idle chips */
+  --bg-surface:        #141A22;
+  --surface:           #141A22;
+  --border:            rgba(233,238,245,0.08);   /* chalk hairlines */
+  --border-bright:     rgba(233,238,245,0.16);
   --chip-border:       transparent;
 
-  /* Text — contrast-safe scale */
-  --text:              #131A26;
-  --text-dim:          #4B5565;   /* 7.5:1 on white */
-  --text-hint:         #667085;   /* placeholders, helper microcopy; 5.1:1 */
+  /* Text — chalk scale (contrast-safe on Midnight + Booth slate) */
+  --text:              #E9EEF5;
+  --text-dim:          #9AA6B5;
+  --text-hint:         #6E7A8A;
   --text-bright:       #FFFFFF;
 
-  /* Data ink — reserved for data, never chrome */
-  --run-color:         #EA580C;
-  --run-text:          #C2410C;
-  --run-soft:          #FFF1E7;
-  --pass-color:        #0284C7;
-  --pass-text:         #0369A1;
-  --pass-soft:         #E8F4FD;
-  --success:           #15803D;
-  --danger:            #B91C1C;
-  --warning:           #B45309;
+  /* Data ink — reserved for data, never chrome (the dashboard's own pair) */
+  --run-color:         #F97316;
+  --run-text:          #FB923C;
+  --run-soft:          rgba(249,115,22,0.14);
+  --pass-color:        #38BDF8;
+  --pass-text:         #38BDF8;
+  --pass-soft:         rgba(56,189,248,0.14);
+  --success:           #34D399;
+  --danger:            #F87171;
+  --warning:           #FBBF24;
 
-  /* Geometry — sharper */
+  /* Geometry — unchanged */
   --radius:            6px;
   --radius-lg:         10px;
   --radius-sm:         4px;
 
-  /* Shadows — flat by default; elevation only for floating layers */
+  /* Shadows — black-based; elevation only for floating layers */
   --shadow-xs:         none;
-  --shadow-sm:         0 1px 2px rgba(16,24,40,0.05);
-  --shadow-md:         0 4px 12px rgba(16,24,40,0.08);
-  --shadow-lg:         0 16px 40px rgba(16,24,40,0.16);
+  --shadow-sm:         0 1px 2px rgba(0,0,0,0.40);
+  --shadow-md:         0 6px 16px rgba(0,0,0,0.50);
+  --shadow-lg:         0 20px 50px rgba(0,0,0,0.60);
 
   --transition:        120ms cubic-bezier(.4,0,.2,1);
 }
