@@ -485,6 +485,24 @@ class App {
     if (seasonText) seasonText.textContent = d.seasonName || 'Season';
     const showGame = !!gameName;
     if (gameText) gameText.textContent = gameName;
+    // Scorebug — a broadcast bug on the game segment (score + FINAL state)
+    // from existing gameInfo. Display-only and a SEPARATE span: #bcGameText's
+    // content is pinned by e2e-onboarding and must stay just the name.
+    const scoreEl = document.getElementById('bcScore');
+    if (scoreEl) {
+      const gi = (game && game.gameInfo) || {};
+      const us = gi.scoreUs, them = gi.scoreThem;
+      const hasScore = us !== '' && us != null && them !== '' && them != null;
+      if (showGame && hasScore) {
+        scoreEl.textContent = `${us}–${them}`;
+        scoreEl.classList.toggle('bc-score-w', Number(us) > Number(them));
+        scoreEl.classList.toggle('bc-score-l', Number(us) < Number(them));
+        scoreEl.classList.toggle('bc-score-final', (game && game.status) === 'final');
+        scoreEl.hidden = false;
+      } else {
+        scoreEl.hidden = true;
+      }
+    }
     if (gameSeg) gameSeg.style.display = showGame ? '' : 'none';
     if (gameSep) gameSep.style.display = showGame ? '' : 'none';
     bc.hidden = false;

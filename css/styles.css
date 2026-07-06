@@ -8027,3 +8027,38 @@ body { font-size: 13px; }
     --accent: #1D4ED8; --accent-hover: #1741B6; --accent-soft: #eef3fe; --accent-border: #b9cdf8;
   }
 }
+
+/* Scorebug on the game breadcrumb segment — condensed tabular score, tinted
+   by result (W green / L red), with a FINAL underline state. Display-only. */
+.bc-score {
+  font-family: var(--display); font-weight: 700; font-size: 13.5px;
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+  letter-spacing: .04em; padding: 0 6px; border-radius: 4px; line-height: 1.5;
+  background: rgba(233,238,245,0.08); color: var(--text);
+}
+.bc-score.bc-score-w { background: rgba(52,211,153,0.14); color: #4ADE80; }
+.bc-score.bc-score-l { background: rgba(248,113,113,0.14); color: #F87171; }
+.bc-score[hidden] { display: none; }
+/* Give the game segment room for the scorebug; the name ellipsizes first. */
+.bc-seg.bc-game { max-width: 260px; gap: 7px; }
+/* No top-bar region may paint over another. The center drop-target clips to
+   its own box instead of spilling its 275px label over the breadcrumb (a
+   pre-existing overflow the scorebug made visible); the breadcrumb pills cap
+   their width so the center keeps a usable size. The video area holds the
+   primary Add-film zone — this top-bar one is the compact secondary. */
+.top-bar-center { overflow: hidden; }
+.top-bar-center .file-input-label {
+  max-width: 100%; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+#bcSeason { max-width: 190px; }
+/* The game name must be the (only) shrinkable item so the scorebug + caret
+   never spill past the pill: flex min-width:0 on the text, none on the rest. */
+.bc-seg.bc-game #bcGameText { min-width: 0; flex: 0 1 auto; }
+.bc-seg.bc-game .bc-score, .bc-seg.bc-game .season-chip-caret { flex: none; }
+/* The breadcrumb must SHRINK inside the top bar, not paint over the center
+   drop-target: extend the min-width:0 chain down to the segments so the game
+   pill's name ellipsizes when the bar tightens (was a pre-existing overflow —
+   the scorebug just made it visible more often). */
+.breadcrumb { min-width: 0; flex: 0 1 auto; }
+.breadcrumb .bc-seg { min-width: 44px; flex: 0 1 auto; }
