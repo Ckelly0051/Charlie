@@ -40,7 +40,7 @@
               <span id="bcTeamText">Team</span>
             </button>
             <span class="bc-sep">▸</span>
-            <button class="bc-seg" id="bcSeason" title="Season schedule"><span id="bcSeasonText">Season</span></button>
+            <button class="bc-seg" id="bcSeason" title="Open the season schedule (all games)"><span id="bcSeasonText">Season</span></button>
             <span class="bc-sep" id="bcGameSep">▸</span>
             <button class="bc-seg bc-game" id="bcGame" title="Switch game">
               <span id="bcGameText">Game</span><span class="bc-score" id="bcScore" hidden></span><span class="season-chip-caret">▾</span>
@@ -94,31 +94,33 @@
             More <span class="more-caret">▾</span>
           </button>
           <div class="more-dropdown hidden" id="moreDropdown" role="menu">
+            <div class="more-label">File</div>
             <button class="btn" id="btnLoad" title="Open a season or game file">
               <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Open Season / Game
               <input type="file" id="projectFileInput" accept=".json" hidden>
             </button>
-            <button class="btn" id="btnExportPng" title="Export Frame as PNG">
-              <svg class="icon"><use href="assets/icons.svg#icon-image"/></svg> Screenshot
+            <button class="btn" id="btnImportPlays" title="Import plays from CSV (Hudl, etc.)">
+              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg> Import Plays
             </button>
-            <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
-              <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> Export CSV
+            <button class="btn" id="btnSaveMenu" title="Everything autosaves — this also creates a restore point (and writes/downloads a season file)">
+              <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> Save now + restore point
+            </button>
+            <div class="more-divider"></div>
+            <div class="more-label">Reports &amp; Export</div>
+            <button class="btn btn-highlight" id="btnSeason" title="Season report — aggregate stats across every game">
+              <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season Report
             </button>
             <button class="btn" id="btnExportReport" title="Export HTML Report">
               <svg class="icon"><use href="assets/icons.svg#icon-notes"/></svg> HTML Report
             </button>
-            <button class="btn" id="btnExportCutup" title="Stitch filtered plays into a cut-up video (WebM)">
+            <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
+              <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> Export CSV
+            </button>
+            <button class="btn" id="btnExportCutup" title="Stitch the drawer-filtered plays into a cut-up video (WebM)">
               <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg> Cut-Up Video
             </button>
-            <div class="more-divider"></div>
-            <button class="btn" id="btnSaveMenu" title="Everything autosaves — this also creates a restore point (and writes/downloads a season file)">
-              <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> Save now + restore point
-            </button>
-            <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
-              <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season Stats
-            </button>
-            <button class="btn" id="btnImportPlays" title="Import plays from CSV (Hudl, etc.)">
-              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg> Import Plays
+            <button class="btn" id="btnExportPng" title="Export Frame as PNG">
+              <svg class="icon"><use href="assets/icons.svg#icon-image"/></svg> Screenshot
             </button>
             <div class="more-divider" id="updateDivider" hidden></div>
             <button class="btn" id="btnOpenDataFolder" title="Open the folder where your seasons are saved" hidden>
@@ -845,14 +847,14 @@
     <!-- Settings Drawer (slides in from right — replaces old sidebar) -->
     <aside class="settings-drawer" id="settingsDrawer">
       <div class="settings-drawer-head">
-        <h2>Settings &amp; Tools</h2>
+        <h2>Tools</h2>
         <button class="settings-drawer-close" id="settingsDrawerClose" type="button" title="Close">×</button>
       </div>
       <!-- Game Info -->
       <div class="sidebar-panel">
         <h3 class="panel-title" data-toggle="gameInfoPanel">
           <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-          Game Info
+          Team &amp; Film Settings
         </h3>
         <div class="panel-body collapsed" id="gameInfoPanel">
           <p class="settings-note">Per-game details — opponent, date, score, week, home/away, type — live in the <strong>game header</strong> above the tag form. Click it to add or edit a game.</p>
@@ -884,7 +886,7 @@
               <option value="offense">Our Offense</option>
               <option value="defense">Our Defense</option>
               <option value="special">Special Teams</option>
-              <option value="scout">Opponent Scout</option>
+              <option value="scout">Scouting film (their game)</option>
             </select>
           </div>
           <div class="tag-row">
@@ -929,90 +931,15 @@
         </div>
       </div>
 
-      <!-- Roster -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="rosterPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-          Roster
-        </h3>
-        <div class="panel-body collapsed" id="rosterPanel">
-          <div class="roster-add">
-            <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
-            <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
-            <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
-            <select id="rosterSide" class="roster-add-side" title="Side of ball">
-              <option value="O">Off</option>
-              <option value="D">Def</option>
-              <option value="B">Both</option>
-            </select>
-            <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
-          </div>
-          <div class="roster-import-bar">
-            <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
-            <button class="btn btn-sm" id="btnDepthChart" type="button" title="Open a printable depth chart grouped by position">Depth Chart</button>
-          </div>
-          <div class="roster-import-area hidden" id="rosterImportArea">
-            <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
-            <div class="roster-import-actions">
-              <label class="btn btn-sm roster-import-file-label">
-                Choose CSV
-                <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
-              </label>
-              <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
-            </div>
-            <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
-          </div>
-          <div class="roster-list" id="rosterList"></div>
-        </div>
-      </div>
-
-      <!-- Version History -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="versionPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg>
-          Version History
-          <span class="panel-badge" id="versionCount">0</span>
-        </h3>
-        <div class="panel-body collapsed" id="versionPanel">
-          <div class="version-controls">
-            <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
-            <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
-          </div>
-          <div class="version-list" id="versionList">
-            <div class="version-empty">No saved versions yet.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Playlist -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="playlistPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
-          Playlist
-          <span class="panel-badge" id="clipCount">0 clips</span>
-        </h3>
-        <div class="panel-body collapsed" id="playlistPanel">
-          <div class="playlist-controls">
-            <button class="btn btn-sm btn-accent" id="btnAddClips">
-              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
-              Add Clips
-            </button>
-            <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
-          </div>
-          <div class="playlist-list" id="playlistItems">
-            <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
-          </div>
-        </div>
-      </div>
-
       <!-- Play Filters -->
       <div class="sidebar-panel">
         <h3 class="panel-title" data-toggle="filterPanel">
           <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
-          Filter Plays
+          Filter &amp; Export Plays
           <span class="panel-badge" id="filterCount"></span>
         </h3>
         <div class="panel-body collapsed" id="filterPanel">
+          <p class="settings-note">These filters pick the plays for the <strong>Cut-Up Video</strong> export (More menu). The Film Room table has its own quick filters for browsing.</p>
           <div class="filter-grid">
             <div class="filter-group">
               <label>Down</label>
@@ -1103,6 +1030,82 @@
           </div>
           <div class="filter-actions">
             <button class="btn btn-sm btn-danger" id="btnClearFilters">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roster -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="rosterPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
+          Roster
+        </h3>
+        <div class="panel-body collapsed" id="rosterPanel">
+          <div class="roster-add">
+            <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
+            <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
+            <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
+            <select id="rosterSide" class="roster-add-side" title="Side of ball">
+              <option value="O">Off</option>
+              <option value="D">Def</option>
+              <option value="B">Both</option>
+            </select>
+            <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
+          </div>
+          <div class="roster-import-bar">
+            <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
+            <button class="btn btn-sm" id="btnDepthChart" type="button" title="Open a printable depth chart grouped by position">Depth Chart</button>
+          </div>
+          <div class="roster-import-area hidden" id="rosterImportArea">
+            <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
+            <div class="roster-import-actions">
+              <label class="btn btn-sm roster-import-file-label">
+                Choose CSV
+                <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
+              </label>
+              <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
+            </div>
+            <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
+          </div>
+          <div class="roster-list" id="rosterList"></div>
+        </div>
+      </div>
+
+      <!-- Playlist -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="playlistPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
+          Playlist
+          <span class="panel-badge" id="clipCount">0 clips</span>
+        </h3>
+        <div class="panel-body collapsed" id="playlistPanel">
+          <div class="playlist-controls">
+            <button class="btn btn-sm btn-accent" id="btnAddClips">
+              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
+              Add Clips
+            </button>
+            <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
+          </div>
+          <div class="playlist-list" id="playlistItems">
+            <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Version History -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="versionPanel">
+          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg>
+          Version History
+          <span class="panel-badge" id="versionCount">0</span>
+        </h3>
+        <div class="panel-body collapsed" id="versionPanel">
+          <div class="version-controls">
+            <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
+            <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
+          </div>
+          <div class="version-list" id="versionList">
+            <div class="version-empty">No saved versions yet.</div>
           </div>
         </div>
       </div>

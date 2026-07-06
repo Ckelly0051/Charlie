@@ -122,7 +122,7 @@ export class PlayGrid {
     this.section.innerHTML = `
       <div class="pg-head" id="pgHead">
         <button class="pg-collapse" id="pgCollapse" type="button" title="Show / hide the play grid">▾</button>
-        <span class="pg-title">Plays <span class="pg-count" id="pgCount"></span></span>
+        <span class="pg-title" title="The breakdown table — every play, spreadsheet-style">Film Room <span class="pg-count" id="pgCount"></span></span>
         <div class="pg-filters" id="pgFilters">
           <span class="pg-fgroup" data-group="unit">
             <button class="pg-chip" data-val="offense" type="button" title="Offense plays">Off</button>
@@ -153,6 +153,10 @@ export class PlayGrid {
         <button class="pg-chip pg-menu-btn" id="pgColsBtn" type="button" title="Choose columns">▦ Columns</button>
         <button class="btn btn-sm pg-watch" id="pgWatch" type="button" title="Play these back-to-back as a cut-up">▶ Watch</button>
       </div>
+      <div class="pg-edit-hint" id="pgEditHint" hidden>
+        <span>Click any cell to edit it in place — Enter saves &amp; moves down the column.</span>
+        <button type="button" id="pgHintX" title="Got it — dismiss">×</button>
+      </div>
       <div class="pg-body" id="pgBody">
         <table class="pg-table">
           <thead id="pgThead"></thead>
@@ -163,6 +167,16 @@ export class PlayGrid {
     this.rowsEl = this.section.querySelector('#pgRows');
     this.theadEl = this.section.querySelector('#pgThead');
     this.section.classList.toggle('collapsed', this.collapsed);
+    // One-time editability hint (UX audit C1: the killer feature had zero
+    // affordance). Shows until dismissed; the choice persists.
+    const hint = this.section.querySelector('#pgEditHint');
+    let hintOff = false;
+    try { hintOff = localStorage.getItem('ffa_film_room_hint_dismissed') === '1'; } catch (e) {}
+    if (hint && !hintOff) hint.hidden = false;
+    this.section.querySelector('#pgHintX')?.addEventListener('click', () => {
+      if (hint) hint.hidden = true;
+      try { localStorage.setItem('ffa_film_room_hint_dismissed', '1'); } catch (e) {}
+    });
   }
 
   _wire() {
