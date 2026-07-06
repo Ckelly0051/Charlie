@@ -8105,6 +8105,25 @@ body { font-size: 13px; }
 .pg-row.is-current td:first-child {
   box-shadow: inset 3px 0 0 var(--accent), 0 0 12px rgba(61,123,253,.22);
 }
+
+/* =====================================================================
+   UX PASS U1 — the trust layer.
+   ===================================================================== */
+/* Save-state on the top-bar Save button: ● while a debounced write is
+   armed, ✓ once persisted. State, not motion. */
+#btnSave.save-pending .btn-label::before { content: "● "; color: var(--warning); }
+#btnSave.save-ok .btn-label::before { content: "✓ "; }
+#btnSave.save-ok { background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text-dim); }
+#btnSave.save-ok .icon { opacity: .6; }
+
+/* Toast action button (e.g. "Deleted Play 12 — Undo"). */
+#undoToast .toast-action {
+  margin-left: 12px; padding: 2px 10px;
+  background: none; border: 1px solid var(--accent-border); border-radius: 5px;
+  color: var(--accent-hover); font-weight: 700; font-size: 12.5px;
+  cursor: pointer; font-family: inherit;
+}
+#undoToast .toast-action:hover { background: var(--accent-soft); }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8722,8 +8741,8 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
               <svg class="icon"><use href="#icon-film"/></svg> Cut-Up Video
             </button>
             <div class="more-divider"></div>
-            <button class="btn" id="btnSaveMenu" title="Save the season now and create a restore point">
-              <svg class="icon"><use href="#icon-save"/></svg> Save Season
+            <button class="btn" id="btnSaveMenu" title="Everything autosaves — this also creates a restore point (and writes/downloads a season file)">
+              <svg class="icon"><use href="#icon-save"/></svg> Save now + restore point
             </button>
             <button class="btn btn-highlight" id="btnSeason" title="Aggregate stats across multiple games">
               <svg class="icon"><use href="#icon-stats"/></svg> Season Stats
@@ -11803,6 +11822,14 @@ class PlayTagger {
     );
     if (!ok) return;
 
+    // In-situ recovery (UX audit A2): the deletion lands on the undo stack —
+    // offer Undo right in the toast instead of requiring Ctrl+Z knowledge.
+    const undoToast = () => {
+      if (this.toast) this.toast(`Deleted Play ${id}`, {
+        action: { label: 'Undo', fn: () => window.app?.history?.undo() },
+      });
+    };
+
     if (inPlaylist) {
       // removeClip() filters out the play, revokes its URL, fixes the active
       // index, and switches to an adjacent clip (keeping video + a valid
@@ -11812,6 +11839,7 @@ class PlayTagger {
       if (!this.playlist.hasClips && this.vc && typeof this.vc.unloadVideo === 'function') {
         this.vc.unloadVideo();
       }
+      undoToast();
       return;
     }
 
@@ -11824,6 +11852,7 @@ class PlayTagger {
     this._updatePlaySelect();
     this._updateTimeline();
     this._emit('play-deleted');
+    undoToast();
     if (this.plays.length > 0) {
       const next = this.plays[Math.min(Math.max(idx, 0), this.plays.length - 1)];
       if (next) this.selectPlay(next.id);
@@ -11877,6 +11906,13 @@ class PlayTagger {
     // form and only refresh on play-selected — re-announce the (now blank)
     // play so they don't stay lit and read as "the clear didn't work".
     if (play) this._emit('play-selected', play);
+    // In-situ recovery (UX audit A2): the clear is on the undo stack — offer
+    // it right here instead of requiring the coach to know Ctrl+Z.
+    if (play && this.toast) {
+      this.toast(`Cleared tags on Play ${id}`, {
+        action: { label: 'Undo', fn: () => window.app?.history?.undo() },
+      });
+    }
   }
 
   // --- Copy-from-previous + reusable tag templates ----------------------
@@ -15080,6 +15116,7 @@ class StorageManager {
 
   _autoSave() {
     clearTimeout(this.autoSaveTimer);
+    this._signalSave('pending');
     // Pin the season the edit belongs to. If the coach switches seasons before
     // the debounce fires, the backend pointer has moved — flushing then would
     // write THIS season's data into the OTHER season's slot (reproduced: a 1s
@@ -15090,6 +15127,12 @@ class StorageManager {
       if (this.seasonStore && this.seasonStore.currentSeasonId !== sid) return;
       this._commitAndPersist();
     }, 1000);
+  }
+
+  /** Surface save-state to the UI (App renders it on the top-bar Save button).
+   *  States: 'pending' (a debounced save is armed) → 'saved' (persisted). */
+  _signalSave(state) {
+    try { if (this.onSaveState) this.onSaveState(state); } catch (e) {}
   }
 
   /** Cancel debounced writes armed for the CURRENT season (call before leaving it). */
@@ -15105,6 +15148,7 @@ class StorageManager {
     this.commitActive();
     this.seasonStore.persist();
     this._maybeSnapshot();   // throttled auto restore-point
+    this._signalSave('saved');
   }
 
   /**
@@ -15419,6 +15463,14 @@ class StorageManager {
     // Risky op: force a restore point of the pre-delete state.
     this._maybeSnapshot(true, 'Before deleting game');
     const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    // Stash the node in memory so the post-delete toast can offer Undo (the
+    // undo stack is game-scoped by design — lesson #19 — so game deletion
+    // needs its own one-shot restore). Session-only, overwritten per delete.
+    const games = (this.seasonStore.data && this.seasonStore.data.games) || [];
+    const gi = games.findIndex(g => g.id === id);
+    this._lastDeletedGame = gi >= 0
+      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId }
+      : null;
     const backend = this.seasonStore.backend;
     if (backend.supportsFilm && backend.supportsFilm()) {
       backend.deleteFilm(id).catch(() => {});
@@ -15426,6 +15478,24 @@ class StorageManager {
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+  }
+
+  /** One-shot restore of the last deleted game (the Undo toast's action).
+   *  Refuses across a season switch — the stash belongs to its season. */
+  undoRemoveGame() {
+    const stash = this._lastDeletedGame;
+    if (!stash || !this.seasonStore.data) return false;
+    if (stash.seasonId !== this.seasonStore.currentSeasonId) return false;
+    const games = this.seasonStore.data.games;
+    if (games.some(g => g.id === stash.node.id)) return false;   // already back
+    games.splice(Math.min(stash.index, games.length), 0, stash.node);
+    this.seasonStore.persist();
+    this._lastDeletedGame = null;
+    // Refresh every games view that may be showing (all display-only).
+    try { window.app && window.app._updateSeasonChip && window.app._updateSeasonChip(); } catch (e) {}
+    try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
+    try { window.app && window.app.library && window.app.library._renderSchedule && window.app.library._renderSchedule(); } catch (e) {}
+    return true;
   }
 
   /** Add a legacy single-game project object as a game and switch to it. */
@@ -15516,6 +15586,7 @@ class StorageManager {
     this.commitActive();
     this.seasonStore.persist();
     this._maybeSnapshot(true, 'Manual save');
+    this._signalSave('saved');
     const st = this.seasonStore;
     if (st.supportsDisk() && !st.diskStatus().bound) {
       const bound = await st.bindDisk();         // prompt once for a backup folder
@@ -24149,14 +24220,34 @@ class HistoryManager {
     }
   }
 
-  _toast(msg) {
+  /**
+   * Show a toast. opts.action = { label, fn } renders an inline action button
+   * (e.g. "Deleted Play 12 — Undo"); opts.duration overrides the default.
+   * Built via DOM (textContent), never innerHTML — msg carries coach text
+   * (play/game names) and must stay inert (lesson #18).
+   */
+  _toast(msg, opts = {}) {
     if (!this.toastEl) return;
-    this.toastEl.textContent = msg;
+    this.toastEl.textContent = '';
+    this.toastEl.appendChild(document.createTextNode(msg));
+    if (opts.action && typeof opts.action.fn === 'function') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'toast-action';
+      btn.textContent = opts.action.label || 'Undo';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearTimeout(this._toastTimer);
+        this.toastEl.classList.remove('show');
+        try { opts.action.fn(); } catch (err) {}
+      });
+      this.toastEl.appendChild(btn);
+    }
     this.toastEl.classList.add('show');
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => {
       this.toastEl.classList.remove('show');
-    }, 1800);
+    }, opts.duration || (opts.action ? 6000 : 1800));
   }
 }
 
@@ -27516,12 +27607,18 @@ class SeasonLibrary {
     const name = g.name || 'this game';
     const plays = (g.plays || []).length;
     const tagger = window.app?.tagger;
-    const msg = `Delete "${name}"${plays ? ` and its ${plays} tagged play${plays === 1 ? '' : 's'}` : ''}? This can't be undone (a restore point is saved first).`;
+    const msg = `Delete "${name}"${plays ? ` and its ${plays} tagged play${plays === 1 ? '' : 's'}` : ''}? (A restore point is saved first.)`;
     const ok = tagger?._confirmDialog ? await tagger._confirmDialog(msg, 'Delete Game') : confirm(msg);
     if (!ok) return;
     storage.removeGame(id);
     this._renderSchedule();
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    // In-situ recovery (UX audit A2): stash-backed one-shot undo.
+    window.app?.history?._toast(`Deleted "${name}"`, {
+      action: { label: 'Undo', fn: () => {
+        if (storage.undoRemoveGame()) { this._renderSchedule(); window.app?.history?._toast('Game restored'); }
+      } },
+    });
   }
 
   _openGame(id) {
@@ -29462,7 +29559,10 @@ class App {
     // Probe the local CV backend and keep the status badge in sync
     this._bindBackendStatus();
 
-    // Enable auto-save
+    // Enable auto-save + surface its state on the top-bar Save button
+    // ("● Saving…" while a debounced write is armed → "✓ Saved" settled), so
+    // the coach always knows their work persisted (UX audit A1/C2).
+    this.storage.onSaveState = (s) => this._renderSaveState(s);
     this.storage.enableAutoSave();
 
     // Quick-chart save triggers auto-save via play-updated event
@@ -29907,12 +30007,18 @@ class App {
 
       card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season? This cannot be undone.`, 'Remove');
+        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season?`, 'Remove');
         if (!ok) return;
         this.storage.removeGame(g.id);
         this._updateSeasonChip();
         this._renderGamesPanel();
         this.season._renderAll?.();
+        // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
+        this.history?._toast(`Removed "${r.name}"`, {
+          action: { label: 'Undo', fn: () => {
+            if (this.storage.undoRemoveGame()) this.history?._toast('Game restored');
+          } },
+        });
       });
 
       list.appendChild(card);
@@ -31248,7 +31354,7 @@ class App {
 
     // Surface tagger feedback (e.g. "Mark the start first") through the
     // shared toast. Lazy lambda — history may not exist yet at bind time.
-    this.tagger.toast = (msg) => this.history?._toast(msg);
+    this.tagger.toast = (msg, opts) => this.history?._toast(msg, opts);
 
     // Enter inside yardage/distance saves & advances — the global Enter
     // shortcut ignores inputs, which forced a mouse trip to Save & Next on
@@ -31311,6 +31417,22 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
+  /** Render the autosave state on the top-bar Save button: "● Saving…" while
+   *  a debounced write is armed, settling to "✓ Saved". The button stays the
+   *  explicit-save action (Ctrl+S); this just makes persistence VISIBLE. */
+  _renderSaveState(state) {
+    const btn = document.getElementById('btnSave');
+    if (!btn) return;
+    const label = btn.querySelector('.btn-label');
+    btn.classList.toggle('save-pending', state === 'pending');
+    btn.classList.toggle('save-ok', state === 'saved');
+    if (label) label.textContent = state === 'pending' ? 'Saving…' : 'Saved';
+    if (!this._saveTitleSet) {
+      btn.title = 'Everything saves automatically. Click to save now + create a restore point (Ctrl+S).';
+      this._saveTitleSet = true;
+    }
+  }
+
   /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest
    *  action in the app. Pure class toggle; CSS renders it (and the ✓ shows
    *  even under prefers-reduced-motion — it's state, not motion). */
@@ -31567,7 +31689,10 @@ class App {
     applyBtn.addEventListener('click', () => {
       if (!lastParsed) return;
       const count = this.storage.applyPlayImport(lastParsed);
-      alert(`Imported ${count} play${count !== 1 ? 's' : ''}.`);
+      // Toast, not alert(): browsers suppress repeated native dialogs
+      // (lesson #8), and success feedback shouldn't block anyway.
+      if (count > 0) this.history?._toast(`Imported ${count} play${count !== 1 ? 's' : ''}`);
+      else this.history?._toast('No plays found in that file — check the column mapping');
       close();
     });
   }

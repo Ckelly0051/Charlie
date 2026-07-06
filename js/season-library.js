@@ -653,12 +653,18 @@ export class SeasonLibrary {
     const name = g.name || 'this game';
     const plays = (g.plays || []).length;
     const tagger = window.app?.tagger;
-    const msg = `Delete "${name}"${plays ? ` and its ${plays} tagged play${plays === 1 ? '' : 's'}` : ''}? This can't be undone (a restore point is saved first).`;
+    const msg = `Delete "${name}"${plays ? ` and its ${plays} tagged play${plays === 1 ? '' : 's'}` : ''}? (A restore point is saved first.)`;
     const ok = tagger?._confirmDialog ? await tagger._confirmDialog(msg, 'Delete Game') : confirm(msg);
     if (!ok) return;
     storage.removeGame(id);
     this._renderSchedule();
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    // In-situ recovery (UX audit A2): stash-backed one-shot undo.
+    window.app?.history?._toast(`Deleted "${name}"`, {
+      action: { label: 'Undo', fn: () => {
+        if (storage.undoRemoveGame()) { this._renderSchedule(); window.app?.history?._toast('Game restored'); }
+      } },
+    });
   }
 
   _openGame(id) {

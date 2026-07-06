@@ -537,6 +537,14 @@ export class PlayTagger {
     );
     if (!ok) return;
 
+    // In-situ recovery (UX audit A2): the deletion lands on the undo stack —
+    // offer Undo right in the toast instead of requiring Ctrl+Z knowledge.
+    const undoToast = () => {
+      if (this.toast) this.toast(`Deleted Play ${id}`, {
+        action: { label: 'Undo', fn: () => window.app?.history?.undo() },
+      });
+    };
+
     if (inPlaylist) {
       // removeClip() filters out the play, revokes its URL, fixes the active
       // index, and switches to an adjacent clip (keeping video + a valid
@@ -546,6 +554,7 @@ export class PlayTagger {
       if (!this.playlist.hasClips && this.vc && typeof this.vc.unloadVideo === 'function') {
         this.vc.unloadVideo();
       }
+      undoToast();
       return;
     }
 
@@ -558,6 +567,7 @@ export class PlayTagger {
     this._updatePlaySelect();
     this._updateTimeline();
     this._emit('play-deleted');
+    undoToast();
     if (this.plays.length > 0) {
       const next = this.plays[Math.min(Math.max(idx, 0), this.plays.length - 1)];
       if (next) this.selectPlay(next.id);
@@ -611,6 +621,13 @@ export class PlayTagger {
     // form and only refresh on play-selected — re-announce the (now blank)
     // play so they don't stay lit and read as "the clear didn't work".
     if (play) this._emit('play-selected', play);
+    // In-situ recovery (UX audit A2): the clear is on the undo stack — offer
+    // it right here instead of requiring the coach to know Ctrl+Z.
+    if (play && this.toast) {
+      this.toast(`Cleared tags on Play ${id}`, {
+        action: { label: 'Undo', fn: () => window.app?.history?.undo() },
+      });
+    }
   }
 
   // --- Copy-from-previous + reusable tag templates ----------------------

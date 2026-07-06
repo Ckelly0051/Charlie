@@ -172,13 +172,33 @@ export class HistoryManager {
     }
   }
 
-  _toast(msg) {
+  /**
+   * Show a toast. opts.action = { label, fn } renders an inline action button
+   * (e.g. "Deleted Play 12 — Undo"); opts.duration overrides the default.
+   * Built via DOM (textContent), never innerHTML — msg carries coach text
+   * (play/game names) and must stay inert (lesson #18).
+   */
+  _toast(msg, opts = {}) {
     if (!this.toastEl) return;
-    this.toastEl.textContent = msg;
+    this.toastEl.textContent = '';
+    this.toastEl.appendChild(document.createTextNode(msg));
+    if (opts.action && typeof opts.action.fn === 'function') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'toast-action';
+      btn.textContent = opts.action.label || 'Undo';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearTimeout(this._toastTimer);
+        this.toastEl.classList.remove('show');
+        try { opts.action.fn(); } catch (err) {}
+      });
+      this.toastEl.appendChild(btn);
+    }
     this.toastEl.classList.add('show');
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => {
       this.toastEl.classList.remove('show');
-    }, 1800);
+    }, opts.duration || (opts.action ? 6000 : 1800));
   }
 }

@@ -74,6 +74,7 @@ export class StorageManager {
 
   _autoSave() {
     clearTimeout(this.autoSaveTimer);
+    this._signalSave('pending');
     // Pin the season the edit belongs to. If the coach switches seasons before
     // the debounce fires, the backend pointer has moved — flushing then would
     // write THIS season's data into the OTHER season's slot (reproduced: a 1s
@@ -84,6 +85,12 @@ export class StorageManager {
       if (this.seasonStore && this.seasonStore.currentSeasonId !== sid) return;
       this._commitAndPersist();
     }, 1000);
+  }
+
+  /** Surface save-state to the UI (App renders it on the top-bar Save button).
+   *  States: 'pending' (a debounced save is armed) → 'saved' (persisted). */
+  _signalSave(state) {
+    try { if (this.onSaveState) this.onSaveState(state); } catch (e) {}
   }
 
   /** Cancel debounced writes armed for the CURRENT season (call before leaving it). */
@@ -99,6 +106,7 @@ export class StorageManager {
     this.commitActive();
     this.seasonStore.persist();
     this._maybeSnapshot();   // throttled auto restore-point
+    this._signalSave('saved');
   }
 
   /**
@@ -413,6 +421,14 @@ export class StorageManager {
     // Risky op: force a restore point of the pre-delete state.
     this._maybeSnapshot(true, 'Before deleting game');
     const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    // Stash the node in memory so the post-delete toast can offer Undo (the
+    // undo stack is game-scoped by design — lesson #19 — so game deletion
+    // needs its own one-shot restore). Session-only, overwritten per delete.
+    const games = (this.seasonStore.data && this.seasonStore.data.games) || [];
+    const gi = games.findIndex(g => g.id === id);
+    this._lastDeletedGame = gi >= 0
+      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId }
+      : null;
     const backend = this.seasonStore.backend;
     if (backend.supportsFilm && backend.supportsFilm()) {
       backend.deleteFilm(id).catch(() => {});
@@ -420,6 +436,24 @@ export class StorageManager {
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+  }
+
+  /** One-shot restore of the last deleted game (the Undo toast's action).
+   *  Refuses across a season switch — the stash belongs to its season. */
+  undoRemoveGame() {
+    const stash = this._lastDeletedGame;
+    if (!stash || !this.seasonStore.data) return false;
+    if (stash.seasonId !== this.seasonStore.currentSeasonId) return false;
+    const games = this.seasonStore.data.games;
+    if (games.some(g => g.id === stash.node.id)) return false;   // already back
+    games.splice(Math.min(stash.index, games.length), 0, stash.node);
+    this.seasonStore.persist();
+    this._lastDeletedGame = null;
+    // Refresh every games view that may be showing (all display-only).
+    try { window.app && window.app._updateSeasonChip && window.app._updateSeasonChip(); } catch (e) {}
+    try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
+    try { window.app && window.app.library && window.app.library._renderSchedule && window.app.library._renderSchedule(); } catch (e) {}
+    return true;
   }
 
   /** Add a legacy single-game project object as a game and switch to it. */
@@ -510,6 +544,7 @@ export class StorageManager {
     this.commitActive();
     this.seasonStore.persist();
     this._maybeSnapshot(true, 'Manual save');
+    this._signalSave('saved');
     const st = this.seasonStore;
     if (st.supportsDisk() && !st.diskStatus().bound) {
       const bound = await st.bindDisk();         // prompt once for a backup folder

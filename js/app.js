@@ -122,7 +122,10 @@ class App {
     // Probe the local CV backend and keep the status badge in sync
     this._bindBackendStatus();
 
-    // Enable auto-save
+    // Enable auto-save + surface its state on the top-bar Save button
+    // ("● Saving…" while a debounced write is armed → "✓ Saved" settled), so
+    // the coach always knows their work persisted (UX audit A1/C2).
+    this.storage.onSaveState = (s) => this._renderSaveState(s);
     this.storage.enableAutoSave();
 
     // Quick-chart save triggers auto-save via play-updated event
@@ -567,12 +570,18 @@ class App {
 
       card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season? This cannot be undone.`, 'Remove');
+        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season?`, 'Remove');
         if (!ok) return;
         this.storage.removeGame(g.id);
         this._updateSeasonChip();
         this._renderGamesPanel();
         this.season._renderAll?.();
+        // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
+        this.history?._toast(`Removed "${r.name}"`, {
+          action: { label: 'Undo', fn: () => {
+            if (this.storage.undoRemoveGame()) this.history?._toast('Game restored');
+          } },
+        });
       });
 
       list.appendChild(card);
@@ -1908,7 +1917,7 @@ class App {
 
     // Surface tagger feedback (e.g. "Mark the start first") through the
     // shared toast. Lazy lambda — history may not exist yet at bind time.
-    this.tagger.toast = (msg) => this.history?._toast(msg);
+    this.tagger.toast = (msg, opts) => this.history?._toast(msg, opts);
 
     // Enter inside yardage/distance saves & advances — the global Enter
     // shortcut ignores inputs, which forced a mouse trip to Save & Next on
@@ -1971,6 +1980,22 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
+  /** Render the autosave state on the top-bar Save button: "● Saving…" while
+   *  a debounced write is armed, settling to "✓ Saved". The button stays the
+   *  explicit-save action (Ctrl+S); this just makes persistence VISIBLE. */
+  _renderSaveState(state) {
+    const btn = document.getElementById('btnSave');
+    if (!btn) return;
+    const label = btn.querySelector('.btn-label');
+    btn.classList.toggle('save-pending', state === 'pending');
+    btn.classList.toggle('save-ok', state === 'saved');
+    if (label) label.textContent = state === 'pending' ? 'Saving…' : 'Saved';
+    if (!this._saveTitleSet) {
+      btn.title = 'Everything saves automatically. Click to save now + create a restore point (Ctrl+S).';
+      this._saveTitleSet = true;
+    }
+  }
+
   /** Brief "saved ✓" acknowledgment on Save & Next — closure for the hottest
    *  action in the app. Pure class toggle; CSS renders it (and the ✓ shows
    *  even under prefers-reduced-motion — it's state, not motion). */
@@ -2227,7 +2252,10 @@ class App {
     applyBtn.addEventListener('click', () => {
       if (!lastParsed) return;
       const count = this.storage.applyPlayImport(lastParsed);
-      alert(`Imported ${count} play${count !== 1 ? 's' : ''}.`);
+      // Toast, not alert(): browsers suppress repeated native dialogs
+      // (lesson #8), and success feedback shouldn't block anyway.
+      if (count > 0) this.history?._toast(`Imported ${count} play${count !== 1 ? 's' : ''}`);
+      else this.history?._toast('No plays found in that file — check the column mapping');
       close();
     });
   }
