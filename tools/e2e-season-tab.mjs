@@ -188,7 +188,7 @@ r = await page.evaluate(() => {
   };
 });
 ok(r.radius === '10px', 'KPI cards use the 10px hero radius (header CSS applied)', JSON.stringify(r));
-ok(r.bg === 'rgb(22, 27, 34)', 'KPI cards use the --gi-card surface', JSON.stringify(r));
+ok(r.bg === 'rgb(20, 26, 34)', 'KPI cards use the --gi-card surface (Theater booth slate #141A22)', JSON.stringify(r));
 ok(/Barlow Condensed/i.test(r.numFont), 'KPI numbers use the broadcast display font', JSON.stringify(r));
 
 console.log('\n== 4. Sub-tabs organize the 13 sections (Overview/Breakdown/Players/Self-Scout) ==');

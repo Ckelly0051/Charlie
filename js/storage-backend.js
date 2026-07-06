@@ -279,10 +279,15 @@ export class BrowserBackend extends StorageBackend {
   // ---- disk (File System Access API) ----
   supportsDisk() { return typeof window !== 'undefined' && 'showDirectoryPicker' in window; }
   diskStatus() {
+    // "bound" requires a REAL, named directory handle. A restored handle can
+    // deserialize without a usable .name (seen in the browser), which made the
+    // Season modal claim "Backing up to undefined" and attempt futile writes.
+    // Gate on the name so status + write-gating reflect an actual folder.
+    const name = (this.dirHandle && this.dirHandle.name) ? this.dirHandle.name : '';
     return {
       supported: this.supportsDisk(),
-      bound: !!this.dirHandle,
-      name: this.dirHandle ? this.dirHandle.name : '',
+      bound: !!name,
+      name,
       lastWrite: this._lastWrite,
     };
   }

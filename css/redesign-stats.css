@@ -9,18 +9,22 @@
 /* ==================================================================== */
 
 .stats-overlay {
-  --gi-panel:   #0e1217;
-  --gi-card:    #161b22;
-  --gi-card-2:  #1c232d;
-  --gi-line:    #232b36;
-  --gi-line-soft: #1a2129;
-  --gi-text:    #e8edf4;
-  --gi-dim:     #93a1b2;
-  --gi-faint:   #8a97a8;
-  --gi-blue:    #3b82f6;
-  --gi-amber:   #f59e0b;
-  --gi-green:   #22c55e;
-  --gi-red:     #ef4444;
+  /* Harmonized to the shipped Theater palette (v1.10.2) so the analytics
+     surfaces read as the same app: Midnight canvas, Booth-slate cards,
+     broadcast-blue accent, chalk text. Run-orange/pass-sky data ink already
+     matched and is unchanged. */
+  --gi-panel:   #0B0F14;   /* Midnight canvas */
+  --gi-card:    #141A22;   /* Booth slate */
+  --gi-card-2:  #1A212B;   /* second elevation */
+  --gi-line:    rgba(233,238,245,0.10);
+  --gi-line-soft: rgba(233,238,245,0.06);
+  --gi-text:    #E9EEF5;   /* chalk */
+  --gi-dim:     #9AA6B5;
+  --gi-faint:   #6E7A8A;
+  --gi-blue:    #3D7BFD;   /* accent, glow-bright (solid fills use --accent #2F6BF0) */
+  --gi-amber:   #FBBF24;
+  --gi-green:   #34D399;
+  --gi-red:     #F87171;
   --gi-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
   background: rgba(3, 6, 12, 0.82);
 }
@@ -166,7 +170,10 @@
 .stats-overlay .stats-table { font-size: 12px; }
 .stats-overlay .stats-table td,
 .stats-overlay .stats-table th { border-bottom: 1px solid var(--gi-line-soft); }
-.stats-overlay .stats-table td:first-child { color: var(--gi-dim); }
+.stats-overlay .stats-table td:first-child {
+  color: var(--gi-dim);
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .stats-overlay .stats-table th { color: var(--gi-faint); }
 .stats-overlay .stats-table tr.cut-row { cursor: pointer; }
 .stats-overlay .stats-table tr.cut-row:hover { background: rgba(59, 130, 246, 0.10); }

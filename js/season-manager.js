@@ -228,7 +228,8 @@ export class SeasonManager {
     if (folderBtn) folderBtn.style.display = '';
     if (d.bound) {
       const when = d.lastWrite ? new Date(d.lastWrite).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${this._escape(d.name)}</b></span> <span class="bk-dim">· last ${when}</span>`
+      const target = (d.name && d.name.trim()) ? this._escape(d.name) : 'a linked folder';
+      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${target}</b></span> <span class="bk-dim">· last ${when}</span>`
         + `<br><span class="bk-dim">This copy survives uninstall. ⚠ Choosing “Delete application data” when uninstalling still erases the app-data copy — use <b>Save Season</b> to export a file first.</span>`;
       if (folderBtn) folderBtn.textContent = 'Change Folder';
     } else {

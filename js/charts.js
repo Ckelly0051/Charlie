@@ -31,7 +31,7 @@ export class Charts {
       return arc;
     }).join('');
 
-    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#8b949e)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
+    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#E9EEF5)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#9AA6B5)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
 
     return `<svg class="chart-donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${arcs}${center}</svg>`;
   }
@@ -55,7 +55,7 @@ export class Charts {
     if (!maxVal) return '';
     const rows = data.map(d => {
       const pct = Math.max(2, (d.value / maxVal) * 100);
-      const color = d.color || 'var(--accent,#c9a227)';
+      const color = d.color || 'var(--accent,#2F6BF0)';
       return `<div class="chart-hbar-row"><span class="chart-hbar-label">${Charts._esc(d.label)}</span><div class="chart-hbar-track"><div class="chart-hbar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>${d.sub ? `<span class="chart-hbar-sub">${d.sub}</span>` : ''}</div><span class="chart-hbar-val">${d.extra || d.value}</span></div>`;
     }).join('');
     return `<div class="chart-hbars">${rows}</div>`;
@@ -87,7 +87,7 @@ export class Charts {
     const halfCirc = Math.PI * r;
     const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
 
-    return `<div class="chart-gauge"${tip ? ` title="${Charts._esc(tip)}"` : ''}><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#e6edf3)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
+    return `<div class="chart-gauge"${tip ? ` title="${Charts._esc(tip)}"` : ''}><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#E9EEF5)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
   }
 
   /**
@@ -101,7 +101,7 @@ export class Charts {
     const range = hi - lo || 1;
     const x = (i) => pad + (i / (values.length - 1)) * (W - 2 * pad);
     const y = (v) => H - pad - ((v - lo) / range) * (H - 2 * pad);
-    const color = opts.color || 'var(--accent,#c9a227)';
+    const color = opts.color || 'var(--accent,#2F6BF0)';
 
     const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
     const path = `M${pts.join(' L')}`;
@@ -109,7 +109,7 @@ export class Charts {
     const fill = opts.fill !== false
       ? `<path d="${path} L${(W - pad).toFixed(1)},${zeroY} L${pad},${zeroY} Z" fill="${color}" fill-opacity="0.08"/>`
       : '';
-    const zeroLine = lo < 0 ? `<line x1="${pad}" y1="${zeroY}" x2="${W - pad}" y2="${zeroY}" stroke="#3a4a6d" stroke-width="0.5" stroke-dasharray="3 3"/>` : '';
+    const zeroLine = lo < 0 ? `<line x1="${pad}" y1="${zeroY}" x2="${W - pad}" y2="${zeroY}" stroke="rgba(233,238,245,0.14)" stroke-width="0.5" stroke-dasharray="3 3"/>` : '';
 
     return `<svg class="chart-sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${zeroLine}${fill}<path d="${path}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${x(values.length - 1).toFixed(1)}" cy="${y(values[values.length - 1]).toFixed(1)}" r="2.5" fill="${color}"/></svg>`;
   }
@@ -131,7 +131,7 @@ export class Charts {
   static trendLine(points, opts = {}) {
     if (!points || points.length < 2) return '';
     const W = 400, H = 150;
-    const color = opts.color || '#3b82f6';
+    const color = opts.color || '#3D7BFD';
     const fmt = opts.fmt || ((v) => String(Math.round(v)));
     const padL = 12, padR = 12, padT = 22, padB = 26;
     const vals = points.map(p => p.value);
@@ -142,12 +142,17 @@ export class Charts {
     const path = 'M' + points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' L');
     const base = (H - padB).toFixed(1);
     const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padL.toFixed(1)},${base} Z`;
+    const last = points.length - 1;
     const marks = points.map((p, i) => {
-      const cx = x(i).toFixed(1), cy = y(p.value);
-      const short = Charts._esc((p.label || '').replace(/^vs\s+/i, '').slice(0, 9));
-      return `<circle cx="${cx}" cy="${cy.toFixed(1)}" r="3.5" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
-        + `<text x="${cx}" y="${(cy - 7).toFixed(1)}" fill="#e2e8f0" font-size="12" font-weight="700" text-anchor="middle" style="font-variant-numeric:tabular-nums">${fmt(p.value)}</text>`
-        + `<text x="${cx}" y="${H - 8}" fill="#7b8794" font-size="9" text-anchor="middle">${short}</text>`;
+      const cx = x(i), cxs = cx.toFixed(1), cy = y(p.value);
+      // End labels anchor to the padded box edge so the first game name can't
+      // spill off the left of the SVG and get clipped ("Riverside"→"iverside").
+      const anchor = i === 0 ? 'start' : i === last ? 'end' : 'middle';
+      const tx = (i === 0 ? padL : i === last ? W - padR : cx).toFixed(1);
+      const short = Charts._esc((p.label || '').replace(/^vs\s+/i, '').slice(0, 14));
+      return `<circle cx="${cxs}" cy="${cy.toFixed(1)}" r="3.5" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
+        + `<text x="${tx}" y="${(cy - 7).toFixed(1)}" fill="#E9EEF5" font-size="12" font-weight="700" text-anchor="${anchor}" style="font-variant-numeric:tabular-nums">${fmt(p.value)}</text>`
+        + `<text x="${tx}" y="${H - 8}" fill="#9AA6B5" font-size="9.5" text-anchor="${anchor}">${short}</text>`;
     }).join('');
     return `<div class="gi-trend"><div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
       + `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="gi-trend-svg" role="img" aria-label="${Charts._esc(opts.title || 'trend')}">`
@@ -192,11 +197,11 @@ export class Charts {
     const y = (v) => padT + (1 - (v - lo) / range) * (H - padT - padB);
 
     const zeroY = y(0).toFixed(1);
-    let grid = `<line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="#4a5a7d" stroke-width="1" stroke-dasharray="4 3"/>`;
+    let grid = `<line x1="${padL}" y1="${zeroY}" x2="${W - padR}" y2="${zeroY}" stroke="rgba(233,238,245,0.14)" stroke-width="1" stroke-dasharray="4 3"/>`;
     const gridSteps = [hi, Math.round(hi / 2), 0, Math.round(lo / 2), lo].filter((v, i, a) => a.indexOf(v) === i && v !== 0);
     gridSteps.forEach(v => {
       const gy = y(v).toFixed(1);
-      grid += `<text x="${padL - 4}" y="${(parseFloat(gy) + 3).toFixed(1)}" fill="#8b949e" font-size="9" text-anchor="end">${v}</text>`;
+      grid += `<text x="${padL - 4}" y="${(parseFloat(gy) + 3).toFixed(1)}" fill="#9AA6B5" font-size="9" text-anchor="end">${v}</text>`;
     });
 
     const pts = plays.map((p, i) => `${x(i).toFixed(1)},${y(p.cumYards).toFixed(1)}`);
@@ -208,6 +213,6 @@ export class Charts {
       return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" fill="${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
     }).join('');
 
-    return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#c9a227)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#c9a227)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#8b949e" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#8b949e" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#8b949e" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;
+    return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#2F6BF0)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#2F6BF0)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#9AA6B5" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#9AA6B5" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#9AA6B5" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;
   }
 }
