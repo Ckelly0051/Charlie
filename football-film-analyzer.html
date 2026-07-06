@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1D4ED8">
+  <meta name="theme-color" content="#0B0F14">
   <meta name="description" content="Football film analysis for coaches — tag plays, track stats, scout opponents.">
   <title>GridIron IQ</title>
   <style>
@@ -1188,17 +1188,17 @@ body {
 
 .timeline-play {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  border-radius: 3px;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 9px;
   color: var(--text-bright);
-  font-weight: 600;
-  opacity: 0.8;
+  font-weight: 700;
+  opacity: 0.92;
   transition: opacity var(--transition);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4612,7 +4612,7 @@ input:focus, select:focus, textarea:focus {
 }
 .pick kbd { color: var(--text-dim); border-color: var(--border-bright); }
 .pick.active kbd { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.4); }
-.tag-progress-fill { background: linear-gradient(90deg, #5278f0, #1D4ED8); }
+.tag-progress-fill { background: var(--accent); }
 .tag-progress-bar { background: var(--bg-surface); }
 .tag-chip { background: var(--accent); color: #fff; }
 .chip-details { border-top-color: var(--border); }
@@ -4630,16 +4630,19 @@ input:focus, select:focus, textarea:focus {
 .scrub-bar-plays .play-marker { background: var(--accent); opacity: 0.45; }
 .speed-select, .fps-input { background: var(--bg-secondary); color: var(--text); border-color: var(--border-bright); }
 
-/* --- Timeline play blocks --- */
-.timeline-play.run   { background: #1D4ED8; }
-.timeline-play.pass  { background: #0ea5e9; }
-/* Tagged but not run/pass (special teams, penalty, defense w/o run-pass): a
-   distinct solid hue so these read as TAGGED, never gray/empty. */
-.timeline-play.other { background: #8b5cf6; }
-/* Genuinely untagged: a faint ghost, clearly distinct from every tagged
-   segment above (it previously shared the gray 'other' and looked identical). */
-.timeline-play.untagged { background: rgba(148,163,184,0.25); }
-.timeline-play.active { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
+/* --- Field Strip play markers: data ink on turf --- */
+.timeline-play.run   { background: var(--run-color); color: #1A0D02; }
+.timeline-play.pass  { background: var(--pass-color); color: #06222E; }
+/* Tagged but not run/pass (special teams, penalty, defense w/o run-pass):
+   gold — the unit-category ink the Film Room grid already uses for ST. */
+.timeline-play.other { background: #c9a227; color: #241C03; }
+/* Genuinely untagged: a chalk ghost, clearly distinct from every tagged
+   marker (it previously shared the gray 'other' and looked identical). */
+.timeline-play.untagged { background: rgba(233,238,245,0.16); }
+.timeline-play.active {
+  box-shadow: 0 0 0 1px #fff, 0 0 10px 2px rgba(61,123,253,0.55);
+  opacity: 1;
+}
 
 /* --- Playlist --- */
 .playlist-item { background: var(--bg-tertiary); border: 1px solid transparent; }
@@ -5097,12 +5100,21 @@ body {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
 }
+/* THE FIELD STRIP — the play timeline is a football field: a turf band with
+   chalk yard hashes every 10% of its width; plays render as data-ink markers
+   along it. Hashes are pure CSS gradients (never DOM children — a real child
+   inside #timelineBar would defeat the :has(.timeline-bar:empty) collapse). */
 .video-timeline .timeline-strip {
-  height: 26px;
-  min-height: 26px;
+  height: 22px;
+  min-height: 22px;
   position: relative;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background:
+    repeating-linear-gradient(to right,
+      rgba(233,238,245,0.18) 0 1px, transparent 1px 10%),
+    repeating-linear-gradient(to right,
+      rgba(255,255,255,0.02) 0 5%, transparent 5% 10%),
+    linear-gradient(180deg, #1B4630 0%, #173B26 55%, #132F1F 100%);
+  border: 1px solid rgba(233,238,245,0.10);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -5661,15 +5673,15 @@ select, textarea, .compact-input, .yards-input, .play-select {
 .more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
 
 /* ---- Custom thin scrollbar for the tag column ---- */
-.tag-section { scrollbar-width: thin; scrollbar-color: #c1cad8 transparent; }
+.tag-section { scrollbar-width: thin; scrollbar-color: rgba(233,238,245,.22) transparent; }
 .tag-section::-webkit-scrollbar { width: 10px; }
 .tag-section::-webkit-scrollbar-track { background: transparent; }
 .tag-section::-webkit-scrollbar-thumb {
-  background: #c1cad8;
+  background: rgba(233,238,245,.22);
   border-radius: 999px;
   border: 3px solid var(--canvas);
 }
-.tag-section::-webkit-scrollbar-thumb:hover { background: #a9b5c6; }
+.tag-section::-webkit-scrollbar-thumb:hover { background: rgba(233,238,245,.34); }
 
 /* ---- Accessible focus ring ---- */
 .pick:focus-visible, .btn:focus-visible, .ctrl-btn:focus-visible,
@@ -5828,7 +5840,7 @@ select,
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
   padding-right: 36px !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%231e293b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%239AA6B5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 10px center !important;
   background-size: 16px 16px !important;
@@ -5839,14 +5851,14 @@ select:hover,
 .speed-select:hover,
 .filter-select:hover,
 .tag-row select:hover {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%234169e1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 select:focus,
 .play-select:focus,
 .speed-select:focus,
 .filter-select:focus,
 .tag-row select:focus {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%234169e1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 
 /* ================================================================== */
@@ -6845,21 +6857,21 @@ body {
 /* ================================================================== */
 .gi-update-banner { position: fixed; right: 18px; bottom: 18px; z-index: 99999;
   max-width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-.gi-update-card { background: #fff; color: #0f172a; border: 1px solid #cbd5e1;
-  border-radius: 12px; box-shadow: 0 16px 40px rgba(15,23,42,0.22); padding: 14px 16px; }
+.gi-update-card { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-bright);
+  border-radius: 12px; box-shadow: var(--shadow-lg); padding: 14px 16px; }
 .gi-update-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.gi-update-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D4ED8;
-  box-shadow: 0 0 0 3px rgba(16,24,40,0.18); }
-.gi-update-ver { margin-left: auto; color: #64748b; font-size: 12px; font-weight: 600; }
-.gi-update-notes { margin: 10px 0 4px; font-size: 12.5px; line-height: 1.45; color: #475569;
+.gi-update-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft); }
+.gi-update-ver { margin-left: auto; color: var(--text-dim); font-size: 12px; font-weight: 600; }
+.gi-update-notes { margin: 10px 0 4px; font-size: 12.5px; line-height: 1.45; color: var(--text-dim);
   max-height: 120px; overflow: auto; white-space: pre-wrap; }
-.gi-update-progress { height: 6px; background: #e2e8f0; border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
-.gi-update-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#5278f0,#1D4ED8); transition: width .15s ease; }
+.gi-update-progress { height: 6px; background: var(--bg-primary); border-radius: 4px; margin: 10px 0 4px; overflow: hidden; }
+.gi-update-bar { height: 100%; width: 0%; background: var(--accent); transition: width .15s ease; }
 .gi-update-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .gi-update-actions button { border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600;
-  cursor: pointer; border: 1px solid #cbd5e1; background: #f1f5f9; color: #0f172a; }
+  cursor: pointer; border: 1px solid var(--border-bright); background: var(--bg-tertiary); color: var(--text); }
 .gi-update-actions button:disabled { opacity: .6; cursor: default; }
-.gi-update-go { background: linear-gradient(180deg,#5278f0,#1D4ED8) !important; border-color: #2f4fc4 !important; color: #fff !important; }
+.gi-update-go { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
 .gi-update-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(8px);
   background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 99999;
   opacity: 0; transition: opacity .3s ease, transform .3s ease;
@@ -6876,7 +6888,7 @@ body {
   box-shadow: 0 24px 60px rgba(0,0,0,.5); padding: 24px; }
 .library-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .library-brand { font-size: 22px; font-weight: 700; color: #fff; }
-.library-brand b { color: #3b82f6; }
+.library-brand b { color: var(--accent); }
 .library-brand-sub { font-size: 13px; font-weight: 600; color: #8aa0bd; margin-left: 8px; }
 .library-intro { color: #9fb1c9; font-size: 14px; margin: 0 0 18px; }
 .library-new { margin-bottom: 18px; }
@@ -7031,10 +7043,10 @@ body {
 
 /* Season context chip (lives in the light top bar) */
 .season-chip-wrap { position: relative; display: inline-block; margin-left: 12px; }
-.season-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(47,109,240,.12);
-  border: 1px solid rgba(47,109,240,.4); color: #1d4ed8; border-radius: 999px; padding: 5px 12px;
+.season-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft);
+  border: 1px solid var(--accent-border); color: var(--accent-hover); border-radius: 999px; padding: 5px 12px;
   font-size: 13px; font-weight: 600; cursor: pointer; max-width: 320px; margin-left: 0; }
-.season-chip:hover { background: rgba(47,109,240,.2); }
+.season-chip:hover { background: rgba(61,123,253,.24); }
 .season-chip .icon { width: 14px; height: 14px; flex: 0 0 auto; }
 .season-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .season-chip-caret { font-size: 10px; opacity: .6; margin-left: 2px; }
@@ -7043,15 +7055,15 @@ body {
 /* Breadcrumb nav (Seasons ▸ Season ▸ Game) — replaces the old season chip */
 .breadcrumb { display: inline-flex; align-items: center; gap: 4px; }
 .breadcrumb[hidden] { display: none; }
-.bc-seg { display: inline-flex; align-items: center; gap: 5px; background: rgba(47,109,240,.1);
-  border: 1px solid rgba(47,109,240,.35); color: #1d4ed8; border-radius: 999px; padding: 5px 11px;
+.bc-seg { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-soft);
+  border: 1px solid var(--accent-border); color: var(--accent-hover); border-radius: 999px; padding: 5px 11px;
   font-size: 13px; font-weight: 600; cursor: pointer; max-width: 240px; transition: background .12s; }
-.bc-seg:hover { background: rgba(47,109,240,.2); }
+.bc-seg:hover { background: rgba(61,123,253,.24); }
 .bc-seg > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bc-home { padding: 5px 11px; font-weight: 700; }
-.bc-game { background: rgba(6,182,212,.1); border-color: rgba(6,182,212,.4); color: #0e7490; }
-.bc-game:hover { background: rgba(6,182,212,.2); }
-.bc-sep { color: rgba(15,23,42,.35); font-size: 11px; flex: 0 0 auto; }
+.bc-game { background: rgba(56,189,248,.10); border-color: rgba(56,189,248,.40); color: #38BDF8; }
+.bc-game:hover { background: rgba(56,189,248,.20); }
+.bc-sep { color: rgba(233,238,245,.30); font-size: 11px; flex: 0 0 auto; }
 
 /* Game switcher dropdown (anchored to season chip) */
 .game-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1100;
@@ -7450,7 +7462,7 @@ td.pg-cell-focus {
   border: 1px solid var(--chip-border, #cbd3e0);
   border-bottom-width: 2px;
   border-radius: 4px;
-  background: var(--bg, #f4f6fa);
+  background: var(--bg-elevated);
 }
 
 /* Rare result chips (FG / Good / No Good / Kneel / Spike / Safety) collapse
@@ -7475,49 +7487,51 @@ td.pg-cell-focus {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; box-sizing: border-box; text-align: left;
   padding: 11px 16px; margin: 0 0 12px;
-  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-  cursor: pointer; font: inherit; color: #0f172a;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px;
+  cursor: pointer; font: inherit; color: var(--text);
   transition: border-color .12s ease, background .12s ease;
 }
-.game-header-bar:hover { background: #f1f5f9; border-color: #cbd5e1; }
-.game-header-bar:focus-visible { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15); }
+.game-header-bar:hover { background: #212936; border-color: var(--border-bright); }
+.game-header-bar:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .game-header-bar .ghb-summary { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
 .game-header-bar .ghb-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.game-header-bar .ghb-name.is-empty { color: #94a3b8; font-weight: 500; }
-.game-header-bar .ghb-meta { font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-header-bar .ghb-name.is-empty { color: var(--text-hint); font-weight: 500; }
+.game-header-bar .ghb-meta { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .game-header-bar .ghb-edit-hint {
-  flex: none; font-size: 12px; font-weight: 600; color: #3b82f6;
-  border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 10px;
+  flex: none; font-size: 12px; font-weight: 600; color: var(--accent-hover);
+  border: 1px solid var(--border-bright); border-radius: 6px; padding: 3px 10px;
 }
-.game-header-bar:hover .ghb-edit-hint { border-color: #3b82f6; }
-.settings-note { font-size: 12px; color: #64748b; line-height: 1.5; margin: 0 0 12px; }
+.game-header-bar:hover .ghb-edit-hint { border-color: var(--accent); }
+.settings-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0 0 12px; }
 
 /* ---- Game menu modal — single create/edit surface ---- */
 .ng-modal-backdrop {
   position: fixed; inset: 0; z-index: 9000;
-  background: rgba(15, 23, 42, .55);
+  background: rgba(0, 0, 0, .62);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .ng-modal-backdrop.hidden { display: none; }
 .ng-modal {
   width: min(420px, 100%); box-sizing: border-box;
-  background: #fff; color: #0f172a; border-radius: 14px;
-  padding: 22px 22px 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+  background: var(--bg-elevated); color: var(--text);
+  border: 1px solid var(--border-bright); border-radius: 14px;
+  padding: 22px 22px 18px; box-shadow: var(--shadow-lg);
 }
 .ng-modal.ng-modal-wide { width: min(470px, 100%); }
 .ng-modal-title { margin: 0 0 4px; font-size: 19px; }
-.ng-modal-sub { margin: 0 0 14px; font-size: 13px; color: #64748b; }
+.ng-modal-sub { margin: 0 0 14px; font-size: 13px; color: var(--text-dim); }
 .ng-modal .ng-lbl {
-  display: block; font-size: 12px; font-weight: 600; color: #475569; margin: 12px 0 4px;
+  display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); margin: 12px 0 4px;
 }
-.ng-modal .ng-opt { font-weight: 400; color: #94a3b8; }
+.ng-modal .ng-opt { font-weight: 400; color: var(--text-hint); }
 .ng-modal .ng-input {
   width: 100%; box-sizing: border-box; font: inherit; padding: 9px 11px;
-  border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a;
+  border: 1px solid var(--border-bright); border-radius: 8px;
+  background: var(--bg-primary); color: var(--text);
 }
 .ng-modal select.ng-input { height: 38px; cursor: pointer; }
 .ng-modal .ng-input:focus {
-  outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, .15);
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);
 }
 .ng-modal .ng-row-2 { display: flex; gap: 12px; }
 .ng-modal .ng-row-2 .ng-col { display: flex; flex-direction: column; }
@@ -7549,61 +7563,67 @@ td.pg-cell-focus {
 .st-detail-row .st-field { margin: 0; }
 
 /* =====================================================================
-   DESIGN REFRESH v2 (v1.9.31) — consolidated token layer.
-   Appended LAST so it wins the cascade over the historical :root blocks
-   above for the LIGHT app UI. The stats dashboard re-scopes its own dark
-   palette under .stats-overlay (higher specificity), so it is unaffected
-   (CLAUDE.md lesson #13). "coach-grade desktop": flat, crisp, one tuned blue.
+   THE THEATER (v1.10.0) — consolidated token layer. THE winning :root:
+   appended last so it beats the historical blocks above (same proven
+   mechanism the light theme used — edit THIS block, never append another).
+   One identity: the film room, lights off. The video is the brightest
+   object on screen; chrome recedes; data ink glows. The stats dashboard
+   keeps its own scoped palette under .stats-overlay (untouched — e2e pins
+   its literals); the Lobby is already this world.
    ===================================================================== */
 :root {
-  /* Accent — tuned blue replaces the old royal-blue browser default */
-  --accent:            #1D4ED8;
-  --accent-hover:      #1741B6;
-  --accent-soft:       #EEF3FE;   /* solid tint */
-  --accent-border:     #B9CDF8;   /* border for multi-select selected chips */
+  /* Accent — broadcast blue, re-tuned for dark (brand #1D4ED8 goes muddy on
+     slate). Fill is #2F6BF0 so WHITE chip/button text clears WCAG AA (4.69:1);
+     the T6 selection halo uses a lighter blue on purpose (a glow is brighter
+     than its source) and --accent-hover stays bright for rings/links. */
+  --accent:            #2F6BF0;
+  --accent-hover:      #5B90FF;
+  --accent-soft:       rgba(47,107,240,0.16);   /* selected-row / key-badge tint */
+  --accent-border:     rgba(47,107,240,0.48);
   --highlight:         var(--accent);
   --highlight-hover:   var(--accent-hover);
   --highlight-soft:    var(--accent-soft);
 
-  /* Neutrals — one canvas, white surfaces, neutral (not blue-tinted) grays */
-  --canvas:            #F7F8FA;
-  --bg-primary:        #F7F8FA;
-  --bg-secondary:      #FFFFFF;
-  --bg-elevated:       #FFFFFF;
-  --bg-tertiary:       #F2F4F7;   /* sunken wells, inputs, idle chips */
-  --bg-surface:        #FFFFFF;
-  --surface:           #FFFFFF;
-  --border:            #E4E7EC;
-  --border-bright:     #CBD2DC;
+  /* Neutrals — Midnight canvas, Booth-slate surfaces; elevation by luminance */
+  --canvas:            #0B0F14;
+  --bg-primary:        #0B0F14;
+  --bg-secondary:      #141A22;
+  --bg-elevated:       #1A212B;
+  --bg-tertiary:       #1A212B;   /* sunken wells, inputs, idle chips */
+  --bg-surface:        #141A22;
+  --surface:           #141A22;
+  --border:            rgba(233,238,245,0.08);   /* chalk hairlines */
+  --border-bright:     rgba(233,238,245,0.16);
   --chip-border:       transparent;
 
-  /* Text — contrast-safe scale */
-  --text:              #131A26;
-  --text-dim:          #4B5565;   /* 7.5:1 on white */
-  --text-hint:         #667085;   /* placeholders, helper microcopy; 5.1:1 */
+  /* Text — chalk scale (contrast-safe on Midnight + Booth slate) */
+  --text:              #E9EEF5;
+  --text-dim:          #9AA6B5;
+  /* (hint bumped from #6E7A8A → #808B98 to clear 4.5:1 on Booth slate) */
+  --text-hint:         #808B98;
   --text-bright:       #FFFFFF;
 
-  /* Data ink — reserved for data, never chrome */
-  --run-color:         #EA580C;
-  --run-text:          #C2410C;
-  --run-soft:          #FFF1E7;
-  --pass-color:        #0284C7;
-  --pass-text:         #0369A1;
-  --pass-soft:         #E8F4FD;
-  --success:           #15803D;
-  --danger:            #B91C1C;
-  --warning:           #B45309;
+  /* Data ink — reserved for data, never chrome (the dashboard's own pair) */
+  --run-color:         #F97316;
+  --run-text:          #FB923C;
+  --run-soft:          rgba(249,115,22,0.14);
+  --pass-color:        #38BDF8;
+  --pass-text:         #38BDF8;
+  --pass-soft:         rgba(56,189,248,0.14);
+  --success:           #34D399;
+  --danger:            #F87171;
+  --warning:           #FBBF24;
 
-  /* Geometry — sharper */
+  /* Geometry — unchanged */
   --radius:            6px;
   --radius-lg:         10px;
   --radius-sm:         4px;
 
-  /* Shadows — flat by default; elevation only for floating layers */
+  /* Shadows — black-based; elevation only for floating layers */
   --shadow-xs:         none;
-  --shadow-sm:         0 1px 2px rgba(16,24,40,0.05);
-  --shadow-md:         0 4px 12px rgba(16,24,40,0.08);
-  --shadow-lg:         0 16px 40px rgba(16,24,40,0.16);
+  --shadow-sm:         0 1px 2px rgba(0,0,0,0.40);
+  --shadow-md:         0 6px 16px rgba(0,0,0,0.50);
+  --shadow-lg:         0 20px 50px rgba(0,0,0,0.60);
 
   --transition:        120ms cubic-bezier(.4,0,.2,1);
 }
@@ -7668,9 +7688,12 @@ body { font-size: 13px; }
   color: var(--text-dim); font-weight: 500; font-size: 12.5px;
   border-radius: var(--radius-sm); box-shadow: none; line-height: 1;
 }
-.pick:hover,
-.tag-section .pick:hover {
-  background: #E9ECF2; color: var(--text); border: none;
+/* Hover restyles only UNSELECTED chips — an active chip must keep its blue
+   fill even while the pointer is still on it (else a just-clicked chip shows
+   the hover fill until you mouse off — no immediate click confirmation). */
+.pick:not(.active):hover,
+.tag-section .pick:not(.active):hover {
+  background: #232B37; color: var(--text); border: none;
 }
 .pick.active,
 .tag-section .pick.active {
@@ -7776,7 +7799,7 @@ body { font-size: 13px; }
   letter-spacing: .06em; color: var(--text-hint); border-bottom: 1px solid var(--border);
 }
 .pg-row td { height: 32px; }
-.pg-row:hover td { background: #F7F8FA; }
+.pg-row:hover td { background: rgba(233,238,245,.05); }
 .pg-row.is-current td { background: var(--accent-soft); }
 .pg-row.is-current td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 .pg-c-yardage .pos { color: var(--success); font-weight: 600; }
@@ -7802,7 +7825,7 @@ body { font-size: 13px; }
    modal backdrop and adds a subtle, reduced-motion-safe entrance.
    ===================================================================== */
 .ffa-confirm-backdrop, .play-import-backdrop, .shortcuts-backdrop,
-.detect-review-backdrop { background: rgba(16,24,40,0.45); }
+.detect-review-backdrop { background: rgba(0,0,0,0.62); }
 
 @keyframes ffaModalIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 .ffa-confirm-card, .season-modal-content, .play-import-card,
@@ -7822,8 +7845,8 @@ body { font-size: 13px; }
    ===================================================================== */
 /* Chips washed out on the white tag-form panel — darker tonal fill, still
    borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
-.pick, .tag-section .pick { background: #E4E7EE; }
-.pick:hover, .tag-section .pick:hover { background: #D6DBE4; }
+.pick, .tag-section .pick { background: var(--bg-tertiary); }
+.pick:not(.active):hover, .tag-section .pick:not(.active):hover { background: #232B37; }
 
 /* Library actions: one aligned row (was inline-block → the demo button's icon
    knocked the baseline off), one primary (New Season); demo → secondary. */
@@ -7874,9 +7897,9 @@ body { font-size: 13px; }
 /* Wordmark — ONE mark. Condensed caps, IQ in blue (the hub's gold IQ dies). */
 .app-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; }
 .library-brand { font-family: var(--display); text-transform: uppercase; letter-spacing: .07em; }
-.library-brand b { color: #3b82f6; }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
+.library-brand b { color: var(--accent); }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
 .brand-bug { font-family: var(--display); text-transform: uppercase; letter-spacing: .08em; }
-.brand-bug b { color: #3b82f6; }
+.brand-bug b { color: var(--accent); }
 
 /* Game header — the matchup reads like a broadcast lower third. */
 .game-header-bar .ghb-name {
@@ -7953,7 +7976,7 @@ body { font-size: 13px; }
 .season-record {
   font-family: var(--display); font-size: 19px; font-weight: 700;
   font-variant-numeric: tabular-nums; letter-spacing: .04em;
-  color: #3b82f6; padding: 1px 9px; border: 1px solid rgba(59,130,246,.35);
+  color: var(--accent); padding: 1px 9px; border: 1px solid var(--accent-border);
   border-radius: 5px; margin-left: 2px; align-self: center;
 }
 .schedule-bar { display: flex; align-items: center; gap: 12px; }
@@ -7990,7 +8013,7 @@ body { font-size: 13px; }
    settle on the one hottest button. No transforms, no glows.
    ===================================================================== */
 /* Chip + button press: instant tactile darkening. */
-.pick:active { background: #CBD2DC; }
+.pick:active { background: #2A3441; }
 .pick.active:active { background: var(--accent-hover); }
 .btn:active { background: var(--bg-tertiary); }
 .btn.btn-accent:active, .btn.btn-highlight:active { background: var(--accent-hover); }
@@ -8007,6 +8030,81 @@ body { font-size: 13px; }
 
 /* Play-table row focus eases in rather than snapping (background only). */
 .pg-row td { transition: background 100ms ease; }
+
+/* =====================================================================
+   THE THEATER — print re-pin. The app is dark; paper is not. A raw
+   browser print (Ctrl+P) strips backgrounds by default, which would put
+   chalk text on white paper. Re-pin the core tokens to print-legible
+   values. (The call sheet + exported reports are standalone light
+   documents and never touch this.)
+   ===================================================================== */
+@media print {
+  :root {
+    --canvas: #fff; --bg-primary: #fff; --bg-secondary: #fff; --bg-elevated: #fff;
+    --bg-tertiary: #f2f2f2; --bg-surface: #fff; --surface: #fff;
+    --text: #111; --text-dim: #444; --text-hint: #666; --text-bright: #111;
+    --border: #ddd; --border-bright: #bbb;
+    --accent: #1D4ED8; --accent-hover: #1741B6; --accent-soft: #eef3fe; --accent-border: #b9cdf8;
+  }
+}
+
+/* Scorebug on the game breadcrumb segment — condensed tabular score, tinted
+   by result (W green / L red), with a FINAL underline state. Display-only. */
+.bc-score {
+  font-family: var(--display); font-weight: 700; font-size: 13.5px;
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+  letter-spacing: .04em; padding: 0 6px; border-radius: 4px; line-height: 1.5;
+  background: rgba(233,238,245,0.08); color: var(--text);
+}
+.bc-score.bc-score-w { background: rgba(52,211,153,0.14); color: #4ADE80; }
+.bc-score.bc-score-l { background: rgba(248,113,113,0.14); color: #F87171; }
+.bc-score[hidden] { display: none; }
+/* Give the game segment room for the scorebug; the name ellipsizes first. */
+.bc-seg.bc-game { max-width: 260px; gap: 7px; }
+/* No top-bar region may paint over another. The center drop-target clips to
+   its own box instead of spilling its 275px label over the breadcrumb (a
+   pre-existing overflow the scorebug made visible); the breadcrumb pills cap
+   their width so the center keeps a usable size. The video area holds the
+   primary Add-film zone — this top-bar one is the compact secondary. */
+.top-bar-center { overflow: hidden; }
+.top-bar-center .file-input-label {
+  max-width: 100%; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+#bcSeason { max-width: 190px; }
+/* The game name must be the (only) shrinkable item so the scorebug + caret
+   never spill past the pill: flex min-width:0 on the text, none on the rest. */
+.bc-seg.bc-game #bcGameText { min-width: 0; flex: 0 1 auto; }
+.bc-seg.bc-game .bc-score, .bc-seg.bc-game .season-chip-caret { flex: none; }
+/* The breadcrumb must SHRINK inside the top bar, not paint over the center
+   drop-target: extend the min-width:0 chain down to the segments so the game
+   pill's name ellipsizes when the bar tightens (was a pre-existing overflow —
+   the scorebug just made it visible more often). */
+.breadcrumb { min-width: 0; flex: 0 1 auto; }
+.breadcrumb .bc-seg { min-width: 44px; flex: 0 1 auto; }
+
+/* =====================================================================
+   THE THEATER T6 — selection glow. On dark, the selected element is the
+   brightest chrome on screen: a 1px bright ring + a soft halo. This
+   repeals the light theme's "no glow" rule (glow on white was mud; on
+   slate it's how selection reads). Static box-shadow — no motion, so it
+   stands under prefers-reduced-motion. Appended last to beat the several
+   `box-shadow: none` active rules from the historical light layers. */
+.pick.active,
+.tag-section .pick.active {
+  box-shadow: 0 0 0 1px rgba(123,164,255,.85), 0 2px 10px rgba(61,123,253,.40);
+}
+.unit-toggle .pick.active {
+  box-shadow: 0 0 0 1px rgba(123,164,255,.90), 0 2px 14px rgba(61,123,253,.50);
+}
+/* keep the lift on hover, just add the halo under it */
+.pick.active:hover {
+  box-shadow: 0 0 0 1px rgba(123,164,255,.9), 0 6px 18px rgba(0,0,0,.5);
+}
+/* the current play row in the Film Room: brighter edge + faint halo */
+.pg-row.is-current td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent), 0 0 12px rgba(61,123,253,.22);
+}
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8556,7 +8654,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
             <button class="bc-seg" id="bcSeason" title="Season schedule"><span id="bcSeasonText">Season</span></button>
             <span class="bc-sep" id="bcGameSep">▸</span>
             <button class="bc-seg bc-game" id="bcGame" title="Switch game">
-              <span id="bcGameText">Game</span><span class="season-chip-caret">▾</span>
+              <span id="bcGameText">Game</span><span class="bc-score" id="bcScore" hidden></span><span class="season-chip-caret">▾</span>
             </button>
           </nav>
           <div class="game-dropdown hidden" id="gameDropdown">
@@ -29282,7 +29380,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.9.32';
+const APP_VERSION = '1.10.0';
 
 class App {
   constructor() {
@@ -29727,6 +29825,24 @@ class App {
     if (seasonText) seasonText.textContent = d.seasonName || 'Season';
     const showGame = !!gameName;
     if (gameText) gameText.textContent = gameName;
+    // Scorebug — a broadcast bug on the game segment (score + FINAL state)
+    // from existing gameInfo. Display-only and a SEPARATE span: #bcGameText's
+    // content is pinned by e2e-onboarding and must stay just the name.
+    const scoreEl = document.getElementById('bcScore');
+    if (scoreEl) {
+      const gi = (game && game.gameInfo) || {};
+      const us = gi.scoreUs, them = gi.scoreThem;
+      const hasScore = us !== '' && us != null && them !== '' && them != null;
+      if (showGame && hasScore) {
+        scoreEl.textContent = `${us}–${them}`;
+        scoreEl.classList.toggle('bc-score-w', Number(us) > Number(them));
+        scoreEl.classList.toggle('bc-score-l', Number(us) < Number(them));
+        scoreEl.classList.toggle('bc-score-final', (game && game.status) === 'final');
+        scoreEl.hidden = false;
+      } else {
+        scoreEl.hidden = true;
+      }
+    }
     if (gameSeg) gameSeg.style.display = showGame ? '' : 'none';
     if (gameSep) gameSep.style.display = showGame ? '' : 'none';
     bc.hidden = false;
