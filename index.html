@@ -72,7 +72,7 @@
       <div class="top-bar-right">
         <button class="backend-status-badge offline" id="backendStatusBadge" type="button"
                 title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
-          ⚪ Heuristics
+          Auto-Detect: Basic
         </button>
         <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" disabled>
           <svg class="icon"><use href="assets/icons.svg#icon-prev-clip"/></svg>
@@ -281,7 +281,7 @@
 
           <!-- Tagging speed helpers: copy from previous play + reusable templates -->
           <div class="tag-helpers">
-            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copy scheme tags from the previous play (same formation/look)">⤓ Same as Last</button>
+            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copies the look from the previous play — formation, personnel, play type, defense. Result &amp; yards stay yours.">⤓ Same as Last</button>
             <select id="templateSelect" class="template-select" title="Apply a saved tag template">
               <option value="">Templates…</option>
             </select>
@@ -737,8 +737,8 @@
 
           <div class="tag-nav">
             <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
-            <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
-            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Move on without carrying this play's situation forward">Skip</button>
+            <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Next play, carrying the situation forward (Enter). Tags already save as you tap.">Save &amp; Next →</button>
+            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Next play WITHOUT carrying the situation forward. Your tags are already saved either way.">Skip ➝ next</button>
           </div>
 
           <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
@@ -1343,7 +1343,7 @@
           <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
-            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="assets/icons.svg#icon-play"/></svg> Explore a demo season</button>
+            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="assets/icons.svg#icon-play"/></svg> Explore a demo season <span class="btn-sub">2 games, fully tagged</span></button>
             <form class="library-form hidden" id="librarySeasonForm">
               <div class="lib-form-row">
                 <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>

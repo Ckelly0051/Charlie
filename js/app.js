@@ -40,7 +40,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.10.1';
 
 class App {
   constructor() {
@@ -789,6 +789,13 @@ class App {
     this._renderGameSummary();
     this._closeGameModal();
     this._afterNewGame();
+    // Hand the novice the next step: the empty video area now says why it's
+    // empty and what to do (UX audit B3).
+    if (this._gameModalMode === 'create') {
+      const dt = document.getElementById('dropzoneTitle');
+      if (dt) dt.textContent = 'Game created — now add the film';
+      this.history?._toast('Game created — add film to start tagging');
+    }
   }
 
   /** Build the always-visible header summary from the active game's info. */
@@ -1368,13 +1375,13 @@ class App {
     const updateBadge = (available) => {
       if (!badge) return;
       if (available) {
-        badge.textContent = '🟢 AI Server';
+        badge.textContent = 'Auto-Detect: Server';
         badge.classList.add('online');
         badge.classList.remove('offline');
         const caps = this.backend.getCapabilities();
         badge.title = `Local CV server online\n${caps.join('\n')}\nClick to re-probe`;
       } else {
-        badge.textContent = '⚪ Heuristics';
+        badge.textContent = 'Auto-Detect: Basic';
         badge.classList.add('offline');
         badge.classList.remove('online');
         badge.title = 'Auto-detect play boundaries — requires the companion server. See Settings → Setup.';

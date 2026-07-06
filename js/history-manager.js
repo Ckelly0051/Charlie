@@ -179,6 +179,9 @@ export class HistoryManager {
    * (play/game names) and must stay inert (lesson #18).
    */
   _toast(msg, opts = {}) {
+    // Lazy-fetch: init() may not have run yet (e.g. toasts from the library
+    // screen before any game is loaded) — the element exists from page load.
+    if (!this.toastEl) this.toastEl = document.getElementById('undoToast');
     if (!this.toastEl) return;
     this.toastEl.textContent = '';
     this.toastEl.appendChild(document.createTextNode(msg));

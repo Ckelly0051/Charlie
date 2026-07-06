@@ -8166,6 +8166,25 @@ body { font-size: 13px; }
 
 /* Cell-level hover cue: the grid is editable, say so on approach. */
 .pg-row td:not(.pg-c-check):hover { box-shadow: inset 0 0 0 1px var(--accent-border); cursor: pointer; }
+
+/* =====================================================================
+   UX PASS U4 — first-session guidance.
+   ===================================================================== */
+/* Clear Tags is a reset, not a delete — give it warning-tier identity so
+   it can't be confused with the red Delete Play beside it. */
+#btnClearTags { color: var(--warning); border-color: rgba(251,191,36,.35); }
+#btnClearTags:hover { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.55); color: var(--warning); }
+
+/* Demo button subtitle. */
+.btn-sub { font-size: 11px; color: var(--text-hint); font-weight: 500; margin-left: 4px; }
+
+/* Get Started checklist pulse — one attention beat after team setup. */
+.gs-pulse { animation: gsPulse 1s ease 2; }
+@keyframes gsPulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 2px var(--accent-border), 0 0 18px rgba(61,123,253,.35); }
+}
+@media (prefers-reduced-motion: reduce) { .gs-pulse { animation: none; } }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -8744,7 +8763,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
       <div class="top-bar-right">
         <button class="backend-status-badge offline" id="backendStatusBadge" type="button"
                 title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
-          ⚪ Heuristics
+          Auto-Detect: Basic
         </button>
         <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" disabled>
           <svg class="icon"><use href="#icon-prev-clip"/></svg>
@@ -8953,7 +8972,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 
           <!-- Tagging speed helpers: copy from previous play + reusable templates -->
           <div class="tag-helpers">
-            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copy scheme tags from the previous play (same formation/look)">⤓ Same as Last</button>
+            <button class="btn btn-sm" id="btnCopyPrev" type="button" title="Copies the look from the previous play — formation, personnel, play type, defense. Result &amp; yards stay yours.">⤓ Same as Last</button>
             <select id="templateSelect" class="template-select" title="Apply a saved tag template">
               <option value="">Templates…</option>
             </select>
@@ -9409,8 +9428,8 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 
           <div class="tag-nav">
             <button class="btn btn-sm" id="btnTagPrev" type="button" title="Previous play">← Prev</button>
-            <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Save &amp; next play (Enter)">Save &amp; Next →</button>
-            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Move on without carrying this play's situation forward">Skip</button>
+            <button class="btn btn-sm btn-accent tag-nav-main" id="btnTagSaveNext" type="button" title="Next play, carrying the situation forward (Enter). Tags already save as you tap.">Save &amp; Next →</button>
+            <button class="btn btn-sm" id="btnTagSkip" type="button" title="Next play WITHOUT carrying the situation forward. Your tags are already saved either way.">Skip ➝ next</button>
           </div>
 
           <!-- Play diagram (X's & O's) — below nav so it doesn't slow tagging flow -->
@@ -10015,7 +10034,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
-            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="#icon-play"/></svg> Explore a demo season</button>
+            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="#icon-play"/></svg> Explore a demo season <span class="btn-sub">2 games, fully tagged</span></button>
             <form class="library-form hidden" id="librarySeasonForm">
               <div class="lib-form-row">
                 <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
@@ -11749,13 +11768,25 @@ class PlayTagger {
     return untouched ? p : null;
   }
 
+  /** Marking needs film. Clicking Mark with nothing loaded used to no-op
+   *  silently — the #1 novice trap ("is the app broken?"). Loaded = the src
+   *  attribute (set by setSrc/loadUrl, removed by unloadVideo) or currentSrc. */
+  _requireVideo() {
+    const el = this.vc && this.vc.videoElement;
+    if (el && (el.getAttribute('src') || el.currentSrc)) return true;
+    this.toast?.('Load film first — drag a video in, or click Add Video above');
+    return false;
+  }
+
   markStart() {
+    if (!this._requireVideo()) return;
     this.pendingStart = this.vc.currentTime;
     this.btnMarkStart.textContent = `Start: ${this._fmt(this.pendingStart)}`;
     this.btnMarkStart.classList.add('btn-active');
   }
 
   markEnd() {
+    if (!this._requireVideo()) return;
     if (this.pendingStart === null) {
       this.toast?.('Mark the start first — press [ at the snap');
       return;
@@ -24299,6 +24330,9 @@ class HistoryManager {
    * (play/game names) and must stay inert (lesson #18).
    */
   _toast(msg, opts = {}) {
+    // Lazy-fetch: init() may not have run yet (e.g. toasts from the library
+    // screen before any game is loaded) — the element exists from page load.
+    if (!this.toastEl) this.toastEl = document.getElementById('undoToast');
     if (!this.toastEl) return;
     this.toastEl.textContent = '';
     this.toastEl.appendChild(document.createTextNode(msg));
@@ -27574,6 +27608,11 @@ class SeasonLibrary {
     this._renderTeamCard();
     this._render();   // surface the Get Started checklist now that a team exists
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    // Success moment (UX audit B8): confirm the handoff and point at the
+    // checklist, which pulses once so the eye lands on the next step.
+    window.app?.history?._toast(`Team saved — next: start a season`);
+    const cl = document.getElementById('getStartedChecklist');
+    if (cl) { cl.classList.remove('gs-pulse'); void cl.offsetWidth; cl.classList.add('gs-pulse'); }
   }
 
   _showTeamEdit(show) {
@@ -28537,7 +28576,7 @@ class UIPolish {
           <rect width="18" height="18" x="3" y="3" rx="2"/>
           <path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>
         </svg>
-        <div class="dropzone-title">Add game film</div>
+        <div class="dropzone-title" id="dropzoneTitle">Add game film</div>
         <div class="dropzone-actions">
           <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
           <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
@@ -29581,7 +29620,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.10.1';
 
 class App {
   constructor() {
@@ -30330,6 +30369,13 @@ class App {
     this._renderGameSummary();
     this._closeGameModal();
     this._afterNewGame();
+    // Hand the novice the next step: the empty video area now says why it's
+    // empty and what to do (UX audit B3).
+    if (this._gameModalMode === 'create') {
+      const dt = document.getElementById('dropzoneTitle');
+      if (dt) dt.textContent = 'Game created — now add the film';
+      this.history?._toast('Game created — add film to start tagging');
+    }
   }
 
   /** Build the always-visible header summary from the active game's info. */
@@ -30909,13 +30955,13 @@ class App {
     const updateBadge = (available) => {
       if (!badge) return;
       if (available) {
-        badge.textContent = '🟢 AI Server';
+        badge.textContent = 'Auto-Detect: Server';
         badge.classList.add('online');
         badge.classList.remove('offline');
         const caps = this.backend.getCapabilities();
         badge.title = `Local CV server online\n${caps.join('\n')}\nClick to re-probe`;
       } else {
-        badge.textContent = '⚪ Heuristics';
+        badge.textContent = 'Auto-Detect: Basic';
         badge.classList.add('offline');
         badge.classList.remove('online');
         badge.title = 'Auto-detect play boundaries — requires the companion server. See Settings → Setup.';

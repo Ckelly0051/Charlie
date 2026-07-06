@@ -528,6 +528,11 @@ export class SeasonLibrary {
     this._renderTeamCard();
     this._render();   // surface the Get Started checklist now that a team exists
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
+    // Success moment (UX audit B8): confirm the handoff and point at the
+    // checklist, which pulses once so the eye lands on the next step.
+    window.app?.history?._toast(`Team saved — next: start a season`);
+    const cl = document.getElementById('getStartedChecklist');
+    if (cl) { cl.classList.remove('gs-pulse'); void cl.offsetWidth; cl.classList.add('gs-pulse'); }
   }
 
   _showTeamEdit(show) {

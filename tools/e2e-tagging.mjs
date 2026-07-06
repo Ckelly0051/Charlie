@@ -189,6 +189,15 @@ r = await page.evaluate(() => {
   let toasted = '';
   const orig = t.toast;
   t.toast = (m) => { toasted = m; };
+  // 9a. NO film loaded: marks guard with "load film first" (UX pass U4) —
+  // never a silent no-op, never a bogus play.
+  t.pendingStart = null;
+  t.markEnd();
+  const noFilm = { toasted, count: t.plays.length };
+  // 9b/9c. Film "loaded" (the src attribute is what setSrc/loadUrl set and
+  // unloadVideo removes): the ordering toasts fire as before.
+  t.vc.videoElement.setAttribute('src', 'blob:test-stub');
+  toasted = '';
   t.pendingStart = null;
   t.markEnd();
   const noStart = { toasted, count: t.plays.length };
@@ -197,9 +206,12 @@ r = await page.evaluate(() => {
   t.markEnd();
   const badEnd = { toasted, count: t.plays.length };
   t.pendingStart = null;
+  t.vc.videoElement.removeAttribute('src');
   t.toast = orig;
-  return { before, noStart, badEnd };
+  return { before, noFilm, noStart, badEnd };
 });
+ok(r.noFilm.count === r.before && /load film/i.test(r.noFilm.toasted),
+   'no film -> "load film first" guard toast, no bogus play', JSON.stringify(r.noFilm));
 ok(r.noStart.count === r.before && /start/i.test(r.noStart.toasted),
    'no pending start -> toast, no bogus 0:00 play', JSON.stringify(r.noStart));
 ok(r.badEnd.count === r.before && /after/i.test(r.badEnd.toasted),

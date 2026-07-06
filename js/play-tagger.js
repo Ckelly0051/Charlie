@@ -418,13 +418,25 @@ export class PlayTagger {
     return untouched ? p : null;
   }
 
+  /** Marking needs film. Clicking Mark with nothing loaded used to no-op
+   *  silently — the #1 novice trap ("is the app broken?"). Loaded = the src
+   *  attribute (set by setSrc/loadUrl, removed by unloadVideo) or currentSrc. */
+  _requireVideo() {
+    const el = this.vc && this.vc.videoElement;
+    if (el && (el.getAttribute('src') || el.currentSrc)) return true;
+    this.toast?.('Load film first — drag a video in, or click Add Video above');
+    return false;
+  }
+
   markStart() {
+    if (!this._requireVideo()) return;
     this.pendingStart = this.vc.currentTime;
     this.btnMarkStart.textContent = `Start: ${this._fmt(this.pendingStart)}`;
     this.btnMarkStart.classList.add('btn-active');
   }
 
   markEnd() {
+    if (!this._requireVideo()) return;
     if (this.pendingStart === null) {
       this.toast?.('Mark the start first — press [ at the snap');
       return;

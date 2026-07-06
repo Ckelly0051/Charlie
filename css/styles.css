@@ -8153,3 +8153,22 @@ body { font-size: 13px; }
 
 /* Cell-level hover cue: the grid is editable, say so on approach. */
 .pg-row td:not(.pg-c-check):hover { box-shadow: inset 0 0 0 1px var(--accent-border); cursor: pointer; }
+
+/* =====================================================================
+   UX PASS U4 — first-session guidance.
+   ===================================================================== */
+/* Clear Tags is a reset, not a delete — give it warning-tier identity so
+   it can't be confused with the red Delete Play beside it. */
+#btnClearTags { color: var(--warning); border-color: rgba(251,191,36,.35); }
+#btnClearTags:hover { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.55); color: var(--warning); }
+
+/* Demo button subtitle. */
+.btn-sub { font-size: 11px; color: var(--text-hint); font-weight: 500; margin-left: 4px; }
+
+/* Get Started checklist pulse — one attention beat after team setup. */
+.gs-pulse { animation: gsPulse 1s ease 2; }
+@keyframes gsPulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 2px var(--accent-border), 0 0 18px rgba(61,123,253,.35); }
+}
+@media (prefers-reduced-motion: reduce) { .gs-pulse { animation: none; } }
