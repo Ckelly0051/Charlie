@@ -284,10 +284,27 @@ class App {
     if (!dropdown) return;
     this._renderGameDropdown();
     dropdown.classList.remove('hidden');
+    document.getElementById('bcGame')?.setAttribute('aria-expanded', 'true');
+    // Arrow-key navigation: focus the first game row; Up/Down move, Enter opens.
+    const rows = [...dropdown.querySelectorAll('.gd-row')];
+    rows.forEach(r => r.setAttribute('tabindex', '-1'));
+    if (!dropdown._navBound) {
+      dropdown._navBound = true;
+      dropdown.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        const rs = [...dropdown.querySelectorAll('.gd-row')];
+        if (!rs.length) return;
+        const i = rs.indexOf(document.activeElement);
+        rs[(i + (e.key === 'ArrowDown' ? 1 : -1) + rs.length) % rs.length].focus();
+      });
+    }
+    if (rows[0]) rows[0].focus();
   }
 
   _closeGameDropdown() {
     document.getElementById('gameDropdown')?.classList.add('hidden');
+    document.getElementById('bcGame')?.setAttribute('aria-expanded', 'false');
   }
 
   _renderGameDropdown() {
@@ -407,6 +424,7 @@ class App {
       modal.innerHTML = `
         <div class="finish-game-backdrop"></div>
         <div class="finish-game-card">
+          <button type="button" class="ng-modal-x" data-fg="close" title="Close" aria-label="Close">×</button>
           <h3>Finish Game: ${this._esc(name)}</h3>
           ${hasScore
             ? `<p>Final score: ${this._esc(gi.scoreUs)}-${this._esc(gi.scoreThem)}. Mark this game as complete?</p>`
@@ -457,6 +475,7 @@ class App {
 
       document.addEventListener('keydown', onKey, true);
       modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
+      modal.querySelector('[data-fg="close"]')?.addEventListener('click', () => close(null));
       modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
       modal.querySelector('#finishConfirm').addEventListener('click', confirm);
 
@@ -705,6 +724,7 @@ class App {
   _bindGameModal() {
     document.getElementById('gmSave')?.addEventListener('click', () => this._confirmGameModal());
     document.getElementById('gmCancel')?.addEventListener('click', () => this._cancelGameModal());
+    document.getElementById('gmClose')?.addEventListener('click', () => this._cancelGameModal());
     document.getElementById('btnEditGame')?.addEventListener('click', () => this._openGameModal('edit'));
     const modal = document.getElementById('gameModal');
     modal?.addEventListener('click', (e) => { if (e.target === modal) this._cancelGameModal(); });
@@ -2183,6 +2203,15 @@ class App {
     closeBtn.addEventListener('click', close);
     cancelBtn.addEventListener('click', close);
     backdrop.addEventListener('click', close);
+    // Esc closes (the one modal that lacked it — UX audit A4), and while the
+    // modal is open, swallow key events in capture phase so the app's global
+    // single-letter tag shortcuts can't fire underneath. stopPropagation
+    // doesn't block typing in the textarea — only other listeners.
+    document.addEventListener('keydown', (e) => {
+      if (modal.classList.contains('hidden')) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      e.stopPropagation();
+    }, true);
 
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -2199,9 +2228,9 @@ class App {
 
     parseBtn.addEventListener('click', () => {
       const text = textArea.value;
-      if (!text.trim()) { alert('Paste or upload CSV data first.'); return; }
+      if (!text.trim()) { this.history?._toast('Paste or upload CSV data first'); return; }
       const parsed = this.storage.importPlaysFromText(text);
-      if (parsed.error) { alert(parsed.error); return; }
+      if (parsed.error) { this.history?._toast(parsed.error); return; }
       lastParsed = parsed;
 
       // Show column mapping

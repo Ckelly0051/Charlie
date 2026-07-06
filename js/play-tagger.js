@@ -747,7 +747,10 @@ export class PlayTagger {
       });
       document.body.appendChild(overlay);
       const cleanup = (val) => { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(val); };
-      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); } };
+      const onKey = (e) => {
+        if (this._trapTab(e, overlay)) return;
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
+      };
       overlay.addEventListener('click', (e) => {
         const key = e.target.dataset ? e.target.dataset.key : null;
         if (key) cleanup(key);
@@ -757,6 +760,18 @@ export class PlayTagger {
       const first = overlay.querySelector('[data-key]');
       if (first) first.focus();
     });
+  }
+
+  /** Keep Tab inside an open dialog — cycle its visible buttons/inputs.
+   *  Returns true when the event was a handled Tab (caller returns early). */
+  _trapTab(e, overlay) {
+    if (e.key !== 'Tab') return false;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const f = [...overlay.querySelectorAll('button, input')].filter(el => el.offsetParent !== null);
+    if (!f.length) return true;
+    const i = f.indexOf(document.activeElement);
+    f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+    return true;
   }
 
   _confirmDialog(message, confirmLabel = 'Delete') {
@@ -786,6 +801,7 @@ export class PlayTagger {
         resolve(val);
       };
       const onKey = (e) => {
+        if (this._trapTab(e, overlay)) return;
         if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(false); }
         else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(true); }
       };
@@ -837,6 +853,7 @@ export class PlayTagger {
         resolve(val);
       };
       const onKey = (e) => {
+        if (this._trapTab(e, overlay)) return;
         if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
         else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(input.value); }
         else e.stopPropagation();   // typing must not fire tagging shortcuts

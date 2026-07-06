@@ -29,6 +29,9 @@ export class UIPolish {
     const open = () => {
       menu.classList.remove('hidden');
       btn.setAttribute('aria-expanded', 'true');
+      // Focus the first item so arrow keys walk the menu immediately.
+      const first = menu.querySelector('button');
+      if (first) setTimeout(() => first.focus(), 0);
     };
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -37,6 +40,15 @@ export class UIPolish {
     // Close when clicking inside a menu item button (let its handler run)
     menu.addEventListener('click', (e) => {
       if (e.target.closest('button')) setTimeout(close, 0);
+    });
+    // Arrow-key navigation inside the open menu (menus are keyboard-walkable).
+    menu.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      const items = [...menu.querySelectorAll('button')].filter(el => el.offsetParent !== null);
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement);
+      items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
     });
     document.addEventListener('click', (e) => {
       if (!menu.contains(e.target) && e.target !== btn) close();

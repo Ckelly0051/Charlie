@@ -199,6 +199,15 @@ export class StatsEngine {
     if (this.btnCloseStats) {
       this.btnCloseStats.addEventListener('click', () => this.hideDashboard());
     }
+    // Esc dismisses the dashboard like every other overlay (UX audit A3).
+    // Defer to anything layered above: an in-app dialog owns Esc in capture
+    // phase already; the game dropdown stopImmediatePropagation()s its own.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!this.dashboardEl || this.dashboardEl.classList.contains('hidden')) return;
+      if (document.getElementById('ffaConfirmModal')) return;
+      this.hideDashboard();
+    });
   }
 
   showDashboard() {

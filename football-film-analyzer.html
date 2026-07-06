@@ -8124,6 +8124,22 @@ body { font-size: 13px; }
   cursor: pointer; font-family: inherit;
 }
 #undoToast .toast-action:hover { background: var(--accent-soft); }
+
+/* =====================================================================
+   UX PASS U2 — convention compliance.
+   ===================================================================== */
+/* × close on the larger modals (Game Settings, Finish Game). */
+.ng-modal, .finish-game-card { position: relative; }
+.ng-modal-x {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; line-height: 1; padding: 4px 8px;
+  color: var(--text-hint); border-radius: var(--radius-sm);
+}
+.ng-modal-x:hover { color: var(--text); background: var(--bg-tertiary); }
+
+/* Focused game-dropdown row (arrow-key navigation). */
+.gd-row:focus-visible { outline: none; background: var(--accent-soft); }
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -10111,6 +10127,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
        _loadGameInfo reference them by ID). Date is the sort key (Hudl model). -->
   <div class="ng-modal-backdrop hidden" id="gameModal">
     <div class="ng-modal ng-modal-wide" role="dialog" aria-modal="true" aria-label="Game settings">
+      <button type="button" class="ng-modal-x" id="gmClose" title="Close" aria-label="Close">×</button>
       <h3 class="ng-modal-title" id="gmTitle">New Game</h3>
       <p class="ng-modal-sub">Everything about this game in one place.</p>
 
@@ -12032,7 +12049,10 @@ class PlayTagger {
       });
       document.body.appendChild(overlay);
       const cleanup = (val) => { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(val); };
-      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); } };
+      const onKey = (e) => {
+        if (this._trapTab(e, overlay)) return;
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
+      };
       overlay.addEventListener('click', (e) => {
         const key = e.target.dataset ? e.target.dataset.key : null;
         if (key) cleanup(key);
@@ -12042,6 +12062,18 @@ class PlayTagger {
       const first = overlay.querySelector('[data-key]');
       if (first) first.focus();
     });
+  }
+
+  /** Keep Tab inside an open dialog — cycle its visible buttons/inputs.
+   *  Returns true when the event was a handled Tab (caller returns early). */
+  _trapTab(e, overlay) {
+    if (e.key !== 'Tab') return false;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const f = [...overlay.querySelectorAll('button, input')].filter(el => el.offsetParent !== null);
+    if (!f.length) return true;
+    const i = f.indexOf(document.activeElement);
+    f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+    return true;
   }
 
   _confirmDialog(message, confirmLabel = 'Delete') {
@@ -12071,6 +12103,7 @@ class PlayTagger {
         resolve(val);
       };
       const onKey = (e) => {
+        if (this._trapTab(e, overlay)) return;
         if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(false); }
         else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(true); }
       };
@@ -12122,6 +12155,7 @@ class PlayTagger {
         resolve(val);
       };
       const onKey = (e) => {
+        if (this._trapTab(e, overlay)) return;
         if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
         else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(input.value); }
         else e.stopPropagation();   // typing must not fire tagging shortcuts
@@ -19538,6 +19572,15 @@ class StatsEngine {
     if (this.btnCloseStats) {
       this.btnCloseStats.addEventListener('click', () => this.hideDashboard());
     }
+    // Esc dismisses the dashboard like every other overlay (UX audit A3).
+    // Defer to anything layered above: an in-app dialog owns Esc in capture
+    // phase already; the game dropdown stopImmediatePropagation()s its own.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!this.dashboardEl || this.dashboardEl.classList.contains('hidden')) return;
+      if (document.getElementById('ffaConfirmModal')) return;
+      this.hideDashboard();
+    });
   }
 
   showDashboard() {
@@ -26163,6 +26206,9 @@ class PlayGrid {
    *  mousedown or Esc; swallows its own keydowns so the app's global
    *  single-letter shortcuts can't fire underneath. */
   _popover(anchor, contentEl, onClose) {
+    // One popover at a time: opening any (cell editor, Columns, Filters)
+    // closes whatever is already open — stacked popovers collided (audit A9).
+    if (this._openPop) { try { this._openPop.close(); } catch (e) {} }
     const pop = document.createElement('div');
     pop.className = 'pg-pop';
     pop.appendChild(contentEl);
@@ -26178,6 +26224,7 @@ class PlayGrid {
     const close = () => {
       if (closed) return;
       closed = true;
+      if (this._openPop && this._openPop.el === pop) this._openPop = null;
       document.removeEventListener('mousedown', onDown, true);
       document.removeEventListener('keydown', onKey, true);
       pop.remove();
@@ -26189,7 +26236,9 @@ class PlayGrid {
     };
     document.addEventListener('mousedown', onDown, true);
     document.addEventListener('keydown', onKey, true);
-    return { el: pop, close };
+    const handle = { el: pop, close };
+    this._openPop = handle;
+    return handle;
   }
 
   // ---------- Bulk watch ----------
@@ -28250,6 +28299,9 @@ class UIPolish {
     const open = () => {
       menu.classList.remove('hidden');
       btn.setAttribute('aria-expanded', 'true');
+      // Focus the first item so arrow keys walk the menu immediately.
+      const first = menu.querySelector('button');
+      if (first) setTimeout(() => first.focus(), 0);
     };
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -28258,6 +28310,15 @@ class UIPolish {
     // Close when clicking inside a menu item button (let its handler run)
     menu.addEventListener('click', (e) => {
       if (e.target.closest('button')) setTimeout(close, 0);
+    });
+    // Arrow-key navigation inside the open menu (menus are keyboard-walkable).
+    menu.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      const items = [...menu.querySelectorAll('button')].filter(el => el.offsetParent !== null);
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement);
+      items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
     });
     document.addEventListener('click', (e) => {
       if (!menu.contains(e.target) && e.target !== btn) close();
@@ -29721,10 +29782,27 @@ class App {
     if (!dropdown) return;
     this._renderGameDropdown();
     dropdown.classList.remove('hidden');
+    document.getElementById('bcGame')?.setAttribute('aria-expanded', 'true');
+    // Arrow-key navigation: focus the first game row; Up/Down move, Enter opens.
+    const rows = [...dropdown.querySelectorAll('.gd-row')];
+    rows.forEach(r => r.setAttribute('tabindex', '-1'));
+    if (!dropdown._navBound) {
+      dropdown._navBound = true;
+      dropdown.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        const rs = [...dropdown.querySelectorAll('.gd-row')];
+        if (!rs.length) return;
+        const i = rs.indexOf(document.activeElement);
+        rs[(i + (e.key === 'ArrowDown' ? 1 : -1) + rs.length) % rs.length].focus();
+      });
+    }
+    if (rows[0]) rows[0].focus();
   }
 
   _closeGameDropdown() {
     document.getElementById('gameDropdown')?.classList.add('hidden');
+    document.getElementById('bcGame')?.setAttribute('aria-expanded', 'false');
   }
 
   _renderGameDropdown() {
@@ -29844,6 +29922,7 @@ class App {
       modal.innerHTML = `
         <div class="finish-game-backdrop"></div>
         <div class="finish-game-card">
+          <button type="button" class="ng-modal-x" data-fg="close" title="Close" aria-label="Close">×</button>
           <h3>Finish Game: ${this._esc(name)}</h3>
           ${hasScore
             ? `<p>Final score: ${this._esc(gi.scoreUs)}-${this._esc(gi.scoreThem)}. Mark this game as complete?</p>`
@@ -29894,6 +29973,7 @@ class App {
 
       document.addEventListener('keydown', onKey, true);
       modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
+      modal.querySelector('[data-fg="close"]')?.addEventListener('click', () => close(null));
       modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
       modal.querySelector('#finishConfirm').addEventListener('click', confirm);
 
@@ -30142,6 +30222,7 @@ class App {
   _bindGameModal() {
     document.getElementById('gmSave')?.addEventListener('click', () => this._confirmGameModal());
     document.getElementById('gmCancel')?.addEventListener('click', () => this._cancelGameModal());
+    document.getElementById('gmClose')?.addEventListener('click', () => this._cancelGameModal());
     document.getElementById('btnEditGame')?.addEventListener('click', () => this._openGameModal('edit'));
     const modal = document.getElementById('gameModal');
     modal?.addEventListener('click', (e) => { if (e.target === modal) this._cancelGameModal(); });
@@ -31620,6 +31701,15 @@ class App {
     closeBtn.addEventListener('click', close);
     cancelBtn.addEventListener('click', close);
     backdrop.addEventListener('click', close);
+    // Esc closes (the one modal that lacked it — UX audit A4), and while the
+    // modal is open, swallow key events in capture phase so the app's global
+    // single-letter tag shortcuts can't fire underneath. stopPropagation
+    // doesn't block typing in the textarea — only other listeners.
+    document.addEventListener('keydown', (e) => {
+      if (modal.classList.contains('hidden')) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      e.stopPropagation();
+    }, true);
 
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -31636,9 +31726,9 @@ class App {
 
     parseBtn.addEventListener('click', () => {
       const text = textArea.value;
-      if (!text.trim()) { alert('Paste or upload CSV data first.'); return; }
+      if (!text.trim()) { this.history?._toast('Paste or upload CSV data first'); return; }
       const parsed = this.storage.importPlaysFromText(text);
-      if (parsed.error) { alert(parsed.error); return; }
+      if (parsed.error) { this.history?._toast(parsed.error); return; }
       lastParsed = parsed;
 
       // Show column mapping

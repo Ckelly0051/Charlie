@@ -841,6 +841,9 @@ export class PlayGrid {
    *  mousedown or Esc; swallows its own keydowns so the app's global
    *  single-letter shortcuts can't fire underneath. */
   _popover(anchor, contentEl, onClose) {
+    // One popover at a time: opening any (cell editor, Columns, Filters)
+    // closes whatever is already open — stacked popovers collided (audit A9).
+    if (this._openPop) { try { this._openPop.close(); } catch (e) {} }
     const pop = document.createElement('div');
     pop.className = 'pg-pop';
     pop.appendChild(contentEl);
@@ -856,6 +859,7 @@ export class PlayGrid {
     const close = () => {
       if (closed) return;
       closed = true;
+      if (this._openPop && this._openPop.el === pop) this._openPop = null;
       document.removeEventListener('mousedown', onDown, true);
       document.removeEventListener('keydown', onKey, true);
       pop.remove();
@@ -867,7 +871,9 @@ export class PlayGrid {
     };
     document.addEventListener('mousedown', onDown, true);
     document.addEventListener('keydown', onKey, true);
-    return { el: pop, close };
+    const handle = { el: pop, close };
+    this._openPop = handle;
+    return handle;
   }
 
   // ---------- Bulk watch ----------

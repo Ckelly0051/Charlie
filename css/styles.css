@@ -8111,3 +8111,19 @@ body { font-size: 13px; }
   cursor: pointer; font-family: inherit;
 }
 #undoToast .toast-action:hover { background: var(--accent-soft); }
+
+/* =====================================================================
+   UX PASS U2 — convention compliance.
+   ===================================================================== */
+/* × close on the larger modals (Game Settings, Finish Game). */
+.ng-modal, .finish-game-card { position: relative; }
+.ng-modal-x {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; line-height: 1; padding: 4px 8px;
+  color: var(--text-hint); border-radius: var(--radius-sm);
+}
+.ng-modal-x:hover { color: var(--text); background: var(--bg-tertiary); }
+
+/* Focused game-dropdown row (arrow-key navigation). */
+.gd-row:focus-visible { outline: none; background: var(--accent-soft); }
