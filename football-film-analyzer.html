@@ -7688,8 +7688,11 @@ body { font-size: 13px; }
   color: var(--text-dim); font-weight: 500; font-size: 12.5px;
   border-radius: var(--radius-sm); box-shadow: none; line-height: 1;
 }
-.pick:hover,
-.tag-section .pick:hover {
+/* Hover restyles only UNSELECTED chips — an active chip must keep its blue
+   fill even while the pointer is still on it (else a just-clicked chip shows
+   the hover fill until you mouse off — no immediate click confirmation). */
+.pick:not(.active):hover,
+.tag-section .pick:not(.active):hover {
   background: #232B37; color: var(--text); border: none;
 }
 .pick.active,
@@ -7843,7 +7846,7 @@ body { font-size: 13px; }
 /* Chips washed out on the white tag-form panel — darker tonal fill, still
    borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
 .pick, .tag-section .pick { background: var(--bg-tertiary); }
-.pick:hover, .tag-section .pick:hover { background: #232B37; }
+.pick:not(.active):hover, .tag-section .pick:not(.active):hover { background: #232B37; }
 
 /* Library actions: one aligned row (was inline-block → the demo button's icon
    knocked the baseline off), one primary (New Season); demo → secondary. */
