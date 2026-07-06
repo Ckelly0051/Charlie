@@ -7559,11 +7559,14 @@ td.pg-cell-focus {
    its literals); the Lobby is already this world.
    ===================================================================== */
 :root {
-  /* Accent — broadcast blue, re-tuned for dark (brand #1D4ED8 goes muddy on slate) */
-  --accent:            #3D7BFD;
+  /* Accent — broadcast blue, re-tuned for dark (brand #1D4ED8 goes muddy on
+     slate). Fill is #2F6BF0 so WHITE chip/button text clears WCAG AA (4.69:1);
+     the T6 selection halo uses a lighter blue on purpose (a glow is brighter
+     than its source) and --accent-hover stays bright for rings/links. */
+  --accent:            #2F6BF0;
   --accent-hover:      #5B90FF;
-  --accent-soft:       rgba(61,123,253,0.14);   /* selected-row / key-badge tint */
-  --accent-border:     rgba(61,123,253,0.45);
+  --accent-soft:       rgba(47,107,240,0.16);   /* selected-row / key-badge tint */
+  --accent-border:     rgba(47,107,240,0.48);
   --highlight:         var(--accent);
   --highlight-hover:   var(--accent-hover);
   --highlight-soft:    var(--accent-soft);
@@ -7583,7 +7586,8 @@ td.pg-cell-focus {
   /* Text — chalk scale (contrast-safe on Midnight + Booth slate) */
   --text:              #E9EEF5;
   --text-dim:          #9AA6B5;
-  --text-hint:         #6E7A8A;
+  /* (hint bumped from #6E7A8A → #808B98 to clear 4.5:1 on Booth slate) */
+  --text-hint:         #808B98;
   --text-bright:       #FFFFFF;
 
   /* Data ink — reserved for data, never chrome (the dashboard's own pair) */
