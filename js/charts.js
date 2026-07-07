@@ -130,35 +130,42 @@ export class Charts {
    */
   static trendLine(points, opts = {}) {
     if (!points || points.length < 2) return '';
-    const W = 400, H = 150;
+    // A dense KPI-with-sparkline card: the LATEST value big + a delta vs the
+    // first game (colored by good/bad via opts.goodUp), a compact full-width
+    // line, and the first/last game names. Replaces the old tall card that
+    // wasted ~60% of its height on a thin diagonal line.
+    const W = 300, H = 60;
     const color = opts.color || '#3D7BFD';
     const fmt = opts.fmt || ((v) => String(Math.round(v)));
-    const padL = 12, padR = 12, padT = 22, padB = 26;
+    const padX = 8, padT = 10, padB = 8;
     const vals = points.map(p => p.value);
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const range = (hi - lo) || 1;
-    const x = (i) => padL + (i / (points.length - 1)) * (W - padL - padR);
+    const x = (i) => padX + (i / (points.length - 1)) * (W - 2 * padX);
     const y = (v) => padT + (1 - (v - lo) / range) * (H - padT - padB);
     const path = 'M' + points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' L');
     const base = (H - padB).toFixed(1);
-    const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padL.toFixed(1)},${base} Z`;
-    const last = points.length - 1;
-    const marks = points.map((p, i) => {
-      const cx = x(i), cxs = cx.toFixed(1), cy = y(p.value);
-      // End labels anchor to the padded box edge so the first game name can't
-      // spill off the left of the SVG and get clipped ("Riverside"→"iverside").
-      const anchor = i === 0 ? 'start' : i === last ? 'end' : 'middle';
-      const tx = (i === 0 ? padL : i === last ? W - padR : cx).toFixed(1);
-      const short = Charts._esc((p.label || '').replace(/^vs\s+/i, '').slice(0, 14));
-      return `<circle cx="${cxs}" cy="${cy.toFixed(1)}" r="3.5" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
-        + `<text x="${tx}" y="${(cy - 7).toFixed(1)}" fill="#E9EEF5" font-size="12" font-weight="700" text-anchor="${anchor}" style="font-variant-numeric:tabular-nums">${fmt(p.value)}</text>`
-        + `<text x="${tx}" y="${H - 8}" fill="#9AA6B5" font-size="9.5" text-anchor="${anchor}">${short}</text>`;
-    }).join('');
-    return `<div class="gi-trend"><div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
+    const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padX.toFixed(1)},${base} Z`;
+    const dots = points.map((p, i) =>
+      `<circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="2.6" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
+    ).join('');
+    // current value + delta vs first
+    const first = points[0].value, lastV = points[points.length - 1].value;
+    const delta = lastV - first;
+    const goodUp = opts.goodUp !== false;
+    const dClass = delta === 0 ? 'even' : ((delta > 0) === goodUp ? 'up' : 'down');
+    const deltaStr = delta === 0 ? '—' : `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta))}`;
+    const nm = (s) => Charts._esc((s || '').replace(/^vs\s+/i, '').slice(0, 16));
+    return `<div class="gi-trend">`
+      + `<div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
+      + `<div class="gi-trend-now"><span class="gi-trend-val">${fmt(lastV)}</span>`
+      + `<span class="gi-trend-delta ${dClass}">${deltaStr}</span></div>`
       + `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="gi-trend-svg" role="img" aria-label="${Charts._esc(opts.title || 'trend')}">`
-      + `<path d="${area}" fill="${color}" fill-opacity="0.10"/>`
-      + `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`
-      + `${marks}</svg></div>`;
+      + `<path d="${area}" fill="${color}" fill-opacity="0.13"/>`
+      + `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}`
+      + `</svg>`
+      + `<div class="gi-trend-legend"><span>${nm(points[0].label)}</span><span>${nm(points[points.length - 1].label)}</span></div>`
+      + `</div>`;
   }
 
   /**

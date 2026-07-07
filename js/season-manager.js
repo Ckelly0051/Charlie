@@ -505,10 +505,10 @@ export class SeasonManager {
       <div class="stats-section">
         <h3>Game-by-Game Trends</h3>
         <div class="gi-trend-grid">
-          ${Charts.trendLine(series('yards'), { title: 'Total Yards', color: '#3b82f6' })}
-          ${Charts.trendLine(series('successPct'), { title: 'Success Rate', color: '#22c55e', fmt: v => Math.round(v) + '%' })}
-          ${Charts.trendLine(series('tds'), { title: 'Touchdowns', color: '#f59e0b' })}
-          ${Charts.trendLine(series('tos'), { title: 'Turnovers', color: '#ef4444' })}
+          ${Charts.trendLine(series('yards'), { title: 'Total Yards', color: '#3D7BFD', goodUp: true })}
+          ${Charts.trendLine(series('successPct'), { title: 'Success Rate', color: '#34D399', fmt: v => Math.round(v) + '%', goodUp: true })}
+          ${Charts.trendLine(series('tds'), { title: 'Touchdowns', color: '#FBBF24', goodUp: true })}
+          ${Charts.trendLine(series('tos'), { title: 'Turnovers', color: '#F87171', goodUp: false })}
         </div>
       </div>
     `;

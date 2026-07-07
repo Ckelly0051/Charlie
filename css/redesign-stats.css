@@ -108,7 +108,7 @@
   font-weight: 700;
   font-size: 38px;
   line-height: 1;
-  margin-top: 6px;
+  margin-top: 9px;
   color: var(--gi-text);
   font-variant-numeric: tabular-nums;
 }
@@ -220,7 +220,7 @@
   background: var(--gi-card-2);
   border: 1px solid var(--gi-line);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 11px 13px 9px;
 }
 .stats-overlay .gi-trend-title {
   font-size: 11px;
@@ -228,9 +228,26 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gi-faint);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
-.stats-overlay .gi-trend-svg { width: 100%; height: auto; display: block; }
+/* current value + delta row */
+.stats-overlay .gi-trend-now { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.stats-overlay .gi-trend-val {
+  font-family: var(--gi-display); font-weight: 700; font-size: 26px; line-height: 1;
+  color: var(--gi-text); font-variant-numeric: tabular-nums;
+}
+.stats-overlay .gi-trend-delta {
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gi-dim);
+}
+.stats-overlay .gi-trend-delta.up   { color: var(--gi-green); }
+.stats-overlay .gi-trend-delta.down { color: var(--gi-red); }
+.stats-overlay .gi-trend-svg { width: 100%; height: 46px; display: block; }
+.stats-overlay .gi-trend-legend {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 9.5px; color: var(--gi-dim); margin-top: 1px;
+}
+.stats-overlay .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
+.stats-overlay .gi-trend-legend span:last-child { text-align: right; }
 
 /* ---- Sortable leaderboard headers (individual-stat tables) ---- */
 table.stats-table-full th.gi-sort-th {

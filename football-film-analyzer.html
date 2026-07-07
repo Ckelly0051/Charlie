@@ -8295,7 +8295,7 @@ body { font-size: 13px; }
   font-weight: 700;
   font-size: 38px;
   line-height: 1;
-  margin-top: 6px;
+  margin-top: 9px;
   color: var(--gi-text);
   font-variant-numeric: tabular-nums;
 }
@@ -8407,7 +8407,7 @@ body { font-size: 13px; }
   background: var(--gi-card-2);
   border: 1px solid var(--gi-line);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 11px 13px 9px;
 }
 .stats-overlay .gi-trend-title {
   font-size: 11px;
@@ -8415,9 +8415,26 @@ body { font-size: 13px; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gi-faint);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
-.stats-overlay .gi-trend-svg { width: 100%; height: auto; display: block; }
+/* current value + delta row */
+.stats-overlay .gi-trend-now { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.stats-overlay .gi-trend-val {
+  font-family: var(--gi-display); font-weight: 700; font-size: 26px; line-height: 1;
+  color: var(--gi-text); font-variant-numeric: tabular-nums;
+}
+.stats-overlay .gi-trend-delta {
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gi-dim);
+}
+.stats-overlay .gi-trend-delta.up   { color: var(--gi-green); }
+.stats-overlay .gi-trend-delta.down { color: var(--gi-red); }
+.stats-overlay .gi-trend-svg { width: 100%; height: 46px; display: block; }
+.stats-overlay .gi-trend-legend {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 9.5px; color: var(--gi-dim); margin-top: 1px;
+}
+.stats-overlay .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
+.stats-overlay .gi-trend-legend span:last-child { text-align: right; }
 
 /* ---- Sortable leaderboard headers (individual-stat tables) ---- */
 table.stats-table-full th.gi-sort-th {
@@ -19153,35 +19170,42 @@ class Charts {
    */
   static trendLine(points, opts = {}) {
     if (!points || points.length < 2) return '';
-    const W = 400, H = 150;
+    // A dense KPI-with-sparkline card: the LATEST value big + a delta vs the
+    // first game (colored by good/bad via opts.goodUp), a compact full-width
+    // line, and the first/last game names. Replaces the old tall card that
+    // wasted ~60% of its height on a thin diagonal line.
+    const W = 300, H = 60;
     const color = opts.color || '#3D7BFD';
     const fmt = opts.fmt || ((v) => String(Math.round(v)));
-    const padL = 12, padR = 12, padT = 22, padB = 26;
+    const padX = 8, padT = 10, padB = 8;
     const vals = points.map(p => p.value);
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const range = (hi - lo) || 1;
-    const x = (i) => padL + (i / (points.length - 1)) * (W - padL - padR);
+    const x = (i) => padX + (i / (points.length - 1)) * (W - 2 * padX);
     const y = (v) => padT + (1 - (v - lo) / range) * (H - padT - padB);
     const path = 'M' + points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' L');
     const base = (H - padB).toFixed(1);
-    const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padL.toFixed(1)},${base} Z`;
-    const last = points.length - 1;
-    const marks = points.map((p, i) => {
-      const cx = x(i), cxs = cx.toFixed(1), cy = y(p.value);
-      // End labels anchor to the padded box edge so the first game name can't
-      // spill off the left of the SVG and get clipped ("Riverside"→"iverside").
-      const anchor = i === 0 ? 'start' : i === last ? 'end' : 'middle';
-      const tx = (i === 0 ? padL : i === last ? W - padR : cx).toFixed(1);
-      const short = Charts._esc((p.label || '').replace(/^vs\s+/i, '').slice(0, 14));
-      return `<circle cx="${cxs}" cy="${cy.toFixed(1)}" r="3.5" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
-        + `<text x="${tx}" y="${(cy - 7).toFixed(1)}" fill="#E9EEF5" font-size="12" font-weight="700" text-anchor="${anchor}" style="font-variant-numeric:tabular-nums">${fmt(p.value)}</text>`
-        + `<text x="${tx}" y="${H - 8}" fill="#9AA6B5" font-size="9.5" text-anchor="${anchor}">${short}</text>`;
-    }).join('');
-    return `<div class="gi-trend"><div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
+    const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padX.toFixed(1)},${base} Z`;
+    const dots = points.map((p, i) =>
+      `<circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="2.6" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
+    ).join('');
+    // current value + delta vs first
+    const first = points[0].value, lastV = points[points.length - 1].value;
+    const delta = lastV - first;
+    const goodUp = opts.goodUp !== false;
+    const dClass = delta === 0 ? 'even' : ((delta > 0) === goodUp ? 'up' : 'down');
+    const deltaStr = delta === 0 ? '—' : `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta))}`;
+    const nm = (s) => Charts._esc((s || '').replace(/^vs\s+/i, '').slice(0, 16));
+    return `<div class="gi-trend">`
+      + `<div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
+      + `<div class="gi-trend-now"><span class="gi-trend-val">${fmt(lastV)}</span>`
+      + `<span class="gi-trend-delta ${dClass}">${deltaStr}</span></div>`
       + `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="gi-trend-svg" role="img" aria-label="${Charts._esc(opts.title || 'trend')}">`
-      + `<path d="${area}" fill="${color}" fill-opacity="0.10"/>`
-      + `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`
-      + `${marks}</svg></div>`;
+      + `<path d="${area}" fill="${color}" fill-opacity="0.13"/>`
+      + `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}`
+      + `</svg>`
+      + `<div class="gi-trend-legend"><span>${nm(points[0].label)}</span><span>${nm(points[points.length - 1].label)}</span></div>`
+      + `</div>`;
   }
 
   /**
@@ -26877,10 +26901,10 @@ class SeasonManager {
       <div class="stats-section">
         <h3>Game-by-Game Trends</h3>
         <div class="gi-trend-grid">
-          ${Charts.trendLine(series('yards'), { title: 'Total Yards', color: '#3b82f6' })}
-          ${Charts.trendLine(series('successPct'), { title: 'Success Rate', color: '#22c55e', fmt: v => Math.round(v) + '%' })}
-          ${Charts.trendLine(series('tds'), { title: 'Touchdowns', color: '#f59e0b' })}
-          ${Charts.trendLine(series('tos'), { title: 'Turnovers', color: '#ef4444' })}
+          ${Charts.trendLine(series('yards'), { title: 'Total Yards', color: '#3D7BFD', goodUp: true })}
+          ${Charts.trendLine(series('successPct'), { title: 'Success Rate', color: '#34D399', fmt: v => Math.round(v) + '%', goodUp: true })}
+          ${Charts.trendLine(series('tds'), { title: 'Touchdowns', color: '#FBBF24', goodUp: true })}
+          ${Charts.trendLine(series('tos'), { title: 'Turnovers', color: '#F87171', goodUp: false })}
         </div>
       </div>
     `;
