@@ -20,7 +20,7 @@
   --gi-line-soft: rgba(233,238,245,0.06);
   --gi-text:    #E9EEF5;   /* chalk */
   --gi-dim:     #9AA6B5;
-  --gi-faint:   #6E7A8A;
+  --gi-faint:   #8390A0;   /* labels: clears 4.5:1 on both card + panel */
   --gi-blue:    #3D7BFD;   /* accent, glow-bright (solid fills use --accent #2F6BF0) */
   --gi-amber:   #FBBF24;
   --gi-green:   #34D399;

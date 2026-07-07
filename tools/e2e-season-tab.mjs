@@ -191,6 +191,30 @@ ok(r.radius === '10px', 'KPI cards use the 10px hero radius (header CSS applied)
 ok(r.bg === 'rgb(20, 26, 34)', 'KPI cards use the --gi-card surface (Theater booth slate #141A22)', JSON.stringify(r));
 ok(/Barlow Condensed/i.test(r.numFont), 'KPI numbers use the broadcast display font', JSON.stringify(r));
 
+console.log('\n== 3b. Season analytics blocks (v1.10.2) + trend un-clip ==');
+r = await page.evaluate(() => {
+  const pane = document.querySelector('#statsDashboard [data-pane="season"]');
+  const q = s => pane.querySelectorAll(s).length;
+  // Sub-panes all stay in the DOM (CSS show/hide), so the Breakdown/Players
+  // blocks are queryable without clicking their sub-tabs.
+  const legendFirst = pane.querySelector('.gi-trend-legend span')?.textContent || '';
+  return {
+    scorecardTiles: q('.gi-sc-tile'),
+    marginVal: pane.querySelector('.gi-ts-margin-val')?.textContent ?? null,
+    quarterRows: q('.gi-q-row'),
+    identityRows: q('.gi-id-row'),
+    winLossTable: !!pane.querySelector('.gi-wl-table'),
+    perGameTO: /TO±/.test(pane.querySelector('.stats-table-full thead')?.textContent || ''),
+    legendFirst,
+  };
+});
+ok(r.scorecardTiles >= 6, 'Situational Scorecard renders its tiles', JSON.stringify(r));
+ok(r.marginVal !== null, 'Turnover Margin value renders', JSON.stringify(r));
+ok(r.quarterRows >= 1, 'Scoring-by-quarter bars render', JSON.stringify(r));
+ok(r.identityRows >= 1, 'Offensive Identity usage rows render', JSON.stringify(r));
+ok(r.winLossTable, 'Wins vs Losses table renders (demo has a W and an L)', JSON.stringify(r));
+ok(/^[A-Za-z]/.test(r.legendFirst), 'trend legend shows the first game name un-clipped (S1/S2 fix)', JSON.stringify(r));
+
 console.log('\n== 4. Sub-tabs organize the 13 sections (Overview/Breakdown/Players/Self-Scout) ==');
 r = await page.evaluate(() => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
