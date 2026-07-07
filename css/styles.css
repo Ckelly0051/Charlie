@@ -5103,9 +5103,18 @@ body {
     linear-gradient(180deg, #1B4630 0%, #173B26 55%, #132F1F 100%);
   border: 1px solid rgba(233,238,245,0.10);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  /* High clip counts: the bar widens (min ~16px per marker) and the strip
+     scrolls horizontally — wheel to scroll, active play auto-centered.
+     Scrollbar hidden: it would eat half of a 22px band. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.video-timeline .timeline-strip::-webkit-scrollbar { display: none; }
 .video-timeline .timeline-bar { height: 100%; position: relative; }
+/* Separation between adjacent markers so a dense strip reads as plays,
+   not one smear (active's glow rule overrides this shadow, which is fine). */
+.timeline-play:not(.active) { box-shadow: inset -1px 0 0 rgba(11,15,20,0.75); }
 
 /* Tag section: full width, scrollable region below the sticky video */
 .tag-section {

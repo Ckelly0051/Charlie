@@ -1499,6 +1499,7 @@ export class PlayTagger {
 
   _updateTimeline() {
     this.timelineBar.innerHTML = '';
+    this.timelineBar.style.width = '';   // reset any high-N expansion
 
     // Multi-clip mode: per-play timestamps are all clip-relative (0..clipDur),
     // so positioning them against the CURRENT clip's duration stacks every
@@ -1519,6 +1520,10 @@ export class PlayTagger {
         div.addEventListener('click', () => this.selectPlay(p.id));
         this.timelineBar.appendChild(div);
       });
+      // Expand AFTER appending: while the bar is empty the strip is
+      // display:none (the :empty collapse), so clientWidth reads 0.
+      this._expandTimelineFor(n);
+      this._centerActiveTimeline();
       return;
     }
 
@@ -1540,6 +1545,39 @@ export class PlayTagger {
       div.addEventListener('click', () => this.selectPlay(p.id));
       this.timelineBar.appendChild(div);
     });
+    this._expandTimelineFor(this.plays.length);
+    this._centerActiveTimeline();
+  }
+
+  /** High clip counts turned the Field Strip into un-clickable slivers
+   *  (81 clips ≈ 6px each). Guarantee each marker ~16px by widening the BAR
+   *  (markers are %-positioned, so they scale with it) and letting the strip
+   *  scroll horizontally; the active play is kept centered in view. */
+  _expandTimelineFor(n) {
+    const MIN_MARKER = 16;
+    const strip = this.timelineBar.parentElement;
+    if (!strip) return;
+    const need = n * MIN_MARKER;
+    if (need > strip.clientWidth && strip.clientWidth > 0) {
+      this.timelineBar.style.width = need + 'px';
+    }
+    // Wheel scrolls the strip horizontally when it overflows (one-time bind).
+    if (!strip._ffaWheelBound) {
+      strip._ffaWheelBound = true;
+      strip.addEventListener('wheel', (e) => {
+        if (strip.scrollWidth <= strip.clientWidth) return;
+        e.preventDefault();
+        strip.scrollLeft += (e.deltaY || e.deltaX);
+      }, { passive: false });
+    }
+  }
+
+  _centerActiveTimeline() {
+    const strip = this.timelineBar.parentElement;
+    if (!strip || strip.scrollWidth <= strip.clientWidth) return;
+    const act = this.timelineBar.querySelector('.timeline-play.active');
+    if (!act) return;
+    strip.scrollLeft = act.offsetLeft - strip.clientWidth / 2 + act.offsetWidth / 2;
   }
 
   // Also update scrub bar play markers
