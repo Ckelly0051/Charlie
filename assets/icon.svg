@@ -1,48 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#141D2B"/>
-      <stop offset="0.55" stop-color="#0D131C"/>
-      <stop offset="1" stop-color="#090D12"/>
+      <stop offset="0" stop-color="#141D2B"/><stop offset="0.55" stop-color="#0D131C"/><stop offset="1" stop-color="#090D12"/>
     </linearGradient>
     <radialGradient id="sheen" cx="0.5" cy="0" r="0.9">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.06"/>
-      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0" stop-color="#FFF" stop-opacity="0.06"/><stop offset="0.6" stop-color="#FFF" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="rt" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#2F6BF0"/>
-      <stop offset="1" stop-color="#5B90FF"/>
+    <linearGradient id="up" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2F6BF0"/><stop offset="1" stop-color="#5B90FF"/>
     </linearGradient>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="22"/>
-    </filter>
-    <clipPath id="tile"><rect x="0" y="0" width="1024" height="1024" rx="228"/></clipPath>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="24"/></filter>
+    <clipPath id="tile"><rect width="1024" height="1024" rx="228"/></clipPath>
   </defs>
-
   <g clip-path="url(#tile)">
     <rect width="1024" height="1024" fill="url(#bg)"/>
     <rect width="1024" height="560" fill="url(#sheen)"/>
-    <!-- chalk yard lines + hashes -->
-    <g stroke="#E9EEF5" opacity="0.10" stroke-width="6">
-      <line x1="0" y1="306" x2="1024" y2="306"/>
-      <line x1="0" y1="512" x2="1024" y2="512"/>
-      <line x1="0" y1="718" x2="1024" y2="718"/>
+    <g stroke="#E9EEF5" opacity="0.09" stroke-width="6">
+      <line x1="0" y1="360" x2="1024" y2="360"/><line x1="0" y1="560" x2="1024" y2="560"/><line x1="0" y1="760" x2="1024" y2="760"/>
     </g>
-    <g stroke="#E9EEF5" opacity="0.07" stroke-width="6">
-      <line x1="236" y1="384" x2="236" y2="440"/><line x1="236" y1="590" x2="236" y2="646"/>
-      <line x1="788" y1="384" x2="788" y2="440"/><line x1="788" y1="590" x2="788" y2="646"/>
+    <g filter="url(#glow)" opacity="0.4">
+      <path d="M 292 208 L 292 470 L 732 470 L 732 208 M 512 470 L 512 800" fill="none" stroke="#3D7BFD" stroke-width="112" stroke-linecap="round"/>
     </g>
-
-    <!-- route luminance (tight) -->
-    <g filter="url(#glow)" opacity="0.38">
-      <path d="M 348 758 L 348 468 L 700 296" fill="none" stroke="#3D7BFD" stroke-width="118" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-
-    <!-- the route: shaft runs INTO the head base (no seam) -->
-    <path d="M 348 758 L 348 468 L 712 290" fill="none" stroke="url(#rt)" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
-    <polygon points="824 236 664 270 734 413" fill="#5B90FF"/>
-
-    <!-- the O (the player) -->
-    <circle cx="348" cy="762" r="100" fill="none" stroke="#E9EEF5" stroke-width="46"/>
+    <path d="M 292 214 L 292 470 L 732 470 L 732 214" fill="none" stroke="url(#up)" stroke-width="86" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 512 470 L 512 796" fill="none" stroke="url(#up)" stroke-width="86" stroke-linecap="round"/>
+    <ellipse cx="512" cy="856" rx="150" ry="34" fill="none" stroke="#E9EEF5" stroke-width="30" opacity="0.9"/>
   </g>
 </svg>
