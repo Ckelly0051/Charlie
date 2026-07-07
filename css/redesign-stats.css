@@ -358,3 +358,93 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 /* The rows that together cover ~90% of snaps — the calls that ARE the offense. */
 .stats-overlay .bt-row.bt-in90 td { box-shadow: inset 2px 0 0 var(--highlight, #c9a227); }
 .stats-overlay .bt-row:not(.bt-in90) { opacity: .6; }
+
+/* ==================================================================== */
+/* SEASON ANALYTICS (v1.10.2) — scorecard, turnovers/scoring, identity,  */
+/* win-loss. All scoped under .stats-overlay, on the harmonized palette.  */
+/* ==================================================================== */
+
+/* --- Situational scorecard: a grid of stat tiles --- */
+.stats-overlay .gi-sc-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px;
+}
+.stats-overlay .gi-sc-tile {
+  background: var(--gi-card-2); border: 1px solid var(--gi-line);
+  border-radius: 10px; padding: 11px 13px; text-align: left;
+}
+.stats-overlay .gi-sc-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gi-faint);
+}
+.stats-overlay .gi-sc-val {
+  font-family: var(--gi-display); font-weight: 700; font-size: 30px; line-height: 1.05;
+  margin-top: 6px; color: var(--gi-text); font-variant-numeric: tabular-nums;
+}
+.stats-overlay .gi-sc-sub { font-size: 11px; color: var(--gi-dim); margin-top: 3px; }
+.stats-overlay .gi-sc-tile.tone-good .gi-sc-val { color: var(--gi-green); }
+.stats-overlay .gi-sc-tile.tone-warn .gi-sc-val { color: var(--gi-amber); }
+.stats-overlay .gi-sc-tile.tone-bad  .gi-sc-val { color: var(--gi-red); }
+
+/* --- Turnovers & scoring --- */
+.stats-overlay .gi-ts-grid { display: grid; grid-template-columns: minmax(140px, 0.7fr) 2fr; gap: 12px; }
+.stats-overlay .gi-ts-margin {
+  background: var(--gi-card-2); border: 1px solid var(--gi-line); border-radius: 10px;
+  padding: 12px 14px; display: flex; flex-direction: column; justify-content: center;
+}
+.stats-overlay .gi-ts-margin-val {
+  font-family: var(--gi-display); font-weight: 700; font-size: 40px; line-height: 1; margin: 4px 0 3px;
+  color: var(--gi-text); font-variant-numeric: tabular-nums;
+}
+.stats-overlay .gi-ts-margin.tone-good .gi-ts-margin-val { color: var(--gi-green); }
+.stats-overlay .gi-ts-margin.tone-bad  .gi-ts-margin-val { color: var(--gi-red); }
+.stats-overlay .gi-ts-quarters {
+  background: var(--gi-card-2); border: 1px solid var(--gi-line); border-radius: 10px; padding: 12px 14px;
+}
+.stats-overlay .gi-q-key { float: right; font-size: 10px; color: var(--gi-dim); font-weight: 500; text-transform: none; letter-spacing: 0; }
+.stats-overlay .gi-q-key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 3px 0 8px; vertical-align: -1px; }
+.stats-overlay .gi-q-key i.us { background: var(--gi-green); }
+.stats-overlay .gi-q-key i.them { background: var(--gi-red); }
+.stats-overlay .gi-q-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.stats-overlay .gi-q-lbl { width: 26px; font-size: 11px; font-weight: 700; color: var(--gi-dim); font-family: var(--gi-display); }
+.stats-overlay .gi-q-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.stats-overlay .gi-q-bar {
+  height: 15px; border-radius: 3px; min-width: 14px; display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 5px; font-size: 10px; font-weight: 700; color: #06120b; font-variant-numeric: tabular-nums;
+}
+.stats-overlay .gi-q-bar.us { background: var(--gi-green); }
+.stats-overlay .gi-q-bar.them { background: var(--gi-red); color: #1a0606; }
+
+/* --- Offensive identity: two usage columns --- */
+.stats-overlay .gi-id-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.stats-overlay .gi-id-head {
+  font-size: 11px; font-weight: 700; color: var(--gi-text); letter-spacing: 0.04em; text-transform: uppercase;
+  padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--gi-line-soft);
+  display: flex; justify-content: space-between;
+}
+.stats-overlay .gi-id-head span { color: var(--gi-faint); font-weight: 500; font-size: 9.5px; letter-spacing: 0.05em; }
+.stats-overlay .gi-id-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.stats-overlay .gi-id-name { width: 92px; font-size: 12px; color: var(--gi-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats-overlay .gi-id-bar { flex: 1; height: 7px; background: var(--gi-line-soft); border-radius: 4px; overflow: hidden; }
+.stats-overlay .gi-id-bar > div { height: 100%; background: var(--accent); border-radius: 4px; }
+.stats-overlay .gi-id-use { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--gi-text); font-variant-numeric: tabular-nums; }
+.stats-overlay .gi-id-succ { width: 38px; text-align: right; font-size: 12px; color: var(--gi-dim); font-variant-numeric: tabular-nums; }
+
+/* --- Wins vs Losses table + per-game TO± cells --- */
+.stats-overlay .gi-wl-table td:nth-child(2), .stats-overlay .gi-wl-table th:nth-child(2) { text-align: right; }
+.stats-overlay .gi-wl-table td:nth-child(3), .stats-overlay .gi-wl-table th:nth-child(3) { text-align: right; }
+.stats-overlay .gi-wl-w { color: var(--gi-green); font-weight: 700; }
+.stats-overlay .gi-wl-l { color: var(--gi-red); font-weight: 700; }
+
+@media (max-width: 640px) {
+  .stats-overlay .gi-ts-grid, .stats-overlay .gi-id-grid { grid-template-columns: 1fr; }
+}
+
+/* The Season MODAL injects statsHtml into a .stats-overlay container so it
+   gets the full harmonized system (tokens + every rule), same as the dashboard
+   Season tab. It is NOT the full-screen overlay, so drop the backdrop bg/border
+   — the .season-modal chrome around it owns those. */
+.season-stats-body.stats-overlay {
+  /* neutralize the full-screen-overlay layout — this is a style scope only,
+     not the fixed/flex backdrop. */
+  position: static; inset: auto; display: block; z-index: auto;
+  background: transparent; border: none; box-shadow: none; padding: 0;
+}

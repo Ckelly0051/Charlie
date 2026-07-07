@@ -370,10 +370,13 @@ export class SeasonManager {
       <div class="gi-subpane active" data-subpane="overview">
         ${this.statsEngine._renderTeamStats(stats)}
         ${this.statsEngine._renderEfficiency(stats)}
+        ${this._renderSituationalScorecard(stats)}
+        ${this._renderTurnoverScoring(stats)}
         ${this._renderProgression()}
         ${this._renderTrends()}
       </div>
       <div class="gi-subpane" data-subpane="breakdown">
+        ${this._renderOffensiveIdentity(stats)}
         ${this.statsEngine._renderDownAnalysis(stats)}
         ${this.statsEngine._renderSituational(stats)}
         ${this.statsEngine._renderTendencies(stats)}
@@ -381,6 +384,7 @@ export class SeasonManager {
         ${this.statsEngine.heatMaps.render(allPlays)}
       </div>
       <div class="gi-subpane" data-subpane="players">
+        ${this._renderWinLossSplits()}
         ${individual}
         ${this._renderPerGameTable()}
       </div>
@@ -522,6 +526,9 @@ export class SeasonManager {
       const s = this.statsEngine.compute(g.plays);
       const label = g.name || (store ? store.gameName(g, gi) : `Game ${gi + 1}`);
       gi++;
+      const m = this._toMargin(s);
+      const toStr = m.margin > 0 ? `+${m.margin}` : `${m.margin}`;
+      const toCls = m.margin > 0 ? 'gi-wl-w' : m.margin < 0 ? 'gi-wl-l' : '';
       rows += `<tr>
         <td>${this._escape(label)}</td>
         <td>${s.totalPlays}</td>
@@ -529,7 +536,8 @@ export class SeasonManager {
         <td>${s.rushing.attempts}/${s.rushing.yards}</td>
         <td>${s.passing.completions}/${s.passing.attempts}/${s.passing.yards}</td>
         <td>${s.scoring.touchdowns}</td>
-        <td>${s.turnovers.total}</td>
+        <td class="${toCls}">${toStr}</td>
+        <td>${s.drives.pointsPerDrive}</td>
         <td>${s.efficiency.successRate}%</td>
         <td>${s.downs.thirdDownPct}%</td>
       </tr>`;
@@ -539,12 +547,130 @@ export class SeasonManager {
         <h3>Per-Game Box Score</h3>
         <div class="hm-scroll">
           <table class="stats-table stats-table-full">
-            <thead><tr><th>Game</th><th>Plays</th><th>Yds</th><th>Rush A/Y</th><th>Pass C/A/Y</th><th>TD</th><th>TO</th><th>Succ%</th><th>3rd%</th></tr></thead>
+            <thead><tr><th>Game</th><th>Plays</th><th>Yds</th><th>Rush A/Y</th><th>Pass C/A/Y</th><th>TD</th><th title="Turnover margin (forced − lost)">TO±</th><th title="Points per drive">PPD</th><th>Succ%</th><th>3rd%</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
       </div>
     `;
+  }
+
+  // ---- Season analytics (v1.10.2) — aggregate the existing per-game
+  //      compute() output into the season views a coach game-plans from.
+
+  /** Turnover margin for a compute() result: takeaways (our defense's INTs +
+   *  fumble recoveries) − giveaways (our offense's turnovers). */
+  _toMargin(s) {
+    const giveaways = (s.turnovers && s.turnovers.total) || 0;
+    const takeaways = s.defensive ? ((s.defensive.interceptions || 0) + (s.defensive.fumbles || 0)) : 0;
+    return { margin: takeaways - giveaways, takeaways, giveaways };
+  }
+
+  _scTile(label, value, sub, tone) {
+    return `<div class="gi-sc-tile${tone ? ' tone-' + tone : ''}">`
+      + `<div class="gi-sc-label">${this._escape(label)}</div>`
+      + `<div class="gi-sc-val">${value}</div>`
+      + `<div class="gi-sc-sub">${sub ? this._escape(sub) : ''}</div></div>`;
+  }
+
+  _renderSituationalScorecard(stats) {
+    const d = stats.downs || {}, sit = stats.situational || {}, eff = stats.efficiency || {}, dr = stats.drives || {};
+    const rz = sit.redZone || { total: 0, tds: 0 }, gl = sit.goalLine || { total: 0, tds: 0 };
+    const pct = (n, den) => den ? Math.round((n / den) * 100) : 0;
+    const tone = (v, good, ok) => v >= good ? 'good' : v >= ok ? 'warn' : 'bad';
+    const p3 = parseFloat(d.thirdDownPct) || 0, exp = parseFloat(eff.explosivePct) || 0, ppd = parseFloat(dr.pointsPerDrive) || 0;
+    const rzPct = pct(rz.tds, rz.total), toPct = pct(dr.threeAndOuts, dr.total);
+    const tiles = [
+      this._scTile('3rd Down', `${Math.round(p3)}%`, d.thirdDownConv || '0/0', tone(p3, 42, 33)),
+      this._scTile('4th Down', `${Math.round(parseFloat(d.fourthDownPct) || 0)}%`, d.fourthDownConv || '0/0'),
+      this._scTile('Red Zone TD', `${rzPct}%`, `${rz.tds}/${rz.total} trips`, rz.total ? tone(rzPct, 60, 45) : ''),
+      this._scTile('Explosive', `${Math.round(exp)}%`, `${eff.explosivePlays || 0} plays`, tone(exp, 12, 8)),
+      this._scTile('Pts / Drive', dr.pointsPerDrive || '0.0', `${dr.scoringDrives || 0}/${dr.total || 0} scored`, tone(ppd, 2.5, 1.5)),
+      this._scTile('3-and-Out', `${toPct}%`, `${dr.threeAndOuts || 0} of ${dr.total || 0}`, dr.total ? (toPct <= 20 ? 'good' : toPct <= 30 ? 'warn' : 'bad') : ''),
+    ];
+    if (gl.total > 0) tiles.push(this._scTile('Goal Line', `${pct(gl.tds, gl.total)}%`, `${gl.tds}/${gl.total} TD`));
+    return `<div class="stats-section"><h3>Situational Scorecard</h3>
+      <p class="self-scout-intro">Season efficiency in the moments that decide games.</p>
+      <div class="gi-sc-grid">${tiles.join('')}</div></div>`;
+  }
+
+  _renderTurnoverScoring(stats) {
+    const m = this._toMargin(stats);
+    const bq = (stats.scoreboard && stats.scoreboard.byQuarter) || {};
+    const qs = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'].filter(q => bq[q] && ((bq[q].us || 0) || (bq[q].them || 0)));
+    const maxQ = Math.max(1, ...qs.map(q => Math.max(bq[q].us || 0, bq[q].them || 0)));
+    const qRows = qs.map(q => {
+      const u = bq[q].us || 0, t = bq[q].them || 0;
+      return `<div class="gi-q-row"><span class="gi-q-lbl">${q}</span><div class="gi-q-bars">`
+        + `<div class="gi-q-bar us" style="width:${(u / maxQ * 100).toFixed(0)}%">${u || ''}</div>`
+        + `<div class="gi-q-bar them" style="width:${(t / maxQ * 100).toFixed(0)}%">${t || ''}</div>`
+        + `</div></div>`;
+    }).join('');
+    const tone = m.margin > 0 ? 'good' : m.margin < 0 ? 'bad' : 'even';
+    const marginStr = m.margin > 0 ? `+${m.margin}` : `${m.margin}`;
+    return `<div class="stats-section"><h3>Turnovers &amp; Scoring</h3>
+      <div class="gi-ts-grid">
+        <div class="gi-ts-margin tone-${tone}">
+          <div class="gi-sc-label">Turnover Margin</div>
+          <div class="gi-ts-margin-val">${marginStr}</div>
+          <div class="gi-sc-sub">${m.takeaways} forced · ${m.giveaways} lost</div>
+        </div>
+        <div class="gi-ts-quarters">
+          <div class="gi-sc-label">Scoring by Quarter <span class="gi-q-key"><i class="us"></i>Us <i class="them"></i>Opp</span></div>
+          ${qRows || '<div class="gi-sc-sub">Tag Quarter on scoring plays to see this.</div>'}
+        </div>
+      </div></div>`;
+  }
+
+  _renderOffensiveIdentity(stats) {
+    const pers = (stats.personnel || []).filter(g => g.name !== 'Unknown').slice(0, 4);
+    const forms = ((stats.tendencies && stats.tendencies.formationList) || []).filter(f => f.name !== 'Unknown').slice(0, 4);
+    if (!pers.length && !forms.length) return '';
+    const totP = (stats.personnel || []).reduce((s, g) => s + g.count, 0) || 1;
+    const totF = ((stats.tendencies && stats.tendencies.formationList) || []).reduce((s, f) => s + f.count, 0) || 1;
+    const bar = (p) => `<div class="gi-id-bar"><div style="width:${p}%"></div></div>`;
+    const rowsFor = (arr, tot) => arr.map(x => {
+      const use = Math.round(x.count / tot * 100);
+      return `<div class="gi-id-row"><span class="gi-id-name">${this._escape(x.name)}</span>${bar(use)}`
+        + `<span class="gi-id-use">${use}%</span><span class="gi-id-succ">${x.successPct}%</span></div>`;
+    }).join('');
+    return `<div class="stats-section"><h3>Offensive Identity</h3>
+      <p class="self-scout-intro">What your offense actually is, season-wide — usage and how it's working.</p>
+      <div class="gi-id-grid">
+        <div class="gi-id-col"><div class="gi-id-head">Personnel <span>use · succ</span></div>${rowsFor(pers, totP) || '<div class="gi-sc-sub">No personnel tagged.</div>'}</div>
+        <div class="gi-id-col"><div class="gi-id-head">Formation <span>use · succ</span></div>${rowsFor(forms, totF) || '<div class="gi-sc-sub">No formations tagged.</div>'}</div>
+      </div></div>`;
+  }
+
+  _renderWinLossSplits() {
+    const games = this._effectiveGames().filter(g => (g.plays || []).length);
+    const wins = [], losses = [];
+    for (const g of games) {
+      const gi = g.gameInfo || {};
+      const u = parseInt(gi.scoreUs, 10), t = parseInt(gi.scoreThem, 10);
+      if (!Number.isFinite(u) || !Number.isFinite(t)) continue;
+      if (u > t) wins.push(g); else if (u < t) losses.push(g);
+    }
+    if (!wins.length || !losses.length) return '';   // need both sides to compare
+    const agg = (gs) => {
+      const s = this.statsEngine.compute(gs.flatMap(g => g.plays || []));
+      const m = this._toMargin(s);
+      return {
+        ypp: s.totalPlays ? ((s.rushing.yards + s.passing.yards) / s.totalPlays).toFixed(1) : '0.0',
+        succ: s.efficiency.successRate, third: s.downs.thirdDownPct, ppd: s.drives.pointsPerDrive, toM: m.margin,
+      };
+    };
+    const w = agg(wins), l = agg(losses), sign = v => v > 0 ? `+${v}` : `${v}`;
+    const row = (label, wv, lv) => `<tr><td>${label}</td><td>${wv}</td><td>${lv}</td></tr>`;
+    return `<div class="stats-section"><h3>Wins vs Losses</h3>
+      <p class="self-scout-intro">Where games are won and lost — the offense across ${wins.length} win${wins.length > 1 ? 's' : ''} vs ${losses.length} loss${losses.length > 1 ? 'es' : ''}.</p>
+      <table class="stats-table gi-wl-table"><thead><tr><th></th><th>Wins</th><th>Losses</th></tr></thead><tbody>
+        ${row('Yards / Play', w.ypp, l.ypp)}
+        ${row('Success %', w.succ + '%', l.succ + '%')}
+        ${row('3rd Down %', w.third + '%', l.third + '%')}
+        ${row('Pts / Drive', w.ppd, l.ppd)}
+        ${row('Turnover Margin', sign(w.toM), sign(l.toM))}
+      </tbody></table></div>`;
   }
 
   _renderSelfScout() {
