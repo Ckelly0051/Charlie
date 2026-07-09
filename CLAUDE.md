@@ -12,6 +12,96 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Live URL**: https://ckelly0051.github.io/Charlie/
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
+## Current Handoff / Changelog
+
+Keep this section current after every meaningful storage, migration, or release
+change. It is the quick context block for Claude/Codex before touching film
+storage again.
+
+### v1.10.5 - Desktop Film Repair Workflow
+
+- Source commit: `81c885b release: v1.10.5 film repair workflow`.
+- Web deploy commit: `fc5504b Deploy: v1.10.5` on `gh-pages`.
+- Desktop release tag: `v1.10.5` points at `81c885b`; the desktop installer
+  workflow was triggered from that tag.
+- Added the desktop `Repair Film` action in the Playlist panel. It reconnects
+  an already-tagged game to selected film without creating/deleting plays.
+- Repair creates a restore point (`Before film repair`), imports only matched
+  clips, updates `clipId` / `clipName` / `clipPath` on the existing plays, then
+  persists the active game.
+- Current repair behavior is COPY-based: matched files are copied into
+  GridIron IQ's managed app-data film library. Original coach files are not
+  deleted or moved.
+- Missing-film messaging now points coaches to `Repair Film` instead of vague
+  "re-add film" language.
+- Regression coverage was added to `tools/e2e-clip-identity.mjs` for legacy
+  duplicate basenames (`0001.mp4` in multiple subfolders) repaired into
+  path-aware clip identities while preserving tags and play count.
+
+### v1.10.4 - Clip Identity / Storage Reliability Patch
+
+- Added durable clip identity via `clipPath` / `clipRefs`, while preserving
+  legacy `clipName` / `clipNames` fallback.
+- Preserved folder structure for desktop film imports so same-basename clips
+  like `endzone/0001.mp4` and `sideline/0001.mp4` do not collide.
+- Desktop auto-load now warns when expected clips are missing rather than
+  silently loading partial film.
+- Deleting a desktop season also deletes its Documents mirror copy so removed
+  seasons do not resurrect after app-data recovery.
+- Added `tools/e2e-clip-identity.mjs`; adjusted season-tab fixture-noise
+  handling.
+
+### Current Film Storage Truth
+
+- Browser build: no persistent film library; coach must re-add film when needed.
+- Desktop build: film is copied into app-managed storage under
+  `$APPDATA/seasons/<season-id>/films/<game-id>/...`.
+- The desktop asset protocol is currently scoped to `$APPDATA/**` in
+  `src-tauri/tauri.conf.json`, which is why managed copies are the reliable
+  playback path today.
+- Documents mirror stores season JSON/backups only. Films are intentionally not
+  mirrored there because they are large and re-linkable.
+- Safe cleanup guidance for coaches: after `Repair Film`, reopen the game and
+  verify video playback/tags line up before deleting or archiving the old source
+  film files.
+- Leave untracked `.claude/` and `AGENTS.md` out of release commits unless the
+  user explicitly asks for them.
+
+### Future State: Optional Linked Film Library
+
+Goal: keep `Copy to GridIron IQ Library` as the default beginner-safe workflow,
+and add `Link Existing Folder` as an advanced desktop option for coaches who
+already maintain an organized film library and do not want duplicate files.
+
+Intended UX:
+- `Add Film` / `Repair Film` defaults to copying into the managed library.
+- Advanced option: `Link Existing Folder`.
+- Linked mode stores references to the coach's selected existing folder/files
+  and does not duplicate video.
+- If the linked folder is missing, moved, or on an unavailable drive, the app
+  should show a clear `Re-link Folder` / `Repair Film` prompt and must not alter
+  tags.
+
+Implementation notes for the future feature:
+- Add a per-game film storage mode: `managed` (current copy behavior) or
+  `linked` (external library references).
+- Preserve `clipPath` / `clipRefs` as the matching layer for both modes.
+- Store enough linked-root/path metadata to resolve clips on reopen without
+  changing play ids or tag data.
+- Expand Tauri asset permissions/scoping safely for user-selected linked roots;
+  avoid broad whole-drive access where possible.
+- Update auto-load to resolve managed files from app data and linked files from
+  the selected external root.
+- Switching modes or re-linking existing games should create a restore point
+  and preserve plays/tags/notes/current play ids.
+
+Future test coverage:
+- Copy mode still passes the existing `Repair Film` tests.
+- Linked new-season import loads from an external folder without copying.
+- Linked repair of old tagged games preserves play count, tags, notes, and ids.
+- Duplicate basenames in subfolders remain distinct in linked mode.
+- Missing linked folder prompts for re-link and does not mutate season data.
+
 ## Page Layout (single-column, top-to-bottom)
 
 The app is a **single scrollable column**, not a video+sidebar split:
