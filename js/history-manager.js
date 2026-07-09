@@ -198,10 +198,22 @@ export class HistoryManager {
       });
       this.toastEl.appendChild(btn);
     }
+    // Click to dismiss early — a longer default means the user can actually read
+    // it, but they can also clear it on demand (except while an action button is
+    // present, where the click belongs to the action).
+    if (!opts.action) {
+      this.toastEl.style.cursor = 'pointer';
+      this.toastEl.onclick = () => { clearTimeout(this._toastTimer); this.toastEl.classList.remove('show'); };
+    } else {
+      this.toastEl.style.cursor = '';
+      this.toastEl.onclick = null;
+    }
     this.toastEl.classList.add('show');
     clearTimeout(this._toastTimer);
+    // 1.8s was too short to read — default to a comfortable 4.5s; action toasts
+    // stay 6s; callers can still pass an explicit duration (e.g. 12s warnings).
     this._toastTimer = setTimeout(() => {
       this.toastEl.classList.remove('show');
-    }, opts.duration || (opts.action ? 6000 : 1800));
+    }, opts.duration || (opts.action ? 6000 : 4500));
   }
 }

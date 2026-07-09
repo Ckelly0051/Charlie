@@ -16088,6 +16088,15 @@ class StorageManager {
       return copy;
     });
 
+    // Film index — derive from the PLAYS' own clip identities (durable: they
+    // survive even when the film isn't in the library) UNIONED with the live
+    // playlist (fresh clips + real duration / load state). Deriving from the
+    // playlist ALONE silently WIPED a game's film index every time it was opened
+    // without its film loaded (79 clips -> 11, 83 -> 0, isMultiClip -> false).
+    // The plays keep clipName/clipPath, so they are the source of truth for
+    // which clips the game references; the index must never shrink below them.
+    const clipIndex = this._buildClipIndex();
+
     return {
       version: 4,
       videoFileName: this.videoFileName,
@@ -16097,18 +16106,47 @@ class StorageManager {
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
       nextId: this.tagger.nextId,
-      clipNames: this.playlist ? this.playlist.clips.map(c => c.name) : [],
-      clipPaths: this.playlist ? this.playlist.clips.map(c => c.clipPath || c.name) : [],
-      clipRefs: this.playlist ? this.playlist.clips.map(c => ({
-        id: c.clipPath || c.name,
-        originalName: c.file ? c.file.name : c.name,
-        originalRelativePath: c.clipPath || c.name,
+      clipNames: clipIndex.map(c => c.name),
+      clipPaths: clipIndex.map(c => c.clipPath),
+      clipRefs: clipIndex.map(c => ({
+        id: c.clipPath,
+        originalName: c.originalName,
+        originalRelativePath: c.clipPath,
         displayName: c.name,
-        duration: c.duration || null,
-        importStatus: c.assetUrl || c.file ? 'ready' : 'missing'
-      })) : [],
-      isMultiClip: this.playlist ? this.playlist.hasClips : false,
+        duration: c.duration,
+        importStatus: c.importStatus
+      })),
+      // Multi-clip when the plays reference more than one distinct clip, or film
+      // is loaded. A true single continuous video has no per-play clip ids.
+      isMultiClip: clipIndex.length > 1 || (this.playlist ? this.playlist.hasClips : false),
     };
+  }
+
+  // Ordered clip index for the game node: every clip the PLAYS reference (their
+  // durable clipName/clipPath) enriched by the live playlist's load state. Never
+  // shrinks below what the plays reference — the fix for the film-index wipe.
+  _buildClipIndex() {
+    const order = [];
+    const byId = new Map();
+    const put = (id, data) => {
+      if (!id) return;
+      if (!byId.has(id)) { byId.set(id, { name: id, clipPath: id, originalName: id, duration: null, importStatus: 'missing' }); order.push(id); }
+      const e = byId.get(id);
+      for (const k of Object.keys(data)) if (data[k] != null && data[k] !== '') e[k] = data[k];
+    };
+    for (const p of (this.tagger.plays || [])) {
+      const id = ((p.clipPath || p.clipName) || '').trim();
+      if (!id) continue;
+      const dur = (p.timestamp && p.timestamp.end && p.timestamp.end !== 999) ? p.timestamp.end : null;
+      put(id, { name: p.clipName || id, clipPath: p.clipPath || p.clipName || id, originalName: p.clipName || id, duration: dur });
+    }
+    if (this.playlist) {
+      for (const c of this.playlist.clips) {
+        const id = ((c.clipPath || c.name) || '').trim();
+        put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
+      }
+    }
+    return order.map(id => byId.get(id));
   }
 
   _deserialize(data) {
@@ -18154,25 +18192,20 @@ class PlaylistManager {
    */
   _relinkSavedPlays(newClips, liveIds) {
     const stale = id => id != null && !liveIds.has(id);
-    const primaryByIdentity = new Map();
-    for (const p of this.tagger.plays) {
-      const key = this._playIdentity(p);
-      if (key && (p.clipId == null || stale(p.clipId)) && !primaryByIdentity.has(key)) {
-        primaryByIdentity.set(key, p);
-      }
-    }
-    if (!primaryByIdentity.size) return 0;
+    // Orphaned saved plays: carried over from a previous session (clipId is null
+    // or points at a clip that isn't live). These are what a folder re-add must
+    // reconnect to — never duplicate.
+    const orphans = this.tagger.plays.filter(p => this._playIdentity(p) && (p.clipId == null || stale(p.clipId)));
+    if (!orphans.length) return 0;
 
     // Snapshot original clipIds before mutating — new ids can numerically
     // collide with stale ones (both sequences start at 1).
     const origId = new Map(this.tagger.plays.map(p => [p, p.clipId]));
     const staleToNew = new Map();
+    const usedPlays = new Set();
     let relinked = 0;
-    for (const clip of newClips) {
-      const key = this._clipIdentity(clip);
-      const primary = primaryByIdentity.get(key);
-      if (!primary) continue;
-      primaryByIdentity.delete(key);
+
+    const link = (clip, primary) => {
       clip.playId = primary.id;
       // Reuse the saved play's end time so this clip skips the duration probe
       // (999 is the failed-probe sentinel — don't adopt it as a real length).
@@ -18183,8 +18216,36 @@ class PlaylistManager {
       primary.clipId = clip.id;
       primary.clipName = clip.name;
       primary.clipPath = clip.clipPath || clip.name;
+      usedPlays.add(primary);
       relinked++;
+    };
+
+    // Pass 1 — exact identity (clipPath, else clipName). First orphan per key.
+    // This keeps same-basename clips in different subfolders distinct when the
+    // saved data already carries folder-path identities.
+    const byIdentity = new Map();
+    for (const p of orphans) { const k = this._playIdentity(p); if (k && !byIdentity.has(k)) byIdentity.set(k, p); }
+    for (const clip of newClips) {
+      if (clip.playId != null) continue;
+      const primary = byIdentity.get(this._clipIdentity(clip));
+      if (primary && !usedPlays.has(primary)) link(clip, primary);
     }
+
+    // Pass 2 — BASENAME fallback for clips still unmatched. A game tagged BEFORE
+    // folder-path identity existed has plays keyed on a bare basename
+    // (clipName), while a re-added folder yields a full relative-path identity;
+    // matching on the shared basename relinks them 1:1 instead of spawning a
+    // duplicate untagged play for every clip (the St. Peter dup bug). Each
+    // orphan is consumed once, so two same-basename clips can't both grab it.
+    const baseOf = s => this._pathWithoutExt(String(s || '')).split('/').pop();
+    const byBase = new Map();
+    for (const p of orphans) { if (usedPlays.has(p)) continue; const b = baseOf(p.clipPath || p.clipName); if (b && !byBase.has(b)) byBase.set(b, p); }
+    for (const clip of newClips) {
+      if (clip.playId != null) continue;
+      const primary = byBase.get(baseOf(clip.clipPath || clip.name));
+      if (primary && !usedPlays.has(primary)) { byBase.delete(baseOf(clip.clipPath || clip.name)); link(clip, primary); }
+    }
+
     if (staleToNew.size) {
       for (const p of this.tagger.plays) {
         const o = origId.get(p);
@@ -24923,11 +24984,23 @@ class HistoryManager {
       });
       this.toastEl.appendChild(btn);
     }
+    // Click to dismiss early — a longer default means the user can actually read
+    // it, but they can also clear it on demand (except while an action button is
+    // present, where the click belongs to the action).
+    if (!opts.action) {
+      this.toastEl.style.cursor = 'pointer';
+      this.toastEl.onclick = () => { clearTimeout(this._toastTimer); this.toastEl.classList.remove('show'); };
+    } else {
+      this.toastEl.style.cursor = '';
+      this.toastEl.onclick = null;
+    }
     this.toastEl.classList.add('show');
     clearTimeout(this._toastTimer);
+    // 1.8s was too short to read — default to a comfortable 4.5s; action toasts
+    // stay 6s; callers can still pass an explicit duration (e.g. 12s warnings).
     this._toastTimer = setTimeout(() => {
       this.toastEl.classList.remove('show');
-    }, opts.duration || (opts.action ? 6000 : 1800));
+    }, opts.duration || (opts.action ? 6000 : 4500));
   }
 }
 
@@ -30333,7 +30406,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.10.6';
+const APP_VERSION = '1.10.7';
 
 class App {
   constructor() {

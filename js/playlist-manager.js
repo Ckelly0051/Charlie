@@ -160,25 +160,20 @@ export class PlaylistManager {
    */
   _relinkSavedPlays(newClips, liveIds) {
     const stale = id => id != null && !liveIds.has(id);
-    const primaryByIdentity = new Map();
-    for (const p of this.tagger.plays) {
-      const key = this._playIdentity(p);
-      if (key && (p.clipId == null || stale(p.clipId)) && !primaryByIdentity.has(key)) {
-        primaryByIdentity.set(key, p);
-      }
-    }
-    if (!primaryByIdentity.size) return 0;
+    // Orphaned saved plays: carried over from a previous session (clipId is null
+    // or points at a clip that isn't live). These are what a folder re-add must
+    // reconnect to — never duplicate.
+    const orphans = this.tagger.plays.filter(p => this._playIdentity(p) && (p.clipId == null || stale(p.clipId)));
+    if (!orphans.length) return 0;
 
     // Snapshot original clipIds before mutating — new ids can numerically
     // collide with stale ones (both sequences start at 1).
     const origId = new Map(this.tagger.plays.map(p => [p, p.clipId]));
     const staleToNew = new Map();
+    const usedPlays = new Set();
     let relinked = 0;
-    for (const clip of newClips) {
-      const key = this._clipIdentity(clip);
-      const primary = primaryByIdentity.get(key);
-      if (!primary) continue;
-      primaryByIdentity.delete(key);
+
+    const link = (clip, primary) => {
       clip.playId = primary.id;
       // Reuse the saved play's end time so this clip skips the duration probe
       // (999 is the failed-probe sentinel — don't adopt it as a real length).
@@ -189,8 +184,36 @@ export class PlaylistManager {
       primary.clipId = clip.id;
       primary.clipName = clip.name;
       primary.clipPath = clip.clipPath || clip.name;
+      usedPlays.add(primary);
       relinked++;
+    };
+
+    // Pass 1 — exact identity (clipPath, else clipName). First orphan per key.
+    // This keeps same-basename clips in different subfolders distinct when the
+    // saved data already carries folder-path identities.
+    const byIdentity = new Map();
+    for (const p of orphans) { const k = this._playIdentity(p); if (k && !byIdentity.has(k)) byIdentity.set(k, p); }
+    for (const clip of newClips) {
+      if (clip.playId != null) continue;
+      const primary = byIdentity.get(this._clipIdentity(clip));
+      if (primary && !usedPlays.has(primary)) link(clip, primary);
     }
+
+    // Pass 2 — BASENAME fallback for clips still unmatched. A game tagged BEFORE
+    // folder-path identity existed has plays keyed on a bare basename
+    // (clipName), while a re-added folder yields a full relative-path identity;
+    // matching on the shared basename relinks them 1:1 instead of spawning a
+    // duplicate untagged play for every clip (the St. Peter dup bug). Each
+    // orphan is consumed once, so two same-basename clips can't both grab it.
+    const baseOf = s => this._pathWithoutExt(String(s || '')).split('/').pop();
+    const byBase = new Map();
+    for (const p of orphans) { if (usedPlays.has(p)) continue; const b = baseOf(p.clipPath || p.clipName); if (b && !byBase.has(b)) byBase.set(b, p); }
+    for (const clip of newClips) {
+      if (clip.playId != null) continue;
+      const primary = byBase.get(baseOf(clip.clipPath || clip.name));
+      if (primary && !usedPlays.has(primary)) { byBase.delete(baseOf(clip.clipPath || clip.name)); link(clip, primary); }
+    }
+
     if (staleToNew.size) {
       for (const p of this.tagger.plays) {
         const o = origId.get(p);

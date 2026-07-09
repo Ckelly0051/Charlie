@@ -747,6 +747,15 @@ export class StorageManager {
       return copy;
     });
 
+    // Film index — derive from the PLAYS' own clip identities (durable: they
+    // survive even when the film isn't in the library) UNIONED with the live
+    // playlist (fresh clips + real duration / load state). Deriving from the
+    // playlist ALONE silently WIPED a game's film index every time it was opened
+    // without its film loaded (79 clips -> 11, 83 -> 0, isMultiClip -> false).
+    // The plays keep clipName/clipPath, so they are the source of truth for
+    // which clips the game references; the index must never shrink below them.
+    const clipIndex = this._buildClipIndex();
+
     return {
       version: 4,
       videoFileName: this.videoFileName,
@@ -756,18 +765,47 @@ export class StorageManager {
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
       nextId: this.tagger.nextId,
-      clipNames: this.playlist ? this.playlist.clips.map(c => c.name) : [],
-      clipPaths: this.playlist ? this.playlist.clips.map(c => c.clipPath || c.name) : [],
-      clipRefs: this.playlist ? this.playlist.clips.map(c => ({
-        id: c.clipPath || c.name,
-        originalName: c.file ? c.file.name : c.name,
-        originalRelativePath: c.clipPath || c.name,
+      clipNames: clipIndex.map(c => c.name),
+      clipPaths: clipIndex.map(c => c.clipPath),
+      clipRefs: clipIndex.map(c => ({
+        id: c.clipPath,
+        originalName: c.originalName,
+        originalRelativePath: c.clipPath,
         displayName: c.name,
-        duration: c.duration || null,
-        importStatus: c.assetUrl || c.file ? 'ready' : 'missing'
-      })) : [],
-      isMultiClip: this.playlist ? this.playlist.hasClips : false,
+        duration: c.duration,
+        importStatus: c.importStatus
+      })),
+      // Multi-clip when the plays reference more than one distinct clip, or film
+      // is loaded. A true single continuous video has no per-play clip ids.
+      isMultiClip: clipIndex.length > 1 || (this.playlist ? this.playlist.hasClips : false),
     };
+  }
+
+  // Ordered clip index for the game node: every clip the PLAYS reference (their
+  // durable clipName/clipPath) enriched by the live playlist's load state. Never
+  // shrinks below what the plays reference — the fix for the film-index wipe.
+  _buildClipIndex() {
+    const order = [];
+    const byId = new Map();
+    const put = (id, data) => {
+      if (!id) return;
+      if (!byId.has(id)) { byId.set(id, { name: id, clipPath: id, originalName: id, duration: null, importStatus: 'missing' }); order.push(id); }
+      const e = byId.get(id);
+      for (const k of Object.keys(data)) if (data[k] != null && data[k] !== '') e[k] = data[k];
+    };
+    for (const p of (this.tagger.plays || [])) {
+      const id = ((p.clipPath || p.clipName) || '').trim();
+      if (!id) continue;
+      const dur = (p.timestamp && p.timestamp.end && p.timestamp.end !== 999) ? p.timestamp.end : null;
+      put(id, { name: p.clipName || id, clipPath: p.clipPath || p.clipName || id, originalName: p.clipName || id, duration: dur });
+    }
+    if (this.playlist) {
+      for (const c of this.playlist.clips) {
+        const id = ((c.clipPath || c.name) || '').trim();
+        put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
+      }
+    }
+    return order.map(id => byId.get(id));
   }
 
   _deserialize(data) {
