@@ -295,8 +295,9 @@ export class StorageManager {
   /** Tell the coach exactly which file to re-add — never a silent dead player. */
   _relinkToast(g, savedNote) {
     if (!g || !(g.plays && g.plays.length)) return;
-    const what = (g.isMultiClip && g.clipNames && g.clipNames.length)
-      ? `the clip folder (${g.clipNames.length} clips)`
+    const expectedCount = (g.clipRefs && g.clipRefs.length) || (g.clipPaths && g.clipPaths.length) || (g.clipNames && g.clipNames.length) || 0;
+    const what = (g.isMultiClip && expectedCount)
+      ? `the clip folder (${expectedCount} clips)`
       : g.videoFileName ? `"${g.videoFileName}"` : null;
     if (!what) return;
     this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically${savedNote ? ', and the film saves to the library this time' : ''}.`);
@@ -310,11 +311,16 @@ export class StorageManager {
       console.log('Film auto-load:', { gameId: gameNode.id, filesOnDisk, isMultiClip: gameNode.isMultiClip, videoFileName: gameNode.videoFileName });
       if (filesOnDisk.length === 0) { this._relinkToast(gameNode, true); return; }
 
-      if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
+      if (gameNode.isMultiClip && this._expectedClipIdentities(gameNode).length > 0) {
+        const missing = this._missingClipIdentities(gameNode, filesOnDisk);
+        if (missing.length) {
+          const sample = missing.slice(0, 3).join(', ');
+          this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
+        }
         const clips = [];
-        for (const filename of filesOnDisk) {
-          const url = await backend.filmUrl(gameNode.id, filename);
-          if (url) clips.push({ name: filename, url });
+        for (const fileRef of filesOnDisk) {
+          const url = await backend.filmUrl(gameNode.id, fileRef);
+          if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
         }
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
@@ -336,12 +342,12 @@ export class StorageManager {
           }
         }
       } else if (gameNode.videoFileName) {
-        const match = filesOnDisk.find(f => f === gameNode.videoFileName) || filesOnDisk[0];
+        const match = filesOnDisk.find(f => this._fileRefName(f) === gameNode.videoFileName) || filesOnDisk[0];
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
           console.log('Single-video URL:', url?.slice(0, 200));
           if (url) {
-            this.vc.loadUrl(url, match);
+            this.vc.loadUrl(url, this._fileRefName(match));
           } else {
             console.warn('filmUrl returned null for', match);
             this._relinkToast(gameNode, true);
@@ -368,6 +374,37 @@ export class StorageManager {
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
     }
+  }
+
+  _fileRefName(fileRef) {
+    return typeof fileRef === 'string' ? fileRef.split('/').pop() : (fileRef && fileRef.name) || '';
+  }
+
+  _fileRefPath(fileRef) {
+    return typeof fileRef === 'string' ? fileRef : (fileRef && (fileRef.path || fileRef.name)) || '';
+  }
+
+  _pathWithoutExt(path) {
+    return String(path || '').replace(/\\/g, '/').replace(/\.[^/.]+$/, '');
+  }
+
+  _expectedClipIdentities(gameNode) {
+    if (!gameNode) return [];
+    if (Array.isArray(gameNode.clipRefs) && gameNode.clipRefs.length) {
+      return gameNode.clipRefs.map(c => this._pathWithoutExt(c.originalRelativePath || c.libraryRelativePath || c.displayName || c.originalName)).filter(Boolean);
+    }
+    if (Array.isArray(gameNode.clipPaths) && gameNode.clipPaths.length) {
+      return gameNode.clipPaths.map(p => this._pathWithoutExt(p)).filter(Boolean);
+    }
+    if (Array.isArray(gameNode.clipNames)) {
+      return gameNode.clipNames.map(n => this._pathWithoutExt(n)).filter(Boolean);
+    }
+    return [];
+  }
+
+  _missingClipIdentities(gameNode, filesOnDisk) {
+    const found = new Set((filesOnDisk || []).map(f => this._pathWithoutExt(this._fileRefPath(f))));
+    return this._expectedClipIdentities(gameNode).filter(id => !found.has(id));
   }
 
   /** Tear down per-game UI before loading a different game. */
@@ -494,6 +531,15 @@ export class StorageManager {
       currentPlayId: this.tagger.currentPlayId,
       nextId: this.tagger.nextId,
       clipNames: this.playlist ? this.playlist.clips.map(c => c.name) : [],
+      clipPaths: this.playlist ? this.playlist.clips.map(c => c.clipPath || c.name) : [],
+      clipRefs: this.playlist ? this.playlist.clips.map(c => ({
+        id: c.clipPath || c.name,
+        originalName: c.file ? c.file.name : c.name,
+        originalRelativePath: c.clipPath || c.name,
+        displayName: c.name,
+        duration: c.duration || null,
+        importStatus: c.assetUrl || c.file ? 'ready' : 'missing'
+      })) : [],
       isMultiClip: this.playlist ? this.playlist.hasClips : false,
     };
   }

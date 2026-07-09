@@ -14279,6 +14279,14 @@ class TauriBackend extends StorageBackend {
   async deleteSeason(id) {
     if (!this._ok()) return;
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
+    try {
+      if (this.mirrorDir !== undefined) {
+        const mirrorSeason = this._mirrorSeasonDir(id);
+        if (await this.fs.exists(mirrorSeason, { baseDir: this.mirrorDir })) {
+          await this.fs.remove(mirrorSeason, { baseDir: this.mirrorDir, recursive: true });
+        }
+      }
+    } catch (e) {}
     await this._writeLib((await this._readLib()).filter(s => s.id !== id));
     delete this._dirReady[id];
     if (this.currentId === id) this.currentId = null;
@@ -14387,9 +14395,12 @@ class TauriBackend extends StorageBackend {
     const result = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const dest = `${dir}/${file.name}`;
+      const relPath = this._filmRelativePath(file);
+      const dest = `${dir}/${relPath}`;
+      const parent = dest.split('/').slice(0, -1).join('/');
+      if (parent && parent !== dir) await this.fs.mkdir(parent, { baseDir: this.baseDir, recursive: true });
       if (await this._exists(dest)) {
-        result.push(file.name);
+        result.push(relPath);
         if (onProgress) onProgress(i + 1, files.length, file.name);
         continue;
       }
@@ -14399,10 +14410,16 @@ class TauriBackend extends StorageBackend {
       // (field-reported). Chunked appends use the same write-file
       // permission and keep memory flat regardless of film size.
       await this._writeFileStreamed(dest, file);
-      result.push(file.name);
+      result.push(relPath);
       if (onProgress) onProgress(i + 1, files.length, file.name);
     }
     return result;
+  }
+
+  _filmRelativePath(file) {
+    const raw = String((file && (file.webkitRelativePath || file.relativePath || file.path || file.name)) || '').replace(/\\/g, '/');
+    const parts = raw.split('/').filter(part => part && part !== '.' && part !== '..' && !/^[A-Za-z]:$/.test(part));
+    return parts.join('/') || String((file && file.name) || 'film.mp4').replace(/[\\/]/g, '_');
   }
 
   /** Write a Blob/File to disk in ~32 MB appends (no whole-file buffering). */
@@ -14438,14 +14455,15 @@ class TauriBackend extends StorageBackend {
 
   async filmUrl(gameId, filename) {
     if (!this._ok() || !this.currentId) return null;
-    const rel = `${this._filmsDir(gameId)}/${filename}`;
+    const filePath = typeof filename === 'string' ? filename : (filename && (filename.path || filename.name)) || '';
+    const rel = `${this._filmsDir(gameId)}/${filePath}`;
     if (!(await this._exists(rel))) return null;
     const tauri = window.__TAURI__;
     const convert = tauri?.core?.convertFileSrc;
     const join = tauri?.path?.join;
     const base = await this.dataDirPath();
     if (!convert || !join || !base) return null;
-    const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
+    const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), ...String(filePath).split('/'));
     return convert(abs);
   }
 
@@ -14463,9 +14481,19 @@ class TauriBackend extends StorageBackend {
     const dir = this._filmsDir(gameId);
     try {
       if (!(await this._exists(dir))) return [];
-      const entries = await this.fs.readDir(dir, { baseDir: this.baseDir });
-      return entries.filter(e => !e.isDirectory).map(e => e.name)
-        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+      const out = [];
+      const walk = async (relDir, prefix = '') => {
+        const entries = await this.fs.readDir(relDir, { baseDir: this.baseDir });
+        for (const e of entries) {
+          if (e.isDirectory) {
+            await walk(`${relDir}/${e.name}`, `${prefix}${e.name}/`);
+          } else {
+            out.push({ name: e.name, path: `${prefix}${e.name}` });
+          }
+        }
+      };
+      await walk(dir);
+      return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
     } catch (e) { return []; }
   }
 
@@ -15598,8 +15626,9 @@ class StorageManager {
   /** Tell the coach exactly which file to re-add — never a silent dead player. */
   _relinkToast(g, savedNote) {
     if (!g || !(g.plays && g.plays.length)) return;
-    const what = (g.isMultiClip && g.clipNames && g.clipNames.length)
-      ? `the clip folder (${g.clipNames.length} clips)`
+    const expectedCount = (g.clipRefs && g.clipRefs.length) || (g.clipPaths && g.clipPaths.length) || (g.clipNames && g.clipNames.length) || 0;
+    const what = (g.isMultiClip && expectedCount)
+      ? `the clip folder (${expectedCount} clips)`
       : g.videoFileName ? `"${g.videoFileName}"` : null;
     if (!what) return;
     this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically${savedNote ? ', and the film saves to the library this time' : ''}.`);
@@ -15613,11 +15642,16 @@ class StorageManager {
       console.log('Film auto-load:', { gameId: gameNode.id, filesOnDisk, isMultiClip: gameNode.isMultiClip, videoFileName: gameNode.videoFileName });
       if (filesOnDisk.length === 0) { this._relinkToast(gameNode, true); return; }
 
-      if (gameNode.isMultiClip && gameNode.clipNames && gameNode.clipNames.length > 0) {
+      if (gameNode.isMultiClip && this._expectedClipIdentities(gameNode).length > 0) {
+        const missing = this._missingClipIdentities(gameNode, filesOnDisk);
+        if (missing.length) {
+          const sample = missing.slice(0, 3).join(', ');
+          this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
+        }
         const clips = [];
-        for (const filename of filesOnDisk) {
-          const url = await backend.filmUrl(gameNode.id, filename);
-          if (url) clips.push({ name: filename, url });
+        for (const fileRef of filesOnDisk) {
+          const url = await backend.filmUrl(gameNode.id, fileRef);
+          if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
         }
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
@@ -15639,12 +15673,12 @@ class StorageManager {
           }
         }
       } else if (gameNode.videoFileName) {
-        const match = filesOnDisk.find(f => f === gameNode.videoFileName) || filesOnDisk[0];
+        const match = filesOnDisk.find(f => this._fileRefName(f) === gameNode.videoFileName) || filesOnDisk[0];
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
           console.log('Single-video URL:', url?.slice(0, 200));
           if (url) {
-            this.vc.loadUrl(url, match);
+            this.vc.loadUrl(url, this._fileRefName(match));
           } else {
             console.warn('filmUrl returned null for', match);
             this._relinkToast(gameNode, true);
@@ -15671,6 +15705,37 @@ class StorageManager {
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
     }
+  }
+
+  _fileRefName(fileRef) {
+    return typeof fileRef === 'string' ? fileRef.split('/').pop() : (fileRef && fileRef.name) || '';
+  }
+
+  _fileRefPath(fileRef) {
+    return typeof fileRef === 'string' ? fileRef : (fileRef && (fileRef.path || fileRef.name)) || '';
+  }
+
+  _pathWithoutExt(path) {
+    return String(path || '').replace(/\\/g, '/').replace(/\.[^/.]+$/, '');
+  }
+
+  _expectedClipIdentities(gameNode) {
+    if (!gameNode) return [];
+    if (Array.isArray(gameNode.clipRefs) && gameNode.clipRefs.length) {
+      return gameNode.clipRefs.map(c => this._pathWithoutExt(c.originalRelativePath || c.libraryRelativePath || c.displayName || c.originalName)).filter(Boolean);
+    }
+    if (Array.isArray(gameNode.clipPaths) && gameNode.clipPaths.length) {
+      return gameNode.clipPaths.map(p => this._pathWithoutExt(p)).filter(Boolean);
+    }
+    if (Array.isArray(gameNode.clipNames)) {
+      return gameNode.clipNames.map(n => this._pathWithoutExt(n)).filter(Boolean);
+    }
+    return [];
+  }
+
+  _missingClipIdentities(gameNode, filesOnDisk) {
+    const found = new Set((filesOnDisk || []).map(f => this._pathWithoutExt(this._fileRefPath(f))));
+    return this._expectedClipIdentities(gameNode).filter(id => !found.has(id));
   }
 
   /** Tear down per-game UI before loading a different game. */
@@ -15797,6 +15862,15 @@ class StorageManager {
       currentPlayId: this.tagger.currentPlayId,
       nextId: this.tagger.nextId,
       clipNames: this.playlist ? this.playlist.clips.map(c => c.name) : [],
+      clipPaths: this.playlist ? this.playlist.clips.map(c => c.clipPath || c.name) : [],
+      clipRefs: this.playlist ? this.playlist.clips.map(c => ({
+        id: c.clipPath || c.name,
+        originalName: c.file ? c.file.name : c.name,
+        originalRelativePath: c.clipPath || c.name,
+        displayName: c.name,
+        duration: c.duration || null,
+        importStatus: c.assetUrl || c.file ? 'ready' : 'missing'
+      })) : [],
       isMultiClip: this.playlist ? this.playlist.hasClips : false,
     };
   }
@@ -17743,20 +17817,19 @@ class PlaylistManager {
    * Sorts them naturally by filename.
    */
   async addFiles(files) {
-    // Sort files naturally by name (play_01, play_02, etc.)
+    // Sort files naturally by folder path + name (play_01, play_02, etc.).
     const sorted = files.slice().sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    const nameOf = f => f.name.replace(/\.[^.]+$/, '');   // strip extension (== clip.name)
+      this._fileIdentity(a).localeCompare(this._fileIdentity(b), undefined, { numeric: true, sensitivity: 'base' }));
 
-    // A file whose name already matches a LIVE clip is a duplicate. The coach
+    // A file whose path identity already matches a LIVE clip is a duplicate. The coach
     // chooses (Windows-conflict-dialog style): SKIP it — re-add a folder and
     // import only what's new — or RE-LINK it: repoint the existing (possibly
     // tagged) play at the freshly-selected file and refresh its video, keeping
     // the tags. Cross-session re-link of SAVED plays (stale/null clipId) stays
     // automatic below and needs no prompt.
-    const liveByName = new Map(this.clips.map(c => [c.name, c]));
-    const dups = sorted.filter(f => liveByName.has(nameOf(f)));
-    const fresh = sorted.filter(f => !liveByName.has(nameOf(f)));
+    const liveByIdentity = new Map(this.clips.map(c => [this._clipIdentity(c), c]));
+    const dups = sorted.filter(f => liveByIdentity.has(this._fileIdentity(f)));
+    const fresh = sorted.filter(f => !liveByIdentity.has(this._fileIdentity(f)));
 
     let relinkDups = false;
     if (dups.length) {
@@ -17783,10 +17856,12 @@ class PlaylistManager {
     if (relinkDups) {
       let refreshActive = false;
       for (const f of dups) {
-        const clip = liveByName.get(nameOf(f));
+        const clip = liveByIdentity.get(this._fileIdentity(f));
         if (!clip) continue;
         if (clip.objectUrl) { try { URL.revokeObjectURL(clip.objectUrl); } catch (e) {} }
         clip.file = f; clip.objectUrl = null; clip.assetUrl = null;
+        clip.name = this._displayName(f);
+        clip.clipPath = this._fileIdentity(f);
         if (this.clips[this.activeClipIndex] === clip) refreshActive = true;
       }
       if (refreshActive && this.activeClipIndex >= 0) this.switchToClip(this.activeClipIndex);
@@ -17794,7 +17869,15 @@ class PlaylistManager {
 
     // Add the genuinely-new files as clips.
     for (const file of fresh) {
-      const clip = { id: this._nextClipId++, file, name: nameOf(file), objectUrl: null, duration: null, playId: null };
+      const clip = {
+        id: this._nextClipId++,
+        file,
+        name: this._displayName(file),
+        clipPath: this._fileIdentity(file),
+        objectUrl: null,
+        duration: null,
+        playId: null
+      };
       this.clips.push(clip);
       newClips.push(clip);
     }
@@ -17828,20 +17911,21 @@ class PlaylistManager {
 
   /**
    * Match incoming clips back to plays saved in a previous session, keyed by
-   * clip name (the only stable identifier across sessions). The first
-   * orphaned play per name is the auto-created whole-clip play; any extra
+   * clip path when present, with clip name as a legacy fallback. The first
+   * orphaned play per identity is the auto-created whole-clip play; any extra
    * plays marked inside that clip share its stale clipId and follow it to
    * the new id. Returns how many clips were re-linked.
    */
   _relinkSavedPlays(newClips, liveIds) {
     const stale = id => id != null && !liveIds.has(id);
-    const primaryByName = new Map();
+    const primaryByIdentity = new Map();
     for (const p of this.tagger.plays) {
-      if (p.clipName && (p.clipId == null || stale(p.clipId)) && !primaryByName.has(p.clipName)) {
-        primaryByName.set(p.clipName, p);
+      const key = this._playIdentity(p);
+      if (key && (p.clipId == null || stale(p.clipId)) && !primaryByIdentity.has(key)) {
+        primaryByIdentity.set(key, p);
       }
     }
-    if (!primaryByName.size) return 0;
+    if (!primaryByIdentity.size) return 0;
 
     // Snapshot original clipIds before mutating — new ids can numerically
     // collide with stale ones (both sequences start at 1).
@@ -17849,9 +17933,10 @@ class PlaylistManager {
     const staleToNew = new Map();
     let relinked = 0;
     for (const clip of newClips) {
-      const primary = primaryByName.get(clip.name);
+      const key = this._clipIdentity(clip);
+      const primary = primaryByIdentity.get(key);
       if (!primary) continue;
-      primaryByName.delete(clip.name);
+      primaryByIdentity.delete(key);
       clip.playId = primary.id;
       // Reuse the saved play's end time so this clip skips the duration probe
       // (999 is the failed-probe sentinel — don't adopt it as a real length).
@@ -17860,6 +17945,8 @@ class PlaylistManager {
       }
       if (stale(origId.get(primary))) staleToNew.set(origId.get(primary), clip.id);
       primary.clipId = clip.id;
+      primary.clipName = clip.name;
+      primary.clipPath = clip.clipPath || clip.name;
       relinked++;
     }
     if (staleToNew.size) {
@@ -17900,6 +17987,7 @@ class PlaylistManager {
         annotations: [],
         notes: '',
         clipName: clip.name,
+        clipPath: clip.clipPath || clip.name,
         clipId: clip.id
       };
 
@@ -17950,32 +18038,38 @@ class PlaylistManager {
   }
 
   async rehydrateFromDisk(diskFiles, plays) {
-    const nameToPlay = {};
+    const identityToPlay = {};
     for (const p of plays) {
-      if (p.clipName && !nameToPlay[p.clipName]) nameToPlay[p.clipName] = p;
+      const key = this._playIdentity(p);
+      if (key && !identityToPlay[key]) identityToPlay[key] = p;
     }
 
     const sorted = diskFiles.slice().sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      String(a.path || a.name || '').localeCompare(String(b.path || b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
     for (const file of sorted) {
       const displayName = file.name.replace(/\.[^.]+$/, '');
+      const clipPath = this._pathWithoutExt(file.path || file.name);
       const entry = {
         id: this._nextClipId++,
         file: null,
         name: displayName,
+        clipPath,
         assetUrl: file.url,
         objectUrl: null,
         duration: null,
         playId: null,
       };
 
-      const play = nameToPlay[displayName];
+      const play = identityToPlay[clipPath] || identityToPlay[displayName];
       if (play) {
         entry.playId = play.id;
         entry.duration = play.timestamp ? play.timestamp.end : null;
         play.clipId = entry.id;
-        delete nameToPlay[displayName];
+        play.clipName = entry.name;
+        play.clipPath = entry.clipPath;
+        delete identityToPlay[clipPath];
+        delete identityToPlay[displayName];
       }
 
       this.clips.push(entry);
@@ -18143,7 +18237,7 @@ class PlaylistManager {
       const name = document.createElement('span');
       name.className = 'playlist-name';
       name.textContent = clip.name;
-      name.title = clip.file ? clip.file.name : clip.name;
+      name.title = clip.file ? this._fileIdentity(clip.file) : (clip.clipPath || clip.name);
 
       const dur = document.createElement('span');
       dur.className = 'playlist-dur';
@@ -18188,6 +18282,29 @@ class PlaylistManager {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  }
+
+  _displayName(fileOrPath) {
+    const raw = typeof fileOrPath === 'string' ? fileOrPath : (fileOrPath && fileOrPath.name) || '';
+    const leaf = raw.split(/[\\/]/).pop() || raw;
+    return this._pathWithoutExt(leaf);
+  }
+
+  _pathWithoutExt(path) {
+    return String(path || '').replace(/\\/g, '/').replace(/\.[^/.]+$/, '');
+  }
+
+  _fileIdentity(file) {
+    const raw = (file && (file.webkitRelativePath || file.relativePath || file.path || file.name)) || '';
+    return this._pathWithoutExt(raw);
+  }
+
+  _clipIdentity(clip) {
+    return (clip && (clip.clipPath || clip.name)) || '';
+  }
+
+  _playIdentity(play) {
+    return (play && (play.clipPath || play.clipName)) || '';
   }
 
   // Event system

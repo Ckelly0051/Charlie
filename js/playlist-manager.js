@@ -59,20 +59,19 @@ export class PlaylistManager {
    * Sorts them naturally by filename.
    */
   async addFiles(files) {
-    // Sort files naturally by name (play_01, play_02, etc.)
+    // Sort files naturally by folder path + name (play_01, play_02, etc.).
     const sorted = files.slice().sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    const nameOf = f => f.name.replace(/\.[^.]+$/, '');   // strip extension (== clip.name)
+      this._fileIdentity(a).localeCompare(this._fileIdentity(b), undefined, { numeric: true, sensitivity: 'base' }));
 
-    // A file whose name already matches a LIVE clip is a duplicate. The coach
+    // A file whose path identity already matches a LIVE clip is a duplicate. The coach
     // chooses (Windows-conflict-dialog style): SKIP it — re-add a folder and
     // import only what's new — or RE-LINK it: repoint the existing (possibly
     // tagged) play at the freshly-selected file and refresh its video, keeping
     // the tags. Cross-session re-link of SAVED plays (stale/null clipId) stays
     // automatic below and needs no prompt.
-    const liveByName = new Map(this.clips.map(c => [c.name, c]));
-    const dups = sorted.filter(f => liveByName.has(nameOf(f)));
-    const fresh = sorted.filter(f => !liveByName.has(nameOf(f)));
+    const liveByIdentity = new Map(this.clips.map(c => [this._clipIdentity(c), c]));
+    const dups = sorted.filter(f => liveByIdentity.has(this._fileIdentity(f)));
+    const fresh = sorted.filter(f => !liveByIdentity.has(this._fileIdentity(f)));
 
     let relinkDups = false;
     if (dups.length) {
@@ -99,10 +98,12 @@ export class PlaylistManager {
     if (relinkDups) {
       let refreshActive = false;
       for (const f of dups) {
-        const clip = liveByName.get(nameOf(f));
+        const clip = liveByIdentity.get(this._fileIdentity(f));
         if (!clip) continue;
         if (clip.objectUrl) { try { URL.revokeObjectURL(clip.objectUrl); } catch (e) {} }
         clip.file = f; clip.objectUrl = null; clip.assetUrl = null;
+        clip.name = this._displayName(f);
+        clip.clipPath = this._fileIdentity(f);
         if (this.clips[this.activeClipIndex] === clip) refreshActive = true;
       }
       if (refreshActive && this.activeClipIndex >= 0) this.switchToClip(this.activeClipIndex);
@@ -110,7 +111,15 @@ export class PlaylistManager {
 
     // Add the genuinely-new files as clips.
     for (const file of fresh) {
-      const clip = { id: this._nextClipId++, file, name: nameOf(file), objectUrl: null, duration: null, playId: null };
+      const clip = {
+        id: this._nextClipId++,
+        file,
+        name: this._displayName(file),
+        clipPath: this._fileIdentity(file),
+        objectUrl: null,
+        duration: null,
+        playId: null
+      };
       this.clips.push(clip);
       newClips.push(clip);
     }
@@ -144,20 +153,21 @@ export class PlaylistManager {
 
   /**
    * Match incoming clips back to plays saved in a previous session, keyed by
-   * clip name (the only stable identifier across sessions). The first
-   * orphaned play per name is the auto-created whole-clip play; any extra
+   * clip path when present, with clip name as a legacy fallback. The first
+   * orphaned play per identity is the auto-created whole-clip play; any extra
    * plays marked inside that clip share its stale clipId and follow it to
    * the new id. Returns how many clips were re-linked.
    */
   _relinkSavedPlays(newClips, liveIds) {
     const stale = id => id != null && !liveIds.has(id);
-    const primaryByName = new Map();
+    const primaryByIdentity = new Map();
     for (const p of this.tagger.plays) {
-      if (p.clipName && (p.clipId == null || stale(p.clipId)) && !primaryByName.has(p.clipName)) {
-        primaryByName.set(p.clipName, p);
+      const key = this._playIdentity(p);
+      if (key && (p.clipId == null || stale(p.clipId)) && !primaryByIdentity.has(key)) {
+        primaryByIdentity.set(key, p);
       }
     }
-    if (!primaryByName.size) return 0;
+    if (!primaryByIdentity.size) return 0;
 
     // Snapshot original clipIds before mutating — new ids can numerically
     // collide with stale ones (both sequences start at 1).
@@ -165,9 +175,10 @@ export class PlaylistManager {
     const staleToNew = new Map();
     let relinked = 0;
     for (const clip of newClips) {
-      const primary = primaryByName.get(clip.name);
+      const key = this._clipIdentity(clip);
+      const primary = primaryByIdentity.get(key);
       if (!primary) continue;
-      primaryByName.delete(clip.name);
+      primaryByIdentity.delete(key);
       clip.playId = primary.id;
       // Reuse the saved play's end time so this clip skips the duration probe
       // (999 is the failed-probe sentinel — don't adopt it as a real length).
@@ -176,6 +187,8 @@ export class PlaylistManager {
       }
       if (stale(origId.get(primary))) staleToNew.set(origId.get(primary), clip.id);
       primary.clipId = clip.id;
+      primary.clipName = clip.name;
+      primary.clipPath = clip.clipPath || clip.name;
       relinked++;
     }
     if (staleToNew.size) {
@@ -216,6 +229,7 @@ export class PlaylistManager {
         annotations: [],
         notes: '',
         clipName: clip.name,
+        clipPath: clip.clipPath || clip.name,
         clipId: clip.id
       };
 
@@ -266,32 +280,38 @@ export class PlaylistManager {
   }
 
   async rehydrateFromDisk(diskFiles, plays) {
-    const nameToPlay = {};
+    const identityToPlay = {};
     for (const p of plays) {
-      if (p.clipName && !nameToPlay[p.clipName]) nameToPlay[p.clipName] = p;
+      const key = this._playIdentity(p);
+      if (key && !identityToPlay[key]) identityToPlay[key] = p;
     }
 
     const sorted = diskFiles.slice().sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      String(a.path || a.name || '').localeCompare(String(b.path || b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
     for (const file of sorted) {
       const displayName = file.name.replace(/\.[^.]+$/, '');
+      const clipPath = this._pathWithoutExt(file.path || file.name);
       const entry = {
         id: this._nextClipId++,
         file: null,
         name: displayName,
+        clipPath,
         assetUrl: file.url,
         objectUrl: null,
         duration: null,
         playId: null,
       };
 
-      const play = nameToPlay[displayName];
+      const play = identityToPlay[clipPath] || identityToPlay[displayName];
       if (play) {
         entry.playId = play.id;
         entry.duration = play.timestamp ? play.timestamp.end : null;
         play.clipId = entry.id;
-        delete nameToPlay[displayName];
+        play.clipName = entry.name;
+        play.clipPath = entry.clipPath;
+        delete identityToPlay[clipPath];
+        delete identityToPlay[displayName];
       }
 
       this.clips.push(entry);
@@ -459,7 +479,7 @@ export class PlaylistManager {
       const name = document.createElement('span');
       name.className = 'playlist-name';
       name.textContent = clip.name;
-      name.title = clip.file ? clip.file.name : clip.name;
+      name.title = clip.file ? this._fileIdentity(clip.file) : (clip.clipPath || clip.name);
 
       const dur = document.createElement('span');
       dur.className = 'playlist-dur';
@@ -504,6 +524,29 @@ export class PlaylistManager {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  }
+
+  _displayName(fileOrPath) {
+    const raw = typeof fileOrPath === 'string' ? fileOrPath : (fileOrPath && fileOrPath.name) || '';
+    const leaf = raw.split(/[\\/]/).pop() || raw;
+    return this._pathWithoutExt(leaf);
+  }
+
+  _pathWithoutExt(path) {
+    return String(path || '').replace(/\\/g, '/').replace(/\.[^/.]+$/, '');
+  }
+
+  _fileIdentity(file) {
+    const raw = (file && (file.webkitRelativePath || file.relativePath || file.path || file.name)) || '';
+    return this._pathWithoutExt(raw);
+  }
+
+  _clipIdentity(clip) {
+    return (clip && (clip.clipPath || clip.name)) || '';
+  }
+
+  _playIdentity(play) {
+    return (play && (play.clipPath || play.clipName)) || '';
   }
 
   // Event system

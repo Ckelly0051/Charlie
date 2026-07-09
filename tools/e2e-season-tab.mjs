@@ -74,7 +74,15 @@ const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
-page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+page.on('console', m => {
+  if (m.type() !== 'error') return;
+  const text = m.text();
+  // The stored-XSS fixtures intentionally render inert <img src=x> payloads.
+  // Chromium logs their failed image fetches; that is the test payload working,
+  // not an app error.
+  if (/^Failed to load resource: net::ERR_FILE_NOT_FOUND$/.test(text)) return;
+  errors.push(text);
+});
 const click = (sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);
 
 console.log('\n== Setup: team + demo + open a game (full app init) ==');

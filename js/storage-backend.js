@@ -513,6 +513,14 @@ export class TauriBackend extends StorageBackend {
   async deleteSeason(id) {
     if (!this._ok()) return;
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
+    try {
+      if (this.mirrorDir !== undefined) {
+        const mirrorSeason = this._mirrorSeasonDir(id);
+        if (await this.fs.exists(mirrorSeason, { baseDir: this.mirrorDir })) {
+          await this.fs.remove(mirrorSeason, { baseDir: this.mirrorDir, recursive: true });
+        }
+      }
+    } catch (e) {}
     await this._writeLib((await this._readLib()).filter(s => s.id !== id));
     delete this._dirReady[id];
     if (this.currentId === id) this.currentId = null;
@@ -621,9 +629,12 @@ export class TauriBackend extends StorageBackend {
     const result = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const dest = `${dir}/${file.name}`;
+      const relPath = this._filmRelativePath(file);
+      const dest = `${dir}/${relPath}`;
+      const parent = dest.split('/').slice(0, -1).join('/');
+      if (parent && parent !== dir) await this.fs.mkdir(parent, { baseDir: this.baseDir, recursive: true });
       if (await this._exists(dest)) {
-        result.push(file.name);
+        result.push(relPath);
         if (onProgress) onProgress(i + 1, files.length, file.name);
         continue;
       }
@@ -633,10 +644,16 @@ export class TauriBackend extends StorageBackend {
       // (field-reported). Chunked appends use the same write-file
       // permission and keep memory flat regardless of film size.
       await this._writeFileStreamed(dest, file);
-      result.push(file.name);
+      result.push(relPath);
       if (onProgress) onProgress(i + 1, files.length, file.name);
     }
     return result;
+  }
+
+  _filmRelativePath(file) {
+    const raw = String((file && (file.webkitRelativePath || file.relativePath || file.path || file.name)) || '').replace(/\\/g, '/');
+    const parts = raw.split('/').filter(part => part && part !== '.' && part !== '..' && !/^[A-Za-z]:$/.test(part));
+    return parts.join('/') || String((file && file.name) || 'film.mp4').replace(/[\\/]/g, '_');
   }
 
   /** Write a Blob/File to disk in ~32 MB appends (no whole-file buffering). */
@@ -672,14 +689,15 @@ export class TauriBackend extends StorageBackend {
 
   async filmUrl(gameId, filename) {
     if (!this._ok() || !this.currentId) return null;
-    const rel = `${this._filmsDir(gameId)}/${filename}`;
+    const filePath = typeof filename === 'string' ? filename : (filename && (filename.path || filename.name)) || '';
+    const rel = `${this._filmsDir(gameId)}/${filePath}`;
     if (!(await this._exists(rel))) return null;
     const tauri = window.__TAURI__;
     const convert = tauri?.core?.convertFileSrc;
     const join = tauri?.path?.join;
     const base = await this.dataDirPath();
     if (!convert || !join || !base) return null;
-    const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), filename);
+    const abs = await join(base, 'seasons', String(this.currentId), 'films', String(gameId), ...String(filePath).split('/'));
     return convert(abs);
   }
 
@@ -697,9 +715,19 @@ export class TauriBackend extends StorageBackend {
     const dir = this._filmsDir(gameId);
     try {
       if (!(await this._exists(dir))) return [];
-      const entries = await this.fs.readDir(dir, { baseDir: this.baseDir });
-      return entries.filter(e => !e.isDirectory).map(e => e.name)
-        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+      const out = [];
+      const walk = async (relDir, prefix = '') => {
+        const entries = await this.fs.readDir(relDir, { baseDir: this.baseDir });
+        for (const e of entries) {
+          if (e.isDirectory) {
+            await walk(`${relDir}/${e.name}`, `${prefix}${e.name}/`);
+          } else {
+            out.push({ name: e.name, path: `${prefix}${e.name}` });
+          }
+        }
+      };
+      await walk(dir);
+      return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
     } catch (e) { return []; }
   }
 
