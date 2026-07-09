@@ -323,6 +323,46 @@ export class PlaylistManager {
   }
 
   /**
+   * Replace the live playlist with files matched to existing plays. This is for
+   * film repair/migration only: it never creates or deletes plays, so tags stay
+   * attached to the same play ids.
+   */
+  async repairWithMatches(matches) {
+    this.reset();
+    for (const m of (matches || [])) {
+      const file = m.file;
+      const play = m.play;
+      if (!file || !play) continue;
+      const clip = {
+        id: this._nextClipId++,
+        file,
+        name: this._displayName(file),
+        clipPath: this._fileIdentity(file),
+        objectUrl: null,
+        assetUrl: null,
+        duration: (play.timestamp && play.timestamp.end && play.timestamp.end !== 999) ? play.timestamp.end : null,
+        playId: play.id
+      };
+      play.clipId = clip.id;
+      play.clipName = clip.name;
+      play.clipPath = clip.clipPath;
+      this.clips.push(clip);
+    }
+    this._updatePlaylistUI();
+    this._updateClipIndicator();
+    this._updateClipCount();
+    this.tagger._updatePlaySelect();
+    this.tagger._updateTimeline();
+
+    const cur = this.tagger.getCurrentPlay();
+    if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
+      this.switchToClipByPlayId(cur.id);
+    } else if (this.clips.length) {
+      this.switchToClip(0);
+    }
+  }
+
+  /**
    * Switch the video player to show a specific clip by index.
    */
   switchToClip(index) {

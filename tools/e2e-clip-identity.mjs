@@ -92,6 +92,114 @@ ok(s.clipCountAfter === 2, 'reopen re-imports two clips', `got ${s.clipCountAfte
 ok(s.relinkedCount === 2, 'BOTH plays relink on reopen (none orphaned)', `relinked=${s.relinkedCount}`);
 ok(appErrors().length === 0, 'no console/page errors', appErrors().join(' | '));
 
+const repair = await page.evaluate(async () => {
+  const out = { err: null };
+  try {
+    const { storage, tagger, playlist } = window.app;
+    const mkFile = (relPath) => {
+      const base = relPath.split('/').pop();
+      const f = new File([new Uint8Array(16)], base, { type: 'video/mp4' });
+      Object.defineProperty(f, 'webkitRelativePath', { value: relPath });
+      return f;
+    };
+
+    const legacyPlays = [
+      {
+        id: 101,
+        timestamp: { start: 0, end: 5 },
+        clipId: 9001,
+        clipName: '0001',
+        tags: { playType: 'Run Inside', result: 'Gain', yardage: '4', formation: 'Shotgun', custom: [] },
+        notes: 'first tag survives'
+      },
+      {
+        id: 102,
+        timestamp: { start: 0, end: 6 },
+        clipId: 9002,
+        clipName: '0001',
+        tags: { playType: 'Short Pass', result: 'Incomplete', yardage: '0', formation: 'Trips', custom: [] },
+        notes: 'second tag survives'
+      }
+    ];
+
+    storage.seasonStore.data = {
+      id: 'season-repair',
+      activeGameId: 'repair-game',
+      games: [{
+        id: 'repair-game',
+        version: 4,
+        isMultiClip: true,
+        videoFileName: null,
+        gameInfo: { opponent: 'Legacy' },
+        plays: legacyPlays,
+        annotations: [],
+        currentPlayId: 101,
+        nextId: 103,
+        clipNames: ['0001', '0001']
+      }]
+    };
+    storage._loadedGameId = 'repair-game';
+    storage.gameInfo = { opponent: 'Legacy' };
+    tagger.plays = legacyPlays;
+    tagger.nextId = 103;
+    tagger.currentPlayId = 101;
+    tagger._updatePlaySelect();
+    playlist.reset();
+
+    const imported = [];
+    const snapshots = [];
+    storage.seasonStore.backend = {
+      supportsFilm: () => true,
+      importFilm: async (_gameId, files) => {
+        imported.push(...files.map(f => f.webkitRelativePath || f.name));
+      }
+    };
+    storage.seasonStore.snapshot = async (label) => { snapshots.push(label); };
+    storage.seasonStore.persist = () => { out.persisted = true; };
+    tagger._choiceDialog = async () => 'repair';
+    tagger.toast = (msg) => { out.toast = msg; };
+    const warnings = [];
+    const oldWarn = console.warn;
+    console.warn = (...args) => {
+      warnings.push(args.map(arg => String((arg && arg.stack) || arg)).join(' '));
+      oldWarn.apply(console, args);
+    };
+
+    const ok = await storage.repairFilm([
+      mkFile('Game7/sideline/0001.mp4'),
+      mkFile('Game7/endzone/0001.mp4')
+    ]);
+    console.warn = oldWarn;
+
+    const saved = storage.seasonStore.data.games[0];
+    out.ok = ok;
+    out.warnings = warnings;
+    out.imported = imported;
+    out.snapshots = snapshots;
+    out.playCount = tagger.plays.length;
+    out.savedPlayCount = saved.plays.length;
+    out.clipCount = playlist.clips.length;
+    out.paths = tagger.plays.map(p => p.clipPath);
+    out.linked = tagger.plays.every(p => new Set(playlist.clips.map(c => c.id)).has(p.clipId));
+    out.tags = tagger.plays.map(p => ({ tags: p.tags, notes: p.notes }));
+    out.savedPaths = saved.clipPaths || [];
+  } catch (e) {
+    out.err = String(e && e.stack || e);
+  }
+  return out;
+});
+
+console.log('\nFilm repair / legacy migration -------------------------------');
+if (repair.err) console.log('  IN-PAGE ERROR:', repair.err);
+ok(repair.ok === true, 'repair workflow completes after confirmation', `toast=${repair.toast} warnings=${JSON.stringify(repair.warnings)}`);
+ok(repair.playCount === 2 && repair.savedPlayCount === 2, 'repair keeps the same two tagged plays', `live=${repair.playCount} saved=${repair.savedPlayCount}`);
+ok(repair.clipCount === 2, 'repair builds one live clip per tagged play', `clips=${repair.clipCount}`);
+ok(repair.linked === true, 'repaired plays point at current live clips');
+ok(JSON.stringify(repair.paths) === JSON.stringify(['Game7/endzone/0001', 'Game7/sideline/0001']), 'legacy duplicate basenames migrate to folder paths by order', `paths=${JSON.stringify(repair.paths)}`);
+ok(repair.tags?.[0]?.tags?.formation === 'Shotgun' && repair.tags?.[1]?.tags?.formation === 'Trips', 'repair preserves existing tags and notes');
+ok(repair.imported?.length === 2, 'repair imports only the matched clips', `imported=${JSON.stringify(repair.imported)}`);
+ok(repair.snapshots?.includes('Before film repair'), 'repair creates a restore point before saving');
+
 await browser.close();
 console.log(`\n${fail === 0 ? 'ALL PASS' : 'FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

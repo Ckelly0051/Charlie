@@ -300,7 +300,7 @@ export class StorageManager {
       ? `the clip folder (${expectedCount} clips)`
       : g.videoFileName ? `"${g.videoFileName}"` : null;
     if (!what) return;
-    this.tagger.toast?.(`Tags loaded — re-add ${what} to watch film. Plays re-link automatically${savedNote ? ', and the film saves to the library this time' : ''}.`);
+    this.tagger.toast?.(`Tags loaded — use Repair Film in Playlist to reconnect ${what}${savedNote ? ' and save it to the desktop library' : ''}.`);
   }
 
   async _autoLoadFilm(gameNode) {
@@ -376,6 +376,149 @@ export class StorageManager {
     }
   }
 
+  async repairFilm(files) {
+    const backend = this.seasonStore.backend;
+    if (!backend.supportsFilm || !backend.supportsFilm()) {
+      this.tagger.toast?.('Film repair is available in the desktop app.');
+      return false;
+    }
+    const game = this.seasonStore.activeGame();
+    const videoFiles = this._videoFiles(files);
+    if (!game || !this.tagger.plays.length) {
+      this.tagger.toast?.('Open the tagged game first, then repair its film.');
+      return false;
+    }
+    if (!videoFiles.length) {
+      this.tagger.toast?.('No video files found in that folder.');
+      return false;
+    }
+
+    if (videoFiles.length === 1 && !game.isMultiClip) {
+      const file = videoFiles[0];
+      const ok = await this.tagger._choiceDialog(
+        `Repair this game with "${file.name}"? Your tags stay in place; the video will be copied into the desktop film library.`,
+        [
+          { key: 'repair', label: 'Repair Film', variant: 'btn-accent' },
+          { key: 'cancel', label: 'Cancel' },
+        ]);
+      if (ok !== 'repair') return false;
+      this._maybeSnapshot(true, 'Before film repair');
+      await backend.importFilm(game.id, [file], (done, total) => {
+        const app = window.app;
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
+      });
+      this.videoFileName = file.name;
+      this.vc.loadFile(file);
+      this.commitActive();
+      this.seasonStore.persist();
+      this._signalSave('saved');
+      this.tagger.toast?.('Film repaired for this game.');
+      return true;
+    }
+
+    const plan = this._planClipRepair(videoFiles);
+    if (!plan.matches.length) {
+      this.tagger.toast?.('Could not match that folder to this game. Choose the original clip folder for the active game.');
+      return false;
+    }
+    if (plan.missing.length) {
+      this.tagger.toast?.(`Matched ${plan.matches.length} of ${plan.totalPlays} plays. No changes made. Choose the folder with every clip for this game.`, 12000);
+      return false;
+    }
+
+    const extra = plan.extraFiles ? ` ${plan.extraFiles} extra video${plan.extraFiles === 1 ? '' : 's'} will be ignored.` : '';
+    const order = plan.orderMatches ? ` ${plan.orderMatches} old clip${plan.orderMatches === 1 ? '' : 's'} will be matched by folder order.` : '';
+    const choice = await this.tagger._choiceDialog(
+      `Repair film for this game? ${plan.matches.length} tagged play${plan.matches.length === 1 ? '' : 's'} will keep their tags and get new film paths.${order}${extra}`,
+      [
+        { key: 'repair', label: 'Repair Film', variant: 'btn-accent' },
+        { key: 'cancel', label: 'Cancel' },
+      ]);
+    if (choice !== 'repair') return false;
+
+    try {
+      this._maybeSnapshot(true, 'Before film repair');
+      const matchedFiles = plan.matches.map(m => m.file);
+      await backend.importFilm(game.id, matchedFiles, (done, total) => {
+        const app = window.app;
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
+      });
+      await this.playlist.repairWithMatches(plan.matches);
+      this.videoFileName = null;
+      this.commitActive();
+      this.seasonStore.persist();
+      this._signalSave('saved');
+      this.tagger.toast?.(`Film repaired: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
+      return true;
+    } catch (e) {
+      console.warn('Film repair failed:', e);
+      this.tagger.toast?.('Film repair failed before changes were saved. Try the folder again.');
+      return false;
+    }
+  }
+
+  _videoFiles(files) {
+    const exts = /\.(mp4|mov|m4v|webm|avi|mkv)$/i;
+    return (files || [])
+      .filter(f => (f && f.type && f.type.startsWith('video/')) || exts.test((f && f.name) || ''))
+      .sort((a, b) => this._fileIdentity(a).localeCompare(this._fileIdentity(b), undefined, { numeric: true, sensitivity: 'base' }));
+  }
+
+  _planClipRepair(files) {
+    const plays = this.tagger.plays.slice();
+    const fileRows = files.map((file, index) => ({
+      file, index,
+      identity: this._fileIdentity(file),
+      name: this._displayName(file)
+    }));
+    const usedFiles = new Set();
+    const usedPlays = new Set();
+    const matches = [];
+    let orderMatches = 0;
+
+    const add = (play, row, method) => {
+      if (!play || !row || usedPlays.has(play) || usedFiles.has(row)) return false;
+      usedPlays.add(play);
+      usedFiles.add(row);
+      matches.push({ play, file: row.file, method });
+      if (method === 'order') orderMatches++;
+      return true;
+    };
+
+    const byIdentity = new Map(fileRows.map(row => [row.identity, row]));
+    for (const play of plays) {
+      const key = this._pathWithoutExt(play.clipPath || '');
+      if (key && byIdentity.has(key)) add(play, byIdentity.get(key), 'path');
+    }
+
+    const byName = new Map();
+    for (const row of fileRows) {
+      if (usedFiles.has(row)) continue;
+      if (!byName.has(row.name)) byName.set(row.name, []);
+      byName.get(row.name).push(row);
+    }
+    for (const play of plays) {
+      if (usedPlays.has(play)) continue;
+      const rows = byName.get(this._pathWithoutExt(play.clipName || '')) || [];
+      const openRows = rows.filter(row => !usedFiles.has(row));
+      if (openRows.length === 1) add(play, openRows[0], 'name');
+    }
+
+    const remainingPlays = plays.filter(play => !usedPlays.has(play));
+    const remainingFiles = fileRows.filter(row => !usedFiles.has(row));
+    if (remainingPlays.length && remainingPlays.length === remainingFiles.length) {
+      remainingPlays.forEach((play, i) => add(play, remainingFiles[i], 'order'));
+    }
+
+    return {
+      matches,
+      missing: plays.filter(play => !usedPlays.has(play)),
+      extraFiles: fileRows.filter(row => !usedFiles.has(row)).length,
+      orderMatches,
+      totalPlays: plays.length
+    };
+  }
+
   _fileRefName(fileRef) {
     return typeof fileRef === 'string' ? fileRef.split('/').pop() : (fileRef && fileRef.name) || '';
   }
@@ -386,6 +529,17 @@ export class StorageManager {
 
   _pathWithoutExt(path) {
     return String(path || '').replace(/\\/g, '/').replace(/\.[^/.]+$/, '');
+  }
+
+  _displayName(fileOrPath) {
+    const raw = typeof fileOrPath === 'string' ? fileOrPath : (fileOrPath && fileOrPath.name) || '';
+    const leaf = raw.split(/[\\/]/).pop() || raw;
+    return this._pathWithoutExt(leaf);
+  }
+
+  _fileIdentity(file) {
+    const raw = (file && (file.webkitRelativePath || file.relativePath || file.path || file.name)) || '';
+    return this._pathWithoutExt(raw);
   }
 
   _expectedClipIdentities(gameNode) {

@@ -40,7 +40,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.10.4';
+const APP_VERSION = '1.10.5';
 
 class App {
   constructor() {
@@ -878,6 +878,19 @@ class App {
       }
       this.storage.importFilm(files);
     });
+
+    const btnRepairFilm = document.getElementById('btnRepairFilm');
+    const repairInput = document.getElementById('repairFilmInput');
+    if (btnRepairFilm && repairInput) {
+      btnRepairFilm.addEventListener('click', () => repairInput.click());
+      repairInput.addEventListener('change', async (e) => {
+        const files = this.vc._filterVideoFiles(Array.from(e.target.files || []))
+          .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
+            b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        e.target.value = '';
+        await this.storage.repairFilm(files);
+      });
+    }
 
     // Marking start/end is optional: a single video loaded into an empty game
     // auto-creates a play spanning the whole file (film usually arrives as one
