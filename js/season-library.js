@@ -717,20 +717,31 @@ export class SeasonLibrary {
     // Team Home shows only the ACTIVE team's seasons (JV and Varsity each
     // have their own hub; the pills switch between them).
     if (this._teams().length) seasons = this._teamSeasons(seasons, this._activeTeamId());
-    const demoId = this._storage()?.demoSeasonId?.() || '';
-    this._renderChecklist(seasons, demoId);
+    const isDemo = s => this._storage()?.isDemoSeason?.(s.id) || s.isDemo || s.kind === 'demo';
+    const demoId = (seasons.find(isDemo) || {}).id || '';
+    this._renderDemoButton(!!demoId);
+    this._renderChecklist(seasons);
     if (!seasons.length) {
       this.listEl.innerHTML = this._hasTeam()
         ? `<div class="library-empty">
             <p>No seasons yet for this team.</p>
-            <p class="library-empty-sub">Create your first season — or explore a demo to see what the stats look like.</p>
+            <p class="library-empty-sub">Create your first season, or use the sample season button above to preview the app.</p>
           </div>`
         : '';
       return;
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
-    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, s.id === demoId)).join('');
+    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, isDemo(s))).join('');
     this._updateCloseBtn();
+  }
+
+  _renderDemoButton(hasDemo) {
+    const btn = document.getElementById('btnExploreDemo');
+    if (!btn) return;
+    btn.title = hasDemo
+      ? 'Open the sample season to explore stats, self-scout, and call sheet'
+      : 'Create a fully-tagged sample season to explore stats, self-scout, and call sheet';
+    btn.innerHTML = `<svg class="icon"><use href="assets/icons.svg#icon-play"/></svg> ${hasDemo ? 'Open sample season' : 'Explore sample season'} <span class="btn-sub">2 games, fully tagged</span>`;
   }
 
   _cardHtml(s, isCurrent, isDemo) {
@@ -762,17 +773,18 @@ export class SeasonLibrary {
     if (el) el.classList.add('hidden');
   }
 
-  _checklistItems(seasons, demoId) {
+  _checklistItems(seasons) {
     const profile = this._teamProfile();
     const roster = window.app?.roster?.players || [];
-    const realSeasons = (seasons || []).filter(s => s.id !== demoId);
+    const storage = this._storage();
+    const realSeasons = (seasons || []).filter(s => !storage?.isDemoSeason?.(s.id) && !s.isDemo && s.kind !== 'demo');
     // Season-meta play counts lag a debounced autosave, so also consult the
     // live tagger when a real season is open (a play tagged seconds ago counts).
     // "Tagged" means the coach actually applied a tag — loading a video
     // auto-creates placeholder plays, which must NOT check this step off.
     const store = this._storage()?.seasonStore;
     const hasRealTag = p => p?.tags && (p.tags.playType || p.tags.runPass || p.tags.result || p.tags.formation);
-    const liveTagged = store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)
+    const liveTagged = store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)
       && (window.app?.tagger?.plays || []).some(hasRealTag);
     const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0 && s.id !== store?.currentSeasonId);
     let seenStats = false;
@@ -786,12 +798,12 @@ export class SeasonLibrary {
     ];
   }
 
-  _renderChecklist(seasons, demoId) {
+  _renderChecklist(seasons) {
     const el = document.getElementById('getStartedChecklist');
     if (!el) return;
     // Only show once a team exists (before that, the setup form is the guide),
     // and never after it's complete or dismissed.
-    const items = this._checklistItems(seasons, demoId);
+    const items = this._checklistItems(seasons);
     const doneCount = items.filter(i => i.done).length;
     const complete = doneCount === items.length;
     if (!this._hasTeam() || complete || this._checklistDismissed()) {
@@ -827,7 +839,7 @@ export class SeasonLibrary {
       const store = storage?.seasonStore;
       if (store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)) { this.openSchedule(); return; }
       storage?.listSeasons().then(seasons => {
-        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId());
+        const real = (seasons || []).find(s => !storage.isDemoSeason(s.id) && !s.isDemo && s.kind !== 'demo');
         if (real) this._open(real.id);     // most recently opened real season
         else this._showForm(true);
       }).catch(() => this._showForm(true));
@@ -845,7 +857,7 @@ export class SeasonLibrary {
         return;
       }
       storage?.listSeasons().then(seasons => {
-        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId() && (s.plays || 0) > 0);
+        const real = (seasons || []).find(s => !storage.isDemoSeason(s.id) && !s.isDemo && s.kind !== 'demo' && (s.plays || 0) > 0);
         if (real) {
           this._open(real.id).then(() => {
             this.overlay.classList.add('hidden');

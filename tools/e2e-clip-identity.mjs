@@ -147,11 +147,17 @@ const repair = await page.evaluate(async () => {
     playlist.reset();
 
     const imported = [];
+    const filmUrls = [];
     const snapshots = [];
     storage.seasonStore.backend = {
       supportsFilm: () => true,
       importFilm: async (_gameId, files) => {
         imported.push(...files.map(f => f.webkitRelativePath || f.name));
+        return files.map(f => f.webkitRelativePath || f.name);
+      },
+      filmUrl: async (_gameId, ref) => {
+        filmUrls.push(ref);
+        return URL.createObjectURL(new Blob([new Uint8Array(16)], { type: 'video/mp4' }));
       }
     };
     storage.seasonStore.snapshot = async (label) => { snapshots.push(label); };
@@ -175,10 +181,12 @@ const repair = await page.evaluate(async () => {
     out.ok = ok;
     out.warnings = warnings;
     out.imported = imported;
+    out.filmUrls = filmUrls;
     out.snapshots = snapshots;
     out.playCount = tagger.plays.length;
     out.savedPlayCount = saved.plays.length;
     out.clipCount = playlist.clips.length;
+    out.assetUrls = playlist.clips.map(c => c.assetUrl || '');
     out.paths = tagger.plays.map(p => p.clipPath);
     out.linked = tagger.plays.every(p => new Set(playlist.clips.map(c => c.id)).has(p.clipId));
     out.tags = tagger.plays.map(p => ({ tags: p.tags, notes: p.notes }));
@@ -195,9 +203,11 @@ ok(repair.ok === true, 'repair workflow completes after confirmation', `toast=${
 ok(repair.playCount === 2 && repair.savedPlayCount === 2, 'repair keeps the same two tagged plays', `live=${repair.playCount} saved=${repair.savedPlayCount}`);
 ok(repair.clipCount === 2, 'repair builds one live clip per tagged play', `clips=${repair.clipCount}`);
 ok(repair.linked === true, 'repaired plays point at current live clips');
+ok(repair.assetUrls?.every(Boolean), 'repair switches playlist to library asset URLs', `urls=${JSON.stringify(repair.assetUrls)}`);
 ok(JSON.stringify(repair.paths) === JSON.stringify(['Game7/endzone/0001', 'Game7/sideline/0001']), 'legacy duplicate basenames migrate to folder paths by order', `paths=${JSON.stringify(repair.paths)}`);
 ok(repair.tags?.[0]?.tags?.formation === 'Shotgun' && repair.tags?.[1]?.tags?.formation === 'Trips', 'repair preserves existing tags and notes');
 ok(repair.imported?.length === 2, 'repair imports only the matched clips', `imported=${JSON.stringify(repair.imported)}`);
+ok(JSON.stringify(repair.filmUrls) === JSON.stringify(repair.imported), 'repair resolves imported library paths before reporting success', `filmUrls=${JSON.stringify(repair.filmUrls)}`);
 ok(repair.snapshots?.includes('Before film repair'), 'repair creates a restore point before saving');
 
 await browser.close();

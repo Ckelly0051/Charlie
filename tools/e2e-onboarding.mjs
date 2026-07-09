@@ -58,6 +58,8 @@ r = await page.evaluate(() => [...document.querySelectorAll('.gs-item.done .gs-l
 ok(r.length === 1 && /team/i.test(r[0]), 'exactly the team step is checked', JSON.stringify(r));
 
 console.log('\n== 3. Explore demo season ==');
+r = await $('#btnExploreDemo');
+ok(/Explore sample season/i.test(r?.text || ''), 'sample CTA starts as Explore sample season', r && r.text);
 await click('#btnExploreDemo');
 await sleep(900);
 r = await $('#libraryScheduleView');
@@ -142,6 +144,8 @@ r = await page.evaluate(() => document.querySelectorAll('.season-card').length);
 ok(r === 0, 'demo removed from library', String(r));
 r = await page.evaluate(() => !localStorage.getItem('ffa_demo_season_id'));
 ok(r, 'demo flag cleared');
+r = await $('#btnExploreDemo');
+ok(/Explore sample season/i.test(r?.text || ''), 'after deleting sample, CTA returns to Explore sample season', r && r.text);
 
 console.log('\n== 10. Real season flow + checklist completion ==');
 await click('#btnNewSeasonToggle');
@@ -170,12 +174,42 @@ ok(r, 'real-data stats view sets ffa_seen_stats');
 await page.evaluate(() => document.getElementById('statsDashboard').classList.add('hidden'));
 await click('#bcHome');
 await sleep(500);
+r = await page.evaluate(() => [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent));
+ok(!r.some(t => /Demo/.test(t)), 'real season is not badged Demo after sample deletion', JSON.stringify(r));
 r = await page.evaluate(() => {
   const items = [...document.querySelectorAll('.gs-item')];
   return { total: items.length, done: items.filter(i => i.classList.contains('done')).length,
            hidden: document.getElementById('getStartedChecklist').classList.contains('hidden') };
 });
 ok(r.hidden || r.done >= 4, 'checklist near/at completion with real data', JSON.stringify(r));
+
+console.log('\n== 10b. Corrupt demo pointer cannot mark a real season as demo ==');
+await page.evaluate(() => {
+  const realId = document.querySelector('.season-card')?.dataset.id;
+  if (realId) localStorage.setItem('ffa_demo_season_id', realId);
+});
+await page.reload({ waitUntil: 'networkidle0' });
+await sleep(800);
+r = await page.evaluate(() => ({
+  pointer: localStorage.getItem('ffa_demo_season_id'),
+  badges: [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent),
+  cards: [...document.querySelectorAll('.season-card')].map(c => ({ id: c.dataset.id, text: c.textContent }))
+}));
+ok(!r.pointer, 'stale demo pointer to real season is cleared', JSON.stringify(r));
+ok(!r.badges.some(t => /Demo/.test(t)), 'corrupt pointer does not badge real season as Demo', JSON.stringify(r));
+
+console.log('\n== 10c. Missing demo pointer resets to sample CTA ==');
+await page.evaluate(() => { localStorage.setItem('ffa_demo_season_id', 'missing-demo-season'); });
+await page.reload({ waitUntil: 'networkidle0' });
+await sleep(800);
+r = await page.evaluate(() => ({
+  pointer: localStorage.getItem('ffa_demo_season_id'),
+  cta: document.getElementById('btnExploreDemo')?.textContent || '',
+  badges: [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent),
+}));
+ok(!r.pointer, 'missing demo pointer is cleared', JSON.stringify(r));
+ok(/Explore sample season/i.test(r.cta), 'missing demo pointer leaves CTA as Explore sample season', JSON.stringify(r));
+ok(!r.badges.some(t => /Demo/.test(t)), 'missing demo pointer leaves no Demo badge', JSON.stringify(r));
 
 console.log('\n== 11. Upgrade path: existing season, NO team profile ==');
 // Simulate a genuine pre-team-hub install: no profile AND no team registry.

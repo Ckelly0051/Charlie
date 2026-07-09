@@ -18,6 +18,20 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### v1.10.6 - Demo Identity + Repair Playback Patch
+
+- Fixes a library/splash bug where a stale `localStorage ffa_demo_season_id`
+  could label a real tagged season as `Demo`, exclude it from checklist
+  progress, and leave a misleading sample-season CTA after deleting the demo.
+- Demo identity is now intrinsic to demo season data/meta (`isDemo` /
+  `kind:'demo'`); the localStorage id is only a cache and is cleared if it
+  points at a real or missing season.
+- The sample CTA is state-aware: `Explore sample season` when no sample exists,
+  `Open sample season` when one does.
+- Repair Film now resolves copied library refs through `backend.filmUrl()` and
+  switches the live playlist to those asset URLs before reporting a clean
+  library-loaded repair.
+
 ### v1.10.5 - Desktop Film Repair Workflow
 
 - Source commit: `81c885b release: v1.10.5 film repair workflow`.

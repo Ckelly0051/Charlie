@@ -87,6 +87,8 @@ export class StorageBackend {
       id,
       name: (data && data.seasonName) || team || 'Untitled Season',
       team, year: (data && data.year) || '', level: (data && data.level) || '',
+      isDemo: !!(data && (data.isDemo || data.kind === 'demo')),
+      kind: (data && (data.isDemo || data.kind === 'demo')) ? 'demo' : (data && data.kind) || '',
       games, plays, updated: new Date().toISOString(),
     };
   }
@@ -167,6 +169,7 @@ export class BrowserBackend extends StorageBackend {
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
       level: meta.level || '', teamId: meta.teamId || '',
+      isDemo: !!meta.isDemo, kind: meta.isDemo ? 'demo' : (meta.kind || ''),
       games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
     lib.push(entry);
@@ -503,6 +506,7 @@ export class TauriBackend extends StorageBackend {
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
       level: meta.level || '', teamId: meta.teamId || '',
+      isDemo: !!meta.isDemo, kind: meta.isDemo ? 'demo' : (meta.kind || ''),
       games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
     lib.push(entry);

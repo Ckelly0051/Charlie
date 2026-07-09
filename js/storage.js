@@ -135,7 +135,12 @@ export class StorageManager {
   }
 
   /** List every season in the library (metas only). */
-  listSeasons() { return this.seasonStore.listSeasons(); }
+  async listSeasons() {
+    const seasons = await this.seasonStore.listSeasons();
+    this._lastSeasonMetas = seasons || [];
+    this._reconcileDemoPointer(this._lastSeasonMetas);
+    return seasons;
+  }
 
   /** Open an existing season and restore its active game into the app. */
   async openSeasonById(id) {
@@ -170,7 +175,58 @@ export class StorageManager {
   demoSeasonId() {
     try { return localStorage.getItem('ffa_demo_season_id') || ''; } catch (e) { return ''; }
   }
-  isDemoSeason(id) { return !!id && id === this.demoSeasonId(); }
+  isDemoSeason(id) {
+    if (!id) return false;
+    const data = this.seasonStore && this.seasonStore.currentSeasonId === id ? this.seasonStore.data : null;
+    if (this._isDemoData(data)) return true;
+    const meta = (this._lastSeasonMetas || []).find(s => s.id === id);
+    if (this._isDemoMeta(meta)) return true;
+    const cached = this.demoSeasonId();
+    if (cached === id && meta && !this._isDemoMeta(meta)) this._clearDemoPointer();
+    return false;
+  }
+
+  _isDemoMeta(meta) {
+    if (!meta) return false;
+    if (meta.isDemo || meta.kind === 'demo') return true;
+    return meta.name === DemoSeason.SEASON_NAME && meta.team === 'GridIron Demo';
+  }
+
+  _isDemoData(data) {
+    if (!data) return false;
+    if (data.isDemo || data.kind === 'demo') return true;
+    const games = Array.isArray(data.games) ? data.games : [];
+    return data.seasonName === DemoSeason.SEASON_NAME
+      && data.team === 'GridIron Demo'
+      && games.length > 0
+      && games.every(g => String(g.id || '').startsWith('g_demo_'));
+  }
+
+  _clearDemoPointer() {
+    try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+  }
+
+  _setDemoPointer(id) {
+    try { if (id) localStorage.setItem('ffa_demo_season_id', id); } catch (e) {}
+  }
+
+  _reconcileDemoPointer(seasons) {
+    const list = seasons || [];
+    const cached = this.demoSeasonId();
+    const cachedMeta = cached ? list.find(s => s.id === cached) : null;
+    if (cachedMeta) {
+      if (this._isDemoMeta(cachedMeta)) return cached;
+      this._clearDemoPointer();
+    } else if (cached) {
+      this._clearDemoPointer();
+    }
+    const demo = list.find(s => this._isDemoMeta(s));
+    if (demo) {
+      this._setDemoPointer(demo.id);
+      return demo.id;
+    }
+    return '';
+  }
 
   /**
    * Load (or create) the explorable demo season. Fully non-destructive: the
@@ -179,16 +235,16 @@ export class StorageManager {
    * overlay (see _applySeasonLabels), not the roster.
    */
   async loadDemoSeason() {
-    const existing = this.demoSeasonId();
+    const seasons = await this.listSeasons();
+    const existing = this._reconcileDemoPointer(seasons);
     if (existing) {
-      const lib = await this.listSeasons();
-      const meta = lib.find(s => s.id === existing);
+      const meta = (this._lastSeasonMetas || []).find(s => s.id === existing);
       // Reopen only if the season actually still has content — if the data was
       // evicted (localStorage quota) but the library entry survived, fall
       // through and regenerate instead of opening an empty "Demo".
-      if (meta && (meta.plays || 0) > 0) { await this.openSeasonById(existing); return existing; }
+      if (meta && this._isDemoMeta(meta) && (meta.plays || 0) > 0) { await this.openSeasonById(existing); return existing; }
       try { await this.seasonStore.deleteSeason(existing); } catch (e) {}   // clear stale husk
-      try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+      this._clearDemoPointer();
     }
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     const data = DemoSeason.build();
@@ -196,6 +252,7 @@ export class StorageManager {
     try { demoTeamId = localStorage.getItem('ffa_active_team_id') || ''; } catch (e) {}
     const rec = await this.seasonStore.createSeason({
       name: data.seasonName, team: data.team, year: data.year, level: data.level,
+      isDemo: true, kind: 'demo',
       teamId: demoTeamId,   // the demo lives in the active team's hub
     });
     if (!rec) return null;
@@ -203,14 +260,14 @@ export class StorageManager {
     this.seasonStore.data = this.seasonStore._normalize(data);
     this.seasonStore.data.id = rec.id;
     this.seasonStore.persist();
-    try { localStorage.setItem('ffa_demo_season_id', rec.id); } catch (e) {}
+    this._setDemoPointer(rec.id);
     this._afterSeasonLoaded();
     return rec.id;
   }
 
   /** Clear the demo flag (the demo never persisted anything else). */
   _teardownDemo() {
-    try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+    this._clearDemoPointer();
   }
 
   /**
@@ -403,16 +460,19 @@ export class StorageManager {
         ]);
       if (ok !== 'repair') return false;
       this._maybeSnapshot(true, 'Before film repair');
-      await backend.importFilm(game.id, [file], (done, total) => {
+      const imported = await backend.importFilm(game.id, [file], (done, total) => {
         const app = window.app;
         if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
       });
-      this.videoFileName = file.name;
-      this.vc.loadFile(file);
+      const ref = (Array.isArray(imported) && imported[0]) || file.name;
+      const url = backend.filmUrl ? await backend.filmUrl(game.id, ref) : null;
+      this.videoFileName = this._fileRefName(ref) || file.name;
+      if (url) this.vc.loadUrl(url, this.videoFileName);
+      else this.vc.loadFile(file);
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
-      this.tagger.toast?.('Film repaired for this game.');
+      this.tagger.toast?.(url ? 'Film repaired and loaded from the library.' : 'Film repaired; using the selected file until restart.');
       return true;
     }
 
@@ -439,16 +499,28 @@ export class StorageManager {
     try {
       this._maybeSnapshot(true, 'Before film repair');
       const matchedFiles = plan.matches.map(m => m.file);
-      await backend.importFilm(game.id, matchedFiles, (done, total) => {
+      const imported = await backend.importFilm(game.id, matchedFiles, (done, total) => {
         const app = window.app;
         if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
       });
-      await this.playlist.repairWithMatches(plan.matches);
+      const playableMatches = await Promise.all(plan.matches.map(async (m, i) => {
+        const ref = (Array.isArray(imported) && imported[i]) || (m.file && (m.file.webkitRelativePath || m.file.relativePath || m.file.path || m.file.name)) || '';
+        const url = ref && backend.filmUrl ? await backend.filmUrl(game.id, ref) : null;
+        return {
+          ...m,
+          path: ref || this._fileIdentity(m.file),
+          url
+        };
+      }));
+      const missingUrls = playableMatches.filter(m => !m.url).length;
+      await this.playlist.repairWithMatches(playableMatches);
       this.videoFileName = null;
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
-      this.tagger.toast?.(`Film repaired: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
+      this.tagger.toast?.(missingUrls
+        ? `Film repaired, but ${missingUrls} clip${missingUrls === 1 ? '' : 's'} could not be loaded from the library yet.`
+        : `Film repaired and loaded: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
       return true;
     } catch (e) {
       console.warn('Film repair failed:', e);

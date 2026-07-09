@@ -10163,7 +10163,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
           <h3 class="team-seasons-head">Seasons</h3>
           <div class="library-new">
             <button class="btn btn-accent" id="btnNewSeasonToggle">+ New Season</button>
-            <button class="btn btn-demo" id="btnExploreDemo" title="Load a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="#icon-play"/></svg> Explore a demo season <span class="btn-sub">2 games, fully tagged</span></button>
+            <button class="btn btn-demo" id="btnExploreDemo" title="Create a fully-tagged sample season to explore the stats, self-scout, and call sheet"><svg class="icon"><use href="#icon-play"/></svg> Explore sample season <span class="btn-sub">2 games, fully tagged</span></button>
             <form class="library-form hidden" id="librarySeasonForm">
               <div class="lib-form-row">
                 <label>Year<input type="text" id="newSeasonYear" placeholder="2026" maxlength="9" autocomplete="off"></label>
@@ -13858,6 +13858,8 @@ class StorageBackend {
       id,
       name: (data && data.seasonName) || team || 'Untitled Season',
       team, year: (data && data.year) || '', level: (data && data.level) || '',
+      isDemo: !!(data && (data.isDemo || data.kind === 'demo')),
+      kind: (data && (data.isDemo || data.kind === 'demo')) ? 'demo' : (data && data.kind) || '',
       games, plays, updated: new Date().toISOString(),
     };
   }
@@ -13938,6 +13940,7 @@ class BrowserBackend extends StorageBackend {
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
       level: meta.level || '', teamId: meta.teamId || '',
+      isDemo: !!meta.isDemo, kind: meta.isDemo ? 'demo' : (meta.kind || ''),
       games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
     lib.push(entry);
@@ -14274,6 +14277,7 @@ class TauriBackend extends StorageBackend {
     const entry = {
       id, name: meta.name || base, team: meta.team || '', year: meta.year || '',
       level: meta.level || '', teamId: meta.teamId || '',
+      isDemo: !!meta.isDemo, kind: meta.isDemo ? 'demo' : (meta.kind || ''),
       games: 0, plays: 0, created: now, updated: now, lastOpened: now,
     };
     lib.push(entry);
@@ -15175,6 +15179,7 @@ class DemoSeason {
     ];
     return {
       version: 5, type: 'season',
+      isDemo: true, kind: 'demo',
       id: '', seasonName: DemoSeason.SEASON_NAME,
       team: teamProfile.teamName, year: '2026', level: 'Varsity',
       teamProfile,
@@ -15471,7 +15476,12 @@ class StorageManager {
   }
 
   /** List every season in the library (metas only). */
-  listSeasons() { return this.seasonStore.listSeasons(); }
+  async listSeasons() {
+    const seasons = await this.seasonStore.listSeasons();
+    this._lastSeasonMetas = seasons || [];
+    this._reconcileDemoPointer(this._lastSeasonMetas);
+    return seasons;
+  }
 
   /** Open an existing season and restore its active game into the app. */
   async openSeasonById(id) {
@@ -15506,7 +15516,58 @@ class StorageManager {
   demoSeasonId() {
     try { return localStorage.getItem('ffa_demo_season_id') || ''; } catch (e) { return ''; }
   }
-  isDemoSeason(id) { return !!id && id === this.demoSeasonId(); }
+  isDemoSeason(id) {
+    if (!id) return false;
+    const data = this.seasonStore && this.seasonStore.currentSeasonId === id ? this.seasonStore.data : null;
+    if (this._isDemoData(data)) return true;
+    const meta = (this._lastSeasonMetas || []).find(s => s.id === id);
+    if (this._isDemoMeta(meta)) return true;
+    const cached = this.demoSeasonId();
+    if (cached === id && meta && !this._isDemoMeta(meta)) this._clearDemoPointer();
+    return false;
+  }
+
+  _isDemoMeta(meta) {
+    if (!meta) return false;
+    if (meta.isDemo || meta.kind === 'demo') return true;
+    return meta.name === DemoSeason.SEASON_NAME && meta.team === 'GridIron Demo';
+  }
+
+  _isDemoData(data) {
+    if (!data) return false;
+    if (data.isDemo || data.kind === 'demo') return true;
+    const games = Array.isArray(data.games) ? data.games : [];
+    return data.seasonName === DemoSeason.SEASON_NAME
+      && data.team === 'GridIron Demo'
+      && games.length > 0
+      && games.every(g => String(g.id || '').startsWith('g_demo_'));
+  }
+
+  _clearDemoPointer() {
+    try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+  }
+
+  _setDemoPointer(id) {
+    try { if (id) localStorage.setItem('ffa_demo_season_id', id); } catch (e) {}
+  }
+
+  _reconcileDemoPointer(seasons) {
+    const list = seasons || [];
+    const cached = this.demoSeasonId();
+    const cachedMeta = cached ? list.find(s => s.id === cached) : null;
+    if (cachedMeta) {
+      if (this._isDemoMeta(cachedMeta)) return cached;
+      this._clearDemoPointer();
+    } else if (cached) {
+      this._clearDemoPointer();
+    }
+    const demo = list.find(s => this._isDemoMeta(s));
+    if (demo) {
+      this._setDemoPointer(demo.id);
+      return demo.id;
+    }
+    return '';
+  }
 
   /**
    * Load (or create) the explorable demo season. Fully non-destructive: the
@@ -15515,16 +15576,16 @@ class StorageManager {
    * overlay (see _applySeasonLabels), not the roster.
    */
   async loadDemoSeason() {
-    const existing = this.demoSeasonId();
+    const seasons = await this.listSeasons();
+    const existing = this._reconcileDemoPointer(seasons);
     if (existing) {
-      const lib = await this.listSeasons();
-      const meta = lib.find(s => s.id === existing);
+      const meta = (this._lastSeasonMetas || []).find(s => s.id === existing);
       // Reopen only if the season actually still has content — if the data was
       // evicted (localStorage quota) but the library entry survived, fall
       // through and regenerate instead of opening an empty "Demo".
-      if (meta && (meta.plays || 0) > 0) { await this.openSeasonById(existing); return existing; }
+      if (meta && this._isDemoMeta(meta) && (meta.plays || 0) > 0) { await this.openSeasonById(existing); return existing; }
       try { await this.seasonStore.deleteSeason(existing); } catch (e) {}   // clear stale husk
-      try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+      this._clearDemoPointer();
     }
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     const data = DemoSeason.build();
@@ -15532,6 +15593,7 @@ class StorageManager {
     try { demoTeamId = localStorage.getItem('ffa_active_team_id') || ''; } catch (e) {}
     const rec = await this.seasonStore.createSeason({
       name: data.seasonName, team: data.team, year: data.year, level: data.level,
+      isDemo: true, kind: 'demo',
       teamId: demoTeamId,   // the demo lives in the active team's hub
     });
     if (!rec) return null;
@@ -15539,14 +15601,14 @@ class StorageManager {
     this.seasonStore.data = this.seasonStore._normalize(data);
     this.seasonStore.data.id = rec.id;
     this.seasonStore.persist();
-    try { localStorage.setItem('ffa_demo_season_id', rec.id); } catch (e) {}
+    this._setDemoPointer(rec.id);
     this._afterSeasonLoaded();
     return rec.id;
   }
 
   /** Clear the demo flag (the demo never persisted anything else). */
   _teardownDemo() {
-    try { localStorage.removeItem('ffa_demo_season_id'); } catch (e) {}
+    this._clearDemoPointer();
   }
 
   /**
@@ -15739,16 +15801,19 @@ class StorageManager {
         ]);
       if (ok !== 'repair') return false;
       this._maybeSnapshot(true, 'Before film repair');
-      await backend.importFilm(game.id, [file], (done, total) => {
+      const imported = await backend.importFilm(game.id, [file], (done, total) => {
         const app = window.app;
         if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
       });
-      this.videoFileName = file.name;
-      this.vc.loadFile(file);
+      const ref = (Array.isArray(imported) && imported[0]) || file.name;
+      const url = backend.filmUrl ? await backend.filmUrl(game.id, ref) : null;
+      this.videoFileName = this._fileRefName(ref) || file.name;
+      if (url) this.vc.loadUrl(url, this.videoFileName);
+      else this.vc.loadFile(file);
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
-      this.tagger.toast?.('Film repaired for this game.');
+      this.tagger.toast?.(url ? 'Film repaired and loaded from the library.' : 'Film repaired; using the selected file until restart.');
       return true;
     }
 
@@ -15775,16 +15840,28 @@ class StorageManager {
     try {
       this._maybeSnapshot(true, 'Before film repair');
       const matchedFiles = plan.matches.map(m => m.file);
-      await backend.importFilm(game.id, matchedFiles, (done, total) => {
+      const imported = await backend.importFilm(game.id, matchedFiles, (done, total) => {
         const app = window.app;
         if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
       });
-      await this.playlist.repairWithMatches(plan.matches);
+      const playableMatches = await Promise.all(plan.matches.map(async (m, i) => {
+        const ref = (Array.isArray(imported) && imported[i]) || (m.file && (m.file.webkitRelativePath || m.file.relativePath || m.file.path || m.file.name)) || '';
+        const url = ref && backend.filmUrl ? await backend.filmUrl(game.id, ref) : null;
+        return {
+          ...m,
+          path: ref || this._fileIdentity(m.file),
+          url
+        };
+      }));
+      const missingUrls = playableMatches.filter(m => !m.url).length;
+      await this.playlist.repairWithMatches(playableMatches);
       this.videoFileName = null;
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
-      this.tagger.toast?.(`Film repaired: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
+      this.tagger.toast?.(missingUrls
+        ? `Film repaired, but ${missingUrls} clip${missingUrls === 1 ? '' : 's'} could not be loaded from the library yet.`
+        : `Film repaired and loaded: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
       return true;
     } catch (e) {
       console.warn('Film repair failed:', e);
@@ -18249,14 +18326,16 @@ class PlaylistManager {
     for (const m of (matches || [])) {
       const file = m.file;
       const play = m.play;
-      if (!file || !play) continue;
+      const assetUrl = m.url || m.assetUrl || null;
+      const refPath = m.path || m.clipPath || null;
+      if ((!file && !assetUrl) || !play) continue;
       const clip = {
         id: this._nextClipId++,
-        file,
-        name: this._displayName(file),
-        clipPath: this._fileIdentity(file),
+        file: assetUrl ? null : file,
+        name: this._displayName(refPath || file),
+        clipPath: this._pathWithoutExt(refPath || this._fileIdentity(file)),
         objectUrl: null,
-        assetUrl: null,
+        assetUrl,
         duration: (play.timestamp && play.timestamp.end && play.timestamp.end !== 999) ? play.timestamp.end : null,
         playId: play.id
       };
@@ -28419,20 +28498,31 @@ class SeasonLibrary {
     // Team Home shows only the ACTIVE team's seasons (JV and Varsity each
     // have their own hub; the pills switch between them).
     if (this._teams().length) seasons = this._teamSeasons(seasons, this._activeTeamId());
-    const demoId = this._storage()?.demoSeasonId?.() || '';
-    this._renderChecklist(seasons, demoId);
+    const isDemo = s => this._storage()?.isDemoSeason?.(s.id) || s.isDemo || s.kind === 'demo';
+    const demoId = (seasons.find(isDemo) || {}).id || '';
+    this._renderDemoButton(!!demoId);
+    this._renderChecklist(seasons);
     if (!seasons.length) {
       this.listEl.innerHTML = this._hasTeam()
         ? `<div class="library-empty">
             <p>No seasons yet for this team.</p>
-            <p class="library-empty-sub">Create your first season — or explore a demo to see what the stats look like.</p>
+            <p class="library-empty-sub">Create your first season, or use the sample season button above to preview the app.</p>
           </div>`
         : '';
       return;
     }
     const currentId = this._storage().seasonStore.currentSeasonId;
-    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, s.id === demoId)).join('');
+    this.listEl.innerHTML = seasons.map(s => this._cardHtml(s, s.id === currentId, isDemo(s))).join('');
     this._updateCloseBtn();
+  }
+
+  _renderDemoButton(hasDemo) {
+    const btn = document.getElementById('btnExploreDemo');
+    if (!btn) return;
+    btn.title = hasDemo
+      ? 'Open the sample season to explore stats, self-scout, and call sheet'
+      : 'Create a fully-tagged sample season to explore stats, self-scout, and call sheet';
+    btn.innerHTML = `<svg class="icon"><use href="#icon-play"/></svg> ${hasDemo ? 'Open sample season' : 'Explore sample season'} <span class="btn-sub">2 games, fully tagged</span>`;
   }
 
   _cardHtml(s, isCurrent, isDemo) {
@@ -28464,17 +28554,18 @@ class SeasonLibrary {
     if (el) el.classList.add('hidden');
   }
 
-  _checklistItems(seasons, demoId) {
+  _checklistItems(seasons) {
     const profile = this._teamProfile();
     const roster = window.app?.roster?.players || [];
-    const realSeasons = (seasons || []).filter(s => s.id !== demoId);
+    const storage = this._storage();
+    const realSeasons = (seasons || []).filter(s => !storage?.isDemoSeason?.(s.id) && !s.isDemo && s.kind !== 'demo');
     // Season-meta play counts lag a debounced autosave, so also consult the
     // live tagger when a real season is open (a play tagged seconds ago counts).
     // "Tagged" means the coach actually applied a tag — loading a video
     // auto-creates placeholder plays, which must NOT check this step off.
     const store = this._storage()?.seasonStore;
     const hasRealTag = p => p?.tags && (p.tags.playType || p.tags.runPass || p.tags.result || p.tags.formation);
-    const liveTagged = store?.hasCurrent() && !this._storage().isDemoSeason(store.currentSeasonId)
+    const liveTagged = store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)
       && (window.app?.tagger?.plays || []).some(hasRealTag);
     const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0 && s.id !== store?.currentSeasonId);
     let seenStats = false;
@@ -28488,12 +28579,12 @@ class SeasonLibrary {
     ];
   }
 
-  _renderChecklist(seasons, demoId) {
+  _renderChecklist(seasons) {
     const el = document.getElementById('getStartedChecklist');
     if (!el) return;
     // Only show once a team exists (before that, the setup form is the guide),
     // and never after it's complete or dismissed.
-    const items = this._checklistItems(seasons, demoId);
+    const items = this._checklistItems(seasons);
     const doneCount = items.filter(i => i.done).length;
     const complete = doneCount === items.length;
     if (!this._hasTeam() || complete || this._checklistDismissed()) {
@@ -28529,7 +28620,7 @@ class SeasonLibrary {
       const store = storage?.seasonStore;
       if (store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)) { this.openSchedule(); return; }
       storage?.listSeasons().then(seasons => {
-        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId());
+        const real = (seasons || []).find(s => !storage.isDemoSeason(s.id) && !s.isDemo && s.kind !== 'demo');
         if (real) this._open(real.id);     // most recently opened real season
         else this._showForm(true);
       }).catch(() => this._showForm(true));
@@ -28547,7 +28638,7 @@ class SeasonLibrary {
         return;
       }
       storage?.listSeasons().then(seasons => {
-        const real = (seasons || []).find(s => s.id !== storage.demoSeasonId() && (s.plays || 0) > 0);
+        const real = (seasons || []).find(s => !storage.isDemoSeason(s.id) && !s.isDemo && s.kind !== 'demo' && (s.plays || 0) > 0);
         if (real) {
           this._open(real.id).then(() => {
             this.overlay.classList.add('hidden');
@@ -30242,7 +30333,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.10.5';
+const APP_VERSION = '1.10.6';
 
 class App {
   constructor() {

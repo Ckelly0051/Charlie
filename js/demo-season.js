@@ -81,6 +81,7 @@ export class DemoSeason {
     ];
     return {
       version: 5, type: 'season',
+      isDemo: true, kind: 'demo',
       id: '', seasonName: DemoSeason.SEASON_NAME,
       team: teamProfile.teamName, year: '2026', level: 'Varsity',
       teamProfile,

@@ -332,14 +332,16 @@ export class PlaylistManager {
     for (const m of (matches || [])) {
       const file = m.file;
       const play = m.play;
-      if (!file || !play) continue;
+      const assetUrl = m.url || m.assetUrl || null;
+      const refPath = m.path || m.clipPath || null;
+      if ((!file && !assetUrl) || !play) continue;
       const clip = {
         id: this._nextClipId++,
-        file,
-        name: this._displayName(file),
-        clipPath: this._fileIdentity(file),
+        file: assetUrl ? null : file,
+        name: this._displayName(refPath || file),
+        clipPath: this._pathWithoutExt(refPath || this._fileIdentity(file)),
         objectUrl: null,
-        assetUrl: null,
+        assetUrl,
         duration: (play.timestamp && play.timestamp.end && play.timestamp.end !== 999) ? play.timestamp.end : null,
         playId: play.id
       };
