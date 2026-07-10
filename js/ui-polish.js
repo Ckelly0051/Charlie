@@ -228,8 +228,9 @@ export class UIPolish {
         <div class="dropzone-actions">
           <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
           <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
+          ${window.__TAURI__ ? '<button class="btn btn-secondary" type="button" data-action="link">Link from Library</button>' : ''}
         </div>
-        <div class="empty-hint">or drop a video or folder anywhere</div>
+        <div class="empty-hint">${window.__TAURI__ ? 'Link references clips in your own folder — no copy. ' : ''}or drop a video or folder anywhere</div>
       </div>
     `;
     placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
@@ -240,6 +241,11 @@ export class UIPolish {
     placeholder.querySelector('[data-action="folder"]').addEventListener('click', (e) => {
       e.stopPropagation();
       if (folderInput) folderInput.click();
+    });
+    const linkBtn = placeholder.querySelector('[data-action="link"]');
+    if (linkBtn) linkBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.app?.storage?.linkFilmFolder?.();
     });
   }
 

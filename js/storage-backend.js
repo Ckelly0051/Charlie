@@ -68,6 +68,20 @@ export class StorageBackend {
   async deleteFilm(_gameId) {}
   async listFilmFiles(_gameId) { return []; }
 
+  // ---- linked film library (desktop only): coach-owned folder, referenced
+  //      in place (no copy). Managed film (importFilm) is untouched by these. ----
+  supportsLinkedFilm() { return false; }
+  getLibraryRoot() { return ''; }
+  async setLibraryRoot(_path) { return false; }
+  async allowLibraryDir(_path) { return false; }
+  async initLibraryRoot() { return ''; }
+  async pickFolder(_defaultPath) { return ''; }
+  async listLinkedFilm(_absDir) { return []; }
+  async linkedFilmUrl(_absPath) { return null; }
+  async linkedGameDir(_filmDir) { return ''; }
+  async linkedAbs(_absDir, _relPath) { return ''; }
+  relToRoot(_absPath) { return ''; }
+
   // ---- helpers shared by implementations ----
   _meta(data, label) {
     return {
@@ -733,6 +747,100 @@ export class TauriBackend extends StorageBackend {
       await walk(dir);
       return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
     } catch (e) { return []; }
+  }
+
+  // ---- linked film library (coach-owned folder, referenced not copied) ----
+  // Film lives where the coach keeps it (e.g. D:\Football\Film\<game>); a linked
+  // game stores `filmDir` (a path under the library root) and its plays reference
+  // clips within it. Nothing is copied into app data. The static $APPDATA scope
+  // (managed film) is untouched, so linked + managed games coexist.
+  supportsLinkedFilm() { return this._ok(); }
+  getLibraryRoot() { try { return localStorage.getItem('ffa_film_library_root') || ''; } catch (e) { return ''; } }
+
+  async setLibraryRoot(path) {
+    try { localStorage.setItem('ffa_film_library_root', path || ''); } catch (e) {}
+    return path ? this.allowLibraryDir(path) : true;
+  }
+
+  /** Grant the WebView + fs plugin runtime access to a folder (Rust command). */
+  async allowLibraryDir(path) {
+    const core = window.__TAURI__ && window.__TAURI__.core;
+    if (!core || !core.invoke || !path) return false;
+    try { await core.invoke('allow_library_dir', { path }); return true; }
+    catch (e) { console.warn('allow_library_dir failed:', e && (e.message || e)); return false; }
+  }
+
+  /** On startup, re-grant scope to the saved library root so linked film plays. */
+  async initLibraryRoot() {
+    const root = this.getLibraryRoot();
+    if (root) await this.allowLibraryDir(root);
+    return root;
+  }
+
+  /** Coach picks a folder via the native dialog. Returns the absolute path or ''. */
+  async pickFolder(defaultPath) {
+    const dlg = window.__TAURI__ && window.__TAURI__.dialog;
+    if (!dlg || !dlg.open) return '';
+    try {
+      const sel = await dlg.open({ directory: true, multiple: false, defaultPath: defaultPath || this.getLibraryRoot() || undefined });
+      return typeof sel === 'string' ? sel : '';
+    } catch (e) { return ''; }
+  }
+
+  /** Absolute base dir of a linked game = root + filmDir (or filmDir if absolute). */
+  async linkedGameDir(filmDir) {
+    if (!filmDir) return '';
+    if (/^([A-Za-z]:[\\/]|\/)/.test(filmDir)) return filmDir;   // already absolute
+    const root = this.getLibraryRoot();
+    if (!root) return '';
+    const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
+    try { return join ? await join(root, ...String(filmDir).split('/')) : `${root}/${filmDir}`; }
+    catch (e) { return `${root}/${filmDir}`; }
+  }
+
+  async linkedAbs(absDir, relPath) {
+    const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
+    try { return join ? await join(absDir, ...String(relPath).split('/')) : `${absDir}/${relPath}`; }
+    catch (e) { return `${absDir}/${relPath}`; }
+  }
+
+  /** Path of an absolute folder RELATIVE to the library root ('' if not under it). */
+  relToRoot(absPath) { return TauriBackend.relToRoot(this.getLibraryRoot(), absPath); }
+  // Pure, testable: strip the root prefix; '' when absPath isn't under root.
+  static relToRoot(root, absPath) {
+    if (!root || !absPath) return '';
+    const norm = s => String(s).replace(/\\/g, '/').replace(/\/+$/, '');
+    const r = norm(root), p = norm(absPath);
+    if (p.toLowerCase() === r.toLowerCase()) return '';
+    const prefix = r + '/';
+    if (p.toLowerCase().startsWith(prefix.toLowerCase())) return p.slice(prefix.length);
+    return '';   // outside the root — caller stores the absolute path instead
+  }
+
+  /** Walk an absolute directory for video files → [{name, path}] (path rel to dir). */
+  async listLinkedFilm(absDir) {
+    if (!this._ok() || !absDir) return [];
+    const exts = /\.(mp4|mov|m4v|webm|avi|mkv)$/i;
+    const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
+    const out = [];
+    const walk = async (dir, prefix = '') => {
+      let entries; try { entries = await this.fs.readDir(dir); } catch (e) { return; }
+      for (const e of entries) {
+        const child = join ? await join(dir, e.name) : `${dir}/${e.name}`;
+        if (e.isDirectory) await walk(child, `${prefix}${e.name}/`);
+        else if (exts.test(e.name || '')) out.push({ name: e.name, path: `${prefix}${e.name}` });
+      }
+    };
+    await walk(absDir);
+    return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
+  }
+
+  /** Asset URL for an absolute film path (linked). Scope must already allow it. */
+  async linkedFilmUrl(absPath) {
+    const core = window.__TAURI__ && window.__TAURI__.core;
+    if (!core || !core.convertFileSrc || !absPath) return null;
+    try { if (!(await this.fs.exists(absPath))) return null; } catch (e) {}
+    return core.convertFileSrc(absPath);
   }
 
   // ---- durable disk ----

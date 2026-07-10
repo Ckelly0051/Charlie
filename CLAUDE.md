@@ -18,6 +18,93 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### v1.11.0 - Linked Film Library + local Rust verification (shipped; tag `v1.11.0`)
+
+Coaches can now point GridIron IQ at their **own** film folder and have the
+desktop app **reference + play clips in place — no copy into AppData** (the
+WMP/Plex model). Additive: existing managed film (copied into $APPDATA) is
+untouched; linked mode only applies to games explicitly linked.
+
+- **Rust (`src-tauri/src/main.rs`):** new `allow_library_dir(path)` command grants
+  the WebView asset protocol + fs plugin runtime access to a coach-chosen folder
+  (`asset_protocol_scope().allow_directory` + `fs_scope().allow_directory`).
+  `Cargo.toml` now lists the `protocol-asset` feature explicitly (required for the
+  scope API; `tauri build` was auto-injecting it, so plain `cargo check` failed
+  without it).
+- **`TauriBackend` (storage-backend.js):** linked layer — `getLibraryRoot`/
+  `setLibraryRoot` (localStorage `ffa_film_library_root`), `allowLibraryDir`
+  (invokes the Rust cmd), `pickFolder` (native dialog), `listLinkedFilm(absDir)`,
+  `linkedFilmUrl(absPath)` (convertFileSrc), `linkedGameDir`, `relToRoot`
+  (pure, tested). Managed `importFilm`/`filmUrl` untouched.
+- **`StorageManager` (storage.js):** `_autoLoadFilm` branches to
+  `_autoLoadLinkedFilm` when `game.filmMode === 'linked'` (resolves clips from
+  `<root>/<game.filmDir>`); `linkFilmFolder()` action (sets root on first use,
+  references a folder's clips in place, relinks an existing game's plays 1:1 or
+  auto-creates plays for a new game — NO copy); `initLibrary` re-grants scope to
+  the saved root on startup.
+- **UI (ui-polish.js):** "Link from Library" button in the empty-state (desktop
+  only). Per-game `filmMode:'linked'` + `filmDir` persisted in the season JSON.
+- **DEV WORKFLOW CHANGE:** Rust now verifiable **locally** — `rustup` + VS Build
+  Tools 2026 installed; `cargo check --manifest-path src-tauri/Cargo.toml` before
+  every desktop ship. Add `$HOME/.cargo/bin` to PATH in the shell. This caught the
+  `protocol-asset` gap before deploy. First run stages `dist/index.html` (copy of
+  the bundle) as CI does. Do NOT commit `dist/` or `src-tauri/target/`.
+- Tests: `tools/e2e-linked-film.mjs` (relToRoot). Full gate + `cargo check` green.
+  The end-to-end linked flow (dialog/fs/convertFileSrc on the coach's drive) is
+  desktop-only → validated on the build, not the headless harness.
+
+Also in this release (foundation, not yet user-wired): **SQLite persistence
+groundwork** — `js/sql-catalog.js` (`SqlCatalog`, sql.js) + `tools/e2e-sql-catalog.mjs`
+(10/10, real 453-play season round-trips) + `tools/e2e-sql-fuzzer.mjs` (16 clean).
+JSON stays the live index for now; SqlCatalog is the SQL-ready foundation, wired
+in later (persistence-layer-first, dual-write). `package.json` is `"type":"module"`
+so Node can import the ES modules for these tests.
+
+### v1.10.7 - Film-Index Reliability + Live-Season Recovery (shipped; tag `v1.10.7`)
+
+ROOT CAUSE of "film links keep vanishing": `StorageManager._serialize` rebuilt a
+game's film index (`clipNames/clipPaths/clipRefs/isMultiClip`) from the LIVE
+`PlaylistManager.clips` only. Opening a game whose film wasn't fully in the
+library (empty/partial playlist) and letting it autosave **stripped the index to
+whatever was loaded** — 79→11, 72→6, 83→0, and flipped `isMultiClip` to false.
+The plays keep their `clipName`, so the data was recoverable, but the game-level
+film index was silently lost, and each reopen made it worse.
+
+- **Fix (storage.js):** new `StorageManager._buildClipIndex()` derives the film
+  index from the PLAYS' durable clip identities (`clipPath || clipName`) UNIONed
+  with the live playlist. It never shrinks below what the plays reference. Test:
+  `tools/e2e-film-index.mjs`.
+- **Fix (playlist-manager.js `_relinkSavedPlays`):** added a **basename-fallback**
+  pass so re-adding a film FOLDER to a game tagged before path-identity relinks
+  1:1 instead of spawning a duplicate untagged play per clip (the St. Peter
+  139-plays-for-69-clips dup). Exact-path match (Pass 1) still keeps same-basename
+  subfolder clips distinct. Test: `tools/e2e-relink-legacy.mjs`.
+- **Fix (history-manager.js):** toast default 1.8s → 4.5s + click-to-dismiss.
+- **Live data recovery (direct on disk, verified playing in the desktop app):**
+  St. Peter de-duped 139→69 (67 tags kept); Weeks 2/4/5 film copied from the
+  coach's source at `D:\Football\Film` into the library + relinked (Wk2 79/79,
+  Wk4 72/72, Wk5 65/83 — 18 Wk5 clips genuinely absent from source). Canonical
+  data: `%APPDATA%\com.gridironiq.app\seasons\2026-varsity-demo\`. Backups in the
+  session scratchpad + `season.PRE-*.json`.
+- Full e2e gate green + 3 new tests. Web `gh-pages` deploy intentionally skipped
+  (desktop-first focus). `APP_VERSION`/tauri/Cargo bumped to 1.10.7.
+
+### In progress — SQLite catalog (persistence layer, v1.11.x)
+
+Adopting SQLite (sql.js/WASM) as the canonical persistence **behind the existing
+`StorageBackend` seam** — a `SqlCatalog` decomposes the season object into rows on
+save and reassembles the SAME object on load; the app + `SeasonStore` +
+in-memory model are unchanged, JSON becomes export/backup. Clips are first-class
+rows (structural cure for the v1.10.7 wipe class). Engine is sql.js so the whole
+module is Node-tested before ship; the browser bundle stays sql.js-free; desktop
+lazy-loads the vendored wasm; A3 dual-writes `.db` + `season.json` for one release
+as a safety net. **A1 done:** `js/sql-catalog.js` + `tools/e2e-sql-catalog.mjs`
+(10/10, incl. the real 6-game/453-play season round-tripping losslessly).
+`package.json` now `"type":"module"` so Node can import the ES modules for tests.
+Plan: `.claude/plans/the-last-iteration-was-kind-sparrow.md`. Next: A2 (migration
++ Node fuzzer), then A3 (TauriBackend wiring, HELD until the coach confirms the
+v1.10.7 desktop build).
+
 ### v1.10.6 - Demo Identity + Repair Playback Patch
 
 - Fixes a library/splash bug where a stale `localStorage ffa_demo_season_id`

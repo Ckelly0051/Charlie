@@ -13839,6 +13839,20 @@ class StorageBackend {
   async deleteFilm(_gameId) {}
   async listFilmFiles(_gameId) { return []; }
 
+  // ---- linked film library (desktop only): coach-owned folder, referenced
+  //      in place (no copy). Managed film (importFilm) is untouched by these. ----
+  supportsLinkedFilm() { return false; }
+  getLibraryRoot() { return ''; }
+  async setLibraryRoot(_path) { return false; }
+  async allowLibraryDir(_path) { return false; }
+  async initLibraryRoot() { return ''; }
+  async pickFolder(_defaultPath) { return ''; }
+  async listLinkedFilm(_absDir) { return []; }
+  async linkedFilmUrl(_absPath) { return null; }
+  async linkedGameDir(_filmDir) { return ''; }
+  async linkedAbs(_absDir, _relPath) { return ''; }
+  relToRoot(_absPath) { return ''; }
+
   // ---- helpers shared by implementations ----
   _meta(data, label) {
     return {
@@ -14504,6 +14518,100 @@ class TauriBackend extends StorageBackend {
       await walk(dir);
       return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
     } catch (e) { return []; }
+  }
+
+  // ---- linked film library (coach-owned folder, referenced not copied) ----
+  // Film lives where the coach keeps it (e.g. D:\Football\Film\<game>); a linked
+  // game stores `filmDir` (a path under the library root) and its plays reference
+  // clips within it. Nothing is copied into app data. The static $APPDATA scope
+  // (managed film) is untouched, so linked + managed games coexist.
+  supportsLinkedFilm() { return this._ok(); }
+  getLibraryRoot() { try { return localStorage.getItem('ffa_film_library_root') || ''; } catch (e) { return ''; } }
+
+  async setLibraryRoot(path) {
+    try { localStorage.setItem('ffa_film_library_root', path || ''); } catch (e) {}
+    return path ? this.allowLibraryDir(path) : true;
+  }
+
+  /** Grant the WebView + fs plugin runtime access to a folder (Rust command). */
+  async allowLibraryDir(path) {
+    const core = window.__TAURI__ && window.__TAURI__.core;
+    if (!core || !core.invoke || !path) return false;
+    try { await core.invoke('allow_library_dir', { path }); return true; }
+    catch (e) { console.warn('allow_library_dir failed:', e && (e.message || e)); return false; }
+  }
+
+  /** On startup, re-grant scope to the saved library root so linked film plays. */
+  async initLibraryRoot() {
+    const root = this.getLibraryRoot();
+    if (root) await this.allowLibraryDir(root);
+    return root;
+  }
+
+  /** Coach picks a folder via the native dialog. Returns the absolute path or ''. */
+  async pickFolder(defaultPath) {
+    const dlg = window.__TAURI__ && window.__TAURI__.dialog;
+    if (!dlg || !dlg.open) return '';
+    try {
+      const sel = await dlg.open({ directory: true, multiple: false, defaultPath: defaultPath || this.getLibraryRoot() || undefined });
+      return typeof sel === 'string' ? sel : '';
+    } catch (e) { return ''; }
+  }
+
+  /** Absolute base dir of a linked game = root + filmDir (or filmDir if absolute). */
+  async linkedGameDir(filmDir) {
+    if (!filmDir) return '';
+    if (/^([A-Za-z]:[\\/]|\/)/.test(filmDir)) return filmDir;   // already absolute
+    const root = this.getLibraryRoot();
+    if (!root) return '';
+    const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
+    try { return join ? await join(root, ...String(filmDir).split('/')) : `${root}/${filmDir}`; }
+    catch (e) { return `${root}/${filmDir}`; }
+  }
+
+  async linkedAbs(absDir, relPath) {
+    const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
+    try { return join ? await join(absDir, ...String(relPath).split('/')) : `${absDir}/${relPath}`; }
+    catch (e) { return `${absDir}/${relPath}`; }
+  }
+
+  /** Path of an absolute folder RELATIVE to the library root ('' if not under it). */
+  relToRoot(absPath) { return TauriBackend.relToRoot(this.getLibraryRoot(), absPath); }
+  // Pure, testable: strip the root prefix; '' when absPath isn't under root.
+  static relToRoot(root, absPath) {
+    if (!root || !absPath) return '';
+    const norm = s => String(s).replace(/\\/g, '/').replace(/\/+$/, '');
+    const r = norm(root), p = norm(absPath);
+    if (p.toLowerCase() === r.toLowerCase()) return '';
+    const prefix = r + '/';
+    if (p.toLowerCase().startsWith(prefix.toLowerCase())) return p.slice(prefix.length);
+    return '';   // outside the root — caller stores the absolute path instead
+  }
+
+  /** Walk an absolute directory for video files → [{name, path}] (path rel to dir). */
+  async listLinkedFilm(absDir) {
+    if (!this._ok() || !absDir) return [];
+    const exts = /\.(mp4|mov|m4v|webm|avi|mkv)$/i;
+    const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
+    const out = [];
+    const walk = async (dir, prefix = '') => {
+      let entries; try { entries = await this.fs.readDir(dir); } catch (e) { return; }
+      for (const e of entries) {
+        const child = join ? await join(dir, e.name) : `${dir}/${e.name}`;
+        if (e.isDirectory) await walk(child, `${prefix}${e.name}/`);
+        else if (exts.test(e.name || '')) out.push({ name: e.name, path: `${prefix}${e.name}` });
+      }
+    };
+    await walk(absDir);
+    return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
+  }
+
+  /** Asset URL for an absolute film path (linked). Scope must already allow it. */
+  async linkedFilmUrl(absPath) {
+    const core = window.__TAURI__ && window.__TAURI__.core;
+    if (!core || !core.convertFileSrc || !absPath) return null;
+    try { if (!(await this.fs.exists(absPath))) return null; } catch (e) {}
+    return core.convertFileSrc(absPath);
   }
 
   // ---- durable disk ----
@@ -15473,6 +15581,10 @@ class StorageManager {
   async initLibrary() {
     // Reconnect a previously-bound backup folder in the background (Chromium).
     if (this.seasonStore.restoreDiskBinding) this.seasonStore.restoreDiskBinding().catch(() => {});
+    // Re-grant the WebView access to the coach's saved film-library folder so
+    // linked clips play on reopen (desktop; no-op elsewhere).
+    const backend = this.seasonStore.backend;
+    if (backend.initLibraryRoot) backend.initLibraryRoot().catch(() => {});
   }
 
   /** List every season in the library (metas only). */
@@ -15703,6 +15815,11 @@ class StorageManager {
 
   async _autoLoadFilm(gameNode) {
     const backend = this.seasonStore.backend;
+    // Linked film: clips live in the coach's own library folder, referenced in
+    // place (no copy). Managed film (below) is unchanged.
+    if (gameNode.filmMode === 'linked' && backend.supportsLinkedFilm && backend.supportsLinkedFilm()) {
+      return this._autoLoadLinkedFilm(gameNode);
+    }
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     try {
       const filesOnDisk = await backend.listFilmFiles(gameNode.id);
@@ -15756,6 +15873,98 @@ class StorageManager {
       console.warn('Film auto-load failed:', e);
       this._relinkToast(gameNode, true);
     }
+  }
+
+  /** Auto-load a LINKED game's film from the coach's library folder (no copy). */
+  async _autoLoadLinkedFilm(gameNode) {
+    const backend = this.seasonStore.backend;
+    try {
+      await backend.allowLibraryDir(backend.getLibraryRoot());
+      const absDir = await backend.linkedGameDir(gameNode.filmDir);
+      if (!absDir) { this._relinkToast(gameNode, true); return; }
+      await backend.allowLibraryDir(absDir);
+      const filesOnDisk = await backend.listLinkedFilm(absDir);
+      console.log('Linked film auto-load:', { gameId: gameNode.id, filmDir: gameNode.filmDir, absDir, count: filesOnDisk.length });
+      if (!filesOnDisk.length) { this._relinkToast(gameNode, true); return; }
+      if (this._expectedClipIdentities(gameNode).length > 0) {
+        const missing = this._missingClipIdentities(gameNode, filesOnDisk);
+        if (missing.length) {
+          const sample = missing.slice(0, 3).join(', ');
+          this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-link the folder to repair.`, 12000);
+        }
+      }
+      const clips = [];
+      for (const fileRef of filesOnDisk) {
+        const abs = await backend.linkedAbs(absDir, this._fileRefPath(fileRef));
+        const url = await backend.linkedFilmUrl(abs);
+        if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
+      }
+      if (clips.length > 0 && this.playlist) {
+        await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+        if (this.tagger.currentPlayId) this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
+        if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
+      }
+    } catch (e) {
+      console.warn('Linked film auto-load failed:', e);
+      this._relinkToast(gameNode, true);
+    }
+  }
+
+  /**
+   * Link the active game to a folder in the coach's own film library — clips are
+   * REFERENCED in place, never copied. First use sets the library root. An
+   * existing tagged game re-links its plays 1:1; a new game auto-creates a play
+   * per clip. Desktop only.
+   */
+  async linkFilmFolder() {
+    const backend = this.seasonStore.backend;
+    if (!backend.supportsLinkedFilm || !backend.supportsLinkedFilm()) {
+      this.tagger.toast?.('The film library is available in the desktop app.');
+      return false;
+    }
+    const game = this.seasonStore.activeGame();
+    if (!game) { this.tagger.toast?.('Open a game first, then link its film.'); return false; }
+    let root = backend.getLibraryRoot();
+    if (!root) {
+      root = await backend.pickFolder();
+      if (!root) return false;
+      await backend.setLibraryRoot(root);
+      this.tagger.toast?.(`Film library folder set: ${root}`, 6000);
+    }
+    const folder = await backend.pickFolder(root);
+    if (!folder) return false;
+    await backend.allowLibraryDir(folder);
+    const files = await backend.listLinkedFilm(folder);
+    if (!files.length) { this.tagger.toast?.('No video files found in that folder.'); return false; }
+    this._maybeSnapshot(true, 'Before linking film');
+    game.filmMode = 'linked';
+    game.filmDir = backend.relToRoot(folder) || folder;   // rel to root, else absolute
+    const clips = [];
+    for (const f of files) {
+      const abs = await backend.linkedAbs(folder, f.path);
+      const url = await backend.linkedFilmUrl(abs);
+      clips.push({ name: this._fileRefName(f), path: this._fileRefPath(f), url });
+    }
+    if (this.tagger.plays.length) {
+      await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+    } else {
+      this.playlist.reset();
+      for (const c of clips) {
+        this.playlist.clips.push({
+          id: this.playlist._nextClipId++, file: null,
+          name: this._pathWithoutExt(c.name), clipPath: this._pathWithoutExt(c.path),
+          assetUrl: c.url, objectUrl: null, duration: null, playId: null,
+        });
+      }
+      await this.playlist._autoCreatePlays();
+    }
+    if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
+    this.videoFileName = null;
+    this.commitActive();
+    this.seasonStore.persist();
+    this._signalSave?.('saved');
+    this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from your library — no copy made.`, 6000);
+    return true;
   }
 
   async importFilm(files) {
@@ -29366,8 +29575,9 @@ class UIPolish {
         <div class="dropzone-actions">
           <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
           <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
+          ${window.__TAURI__ ? '<button class="btn btn-secondary" type="button" data-action="link">Link from Library</button>' : ''}
         </div>
-        <div class="empty-hint">or drop a video or folder anywhere</div>
+        <div class="empty-hint">${window.__TAURI__ ? 'Link references clips in your own folder — no copy. ' : ''}or drop a video or folder anywhere</div>
       </div>
     `;
     placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
@@ -29378,6 +29588,11 @@ class UIPolish {
     placeholder.querySelector('[data-action="folder"]').addEventListener('click', (e) => {
       e.stopPropagation();
       if (folderInput) folderInput.click();
+    });
+    const linkBtn = placeholder.querySelector('[data-action="link"]');
+    if (linkBtn) linkBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.app?.storage?.linkFilmFolder?.();
     });
   }
 
@@ -30406,7 +30621,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.10.7';
+const APP_VERSION = '1.11.0';
 
 class App {
   constructor() {
