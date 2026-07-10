@@ -14999,6 +14999,11 @@ class SeasonStore {
     gameObj.id = prev.id;
     gameObj.name = this.gameName(gameObj, i);
     gameObj.status = gameObj.status || prev.status || 'active';
+    // Film source mode (`managed` default | `linked`) + the linked folder live on
+    // the game node, NOT in _serialize() output — so carry them forward, or the
+    // commitActive() right after linking a game would drop them and linked film
+    // wouldn't survive a reopen. (Same reason status is carried above.)
+    if (prev.filmMode && !gameObj.filmMode) { gameObj.filmMode = prev.filmMode; gameObj.filmDir = prev.filmDir; }
     this.data.games[i] = gameObj;
   }
 
@@ -30621,7 +30626,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.11.1';
 
 class App {
   constructor() {

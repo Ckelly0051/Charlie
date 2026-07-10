@@ -232,6 +232,11 @@ export class SeasonStore {
     gameObj.id = prev.id;
     gameObj.name = this.gameName(gameObj, i);
     gameObj.status = gameObj.status || prev.status || 'active';
+    // Film source mode (`managed` default | `linked`) + the linked folder live on
+    // the game node, NOT in _serialize() output — so carry them forward, or the
+    // commitActive() right after linking a game would drop them and linked film
+    // wouldn't survive a reopen. (Same reason status is carried above.)
+    if (prev.filmMode && !gameObj.filmMode) { gameObj.filmMode = prev.filmMode; gameObj.filmDir = prev.filmDir; }
     this.data.games[i] = gameObj;
   }
 

@@ -8,6 +8,7 @@
 
    Run:  node tools/e2e-linked-film.mjs */
 import { TauriBackend } from '../js/storage-backend.js';
+import { SeasonStore } from '../js/season-store.js';
 
 let pass = 0, fail = 0;
 const ok = (got, exp, label) => { if (got === exp) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}  got ${JSON.stringify(got)} exp ${JSON.stringify(exp)}`); } };
@@ -23,6 +24,23 @@ ok(rel('D:/Football/Film', 'E:/Other/clips'), '', 'folder outside root → empty
 ok(rel('D:/Football/Film', 'D:/Football/Film'), '', 'root itself → empty');
 ok(rel('', 'D:/x'), '', 'no root → empty');
 ok(rel('D:/Football/Film', ''), '', 'no path → empty');
+
+// --- filmMode/filmDir must survive commitActive (updateActiveGame carry) ---
+// _serialize() does NOT emit filmMode/filmDir; without the carry, linking a game
+// and committing would drop them and linked film wouldn't survive a reopen.
+console.log('\nLinked-film persistence (updateActiveGame carry) --------------');
+const store = new SeasonStore({});   // stub backend — updateActiveGame uses no backend
+store.data = {
+  version: 5, type: 'season', id: 's1', games: [
+    { id: 'g1', name: 'Game 1', status: 'final', gameInfo: { opponent: 'X' }, plays: [], filmMode: 'linked', filmDir: 'St Peter 41-0' },
+  ], activeGameId: 'g1',
+};
+// a fresh _serialize()-like object: has NO filmMode/filmDir (that's the bug shape)
+store.updateActiveGame({ version: 4, gameInfo: { opponent: 'X' }, plays: [], clipRefs: [], isMultiClip: true });
+const node = store.data.games[0];
+ok(node.filmMode, 'linked', 'filmMode survives commit (was dropped by _serialize)');
+ok(node.filmDir, 'St Peter 41-0', 'filmDir survives commit');
+ok(node.status, 'final', 'status still carried');
 
 console.log(`\n${fail === 0 ? 'ALL PASS' : 'FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

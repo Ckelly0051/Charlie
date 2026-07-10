@@ -18,6 +18,52 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
+
+The last few releases reworked **film storage reliability**. What a reviewer
+should scrutinize, highest-risk first:
+
+1. **Film-index model (`storage.js` `_serialize` / `_buildClipIndex`).** v1.10.7
+   root-cause fix: the game film index is now derived from the PLAYS' durable
+   `clipPath`/`clipName` UNIONed with the live playlist, so it can't be wiped by
+   opening a film-less game. Verify it never shrinks below what plays reference,
+   and round-trips (`tools/e2e-film-index.mjs`).
+2. **Clip identity / relink (`playlist-manager.js` `_relinkSavedPlays`,
+   `_fileIdentity`).** Basename-fallback pass added so folder re-adds relink 1:1
+   instead of duplicating. Two same-basename clips in different subfolders must
+   stay distinct (Pass-1 exact path) while a legacy basename-only game still
+   relinks (Pass-2). Tests: `e2e-clip-identity.mjs`, `e2e-relink-legacy.mjs`.
+3. **Linked film library (v1.11.0, desktop only) — NEWEST, least battle-tested.**
+   `TauriBackend` linked methods + `storage.js` `_autoLoadLinkedFilm`/
+   `linkFilmFolder` + Rust `allow_library_dir`. Clips are referenced in the
+   coach's own folder (no copy). The end-to-end path (dialog → `fs.readDir` on an
+   arbitrary drive → `convertFileSrc` → asset protocol playback) is validated on
+   the desktop build, NOT the headless harness. Scrutinize: scope/security of
+   `asset_protocol_scope().allow_directory` on a user-chosen root; path
+   resolution (`relToRoot`, `linkedGameDir`); that managed film is truly
+   untouched. Only pure `relToRoot` is unit-tested (`e2e-linked-film.mjs`).
+4. **SQLite foundation (`sql-catalog.js`) — NOT user-wired.** Decompose/reassemble
+   a season losslessly; clips first-class. Tested in Node (`e2e-sql-catalog.mjs`,
+   `e2e-sql-fuzzer.mjs`). Not yet behind the storage seam — review the schema +
+   round-trip design, not integration.
+5. **Cross-game data integrity** remains the perennial danger zone (lessons
+   #19–#21): `commitActive` guard, per-game history reset, season-switch autosave
+   race. `tools/e2e-integrity.mjs` fuzzes it.
+
+Build/verify: `bash build.sh && node tools/e2e-*.mjs` (all green). Desktop Rust:
+`cargo check --manifest-path src-tauri/Cargo.toml` (needs `$HOME/.cargo/bin` on
+PATH; local rustup + VS Build Tools 2026 installed this session).
+
+### v1.11.1 - Linked film persistence fix (shipped; tag `v1.11.1`)
+
+Whole-package code-review catch: `_serialize()` doesn't emit `filmMode`/`filmDir`,
+so `linkFilmFolder`'s own `commitActive()` dropped them and **linked film didn't
+survive a reopen** (v1.11.0 was broken on that path). Fix: `SeasonStore.
+updateActiveGame` carries `filmMode`/`filmDir` forward like `status`. Regression:
+`tools/e2e-linked-film.mjs` now asserts they persist through a commit. (Lesson:
+even a desktop-only feature has a persistence layer that IS Node/harness-testable —
+test it, not just the pure helpers.)
+
 ### v1.11.0 - Linked Film Library + local Rust verification (shipped; tag `v1.11.0`)
 
 Coaches can now point GridIron IQ at their **own** film folder and have the
