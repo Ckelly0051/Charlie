@@ -830,17 +830,28 @@ export class StorageManager {
       : null;
     // Do NOT delete the film here. undoRemoveGame restores the game node, and its
     // tags reference this film — deleting it synchronously made undo bring back a
-    // game pointing at gone film. The film is purged when the undo window closes
-    // (the next delete, or leaving the season); undo cancels the purge.
+    // game pointing at gone film. Purge it when the undo window CLOSES: a timer
+    // (so deleting one game and walking away still reclaims the film — the stash
+    // is in-memory and would otherwise leak on app close), a newer delete, or
+    // leaving the season. Undo cancels the timer. (A crash inside the window
+    // leaves it for the storage epic's load-time GC — a belt-and-braces sweep.)
+    this._cancelFilmPurgeTimer();
+    if (this._lastDeletedGame && this._lastDeletedGame.filmGameId) {
+      this._filmPurgeTimer = setTimeout(() => this._purgeStaleDeletedFilm(), this.UNDO_FILM_WINDOW_MS || 30000);
+    }
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
   }
 
-  /** Delete the last-deleted game's film once its undo window has closed (a newer
-   *  delete, or leaving the season). No-op if the delete was undone (undo nulls
-   *  the stash, so its film is preserved). Desktop-only; no film on the browser. */
+  _cancelFilmPurgeTimer() { if (this._filmPurgeTimer) { clearTimeout(this._filmPurgeTimer); this._filmPurgeTimer = null; } }
+
+  /** Delete the last-deleted game's film once its undo window has closed (the
+   *  undo-window timer fires, a newer delete, or leaving the season). No-op if
+   *  the delete was undone (undo nulls the stash, so its film is preserved).
+   *  Desktop-only; no film on the browser. */
   _purgeStaleDeletedFilm() {
+    this._cancelFilmPurgeTimer();
     const stash = this._lastDeletedGame;
     if (!stash || !stash.filmGameId) return;
     const backend = this.seasonStore.backend;
@@ -858,6 +869,7 @@ export class StorageManager {
     if (games.some(g => g.id === stash.node.id)) return false;   // already back
     games.splice(Math.min(stash.index, games.length), 0, stash.node);
     this.seasonStore.persist();
+    this._cancelFilmPurgeTimer();   // undo restores the game → its film must NOT be purged
     this._lastDeletedGame = null;
     // Refresh every games view that may be showing (all display-only).
     try { window.app && window.app._updateSeasonChip && window.app._updateSeasonChip(); } catch (e) {}

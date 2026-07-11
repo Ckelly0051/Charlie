@@ -24,6 +24,9 @@ export class VisionAnalyzer {
     this.thinkingBudget = opts.thinkingBudget ?? 10000;
   }
 
+  /** Abort the in-flight vision request (wired to the Cancel Scan button). */
+  cancel() { try { if (this._activeController) this._activeController.abort(); } catch (e) {} }
+
   async analyzePlay(videoEl, start, end, teamCtx = {}) {
     if (!this.apiKey) throw new Error('No API key set');
     if (!videoEl?.duration) throw new Error('No video loaded');

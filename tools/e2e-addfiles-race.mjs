@@ -69,6 +69,9 @@ const race = await page.evaluate(async (fixture) => {
 
 ok(!race.bHasRaceclip, 'clip added to game A does NOT leak into game B on a mid-probe switch', JSON.stringify(race));
 ok(race.shared.length === 0, 'no clip name is shared across games after the race', 'shared=' + JSON.stringify(race.shared));
+// The add must not be LOST either: synchronous play creation lands it in game A
+// (its own game) even when the coach switches away mid-probe — no orphaned film.
+ok(race.aHasRaceclip, 'the added clip is NOT lost — its play lands in game A (its own game)', JSON.stringify(race));
 
 // ---- Scenario 2: normal add (no switch) still lands the play in the game ----
 const normal = await page.evaluate(async (fixture) => {

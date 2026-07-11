@@ -240,34 +240,20 @@ export class PlaylistManager {
     let created = false;
     let firstNewId = null;
     const newClips = this.clips.filter(c => c.playId === null);
-    // Bind to the plays array of the game that owns this add. _deserialize
-    // reassigns this.tagger.plays to the NEW game's array on a game switch, and
-    // the duration-probe await below yields the event loop — so if the coach
-    // switches games while probes are in flight, pushing into the (now different)
-    // live array would stamp these clips' plays onto ANOTHER game. Capture the
-    // target now and bail after probing if it changed. (Root cause of the
-    // cross-game clip-share; pinned by tools/e2e-addfiles-race.mjs + e2e-integrity.)
-    const boundPlays = this.tagger.plays;
-    // Probe durations in parallel (capped) — serial probing made a 100-clip
-    // folder take many seconds before the first play existed.
-    const POOL = 8;
-    let next = 0;
-    await Promise.all(Array.from({ length: Math.min(POOL, newClips.length) }, async () => {
-      while (next < newClips.length) {
-        const clip = newClips[next++];
-        const source = clip.assetUrl || clip.file;
-        if (source) clip.duration = await this._probeDuration(source);
-      }
-    }));
-    // The active game changed while we were probing — these clips belong to a
-    // game that's no longer loaded (its playlist was reset on the switch). Abort
-    // rather than leak the new plays into whatever game is current now.
-    if (this.tagger.plays !== boundPlays) return;
+    // Create the plays SYNCHRONOUSLY — there must be NO await between deciding to
+    // create them and pushing them into this.tagger.plays. _deserialize reassigns
+    // tagger.plays to another game's array on a switch, so any yield here let a
+    // late push land a clip's play in the WRONG game (cross-game corruption) OR,
+    // if we aborted to avoid that, ORPHANED already-copied film with no play.
+    // Pushing synchronously into the current game closes the window on both:
+    // durations are unknown for a beat and get backfilled in the background below.
+    // (Pinned by tools/e2e-addfiles-race.mjs + e2e-integrity.)
     for (const clip of newClips) {
       const play = {
         id: this.tagger.nextId++,
-        // Unknown duration (probe failed / corrupt clip) → large sentinel end,
-        // so a cut-up doesn't instantly skip a play whose end would be 0.
+        // Unknown duration (not yet probed / corrupt clip) → large sentinel end,
+        // so a cut-up doesn't instantly skip a play whose end would be 0. The
+        // real duration is backfilled by _backfillDurations once it resolves.
         timestamp: { start: 0, end: clip.duration || 999 },
         tags: {
           down: '', distance: '', formation: '', playType: '', runPass: '',
@@ -287,6 +273,10 @@ export class PlaylistManager {
       if (firstNewId === null) firstNewId = play.id;
     }
 
+    // Backfill real durations in the background — the plays already exist in the
+    // correct game, so this can never misplace or lose them.
+    this._backfillDurations(newClips);
+
     this.tagger._updatePlaySelect();
     this.tagger._updateTimeline();
     this._updatePlaylistUI();
@@ -302,6 +292,31 @@ export class PlaylistManager {
     if (created && !this.tagger.getCurrentPlay()) {
       this.tagger.selectPlay(firstNewId);
     }
+  }
+
+  /** Probe clip durations in the background (capped pool) and write the real end
+   *  time onto the already-created plays. Fire-and-forget: the plays exist in the
+   *  correct game regardless, so a game switch mid-probe can't misplace them —
+   *  at worst a play keeps its sentinel end until the coach reopens/repairs. */
+  _backfillDurations(clips) {
+    const POOL = 8;
+    let next = 0;
+    const worker = async () => {
+      while (next < clips.length) {
+        const clip = clips[next++];
+        const source = clip.assetUrl || clip.file;
+        if (!source) continue;
+        const dur = await this._probeDuration(source);
+        if (dur && dur > 0) {
+          clip.duration = dur;
+          const play = this.tagger.plays.find(p => p.clipId === clip.id);
+          if (play && play.timestamp && (!play.timestamp.end || play.timestamp.end === 999)) {
+            play.timestamp.end = dur;
+          }
+        }
+      }
+    };
+    Promise.all(Array.from({ length: Math.min(POOL, clips.length) }, worker)).catch(() => {});
   }
 
   _probeDuration(source) {

@@ -60,6 +60,40 @@ ok(JSON.stringify(res.afterDel3) === '[]', 'deleting g3 defers its film too (not
 ok(JSON.stringify(res.afterDel4) === JSON.stringify(['g3']), 'a newer delete (g4) purges the previous game (g3) whose undo window closed', JSON.stringify(res.afterDel4));
 ok(JSON.stringify(res.afterLeave) === JSON.stringify(['g3', 'g4']), 'leaving the season purges the last still-pending film (g4)', JSON.stringify(res.afterLeave));
 
+// ---- undo-window TIMER: purge fires on its own; undo cancels it ----
+const timers = await page.evaluate(async () => {
+  const sm = window.app.storage, store = sm.seasonStore, backend = store.backend;
+  const realSupports = backend.supportsFilm, realDelete = backend.deleteFilm;
+  const deleted = [];
+  backend.supportsFilm = () => true;
+  backend.deleteFilm = async (id) => { deleted.push(id); };
+  sm.UNDO_FILM_WINDOW_MS = 60;   // shrink the window for the test
+
+  const g = (n) => ({ id: n, name: n, gameInfo: {}, status: 'active', plays: [{ id: 1, timestamp: { start: 0, end: 5 }, clipName: n + '_a', tags: { unit: 'offense', custom: [] } }], annotations: [], nextId: 2, currentPlayId: null, clipNames: [n + '_a'], isMultiClip: true });
+  const fresh = () => { store.data = store._normalize({ version: 5, type: 'season', id: 'tm', seasonName: 'TM', activeGameId: 'a', games: [g('a'), g('b'), g('c')] }); store.currentSeasonId = 'tm'; sm._loadActiveGame(); };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // (1) delete + walk away → timer purges after the window
+  fresh(); deleted.length = 0;
+  sm.removeGame('b');
+  const beforeTimer = deleted.slice();
+  await sleep(140);
+  const afterTimer = deleted.slice();
+
+  // (2) delete + undo within the window → timer cancelled, film kept
+  fresh(); deleted.length = 0;
+  sm.removeGame('c');
+  sm.undoRemoveGame();
+  await sleep(140);
+  const afterUndoTimer = deleted.slice();
+
+  backend.supportsFilm = realSupports; backend.deleteFilm = realDelete;
+  return { beforeTimer, afterTimer, afterUndoTimer };
+});
+ok(timers.beforeTimer.length === 0, 'film is not purged immediately on delete (undo window open)', JSON.stringify(timers));
+ok(JSON.stringify(timers.afterTimer) === JSON.stringify(['b']), 'the undo-window timer purges the film on its own (delete + walk away)', JSON.stringify(timers));
+ok(timers.afterUndoTimer.length === 0, 'undo within the window cancels the purge timer — film kept', JSON.stringify(timers));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 process.exit(fail ? 1 : 0);

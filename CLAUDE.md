@@ -54,6 +54,69 @@ Build/verify: `bash build.sh && node tools/e2e-*.mjs` (all green). Desktop Rust:
 `cargo check --manifest-path src-tauri/Cargo.toml` (needs `$HOME/.cargo/bin` on
 PATH; local rustup + VS Build Tools 2026 installed this session).
 
+> **State (v1.11.4):** two independent review passes (Claude + Codex) drove
+> v1.11.2→v1.11.4. The cross-game corruption class is now closed at the ROOT
+> (async play-creation is synchronous — see v1.11.2/v1.11.4), all coach-facing
+> film-reliability P1s are fixed, and the Medium/nit tier is cleared. Deferred
+> into the SQLite/library epic (they rework the persistence layer A3 rebuilds):
+> diskStatus honesty, Tauri `listBackups` meta, version-manager/backup-ring
+> consolidation, backend base-class dedup, and a load-time GC for orphaned film.
+
+### v1.11.4 - Re-review fixes (shipped; tag `v1.11.4`)
+
+Codex's independent full re-review of v1.11.3 found four second-order issues; all
+fixed + verified (full gate green, integrity 16/16 under parallel load, cargo check).
+
+- **[P1] addFiles race — ROOT fix (supersedes the v1.11.2 guard).** v1.11.2 stopped
+  the cross-game leak by *aborting* play creation on a mid-probe game switch — but
+  that could ORPHAN already-copied film (clips on disk, no plays). `_autoCreatePlays`
+  now creates plays **synchronously** (no `await` between decide + push), then
+  backfills durations in the background (`_backfillDurations`). No race window at
+  all: the add always lands in its own game, never leaks, never orphans. Guard +
+  `boundPlays` removed. `e2e-addfiles-race.mjs` now also asserts the add is KEPT
+  (`aHasRaceclip`), which Codex flagged was computed-but-unasserted.
+- **[P2] Desktop CSP blocked the local CV server.** `connect-src` lacked the
+  backend address, so the optional YOLO server (`127.0.0.1:8765`) was CSP-blocked
+  in the installed app. Added `http://127.0.0.1:* http://localhost:*` (port-
+  wildcarded for the configurable `ffa_backend_url`).
+- **[P2] Deleted film could orphan on app close.** The delete tombstone only
+  purged on a NEXT delete / season-leave — deleting one game then closing the app
+  leaked the film dir forever. Added an undo-window **timer**
+  (`_filmPurgeTimer`, `UNDO_FILM_WINDOW_MS` 30s) that purges on its own; undo
+  cancels it. (Belt-and-braces load-time GC deferred to the storage epic.)
+- **[P2] Cancel Scan didn't abort in-flight analyze requests.** `BackendClient.
+  cancel()` / `VisionAnalyzer.cancel()` (abort the stashed AbortController) are now
+  wired to the Cancel button, so a hung request stops immediately instead of
+  waiting out its timeout.
+
+### v1.11.3 - Medium + nit cleanup (shipped; tag `v1.11.3`)
+
+Cleared the quality tier of the combined Claude+Codex inventory (no behavior-
+critical bugs). BrowserBackend caches the IndexedDB connection; linked+managed film
+auto-load resolve clip URLs in parallel; analyze requests are timeout+cancelable;
+cutup `_waitForReady` has a timeout; `_touchMeta` no longer clobbers a user-set
+library name; version-manager snapshot ids are monotonic; report titles escape;
+three unguarded `addEventListener` sites guarded; media-error log → `warn`; `[FFA]`
+debug logs stripped; `history-manager._record` + `sql-catalog.createSeason`
+simplified. Deferred/intentional-non-changes noted in the state block above.
+
+### v1.11.2 - Integrity race + film-reliability P1s + escaping (shipped; tag `v1.11.2`)
+
+Two independent reviews (Claude exhaustive + Codex full pass) combined into one
+inventory; all P1/High fixed. **The integrity fuzzer's intermittent failure was a
+REAL cross-game data-corruption bug, not flakiness** (fixed seeds + intermittent =
+timing; reproduced under 4× parallel CPU load — see [[integrity-fuzzer-load-race]]):
+`PlaylistManager.addFiles` ran `_autoCreatePlays()` un-awaited, and its late push
+landed a new clip's play in the WRONG game after a switch (v1.11.4 then made
+creation synchronous as the durable fix). Plus: Playlist "Add Clips" persists via an
+`onFilmFiles` hook; managed import/repair clears a stale `filmMode:'linked'`;
+`gameFromLegacy` carries `clipPaths/clipRefs/filmMode/filmDir`; `rehydrateFromDisk`
+basename index (linked relink survives a root mismatch); delete-game tombstones the
+film so undo restores it; linked auto-load only re-grants fs scope to consented
+folders (`TauriBackend.isDirAllowed` — imported season can't widen scope); stats-
+engine + play-tagger stored-XSS escaped (~22 sinks); `exportCsv` escapes every cell
++ formula guard, `importPlaysFromText` handles doubled `""`. 7 new e2e regressions.
+
 ### v1.11.1 - Linked film persistence fix (shipped; tag `v1.11.1`)
 
 Whole-package code-review catch: `_serialize()` doesn't emit `filmMode`/`filmDir`,

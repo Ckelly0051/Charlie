@@ -40,7 +40,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.3';
+const APP_VERSION = '1.11.4';
 
 class App {
   constructor() {
@@ -1347,6 +1347,10 @@ class App {
 
     btnCancelScan?.addEventListener('click', () => {
       this.detector.cancelScan();
+      // Also abort an in-flight analyze request, or Cancel would appear to do
+      // nothing until the request's own timeout (up to minutes) elapsed.
+      try { this.backend && this.backend.cancel && this.backend.cancel(); } catch (e) {}
+      try { this.vision && this.vision.cancel && this.vision.cancel(); } catch (e) {}
     });
 
     // Apply all detected plays directly — also stamp heuristic auto-tags
