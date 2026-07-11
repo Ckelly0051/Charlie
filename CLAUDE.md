@@ -18,6 +18,20 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### Product redesign handoff (prototype approved; implementation not started)
+
+The clean-sheet Home / Break Down / Study / Plan direction is documented in
+`GRIDIRON-IQ-REDESIGN-PLAN.md`. The interactive source of truth is
+`ux-prototype-v2/` (run `python -m http.server 4174 --directory
+ux-prototype-v2`, then open `http://127.0.0.1:4174/`). The earlier
+`ux-prototype/` is only the Quick Chart exploration.
+
+Critical rule: the redesign must **not dumb down analytics**. Existing reports
+remain as Advanced Reports until an exact metric + matching-play parity harness
+proves Study is equal or better. Implement incrementally behind feature flags;
+Break Down initially routes to the current production workspace. The next
+approved work is Phase 0 contracts/inventory, not a big-bang UI rewrite.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer
