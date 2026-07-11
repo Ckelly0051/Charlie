@@ -237,7 +237,8 @@ contract → tests each; never hand over "Phase 0" as one change):
   production report, measure, filter, export, and video drilldown (StatsEngine
   dashboard tabs, opponent-scout, self-scout, defensive report, Big-12, call
   sheet, CSV/HTML exports, every `data-cut-*` row) — the surface the registry
-  must cover and the harness must snapshot. **Owner: Claude.**
+  must cover and the harness must snapshot. Canonical inventory:
+  `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`. **Owner: Codex · ready for review.**
 - **P0-c — Metric + dimension registry interfaces.** The pure registry SHAPE
   (dimension: name + value-extractor + canonical-fn binding; measure: name +
   canonical-fn binding) covering the min dimensions/measures, each bound to the
@@ -353,38 +354,34 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex | Phase: P0-a Golden analytics parity harness | Status: ACCEPTED / COMPLETE
-Implementation commits: 9aa4bb8 (initial harness), eafdf32 (review fixes)
+Owner: Codex | Phase: P0-b Report/filter/export inventory | Status: READY FOR REVIEW
+Commit: the commit containing this handoff block
 
 Completed:
-- Golden snapshots cover `StatsEngine.compute()` measure blocks, structured
-  scout/self-scout/def-scout outputs, and all primary + combination
-  `_buildCutFilter` drilldowns per season and per game.
-- Every video reference uses composite `gameId::playId` identity.
-- The committed synthetic fixture has two games with repeated play IDs,
-  conflicting tendencies, unique dimensions, and non-equal game/season totals.
-- All six formerly missing drilldowns are pinned: comboFStr, comboFD, comboFS,
-  bigCall, frontCoverage, and ddDef.
-- Distance buckets use the production `_distBucket()` contract (`Medium`, not
-  the previously silent `Med` mismatch).
-- A bundle-freshness guard refuses to test stale modular source.
+- Added `GRIDIRON-IQ-ANALYTICS-INVENTORY.md` as the canonical P0-b contract.
+- Inventoried all computed output/measure blocks plus scope, filter, unit,
+  denominator, and multi-value semantics that P0-c must preserve.
+- Mapped six dashboard tabs, four season subtabs, dedicated reports, Big calls,
+  Call Sheet, Film Room, all drilldowns, and all export/print artifacts.
+- Derived the P0-c contract: stable IDs, canonical bindings, scope, perspective,
+  eligibility, formatting, composite matches, filtering, and export semantics.
 
-Independent Codex acceptance verification:
-- Clean gate: synthetic 3 scopes / 218 drilldowns; real six-game 7 scopes / 780
-  drilldowns; both deterministic and clean.
-- Golden inspection confirmed `formation::Under Center` distinguishes g1::10
-  from g2::6, Flexbone remains isolated to g2, and all combo types are present.
-- Failing-first test: changed season `totalPlays` 16→17; gate failed at
-  `season: numbers`. Restored golden SHA-256 byte-for-byte; clean gate passed.
-- Freshness test: touched analytics source; gate refused the stale bundle.
-  Rebuilt bundle; clean gate passed with no bundle diff.
+Files changed:
+- `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`
+- `GRIDIRON-IQ-REDESIGN-PLAN.md`
+- `CLAUDE.md`
 
-Non-blocking follow-ups:
-- Export parity (CSV/HTML/call-sheet) belongs to P0-b after inventory.
-- Real fixture/golden remains local and gitignored because it contains PII.
-- Replace the hardcoded local real-season path with env-var/discovery later.
+Validation:
+- Reconciled directly against stats, season, filter, grid, storage, call-sheet,
+  cutup-exporter, and roster production modules.
+- Documentation-only milestone; no production modules or bundle changed.
 
-Next requested action: Claude owns P0-b — create the written inventory of every
-report, filter, export, and `data-cut-*` video drilldown. Commit it as a discrete
-milestone and hand it to Codex for independent completeness review before P0-c.
+Known follow-ups:
+- Semantic export snapshots remain to be added after independent review.
+- Season cross-game rows are currently inert; future Study cutups require
+  composite `gameId::playId` references.
+
+Next requested action: independently review P0-b for missing surfaces and source
+accuracy. Once accepted, begin P0-c with failing-first interface tests and bind
+all formulas to canonical StatsEngine/AdvancedMetrics functions.
 ```
