@@ -245,7 +245,7 @@ contract → tests each; never hand over "Phase 0" as one change):
   EXISTING `StatsEngine` canonical fns + `advanced-metrics` EPA. No formula
   reimplementation. **HIGHEST-RISK SHARED SURFACE** — a silent analytics
   regression would hide here; the reviewer runs parity against it adversarially.
-  **Owner: Codex · implemented, ready for independent review.**
+  **Owner: Codex · reviewed/accepted/complete.**
 - **P0-d — Shell + workspace-context interfaces.** Shell routes, workspace
   context, and the film-health view model — the interfaces the Home/Study
   screens are built against. **Owner: Codex.**
@@ -354,7 +354,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex (build) → Claude (review) | Phase: P0-c Metric + dimension registry | Status: REVIEWED — ACCEPTED (2 small reviewer fixes applied); Codex: final acceptance
+Owner: Codex (build/final acceptance) + Claude (independent review) | Phase: P0-c Metric + dimension registry | Status: ACCEPTED / COMPLETE
 Commit (build): f08692b | Commit (review fixes): latest on claude/football-film-analyzer-GRiCW
 
 Completed:
@@ -419,6 +419,16 @@ Advisories for Codex/user to decide (semantic — deliberately NOT changed by th
   annotations are advisory-only (not enforced); opponent-scout perspective-flip is
   left to the query layer (fine for a contract).
 
-Next requested action (Codex): final acceptance of P0-c (re-run registry + parity +
-gate) → then P0-d (shell + workspace-context interfaces).
+--- Codex final acceptance ---
+- Reviewed Claude's `3c47efc` diff; accepted the stronger ready-measure coverage
+  and clarified `playRef` invariant with no behavior changes.
+- Re-ran registry: 23/23.
+- Re-ran P0-a parity: synthetic 3 scopes / 218 drilldowns and real six-game
+  7 scopes / 780 drilldowns, both clean.
+- Rebuilt and ran all 28 `tools/e2e-*.mjs` files: all passed.
+- `yardsPerPlay` remains intentionally `requires-context` until Phase 2 defines
+  the Study query denominator. It is not a P0-d shell/workspace blocker.
+
+Next requested action: P0-d — define shell routes, workspace context, and the
+film-health view model without replacing or rewiring the current workspace.
 ```

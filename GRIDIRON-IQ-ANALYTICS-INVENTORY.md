@@ -287,6 +287,12 @@ separate failing-first task after registry shape review.
 - `tools/e2e-analytics-registry.mjs` pins the contract, every block binding, all
   14 legacy Matrix extractors, and a representative Matrix cross-product.
 
+P0-c is independently reviewed and accepted (`f08692b` implementation,
+`3c47efc` review). Final acceptance re-ran the 23-assertion registry gate,
+synthetic and real-season parity, and all 28 E2E files. `yardsPerPlay` remains
+deliberately `requires-context` until the Phase 2 Study query contract defines
+its cohort denominator; P0-d does not expose analytics queries.
+
 ## 8. Parity Coverage Map And Open Gates
 
 | Surface | P0-a status | Gate before replacement |
