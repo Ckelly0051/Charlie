@@ -81,6 +81,8 @@ export class StorageBackend {
   async linkedGameDir(_filmDir) { return ''; }
   async linkedAbs(_absDir, _relPath) { return ''; }
   relToRoot(_absPath) { return ''; }
+  rememberLinkedDir(_absPath) {}
+  isLinkedDirAllowed(_absPath) { return true; }   // no linked film off-desktop; never blocks
 
   // ---- helpers shared by implementations ----
   _meta(data, label) {
@@ -816,6 +818,35 @@ export class TauriBackend extends StorageBackend {
     if (p.toLowerCase().startsWith(prefix.toLowerCase())) return p.slice(prefix.length);
     return '';   // outside the root — caller stores the absolute path instead
   }
+
+  // ---- P1-7: consent-scoped linked-film access ----------------------------
+  // Tauri asset/fs scope isn't persisted across app restarts, so _autoLoadLinkedFilm
+  // must re-grant a linked game's folder on every open. Granting whatever absolute
+  // path a game's filmDir names would let an IMPORTED season silently widen the
+  // WebView's filesystem scope to an attacker-chosen directory. So we only re-grant
+  // folders the coach actually consented to: those under the library root, or ones
+  // explicitly picked via the native dialog (remembered per-machine in localStorage).
+  static _normPath(s) { return String(s || '').replace(/\\/g, '/').replace(/\/+$/, ''); }
+  /** Pure/testable: is absPath under the root, or under a coach-linked dir? */
+  static isDirAllowed(root, linkedDirs, absPath) {
+    const p = TauriBackend._normPath(absPath);
+    if (!p) return false;
+    const under = (base) => { const b = TauriBackend._normPath(base); return !!b && (p.toLowerCase() === b.toLowerCase() || p.toLowerCase().startsWith(b.toLowerCase() + '/')); };
+    if (under(root)) return true;
+    return (linkedDirs || []).some(under);
+  }
+  _linkedDirs() { try { return JSON.parse(localStorage.getItem('ffa_linked_dirs') || '[]') || []; } catch { return []; } }
+  /** Record a folder the coach explicitly linked (native-dialog pick = consent). */
+  rememberLinkedDir(absPath) {
+    const norm = TauriBackend._normPath(absPath);
+    if (!norm) return;
+    const list = this._linkedDirs();
+    if (!list.some(d => TauriBackend._normPath(d).toLowerCase() === norm.toLowerCase())) {
+      list.push(norm);
+      try { localStorage.setItem('ffa_linked_dirs', JSON.stringify(list)); } catch (e) {}
+    }
+  }
+  isLinkedDirAllowed(absPath) { return TauriBackend.isDirAllowed(this.getLibraryRoot(), this._linkedDirs(), absPath); }
 
   /** Walk an absolute directory for video files → [{name, path}] (path rel to dir). */
   async listLinkedFilm(absDir) {

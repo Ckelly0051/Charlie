@@ -191,7 +191,7 @@ export class SeasonStore {
   /** Wrap a legacy single-game project object as a season game node. */
   gameFromLegacy(obj) {
     const g = this.blankGame();
-    return {
+    const node = {
       ...g,
       gameInfo: obj.gameInfo || {},
       plays: obj.plays || [],
@@ -203,6 +203,15 @@ export class SeasonStore {
       isMultiClip: !!obj.isMultiClip,
       name: this.gameName({ gameInfo: obj.gameInfo || {}, videoFileName: obj.videoFileName }),
     };
+    // Carry the MODERN durable film identity when the source has it. This wrapper
+    // is used both for legacy single-game imports (which lack these) AND to merge
+    // modern game objects (season-manager) — dropping clipPaths/clipRefs there
+    // would regress a game to weak basename-only identity, and dropping
+    // filmMode/filmDir would break linked-film auto-load on reopen.
+    if (obj.clipPaths) node.clipPaths = obj.clipPaths;
+    if (obj.clipRefs) node.clipRefs = obj.clipRefs;
+    if (obj.filmMode) { node.filmMode = obj.filmMode; node.filmDir = obj.filmDir; }
+    return node;
   }
 
   // ---- game accessors ------------------------------------------------------

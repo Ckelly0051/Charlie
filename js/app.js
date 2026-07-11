@@ -40,7 +40,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.1';
+const APP_VERSION = '1.11.2';
 
 class App {
   constructor() {
@@ -869,14 +869,23 @@ class App {
       this.canvas.render();
     });
 
+    // Persist added film through ONE choke point: the playlist's onFilmFiles
+    // hook fires for every add that goes through addFiles (the top-bar picker's
+    // folder/multi path AND the Playlist-panel "Add Clips" button), so we no
+    // longer call importFilm inline for that path (the panel path used to skip
+    // it, dropping its clips on reopen). No-ops on browser; skips linked games.
+    this.playlist.onFilmFiles = (files) => this.storage.importFilm(files);
+
     // Handle file selection from top bar (single or multi)
     this.vc.on('files-selected', ({ files }) => {
       if (files.length === 1 && !this.playlist.hasClips) {
+        // A single continuous video doesn't go through addFiles → persist here.
         this.vc.loadFile(files[0]);
+        this.storage.importFilm(files);
       } else {
+        // addFiles → onFilmFiles persists the genuinely-new clips.
         this.playlist.addFiles(files);
       }
-      this.storage.importFilm(files);
     });
 
     const btnRepairFilm = document.getElementById('btnRepairFilm');

@@ -1249,11 +1249,11 @@ export class StatsEngine {
       const runPct = f.count ? (f.runs / f.count) * 100 : 50;
       const succPct = parseFloat(f.successPct);
       if (succPct >= 55 && f.count >= 5)
-        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
+        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
       if (runPct >= 75)
-        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
+        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
       else if (runPct <= 25)
-        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
+        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
     });
 
     // --- Down & distance buckets ---
@@ -1279,9 +1279,9 @@ export class StatsEngine {
         const avg = c.count ? c.yards / c.count : 0;
         const stopPct = c.count ? (c.successes / c.count) * 100 : 0;
         if (stopPct >= 65 && avg <= 4)
-          working.push({ s: stopPct * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${c.name}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
+          working.push({ s: stopPct * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${Charts._esc(c.name)}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
         else if (avg >= 7)
-          fix.push({ s: avg * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
+          fix.push({ s: avg * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${Charts._esc(c.name)}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
       });
     }
 
@@ -1292,7 +1292,7 @@ export class StatsEngine {
         const stopPct = parseInt(c.stopPct);
         const avg = parseFloat(c.avg);
         if (stopPct >= 65 && avg <= 3.5)
-          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct}% stop rate, ${avg} avg (${c.count} snaps) — keep calling it` });
+          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${Charts._esc(c.name)}</strong>: ${stopPct}% stop rate, ${avg} avg (${c.count} snaps) — keep calling it` });
       });
     }
 
@@ -1347,8 +1347,8 @@ export class StatsEngine {
       stats.hash.list.forEach(h => {
         if (h.count < MIN_N) return;
         const runPct = parseInt(h.runPct);
-        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
-        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
+        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
+        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
       });
     }
 
@@ -1359,7 +1359,7 @@ export class StatsEngine {
       if (totalDirRuns >= 6) {
         dirRuns.forEach(d => {
           const pct = (d.runs / totalDirRuns) * 100;
-          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), cut: ['playDir', d.name], text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${d.name}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
+          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), cut: ['playDir', d.name], text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${Charts._esc(d.name)}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
         });
       }
     }
@@ -1878,7 +1878,7 @@ export class StatsEngine {
       const cutAttr = cut
         ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc((c.form || '—') + ' ' + (c.pt || ''))} — ${c.n} plays"`
         : '"';
-      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${name}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
+      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${Charts._esc(name)}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
     }).join('');
     const more = d.unique > 15 ? `<p class="self-scout-intro" style="margin-top:6px">…and ${d.unique - 15} more rare looks.</p>` : '';
     return `<div class="stats-section">
@@ -2018,7 +2018,7 @@ export class StatsEngine {
     const groupTable = (title, rows) => {
       if (!rows.length) return '';
       const body = rows.slice(0, 8).map(r =>
-        `<tr><td>${r.name}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
+        `<tr><td>${Charts._esc(r.name)}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
       ).join('');
       const note = rows.length > 8
         ? `<div style="font-size:11px;opacity:.6;margin:2px 0 6px">Top 8 of ${rows.length} by EPA/play</div>` : '';
@@ -2032,7 +2032,7 @@ export class StatsEngine {
     const playRow = (x) => {
       const t = x.play.tags || {};
       const label = `${t.down || '?'}&${t.distance || '?'} ${t.formation || ''} ${t.playType || ''}`.trim();
-      return `<tr><td>#${x.play.id}</td><td>${label}</td><td>${t.yardage || 0}</td><td class="${epaClass(x.epa)}">${fmt(x.epa)}</td></tr>`;
+      return `<tr><td>#${x.play.id}</td><td>${Charts._esc(label)}</td><td>${t.yardage || 0}</td><td class="${epaClass(x.epa)}">${fmt(x.epa)}</td></tr>`;
     };
 
     const downRows = ['1', '2', '3', '4'].map(d => {
@@ -2283,7 +2283,7 @@ export class StatsEngine {
     for (const h of stats.hash.list) {
       const runPct = parseInt(h.runPct);
       const bar = Charts.stackBar([{ value: h.runs, color: RUN_COLOR, label: 'Run' }, { value: h.passes, color: PASS_COLOR, label: 'Pass' }]);
-      rows += `<tr><td>${h.name}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
+      rows += `<tr><td>${Charts._esc(h.name)}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
     }
     return `
       <div class="stats-section">
@@ -2303,7 +2303,7 @@ export class StatsEngine {
       let rows = '';
       for (const d of dm.dirList) {
         const bar = Charts.stackBar([{ value: d.runs, color: RUN_COLOR, label: 'Run' }, { value: d.passes, color: PASS_COLOR, label: 'Pass' }]);
-        rows += `<tr class="cut-row" data-cut-type="playDir" data-cut-val="${d.name}" data-cut-label="${d.name} — ${d.count} plays"><td>${d.name}</td><td>${d.count}</td><td>${bar}</td><td>${d.avg}</td><td>${d.succPct}%</td></tr>`;
+        rows += `<tr class="cut-row" data-cut-type="playDir" data-cut-val="${Charts._esc(d.name)}" data-cut-label="${Charts._esc(d.name)} — ${d.count} plays"><td>${Charts._esc(d.name)}</td><td>${d.count}</td><td>${bar}</td><td>${d.avg}</td><td>${d.succPct}%</td></tr>`;
       }
       dirHtml = `<div><h3>Play Direction</h3>
         <table class="stats-table"><thead><tr><th>Direction</th><th>Plays</th><th>Run / Pass</th><th>Avg</th><th>Success%</th></tr></thead>
@@ -2315,7 +2315,7 @@ export class StatsEngine {
       let rows = '';
       for (const m of dm.motionList) {
         const bar = Charts.stackBar([{ value: m.runs, color: RUN_COLOR, label: 'Run' }, { value: m.passes, color: PASS_COLOR, label: 'Pass' }]);
-        rows += `<tr class="cut-row" data-cut-type="motion" data-cut-val="${m.name}" data-cut-label="${m.name} motion — ${m.count} plays"><td>${m.name}</td><td>${m.count}</td><td>${bar}</td><td>${m.avg}</td><td>${m.succPct}%</td></tr>`;
+        rows += `<tr class="cut-row" data-cut-type="motion" data-cut-val="${Charts._esc(m.name)}" data-cut-label="${Charts._esc(m.name)} motion — ${m.count} plays"><td>${Charts._esc(m.name)}</td><td>${m.count}</td><td>${bar}</td><td>${m.avg}</td><td>${m.succPct}%</td></tr>`;
       }
       const nm = dm.noMotion;
       if (nm.count) {
@@ -2351,7 +2351,7 @@ export class StatsEngine {
     if (!stats.frontCoverageCombos || !stats.frontCoverageCombos.hasData) return '';
     let rows = '';
     for (const c of stats.frontCoverageCombos.list) {
-      rows += `<tr class="cut-row" data-cut-type="frontCoverage" data-cut-val="${c.front}|${c.coverage}" data-cut-label="${c.name}"><td>${c.name}</td><td>${c.count}</td><td>${c.avg}</td><td>${c.stopPct}%</td><td>${c.havocPct}%</td></tr>`;
+      rows += `<tr class="cut-row" data-cut-type="frontCoverage" data-cut-val="${Charts._esc(c.front)}|${Charts._esc(c.coverage)}" data-cut-label="${Charts._esc(c.name)}"><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.avg}</td><td>${c.stopPct}%</td><td>${c.havocPct}%</td></tr>`;
     }
     return `
       <div class="stats-section">
@@ -2367,7 +2367,7 @@ export class StatsEngine {
     const pa = stats.playAction;
     let formRows = '';
     for (const f of pa.formationList) {
-      formRows += `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.avg}</td><td>${f.successPct}%</td></tr>`;
+      formRows += `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.avg}</td><td>${f.successPct}%</td></tr>`;
     }
     const formTable = formRows ? `
       <table class="stats-table" style="margin-top:12px"><thead><tr><th>Formation</th><th>PA Plays</th><th>Avg</th><th>Success%</th></tr></thead>
@@ -2754,14 +2754,14 @@ export class StatsEngine {
       const avg = f.count ? (f.yards / f.count).toFixed(1) : '0.0';
       const defSucc = f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0';
       const havocPct = f.count ? ((f.havoc / f.count) * 100).toFixed(0) : '0';
-      frontRows += `<tr class="cut-row" data-cut-type="defFront" data-cut-val="${f.name}" data-cut-label="${f.name} front — ${f.count} plays"><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
+      frontRows += `<tr class="cut-row" data-cut-type="defFront" data-cut-val="${Charts._esc(f.name)}" data-cut-label="${Charts._esc(f.name)} front — ${f.count} plays"><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
     }
 
     let covRows = '';
     for (const c of d.coverages) {
       const avg = c.count ? (c.yards / c.count).toFixed(1) : '0.0';
       const defSucc = c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0';
-      covRows += `<tr class="cut-row" data-cut-type="coverage" data-cut-val="${c.name}" data-cut-label="${c.name} — ${c.count} plays"><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      covRows += `<tr class="cut-row" data-cut-type="coverage" data-cut-val="${Charts._esc(c.name)}" data-cut-label="${Charts._esc(c.name)} — ${c.count} plays"><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let blitzRows = '';
@@ -2769,14 +2769,14 @@ export class StatsEngine {
       const avg = b.count ? (b.yards / b.count).toFixed(1) : '0.0';
       const havocPct = b.count ? ((b.havoc / b.count) * 100).toFixed(0) : '0';
       const defSucc = b.count ? ((b.successes / b.count) * 100).toFixed(0) : '0';
-      blitzRows += `<tr class="cut-row" data-cut-type="blitz" data-cut-val="${b.name}" data-cut-label="${b.name} blitz — ${b.count} plays"><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      blitzRows += `<tr class="cut-row" data-cut-type="blitz" data-cut-val="${Charts._esc(b.name)}" data-cut-label="${Charts._esc(b.name)} blitz — ${b.count} plays"><td>${Charts._esc(b.name)}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let sitFrontHtml = '';
     [d.earlyDownFronts, d.passingDownFronts].forEach(sit => {
       if (!sit.fronts.length) return;
       const rows = sit.fronts.map(([name, count]) =>
-        `<tr><td>${name}</td><td>${count}</td><td>${sit.total ? ((count / sit.total) * 100).toFixed(0) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(name)}</td><td>${count}</td><td>${sit.total ? ((count / sit.total) * 100).toFixed(0) : 0}%</td></tr>`
       ).join('');
       sitFrontHtml += `<div><h4 style="margin:8px 0 4px">${sit.label} (${sit.total})</h4>
         <table class="stats-table stats-table-full">
@@ -3197,7 +3197,7 @@ export class StatsEngine {
     let body;
     if (!data || data.games === 0) {
       body = `<div class="stats-section"><p style="color:var(--text-dim);line-height:1.7">
-        No games found against <strong>${name}</strong>. Set the opponent in the Game menu and tag a game
+        No games found against <strong>${Charts._esc(name)}</strong>. Set the opponent in the Game menu and tag a game
         against them — your <strong>defensive</strong> snaps capture their offense (the formation &amp; play type
         you faced), your <strong>offensive</strong> snaps capture their defense (the fronts &amp; coverages they
         showed). Re-open this report and it builds automatically — no separate scout film needed.</p></div>`;
@@ -3248,7 +3248,7 @@ export class StatsEngine {
         </div>` : '';
       body = `
         <div class="stats-section">
-          <p style="color:var(--text-dim);margin:0;line-height:1.6">Auto-aggregated from <strong>${data.games}</strong> game${data.games === 1 ? '' : 's'} you've tagged against ${name}
+          <p style="color:var(--text-dim);margin:0;line-height:1.6">Auto-aggregated from <strong>${data.games}</strong> game${data.games === 1 ? '' : 's'} you've tagged against ${Charts._esc(name)}
           — ${data.offCount} of their offensive snaps, ${data.defCount} defensive. Pulled straight from your film; nothing re-tagged.</p>
         </div>
         ${off}
@@ -3258,7 +3258,7 @@ export class StatsEngine {
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Opponent Report: ${name}</h2>
+            <h2>Opponent Report: ${Charts._esc(name)}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm btn-danger" id="btnCloseOppScout">Close</button>
             </div>
@@ -3307,7 +3307,7 @@ export class StatsEngine {
               <table class="stats-table stats-table-full">
                 <thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead>
                 <tbody>${report.formationDetail.map(f =>
-                  `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+                  `<tr><td>${Charts._esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
                 ).join('')}</tbody>
               </table>
             </div>
@@ -3338,14 +3338,14 @@ export class StatsEngine {
                 <h3>Defensive Fronts</h3>
                 <table class="stats-table stats-table-full">
                   <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
-                  <tbody>${report.fronts.map(([f, c]) => `<tr><td>${f}</td><td>${c}</td><td>${Math.round(c / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                  <tbody>${report.fronts.map(([f, c]) => `<tr><td>${Charts._esc(f)}</td><td>${c}</td><td>${Math.round(c / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
                 </table>
               </div>
               ${report.coverages.length ? `<div>
                 <h3>Coverages</h3>
                 <table class="stats-table stats-table-full">
                   <thead><tr><th>Coverage</th><th>#</th><th>%</th></tr></thead>
-                  <tbody>${report.coverages.map(([c, n]) => `<tr><td>${c}</td><td>${n}</td><td>${Math.round(n / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                  <tbody>${report.coverages.map(([c, n]) => `<tr><td>${Charts._esc(c)}</td><td>${n}</td><td>${Math.round(n / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
                 </table>
               </div>` : ''}
             </div>` : ''}
@@ -3368,7 +3368,7 @@ export class StatsEngine {
     const t = report.stats.tendencies;
     const title = `Scout Report: ${Charts._esc(opponent)}`;   // feeds <title> + <h1> (HTML); filename below uses the raw value
     const formRows = report.formationDetail.map(f =>
-      `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+      `<tr><td>${Charts._esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
     ).join('');
     const ddRows = report.downTendency.map(d =>
       `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
@@ -4492,13 +4492,13 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
     const d = stats.defensive;
     const title = `Defensive Report: ${Charts._esc(team)}`;
     const frontRows = d.fronts.map(f =>
-      `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+      `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
     ).join('');
     const covRows = d.coverages.map(c =>
-      `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+      `<tr><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
     ).join('');
     const blitzRows = d.blitzes.map(b =>
-      `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
+      `<tr><td>${Charts._esc(b.name)}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
     ).join('');
     const body = `
 <h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
@@ -4593,10 +4593,10 @@ ${gamePlanHtml}
     if (stats.defensive.hasData) {
       const d = stats.defensive;
       const frontRows = d.fronts.map(f =>
-        `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
       ).join('');
       const covRows = d.coverages.map(c =>
-        `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
       ).join('');
       body += `
 <h3>Defensive Summary</h3>

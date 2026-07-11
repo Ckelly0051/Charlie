@@ -12927,7 +12927,15 @@ class PlayTagger {
     tags.forEach((tag, i) => {
       const chip = document.createElement('span');
       chip.className = 'tag-chip';
-      chip.innerHTML = `${tag} <span class="chip-remove" data-index="${i}">&times;</span>`;
+      // Custom tags are coach freeform text AND arrive via season/CSV import, so
+      // they can carry markup — set the label as TEXT (never innerHTML) so a tag
+      // like <img onerror=…> can't execute (stored-XSS, same class as lesson #18).
+      chip.textContent = tag + ' ';
+      const rm = document.createElement('span');
+      rm.className = 'chip-remove';
+      rm.dataset.index = i;
+      rm.innerHTML = '&times;';
+      chip.appendChild(rm);
       chip.querySelector('.chip-remove').addEventListener('click', () => {
         tags.splice(i, 1);
         this._renderCustomTags(tags);
@@ -13852,6 +13860,8 @@ class StorageBackend {
   async linkedGameDir(_filmDir) { return ''; }
   async linkedAbs(_absDir, _relPath) { return ''; }
   relToRoot(_absPath) { return ''; }
+  rememberLinkedDir(_absPath) {}
+  isLinkedDirAllowed(_absPath) { return true; }   // no linked film off-desktop; never blocks
 
   // ---- helpers shared by implementations ----
   _meta(data, label) {
@@ -14588,6 +14598,35 @@ class TauriBackend extends StorageBackend {
     return '';   // outside the root — caller stores the absolute path instead
   }
 
+  // ---- P1-7: consent-scoped linked-film access ----------------------------
+  // Tauri asset/fs scope isn't persisted across app restarts, so _autoLoadLinkedFilm
+  // must re-grant a linked game's folder on every open. Granting whatever absolute
+  // path a game's filmDir names would let an IMPORTED season silently widen the
+  // WebView's filesystem scope to an attacker-chosen directory. So we only re-grant
+  // folders the coach actually consented to: those under the library root, or ones
+  // explicitly picked via the native dialog (remembered per-machine in localStorage).
+  static _normPath(s) { return String(s || '').replace(/\\/g, '/').replace(/\/+$/, ''); }
+  /** Pure/testable: is absPath under the root, or under a coach-linked dir? */
+  static isDirAllowed(root, linkedDirs, absPath) {
+    const p = TauriBackend._normPath(absPath);
+    if (!p) return false;
+    const under = (base) => { const b = TauriBackend._normPath(base); return !!b && (p.toLowerCase() === b.toLowerCase() || p.toLowerCase().startsWith(b.toLowerCase() + '/')); };
+    if (under(root)) return true;
+    return (linkedDirs || []).some(under);
+  }
+  _linkedDirs() { try { return JSON.parse(localStorage.getItem('ffa_linked_dirs') || '[]') || []; } catch { return []; } }
+  /** Record a folder the coach explicitly linked (native-dialog pick = consent). */
+  rememberLinkedDir(absPath) {
+    const norm = TauriBackend._normPath(absPath);
+    if (!norm) return;
+    const list = this._linkedDirs();
+    if (!list.some(d => TauriBackend._normPath(d).toLowerCase() === norm.toLowerCase())) {
+      list.push(norm);
+      try { localStorage.setItem('ffa_linked_dirs', JSON.stringify(list)); } catch (e) {}
+    }
+  }
+  isLinkedDirAllowed(absPath) { return TauriBackend.isDirAllowed(this.getLibraryRoot(), this._linkedDirs(), absPath); }
+
   /** Walk an absolute directory for video files → [{name, path}] (path rel to dir). */
   async listLinkedFilm(absDir) {
     if (!this._ok() || !absDir) return [];
@@ -14958,7 +14997,7 @@ class SeasonStore {
   /** Wrap a legacy single-game project object as a season game node. */
   gameFromLegacy(obj) {
     const g = this.blankGame();
-    return {
+    const node = {
       ...g,
       gameInfo: obj.gameInfo || {},
       plays: obj.plays || [],
@@ -14970,6 +15009,15 @@ class SeasonStore {
       isMultiClip: !!obj.isMultiClip,
       name: this.gameName({ gameInfo: obj.gameInfo || {}, videoFileName: obj.videoFileName }),
     };
+    // Carry the MODERN durable film identity when the source has it. This wrapper
+    // is used both for legacy single-game imports (which lack these) AND to merge
+    // modern game objects (season-manager) — dropping clipPaths/clipRefs there
+    // would regress a game to weak basename-only identity, and dropping
+    // filmMode/filmDir would break linked-film auto-load on reopen.
+    if (obj.clipPaths) node.clipPaths = obj.clipPaths;
+    if (obj.clipRefs) node.clipRefs = obj.clipRefs;
+    if (obj.filmMode) { node.filmMode = obj.filmMode; node.filmDir = obj.filmDir; }
+    return node;
   }
 
   // ---- game accessors ------------------------------------------------------
@@ -15604,6 +15652,7 @@ class StorageManager {
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();   // a debounced save must never straddle the switch
+    this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
     await this.seasonStore.openSeason(id);
     this._afterSeasonLoaded();
   }
@@ -15612,6 +15661,7 @@ class StorageManager {
   async createSeason(meta) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();
+    this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
     const rec = await this.seasonStore.createSeason(meta);
     this._afterSeasonLoaded();
     return rec;
@@ -15887,6 +15937,14 @@ class StorageManager {
       await backend.allowLibraryDir(backend.getLibraryRoot());
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
       if (!absDir) { this._relinkToast(gameNode, true); return; }
+      // Only re-grant filesystem scope to a folder the coach consented to (under
+      // the library root, or explicitly linked on this machine). An absolute
+      // filmDir carried in by an IMPORTED season that was never linked here must
+      // not silently widen scope — prompt a re-link (a native pick = fresh consent).
+      if (backend.isLinkedDirAllowed && !backend.isLinkedDirAllowed(absDir)) {
+        this.tagger.toast?.('This game\'s linked film folder isn\'t authorized on this computer. Use "Link from Library" to reconnect it.', 12000);
+        return;
+      }
       await backend.allowLibraryDir(absDir);
       const filesOnDisk = await backend.listLinkedFilm(absDir);
       console.log('Linked film auto-load:', { gameId: gameNode.id, filmDir: gameNode.filmDir, absDir, count: filesOnDisk.length });
@@ -15939,6 +15997,7 @@ class StorageManager {
     const folder = await backend.pickFolder(root);
     if (!folder) return false;
     await backend.allowLibraryDir(folder);
+    backend.rememberLinkedDir?.(folder);   // consent: this folder may be re-granted on reopen (P1-7)
     const files = await backend.listLinkedFilm(folder);
     if (!files.length) { this.tagger.toast?.('No video files found in that folder.'); return false; }
     this._maybeSnapshot(true, 'Before linking film');
@@ -15977,11 +16036,25 @@ class StorageManager {
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     const game = this.seasonStore.activeGame();
     if (!game) return;
+    // Linked games reference clips in the coach's own folder and are never copied
+    // into the managed library. This method is the single persist choke point for
+    // every add path (top-bar picker + Playlist-panel "Add Clips"), so it must be
+    // a safe no-op for a linked game.
+    if (game.filmMode === 'linked') return;
     try {
       await backend.importFilm(game.id, files, (done, total) => {
         const app = window.app;
         if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
       });
+      // This game's film now lives in the managed library — record the mode so
+      // auto-load takes the managed branch on reopen. (Clears a stale filmMode so
+      // a game that was linked, then repaired with copied film, stops trying to
+      // auto-load the old linked folder.)
+      if (game.filmMode !== 'managed' || game.filmDir) {
+        game.filmMode = 'managed';
+        game.filmDir = null;
+        this.seasonStore.persist();
+      }
     } catch (e) {
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
@@ -16024,6 +16097,9 @@ class StorageManager {
       this.videoFileName = this._fileRefName(ref) || file.name;
       if (url) this.vc.loadUrl(url, this.videoFileName);
       else this.vc.loadFile(file);
+      // Repair copies into the managed library, so this game is managed now — a
+      // formerly-linked game must stop auto-loading its old linked folder.
+      game.filmMode = 'managed'; game.filmDir = null;
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
@@ -16070,6 +16146,8 @@ class StorageManager {
       const missingUrls = playableMatches.filter(m => !m.url).length;
       await this.playlist.repairWithMatches(playableMatches);
       this.videoFileName = null;
+      // Managed copy now owns this game's film — clear any stale linked mode.
+      game.filmMode = 'managed'; game.filmDir = null;
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
@@ -16244,16 +16322,30 @@ class StorageManager {
     // needs its own one-shot restore). Session-only, overwritten per delete.
     const games = (this.seasonStore.data && this.seasonStore.data.games) || [];
     const gi = games.findIndex(g => g.id === id);
+    // A new delete closes the PREVIOUS delete's undo window → purge that game's
+    // film now (it was deferred from its own removeGame so undo could restore it).
+    this._purgeStaleDeletedFilm();
     this._lastDeletedGame = gi >= 0
-      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId }
+      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId, filmGameId: id }
       : null;
-    const backend = this.seasonStore.backend;
-    if (backend.supportsFilm && backend.supportsFilm()) {
-      backend.deleteFilm(id).catch(() => {});
-    }
+    // Do NOT delete the film here. undoRemoveGame restores the game node, and its
+    // tags reference this film — deleting it synchronously made undo bring back a
+    // game pointing at gone film. The film is purged when the undo window closes
+    // (the next delete, or leaving the season); undo cancels the purge.
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+  }
+
+  /** Delete the last-deleted game's film once its undo window has closed (a newer
+   *  delete, or leaving the season). No-op if the delete was undone (undo nulls
+   *  the stash, so its film is preserved). Desktop-only; no film on the browser. */
+  _purgeStaleDeletedFilm() {
+    const stash = this._lastDeletedGame;
+    if (!stash || !stash.filmGameId) return;
+    const backend = this.seasonStore.backend;
+    if (backend.supportsFilm && backend.supportsFilm()) backend.deleteFilm(stash.filmGameId).catch(() => {});
+    stash.filmGameId = null;
   }
 
   /** One-shot restore of the last deleted game (the Undo toast's action).
@@ -16577,7 +16669,7 @@ class StorageManager {
       p.tags.grades?.tackler ?? '',
       p.tags.grades?.takeaway ?? '',
       (p.tags.custom || []).join('; '),
-      (p.notes || '').replace(/"/g, '""')
+      (p.notes || '')
     ]);
 
     // Append any user-defined custom fields as extra columns.
@@ -16591,8 +16683,19 @@ class StorageManager {
       });
     }
 
+    // Quote EVERY cell and escape embedded quotes ("→""). Previously only the
+    // notes cell escaped, so any formation/custom-tag/player value containing a "
+    // produced a malformed row that broke Excel/Hudl import. Also guard against
+    // CSV formula injection (a leading = + - @ can execute when the file is opened
+    // in a spreadsheet — reachable via an imported season's tag names), but never
+    // mangle a real number, so signed yardage like -5 stays numeric.
+    const esc = (cell) => {
+      let s = String(cell ?? '');
+      if (/^[=+\-@\t\r]/.test(s) && !isFinite(Number(s))) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    };
     const csv = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map(esc).join(','))
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -16672,7 +16775,12 @@ ${body}
       let inQuotes = false;
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
-        if (ch === '"') { inQuotes = !inQuotes; continue; }
+        if (ch === '"') {
+          // A doubled "" inside a quoted field is a literal quote (matches how
+          // exportCsv escapes), not two toggles that would drop the character.
+          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; continue; }
+          inQuotes = !inQuotes; continue;
+        }
         if (ch === delim && !inQuotes) { result.push(current.trim()); current = ''; continue; }
         current += ch;
       }
@@ -18376,8 +18484,21 @@ class PlaylistManager {
     this._updateClipIndicator();
     this._updateClipCount();
 
-    // Auto-create play entries for each new clip
-    this._autoCreatePlays();
+    // Persist genuinely-new film to the desktop library through the single
+    // choke point (App wires this to storage.importFilm). BOTH the top-bar
+    // picker and the Playlist-panel "Add Clips" button funnel through addFiles,
+    // so wiring the hook here means no add path can skip persistence — the panel
+    // path used to bypass importFilm entirely, so its clips vanished on reopen.
+    // The hook no-ops on the browser build and skips linked games (never copied).
+    if (this.onFilmFiles && fresh.length) { try { this.onFilmFiles(fresh); } catch (e) {} }
+
+    // Auto-create play entries for each new clip. MUST be awaited: it probes
+    // durations asynchronously, THEN pushes plays to this.tagger.plays — if the
+    // caller (or a game switch) proceeds before it finishes, a late push lands
+    // the new clip's play in the WRONG game (the cross-game corruption the
+    // integrity fuzzer caught under load). Awaiting makes addFiles atomic for
+    // its callers (e.g. the desktop importFilm persist path commits after).
+    await this._autoCreatePlays();
 
     // If nothing is playing, activate the first clip — except after a save
     // re-link, where the saved current play's clip is where the coach was.
@@ -18473,6 +18594,14 @@ class PlaylistManager {
     let created = false;
     let firstNewId = null;
     const newClips = this.clips.filter(c => c.playId === null);
+    // Bind to the plays array of the game that owns this add. _deserialize
+    // reassigns this.tagger.plays to the NEW game's array on a game switch, and
+    // the duration-probe await below yields the event loop — so if the coach
+    // switches games while probes are in flight, pushing into the (now different)
+    // live array would stamp these clips' plays onto ANOTHER game. Capture the
+    // target now and bail after probing if it changed. (Root cause of the
+    // cross-game clip-share; pinned by tools/e2e-addfiles-race.mjs + e2e-integrity.)
+    const boundPlays = this.tagger.plays;
     // Probe durations in parallel (capped) — serial probing made a 100-clip
     // folder take many seconds before the first play existed.
     const POOL = 8;
@@ -18484,6 +18613,10 @@ class PlaylistManager {
         if (source) clip.duration = await this._probeDuration(source);
       }
     }));
+    // The active game changed while we were probing — these clips belong to a
+    // game that's no longer loaded (its playlist was reset on the switch). Abort
+    // rather than leak the new plays into whatever game is current now.
+    if (this.tagger.plays !== boundPlays) return;
     for (const clip of newClips) {
       const play = {
         id: this.tagger.nextId++,
@@ -18549,42 +18682,60 @@ class PlaylistManager {
   }
 
   async rehydrateFromDisk(diskFiles, plays) {
-    const identityToPlay = {};
-    for (const p of plays) {
-      const key = this._playIdentity(p);
-      if (key && !identityToPlay[key]) identityToPlay[key] = p;
-    }
-
     const sorted = diskFiles.slice().sort((a, b) =>
       String(a.path || a.name || '').localeCompare(String(b.path || b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
-    for (const file of sorted) {
+    // Two match indices off the plays' durable identity:
+    //   byPath — exact ext-stripped path (Pass 1) keeps same-basename clips in
+    //            different subfolders distinct (endzone/0001 vs sideline/0001).
+    //   byBase — basename only (Pass 2) relinks when the saved root differs from
+    //            the folder the coach picked now — e.g. a MANAGED game saved
+    //            'Game7/endzone/0001' relinked against a LINKED folder that lists
+    //            'endzone/0001' (the linked relink Codex flagged). Each list is
+    //            path-sorted so it aligns 1:1 with the path-sorted disk files.
+    const byPath = new Map();
+    const byBase = new Map();
+    for (const p of plays) {
+      const id = this._playIdentity(p);
+      if (!id) continue;
+      if (!byPath.has(id)) byPath.set(id, p);
+      const base = id.split('/').pop();
+      if (base) { if (!byBase.has(base)) byBase.set(base, []); byBase.get(base).push(p); }
+    }
+    for (const list of byBase.values()) list.sort((a, b) => String(this._playIdentity(a)).localeCompare(String(this._playIdentity(b)), undefined, { numeric: true, sensitivity: 'base' }));
+
+    const consumed = new Set();
+    const entries = sorted.map(file => {
       const displayName = file.name.replace(/\.[^.]+$/, '');
       const clipPath = this._pathWithoutExt(file.path || file.name);
-      const entry = {
-        id: this._nextClipId++,
-        file: null,
-        name: displayName,
-        clipPath,
-        assetUrl: file.url,
-        objectUrl: null,
-        duration: null,
-        playId: null,
+      return {
+        clipPath, base: clipPath.split('/').pop(), displayName,
+        entry: { id: this._nextClipId++, file: null, name: displayName, clipPath, assetUrl: file.url, objectUrl: null, duration: null, playId: null },
       };
+    });
+    const link = (entry, play) => {
+      entry.playId = play.id;
+      entry.duration = play.timestamp ? play.timestamp.end : null;
+      play.clipId = entry.id;
+      play.clipName = entry.name;
+      play.clipPath = entry.clipPath;
+      consumed.add(play);
+    };
 
-      const play = identityToPlay[clipPath] || identityToPlay[displayName];
-      if (play) {
-        entry.playId = play.id;
-        entry.duration = play.timestamp ? play.timestamp.end : null;
-        play.clipId = entry.id;
-        play.clipName = entry.name;
-        play.clipPath = entry.clipPath;
-        delete identityToPlay[clipPath];
-        delete identityToPlay[displayName];
-      }
-
-      this.clips.push(entry);
+    // Pass 1 — exact full-path identity.
+    for (const e of entries) {
+      const p = byPath.get(e.clipPath);
+      if (p && !consumed.has(p)) link(e.entry, p);
     }
+    // Pass 2 — basename fallback (root-mismatched relink), consume once, in order.
+    for (const e of entries) {
+      if (e.entry.playId != null) continue;
+      const cands = byBase.get(e.base) || byBase.get(e.displayName) || [];
+      const p = cands.find(pl => !consumed.has(pl));
+      if (p) link(e.entry, p);
+    }
+
+    for (const e of entries) this.clips.push(e.entry);
 
     this._updatePlaylistUI();
     this._updateClipIndicator();
@@ -21531,11 +21682,11 @@ class StatsEngine {
       const runPct = f.count ? (f.runs / f.count) * 100 : 50;
       const succPct = parseFloat(f.successPct);
       if (succPct >= 55 && f.count >= 5)
-        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
+        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
       if (runPct >= 75)
-        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
+        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
       else if (runPct <= 25)
-        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${f.name}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
+        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
     });
 
     // --- Down & distance buckets ---
@@ -21561,9 +21712,9 @@ class StatsEngine {
         const avg = c.count ? c.yards / c.count : 0;
         const stopPct = c.count ? (c.successes / c.count) * 100 : 0;
         if (stopPct >= 65 && avg <= 4)
-          working.push({ s: stopPct * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${c.name}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
+          working.push({ s: stopPct * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${Charts._esc(c.name)}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
         else if (avg >= 7)
-          fix.push({ s: avg * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${c.name}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
+          fix.push({ s: avg * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${Charts._esc(c.name)}</strong> allowing ${avg.toFixed(1)} YPA (${c.count} snaps) — consider switching` });
       });
     }
 
@@ -21574,7 +21725,7 @@ class StatsEngine {
         const stopPct = parseInt(c.stopPct);
         const avg = parseFloat(c.avg);
         if (stopPct >= 65 && avg <= 3.5)
-          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${c.name}</strong>: ${stopPct}% stop rate, ${avg} avg (${c.count} snaps) — keep calling it` });
+          working.push({ s: stopPct * Math.min(c.count, 10), text: `<strong>${Charts._esc(c.name)}</strong>: ${stopPct}% stop rate, ${avg} avg (${c.count} snaps) — keep calling it` });
       });
     }
 
@@ -21629,8 +21780,8 @@ class StatsEngine {
       stats.hash.list.forEach(h => {
         if (h.count < MIN_N) return;
         const runPct = parseInt(h.runPct);
-        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${h.name} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
-        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${h.name} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
+        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
+        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
       });
     }
 
@@ -21641,7 +21792,7 @@ class StatsEngine {
       if (totalDirRuns >= 6) {
         dirRuns.forEach(d => {
           const pct = (d.runs / totalDirRuns) * 100;
-          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), cut: ['playDir', d.name], text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${d.name}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
+          if (pct >= 60) fix.push({ s: (pct - 50) * Math.min(totalDirRuns, 12), cut: ['playDir', d.name], text: `<strong>${pct.toFixed(0)}%</strong> of runs go <strong>${Charts._esc(d.name)}</strong> (${d.runs}/${totalDirRuns}) — defenses will overload that side` });
         });
       }
     }
@@ -22160,7 +22311,7 @@ class StatsEngine {
       const cutAttr = cut
         ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc((c.form || '—') + ' ' + (c.pt || ''))} — ${c.n} plays"`
         : '"';
-      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${name}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
+      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${Charts._esc(name)}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
     }).join('');
     const more = d.unique > 15 ? `<p class="self-scout-intro" style="margin-top:6px">…and ${d.unique - 15} more rare looks.</p>` : '';
     return `<div class="stats-section">
@@ -22300,7 +22451,7 @@ class StatsEngine {
     const groupTable = (title, rows) => {
       if (!rows.length) return '';
       const body = rows.slice(0, 8).map(r =>
-        `<tr><td>${r.name}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
+        `<tr><td>${Charts._esc(r.name)}</td><td>${r.count}</td><td class="${epaClass(r.total)}">${fmt(r.total)}</td><td class="${epaClass(r.perPlay)}">${fmt(r.perPlay)}</td></tr>`
       ).join('');
       const note = rows.length > 8
         ? `<div style="font-size:11px;opacity:.6;margin:2px 0 6px">Top 8 of ${rows.length} by EPA/play</div>` : '';
@@ -22314,7 +22465,7 @@ class StatsEngine {
     const playRow = (x) => {
       const t = x.play.tags || {};
       const label = `${t.down || '?'}&${t.distance || '?'} ${t.formation || ''} ${t.playType || ''}`.trim();
-      return `<tr><td>#${x.play.id}</td><td>${label}</td><td>${t.yardage || 0}</td><td class="${epaClass(x.epa)}">${fmt(x.epa)}</td></tr>`;
+      return `<tr><td>#${x.play.id}</td><td>${Charts._esc(label)}</td><td>${t.yardage || 0}</td><td class="${epaClass(x.epa)}">${fmt(x.epa)}</td></tr>`;
     };
 
     const downRows = ['1', '2', '3', '4'].map(d => {
@@ -22565,7 +22716,7 @@ class StatsEngine {
     for (const h of stats.hash.list) {
       const runPct = parseInt(h.runPct);
       const bar = Charts.stackBar([{ value: h.runs, color: RUN_COLOR, label: 'Run' }, { value: h.passes, color: PASS_COLOR, label: 'Pass' }]);
-      rows += `<tr><td>${h.name}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
+      rows += `<tr><td>${Charts._esc(h.name)}</td><td>${h.count}</td><td>${bar}</td><td>${h.runPct}%</td><td>${h.avg}</td><td>${h.successPct}%</td></tr>`;
     }
     return `
       <div class="stats-section">
@@ -22585,7 +22736,7 @@ class StatsEngine {
       let rows = '';
       for (const d of dm.dirList) {
         const bar = Charts.stackBar([{ value: d.runs, color: RUN_COLOR, label: 'Run' }, { value: d.passes, color: PASS_COLOR, label: 'Pass' }]);
-        rows += `<tr class="cut-row" data-cut-type="playDir" data-cut-val="${d.name}" data-cut-label="${d.name} — ${d.count} plays"><td>${d.name}</td><td>${d.count}</td><td>${bar}</td><td>${d.avg}</td><td>${d.succPct}%</td></tr>`;
+        rows += `<tr class="cut-row" data-cut-type="playDir" data-cut-val="${Charts._esc(d.name)}" data-cut-label="${Charts._esc(d.name)} — ${d.count} plays"><td>${Charts._esc(d.name)}</td><td>${d.count}</td><td>${bar}</td><td>${d.avg}</td><td>${d.succPct}%</td></tr>`;
       }
       dirHtml = `<div><h3>Play Direction</h3>
         <table class="stats-table"><thead><tr><th>Direction</th><th>Plays</th><th>Run / Pass</th><th>Avg</th><th>Success%</th></tr></thead>
@@ -22597,7 +22748,7 @@ class StatsEngine {
       let rows = '';
       for (const m of dm.motionList) {
         const bar = Charts.stackBar([{ value: m.runs, color: RUN_COLOR, label: 'Run' }, { value: m.passes, color: PASS_COLOR, label: 'Pass' }]);
-        rows += `<tr class="cut-row" data-cut-type="motion" data-cut-val="${m.name}" data-cut-label="${m.name} motion — ${m.count} plays"><td>${m.name}</td><td>${m.count}</td><td>${bar}</td><td>${m.avg}</td><td>${m.succPct}%</td></tr>`;
+        rows += `<tr class="cut-row" data-cut-type="motion" data-cut-val="${Charts._esc(m.name)}" data-cut-label="${Charts._esc(m.name)} motion — ${m.count} plays"><td>${Charts._esc(m.name)}</td><td>${m.count}</td><td>${bar}</td><td>${m.avg}</td><td>${m.succPct}%</td></tr>`;
       }
       const nm = dm.noMotion;
       if (nm.count) {
@@ -22633,7 +22784,7 @@ class StatsEngine {
     if (!stats.frontCoverageCombos || !stats.frontCoverageCombos.hasData) return '';
     let rows = '';
     for (const c of stats.frontCoverageCombos.list) {
-      rows += `<tr class="cut-row" data-cut-type="frontCoverage" data-cut-val="${c.front}|${c.coverage}" data-cut-label="${c.name}"><td>${c.name}</td><td>${c.count}</td><td>${c.avg}</td><td>${c.stopPct}%</td><td>${c.havocPct}%</td></tr>`;
+      rows += `<tr class="cut-row" data-cut-type="frontCoverage" data-cut-val="${Charts._esc(c.front)}|${Charts._esc(c.coverage)}" data-cut-label="${Charts._esc(c.name)}"><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.avg}</td><td>${c.stopPct}%</td><td>${c.havocPct}%</td></tr>`;
     }
     return `
       <div class="stats-section">
@@ -22649,7 +22800,7 @@ class StatsEngine {
     const pa = stats.playAction;
     let formRows = '';
     for (const f of pa.formationList) {
-      formRows += `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.avg}</td><td>${f.successPct}%</td></tr>`;
+      formRows += `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.avg}</td><td>${f.successPct}%</td></tr>`;
     }
     const formTable = formRows ? `
       <table class="stats-table" style="margin-top:12px"><thead><tr><th>Formation</th><th>PA Plays</th><th>Avg</th><th>Success%</th></tr></thead>
@@ -23036,14 +23187,14 @@ class StatsEngine {
       const avg = f.count ? (f.yards / f.count).toFixed(1) : '0.0';
       const defSucc = f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0';
       const havocPct = f.count ? ((f.havoc / f.count) * 100).toFixed(0) : '0';
-      frontRows += `<tr class="cut-row" data-cut-type="defFront" data-cut-val="${f.name}" data-cut-label="${f.name} front — ${f.count} plays"><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
+      frontRows += `<tr class="cut-row" data-cut-type="defFront" data-cut-val="${Charts._esc(f.name)}" data-cut-label="${Charts._esc(f.name)} front — ${f.count} plays"><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${avg}</td><td>${defSucc}%</td><td>${havocPct}%</td></tr>`;
     }
 
     let covRows = '';
     for (const c of d.coverages) {
       const avg = c.count ? (c.yards / c.count).toFixed(1) : '0.0';
       const defSucc = c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0';
-      covRows += `<tr class="cut-row" data-cut-type="coverage" data-cut-val="${c.name}" data-cut-label="${c.name} — ${c.count} plays"><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      covRows += `<tr class="cut-row" data-cut-type="coverage" data-cut-val="${Charts._esc(c.name)}" data-cut-label="${Charts._esc(c.name)} — ${c.count} plays"><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let blitzRows = '';
@@ -23051,14 +23202,14 @@ class StatsEngine {
       const avg = b.count ? (b.yards / b.count).toFixed(1) : '0.0';
       const havocPct = b.count ? ((b.havoc / b.count) * 100).toFixed(0) : '0';
       const defSucc = b.count ? ((b.successes / b.count) * 100).toFixed(0) : '0';
-      blitzRows += `<tr class="cut-row" data-cut-type="blitz" data-cut-val="${b.name}" data-cut-label="${b.name} blitz — ${b.count} plays"><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
+      blitzRows += `<tr class="cut-row" data-cut-type="blitz" data-cut-val="${Charts._esc(b.name)}" data-cut-label="${Charts._esc(b.name)} blitz — ${b.count} plays"><td>${Charts._esc(b.name)}</td><td>${b.count}</td><td>${b.sacks}</td><td>${havocPct}%</td><td>${avg}</td><td>${defSucc}%</td></tr>`;
     }
 
     let sitFrontHtml = '';
     [d.earlyDownFronts, d.passingDownFronts].forEach(sit => {
       if (!sit.fronts.length) return;
       const rows = sit.fronts.map(([name, count]) =>
-        `<tr><td>${name}</td><td>${count}</td><td>${sit.total ? ((count / sit.total) * 100).toFixed(0) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(name)}</td><td>${count}</td><td>${sit.total ? ((count / sit.total) * 100).toFixed(0) : 0}%</td></tr>`
       ).join('');
       sitFrontHtml += `<div><h4 style="margin:8px 0 4px">${sit.label} (${sit.total})</h4>
         <table class="stats-table stats-table-full">
@@ -23479,7 +23630,7 @@ class StatsEngine {
     let body;
     if (!data || data.games === 0) {
       body = `<div class="stats-section"><p style="color:var(--text-dim);line-height:1.7">
-        No games found against <strong>${name}</strong>. Set the opponent in the Game menu and tag a game
+        No games found against <strong>${Charts._esc(name)}</strong>. Set the opponent in the Game menu and tag a game
         against them — your <strong>defensive</strong> snaps capture their offense (the formation &amp; play type
         you faced), your <strong>offensive</strong> snaps capture their defense (the fronts &amp; coverages they
         showed). Re-open this report and it builds automatically — no separate scout film needed.</p></div>`;
@@ -23530,7 +23681,7 @@ class StatsEngine {
         </div>` : '';
       body = `
         <div class="stats-section">
-          <p style="color:var(--text-dim);margin:0;line-height:1.6">Auto-aggregated from <strong>${data.games}</strong> game${data.games === 1 ? '' : 's'} you've tagged against ${name}
+          <p style="color:var(--text-dim);margin:0;line-height:1.6">Auto-aggregated from <strong>${data.games}</strong> game${data.games === 1 ? '' : 's'} you've tagged against ${Charts._esc(name)}
           — ${data.offCount} of their offensive snaps, ${data.defCount} defensive. Pulled straight from your film; nothing re-tagged.</p>
         </div>
         ${off}
@@ -23540,7 +23691,7 @@ class StatsEngine {
       <div class="stats-overlay">
         <div class="stats-container">
           <div class="stats-header">
-            <h2>Opponent Report: ${name}</h2>
+            <h2>Opponent Report: ${Charts._esc(name)}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm btn-danger" id="btnCloseOppScout">Close</button>
             </div>
@@ -23589,7 +23740,7 @@ class StatsEngine {
               <table class="stats-table stats-table-full">
                 <thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead>
                 <tbody>${report.formationDetail.map(f =>
-                  `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+                  `<tr><td>${Charts._esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
                 ).join('')}</tbody>
               </table>
             </div>
@@ -23620,14 +23771,14 @@ class StatsEngine {
                 <h3>Defensive Fronts</h3>
                 <table class="stats-table stats-table-full">
                   <thead><tr><th>Front</th><th>#</th><th>%</th></tr></thead>
-                  <tbody>${report.fronts.map(([f, c]) => `<tr><td>${f}</td><td>${c}</td><td>${Math.round(c / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                  <tbody>${report.fronts.map(([f, c]) => `<tr><td>${Charts._esc(f)}</td><td>${c}</td><td>${Math.round(c / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
                 </table>
               </div>
               ${report.coverages.length ? `<div>
                 <h3>Coverages</h3>
                 <table class="stats-table stats-table-full">
                   <thead><tr><th>Coverage</th><th>#</th><th>%</th></tr></thead>
-                  <tbody>${report.coverages.map(([c, n]) => `<tr><td>${c}</td><td>${n}</td><td>${Math.round(n / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
+                  <tbody>${report.coverages.map(([c, n]) => `<tr><td>${Charts._esc(c)}</td><td>${n}</td><td>${Math.round(n / report.totalPlays * 100)}%</td></tr>`).join('')}</tbody>
                 </table>
               </div>` : ''}
             </div>` : ''}
@@ -23650,7 +23801,7 @@ class StatsEngine {
     const t = report.stats.tendencies;
     const title = `Scout Report: ${Charts._esc(opponent)}`;   // feeds <title> + <h1> (HTML); filename below uses the raw value
     const formRows = report.formationDetail.map(f =>
-      `<tr><td>${f.name}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
+      `<tr><td>${Charts._esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`
     ).join('');
     const ddRows = report.downTendency.map(d =>
       `<tr><td>${d.key}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`
@@ -24774,13 +24925,13 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
     const d = stats.defensive;
     const title = `Defensive Report: ${Charts._esc(team)}`;
     const frontRows = d.fronts.map(f =>
-      `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+      `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.runs}/${f.passes}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
     ).join('');
     const covRows = d.coverages.map(c =>
-      `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+      `<tr><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.comps}</td><td>${c.incs}</td><td>${c.ints}</td><td>${c.sacks}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
     ).join('');
     const blitzRows = d.blitzes.map(b =>
-      `<tr><td>${b.name}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
+      `<tr><td>${Charts._esc(b.name)}</td><td>${b.count}</td><td>${b.sacks}</td><td>${b.count ? Math.round(b.havoc / b.count * 100) : 0}%</td><td>${b.count ? (b.yards / b.count).toFixed(1) : '0.0'}</td><td>${b.count ? Math.round(b.successes / b.count * 100) : 0}%</td></tr>`
     ).join('');
     const body = `
 <h1>${title}</h1><p class="sub">Generated ${new Date().toLocaleString()} &middot; ${stats.totalPlays} plays</p>
@@ -24875,10 +25026,10 @@ ${gamePlanHtml}
     if (stats.defensive.hasData) {
       const d = stats.defensive;
       const frontRows = d.fronts.map(f =>
-        `<tr><td>${f.name}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.count ? (f.yards / f.count).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
       ).join('');
       const covRows = d.coverages.map(c =>
-        `<tr><td>${c.name}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.count ? (c.yards / c.count).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
       ).join('');
       body += `
 <h3>Defensive Summary</h3>
@@ -30626,7 +30777,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.1';
+const APP_VERSION = '1.11.2';
 
 class App {
   constructor() {
@@ -31455,14 +31606,23 @@ class App {
       this.canvas.render();
     });
 
+    // Persist added film through ONE choke point: the playlist's onFilmFiles
+    // hook fires for every add that goes through addFiles (the top-bar picker's
+    // folder/multi path AND the Playlist-panel "Add Clips" button), so we no
+    // longer call importFilm inline for that path (the panel path used to skip
+    // it, dropping its clips on reopen). No-ops on browser; skips linked games.
+    this.playlist.onFilmFiles = (files) => this.storage.importFilm(files);
+
     // Handle file selection from top bar (single or multi)
     this.vc.on('files-selected', ({ files }) => {
       if (files.length === 1 && !this.playlist.hasClips) {
+        // A single continuous video doesn't go through addFiles → persist here.
         this.vc.loadFile(files[0]);
+        this.storage.importFilm(files);
       } else {
+        // addFiles → onFilmFiles persists the genuinely-new clips.
         this.playlist.addFiles(files);
       }
-      this.storage.importFilm(files);
     });
 
     const btnRepairFilm = document.getElementById('btnRepairFilm');

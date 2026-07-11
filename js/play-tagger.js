@@ -1448,7 +1448,15 @@ export class PlayTagger {
     tags.forEach((tag, i) => {
       const chip = document.createElement('span');
       chip.className = 'tag-chip';
-      chip.innerHTML = `${tag} <span class="chip-remove" data-index="${i}">&times;</span>`;
+      // Custom tags are coach freeform text AND arrive via season/CSV import, so
+      // they can carry markup — set the label as TEXT (never innerHTML) so a tag
+      // like <img onerror=…> can't execute (stored-XSS, same class as lesson #18).
+      chip.textContent = tag + ' ';
+      const rm = document.createElement('span');
+      rm.className = 'chip-remove';
+      rm.dataset.index = i;
+      rm.innerHTML = '&times;';
+      chip.appendChild(rm);
       chip.querySelector('.chip-remove').addEventListener('click', () => {
         tags.splice(i, 1);
         this._renderCustomTags(tags);

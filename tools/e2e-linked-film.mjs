@@ -25,6 +25,16 @@ ok(rel('D:/Football/Film', 'D:/Football/Film'), '', 'root itself → empty');
 ok(rel('', 'D:/x'), '', 'no root → empty');
 ok(rel('D:/Football/Film', ''), '', 'no path → empty');
 
+console.log('\nLinked-film isDirAllowed (P1-7 consent scope) -----------------');
+const allowed = TauriBackend.isDirAllowed;
+ok(allowed('C:/GridIron Library', [], 'C:/GridIron Library/Week7'), true, 'under the library root → allowed');
+ok(allowed('C:/GridIron Library', [], 'C:/GridIron Library'), true, 'the root itself → allowed');
+ok(allowed('C:/GridIron Library', [], 'c:\\gridiron library\\wk7'), true, 'under root, backslash + case → allowed');
+ok(allowed('C:/GridIron Library', [], 'E:/Malicious/payload'), false, 'outside root, not linked → BLOCKED (imported-season vector)');
+ok(allowed('C:/GridIron Library', ['D:/Football/Film'], 'D:/Football/Film/St Peter'), true, 'under an explicitly-linked dir → allowed');
+ok(allowed('C:/GridIron Library', ['D:/Football/Film'], 'D:/Other/clips'), false, 'outside root and outside every linked dir → BLOCKED');
+ok(allowed('', [], 'C:/anything'), false, 'no root + nothing linked → BLOCKED');
+
 // --- filmMode/filmDir must survive commitActive (updateActiveGame carry) ---
 // _serialize() does NOT emit filmMode/filmDir; without the carry, linking a game
 // and committing would drop them and linked film wouldn't survive a reopen.

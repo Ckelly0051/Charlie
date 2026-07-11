@@ -150,6 +150,7 @@ export class StorageManager {
   async openSeasonById(id) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();   // a debounced save must never straddle the switch
+    this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
     await this.seasonStore.openSeason(id);
     this._afterSeasonLoaded();
   }
@@ -158,6 +159,7 @@ export class StorageManager {
   async createSeason(meta) {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();
+    this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
     const rec = await this.seasonStore.createSeason(meta);
     this._afterSeasonLoaded();
     return rec;
@@ -433,6 +435,14 @@ export class StorageManager {
       await backend.allowLibraryDir(backend.getLibraryRoot());
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
       if (!absDir) { this._relinkToast(gameNode, true); return; }
+      // Only re-grant filesystem scope to a folder the coach consented to (under
+      // the library root, or explicitly linked on this machine). An absolute
+      // filmDir carried in by an IMPORTED season that was never linked here must
+      // not silently widen scope — prompt a re-link (a native pick = fresh consent).
+      if (backend.isLinkedDirAllowed && !backend.isLinkedDirAllowed(absDir)) {
+        this.tagger.toast?.('This game\'s linked film folder isn\'t authorized on this computer. Use "Link from Library" to reconnect it.', 12000);
+        return;
+      }
       await backend.allowLibraryDir(absDir);
       const filesOnDisk = await backend.listLinkedFilm(absDir);
       console.log('Linked film auto-load:', { gameId: gameNode.id, filmDir: gameNode.filmDir, absDir, count: filesOnDisk.length });
@@ -485,6 +495,7 @@ export class StorageManager {
     const folder = await backend.pickFolder(root);
     if (!folder) return false;
     await backend.allowLibraryDir(folder);
+    backend.rememberLinkedDir?.(folder);   // consent: this folder may be re-granted on reopen (P1-7)
     const files = await backend.listLinkedFilm(folder);
     if (!files.length) { this.tagger.toast?.('No video files found in that folder.'); return false; }
     this._maybeSnapshot(true, 'Before linking film');
@@ -523,11 +534,25 @@ export class StorageManager {
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     const game = this.seasonStore.activeGame();
     if (!game) return;
+    // Linked games reference clips in the coach's own folder and are never copied
+    // into the managed library. This method is the single persist choke point for
+    // every add path (top-bar picker + Playlist-panel "Add Clips"), so it must be
+    // a safe no-op for a linked game.
+    if (game.filmMode === 'linked') return;
     try {
       await backend.importFilm(game.id, files, (done, total) => {
         const app = window.app;
         if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
       });
+      // This game's film now lives in the managed library — record the mode so
+      // auto-load takes the managed branch on reopen. (Clears a stale filmMode so
+      // a game that was linked, then repaired with copied film, stops trying to
+      // auto-load the old linked folder.)
+      if (game.filmMode !== 'managed' || game.filmDir) {
+        game.filmMode = 'managed';
+        game.filmDir = null;
+        this.seasonStore.persist();
+      }
     } catch (e) {
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
@@ -570,6 +595,9 @@ export class StorageManager {
       this.videoFileName = this._fileRefName(ref) || file.name;
       if (url) this.vc.loadUrl(url, this.videoFileName);
       else this.vc.loadFile(file);
+      // Repair copies into the managed library, so this game is managed now — a
+      // formerly-linked game must stop auto-loading its old linked folder.
+      game.filmMode = 'managed'; game.filmDir = null;
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
@@ -616,6 +644,8 @@ export class StorageManager {
       const missingUrls = playableMatches.filter(m => !m.url).length;
       await this.playlist.repairWithMatches(playableMatches);
       this.videoFileName = null;
+      // Managed copy now owns this game's film — clear any stale linked mode.
+      game.filmMode = 'managed'; game.filmDir = null;
       this.commitActive();
       this.seasonStore.persist();
       this._signalSave('saved');
@@ -790,16 +820,30 @@ export class StorageManager {
     // needs its own one-shot restore). Session-only, overwritten per delete.
     const games = (this.seasonStore.data && this.seasonStore.data.games) || [];
     const gi = games.findIndex(g => g.id === id);
+    // A new delete closes the PREVIOUS delete's undo window → purge that game's
+    // film now (it was deferred from its own removeGame so undo could restore it).
+    this._purgeStaleDeletedFilm();
     this._lastDeletedGame = gi >= 0
-      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId }
+      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId, filmGameId: id }
       : null;
-    const backend = this.seasonStore.backend;
-    if (backend.supportsFilm && backend.supportsFilm()) {
-      backend.deleteFilm(id).catch(() => {});
-    }
+    // Do NOT delete the film here. undoRemoveGame restores the game node, and its
+    // tags reference this film — deleting it synchronously made undo bring back a
+    // game pointing at gone film. The film is purged when the undo window closes
+    // (the next delete, or leaving the season); undo cancels the purge.
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+  }
+
+  /** Delete the last-deleted game's film once its undo window has closed (a newer
+   *  delete, or leaving the season). No-op if the delete was undone (undo nulls
+   *  the stash, so its film is preserved). Desktop-only; no film on the browser. */
+  _purgeStaleDeletedFilm() {
+    const stash = this._lastDeletedGame;
+    if (!stash || !stash.filmGameId) return;
+    const backend = this.seasonStore.backend;
+    if (backend.supportsFilm && backend.supportsFilm()) backend.deleteFilm(stash.filmGameId).catch(() => {});
+    stash.filmGameId = null;
   }
 
   /** One-shot restore of the last deleted game (the Undo toast's action).
@@ -1123,7 +1167,7 @@ export class StorageManager {
       p.tags.grades?.tackler ?? '',
       p.tags.grades?.takeaway ?? '',
       (p.tags.custom || []).join('; '),
-      (p.notes || '').replace(/"/g, '""')
+      (p.notes || '')
     ]);
 
     // Append any user-defined custom fields as extra columns.
@@ -1137,8 +1181,19 @@ export class StorageManager {
       });
     }
 
+    // Quote EVERY cell and escape embedded quotes ("→""). Previously only the
+    // notes cell escaped, so any formation/custom-tag/player value containing a "
+    // produced a malformed row that broke Excel/Hudl import. Also guard against
+    // CSV formula injection (a leading = + - @ can execute when the file is opened
+    // in a spreadsheet — reachable via an imported season's tag names), but never
+    // mangle a real number, so signed yardage like -5 stays numeric.
+    const esc = (cell) => {
+      let s = String(cell ?? '');
+      if (/^[=+\-@\t\r]/.test(s) && !isFinite(Number(s))) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    };
     const csv = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map(esc).join(','))
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -1218,7 +1273,12 @@ ${body}
       let inQuotes = false;
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
-        if (ch === '"') { inQuotes = !inQuotes; continue; }
+        if (ch === '"') {
+          // A doubled "" inside a quoted field is a literal quote (matches how
+          // exportCsv escapes), not two toggles that would drop the character.
+          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; continue; }
+          inQuotes = !inQuotes; continue;
+        }
         if (ch === delim && !inQuotes) { result.push(current.trim()); current = ''; continue; }
         current += ch;
       }

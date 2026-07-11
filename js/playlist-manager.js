@@ -130,8 +130,21 @@ export class PlaylistManager {
     this._updateClipIndicator();
     this._updateClipCount();
 
-    // Auto-create play entries for each new clip
-    this._autoCreatePlays();
+    // Persist genuinely-new film to the desktop library through the single
+    // choke point (App wires this to storage.importFilm). BOTH the top-bar
+    // picker and the Playlist-panel "Add Clips" button funnel through addFiles,
+    // so wiring the hook here means no add path can skip persistence — the panel
+    // path used to bypass importFilm entirely, so its clips vanished on reopen.
+    // The hook no-ops on the browser build and skips linked games (never copied).
+    if (this.onFilmFiles && fresh.length) { try { this.onFilmFiles(fresh); } catch (e) {} }
+
+    // Auto-create play entries for each new clip. MUST be awaited: it probes
+    // durations asynchronously, THEN pushes plays to this.tagger.plays — if the
+    // caller (or a game switch) proceeds before it finishes, a late push lands
+    // the new clip's play in the WRONG game (the cross-game corruption the
+    // integrity fuzzer caught under load). Awaiting makes addFiles atomic for
+    // its callers (e.g. the desktop importFilm persist path commits after).
+    await this._autoCreatePlays();
 
     // If nothing is playing, activate the first clip — except after a save
     // re-link, where the saved current play's clip is where the coach was.
@@ -227,6 +240,14 @@ export class PlaylistManager {
     let created = false;
     let firstNewId = null;
     const newClips = this.clips.filter(c => c.playId === null);
+    // Bind to the plays array of the game that owns this add. _deserialize
+    // reassigns this.tagger.plays to the NEW game's array on a game switch, and
+    // the duration-probe await below yields the event loop — so if the coach
+    // switches games while probes are in flight, pushing into the (now different)
+    // live array would stamp these clips' plays onto ANOTHER game. Capture the
+    // target now and bail after probing if it changed. (Root cause of the
+    // cross-game clip-share; pinned by tools/e2e-addfiles-race.mjs + e2e-integrity.)
+    const boundPlays = this.tagger.plays;
     // Probe durations in parallel (capped) — serial probing made a 100-clip
     // folder take many seconds before the first play existed.
     const POOL = 8;
@@ -238,6 +259,10 @@ export class PlaylistManager {
         if (source) clip.duration = await this._probeDuration(source);
       }
     }));
+    // The active game changed while we were probing — these clips belong to a
+    // game that's no longer loaded (its playlist was reset on the switch). Abort
+    // rather than leak the new plays into whatever game is current now.
+    if (this.tagger.plays !== boundPlays) return;
     for (const clip of newClips) {
       const play = {
         id: this.tagger.nextId++,
@@ -303,42 +328,60 @@ export class PlaylistManager {
   }
 
   async rehydrateFromDisk(diskFiles, plays) {
-    const identityToPlay = {};
-    for (const p of plays) {
-      const key = this._playIdentity(p);
-      if (key && !identityToPlay[key]) identityToPlay[key] = p;
-    }
-
     const sorted = diskFiles.slice().sort((a, b) =>
       String(a.path || a.name || '').localeCompare(String(b.path || b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
-    for (const file of sorted) {
+    // Two match indices off the plays' durable identity:
+    //   byPath — exact ext-stripped path (Pass 1) keeps same-basename clips in
+    //            different subfolders distinct (endzone/0001 vs sideline/0001).
+    //   byBase — basename only (Pass 2) relinks when the saved root differs from
+    //            the folder the coach picked now — e.g. a MANAGED game saved
+    //            'Game7/endzone/0001' relinked against a LINKED folder that lists
+    //            'endzone/0001' (the linked relink Codex flagged). Each list is
+    //            path-sorted so it aligns 1:1 with the path-sorted disk files.
+    const byPath = new Map();
+    const byBase = new Map();
+    for (const p of plays) {
+      const id = this._playIdentity(p);
+      if (!id) continue;
+      if (!byPath.has(id)) byPath.set(id, p);
+      const base = id.split('/').pop();
+      if (base) { if (!byBase.has(base)) byBase.set(base, []); byBase.get(base).push(p); }
+    }
+    for (const list of byBase.values()) list.sort((a, b) => String(this._playIdentity(a)).localeCompare(String(this._playIdentity(b)), undefined, { numeric: true, sensitivity: 'base' }));
+
+    const consumed = new Set();
+    const entries = sorted.map(file => {
       const displayName = file.name.replace(/\.[^.]+$/, '');
       const clipPath = this._pathWithoutExt(file.path || file.name);
-      const entry = {
-        id: this._nextClipId++,
-        file: null,
-        name: displayName,
-        clipPath,
-        assetUrl: file.url,
-        objectUrl: null,
-        duration: null,
-        playId: null,
+      return {
+        clipPath, base: clipPath.split('/').pop(), displayName,
+        entry: { id: this._nextClipId++, file: null, name: displayName, clipPath, assetUrl: file.url, objectUrl: null, duration: null, playId: null },
       };
+    });
+    const link = (entry, play) => {
+      entry.playId = play.id;
+      entry.duration = play.timestamp ? play.timestamp.end : null;
+      play.clipId = entry.id;
+      play.clipName = entry.name;
+      play.clipPath = entry.clipPath;
+      consumed.add(play);
+    };
 
-      const play = identityToPlay[clipPath] || identityToPlay[displayName];
-      if (play) {
-        entry.playId = play.id;
-        entry.duration = play.timestamp ? play.timestamp.end : null;
-        play.clipId = entry.id;
-        play.clipName = entry.name;
-        play.clipPath = entry.clipPath;
-        delete identityToPlay[clipPath];
-        delete identityToPlay[displayName];
-      }
-
-      this.clips.push(entry);
+    // Pass 1 — exact full-path identity.
+    for (const e of entries) {
+      const p = byPath.get(e.clipPath);
+      if (p && !consumed.has(p)) link(e.entry, p);
     }
+    // Pass 2 — basename fallback (root-mismatched relink), consume once, in order.
+    for (const e of entries) {
+      if (e.entry.playId != null) continue;
+      const cands = byBase.get(e.base) || byBase.get(e.displayName) || [];
+      const p = cands.find(pl => !consumed.has(pl));
+      if (p) link(e.entry, p);
+    }
+
+    for (const e of entries) this.clips.push(e.entry);
 
     this._updatePlaylistUI();
     this._updateClipIndicator();
