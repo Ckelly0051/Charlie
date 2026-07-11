@@ -40,7 +40,7 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.2';
+const APP_VERSION = '1.11.3';
 
 class App {
   constructor() {
@@ -1167,8 +1167,10 @@ class App {
     });
     if (strictnessSlider && strictnessValue) strictnessValue.textContent = strictnessLabel(strictnessSlider.value);
 
-    // Start scan
-    btnAutoDetect.addEventListener('click', async () => {
+    // Start scan. Guard the bind: a missing #btnAutoDetect must not throw and
+    // abort the rest of _bindAutoDetect (lesson #9). The handler's internal uses
+    // only run once it's attached, so they're safe.
+    btnAutoDetect?.addEventListener('click', async () => {
       if (this.detector.isScanning) return;
 
       // Read settings into v2 detector
@@ -1202,20 +1204,15 @@ class App {
             alert('Load a video first.');
             throw new Error('No video');
           }
-          console.log('[FFA] starting scan…');
           await this.detector.scan();
-          console.log('[FFA] scan resolved');
 
           const plays = this.detector.detectedPlays;
-          console.log(`[FFA] ${plays.length} play(s) detected, ${this.detector.motionData.length} motion samples`);
 
           // Build team context from Game Info (set once, applies to all plays)
           const teamCtx = this._getTeamContext();
-          console.log('[FFA] team context:', JSON.stringify(teamCtx));
 
           // Seed analyses from the in-browser heuristic analyzer as baseline.
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData, teamCtx);
-          console.log('[FFA] heuristic analysis:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
           let visionUsed = false;
           let visionMs = 0;
@@ -1236,7 +1233,6 @@ class App {
             progressFill.classList.add('busy');
 
             try {
-              console.log(`[FFA] sending ${plays.length} play(s) to Claude Vision API`);
               const visionResults = [];
               for (let i = 0; i < plays.length; i++) {
                 this._visionProgress = i + 1;
@@ -1262,7 +1258,6 @@ class App {
               }
               visionUsed = true;
               progressLabel.textContent = `✅ Claude Vision tagged ${visionResults.length} play${visionResults.length !== 1 ? 's' : ''} in ${(visionMs / 1000).toFixed(1)}s`;
-              console.log(`[FFA] Claude Vision tagged ${visionResults.length} plays in ${(visionMs / 1000).toFixed(1)}s`);
             } catch (e) {
               visionMs = Math.round(performance.now() - t0);
               console.warn('[FFA] Claude Vision failed, falling back to heuristics:', e);
@@ -1273,7 +1268,6 @@ class App {
               delete this._visionProgress;
             }
           } else if (!this.vision.apiKey) {
-            console.log('[FFA] no Claude API key set — enter one in Game Info to enable AI tagging');
           }
 
           // Fallback: local YOLO backend (if vision wasn't used and backend is available)
@@ -1351,7 +1345,7 @@ class App {
       progressDiv.classList.add('hidden');
     });
 
-    btnCancelScan.addEventListener('click', () => {
+    btnCancelScan?.addEventListener('click', () => {
       this.detector.cancelScan();
     });
 
@@ -1501,7 +1495,6 @@ class App {
     // Without this the form still shows the empty defaults from markEnd().
     const current = this.tagger.getCurrentPlay?.();
     if (current) this.tagger._loadTagForm(current);
-    console.log(`[FFA] stamped ${stamped} tag fields across ${Math.min(newPlays.length, analyses.length)} plays`);
     return stamped;
   }
 

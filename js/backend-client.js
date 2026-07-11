@@ -97,6 +97,22 @@ export class BackendClient {
   }
 
   /**
+   * POST with an abort timeout so a hung local server can't stall the scan
+   * forever (there was no way to cancel an in-flight analyze request). The
+   * controller is stashed so cancel() can abort the current call.
+   */
+  async _post(url, form, ms) {
+    const controller = new AbortController();
+    this._activeController = controller;
+    const timer = setTimeout(() => controller.abort(), ms || this.requestTimeoutMs || 300000);
+    try { return await fetch(url, { method: 'POST', body: form, signal: controller.signal }); }
+    finally { clearTimeout(timer); this._activeController = null; }
+  }
+
+  /** Abort the in-flight analyze/detect request, if any. */
+  cancel() { try { if (this._activeController) this._activeController.abort(); } catch (e) {} }
+
+  /**
    * Analyze a single play window. `file` is a File/Blob (the video), and
    * start/end are seconds. Returns { tags, confidence, reasons, extras }
    * or throws if the server errored out.
@@ -107,10 +123,7 @@ export class BackendClient {
     form.append('video', file, file.name || 'clip.mp4');
     form.append('start', String(start ?? 0));
     form.append('end', String(end ?? 0));
-    const res = await fetch(`${this.baseUrl}/analyze`, {
-      method: 'POST',
-      body: form,
-    });
+    const res = await this._post(`${this.baseUrl}/analyze`, form);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`analyze failed: HTTP ${res.status} ${text}`);
@@ -128,10 +141,7 @@ export class BackendClient {
     if (!file) throw new Error('BackendClient.detectPlays: no file');
     const form = new FormData();
     form.append('video', file, file.name || 'video.mp4');
-    const res = await fetch(`${this.baseUrl}/detect`, {
-      method: 'POST',
-      body: form,
-    });
+    const res = await this._post(`${this.baseUrl}/detect`, form);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`detect failed: HTTP ${res.status} ${text}`);
@@ -164,16 +174,12 @@ export class BackendClient {
     if (teamCtx.perspective) form.append('perspective', teamCtx.perspective);
 
     const meta = { endpoint: '/analyze_batch', bytes: file.size || 0, windowCount: windows.length };
-    console.log(`[FFA backend] POST ${this.baseUrl}/analyze_batch — ${meta.windowCount} windows, ${(meta.bytes / 1024 / 1024).toFixed(1)} MB`);
     this._emit('request-start', meta);
     const t0 = performance.now();
 
     let res;
     try {
-      res = await fetch(`${this.baseUrl}/analyze_batch`, {
-        method: 'POST',
-        body: form,
-      });
+      res = await this._post(`${this.baseUrl}/analyze_batch`, form);
     } catch (e) {
       const ms = Math.round(performance.now() - t0);
       this._emit('request-done', { ...meta, ms, ok: false });
@@ -191,7 +197,6 @@ export class BackendClient {
     const json = await res.json();
     const ms = Math.round(performance.now() - t0);
     this._emit('request-done', { ...meta, ms, ok: true });
-    console.log(`[FFA backend] analyze_batch OK in ${(ms / 1000).toFixed(1)}s — ${(json.results || []).length} results`);
     if (json.error) throw new Error(json.error);
     return json.results || [];
   }

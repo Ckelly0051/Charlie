@@ -736,7 +736,7 @@ export class SeasonManager {
     const stats = this.statsEngine.compute(allPlays);
     const st = this._store();
     const seasonName = (st && st.data && st.data.seasonName) || '';
-    const title = seasonName ? `${seasonName} — Season Report` : `Season Report — ${games.length} games`;
+    const title = seasonName ? `${this._escape(seasonName)} — Season Report` : `Season Report — ${games.length} games`;
 
     this.statsEngine._seasonLabels = this._mergeRoster();
     const indTables = this.statsEngine._renderIndividualStats(stats);

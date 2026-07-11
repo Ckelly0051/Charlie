@@ -77,17 +77,13 @@ export class HistoryManager {
       return;
     }
 
-    // Drop redo tail
+    // Drop the redo tail, append, and cap the ring. After this the current
+    // position is always the just-pushed entry — the last element — whether or
+    // not we shifted the oldest off, so index is simply length-1.
     this.stack = this.stack.slice(0, this.index + 1);
     this.stack.push({ label, before: this.lastSnap, after, time: now });
-    if (this.stack.length > this.maxSize) {
-      this.stack.shift();
-    } else {
-      this.index = this.stack.length - 1;
-    }
-    if (this.stack.length === this.maxSize) {
-      this.index = this.stack.length - 1;
-    }
+    if (this.stack.length > this.maxSize) this.stack.shift();
+    this.index = this.stack.length - 1;
     this.lastSnap = after;
     this._updateUI();
   }

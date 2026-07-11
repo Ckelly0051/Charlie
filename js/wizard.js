@@ -69,7 +69,7 @@ export class Wizard {
   // ---------- Event wiring ----------
   _wire() {
     // Step clicks — allow free navigation.
-    document.getElementById('wizSteps').addEventListener('click', (e) => {
+    document.getElementById('wizSteps')?.addEventListener('click', (e) => {
       const btn = e.target.closest('.wiz-step');
       if (!btn) return;
       const step = parseInt(btn.dataset.step, 10);
@@ -77,7 +77,7 @@ export class Wizard {
       this._runStepAction(step);
     });
 
-    document.getElementById('wizDismiss').addEventListener('click', () => this.setDismissed(true));
+    document.getElementById('wizDismiss')?.addEventListener('click', () => this.setDismissed(true));
     this.reopenBtn?.addEventListener('click', () => this.toggle());
 
     // Auto-advance on video load.

@@ -385,11 +385,11 @@ export class StorageManager {
           const sample = missing.slice(0, 3).join(', ');
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
         }
-        const clips = [];
-        for (const fileRef of filesOnDisk) {
+        // Resolve clip URLs in parallel (see _autoLoadLinkedFilm) — order-preserving.
+        const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
           const url = await backend.filmUrl(gameNode.id, fileRef);
-          if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
-        }
+          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+        }))).filter(Boolean);
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
           try {
@@ -454,12 +454,14 @@ export class StorageManager {
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-link the folder to repair.`, 12000);
         }
       }
-      const clips = [];
-      for (const fileRef of filesOnDisk) {
+      // Resolve clip URLs in PARALLEL — an 80-clip game was ~160 serial IPC
+      // round-trips (linkedAbs + linkedFilmUrl per clip) on every reopen. map()
+      // preserves order so the playlist stays in folder order.
+      const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
         const abs = await backend.linkedAbs(absDir, this._fileRefPath(fileRef));
         const url = await backend.linkedFilmUrl(abs);
-        if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
-      }
+        return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+      }))).filter(Boolean);
       if (clips.length > 0 && this.playlist) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
         if (this.tagger.currentPlayId) this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
@@ -1204,7 +1206,10 @@ export class StorageManager {
   exportHtmlReport(statsEngine) {
     if (!statsEngine) return;
     const stats = statsEngine.compute();
-    const title = statsEngine._gameTitle ? statsEngine._gameTitle().replace(/<[^>]+>/g, '') : 'Game Report';
+    // Escape (don't tag-strip) the report title — a stray < or & in an opponent
+    // name would otherwise slip into <title>/<h1>. Reuse App's escaper (pure).
+    const rawTitle = statsEngine._gameTitle ? statsEngine._gameTitle() : 'Game Report';
+    const title = (window.app && window.app._esc) ? window.app._esc(rawTitle) : String(rawTitle).replace(/[&<>"']/g, '');
 
     // Reuse existing render methods
     const body = [

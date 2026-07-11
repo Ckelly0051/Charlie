@@ -117,7 +117,7 @@ export class CallSheetBuilder {
   }
 
   _bind() {
-    document.getElementById('btnCallSheet').addEventListener('click', () => this.show());
+    document.getElementById('btnCallSheet')?.addEventListener('click', () => this.show());
     const m = document.getElementById('callSheetModal');
     m.querySelector('#csClose').addEventListener('click', () => this.hide());
     m.querySelector('.cs-overlay').addEventListener('click', e => {

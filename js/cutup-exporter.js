@@ -234,8 +234,13 @@ export class CutupExporter {
   _waitForReady(video) {
     return new Promise(resolve => {
       if (video.readyState >= 2) return resolve();
-      const h = () => { video.removeEventListener('loadeddata', h); resolve(); };
+      // Never hang the whole export if 'loadeddata' never fires on a broken clip
+      // mid-cut-up (matches _waitForSeek's timeout guard).
+      let done = false;
+      const finish = () => { if (done) return; done = true; video.removeEventListener('loadeddata', h); clearTimeout(timer); resolve(); };
+      const h = () => finish();
       video.addEventListener('loadeddata', h);
+      const timer = setTimeout(finish, 5000);
     });
   }
 

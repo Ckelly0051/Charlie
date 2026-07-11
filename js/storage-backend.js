@@ -229,22 +229,37 @@ export class BrowserBackend extends StorageBackend {
     const i = lib.findIndex(s => s.id === this.currentId);
     if (i < 0) return;
     const m = this._seasonMeta(this.currentId, data);
+    // Don't let a blank data.seasonName overwrite a name the user set on the
+    // library entry (createSeason meta) with the derived 'Untitled'/team fallback.
+    if (!(data && data.seasonName) && lib[i].name) m.name = lib[i].name;
     lib[i] = { ...lib[i], ...m, created: lib[i].created, lastOpened: lib[i].lastOpened };
     this._writeLib(lib);
   }
 
   // ---- IndexedDB (handles + backups) ----
   _idb() {
-    return new Promise((resolve, reject) => {
+    // Cache the open connection — every backup op went through a fresh
+    // indexedDB.open, and deleteSeason/_prune loops multiplied that. Reopen only
+    // if the cached connection errored or was closed.
+    if (this._idbPromise) return this._idbPromise;
+    this._idbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open('ffa_fs', 2);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
         if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups');
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        // If the connection drops (tab suspend, version change), drop the cache
+        // so the next op reopens instead of using a dead handle.
+        db.onclose = () => { if (this._idbPromise) this._idbPromise = null; };
+        db.onversionchange = () => { try { db.close(); } catch (e) {} this._idbPromise = null; };
+        resolve(db);
+      };
+      req.onerror = () => { this._idbPromise = null; reject(req.error); };
     });
+    return this._idbPromise;
   }
   _tx(store, mode, fn) {
     return this._idb().then(db => new Promise((res, rej) => {

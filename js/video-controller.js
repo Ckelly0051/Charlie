@@ -269,7 +269,10 @@ export class VideoController {
     const code = me ? me.code : '?';
     const msg = me ? me.message : '';
     const src = this.video.currentSrc || this.video.getAttribute('src') || '';
-    console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
+    // console.WARN (not error): a media error is an expected, handled condition
+    // (bad codec, CORS retry, a fixture's fake clip) — the e2e "no console errors"
+    // gate must not trip on it, and the app surfaces it via the placeholder + toast.
+    console.warn(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
     if (this._shouldCorsRetry(src)) {
       // Retry WITHOUT crossOrigin. Don't latch corsBlocked yet — only if this
       // retry actually loads (_promoteCorsRetry, on loadedmetadata) do we know

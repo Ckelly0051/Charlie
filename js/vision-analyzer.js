@@ -54,16 +54,29 @@ export class VisionAnalyzer {
       body.temperature = 0;
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2025-04-15',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify(body),
-    });
+    // Bound the request so a hung/slow model can't stall the whole scan forever
+    // (the coach has no way to cancel an in-flight fetch otherwise). AbortError
+    // propagates to the caller, which falls back to heuristics.
+    const controller = new AbortController();
+    this._activeController = controller;
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs || 120000);
+    let response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2025-04-15',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+      this._activeController = null;
+    }
 
     if (!response.ok) {
       const err = await response.text().catch(() => '');

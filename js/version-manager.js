@@ -73,8 +73,13 @@ export class VersionManager {
     const data = this.storage._serialize();
     const versions = this._list();
     const s = this.storage && this.storage.seasonStore;
+    // Monotonic id: two snapshots in the same millisecond (e.g. a restore
+    // immediately followed by its "backup before restore") would share Date.now()
+    // and the second _save would clobber the first in the list — losing a version.
+    const id = Math.max(Date.now(), (this._lastVersionId || 0) + 1);
+    this._lastVersionId = id;
     versions.push({
-      id: Date.now(),
+      id,
       label: label || (manual ? 'Manual save' : 'Auto-save'),
       time: new Date().toISOString(),
       manual,

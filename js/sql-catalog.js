@@ -209,10 +209,13 @@ export class SqlCatalog {
       version: 5, type: 'season', id, seasonName: m.name || '', team: m.team || '', year: m.year || '', level: m.level || '',
       teamProfile: m.team ? { teamName: m.team } : {}, roster: [], games: [], activeGameId: '',
     };
+    // Persist the season body WITHOUT its games array — games live in their own
+    // rows; keeping them here too would double-store and drift.
+    const { games: _games, ...bodyMeta } = body;
     this._run(
       `INSERT INTO seasons (id,name,team,year,level,is_demo,kind,active_game_id,games_count,plays_count,created,updated,last_opened,body_json)
        VALUES (?,?,?,?,?,0,?,?,0,0,?,?,?,?)`,
-      [id, body.seasonName, body.team, body.year, body.level, m.kind || '', '', now, now, now, JSON.stringify((({ games, ...rest }) => rest)(body))]);
+      [id, body.seasonName, body.team, body.year, body.level, m.kind || '', '', now, now, now, JSON.stringify(bodyMeta)]);
     return { id, name: body.seasonName, team: body.team, year: body.year, level: body.level };
   }
 

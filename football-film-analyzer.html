@@ -10682,7 +10682,10 @@ class VideoController {
     const code = me ? me.code : '?';
     const msg = me ? me.message : '';
     const src = this.video.currentSrc || this.video.getAttribute('src') || '';
-    console.error(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
+    // console.WARN (not error): a media error is an expected, handled condition
+    // (bad codec, CORS retry, a fixture's fake clip) — the e2e "no console errors"
+    // gate must not trip on it, and the app surfaces it via the placeholder + toast.
+    console.warn(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
     if (this._shouldCorsRetry(src)) {
       // Retry WITHOUT crossOrigin. Don't latch corsBlocked yet — only if this
       // retry actually loads (_promoteCorsRetry, on loadedmetadata) do we know
@@ -14008,22 +14011,37 @@ class BrowserBackend extends StorageBackend {
     const i = lib.findIndex(s => s.id === this.currentId);
     if (i < 0) return;
     const m = this._seasonMeta(this.currentId, data);
+    // Don't let a blank data.seasonName overwrite a name the user set on the
+    // library entry (createSeason meta) with the derived 'Untitled'/team fallback.
+    if (!(data && data.seasonName) && lib[i].name) m.name = lib[i].name;
     lib[i] = { ...lib[i], ...m, created: lib[i].created, lastOpened: lib[i].lastOpened };
     this._writeLib(lib);
   }
 
   // ---- IndexedDB (handles + backups) ----
   _idb() {
-    return new Promise((resolve, reject) => {
+    // Cache the open connection — every backup op went through a fresh
+    // indexedDB.open, and deleteSeason/_prune loops multiplied that. Reopen only
+    // if the cached connection errored or was closed.
+    if (this._idbPromise) return this._idbPromise;
+    this._idbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open('ffa_fs', 2);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
         if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups');
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        // If the connection drops (tab suspend, version change), drop the cache
+        // so the next op reopens instead of using a dead handle.
+        db.onclose = () => { if (this._idbPromise) this._idbPromise = null; };
+        db.onversionchange = () => { try { db.close(); } catch (e) {} this._idbPromise = null; };
+        resolve(db);
+      };
+      req.onerror = () => { this._idbPromise = null; reject(req.error); };
     });
+    return this._idbPromise;
   }
   _tx(store, mode, fn) {
     return this._idb().then(db => new Promise((res, rej) => {
@@ -15887,11 +15905,11 @@ class StorageManager {
           const sample = missing.slice(0, 3).join(', ');
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
         }
-        const clips = [];
-        for (const fileRef of filesOnDisk) {
+        // Resolve clip URLs in parallel (see _autoLoadLinkedFilm) — order-preserving.
+        const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
           const url = await backend.filmUrl(gameNode.id, fileRef);
-          if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
-        }
+          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+        }))).filter(Boolean);
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
           try {
@@ -15956,12 +15974,14 @@ class StorageManager {
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-link the folder to repair.`, 12000);
         }
       }
-      const clips = [];
-      for (const fileRef of filesOnDisk) {
+      // Resolve clip URLs in PARALLEL — an 80-clip game was ~160 serial IPC
+      // round-trips (linkedAbs + linkedFilmUrl per clip) on every reopen. map()
+      // preserves order so the playlist stays in folder order.
+      const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
         const abs = await backend.linkedAbs(absDir, this._fileRefPath(fileRef));
         const url = await backend.linkedFilmUrl(abs);
-        if (url) clips.push({ name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url });
-      }
+        return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+      }))).filter(Boolean);
       if (clips.length > 0 && this.playlist) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
         if (this.tagger.currentPlayId) this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
@@ -16706,7 +16726,10 @@ class StorageManager {
   exportHtmlReport(statsEngine) {
     if (!statsEngine) return;
     const stats = statsEngine.compute();
-    const title = statsEngine._gameTitle ? statsEngine._gameTitle().replace(/<[^>]+>/g, '') : 'Game Report';
+    // Escape (don't tag-strip) the report title — a stray < or & in an opponent
+    // name would otherwise slip into <title>/<h1>. Reuse App's escaper (pure).
+    const rawTitle = statsEngine._gameTitle ? statsEngine._gameTitle() : 'Game Report';
+    const title = (window.app && window.app._esc) ? window.app._esc(rawTitle) : String(rawTitle).replace(/[&<>"']/g, '');
 
     // Reuse existing render methods
     const body = [
@@ -17884,6 +17907,22 @@ class BackendClient {
   }
 
   /**
+   * POST with an abort timeout so a hung local server can't stall the scan
+   * forever (there was no way to cancel an in-flight analyze request). The
+   * controller is stashed so cancel() can abort the current call.
+   */
+  async _post(url, form, ms) {
+    const controller = new AbortController();
+    this._activeController = controller;
+    const timer = setTimeout(() => controller.abort(), ms || this.requestTimeoutMs || 300000);
+    try { return await fetch(url, { method: 'POST', body: form, signal: controller.signal }); }
+    finally { clearTimeout(timer); this._activeController = null; }
+  }
+
+  /** Abort the in-flight analyze/detect request, if any. */
+  cancel() { try { if (this._activeController) this._activeController.abort(); } catch (e) {} }
+
+  /**
    * Analyze a single play window. `file` is a File/Blob (the video), and
    * start/end are seconds. Returns { tags, confidence, reasons, extras }
    * or throws if the server errored out.
@@ -17894,10 +17933,7 @@ class BackendClient {
     form.append('video', file, file.name || 'clip.mp4');
     form.append('start', String(start ?? 0));
     form.append('end', String(end ?? 0));
-    const res = await fetch(`${this.baseUrl}/analyze`, {
-      method: 'POST',
-      body: form,
-    });
+    const res = await this._post(`${this.baseUrl}/analyze`, form);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`analyze failed: HTTP ${res.status} ${text}`);
@@ -17915,10 +17951,7 @@ class BackendClient {
     if (!file) throw new Error('BackendClient.detectPlays: no file');
     const form = new FormData();
     form.append('video', file, file.name || 'video.mp4');
-    const res = await fetch(`${this.baseUrl}/detect`, {
-      method: 'POST',
-      body: form,
-    });
+    const res = await this._post(`${this.baseUrl}/detect`, form);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`detect failed: HTTP ${res.status} ${text}`);
@@ -17951,16 +17984,12 @@ class BackendClient {
     if (teamCtx.perspective) form.append('perspective', teamCtx.perspective);
 
     const meta = { endpoint: '/analyze_batch', bytes: file.size || 0, windowCount: windows.length };
-    console.log(`[FFA backend] POST ${this.baseUrl}/analyze_batch — ${meta.windowCount} windows, ${(meta.bytes / 1024 / 1024).toFixed(1)} MB`);
     this._emit('request-start', meta);
     const t0 = performance.now();
 
     let res;
     try {
-      res = await fetch(`${this.baseUrl}/analyze_batch`, {
-        method: 'POST',
-        body: form,
-      });
+      res = await this._post(`${this.baseUrl}/analyze_batch`, form);
     } catch (e) {
       const ms = Math.round(performance.now() - t0);
       this._emit('request-done', { ...meta, ms, ok: false });
@@ -17978,7 +18007,6 @@ class BackendClient {
     const json = await res.json();
     const ms = Math.round(performance.now() - t0);
     this._emit('request-done', { ...meta, ms, ok: true });
-    console.log(`[FFA backend] analyze_batch OK in ${(ms / 1000).toFixed(1)}s — ${(json.results || []).length} results`);
     if (json.error) throw new Error(json.error);
     return json.results || [];
   }
@@ -18056,16 +18084,29 @@ class VisionAnalyzer {
       body.temperature = 0;
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2025-04-15',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify(body),
-    });
+    // Bound the request so a hung/slow model can't stall the whole scan forever
+    // (the coach has no way to cancel an in-flight fetch otherwise). AbortError
+    // propagates to the caller, which falls back to heuristics.
+    const controller = new AbortController();
+    this._activeController = controller;
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs || 120000);
+    let response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2025-04-15',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+      this._activeController = null;
+    }
 
     if (!response.ok) {
       const err = await response.text().catch(() => '');
@@ -25228,17 +25269,13 @@ class HistoryManager {
       return;
     }
 
-    // Drop redo tail
+    // Drop the redo tail, append, and cap the ring. After this the current
+    // position is always the just-pushed entry — the last element — whether or
+    // not we shifted the oldest off, so index is simply length-1.
     this.stack = this.stack.slice(0, this.index + 1);
     this.stack.push({ label, before: this.lastSnap, after, time: now });
-    if (this.stack.length > this.maxSize) {
-      this.stack.shift();
-    } else {
-      this.index = this.stack.length - 1;
-    }
-    if (this.stack.length === this.maxSize) {
-      this.index = this.stack.length - 1;
-    }
+    if (this.stack.length > this.maxSize) this.stack.shift();
+    this.index = this.stack.length - 1;
     this.lastSnap = after;
     this._updateUI();
   }
@@ -25445,8 +25482,13 @@ class VersionManager {
     const data = this.storage._serialize();
     const versions = this._list();
     const s = this.storage && this.storage.seasonStore;
+    // Monotonic id: two snapshots in the same millisecond (e.g. a restore
+    // immediately followed by its "backup before restore") would share Date.now()
+    // and the second _save would clobber the first in the list — losing a version.
+    const id = Math.max(Date.now(), (this._lastVersionId || 0) + 1);
+    this._lastVersionId = id;
     versions.push({
-      id: Date.now(),
+      id,
       label: label || (manual ? 'Manual save' : 'Auto-save'),
       time: new Date().toISOString(),
       manual,
@@ -26266,8 +26308,13 @@ class CutupExporter {
   _waitForReady(video) {
     return new Promise(resolve => {
       if (video.readyState >= 2) return resolve();
-      const h = () => { video.removeEventListener('loadeddata', h); resolve(); };
+      // Never hang the whole export if 'loadeddata' never fires on a broken clip
+      // mid-cut-up (matches _waitForSeek's timeout guard).
+      let done = false;
+      const finish = () => { if (done) return; done = true; video.removeEventListener('loadeddata', h); clearTimeout(timer); resolve(); };
+      const h = () => finish();
       video.addEventListener('loadeddata', h);
+      const timer = setTimeout(finish, 5000);
     });
   }
 
@@ -28103,7 +28150,7 @@ class SeasonManager {
     const stats = this.statsEngine.compute(allPlays);
     const st = this._store();
     const seasonName = (st && st.data && st.data.seasonName) || '';
-    const title = seasonName ? `${seasonName} — Season Report` : `Season Report — ${games.length} games`;
+    const title = seasonName ? `${this._escape(seasonName)} — Season Report` : `Season Report — ${games.length} games`;
 
     this.statsEngine._seasonLabels = this._mergeRoster();
     const indTables = this.statsEngine._renderIndividualStats(stats);
@@ -29288,7 +29335,7 @@ class CallSheetBuilder {
   }
 
   _bind() {
-    document.getElementById('btnCallSheet').addEventListener('click', () => this.show());
+    document.getElementById('btnCallSheet')?.addEventListener('click', () => this.show());
     const m = document.getElementById('callSheetModal');
     m.querySelector('#csClose').addEventListener('click', () => this.hide());
     m.querySelector('.cs-overlay').addEventListener('click', e => {
@@ -29851,7 +29898,7 @@ class Wizard {
   // ---------- Event wiring ----------
   _wire() {
     // Step clicks — allow free navigation.
-    document.getElementById('wizSteps').addEventListener('click', (e) => {
+    document.getElementById('wizSteps')?.addEventListener('click', (e) => {
       const btn = e.target.closest('.wiz-step');
       if (!btn) return;
       const step = parseInt(btn.dataset.step, 10);
@@ -29859,7 +29906,7 @@ class Wizard {
       this._runStepAction(step);
     });
 
-    document.getElementById('wizDismiss').addEventListener('click', () => this.setDismissed(true));
+    document.getElementById('wizDismiss')?.addEventListener('click', () => this.setDismissed(true));
     this.reopenBtn?.addEventListener('click', () => this.toggle());
 
     // Auto-advance on video load.
@@ -30777,7 +30824,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.2';
+const APP_VERSION = '1.11.3';
 
 class App {
   constructor() {
@@ -31904,8 +31951,10 @@ class App {
     });
     if (strictnessSlider && strictnessValue) strictnessValue.textContent = strictnessLabel(strictnessSlider.value);
 
-    // Start scan
-    btnAutoDetect.addEventListener('click', async () => {
+    // Start scan. Guard the bind: a missing #btnAutoDetect must not throw and
+    // abort the rest of _bindAutoDetect (lesson #9). The handler's internal uses
+    // only run once it's attached, so they're safe.
+    btnAutoDetect?.addEventListener('click', async () => {
       if (this.detector.isScanning) return;
 
       // Read settings into v2 detector
@@ -31939,20 +31988,15 @@ class App {
             alert('Load a video first.');
             throw new Error('No video');
           }
-          console.log('[FFA] starting scan…');
           await this.detector.scan();
-          console.log('[FFA] scan resolved');
 
           const plays = this.detector.detectedPlays;
-          console.log(`[FFA] ${plays.length} play(s) detected, ${this.detector.motionData.length} motion samples`);
 
           // Build team context from Game Info (set once, applies to all plays)
           const teamCtx = this._getTeamContext();
-          console.log('[FFA] team context:', JSON.stringify(teamCtx));
 
           // Seed analyses from the in-browser heuristic analyzer as baseline.
           this._lastAnalyses = this.clipAnalyzer.analyzePlays(plays, this.detector.motionData, teamCtx);
-          console.log('[FFA] heuristic analysis:', JSON.stringify(this._lastAnalyses.map(a => a?.tags)));
 
           let visionUsed = false;
           let visionMs = 0;
@@ -31973,7 +32017,6 @@ class App {
             progressFill.classList.add('busy');
 
             try {
-              console.log(`[FFA] sending ${plays.length} play(s) to Claude Vision API`);
               const visionResults = [];
               for (let i = 0; i < plays.length; i++) {
                 this._visionProgress = i + 1;
@@ -31999,7 +32042,6 @@ class App {
               }
               visionUsed = true;
               progressLabel.textContent = `✅ Claude Vision tagged ${visionResults.length} play${visionResults.length !== 1 ? 's' : ''} in ${(visionMs / 1000).toFixed(1)}s`;
-              console.log(`[FFA] Claude Vision tagged ${visionResults.length} plays in ${(visionMs / 1000).toFixed(1)}s`);
             } catch (e) {
               visionMs = Math.round(performance.now() - t0);
               console.warn('[FFA] Claude Vision failed, falling back to heuristics:', e);
@@ -32010,7 +32052,6 @@ class App {
               delete this._visionProgress;
             }
           } else if (!this.vision.apiKey) {
-            console.log('[FFA] no Claude API key set — enter one in Game Info to enable AI tagging');
           }
 
           // Fallback: local YOLO backend (if vision wasn't used and backend is available)
@@ -32088,7 +32129,7 @@ class App {
       progressDiv.classList.add('hidden');
     });
 
-    btnCancelScan.addEventListener('click', () => {
+    btnCancelScan?.addEventListener('click', () => {
       this.detector.cancelScan();
     });
 
@@ -32238,7 +32279,6 @@ class App {
     // Without this the form still shows the empty defaults from markEnd().
     const current = this.tagger.getCurrentPlay?.();
     if (current) this.tagger._loadTagForm(current);
-    console.log(`[FFA] stamped ${stamped} tag fields across ${Math.min(newPlays.length, analyses.length)} plays`);
     return stamped;
   }
 
