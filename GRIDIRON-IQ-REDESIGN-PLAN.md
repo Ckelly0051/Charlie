@@ -355,8 +355,41 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex | Phase: P0-d Shell + workspace-context interfaces | Status: READY FOR REVIEW
-Commit: the commit containing this handoff block
+Owner: Codex | Phase: P0-d Shell + workspace-context interfaces | Status: REVIEWED — ACCEPTED (Claude independent review; no changes required)
+Commit: the commit containing this handoff block (impl 2d6d4bb; review adds this block)
+
+Claude P0-d review (ACCEPT — no code changes):
+- Verdict: clean contract. No correctness, DOM-coupling, or backward-compat defect
+  found; the current production workspace is untouched (no consumer wired).
+- DOM-independence VERIFIED: `js/workspace-context.js` has zero document/window/
+  getElementById/querySelector references — snapshot reads SeasonStore + the
+  team registry via the injected `app`, exactly as the contract claims.
+- Backend surface VERIFIED against `storage-backend.js`: every method filmHealth
+  calls (supportsFilm/supportsLinkedFilm/listFilmFiles/listLinkedFilm/
+  linkedGameDir/isLinkedDirAllowed) exists on BOTH the base StorageBackend and
+  TauriBackend, so a browser session degrades to `browser-only` without throwing.
+- Challenge points (Codex-requested), all hold up: (1) single-video legacy
+  identity — `_expected` falls back clipRefs→clipPaths→clipNames→videoFileName,
+  so a legacy single-file game yields one identity, not empty; (2) browser-only
+  wording — persistent:false + "Film must be re-added", never described as
+  durable (matches the invariant); (3) authorization — linked film gates on
+  `isLinkedDirAllowed` and reports `unauthorized`/reconnect, never silently
+  loads; (4) operation cleanup — the workspace op clears on BOTH completion
+  (app.js `done>=total`) and failure (storage.js import/repair catch blocks).
+- Cross-game progress race (Codex's self-review fix) VERIFIED durable: all three
+  `importFilm` callers capture `game.id` SYNCHRONOUSLY before the await and pass
+  it explicitly to `_showFilmImportProgress(..., game.id)`, which keys the
+  workspace op by that id — so a mid-copy game switch cannot mis-attribute
+  "saving" to the now-active game. Structural (capture + explicit pass), not a
+  guard. Pinned by the harness's "Async progress remains scoped" assertion.
+- "Extra files never inflate found" VERIFIED: found = max(0, expected − missing),
+  computed only over expected identities; a disk with extra clips can't overcount.
+- Gate re-run locally: focused contract 20/20, zero page errors.
+- Advisories (non-blocking, for Phase 1): the film-health op-override branch
+  returns before the `!expected` check, so a save that begins before the clip
+  index is built shows `saving` with expected:0 (correct, but Home's loading row
+  should tolerate it); and Home must discard stale async filmHealth results on
+  team/season/game change (already noted in Known follow-ups).
 
 Completed:
 - Added pure `WorkspaceContext`, exposed as `window.app.workspace`; no current UI
