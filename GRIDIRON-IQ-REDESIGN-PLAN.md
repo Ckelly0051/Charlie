@@ -238,7 +238,7 @@ contract → tests each; never hand over "Phase 0" as one change):
   dashboard tabs, opponent-scout, self-scout, defensive report, Big-12, call
   sheet, CSV/HTML exports, every `data-cut-*` row) — the surface the registry
   must cover and the harness must snapshot. Canonical inventory:
-  `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`. **Owner: Codex · ready for review.**
+  `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`. **Owner: Codex · reviewed/complete.**
 - **P0-c — Metric + dimension registry interfaces.** The pure registry SHAPE
   (dimension: name + value-extractor + canonical-fn binding; measure: name +
   canonical-fn binding) covering the min dimensions/measures, each bound to the
@@ -354,7 +354,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex | Phase: P0-b Report/filter/export inventory | Status: READY FOR REVIEW
+Owner: Codex | Phase: P0-b Report/filter/export inventory | Status: REVIEWED / COMPLETE
 Commit: the commit containing this handoff block
 
 Completed:
@@ -365,6 +365,16 @@ Completed:
   Call Sheet, Film Room, all drilldowns, and all export/print artifacts.
 - Derived the P0-c contract: stable IDs, canonical bindings, scope, perspective,
   eligibility, formatting, composite matches, filtering, and export semantics.
+- Independent second-pass review expanded block names into field-level measure
+  families, enumerated all 14 Tendency Matrix dimensions, and distinguished all
+  21 cut predicates from the rows that actually emit them.
+- Classified future Study dimensions that have stored data but no shared
+  canonical extractor yet; P0-c must add contracts and failing-first fixtures.
+- Added a parity coverage map. P0-a pins compute/report/cut-filter behavior but
+  does not yet directly snapshot Matrix cells, season-derived comparisons,
+  Matchup/opponent transformations, or export artifacts.
+- Recorded the existing Matrix `Med (4-6)` vs canonical `Medium` mismatch and
+  unclassifiable-run/pass behavior for deliberate resolution, not silent drift.
 
 Files changed:
 - `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`
@@ -377,11 +387,12 @@ Validation:
 - Documentation-only milestone; no production modules or bundle changed.
 
 Known follow-ups:
-- Semantic export snapshots remain to be added after independent review.
+- Semantic export snapshots and uncovered derived-view gates remain to be added
+  before their corresponding production surfaces are refactored.
 - Season cross-game rows are currently inert; future Study cutups require
   composite `gameId::playId` references.
 
-Next requested action: independently review P0-b for missing surfaces and source
-accuracy. Once accepted, begin P0-c with failing-first interface tests and bind
-all formulas to canonical StatsEngine/AdvancedMetrics functions.
+Next requested action: begin P0-c with failing-first registry-interface tests.
+Bind every formula to canonical StatsEngine/AdvancedMetrics functions, keep the
+P0-a goldens unchanged, and add Matrix coverage before sharing its dimensions.
 ```

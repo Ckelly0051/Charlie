@@ -32,11 +32,13 @@ proves Study is equal or better. Implement incrementally behind feature flags;
 Break Down initially routes to the current production workspace. **P0-a is
 accepted/complete** (`9aa4bb8` + review fixes `eafdf32`): the golden gate pins
 measure blocks, report objects, and composite `gameId::playId` drilldowns across
-game + season scopes. **P0-b is implemented and ready for independent review**:
+game + season scopes. **P0-b is reviewed/complete**:
 `GRIDIRON-IQ-ANALYTICS-INVENTORY.md` maps every current computed block, report,
-filter, video drilldown, and export/print artifact and derives the P0-c registry
-contract. Production UI migration remains out of scope; P0-c must bind existing
-canonical formulas and pass the unchanged P0-a goldens.
+field-level measure family, filter, 14-dimension Tendency Matrix surface, 21
+video predicates, and export/print artifact. Its parity map calls out uncovered
+Matrix, season-derived, Matchup/opponent, and export gates. Production UI
+migration remains out of scope; P0-c must bind existing canonical formulas and
+pass the unchanged P0-a goldens.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 

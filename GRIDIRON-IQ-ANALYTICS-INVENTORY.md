@@ -55,6 +55,34 @@ P0-c must bind these existing producers, not reimplement their formulas.
 | `dirMotion` | `_directionMotionStats` | Direction and motion/no-motion splits |
 | `takeaways` | `_generateTakeaways` | Generated coaching observations over computed blocks |
 
+### Field-Level Measure Families
+
+The table above names serialization blocks; the registry still needs stable IDs
+for their leaf measures. At minimum, preserve these current families (the P0-a
+golden is authoritative for exact keys, values, arrays, and denominators):
+
+- Volume and production: plays, attempts, completions, yards, averages, longs,
+  first downs, touchdowns, sacks/sack yards, interceptions, and fumbles.
+- Efficiency: success/success rate, explosive and negative plays/rates,
+  conversion attempts/makes/rates, yards per play/attempt, and EPA summaries.
+- Possessions and scoring: drives, scoring drives, three-and-outs, points per
+  drive, average drive plays/yards, score totals, and points by quarter.
+- Tendencies: count/frequency, run/pass counts and shares, yards, average,
+  success, and conversion results for each supported grouping and combination.
+- Defense: stops/stop rate, havoc plays/rate, sacks, TFL, takeaways, forced
+  incompletions, blitz usage/havoc, and three-and-outs.
+- Special teams: punt gross/net/hang/touchback, kickoff distance/touchback/
+  returns allowed, return production, and field-goal/conversion makes-attempts
+  including distance bands.
+- Players: rushing, passing, receiving, tackles/solo/assists, sacks/TFL,
+  takeaways, returns, kicking/punting, longs, touchdowns, fumbles, and grades.
+- Data-bearing outputs: matching play arrays, grouped rows, generated coaching
+  takeaways, sample sizes, `hasData`/insufficient states, and roster labels.
+
+Do not infer a denominator from a display label. P0-c must either expose a leaf
+through its canonical producer or explicitly classify it as a derived display
+measure and add parity coverage before use.
+
 ## 3. Report And View Inventory
 
 ### Game Dashboard
@@ -125,34 +153,72 @@ Watch. Film Room filters are intentionally independent from `PlayFilter`.
 - Custom Film Room columns and visible-set header tendencies are presentation
   queries, not canonical dashboard measures.
 
+### Tendency Matrix Dimensions
+
+`StatsEngine._matrixDimensions()` is a separate 14-dimension extraction surface;
+it is not equivalent to `_buildCutFilter` and was missing from the first P0-b
+draft.
+
+| ID | Values / extraction | Notes |
+|---|---|---|
+| `formation` | split formation components | Multi-attributed |
+| `backfield` | exact nonblank value | |
+| `strength` | exact nonblank value | |
+| `playType` | split play-type components | Multi-attributed |
+| `down` | exact down or `?` | |
+| `distBucket` | `Short (1-3)`, `Med (4-6)`, `Long (7+)` | Existing Matrix-local labels; differs from canonical drilldown `Medium` |
+| `personnel` | exact value or `Unknown` | |
+| `defFront` | split front components | Multi-attributed; Matrix still runs over offensive play pool |
+| `coverage` | exact nonblank value | Matrix still runs over offensive play pool |
+| `hash` | exact value or `Unknown` | |
+| `playDir` | exact nonblank value | |
+| `motion` | exact value or `No Motion` | |
+| `quarter` | exact value or `?` | No `_buildCutFilter` equivalent today |
+| `runPass` | canonical classifier result | Unclassifiable values currently fall into `Pass` in this extractor |
+
+The Matrix computes count, runs, passes, yards, successes, run share, success
+rate, and average yards for every row/column cross-product. Its `distBucket`
+label and unclassifiable `runPass` behavior are production inconsistencies to
+pin and resolve deliberately; they must not leak accidentally into the shared
+registry.
+
+### Future Study Dimensions Without A Production Registry
+
+The redesign plan additionally requires team, season, game, opponent, date,
+drive, field zone, score situation, blitz/pressure, player role, grade,
+special-teams phase, and custom fields. These values exist in stored data or
+individual reports, but they do not yet share one canonical dimension extractor.
+P0-c must label them as new registry contracts and add failing-first fixtures;
+they cannot be claimed as parity-covered merely because the fields exist.
+
 ## 5. Video Drilldown Registry
 
 Every drilldown returns matching plays whose durable public identity is
 `gameId::playId`. P0-a snapshots every type below.
 
-| Cut type | Value encoding | Unit | Production use |
+| Cut type | Value encoding | Unit | Current emitter |
 |---|---|---|---|
-| `formation` | component name | Offense | Tendencies, self-scout |
-| `playType` | component name | Offense | Tendencies |
-| `personnel` | exact value | Offense | Personnel, self-scout |
-| `backfield` | exact value | Offense | Backfield, self-scout |
-| `strength` | exact value | Offense | Strength, self-scout |
-| `comboFStr` | `formation__strength` | Offense | Formation x strength tells |
+| `formation` | component name | Offense | Tendencies, takeaways, self-scout |
+| `playType` | component name | Offense | Tendencies, takeaways |
+| `personnel` | exact value | Offense | Self-scout/personnel diversity |
+| `backfield` | exact value | Offense | Self-scout tells |
+| `strength` | exact value | Offense | Self-scout tells |
+| `comboFStr` | `formation__strength` | Offense | Self-scout tells |
 | `bigCall` | `formation|||strength|||motion|||playType` | Offense | Big calls |
 | `down` | `1`-`4` | Offense | Down analysis |
-| `runpass` | `Run` or `Pass` | Offense | Summary/tendency rows |
-| `playDir` | exact direction | Offense | Direction splits |
-| `motion` | exact, `Any`, or `No Motion` | Offense | Motion splits |
-| `hash` | exact hash | Offense | Hash splits |
-| `dd` | `down|Short|Medium|Long` | Offense | Self-scout situations |
-| `ddDef` | same bucket encoding | Defense | Defensive self-scout |
-| `comboFD` | `formation__down|bucket` | Offense | Formation x down tells |
+| `runpass` | `Run` or `Pass` | Offense | Predicate exists; no fixed row emitter |
+| `playDir` | exact direction | Offense | Direction table, takeaways |
+| `motion` | exact, `Any`, or `No Motion` | Offense | Motion table, takeaways |
+| `hash` | exact hash | Offense | Generated takeaways/self-scout tells |
+| `dd` | `down|Short|Medium|Long` | Offense | Takeaways, self-scout tells |
+| `ddDef` | same bucket encoding | Defense | Defensive self-scout tells |
+| `comboFD` | `formation__down|bucket` | Offense | Self-scout tells |
 | `comboFS` | `formation__situation` | Offense | Self-scout matrix |
 | `defFront` | front component | Defense | Defensive tables/tells |
-| `coverage` | exact value | Defense | Defensive tables/tells |
-| `blitz` | blitz component | Defense | Defensive tables |
-| `frontCoverage` | `front|coverage` | Defense | Front-coverage combinations |
-| `situation` | `redZone`, `goalLine`, `backedUp`, `thirdLong`, `thirdShort`, `explosive`, `negative` | Offense | Situational/takeaway rows |
+| `coverage` | exact value | Defense | Defensive tables/tells, takeaways |
+| `blitz` | blitz component | Defense | Defensive table |
+| `frontCoverage` | `front|coverage` | Defense | Front-coverage table |
+| `situation` | `redZone`, `goalLine`, `backedUp`, `thirdLong`, `thirdShort`, `explosive`, `negative` | Offense | Situational table and takeaways |
 
 Drive rows use an explicit play-ID membership set. Player rows match any player
 role through `_watchPlayer`. Film Room Watch uses selected-intersect-visible
@@ -202,7 +268,24 @@ P0-c is incomplete unless the registry can represent all computed blocks and
 drilldowns above without changing P0-a goldens. Export snapshot expansion is a
 separate failing-first task after registry shape review.
 
-## 8. Source Map And Validation
+## 8. Parity Coverage Map And Open Gates
+
+| Surface | P0-a status | Gate before replacement |
+|---|---|---|
+| `compute()` blocks and embedded play arrays | Golden at game + season scope | Keep unchanged |
+| Scout, self-scout, defensive self-scout objects | Golden at game + season scope | Keep unchanged |
+| All 21 `_buildCutFilter` predicates | Golden matching composite play sets | Keep unchanged |
+| Tendency Matrix dimensions/cells | Not snapshotted | Snapshot all 14 extractors and representative cross-products |
+| Season progression/trends/win-loss/per-game derived views | Inputs pinned; derived outputs not directly snapshotted | Add structured snapshots before refactor |
+| Matchup opponent selection and unit recasting | Not snapshotted | Add multi-opponent fixture and structured output gate |
+| Opponent-history report | Not directly snapshotted | Add matched/unmatched opponent and custom-front exclusion cases |
+| HTML/print, CSV, call sheet, cut-up selection | Not snapshotted by P0-a | Add semantic artifact/selection snapshots described above |
+
+The Matrix currently uses `Med (4-6)` while `_distBucket()` and drilldowns use
+`Medium`. Preserve the baseline until a failing-first test documents the intended
+normalization; do not create both as separate registry values.
+
+## 9. Source Map And Validation
 
 - `js/stats-engine.js`: compute blocks, dashboard, reports, drilldowns, exports
 - `js/season-manager.js`: season tabs, derived comparisons, season export
