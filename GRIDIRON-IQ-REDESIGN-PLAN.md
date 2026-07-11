@@ -353,35 +353,38 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Claude | Phase: P0-a Golden analytics parity harness | Status: READY FOR CODEX REVIEW
-Commit: 9aa4bb8  (P0-a milestone; this baseline doc/prototype commit follows it)
+Owner: Codex | Phase: P0-a Golden analytics parity harness | Status: ACCEPTED / COMPLETE
+Implementation commits: 9aa4bb8 (initial harness), eafdf32 (review fixes)
 
 Completed:
-- Agreed the collaboration SOW (this §7); adopted the granular P0-a…P0-d split.
-- tools/e2e-parity.mjs: per-SCOPE (season + each game) golden snapshot of
-  compute() (29 measure blocks, play-arrays → sorted play-ID sets) + every present
-  _buildCutFilter drilldown's matching play IDs + scout/self-scout/def-scout
-  objects. --update writes goldens; default diffs + pinpoints the drifted scope.
-- Fixtures: synthetic-edge COMMITTED (covers §4; 2 scopes/94 drilldowns). Real
-  6-game LOCAL-only (PII → gitignored; 7 scopes/384 drilldowns). Both diff clean.
+- Golden snapshots cover `StatsEngine.compute()` measure blocks, structured
+  scout/self-scout/def-scout outputs, and all primary + combination
+  `_buildCutFilter` drilldowns per season and per game.
+- Every video reference uses composite `gameId::playId` identity.
+- The committed synthetic fixture has two games with repeated play IDs,
+  conflicting tendencies, unique dimensions, and non-equal game/season totals.
+- All six formerly missing drilldowns are pinned: comboFStr, comboFD, comboFS,
+  bigCall, frontCoverage, and ddDef.
+- Distance buckets use the production `_distBucket()` contract (`Medium`, not
+  the previously silent `Med` mismatch).
+- A bundle-freshness guard refuses to test stale modular source.
 
-Files changed: tools/e2e-parity.mjs (new), tools/parity-golden/synthetic-edge.json
-(new), .gitignore (ignore the real-data golden).
+Independent Codex acceptance verification:
+- Clean gate: synthetic 3 scopes / 218 drilldowns; real six-game 7 scopes / 780
+  drilldowns; both deterministic and clean.
+- Golden inspection confirmed `formation::Under Center` distinguishes g1::10
+  from g2::6, Flexbone remains isolated to g2, and all combo types are present.
+- Failing-first test: changed season `totalPlays` 16→17; gate failed at
+  `season: numbers`. Restored golden SHA-256 byte-for-byte; clean gate passed.
+- Freshness test: touched analytics source; gate refused the stale bundle.
+  Rebuilt bundle; clean gate passed with no bundle diff.
 
-Decisions: real-season golden is local-only (PII), synthetic is the committed CI
-baseline; snapshot pins numbers AND matching-play-ID sets per scope so a lost film
-link fails the diff; report objects captured via the generate*(playsOverride) APIs.
+Non-blocking follow-ups:
+- Export parity (CSV/HTML/call-sheet) belongs to P0-b after inventory.
+- Real fixture/golden remains local and gitignored because it contains PII.
+- Replace the hardcoded local real-season path with env-var/discovery later.
 
-Tests run: node tools/e2e-parity.mjs --update then default → 2 fixtures clean,
-deterministic on re-run.
-
-Known gaps (for Codex to weigh): (1) combo drilldowns not yet snapshotted
-(comboFStr/comboFD/comboFS/bigCall/frontCoverage/ddDef) — primary dims covered;
-(2) exports (CSV/HTML/call-sheet text) not yet snapshotted — reports' structured
-data is; (3) no anonymized real fixture committed (real stays local).
-
-Next requested action (Codex): independently review golden coverage + the
-real-6-game baseline; run the harness adversarially; flag any measure / dimension /
-export the snapshot misses (esp. the 3 gaps above) before P0-b/P0-c build on it.
+Next requested action: Claude owns P0-b — create the written inventory of every
+report, filter, export, and `data-cut-*` video drilldown. Commit it as a discrete
+milestone and hand it to Codex for independent completeness review before P0-c.
 ```
-

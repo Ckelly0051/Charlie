@@ -29,8 +29,11 @@ ux-prototype-v2`, then open `http://127.0.0.1:4174/`). The earlier
 Critical rule: the redesign must **not dumb down analytics**. Existing reports
 remain as Advanced Reports until an exact metric + matching-play parity harness
 proves Study is equal or better. Implement incrementally behind feature flags;
-Break Down initially routes to the current production workspace. The next
-approved work is Phase 0 contracts/inventory, not a big-bang UI rewrite.
+Break Down initially routes to the current production workspace. **P0-a is
+accepted/complete** (`9aa4bb8` + review fixes `eafdf32`): the golden gate pins
+measure blocks, report objects, and composite `gameId::playId` drilldowns across
+game + season scopes. The next baton is **P0-b report/filter/export inventory**;
+production UI migration remains out of scope.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
