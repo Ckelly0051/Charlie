@@ -248,7 +248,8 @@ contract → tests each; never hand over "Phase 0" as one change):
   **Owner: Codex · reviewed/accepted/complete.**
 - **P0-d — Shell + workspace-context interfaces.** Shell routes, workspace
   context, and the film-health view model — the interfaces the Home/Study
-  screens are built against. **Owner: Codex.**
+  screens are built against. Canonical contract:
+  `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`. **Owner: Codex · ready for review.**
 
 - Freeze prototype v2 as the visual reference; add analytics snapshot fixtures
   from copies of real data. Do NOT change production UI until P0-a…P0-d land.
@@ -354,81 +355,52 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex (build/final acceptance) + Claude (independent review) | Phase: P0-c Metric + dimension registry | Status: ACCEPTED / COMPLETE
-Commit (build): f08692b | Commit (review fixes): latest on claude/football-film-analyzer-GRiCW
+Owner: Codex | Phase: P0-d Shell + workspace-context interfaces | Status: READY FOR REVIEW
+Commit: the commit containing this handoff block
 
 Completed:
-- Added pure `AnalyticsRegistry`, constructed by App but not consumed by current
-  customer-facing reports or UI.
-- Registered all 29 exact `StatsEngine.compute()` outputs as canonical blocks.
-- Added stable contracts for every minimum Study dimension and measure. Existing
-  splitters/classifiers and AdvancedMetrics output are bound, not reimplemented.
-- Marked semantics without one canonical production meaning as
-  `requires-context`; reads fail loudly instead of inventing denominators.
-- Added composite `gameId::playId` references and cut matching delegated to the
-  existing `_buildCutFilter` implementation.
-- Added failing-first `tools/e2e-analytics-registry.mjs`: failed before wiring,
-  now passes 22 assertions including every block, all 14 Matrix extractors, and
-  a representative multi-formation Matrix cross-product.
+- Added pure `WorkspaceContext`, exposed as `window.app.workspace`; no current UI
+  consumes its routes or view models.
+- Defined stable Home / Break Down / Study / Plan descriptors and fail-closed
+  season/game guards. Targets preserve current team home, classic workspace,
+  Advanced Reports, and controlled Plan coming-soon behavior.
+- Added DOM-independent team/season/game snapshots and capability flags.
+- Added async film-health normalization for empty, browser-only, managed,
+  linked, missing, unauthorized, saving, and repairing states.
+- Film status delegates to existing backend APIs and durable clip identities;
+  it never loads, copies, links, repairs, moves, or authorizes files.
+- Found and fixed a view-model cross-game race during self-review: async copy
+  progress now carries its originating game ID instead of reading the currently
+  active game. Failure paths clear transient state.
+- Added failing-first `tools/e2e-workspace-context.mjs` and the canonical
+  `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`.
 
 Files changed:
-- `js/analytics-registry.js`
+- `js/workspace-context.js`
 - `js/app.js`
+- `js/storage.js`
 - `build.sh`
 - `football-film-analyzer.html`
-- `tools/e2e-analytics-registry.mjs`
+- `tools/e2e-workspace-context.mjs`
+- `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`
 - `GRIDIRON-IQ-REDESIGN-PLAN.md`
-- `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`
 - `CLAUDE.md`
 
 Validation:
-- `node --check js/analytics-registry.js`
-- `bash build.sh`
-- Registry: 22/22; no page errors.
-- P0-a synthetic: 3 scopes / 218 drilldowns; clean.
-- P0-a real six-game: 7 scopes / 780 drilldowns; clean.
-- Core: 25/25; no page errors.
+- Failing-first: workspace interface absent, 1 expected failure.
+- Focused contract: 20/20; no page errors.
+- P0-a synthetic + real six-game parity: clean.
+- Core: 25/25; integrity: 12 seeds × 80 ops, clean.
+- Managed and linked film regression harnesses: clean.
+- Fresh build + all 29 `tools/e2e-*.mjs` files: passed.
 
 Known follow-ups:
-- Independent review should challenge ready/deferred classifications, context
-  field naming, unit perspective, and composite-reference failure behavior.
-- Matrix `Med`/`Medium` normalization, ambiguous measure definitions, season/
-  Matchup/opponent transforms, and export parity remain deliberate follow-ups.
+- Phase 1 must adapt route targets to existing UI behind the shell feature flag;
+  P0-d deliberately performs no UI navigation.
+- Film health is queried asynchronously; Home should render a stable loading row
+  and discard stale results after team/season/game changes.
+- Independent review should challenge single-video legacy identity, browser-only
+  wording, authorization boundaries, and operation cleanup.
 
---- Claude P0-c review (independent) ---
-Verdict: ACCEPT. No correctness / parity / backward-compat bugs. Adversarial checks
-vs the real 6-game season: every READY measure path resolves (no silent undefined —
-the top risk); every READY dimension extracts without error over all 241 plays;
-registry.matchingRefs == the P0-a parity golden on all 21 formation/coverage/front
-values (a Study query returns the SAME plays as the old drilldown); playRef throws
-correctly when no gameId; allBlocks == compute() exactly; full 28-file gate green.
-
-Reviewer fixes applied (low-risk, in the test/parity lane):
-- Hardened tools/e2e-analytics-registry.mjs: asserts EVERY ready measure resolves
-  over a mixed offense+defense set (the test previously pinned only 3), so a future
-  compute() field rename can't silently break a measure. Now 23/23.
-- Documented the playRef PRODUCTION CONTRACT (js/analytics-registry.js): live tagger
-  plays lack __gid, so a Study/Watch/cutup consumer must stamp play.__gid
-  (recommended at store load) or pass context.gameId, else it throws. No behavior change.
-
-Advisories for Codex/user to decide (semantic — deliberately NOT changed by the reviewer):
-- yardsPerPlay is a §3 MINIMUM measure but is deferred requires-context; Study will
-  need it. Decide a canonical YPP (e.g. (rushing.yards+passing.yards)/plays) to make
-  it ready, or confirm intentional deferral pending a denominator decision.
-- Minor: the `game` dimension accepts two ctx keys (gameId|game); measure `unit`
-  annotations are advisory-only (not enforced); opponent-scout perspective-flip is
-  left to the query layer (fine for a contract).
-
---- Codex final acceptance ---
-- Reviewed Claude's `3c47efc` diff; accepted the stronger ready-measure coverage
-  and clarified `playRef` invariant with no behavior changes.
-- Re-ran registry: 23/23.
-- Re-ran P0-a parity: synthetic 3 scopes / 218 drilldowns and real six-game
-  7 scopes / 780 drilldowns, both clean.
-- Rebuilt and ran all 28 `tools/e2e-*.mjs` files: all passed.
-- `yardsPerPlay` remains intentionally `requires-context` until Phase 2 defines
-  the Study query denominator. It is not a P0-d shell/workspace blocker.
-
-Next requested action: P0-d — define shell routes, workspace context, and the
-film-health view model without replacing or rewiring the current workspace.
+Next requested action: independently review P0-d before Phase 1 shell/Home work.
 ```

@@ -544,7 +544,7 @@ export class StorageManager {
     try {
       await backend.importFilm(game.id, files, (done, total) => {
         const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'saving', game.id);
       });
       // This game's film now lives in the managed library — record the mode so
       // auto-load takes the managed branch on reopen. (Clears a stale filmMode so
@@ -556,6 +556,7 @@ export class StorageManager {
         this.seasonStore.persist();
       }
     } catch (e) {
+      window.app?.workspace?.clearFilmOperation(game.id);
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
     }
@@ -588,10 +589,16 @@ export class StorageManager {
         ]);
       if (ok !== 'repair') return false;
       this._maybeSnapshot(true, 'Before film repair');
-      const imported = await backend.importFilm(game.id, [file], (done, total) => {
-        const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
-      });
+      let imported;
+      try {
+        imported = await backend.importFilm(game.id, [file], (done, total) => {
+          const app = window.app;
+          if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id);
+        });
+      } catch (e) {
+        window.app?.workspace?.clearFilmOperation(game.id);
+        throw e;
+      }
       const ref = (Array.isArray(imported) && imported[0]) || file.name;
       const url = backend.filmUrl ? await backend.filmUrl(game.id, ref) : null;
       this.videoFileName = this._fileRefName(ref) || file.name;
@@ -632,7 +639,7 @@ export class StorageManager {
       const matchedFiles = plan.matches.map(m => m.file);
       const imported = await backend.importFilm(game.id, matchedFiles, (done, total) => {
         const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total);
+        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id);
       });
       const playableMatches = await Promise.all(plan.matches.map(async (m, i) => {
         const ref = (Array.isArray(imported) && imported[i]) || (m.file && (m.file.webkitRelativePath || m.file.relativePath || m.file.path || m.file.name)) || '';
@@ -656,6 +663,7 @@ export class StorageManager {
         : `Film repaired and loaded: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
       return true;
     } catch (e) {
+      window.app?.workspace?.clearFilmOperation(game.id);
       console.warn('Film repair failed:', e);
       this.tagger.toast?.('Film repair failed before changes were saved. Try the folder again.');
       return false;

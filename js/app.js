@@ -17,6 +17,7 @@ import { PlaylistManager } from './playlist-manager.js';
 import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
 import { AnalyticsRegistry } from './analytics-registry.js';
+import { WorkspaceContext } from './workspace-context.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
@@ -85,6 +86,7 @@ class App {
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer);
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
+    this.workspace = new WorkspaceContext(this);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
@@ -629,11 +631,14 @@ class App {
 
   _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  _showFilmImportProgress(done, total) {
+  _showFilmImportProgress(done, total, operation = 'saving', ownerGameId = null) {
+    const gameId = ownerGameId || this.storage?.seasonStore?.activeGame?.()?.id;
     if (done >= total) {
+      if (gameId) this.workspace?.clearFilmOperation(gameId);
       this.updater._toast('Film saved to library');
       return;
     }
+    if (gameId) this.workspace?.setFilmOperation(gameId, operation, { done, total });
     let el = document.getElementById('filmImportToast');
     if (!el) {
       el = document.createElement('div');
