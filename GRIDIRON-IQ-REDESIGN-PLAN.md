@@ -245,7 +245,7 @@ contract → tests each; never hand over "Phase 0" as one change):
   EXISTING `StatsEngine` canonical fns + `advanced-metrics` EPA. No formula
   reimplementation. **HIGHEST-RISK SHARED SURFACE** — a silent analytics
   regression would hide here; the reviewer runs parity against it adversarially.
-  **Owner: Claude (builds), Codex (parity review).**
+  **Owner: Codex · implemented, ready for independent review.**
 - **P0-d — Shell + workspace-context interfaces.** Shell routes, workspace
   context, and the film-health view model — the interfaces the Home/Study
   screens are built against. **Owner: Codex.**
@@ -354,45 +354,47 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex | Phase: P0-b Report/filter/export inventory | Status: REVIEWED / COMPLETE
+Owner: Codex | Phase: P0-c Metric + dimension registry interfaces | Status: READY FOR REVIEW
 Commit: the commit containing this handoff block
 
 Completed:
-- Added `GRIDIRON-IQ-ANALYTICS-INVENTORY.md` as the canonical P0-b contract.
-- Inventoried all computed output/measure blocks plus scope, filter, unit,
-  denominator, and multi-value semantics that P0-c must preserve.
-- Mapped six dashboard tabs, four season subtabs, dedicated reports, Big calls,
-  Call Sheet, Film Room, all drilldowns, and all export/print artifacts.
-- Derived the P0-c contract: stable IDs, canonical bindings, scope, perspective,
-  eligibility, formatting, composite matches, filtering, and export semantics.
-- Independent second-pass review expanded block names into field-level measure
-  families, enumerated all 14 Tendency Matrix dimensions, and distinguished all
-  21 cut predicates from the rows that actually emit them.
-- Classified future Study dimensions that have stored data but no shared
-  canonical extractor yet; P0-c must add contracts and failing-first fixtures.
-- Added a parity coverage map. P0-a pins compute/report/cut-filter behavior but
-  does not yet directly snapshot Matrix cells, season-derived comparisons,
-  Matchup/opponent transformations, or export artifacts.
-- Recorded the existing Matrix `Med (4-6)` vs canonical `Medium` mismatch and
-  unclassifiable-run/pass behavior for deliberate resolution, not silent drift.
+- Added pure `AnalyticsRegistry`, constructed by App but not consumed by current
+  customer-facing reports or UI.
+- Registered all 29 exact `StatsEngine.compute()` outputs as canonical blocks.
+- Added stable contracts for every minimum Study dimension and measure. Existing
+  splitters/classifiers and AdvancedMetrics output are bound, not reimplemented.
+- Marked semantics without one canonical production meaning as
+  `requires-context`; reads fail loudly instead of inventing denominators.
+- Added composite `gameId::playId` references and cut matching delegated to the
+  existing `_buildCutFilter` implementation.
+- Added failing-first `tools/e2e-analytics-registry.mjs`: failed before wiring,
+  now passes 22 assertions including every block, all 14 Matrix extractors, and
+  a representative multi-formation Matrix cross-product.
 
 Files changed:
-- `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`
+- `js/analytics-registry.js`
+- `js/app.js`
+- `build.sh`
+- `football-film-analyzer.html`
+- `tools/e2e-analytics-registry.mjs`
 - `GRIDIRON-IQ-REDESIGN-PLAN.md`
+- `GRIDIRON-IQ-ANALYTICS-INVENTORY.md`
 - `CLAUDE.md`
 
 Validation:
-- Reconciled directly against stats, season, filter, grid, storage, call-sheet,
-  cutup-exporter, and roster production modules.
-- Documentation-only milestone; no production modules or bundle changed.
+- `node --check js/analytics-registry.js`
+- `bash build.sh`
+- Registry: 22/22; no page errors.
+- P0-a synthetic: 3 scopes / 218 drilldowns; clean.
+- P0-a real six-game: 7 scopes / 780 drilldowns; clean.
+- Core: 25/25; no page errors.
 
 Known follow-ups:
-- Semantic export snapshots and uncovered derived-view gates remain to be added
-  before their corresponding production surfaces are refactored.
-- Season cross-game rows are currently inert; future Study cutups require
-  composite `gameId::playId` references.
+- Independent review should challenge ready/deferred classifications, context
+  field naming, unit perspective, and composite-reference failure behavior.
+- Matrix `Med`/`Medium` normalization, ambiguous measure definitions, season/
+  Matchup/opponent transforms, and export parity remain deliberate follow-ups.
 
-Next requested action: begin P0-c with failing-first registry-interface tests.
-Bind every formula to canonical StatsEngine/AdvancedMetrics functions, keep the
-P0-a goldens unchanged, and add Matrix coverage before sharing its dimensions.
+Next requested action: independently review P0-c against P0-b and P0-a before
+any Study query executor or production UI consumes the registry.
 ```

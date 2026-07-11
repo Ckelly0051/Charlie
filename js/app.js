@@ -16,6 +16,7 @@ import { VisionAnalyzer } from './vision-analyzer.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
+import { AnalyticsRegistry } from './analytics-registry.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
@@ -74,6 +75,7 @@ class App {
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
     this.stats.roster = this.roster;
+    this.analyticsRegistry = new AnalyticsRegistry(this.stats);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);

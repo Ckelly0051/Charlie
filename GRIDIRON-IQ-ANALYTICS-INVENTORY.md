@@ -268,6 +268,25 @@ P0-c is incomplete unless the registry can represent all computed blocks and
 drilldowns above without changing P0-a goldens. Export snapshot expansion is a
 separate failing-first task after registry shape review.
 
+### P0-c Implementation Status
+
+`js/analytics-registry.js` now provides the pure interface and is exposed as
+`window.app.analyticsRegistry`; no production report consumes it yet.
+
+- All 29 `compute()` outputs are registered as exact block selectors.
+- All minimum Study dimensions have stable IDs. Existing canonical splitters and
+  classifiers are bound directly; raw/context fields name their source.
+- Ready leaf measures select existing `compute()` outputs without recalculation.
+- Ambiguous contracts (`fieldZone`, `scoreSituation`, `frequency`,
+  `yardsPerPlay`, `conversionRate`, `scoring`, `stopRate`, and
+  `dataCompleteness`) are present as `requires-context` and throw if read.
+- `touchdowns` is separately ready; generic `scoring` remains unresolved until
+  points-versus-touchdowns semantics are explicit.
+- Cut matching delegates to `_buildCutFilter`; returned references require and
+  preserve composite `gameId::playId` identity.
+- `tools/e2e-analytics-registry.mjs` pins the contract, every block binding, all
+  14 legacy Matrix extractors, and a representative Matrix cross-product.
+
 ## 8. Parity Coverage Map And Open Gates
 
 | Surface | P0-a status | Gate before replacement |
@@ -275,7 +294,7 @@ separate failing-first task after registry shape review.
 | `compute()` blocks and embedded play arrays | Golden at game + season scope | Keep unchanged |
 | Scout, self-scout, defensive self-scout objects | Golden at game + season scope | Keep unchanged |
 | All 21 `_buildCutFilter` predicates | Golden matching composite play sets | Keep unchanged |
-| Tendency Matrix dimensions/cells | Not snapshotted | Snapshot all 14 extractors and representative cross-products |
+| Tendency Matrix dimensions/cells | P0-c pins all 14 extractors and one representative multi-formation cross-product | Expand combinations before Matrix refactor |
 | Season progression/trends/win-loss/per-game derived views | Inputs pinned; derived outputs not directly snapshotted | Add structured snapshots before refactor |
 | Matchup opponent selection and unit recasting | Not snapshotted | Add multi-opponent fixture and structured output gate |
 | Opponent-history report | Not directly snapshotted | Add matched/unmatched opponent and custom-front exclusion cases |

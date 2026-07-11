@@ -35,10 +35,12 @@ measure blocks, report objects, and composite `gameId::playId` drilldowns across
 game + season scopes. **P0-b is reviewed/complete**:
 `GRIDIRON-IQ-ANALYTICS-INVENTORY.md` maps every current computed block, report,
 field-level measure family, filter, 14-dimension Tendency Matrix surface, 21
-video predicates, and export/print artifact. Its parity map calls out uncovered
-Matrix, season-derived, Matchup/opponent, and export gates. Production UI
-migration remains out of scope; P0-c must bind existing canonical formulas and
-pass the unchanged P0-a goldens.
+video predicates, and export/print artifact. **P0-c is implemented and ready for
+independent review**: `js/analytics-registry.js` registers all compute blocks,
+minimum dimensions/measures, canonical splitters/classifiers, and composite
+film references. Ambiguous semantics are explicitly `requires-context` and
+throw instead of inventing formulas. No production report consumes it yet.
+Focused registry/Matrix, P0-a synthetic+real, and core gates are green.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
