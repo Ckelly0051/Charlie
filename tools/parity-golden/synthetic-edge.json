@@ -1,0 +1,8422 @@
+{
+ "season": {
+  "numbers": {
+   "totalPlays": 10,
+   "allPlays": 15,
+   "offPlays": {
+    "__plays": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   },
+   "defPlays": {
+    "__plays": [
+     11,
+     12,
+     13,
+     14,
+     15
+    ]
+   },
+   "filterActive": false,
+   "rushing": {
+    "attempts": 7,
+    "yards": 33,
+    "average": "4.7",
+    "touchdowns": 0,
+    "fumbles": 0,
+    "longest": 5,
+    "firstDowns": 0
+   },
+   "passing": {
+    "attempts": 3,
+    "completions": 2,
+    "yards": 59,
+    "average": "19.7",
+    "yardsPerCompletion": "29.5",
+    "completionPct": "66.7",
+    "touchdowns": 1,
+    "interceptions": 1,
+    "sacks": 0,
+    "sackYards": 0,
+    "longest": 48,
+    "firstDowns": 2
+   },
+   "scoring": {
+    "touchdowns": 1,
+    "rushingTDs": 0,
+    "passingTDs": 1
+   },
+   "downs": {
+    "byDown": {
+     "1": {
+      "total": 7,
+      "runs": 7,
+      "passes": 0,
+      "runPct": "100",
+      "passPct": "0",
+      "avgYards": "4.7",
+      "conversionPct": "0.0"
+     },
+     "2": {
+      "total": 2,
+      "runs": 0,
+      "passes": 2,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "29.5",
+      "conversionPct": "100.0"
+     },
+     "3": {
+      "total": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "0.0",
+      "conversionPct": "0.0"
+     },
+     "4": {
+      "total": 0,
+      "runPct": "0",
+      "passPct": "0",
+      "avgYards": "0.0",
+      "conversionPct": "0.0"
+     }
+    },
+    "totalFirstDowns": 2,
+    "thirdDownConv": "0/1",
+    "thirdDownPct": "0.0",
+    "fourthDownConv": "0/0",
+    "fourthDownPct": "0.0",
+    "ddBuckets": [
+     {
+      "down": "1",
+      "bucket": "Long",
+      "count": 7,
+      "runs": 7,
+      "passes": 0,
+      "runPct": "100",
+      "passPct": "0",
+      "avgYards": "4.7",
+      "convPct": "0.0",
+      "succPct": "85.7",
+      "sortKey": 2
+     },
+     {
+      "down": "2",
+      "bucket": "Medium",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "48.0",
+      "convPct": "100.0",
+      "succPct": "100.0",
+      "sortKey": 11
+     },
+     {
+      "down": "2",
+      "bucket": "Long",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "11.0",
+      "convPct": "100.0",
+      "succPct": "100.0",
+      "sortKey": 12
+     },
+     {
+      "down": "3",
+      "bucket": "Long",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "0.0",
+      "convPct": "0.0",
+      "succPct": "0.0",
+      "sortKey": 22
+     }
+    ]
+   },
+   "turnovers": {
+    "total": 1,
+    "interceptions": 1,
+    "fumbles": 0
+   },
+   "tendencies": {
+    "formations": {
+     "Shotgun": 7,
+     "Trips": 7,
+     "Empty": 1,
+     "Wildcat": 1,
+     "Under Center": 1
+    },
+    "formationList": [
+     {
+      "name": "Shotgun",
+      "count": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "successes": 6,
+      "avg": "4.3",
+      "successPct": "86"
+     },
+     {
+      "name": "Trips",
+      "count": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "successes": 6,
+      "avg": "4.3",
+      "successPct": "86"
+     },
+     {
+      "name": "Empty",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "successes": 1,
+      "avg": "48.0",
+      "successPct": "100"
+     },
+     {
+      "name": "Wildcat",
+      "count": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "successes": 0,
+      "avg": "3.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Under Center",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "successes": 1,
+      "avg": "11.0",
+      "successPct": "100"
+     }
+    ],
+    "playTypes": {
+     "Run Inside": 6,
+     "Deep Pass": 1,
+     "RPO": 1,
+     "Short Pass": 1,
+     "Run Outside": 1,
+     "Play Action": 1
+    },
+    "playTypeList": [
+     {
+      "name": "Run Inside",
+      "count": 6,
+      "runs": 6,
+      "passes": 0,
+      "yards": 30,
+      "successes": 6,
+      "avg": "5.0",
+      "successPct": "100"
+     },
+     {
+      "name": "Deep Pass",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "successes": 1,
+      "avg": "48.0",
+      "successPct": "100"
+     },
+     {
+      "name": "RPO",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 0,
+      "successes": 0,
+      "avg": "0.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Short Pass",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 0,
+      "successes": 0,
+      "avg": "0.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Run Outside",
+      "count": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "successes": 0,
+      "avg": "3.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Play Action",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "successes": 1,
+      "avg": "11.0",
+      "successPct": "100"
+     }
+    ],
+    "runs": 7,
+    "passes": 3,
+    "runYds": 33,
+    "passYds": 59,
+    "runSuccRate": "85.7",
+    "passSuccRate": "66.7",
+    "runPassRatio": "7/3",
+    "runPct": "70.0",
+    "passPct": "30.0"
+   },
+   "bigPlays": [
+    {
+     "id": 7,
+     "type": "Deep Pass",
+     "result": "Gain + Touchdown",
+     "yards": "48",
+     "clipName": "g1_7"
+    }
+   ],
+   "individuals": {
+    "rushers": [
+     {
+      "num": "22",
+      "attempts": 6,
+      "yards": 30,
+      "tds": 0,
+      "long": 5,
+      "fumbles": 0,
+      "gradeSum": 6,
+      "gradeCount": 6
+     }
+    ],
+    "passers": [
+     {
+      "num": "12",
+      "attempts": 2,
+      "completions": 1,
+      "yards": 48,
+      "tds": 1,
+      "ints": 1,
+      "sacks": 0,
+      "gradeSum": 2,
+      "gradeCount": 1
+     }
+    ],
+    "receivers": [
+     {
+      "num": "80",
+      "receptions": 1,
+      "yards": 48,
+      "tds": 1,
+      "long": 48,
+      "gradeSum": 2,
+      "gradeCount": 1
+     }
+    ],
+    "tacklers": [
+     {
+      "num": "55",
+      "tackles": 5,
+      "solo": 1,
+      "assists": 4,
+      "sacks": 1,
+      "tfl": 0,
+      "ints": 0,
+      "fumblesRec": 0
+     },
+     {
+      "num": "22",
+      "tackles": 4,
+      "solo": 0,
+      "assists": 4,
+      "sacks": 0,
+      "tfl": 0,
+      "ints": 0,
+      "fumblesRec": 0
+     }
+    ],
+    "returners": [],
+    "kickers": []
+   },
+   "drives": {
+    "total": 8,
+    "list": [
+     {
+      "number": 1,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       1
+      ]
+     },
+     {
+      "number": 2,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       2
+      ]
+     },
+     {
+      "number": 3,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       3
+      ]
+     },
+     {
+      "number": 4,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       4
+      ]
+     },
+     {
+      "number": 5,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       5
+      ]
+     },
+     {
+      "number": 6,
+      "plays": 2,
+      "yards": 53,
+      "outcome": "TD",
+      "startYL": 25,
+      "points": 6,
+      "driveType": "Explosive",
+      "playIds": [
+       6,
+       7
+      ]
+     },
+     {
+      "number": 7,
+      "plays": 1,
+      "yards": 0,
+      "outcome": "Turnover",
+      "startYL": null,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       8
+      ]
+     },
+     {
+      "number": 8,
+      "plays": 2,
+      "yards": 14,
+      "outcome": "Other",
+      "startYL": null,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       9,
+       10
+      ]
+     }
+    ],
+    "scoringDrives": 1,
+    "threeAndOuts": 7,
+    "totalPoints": 6,
+    "pointsPerDrive": "0.8",
+    "avgPlaysPerDrive": "1.3",
+    "avgYardsPerDrive": "11.5"
+   },
+   "situational": {
+    "redZone": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "goalLine": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "backedUp": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "thirdLong": {
+     "total": 1,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "thirdShort": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "byQuarter": {
+     "Q1": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "Q2": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "Q3": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "Q4": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "OT": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     }
+    }
+   },
+   "efficiency": {
+    "successRate": "80.0",
+    "successes": 8,
+    "explosivePct": "10.0",
+    "explosivePlays": 1,
+    "negativePct": "0.0",
+    "negativePlays": 0
+   },
+   "personnel": [
+    {
+     "name": "11",
+     "count": 7,
+     "runs": 6,
+     "passes": 1,
+     "yards": 30,
+     "successes": 6,
+     "avg": "4.3",
+     "successPct": "86"
+    },
+    {
+     "name": "10",
+     "count": 1,
+     "runs": 0,
+     "passes": 1,
+     "yards": 48,
+     "successes": 1,
+     "avg": "48.0",
+     "successPct": "100"
+    },
+    {
+     "name": "12",
+     "count": 1,
+     "runs": 0,
+     "passes": 1,
+     "yards": 11,
+     "successes": 1,
+     "avg": "11.0",
+     "successPct": "100"
+    },
+    {
+     "name": "21",
+     "count": 1,
+     "runs": 1,
+     "passes": 0,
+     "yards": 3,
+     "successes": 0,
+     "avg": "3.0",
+     "successPct": "0"
+    }
+   ],
+   "advanced": {
+    "total": 4.88,
+    "count": 7,
+    "perPlay": 0.697,
+    "byType": [
+     {
+      "name": "Deep Pass",
+      "total": 4.88,
+      "count": 1,
+      "perPlay": 4.88
+     },
+     {
+      "name": "Run Inside",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     }
+    ],
+    "byFormation": [
+     {
+      "name": "Empty",
+      "total": 4.88,
+      "count": 1,
+      "perPlay": 4.88
+     },
+     {
+      "name": "Shotgun",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     },
+     {
+      "name": "Trips",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     }
+    ],
+    "byPersonnel": [
+     {
+      "name": "10",
+      "total": 4.88,
+      "count": 1,
+      "perPlay": 4.88
+     },
+     {
+      "name": "11",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     }
+    ],
+    "byDown": {
+     "1": {
+      "count": 6,
+      "total": 0,
+      "perPlay": 0
+     },
+     "2": {
+      "count": 1,
+      "total": 4.88,
+      "perPlay": 4.88
+     },
+     "3": {
+      "count": 0,
+      "total": 0,
+      "perPlay": 0
+     },
+     "4": {
+      "count": 0,
+      "total": 0,
+      "perPlay": 0
+     }
+    },
+    "top": [
+     {
+      "play": {
+       "id": 7,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "passer": "12",
+         "receiver": "80"
+        },
+        "grades": {
+         "passer": 2,
+         "receiver": 2
+        },
+        "down": "2",
+        "distance": "5",
+        "formation": "Empty",
+        "personnel": "10",
+        "playType": "Deep Pass",
+        "runPass": "Pass",
+        "result": "Gain + Touchdown",
+        "yardage": "48",
+        "playDir": "Left",
+        "hash": "Left",
+        "fieldSide": "opp",
+        "yardLine": "48",
+        "backfield": "",
+        "strength": ""
+       },
+       "clipName": "g1_7"
+      },
+      "epa": 4.88
+     },
+     {
+      "play": {
+       "id": 1,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_1"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 2,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_2"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 3,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_3"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 4,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_4"
+      },
+      "epa": 0
+     }
+    ],
+    "worst": [
+     {
+      "play": {
+       "id": 6,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_6"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 5,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_5"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 4,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_4"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 3,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_3"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 2,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_2"
+      },
+      "epa": 0
+     }
+    ],
+    "curve": [
+     {
+      "i": 0,
+      "cum": 0,
+      "epa": 0,
+      "playId": 1
+     },
+     {
+      "i": 1,
+      "cum": 0,
+      "epa": 0,
+      "playId": 2
+     },
+     {
+      "i": 2,
+      "cum": 0,
+      "epa": 0,
+      "playId": 3
+     },
+     {
+      "i": 3,
+      "cum": 0,
+      "epa": 0,
+      "playId": 4
+     },
+     {
+      "i": 4,
+      "cum": 0,
+      "epa": 0,
+      "playId": 5
+     },
+     {
+      "i": 5,
+      "cum": 0,
+      "epa": 0,
+      "playId": 6
+     },
+     {
+      "i": 6,
+      "cum": 4.88,
+      "epa": 4.88,
+      "playId": 7
+     }
+    ]
+   },
+   "defensive": {
+    "sacks": 1,
+    "sackYards": 6,
+    "tfl": 0,
+    "interceptions": 0,
+    "fumbles": 0,
+    "havocPlays": 1,
+    "havocRate": "20.0",
+    "incompletions": 0,
+    "threeAndOuts": 4,
+    "fronts": [
+     {
+      "name": "3-4",
+      "count": 3,
+      "yards": -2,
+      "successes": 3,
+      "havoc": 1,
+      "runs": 0,
+      "passes": 3
+     },
+     {
+      "name": "4-3",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2
+     },
+     {
+      "name": "Jumbo Shift",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2
+     }
+    ],
+    "coverages": [
+     {
+      "name": "Cover 3",
+      "count": 5,
+      "yards": 2,
+      "successes": 5,
+      "comps": 4,
+      "incs": 0,
+      "ints": 0,
+      "sacks": 1
+     }
+    ],
+    "blitzes": [
+     {
+      "name": "A-Gap",
+      "count": 2,
+      "yards": 4,
+      "sacks": 0,
+      "havoc": 0,
+      "successes": 2
+     },
+     {
+      "name": "Edge",
+      "count": 2,
+      "yards": 4,
+      "sacks": 0,
+      "havoc": 0,
+      "successes": 2
+     }
+    ],
+    "blitzRate": "40.0",
+    "blitzTotal": 2,
+    "blitzHavocRate": "0.0",
+    "noBlitzTotal": 3,
+    "earlyDownFronts": {
+     "label": "Early Downs",
+     "total": 5,
+     "fronts": [
+      [
+       "3-4",
+       3
+      ],
+      [
+       "4-3",
+       2
+      ],
+      [
+       "Jumbo Shift",
+       2
+      ]
+     ]
+    },
+    "passingDownFronts": {
+     "label": "Passing Downs",
+     "total": 0,
+     "fronts": []
+    },
+    "hasData": true
+   },
+   "gameFlow": [
+    {
+     "playNum": 1,
+     "yards": 5,
+     "cumYards": 5,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 2,
+     "yards": 5,
+     "cumYards": 10,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 3,
+     "yards": 5,
+     "cumYards": 15,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 4,
+     "yards": 5,
+     "cumYards": 20,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 5,
+     "yards": 5,
+     "cumYards": 25,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 6,
+     "yards": 5,
+     "cumYards": 30,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 7,
+     "yards": 48,
+     "cumYards": 78,
+     "isRun": false,
+     "label": "Deep Pass +48"
+    },
+    {
+     "playNum": 8,
+     "yards": 0,
+     "cumYards": 78,
+     "isRun": false,
+     "label": "RPO + Short Pass +0"
+    },
+    {
+     "playNum": 9,
+     "yards": 3,
+     "cumYards": 81,
+     "isRun": true,
+     "label": "Run Outside +3"
+    },
+    {
+     "playNum": 10,
+     "yards": 11,
+     "cumYards": 92,
+     "isRun": false,
+     "label": "Play Action +11"
+    }
+   ],
+   "conversions": {
+    "two": {
+     "att": 0,
+     "made": 0,
+     "pct": 0
+    },
+    "xp": {
+     "att": 0,
+     "made": 0,
+     "pct": 0
+    },
+    "hasData": false
+   },
+   "specialTeams": {
+    "punts": {
+     "n": 0,
+     "grossAvg": null,
+     "netAvg": null,
+     "hangAvg": null,
+     "tbPct": 0,
+     "blocked": 0
+    },
+    "kickoffs": {
+     "n": 0,
+     "avg": null,
+     "tbPct": 0,
+     "retAllowedAvg": null
+    },
+    "fg": {
+     "att": 0,
+     "made": 0,
+     "pct": 0,
+     "long": 0,
+     "byDist": []
+    },
+    "returns": {
+     "kick": {
+      "n": 0,
+      "avg": null,
+      "long": 0,
+      "td": 0
+     },
+     "punt": {
+      "n": 0,
+      "avg": null,
+      "long": 0,
+      "td": 0
+     }
+    },
+    "hasData": false
+   },
+   "scoreboard": {
+    "us": 9,
+    "them": 0,
+    "events": [
+     {
+      "playId": 7,
+      "quarter": "",
+      "points": 6,
+      "side": "us",
+      "type": "TD",
+      "us": 6,
+      "them": 0
+     },
+     {
+      "playId": 17,
+      "quarter": "",
+      "points": 3,
+      "side": "us",
+      "type": "FG",
+      "us": 9,
+      "them": 0
+     }
+    ],
+    "byQuarter": {},
+    "hasData": true
+   },
+   "hash": {
+    "list": [
+     {
+      "name": "Middle",
+      "count": 6,
+      "runs": 6,
+      "passes": 0,
+      "yards": 30,
+      "successes": 6,
+      "runPct": "100",
+      "avg": "5.0",
+      "successPct": "100"
+     },
+     {
+      "name": "Left",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "successes": 1,
+      "runPct": "0",
+      "avg": "48.0",
+      "successPct": "100"
+     }
+    ],
+    "formations": {
+     "Middle|Shotgun": 6,
+     "Middle|Trips": 6,
+     "Left|Empty": 1
+    },
+    "hasData": true
+   },
+   "personnelSituation": {
+    "list": [
+     {
+      "personnel": "11",
+      "situation": "1st Down",
+      "count": 6,
+      "runs": 6,
+      "passes": 0,
+      "yards": 30,
+      "successes": 6,
+      "runPct": "100",
+      "avg": "5.0",
+      "successPct": "100"
+     }
+    ],
+    "hasData": true
+   },
+   "frontCoverageCombos": {
+    "list": [
+     {
+      "name": "3-4 + Cover 3",
+      "front": "3-4",
+      "coverage": "Cover 3",
+      "count": 3,
+      "yards": -2,
+      "successes": 3,
+      "havoc": 1,
+      "runs": 0,
+      "passes": 3,
+      "avg": "-0.7",
+      "stopPct": "100",
+      "havocPct": "33"
+     },
+     {
+      "name": "4-3 + Cover 3",
+      "front": "4-3",
+      "coverage": "Cover 3",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2,
+      "avg": "2.0",
+      "stopPct": "100",
+      "havocPct": "0"
+     },
+     {
+      "name": "Jumbo Shift + Cover 3",
+      "front": "Jumbo Shift",
+      "coverage": "Cover 3",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2,
+      "avg": "2.0",
+      "stopPct": "100",
+      "havocPct": "0"
+     }
+    ],
+    "hasData": true
+   },
+   "playAction": {
+    "paPlays": 1,
+    "paRate": "33.3",
+    "paCompPct": "100.0",
+    "paYPA": "11.0",
+    "straightCompPct": "50.0",
+    "straightYPA": "24.0",
+    "formationList": [
+     {
+      "name": "Under Center",
+      "count": 1,
+      "yards": 11,
+      "successes": 1,
+      "avg": "11.0",
+      "successPct": "100"
+     }
+    ],
+    "hasData": true
+   },
+   "dirMotion": {
+    "dirList": [
+     {
+      "name": "Left",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "succ": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avg": "48.0",
+      "succPct": "100"
+     },
+     {
+      "name": "Right",
+      "count": 7,
+      "runs": 7,
+      "passes": 0,
+      "yards": 33,
+      "succ": 6,
+      "runPct": "100",
+      "passPct": "0",
+      "avg": "4.7",
+      "succPct": "86"
+     }
+    ],
+    "motionList": [
+     {
+      "name": "Jet",
+      "count": 3,
+      "runs": 3,
+      "passes": 0,
+      "yards": 15,
+      "succ": 3,
+      "runPct": "100",
+      "passPct": "0",
+      "avg": "5.0",
+      "succPct": "100"
+     }
+    ],
+    "noMotion": {
+     "name": "No Motion",
+     "count": 7,
+     "runs": 4,
+     "passes": 3,
+     "yards": 77,
+     "succ": 5,
+     "runPct": "57",
+     "passPct": "43",
+     "avg": "11.0",
+     "succPct": "71"
+    },
+    "hasDirData": true,
+    "hasMotionData": true
+   },
+   "takeaways": {
+    "working": [
+     {
+      "s": 602,
+      "cut": [
+       "formation",
+       "Shotgun"
+      ],
+      "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
+     },
+     {
+      "s": 602,
+      "cut": [
+       "formation",
+       "Trips"
+      ],
+      "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+     },
+     {
+      "s": 500,
+      "cut": [
+       "coverage",
+       "Cover 3"
+      ],
+      "text": "<strong>Cover 3</strong>: 100% stop rate, 0.4 avg allowed (5 snaps)"
+     }
+    ],
+    "fix": [
+     {
+      "s": 700,
+      "text": "<strong>7 three-and-outs</strong> in 8 drives — too many stalled possessions"
+     },
+     {
+      "s": 350,
+      "cut": [
+       "playDir",
+       "Right"
+      ],
+      "text": "<strong>100%</strong> of runs go <strong>Right</strong> (7/7) — defenses will overload that side"
+     },
+     {
+      "s": 300,
+      "cut": [
+       "hash",
+       "Middle"
+      ],
+      "text": "<strong>Middle hash</strong>: 100% run (6 snaps) — predictable"
+     },
+     {
+      "s": 249.99999999999994,
+      "cut": [
+       "formation",
+       "Shotgun"
+      ],
+      "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
+     },
+     {
+      "s": 249.99999999999994,
+      "cut": [
+       "formation",
+       "Trips"
+      ],
+      "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+     }
+    ]
+   }
+  },
+  "drill": {
+   "formation::Empty": [
+    7
+   ],
+   "formation::Shotgun": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "formation::Trips": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "formation::Under Center": [
+    10
+   ],
+   "formation::Unknown": [
+    18
+   ],
+   "formation::Wildcat": [
+    9
+   ],
+   "playType::Deep Pass": [
+    7
+   ],
+   "playType::Play Action": [
+    10
+   ],
+   "playType::RPO": [
+    8
+   ],
+   "playType::Run Inside": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "playType::Run Outside": [
+    9
+   ],
+   "playType::Short Pass": [
+    8
+   ],
+   "playType::Unknown": [
+    18
+   ],
+   "defFront::3-4": [
+    11,
+    13,
+    15
+   ],
+   "defFront::4-3": [
+    12,
+    14
+   ],
+   "defFront::Jumbo Shift": [
+    12,
+    14
+   ],
+   "blitz::A-Gap": [
+    12,
+    14
+   ],
+   "blitz::Edge": [
+    12,
+    14
+   ],
+   "personnel::10": [
+    7
+   ],
+   "personnel::11": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "personnel::12": [
+    10
+   ],
+   "personnel::21": [
+    9
+   ],
+   "backfield::Single": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "strength::Right": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "down::1": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "down::2": [
+    7,
+    10
+   ],
+   "down::3": [
+    8
+   ],
+   "playDir::Left": [
+    7
+   ],
+   "playDir::Right": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "motion::Jet": [
+    2,
+    4,
+    6
+   ],
+   "motion::No Motion": [
+    1,
+    3,
+    5,
+    7,
+    8,
+    9,
+    10,
+    18
+   ],
+   "hash::Left": [
+    7
+   ],
+   "hash::Middle": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "coverage::Cover 3": [
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "runpass::Run": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "runpass::Pass": [
+    7,
+    8,
+    10
+   ],
+   "situation::redZone": [],
+   "situation::goalLine": [],
+   "situation::backedUp": [],
+   "situation::thirdLong": [
+    8
+   ],
+   "situation::thirdShort": [],
+   "situation::explosive": [
+    7
+   ],
+   "situation::negative": [],
+   "dd::1|Long": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "dd::2|Long": [
+    10
+   ],
+   "dd::2|Med": [],
+   "dd::3|Long": [
+    8
+   ]
+  },
+  "reports": {
+   "selfScout": {
+    "totalPlays": 10,
+    "predictability": 81,
+    "predLabel": "Very Predictable",
+    "tells": [
+     {
+      "dim": "Down & Dist",
+      "label": "1st &amp; Long",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 4.7,
+      "leanSuccRate": 86,
+      "overallAvg": 4.7,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "dd",
+      "cutVal": "1|Long",
+      "score": 210
+     },
+     {
+      "dim": "Formation × Down",
+      "label": "Shotgun on 1st &amp; Long",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFD",
+      "cutVal": "Shotgun__1|Long",
+      "score": 180
+     },
+     {
+      "dim": "Formation × Down",
+      "label": "Trips on 1st &amp; Long",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFD",
+      "cutVal": "Trips__1|Long",
+      "score": 180
+     },
+     {
+      "dim": "Hash",
+      "label": "Middle hash",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "hash",
+      "cutVal": "Middle",
+      "score": 180
+     },
+     {
+      "dim": "Backfield",
+      "label": "From Single backfield",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "backfield",
+      "cutVal": "Single",
+      "score": 180
+     },
+     {
+      "dim": "Strength",
+      "label": "Strong Right",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "strength",
+      "cutVal": "Right",
+      "score": 180
+     },
+     {
+      "dim": "Formation × Strength",
+      "label": "Shotgun Right",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFStr",
+      "cutVal": "Shotgun__Right",
+      "score": 180
+     },
+     {
+      "dim": "Formation × Strength",
+      "label": "Trips Right",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFStr",
+      "cutVal": "Trips__Right",
+      "score": 180
+     },
+     {
+      "dim": "Formation",
+      "label": "From Shotgun",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 86,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 4.3,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 1,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "formation",
+      "cutVal": "Shotgun",
+      "score": 151.2
+     },
+     {
+      "dim": "Formation",
+      "label": "From Trips",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 86,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 4.3,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 1,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "formation",
+      "cutVal": "Trips",
+      "score": 151.2
+     },
+     {
+      "dim": "Personnel",
+      "label": "11 personnel",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 86,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 4.3,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 1,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "personnel",
+      "cutVal": "11",
+      "score": 151.2
+     }
+    ],
+    "matrix": {
+     "cols": [
+      {
+       "key": "1",
+       "label": "1st"
+      },
+      {
+       "key": "2|Medium",
+       "label": "2nd & Med"
+      },
+      {
+       "key": "2|Long",
+       "label": "2nd & Long"
+      },
+      {
+       "key": "3|Long",
+       "label": "3rd & Long"
+      }
+     ],
+     "rows": [
+      "Shotgun",
+      "Trips",
+      "Empty",
+      "Wildcat",
+      "Under Center"
+     ],
+     "cells": {
+      "Shotgun\u00011": {
+       "n": 6,
+       "runs": 6,
+       "passes": 0,
+       "succ": 6,
+       "yards": 30
+      },
+      "Trips\u00011": {
+       "n": 6,
+       "runs": 6,
+       "passes": 0,
+       "succ": 6,
+       "yards": 30
+      },
+      "Empty\u00012|Medium": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 1,
+       "yards": 48
+      },
+      "Shotgun\u00013|Long": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 0,
+       "yards": 0
+      },
+      "Trips\u00013|Long": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 0,
+       "yards": 0
+      },
+      "Wildcat\u00011": {
+       "n": 1,
+       "runs": 1,
+       "passes": 0,
+       "succ": 0,
+       "yards": 3
+      },
+      "Under Center\u00012|Long": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 1,
+       "yards": 11
+      }
+     },
+     "rowN": {
+      "Shotgun": 7,
+      "Trips": 7,
+      "Empty": 1,
+      "Wildcat": 1,
+      "Under Center": 1
+     }
+    },
+    "formationRows": [
+     {
+      "key": "Shotgun",
+      "n": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "runYards": 30,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 86,
+      "passPct": 14,
+      "lean": "Run",
+      "leanPct": 86,
+      "avg": 4.3,
+      "succRate": 86,
+      "runAvg": 5,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "Trips",
+      "n": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "runYards": 30,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 86,
+      "passPct": 14,
+      "lean": "Run",
+      "leanPct": 86,
+      "avg": 4.3,
+      "succRate": 86,
+      "runAvg": 5,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "Empty",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "runYards": 0,
+      "passYards": 48,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 1,
+      "tds": 1,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 48,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 48,
+      "tell": false
+     },
+     {
+      "key": "Wildcat",
+      "n": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "runYards": 3,
+      "passYards": 0,
+      "runSucc": 0,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 100,
+      "passPct": 0,
+      "lean": "Run",
+      "leanPct": 100,
+      "avg": 3,
+      "succRate": 0,
+      "runAvg": 3,
+      "passAvg": 0,
+      "tell": false
+     },
+     {
+      "key": "Under Center",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "runYards": 0,
+      "passYards": 11,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 11,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 11,
+      "tell": false
+     }
+    ],
+    "downDistRows": [
+     {
+      "key": "1|Long",
+      "n": 7,
+      "runs": 7,
+      "passes": 0,
+      "yards": 33,
+      "runYards": 33,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 100,
+      "passPct": 0,
+      "lean": "Run",
+      "leanPct": 100,
+      "avg": 4.7,
+      "succRate": 86,
+      "runAvg": 4.7,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "2|Medium",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "runYards": 0,
+      "passYards": 48,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 1,
+      "tds": 1,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 48,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 48,
+      "tell": false
+     },
+     {
+      "key": "3|Long",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 0,
+      "runYards": 0,
+      "passYards": 0,
+      "runSucc": 0,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 0,
+      "succRate": 0,
+      "runAvg": 0,
+      "passAvg": 0,
+      "tell": false
+     },
+     {
+      "key": "2|Long",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "runYards": 0,
+      "passYards": 11,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 11,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 11,
+      "tell": false
+     }
+    ],
+    "personnelRows": [
+     {
+      "key": "11",
+      "n": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "runYards": 30,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 86,
+      "passPct": 14,
+      "lean": "Run",
+      "leanPct": 86,
+      "avg": 4.3,
+      "succRate": 86,
+      "runAvg": 5,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "10",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "runYards": 0,
+      "passYards": 48,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 1,
+      "tds": 1,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 48,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 48,
+      "tell": false
+     },
+     {
+      "key": "12",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "runYards": 0,
+      "passYards": 11,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 11,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 11,
+      "tell": false
+     },
+     {
+      "key": "21",
+      "n": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "runYards": 3,
+      "passYards": 0,
+      "runSucc": 0,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 100,
+      "passPct": 0,
+      "lean": "Run",
+      "leanPct": 100,
+      "avg": 3,
+      "succRate": 0,
+      "runAvg": 3,
+      "passAvg": 0,
+      "tell": false
+     }
+    ],
+    "personnelDiversity": [
+     {
+      "personnel": "11",
+      "n": 7,
+      "uniqueFormations": 2,
+      "topFormation": "Shotgun",
+      "topCount": 7,
+      "topPct": 100,
+      "formations": [
+       {
+        "formation": "Shotgun",
+        "count": 7,
+        "pct": 100
+       },
+       {
+        "formation": "Trips",
+        "count": 7,
+        "pct": 100
+       }
+      ]
+     }
+    ],
+    "recommendations": [
+     "<span class=\"ss-rec-label\">1st &amp; Long</span>: your run lean (100%) is adequate at 4.7 yds/86% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Shotgun on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Trips on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
+    ],
+    "insights": [
+     {
+      "type": "direction",
+      "priority": 360,
+      "text": "From <strong>Shotgun</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
+      "tag": "Direction Tell"
+     },
+     {
+      "type": "direction",
+      "priority": 360,
+      "text": "From <strong>Trips</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
+      "tag": "Direction Tell"
+     },
+     {
+      "type": "personnel",
+      "priority": 315,
+      "text": "<strong>11 personnel</strong> lines up in <strong>Shotgun</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "tag": "Personnel Tell"
+     }
+    ],
+    "defScout": {
+     "insufficient": true,
+     "defPlays": 5,
+     "schemePlays": 5
+    }
+   },
+   "defScout": {
+    "insufficient": true,
+    "defPlays": 5,
+    "schemePlays": 5
+   },
+   "scout": {
+    "totalPlays": 18,
+    "stats": {
+     "totalPlays": 10,
+     "allPlays": 15,
+     "offPlays": {
+      "__plays": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10
+      ]
+     },
+     "defPlays": {
+      "__plays": [
+       11,
+       12,
+       13,
+       14,
+       15
+      ]
+     },
+     "filterActive": false,
+     "rushing": {
+      "attempts": 7,
+      "yards": 33,
+      "average": "4.7",
+      "touchdowns": 0,
+      "fumbles": 0,
+      "longest": 5,
+      "firstDowns": 0
+     },
+     "passing": {
+      "attempts": 3,
+      "completions": 2,
+      "yards": 59,
+      "average": "19.7",
+      "yardsPerCompletion": "29.5",
+      "completionPct": "66.7",
+      "touchdowns": 1,
+      "interceptions": 1,
+      "sacks": 0,
+      "sackYards": 0,
+      "longest": 48,
+      "firstDowns": 2
+     },
+     "scoring": {
+      "touchdowns": 1,
+      "rushingTDs": 0,
+      "passingTDs": 1
+     },
+     "downs": {
+      "byDown": {
+       "1": {
+        "total": 7,
+        "runs": 7,
+        "passes": 0,
+        "runPct": "100",
+        "passPct": "0",
+        "avgYards": "4.7",
+        "conversionPct": "0.0"
+       },
+       "2": {
+        "total": 2,
+        "runs": 0,
+        "passes": 2,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "29.5",
+        "conversionPct": "100.0"
+       },
+       "3": {
+        "total": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "0.0",
+        "conversionPct": "0.0"
+       },
+       "4": {
+        "total": 0,
+        "runPct": "0",
+        "passPct": "0",
+        "avgYards": "0.0",
+        "conversionPct": "0.0"
+       }
+      },
+      "totalFirstDowns": 2,
+      "thirdDownConv": "0/1",
+      "thirdDownPct": "0.0",
+      "fourthDownConv": "0/0",
+      "fourthDownPct": "0.0",
+      "ddBuckets": [
+       {
+        "down": "1",
+        "bucket": "Long",
+        "count": 7,
+        "runs": 7,
+        "passes": 0,
+        "runPct": "100",
+        "passPct": "0",
+        "avgYards": "4.7",
+        "convPct": "0.0",
+        "succPct": "85.7",
+        "sortKey": 2
+       },
+       {
+        "down": "2",
+        "bucket": "Medium",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "48.0",
+        "convPct": "100.0",
+        "succPct": "100.0",
+        "sortKey": 11
+       },
+       {
+        "down": "2",
+        "bucket": "Long",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "11.0",
+        "convPct": "100.0",
+        "succPct": "100.0",
+        "sortKey": 12
+       },
+       {
+        "down": "3",
+        "bucket": "Long",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "0.0",
+        "convPct": "0.0",
+        "succPct": "0.0",
+        "sortKey": 22
+       }
+      ]
+     },
+     "turnovers": {
+      "total": 1,
+      "interceptions": 1,
+      "fumbles": 0
+     },
+     "tendencies": {
+      "formations": {
+       "Shotgun": 7,
+       "Trips": 7,
+       "Empty": 1,
+       "Wildcat": 1,
+       "Under Center": 1
+      },
+      "formationList": [
+       {
+        "name": "Shotgun",
+        "count": 7,
+        "runs": 6,
+        "passes": 1,
+        "yards": 30,
+        "successes": 6,
+        "avg": "4.3",
+        "successPct": "86"
+       },
+       {
+        "name": "Trips",
+        "count": 7,
+        "runs": 6,
+        "passes": 1,
+        "yards": 30,
+        "successes": 6,
+        "avg": "4.3",
+        "successPct": "86"
+       },
+       {
+        "name": "Empty",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "successes": 1,
+        "avg": "48.0",
+        "successPct": "100"
+       },
+       {
+        "name": "Wildcat",
+        "count": 1,
+        "runs": 1,
+        "passes": 0,
+        "yards": 3,
+        "successes": 0,
+        "avg": "3.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Under Center",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 11,
+        "successes": 1,
+        "avg": "11.0",
+        "successPct": "100"
+       }
+      ],
+      "playTypes": {
+       "Run Inside": 6,
+       "Deep Pass": 1,
+       "RPO": 1,
+       "Short Pass": 1,
+       "Run Outside": 1,
+       "Play Action": 1
+      },
+      "playTypeList": [
+       {
+        "name": "Run Inside",
+        "count": 6,
+        "runs": 6,
+        "passes": 0,
+        "yards": 30,
+        "successes": 6,
+        "avg": "5.0",
+        "successPct": "100"
+       },
+       {
+        "name": "Deep Pass",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "successes": 1,
+        "avg": "48.0",
+        "successPct": "100"
+       },
+       {
+        "name": "RPO",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 0,
+        "successes": 0,
+        "avg": "0.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Short Pass",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 0,
+        "successes": 0,
+        "avg": "0.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Run Outside",
+        "count": 1,
+        "runs": 1,
+        "passes": 0,
+        "yards": 3,
+        "successes": 0,
+        "avg": "3.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Play Action",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 11,
+        "successes": 1,
+        "avg": "11.0",
+        "successPct": "100"
+       }
+      ],
+      "runs": 7,
+      "passes": 3,
+      "runYds": 33,
+      "passYds": 59,
+      "runSuccRate": "85.7",
+      "passSuccRate": "66.7",
+      "runPassRatio": "7/3",
+      "runPct": "70.0",
+      "passPct": "30.0"
+     },
+     "bigPlays": [
+      {
+       "id": 7,
+       "type": "Deep Pass",
+       "result": "Gain + Touchdown",
+       "yards": "48",
+       "clipName": "g1_7"
+      }
+     ],
+     "individuals": {
+      "rushers": [
+       {
+        "num": "22",
+        "attempts": 6,
+        "yards": 30,
+        "tds": 0,
+        "long": 5,
+        "fumbles": 0,
+        "gradeSum": 6,
+        "gradeCount": 6
+       }
+      ],
+      "passers": [
+       {
+        "num": "12",
+        "attempts": 2,
+        "completions": 1,
+        "yards": 48,
+        "tds": 1,
+        "ints": 1,
+        "sacks": 0,
+        "gradeSum": 2,
+        "gradeCount": 1
+       }
+      ],
+      "receivers": [
+       {
+        "num": "80",
+        "receptions": 1,
+        "yards": 48,
+        "tds": 1,
+        "long": 48,
+        "gradeSum": 2,
+        "gradeCount": 1
+       }
+      ],
+      "tacklers": [
+       {
+        "num": "55",
+        "tackles": 5,
+        "solo": 1,
+        "assists": 4,
+        "sacks": 1,
+        "tfl": 0,
+        "ints": 0,
+        "fumblesRec": 0
+       },
+       {
+        "num": "22",
+        "tackles": 4,
+        "solo": 0,
+        "assists": 4,
+        "sacks": 0,
+        "tfl": 0,
+        "ints": 0,
+        "fumblesRec": 0
+       }
+      ],
+      "returners": [],
+      "kickers": []
+     },
+     "drives": {
+      "total": 8,
+      "list": [
+       {
+        "number": 1,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         1
+        ]
+       },
+       {
+        "number": 2,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         2
+        ]
+       },
+       {
+        "number": 3,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         3
+        ]
+       },
+       {
+        "number": 4,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         4
+        ]
+       },
+       {
+        "number": 5,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         5
+        ]
+       },
+       {
+        "number": 6,
+        "plays": 2,
+        "yards": 53,
+        "outcome": "TD",
+        "startYL": 25,
+        "points": 6,
+        "driveType": "Explosive",
+        "playIds": [
+         6,
+         7
+        ]
+       },
+       {
+        "number": 7,
+        "plays": 1,
+        "yards": 0,
+        "outcome": "Turnover",
+        "startYL": null,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         8
+        ]
+       },
+       {
+        "number": 8,
+        "plays": 2,
+        "yards": 14,
+        "outcome": "Other",
+        "startYL": null,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         9,
+         10
+        ]
+       }
+      ],
+      "scoringDrives": 1,
+      "threeAndOuts": 7,
+      "totalPoints": 6,
+      "pointsPerDrive": "0.8",
+      "avgPlaysPerDrive": "1.3",
+      "avgYardsPerDrive": "11.5"
+     },
+     "situational": {
+      "redZone": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "goalLine": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "backedUp": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "thirdLong": {
+       "total": 1,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "thirdShort": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "byQuarter": {
+       "Q1": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "Q2": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "Q3": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "Q4": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "OT": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       }
+      }
+     },
+     "efficiency": {
+      "successRate": "80.0",
+      "successes": 8,
+      "explosivePct": "10.0",
+      "explosivePlays": 1,
+      "negativePct": "0.0",
+      "negativePlays": 0
+     },
+     "personnel": [
+      {
+       "name": "11",
+       "count": 7,
+       "runs": 6,
+       "passes": 1,
+       "yards": 30,
+       "successes": 6,
+       "avg": "4.3",
+       "successPct": "86"
+      },
+      {
+       "name": "10",
+       "count": 1,
+       "runs": 0,
+       "passes": 1,
+       "yards": 48,
+       "successes": 1,
+       "avg": "48.0",
+       "successPct": "100"
+      },
+      {
+       "name": "12",
+       "count": 1,
+       "runs": 0,
+       "passes": 1,
+       "yards": 11,
+       "successes": 1,
+       "avg": "11.0",
+       "successPct": "100"
+      },
+      {
+       "name": "21",
+       "count": 1,
+       "runs": 1,
+       "passes": 0,
+       "yards": 3,
+       "successes": 0,
+       "avg": "3.0",
+       "successPct": "0"
+      }
+     ],
+     "advanced": {
+      "total": 4.88,
+      "count": 7,
+      "perPlay": 0.697,
+      "byType": [
+       {
+        "name": "Deep Pass",
+        "total": 4.88,
+        "count": 1,
+        "perPlay": 4.88
+       },
+       {
+        "name": "Run Inside",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       }
+      ],
+      "byFormation": [
+       {
+        "name": "Empty",
+        "total": 4.88,
+        "count": 1,
+        "perPlay": 4.88
+       },
+       {
+        "name": "Shotgun",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       },
+       {
+        "name": "Trips",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       }
+      ],
+      "byPersonnel": [
+       {
+        "name": "10",
+        "total": 4.88,
+        "count": 1,
+        "perPlay": 4.88
+       },
+       {
+        "name": "11",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       }
+      ],
+      "byDown": {
+       "1": {
+        "count": 6,
+        "total": 0,
+        "perPlay": 0
+       },
+       "2": {
+        "count": 1,
+        "total": 4.88,
+        "perPlay": 4.88
+       },
+       "3": {
+        "count": 0,
+        "total": 0,
+        "perPlay": 0
+       },
+       "4": {
+        "count": 0,
+        "total": 0,
+        "perPlay": 0
+       }
+      },
+      "top": [
+       {
+        "play": {
+         "id": 7,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "passer": "12",
+           "receiver": "80"
+          },
+          "grades": {
+           "passer": 2,
+           "receiver": 2
+          },
+          "down": "2",
+          "distance": "5",
+          "formation": "Empty",
+          "personnel": "10",
+          "playType": "Deep Pass",
+          "runPass": "Pass",
+          "result": "Gain + Touchdown",
+          "yardage": "48",
+          "playDir": "Left",
+          "hash": "Left",
+          "fieldSide": "opp",
+          "yardLine": "48",
+          "backfield": "",
+          "strength": ""
+         },
+         "clipName": "g1_7"
+        },
+        "epa": 4.88
+       },
+       {
+        "play": {
+         "id": 1,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_1"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 2,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_2"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 3,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_3"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 4,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_4"
+        },
+        "epa": 0
+       }
+      ],
+      "worst": [
+       {
+        "play": {
+         "id": 6,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_6"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 5,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_5"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 4,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_4"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 3,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_3"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 2,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_2"
+        },
+        "epa": 0
+       }
+      ],
+      "curve": [
+       {
+        "i": 0,
+        "cum": 0,
+        "epa": 0,
+        "playId": 1
+       },
+       {
+        "i": 1,
+        "cum": 0,
+        "epa": 0,
+        "playId": 2
+       },
+       {
+        "i": 2,
+        "cum": 0,
+        "epa": 0,
+        "playId": 3
+       },
+       {
+        "i": 3,
+        "cum": 0,
+        "epa": 0,
+        "playId": 4
+       },
+       {
+        "i": 4,
+        "cum": 0,
+        "epa": 0,
+        "playId": 5
+       },
+       {
+        "i": 5,
+        "cum": 0,
+        "epa": 0,
+        "playId": 6
+       },
+       {
+        "i": 6,
+        "cum": 4.88,
+        "epa": 4.88,
+        "playId": 7
+       }
+      ]
+     },
+     "defensive": {
+      "sacks": 1,
+      "sackYards": 6,
+      "tfl": 0,
+      "interceptions": 0,
+      "fumbles": 0,
+      "havocPlays": 1,
+      "havocRate": "20.0",
+      "incompletions": 0,
+      "threeAndOuts": 4,
+      "fronts": [
+       {
+        "name": "3-4",
+        "count": 3,
+        "yards": -2,
+        "successes": 3,
+        "havoc": 1,
+        "runs": 0,
+        "passes": 3
+       },
+       {
+        "name": "4-3",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2
+       },
+       {
+        "name": "Jumbo Shift",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2
+       }
+      ],
+      "coverages": [
+       {
+        "name": "Cover 3",
+        "count": 5,
+        "yards": 2,
+        "successes": 5,
+        "comps": 4,
+        "incs": 0,
+        "ints": 0,
+        "sacks": 1
+       }
+      ],
+      "blitzes": [
+       {
+        "name": "A-Gap",
+        "count": 2,
+        "yards": 4,
+        "sacks": 0,
+        "havoc": 0,
+        "successes": 2
+       },
+       {
+        "name": "Edge",
+        "count": 2,
+        "yards": 4,
+        "sacks": 0,
+        "havoc": 0,
+        "successes": 2
+       }
+      ],
+      "blitzRate": "40.0",
+      "blitzTotal": 2,
+      "blitzHavocRate": "0.0",
+      "noBlitzTotal": 3,
+      "earlyDownFronts": {
+       "label": "Early Downs",
+       "total": 5,
+       "fronts": [
+        [
+         "3-4",
+         3
+        ],
+        [
+         "4-3",
+         2
+        ],
+        [
+         "Jumbo Shift",
+         2
+        ]
+       ]
+      },
+      "passingDownFronts": {
+       "label": "Passing Downs",
+       "total": 0,
+       "fronts": []
+      },
+      "hasData": true
+     },
+     "gameFlow": [
+      {
+       "playNum": 1,
+       "yards": 5,
+       "cumYards": 5,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 2,
+       "yards": 5,
+       "cumYards": 10,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 3,
+       "yards": 5,
+       "cumYards": 15,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 4,
+       "yards": 5,
+       "cumYards": 20,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 5,
+       "yards": 5,
+       "cumYards": 25,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 6,
+       "yards": 5,
+       "cumYards": 30,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 7,
+       "yards": 48,
+       "cumYards": 78,
+       "isRun": false,
+       "label": "Deep Pass +48"
+      },
+      {
+       "playNum": 8,
+       "yards": 0,
+       "cumYards": 78,
+       "isRun": false,
+       "label": "RPO + Short Pass +0"
+      },
+      {
+       "playNum": 9,
+       "yards": 3,
+       "cumYards": 81,
+       "isRun": true,
+       "label": "Run Outside +3"
+      },
+      {
+       "playNum": 10,
+       "yards": 11,
+       "cumYards": 92,
+       "isRun": false,
+       "label": "Play Action +11"
+      }
+     ],
+     "conversions": {
+      "two": {
+       "att": 0,
+       "made": 0,
+       "pct": 0
+      },
+      "xp": {
+       "att": 0,
+       "made": 0,
+       "pct": 0
+      },
+      "hasData": false
+     },
+     "specialTeams": {
+      "punts": {
+       "n": 0,
+       "grossAvg": null,
+       "netAvg": null,
+       "hangAvg": null,
+       "tbPct": 0,
+       "blocked": 0
+      },
+      "kickoffs": {
+       "n": 0,
+       "avg": null,
+       "tbPct": 0,
+       "retAllowedAvg": null
+      },
+      "fg": {
+       "att": 0,
+       "made": 0,
+       "pct": 0,
+       "long": 0,
+       "byDist": []
+      },
+      "returns": {
+       "kick": {
+        "n": 0,
+        "avg": null,
+        "long": 0,
+        "td": 0
+       },
+       "punt": {
+        "n": 0,
+        "avg": null,
+        "long": 0,
+        "td": 0
+       }
+      },
+      "hasData": false
+     },
+     "scoreboard": {
+      "us": 9,
+      "them": 0,
+      "events": [
+       {
+        "playId": 7,
+        "quarter": "",
+        "points": 6,
+        "side": "us",
+        "type": "TD",
+        "us": 6,
+        "them": 0
+       },
+       {
+        "playId": 17,
+        "quarter": "",
+        "points": 3,
+        "side": "us",
+        "type": "FG",
+        "us": 9,
+        "them": 0
+       }
+      ],
+      "byQuarter": {},
+      "hasData": true
+     },
+     "hash": {
+      "list": [
+       {
+        "name": "Middle",
+        "count": 6,
+        "runs": 6,
+        "passes": 0,
+        "yards": 30,
+        "successes": 6,
+        "runPct": "100",
+        "avg": "5.0",
+        "successPct": "100"
+       },
+       {
+        "name": "Left",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "successes": 1,
+        "runPct": "0",
+        "avg": "48.0",
+        "successPct": "100"
+       }
+      ],
+      "formations": {
+       "Middle|Shotgun": 6,
+       "Middle|Trips": 6,
+       "Left|Empty": 1
+      },
+      "hasData": true
+     },
+     "personnelSituation": {
+      "list": [
+       {
+        "personnel": "11",
+        "situation": "1st Down",
+        "count": 6,
+        "runs": 6,
+        "passes": 0,
+        "yards": 30,
+        "successes": 6,
+        "runPct": "100",
+        "avg": "5.0",
+        "successPct": "100"
+       }
+      ],
+      "hasData": true
+     },
+     "frontCoverageCombos": {
+      "list": [
+       {
+        "name": "3-4 + Cover 3",
+        "front": "3-4",
+        "coverage": "Cover 3",
+        "count": 3,
+        "yards": -2,
+        "successes": 3,
+        "havoc": 1,
+        "runs": 0,
+        "passes": 3,
+        "avg": "-0.7",
+        "stopPct": "100",
+        "havocPct": "33"
+       },
+       {
+        "name": "4-3 + Cover 3",
+        "front": "4-3",
+        "coverage": "Cover 3",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2,
+        "avg": "2.0",
+        "stopPct": "100",
+        "havocPct": "0"
+       },
+       {
+        "name": "Jumbo Shift + Cover 3",
+        "front": "Jumbo Shift",
+        "coverage": "Cover 3",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2,
+        "avg": "2.0",
+        "stopPct": "100",
+        "havocPct": "0"
+       }
+      ],
+      "hasData": true
+     },
+     "playAction": {
+      "paPlays": 1,
+      "paRate": "33.3",
+      "paCompPct": "100.0",
+      "paYPA": "11.0",
+      "straightCompPct": "50.0",
+      "straightYPA": "24.0",
+      "formationList": [
+       {
+        "name": "Under Center",
+        "count": 1,
+        "yards": 11,
+        "successes": 1,
+        "avg": "11.0",
+        "successPct": "100"
+       }
+      ],
+      "hasData": true
+     },
+     "dirMotion": {
+      "dirList": [
+       {
+        "name": "Left",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "succ": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avg": "48.0",
+        "succPct": "100"
+       },
+       {
+        "name": "Right",
+        "count": 7,
+        "runs": 7,
+        "passes": 0,
+        "yards": 33,
+        "succ": 6,
+        "runPct": "100",
+        "passPct": "0",
+        "avg": "4.7",
+        "succPct": "86"
+       }
+      ],
+      "motionList": [
+       {
+        "name": "Jet",
+        "count": 3,
+        "runs": 3,
+        "passes": 0,
+        "yards": 15,
+        "succ": 3,
+        "runPct": "100",
+        "passPct": "0",
+        "avg": "5.0",
+        "succPct": "100"
+       }
+      ],
+      "noMotion": {
+       "name": "No Motion",
+       "count": 7,
+       "runs": 4,
+       "passes": 3,
+       "yards": 77,
+       "succ": 5,
+       "runPct": "57",
+       "passPct": "43",
+       "avg": "11.0",
+       "succPct": "71"
+      },
+      "hasDirData": true,
+      "hasMotionData": true
+     },
+     "takeaways": {
+      "working": [
+       {
+        "s": 602,
+        "cut": [
+         "formation",
+         "Shotgun"
+        ],
+        "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
+       },
+       {
+        "s": 602,
+        "cut": [
+         "formation",
+         "Trips"
+        ],
+        "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+       },
+       {
+        "s": 500,
+        "cut": [
+         "coverage",
+         "Cover 3"
+        ],
+        "text": "<strong>Cover 3</strong>: 100% stop rate, 0.4 avg allowed (5 snaps)"
+       }
+      ],
+      "fix": [
+       {
+        "s": 700,
+        "text": "<strong>7 three-and-outs</strong> in 8 drives — too many stalled possessions"
+       },
+       {
+        "s": 350,
+        "cut": [
+         "playDir",
+         "Right"
+        ],
+        "text": "<strong>100%</strong> of runs go <strong>Right</strong> (7/7) — defenses will overload that side"
+       },
+       {
+        "s": 300,
+        "cut": [
+         "hash",
+         "Middle"
+        ],
+        "text": "<strong>Middle hash</strong>: 100% run (6 snaps) — predictable"
+       },
+       {
+        "s": 249.99999999999994,
+        "cut": [
+         "formation",
+         "Shotgun"
+        ],
+        "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
+       },
+       {
+        "s": 249.99999999999994,
+        "cut": [
+         "formation",
+         "Trips"
+        ],
+        "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+       }
+      ]
+     }
+    },
+    "formationDetail": [
+     {
+      "name": "Unknown",
+      "total": 8,
+      "runs": 0,
+      "passes": 8,
+      "yards": 2,
+      "tds": 0,
+      "runPct": 0
+     },
+     {
+      "name": "Shotgun",
+      "total": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "tds": 0,
+      "runPct": 86
+     },
+     {
+      "name": "Trips",
+      "total": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "tds": 0,
+      "runPct": 86
+     },
+     {
+      "name": "Empty",
+      "total": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "tds": 1,
+      "runPct": 0
+     },
+     {
+      "name": "Wildcat",
+      "total": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "tds": 0,
+      "runPct": 100
+     },
+     {
+      "name": "Under Center",
+      "total": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "tds": 0,
+      "runPct": 0
+     }
+    ],
+    "downTendency": [
+     {
+      "key": "1&10",
+      "runs": 7,
+      "passes": 5,
+      "total": 12,
+      "runPct": 58
+     },
+     {
+      "key": "?&?",
+      "runs": 0,
+      "passes": 3,
+      "total": 3,
+      "runPct": 0
+     },
+     {
+      "key": "2&5",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     },
+     {
+      "key": "3&9",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     },
+     {
+      "key": "2&7",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     }
+    ],
+    "fronts": [
+     [
+      "3-4",
+      3
+     ],
+     [
+      "4-3",
+      2
+     ],
+     [
+      "Jumbo Shift",
+      2
+     ]
+    ],
+    "coverages": [
+     [
+      "Cover 3",
+      5
+     ]
+    ],
+    "redZone": {
+     "total": 0,
+     "tds": 0
+    },
+    "thirdDown": {
+     "total": 1,
+     "converted": 0
+    }
+   }
+  }
+ },
+ "game:g1": {
+  "numbers": {
+   "totalPlays": 10,
+   "allPlays": 15,
+   "offPlays": {
+    "__plays": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ]
+   },
+   "defPlays": {
+    "__plays": [
+     11,
+     12,
+     13,
+     14,
+     15
+    ]
+   },
+   "filterActive": false,
+   "rushing": {
+    "attempts": 7,
+    "yards": 33,
+    "average": "4.7",
+    "touchdowns": 0,
+    "fumbles": 0,
+    "longest": 5,
+    "firstDowns": 0
+   },
+   "passing": {
+    "attempts": 3,
+    "completions": 2,
+    "yards": 59,
+    "average": "19.7",
+    "yardsPerCompletion": "29.5",
+    "completionPct": "66.7",
+    "touchdowns": 1,
+    "interceptions": 1,
+    "sacks": 0,
+    "sackYards": 0,
+    "longest": 48,
+    "firstDowns": 2
+   },
+   "scoring": {
+    "touchdowns": 1,
+    "rushingTDs": 0,
+    "passingTDs": 1
+   },
+   "downs": {
+    "byDown": {
+     "1": {
+      "total": 7,
+      "runs": 7,
+      "passes": 0,
+      "runPct": "100",
+      "passPct": "0",
+      "avgYards": "4.7",
+      "conversionPct": "0.0"
+     },
+     "2": {
+      "total": 2,
+      "runs": 0,
+      "passes": 2,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "29.5",
+      "conversionPct": "100.0"
+     },
+     "3": {
+      "total": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "0.0",
+      "conversionPct": "0.0"
+     },
+     "4": {
+      "total": 0,
+      "runPct": "0",
+      "passPct": "0",
+      "avgYards": "0.0",
+      "conversionPct": "0.0"
+     }
+    },
+    "totalFirstDowns": 2,
+    "thirdDownConv": "0/1",
+    "thirdDownPct": "0.0",
+    "fourthDownConv": "0/0",
+    "fourthDownPct": "0.0",
+    "ddBuckets": [
+     {
+      "down": "1",
+      "bucket": "Long",
+      "count": 7,
+      "runs": 7,
+      "passes": 0,
+      "runPct": "100",
+      "passPct": "0",
+      "avgYards": "4.7",
+      "convPct": "0.0",
+      "succPct": "85.7",
+      "sortKey": 2
+     },
+     {
+      "down": "2",
+      "bucket": "Medium",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "48.0",
+      "convPct": "100.0",
+      "succPct": "100.0",
+      "sortKey": 11
+     },
+     {
+      "down": "2",
+      "bucket": "Long",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "11.0",
+      "convPct": "100.0",
+      "succPct": "100.0",
+      "sortKey": 12
+     },
+     {
+      "down": "3",
+      "bucket": "Long",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avgYards": "0.0",
+      "convPct": "0.0",
+      "succPct": "0.0",
+      "sortKey": 22
+     }
+    ]
+   },
+   "turnovers": {
+    "total": 1,
+    "interceptions": 1,
+    "fumbles": 0
+   },
+   "tendencies": {
+    "formations": {
+     "Shotgun": 7,
+     "Trips": 7,
+     "Empty": 1,
+     "Wildcat": 1,
+     "Under Center": 1
+    },
+    "formationList": [
+     {
+      "name": "Shotgun",
+      "count": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "successes": 6,
+      "avg": "4.3",
+      "successPct": "86"
+     },
+     {
+      "name": "Trips",
+      "count": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "successes": 6,
+      "avg": "4.3",
+      "successPct": "86"
+     },
+     {
+      "name": "Empty",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "successes": 1,
+      "avg": "48.0",
+      "successPct": "100"
+     },
+     {
+      "name": "Wildcat",
+      "count": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "successes": 0,
+      "avg": "3.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Under Center",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "successes": 1,
+      "avg": "11.0",
+      "successPct": "100"
+     }
+    ],
+    "playTypes": {
+     "Run Inside": 6,
+     "Deep Pass": 1,
+     "RPO": 1,
+     "Short Pass": 1,
+     "Run Outside": 1,
+     "Play Action": 1
+    },
+    "playTypeList": [
+     {
+      "name": "Run Inside",
+      "count": 6,
+      "runs": 6,
+      "passes": 0,
+      "yards": 30,
+      "successes": 6,
+      "avg": "5.0",
+      "successPct": "100"
+     },
+     {
+      "name": "Deep Pass",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "successes": 1,
+      "avg": "48.0",
+      "successPct": "100"
+     },
+     {
+      "name": "RPO",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 0,
+      "successes": 0,
+      "avg": "0.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Short Pass",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 0,
+      "successes": 0,
+      "avg": "0.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Run Outside",
+      "count": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "successes": 0,
+      "avg": "3.0",
+      "successPct": "0"
+     },
+     {
+      "name": "Play Action",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "successes": 1,
+      "avg": "11.0",
+      "successPct": "100"
+     }
+    ],
+    "runs": 7,
+    "passes": 3,
+    "runYds": 33,
+    "passYds": 59,
+    "runSuccRate": "85.7",
+    "passSuccRate": "66.7",
+    "runPassRatio": "7/3",
+    "runPct": "70.0",
+    "passPct": "30.0"
+   },
+   "bigPlays": [
+    {
+     "id": 7,
+     "type": "Deep Pass",
+     "result": "Gain + Touchdown",
+     "yards": "48",
+     "clipName": "g1_7"
+    }
+   ],
+   "individuals": {
+    "rushers": [
+     {
+      "num": "22",
+      "attempts": 6,
+      "yards": 30,
+      "tds": 0,
+      "long": 5,
+      "fumbles": 0,
+      "gradeSum": 6,
+      "gradeCount": 6
+     }
+    ],
+    "passers": [
+     {
+      "num": "12",
+      "attempts": 2,
+      "completions": 1,
+      "yards": 48,
+      "tds": 1,
+      "ints": 1,
+      "sacks": 0,
+      "gradeSum": 2,
+      "gradeCount": 1
+     }
+    ],
+    "receivers": [
+     {
+      "num": "80",
+      "receptions": 1,
+      "yards": 48,
+      "tds": 1,
+      "long": 48,
+      "gradeSum": 2,
+      "gradeCount": 1
+     }
+    ],
+    "tacklers": [
+     {
+      "num": "55",
+      "tackles": 5,
+      "solo": 1,
+      "assists": 4,
+      "sacks": 1,
+      "tfl": 0,
+      "ints": 0,
+      "fumblesRec": 0
+     },
+     {
+      "num": "22",
+      "tackles": 4,
+      "solo": 0,
+      "assists": 4,
+      "sacks": 0,
+      "tfl": 0,
+      "ints": 0,
+      "fumblesRec": 0
+     }
+    ],
+    "returners": [],
+    "kickers": []
+   },
+   "drives": {
+    "total": 8,
+    "list": [
+     {
+      "number": 1,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       1
+      ]
+     },
+     {
+      "number": 2,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       2
+      ]
+     },
+     {
+      "number": 3,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       3
+      ]
+     },
+     {
+      "number": 4,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       4
+      ]
+     },
+     {
+      "number": 5,
+      "plays": 1,
+      "yards": 5,
+      "outcome": "Other",
+      "startYL": 25,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       5
+      ]
+     },
+     {
+      "number": 6,
+      "plays": 2,
+      "yards": 53,
+      "outcome": "TD",
+      "startYL": 25,
+      "points": 6,
+      "driveType": "Explosive",
+      "playIds": [
+       6,
+       7
+      ]
+     },
+     {
+      "number": 7,
+      "plays": 1,
+      "yards": 0,
+      "outcome": "Turnover",
+      "startYL": null,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       8
+      ]
+     },
+     {
+      "number": 8,
+      "plays": 2,
+      "yards": 14,
+      "outcome": "Other",
+      "startYL": null,
+      "points": 0,
+      "driveType": "3-and-out",
+      "playIds": [
+       9,
+       10
+      ]
+     }
+    ],
+    "scoringDrives": 1,
+    "threeAndOuts": 7,
+    "totalPoints": 6,
+    "pointsPerDrive": "0.8",
+    "avgPlaysPerDrive": "1.3",
+    "avgYardsPerDrive": "11.5"
+   },
+   "situational": {
+    "redZone": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "goalLine": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "backedUp": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "thirdLong": {
+     "total": 1,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "thirdShort": {
+     "total": 0,
+     "tds": 0,
+     "successes": 0,
+     "yards": 0,
+     "avg": "0.0",
+     "successPct": "0"
+    },
+    "byQuarter": {
+     "Q1": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "Q2": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "Q3": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "Q4": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     },
+     "OT": {
+      "plays": 0,
+      "yards": 0,
+      "tds": 0
+     }
+    }
+   },
+   "efficiency": {
+    "successRate": "80.0",
+    "successes": 8,
+    "explosivePct": "10.0",
+    "explosivePlays": 1,
+    "negativePct": "0.0",
+    "negativePlays": 0
+   },
+   "personnel": [
+    {
+     "name": "11",
+     "count": 7,
+     "runs": 6,
+     "passes": 1,
+     "yards": 30,
+     "successes": 6,
+     "avg": "4.3",
+     "successPct": "86"
+    },
+    {
+     "name": "10",
+     "count": 1,
+     "runs": 0,
+     "passes": 1,
+     "yards": 48,
+     "successes": 1,
+     "avg": "48.0",
+     "successPct": "100"
+    },
+    {
+     "name": "12",
+     "count": 1,
+     "runs": 0,
+     "passes": 1,
+     "yards": 11,
+     "successes": 1,
+     "avg": "11.0",
+     "successPct": "100"
+    },
+    {
+     "name": "21",
+     "count": 1,
+     "runs": 1,
+     "passes": 0,
+     "yards": 3,
+     "successes": 0,
+     "avg": "3.0",
+     "successPct": "0"
+    }
+   ],
+   "advanced": {
+    "total": 4.88,
+    "count": 7,
+    "perPlay": 0.697,
+    "byType": [
+     {
+      "name": "Deep Pass",
+      "total": 4.88,
+      "count": 1,
+      "perPlay": 4.88
+     },
+     {
+      "name": "Run Inside",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     }
+    ],
+    "byFormation": [
+     {
+      "name": "Empty",
+      "total": 4.88,
+      "count": 1,
+      "perPlay": 4.88
+     },
+     {
+      "name": "Shotgun",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     },
+     {
+      "name": "Trips",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     }
+    ],
+    "byPersonnel": [
+     {
+      "name": "10",
+      "total": 4.88,
+      "count": 1,
+      "perPlay": 4.88
+     },
+     {
+      "name": "11",
+      "total": 0,
+      "count": 6,
+      "perPlay": 0
+     }
+    ],
+    "byDown": {
+     "1": {
+      "count": 6,
+      "total": 0,
+      "perPlay": 0
+     },
+     "2": {
+      "count": 1,
+      "total": 4.88,
+      "perPlay": 4.88
+     },
+     "3": {
+      "count": 0,
+      "total": 0,
+      "perPlay": 0
+     },
+     "4": {
+      "count": 0,
+      "total": 0,
+      "perPlay": 0
+     }
+    },
+    "top": [
+     {
+      "play": {
+       "id": 7,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "passer": "12",
+         "receiver": "80"
+        },
+        "grades": {
+         "passer": 2,
+         "receiver": 2
+        },
+        "down": "2",
+        "distance": "5",
+        "formation": "Empty",
+        "personnel": "10",
+        "playType": "Deep Pass",
+        "runPass": "Pass",
+        "result": "Gain + Touchdown",
+        "yardage": "48",
+        "playDir": "Left",
+        "hash": "Left",
+        "fieldSide": "opp",
+        "yardLine": "48",
+        "backfield": "",
+        "strength": ""
+       },
+       "clipName": "g1_7"
+      },
+      "epa": 4.88
+     },
+     {
+      "play": {
+       "id": 1,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_1"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 2,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_2"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 3,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_3"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 4,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_4"
+      },
+      "epa": 0
+     }
+    ],
+    "worst": [
+     {
+      "play": {
+       "id": 6,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_6"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 5,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_5"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 4,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_4"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 3,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_3"
+      },
+      "epa": 0
+     },
+     {
+      "play": {
+       "id": 2,
+       "timestamp": {
+        "start": 0,
+        "end": 6
+       },
+       "notes": "",
+       "annotations": [],
+       "tags": {
+        "unit": "offense",
+        "custom": [],
+        "players": {
+         "ballCarrier": "22"
+        },
+        "grades": {
+         "ballCarrier": 1
+        },
+        "down": "1",
+        "distance": "10",
+        "formation": "Shotgun + Trips",
+        "backfield": "Single",
+        "strength": "Right",
+        "personnel": "11",
+        "motion": "Jet",
+        "playType": "Run Inside",
+        "runPass": "Run",
+        "result": "Gain",
+        "yardage": "5",
+        "playDir": "Right",
+        "hash": "Middle",
+        "fieldSide": "own",
+        "yardLine": "25"
+       },
+       "clipName": "g1_2"
+      },
+      "epa": 0
+     }
+    ],
+    "curve": [
+     {
+      "i": 0,
+      "cum": 0,
+      "epa": 0,
+      "playId": 1
+     },
+     {
+      "i": 1,
+      "cum": 0,
+      "epa": 0,
+      "playId": 2
+     },
+     {
+      "i": 2,
+      "cum": 0,
+      "epa": 0,
+      "playId": 3
+     },
+     {
+      "i": 3,
+      "cum": 0,
+      "epa": 0,
+      "playId": 4
+     },
+     {
+      "i": 4,
+      "cum": 0,
+      "epa": 0,
+      "playId": 5
+     },
+     {
+      "i": 5,
+      "cum": 0,
+      "epa": 0,
+      "playId": 6
+     },
+     {
+      "i": 6,
+      "cum": 4.88,
+      "epa": 4.88,
+      "playId": 7
+     }
+    ]
+   },
+   "defensive": {
+    "sacks": 1,
+    "sackYards": 6,
+    "tfl": 0,
+    "interceptions": 0,
+    "fumbles": 0,
+    "havocPlays": 1,
+    "havocRate": "20.0",
+    "incompletions": 0,
+    "threeAndOuts": 4,
+    "fronts": [
+     {
+      "name": "3-4",
+      "count": 3,
+      "yards": -2,
+      "successes": 3,
+      "havoc": 1,
+      "runs": 0,
+      "passes": 3
+     },
+     {
+      "name": "4-3",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2
+     },
+     {
+      "name": "Jumbo Shift",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2
+     }
+    ],
+    "coverages": [
+     {
+      "name": "Cover 3",
+      "count": 5,
+      "yards": 2,
+      "successes": 5,
+      "comps": 4,
+      "incs": 0,
+      "ints": 0,
+      "sacks": 1
+     }
+    ],
+    "blitzes": [
+     {
+      "name": "A-Gap",
+      "count": 2,
+      "yards": 4,
+      "sacks": 0,
+      "havoc": 0,
+      "successes": 2
+     },
+     {
+      "name": "Edge",
+      "count": 2,
+      "yards": 4,
+      "sacks": 0,
+      "havoc": 0,
+      "successes": 2
+     }
+    ],
+    "blitzRate": "40.0",
+    "blitzTotal": 2,
+    "blitzHavocRate": "0.0",
+    "noBlitzTotal": 3,
+    "earlyDownFronts": {
+     "label": "Early Downs",
+     "total": 5,
+     "fronts": [
+      [
+       "3-4",
+       3
+      ],
+      [
+       "4-3",
+       2
+      ],
+      [
+       "Jumbo Shift",
+       2
+      ]
+     ]
+    },
+    "passingDownFronts": {
+     "label": "Passing Downs",
+     "total": 0,
+     "fronts": []
+    },
+    "hasData": true
+   },
+   "gameFlow": [
+    {
+     "playNum": 1,
+     "yards": 5,
+     "cumYards": 5,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 2,
+     "yards": 5,
+     "cumYards": 10,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 3,
+     "yards": 5,
+     "cumYards": 15,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 4,
+     "yards": 5,
+     "cumYards": 20,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 5,
+     "yards": 5,
+     "cumYards": 25,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 6,
+     "yards": 5,
+     "cumYards": 30,
+     "isRun": true,
+     "label": "Run Inside +5"
+    },
+    {
+     "playNum": 7,
+     "yards": 48,
+     "cumYards": 78,
+     "isRun": false,
+     "label": "Deep Pass +48"
+    },
+    {
+     "playNum": 8,
+     "yards": 0,
+     "cumYards": 78,
+     "isRun": false,
+     "label": "RPO + Short Pass +0"
+    },
+    {
+     "playNum": 9,
+     "yards": 3,
+     "cumYards": 81,
+     "isRun": true,
+     "label": "Run Outside +3"
+    },
+    {
+     "playNum": 10,
+     "yards": 11,
+     "cumYards": 92,
+     "isRun": false,
+     "label": "Play Action +11"
+    }
+   ],
+   "conversions": {
+    "two": {
+     "att": 0,
+     "made": 0,
+     "pct": 0
+    },
+    "xp": {
+     "att": 0,
+     "made": 0,
+     "pct": 0
+    },
+    "hasData": false
+   },
+   "specialTeams": {
+    "punts": {
+     "n": 0,
+     "grossAvg": null,
+     "netAvg": null,
+     "hangAvg": null,
+     "tbPct": 0,
+     "blocked": 0
+    },
+    "kickoffs": {
+     "n": 0,
+     "avg": null,
+     "tbPct": 0,
+     "retAllowedAvg": null
+    },
+    "fg": {
+     "att": 0,
+     "made": 0,
+     "pct": 0,
+     "long": 0,
+     "byDist": []
+    },
+    "returns": {
+     "kick": {
+      "n": 0,
+      "avg": null,
+      "long": 0,
+      "td": 0
+     },
+     "punt": {
+      "n": 0,
+      "avg": null,
+      "long": 0,
+      "td": 0
+     }
+    },
+    "hasData": false
+   },
+   "scoreboard": {
+    "us": 9,
+    "them": 0,
+    "events": [
+     {
+      "playId": 7,
+      "quarter": "",
+      "points": 6,
+      "side": "us",
+      "type": "TD",
+      "us": 6,
+      "them": 0
+     },
+     {
+      "playId": 17,
+      "quarter": "",
+      "points": 3,
+      "side": "us",
+      "type": "FG",
+      "us": 9,
+      "them": 0
+     }
+    ],
+    "byQuarter": {},
+    "hasData": true
+   },
+   "hash": {
+    "list": [
+     {
+      "name": "Middle",
+      "count": 6,
+      "runs": 6,
+      "passes": 0,
+      "yards": 30,
+      "successes": 6,
+      "runPct": "100",
+      "avg": "5.0",
+      "successPct": "100"
+     },
+     {
+      "name": "Left",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "successes": 1,
+      "runPct": "0",
+      "avg": "48.0",
+      "successPct": "100"
+     }
+    ],
+    "formations": {
+     "Middle|Shotgun": 6,
+     "Middle|Trips": 6,
+     "Left|Empty": 1
+    },
+    "hasData": true
+   },
+   "personnelSituation": {
+    "list": [
+     {
+      "personnel": "11",
+      "situation": "1st Down",
+      "count": 6,
+      "runs": 6,
+      "passes": 0,
+      "yards": 30,
+      "successes": 6,
+      "runPct": "100",
+      "avg": "5.0",
+      "successPct": "100"
+     }
+    ],
+    "hasData": true
+   },
+   "frontCoverageCombos": {
+    "list": [
+     {
+      "name": "3-4 + Cover 3",
+      "front": "3-4",
+      "coverage": "Cover 3",
+      "count": 3,
+      "yards": -2,
+      "successes": 3,
+      "havoc": 1,
+      "runs": 0,
+      "passes": 3,
+      "avg": "-0.7",
+      "stopPct": "100",
+      "havocPct": "33"
+     },
+     {
+      "name": "4-3 + Cover 3",
+      "front": "4-3",
+      "coverage": "Cover 3",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2,
+      "avg": "2.0",
+      "stopPct": "100",
+      "havocPct": "0"
+     },
+     {
+      "name": "Jumbo Shift + Cover 3",
+      "front": "Jumbo Shift",
+      "coverage": "Cover 3",
+      "count": 2,
+      "yards": 4,
+      "successes": 2,
+      "havoc": 0,
+      "runs": 0,
+      "passes": 2,
+      "avg": "2.0",
+      "stopPct": "100",
+      "havocPct": "0"
+     }
+    ],
+    "hasData": true
+   },
+   "playAction": {
+    "paPlays": 1,
+    "paRate": "33.3",
+    "paCompPct": "100.0",
+    "paYPA": "11.0",
+    "straightCompPct": "50.0",
+    "straightYPA": "24.0",
+    "formationList": [
+     {
+      "name": "Under Center",
+      "count": 1,
+      "yards": 11,
+      "successes": 1,
+      "avg": "11.0",
+      "successPct": "100"
+     }
+    ],
+    "hasData": true
+   },
+   "dirMotion": {
+    "dirList": [
+     {
+      "name": "Left",
+      "count": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "succ": 1,
+      "runPct": "0",
+      "passPct": "100",
+      "avg": "48.0",
+      "succPct": "100"
+     },
+     {
+      "name": "Right",
+      "count": 7,
+      "runs": 7,
+      "passes": 0,
+      "yards": 33,
+      "succ": 6,
+      "runPct": "100",
+      "passPct": "0",
+      "avg": "4.7",
+      "succPct": "86"
+     }
+    ],
+    "motionList": [
+     {
+      "name": "Jet",
+      "count": 3,
+      "runs": 3,
+      "passes": 0,
+      "yards": 15,
+      "succ": 3,
+      "runPct": "100",
+      "passPct": "0",
+      "avg": "5.0",
+      "succPct": "100"
+     }
+    ],
+    "noMotion": {
+     "name": "No Motion",
+     "count": 7,
+     "runs": 4,
+     "passes": 3,
+     "yards": 77,
+     "succ": 5,
+     "runPct": "57",
+     "passPct": "43",
+     "avg": "11.0",
+     "succPct": "71"
+    },
+    "hasDirData": true,
+    "hasMotionData": true
+   },
+   "takeaways": {
+    "working": [
+     {
+      "s": 602,
+      "cut": [
+       "formation",
+       "Shotgun"
+      ],
+      "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
+     },
+     {
+      "s": 602,
+      "cut": [
+       "formation",
+       "Trips"
+      ],
+      "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+     },
+     {
+      "s": 500,
+      "cut": [
+       "coverage",
+       "Cover 3"
+      ],
+      "text": "<strong>Cover 3</strong>: 100% stop rate, 0.4 avg allowed (5 snaps)"
+     }
+    ],
+    "fix": [
+     {
+      "s": 700,
+      "text": "<strong>7 three-and-outs</strong> in 8 drives — too many stalled possessions"
+     },
+     {
+      "s": 350,
+      "cut": [
+       "playDir",
+       "Right"
+      ],
+      "text": "<strong>100%</strong> of runs go <strong>Right</strong> (7/7) — defenses will overload that side"
+     },
+     {
+      "s": 300,
+      "cut": [
+       "hash",
+       "Middle"
+      ],
+      "text": "<strong>Middle hash</strong>: 100% run (6 snaps) — predictable"
+     },
+     {
+      "s": 249.99999999999994,
+      "cut": [
+       "formation",
+       "Shotgun"
+      ],
+      "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
+     },
+     {
+      "s": 249.99999999999994,
+      "cut": [
+       "formation",
+       "Trips"
+      ],
+      "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+     }
+    ]
+   }
+  },
+  "drill": {
+   "formation::Empty": [
+    7
+   ],
+   "formation::Shotgun": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "formation::Trips": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "formation::Under Center": [
+    10
+   ],
+   "formation::Unknown": [
+    18
+   ],
+   "formation::Wildcat": [
+    9
+   ],
+   "playType::Deep Pass": [
+    7
+   ],
+   "playType::Play Action": [
+    10
+   ],
+   "playType::RPO": [
+    8
+   ],
+   "playType::Run Inside": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "playType::Run Outside": [
+    9
+   ],
+   "playType::Short Pass": [
+    8
+   ],
+   "playType::Unknown": [
+    18
+   ],
+   "defFront::3-4": [
+    11,
+    13,
+    15
+   ],
+   "defFront::4-3": [
+    12,
+    14
+   ],
+   "defFront::Jumbo Shift": [
+    12,
+    14
+   ],
+   "blitz::A-Gap": [
+    12,
+    14
+   ],
+   "blitz::Edge": [
+    12,
+    14
+   ],
+   "personnel::10": [
+    7
+   ],
+   "personnel::11": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "personnel::12": [
+    10
+   ],
+   "personnel::21": [
+    9
+   ],
+   "backfield::Single": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "strength::Right": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "down::1": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "down::2": [
+    7,
+    10
+   ],
+   "down::3": [
+    8
+   ],
+   "playDir::Left": [
+    7
+   ],
+   "playDir::Right": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "motion::Jet": [
+    2,
+    4,
+    6
+   ],
+   "motion::No Motion": [
+    1,
+    3,
+    5,
+    7,
+    8,
+    9,
+    10,
+    18
+   ],
+   "hash::Left": [
+    7
+   ],
+   "hash::Middle": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "coverage::Cover 3": [
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "runpass::Run": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "runpass::Pass": [
+    7,
+    8,
+    10
+   ],
+   "situation::redZone": [],
+   "situation::goalLine": [],
+   "situation::backedUp": [],
+   "situation::thirdLong": [
+    8
+   ],
+   "situation::thirdShort": [],
+   "situation::explosive": [
+    7
+   ],
+   "situation::negative": [],
+   "dd::1|Long": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+   ],
+   "dd::2|Long": [
+    10
+   ],
+   "dd::2|Med": [],
+   "dd::3|Long": [
+    8
+   ]
+  },
+  "reports": {
+   "selfScout": {
+    "totalPlays": 10,
+    "predictability": 81,
+    "predLabel": "Very Predictable",
+    "tells": [
+     {
+      "dim": "Down & Dist",
+      "label": "1st &amp; Long",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 4.7,
+      "leanSuccRate": 86,
+      "overallAvg": 4.7,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "dd",
+      "cutVal": "1|Long",
+      "score": 210
+     },
+     {
+      "dim": "Formation × Down",
+      "label": "Shotgun on 1st &amp; Long",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFD",
+      "cutVal": "Shotgun__1|Long",
+      "score": 180
+     },
+     {
+      "dim": "Formation × Down",
+      "label": "Trips on 1st &amp; Long",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFD",
+      "cutVal": "Trips__1|Long",
+      "score": 180
+     },
+     {
+      "dim": "Hash",
+      "label": "Middle hash",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "hash",
+      "cutVal": "Middle",
+      "score": 180
+     },
+     {
+      "dim": "Backfield",
+      "label": "From Single backfield",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "backfield",
+      "cutVal": "Single",
+      "score": 180
+     },
+     {
+      "dim": "Strength",
+      "label": "Strong Right",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "strength",
+      "cutVal": "Right",
+      "score": 180
+     },
+     {
+      "dim": "Formation × Strength",
+      "label": "Shotgun Right",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFStr",
+      "cutVal": "Shotgun__Right",
+      "score": 180
+     },
+     {
+      "dim": "Formation × Strength",
+      "label": "Trips Right",
+      "n": 6,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 5,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "comboFStr",
+      "cutVal": "Trips__Right",
+      "score": 180
+     },
+     {
+      "dim": "Formation",
+      "label": "From Shotgun",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 86,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 4.3,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 1,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "formation",
+      "cutVal": "Shotgun",
+      "score": 151.2
+     },
+     {
+      "dim": "Formation",
+      "label": "From Trips",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 86,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 4.3,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 1,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "formation",
+      "cutVal": "Trips",
+      "score": 151.2
+     },
+     {
+      "dim": "Personnel",
+      "label": "11 personnel",
+      "n": 7,
+      "lean": "Run",
+      "leanPct": 86,
+      "leanAvg": 5,
+      "leanSuccRate": 100,
+      "overallAvg": 4.3,
+      "overallSucc": 86,
+      "tds": 0,
+      "turnovers": 1,
+      "explosives": 0,
+      "verdict": "effective",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "personnel",
+      "cutVal": "11",
+      "score": 151.2
+     }
+    ],
+    "matrix": {
+     "cols": [
+      {
+       "key": "1",
+       "label": "1st"
+      },
+      {
+       "key": "2|Medium",
+       "label": "2nd & Med"
+      },
+      {
+       "key": "2|Long",
+       "label": "2nd & Long"
+      },
+      {
+       "key": "3|Long",
+       "label": "3rd & Long"
+      }
+     ],
+     "rows": [
+      "Shotgun",
+      "Trips",
+      "Empty",
+      "Wildcat",
+      "Under Center"
+     ],
+     "cells": {
+      "Shotgun\u00011": {
+       "n": 6,
+       "runs": 6,
+       "passes": 0,
+       "succ": 6,
+       "yards": 30
+      },
+      "Trips\u00011": {
+       "n": 6,
+       "runs": 6,
+       "passes": 0,
+       "succ": 6,
+       "yards": 30
+      },
+      "Empty\u00012|Medium": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 1,
+       "yards": 48
+      },
+      "Shotgun\u00013|Long": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 0,
+       "yards": 0
+      },
+      "Trips\u00013|Long": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 0,
+       "yards": 0
+      },
+      "Wildcat\u00011": {
+       "n": 1,
+       "runs": 1,
+       "passes": 0,
+       "succ": 0,
+       "yards": 3
+      },
+      "Under Center\u00012|Long": {
+       "n": 1,
+       "runs": 0,
+       "passes": 1,
+       "succ": 1,
+       "yards": 11
+      }
+     },
+     "rowN": {
+      "Shotgun": 7,
+      "Trips": 7,
+      "Empty": 1,
+      "Wildcat": 1,
+      "Under Center": 1
+     }
+    },
+    "formationRows": [
+     {
+      "key": "Shotgun",
+      "n": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "runYards": 30,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 86,
+      "passPct": 14,
+      "lean": "Run",
+      "leanPct": 86,
+      "avg": 4.3,
+      "succRate": 86,
+      "runAvg": 5,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "Trips",
+      "n": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "runYards": 30,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 86,
+      "passPct": 14,
+      "lean": "Run",
+      "leanPct": 86,
+      "avg": 4.3,
+      "succRate": 86,
+      "runAvg": 5,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "Empty",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "runYards": 0,
+      "passYards": 48,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 1,
+      "tds": 1,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 48,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 48,
+      "tell": false
+     },
+     {
+      "key": "Wildcat",
+      "n": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "runYards": 3,
+      "passYards": 0,
+      "runSucc": 0,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 100,
+      "passPct": 0,
+      "lean": "Run",
+      "leanPct": 100,
+      "avg": 3,
+      "succRate": 0,
+      "runAvg": 3,
+      "passAvg": 0,
+      "tell": false
+     },
+     {
+      "key": "Under Center",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "runYards": 0,
+      "passYards": 11,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 11,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 11,
+      "tell": false
+     }
+    ],
+    "downDistRows": [
+     {
+      "key": "1|Long",
+      "n": 7,
+      "runs": 7,
+      "passes": 0,
+      "yards": 33,
+      "runYards": 33,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 100,
+      "passPct": 0,
+      "lean": "Run",
+      "leanPct": 100,
+      "avg": 4.7,
+      "succRate": 86,
+      "runAvg": 4.7,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "2|Medium",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "runYards": 0,
+      "passYards": 48,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 1,
+      "tds": 1,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 48,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 48,
+      "tell": false
+     },
+     {
+      "key": "3|Long",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 0,
+      "runYards": 0,
+      "passYards": 0,
+      "runSucc": 0,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 0,
+      "succRate": 0,
+      "runAvg": 0,
+      "passAvg": 0,
+      "tell": false
+     },
+     {
+      "key": "2|Long",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "runYards": 0,
+      "passYards": 11,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 11,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 11,
+      "tell": false
+     }
+    ],
+    "personnelRows": [
+     {
+      "key": "11",
+      "n": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "runYards": 30,
+      "passYards": 0,
+      "runSucc": 6,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 1,
+      "runPct": 86,
+      "passPct": 14,
+      "lean": "Run",
+      "leanPct": 86,
+      "avg": 4.3,
+      "succRate": 86,
+      "runAvg": 5,
+      "passAvg": 0,
+      "tell": true
+     },
+     {
+      "key": "10",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "runYards": 0,
+      "passYards": 48,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 1,
+      "tds": 1,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 48,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 48,
+      "tell": false
+     },
+     {
+      "key": "12",
+      "n": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "runYards": 0,
+      "passYards": 11,
+      "runSucc": 0,
+      "passSucc": 1,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 0,
+      "passPct": 100,
+      "lean": "Pass",
+      "leanPct": 100,
+      "avg": 11,
+      "succRate": 100,
+      "runAvg": 0,
+      "passAvg": 11,
+      "tell": false
+     },
+     {
+      "key": "21",
+      "n": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "runYards": 3,
+      "passYards": 0,
+      "runSucc": 0,
+      "passSucc": 0,
+      "explosives": 0,
+      "tds": 0,
+      "turnovers": 0,
+      "runPct": 100,
+      "passPct": 0,
+      "lean": "Run",
+      "leanPct": 100,
+      "avg": 3,
+      "succRate": 0,
+      "runAvg": 3,
+      "passAvg": 0,
+      "tell": false
+     }
+    ],
+    "personnelDiversity": [
+     {
+      "personnel": "11",
+      "n": 7,
+      "uniqueFormations": 2,
+      "topFormation": "Shotgun",
+      "topCount": 7,
+      "topPct": 100,
+      "formations": [
+       {
+        "formation": "Shotgun",
+        "count": 7,
+        "pct": 100
+       },
+       {
+        "formation": "Trips",
+        "count": 7,
+        "pct": 100
+       }
+      ]
+     }
+    ],
+    "recommendations": [
+     "<span class=\"ss-rec-label\">1st &amp; Long</span>: your run lean (100%) is adequate at 4.7 yds/86% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Shotgun on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Trips on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
+    ],
+    "insights": [
+     {
+      "type": "direction",
+      "priority": 360,
+      "text": "From <strong>Shotgun</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
+      "tag": "Direction Tell"
+     },
+     {
+      "type": "direction",
+      "priority": 360,
+      "text": "From <strong>Trips</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
+      "tag": "Direction Tell"
+     },
+     {
+      "type": "personnel",
+      "priority": 315,
+      "text": "<strong>11 personnel</strong> lines up in <strong>Shotgun</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "tag": "Personnel Tell"
+     }
+    ],
+    "defScout": {
+     "insufficient": true,
+     "defPlays": 5,
+     "schemePlays": 5
+    }
+   },
+   "defScout": {
+    "insufficient": true,
+    "defPlays": 5,
+    "schemePlays": 5
+   },
+   "scout": {
+    "totalPlays": 18,
+    "stats": {
+     "totalPlays": 10,
+     "allPlays": 15,
+     "offPlays": {
+      "__plays": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10
+      ]
+     },
+     "defPlays": {
+      "__plays": [
+       11,
+       12,
+       13,
+       14,
+       15
+      ]
+     },
+     "filterActive": false,
+     "rushing": {
+      "attempts": 7,
+      "yards": 33,
+      "average": "4.7",
+      "touchdowns": 0,
+      "fumbles": 0,
+      "longest": 5,
+      "firstDowns": 0
+     },
+     "passing": {
+      "attempts": 3,
+      "completions": 2,
+      "yards": 59,
+      "average": "19.7",
+      "yardsPerCompletion": "29.5",
+      "completionPct": "66.7",
+      "touchdowns": 1,
+      "interceptions": 1,
+      "sacks": 0,
+      "sackYards": 0,
+      "longest": 48,
+      "firstDowns": 2
+     },
+     "scoring": {
+      "touchdowns": 1,
+      "rushingTDs": 0,
+      "passingTDs": 1
+     },
+     "downs": {
+      "byDown": {
+       "1": {
+        "total": 7,
+        "runs": 7,
+        "passes": 0,
+        "runPct": "100",
+        "passPct": "0",
+        "avgYards": "4.7",
+        "conversionPct": "0.0"
+       },
+       "2": {
+        "total": 2,
+        "runs": 0,
+        "passes": 2,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "29.5",
+        "conversionPct": "100.0"
+       },
+       "3": {
+        "total": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "0.0",
+        "conversionPct": "0.0"
+       },
+       "4": {
+        "total": 0,
+        "runPct": "0",
+        "passPct": "0",
+        "avgYards": "0.0",
+        "conversionPct": "0.0"
+       }
+      },
+      "totalFirstDowns": 2,
+      "thirdDownConv": "0/1",
+      "thirdDownPct": "0.0",
+      "fourthDownConv": "0/0",
+      "fourthDownPct": "0.0",
+      "ddBuckets": [
+       {
+        "down": "1",
+        "bucket": "Long",
+        "count": 7,
+        "runs": 7,
+        "passes": 0,
+        "runPct": "100",
+        "passPct": "0",
+        "avgYards": "4.7",
+        "convPct": "0.0",
+        "succPct": "85.7",
+        "sortKey": 2
+       },
+       {
+        "down": "2",
+        "bucket": "Medium",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "48.0",
+        "convPct": "100.0",
+        "succPct": "100.0",
+        "sortKey": 11
+       },
+       {
+        "down": "2",
+        "bucket": "Long",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "11.0",
+        "convPct": "100.0",
+        "succPct": "100.0",
+        "sortKey": 12
+       },
+       {
+        "down": "3",
+        "bucket": "Long",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avgYards": "0.0",
+        "convPct": "0.0",
+        "succPct": "0.0",
+        "sortKey": 22
+       }
+      ]
+     },
+     "turnovers": {
+      "total": 1,
+      "interceptions": 1,
+      "fumbles": 0
+     },
+     "tendencies": {
+      "formations": {
+       "Shotgun": 7,
+       "Trips": 7,
+       "Empty": 1,
+       "Wildcat": 1,
+       "Under Center": 1
+      },
+      "formationList": [
+       {
+        "name": "Shotgun",
+        "count": 7,
+        "runs": 6,
+        "passes": 1,
+        "yards": 30,
+        "successes": 6,
+        "avg": "4.3",
+        "successPct": "86"
+       },
+       {
+        "name": "Trips",
+        "count": 7,
+        "runs": 6,
+        "passes": 1,
+        "yards": 30,
+        "successes": 6,
+        "avg": "4.3",
+        "successPct": "86"
+       },
+       {
+        "name": "Empty",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "successes": 1,
+        "avg": "48.0",
+        "successPct": "100"
+       },
+       {
+        "name": "Wildcat",
+        "count": 1,
+        "runs": 1,
+        "passes": 0,
+        "yards": 3,
+        "successes": 0,
+        "avg": "3.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Under Center",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 11,
+        "successes": 1,
+        "avg": "11.0",
+        "successPct": "100"
+       }
+      ],
+      "playTypes": {
+       "Run Inside": 6,
+       "Deep Pass": 1,
+       "RPO": 1,
+       "Short Pass": 1,
+       "Run Outside": 1,
+       "Play Action": 1
+      },
+      "playTypeList": [
+       {
+        "name": "Run Inside",
+        "count": 6,
+        "runs": 6,
+        "passes": 0,
+        "yards": 30,
+        "successes": 6,
+        "avg": "5.0",
+        "successPct": "100"
+       },
+       {
+        "name": "Deep Pass",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "successes": 1,
+        "avg": "48.0",
+        "successPct": "100"
+       },
+       {
+        "name": "RPO",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 0,
+        "successes": 0,
+        "avg": "0.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Short Pass",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 0,
+        "successes": 0,
+        "avg": "0.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Run Outside",
+        "count": 1,
+        "runs": 1,
+        "passes": 0,
+        "yards": 3,
+        "successes": 0,
+        "avg": "3.0",
+        "successPct": "0"
+       },
+       {
+        "name": "Play Action",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 11,
+        "successes": 1,
+        "avg": "11.0",
+        "successPct": "100"
+       }
+      ],
+      "runs": 7,
+      "passes": 3,
+      "runYds": 33,
+      "passYds": 59,
+      "runSuccRate": "85.7",
+      "passSuccRate": "66.7",
+      "runPassRatio": "7/3",
+      "runPct": "70.0",
+      "passPct": "30.0"
+     },
+     "bigPlays": [
+      {
+       "id": 7,
+       "type": "Deep Pass",
+       "result": "Gain + Touchdown",
+       "yards": "48",
+       "clipName": "g1_7"
+      }
+     ],
+     "individuals": {
+      "rushers": [
+       {
+        "num": "22",
+        "attempts": 6,
+        "yards": 30,
+        "tds": 0,
+        "long": 5,
+        "fumbles": 0,
+        "gradeSum": 6,
+        "gradeCount": 6
+       }
+      ],
+      "passers": [
+       {
+        "num": "12",
+        "attempts": 2,
+        "completions": 1,
+        "yards": 48,
+        "tds": 1,
+        "ints": 1,
+        "sacks": 0,
+        "gradeSum": 2,
+        "gradeCount": 1
+       }
+      ],
+      "receivers": [
+       {
+        "num": "80",
+        "receptions": 1,
+        "yards": 48,
+        "tds": 1,
+        "long": 48,
+        "gradeSum": 2,
+        "gradeCount": 1
+       }
+      ],
+      "tacklers": [
+       {
+        "num": "55",
+        "tackles": 5,
+        "solo": 1,
+        "assists": 4,
+        "sacks": 1,
+        "tfl": 0,
+        "ints": 0,
+        "fumblesRec": 0
+       },
+       {
+        "num": "22",
+        "tackles": 4,
+        "solo": 0,
+        "assists": 4,
+        "sacks": 0,
+        "tfl": 0,
+        "ints": 0,
+        "fumblesRec": 0
+       }
+      ],
+      "returners": [],
+      "kickers": []
+     },
+     "drives": {
+      "total": 8,
+      "list": [
+       {
+        "number": 1,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         1
+        ]
+       },
+       {
+        "number": 2,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         2
+        ]
+       },
+       {
+        "number": 3,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         3
+        ]
+       },
+       {
+        "number": 4,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         4
+        ]
+       },
+       {
+        "number": 5,
+        "plays": 1,
+        "yards": 5,
+        "outcome": "Other",
+        "startYL": 25,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         5
+        ]
+       },
+       {
+        "number": 6,
+        "plays": 2,
+        "yards": 53,
+        "outcome": "TD",
+        "startYL": 25,
+        "points": 6,
+        "driveType": "Explosive",
+        "playIds": [
+         6,
+         7
+        ]
+       },
+       {
+        "number": 7,
+        "plays": 1,
+        "yards": 0,
+        "outcome": "Turnover",
+        "startYL": null,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         8
+        ]
+       },
+       {
+        "number": 8,
+        "plays": 2,
+        "yards": 14,
+        "outcome": "Other",
+        "startYL": null,
+        "points": 0,
+        "driveType": "3-and-out",
+        "playIds": [
+         9,
+         10
+        ]
+       }
+      ],
+      "scoringDrives": 1,
+      "threeAndOuts": 7,
+      "totalPoints": 6,
+      "pointsPerDrive": "0.8",
+      "avgPlaysPerDrive": "1.3",
+      "avgYardsPerDrive": "11.5"
+     },
+     "situational": {
+      "redZone": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "goalLine": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "backedUp": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "thirdLong": {
+       "total": 1,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "thirdShort": {
+       "total": 0,
+       "tds": 0,
+       "successes": 0,
+       "yards": 0,
+       "avg": "0.0",
+       "successPct": "0"
+      },
+      "byQuarter": {
+       "Q1": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "Q2": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "Q3": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "Q4": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       },
+       "OT": {
+        "plays": 0,
+        "yards": 0,
+        "tds": 0
+       }
+      }
+     },
+     "efficiency": {
+      "successRate": "80.0",
+      "successes": 8,
+      "explosivePct": "10.0",
+      "explosivePlays": 1,
+      "negativePct": "0.0",
+      "negativePlays": 0
+     },
+     "personnel": [
+      {
+       "name": "11",
+       "count": 7,
+       "runs": 6,
+       "passes": 1,
+       "yards": 30,
+       "successes": 6,
+       "avg": "4.3",
+       "successPct": "86"
+      },
+      {
+       "name": "10",
+       "count": 1,
+       "runs": 0,
+       "passes": 1,
+       "yards": 48,
+       "successes": 1,
+       "avg": "48.0",
+       "successPct": "100"
+      },
+      {
+       "name": "12",
+       "count": 1,
+       "runs": 0,
+       "passes": 1,
+       "yards": 11,
+       "successes": 1,
+       "avg": "11.0",
+       "successPct": "100"
+      },
+      {
+       "name": "21",
+       "count": 1,
+       "runs": 1,
+       "passes": 0,
+       "yards": 3,
+       "successes": 0,
+       "avg": "3.0",
+       "successPct": "0"
+      }
+     ],
+     "advanced": {
+      "total": 4.88,
+      "count": 7,
+      "perPlay": 0.697,
+      "byType": [
+       {
+        "name": "Deep Pass",
+        "total": 4.88,
+        "count": 1,
+        "perPlay": 4.88
+       },
+       {
+        "name": "Run Inside",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       }
+      ],
+      "byFormation": [
+       {
+        "name": "Empty",
+        "total": 4.88,
+        "count": 1,
+        "perPlay": 4.88
+       },
+       {
+        "name": "Shotgun",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       },
+       {
+        "name": "Trips",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       }
+      ],
+      "byPersonnel": [
+       {
+        "name": "10",
+        "total": 4.88,
+        "count": 1,
+        "perPlay": 4.88
+       },
+       {
+        "name": "11",
+        "total": 0,
+        "count": 6,
+        "perPlay": 0
+       }
+      ],
+      "byDown": {
+       "1": {
+        "count": 6,
+        "total": 0,
+        "perPlay": 0
+       },
+       "2": {
+        "count": 1,
+        "total": 4.88,
+        "perPlay": 4.88
+       },
+       "3": {
+        "count": 0,
+        "total": 0,
+        "perPlay": 0
+       },
+       "4": {
+        "count": 0,
+        "total": 0,
+        "perPlay": 0
+       }
+      },
+      "top": [
+       {
+        "play": {
+         "id": 7,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "passer": "12",
+           "receiver": "80"
+          },
+          "grades": {
+           "passer": 2,
+           "receiver": 2
+          },
+          "down": "2",
+          "distance": "5",
+          "formation": "Empty",
+          "personnel": "10",
+          "playType": "Deep Pass",
+          "runPass": "Pass",
+          "result": "Gain + Touchdown",
+          "yardage": "48",
+          "playDir": "Left",
+          "hash": "Left",
+          "fieldSide": "opp",
+          "yardLine": "48",
+          "backfield": "",
+          "strength": ""
+         },
+         "clipName": "g1_7"
+        },
+        "epa": 4.88
+       },
+       {
+        "play": {
+         "id": 1,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_1"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 2,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_2"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 3,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_3"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 4,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_4"
+        },
+        "epa": 0
+       }
+      ],
+      "worst": [
+       {
+        "play": {
+         "id": 6,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_6"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 5,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_5"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 4,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_4"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 3,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_3"
+        },
+        "epa": 0
+       },
+       {
+        "play": {
+         "id": 2,
+         "timestamp": {
+          "start": 0,
+          "end": 6
+         },
+         "notes": "",
+         "annotations": [],
+         "tags": {
+          "unit": "offense",
+          "custom": [],
+          "players": {
+           "ballCarrier": "22"
+          },
+          "grades": {
+           "ballCarrier": 1
+          },
+          "down": "1",
+          "distance": "10",
+          "formation": "Shotgun + Trips",
+          "backfield": "Single",
+          "strength": "Right",
+          "personnel": "11",
+          "motion": "Jet",
+          "playType": "Run Inside",
+          "runPass": "Run",
+          "result": "Gain",
+          "yardage": "5",
+          "playDir": "Right",
+          "hash": "Middle",
+          "fieldSide": "own",
+          "yardLine": "25"
+         },
+         "clipName": "g1_2"
+        },
+        "epa": 0
+       }
+      ],
+      "curve": [
+       {
+        "i": 0,
+        "cum": 0,
+        "epa": 0,
+        "playId": 1
+       },
+       {
+        "i": 1,
+        "cum": 0,
+        "epa": 0,
+        "playId": 2
+       },
+       {
+        "i": 2,
+        "cum": 0,
+        "epa": 0,
+        "playId": 3
+       },
+       {
+        "i": 3,
+        "cum": 0,
+        "epa": 0,
+        "playId": 4
+       },
+       {
+        "i": 4,
+        "cum": 0,
+        "epa": 0,
+        "playId": 5
+       },
+       {
+        "i": 5,
+        "cum": 0,
+        "epa": 0,
+        "playId": 6
+       },
+       {
+        "i": 6,
+        "cum": 4.88,
+        "epa": 4.88,
+        "playId": 7
+       }
+      ]
+     },
+     "defensive": {
+      "sacks": 1,
+      "sackYards": 6,
+      "tfl": 0,
+      "interceptions": 0,
+      "fumbles": 0,
+      "havocPlays": 1,
+      "havocRate": "20.0",
+      "incompletions": 0,
+      "threeAndOuts": 4,
+      "fronts": [
+       {
+        "name": "3-4",
+        "count": 3,
+        "yards": -2,
+        "successes": 3,
+        "havoc": 1,
+        "runs": 0,
+        "passes": 3
+       },
+       {
+        "name": "4-3",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2
+       },
+       {
+        "name": "Jumbo Shift",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2
+       }
+      ],
+      "coverages": [
+       {
+        "name": "Cover 3",
+        "count": 5,
+        "yards": 2,
+        "successes": 5,
+        "comps": 4,
+        "incs": 0,
+        "ints": 0,
+        "sacks": 1
+       }
+      ],
+      "blitzes": [
+       {
+        "name": "A-Gap",
+        "count": 2,
+        "yards": 4,
+        "sacks": 0,
+        "havoc": 0,
+        "successes": 2
+       },
+       {
+        "name": "Edge",
+        "count": 2,
+        "yards": 4,
+        "sacks": 0,
+        "havoc": 0,
+        "successes": 2
+       }
+      ],
+      "blitzRate": "40.0",
+      "blitzTotal": 2,
+      "blitzHavocRate": "0.0",
+      "noBlitzTotal": 3,
+      "earlyDownFronts": {
+       "label": "Early Downs",
+       "total": 5,
+       "fronts": [
+        [
+         "3-4",
+         3
+        ],
+        [
+         "4-3",
+         2
+        ],
+        [
+         "Jumbo Shift",
+         2
+        ]
+       ]
+      },
+      "passingDownFronts": {
+       "label": "Passing Downs",
+       "total": 0,
+       "fronts": []
+      },
+      "hasData": true
+     },
+     "gameFlow": [
+      {
+       "playNum": 1,
+       "yards": 5,
+       "cumYards": 5,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 2,
+       "yards": 5,
+       "cumYards": 10,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 3,
+       "yards": 5,
+       "cumYards": 15,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 4,
+       "yards": 5,
+       "cumYards": 20,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 5,
+       "yards": 5,
+       "cumYards": 25,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 6,
+       "yards": 5,
+       "cumYards": 30,
+       "isRun": true,
+       "label": "Run Inside +5"
+      },
+      {
+       "playNum": 7,
+       "yards": 48,
+       "cumYards": 78,
+       "isRun": false,
+       "label": "Deep Pass +48"
+      },
+      {
+       "playNum": 8,
+       "yards": 0,
+       "cumYards": 78,
+       "isRun": false,
+       "label": "RPO + Short Pass +0"
+      },
+      {
+       "playNum": 9,
+       "yards": 3,
+       "cumYards": 81,
+       "isRun": true,
+       "label": "Run Outside +3"
+      },
+      {
+       "playNum": 10,
+       "yards": 11,
+       "cumYards": 92,
+       "isRun": false,
+       "label": "Play Action +11"
+      }
+     ],
+     "conversions": {
+      "two": {
+       "att": 0,
+       "made": 0,
+       "pct": 0
+      },
+      "xp": {
+       "att": 0,
+       "made": 0,
+       "pct": 0
+      },
+      "hasData": false
+     },
+     "specialTeams": {
+      "punts": {
+       "n": 0,
+       "grossAvg": null,
+       "netAvg": null,
+       "hangAvg": null,
+       "tbPct": 0,
+       "blocked": 0
+      },
+      "kickoffs": {
+       "n": 0,
+       "avg": null,
+       "tbPct": 0,
+       "retAllowedAvg": null
+      },
+      "fg": {
+       "att": 0,
+       "made": 0,
+       "pct": 0,
+       "long": 0,
+       "byDist": []
+      },
+      "returns": {
+       "kick": {
+        "n": 0,
+        "avg": null,
+        "long": 0,
+        "td": 0
+       },
+       "punt": {
+        "n": 0,
+        "avg": null,
+        "long": 0,
+        "td": 0
+       }
+      },
+      "hasData": false
+     },
+     "scoreboard": {
+      "us": 9,
+      "them": 0,
+      "events": [
+       {
+        "playId": 7,
+        "quarter": "",
+        "points": 6,
+        "side": "us",
+        "type": "TD",
+        "us": 6,
+        "them": 0
+       },
+       {
+        "playId": 17,
+        "quarter": "",
+        "points": 3,
+        "side": "us",
+        "type": "FG",
+        "us": 9,
+        "them": 0
+       }
+      ],
+      "byQuarter": {},
+      "hasData": true
+     },
+     "hash": {
+      "list": [
+       {
+        "name": "Middle",
+        "count": 6,
+        "runs": 6,
+        "passes": 0,
+        "yards": 30,
+        "successes": 6,
+        "runPct": "100",
+        "avg": "5.0",
+        "successPct": "100"
+       },
+       {
+        "name": "Left",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "successes": 1,
+        "runPct": "0",
+        "avg": "48.0",
+        "successPct": "100"
+       }
+      ],
+      "formations": {
+       "Middle|Shotgun": 6,
+       "Middle|Trips": 6,
+       "Left|Empty": 1
+      },
+      "hasData": true
+     },
+     "personnelSituation": {
+      "list": [
+       {
+        "personnel": "11",
+        "situation": "1st Down",
+        "count": 6,
+        "runs": 6,
+        "passes": 0,
+        "yards": 30,
+        "successes": 6,
+        "runPct": "100",
+        "avg": "5.0",
+        "successPct": "100"
+       }
+      ],
+      "hasData": true
+     },
+     "frontCoverageCombos": {
+      "list": [
+       {
+        "name": "3-4 + Cover 3",
+        "front": "3-4",
+        "coverage": "Cover 3",
+        "count": 3,
+        "yards": -2,
+        "successes": 3,
+        "havoc": 1,
+        "runs": 0,
+        "passes": 3,
+        "avg": "-0.7",
+        "stopPct": "100",
+        "havocPct": "33"
+       },
+       {
+        "name": "4-3 + Cover 3",
+        "front": "4-3",
+        "coverage": "Cover 3",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2,
+        "avg": "2.0",
+        "stopPct": "100",
+        "havocPct": "0"
+       },
+       {
+        "name": "Jumbo Shift + Cover 3",
+        "front": "Jumbo Shift",
+        "coverage": "Cover 3",
+        "count": 2,
+        "yards": 4,
+        "successes": 2,
+        "havoc": 0,
+        "runs": 0,
+        "passes": 2,
+        "avg": "2.0",
+        "stopPct": "100",
+        "havocPct": "0"
+       }
+      ],
+      "hasData": true
+     },
+     "playAction": {
+      "paPlays": 1,
+      "paRate": "33.3",
+      "paCompPct": "100.0",
+      "paYPA": "11.0",
+      "straightCompPct": "50.0",
+      "straightYPA": "24.0",
+      "formationList": [
+       {
+        "name": "Under Center",
+        "count": 1,
+        "yards": 11,
+        "successes": 1,
+        "avg": "11.0",
+        "successPct": "100"
+       }
+      ],
+      "hasData": true
+     },
+     "dirMotion": {
+      "dirList": [
+       {
+        "name": "Left",
+        "count": 1,
+        "runs": 0,
+        "passes": 1,
+        "yards": 48,
+        "succ": 1,
+        "runPct": "0",
+        "passPct": "100",
+        "avg": "48.0",
+        "succPct": "100"
+       },
+       {
+        "name": "Right",
+        "count": 7,
+        "runs": 7,
+        "passes": 0,
+        "yards": 33,
+        "succ": 6,
+        "runPct": "100",
+        "passPct": "0",
+        "avg": "4.7",
+        "succPct": "86"
+       }
+      ],
+      "motionList": [
+       {
+        "name": "Jet",
+        "count": 3,
+        "runs": 3,
+        "passes": 0,
+        "yards": 15,
+        "succ": 3,
+        "runPct": "100",
+        "passPct": "0",
+        "avg": "5.0",
+        "succPct": "100"
+       }
+      ],
+      "noMotion": {
+       "name": "No Motion",
+       "count": 7,
+       "runs": 4,
+       "passes": 3,
+       "yards": 77,
+       "succ": 5,
+       "runPct": "57",
+       "passPct": "43",
+       "avg": "11.0",
+       "succPct": "71"
+      },
+      "hasDirData": true,
+      "hasMotionData": true
+     },
+     "takeaways": {
+      "working": [
+       {
+        "s": 602,
+        "cut": [
+         "formation",
+         "Shotgun"
+        ],
+        "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
+       },
+       {
+        "s": 602,
+        "cut": [
+         "formation",
+         "Trips"
+        ],
+        "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+       },
+       {
+        "s": 500,
+        "cut": [
+         "coverage",
+         "Cover 3"
+        ],
+        "text": "<strong>Cover 3</strong>: 100% stop rate, 0.4 avg allowed (5 snaps)"
+       }
+      ],
+      "fix": [
+       {
+        "s": 700,
+        "text": "<strong>7 three-and-outs</strong> in 8 drives — too many stalled possessions"
+       },
+       {
+        "s": 350,
+        "cut": [
+         "playDir",
+         "Right"
+        ],
+        "text": "<strong>100%</strong> of runs go <strong>Right</strong> (7/7) — defenses will overload that side"
+       },
+       {
+        "s": 300,
+        "cut": [
+         "hash",
+         "Middle"
+        ],
+        "text": "<strong>Middle hash</strong>: 100% run (6 snaps) — predictable"
+       },
+       {
+        "s": 249.99999999999994,
+        "cut": [
+         "formation",
+         "Shotgun"
+        ],
+        "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
+       },
+       {
+        "s": 249.99999999999994,
+        "cut": [
+         "formation",
+         "Trips"
+        ],
+        "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+       }
+      ]
+     }
+    },
+    "formationDetail": [
+     {
+      "name": "Unknown",
+      "total": 8,
+      "runs": 0,
+      "passes": 8,
+      "yards": 2,
+      "tds": 0,
+      "runPct": 0
+     },
+     {
+      "name": "Shotgun",
+      "total": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "tds": 0,
+      "runPct": 86
+     },
+     {
+      "name": "Trips",
+      "total": 7,
+      "runs": 6,
+      "passes": 1,
+      "yards": 30,
+      "tds": 0,
+      "runPct": 86
+     },
+     {
+      "name": "Empty",
+      "total": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 48,
+      "tds": 1,
+      "runPct": 0
+     },
+     {
+      "name": "Wildcat",
+      "total": 1,
+      "runs": 1,
+      "passes": 0,
+      "yards": 3,
+      "tds": 0,
+      "runPct": 100
+     },
+     {
+      "name": "Under Center",
+      "total": 1,
+      "runs": 0,
+      "passes": 1,
+      "yards": 11,
+      "tds": 0,
+      "runPct": 0
+     }
+    ],
+    "downTendency": [
+     {
+      "key": "1&10",
+      "runs": 7,
+      "passes": 5,
+      "total": 12,
+      "runPct": 58
+     },
+     {
+      "key": "?&?",
+      "runs": 0,
+      "passes": 3,
+      "total": 3,
+      "runPct": 0
+     },
+     {
+      "key": "2&5",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     },
+     {
+      "key": "3&9",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     },
+     {
+      "key": "2&7",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     }
+    ],
+    "fronts": [
+     [
+      "3-4",
+      3
+     ],
+     [
+      "4-3",
+      2
+     ],
+     [
+      "Jumbo Shift",
+      2
+     ]
+    ],
+    "coverages": [
+     [
+      "Cover 3",
+      5
+     ]
+    ],
+    "redZone": {
+     "total": 0,
+     "tds": 0
+    },
+    "thirdDown": {
+     "total": 1,
+     "converted": 0
+    }
+   }
+  }
+ }
+}

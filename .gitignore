@@ -16,3 +16,7 @@ package-lock.json
 src-tauri/target/
 dist/
 _shots/
+
+# Parity: the real-season golden holds the coach's real data (PII) — local only.
+# The synthetic-edge golden IS committed (reproducible on CI).
+tools/parity-golden/mavericks-6game.json
