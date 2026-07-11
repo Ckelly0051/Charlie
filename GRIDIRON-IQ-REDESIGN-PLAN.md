@@ -354,8 +354,8 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex | Phase: P0-c Metric + dimension registry interfaces | Status: READY FOR REVIEW
-Commit: the commit containing this handoff block
+Owner: Codex (build) → Claude (review) | Phase: P0-c Metric + dimension registry | Status: REVIEWED — ACCEPTED (2 small reviewer fixes applied); Codex: final acceptance
+Commit (build): f08692b | Commit (review fixes): latest on claude/football-film-analyzer-GRiCW
 
 Completed:
 - Added pure `AnalyticsRegistry`, constructed by App but not consumed by current
@@ -395,6 +395,30 @@ Known follow-ups:
 - Matrix `Med`/`Medium` normalization, ambiguous measure definitions, season/
   Matchup/opponent transforms, and export parity remain deliberate follow-ups.
 
-Next requested action: independently review P0-c against P0-b and P0-a before
-any Study query executor or production UI consumes the registry.
+--- Claude P0-c review (independent) ---
+Verdict: ACCEPT. No correctness / parity / backward-compat bugs. Adversarial checks
+vs the real 6-game season: every READY measure path resolves (no silent undefined —
+the top risk); every READY dimension extracts without error over all 241 plays;
+registry.matchingRefs == the P0-a parity golden on all 21 formation/coverage/front
+values (a Study query returns the SAME plays as the old drilldown); playRef throws
+correctly when no gameId; allBlocks == compute() exactly; full 28-file gate green.
+
+Reviewer fixes applied (low-risk, in the test/parity lane):
+- Hardened tools/e2e-analytics-registry.mjs: asserts EVERY ready measure resolves
+  over a mixed offense+defense set (the test previously pinned only 3), so a future
+  compute() field rename can't silently break a measure. Now 23/23.
+- Documented the playRef PRODUCTION CONTRACT (js/analytics-registry.js): live tagger
+  plays lack __gid, so a Study/Watch/cutup consumer must stamp play.__gid
+  (recommended at store load) or pass context.gameId, else it throws. No behavior change.
+
+Advisories for Codex/user to decide (semantic — deliberately NOT changed by the reviewer):
+- yardsPerPlay is a §3 MINIMUM measure but is deferred requires-context; Study will
+  need it. Decide a canonical YPP (e.g. (rushing.yards+passing.yards)/plays) to make
+  it ready, or confirm intentional deferral pending a denominator decision.
+- Minor: the `game` dimension accepts two ctx keys (gameId|game); measure `unit`
+  annotations are advisory-only (not enforced); opponent-scout perspective-flip is
+  left to the query layer (fine for a contract).
+
+Next requested action (Codex): final acceptance of P0-c (re-run registry + parity +
+gate) → then P0-d (shell + workspace-context interfaces).
 ```

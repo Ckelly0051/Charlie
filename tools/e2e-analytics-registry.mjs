@@ -28,6 +28,20 @@ const result = await page.evaluate(() => {
     grades: { passer: 2 }
   }};
   const stats = registry.stats.compute([play]);
+  // Harden (reviewer add, P0-c review): assert EVERY ready measure resolves — not
+  // just the 3 spot-checked below — over a MIXED offense+defense set, so a future
+  // compute() field rename can't silently break a "ready" measure's path.
+  const mixed = [
+    play,
+    { id: 8, __gid: 'g2', tags: { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '6', down: '1', distance: '10', formation: 'Under Center' } },
+    { id: 9, __gid: 'g2', tags: { unit: 'offense', playType: 'Run Outside', runPass: 'Run', result: 'Loss', yardage: '-2', down: '2', distance: '9', formation: 'Pistol' } },
+    { id: 10, __gid: 'g2', tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 3', blitz: 'A-Gap', playType: 'Short Pass', runPass: 'Pass', result: 'Sack', yardage: '-5', down: '3', distance: '7' } },
+    { id: 11, __gid: 'g2', tags: { unit: 'defense', defFront: '3-4', coverage: 'Cover 2', playType: 'Deep Pass', runPass: 'Pass', result: 'Interception', yardage: '0', down: '2', distance: '8' } },
+  ];
+  const mixedStats = registry.stats.compute(mixed);
+  const readyMeasureIds = registry.listMeasures().filter(m => m.availability === 'ready').map(m => m.id);
+  const resolved = registry.readMeasures(mixedStats, readyMeasureIds);
+  const unresolvedMeasures = readyMeasureIds.filter(id => resolved[id] === undefined);
   const matrixDims = registry.stats.constructor._matrixDimensions();
   const matrixValues = Object.fromEntries(matrixDims.map(d => [d.id, d.extract(play)]));
   const matrix = registry.stats._computeMatrix([play], 'formation', 'distBucket');
@@ -47,6 +61,7 @@ const result = await page.evaluate(() => {
     grades: registry.values('grade', play),
     ref: registry.playRef(play),
     selected: registry.readMeasures(stats, ['plays', 'successRate', 'epaPerPlay']),
+    unresolvedMeasures,
     blocksSelected: registry.readBlocks(stats, ['rushing', 'advanced']),
     allBlocksExact: registry.listBlocks().every(entry =>
       JSON.stringify(registry.readBlocks(stats, [entry.id])[entry.id]) === JSON.stringify(stats[entry.id])),
@@ -77,6 +92,7 @@ if (!result.missing) {
   ok(result.playerRoles[0] === 'passer=12' && result.grades[0] === 'passer=2', 'Player role and grade dimensions preserve role identity');
   ok(result.ref === 'g2::7', 'Composite play reference is gameId::playId');
   ok(result.selected.plays === 1 && result.selected.successRate === '100.0' && result.selected.epaPerPlay === 0, 'Ready measures select canonical compute outputs', JSON.stringify(result.selected));
+  ok(result.unresolvedMeasures.length === 0, 'EVERY ready measure resolves to a defined value (no silent undefined path)', JSON.stringify(result.unresolvedMeasures));
   ok(result.blocksSelected.rushing.attempts === 0 && result.blocksSelected.advanced.count === 0, 'Block bindings return canonical objects');
   ok(result.allBlocksExact, 'Every registered block equals its canonical compute output');
   ok(JSON.stringify(result.cutMatch) === JSON.stringify(['g2::7']), 'Cut binding returns composite matching references');

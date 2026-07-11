@@ -25377,6 +25377,14 @@ class AnalyticsRegistry {
     return out;
   }
 
+  /**
+   * Composite play reference `${gameId}::${id}` — play ids restart per game, so a
+   * bare id can't identify a play across the season scope (the "no lost film link"
+   * contract). PRODUCTION CONTRACT: live tagger plays do NOT carry `__gid`, so a
+   * consumer (Study / Watch / cutups) must stamp `play.__gid` — recommended at
+   * season/store load so every scope works uniformly — OR pass `context.gameId`.
+   * Supplying neither is a hard error here, never a silently-ambiguous reference.
+   */
   playRef(play, context = {}) {
     const gameId = play?.__gid || context.gameId || context.game;
     if (!gameId || play?.id == null) throw new Error('Composite play reference requires gameId and play.id');
