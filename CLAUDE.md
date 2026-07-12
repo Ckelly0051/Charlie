@@ -79,9 +79,8 @@ and tells the coach when results span games. Zero-play canonical-cut rows are
 suppressed in the UI and summary counts come from unique composite matching refs;
 the parity engine is unchanged. Responsive QA is clean on desktop and 390x844.
 Focused Study screen 10/10, full suite **33/33**, synthetic + real six-game parity
-unchanged, zero page errors. Remaining UI work: composable multi-dimension
-filters, broader registry dimension/measure selection, richer comparisons,
-saved-view management, and eventual cross-game playback. No release/tag.
+unchanged, zero page errors. Those increment-1 gaps are addressed by `d76e699`
+below; date-range cohorts and true cross-game playback remain. No release/tag.
 
 In parallel (Claude's data lane), the **Phase 2 Study query executor** landed:
 `js/study-query.js` (`window.app.study`, `StudyQuery`) is a pure engine over the
@@ -98,17 +97,43 @@ stays pure) into per-row `{ a, b, deltas, sampleDelta }` with BOTH sides
 film-linked to their own scope's golden. Test 24/24. The Study screen now consumes
 this contract behind the shell flag. Full gate **33/33**. The
 Study analytics spine (registry → query → compare) is complete + parity-locked.
-**A3 (SqlCatalog canonical cutover) is CODE-COMPLETE (increments 1+2+3) behind
+**A3 (SqlCatalog canonical cutover) increments 1+2+3 are implemented behind
 `ffa_sql_catalog` (default OFF):** `js/catalog-persistence.js` dual-writes `.db`
 (canonical) + `season.json` + Documents mirror with a self-healing JSON fallback;
 `TauriBackend` delegates load/save/deleteSeason to it and lazy-loads a vendored
 `sql-wasm.wasm` Tauri resource (browser bundle stays sql.js-free, 1.5M unchanged).
 FAIL-SAFE — any wasm/runtime error silently keeps today's JSON path, so flag-OFF
 is byte-identical. Node-tested (catalog-persistence 21/21); full gate 33/33
-flag-OFF; the flag-ON desktop path needs a coach smoke (checklist in the redesign
-plan). Build NOTE: the env bumps js mtimes between build and test, so run
+flag-OFF. Codex review found two flag-ON failure defects that must be fixed before
+the coach smoke (checklist in the redesign plan). Build NOTE: the env bumps js
+mtimes between build and test, so run
 `bash build.sh` and the e2e gate in ONE command or e2e-parity's stale-bundle guard
 false-fails.
+
+**A3 CODE REVIEW — CHANGES REQUESTED before desktop smoke (`218d490`):**
+
+1. `TauriBackend.saveSeason()` ignores the boolean from
+   `CatalogPersistence.saveSeason()`. A DB write returning `false` is converted
+   into `true`, suppressing the canonical-persist warning. Add a failing-first
+   adapter regression and propagate the canonical result; preserve the JSON
+   safety write promised by CatalogPersistence.
+2. `CatalogPersistence.deleteSeason()` swallows DB-write failure after mutating
+   memory, while `TauriBackend.deleteSeason()` then deletes JSON/mirror files.
+   The stale on-disk DB can resurrect the season with its safety copies gone.
+   Make delete return durable success/failure, restore/reopen catalog memory on
+   failure, retain JSON/mirror until DB deletion succeeds, and pin all three
+   assertions in a failing-first regression.
+
+Exact methods and required scenarios are also pinned prominently in
+`GRIDIRON-IQ-REDESIGN-PLAN.md` under **A3 Codex Review — CHANGES REQUESTED**.
+Existing 33/33 coverage is flag-OFF and does not exercise either defect. Do not
+start the coach flag-ON smoke until these corrections are independently reviewed.
+
+**Phase 2 Study UI increment 2 is complete (`d76e699`).** Study now exposes 23
+ready dimensions, selectable canonical measures, composable filters (OR within,
+AND across), game-vs-prior comparison, and full saved-view restore/delete. The
+modular-source browser gate is 17/17 with clean desktop/mobile QA; Claude's
+`218d490` bundle rebuild includes these source changes. The shell remains opt-in.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 

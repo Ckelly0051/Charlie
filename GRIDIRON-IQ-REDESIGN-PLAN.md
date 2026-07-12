@@ -357,13 +357,15 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: 218d490  A3 increment 2 — SqlCatalog wired into TauriBackend (flag OFF)
+HEAD: ee6f829  A3 handoff (review changes requested below before desktop smoke)
 Gate at HEAD: full 33/33 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
 
 Recent redesign commits (newest first):
+  ee6f829  A3 code-complete handoff + desktop smoke checklist (now superseded by review)
   218d490  A3 increment 2 — SqlCatalog -> TauriBackend, flag-gated + fail-safe
+  d76e699  Study increment 2 — composable filters/metrics/comparisons/views
   1916fa8  docs handoff — Study UI increment one
   7f755c6  Phase 2 Study workspace (query/compare/views/Watch/Advanced Reports)
   23f8aa1  A3 increment 3 — JSON->catalog migration (Node 21/21)
@@ -380,26 +382,56 @@ Recent redesign commits (newest first):
 Lane status:
   Claude (data/analytics/persistence spine): P0-a/b/c/d DONE + accepted; Phase 1
     finished + shipped; Phase 2 Study executor + two-cohort compare DONE (the
-    spine the Study UI consumes); A3 SqlCatalog cutover CODE-COMPLETE (1+2+3,
-    flag OFF) — only a coach desktop smoke remains (checklist below).
+    spine the Study UI consumes); A3 increments 1+2+3 are implemented behind
+    the flag, but Codex review found two failure-path defects before desktop smoke.
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
-    increment 1 DONE at 7f755c6.
+    increments 1+2 DONE at 7f755c6 + d76e699.
 
 NEXT ACTIONS
-  Codex: Phase 2 Study increment 2 — composable multi-dimension filters, broader
-    registry dimension/measure selection, and richer comparison choices. Keep
-    the shell opt-in and preserve the one-game-at-a-time Watch boundary.
-  Claude: A3 is CODE-COMPLETE (increments 1+2+3, all committed) behind
-    `ffa_sql_catalog` (default OFF). The only remaining step is a COACH DESKTOP
-    SMOKE of the flag-ON Tauri path (unverifiable headlessly) — checklist below.
+  Codex: independently verify Claude's A3 corrections after they land; Study
+    increment 2 is committed, bundled, responsive-QA'd, and source UI 17/17.
+  Claude: fix the two A3 failure-path defects in the CHANGES REQUESTED block
+    below, add failing-first regressions, then hand back for review. Do NOT begin
+    the coach desktop smoke until both contracts are pinned and green.
     After the smoke passes on real film for a release cycle, drop the JSON
     dual-write to single-write `.db`. Next in Claude's lane after that: the
     dedicated library-root move + the deferred persistence items (diskStatus
     honesty, listBackups meta as a row query, version-manager fold-in) that ride
     cheaply on the catalog.
 
-A3 — SqlCatalog canonical cutover (task #54): CODE-COMPLETE (1+2+3), flag OFF,
-awaiting a COACH DESKTOP SMOKE (flag-ON Tauri path is unverifiable headlessly).
+A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED (1+2+3), flag OFF,
+CHANGES REQUESTED before the coach desktop smoke.
+
+#### A3 Codex Review — CHANGES REQUESTED (`218d490`)
+
+1. **Canonical save failure is reported as success.**
+   `CatalogPersistence.saveSeason()` (`js/catalog-persistence.js`, method at
+   line ~61) deliberately returns `false` when `writeDb()` fails, even though it
+   still writes `season.json`; its documented contract says the canonical
+   failure must surface. `TauriBackend.saveSeason()` (`js/storage-backend.js`,
+   line ~591) currently awaits that boolean but discards it, calls `_touchMeta`,
+   and returns `true`. This suppresses SeasonStore's persist warning and falsely
+   tells callers the canonical catalog save succeeded. Preserve/return the
+   boolean (and decide explicitly whether metadata should advance on `false`).
+   Required failing-first regression: mock a catalog whose `saveSeason()`
+   returns `false`; assert TauriBackend does not report canonical success while
+   the JSON safety copy remains intact.
+2. **A failed catalog delete can resurrect a deleted season.**
+   `CatalogPersistence.deleteSeason()` (`js/catalog-persistence.js`, line ~102)
+   mutates the in-memory catalog, swallows a `writeDb()` failure, and returns no
+   status. `TauriBackend.deleteSeason()` (`js/storage-backend.js`, line ~551)
+   then deletes the season JSON + Documents mirror regardless. If the DB write
+   failed, the on-disk canonical `library.db` still contains the season while
+   its safety copies are gone; reopening can make the deleted season reappear.
+   Make delete return a durable success/failure result, restore/reopen the
+   in-memory catalog on DB-write failure, and do not remove JSON/mirror until the
+   canonical delete is durable. Required failing-first regression: force
+   `writeDb()` to fail during delete; assert the operation reports failure, the
+   JSON copy remains, and reopening the catalog does not produce a split-brain
+   deleted-in-memory/present-on-disk state.
+
+Both are flag-ON failure paths, so the existing flag-OFF 33/33 gate cannot catch
+them. The desktop smoke checklist remains valid only after these tests pass.
 - Increment 1 (76db0c9): `CatalogPersistence` dual-write orchestrator — db
   canonical + season.json/mirror dual-write + self-healing json fallback (Node 16).
 - Increment 3 (23f8aa1): `migrateJsonSeasons(ids)` imports existing per-season
@@ -519,9 +551,25 @@ Phase 2 Study UI — increment 1 (`7f755c6`, complete):
 - Responsive desktop/mobile QA is clean. Study UI 10/10, shell 15/15, query
   24/24, registry 23/23, synthetic + real six-game parity clean, and the full
   suite 33/33 with zero page errors.
-- Remaining: multi-dimension filter UI, broader dimension/measure choice,
-  recent-vs-prior/date comparisons, saved-view management, and true cross-game
-  playback. Shell stays opt-in; no release/tag.
+- Remaining after increment 1: addressed by `d76e699` below except date-range
+  cohorts and true cross-game playback. Shell stays opt-in; no release/tag.
+
+Phase 2 Study UI — increment 2 (`d76e699`, complete):
+- Added composable filter rows sourced directly from ready registry dimensions:
+  OR across selected values inside a row, AND across rows, removable value chips,
+  and intentional clear/remove controls.
+- Expanded the breakdown selector to 23 ready dimensions, including player role,
+  grade, special-teams phase, custom tags, and custom fields. Added selectable
+  canonical measures plus game-vs-prior-games comparison.
+- Saved views now preserve filters, metric, scope, unit, sample threshold, and
+  comparison; old boolean comparison saves remain backward-compatible; selected
+  views can be deleted.
+- Comparison mode disables the irrelevant scope control and labels Watch as the
+  current-game cohort. Cross-game playback remains intentionally one game at a
+  time.
+- Modular-source browser gate 17/17, zero errors; responsive desktop filter UI
+  and 390x844 mobile QA clean. `218d490` rebuilt the bundle after `d76e699`, and
+  the committed bundle contains the increment. No release/tag; shell stays opt-in.
 
 Parallel (Claude's data lane, landed while awaiting Codex): Phase 2 spine — the
 Study QUERY EXECUTOR. `js/study-query.js` (`window.app.study`, `StudyQuery`) is a
