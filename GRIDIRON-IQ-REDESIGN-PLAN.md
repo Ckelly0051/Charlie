@@ -430,18 +430,60 @@ NEXT ACTIONS
     the honest `skipped` count. Replace study-screen `_watch`'s one-game fallback
     so a season/date-range query plays ALL matches across games in sequence.
   Claude: idle/next. In-lane options, none started:
-    (a) DORMANT — the REPAIR-FILM / relink DUPLICATE + GHOST PLAYS report.
-        UPDATE (2026-07-12, coach): likely NOT a bug — the coach believes his source
-        folders contained DUPLICATE-named clips (files that were supposed to have
-        unique names but didn't), which would legitimately relink/auto-create extra
-        plays. Do NOT proactively raise this again; only revisit if the coach
-        reproduces it with confirmed unique filenames. NOT the A3 catalog bug
-        (catalog is flag-OFF/dormant in production). Standing hypothesis if it does
-        recur: on a repair/re-add whose clips don't match saved plays by identity,
-        `_relinkSavedPlays` misses them and `_autoCreatePlays` spawns a fresh
-        whole-clip play per "unmatched" clip (the v1.10.7 "St. Peter 139-for-69"
-        class). Reproduce-first; would need repair-vs-reopen / managed-vs-linked /
-        single-vs-folder / untagged-vs-tagged-dupes specifics.
+    (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
+        thinks it was his own dup-named clips; partly true, but the code read found
+        a REAL defended-nowhere gap, so this is NOT purely user error. Findings:
+        - TWO folder paths with very different safety:
+          * Repair Film (storage.js repairFilm -> _planClipRepair ->
+            repairWithMatches) is SAFE: never creates/deletes plays, matches in 3
+            tiers (exact path -> name -> FOLDER ORDER), and if it can't match EVERY
+            play it makes ZERO changes and bails. Its order tier even rescues
+            renamed files when counts match.
+          * Add Clips / re-add a folder (playlist-manager.js addFiles ->
+            _relinkSavedPlays -> _autoCreatePlays) is the GHOST FACTORY: exact-path
+            + basename passes but NO order fallback, and any fresh clip that fails
+            to relink gets a brand-new whole-clip play auto-created -> orphans the
+            original tagged play + leaves a 2nd untagged play on the same video
+            (the v1.10.7 "139-for-69" class).
+        - WINDOWS `(n)` RENAME POLICY IS DEFENDED NOWHERE. Every identity fn
+          (_fileIdentity/_playIdentity/_clipIdentity/_displayName/_planClipRepair/
+          _relinkSavedPlays/rehydrateFromDisk) keys on path/name ext-stripped only;
+          nothing strips a trailing ` (1)`/` (2)`. So (i) a re-added `Play 12 (1).mp4`
+          misses BOTH passes vs saved `Play 12` -> ghost; (ii) genuinely dup-named
+          SAVED plays are unrelinkable past the first (Pass-1 keeps first per key)
+          -> ghost. Both the coach's dup-name theory AND Windows rename funnel here.
+        - FIX DIRECTION (fold into the rebuild, don't band-aid): add a
+          `(n)`-NORMALIZED fallback tier (strip trailing ` (\d+)` for MATCHING only),
+          BELOW exact path/basename, consume-once so real distinct (1)/(2) files
+          don't collapse; give addFiles the same count-based ORDER fallback the
+          repair planner has (or route re-adds through the safe planner); and the
+          real cure — with SQLite's authoritative `clip_id`, relink keys off a
+          durable id, not a filename guess.
+
+  FILE-SYSTEM REBUILD REQUIREMENTS (make the coach's "the fix is in the build"
+  assumption actually hold — these are REQUIRED, not optional, for the A3/catalog
+  file-system work and anything that builds on it):
+    R1. CLIP IDENTITY IS AUTHORITATIVE. Every clip gets a stable `clip_id` owned by
+        the catalog (the `clips` table already has it). A play references its clip
+        by that id, not by a filename.
+    R2. RELINK CONSUMES THE DURABLE IDENTITY. Rewire relink/repair/rehydrate to
+        match on `clip_id` from the store first, falling back to filename heuristics
+        only for legacy rows with no id. This is what folds the ghost-plays fix into
+        the build instead of leaving it a follow-up patch.
+    R3. WINDOWS `(n)` NORMALIZATION. The filename-fallback tiers must strip a
+        trailing ` (\d+)` for MATCHING only (never mutate stored names), consume-once,
+        below exact path/basename — so a re-added `Play 12 (1).mp4` relinks to saved
+        `Play 12`, while genuinely distinct `(1)`/`(2)` clips stay distinct.
+    R4. ADD/RE-ADD IS AS SAFE AS REPAIR. Give addFiles the count-based order fallback
+        the repair planner has (or route re-adds through it), and never silently
+        auto-create a ghost play for an unmatched clip when orphaned tagged plays
+        exist — hold/confirm instead.
+    R5. ★ RE-CHECK FILE REPAIR BEFORE BUILDING ON IT. Before committing any work that
+        depends on the new file system, RE-VERIFY repair + re-add end to end for BOTH
+        single files AND folders, explicitly covering: Windows `(n)`-renamed copies,
+        duplicate basenames across subfolders, genuinely dup-named clips, managed vs
+        linked, and reopen-after-repair. Reproduce-first, assert NO ghost/orphan
+        plays and tags preserved. Do not build on repair until this passes.
     (b) after a RELEASE CYCLE of flag-on real use: drop the JSON dual-write to
         single-write `.db`, then the dedicated library-root move + catalog
         backup-ring / version-history migrations. The A3 smoke only exercised a
