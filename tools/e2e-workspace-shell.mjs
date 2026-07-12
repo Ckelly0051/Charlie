@@ -65,8 +65,13 @@ r = await page.evaluate(() => ({ appVisible: !document.querySelector('#wsClassic
 ok(r.appVisible && r.homeHidden && r.route === 'breakdown' && r.nav, 'Break Down opens the unchanged classic workspace inside persistent shell');
 
 await page.click('.ws-sidebar [data-ws-route="study"]');
-r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !document.querySelector('#wsClassicOutlet')?.hidden }));
-ok(r.route === 'study' && r.stats && r.appVisible, 'Study opens existing Advanced Reports');
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), study: !document.querySelector('#wsStudy')?.hidden, statsHidden: document.querySelector('#statsDashboard')?.classList.contains('hidden'), appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));
+ok(r.route === 'study' && r.study && r.statsHidden && r.appHidden, 'Study opens the query workspace inside the persistent shell');
+
+await page.click('[data-study-action="advanced"]');
+r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !document.querySelector('#wsClassicOutlet')?.hidden }));
+ok(r.stats && r.appVisible, 'Study keeps Advanced Reports one click away');
+await page.click('.ws-sidebar [data-ws-route="study"]');
 
 await page.click('.ws-sidebar [data-ws-route="plan"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));

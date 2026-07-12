@@ -4,4 +4,4 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-film-row.state-empty>i{background:var(--ws-muted)}
 .ws-shell-active #statsDashboard .stats-overlay{left:var(--ws-side);top:var(--ws-top)}
 @media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
-@media(max-width:800px){body.ws-shell-active.ws-route-home .bottom-tabs,body.ws-shell-active.ws-route-plan .bottom-tabs{display:none}}
+@media(max-width:800px){body.ws-shell-active.ws-route-home .bottom-tabs,body.ws-shell-active.ws-route-study .bottom-tabs,body.ws-shell-active.ws-route-plan .bottom-tabs{display:none}}

@@ -31,8 +31,8 @@ export class WorkspaceShell {
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div><div class="ws-eyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-plan-state" id="wsPlan" hidden><div><span>PLAN</span><h1>No game plan yet</h1><button class="ws-btn" data-ws-route="study">Open Study</button></div></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._bind();
+      <section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden><div><span>PLAN</span><h1>No game plan yet</h1><button class="ws-btn" data-ws-route="study">Open Study</button></div></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main>`;
+    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this._bind();
   }
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id]}</span>${r.name}</button>`).join(''); }
   _bind() {
@@ -52,16 +52,17 @@ export class WorkspaceShell {
   async show(routeId) {
     if (!this.root) return { ok:false, reason:'shell-disabled' };
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
+    if (routeId !== 'breakdown') this.app.cutupPlayer?.stop();
     document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
     this.root.querySelector('#wsMobileRoute').value = routeId;
-    const home=this.root.querySelector('#wsHome'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
-    home.hidden=routeId!=='home'; plan.hidden=routeId!=='plan'; outlet.hidden=routeId==='home'||routeId==='plan';
+    const home=this.root.querySelector('#wsHome'), study=this.root.querySelector('#wsStudy'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
+    home.hidden=routeId!=='home'; study.hidden=routeId!=='study'; plan.hidden=routeId!=='plan'; outlet.hidden=routeId!=='breakdown';
     if (routeId==='home') await this.refreshHome();
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
-    if (routeId==='study') { this.app.library?.hide(); this.app.stats?.showDashboard(); }
+    if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
     return result;
   }
   _syncChrome() {
@@ -86,7 +87,8 @@ export class WorkspaceShell {
   }
   _renderSeasons(seasons,currentId){const list=this.root.querySelector('#wsSeasonList');if(!seasons.length){list.innerHTML='<div class="ws-empty">No seasons for this team.</div>';return;}const live=this.app.storage.seasonStore.data;list.innerHTML=seasons.slice(0,6).map(s=>{const isCurrent=s.id===currentId;const games=isCurrent&&live?live.games.length:(s.games||0);const plays=isCurrent&&live?live.games.reduce((n,g)=>n+(g.plays?.length||0),0):(s.plays||0);return `<div class="ws-season-row${isCurrent?' current':''}"><div><strong>${this._esc(s.name||'Untitled Season')}</strong><span>${games} game${games===1?'':'s'} · ${plays} play${plays===1?'':'s'}</span></div><button class="ws-btn ws-small" data-ws-season="${this._esc(s.id)}">${isCurrent?'Current':'Open'}</button></div>`;}).join('');}
   _renderFilmRow(game,h){const row=this.root.querySelector(`[data-film-id="${CSS.escape(String(game.id))}"]`);if(!row)return;row.className=`ws-film-row state-${h.state}`;const detail=h.progress?`${h.progress.done} of ${h.progress.total||'?'} clips`:h.expected?`${h.found} of ${h.expected} clips`:'';row.querySelector('span').textContent=detail?`${h.label} · ${detail}`:h.label;row.querySelector('button').textContent=h.action==='reconnect'?'Reconnect':h.action==='repair'?'Repair':'Open';}
-  async _openLibrary(){const home=this.root.querySelector('#wsHome'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
+  showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
+  async _openLibrary(){const home=this.root.querySelector('#wsHome'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
   _esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

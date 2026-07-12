@@ -19,6 +19,7 @@ import { StatsEngine } from './stats-engine.js';
 import { AnalyticsRegistry } from './analytics-registry.js';
 import { WorkspaceContext } from './workspace-context.js';
 import { StudyQuery } from './study-query.js';
+import { StudyScreen } from './study-screen.js';
 import { WorkspaceShell } from './workspace-shell.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
@@ -80,6 +81,7 @@ class App {
     this.stats.roster = this.roster;
     this.analyticsRegistry = new AnalyticsRegistry(this.stats);
     this.study = new StudyQuery(this.analyticsRegistry);
+    this.studyScreen = new StudyScreen(this);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);

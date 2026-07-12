@@ -10,7 +10,7 @@
 |---|---|---|---|
 | `home` | Home | Existing team home/library | Always available |
 | `breakdown` | Break Down | Existing classic film workspace | Active game required |
-| `study` | Study | Existing Advanced Reports | Open season required |
+| `study` | Study | Study query workspace; Advanced Reports fallback | Open season required |
 | `plan` | Plan | Controlled coming-soon state | Open season required |
 
 `WorkspaceContext.navigate()` only validates and records route state. It never
@@ -72,7 +72,8 @@ isolation; existing storage ownership remains unchanged.
 - Linked film always means referenced in place; it never implies a managed copy.
 - Browser film is never described as durable.
 - Plan remains coming-soon until its backward-compatible schema phase.
-- Study still opens existing reports; analytics parity remains the release gate.
+- Study opens the query workspace; Advanced Reports remains one click away and
+  analytics parity remains the release gate.
 
 ## Verification
 

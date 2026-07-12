@@ -3,7 +3,7 @@
 const WORKSPACE_ROUTES = Object.freeze([
   Object.freeze({ id: 'home', name: 'Home', target: 'team-home', requires: null }),
   Object.freeze({ id: 'breakdown', name: 'Break Down', target: 'classic-workspace', requires: 'game' }),
-  Object.freeze({ id: 'study', name: 'Study', target: 'advanced-reports', requires: 'season' }),
+  Object.freeze({ id: 'study', name: 'Study', target: 'study-workspace', requires: 'season' }),
   Object.freeze({ id: 'plan', name: 'Plan', target: 'coming-soon', requires: 'season' }),
 ]);
 

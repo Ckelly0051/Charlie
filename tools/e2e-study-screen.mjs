@@ -1,0 +1,98 @@
+/* Phase 2 Study UI: real query/compare/view/watch wiring over the built bundle. */
+import puppeteer from 'puppeteer';
+import { mkdir } from 'node:fs/promises';
+
+const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+let pass = 0, fail = 0;
+const ok = (cond, label, extra = '') => cond ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
+const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+const page = await browser.newPage();
+await page.setViewport({ width: 1280, height: 800 });
+await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
+const errors = [];
+const screenshotDir = process.env.FFA_STUDY_SCREENSHOTS || '';
+const capture = async name => {
+  if (!screenshotDir) return;
+  await mkdir(screenshotDir, { recursive: true });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.screenshot({ path: `${screenshotDir}/${name}.png`, fullPage: false });
+};
+page.on('pageerror', error => errors.push(error.stack || error.message));
+await page.goto(URL, { waitUntil: 'networkidle0' });
+await new Promise(resolve => setTimeout(resolve, 500));
+
+await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: '2026 Varsity', team: 'Mavericks', year: '2026' });
+  const store = app.storage.seasonStore;
+  const g1 = store.activeGame();
+  g1.id = 'g-study-1'; g1.name = 'Week 1 vs Rivals';
+  g1.plays = [
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Shotgun', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', custom: [] } },
+    { id: 3, timestamp: { start: 10, end: 14 }, tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', custom: [] } },
+  ];
+  const g2 = store.addGame({ id: 'g-study-2', name: 'Week 2 vs Tigers', status: 'active', plays: [
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', custom: [] } },
+  ] });
+  store.data.activeGameId = g1.id;
+  app.storage._clearForNewGame();
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('study');
+});
+
+let r = await page.evaluate(() => ({
+  visible: !document.querySelector('#wsStudy')?.hidden,
+  summary: document.querySelector('#wsStudySummary')?.textContent,
+  groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent),
+  statsHidden: document.querySelector('#statsDashboard')?.classList.contains('hidden'),
+}));
+ok(r.visible && /2 matching plays/.test(r.summary) && r.groups.includes('Shotgun') && r.groups.includes('Pistol') && !r.groups.includes('Unknown'), 'Study defaults to the active-game cohort', JSON.stringify(r));
+ok(r.statsHidden, 'New Study UI does not silently open the legacy dashboard');
+await capture('study-game-1280x800');
+
+await page.select('#wsStudyScope', 'season');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
+ok(/4 matching plays/.test(r.summary) && r.groups.includes('Wing-T'), 'Full-season scope includes plays from every game', JSON.stringify(r));
+
+await page.select('#wsStudyUnit', 'defense');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
+ok(/0 matching plays/.test(r.summary) && r.groups.length === 0, 'Unit filter is ANDed into the selected football question', JSON.stringify(r));
+
+await page.select('#wsStudyUnit', '');
+await page.click('#wsStudyCompare');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, compareRows: document.querySelectorAll('.ws-study-row-compare').length }));
+ok(/2 vs 4 plays/.test(r.summary) && r.compareRows >= 3, 'Game-versus-season comparison renders aligned groups', JSON.stringify(r));
+await capture('study-compare-1280x800');
+
+await page.click('[data-study-action="save"]');
+r = await page.evaluate(() => ({ saved: document.querySelectorAll('#wsStudySaved option').length, stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length }));
+ok(r.saved === 2 && r.stored === 1, 'Study saves a reusable query view without touching season data', JSON.stringify(r));
+
+await page.click('[data-study-action="advanced"]');
+r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), outlet: !document.querySelector('#wsClassicOutlet')?.hidden }));
+ok(r.stats && r.outlet, 'Advanced Reports remains one click away');
+
+await page.evaluate(() => window.app.workspaceShell.show('study'));
+await page.click('#wsStudyCompare');
+await page.select('#wsStudyScope', 'season');
+const watchResult = await page.evaluate(() => {
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Wing-T');
+  row?.querySelector('[data-study-row]')?.click();
+  return !!row;
+});
+await new Promise(resolve => setTimeout(resolve, 150));
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), game: window.app.storage.seasonStore.data.activeGameId, selected: window.app.tagger.currentPlayId }));
+ok(watchResult && r.route === 'breakdown' && r.game === 'g-study-2' && r.selected != null, 'Watch opens the matching play in its owning game', JSON.stringify(r));
+
+await page.setViewport({ width: 390, height: 844 });
+await page.evaluate(() => window.app.workspaceShell.show('study'));
+r = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth, study: !document.querySelector('#wsStudy')?.hidden, tabs: getComputedStyle(document.querySelector('.bottom-tabs')).display, cutup: !!document.querySelector('.cutup-banner') }));
+ok(!r.overflow && r.study && r.tabs === 'none' && !r.cutup, 'Mobile Study has no overflow or classic-workflow overlays', JSON.stringify(r));
+await capture('study-390x844');
+ok(errors.length === 0, 'No page errors', errors.join(' | '));
+
+console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
+await browser.close();
+process.exit(fail ? 1 : 0);
