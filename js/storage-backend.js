@@ -551,7 +551,14 @@ export class TauriBackend extends StorageBackend {
   async deleteSeason(id) {
     if (!this._ok()) return;
     const cp = await this._ensureCatalog();
-    if (cp) { try { await cp.deleteSeason(id); } catch (e) {} }
+    if (cp) {
+      let ok = false;
+      try { ok = await cp.deleteSeason(id); } catch (e) { ok = false; }
+      // Retain the season.json + Documents mirror + library entry until the
+      // canonical db delete is DURABLE — otherwise a stale on-disk db could
+      // resurrect the season with its safety copies already gone.
+      if (!ok) { console.warn('catalog delete failed; retaining season + JSON/mirror', id); return; }
+    }
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
     try {
       if (this.mirrorDir !== undefined) {
@@ -587,9 +594,17 @@ export class TauriBackend extends StorageBackend {
     if (!this._ok() || !this.currentId) return false;
     const cp = await this._ensureCatalog();
     if (cp) {
-      // CatalogPersistence writes db (canonical) + season.json + Documents mirror.
-      try { await cp.saveSeason(this.currentId, data); await this._touchMeta(data); return true; }
-      catch (e) { console.warn('catalog save failed; JSON path', e); }
+      // CatalogPersistence writes db (canonical) + season.json + Documents mirror,
+      // and returns TRUE only when the canonical db write is durable. The json
+      // safety copy is written either way, so the library metadata may advance to
+      // match it — but PROPAGATE the canonical result so SeasonStore's persist
+      // warning fires on a real db failure instead of a false success.
+      try {
+        const okDb = await cp.saveSeason(this.currentId, data);
+        await this._touchMeta(data);
+        return okDb;
+      }
+      catch (e) { console.warn('catalog save threw; JSON path', e); }
     }
     try {
       await this._ensureSeasonDir(this.currentId);

@@ -156,5 +156,29 @@ const refA = await refRoundTrip(seasonA());
   ok(n2 === 0 && reload.data.games.length === seasonA().games.length, 'migration is idempotent (no duplicate on re-run)');
 }
 
+// ---- 9. delete DB-write failure must NOT split-brain (Codex A3 review #2) ------
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveSeason('s1', seasonA());
+  await cp.saveSeason('s2', seasonB());
+  fs.state.writeDbFail = true;            // the canonical db write will fail on delete
+  const res = await cp.deleteSeason('s1');
+  ok(res === false, 'deleteSeason reports FAILURE when the canonical db write fails', String(res));
+  // The on-disk db still has s1 (write failed) — the in-memory catalog must be
+  // re-synced to disk so it isn't "deleted in memory / present on disk".
+  ok(!!cp.catalog.loadSeason('s1'), 'in-memory catalog is restored on delete failure (no split-brain)');
+  ok(fs.state.json.has('s1'), 'the JSON safety copy is retained on delete failure');
+  // A fresh session opening the same (unchanged) db still sees s1 AND s2.
+  fs.state.writeDbFail = false;
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const a = await cp2.loadSeason('s1'), b = await cp2.loadSeason('s2');
+  ok(a && a.source === 'db' && b && b.source === 'db', 'a failed delete left both seasons canonical on disk');
+  // A subsequent delete (db healthy) succeeds durably.
+  const res2 = await cp2.deleteSeason('s1');
+  fs.state.json.delete('s1');
+  ok(res2 === true && (await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1')) === null, 'a retried delete succeeds durably once the db write recovers');
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

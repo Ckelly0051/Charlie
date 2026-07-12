@@ -98,10 +98,26 @@ export class CatalogPersistence {
     return null;
   }
 
-  /** Remove a season from the db + persist; the caller removes the json/mirror files. */
+  /**
+   * Remove a season from the db + persist. Returns TRUE only when the canonical
+   * db delete is durable on disk. On a writeDb failure the season has been
+   * dropped from the in-memory catalog but NOT from disk — we re-sync memory to
+   * disk (reopen from the unchanged bytes) so there is no split-brain, and return
+   * FALSE so the caller keeps the season.json / Documents mirror safety copies
+   * (deleting them against a stale on-disk db would let the season resurrect).
+   */
   async deleteSeason(id) {
     await this._ensureLoaded();
-    try { this.catalog.deleteSeason(id); await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    try {
+      this.catalog.deleteSeason(id);
+      await this.fs.writeDb(this.catalog.toBytes());
+      return true;
+    } catch (e) {
+      try { this.catalog.close(); } catch (e2) {}
+      this._loaded = false;
+      try { await this._ensureLoaded(); } catch (e2) {}   // reopen from the on-disk (unchanged) db
+      return false;
+    }
   }
 
   /**
