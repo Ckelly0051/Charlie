@@ -237,8 +237,34 @@ cut-up settle the awaitable CutupPlayer contract as cancelled instead of advanci
 silently. Focused gates: cross-game planner 13/13, Study 22/22 (including ordered
 two-game playback, deterministic stop/empty results, and unavailable-film skip).
 Fresh bundle + every `tools/e2e-*.mjs` harness passed atomically with zero
-failures. Shell remains opt-in; no release/tag. Next action: Claude independently
-reviews `1fce6b3`; after acceptance, choose the next Phase 2/3 product increment.
+failures. Shell remains opt-in; no release/tag.
+
+**Independent adversarial review of `1fce6b3` — ACCEPTED (Claude).** No
+release-blockers (opt-in shell, Study-only reach); the core decision to reuse the
+vetted `switchToGame → auto-load → CutupPlayer.start` per game (no parallel
+cross-game film resolver) adds NO new cross-game corruption vector, and
+cancellation is dual-guarded (`_watchToken` + not-`completed` return + the
+`workspace-shell.js:55` route-change stop). Committed state re-verified green
+(cross-game 13/13, study 22/22). Six non-blocking follow-ups, prioritize the first
+two before this path goes default-on:
+  1. [Med/robustness] `CutupPlayer` ignores the video `ended` event — the
+     awaited `start()` promise settles only when time-update reaches `end−0.03`;
+     a play whose `timestamp.end` exceeds the real clip length (stale end / the
+     `999` unprobed sentinel, which the planner admits) never completes → the
+     cross-game loop HANGS on that game. Add an `ended`→advance/stop fallback.
+  2. [Med/tests] The new tests mock `cutupPlayer.start` to always return
+     `completed:true`, so the two hardest paths are unverified: a non-completed
+     mid-reel result (Exit/route-change) must STOP not advance, and `_watchToken`
+     supersession (a 2nd Watch cancels the 1st). Add coverage.
+  3. [Low/UX] ◀ Prev at a game boundary (`_goTo(-1)`→`stop('stopped')`) settles
+     not-completed → ends the WHOLE remaining reel. Clamp prev() at 0.
+  4. [Low/side-effect] Each hop `switchToGame`→`commitActive`+`persist`, so a
+     read-only season Watch does N−1 disk writes.
+  5. [Low/UX] Reel leaves the coach on the last game, not the launch scope.
+  6. [Nit] Active-game short-circuit skips a film reload; a ready-but-not-loaded
+     active game could start the cutup over a blank/stale player.
+Next: hand these to Codex (fixes are Codex's UX lane); then choose the next
+Phase 2/3 increment.
 
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
