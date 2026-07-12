@@ -124,17 +124,12 @@ never exercised; both fixed reproduce-first with failing-first regressions:
    from the unchanged on-disk bytes (memory re-synced, no split-brain);
    `TauriBackend.deleteSeason` RETAINS json/mirror/library entry unless the delete
    is durable.
-Regressions: `e2e-catalog-persistence` 26/26 + `e2e-catalog-backend` (NEW,
+Regressions: `e2e-catalog-persistence` 29/29 + `e2e-catalog-backend` (NEW,
 puppeteer fake-`__TAURI__` + injected catalog) 5/5; full gate 34/34 flag-OFF.
-Independent re-review: implementation inspected; persistence 26/26, backend 5/5,
-Study 17/17, synthetic + real-season parity, and full 34/34 all green. The coach
-flag-ON smoke may proceed.
-
-Nonblocking follow-ups: prefer a pre-delete DB byte snapshot so rollback does not
-depend on `readDb` succeeding after `writeDb` fails; propagate delete's boolean
-through SeasonStore/StorageManager so a retained failed deletion produces a
-direct user-visible toast. Current behavior retains DB, JSON, mirror, and library
-entry, so neither item blocks smoke.
+Final independent re-review (`7096b1b`): RAM-snapshot rollback and durable-delete
+boolean/toast propagation inspected; persistence 29/29, backend 5/5, and
+synthetic + real-season parity all green. Claude's full gate remains 34/34. No A3
+code/test work remains; the coach flag-ON desktop smoke may proceed.
 
 **Phase 2 Study UI increment 2 is complete (`d76e699`).** Study now exposes 23
 ready dimensions, selectable canonical measures, composable filters (OR within,

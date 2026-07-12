@@ -387,8 +387,8 @@ Lane status:
   Claude (data/analytics/persistence spine): P0-a/b/c/d DONE + accepted; Phase 1
     finished + shipped; Phase 2 Study executor + two-cohort compare DONE (the
     spine the Study UI consumes); A3 increments 1+2+3 implemented behind the flag;
-    Codex's two failure-path defects are FIXED and independently ACCEPTED at
-    c76972a; the coach desktop smoke is now unblocked.
+    Codex's two failure-path defects and both hardening follow-ups are FIXED and
+    independently ACCEPTED through 7096b1b; desktop smoke is unblocked.
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
     increments 1+2 DONE at 7f755c6 + d76e699.
 
@@ -406,12 +406,12 @@ NEXT ACTIONS
 A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED + CODE-REVIEW ACCEPTED,
 flag OFF by default; coach desktop smoke is the remaining release gate.
 
-#### A3 Codex Review — ACCEPTED (`c76972a`)
+#### A3 Codex Review — FINAL ACCEPTANCE (`7096b1b`)
 
-Both defects fixed reproduce-first with failing-first regressions (fail on the old
-code, pass on the fix). Codex independently inspected the implementation and ran
-catalog persistence 26/26, flag-ON backend delegation 5/5, Study 17/17, both
-parity goldens, and the complete gate 34/34 with zero failures.
+Both defects and both hardening follow-ups were fixed reproduce-first with
+failing-first regressions. Codex independently inspected `7096b1b` and reran
+catalog persistence 29/29, flag-ON backend delegation 5/5, and both parity
+goldens; Claude's complete gate remains 34/34 with zero failures.
 1. FIXED — `TauriBackend.saveSeason()` now propagates `CatalogPersistence
    .saveSeason()`'s boolean (metadata still advances to match the json safety copy,
    but the canonical db result surfaces so SeasonStore's persist warning fires).
@@ -424,7 +424,7 @@ parity goldens, and the complete gate 34/34 with zero failures.
    Regressions: `e2e-catalog-persistence.mjs` (26/26: failure returns false, memory
    restored, json retained, retry deletes durably) + `e2e-catalog-backend.mjs`
    (failed delete retains files + library entry; durable delete removes them).
-Verdict: ACCEPT. The coach desktop smoke may proceed.
+Verdict: FINAL ACCEPT. No A3 code or test work remains before desktop smoke.
 
 Nonblocking hardening follow-ups — BOTH DONE (`7096b1b`):
 - DONE — Snapshot rollback. `CatalogPersistence.deleteSeason` snapshots the
