@@ -209,9 +209,18 @@ byte-identical** (delegation only runs when `_ensureCatalog()` returns a catalog
 Tests: `e2e-catalog-persistence` 44/44 (create/list/get/delete + per-season
 isolation + reopen-durability + prune-to-25), `e2e-catalog-backend` 6/6 (flag-ON
 delegation path), sql-catalog 10/10, sql-fuzzer 16, catalog-fuzzer clean,
-onboarding 46/46 zero errors. No release/tag. NEXT in this lane: migrate
-version-history (`version-manager.js`, localStorage per `season::game`) onto a
-catalog `versions` table so named save-points also leave the JSON structure.
+onboarding 46/46 zero errors. No release/tag.
+
+**Version-history ring groundwork is done (`236dddd`, DORMANT).** The migration
+off localStorage `ffa_versions_<season::game>`: `SqlCatalog` gains a `versions`
+table + save/list/get/delete/prune keyed by (season_id, game_id), capped VMAX(20)
+per game, evicting AUTO-saves before MANUAL (VersionManager's eviction rule);
+`CatalogPersistence` adds best-effort passthroughs. **NOT wired into
+`version-manager.js`** — dormant like the SqlCatalog A1 work; the UI rewire off
+localStorage lands later with the coach. Flag-OFF + browser bundle unaffected
+(desktop-only, not in build.sh). `e2e-catalog-versions` 10/10; full catalog suite
+still green. NEXT in this lane (needs coach, real code change): rewire
+`VersionManager` to read/write through this ring when `ffa_sql_catalog` is ON.
 
 **Ghost-plays investigation (`6f9d7aa`, code read — not yet fixed).** The coach's
 "repair film adds duplicate/ghost plays" report was diagnosed: **Repair Film** is
