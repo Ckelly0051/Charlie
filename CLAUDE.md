@@ -26,6 +26,15 @@ The clean-sheet Home / Break Down / Study / Plan direction is documented in
 ux-prototype-v2`, then open `http://127.0.0.1:4174/`). The earlier
 `ux-prototype/` is only the Quick Chart exploration.
 
+**Prototype revision 2 (2026-07-12, Codex)** tightens the play strip and tag
+controls, adds a working Team Settings library editor for enabled/custom
+formations and backfields, and replaces the Study prose-first placeholder with
+visual KPI, stacked tendency, effectiveness-bar, trend-chart, alert, and
+matching-play views. This is a design reference only. The production contract is
+that disabled tag-library values remain on historical plays and in analytics,
+and that Study preserves and expands visual reporting rather than replacing
+charts with text. QA: 1440x900 + 390x844, no page-level overflow.
+
 Critical rule: the redesign must **not dumb down analytics**. Existing reports
 remain as Advanced Reports until an exact metric + matching-play parity harness
 proves Study is equal or better. Implement incrementally behind feature flags;

@@ -65,6 +65,23 @@ Prototype navigation:
 - Plan: tendencies, teaching cutups, and staff notes.
 - Keyboard: `1` Break Down, `2` Study, `3` Plan; arrows move plays.
 
+Prototype revision 2 (Codex, 2026-07-12) incorporates coach review:
+
+- Break Down uses a denser play strip, smaller charting chips, and tighter
+  section spacing to reduce scrolling without sacrificing touch usability.
+- Team Settings includes interactive Formation and Backfield libraries. Coaches
+  can enable only the looks they chart, add custom values, and restore defaults.
+  Hiding a value affects future charting controls only; existing play data and
+  analytics must retain historical values.
+- Study defaults to visual analysis rather than prose: linked KPI tiles,
+  run/pass stacks, formation-effectiveness bars, game trends, and tendency
+  alerts. A Matching Plays tab keeps the underlying film rows one click away.
+- Production implementation must preserve all existing reports and visuals,
+  then exceed them with reusable visual Study result types. Text insights may
+  explain a chart but must not replace charts, comparisons, or film drilldowns.
+- Browser QA is clean at 1440x900 and 390x844 with no page-level horizontal
+  overflow. This remains prototype-only; no production storage or schema changed.
+
 The earlier `ux-prototype/` is retained only as design exploration. It represents
 the rejected "simplified Chart + Review" direction; it is useful as the future
 **Quick Chart profile**, not as the full product shell.
