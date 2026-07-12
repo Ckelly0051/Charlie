@@ -70,6 +70,29 @@ const result = await page.evaluate(async () => {
     out.delOkRemoves = calls.remove.length;                    // >= 1
     out.delOkLibDropped = !calls.lib.some(s => s.id === 's1');  // must be true
   }
+  // 3. backup ring delegates to the catalog when flag-ON (restore-ring migration):
+  //    createBackup returns the catalog id + meta; get/delete route by id shape;
+  //    listBackups merges the db ring (no per-season backup JSON file needed).
+  {
+    let created = null;
+    const ring = [];
+    const cat = {
+      saveSeason: async () => true, deleteSeason: async () => true,
+      createBackup: async (id, data, label) => { created = { id, label, plays: (data.games || []).reduce((s, g) => s + (g.plays || []).length, 0) }; ring.push('bk_1'); return 'bk_1'; },
+      listBackups: async () => ring.map(id => ({ id, t: '2026-07-12T00:00:00Z', label: 'pt', seasonName: '', games: 1, plays: 1 })),
+      getBackup: async (id, bid) => (ring.includes(bid) ? { seasonName: 'restored', games: [] } : null),
+      deleteBackup: async (id, bid) => { const i = ring.indexOf(bid); if (i >= 0) ring.splice(i, 1); },
+    };
+    const { be } = makeBackend(cat);
+    const meta = await be.createBackup({ id: 's1', seasonName: 'X', games: [{ plays: [{}, {}] }] }, 'Point A');
+    out.bkId = meta && meta.id;                       // 'bk_1'
+    out.bkCatId = created && created.id;              // 's1'
+    out.bkList = (await be.listBackups()).some(b => b.id === 'bk_1');
+    const got = await be.getBackup('bk_1');
+    out.bkGot = got && got.seasonName === 'restored';
+    await be.deleteBackup('bk_1');
+    out.bkDeleted = ring.length === 0;
+  }
   return out;
 });
 
@@ -77,6 +100,7 @@ ok(result.saveFalse === false, 'saveSeason propagates a canonical db-write FAILU
 ok(result.saveTrue === true, 'saveSeason reports success when the catalog save succeeds');
 ok(result.delFailRemoves === 0 && result.delFailLibKept === true && result.delFailRet === false, 'a FAILED catalog delete retains files + library entry AND returns false (for a toast)', JSON.stringify(result));
 ok(result.delOkRemoves >= 1 && result.delOkLibDropped === true && result.delOkRet === true, 'a DURABLE catalog delete removes files + library entry AND returns true');
+ok(result.bkId === 'bk_1' && result.bkCatId === 's1' && result.bkList === true && result.bkGot === true && result.bkDeleted === true, 'backup ring delegates to the catalog (create/list/get/delete) when flag-ON', JSON.stringify(result));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

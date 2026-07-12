@@ -222,5 +222,33 @@ const refA = await refRoundTrip(seasonA());
   ok((await cp.loadSeason('s1')).data.games[0].plays.length === 3, 're-save with MORE plays grows exactly');
 }
 
+// ---- 12. backup ring lives in the shared db (restore-ring migration) --------
+// Restore points are rows in the library db (not per-season backup JSON files);
+// create/list/get/delete + prune + durability across a reopen.
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveSeason('s1', seasonA());
+  const b1 = await cp.createBackup('s1', seasonA(), 'First point');
+  ok(!!b1, 'createBackup returns a restore-point id');
+  ok(!!fs.state.db, 'a restore point is written to the shared db');
+  const list = await cp.listBackups('s1');
+  ok(list.length === 1 && list[0].label === 'First point' && list[0].games === 2, 'listBackups reports the restore point with meta', JSON.stringify(list[0]));
+  const got = await cp.getBackup('s1', b1);
+  ok(got && deepEq(got.games.map(g => g.id), ['a1', 'a2']), 'getBackup returns the full season snapshot');
+  // Isolation: a backup on s2 never appears under s1.
+  await cp.saveSeason('s2', seasonB());
+  await cp.createBackup('s2', seasonB(), 'B point');
+  ok((await cp.listBackups('s1')).length === 1 && (await cp.listBackups('s2')).length === 1, 'restore points are isolated per season');
+  // Durability across a reopen (fresh session, same db bytes).
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  ok((await cp2.listBackups('s1'))[0].id === b1, 'restore points survive a reopen from the on-disk db');
+  await cp2.deleteBackup('s1', b1);
+  ok((await cp2.listBackups('s1')).length === 0, 'deleteBackup removes the restore point');
+  // Prune to RETENTION (25): 27 points -> 25 newest kept.
+  for (let i = 0; i < 27; i++) await cp2.createBackup('s1', season('s1', `v${i}`, [mkGame('a1', 1)]), `p${i}`);
+  ok((await cp2.listBackups('s1')).length === 25, 'backup ring prunes to RETENTION (25)', String((await cp2.listBackups('s1')).length));
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

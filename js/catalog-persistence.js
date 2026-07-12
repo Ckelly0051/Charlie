@@ -132,6 +132,43 @@ export class CatalogPersistence {
     }
   }
 
+  // ---- backup ring (canonical, in the shared db) ---------------------------
+  // The restore-ring migration: instead of a `backups/season_<ts>.json` file per
+  // snapshot (the old per-season file structure), restore points live as rows in
+  // the shared library db (SqlCatalog.backups, pruned to RETENTION). Every mutation
+  // re-exports the db bytes so the ring is durable; a write failure is swallowed
+  // (best-effort, like the mirror) — a lost restore point never blocks a save, and
+  // the canonical season data is unaffected. Each op pins the season scope first.
+  async createBackup(id, data, label) {
+    if (!id || !data) return null;
+    await this._ensureLoaded();
+    this.catalog.setCurrentSeason(id);
+    let bid = null;
+    try { bid = this.catalog.createBackup(data, label || 'Save'); }
+    catch (e) { return null; }
+    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    return bid;
+  }
+  async listBackups(id) {
+    if (!id) return [];
+    await this._ensureLoaded();
+    this.catalog.setCurrentSeason(id);
+    try { return this.catalog.listBackups(); } catch (e) { return []; }
+  }
+  async getBackup(id, backupId) {
+    if (!id || !backupId) return null;
+    await this._ensureLoaded();
+    this.catalog.setCurrentSeason(id);
+    try { return this.catalog.getBackup(backupId); } catch (e) { return null; }
+  }
+  async deleteBackup(id, backupId) {
+    if (!id || !backupId) return;
+    await this._ensureLoaded();
+    this.catalog.setCurrentSeason(id);
+    try { this.catalog.deleteBackup(backupId); } catch (e) { return; }
+    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+  }
+
   /**
    * One-time migration (A3 increment 3): import the coach's existing per-season
    * `season.json` files into the shared library db on first flag-on. Idempotent —

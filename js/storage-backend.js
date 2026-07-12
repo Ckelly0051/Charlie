@@ -697,6 +697,16 @@ export class TauriBackend extends StorageBackend {
     if (!this._ok() || !this.currentId) return null;
     const json = JSON.stringify(data);
     if (this._lastBackupJson && this._lastBackupJson === json) return null;
+    // Flag-ON: restore points are rows in the shared library db (no per-season
+    // backup JSON file). Falls through to the file ring if the catalog is off or
+    // the db write throws — never lose a restore point.
+    const cp = await this._ensureCatalog();
+    if (cp) {
+      try {
+        const bid = await cp.createBackup(this.currentId, data, label || 'Save');
+        if (bid) { const meta = this._meta(data, label); meta.id = bid; this._lastBackupJson = json; return meta; }
+      } catch (e) { console.warn('catalog backup failed; JSON ring', e); }
+    }
     await this._ensureSeasonDir(this.currentId);
     const id = `season_${this._tsSlug()}.json`;
     const meta = this._meta(data, label);
@@ -710,10 +720,15 @@ export class TauriBackend extends StorageBackend {
   }
   async listBackups() {
     if (!this._ok() || !this.currentId) return [];
+    // Merge the canonical db ring with any legacy backup JSON files, so flipping
+    // the catalog flag on never hides restore points created under the file ring.
+    const cp = await this._ensureCatalog();
+    let fromDb = [];
+    if (cp) { try { fromDb = await cp.listBackups(this.currentId); } catch (e) {} }
     await this._ensureSeasonDir(this.currentId);
-    let entries = [];
-    try { entries = await this.fs.readDir(this._backupsDir(this.currentId), { baseDir: this.baseDir }); } catch (e) { return []; }
     const out = [];
+    let entries = [];
+    try { entries = await this.fs.readDir(this._backupsDir(this.currentId), { baseDir: this.baseDir }); } catch (e) { entries = []; }
     const reads = [];
     for (const e of entries) {
       if (e.isDirectory || !/^season_.*\.json$/.test(e.name || '')) continue;
@@ -727,15 +742,29 @@ export class TauriBackend extends StorageBackend {
       );
     }
     await Promise.all(reads);
-    return out.sort((a, b) => (a.id < b.id ? 1 : -1));
+    // db rows carry ISO `t`; file entries too. Sort newest-first by timestamp
+    // (ids no longer sort chronologically once db + file ids are mixed).
+    return [...fromDb, ...out].sort((a, b) => String(b.t || '').localeCompare(String(a.t || '')));
   }
+  // Restore points from the db ring carry catalog ids; legacy file backups are
+  // `season_<ts>.json`. Route each read/delete by that id shape.
   async getBackup(id) {
     if (!this._ok() || !this.currentId) return null;
+    if (!/^season_.*\.json$/.test(id)) {
+      const cp = await this._ensureCatalog();
+      if (cp) { try { return await cp.getBackup(this.currentId, id); } catch (e) {} }
+      return null;
+    }
     try { return JSON.parse(await this.fs.readTextFile(`${this._backupsDir(this.currentId)}/${id}`, { baseDir: this.baseDir })).data; }
     catch (e) { return null; }
   }
   async deleteBackup(id) {
     if (!this._ok() || !this.currentId) return;
+    if (!/^season_.*\.json$/.test(id)) {
+      const cp = await this._ensureCatalog();
+      if (cp) { try { await cp.deleteBackup(this.currentId, id); } catch (e) {} }
+      return;
+    }
     try { await this.fs.remove(`${this._backupsDir(this.currentId)}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
   }
   async _prune() {
