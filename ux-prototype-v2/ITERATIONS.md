@@ -5,7 +5,8 @@ Each milestone below is recoverable from Git without touching production code.
 
 ## Approved Baseline
 
-**Design V1** is tagged `design-v1`. Run the checked-out snapshot with:
+**Design V1** is tagged `design-v1`. The final edge-polish checkpoint is tagged
+`design-v1.1`; both are intentionally preserved. Run either checked-out snapshot with:
 
 ```powershell
 python -m http.server 4174 --directory ux-prototype-v2
@@ -38,6 +39,7 @@ Design V1 establishes:
 | `fd48d78` | Compact strip and reclaimed video workspace. |
 | `e676d51` | Edge-to-edge navigation and coach-owned optional charting contract. |
 | `design-v1` | Approved visual baseline after final spacing, control, and perspective polish. |
+| `design-v1.1` | External film-pane divider and desktop taskbar safety gutter; zero video pixels consumed. |
 
 To inspect an earlier checkpoint without disturbing active work, use a temporary
 Git worktree at the desired commit. The prototype is self-contained and has no
