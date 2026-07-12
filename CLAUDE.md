@@ -46,6 +46,10 @@ reveals only applicable kick/return/scoring fields. Treat every current
 production selector as required data unless an explicit product decision and
 parity test approve removal. Prototype typography is Segoe UI Variable Text +
 Bahnschrift Condensed for a calmer long-session interface; production unchanged.
+The prototype play strip also establishes a production hierarchy requirement:
+play number is secondary, while situation and play/result/yardage are prominent.
+Its former dead space now carries the high-frequency film marking, copy, clear,
+and delete actions without increasing page-level scrolling.
 
 Critical rule: the redesign must **not dumb down analytics**. Existing reports
 remain as Advanced Reports until an exact metric + matching-play parity harness

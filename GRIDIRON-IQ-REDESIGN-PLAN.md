@@ -105,6 +105,11 @@ Prototype revision 2.2 adds unit-aware full charting:
 - Typography now uses Segoe UI Variable Text for long-session readability and
   Bahnschrift Condensed only for brand/display emphasis; both have system-safe
   fallbacks and require no prototype network dependency.
+- Play-strip hierarchy treats the play number as secondary metadata; Down &
+  Distance and Play Type / Result / Yardage are larger recognition targets.
+  Former dead space below the strip now holds frequent film controls (Mark
+  Start, Mark End, Copy Last, Clear, Delete) instead of another information
+  panel. The rail preserves the strip's compact footprint and mobile overflow.
 
 The earlier `ux-prototype/` is retained only as design exploration. It represents
 the rejected "simplified Chart + Review" direction; it is useful as the future
