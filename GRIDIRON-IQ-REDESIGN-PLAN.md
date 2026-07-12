@@ -362,6 +362,8 @@ Gate at HEAD: full 32/32 green (bash build.sh && node tools/e2e-*.mjs); parity
   golden unchanged (synthetic + real 6-game); zero page errors.
 
 Recent redesign commits (newest first):
+  23f8aa1  A3 increment 3 — JSON->catalog migration (Node 21/21)
+  546ec9b  docs handoff — Phase 1 shell accepted
   d1121d6  Phase 1 shell design acceptance + polish (focused 14/14)
   8c5d7a6  Handoff pin for A3 increment 1
   76db0c9  A3 increment 1 — CatalogPersistence dual-write orchestrator (Node 16/16)
@@ -383,16 +385,33 @@ NEXT ACTIONS
   Codex: begin the Phase 2 Study screen on the accepted registry → query →
     compare spine. Keep Advanced Reports one click away and keep the shell flag
     opt-in until real-coach acceptance.
-  Claude: A3 in progress — INCREMENT 1 DONE (the dual-write orchestrator core,
-    Node-tested, HEAD). REMAINING A3 (needs desktop verification, held for a coach
-    smoke): (a) vendor sql-wasm.wasm as a Tauri resource + lazy-load it in the
-    webview; (b) wire TauriBackend.loadSeason/saveSeason/deleteSeason (+ backup
-    ring) to delegate to CatalogPersistence behind the `ffa_sql_catalog` flag
-    (default OFF; dual-write + json fallback make the cutover reversible);
-    (c) migrate the existing per-season season.json into the shared library.db on
-    first flag-on. The browser build stays JSON + sql.js-free (flag is desktop-only).
+  Claude: A3 in progress — INCREMENTS 1 + 3 DONE (Node-tested): the dual-write
+    orchestrator core (76db0c9) AND the one-time JSON->catalog migration
+    (23f8aa1, CatalogPersistence.migrateJsonSeasons, idempotent). REMAINING = the
+    increment-2 DESKTOP WIRING, which is HELD (not blocked on a coach smoke —
+    blocked on the in-progress Study screen): it edits build.sh + app.js + the
+    bundle, which Codex is actively editing for the Study screen, so wiring it now
+    would entangle two uncommitted work-streams on the same files. Resume once the
+    Study screen is committed. Increment-2 scope (was drafted + reverted to keep
+    Codex's tree clean; cheap to redo): vendor sql-wasm.wasm as a Tauri resource +
+    CSP `'wasm-unsafe-eval'` + `$RESOURCE/**` asset scope; a fail-safe
+    `_loadSqlEngine()` + `_ensureCatalog()` on TauriBackend; delegate
+    load/save/deleteSeason to CatalogPersistence behind `ffa_sql_catalog`
+    (default OFF; any load error silently falls back to today's JSON path);
+    call migrateJsonSeasons on first flag-on. Add sql-catalog.js +
+    catalog-persistence.js to build.sh (browser bundle stays sql.js-free — the
+    wasm is desktop-only, lazy-loaded). Then: full gate green (flag-off path
+    unchanged) + a coach desktop smoke.
 
-A3 — SqlCatalog canonical cutover (task #54), INCREMENT 1 (of 3) COMPLETE:
+A3 — SqlCatalog canonical cutover (task #54), INCREMENTS 1 + 3 COMPLETE (2 HELD):
+- Increment 3 (23f8aa1): `CatalogPersistence.migrateJsonSeasons(ids)` imports the
+  coach's existing per-season `season.json` into the shared library db on first
+  flag-on — idempotent (skips a season already in the db), never throws.
+  `tools/e2e-catalog-persistence.mjs` 21/21 (migrates all, skips missing, loads
+  canonically after, lossless, idempotent on re-run).
+- Increment 2 (desktop wiring) HELD — see NEXT ACTIONS (entangles with the
+  in-progress Study screen on build.sh/app.js/bundle).
+
 - `js/catalog-persistence.js` (`CatalogPersistence`) is the pure dual-write
   orchestrator that makes the SQLite catalog CANONICAL with JSON as a self-healing
   fallback. ALL fs access is INJECTED, so the whole risky canonical-write path is
