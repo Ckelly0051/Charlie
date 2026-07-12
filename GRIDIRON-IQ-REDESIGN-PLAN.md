@@ -355,7 +355,43 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex (impl) → Claude (finished + verified) | Phase: 1 Feature-flagged shell + Home | Status: COMMITTED — READY FOR CODEX DESIGN REVIEW
+=== HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
+Branch: claude/football-film-analyzer-GRiCW  (all work pushed; nothing uncommitted)
+HEAD: 012c8e1  feat(redesign): two-cohort comparison in StudyQuery
+Gate at HEAD: full 31/31 green (bash build.sh && node tools/e2e-*.mjs); parity
+  golden unchanged (synthetic + real 6-game); zero page errors.
+
+Recent redesign commits (newest first):
+  012c8e1  StudyQuery.compare() — two-cohort (game-vs-season / recent-vs-prior)
+  cfa959b  Phase 2 spine — Study query executor (js/study-query.js) over P0-c
+  f68de8a  Phase 1 feature-flagged shell + Home (Codex impl, Claude finished)
+  4a81138  review(P0-d): accept workspace-context contract
+  2d6d4bb  P0-d workspace-context contract (Codex)
+
+Lane status:
+  Claude (data/analytics/persistence spine): P0-a/b/c/d DONE + accepted; Phase 1
+    finished + shipped; Phase 2 Study executor + two-cohort compare DONE. The
+    Study analytics spine (registry → query → compare) is complete + parity-locked
+    + film-linked; NO UI consumes it yet (it is the contract the Study screen calls).
+  Codex (visual shell / workspace UX): Phase 1 shell+Home COMMITTED, awaiting
+    Codex's own design review + the 3 cosmetic nits below.
+
+NEXT ACTIONS
+  Codex: (1) design review of Phase 1 shell/Home; (2) fix the 3 cosmetic nits
+    (film-row double label; "1 games" + meta play-count on a live game; mobile
+    Home bottom-tab bleed); (3) Phase 1 exit criteria (§5).
+  Claude (on the coach's go, independent of Codex): A3 — SqlCatalog canonical
+    cutover (task #54, the committed DoD migration OFF per-season JSON: dual-write
+    .db + season.json + Documents mirror, JSON fallback on load, desktop wasm
+    loader; flag `ffa_sql_catalog` gates the safe cutover TIMING, not whether).
+    Optional smaller: wire a Study convenience layer that slices game/season/
+    date-range cohorts for compare() (still pure of the store at the engine level).
+
+Tag pushes still pending for the coach (agent can't push tags): none new this
+  phase — Phase 1 + Study are flag-gated, no release/version bump, no tag needed.
+========================================================================
+
+Owner: Codex (impl) → Claude (finished + verified) | Phase: 1 shell+Home COMMITTED (Codex review pending) + Phase 2 Study spine DONE (Claude) | Status: READY FOR HANDOFF
 
 Phase 1 (commit adds shell; classic remains the default):
 - Codex implemented the feature-flagged shell (`ffa_workspace_shell_v2`, opt-in;

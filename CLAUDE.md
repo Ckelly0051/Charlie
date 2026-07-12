@@ -68,10 +68,15 @@ P0-c registry — `run({plays, dimension, measures, filters, minSample})` return
 per-group measures + **`matchingPlayIds`**. For report-backed dimensions it
 sources film links through the SAME `_buildCutFilter` predicate the reports use,
 so a Study query returns the EXACT play set as the old report drilldown.
-`tools/e2e-study-query.mjs` (18/18) gates every group against the committed
+`tools/e2e-study-query.mjs` gates every group against the committed
 parity golden; the synthetic fixture is now shared
-(`tools/fixtures/synthetic-edge.mjs`), parity golden unchanged. No UI consumes it
-yet — it is the contract the Study screen will call. Full gate **31/31**.
+(`tools/fixtures/synthetic-edge.mjs`), parity golden unchanged. **Two-cohort
+comparison** is wired too — `study.compare({ base, against, dimension, measures,
+… })` aligns two play sets (game-vs-season / recent-vs-prior; caller slices, engine
+stays pure) into per-row `{ a, b, deltas, sampleDelta }` with BOTH sides
+film-linked to their own scope's golden. Test 24/24. No UI consumes StudyQuery
+yet — it is the contract the Study screen will call. Full gate **31/31**. The
+Study analytics spine (registry → query → compare) is complete + parity-locked.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
