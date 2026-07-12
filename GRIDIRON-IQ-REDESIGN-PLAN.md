@@ -355,7 +355,48 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-Owner: Codex | Phase: P0-d Shell + workspace-context interfaces | Status: REVIEWED — ACCEPTED (Claude independent review; no changes required)
+Owner: Codex (impl) → Claude (finished + verified) | Phase: 1 Feature-flagged shell + Home | Status: COMMITTED — READY FOR CODEX DESIGN REVIEW
+
+Phase 1 (commit adds shell; classic remains the default):
+- Codex implemented the feature-flagged shell (`ffa_workspace_shell_v2`, opt-in;
+  classic is the default) + Home, hit the usage limit during visual QA, and left
+  it uncommitted locally. Codex had already fixed a first-run null-season bug and
+  the Study-overlay containment inside the shell.
+- Claude picked up the uncommitted work (per coach), VERIFIED it, and completed
+  the pending mechanical steps: fresh `build.sh`, focused shell gate 10/10, full
+  regression 30/30, five viewport screenshots (Home/Break Down/Study/Plan desktop
+  + Home mobile) with ZERO page errors, then committed + pushed. No code changes
+  to Codex's shell — the deliverable was already correct.
+- `js/workspace-shell.js` mounts a `#workspaceShell` that RELOCATES the intact
+  `#app` into `#wsClassicOutlet` (never rebuilds it); routes are pure adapters:
+  Break Down shows the classic workspace, Study opens Advanced Reports, Plan is a
+  controlled coming-soon, Home renders live season/game context + a film inbox
+  driven by `workspace.filmHealth`. "Use classic layout" clears the flag.
+- XSS: game/season names + ids escaped at every `innerHTML` sink; film-row detail
+  uses `textContent`. Stale-async guarded by `_homeToken`.
+
+Claude verification (finish-and-ship, NOT a design review — that's Codex's):
+- Build wiring VERIFIED: `workspace-shell.js` in build.sh JS list + app.js import
+  + ctor + `init()`; `workspace-shell.css` in build.sh + index.html; bundle
+  contains the class + selectors.
+- Focused shell 10/10; full gate 30/30 (incl. P0-a parity, integrity fuzzer,
+  registry, workspace-context); 0 page errors on every route + mobile.
+- Screenshots (scratchpad shell-*.png): Home on-brand; Break Down hosts the
+  unchanged tag form/film-room/video; Study dashboard inset correctly (no sidebar
+  overlap — the containment fix holds); mobile compact header, sidebar hidden, no
+  horizontal overflow.
+
+Cosmetic nits for Codex's design pass (non-blocking, left for Codex's lane):
+- Film-row with no film renders the label twice ("No film added · No film
+  added") — `_renderFilmRow` sets detail=label when expected===0.
+- Season row copy: "1 games" (unpluralized) and shows the season-meta play count
+  (0) for a live-only game rather than the live count.
+- Mobile Home: the classic bottom tab bar bleeds through under the shell Home.
+
+Next requested action: Codex design review of Phase 1 shell/Home, then Phase 1
+polish (the nits above) + the Phase 1 exit criteria in §5.
+
+Prior milestone (P0-d): REVIEWED — ACCEPTED (Claude independent review; no changes required)
 Commit: the commit containing this handoff block (impl 2d6d4bb; review adds this block)
 
 Claude P0-d review (ACCEPT — no code changes):

@@ -44,15 +44,23 @@ Final Codex acceptance: registry 23/23, P0-a synthetic+real clean, and all 28
 E2E files green. Next is P0-d shell/workspace-context interfaces; no current
 workspace replacement or Study query UI yet.
 
-**P0-d is implemented and ready for independent review.**
+**P0-d is ACCEPTED (Claude independent review, no changes) and Phase 1 (the
+feature-flagged shell + Home) is COMMITTED.**
 `GRIDIRON-IQ-WORKSPACE-CONTRACT.md` is the canonical route/context/film-health
 contract. `js/workspace-context.js` exposes `window.app.workspace` with guarded
 Home/Break Down/Study/Plan descriptors, DOM-independent active context, and
-backend-derived film health. No production UI consumes it yet. During self-review,
-Codex fixed transient copy progress being attributed to the currently active
-game instead of the originating game. Focused, parity, core, integrity, and film
-regression gates are green; see the Active Handoff for the final suite result.
-Fresh build + all 29 E2E files passed before the P0-d review handoff.
+backend-derived film health. `js/workspace-shell.js` + `css/workspace-shell.css`
+are the Phase-1 shell, gated behind `localStorage ffa_workspace_shell_v2` (opt-in;
+**classic remains the default** and is untouched). The shell RELOCATES the intact
+`#app` into `#wsClassicOutlet` — it never rebuilds the workspace; Break Down shows
+the classic workspace, Study opens Advanced Reports, Plan is a controlled
+coming-soon, Home renders live context + a `filmHealth`-driven film inbox. "Use
+classic layout" clears the flag. Codex implemented it (fixing a first-run
+null-season bug + Study-overlay containment) then hit its usage limit mid visual-QA;
+Claude picked up the uncommitted work, verified it, and finished the ship steps
+(no code change). Gate: focused shell 10/10, full regression **30/30**, 5 viewport
+screenshots, **zero page errors**. Next: Codex design review of Phase 1 + the
+cosmetic nits logged in the Active Handoff.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 

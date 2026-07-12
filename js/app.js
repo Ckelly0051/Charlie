@@ -18,6 +18,7 @@ import { QuickChart } from './quick-chart.js';
 import { StatsEngine } from './stats-engine.js';
 import { AnalyticsRegistry } from './analytics-registry.js';
 import { WorkspaceContext } from './workspace-context.js';
+import { WorkspaceShell } from './workspace-shell.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
@@ -87,6 +88,7 @@ class App {
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
     this.workspace = new WorkspaceContext(this);
+    this.workspaceShell = new WorkspaceShell(this);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
@@ -174,6 +176,7 @@ class App {
       this._bindSeasonChip();
       this._bindGamesPanel();
       await this.library.open();
+      await this.workspaceShell.init();
     }, 0);
 
     this._initVersionLabel();
