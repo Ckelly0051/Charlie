@@ -49,6 +49,10 @@ ux-prototype-v2/
   assets/all22-frame.png
 ```
 
+The coach-approved baseline is tagged **`design-v1`**. Its design history and
+restorable milestone commits are indexed in `ux-prototype-v2/ITERATIONS.md`.
+This tag is a design reference only, not a web or desktop release trigger.
+
 Run it from the repository root:
 
 ```powershell

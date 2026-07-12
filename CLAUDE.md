@@ -26,6 +26,10 @@ The clean-sheet Home / Break Down / Study / Plan direction is documented in
 ux-prototype-v2`, then open `http://127.0.0.1:4174/`). The earlier
 `ux-prototype/` is only the Quick Chart exploration.
 
+The coach-approved prototype baseline is tagged **`design-v1`**. Read
+`ux-prototype-v2/ITERATIONS.md` for the design decisions and exact historical
+commits. It is a visual/product reference, not a deploy or desktop release tag.
+
 **Prototype revision 2 (2026-07-12, Codex)** tightens the play strip and tag
 controls, adds a working Team Settings library editor for enabled/custom
 formations and backfields, and replaces the Study prose-first placeholder with
