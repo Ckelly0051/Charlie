@@ -1,3 +1,6 @@
+import { SqlCatalog } from './sql-catalog.js';
+import { CatalogPersistence } from './catalog-persistence.js';
+
 /**
  * StorageBackend — the seam between the app and *where bytes live*.
  *
@@ -547,6 +550,8 @@ export class TauriBackend extends StorageBackend {
 
   async deleteSeason(id) {
     if (!this._ok()) return;
+    const cp = await this._ensureCatalog();
+    if (cp) { try { await cp.deleteSeason(id); } catch (e) {} }
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
     try {
       if (this.mirrorDir !== undefined) {
@@ -570,17 +575,96 @@ export class TauriBackend extends StorageBackend {
   // ---- canonical (scoped to currentId) ----
   async loadSeason() {
     if (!this._ok() || !this.currentId) return null;
+    const cp = await this._ensureCatalog();
+    if (cp) {
+      try { const r = await cp.loadSeason(this.currentId); if (r && r.data) return r.data; }
+      catch (e) { console.warn('catalog load failed; JSON fallback', e); }
+    }
     if (await this._exists(this._seasonFile(this.currentId))) return this._readJson(this._seasonFile(this.currentId));
     return null;
   }
   async saveSeason(data) {
     if (!this._ok() || !this.currentId) return false;
+    const cp = await this._ensureCatalog();
+    if (cp) {
+      // CatalogPersistence writes db (canonical) + season.json + Documents mirror.
+      try { await cp.saveSeason(this.currentId, data); await this._touchMeta(data); return true; }
+      catch (e) { console.warn('catalog save failed; JSON path', e); }
+    }
     try {
       await this._ensureSeasonDir(this.currentId);
       await this._writeJson(this._seasonFile(this.currentId), data);
       await this._touchMeta(data);
       return true;
     } catch (e) { return false; }
+  }
+
+  // ---- SQLite catalog (A3 desktop canonical) — flag-gated + FAIL-SAFE --------
+  // Behind localStorage `ffa_sql_catalog` (default OFF). When enabled, season
+  // load/save/delete delegate to CatalogPersistence: the SQLite catalog becomes
+  // canonical, dual-writing season.json + the Documents mirror, with a self-
+  // healing JSON fallback. ANY failure — the wasm won't load, a runtime error —
+  // silently keeps the EXISTING JSON path, so the feature can never lose a save.
+  // The browser bundle stays sql.js-free: the wasm is a desktop-only Tauri
+  // resource, lazy-loaded here on first use.
+  _sqlFlag() {
+    try { return typeof localStorage !== 'undefined' && localStorage.getItem('ffa_sql_catalog') === '1'; }
+    catch (e) { return false; }
+  }
+
+  async _loadSqlEngine() {
+    if (this._SQL) return this._SQL;
+    if (this._sqlEngineFailed) return null;   // don't retry a broken load every op
+    try {
+      const T = window.__TAURI__;
+      const resolve = T && T.path && T.path.resolveResource;
+      const convert = T && T.core && T.core.convertFileSrc;
+      if (!resolve || !convert) throw new Error('Tauri resource API unavailable');
+      if (typeof window.initSqlJs !== 'function') {
+        const glueUrl = convert(await resolve('resources/sql-wasm.js'));
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = glueUrl; s.onload = res; s.onerror = () => rej(new Error('sql-wasm.js failed to load'));
+          document.head.appendChild(s);
+        });
+      }
+      const wasmUrl = convert(await resolve('resources/sql-wasm.wasm'));
+      this._SQL = await window.initSqlJs({ locateFile: () => wasmUrl });
+      return this._SQL;
+    } catch (e) {
+      this._sqlEngineFailed = true;
+      console.warn('SQL engine load failed; staying on JSON', e);
+      return null;
+    }
+  }
+
+  _catalogFs() {
+    const dbPath = 'seasons/library.db';
+    return {
+      readDb: async () => { try { if (await this._exists(dbPath)) return await this.fs.readFile(dbPath, { baseDir: this.baseDir }); } catch (e) {} return null; },
+      writeDb: async (bytes) => { try { await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true }); } catch (e) {} await this.fs.writeFile(dbPath, bytes, { baseDir: this.baseDir }); },
+      readJson: async (id) => this._readJson(this._seasonFile(id)),
+      writeJson: async (id, data) => { await this._ensureSeasonDir(id); await this._writeJson(this._seasonFile(id), data); },
+      writeMirror: async (_id, data) => { await this._mirrorToDocuments(data); },
+    };
+  }
+
+  async _ensureCatalog() {
+    if (!this._sqlFlag() || !this._ok()) return null;
+    if (this._catalog) return this._catalog;
+    if (this._catalogInit) return this._catalogInit;
+    this._catalogInit = (async () => {
+      try {
+        const SQL = await this._loadSqlEngine();
+        if (!SQL) return null;
+        const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: this._catalogFs() });
+        // First flag-on: import existing per-season season.json into the shared db.
+        try { const lib = await this._readLib(); await cp.migrateJsonSeasons(lib.map(s => s.id)); } catch (e) {}
+        this._catalog = cp;
+        return cp;
+      } catch (e) { console.warn('Catalog init failed; staying on JSON', e); return null; }
+    })();
+    return this._catalogInit;
   }
   async _touchMeta(data) {
     const lib = await this._readLib();

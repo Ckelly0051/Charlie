@@ -8652,9 +8652,39 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-shell-active #statsDashboard .stats-overlay{left:var(--ws-side);top:var(--ws-top)}
 @media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
 @media(max-width:800px){body.ws-shell-active.ws-route-home .bottom-tabs,body.ws-shell-active.ws-route-study .bottom-tabs,body.ws-shell-active.ws-route-plan .bottom-tabs{display:none}}
-.ws-study{min-width:0;min-height:0;overflow:auto;padding:26px 30px 34px}.ws-study>*{max-width:1280px;margin-left:auto;margin-right:auto}.ws-study-head{display:flex;align-items:flex-end;gap:24px}.ws-study-head h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:34px;line-height:1;margin:6px 0;font-weight:800}.ws-study-head p{margin:0;color:var(--ws-muted)}.ws-study-actions{margin-left:auto;display:flex;gap:8px}.ws-study-query{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr auto 1.2fr;gap:10px;align-items:end;padding:20px 0 16px;border-bottom:1px solid var(--ws-line)}.ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}.ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:5px;background:#111923;color:var(--ws-text);padding:0 9px;text-transform:none}.ws-study-compare{height:36px;display:flex!important;grid-auto-flow:column;align-items:center;justify-content:start;white-space:nowrap;border:1px solid var(--ws-line);border-radius:5px;padding:0 10px;color:var(--ws-text)!important;text-transform:none!important}.ws-study-compare input{accent-color:var(--ws-blue)}.ws-study-summary{display:flex;align-items:baseline;gap:10px;padding:17px 0 12px}.ws-study-summary strong{font-size:18px}.ws-study-summary span{color:var(--ws-muted);font-size:12px}.ws-study-warning{padding:9px 11px;border-left:3px solid var(--ws-amber);background:rgba(230,174,75,.08);color:#e8c47f;font-size:12px;margin-bottom:10px}.ws-study-results{border-top:1px solid var(--ws-line)}.ws-study-table-head,.ws-study-row{display:grid;grid-template-columns:minmax(150px,1.4fr) .55fr .75fr .9fr .75fr 74px;gap:12px;align-items:center}.ws-study-table-head{min-height:38px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}.ws-study-row{min-height:56px;border-top:1px solid var(--ws-line);padding:8px 0}.ws-study-row strong{overflow:hidden;text-overflow:ellipsis}.ws-study-row span{color:#c7d0db;font-variant-numeric:tabular-nums}.ws-study-row.is-small{opacity:.62}.ws-study-row .is-positive{color:var(--ws-green)}.ws-study-row .is-negative{color:var(--ws-red)}.ws-study-empty{padding:42px 4px;color:var(--ws-muted);text-align:center;border-top:1px solid var(--ws-line)}
+.ws-study{min-width:0;min-height:0;overflow:auto;padding:26px 30px 34px}
+.ws-study>*{max-width:1280px;margin-left:auto;margin-right:auto}
+.ws-study-head{display:flex;align-items:flex-end;gap:24px}
+.ws-study-head h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:34px;line-height:1;margin:6px 0;font-weight:800}
+.ws-study-head p{margin:0;color:var(--ws-muted)}
+.ws-study-actions{margin-left:auto;display:flex;gap:8px}
+.ws-study-query{display:grid;grid-template-columns:1.2fr repeat(5,1fr) 1.2fr;gap:10px;align-items:end;padding:20px 0 16px;border-bottom:1px solid var(--ws-line)}
+.ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:5px;background:#111923;color:var(--ws-text);padding:0 9px;text-transform:none}
+.ws-study-query select:disabled{opacity:.5;cursor:not-allowed}
+.ws-study-saved{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:end}.ws-study-saved .ws-icon-btn{margin-bottom:1px}
+.ws-study-filters{border-bottom:1px solid var(--ws-line);padding:10px 0}
+.ws-study-filter-head{display:flex;align-items:center;gap:10px;min-height:30px}
+.ws-study-filter-head strong{font-size:11px;text-transform:uppercase}
+.ws-study-filter-head span{font-size:11px;color:var(--ws-muted)}
+.ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}
+.ws-study-filter-row{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(180px,1.5fr) minmax(130px,.8fr) 34px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--ws-line)}
+.ws-study-filter-row select{height:34px;border:1px solid var(--ws-line);border-radius:5px;background:#111923;color:var(--ws-text);padding:0 8px}
+.ws-study-filter-values{display:flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap}
+.ws-study-filter-values>span{font-size:12px;color:var(--ws-muted)}
+.ws-study-filter-chip{height:28px;border:1px solid #315b91;border-radius:4px;background:#172942;color:#dce9ff;padding:0 8px;font-size:12px}
+.ws-study-summary{display:flex;align-items:baseline;gap:10px;padding:17px 0 12px}
+.ws-study-summary strong{font-size:18px}.ws-study-summary span{color:var(--ws-muted);font-size:12px}
+.ws-study-warning{padding:9px 11px;border-left:3px solid var(--ws-amber);background:rgba(230,174,75,.08);color:#e8c47f;font-size:12px;margin-bottom:10px}
+.ws-study-results{border-top:1px solid var(--ws-line)}
+.ws-study-table-head,.ws-study-row{display:grid;grid-template-columns:minmax(150px,1.4fr) .55fr .75fr .9fr .75fr 74px;gap:12px;align-items:center}
+.ws-study-table-head{min-height:38px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.ws-study-row{min-height:56px;border-top:1px solid var(--ws-line);padding:8px 0}
+.ws-study-row strong{overflow:hidden;text-overflow:ellipsis}.ws-study-row span{color:#c7d0db;font-variant-numeric:tabular-nums}
+.ws-study-row.is-small{opacity:.62}.ws-study-row .is-positive{color:var(--ws-green)}.ws-study-row .is-negative{color:var(--ws-red)}
+.ws-study-empty{padding:42px 4px;color:var(--ws-muted);text-align:center;border-top:1px solid var(--ws-line)}
 @media(max-width:1100px){.ws-study-query{grid-template-columns:repeat(3,1fr)}.ws-study-table-head,.ws-study-row{grid-template-columns:minmax(130px,1.3fr) .5fr .8fr .85fr .7fr 70px}}
-@media(max-width:900px){.ws-study{padding:20px 15px 80px}.ws-study-head{display:block}.ws-study-actions{margin:16px 0 0;display:grid;grid-template-columns:1fr 1fr}.ws-study-actions [data-study-action="watch-all"]{grid-column:1/-1}.ws-study-query{grid-template-columns:1fr 1fr}.ws-study-table-head{display:none}.ws-study-row{grid-template-columns:minmax(115px,1.2fr) .45fr .75fr 68px}.ws-study-row>:nth-child(4),.ws-study-row>:nth-child(5){display:none}.ws-study-summary{display:block}.ws-study-summary span{display:block;margin-top:3px}}
+@media(max-width:900px){.ws-study{padding:20px 15px 80px}.ws-study-head{display:block}.ws-study-actions{margin:16px 0 0;display:grid;grid-template-columns:1fr 1fr}.ws-study-actions [data-study-action="watch-all"]{grid-column:1/-1}.ws-study-query{grid-template-columns:1fr 1fr}.ws-study-filter-head{flex-wrap:wrap}.ws-study-filter-head span{width:100%;order:2}.ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}.ws-study-filter-row{grid-template-columns:1fr 34px}.ws-study-filter-row .ws-study-filter-values,.ws-study-filter-row select[data-study-filter-value]{grid-column:1/-1}.ws-study-table-head{display:none}.ws-study-row{grid-template-columns:minmax(115px,1.2fr) .45fr .75fr 68px}.ws-study-row>:nth-child(4),.ws-study-row>:nth-child(5){display:none}.ws-study-summary{display:block}.ws-study-summary span{display:block;margin-top:3px}}
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
   </style>
 </head>
@@ -13790,7 +13820,391 @@ class NotesManager {
   }
 }
 
+// ===== sql-catalog.js =====
+/**
+ * SqlCatalog — SQLite (sql.js/WASM) persistence for the season catalog.
+ *
+ * WHY: the app persisted a season as one JSON blob and *rebuilt* game-level film
+ * metadata from transient in-memory state, which was silently lost (the v1.10.7
+ * film-index wipe). A real catalog with clips as first-class rows and
+ * transactional writes makes state impossible to half-write or derive away.
+ *
+ * SCOPE (persistence layer first): this is a drop-in for the SEASON persistence
+ * the app already does through StorageBackend — it decomposes the season OBJECT
+ * into rows on save and reassembles the SAME object on load. The app, SeasonStore
+ * and the in-memory model are unchanged; JSON stays as export/backup. Live SQL
+ * reads (play finder, cross-season queries) are a later phase on the same schema.
+ *
+ * ENGINE: sql.js runs the same schema + queries in Node (so this whole module is
+ * unit-tested before ship) and in the Tauri webview (which lazy-loads the wasm).
+ * The `SQL` module is INJECTED so loading is environment-specific:
+ *     const cat = new SqlCatalog(await initSqlJs({ ... }));
+ *     await cat.open(existingBytes);            // or open() for a fresh db
+ *     ... cat.saveSeason(data) / cat.loadSeason(id) ...
+ *     const bytes = cat.toBytes();              // persist to disk (desktop)
+ *
+ * LOSSLESSNESS: each parent stores its non-child fields verbatim in a `body_json`
+ * column; children (games, plays) live in their own tables (also body_json), and
+ * are re-attached on load. `clips` is a normalized PROJECTION of game.clipRefs for
+ * integrity / future queries — reassembly comes from the game body, so round-trip
+ * is exact. Verified by tools/e2e-sql-catalog.mjs.
+ */
+class SqlCatalog {
+  constructor(SQL) {
+    this.SQL = SQL;            // initialized sql.js module (injected)
+    this.db = null;
+    this.currentId = null;
+    this.RETENTION = 25;
+    this.SCHEMA = 1;
+    this._seq = 0;
+  }
+
+  // ---- lifecycle -----------------------------------------------------------
+  async open(bytes) {
+    this.db = bytes && bytes.length ? new this.SQL.Database(bytes) : new this.SQL.Database();
+    this.db.run('PRAGMA foreign_keys = ON;');
+    this.runMigrations();
+    return this;
+  }
+
+  toBytes() { return this.db.export(); }        // Uint8Array — write to the .db file
+  close() { if (this.db) { this.db.close(); this.db = null; } }
+
+  setCurrentSeason(id) { this.currentId = id; }
+  currentSeason() { return this.currentId; }
+
+  // ---- schema / migrations -------------------------------------------------
+  runMigrations() {
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+      CREATE TABLE IF NOT EXISTS migrations (id INTEGER PRIMARY KEY, applied_at TEXT);
+      CREATE TABLE IF NOT EXISTS seasons (
+        id TEXT PRIMARY KEY, name TEXT, team TEXT, year TEXT, level TEXT,
+        is_demo INTEGER DEFAULT 0, kind TEXT DEFAULT '', active_game_id TEXT,
+        games_count INTEGER DEFAULT 0, plays_count INTEGER DEFAULT 0,
+        created TEXT, updated TEXT, last_opened TEXT, body_json TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS games (
+        id TEXT PRIMARY KEY, season_id TEXT NOT NULL, ord INTEGER,
+        name TEXT, status TEXT, next_id INTEGER, current_play_id INTEGER,
+        video_file_name TEXT, is_multi_clip INTEGER DEFAULT 0, body_json TEXT NOT NULL,
+        FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS plays (
+        rowid_key INTEGER PRIMARY KEY AUTOINCREMENT,
+        play_id INTEGER, game_id TEXT NOT NULL, ord INTEGER,
+        ts_start REAL, ts_end REAL, clip_id INTEGER, clip_name TEXT, clip_path TEXT,
+        unit TEXT, run_pass TEXT, result TEXT, down TEXT, distance TEXT,
+        notes TEXT, body_json TEXT NOT NULL,
+        FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS clips (
+        rowid_key INTEGER PRIMARY KEY AUTOINCREMENT,
+        game_id TEXT NOT NULL, ord INTEGER, clip_path TEXT, name TEXT,
+        original_name TEXT, size INTEGER, partial_hash TEXT, duration REAL,
+        import_status TEXT,
+        FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS backups (
+        id TEXT PRIMARY KEY, season_id TEXT, t TEXT, label TEXT,
+        games_count INTEGER, plays_count INTEGER, season_name TEXT, body_json TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS imports (
+        id TEXT PRIMARY KEY, game_id TEXT, t TEXT, status TEXT, summary_json TEXT
+      );
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, t TEXT, entity TEXT, entity_id TEXT, op TEXT, detail_json TEXT
+      );
+      CREATE INDEX IF NOT EXISTS ix_games_season ON games(season_id, ord);
+      CREATE INDEX IF NOT EXISTS ix_plays_game ON plays(game_id, ord);
+      CREATE INDEX IF NOT EXISTS ix_clips_game ON clips(game_id, ord);
+      CREATE INDEX IF NOT EXISTS ix_backups_season ON backups(season_id, t);
+    `);
+    const has = this._get('SELECT id FROM migrations WHERE id = ?', [this.SCHEMA]);
+    if (!has) {
+      this.db.run('INSERT INTO migrations (id, applied_at) VALUES (?, ?)', [this.SCHEMA, new Date().toISOString()]);
+      this._setMeta('schema_version', String(this.SCHEMA));
+    }
+  }
+
+  // ---- low-level helpers ---------------------------------------------------
+  _run(sql, params = []) { this.db.run(sql, params); }
+  _all(sql, params = []) {
+    const stmt = this.db.prepare(sql); stmt.bind(params);
+    const out = []; while (stmt.step()) out.push(stmt.getAsObject()); stmt.free(); return out;
+  }
+  _get(sql, params = []) { const rows = this._all(sql, params); return rows[0] || null; }
+  _setMeta(k, v) { this.db.run('INSERT INTO meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', [k, v]); }
+  _newId(prefix) { this._seq = (this._seq + 1) & 0xffffff; return `${prefix}_${Date.now().toString(36)}_${this._seq.toString(36)}${Math.random().toString(36).slice(2, 6)}`; }
+  static _countPlays(data) { return (data && data.games) ? data.games.reduce((s, g) => s + ((g.plays || []).length), 0) : 0; }
+
+  // ---- canonical season save / load ---------------------------------------
+  /** Decompose a season object into rows (one transaction). Full rewrite of that season. */
+  saveSeason(data) {
+    if (!data || !Array.isArray(data.games)) return false;
+    const id = data.id || this.currentId;
+    if (!id) return false;
+    const now = new Date().toISOString();
+    this.db.run('BEGIN');
+    try {
+      // wipe this season's children (cascade handles games→plays/clips)
+      this._run('DELETE FROM games WHERE season_id = ?', [id]);
+      const { games, ...seasonBody } = data;
+      const created = (this._get('SELECT created FROM seasons WHERE id = ?', [id]) || {}).created || now;
+      this._run(
+        `INSERT INTO seasons (id,name,team,year,level,is_demo,kind,active_game_id,games_count,plays_count,created,updated,last_opened,body_json)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name,team=excluded.team,year=excluded.year,level=excluded.level,
+           is_demo=excluded.is_demo,kind=excluded.kind,active_game_id=excluded.active_game_id,
+           games_count=excluded.games_count,plays_count=excluded.plays_count,updated=excluded.updated,body_json=excluded.body_json`,
+        [id, data.seasonName || '', data.team || '', data.year || '', data.level || '',
+         data.isDemo ? 1 : 0, data.kind || '', data.activeGameId || '',
+         games.length, SqlCatalog._countPlays(data), created, now,
+         (this._get('SELECT last_opened FROM seasons WHERE id=?', [id]) || {}).last_opened || now,
+         JSON.stringify(seasonBody)]);
+
+      games.forEach((game, gi) => {
+        const { plays, ...gameBody } = game;
+        this._run(
+          `INSERT INTO games (id,season_id,ord,name,status,next_id,current_play_id,video_file_name,is_multi_clip,body_json)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          [game.id, id, gi, game.name || '', game.status || 'active', game.nextId != null ? game.nextId : null,
+           game.currentPlayId != null ? game.currentPlayId : null, game.videoFileName || null,
+           game.isMultiClip ? 1 : 0, JSON.stringify(gameBody)]);
+        (plays || []).forEach((p, pi) => {
+          const t = p.tags || {};
+          this._run(
+            `INSERT INTO plays (play_id,game_id,ord,ts_start,ts_end,clip_id,clip_name,clip_path,unit,run_pass,result,down,distance,notes,body_json)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [p.id != null ? p.id : null, game.id, pi,
+             p.timestamp ? p.timestamp.start : null, p.timestamp ? p.timestamp.end : null,
+             p.clipId != null ? p.clipId : null, p.clipName || null, p.clipPath || null,
+             t.unit || '', t.runPass || '', t.result || '', t.down || '', t.distance || '',
+             p.notes || '', JSON.stringify(p)]);
+        });
+        // clips projection (from the durable clipRefs the game carries)
+        (game.clipRefs || []).forEach((c, ci) => {
+          this._run(
+            `INSERT INTO clips (game_id,ord,clip_path,name,original_name,size,partial_hash,duration,import_status)
+             VALUES (?,?,?,?,?,?,?,?,?)`,
+            [game.id, ci, c.originalRelativePath || c.id || c.displayName || '', c.displayName || c.name || '',
+             c.originalName || '', c.size != null ? c.size : null, c.partialHash || null,
+             c.duration != null ? c.duration : null, c.importStatus || 'ready']);
+        });
+      });
+      this.db.run('COMMIT');
+      return true;
+    } catch (e) { this.db.run('ROLLBACK'); throw e; }
+  }
+
+  /** Reassemble the exact season object from rows. */
+  loadSeason(id) {
+    const sid = id || this.currentId;
+    if (!sid) return null;
+    const srow = this._get('SELECT body_json FROM seasons WHERE id = ?', [sid]);
+    if (!srow) return null;
+    const season = JSON.parse(srow.body_json);
+    season.games = this._all('SELECT id, body_json FROM games WHERE season_id = ? ORDER BY ord', [sid]).map(g => {
+      const game = JSON.parse(g.body_json);
+      game.plays = this._all('SELECT body_json FROM plays WHERE game_id = ? ORDER BY ord', [g.id]).map(p => JSON.parse(p.body_json));
+      return game;
+    });
+    return season;
+  }
+
+  // ---- library (multi-season) ----------------------------------------------
+  listSeasons() {
+    return this._all(`SELECT id,name,team,year,level,is_demo,kind,games_count,plays_count,created,updated,last_opened
+                      FROM seasons ORDER BY COALESCE(last_opened, updated, created) DESC`)
+      .map(r => ({
+        id: r.id, name: r.name || r.team || 'Untitled Season', team: r.team || '', year: r.year || '', level: r.level || '',
+        games: r.games_count || 0, plays: r.plays_count || 0,
+        created: r.created || '', updated: r.updated || '', lastOpened: r.last_opened || '',
+        isDemo: !!r.is_demo, kind: r.kind || '',
+      }));
+  }
+
+  createSeason(meta) {
+    const m = meta || {};
+    const id = m.id || this._newId('sea');
+    const now = new Date().toISOString();
+    const body = {
+      version: 5, type: 'season', id, seasonName: m.name || '', team: m.team || '', year: m.year || '', level: m.level || '',
+      teamProfile: m.team ? { teamName: m.team } : {}, roster: [], games: [], activeGameId: '',
+    };
+    // Persist the season body WITHOUT its games array — games live in their own
+    // rows; keeping them here too would double-store and drift.
+    const { games: _games, ...bodyMeta } = body;
+    this._run(
+      `INSERT INTO seasons (id,name,team,year,level,is_demo,kind,active_game_id,games_count,plays_count,created,updated,last_opened,body_json)
+       VALUES (?,?,?,?,?,0,?,?,0,0,?,?,?,?)`,
+      [id, body.seasonName, body.team, body.year, body.level, m.kind || '', '', now, now, now, JSON.stringify(bodyMeta)]);
+    return { id, name: body.seasonName, team: body.team, year: body.year, level: body.level };
+  }
+
+  deleteSeason(id) { this._run('DELETE FROM seasons WHERE id = ?', [id]); if (this.currentId === id) this.currentId = null; }
+  touchOpened(id) { this._run('UPDATE seasons SET last_opened = ? WHERE id = ?', [new Date().toISOString(), id]); }
+
+  /** Import an existing season.json (post-_normalize) into the catalog. Idempotent per id. */
+  importSeasonJson(seasonObj) { return this.saveSeason(seasonObj); }
+
+  // ---- backup ring (scoped to currentId) -----------------------------------
+  createBackup(data, label) {
+    const id = this._newId('bk');
+    this._run('INSERT INTO backups (id,season_id,t,label,games_count,plays_count,season_name,body_json) VALUES (?,?,?,?,?,?,?,?)',
+      [id, this.currentId, new Date().toISOString(), label || 'Save',
+       (data.games || []).length, SqlCatalog._countPlays(data), data.seasonName || '', JSON.stringify(data)]);
+    this._pruneBackups();
+    return id;
+  }
+  listBackups() {
+    return this._all('SELECT id,t,label,games_count,plays_count,season_name FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId])
+      .map(r => ({ id: r.id, t: r.t, label: r.label, seasonName: r.season_name || '', games: r.games_count || 0, plays: r.plays_count || 0 }));
+  }
+  getBackup(id) { const r = this._get('SELECT body_json FROM backups WHERE id = ?', [id]); return r ? JSON.parse(r.body_json) : null; }
+  deleteBackup(id) { this._run('DELETE FROM backups WHERE id = ?', [id]); }
+  _pruneBackups() {
+    const ids = this._all('SELECT id FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId]).map(r => r.id);
+    ids.slice(this.RETENTION).forEach(id => this._run('DELETE FROM backups WHERE id = ?', [id]));
+  }
+}
+
+// ===== catalog-persistence.js =====
+/**
+ * CatalogPersistence — the A3 dual-write orchestrator that makes the SQLite
+ * catalog the CANONICAL season store while keeping JSON as a self-healing
+ * fallback. It owns ONLY the orchestration (which store wins, when to migrate,
+ * best-effort mirror); ALL filesystem access is INJECTED, so the whole risky
+ * canonical-write path is unit-tested in Node (tools/e2e-catalog-persistence.mjs)
+ * with a fake fs + real sql.js — the Tauri desktop glue that supplies the real
+ * `fs` adapter + lazy-loads the wasm is the only piece left for a manual smoke.
+ *
+ * MODEL: one library-wide catalog db (all seasons; the plan's `seasons/library.db`)
+ * held open in memory; every save re-exports its bytes to disk AND dual-writes the
+ * per-season `season.json` (app-data) + best-effort Documents mirror. This is the
+ * committed migration OFF the JSON-blob-per-season model (structurally kills the
+ * v1.10.7 film-index wipe) — the flag + dual-write gate only the TIMING of the
+ * safe cutover (drop the JSON dual-write after a stable release), never whether.
+ *
+ * LOAD PREFERENCE (self-healing): db → json. A missing/corrupt db falls back to
+ * the season.json and RE-MIGRATES it into the db, so the next load is canonical
+ * again (lesson #19/#21: reversible + self-healing). A load never throws — a bad
+ * db degrades to json; a bad json returns null, never a half-state.
+ *
+ *   const cp = new CatalogPersistence({ catalog, fs });   // catalog = opened SqlCatalog
+ *   await cp.saveSeason(id, seasonObject);
+ *   const { data, source } = (await cp.loadSeason(id)) || {};
+ *
+ * Injected `fs` adapter (all async, all best-effort-safe for the caller):
+ *   readDb()            -> Uint8Array | null   (the shared library db bytes)
+ *   writeDb(bytes)      -> void                (canonical write)
+ *   readJson(id)        -> object | null       (per-season fallback)
+ *   writeJson(id, data) -> void                (per-season fallback write)
+ *   writeMirror(id,data)-> void  (optional)    (Documents mirror; may throw — swallowed)
+ */
+class CatalogPersistence {
+  constructor({ catalog, fs }) {
+    if (!catalog || typeof catalog.saveSeason !== 'function') throw new TypeError('CatalogPersistence requires a SqlCatalog');
+    if (!fs || typeof fs.readDb !== 'function' || typeof fs.writeDb !== 'function') throw new TypeError('CatalogPersistence requires an fs adapter (readDb/writeDb/readJson/writeJson)');
+    this.catalog = catalog;
+    this.fs = fs;
+    this._loaded = false;   // has the shared db been opened from disk this session?
+  }
+
+  /** Open the shared library db from disk once (or a fresh db if none/corrupt). */
+  async _ensureLoaded() {
+    if (this._loaded && this.catalog.db) return;
+    let bytes = null;
+    try { bytes = await this.fs.readDb(); } catch (e) { bytes = null; }
+    try {
+      await this.catalog.open(bytes && bytes.length ? bytes : undefined);
+    } catch (e) {
+      // Corrupt db bytes — start clean; the per-season json fallback re-migrates.
+      await this.catalog.open();
+    }
+    this._loaded = true;
+  }
+
+  /**
+   * Canonical save: upsert the season into the shared db, export the db bytes to
+   * disk, then dual-write season.json (fallback) + best-effort Documents mirror.
+   * Returns true on a successful canonical (db) write.
+   */
+  async saveSeason(id, data) {
+    if (!id || !data || !Array.isArray(data.games)) return false;
+    await this._ensureLoaded();
+    data.id = data.id || id;
+    this.catalog.setCurrentSeason(id);
+    if (!this.catalog.saveSeason(data)) return false;
+    let okDb = false;
+    try { await this.fs.writeDb(this.catalog.toBytes()); okDb = true; } catch (e) { okDb = false; }
+    // Fallback + mirror are the safety net; never let them mask the canonical result.
+    try { await this.fs.writeJson(id, data); } catch (e) {}
+    if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
+    return okDb;
+  }
+
+  /**
+   * Load preferring the canonical db; fall back to season.json and re-migrate it
+   * into the db so the next load is canonical. Returns { data, source } or null.
+   */
+  async loadSeason(id) {
+    if (!id) return null;
+    await this._ensureLoaded();
+    try {
+      const fromDb = this.catalog.loadSeason(id);
+      if (fromDb && Array.isArray(fromDb.games)) return { data: fromDb, source: 'db' };
+    } catch (e) { /* fall through to json */ }
+    let json = null;
+    try { json = await this.fs.readJson(id); } catch (e) { json = null; }
+    if (json && Array.isArray(json.games)) {
+      // Self-heal: migrate the json back into the canonical db for next time.
+      try {
+        json.id = json.id || id;
+        this.catalog.setCurrentSeason(id);
+        this.catalog.importSeasonJson(json);
+        await this.fs.writeDb(this.catalog.toBytes());
+      } catch (e) {}
+      return { data: json, source: 'json' };
+    }
+    return null;
+  }
+
+  /** Remove a season from the db + persist; the caller removes the json/mirror files. */
+  async deleteSeason(id) {
+    await this._ensureLoaded();
+    try { this.catalog.deleteSeason(id); await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+  }
+
+  /**
+   * One-time migration (A3 increment 3): import the coach's existing per-season
+   * `season.json` files into the shared library db on first flag-on. Idempotent —
+   * a season already present in the db is skipped, so re-running never duplicates
+   * or clobbers. Returns the count migrated. Never throws (a bad json is skipped).
+   */
+  async migrateJsonSeasons(ids) {
+    if (!Array.isArray(ids) || !ids.length) return 0;
+    await this._ensureLoaded();
+    let migrated = 0;
+    for (const id of ids) {
+      let inDb = false;
+      try { inDb = !!this.catalog.loadSeason(id); } catch (e) { inDb = false; }
+      if (inDb) continue;
+      let json = null;
+      try { json = await this.fs.readJson(id); } catch (e) { json = null; }
+      if (json && Array.isArray(json.games)) {
+        json.id = json.id || id;
+        this.catalog.setCurrentSeason(id);
+        try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}
+      }
+    }
+    if (migrated) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
+    return migrated;
+  }
+}
+
 // ===== storage-backend.js =====
+
 /**
  * StorageBackend — the seam between the app and *where bytes live*.
  *
@@ -14340,6 +14754,8 @@ class TauriBackend extends StorageBackend {
 
   async deleteSeason(id) {
     if (!this._ok()) return;
+    const cp = await this._ensureCatalog();
+    if (cp) { try { await cp.deleteSeason(id); } catch (e) {} }
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
     try {
       if (this.mirrorDir !== undefined) {
@@ -14363,17 +14779,96 @@ class TauriBackend extends StorageBackend {
   // ---- canonical (scoped to currentId) ----
   async loadSeason() {
     if (!this._ok() || !this.currentId) return null;
+    const cp = await this._ensureCatalog();
+    if (cp) {
+      try { const r = await cp.loadSeason(this.currentId); if (r && r.data) return r.data; }
+      catch (e) { console.warn('catalog load failed; JSON fallback', e); }
+    }
     if (await this._exists(this._seasonFile(this.currentId))) return this._readJson(this._seasonFile(this.currentId));
     return null;
   }
   async saveSeason(data) {
     if (!this._ok() || !this.currentId) return false;
+    const cp = await this._ensureCatalog();
+    if (cp) {
+      // CatalogPersistence writes db (canonical) + season.json + Documents mirror.
+      try { await cp.saveSeason(this.currentId, data); await this._touchMeta(data); return true; }
+      catch (e) { console.warn('catalog save failed; JSON path', e); }
+    }
     try {
       await this._ensureSeasonDir(this.currentId);
       await this._writeJson(this._seasonFile(this.currentId), data);
       await this._touchMeta(data);
       return true;
     } catch (e) { return false; }
+  }
+
+  // ---- SQLite catalog (A3 desktop canonical) — flag-gated + FAIL-SAFE --------
+  // Behind localStorage `ffa_sql_catalog` (default OFF). When enabled, season
+  // load/save/delete delegate to CatalogPersistence: the SQLite catalog becomes
+  // canonical, dual-writing season.json + the Documents mirror, with a self-
+  // healing JSON fallback. ANY failure — the wasm won't load, a runtime error —
+  // silently keeps the EXISTING JSON path, so the feature can never lose a save.
+  // The browser bundle stays sql.js-free: the wasm is a desktop-only Tauri
+  // resource, lazy-loaded here on first use.
+  _sqlFlag() {
+    try { return typeof localStorage !== 'undefined' && localStorage.getItem('ffa_sql_catalog') === '1'; }
+    catch (e) { return false; }
+  }
+
+  async _loadSqlEngine() {
+    if (this._SQL) return this._SQL;
+    if (this._sqlEngineFailed) return null;   // don't retry a broken load every op
+    try {
+      const T = window.__TAURI__;
+      const resolve = T && T.path && T.path.resolveResource;
+      const convert = T && T.core && T.core.convertFileSrc;
+      if (!resolve || !convert) throw new Error('Tauri resource API unavailable');
+      if (typeof window.initSqlJs !== 'function') {
+        const glueUrl = convert(await resolve('resources/sql-wasm.js'));
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = glueUrl; s.onload = res; s.onerror = () => rej(new Error('sql-wasm.js failed to load'));
+          document.head.appendChild(s);
+        });
+      }
+      const wasmUrl = convert(await resolve('resources/sql-wasm.wasm'));
+      this._SQL = await window.initSqlJs({ locateFile: () => wasmUrl });
+      return this._SQL;
+    } catch (e) {
+      this._sqlEngineFailed = true;
+      console.warn('SQL engine load failed; staying on JSON', e);
+      return null;
+    }
+  }
+
+  _catalogFs() {
+    const dbPath = 'seasons/library.db';
+    return {
+      readDb: async () => { try { if (await this._exists(dbPath)) return await this.fs.readFile(dbPath, { baseDir: this.baseDir }); } catch (e) {} return null; },
+      writeDb: async (bytes) => { try { await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true }); } catch (e) {} await this.fs.writeFile(dbPath, bytes, { baseDir: this.baseDir }); },
+      readJson: async (id) => this._readJson(this._seasonFile(id)),
+      writeJson: async (id, data) => { await this._ensureSeasonDir(id); await this._writeJson(this._seasonFile(id), data); },
+      writeMirror: async (_id, data) => { await this._mirrorToDocuments(data); },
+    };
+  }
+
+  async _ensureCatalog() {
+    if (!this._sqlFlag() || !this._ok()) return null;
+    if (this._catalog) return this._catalog;
+    if (this._catalogInit) return this._catalogInit;
+    this._catalogInit = (async () => {
+      try {
+        const SQL = await this._loadSqlEngine();
+        if (!SQL) return null;
+        const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: this._catalogFs() });
+        // First flag-on: import existing per-season season.json into the shared db.
+        try { const lib = await this._readLib(); await cp.migrateJsonSeasons(lib.map(s => s.id)); } catch (e) {}
+        this._catalog = cp;
+        return cp;
+      } catch (e) { console.warn('Catalog init failed; staying on JSON', e); return null; }
+    })();
+    return this._catalogInit;
   }
   async _touchMeta(data) {
     const lib = await this._readLib();
@@ -25763,20 +26258,23 @@ class StudyQuery {
 /** Interactive Study workspace over the parity-locked StudyQuery engine. */
 class StudyScreen {
   static get DIMENSIONS() {
-    return ['formation', 'playType', 'runPass', 'down', 'personnel', 'backfield',
-      'strength', 'motion', 'playDir', 'defFront', 'coverage', 'blitz', 'quarter',
-      'result', 'unit'];
+    return ['formation', 'playType', 'runPass', 'down', 'distance', 'quarter',
+      'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
+      'playDir', 'defFront', 'coverage', 'blitz', 'result', 'playerRole', 'grade',
+      'specialTeamsPhase', 'customTag', 'customField'];
   }
 
   static get MEASURES() {
     return ['sampleSize', 'successRate', 'runShare', 'passShare',
-      'explosiveRate', 'negativeRate', 'epaPerPlay'];
+      'explosiveRate', 'negativeRate', 'turnovers', 'touchdowns', 'havocRate',
+      'epaPerPlay'];
   }
 
   constructor(app) {
     this.app = app;
     this.host = null;
     this.rows = [];
+    this.filters = [];
     this._bound = false;
   }
 
@@ -25787,12 +26285,18 @@ class StudyScreen {
       const item = this.app.analyticsRegistry.getDimension(id);
       return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
     }).join('');
+    const measures = StudyScreen.MEASURES.filter(id => id !== 'sampleSize').map(id => {
+      const item = this.app.analyticsRegistry.getMeasure(id);
+      return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
+    }).join('');
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
-      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label class="ws-study-compare"><input type="checkbox" id="wsStudyCompare"> Compare game vs season</label><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label></div>
+      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
       <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div>
-      <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span>Success</span><span>Run / Pass</span><span>Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
+      <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span id="wsStudyMetricHead">Success</span><span>Run / Pass</span><span id="wsStudyDeltaHead">Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
     this._bind();
     this._loadViews();
+    this._renderFilters();
   }
 
   show() {
@@ -25805,14 +26309,34 @@ class StudyScreen {
     if (this._bound) return;
     this._bound = true;
     this.host.addEventListener('change', e => {
-      if (e.target.id === 'wsStudySaved') this._applyView(e.target.value);
-      else if (e.target.matches('select,input')) this.render();
+      if (e.target.id === 'wsStudySaved') { this._applyView(e.target.value); this._syncDeleteView(); }
+      else if (e.target.matches('[data-study-filter-dimension]')) {
+        const filter = this.filters[Number(e.target.dataset.studyFilterDimension)];
+        if (filter) { filter.dimension = e.target.value; filter.values = []; this._renderFilters(); this.render(); }
+      } else if (e.target.matches('[data-study-filter-value]')) {
+        const filter = this.filters[Number(e.target.dataset.studyFilterValue)];
+        if (filter && e.target.value && !filter.values.includes(e.target.value)) filter.values.push(e.target.value);
+        this._renderFilters(); this.render();
+      } else if (e.target.matches('select,input')) {
+        if (e.target.id === 'wsStudyScope') this._renderFilters();
+        this.render();
+      }
     });
     this.host.addEventListener('click', e => {
       const action = e.target.closest('[data-study-action]')?.dataset.studyAction;
       if (action === 'advanced') this.app.workspaceShell.showAdvancedReports();
       if (action === 'save') this._saveView();
+      if (action === 'delete-view') this._deleteView();
       if (action === 'watch-all') this._watch(this.rows.flatMap(r => r.refs), 'Study results');
+      if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
+      if (action === 'clear-filters') { this.filters = []; this._renderFilters(); this.render(); }
+      const removeFilter = e.target.closest('[data-study-filter-remove]')?.dataset.studyFilterRemove;
+      if (removeFilter != null) { this.filters.splice(Number(removeFilter), 1); this._renderFilters(); this.render(); }
+      const removeValue = e.target.closest('[data-study-value-remove]')?.dataset.studyValueRemove;
+      if (removeValue) {
+        const [filterIndex, valueIndex] = removeValue.split(':').map(Number);
+        this.filters[filterIndex]?.values.splice(valueIndex, 1); this._renderFilters(); this.render();
+      }
       const index = e.target.closest('[data-study-row]')?.dataset.studyRow;
       if (index != null) {
         const row = this.rows[Number(index)];
@@ -25827,8 +26351,10 @@ class StudyScreen {
       dimension: this._control('wsStudyDimension').value,
       scope: this._control('wsStudyScope').value,
       unit: this._control('wsStudyUnit').value,
+      measure: this._control('wsStudyMeasure').value,
       minSample: Number(this._control('wsStudyMin').value) || 0,
-      compare: this._control('wsStudyCompare').checked,
+      compare: this._control('wsStudyCompare').value,
+      filters: this.filters.map(filter => ({ dimension: filter.dimension, values: filter.values.slice() })),
     };
   }
 
@@ -25838,53 +26364,56 @@ class StudyScreen {
     const activeId = String(store.data?.activeGameId || '');
     const stamp = game => (game?.plays || []).map(play => ({ ...play, __gid: String(game.id) }));
     const active = games.find(game => String(game.id) === activeId);
-    return { game: stamp(active), season: games.flatMap(stamp), activeName: active ? this._gameName(active) : 'Current game' };
+    return { game: stamp(active), season: games.flatMap(stamp), prior: games.filter(game => String(game.id) !== activeId).flatMap(stamp), activeName: active ? this._gameName(active) : 'Current game' };
   }
 
   render() {
     if (!this.host) return;
     const state = this._state();
     const sets = this._playSets();
-    const filters = state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [];
+    const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
     const args = { dimension: state.dimension, measures: StudyScreen.MEASURES, filters, minSample: state.minSample };
+    this._control('wsStudyScope').disabled = !!state.compare;
     let result;
     try {
       result = state.compare
-        ? this.app.study.compare({ ...args, base: sets.game, against: sets.season, labels: { base: sets.activeName, against: 'Season' } })
+        ? this.app.study.compare({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
         : this.app.study.run({ ...args, plays: sets[state.scope] });
     } catch (error) {
       this.rows = [];
       this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this query.')}</div>`;
       return;
     }
-    state.compare ? this._renderCompare(result) : this._renderQuery(result, state.scope);
+    this._control('wsStudyMetricHead').textContent = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+    this._control('wsStudyDeltaHead').textContent = state.compare ? 'Delta' : 'Explosive';
+    state.compare ? this._renderCompare(result, state.measure) : this._renderQuery(result, state.scope, state.measure);
     this._renderWarnings(result.warnings || []);
   }
 
-  _renderQuery(result, scope) {
+  _renderQuery(result, scope, measure) {
     const groups = result.groups.filter(group => group.sampleSize > 0);
     const matching = [...new Set(groups.flatMap(group => group.matchingPlayIds))];
     this.rows = groups.map(group => ({ label: group.value, refs: group.matchingPlayIds }));
     this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${scope === 'game' ? 'current game' : 'full season'}</span>`;
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((group, index) => {
       const m = group.measures;
-      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._pct(m.successRate)}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
+      return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
     this._setWatchAll(matching);
   }
 
-  _renderCompare(result) {
+  _renderCompare(result, measure) {
     const rows = result.rows.filter(row => row.a.sampleSize > 0 || row.b.sampleSize > 0);
     const aRefs = [...new Set(rows.flatMap(row => row.a.matchingPlayIds))];
     const bRefs = [...new Set(rows.flatMap(row => row.b.matchingPlayIds))];
     this.rows = rows.map(row => ({ label: row.value, refs: row.a.matchingPlayIds.length ? row.a.matchingPlayIds : row.b.matchingPlayIds }));
     this._control('wsStudySummary').innerHTML = `<strong>${aRefs.length} vs ${bRefs.length} plays</strong><span>${this._esc(result.a.label)} compared with ${this._esc(result.b.label)}</span>`;
     this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
-      const delta = row.deltas.successRate;
-      const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._number(delta)} pts`;
-      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._pct(row.a.measures.successRate)} / ${this._pct(row.b.measures.successRate)}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
+      const delta = row.deltas[measure];
+      const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
+      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
-    this._setWatchAll(aRefs);
+    this._setWatchAll(aRefs, 'Watch current game');
   }
 
   _renderWarnings(warnings) {
@@ -25893,11 +26422,45 @@ class StudyScreen {
     el.textContent = warnings.length ? `${warnings.length} group${warnings.length === 1 ? '' : 's'} below the selected minimum sample. Results remain visible.` : '';
   }
 
-  _setWatchAll(refs) {
+  _setWatchAll(refs, label = 'Watch results') {
     const unique = [...new Set(refs)];
     const button = this.host.querySelector('[data-study-action="watch-all"]');
     button.disabled = !unique.length;
-    button.textContent = unique.length ? `Watch results · ${unique.length}` : 'Watch results';
+    button.textContent = unique.length ? `${label} · ${unique.length}` : label;
+  }
+
+  _filterDimensions() {
+    const excluded = new Set(['team', 'season', 'game', 'opponent', 'date']);
+    return this.app.analyticsRegistry.listDimensions()
+      .filter(item => item.availability === 'ready' && !excluded.has(item.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _filterValues(dimension) {
+    const state = this._state();
+    const sets = this._playSets();
+    const plays = state.scope === 'game' ? sets.game : sets.season;
+    const values = new Set();
+    try {
+      for (const play of plays) {
+        for (const value of this.app.analyticsRegistry.values(dimension, play)) if (value) values.add(String(value));
+      }
+    } catch { return []; }
+    return [...values].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
+  _renderFilters() {
+    if (!this.host) return;
+    const container = this._control('wsStudyFilters');
+    const dimensions = this._filterDimensions();
+    container.innerHTML = this.filters.map((filter, filterIndex) => {
+      const dimensionOptions = dimensions.map(item => `<option value="${this._esc(item.id)}"${item.id === filter.dimension ? ' selected' : ''}>${this._esc(item.name)}</option>`).join('');
+      const selected = filter.values.map((value, valueIndex) => `<button class="ws-study-filter-chip" data-study-value-remove="${filterIndex}:${valueIndex}" title="Remove ${this._esc(value)}">${this._esc(value)} ×</button>`).join('');
+      const available = this._filterValues(filter.dimension).filter(value => !filter.values.includes(value));
+      const valueOptions = available.map(value => `<option value="${this._esc(value)}">${this._esc(value)}</option>`).join('');
+      return `<div class="ws-study-filter-row"><select data-study-filter-dimension="${filterIndex}" aria-label="Filter dimension">${dimensionOptions}</select><div class="ws-study-filter-values">${selected || '<span>Any value</span>'}</div><select data-study-filter-value="${filterIndex}" aria-label="Add filter value"><option value="">Add value…</option>${valueOptions}</select><button class="ws-icon-btn" data-study-filter-remove="${filterIndex}" aria-label="Remove filter">×</button></div>`;
+    }).join('');
+    this.host.querySelector('[data-study-action="clear-filters"]').hidden = !this.filters.length;
   }
 
   async _watch(refs, label) {
@@ -25913,20 +26476,23 @@ class StudyScreen {
     if (gameIds.length > 1) this.app.tagger.toast?.(`Opened ${ids.size} matching plays from this game. Study keeps ${unique.length} matches across ${gameIds.length} games.`);
   }
 
-  _views() { try { return JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]'); } catch { return []; } }
+  _views() { try { const views = JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]'); return Array.isArray(views) ? views : []; } catch { return []; } }
   _loadViews(selected = '') {
     const select = this._control('wsStudySaved');
     const views = this._views();
     select.innerHTML = '<option value="">Choose a saved view</option>' + views.map(view => `<option value="${this._esc(view.id)}"${view.id === selected ? ' selected' : ''}>${this._esc(view.name)}</option>`).join('');
+    this._syncDeleteView();
   }
   _saveView() {
     const state = this._state();
     const dimension = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
-    const name = `${dimension} · ${state.compare ? 'Game vs season' : state.scope === 'game' ? 'Current game' : 'Season'}${state.unit ? ` · ${state.unit}` : ''}`;
+    const comparison = state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season' : state.scope === 'game' ? 'Current game' : 'Season';
+    const name = `${dimension} · ${comparison}${state.unit ? ` · ${state.unit}` : ''}${state.filters.length ? ` · ${state.filters.length} filter${state.filters.length === 1 ? '' : 's'}` : ''}`;
     const views = this._views();
-    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.minSample}|${state.compare}`;
+    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${JSON.stringify(state.filters)}`;
     const next = [...views.filter(view => view.id !== id), { id, name, state }].slice(-12);
-    localStorage.setItem('ffa_study_views_v1', JSON.stringify(next));
+    try { localStorage.setItem('ffa_study_views_v1', JSON.stringify(next)); }
+    catch { this.app.tagger.toast?.('Could not save this Study view'); return; }
     this._loadViews(id);
     this.app.tagger.toast?.(`Saved Study view: ${name}`);
   }
@@ -25936,13 +26502,37 @@ class StudyScreen {
     this._control('wsStudyDimension').value = view.state.dimension;
     this._control('wsStudyScope').value = view.state.scope;
     this._control('wsStudyUnit').value = view.state.unit;
+    this._control('wsStudyMeasure').value = view.state.measure || 'successRate';
     this._control('wsStudyMin').value = String(view.state.minSample);
-    this._control('wsStudyCompare').checked = !!view.state.compare;
+    this._control('wsStudyCompare').value = view.state.compare === true ? 'season' : (view.state.compare || '');
+    this.filters = Array.isArray(view.state.filters) ? view.state.filters
+      .filter(filter => this.app.analyticsRegistry.getDimension(filter.dimension)?.availability === 'ready')
+      .map(filter => ({ dimension: filter.dimension, values: (filter.values || []).map(String) })) : [];
+    this._renderFilters();
     this.render();
+  }
+  _syncDeleteView() {
+    const button = this.host?.querySelector('[data-study-action="delete-view"]');
+    if (button) button.disabled = !this._control('wsStudySaved')?.value;
+  }
+  _deleteView() {
+    const id = this._control('wsStudySaved').value;
+    if (!id) return;
+    const next = this._views().filter(view => view.id !== id);
+    try { localStorage.setItem('ffa_study_views_v1', JSON.stringify(next)); } catch { return; }
+    this._loadViews();
+    this.app.tagger.toast?.('Study view deleted');
   }
 
   _gameName(game) { return game.name || game.gameInfo?.projectName || game.gameInfo?.opponent || 'Current game'; }
   _pct(value) { const n = Number(value); return Number.isFinite(n) ? `${this._number(n)}%` : '—'; }
+  _measure(id, value, suffix = true) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    if (['successRate', 'runShare', 'passShare', 'explosiveRate', 'negativeRate', 'havocRate'].includes(id)) return `${this._number(n)}${suffix ? '%' : ' pts'}`;
+    if (id === 'epaPerPlay') return this._number(n);
+    return this._number(n);
+  }
   _number(value) { return Number(value).toFixed(1).replace(/\.0$/, ''); }
   _esc(value) { return String(value ?? '').replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
 }

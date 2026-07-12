@@ -18,11 +18,11 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: asset: http://asset.localhost https://asset.localhost; media-src 'self' blob: asset: http://asset.localhost https://asset.localhost; connect-src 'self' https://api.anthropic.com https://cdn.jsdelivr.net http://asset.localhost http://127.0.0.1:* http://localhost:*",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net asset: http://asset.localhost https://asset.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: asset: http://asset.localhost https://asset.localhost; media-src 'self' blob: asset: http://asset.localhost https://asset.localhost; connect-src 'self' https://api.anthropic.com https://cdn.jsdelivr.net asset: http://asset.localhost https://asset.localhost http://127.0.0.1:* http://localhost:*",
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": ["$APPDATA/**"]
+          "allow": ["$APPDATA/**", "$RESOURCE/**"]
         }
       }
     }
@@ -42,6 +42,10 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "resources": [
+      "resources/sql-wasm.js",
+      "resources/sql-wasm.wasm"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -14,7 +14,7 @@ strip_modules() {
 # and the concatenation loop stay in sync.
 JS_FILES="
   js/football-rules.js js/video-controller.js js/canvas-overlay.js js/play-tagger.js
-  js/roster-manager.js js/play-filter.js js/notes-manager.js js/storage-backend.js
+  js/roster-manager.js js/play-filter.js js/notes-manager.js js/sql-catalog.js js/catalog-persistence.js js/storage-backend.js
   js/season-store.js js/demo-season.js js/storage.js js/play-detector.js
   js/clip-analyzer.js js/backend-client.js js/vision-analyzer.js js/playlist-manager.js
   js/quick-chart.js js/heat-maps.js js/advanced-metrics.js js/visualizations.js
