@@ -357,12 +357,13 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: c76972a  A3 failure-path fixes (Codex review addressed; gate 34/34)
+HEAD: be9395e  A3 fixes handoff; Codex independent re-review ACCEPTED
 Gate at HEAD: full 34/34 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
 
 Recent redesign commits (newest first):
+  be9395e  A3 fixes handoff (superseded by Codex acceptance below)
   c76972a  A3 failure-path fixes (save propagate + delete no-resurrect) + 2 regressions
   470b713  Codex A3 review — bundled Study verification
   b62405d  Codex A3 review — two failure-path changes requested
@@ -386,30 +387,31 @@ Lane status:
   Claude (data/analytics/persistence spine): P0-a/b/c/d DONE + accepted; Phase 1
     finished + shipped; Phase 2 Study executor + two-cohort compare DONE (the
     spine the Study UI consumes); A3 increments 1+2+3 implemented behind the flag;
-    Codex's two failure-path defects are now FIXED (c76972a) with failing-first
-    regressions — awaiting Codex re-review, then the coach desktop smoke.
+    Codex's two failure-path defects are FIXED and independently ACCEPTED at
+    c76972a; the coach desktop smoke is now unblocked.
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
     increments 1+2 DONE at 7f755c6 + d76e699.
 
 NEXT ACTIONS
-  Codex: re-review Claude's A3 fixes (c76972a) — saveSeason boolean propagation +
-    the delete no-resurrection contract + the two new regressions
-    (e2e-catalog-persistence 26/26, e2e-catalog-backend 5/5). Then the coach smoke.
-  Claude: A3 fixes DONE + handed back. Do NOT begin the coach desktop smoke until
-    Codex re-review passes.
+  Coach/Claude: run the documented flag-ON desktop smoke. A3 code review is
+    ACCEPTED; report any SQL-engine warning or persistence mismatch verbatim.
+  Codex: Study increments 1+2 are complete. Next UI work is date-range cohorts
+    and, later, a real cross-game playback contract.
     After the smoke passes on real film for a release cycle, drop the JSON
     dual-write to single-write `.db`. Next in Claude's lane after that: the
     dedicated library-root move + the deferred persistence items (diskStatus
     honesty, listBackups meta as a row query, version-manager fold-in) that ride
     cheaply on the catalog.
 
-A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED (1+2+3), flag OFF,
-CHANGES REQUESTED before the coach desktop smoke.
+A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED + CODE-REVIEW ACCEPTED,
+flag OFF by default; coach desktop smoke is the remaining release gate.
 
-#### A3 Codex Review — CHANGES REQUESTED (`218d490`) → FIXED (`c76972a`), awaiting re-review
+#### A3 Codex Review — ACCEPTED (`c76972a`)
 
 Both defects fixed reproduce-first with failing-first regressions (fail on the old
-code, pass on the fix); full gate 34/34.
+code, pass on the fix). Codex independently inspected the implementation and ran
+catalog persistence 26/26, flag-ON backend delegation 5/5, Study 17/17, both
+parity goldens, and the complete gate 34/34 with zero failures.
 1. FIXED — `TauriBackend.saveSeason()` now propagates `CatalogPersistence
    .saveSeason()`'s boolean (metadata still advances to match the json safety copy,
    but the canonical db result surfaces so SeasonStore's persist warning fires).
@@ -422,7 +424,17 @@ code, pass on the fix); full gate 34/34.
    Regressions: `e2e-catalog-persistence.mjs` (26/26: failure returns false, memory
    restored, json retained, retry deletes durably) + `e2e-catalog-backend.mjs`
    (failed delete retains files + library entry; durable delete removes them).
-Next: Codex re-review of `c76972a`; only then the coach desktop smoke.
+Verdict: ACCEPT. The coach desktop smoke may proceed.
+
+Nonblocking hardening follow-ups (do not block smoke):
+- Delete rollback currently closes and rereads the unchanged DB. Keeping a
+  pre-delete byte snapshot would also restore memory if the failed write is
+  accompanied by a transient `readDb` failure; JSON remains retained and
+  self-heals today, so this is resilience rather than a data-loss blocker.
+- `TauriBackend.deleteSeason()` retains all durable state on catalog failure but
+  returns through the legacy void API, so SeasonStore/UI cannot show a direct
+  "delete failed" toast. Propagate a boolean through the delete call chain in a
+  later UX-hardening patch.
 
 <details><summary>Original CHANGES REQUESTED (for the record)</summary>
 

@@ -108,8 +108,7 @@ flag-OFF. Build NOTE: the env bumps js mtimes between build and test, so run
 `bash build.sh` and the e2e gate in ONE command or e2e-parity's stale-bundle guard
 false-fails.
 
-**A3 CODE REVIEW — CHANGES REQUESTED (`218d490`) → FIXED (`c76972a`), awaiting
-Codex re-review.** Codex found two flag-ON failure-path defects the flag-OFF gate
+**A3 CODE REVIEW — ACCEPTED (`c76972a`).** Codex found two flag-ON failure-path defects the flag-OFF gate
 never exercised; both fixed reproduce-first with failing-first regressions:
 
 1. FIXED — `TauriBackend.saveSeason()` discarded `CatalogPersistence.saveSeason()`'s
@@ -127,7 +126,15 @@ never exercised; both fixed reproduce-first with failing-first regressions:
    is durable.
 Regressions: `e2e-catalog-persistence` 26/26 + `e2e-catalog-backend` (NEW,
 puppeteer fake-`__TAURI__` + injected catalog) 5/5; full gate 34/34 flag-OFF.
-Do not start the coach flag-ON smoke until Codex re-reviews `c76972a`.
+Independent re-review: implementation inspected; persistence 26/26, backend 5/5,
+Study 17/17, synthetic + real-season parity, and full 34/34 all green. The coach
+flag-ON smoke may proceed.
+
+Nonblocking follow-ups: prefer a pre-delete DB byte snapshot so rollback does not
+depend on `readDb` succeeding after `writeDb` fails; propagate delete's boolean
+through SeasonStore/StorageManager so a retained failed deletion produces a
+direct user-visible toast. Current behavior retains DB, JSON, mirror, and library
+entry, so neither item blocks smoke.
 
 **Phase 2 Study UI increment 2 is complete (`d76e699`).** Study now exposes 23
 ready dimensions, selectable canonical measures, composable filters (OR within,
