@@ -357,7 +357,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: be9395e  A3 fixes handoff; Codex independent re-review ACCEPTED
+HEAD: 7096b1b  A3 accept follow-ups DONE (snapshot rollback + delete-failure toast)
 Gate at HEAD: full 34/34 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
@@ -426,15 +426,17 @@ parity goldens, and the complete gate 34/34 with zero failures.
    (failed delete retains files + library entry; durable delete removes them).
 Verdict: ACCEPT. The coach desktop smoke may proceed.
 
-Nonblocking hardening follow-ups (do not block smoke):
-- Delete rollback currently closes and rereads the unchanged DB. Keeping a
-  pre-delete byte snapshot would also restore memory if the failed write is
-  accompanied by a transient `readDb` failure; JSON remains retained and
-  self-heals today, so this is resilience rather than a data-loss blocker.
-- `TauriBackend.deleteSeason()` retains all durable state on catalog failure but
-  returns through the legacy void API, so SeasonStore/UI cannot show a direct
-  "delete failed" toast. Propagate a boolean through the delete call chain in a
-  later UX-hardening patch.
+Nonblocking hardening follow-ups — BOTH DONE (`7096b1b`):
+- DONE — Snapshot rollback. `CatalogPersistence.deleteSeason` snapshots the
+  pre-delete db bytes and restores memory from that RAM snapshot on a writeDb
+  failure (no longer re-reads a possibly-failing disk, which used to blank the
+  whole in-memory catalog). Regression `e2e-catalog-persistence` 29/29: writeDb
+  AND readDb both fail → returns false, both seasons remain in memory, disk intact.
+- DONE — Delete-failure toast. `deleteSeason` returns a durable boolean through
+  StorageBackend/Browser/Tauri → SeasonStore (tears down the editor only on
+  success) → StorageManager (toasts "kept safe, try again" + returns false on a
+  retained failed delete). Regression `e2e-catalog-backend` 5/5 pins the
+  false/true return with the file-retention behavior.
 
 <details><summary>Original CHANGES REQUESTED (for the record)</summary>
 
