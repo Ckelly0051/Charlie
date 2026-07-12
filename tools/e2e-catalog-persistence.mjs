@@ -26,10 +26,10 @@ const SQL = await initSqlJs();
 
 // ---- fake fs (one shared library db + per-season json + optional mirror) ----
 function makeFs() {
-  const state = { db: null, json: new Map(), mirror: new Map(), mirrorFail: false, writeDbFail: false };
+  const state = { db: null, json: new Map(), mirror: new Map(), mirrorFail: false, writeDbFail: false, readDbFail: false };
   return {
     state,
-    readDb: async () => state.db,
+    readDb: async () => { if (state.readDbFail) throw new Error('db read down'); return state.db; },
     writeDb: async (bytes) => { if (state.writeDbFail) throw new Error('db write down'); state.db = bytes.slice ? bytes.slice() : new Uint8Array(bytes); },
     readJson: async (id) => state.json.has(id) ? clone(state.json.get(id)) : null,
     writeJson: async (id, data) => { state.json.set(id, clone(data)); },
@@ -178,6 +178,26 @@ const refA = await refRoundTrip(seasonA());
   const res2 = await cp2.deleteSeason('s1');
   fs.state.json.delete('s1');
   ok(res2 === true && (await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1')) === null, 'a retried delete succeeds durably once the db write recovers');
+}
+
+// ---- 10. delete rollback must survive writeDb AND readDb both failing --------
+// (Codex A3 accept follow-up #1: snapshot-based rollback, not disk re-read.)
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveSeason('s1', seasonA());
+  await cp.saveSeason('s2', seasonB());
+  fs.state.writeDbFail = true;   // the delete's canonical write fails
+  fs.state.readDbFail = true;    // AND the disk is momentarily unreadable
+  const res = await cp.deleteSeason('s1');
+  ok(res === false, 'deleteSeason still reports failure when writeDb AND readDb both fail', String(res));
+  // Without a pre-delete snapshot the rollback would re-read the failing disk and
+  // blank the WHOLE catalog; the snapshot keeps both seasons in memory.
+  ok(!!cp.catalog.loadSeason('s1') && !!cp.catalog.loadSeason('s2'), 'both seasons remain in memory (snapshot rollback, no disk dependency)');
+  // Disk recovers: a fresh session still sees both (on-disk db was never mutated).
+  fs.state.writeDbFail = false; fs.state.readDbFail = false;
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  ok(!!(await cp2.loadSeason('s1')) && !!(await cp2.loadSeason('s2')), 'the on-disk db was never mutated by the failed delete');
 }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

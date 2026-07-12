@@ -205,6 +205,7 @@ export class BrowserBackend extends StorageBackend {
       for (const r of (all || [])) if (r && r.seasonId === id) await this.deleteBackup(r.id);
     } catch (e) {}
     if (this.currentId === id) this.currentId = null;
+    return true;
   }
 
   async touchOpened(id) {
@@ -557,7 +558,7 @@ export class TauriBackend extends StorageBackend {
       // Retain the season.json + Documents mirror + library entry until the
       // canonical db delete is DURABLE — otherwise a stale on-disk db could
       // resurrect the season with its safety copies already gone.
-      if (!ok) { console.warn('catalog delete failed; retaining season + JSON/mirror', id); return; }
+      if (!ok) { console.warn('catalog delete failed; retaining season + JSON/mirror', id); return false; }
     }
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
     try {
@@ -571,6 +572,7 @@ export class TauriBackend extends StorageBackend {
     await this._writeLib((await this._readLib()).filter(s => s.id !== id));
     delete this._dirReady[id];
     if (this.currentId === id) this.currentId = null;
+    return true;
   }
 
   async touchOpened(id) {

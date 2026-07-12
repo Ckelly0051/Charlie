@@ -181,8 +181,12 @@ export class SeasonStore {
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
     if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
-    await this.backend.deleteSeason(id);
-    if (this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+    const ok = await this.backend.deleteSeason(id);
+    // Only tear down the open editor when the delete was durable. A backend that
+    // retained the season (canonical delete failed) keeps it loaded; a legacy
+    // backend returning undefined is treated as success (backward compatible).
+    if (ok !== false && this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+    return ok !== false;
   }
 
   /** Close the current season (back to the library, nothing loaded). */

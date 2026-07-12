@@ -165,14 +165,22 @@ export class StorageManager {
     return rec;
   }
 
-  /** Delete a season; clears the editor if it was the open one. */
+  /** Delete a season; clears the editor if it was the open one. Returns false and
+   *  toasts (without tearing down the editor) when the canonical delete failed and
+   *  the season was retained — so a stale catalog can't leave the coach thinking a
+   *  season was removed when its durable copies are still on disk. */
   async deleteSeason(id) {
     const wasCurrent = this.seasonStore.currentSeasonId === id;
     const wasDemo = this.isDemoSeason(id);
     if (wasCurrent) this._cancelPendingSaves();
-    await this.seasonStore.deleteSeason(id);
+    const ok = await this.seasonStore.deleteSeason(id);
+    if (ok === false) {
+      this.tagger?.toast?.('Could not delete the season — it was kept safe. Please try again.');
+      return false;
+    }
     if (wasDemo) this._teardownDemo();
     if (wasCurrent) this._clearForNewGame();
+    return true;
   }
 
   // ---- Demo season (onboarding empty-state) --------------------------------

@@ -14180,14 +14180,26 @@ class CatalogPersistence {
    */
   async deleteSeason(id) {
     await this._ensureLoaded();
+    // Snapshot the PRE-DELETE db bytes so rollback restores memory from RAM, not
+    // from disk — a writeDb failure can be accompanied by a transient readDb
+    // failure, and re-reading a failing disk would blank the whole catalog.
+    let snapshot = null;
+    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
     try {
       this.catalog.deleteSeason(id);
       await this.fs.writeDb(this.catalog.toBytes());
       return true;
     } catch (e) {
-      try { this.catalog.close(); } catch (e2) {}
-      this._loaded = false;
-      try { await this._ensureLoaded(); } catch (e2) {}   // reopen from the on-disk (unchanged) db
+      // The on-disk db is unchanged (write failed); re-sync memory to it from the
+      // snapshot so there is no split-brain, independent of readDb succeeding.
+      try {
+        this.catalog.close();
+        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+        this._loaded = true;
+      } catch (e2) {
+        this._loaded = false;
+        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+      }
       return false;
     }
   }
@@ -14425,6 +14437,7 @@ class BrowserBackend extends StorageBackend {
       for (const r of (all || [])) if (r && r.seasonId === id) await this.deleteBackup(r.id);
     } catch (e) {}
     if (this.currentId === id) this.currentId = null;
+    return true;
   }
 
   async touchOpened(id) {
@@ -14777,7 +14790,7 @@ class TauriBackend extends StorageBackend {
       // Retain the season.json + Documents mirror + library entry until the
       // canonical db delete is DURABLE — otherwise a stale on-disk db could
       // resurrect the season with its safety copies already gone.
-      if (!ok) { console.warn('catalog delete failed; retaining season + JSON/mirror', id); return; }
+      if (!ok) { console.warn('catalog delete failed; retaining season + JSON/mirror', id); return false; }
     }
     try { if (await this._exists(this._seasonDir(id))) await this.fs.remove(this._seasonDir(id), { baseDir: this.baseDir, recursive: true }); } catch (e) {}
     try {
@@ -14791,6 +14804,7 @@ class TauriBackend extends StorageBackend {
     await this._writeLib((await this._readLib()).filter(s => s.id !== id));
     delete this._dirReady[id];
     if (this.currentId === id) this.currentId = null;
+    return true;
   }
 
   async touchOpened(id) {
@@ -15542,8 +15556,12 @@ class SeasonStore {
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
     if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
-    await this.backend.deleteSeason(id);
-    if (this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+    const ok = await this.backend.deleteSeason(id);
+    // Only tear down the open editor when the delete was durable. A backend that
+    // retained the season (canonical delete failed) keeps it loaded; a legacy
+    // backend returning undefined is treated as success (backward compatible).
+    if (ok !== false && this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
+    return ok !== false;
   }
 
   /** Close the current season (back to the library, nothing loaded). */
@@ -16222,14 +16240,22 @@ class StorageManager {
     return rec;
   }
 
-  /** Delete a season; clears the editor if it was the open one. */
+  /** Delete a season; clears the editor if it was the open one. Returns false and
+   *  toasts (without tearing down the editor) when the canonical delete failed and
+   *  the season was retained — so a stale catalog can't leave the coach thinking a
+   *  season was removed when its durable copies are still on disk. */
   async deleteSeason(id) {
     const wasCurrent = this.seasonStore.currentSeasonId === id;
     const wasDemo = this.isDemoSeason(id);
     if (wasCurrent) this._cancelPendingSaves();
-    await this.seasonStore.deleteSeason(id);
+    const ok = await this.seasonStore.deleteSeason(id);
+    if (ok === false) {
+      this.tagger?.toast?.('Could not delete the season — it was kept safe. Please try again.');
+      return false;
+    }
     if (wasDemo) this._teardownDemo();
     if (wasCurrent) this._clearForNewGame();
+    return true;
   }
 
   // ---- Demo season (onboarding empty-state) --------------------------------

@@ -108,14 +108,26 @@ export class CatalogPersistence {
    */
   async deleteSeason(id) {
     await this._ensureLoaded();
+    // Snapshot the PRE-DELETE db bytes so rollback restores memory from RAM, not
+    // from disk — a writeDb failure can be accompanied by a transient readDb
+    // failure, and re-reading a failing disk would blank the whole catalog.
+    let snapshot = null;
+    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
     try {
       this.catalog.deleteSeason(id);
       await this.fs.writeDb(this.catalog.toBytes());
       return true;
     } catch (e) {
-      try { this.catalog.close(); } catch (e2) {}
-      this._loaded = false;
-      try { await this._ensureLoaded(); } catch (e2) {}   // reopen from the on-disk (unchanged) db
+      // The on-disk db is unchanged (write failed); re-sync memory to it from the
+      // snapshot so there is no split-brain, independent of readDb succeeding.
+      try {
+        this.catalog.close();
+        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+        this._loaded = true;
+      } catch (e2) {
+        this._loaded = false;
+        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+      }
       return false;
     }
   }

@@ -55,17 +55,18 @@ const result = await page.evaluate(async () => {
     const { be } = makeBackend({ saveSeason: async () => true, deleteSeason: async () => true });
     out.saveTrue = await be.saveSeason({ id: 's1', games: [] });
   }
-  // 2. deleteSeason RETAINS files + library entry when the catalog delete fails.
+  // 2. deleteSeason RETAINS files + library entry AND returns false when the
+  //    catalog delete fails (the false surfaces to a coach-facing toast upstream).
   {
     const { be, calls } = makeBackend({ saveSeason: async () => true, deleteSeason: async () => false });
-    await be.deleteSeason('s1');
+    out.delFailRet = await be.deleteSeason('s1');
     out.delFailRemoves = calls.remove.length;                 // must be 0
     out.delFailLibKept = calls.lib.some(s => s.id === 's1');   // must be true
   }
-  // 2b. deleteSeason removes files + library entry when the catalog delete is durable.
+  // 2b. deleteSeason removes files + library entry AND returns true when durable.
   {
     const { be, calls } = makeBackend({ saveSeason: async () => true, deleteSeason: async () => true });
-    await be.deleteSeason('s1');
+    out.delOkRet = await be.deleteSeason('s1');
     out.delOkRemoves = calls.remove.length;                    // >= 1
     out.delOkLibDropped = !calls.lib.some(s => s.id === 's1');  // must be true
   }
@@ -74,8 +75,8 @@ const result = await page.evaluate(async () => {
 
 ok(result.saveFalse === false, 'saveSeason propagates a canonical db-write FAILURE (not reported as success)', JSON.stringify(result.saveFalse));
 ok(result.saveTrue === true, 'saveSeason reports success when the catalog save succeeds');
-ok(result.delFailRemoves === 0 && result.delFailLibKept === true, 'a FAILED catalog delete retains season.json + mirror + library entry (no resurrection)', JSON.stringify(result));
-ok(result.delOkRemoves >= 1 && result.delOkLibDropped === true, 'a DURABLE catalog delete removes the season files + library entry');
+ok(result.delFailRemoves === 0 && result.delFailLibKept === true && result.delFailRet === false, 'a FAILED catalog delete retains files + library entry AND returns false (for a toast)', JSON.stringify(result));
+ok(result.delOkRemoves >= 1 && result.delOkLibDropped === true && result.delOkRet === true, 'a DURABLE catalog delete removes files + library entry AND returns true');
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
