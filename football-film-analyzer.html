@@ -13863,6 +13863,7 @@ class SqlCatalog {
     this.db = null;
     this.currentId = null;
     this.RETENTION = 25;
+    this.VMAX = 20;            // named-save-point cap per season::game (mirrors VersionManager)
     this.SCHEMA = 1;
     this._seq = 0;
   }
@@ -13917,6 +13918,10 @@ class SqlCatalog {
         id TEXT PRIMARY KEY, season_id TEXT, t TEXT, label TEXT,
         games_count INTEGER, plays_count INTEGER, season_name TEXT, body_json TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS versions (
+        id TEXT PRIMARY KEY, season_id TEXT, game_id TEXT, t TEXT, label TEXT,
+        manual INTEGER DEFAULT 0, play_count INTEGER DEFAULT 0, body_json TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS imports (
         id TEXT PRIMARY KEY, game_id TEXT, t TEXT, status TEXT, summary_json TEXT
       );
@@ -13927,6 +13932,7 @@ class SqlCatalog {
       CREATE INDEX IF NOT EXISTS ix_plays_game ON plays(game_id, ord);
       CREATE INDEX IF NOT EXISTS ix_clips_game ON clips(game_id, ord);
       CREATE INDEX IF NOT EXISTS ix_backups_season ON backups(season_id, t);
+      CREATE INDEX IF NOT EXISTS ix_versions_scope ON versions(season_id, game_id, t);
     `);
     const has = this._get('SELECT id FROM migrations WHERE id = ?', [this.SCHEMA]);
     if (!has) {
@@ -14090,6 +14096,40 @@ class SqlCatalog {
   _pruneBackups() {
     const ids = this._all('SELECT id FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId]).map(r => r.id);
     ids.slice(this.RETENTION).forEach(id => this._run('DELETE FROM backups WHERE id = ?', [id]));
+  }
+
+  // ---- version history (named save points, scoped season::game) -------------
+  // The version-history migration off localStorage `ffa_versions_<season::game>`:
+  // named/auto save-points become rows keyed by (season_id, game_id), capped at
+  // VMAX per game. `v` is a VersionManager snapshot { id?, label, time, manual,
+  // playCount, data } — its whole-tagger `data` goes to body_json; getVersion
+  // returns exactly that snapshot payload. Prune evicts AUTO-saves before manual
+  // ones (VersionManager's own eviction rule) so a coach's named points survive.
+  saveVersion(seasonId, gameId, v) {
+    const id = (v && v.id != null) ? String(v.id) : this._newId('ver');
+    const body = (v && v.data !== undefined) ? v.data : v;
+    this._run(
+      `INSERT INTO versions (id,season_id,game_id,t,label,manual,play_count,body_json) VALUES (?,?,?,?,?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET label=excluded.label,manual=excluded.manual,play_count=excluded.play_count,body_json=excluded.body_json`,
+      [id, seasonId, gameId, (v && v.time) || new Date().toISOString(), (v && v.label) || '',
+       (v && v.manual) ? 1 : 0, (v && v.playCount != null) ? v.playCount : 0, JSON.stringify(body)]);
+    this._pruneVersions(seasonId, gameId);
+    return id;
+  }
+  listVersions(seasonId, gameId) {
+    return this._all('SELECT id,t,label,manual,play_count FROM versions WHERE season_id = ? AND game_id = ? ORDER BY t ASC', [seasonId, gameId])
+      .map(r => ({ id: r.id, time: r.t, label: r.label || '', manual: !!r.manual, playCount: r.play_count || 0 }));
+  }
+  getVersion(id) { const r = this._get('SELECT body_json FROM versions WHERE id = ?', [String(id)]); return r ? JSON.parse(r.body_json) : null; }
+  deleteVersion(id) { this._run('DELETE FROM versions WHERE id = ?', [String(id)]); }
+  _pruneVersions(seasonId, gameId) {
+    const rows = this._all('SELECT id, manual FROM versions WHERE season_id = ? AND game_id = ? ORDER BY t ASC', [seasonId, gameId]);
+    let over = rows.length - this.VMAX;
+    if (over <= 0) return;
+    const del = [];
+    for (const r of rows) { if (over <= 0) break; if (!r.manual) { del.push(r.id); over--; } }   // auto-saves first (oldest→newest)
+    for (const r of rows) { if (over <= 0) break; if (r.manual && !del.includes(r.id)) { del.push(r.id); over--; } }  // then oldest manual
+    del.forEach(id => this._run('DELETE FROM versions WHERE id = ?', [id]));
   }
 }
 
@@ -14262,6 +14302,37 @@ class CatalogPersistence {
     await this._ensureLoaded();
     this.catalog.setCurrentSeason(id);
     try { this.catalog.deleteBackup(backupId); } catch (e) { return; }
+    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+  }
+
+  // ---- version history (named save points, in the shared db) ---------------
+  // The version-history migration off localStorage: named/auto save-points become
+  // rows keyed by (seasonId, gameId) in the shared library db. Same best-effort
+  // durability as the backup ring — a lost version never blocks tagging. NOT yet
+  // wired into VersionManager (dormant groundwork); the UI rewire lands later.
+  async saveVersion(seasonId, gameId, v) {
+    if (!seasonId || !gameId || !v) return null;
+    await this._ensureLoaded();
+    let id = null;
+    try { id = this.catalog.saveVersion(seasonId, gameId, v); }
+    catch (e) { return null; }
+    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    return id;
+  }
+  async listVersions(seasonId, gameId) {
+    if (!seasonId || !gameId) return [];
+    await this._ensureLoaded();
+    try { return this.catalog.listVersions(seasonId, gameId); } catch (e) { return []; }
+  }
+  async getVersion(id) {
+    if (id == null) return null;
+    await this._ensureLoaded();
+    try { return this.catalog.getVersion(id); } catch (e) { return null; }
+  }
+  async deleteVersion(id) {
+    if (id == null) return;
+    await this._ensureLoaded();
+    try { this.catalog.deleteVersion(id); } catch (e) { return; }
     try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
   }
 
@@ -16513,8 +16584,11 @@ class StorageManager {
       if (app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
     }
-    if (g) this._autoLoadFilm(g).catch(() => {});
+    const filmReady = g
+      ? this._autoLoadFilm(g).then(() => true).catch(() => false)
+      : Promise.resolve(false);
     this._maybeShowRelinkHint(g);
+    return filmReady;
   }
 
   /**
@@ -16967,12 +17041,13 @@ class StorageManager {
 
   /** Switch which game is active, persisting the one we're leaving. */
   switchToGame(id) {
-    if (!this.seasonStore.data || id === this.seasonStore.data.activeGameId) return;
+    if (!this.seasonStore.data) return Promise.resolve(false);
+    if (id === this.seasonStore.data.activeGameId) return Promise.resolve(true);
     this.commitActive();
-    if (!this.seasonStore.setActive(id)) return;
+    if (!this.seasonStore.setActive(id)) return Promise.resolve(false);
     this.seasonStore.persist();
     this._clearForNewGame();
-    this._loadActiveGame();
+    return this._loadActiveGame();
   }
 
   /** Start a fresh blank game in the season and switch to it. */
@@ -26510,6 +26585,7 @@ class StudyScreen {
     this.rows = [];
     this.filters = [];
     this._bound = false;
+    this._watchToken = 0;
   }
 
   mount(host) {
@@ -26738,14 +26814,59 @@ class StudyScreen {
   async _watch(refs, label) {
     const unique = [...new Set(refs || [])];
     if (!unique.length) return;
+    const games = this.app.storage.seasonStore.data?.games || [];
+    const plan = this.app.crossGameCutup.plan(unique, games);
+    if (!plan.total) {
+      this.app.tagger.toast?.(`No playable film found${plan.skipped.length ? ` · ${plan.skipped.length} skipped` : ''}`);
+      return;
+    }
+    const token = ++this._watchToken;
+    this.app.cutupPlayer?.stop('replaced');
+    const playable = [];
+    const unresolved = plan.skipped.length;
+    let unavailable = 0;
     const activeId = String(this.app.storage.seasonStore.data?.activeGameId || '');
-    const gameIds = [...new Set(unique.map(ref => String(ref).split('::')[0]))];
-    const gameId = gameIds.includes(activeId) ? activeId : gameIds[0];
-    if (gameId !== activeId) this.app.storage.switchToGame(gameId);
-    const ids = new Set(unique.filter(ref => String(ref).startsWith(`${gameId}::`)).map(ref => String(ref).slice(String(ref).indexOf('::') + 2)));
+    const hasActiveVideo = !!this.app.vc?.video?.src;
+    for (const game of plan.games) {
+      const node = games.find(item => String(item.id) === String(game.gameId));
+      let health = null;
+      try { health = await this.app.workspace.filmHealth(node); } catch {}
+      if (token !== this._watchToken) return;
+      if (health?.ready || (String(game.gameId) === activeId && hasActiveVideo)) playable.push(game);
+      else unavailable += game.count;
+    }
+    if (!playable.length) {
+      const skipped = unresolved + unavailable;
+      this.app.tagger.toast?.(`No matching film is available${skipped ? ` · ${skipped} play${skipped === 1 ? '' : 's'} skipped` : ''}`);
+      return;
+    }
     await this.app.workspaceShell.show('breakdown');
-    this.app.stats._watchPlays(play => ids.has(String(play.id)), label);
-    if (gameIds.length > 1) this.app.tagger.toast?.(`Opened ${ids.size} matching plays from this game. Study keeps ${unique.length} matches across ${gameIds.length} games.`);
+    let gamesPlayed = 0;
+    for (let index = 0; index < playable.length; index++) {
+      if (token !== this._watchToken) return;
+      const game = playable[index];
+      const loaded = await this.app.storage.switchToGame(game.gameId);
+      if (token !== this._watchToken) return;
+      if (!loaded) { unavailable += game.count; continue; }
+      const wanted = new Set(plan.segments
+        .filter(segment => segment.gameId === game.gameId)
+        .map(segment => String(segment.playId)));
+      const ids = (this.app.tagger.plays || [])
+        .filter(play => wanted.has(String(play.id)))
+        .map(play => play.id);
+      unavailable += Math.max(0, wanted.size - ids.length);
+      if (!ids.length) continue;
+      const skipped = unresolved + unavailable;
+      const context = `${label} · ${game.gameName} · Game ${index + 1} of ${playable.length}${skipped ? ` · ${skipped} skipped` : ''}`;
+      const result = await this.app.cutupPlayer.start(ids, context);
+      if (!result?.completed) return;
+      gamesPlayed++;
+    }
+    if (token === this._watchToken) {
+      const played = plan.total - unavailable;
+      const skipped = unresolved + unavailable;
+      this.app.tagger.toast?.(`Finished ${played} play${played === 1 ? '' : 's'} across ${gamesPlayed} game${gamesPlayed === 1 ? '' : 's'}${skipped ? ` · ${skipped} skipped` : ''}`);
+    }
   }
 
   _views() { try { const views = JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]'); return Array.isArray(views) ? views : []; } catch { return []; } }
@@ -28099,6 +28220,7 @@ class CutupPlayer {
     this.active = false;
     this.label = '';
     this._armed = false;
+    this._settle = null;
     this.bannerEl = null;
 
     this.vc.on('time-update', (d) => this._onTime(d.time));
@@ -28106,23 +28228,27 @@ class CutupPlayer {
 
   /** Begin a cut-up over the given play IDs (sorted by time). */
   start(playIds, label = '') {
+    if (this.active) this.stop('replaced');
     const plays = (playIds || [])
       .map(id => this.tagger.getPlay(id))
       .filter(Boolean)
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
-    if (!plays.length) return;
+    if (!plays.length) return Promise.resolve({ completed: false, reason: 'empty' });
 
     this.vc.clearLoop();
     this.queue = plays;
     this.label = label;
     this.active = true;
+    const completion = new Promise(resolve => { this._settle = resolve; });
     this._renderBanner();
     this._goTo(0);
+    return completion;
   }
 
   _goTo(i) {
     if (!this.active) return;
-    if (i < 0 || i >= this.queue.length) { this.stop(); return; }
+    if (i < 0) { this.stop('stopped'); return; }
+    if (i >= this.queue.length) { this.stop('complete'); return; }
     this.index = i;
     this._armed = false;
     const play = this.queue[i];
@@ -28152,7 +28278,7 @@ class CutupPlayer {
         this._goTo(this.index + 1);
       } else {
         if (this.vc.video) this.vc.video.pause();
-        this.stop();
+        this.stop('complete');
       }
     }
   }
@@ -28160,11 +28286,14 @@ class CutupPlayer {
   next() { this._goTo(this.index + 1); }
   prev() { this._goTo(this.index - 1); }
 
-  stop() {
+  stop(reason = 'stopped') {
+    const settle = this._settle;
+    this._settle = null;
     this.active = false;
     this.index = -1;
     this.queue = [];
     this._removeBanner();
+    if (settle) settle({ completed: reason === 'complete', reason });
   }
 
   // --- Banner UI ---

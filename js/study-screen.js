@@ -19,6 +19,7 @@ export class StudyScreen {
     this.rows = [];
     this.filters = [];
     this._bound = false;
+    this._watchToken = 0;
   }
 
   mount(host) {
@@ -247,14 +248,59 @@ export class StudyScreen {
   async _watch(refs, label) {
     const unique = [...new Set(refs || [])];
     if (!unique.length) return;
+    const games = this.app.storage.seasonStore.data?.games || [];
+    const plan = this.app.crossGameCutup.plan(unique, games);
+    if (!plan.total) {
+      this.app.tagger.toast?.(`No playable film found${plan.skipped.length ? ` · ${plan.skipped.length} skipped` : ''}`);
+      return;
+    }
+    const token = ++this._watchToken;
+    this.app.cutupPlayer?.stop('replaced');
+    const playable = [];
+    const unresolved = plan.skipped.length;
+    let unavailable = 0;
     const activeId = String(this.app.storage.seasonStore.data?.activeGameId || '');
-    const gameIds = [...new Set(unique.map(ref => String(ref).split('::')[0]))];
-    const gameId = gameIds.includes(activeId) ? activeId : gameIds[0];
-    if (gameId !== activeId) this.app.storage.switchToGame(gameId);
-    const ids = new Set(unique.filter(ref => String(ref).startsWith(`${gameId}::`)).map(ref => String(ref).slice(String(ref).indexOf('::') + 2)));
+    const hasActiveVideo = !!this.app.vc?.video?.src;
+    for (const game of plan.games) {
+      const node = games.find(item => String(item.id) === String(game.gameId));
+      let health = null;
+      try { health = await this.app.workspace.filmHealth(node); } catch {}
+      if (token !== this._watchToken) return;
+      if (health?.ready || (String(game.gameId) === activeId && hasActiveVideo)) playable.push(game);
+      else unavailable += game.count;
+    }
+    if (!playable.length) {
+      const skipped = unresolved + unavailable;
+      this.app.tagger.toast?.(`No matching film is available${skipped ? ` · ${skipped} play${skipped === 1 ? '' : 's'} skipped` : ''}`);
+      return;
+    }
     await this.app.workspaceShell.show('breakdown');
-    this.app.stats._watchPlays(play => ids.has(String(play.id)), label);
-    if (gameIds.length > 1) this.app.tagger.toast?.(`Opened ${ids.size} matching plays from this game. Study keeps ${unique.length} matches across ${gameIds.length} games.`);
+    let gamesPlayed = 0;
+    for (let index = 0; index < playable.length; index++) {
+      if (token !== this._watchToken) return;
+      const game = playable[index];
+      const loaded = await this.app.storage.switchToGame(game.gameId);
+      if (token !== this._watchToken) return;
+      if (!loaded) { unavailable += game.count; continue; }
+      const wanted = new Set(plan.segments
+        .filter(segment => segment.gameId === game.gameId)
+        .map(segment => String(segment.playId)));
+      const ids = (this.app.tagger.plays || [])
+        .filter(play => wanted.has(String(play.id)))
+        .map(play => play.id);
+      unavailable += Math.max(0, wanted.size - ids.length);
+      if (!ids.length) continue;
+      const skipped = unresolved + unavailable;
+      const context = `${label} · ${game.gameName} · Game ${index + 1} of ${playable.length}${skipped ? ` · ${skipped} skipped` : ''}`;
+      const result = await this.app.cutupPlayer.start(ids, context);
+      if (!result?.completed) return;
+      gamesPlayed++;
+    }
+    if (token === this._watchToken) {
+      const played = plan.total - unavailable;
+      const skipped = unresolved + unavailable;
+      this.app.tagger.toast?.(`Finished ${played} play${played === 1 ? '' : 's'} across ${gamesPlayed} game${gamesPlayed === 1 ? '' : 's'}${skipped ? ` · ${skipped} skipped` : ''}`);
+    }
   }
 
   _views() { try { const views = JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]'); return Array.isArray(views) ? views : []; } catch { return []; } }

@@ -18,6 +18,7 @@ export class CutupPlayer {
     this.active = false;
     this.label = '';
     this._armed = false;
+    this._settle = null;
     this.bannerEl = null;
 
     this.vc.on('time-update', (d) => this._onTime(d.time));
@@ -25,23 +26,27 @@ export class CutupPlayer {
 
   /** Begin a cut-up over the given play IDs (sorted by time). */
   start(playIds, label = '') {
+    if (this.active) this.stop('replaced');
     const plays = (playIds || [])
       .map(id => this.tagger.getPlay(id))
       .filter(Boolean)
       .sort((a, b) => a.timestamp.start - b.timestamp.start);
-    if (!plays.length) return;
+    if (!plays.length) return Promise.resolve({ completed: false, reason: 'empty' });
 
     this.vc.clearLoop();
     this.queue = plays;
     this.label = label;
     this.active = true;
+    const completion = new Promise(resolve => { this._settle = resolve; });
     this._renderBanner();
     this._goTo(0);
+    return completion;
   }
 
   _goTo(i) {
     if (!this.active) return;
-    if (i < 0 || i >= this.queue.length) { this.stop(); return; }
+    if (i < 0) { this.stop('stopped'); return; }
+    if (i >= this.queue.length) { this.stop('complete'); return; }
     this.index = i;
     this._armed = false;
     const play = this.queue[i];
@@ -71,7 +76,7 @@ export class CutupPlayer {
         this._goTo(this.index + 1);
       } else {
         if (this.vc.video) this.vc.video.pause();
-        this.stop();
+        this.stop('complete');
       }
     }
   }
@@ -79,11 +84,14 @@ export class CutupPlayer {
   next() { this._goTo(this.index + 1); }
   prev() { this._goTo(this.index - 1); }
 
-  stop() {
+  stop(reason = 'stopped') {
+    const settle = this._settle;
+    this._settle = null;
     this.active = false;
     this.index = -1;
     this.queue = [];
     this._removeBanner();
+    if (settle) settle({ completed: reason === 'complete', reason });
   }
 
   // --- Banner UI ---

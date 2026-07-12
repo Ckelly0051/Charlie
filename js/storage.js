@@ -348,8 +348,11 @@ export class StorageManager {
       if (app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
     }
-    if (g) this._autoLoadFilm(g).catch(() => {});
+    const filmReady = g
+      ? this._autoLoadFilm(g).then(() => true).catch(() => false)
+      : Promise.resolve(false);
     this._maybeShowRelinkHint(g);
+    return filmReady;
   }
 
   /**
@@ -802,12 +805,13 @@ export class StorageManager {
 
   /** Switch which game is active, persisting the one we're leaving. */
   switchToGame(id) {
-    if (!this.seasonStore.data || id === this.seasonStore.data.activeGameId) return;
+    if (!this.seasonStore.data) return Promise.resolve(false);
+    if (id === this.seasonStore.data.activeGameId) return Promise.resolve(true);
     this.commitActive();
-    if (!this.seasonStore.setActive(id)) return;
+    if (!this.seasonStore.setActive(id)) return Promise.resolve(false);
     this.seasonStore.persist();
     this._clearForNewGame();
-    this._loadActiveGame();
+    return this._loadActiveGame();
   }
 
   /** Start a fresh blank game in the season and switch to it. */

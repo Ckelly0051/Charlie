@@ -121,6 +121,27 @@ await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyCompare', '');
 await page.click('[data-study-action="clear-filters"]');
 await page.select('#wsStudyScope', 'season');
+const cutupContract = await page.evaluate(async () => {
+  const app = window.app;
+  const empty = await app.cutupPlayer.start([], 'Empty');
+  const pending = app.cutupPlayer.start([1], 'Stopped');
+  app.cutupPlayer.stop();
+  const stopped = await pending;
+  return { empty, stopped };
+});
+ok(cutupContract.empty.reason === 'empty' && !cutupContract.empty.completed && cutupContract.stopped.reason === 'stopped' && !cutupContract.stopped.completed,
+  'CutupPlayer exposes deterministic empty and stopped completion results', JSON.stringify(cutupContract));
+
+await page.evaluate(() => {
+  const app = window.app;
+  window.__studyCutupCalls = [];
+  app.workspace.filmHealth = async game => ({ ready: game?.id !== 'g-missing' });
+  app.cutupPlayer.start = async (ids, label) => {
+    window.__studyCutupCalls.push({ gameId: app.storage.seasonStore.data.activeGameId, ids: ids.map(String), label });
+    if (ids.length) app.tagger.selectPlay(ids[0]);
+    return { completed: true, reason: 'complete' };
+  };
+});
 const watchResult = await page.evaluate(() => {
   const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Wing-T');
   row?.querySelector('[data-study-row]')?.click();
@@ -129,6 +150,30 @@ const watchResult = await page.evaluate(() => {
 await new Promise(resolve => setTimeout(resolve, 150));
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), game: window.app.storage.seasonStore.data.activeGameId, selected: window.app.tagger.currentPlayId }));
 ok(watchResult && r.route === 'breakdown' && r.game === 'g-study-2' && r.selected != null, 'Watch opens the matching play in its owning game', JSON.stringify(r));
+
+await page.evaluate(() => window.app.workspaceShell.show('study'));
+await page.select('#wsStudyScope', 'season');
+await page.click('[data-study-action="watch-all"]');
+await page.waitForFunction(() => window.__studyCutupCalls?.length >= 3);
+r = await page.evaluate(() => ({ calls: window.__studyCutupCalls, game: window.app.storage.seasonStore.data.activeGameId }));
+const seasonCalls = r.calls.slice(-2);
+ok(seasonCalls.length === 2 && seasonCalls[0].gameId === 'g-study-1' && seasonCalls[1].gameId === 'g-study-2'
+  && /Game 1 of 2/.test(seasonCalls[0].label) && /Game 2 of 2/.test(seasonCalls[1].label),
+  'Season Watch sequences every matching game with game-aware banner context', JSON.stringify(seasonCalls));
+
+const beforeUnavailable = r.calls.length;
+await page.evaluate(() => {
+  const app = window.app;
+  app.vc.video.removeAttribute('src');
+  app.workspace.filmHealth = async game => ({ ready: game?.id === 'g-study-1' });
+  return app.workspaceShell.show('study');
+});
+await page.click('[data-study-action="watch-all"]');
+await page.waitForFunction(count => window.__studyCutupCalls?.length >= count + 1, {}, beforeUnavailable);
+r = await page.evaluate(() => ({ calls: window.__studyCutupCalls, game: window.app.storage.seasonStore.data.activeGameId }));
+const availableCall = r.calls[beforeUnavailable];
+ok(r.calls.length === beforeUnavailable + 1 && availableCall.gameId === 'g-study-1' && /2 skipped/.test(availableCall.label),
+  'Season Watch skips unavailable game film and reports the skipped play count', JSON.stringify(availableCall));
 
 await page.setViewport({ width: 390, height: 844 });
 await page.evaluate(() => window.app.workspaceShell.show('study'));
