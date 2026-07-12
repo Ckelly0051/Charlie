@@ -40,8 +40,8 @@ video predicates, and export/print artifact. **P0-c is accepted/complete**
 minimum dimensions/measures, canonical splitters/classifiers, and composite
 film references. Ambiguous semantics are explicitly `requires-context` and
 throw instead of inventing formulas. No production report consumes it yet.
-Final P0-c acceptance: registry 23/23 and P0-a synthetic+real clean. P0-d and
-Phase 1 have since landed as described below; no Study query UI exists yet.
+Final P0-c acceptance: registry 23/23 and P0-a synthetic+real clean. P0-d,
+Phase 1, and the first Study UI increment have since landed as described below.
 
 **P0-d is ACCEPTED and Phase 1 (the feature-flagged shell + Home) is ACCEPTED /
 COMPLETE (`d1121d6`).**
@@ -52,7 +52,8 @@ backend-derived film health. `js/workspace-shell.js` + `css/workspace-shell.css`
 are the Phase-1 shell, gated behind `localStorage ffa_workspace_shell_v2` (opt-in;
 **classic remains the default** and is untouched). The shell RELOCATES the intact
 `#app` into `#wsClassicOutlet` — it never rebuilds the workspace; Break Down shows
-the classic workspace, Study opens Advanced Reports, Plan is a controlled
+the classic workspace; Phase 1 originally opened Advanced Reports for Study;
+Plan is a controlled
 coming-soon, Home renders live context + a `filmHealth`-driven film inbox. "Use
 classic layout" clears the flag. Codex implemented it (fixing a first-run
 null-season bug + Study-overlay containment) then hit its usage limit mid visual-QA;
@@ -67,6 +68,21 @@ shell remains opt-in and no release/tag was cut. Next Codex milestone: build the
 Phase 2 Study screen over the accepted registry/query/comparison spine while
 keeping Advanced Reports one click away.
 
+**Phase 2 Study UI increment 1 is complete (`7f755c6`).** `js/study-screen.js`
+and `css/study-screen.css` are the first production consumer of the accepted
+analytics spine. The opt-in shell's Study route now provides active-game or
+full-season queries, unit filtering, minimum-sample warnings, 15 high-use
+dimensions, canonical measures, game-vs-season comparison, reusable local saved
+views, and film-linked Watch actions; Advanced Reports remains one click away.
+Season Watch opens one owning game at a time because CutupPlayer is game-scoped,
+and tells the coach when results span games. Zero-play canonical-cut rows are
+suppressed in the UI and summary counts come from unique composite matching refs;
+the parity engine is unchanged. Responsive QA is clean on desktop and 390x844.
+Focused Study screen 10/10, full suite **33/33**, synthetic + real six-game parity
+unchanged, zero page errors. Remaining UI work: composable multi-dimension
+filters, broader registry dimension/measure selection, richer comparisons,
+saved-view management, and eventual cross-game playback. No release/tag.
+
 In parallel (Claude's data lane), the **Phase 2 Study query executor** landed:
 `js/study-query.js` (`window.app.study`, `StudyQuery`) is a pure engine over the
 P0-c registry — `run({plays, dimension, measures, filters, minSample})` returns
@@ -79,8 +95,8 @@ parity golden; the synthetic fixture is now shared
 comparison** is wired too — `study.compare({ base, against, dimension, measures,
 … })` aligns two play sets (game-vs-season / recent-vs-prior; caller slices, engine
 stays pure) into per-row `{ a, b, deltas, sampleDelta }` with BOTH sides
-film-linked to their own scope's golden. Test 24/24. No UI consumes StudyQuery
-yet — it is the contract the Study screen will call. Full gate **31/31**. The
+film-linked to their own scope's golden. Test 24/24. The Study screen now consumes
+this contract behind the shell flag. Full gate **33/33**. The
 Study analytics spine (registry → query → compare) is complete + parity-locked.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)

@@ -357,11 +357,12 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: d1121d6  Phase 1 shell design acceptance + polish
-Gate at HEAD: full 32/32 green (bash build.sh && node tools/e2e-*.mjs); parity
+HEAD: 7f755c6  Phase 2 Study workspace — first usable UI increment
+Gate at HEAD: full 33/33 green (bash build.sh && node tools/e2e-*.mjs); parity
   golden unchanged (synthetic + real 6-game); zero page errors.
 
 Recent redesign commits (newest first):
+  7f755c6  Phase 2 Study workspace (query/compare/views/Watch/Advanced Reports)
   23f8aa1  A3 increment 3 — JSON->catalog migration (Node 21/21)
   546ec9b  docs handoff — Phase 1 shell accepted
   d1121d6  Phase 1 shell design acceptance + polish (focused 14/14)
@@ -377,22 +378,20 @@ Lane status:
   Claude (data/analytics/persistence spine): P0-a/b/c/d DONE + accepted; Phase 1
     finished + shipped; Phase 2 Study executor + two-cohort compare DONE. The
     Study analytics spine (registry → query → compare) is complete + parity-locked
-    + film-linked; NO UI consumes it yet (it is the contract the Study screen calls).
-  Codex (visual shell / workspace UX): Phase 1 shell+Home ACCEPTED and complete.
-    Responsive design review + the logged polish pass are committed at d1121d6.
+    + film-linked; the first production UI now consumes it.
+  Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
+    increment 1 DONE at 7f755c6.
 
 NEXT ACTIONS
-  Codex: begin the Phase 2 Study screen on the accepted registry → query →
-    compare spine. Keep Advanced Reports one click away and keep the shell flag
-    opt-in until real-coach acceptance.
+  Codex: Phase 2 Study increment 2 — composable multi-dimension filters, broader
+    registry dimension/measure selection, and richer comparison choices. Keep
+    the shell opt-in and preserve the one-game-at-a-time Watch boundary.
   Claude: A3 in progress — INCREMENTS 1 + 3 DONE (Node-tested): the dual-write
     orchestrator core (76db0c9) AND the one-time JSON->catalog migration
     (23f8aa1, CatalogPersistence.migrateJsonSeasons, idempotent). REMAINING = the
-    increment-2 DESKTOP WIRING, which is HELD (not blocked on a coach smoke —
-    blocked on the in-progress Study screen): it edits build.sh + app.js + the
-    bundle, which Codex is actively editing for the Study screen, so wiring it now
-    would entangle two uncommitted work-streams on the same files. Resume once the
-    Study screen is committed. Increment-2 scope (was drafted + reverted to keep
+    increment-2 DESKTOP WIRING. It was held to avoid the Study screen's shared
+    files; `7f755c6` is now committed, so Claude may resume from this clean handoff.
+    Increment-2 scope (was drafted + reverted to keep
     Codex's tree clean; cheap to redo): vendor sql-wasm.wasm as a Tauri resource +
     CSP `'wasm-unsafe-eval'` + `$RESOURCE/**` asset scope; a fail-safe
     `_loadSqlEngine()` + `_ensureCatalog()` on TauriBackend; delegate
@@ -403,14 +402,14 @@ NEXT ACTIONS
     wasm is desktop-only, lazy-loaded). Then: full gate green (flag-off path
     unchanged) + a coach desktop smoke.
 
-A3 — SqlCatalog canonical cutover (task #54), INCREMENTS 1 + 3 COMPLETE (2 HELD):
+A3 — SqlCatalog canonical cutover (task #54), INCREMENTS 1 + 3 COMPLETE (2 READY):
 - Increment 3 (23f8aa1): `CatalogPersistence.migrateJsonSeasons(ids)` imports the
   coach's existing per-season `season.json` into the shared library db on first
   flag-on — idempotent (skips a season already in the db), never throws.
   `tools/e2e-catalog-persistence.mjs` 21/21 (migrates all, skips missing, loads
   canonically after, lossless, idempotent on re-run).
-- Increment 2 (desktop wiring) HELD — see NEXT ACTIONS (entangles with the
-  in-progress Study screen on build.sh/app.js/bundle).
+- Increment 2 (desktop wiring) was held for the Study commit; `7f755c6` is now a
+  clean resume point for that work.
 
 - `js/catalog-persistence.js` (`CatalogPersistence`) is the pure dual-write
   orchestrator that makes the SQLite catalog CANONICAL with JSON as a self-healing
@@ -467,7 +466,8 @@ Phase 1 (commit adds shell; classic remains the default):
   to Codex's shell — the deliverable was already correct.
 - `js/workspace-shell.js` mounts a `#workspaceShell` that RELOCATES the intact
   `#app` into `#wsClassicOutlet` (never rebuilds it); routes are pure adapters:
-  Break Down shows the classic workspace, Study opens Advanced Reports, Plan is a
+  Break Down shows the classic workspace; Phase 1 originally routed Study to
+  Advanced Reports; Plan is a
   controlled coming-soon, Home renders live season/game context + a film inbox
   driven by `workspace.filmHealth`. "Use classic layout" clears the flag.
 - XSS: game/season names + ids escaped at every `innerHTML` sink; film-row detail
@@ -485,7 +485,26 @@ Claude verification (finish-and-ship, NOT a design review — that's Codex's):
   horizontal overflow.
 
 Phase 1 design review and logged polish are complete at `d1121d6`; see the
-acceptance block above. Next Codex action is the Phase 2 Study screen.
+acceptance block above. The first Phase 2 Study increment is recorded next.
+
+Phase 2 Study UI — increment 1 (`7f755c6`, complete):
+- Added `js/study-screen.js` + `css/study-screen.css`, the first production
+  consumer of the accepted AnalyticsRegistry → StudyQuery → compare spine.
+- Supports current-game/full-season scope, unit filtering, minimum-sample
+  warnings, 15 high-use football dimensions, canonical measures, game-vs-season
+  comparison, local reusable saved views, and film-linked Watch actions.
+- Advanced Reports remains one click away. The route contract now truthfully
+  targets `study-workspace`, with Advanced Reports documented as the fallback.
+- Season Watch intentionally opens one owning game at a time and explains when
+  results span games; today's CutupPlayer cannot play through game boundaries.
+- The UI suppresses zero-play canonical-cut rows and counts unique composite
+  matching refs; the parity-locked query engine itself is unchanged.
+- Responsive desktop/mobile QA is clean. Study UI 10/10, shell 15/15, query
+  24/24, registry 23/23, synthetic + real six-game parity clean, and the full
+  suite 33/33 with zero page errors.
+- Remaining: multi-dimension filter UI, broader dimension/measure choice,
+  recent-vs-prior/date comparisons, saved-view management, and true cross-game
+  playback. Shell stays opt-in; no release/tag.
 
 Parallel (Claude's data lane, landed while awaiting Codex): Phase 2 spine — the
 Study QUERY EXECUTOR. `js/study-query.js` (`window.app.study`, `StudyQuery`) is a
@@ -502,8 +521,8 @@ asserts every group == the committed parity golden (28 groups across formation/
 coverage/defFront/runPass/down/personnel/blitz), + filter semantics + guards.
 The synthetic-edge fixture is now shared (`tools/fixtures/synthetic-edge.mjs`,
 imported by both parity + Study tests); the parity golden is unchanged (both
-synthetic + real 6-game still green). No UI consumes StudyQuery yet — it is the
-contract the Study SCREEN (Codex) will call. Full gate 31/31.
+synthetic + real 6-game still green). `js/study-screen.js` now consumes this
+contract behind the opt-in shell flag. Full gate is now 33/33.
 
 Two-cohort COMPARISON is now wired: `study.compare({ base, against, dimension,
 measures, filters, minSample, context, labels })` runs the same query over two
