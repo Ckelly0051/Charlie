@@ -138,6 +138,15 @@ modular-source and committed-bundle browser gates are both 17/17 with clean
 desktop/mobile QA; Claude's `218d490` bundle rebuild includes these source
 changes. The shell remains opt-in.
 
+**Phase 2 Study UI increment 3 is complete (`f7cc373`).** Study now supports an
+inclusive custom date-range scope and date-range-versus-prior comparison. Cohorts
+are sliced at the game boundary from explicit `gameInfo.date` values before the
+parity-locked query engine runs; undated games stay in full-season scope but are
+excluded from date questions. Date boundaries refresh filter values and persist
+inside saved views. The rebuilt bundle passes Study 19/19, StudyQuery 24/24,
+synthetic + real six-game parity, and the full 34/34 gate. No persistence surface
+changed; shell stays opt-in. Next Study contract: true cross-game playback.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer

@@ -356,13 +356,17 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ### Active Handoff
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
-Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: 7096b1b  A3 accept follow-ups DONE (snapshot rollback + delete-failure toast)
+Branch: claude/football-film-analyzer-GRiCW  (Study committed; smoke-generated Tauri schema remains local)
+HEAD: f7cc373  Study increment 3 — date-range cohorts
 Gate at HEAD: full 34/34 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
 
 Recent redesign commits (newest first):
+  f7cc373  Study increment 3 — inclusive date ranges + range-vs-prior
+  3056b6b  Sequencing — freeze persistence lane until desktop smoke
+  fbafc29  Codex final A3 hardening acceptance
+  7096b1b  A3 snapshot rollback + delete-failure toast
   be9395e  A3 fixes handoff (superseded by Codex acceptance below)
   c76972a  A3 failure-path fixes (save propagate + delete no-resurrect) + 2 regressions
   470b713  Codex A3 review — bundled Study verification
@@ -390,7 +394,7 @@ Lane status:
     Codex's two failure-path defects and both hardening follow-ups are FIXED and
     independently ACCEPTED through 7096b1b; desktop smoke is unblocked.
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
-    increments 1+2 DONE at 7f755c6 + d76e699.
+    increments 1+2+3 DONE at 7f755c6 + d76e699 + f7cc373.
 
 NEXT ACTIONS
   SEQUENCING DECISION (coach, this turn): NO new persistence-layer work lands
@@ -398,9 +402,8 @@ NEXT ACTIONS
     on a real desktop until then, so anything that reshapes storage waits.
   Coach/Claude: run the documented flag-ON desktop smoke. A3 code review is
     ACCEPTED; report any SQL-engine warning or persistence mismatch verbatim.
-  Codex: Study date-range cohorts next — pure analytics/UI over the accepted
-    registry→query→compare spine; adds NO persistence risk, so it proceeds in
-    parallel with the smoke. Later: a real cross-game playback contract.
+  Codex: Study date-range cohorts DONE. Next substantial UI/data contract is
+    true cross-game sequential playback; do not fake it with current-game cuts.
   Claude: HOLDING the persistence lane until the smoke passes. POSTPONED until
     then (coach's call): the dedicated library-root move AND the catalog
     backup-ring / version-history migrations (listBackups-as-row-query,
@@ -613,6 +616,21 @@ Phase 2 Study UI — increment 2 (`d76e699`, complete):
 - Modular-source and committed-bundle browser gates both 17/17, zero errors;
   responsive desktop filter UI and 390x844 mobile QA clean. `218d490` rebuilt
   the bundle after `d76e699`. No release/tag; shell stays opt-in.
+
+Phase 2 Study UI — increment 3 (`f7cc373`, complete):
+- Added inclusive custom date-range scope over game metadata. Only games with an
+  explicit `YYYY-MM-DD` date enter a range; undated games remain available in
+  full-season scope and are never silently assigned a date.
+- Added `Date range vs prior`: selected dated games form cohort A; every dated
+  game before the range start forms cohort B. Both sides continue through the
+  accepted StudyQuery comparison contract and retain composite film refs.
+- Date controls seed from the season's earliest/latest dated games, constrain
+  invalid boundaries, refresh filter values as the range changes, and collapse
+  cleanly on mobile. Watch copy correctly says `Watch date range`.
+- Saved views persist and restore both boundaries along with filters, metrics,
+  scope, and comparison. Old saved views remain compatible.
+- Rebuilt bundle; Study screen 19/19, StudyQuery 24/24, synthetic + real six-game
+  parity clean, and complete suite 34/34. No persistence changes, release, or tag.
 
 Parallel (Claude's data lane, landed while awaiting Codex): Phase 2 spine — the
 Study QUERY EXECUTOR. `js/study-query.js` (`window.app.study`, `StudyQuery`) is a
