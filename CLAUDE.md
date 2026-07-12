@@ -186,6 +186,19 @@ onboarding 46/46 zero errors. No release/tag. NEXT in this lane: migrate
 version-history (`version-manager.js`, localStorage per `season::game`) onto a
 catalog `versions` table so named save-points also leave the JSON structure.
 
+**Ghost-plays investigation (`6f9d7aa`, code read — not yet fixed).** The coach's
+"repair film adds duplicate/ghost plays" report was diagnosed: **Repair Film** is
+safe (3-tier match path→name→order, bails on any unmatched play), but **Add Clips /
+re-add a folder** (`playlist-manager.js` `addFiles`→`_relinkSavedPlays`→
+`_autoCreatePlays`) has no order fallback and auto-creates a whole-clip play for any
+clip that fails to relink → orphaned tagged play + duplicate untagged play (the
+v1.10.7 class). **Windows `(n)` rename-on-copy and dup basenames both defeat the
+filename matching and are defended nowhere.** The fix is folded into the file-system
+rebuild as REQUIREMENTS R1–R5 in `GRIDIRON-IQ-REDESIGN-PLAN.md` (authoritative
+`clip_id`, relink consumes it, `(n)`-normalized fallback tier, addFiles as safe as
+repair, and R5 — re-verify repair single+folders incl. `(n)`/dup cases BEFORE
+building on the file system). See [[windows-dup-rename-ghost-plays]].
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer
