@@ -357,12 +357,12 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all work pushed; nothing uncommitted)
-HEAD: A3 increment 1 (dual-write orchestrator) — see commit below
+HEAD: 76db0c9  A3 increment 1 — CatalogPersistence dual-write orchestrator
 Gate at HEAD: full 32/32 green (bash build.sh && node tools/e2e-*.mjs); parity
   golden unchanged (synthetic + real 6-game); zero page errors.
 
 Recent redesign commits (newest first):
-  (this) A3 increment 1 — CatalogPersistence dual-write orchestrator (Node 16/16)
+  76db0c9  A3 increment 1 — CatalogPersistence dual-write orchestrator (Node 16/16)
   012c8e1  StudyQuery.compare() — two-cohort (game-vs-season / recent-vs-prior)
   cfa959b  Phase 2 spine — Study query executor (js/study-query.js) over P0-c
   f68de8a  Phase 1 feature-flagged shell + Home (Codex impl, Claude finished)
