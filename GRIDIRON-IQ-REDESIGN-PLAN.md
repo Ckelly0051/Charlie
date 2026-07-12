@@ -393,15 +393,20 @@ Lane status:
     increments 1+2 DONE at 7f755c6 + d76e699.
 
 NEXT ACTIONS
+  SEQUENCING DECISION (coach, this turn): NO new persistence-layer work lands
+    until the flag-ON desktop smoke passes on real film. The catalog is unproven
+    on a real desktop until then, so anything that reshapes storage waits.
   Coach/Claude: run the documented flag-ON desktop smoke. A3 code review is
     ACCEPTED; report any SQL-engine warning or persistence mismatch verbatim.
-  Codex: Study increments 1+2 are complete. Next UI work is date-range cohorts
-    and, later, a real cross-game playback contract.
-    After the smoke passes on real film for a release cycle, drop the JSON
-    dual-write to single-write `.db`. Next in Claude's lane after that: the
-    dedicated library-root move + the deferred persistence items (diskStatus
-    honesty, listBackups meta as a row query, version-manager fold-in) that ride
-    cheaply on the catalog.
+  Codex: Study date-range cohorts next — pure analytics/UI over the accepted
+    registry→query→compare spine; adds NO persistence risk, so it proceeds in
+    parallel with the smoke. Later: a real cross-game playback contract.
+  Claude: HOLDING the persistence lane until the smoke passes. POSTPONED until
+    then (coach's call): the dedicated library-root move AND the catalog
+    backup-ring / version-history migrations (listBackups-as-row-query,
+    version-manager fold-in, diskStatus honesty). After the smoke is clean on
+    real film for a release cycle: drop the JSON dual-write to single-write `.db`,
+    THEN take up those postponed items.
 
 A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED + CODE-REVIEW ACCEPTED,
 flag OFF by default; coach desktop smoke is the remaining release gate.
