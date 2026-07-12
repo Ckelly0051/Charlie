@@ -411,8 +411,30 @@ NEXT ACTIONS
     real film for a release cycle: drop the JSON dual-write to single-write `.db`,
     THEN take up those postponed items.
 
-A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED + CODE-REVIEW ACCEPTED,
-flag OFF by default; coach desktop smoke is the remaining release gate.
+A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED + CODE-REVIEW ACCEPTED
++ DESKTOP SMOKE PASSED on real film (2026-07-12). Flag OFF by default.
+
+DESKTOP SMOKE — PASSED (Claude drove a from-source `cargo tauri dev` build via
+computer use, F12 console, on the coach's real machine + real season):
+- Baseline flag-OFF: real seasons load normally.
+- Flag-ON, `_ensureCatalog()` reported
+  `{backend:"tauri", flag:true, engineFailed:false, catalogLoaded:true, hasSQL:true}`
+  — the sql.js WASM LOADED in WebView2 (the CSP `'wasm-unsafe-eval'` + `$RESOURCE`
+  asset scope + resource resolution all work). NO "SQL engine load failed" /
+  "Catalog init failed" warnings; console otherwise clean.
+- `%APPDATA%\com.gridironiq.app\seasons\library.db` created (532 KB).
+- Migration LOSSLESS on real film: the real season loads from the canonical db —
+  `{name:"2025 St. Joseph Mavericks - JV", source:"db", games:6, plays:451}`
+  (matches the JSON exactly).
+- Write path (throwaway season, real data untouched):
+  `{saved:true, loadSource:"db", loadPlays:1, deleted:true, goneAfterDelete:true}`
+  — save→load-from-db→durable delete→no resurrection.
+- Flag-OFF restore: removed the flag, reloaded, the real 6-game/451-play season
+  still loads (dual-write JSON intact). App left in the default flag-OFF state.
+
+UNBLOCKED by the pass: the frozen persistence lane may thaw. Remaining before
+dropping the JSON dual-write to single-write `.db`: run flag-ON on real film for a
+release cycle (the smoke proves the path; a cycle proves durability in daily use).
 
 #### A3 Codex Review — FINAL ACCEPTANCE (`7096b1b`)
 
