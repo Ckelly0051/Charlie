@@ -32,6 +32,7 @@ export class SqlCatalog {
     this.db = null;
     this.currentId = null;
     this.RETENTION = 25;
+    this.VMAX = 20;            // named-save-point cap per season::game (mirrors VersionManager)
     this.SCHEMA = 1;
     this._seq = 0;
   }
@@ -86,6 +87,10 @@ export class SqlCatalog {
         id TEXT PRIMARY KEY, season_id TEXT, t TEXT, label TEXT,
         games_count INTEGER, plays_count INTEGER, season_name TEXT, body_json TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS versions (
+        id TEXT PRIMARY KEY, season_id TEXT, game_id TEXT, t TEXT, label TEXT,
+        manual INTEGER DEFAULT 0, play_count INTEGER DEFAULT 0, body_json TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS imports (
         id TEXT PRIMARY KEY, game_id TEXT, t TEXT, status TEXT, summary_json TEXT
       );
@@ -96,6 +101,7 @@ export class SqlCatalog {
       CREATE INDEX IF NOT EXISTS ix_plays_game ON plays(game_id, ord);
       CREATE INDEX IF NOT EXISTS ix_clips_game ON clips(game_id, ord);
       CREATE INDEX IF NOT EXISTS ix_backups_season ON backups(season_id, t);
+      CREATE INDEX IF NOT EXISTS ix_versions_scope ON versions(season_id, game_id, t);
     `);
     const has = this._get('SELECT id FROM migrations WHERE id = ?', [this.SCHEMA]);
     if (!has) {
@@ -259,5 +265,39 @@ export class SqlCatalog {
   _pruneBackups() {
     const ids = this._all('SELECT id FROM backups WHERE season_id = ? ORDER BY t DESC', [this.currentId]).map(r => r.id);
     ids.slice(this.RETENTION).forEach(id => this._run('DELETE FROM backups WHERE id = ?', [id]));
+  }
+
+  // ---- version history (named save points, scoped season::game) -------------
+  // The version-history migration off localStorage `ffa_versions_<season::game>`:
+  // named/auto save-points become rows keyed by (season_id, game_id), capped at
+  // VMAX per game. `v` is a VersionManager snapshot { id?, label, time, manual,
+  // playCount, data } — its whole-tagger `data` goes to body_json; getVersion
+  // returns exactly that snapshot payload. Prune evicts AUTO-saves before manual
+  // ones (VersionManager's own eviction rule) so a coach's named points survive.
+  saveVersion(seasonId, gameId, v) {
+    const id = (v && v.id != null) ? String(v.id) : this._newId('ver');
+    const body = (v && v.data !== undefined) ? v.data : v;
+    this._run(
+      `INSERT INTO versions (id,season_id,game_id,t,label,manual,play_count,body_json) VALUES (?,?,?,?,?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET label=excluded.label,manual=excluded.manual,play_count=excluded.play_count,body_json=excluded.body_json`,
+      [id, seasonId, gameId, (v && v.time) || new Date().toISOString(), (v && v.label) || '',
+       (v && v.manual) ? 1 : 0, (v && v.playCount != null) ? v.playCount : 0, JSON.stringify(body)]);
+    this._pruneVersions(seasonId, gameId);
+    return id;
+  }
+  listVersions(seasonId, gameId) {
+    return this._all('SELECT id,t,label,manual,play_count FROM versions WHERE season_id = ? AND game_id = ? ORDER BY t ASC', [seasonId, gameId])
+      .map(r => ({ id: r.id, time: r.t, label: r.label || '', manual: !!r.manual, playCount: r.play_count || 0 }));
+  }
+  getVersion(id) { const r = this._get('SELECT body_json FROM versions WHERE id = ?', [String(id)]); return r ? JSON.parse(r.body_json) : null; }
+  deleteVersion(id) { this._run('DELETE FROM versions WHERE id = ?', [String(id)]); }
+  _pruneVersions(seasonId, gameId) {
+    const rows = this._all('SELECT id, manual FROM versions WHERE season_id = ? AND game_id = ? ORDER BY t ASC', [seasonId, gameId]);
+    let over = rows.length - this.VMAX;
+    if (over <= 0) return;
+    const del = [];
+    for (const r of rows) { if (over <= 0) break; if (!r.manual) { del.push(r.id); over--; } }   // auto-saves first (oldest→newest)
+    for (const r of rows) { if (over <= 0) break; if (r.manual && !del.includes(r.id)) { del.push(r.id); over--; } }  // then oldest manual
+    del.forEach(id => this._run('DELETE FROM versions WHERE id = ?', [id]));
   }
 }

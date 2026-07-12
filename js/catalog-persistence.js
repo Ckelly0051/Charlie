@@ -169,6 +169,37 @@ export class CatalogPersistence {
     try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
   }
 
+  // ---- version history (named save points, in the shared db) ---------------
+  // The version-history migration off localStorage: named/auto save-points become
+  // rows keyed by (seasonId, gameId) in the shared library db. Same best-effort
+  // durability as the backup ring — a lost version never blocks tagging. NOT yet
+  // wired into VersionManager (dormant groundwork); the UI rewire lands later.
+  async saveVersion(seasonId, gameId, v) {
+    if (!seasonId || !gameId || !v) return null;
+    await this._ensureLoaded();
+    let id = null;
+    try { id = this.catalog.saveVersion(seasonId, gameId, v); }
+    catch (e) { return null; }
+    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    return id;
+  }
+  async listVersions(seasonId, gameId) {
+    if (!seasonId || !gameId) return [];
+    await this._ensureLoaded();
+    try { return this.catalog.listVersions(seasonId, gameId); } catch (e) { return []; }
+  }
+  async getVersion(id) {
+    if (id == null) return null;
+    await this._ensureLoaded();
+    try { return this.catalog.getVersion(id); } catch (e) { return null; }
+  }
+  async deleteVersion(id) {
+    if (id == null) return;
+    await this._ensureLoaded();
+    try { this.catalog.deleteVersion(id); } catch (e) { return; }
+    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+  }
+
   /**
    * One-time migration (A3 increment 3): import the coach's existing per-season
    * `season.json` files into the shared library db on first flag-on. Idempotent —
