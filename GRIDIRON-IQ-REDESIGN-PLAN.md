@@ -82,6 +82,30 @@ Prototype revision 2 (Codex, 2026-07-12) incorporates coach review:
 - Browser QA is clean at 1440x900 and 390x844 with no page-level horizontal
   overflow. This remains prototype-only; no production storage or schema changed.
 
+Prototype revision 2.2 adds unit-aware full charting:
+
+- The production selector vocabulary is the minimum contract. Redesign may
+  reorganize, progressively disclose, rename for perspective, or improve input
+  controls, but must not discard chartable information.
+- Offense / Defense / Special Teams is a prominent segmented control; Self-scout
+  / Opponent scout / Quick chart remains a secondary view choice.
+- Defense shows **Our Defensive Call** (front, coverage, pressure) before
+  **Offense Faced** (formation, backfield, strength, personnel, motion). Offense
+  retains **Defense Faced**. Fronts join formations/backfields in the editable
+  tag-library settings, including custom staff terminology.
+- Players & Grades is unit-aware: offensive skill/blocking roles, defensive
+  tackle/TFL/takeaway/coverage roles, and special-teams specialists. Production
+  parity must retain all existing player attribution and grading fields.
+- Penalties are separate structured records on the play: charged team, foul,
+  accepted/declined/offsetting/no-play status, yards, whether the snap counts,
+  and notes. They do not replace the underlying football result.
+- Special Teams begins with phase (kickoff, return, punt, field goal, XP, 2-Pt,
+  onside, fake), then reveals only phase-relevant outcome, distance, hang time,
+  landing spot, return, field-position, player, and penalty fields.
+- Typography now uses Segoe UI Variable Text for long-session readability and
+  Bahnschrift Condensed only for brand/display emphasis; both have system-safe
+  fallbacks and require no prototype network dependency.
+
 The earlier `ux-prototype/` is retained only as design exploration. It represents
 the rejected "simplified Chart + Review" direction; it is useful as the future
 **Quick Chart profile**, not as the full product shell.
