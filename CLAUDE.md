@@ -160,6 +160,23 @@ inside saved views. The rebuilt bundle passes Study 19/19, StudyQuery 24/24,
 synthetic + real six-game parity, and the full 34/34 gate. No persistence surface
 changed; shell stays opt-in. Next Study contract: true cross-game playback.
 
+**A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
+now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
+RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
+slice of the DoD move OFF the per-season-JSON file structure. `CatalogPersistence`
+exposes the catalog backup ring (`createBackup/listBackups/getBackup/deleteBackup`,
+db bytes re-exported on every mutation, all best-effort so a lost restore point
+never blocks a save); `TauriBackend` delegates to it when `ffa_sql_catalog` is ON,
+routing get/delete by id shape and MERGING the db ring with any legacy backup JSON
+files so flipping the flag never hides older restore points. **Flag-OFF is
+byte-identical** (delegation only runs when `_ensureCatalog()` returns a catalog).
+Tests: `e2e-catalog-persistence` 44/44 (create/list/get/delete + per-season
+isolation + reopen-durability + prune-to-25), `e2e-catalog-backend` 6/6 (flag-ON
+delegation path), sql-catalog 10/10, sql-fuzzer 16, catalog-fuzzer clean,
+onboarding 46/46 zero errors. No release/tag. NEXT in this lane: migrate
+version-history (`version-manager.js`, localStorage per `season::game`) onto a
+catalog `versions` table so named save-points also leave the JSON structure.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer
