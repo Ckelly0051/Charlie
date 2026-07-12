@@ -444,14 +444,15 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ### Active Handoff
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
-Branch: claude/football-film-analyzer-GRiCW  (all pushed; nothing uncommitted)
-HEAD: 3956e14  docs — record A3 re-save corruption P0 (fixed acc130c)
-Gate at HEAD: full 36/36 green (build + node tools/e2e-*.mjs run ATOMICALLY in one
+Branch: claude/football-film-analyzer-GRiCW
+Latest implementation: 1fce6b3  Study true cross-game playback (Codex)
+Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  1fce6b3  Study cross-game playback UI + awaitable CutupPlayer contract
   3956e14  docs — A3 re-save corruption P0 recorded
   acc130c  A3 P0 FIX — SqlCatalog re-save duplicated plays (FK cascade off) + catalog fuzzer
   42fedf7  docs — hand Codex the cross-game playback contract
@@ -490,17 +491,18 @@ Lane status:
     FUZZER caught + fixed a P0 re-save duplication bug (acc130c). Cross-game playback
     DATA CONTRACT done + handed to Codex (94d3ef0).
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
-    increments 1+2+3 DONE at 7f755c6 + d76e699 + f7cc373.
+    increments 1+2+3 DONE at 7f755c6 + d76e699 + f7cc373; true cross-game
+    Study playback DONE at 1fce6b3 and ready for independent review.
 
 NEXT ACTIONS
-  Codex: build the CROSS-GAME CutupPlayer UI on the contract Claude landed.
-    `window.app.crossGameCutup.plan(refs, games)` -> ordered
-    `{ segments, games, total, skipped }`; walk `plan.games` in order —
-    `switchToGame(g.gameId)` -> await film auto-load -> `CutupPlayer.start(that
-    game's playIds)` -> on end advance to the next game; banner "game X of Y" +
-    the honest `skipped` count. Replace study-screen `_watch`'s one-game fallback
-    so a season/date-range query plays ALL matches across games in sequence.
-  Claude: idle/next. In-lane options, none started:
+  Claude: independently review implementation commit 1fce6b3 in this order:
+    correctness/data isolation; cancellation races; managed/linked/browser film
+    loading; numeric/string play IDs; unavailable-film accounting; regressions.
+    Re-run e2e-cross-game-cutup (13/13), e2e-study-screen (22/22), then the
+    atomic full gate. Do not redesign the Study UI during this review.
+  Codex: hold for review. After acceptance, select the next Phase 2/3 product
+    increment with the coach rather than starting an overlapping shared surface.
+  Claude in-lane options after review, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
         a REAL defended-nowhere gap, so this is NOT purely user error. Findings:

@@ -214,6 +214,23 @@ inside saved views. The rebuilt bundle passes Study 19/19, StudyQuery 24/24,
 synthetic + real six-game parity, and the full 34/34 gate. No persistence surface
 changed; shell stays opt-in. Next Study contract: true cross-game playback.
 
+**Phase 2 Study cross-game playback is complete (`1fce6b3`, Codex).** A Study
+Watch action over season or date-range results now plays every available match in
+chronological game order through the existing Breakdown video surface. Claude's
+`CrossGameCutup.plan()` remains the pure planning contract; `StudyScreen._watch`
+preflights each game's `filmHealth`, awaits `StorageManager.switchToGame()` and
+film auto-load, resolves composite planner refs back to the loaded game's native
+play IDs, then awaits `CutupPlayer.start()` before advancing. The banner names the
+game and `Game X of Y`; missing/unavailable film is skipped with an honest count.
+The currently loaded browser game remains playable, but other browser-only games
+are not misrepresented as durable. Escape, Exit, route changes, or a replacement
+cut-up settle the awaitable CutupPlayer contract as cancelled instead of advancing
+silently. Focused gates: cross-game planner 13/13, Study 22/22 (including ordered
+two-game playback, deterministic stop/empty results, and unavailable-film skip).
+Fresh bundle + every `tools/e2e-*.mjs` harness passed atomically with zero
+failures. Shell remains opt-in; no release/tag. Next action: Claude independently
+reviews `1fce6b3`; after acceptance, choose the next Phase 2/3 product increment.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
