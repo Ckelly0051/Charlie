@@ -357,7 +357,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (Study committed; smoke-generated Tauri schema remains local)
-HEAD: f7cc373  Study increment 3 — date-range cohorts
+HEAD: 94d3ef0  cross-game cut-up planner contract (A3 smoke PASSED at 13f3411)
 Gate at HEAD: full 34/34 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
@@ -402,10 +402,19 @@ NEXT ACTIONS
     on a real desktop until then, so anything that reshapes storage waits.
   Coach/Claude: run the documented flag-ON desktop smoke. A3 code review is
     ACCEPTED; report any SQL-engine warning or persistence mismatch verbatim.
-  Codex: Study date-range cohorts DONE. Next substantial UI/data contract is
-    true cross-game sequential playback; do not fake it with current-game cuts.
-  Claude: HOLDING the persistence lane until the smoke passes. POSTPONED until
-    then (coach's call): the dedicated library-root move AND the catalog
+  Codex: build the CROSS-GAME CutupPlayer UI on the new contract (Claude landed
+    the data half). `window.app.crossGameCutup.plan(refs, games)` returns an
+    ordered `{ segments, games, total, skipped }`; walk `plan.games` in order —
+    `switchToGame(g.gameId)` → await film auto-load → `CutupPlayer.start(that
+    game's playIds)` → on end advance to the next game; banner shows "game X of Y"
+    and the honest `skipped` count. Replace study-screen `_watch`'s one-game
+    fallback so a season/date-range query plays ALL matches across games in
+    sequence. (Do not fake it with current-game cuts — the plan already spans games.)
+  Claude: A3 desktop smoke PASSED on real film (recorded above); the cross-game
+    playback DATA CONTRACT is DONE (`js/cross-game-cutup.js`, pure planner, Node
+    13/13, gate 35/35) and handed to Codex. Persistence lane per the coach's
+    sequencing: POSTPONED until a release cycle of flag-on real use, then drop the
+    JSON dual-write, then the dedicated library-root move AND the catalog
     backup-ring / version-history migrations (listBackups-as-row-query,
     version-manager fold-in, diskStatus honesty). After the smoke is clean on
     real film for a release cycle: drop the JSON dual-write to single-write `.db`,
