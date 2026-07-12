@@ -357,7 +357,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (Study committed; smoke-generated Tauri schema remains local)
-HEAD: 94d3ef0  cross-game cut-up planner contract (A3 smoke PASSED at 13f3411)
+HEAD: acc130c  P0 fix — SqlCatalog re-save duplicated plays (FK cascade off); fuzzer added
 Gate at HEAD: full 34/34 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
@@ -422,6 +422,18 @@ NEXT ACTIONS
 
 A3 — SqlCatalog canonical cutover (task #54): IMPLEMENTED + CODE-REVIEW ACCEPTED
 + DESKTOP SMOKE PASSED on real film (2026-07-12). Flag OFF by default.
+
+POST-SMOKE P0 FIX (acc130c): a new CatalogPersistence FUZZER
+(`tools/e2e-catalog-fuzzer.mjs`, random save/load/delete/migrate + disk faults)
+caught a data-corruption bug the single-save smoke MISSED — EVERY re-save of a
+season duplicated its play rows (2→4→6…; a coach's autosaves would multiply their
+plays on disk). Root cause: `db.export()` (the dual-write) resets sql.js's
+`PRAGMA foreign_keys` OFF, so saveSeason/deleteSeason's cascade-reliant DELETEs
+orphaned plays/clips, which re-attached on the next save. Fix: explicit deepest-
+first child deletes (plays→clips→games→season), pragma-independent. Fuzzer 640 ops
+clean, e2e-catalog-persistence 36/36 (re-save no-dup regression), full gate 36/36.
+LESSON: the smoke only exercised a single save per season — MUST re-save/edit a
+season during the release-cycle validation, not just open it.
 
 DESKTOP SMOKE — PASSED (Claude drove a from-source `cargo tauri dev` build via
 computer use, F12 console, on the coach's real machine + real season):
