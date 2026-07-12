@@ -87,6 +87,17 @@ Prototype revision 2.2 adds unit-aware full charting:
 - The production selector vocabulary is the minimum contract. Redesign may
   reorganize, progressively disclose, rename for perspective, or improve input
   controls, but must not discard chartable information.
+- **No charting chip is required.** Blank tags are valid and Save & Next must
+  never be blocked by a coach's chosen level of detail. A custom Formation value
+  such as `Power-I` may stand alone without Under Center or Backfield. It remains
+  available in formation analytics; analyses requiring blank companion fields
+  honestly omit that play. Missing detail reduces analytical depth, never data
+  validity. Do not silently decompose or remap staff terminology.
+  **Known production blocker:** `SeasonStore.migratePlayFormation()` currently
+  treats exact `Power-I` as a legacy backfield token, removes it from Formation,
+  and writes `backfield:'Power'` on normalize. Before production tag libraries
+  ship, scope that migration to genuinely legacy data (or persist an explicit
+  migration version) so a newly created custom value is never rewritten.
 - Offense / Defense / Special Teams is a prominent segmented control; Self-scout
   / Opponent scout / Quick chart remains a secondary view choice.
 - Defense shows **Our Defensive Call** (front, coverage, pressure) before
@@ -110,6 +121,11 @@ Prototype revision 2.2 adds unit-aware full charting:
   Former dead space below the strip now holds frequent film controls (Mark
   Start, Mark End, Copy Last, Clear, Delete) instead of another information
   panel. The rail preserves the strip's compact footprint and mobile overflow.
+- Desktop uses a horizontal top workspace navigation instead of a permanent
+  sidebar for four destinations. This returns the empty rail width to video and
+  charting; mobile retains the four-item bottom navigation. Playback speed,
+  loop, and camera angle live in the existing player bar, while low-frequency
+  roster/history/filter/drawing/library tools remain in Settings.
 
 ### Scout perspective contract
 

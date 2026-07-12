@@ -46,10 +46,23 @@ reveals only applicable kick/return/scoring fields. Treat every current
 production selector as required data unless an explicit product decision and
 parity test approve removal. Prototype typography is Segoe UI Variable Text +
 Bahnschrift Condensed for a calmer long-session interface; production unchanged.
+No charting chip is required: blank values are valid, Save & Next remains
+available, and a staff-specific `Power-I` formation can stand alone. It will
+participate in formation analytics while analyses needing blank backfield or QB
+alignment fields omit it honestly; never silently remap the coach's terminology.
+This is a TARGET contract, not current production behavior: the existing
+`SeasonStore.migratePlayFormation()` rewrites exact `Power-I` to
+`backfield:'Power'` and clears it from Formation on every normalize. Treat that
+as a production compatibility blocker for custom tag libraries; migration must
+be version/provenance-scoped before new custom values use legacy token names.
 The prototype play strip also establishes a production hierarchy requirement:
 play number is secondary, while situation and play/result/yardage are prominent.
 Its former dead space now carries the high-frequency film marking, copy, clear,
 and delete actions without increasing page-level scrolling.
+The latest prototype removes the desktop sidebar: the four workspace routes and
+team context live in the top bar, returning the empty rail width to video. Mobile
+keeps bottom navigation. Speed/loop/angle are promoted inside the existing
+player bar; low-frequency setup/history/filter/drawing tools stay in Settings.
 
 **Scout perspective contract (2026-07-12):** Self-scout is the default/primary
 workflow and means our own games (our offense, defense, and special teams).
