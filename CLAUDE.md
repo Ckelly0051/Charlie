@@ -69,6 +69,15 @@ team context live in the top bar, returning the empty rail width to video. Mobil
 keeps bottom navigation. Speed/loop/angle are promoted inside the existing
 player bar; low-frequency setup/history/filter/drawing tools stay in Settings.
 
+**Break Down drawing-tools TODO:** the redesign must preserve the production
+video-annotation capability and make it easier to reach while actively coaching.
+Phase 4 includes freehand draw, erase, clear, undo/redo, and a small accessible
+color palette over the video, using the existing `CanvasOverlay` and unified
+history contracts where practical. It must work with mouse, pen, and touch; stay
+pixel-aligned through resize/fullscreen/video changes; and never crop, resize, or
+cover the film when inactive. This is planned work only, not yet prototyped or
+implemented in the redesigned workspace.
+
 **Scout perspective contract (2026-07-12):** Self-scout is the default/primary
 workflow and means our own games (our offense, defense, and special teams).
 Opponent scout means a future opponent's film versus a third team; that future

@@ -370,6 +370,11 @@ contract → tests each; never hand over "Phase 0" as one change):
 - Add charting-profile configuration without changing tag semantics.
 - Recompose the existing tag form into football sections.
 - Add compact play strip backed by Film Room's existing model.
+- Preserve and surface video annotation tools over the film: freehand draw,
+  erase, clear, undo/redo, and a compact accessible color palette. Reuse the
+  existing `CanvasOverlay`/history model where possible; support mouse, pen, and
+  touch. The annotation layer must align exactly with the rendered video, remain
+  non-destructive, and consume or cover zero video pixels when tools are inactive.
 - Add Quick Chart as a profile, not a replacement workflow.
 - Migrate one unit at a time: offense, defense, then special teams.
 
@@ -389,6 +394,8 @@ Every phase must run the existing full suite plus focused tests for:
 - Film Inbox accurately reflects managed, linked, missing, saving, repairing,
   and unauthorized states on browser and desktop.
 - Break Down/classic transitions preserve unsaved live edits.
+- Drawing strokes, erase/clear, undo/redo, resizing, fullscreen, and play/video
+  changes preserve correct overlay alignment without blocking playback controls.
 - Study query values and matching play sets pass parity fixtures.
 - Plan references survive save/load, export/import, delete/undo, and game reorder.
 - Keyboard and focus navigation remain usable.
