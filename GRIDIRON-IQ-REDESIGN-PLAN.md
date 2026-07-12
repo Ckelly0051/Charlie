@@ -357,11 +357,12 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all work pushed; nothing uncommitted)
-HEAD: 012c8e1  feat(redesign): two-cohort comparison in StudyQuery
-Gate at HEAD: full 31/31 green (bash build.sh && node tools/e2e-*.mjs); parity
+HEAD: A3 increment 1 (dual-write orchestrator) — see commit below
+Gate at HEAD: full 32/32 green (bash build.sh && node tools/e2e-*.mjs); parity
   golden unchanged (synthetic + real 6-game); zero page errors.
 
 Recent redesign commits (newest first):
+  (this) A3 increment 1 — CatalogPersistence dual-write orchestrator (Node 16/16)
   012c8e1  StudyQuery.compare() — two-cohort (game-vs-season / recent-vs-prior)
   cfa959b  Phase 2 spine — Study query executor (js/study-query.js) over P0-c
   f68de8a  Phase 1 feature-flagged shell + Home (Codex impl, Claude finished)
@@ -380,12 +381,35 @@ NEXT ACTIONS
   Codex: (1) design review of Phase 1 shell/Home; (2) fix the 3 cosmetic nits
     (film-row double label; "1 games" + meta play-count on a live game; mobile
     Home bottom-tab bleed); (3) Phase 1 exit criteria (§5).
-  Claude (on the coach's go, independent of Codex): A3 — SqlCatalog canonical
-    cutover (task #54, the committed DoD migration OFF per-season JSON: dual-write
-    .db + season.json + Documents mirror, JSON fallback on load, desktop wasm
-    loader; flag `ffa_sql_catalog` gates the safe cutover TIMING, not whether).
-    Optional smaller: wire a Study convenience layer that slices game/season/
-    date-range cohorts for compare() (still pure of the store at the engine level).
+  Claude: A3 in progress — INCREMENT 1 DONE (the dual-write orchestrator core,
+    Node-tested, HEAD). REMAINING A3 (needs desktop verification, held for a coach
+    smoke): (a) vendor sql-wasm.wasm as a Tauri resource + lazy-load it in the
+    webview; (b) wire TauriBackend.loadSeason/saveSeason/deleteSeason (+ backup
+    ring) to delegate to CatalogPersistence behind the `ffa_sql_catalog` flag
+    (default OFF; dual-write + json fallback make the cutover reversible);
+    (c) migrate the existing per-season season.json into the shared library.db on
+    first flag-on. The browser build stays JSON + sql.js-free (flag is desktop-only).
+
+A3 — SqlCatalog canonical cutover (task #54), INCREMENT 1 (of 3) COMPLETE:
+- `js/catalog-persistence.js` (`CatalogPersistence`) is the pure dual-write
+  orchestrator that makes the SQLite catalog CANONICAL with JSON as a self-healing
+  fallback. ALL fs access is INJECTED, so the whole risky canonical-write path is
+  Node-tested (`tools/e2e-catalog-persistence.mjs`, 16/16) with a fake fs + real
+  sql.js — the desktop glue (real fs adapter + wasm load) is the only untested
+  seam left, per the reproduce/verify discipline (don't ship an unverifiable
+  canonical path).
+- Model: one library-wide catalog db (the plan's `seasons/library.db`) held open;
+  every save upserts the season + re-exports the db bytes AND dual-writes the
+  per-season `season.json` + best-effort Documents mirror. Load prefers db → json;
+  a missing/corrupt db falls back to json and RE-MIGRATES it into the db so the
+  next load is canonical (self-healing, reversible). A load never throws; a
+  db-write failure surfaces false yet still leaves the json safety net.
+- Proven: lossless db round-trip across a reopen (== a plain SqlCatalog
+  round-trip); two seasons isolated in one db (no cross-season bleed); missing-db
+  fallback + self-heal; corrupt-db degrade-without-throw; best-effort mirror;
+  db-write-failure keeps the json; delete removes the season. Full gate 32/32;
+  browser bundle unchanged (module is Node-only, excluded from build.sh like
+  sql-catalog.js).
 
 Tag pushes still pending for the coach (agent can't push tags): none new this
   phase — Phase 1 + Study are flag-gated, no release/version bump, no tag needed.
