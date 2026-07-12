@@ -356,12 +356,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ### Active Handoff
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
-Branch: claude/football-film-analyzer-GRiCW  (all work pushed; nothing uncommitted)
-HEAD: 76db0c9  A3 increment 1 — CatalogPersistence dual-write orchestrator
+Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
+HEAD: d1121d6  Phase 1 shell design acceptance + polish
 Gate at HEAD: full 32/32 green (bash build.sh && node tools/e2e-*.mjs); parity
   golden unchanged (synthetic + real 6-game); zero page errors.
 
 Recent redesign commits (newest first):
+  d1121d6  Phase 1 shell design acceptance + polish (focused 14/14)
+  8c5d7a6  Handoff pin for A3 increment 1
   76db0c9  A3 increment 1 — CatalogPersistence dual-write orchestrator (Node 16/16)
   012c8e1  StudyQuery.compare() — two-cohort (game-vs-season / recent-vs-prior)
   cfa959b  Phase 2 spine — Study query executor (js/study-query.js) over P0-c
@@ -374,13 +376,13 @@ Lane status:
     finished + shipped; Phase 2 Study executor + two-cohort compare DONE. The
     Study analytics spine (registry → query → compare) is complete + parity-locked
     + film-linked; NO UI consumes it yet (it is the contract the Study screen calls).
-  Codex (visual shell / workspace UX): Phase 1 shell+Home COMMITTED, awaiting
-    Codex's own design review + the 3 cosmetic nits below.
+  Codex (visual shell / workspace UX): Phase 1 shell+Home ACCEPTED and complete.
+    Responsive design review + the logged polish pass are committed at d1121d6.
 
 NEXT ACTIONS
-  Codex: (1) design review of Phase 1 shell/Home; (2) fix the 3 cosmetic nits
-    (film-row double label; "1 games" + meta play-count on a live game; mobile
-    Home bottom-tab bleed); (3) Phase 1 exit criteria (§5).
+  Codex: begin the Phase 2 Study screen on the accepted registry → query →
+    compare spine. Keep Advanced Reports one click away and keep the shell flag
+    opt-in until real-coach acceptance.
   Claude: A3 in progress — INCREMENT 1 DONE (the dual-write orchestrator core,
     Node-tested, HEAD). REMAINING A3 (needs desktop verification, held for a coach
     smoke): (a) vendor sql-wasm.wasm as a Tauri resource + lazy-load it in the
@@ -415,7 +417,24 @@ Tag pushes still pending for the coach (agent can't push tags): none new this
   phase — Phase 1 + Study are flag-gated, no release/version bump, no tag needed.
 ========================================================================
 
-Owner: Codex (impl) → Claude (finished + verified) | Phase: 1 shell+Home COMMITTED (Codex review pending) + Phase 2 Study spine DONE (Claude) | Status: READY FOR HANDOFF
+Owner: Codex | Phase: 1 shell+Home | Status: ACCEPTED / COMPLETE
+
+Phase 1 final design acceptance (d1121d6):
+- Responsive QA at 1440x900, 1280x800, 768x1024, and 390x844 found a clear,
+  work-focused hierarchy with no clipping, overlap, or page-level horizontal
+  overflow. The classic workspace remains intact under Break Down and Study.
+- Fixed all three logged nits: empty film no longer repeats its label; the
+  current season uses live game/play totals with correct singular/plural copy;
+  classic mobile tabs are hidden on shell-owned Home/Plan but remain available
+  in Break Down/Study.
+- Fixed one additional visual-trust defect found during screenshot review:
+  "No film added" now uses a neutral health dot instead of ready-green.
+- `tools/e2e-workspace-shell.mjs` is 14/14 and can optionally capture the four
+  review viewports with `FFA_SHELL_SCREENSHOTS=<dir>`.
+- Fresh bundle built; focused workspace/parity/analytics/Study/catalog gates
+  green; complete current suite 32/32 green, including the real six-game fixture
+  and zero page errors. No release/tag: shell remains opt-in and customer-facing
+  classic behavior is unchanged.
 
 Phase 1 (commit adds shell; classic remains the default):
 - Codex implemented the feature-flagged shell (`ffa_workspace_shell_v2`, opt-in;
@@ -446,15 +465,8 @@ Claude verification (finish-and-ship, NOT a design review — that's Codex's):
   overlap — the containment fix holds); mobile compact header, sidebar hidden, no
   horizontal overflow.
 
-Cosmetic nits for Codex's design pass (non-blocking, left for Codex's lane):
-- Film-row with no film renders the label twice ("No film added · No film
-  added") — `_renderFilmRow` sets detail=label when expected===0.
-- Season row copy: "1 games" (unpluralized) and shows the season-meta play count
-  (0) for a live-only game rather than the live count.
-- Mobile Home: the classic bottom tab bar bleeds through under the shell Home.
-
-Next requested action: Codex design review of Phase 1 shell/Home, then Phase 1
-polish (the nits above) + the Phase 1 exit criteria in §5.
+Phase 1 design review and logged polish are complete at `d1121d6`; see the
+acceptance block above. Next Codex action is the Phase 2 Study screen.
 
 Parallel (Claude's data lane, landed while awaiting Codex): Phase 2 spine — the
 Study QUERY EXECUTOR. `js/study-query.js` (`window.app.study`, `StudyQuery`) is a

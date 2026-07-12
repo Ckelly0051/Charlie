@@ -40,12 +40,11 @@ video predicates, and export/print artifact. **P0-c is accepted/complete**
 minimum dimensions/measures, canonical splitters/classifiers, and composite
 film references. Ambiguous semantics are explicitly `requires-context` and
 throw instead of inventing formulas. No production report consumes it yet.
-Final Codex acceptance: registry 23/23, P0-a synthetic+real clean, and all 28
-E2E files green. Next is P0-d shell/workspace-context interfaces; no current
-workspace replacement or Study query UI yet.
+Final P0-c acceptance: registry 23/23 and P0-a synthetic+real clean. P0-d and
+Phase 1 have since landed as described below; no Study query UI exists yet.
 
-**P0-d is ACCEPTED (Claude independent review, no changes) and Phase 1 (the
-feature-flagged shell + Home) is COMMITTED.**
+**P0-d is ACCEPTED and Phase 1 (the feature-flagged shell + Home) is ACCEPTED /
+COMPLETE (`d1121d6`).**
 `GRIDIRON-IQ-WORKSPACE-CONTRACT.md` is the canonical route/context/film-health
 contract. `js/workspace-context.js` exposes `window.app.workspace` with guarded
 Home/Break Down/Study/Plan descriptors, DOM-independent active context, and
@@ -57,10 +56,16 @@ the classic workspace, Study opens Advanced Reports, Plan is a controlled
 coming-soon, Home renders live context + a `filmHealth`-driven film inbox. "Use
 classic layout" clears the flag. Codex implemented it (fixing a first-run
 null-season bug + Study-overlay containment) then hit its usage limit mid visual-QA;
-Claude picked up the uncommitted work, verified it, and finished the ship steps
-(no code change). Gate: focused shell 10/10, full regression **30/30**, 5 viewport
-screenshots, **zero page errors**. Next: Codex design review of Phase 1 + the
-cosmetic nits logged in the Active Handoff.
+Claude picked up the uncommitted work, verified it, and finished the initial ship
+steps. Codex then completed the final design acceptance and polish: fixed the
+duplicated empty-film label, live season counts/grammar, and mobile classic-tab
+bleed; empty film also uses a neutral indicator instead of ready-green. QA at
+1440x900, 1280x800, 768x1024, and 390x844 found no clipping, overlap, or page
+overflow. Focused shell gate **14/14**; full current regression **32/32**,
+including parity against the real six-game season; **zero page errors**. The
+shell remains opt-in and no release/tag was cut. Next Codex milestone: build the
+Phase 2 Study screen over the accepted registry/query/comparison spine while
+keeping Advanced Reports one click away.
 
 In parallel (Claude's data lane), the **Phase 2 Study query executor** landed:
 `js/study-query.js` (`window.app.study`, `StudyQuery`) is a pure engine over the
