@@ -357,11 +357,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: 7f755c6  Phase 2 Study workspace — first usable UI increment
-Gate at HEAD: full 33/33 green (bash build.sh && node tools/e2e-*.mjs); parity
-  golden unchanged (synthetic + real 6-game); zero page errors.
+HEAD: 218d490  A3 increment 2 — SqlCatalog wired into TauriBackend (flag OFF)
+Gate at HEAD: full 33/33 green (build + node tools/e2e-*.mjs run atomically —
+  the env bumps js mtimes between build and test, so build+gate in ONE command or
+  e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
 
 Recent redesign commits (newest first):
+  218d490  A3 increment 2 — SqlCatalog -> TauriBackend, flag-gated + fail-safe
+  1916fa8  docs handoff — Study UI increment one
   7f755c6  Phase 2 Study workspace (query/compare/views/Watch/Advanced Reports)
   23f8aa1  A3 increment 3 — JSON->catalog migration (Node 21/21)
   546ec9b  docs handoff — Phase 1 shell accepted
@@ -376,9 +379,9 @@ Recent redesign commits (newest first):
 
 Lane status:
   Claude (data/analytics/persistence spine): P0-a/b/c/d DONE + accepted; Phase 1
-    finished + shipped; Phase 2 Study executor + two-cohort compare DONE. The
-    Study analytics spine (registry → query → compare) is complete + parity-locked
-    + film-linked; the first production UI now consumes it.
+    finished + shipped; Phase 2 Study executor + two-cohort compare DONE (the
+    spine the Study UI consumes); A3 SqlCatalog cutover CODE-COMPLETE (1+2+3,
+    flag OFF) — only a coach desktop smoke remains (checklist below).
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
     increment 1 DONE at 7f755c6.
 
@@ -386,30 +389,44 @@ NEXT ACTIONS
   Codex: Phase 2 Study increment 2 — composable multi-dimension filters, broader
     registry dimension/measure selection, and richer comparison choices. Keep
     the shell opt-in and preserve the one-game-at-a-time Watch boundary.
-  Claude: A3 in progress — INCREMENTS 1 + 3 DONE (Node-tested): the dual-write
-    orchestrator core (76db0c9) AND the one-time JSON->catalog migration
-    (23f8aa1, CatalogPersistence.migrateJsonSeasons, idempotent). REMAINING = the
-    increment-2 DESKTOP WIRING. It was held to avoid the Study screen's shared
-    files; `7f755c6` is now committed, so Claude may resume from this clean handoff.
-    Increment-2 scope (was drafted + reverted to keep
-    Codex's tree clean; cheap to redo): vendor sql-wasm.wasm as a Tauri resource +
-    CSP `'wasm-unsafe-eval'` + `$RESOURCE/**` asset scope; a fail-safe
-    `_loadSqlEngine()` + `_ensureCatalog()` on TauriBackend; delegate
-    load/save/deleteSeason to CatalogPersistence behind `ffa_sql_catalog`
-    (default OFF; any load error silently falls back to today's JSON path);
-    call migrateJsonSeasons on first flag-on. Add sql-catalog.js +
-    catalog-persistence.js to build.sh (browser bundle stays sql.js-free — the
-    wasm is desktop-only, lazy-loaded). Then: full gate green (flag-off path
-    unchanged) + a coach desktop smoke.
+  Claude: A3 is CODE-COMPLETE (increments 1+2+3, all committed) behind
+    `ffa_sql_catalog` (default OFF). The only remaining step is a COACH DESKTOP
+    SMOKE of the flag-ON Tauri path (unverifiable headlessly) — checklist below.
+    After the smoke passes on real film for a release cycle, drop the JSON
+    dual-write to single-write `.db`. Next in Claude's lane after that: the
+    dedicated library-root move + the deferred persistence items (diskStatus
+    honesty, listBackups meta as a row query, version-manager fold-in) that ride
+    cheaply on the catalog.
 
-A3 — SqlCatalog canonical cutover (task #54), INCREMENTS 1 + 3 COMPLETE (2 READY):
-- Increment 3 (23f8aa1): `CatalogPersistence.migrateJsonSeasons(ids)` imports the
-  coach's existing per-season `season.json` into the shared library db on first
-  flag-on — idempotent (skips a season already in the db), never throws.
-  `tools/e2e-catalog-persistence.mjs` 21/21 (migrates all, skips missing, loads
-  canonically after, lossless, idempotent on re-run).
-- Increment 2 (desktop wiring) was held for the Study commit; `7f755c6` is now a
-  clean resume point for that work.
+A3 — SqlCatalog canonical cutover (task #54): CODE-COMPLETE (1+2+3), flag OFF,
+awaiting a COACH DESKTOP SMOKE (flag-ON Tauri path is unverifiable headlessly).
+- Increment 1 (76db0c9): `CatalogPersistence` dual-write orchestrator — db
+  canonical + season.json/mirror dual-write + self-healing json fallback (Node 16).
+- Increment 3 (23f8aa1): `migrateJsonSeasons(ids)` imports existing per-season
+  season.json into the shared db on first flag-on — idempotent, never throws (21).
+- Increment 2 (218d490): TauriBackend.load/save/deleteSeason delegate to
+  CatalogPersistence behind `ffa_sql_catalog` (default OFF). FAIL-SAFE: any wasm/
+  runtime failure silently keeps the existing JSON path (flag OFF = byte-identical
+  to today). Vendored `src-tauri/resources/sql-wasm.{js,wasm}`; tauri.conf
+  resources + `$RESOURCE/**` asset scope + CSP `'wasm-unsafe-eval'`; capabilities
+  `$RESOURCE/**`; build.sh adds sql-catalog + catalog-persistence (browser bundle
+  stays sql.js-FREE — wasm is a desktop-only lazy-loaded resource; bundle 1.5M
+  unchanged). Full gate 33/33 with the flag OFF; real six-game parity unchanged.
+
+COACH DESKTOP SMOKE (on a Tauri build, F12 devtools open):
+1. Default (flag OFF): existing seasons + film load normally.
+2. Enable: console `localStorage.setItem('ffa_sql_catalog','1')`, reload. Watch
+   for NO "SQL engine load failed" / "Catalog init failed" warning (a warning =
+   it fell back to JSON; report the exact text).
+3. Open each season once (triggers json->library.db migration). Confirm
+   `%APPDATA%\com.gridironiq.app\seasons\library.db` now exists.
+4. Tag a play, let it autosave, quit + reopen: the tag persisted and film resolves
+   (db canonical, json is the mirror).
+5. New game/season, finish, reopen — round-trips. Delete a season — stays deleted
+   after reopen (dropped from the db too).
+6. Turn OFF (`removeItem('ffa_sql_catalog')`, reload): the dual-written season.json
+   is still authoritative — nothing lost either direction.
+If clean on real film for a release cycle, drop the JSON dual-write (single-write .db).
 
 - `js/catalog-persistence.js` (`CatalogPersistence`) is the pure dual-write
   orchestrator that makes the SQLite catalog CANONICAL with JSON as a self-healing

@@ -98,6 +98,17 @@ stays pure) into per-row `{ a, b, deltas, sampleDelta }` with BOTH sides
 film-linked to their own scope's golden. Test 24/24. The Study screen now consumes
 this contract behind the shell flag. Full gate **33/33**. The
 Study analytics spine (registry → query → compare) is complete + parity-locked.
+**A3 (SqlCatalog canonical cutover) is CODE-COMPLETE (increments 1+2+3) behind
+`ffa_sql_catalog` (default OFF):** `js/catalog-persistence.js` dual-writes `.db`
+(canonical) + `season.json` + Documents mirror with a self-healing JSON fallback;
+`TauriBackend` delegates load/save/deleteSeason to it and lazy-loads a vendored
+`sql-wasm.wasm` Tauri resource (browser bundle stays sql.js-free, 1.5M unchanged).
+FAIL-SAFE — any wasm/runtime error silently keeps today's JSON path, so flag-OFF
+is byte-identical. Node-tested (catalog-persistence 21/21); full gate 33/33
+flag-OFF; the flag-ON desktop path needs a coach smoke (checklist in the redesign
+plan). Build NOTE: the env bumps js mtimes between build and test, so run
+`bash build.sh` and the e2e gate in ONE command or e2e-parity's stale-bundle guard
+false-fails.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
