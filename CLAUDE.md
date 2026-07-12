@@ -104,30 +104,30 @@ Study analytics spine (registry → query → compare) is complete + parity-lock
 `sql-wasm.wasm` Tauri resource (browser bundle stays sql.js-free, 1.5M unchanged).
 FAIL-SAFE — any wasm/runtime error silently keeps today's JSON path, so flag-OFF
 is byte-identical. Node-tested (catalog-persistence 21/21); full gate 33/33
-flag-OFF. Codex review found two flag-ON failure defects that must be fixed before
-the coach smoke (checklist in the redesign plan). Build NOTE: the env bumps js
-mtimes between build and test, so run
+flag-OFF. Build NOTE: the env bumps js mtimes between build and test, so run
 `bash build.sh` and the e2e gate in ONE command or e2e-parity's stale-bundle guard
 false-fails.
 
-**A3 CODE REVIEW — CHANGES REQUESTED before desktop smoke (`218d490`):**
+**A3 CODE REVIEW — CHANGES REQUESTED (`218d490`) → FIXED (`c76972a`), awaiting
+Codex re-review.** Codex found two flag-ON failure-path defects the flag-OFF gate
+never exercised; both fixed reproduce-first with failing-first regressions:
 
-1. `TauriBackend.saveSeason()` ignores the boolean from
-   `CatalogPersistence.saveSeason()`. A DB write returning `false` is converted
-   into `true`, suppressing the canonical-persist warning. Add a failing-first
-   adapter regression and propagate the canonical result; preserve the JSON
-   safety write promised by CatalogPersistence.
-2. `CatalogPersistence.deleteSeason()` swallows DB-write failure after mutating
-   memory, while `TauriBackend.deleteSeason()` then deletes JSON/mirror files.
-   The stale on-disk DB can resurrect the season with its safety copies gone.
-   Make delete return durable success/failure, restore/reopen catalog memory on
-   failure, retain JSON/mirror until DB deletion succeeds, and pin all three
-   assertions in a failing-first regression.
-
-Exact methods and required scenarios are also pinned prominently in
-`GRIDIRON-IQ-REDESIGN-PLAN.md` under **A3 Codex Review — CHANGES REQUESTED**.
-Existing 33/33 coverage is flag-OFF and does not exercise either defect. Do not
-start the coach flag-ON smoke until these corrections are independently reviewed.
+1. FIXED — `TauriBackend.saveSeason()` discarded `CatalogPersistence.saveSeason()`'s
+   boolean and returned `true`, so a failed canonical db write (json safety copy
+   still written) falsely reported success and suppressed SeasonStore's persist
+   warning. Now PROPAGATES the canonical result (metadata still advances to match
+   the json copy).
+2. FIXED — a failed catalog delete could resurrect a season:
+   `CatalogPersistence.deleteSeason()` mutated memory, swallowed a writeDb failure,
+   returned no status; `TauriBackend.deleteSeason()` deleted json/mirror anyway →
+   stale on-disk db + gone safety copies → reopen resurrects. Now `deleteSeason`
+   returns durable true/false and, on writeDb failure, closes + reopens the catalog
+   from the unchanged on-disk bytes (memory re-synced, no split-brain);
+   `TauriBackend.deleteSeason` RETAINS json/mirror/library entry unless the delete
+   is durable.
+Regressions: `e2e-catalog-persistence` 26/26 + `e2e-catalog-backend` (NEW,
+puppeteer fake-`__TAURI__` + injected catalog) 5/5; full gate 34/34 flag-OFF.
+Do not start the coach flag-ON smoke until Codex re-reviews `c76972a`.
 
 **Phase 2 Study UI increment 2 is complete (`d76e699`).** Study now exposes 23
 ready dimensions, selectable canonical measures, composable filters (OR within,
