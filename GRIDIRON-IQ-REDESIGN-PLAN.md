@@ -357,12 +357,13 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW  (all tracked work committed)
-HEAD: ee6f829  A3 handoff (review changes requested below before desktop smoke)
+HEAD: b62405d  A3 review handoff (changes requested before desktop smoke)
 Gate at HEAD: full 33/33 green (build + node tools/e2e-*.mjs run atomically —
   the env bumps js mtimes between build and test, so build+gate in ONE command or
   e2e-parity's stale-bundle guard false-fails); parity golden unchanged; 0 errors.
 
 Recent redesign commits (newest first):
+  b62405d  Codex A3 review — two failure-path changes requested
   ee6f829  A3 code-complete handoff + desktop smoke checklist (now superseded by review)
   218d490  A3 increment 2 — SqlCatalog -> TauriBackend, flag-gated + fail-safe
   d76e699  Study increment 2 — composable filters/metrics/comparisons/views
@@ -567,9 +568,9 @@ Phase 2 Study UI — increment 2 (`d76e699`, complete):
 - Comparison mode disables the irrelevant scope control and labels Watch as the
   current-game cohort. Cross-game playback remains intentionally one game at a
   time.
-- Modular-source browser gate 17/17, zero errors; responsive desktop filter UI
-  and 390x844 mobile QA clean. `218d490` rebuilt the bundle after `d76e699`, and
-  the committed bundle contains the increment. No release/tag; shell stays opt-in.
+- Modular-source and committed-bundle browser gates both 17/17, zero errors;
+  responsive desktop filter UI and 390x844 mobile QA clean. `218d490` rebuilt
+  the bundle after `d76e699`. No release/tag; shell stays opt-in.
 
 Parallel (Claude's data lane, landed while awaiting Codex): Phase 2 spine — the
 Study QUERY EXECUTOR. `js/study-query.js` (`window.app.study`, `StudyQuery`) is a

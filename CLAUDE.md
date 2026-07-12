@@ -132,8 +132,9 @@ start the coach flag-ON smoke until these corrections are independently reviewed
 **Phase 2 Study UI increment 2 is complete (`d76e699`).** Study now exposes 23
 ready dimensions, selectable canonical measures, composable filters (OR within,
 AND across), game-vs-prior comparison, and full saved-view restore/delete. The
-modular-source browser gate is 17/17 with clean desktop/mobile QA; Claude's
-`218d490` bundle rebuild includes these source changes. The shell remains opt-in.
+modular-source and committed-bundle browser gates are both 17/17 with clean
+desktop/mobile QA; Claude's `218d490` bundle rebuild includes these source
+changes. The shell remains opt-in.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
