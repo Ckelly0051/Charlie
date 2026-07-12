@@ -2,7 +2,7 @@
 import puppeteer from 'puppeteer';
 import { mkdir } from 'node:fs/promises';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = process.env.FFA_STUDY_URL || new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
@@ -56,26 +56,59 @@ await page.select('#wsStudyScope', 'season');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(/4 matching plays/.test(r.summary) && r.groups.includes('Wing-T'), 'Full-season scope includes plays from every game', JSON.stringify(r));
 
+await page.click('[data-study-action="add-filter"]');
+await page.select('[data-study-filter-value="0"]', '1');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, chips: [...document.querySelectorAll('.ws-study-filter-chip')].map(el => el.textContent) }));
+ok(/2 matching plays/.test(r.summary) && r.chips.includes('1 ×'), 'A filter narrows the cohort through the registry', JSON.stringify(r));
+await page.select('[data-study-filter-value="0"]', '2');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, chips: document.querySelectorAll('.ws-study-filter-chip').length }));
+ok(/4 matching plays/.test(r.summary) && r.chips === 2, 'Multiple values within one filter use OR', JSON.stringify(r));
+await page.click('[data-study-action="add-filter"]');
+await page.select('[data-study-filter-dimension="1"]', 'runPass');
+await page.select('[data-study-filter-value="1"]', 'Run');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, filters: document.querySelectorAll('.ws-study-filter-row').length }));
+ok(/3 matching plays/.test(r.summary) && r.filters === 2, 'Separate filters combine with AND', JSON.stringify(r));
+await capture('study-filters-1280x800');
+await page.click('[data-study-action="clear-filters"]');
+
 await page.select('#wsStudyUnit', 'defense');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(/0 matching plays/.test(r.summary) && r.groups.length === 0, 'Unit filter is ANDed into the selected football question', JSON.stringify(r));
 
 await page.select('#wsStudyUnit', '');
-await page.click('#wsStudyCompare');
-r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, compareRows: document.querySelectorAll('.ws-study-row-compare').length }));
-ok(/2 vs 4 plays/.test(r.summary) && r.compareRows >= 3, 'Game-versus-season comparison renders aligned groups', JSON.stringify(r));
+await page.select('#wsStudyMeasure', 'negativeRate');
+r = await page.evaluate(() => ({ header: document.querySelector('#wsStudyMetricHead')?.textContent }));
+ok(r.header === 'Negative Play Rate', 'Primary metric selection uses registry measure labels', JSON.stringify(r));
+await page.select('#wsStudyCompare', 'season');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, compareRows: document.querySelectorAll('.ws-study-row-compare').length, scopeDisabled: document.querySelector('#wsStudyScope')?.disabled, watch: document.querySelector('[data-study-action="watch-all"]')?.textContent }));
+ok(/2 vs 4 plays/.test(r.summary) && r.compareRows >= 3 && r.scopeDisabled && /Watch current game/.test(r.watch), 'Game-versus-season comparison renders aligned groups', JSON.stringify(r));
+await page.select('#wsStudyCompare', 'prior');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent }));
+ok(/2 vs 2 plays/.test(r.summary) && /Prior games/.test(r.summary), 'Game-versus-prior-games comparison uses the requested cohort', JSON.stringify(r));
 await capture('study-compare-1280x800');
 
+await page.click('[data-study-action="add-filter"]');
+await page.select('[data-study-filter-value="0"]', '1');
 await page.click('[data-study-action="save"]');
-r = await page.evaluate(() => ({ saved: document.querySelectorAll('#wsStudySaved option').length, stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length }));
-ok(r.saved === 2 && r.stored === 1, 'Study saves a reusable query view without touching season data', JSON.stringify(r));
+r = await page.evaluate(() => ({ saved: document.querySelectorAll('#wsStudySaved option').length, stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length, filters: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]')[0]?.state?.filters?.length }));
+ok(r.saved === 2 && r.stored === 1 && r.filters === 1, 'Saved views preserve the complete composable query', JSON.stringify(r));
+const savedId = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]')[0]?.id || '');
+await page.click('[data-study-action="clear-filters"]');
+await page.select('#wsStudyMeasure', 'successRate');
+await page.select('#wsStudySaved', savedId);
+r = await page.evaluate(() => ({ chips: document.querySelectorAll('.ws-study-filter-chip').length, metric: document.querySelector('#wsStudyMeasure')?.value, compare: document.querySelector('#wsStudyCompare')?.value, deleteEnabled: !document.querySelector('[data-study-action="delete-view"]')?.disabled }));
+ok(r.chips === 1 && r.metric === 'negativeRate' && r.compare === 'prior' && r.deleteEnabled, 'Loading a saved view restores filters, metric, and comparison', JSON.stringify(r));
+await page.click('[data-study-action="delete-view"]');
+r = await page.evaluate(() => ({ options: document.querySelectorAll('#wsStudySaved option').length, stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length }));
+ok(r.options === 1 && r.stored === 0, 'Saved views can be deleted intentionally', JSON.stringify(r));
 
 await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), outlet: !document.querySelector('#wsClassicOutlet')?.hidden }));
 ok(r.stats && r.outlet, 'Advanced Reports remains one click away');
 
 await page.evaluate(() => window.app.workspaceShell.show('study'));
-await page.click('#wsStudyCompare');
+await page.select('#wsStudyCompare', '');
+await page.click('[data-study-action="clear-filters"]');
 await page.select('#wsStudyScope', 'season');
 const watchResult = await page.evaluate(() => {
   const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Wing-T');
