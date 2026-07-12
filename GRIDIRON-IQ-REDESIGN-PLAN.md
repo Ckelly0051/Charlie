@@ -413,16 +413,18 @@ NEXT ACTIONS
     the honest `skipped` count. Replace study-screen `_watch`'s one-game fallback
     so a season/date-range query plays ALL matches across games in sequence.
   Claude: idle/next. In-lane options, none started:
-    (a) PARKED — investigate the REPAIR-FILM / relink DUPLICATE + GHOST PLAYS bug
-        the coach reported (deferred to "later" this turn). NOT the A3 catalog bug
-        (catalog is flag-OFF/dormant in production). Hypothesis: on a repair/re-add
-        whose clips don't match saved plays by identity, `_relinkSavedPlays`
-        (playlist-manager) misses them, then `_autoCreatePlays` spawns a fresh
-        whole-clip play per "unmatched" clip -> original tagged play + new ghost
-        play both on the same video (the v1.10.7 "St. Peter 139-for-69" class).
-        Reproduce-first against real relink code / the recovered Mavericks JSON;
-        needs the coach's specifics (repair vs reopen? managed vs linked? single
-        vs folder? ghosts untagged vs tagged-dupes). HIGH coach-value, my lane.
+    (a) DORMANT — the REPAIR-FILM / relink DUPLICATE + GHOST PLAYS report.
+        UPDATE (2026-07-12, coach): likely NOT a bug — the coach believes his source
+        folders contained DUPLICATE-named clips (files that were supposed to have
+        unique names but didn't), which would legitimately relink/auto-create extra
+        plays. Do NOT proactively raise this again; only revisit if the coach
+        reproduces it with confirmed unique filenames. NOT the A3 catalog bug
+        (catalog is flag-OFF/dormant in production). Standing hypothesis if it does
+        recur: on a repair/re-add whose clips don't match saved plays by identity,
+        `_relinkSavedPlays` misses them and `_autoCreatePlays` spawns a fresh
+        whole-clip play per "unmatched" clip (the v1.10.7 "St. Peter 139-for-69"
+        class). Reproduce-first; would need repair-vs-reopen / managed-vs-linked /
+        single-vs-folder / untagged-vs-tagged-dupes specifics.
     (b) after a RELEASE CYCLE of flag-on real use: drop the JSON dual-write to
         single-write `.db`, then the dedicated library-root move + catalog
         backup-ring / version-history migrations. The A3 smoke only exercised a
