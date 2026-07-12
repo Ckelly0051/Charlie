@@ -396,6 +396,24 @@ Cosmetic nits for Codex's design pass (non-blocking, left for Codex's lane):
 Next requested action: Codex design review of Phase 1 shell/Home, then Phase 1
 polish (the nits above) + the Phase 1 exit criteria in §5.
 
+Parallel (Claude's data lane, landed while awaiting Codex): Phase 2 spine — the
+Study QUERY EXECUTOR. `js/study-query.js` (`window.app.study`, `StudyQuery`) is a
+pure engine over the accepted P0-c registry: `run({plays, dimension, measures,
+filters, minSample, context}) -> { groups:[{value, sampleSize, belowMinSample,
+matchingPlayIds, measures}], total, warnings }`. AND-across / OR-within filter
+cohorts; min-sample flags (kept + warned, never dropped); measures via
+`registry.readMeasures(compute(group))` (no formula reimplementation); guards
+throw on unknown / requires-context dimensions. FILM-LINK PARITY is the gate: for
+a report-backed dimension it sources each group's `matchingPlayIds` through the
+SAME `_buildCutFilter` predicate the reports use, so a Study query returns the
+EXACT play set as the old report drilldown. `tools/e2e-study-query.mjs` (18/18)
+asserts every group == the committed parity golden (28 groups across formation/
+coverage/defFront/runPass/down/personnel/blitz), + filter semantics + guards.
+The synthetic-edge fixture is now shared (`tools/fixtures/synthetic-edge.mjs`,
+imported by both parity + Study tests); the parity golden is unchanged (both
+synthetic + real 6-game still green). No UI consumes StudyQuery yet — it is the
+contract the Study SCREEN (Codex) will call. Full gate 31/31.
+
 Prior milestone (P0-d): REVIEWED — ACCEPTED (Claude independent review; no changes required)
 Commit: the commit containing this handoff block (impl 2d6d4bb; review adds this block)
 

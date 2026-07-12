@@ -62,6 +62,17 @@ Claude picked up the uncommitted work, verified it, and finished the ship steps
 screenshots, **zero page errors**. Next: Codex design review of Phase 1 + the
 cosmetic nits logged in the Active Handoff.
 
+In parallel (Claude's data lane), the **Phase 2 Study query executor** landed:
+`js/study-query.js` (`window.app.study`, `StudyQuery`) is a pure engine over the
+P0-c registry — `run({plays, dimension, measures, filters, minSample})` returns
+per-group measures + **`matchingPlayIds`**. For report-backed dimensions it
+sources film links through the SAME `_buildCutFilter` predicate the reports use,
+so a Study query returns the EXACT play set as the old report drilldown.
+`tools/e2e-study-query.mjs` (18/18) gates every group against the committed
+parity golden; the synthetic fixture is now shared
+(`tools/fixtures/synthetic-edge.mjs`), parity golden unchanged. No UI consumes it
+yet — it is the contract the Study screen will call. Full gate **31/31**.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer

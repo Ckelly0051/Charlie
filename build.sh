@@ -18,7 +18,7 @@ JS_FILES="
   js/season-store.js js/demo-season.js js/storage.js js/play-detector.js
   js/clip-analyzer.js js/backend-client.js js/vision-analyzer.js js/playlist-manager.js
   js/quick-chart.js js/heat-maps.js js/advanced-metrics.js js/visualizations.js
-  js/charts.js js/multi-angle.js js/stats-engine.js js/analytics-registry.js js/workspace-context.js js/workspace-shell.js js/history-manager.js
+  js/charts.js js/multi-angle.js js/stats-engine.js js/analytics-registry.js js/workspace-context.js js/study-query.js js/workspace-shell.js js/history-manager.js
   js/version-manager.js js/scoreboard-ocr.js js/suggestion-engine.js js/cutup-exporter.js
   js/cutup-player.js js/play-grid.js js/season-manager.js js/season-library.js
   js/call-sheet-builder.js js/ui-polish.js js/wizard.js js/custom-fields.js
