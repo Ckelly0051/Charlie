@@ -51,6 +51,17 @@ play number is secondary, while situation and play/result/yardage are prominent.
 Its former dead space now carries the high-frequency film marking, copy, clear,
 and delete actions without increasing page-level scrolling.
 
+**Scout perspective contract (2026-07-12):** Self-scout is the default/primary
+workflow and means our own games (our offense, defense, and special teams).
+Opponent scout means a future opponent's film versus a third team; that future
+opponent is always the analytics subject, so their offense/defense remains
+subject-relative. Keep the existing already-played shortcut (our defensive snaps
+→ their offense; our offensive snaps → their defense), normalized only at the
+query boundary. Future Study cohorts must carry explicit subject-team + scout
+mode context rather than trusting `tags.unit` alone. Left/right remains offense
+perspective. The prototype labels the choice “Our games · Self-scout” versus
+“Opponent film · Scout”; production wiring is not yet complete.
+
 Critical rule: the redesign must **not dumb down analytics**. Existing reports
 remain as Advanced Reports until an exact metric + matching-play parity harness
 proves Study is equal or better. Implement incrementally behind feature flags;

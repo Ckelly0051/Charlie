@@ -111,6 +111,27 @@ Prototype revision 2.2 adds unit-aware full charting:
   Start, Mark End, Copy Last, Clear, Delete) instead of another information
   panel. The rail preserves the strip's compact footprint and mobile overflow.
 
+### Scout perspective contract
+
+- **Self-scout is the default and dominant workflow.** It analyzes our own
+  games: Offense means our offense, Defense means our defense, and Special
+  Teams means our units. Home, Break Down, and Study should return to the last
+  self-scout context unless the coach intentionally opens opponent film.
+- **Opponent scout means future-opponent film against a third team.** The
+  selected opponent is the analysis subject: Offense means that opponent's
+  offense and Defense means that opponent's defense. Their game opponent is
+  context, never the analytics subject.
+- Preserve the existing useful shortcut for teams already played: our defensive
+  snaps describe their offense; our offensive snaps describe their defense.
+  Normalize this at the query boundary without mutating stored play units.
+- Every query/cohort must carry an explicit subject-team identity and scout mode;
+  never infer ownership solely from `tags.unit`. Unit is subject-relative only
+  after the perspective adapter resolves the game source.
+- All left/right fields remain offense-perspective as documented. Scout mode
+  changes ownership, not the stored directional convention.
+- The UI says **Our games · Self-scout** or **Opponent film · Scout** and names
+  the subject in charting headings. This prevents a silent perspective mistake.
+
 The earlier `ux-prototype/` is retained only as design exploration. It represents
 the rejected "simplified Chart + Review" direction; it is useful as the future
 **Quick Chart profile**, not as the full product shell.
