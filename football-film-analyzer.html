@@ -8662,6 +8662,13 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
 .ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:5px;background:#111923;color:var(--ws-text);padding:0 9px;text-transform:none}
 .ws-study-query select:disabled{opacity:.5;cursor:not-allowed}
+.ws-study-range{display:flex;align-items:end;gap:9px;padding:10px 0;border-bottom:1px solid var(--ws-line)}
+.ws-study-range[hidden]{display:none}
+.ws-study-range>strong{align-self:center;font-size:11px;text-transform:uppercase;margin-right:4px}
+.ws-study-range label{display:grid;gap:4px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.ws-study-range input{height:34px;border:1px solid var(--ws-line);border-radius:5px;background:#111923;color:var(--ws-text);padding:0 8px;color-scheme:dark}
+.ws-study-range>span,.ws-study-range>small{color:var(--ws-muted);font-size:11px}
+.ws-study-range>span{padding-bottom:9px}.ws-study-range>small{margin-left:auto;padding-bottom:8px}
 .ws-study-saved{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:end}.ws-study-saved .ws-icon-btn{margin-bottom:1px}
 .ws-study-filters{border-bottom:1px solid var(--ws-line);padding:10px 0}
 .ws-study-filter-head{display:flex;align-items:center;gap:10px;min-height:30px}
@@ -8685,6 +8692,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-study-empty{padding:42px 4px;color:var(--ws-muted);text-align:center;border-top:1px solid var(--ws-line)}
 @media(max-width:1100px){.ws-study-query{grid-template-columns:repeat(3,1fr)}.ws-study-table-head,.ws-study-row{grid-template-columns:minmax(130px,1.3fr) .5fr .8fr .85fr .7fr 70px}}
 @media(max-width:900px){.ws-study{padding:20px 15px 80px}.ws-study-head{display:block}.ws-study-actions{margin:16px 0 0;display:grid;grid-template-columns:1fr 1fr}.ws-study-actions [data-study-action="watch-all"]{grid-column:1/-1}.ws-study-query{grid-template-columns:1fr 1fr}.ws-study-filter-head{flex-wrap:wrap}.ws-study-filter-head span{width:100%;order:2}.ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}.ws-study-filter-row{grid-template-columns:1fr 34px}.ws-study-filter-row .ws-study-filter-values,.ws-study-filter-row select[data-study-filter-value]{grid-column:1/-1}.ws-study-table-head{display:none}.ws-study-row{grid-template-columns:minmax(115px,1.2fr) .45fr .75fr 68px}.ws-study-row>:nth-child(4),.ws-study-row>:nth-child(5){display:none}.ws-study-summary{display:block}.ws-study-summary span{display:block;margin-top:3px}}
+@media(max-width:600px){.ws-study-range{display:grid;grid-template-columns:1fr 1fr}.ws-study-range>strong,.ws-study-range>small{grid-column:1/-1}.ws-study-range>span{display:none}.ws-study-range input{width:100%}.ws-study-range>small{margin-left:0;padding-bottom:0}}
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
   </style>
 </head>
@@ -26347,7 +26355,8 @@ class StudyScreen {
       return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
     }).join('');
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
-      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
       <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div>
       <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span id="wsStudyMetricHead">Success</span><span>Run / Pass</span><span id="wsStudyDeltaHead">Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
@@ -26359,6 +26368,7 @@ class StudyScreen {
   show() {
     if (!this.host) return;
     try { this.app.storage.commitActive(); } catch {}
+    this._seedDateRange();
     this.render();
   }
 
@@ -26375,7 +26385,7 @@ class StudyScreen {
         if (filter && e.target.value && !filter.values.includes(e.target.value)) filter.values.push(e.target.value);
         this._renderFilters(); this.render();
       } else if (e.target.matches('select,input')) {
-        if (e.target.id === 'wsStudyScope') this._renderFilters();
+        if (e.target.id === 'wsStudyScope' || e.target.id === 'wsStudyDateFrom' || e.target.id === 'wsStudyDateTo') this._renderFilters();
         this.render();
       }
     });
@@ -26411,30 +26421,44 @@ class StudyScreen {
       measure: this._control('wsStudyMeasure').value,
       minSample: Number(this._control('wsStudyMin').value) || 0,
       compare: this._control('wsStudyCompare').value,
+      dateFrom: this._control('wsStudyDateFrom').value,
+      dateTo: this._control('wsStudyDateTo').value,
       filters: this.filters.map(filter => ({ dimension: filter.dimension, values: filter.values.slice() })),
     };
   }
 
-  _playSets() {
+  _playSets(state = this._state()) {
     const store = this.app.storage.seasonStore;
     const games = store.data?.games || [];
     const activeId = String(store.data?.activeGameId || '');
     const stamp = game => (game?.plays || []).map(play => ({ ...play, __gid: String(game.id) }));
     const active = games.find(game => String(game.id) === activeId);
-    return { game: stamp(active), season: games.flatMap(stamp), prior: games.filter(game => String(game.id) !== activeId).flatMap(stamp), activeName: active ? this._gameName(active) : 'Current game' };
+    const dated = games.filter(game => /^\d{4}-\d{2}-\d{2}$/.test(game?.gameInfo?.date || ''));
+    const rangeGames = dated.filter(game => (!state.dateFrom || game.gameInfo.date >= state.dateFrom) && (!state.dateTo || game.gameInfo.date <= state.dateTo));
+    const beforeRange = state.dateFrom ? dated.filter(game => game.gameInfo.date < state.dateFrom) : [];
+    return {
+      game: stamp(active), season: games.flatMap(stamp),
+      prior: games.filter(game => String(game.id) !== activeId).flatMap(stamp),
+      range: rangeGames.flatMap(stamp), beforeRange: beforeRange.flatMap(stamp),
+      activeName: active ? this._gameName(active) : 'Current game',
+      rangeName: this._rangeLabel(state.dateFrom, state.dateTo),
+    };
   }
 
   render() {
     if (!this.host) return;
     const state = this._state();
-    const sets = this._playSets();
+    const sets = this._playSets(state);
     const filters = [...state.filters, ...(state.unit ? [{ dimension: 'unit', values: [state.unit] }] : [])];
     const args = { dimension: state.dimension, measures: StudyScreen.MEASURES, filters, minSample: state.minSample };
     this._control('wsStudyScope').disabled = !!state.compare;
+    this._syncRangeControls(state);
     let result;
     try {
       result = state.compare
-        ? this.app.study.compare({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
+        ? state.compare === 'rangePrior'
+          ? this.app.study.compare({ ...args, base: sets.range, against: sets.beforeRange, labels: { base: sets.rangeName, against: 'Prior dated games' } })
+          : this.app.study.compare({ ...args, base: sets.game, against: sets[state.compare], labels: { base: sets.activeName, against: state.compare === 'prior' ? 'Prior games' : 'Season' } })
         : this.app.study.run({ ...args, plays: sets[state.scope] });
     } catch (error) {
       this.rows = [];
@@ -26443,15 +26467,16 @@ class StudyScreen {
     }
     this._control('wsStudyMetricHead').textContent = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
     this._control('wsStudyDeltaHead').textContent = state.compare ? 'Delta' : 'Explosive';
-    state.compare ? this._renderCompare(result, state.measure) : this._renderQuery(result, state.scope, state.measure);
+    state.compare ? this._renderCompare(result, state.measure, state.compare) : this._renderQuery(result, state.scope, state.measure, sets.rangeName);
     this._renderWarnings(result.warnings || []);
   }
 
-  _renderQuery(result, scope, measure) {
+  _renderQuery(result, scope, measure, rangeName) {
     const groups = result.groups.filter(group => group.sampleSize > 0);
     const matching = [...new Set(groups.flatMap(group => group.matchingPlayIds))];
     this.rows = groups.map(group => ({ label: group.value, refs: group.matchingPlayIds }));
-    this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${scope === 'game' ? 'current game' : 'full season'}</span>`;
+    const scopeLabel = scope === 'game' ? 'current game' : scope === 'range' ? rangeName : 'full season';
+    this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${this._esc(scopeLabel)}</span>`;
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((group, index) => {
       const m = group.measures;
       return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
@@ -26459,7 +26484,7 @@ class StudyScreen {
     this._setWatchAll(matching);
   }
 
-  _renderCompare(result, measure) {
+  _renderCompare(result, measure, compareMode) {
     const rows = result.rows.filter(row => row.a.sampleSize > 0 || row.b.sampleSize > 0);
     const aRefs = [...new Set(rows.flatMap(row => row.a.matchingPlayIds))];
     const bRefs = [...new Set(rows.flatMap(row => row.b.matchingPlayIds))];
@@ -26470,7 +26495,7 @@ class StudyScreen {
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
       return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
-    this._setWatchAll(aRefs, 'Watch current game');
+    this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : 'Watch current game');
   }
 
   _renderWarnings(warnings) {
@@ -26491,6 +26516,27 @@ class StudyScreen {
     return this.app.analyticsRegistry.listDimensions()
       .filter(item => item.availability === 'ready' && !excluded.has(item.id))
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _seedDateRange() {
+    const from = this._control('wsStudyDateFrom'), to = this._control('wsStudyDateTo');
+    if (!from || !to || from.value || to.value) return;
+    const dates = (this.app.storage.seasonStore.data?.games || [])
+      .map(game => game?.gameInfo?.date || '').filter(date => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
+    if (dates.length) { from.value = dates[0]; to.value = dates[dates.length - 1]; }
+  }
+
+  _syncRangeControls(state) {
+    this._control('wsStudyRange').hidden = state.scope !== 'range' && state.compare !== 'rangePrior';
+    const from = this._control('wsStudyDateFrom'), to = this._control('wsStudyDateTo');
+    from.max = state.dateTo || ''; to.min = state.dateFrom || '';
+  }
+
+  _rangeLabel(from, to) {
+    if (from && to) return `${from} through ${to}`;
+    if (from) return `From ${from}`;
+    if (to) return `Through ${to}`;
+    return 'Selected date range';
   }
 
   _filterValues(dimension) {
@@ -26543,10 +26589,10 @@ class StudyScreen {
   _saveView() {
     const state = this._state();
     const dimension = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
-    const comparison = state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season' : state.scope === 'game' ? 'Current game' : 'Season';
+    const comparison = state.compare === 'rangePrior' ? 'Range vs prior' : state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season' : state.scope === 'game' ? 'Current game' : state.scope === 'range' ? 'Date range' : 'Season';
     const name = `${dimension} · ${comparison}${state.unit ? ` · ${state.unit}` : ''}${state.filters.length ? ` · ${state.filters.length} filter${state.filters.length === 1 ? '' : 's'}` : ''}`;
     const views = this._views();
-    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${JSON.stringify(state.filters)}`;
+    const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${state.dateFrom}|${state.dateTo}|${JSON.stringify(state.filters)}`;
     const next = [...views.filter(view => view.id !== id), { id, name, state }].slice(-12);
     try { localStorage.setItem('ffa_study_views_v1', JSON.stringify(next)); }
     catch { this.app.tagger.toast?.('Could not save this Study view'); return; }
@@ -26562,6 +26608,8 @@ class StudyScreen {
     this._control('wsStudyMeasure').value = view.state.measure || 'successRate';
     this._control('wsStudyMin').value = String(view.state.minSample);
     this._control('wsStudyCompare').value = view.state.compare === true ? 'season' : (view.state.compare || '');
+    this._control('wsStudyDateFrom').value = view.state.dateFrom || '';
+    this._control('wsStudyDateTo').value = view.state.dateTo || '';
     this.filters = Array.isArray(view.state.filters) ? view.state.filters
       .filter(filter => this.app.analyticsRegistry.getDimension(filter.dimension)?.availability === 'ready')
       .map(filter => ({ dimension: filter.dimension, values: (filter.values || []).map(String) })) : [];

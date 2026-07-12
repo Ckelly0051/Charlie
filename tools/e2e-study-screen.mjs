@@ -15,6 +15,7 @@ const capture = async name => {
   if (!screenshotDir) return;
   await mkdir(screenshotDir, { recursive: true });
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await new Promise(resolve => setTimeout(resolve, 120));
   await page.screenshot({ path: `${screenshotDir}/${name}.png`, fullPage: false });
 };
 page.on('pageerror', error => errors.push(error.stack || error.message));
@@ -26,13 +27,13 @@ await page.evaluate(async () => {
   await app.storage.createSeason({ name: '2026 Varsity', team: 'Mavericks', year: '2026' });
   const store = app.storage.seasonStore;
   const g1 = store.activeGame();
-  g1.id = 'g-study-1'; g1.name = 'Week 1 vs Rivals';
+  g1.id = 'g-study-1'; g1.name = 'Week 1 vs Rivals'; g1.gameInfo = { opponent: 'Rivals', date: '2026-09-01' };
   g1.plays = [
     { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Shotgun', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', custom: [] } },
     { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', custom: [] } },
     { id: 3, timestamp: { start: 10, end: 14 }, tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', custom: [] } },
   ];
-  const g2 = store.addGame({ id: 'g-study-2', name: 'Week 2 vs Tigers', status: 'active', plays: [
+  const g2 = store.addGame({ id: 'g-study-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
     { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', custom: [] } },
     { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', custom: [] } },
   ] });
@@ -55,6 +56,13 @@ await capture('study-game-1280x800');
 await page.select('#wsStudyScope', 'season');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(/4 matching plays/.test(r.summary) && r.groups.includes('Wing-T'), 'Full-season scope includes plays from every game', JSON.stringify(r));
+
+await page.select('#wsStudyScope', 'range');
+await page.$eval('#wsStudyDateFrom', (el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, '2026-09-08');
+await page.$eval('#wsStudyDateTo', (el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, '2026-09-08');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent), rangeVisible: !document.querySelector('#wsStudyRange')?.hidden }));
+ok(/2 matching plays/.test(r.summary) && r.groups.length === 1 && r.groups[0] === 'Wing-T' && r.rangeVisible, 'Inclusive date range selects only explicitly dated games in range', JSON.stringify(r));
+await page.select('#wsStudyScope', 'season');
 
 await page.click('[data-study-action="add-filter"]');
 await page.select('[data-study-filter-value="0"]', '1');
@@ -85,6 +93,9 @@ ok(/2 vs 4 plays/.test(r.summary) && r.compareRows >= 3 && r.scopeDisabled && /W
 await page.select('#wsStudyCompare', 'prior');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent }));
 ok(/2 vs 2 plays/.test(r.summary) && /Prior games/.test(r.summary), 'Game-versus-prior-games comparison uses the requested cohort', JSON.stringify(r));
+await page.select('#wsStudyCompare', 'rangePrior');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, rangeVisible: !document.querySelector('#wsStudyRange')?.hidden, watch: document.querySelector('[data-study-action="watch-all"]')?.textContent }));
+ok(/2 vs 2 plays/.test(r.summary) && /2026-09-08 through 2026-09-08/.test(r.summary) && /Prior dated games/.test(r.summary) && r.rangeVisible && /Watch date range/.test(r.watch), 'Date-range comparison contrasts the selected games with earlier dated games', JSON.stringify(r));
 await capture('study-compare-1280x800');
 
 await page.click('[data-study-action="add-filter"]');
@@ -96,8 +107,8 @@ const savedId = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_s
 await page.click('[data-study-action="clear-filters"]');
 await page.select('#wsStudyMeasure', 'successRate');
 await page.select('#wsStudySaved', savedId);
-r = await page.evaluate(() => ({ chips: document.querySelectorAll('.ws-study-filter-chip').length, metric: document.querySelector('#wsStudyMeasure')?.value, compare: document.querySelector('#wsStudyCompare')?.value, deleteEnabled: !document.querySelector('[data-study-action="delete-view"]')?.disabled }));
-ok(r.chips === 1 && r.metric === 'negativeRate' && r.compare === 'prior' && r.deleteEnabled, 'Loading a saved view restores filters, metric, and comparison', JSON.stringify(r));
+r = await page.evaluate(() => ({ chips: document.querySelectorAll('.ws-study-filter-chip').length, metric: document.querySelector('#wsStudyMeasure')?.value, compare: document.querySelector('#wsStudyCompare')?.value, from: document.querySelector('#wsStudyDateFrom')?.value, to: document.querySelector('#wsStudyDateTo')?.value, deleteEnabled: !document.querySelector('[data-study-action="delete-view"]')?.disabled }));
+ok(r.chips === 1 && r.metric === 'negativeRate' && r.compare === 'rangePrior' && r.from === '2026-09-08' && r.to === '2026-09-08' && r.deleteEnabled, 'Loading a saved view restores filters, metric, comparison, and dates', JSON.stringify(r));
 await page.click('[data-study-action="delete-view"]');
 r = await page.evaluate(() => ({ options: document.querySelectorAll('#wsStudySaved option').length, stored: JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]').length }));
 ok(r.options === 1 && r.stored === 0, 'Saved views can be deleted intentionally', JSON.stringify(r));
@@ -121,6 +132,7 @@ ok(watchResult && r.route === 'breakdown' && r.game === 'g-study-2' && r.selecte
 
 await page.setViewport({ width: 390, height: 844 });
 await page.evaluate(() => window.app.workspaceShell.show('study'));
+await page.select('#wsStudyScope', 'range');
 r = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth, study: !document.querySelector('#wsStudy')?.hidden, tabs: getComputedStyle(document.querySelector('.bottom-tabs')).display, cutup: !!document.querySelector('.cutup-banner') }));
 ok(!r.overflow && r.study && r.tabs === 'none' && !r.cutup, 'Mobile Study has no overflow or classic-workflow overlays', JSON.stringify(r));
 await capture('study-390x844');
