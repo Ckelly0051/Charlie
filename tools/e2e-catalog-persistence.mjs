@@ -135,5 +135,26 @@ const refA = await refRoundTrip(seasonA());
   ok(kept && kept.data.seasonName === 'Bravo', 'delete leaves other seasons intact');
 }
 
+// ---- 8. increment-3 migration: existing season.json files -> shared db -----
+{
+  const fs = makeFs();
+  // Simulate a pre-catalog install: two seasons on disk as season.json only, no db.
+  fs.state.json.set('s1', clone(seasonA()));
+  fs.state.json.set('s2', clone(seasonB()));
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const n = await cp.migrateJsonSeasons(['s1', 's2', 'missing']);
+  ok(n === 2, 'migrate imports every existing season.json (skips a missing id)', String(n));
+  ok(!!fs.state.db, 'migration writes the shared db once');
+  // Both now load canonically from the db.
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const a = await cp2.loadSeason('s1'), b = await cp2.loadSeason('s2');
+  ok(a && a.source === 'db' && b && b.source === 'db', 'migrated seasons load canonically from the db');
+  ok(deepEq(a.data, refA), 'migrated season is lossless');
+  // Idempotent: re-running migrates nothing and doesn't duplicate.
+  const n2 = await cp2.migrateJsonSeasons(['s1', 's2']);
+  const reload = await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1');
+  ok(n2 === 0 && reload.data.games.length === seasonA().games.length, 'migration is idempotent (no duplicate on re-run)');
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

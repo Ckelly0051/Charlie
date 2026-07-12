@@ -103,4 +103,30 @@ export class CatalogPersistence {
     await this._ensureLoaded();
     try { this.catalog.deleteSeason(id); await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
   }
+
+  /**
+   * One-time migration (A3 increment 3): import the coach's existing per-season
+   * `season.json` files into the shared library db on first flag-on. Idempotent —
+   * a season already present in the db is skipped, so re-running never duplicates
+   * or clobbers. Returns the count migrated. Never throws (a bad json is skipped).
+   */
+  async migrateJsonSeasons(ids) {
+    if (!Array.isArray(ids) || !ids.length) return 0;
+    await this._ensureLoaded();
+    let migrated = 0;
+    for (const id of ids) {
+      let inDb = false;
+      try { inDb = !!this.catalog.loadSeason(id); } catch (e) { inDb = false; }
+      if (inDb) continue;
+      let json = null;
+      try { json = await this.fs.readJson(id); } catch (e) { json = null; }
+      if (json && Array.isArray(json.games)) {
+        json.id = json.id || id;
+        this.catalog.setCurrentSeason(id);
+        try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}
+      }
+    }
+    if (migrated) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
+    return migrated;
+  }
 }
