@@ -1,6 +1,7 @@
 /* Phase 1 shell/Home contract. The flag is opt-in; classic launch remains the
    default. This test drives the built bundle through real route adapters. */
 import puppeteer from 'puppeteer';
+import { mkdir } from 'node:fs/promises';
 
 const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
 let pass = 0, fail = 0;
@@ -10,6 +11,12 @@ const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 800 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
+const screenshotDir = process.env.FFA_SHELL_SCREENSHOTS || '';
+const capture = async name => {
+  if (!screenshotDir) return;
+  await mkdir(screenshotDir, { recursive: true });
+  await page.screenshot({ path: `${screenshotDir}/${name}.png`, fullPage: false });
+};
 page.on('pageerror', e => errors.push(e.stack || e.message));
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 700));
@@ -39,9 +46,19 @@ r = await page.evaluate(() => ({
   season: document.querySelector('#wsContextSeason')?.textContent,
   resumeDisabled: document.querySelector('#wsResume')?.disabled,
   filmRows: document.querySelectorAll('.ws-film-row').length,
+  filmStatus: document.querySelector('.ws-film-row span')?.textContent,
+  filmDot: getComputedStyle(document.querySelector('.ws-film-row > i')).backgroundColor,
+  seasonCounts: document.querySelector('.ws-season-row.current span')?.textContent,
 }));
 ok(/Rivals/.test(r.title) && /2026 Varsity/.test(r.season) && !r.resumeDisabled, 'Home renders live season/game context and Resume command', JSON.stringify(r));
 ok(r.filmRows >= 1, 'Home renders the active season film inbox');
+ok(r.filmStatus && !/^(.*?) · \1$/.test(r.filmStatus), 'Film status does not repeat an empty-state label', r.filmStatus);
+ok(r.filmDot !== 'rgb(54, 201, 121)', 'Empty film uses a neutral health indicator, not ready green', r.filmDot);
+ok(r.seasonCounts === '1 game · 1 play', 'Current season row uses live counts and correct grammar', r.seasonCounts);
+await capture('home-1280x800');
+await page.setViewport({ width: 1440, height: 900 });
+await capture('home-1440x900');
+await page.setViewport({ width: 1280, height: 800 });
 
 await page.click('.ws-sidebar [data-ws-route="breakdown"]');
 r = await page.evaluate(() => ({ appVisible: !document.querySelector('#wsClassicOutlet')?.hidden, homeHidden: document.querySelector('#wsHome')?.hidden, route: window.app.workspace.currentRoute(), nav: !!document.querySelector('#workspaceShell') }));
@@ -62,15 +79,23 @@ r = await page.evaluate(() => {
 });
 ok(r.before === '1' && r.after === null, 'Use classic layout clears the feature flag immediately');
 
-await page.setViewport({ width: 390, height: 844 });
+await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });
 await page.evaluate(() => window.app.workspaceShell.show('home'));
+await capture('home-768x1024');
+await page.setViewport({ width: 390, height: 844 });
 r = await page.evaluate(() => ({
   overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   mobileHeader: getComputedStyle(document.querySelector('.ws-mobile-head')).display !== 'none',
   sidebar: getComputedStyle(document.querySelector('.ws-sidebar')).display,
+  bottomTabs: getComputedStyle(document.querySelector('.bottom-tabs')).display,
 }));
-ok(!r.overflow && r.mobileHeader && r.sidebar === 'none', 'Mobile shell has no page overflow and uses compact header', JSON.stringify(r));
+ok(!r.overflow && r.mobileHeader && r.sidebar === 'none' && r.bottomTabs === 'none', 'Mobile Home has no overflow and hides classic navigation', JSON.stringify(r));
+await capture('home-390x844');
+
+await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
+r = await page.evaluate(() => ({ bottomTabs: getComputedStyle(document.querySelector('.bottom-tabs')).display }));
+ok(r.bottomTabs === 'flex', 'Mobile Break Down keeps the classic workflow tabs available', JSON.stringify(r));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

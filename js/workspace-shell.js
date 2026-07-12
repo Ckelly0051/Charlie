@@ -14,7 +14,8 @@ export class WorkspaceShell {
     if (!this.root) return;
     this._homeToken++;
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
-    this.root.remove(); this.root = null; document.body.classList.remove('ws-shell-active');
+    this.root.remove(); this.root = null;
+    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
   }
   _mount() {
     this.classicApp = document.getElementById('app');
@@ -51,6 +52,9 @@ export class WorkspaceShell {
   async show(routeId) {
     if (!this.root) return { ok:false, reason:'shell-disabled' };
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
+    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
+    document.body.classList.add(`ws-route-${routeId}`);
+    this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
     this.root.querySelector('#wsMobileRoute').value = routeId;
     const home=this.root.querySelector('#wsHome'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
@@ -80,8 +84,8 @@ export class WorkspaceShell {
     if(token!==this._homeToken||!this.root||c.season?.id!==this.app.workspace.snapshot().season?.id)return;
     games.forEach((g,i)=>this._renderFilmRow(g,health[i])); const ai=games.findIndex(g=>g.id===c.game?.id); this._text('wsTopFilm',ai>=0?health[ai].label:'No film selected');
   }
-  _renderSeasons(seasons,currentId){const list=this.root.querySelector('#wsSeasonList');if(!seasons.length){list.innerHTML='<div class="ws-empty">No seasons for this team.</div>';return;}list.innerHTML=seasons.slice(0,6).map(s=>`<div class="ws-season-row${s.id===currentId?' current':''}"><div><strong>${this._esc(s.name||'Untitled Season')}</strong><span>${s.games||0} games · ${s.plays||0} plays</span></div><button class="ws-btn ws-small" data-ws-season="${this._esc(s.id)}">${s.id===currentId?'Current':'Open'}</button></div>`).join('');}
-  _renderFilmRow(game,h){const row=this.root.querySelector(`[data-film-id="${CSS.escape(String(game.id))}"]`);if(!row)return;row.className=`ws-film-row state-${h.state}`;const detail=h.progress?`${h.progress.done} of ${h.progress.total||'?'} clips`:h.expected?`${h.found} of ${h.expected} clips`:h.label;row.querySelector('span').textContent=`${h.label} · ${detail}`;row.querySelector('button').textContent=h.action==='reconnect'?'Reconnect':h.action==='repair'?'Repair':'Open';}
+  _renderSeasons(seasons,currentId){const list=this.root.querySelector('#wsSeasonList');if(!seasons.length){list.innerHTML='<div class="ws-empty">No seasons for this team.</div>';return;}const live=this.app.storage.seasonStore.data;list.innerHTML=seasons.slice(0,6).map(s=>{const isCurrent=s.id===currentId;const games=isCurrent&&live?live.games.length:(s.games||0);const plays=isCurrent&&live?live.games.reduce((n,g)=>n+(g.plays?.length||0),0):(s.plays||0);return `<div class="ws-season-row${isCurrent?' current':''}"><div><strong>${this._esc(s.name||'Untitled Season')}</strong><span>${games} game${games===1?'':'s'} · ${plays} play${plays===1?'':'s'}</span></div><button class="ws-btn ws-small" data-ws-season="${this._esc(s.id)}">${isCurrent?'Current':'Open'}</button></div>`;}).join('');}
+  _renderFilmRow(game,h){const row=this.root.querySelector(`[data-film-id="${CSS.escape(String(game.id))}"]`);if(!row)return;row.className=`ws-film-row state-${h.state}`;const detail=h.progress?`${h.progress.done} of ${h.progress.total||'?'} clips`:h.expected?`${h.found} of ${h.expected} clips`:'';row.querySelector('span').textContent=detail?`${h.label} · ${detail}`:h.label;row.querySelector('button').textContent=h.action==='reconnect'?'Reconnect':h.action==='repair'?'Repair':'Open';}
   async _openLibrary(){const home=this.root.querySelector('#wsHome'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
