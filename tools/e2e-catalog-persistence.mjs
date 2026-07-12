@@ -200,5 +200,27 @@ const refA = await refRoundTrip(seasonA());
   ok(!!(await cp2.loadSeason('s1')) && !!(await cp2.loadSeason('s2')), 'the on-disk db was never mutated by the failed delete');
 }
 
+// ---- 11. re-save must REPLACE, not accumulate (FK-cascade-off corruption) -----
+// db.export() (the dual-write) resets PRAGMA foreign_keys OFF, so a DELETE that
+// relies on cascade orphans plays/clips and they re-attach on the next save —
+// doubling play rows on every autosave. Pin the fix (explicit child deletes).
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const twoPlay = () => season('s1', 'RS', [ { ...mkGame('g1', 2) } ]);
+  for (let i = 1; i <= 4; i++) {
+    await cp.saveSeason('s1', twoPlay());
+    const r = await cp.loadSeason('s1');
+    ok(r.data.games[0].plays.length === 2, `re-save #${i} keeps exactly 2 plays (no duplication)`, String(r.data.games[0].plays.length));
+  }
+  const raw = cp.catalog._all('SELECT count(*) n FROM plays')[0].n;
+  ok(raw === 2, 'no orphaned play rows accumulate across re-saves', `raw rows=${raw}`);
+  // Shrink then grow: replacement is exact both ways.
+  await cp.saveSeason('s1', season('s1', 'RS', [{ ...mkGame('g1', 1) }]));
+  ok((await cp.loadSeason('s1')).data.games[0].plays.length === 1, 're-save with FEWER plays shrinks exactly');
+  await cp.saveSeason('s1', season('s1', 'RS', [{ ...mkGame('g1', 3) }]));
+  ok((await cp.loadSeason('s1')).data.games[0].plays.length === 3, 're-save with MORE plays grows exactly');
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

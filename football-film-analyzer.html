@@ -13955,7 +13955,14 @@ class SqlCatalog {
     const now = new Date().toISOString();
     this.db.run('BEGIN');
     try {
-      // wipe this season's children (cascade handles games→plays/clips)
+      // Wipe this season's children EXPLICITLY. We cannot rely on FK ON DELETE
+      // CASCADE: `db.export()` (the A3 dual-write calls it after every save) resets
+      // the connection's `PRAGMA foreign_keys` to OFF, so a bare `DELETE FROM games`
+      // would ORPHAN this season's plays/clips — and on the next save they'd be
+      // re-attached, doubling play rows on every re-save (autosave). Delete children
+      // first, deepest-first, so re-saving fully replaces the season.
+      this._run('DELETE FROM plays WHERE game_id IN (SELECT id FROM games WHERE season_id = ?)', [id]);
+      this._run('DELETE FROM clips WHERE game_id IN (SELECT id FROM games WHERE season_id = ?)', [id]);
       this._run('DELETE FROM games WHERE season_id = ?', [id]);
       const { games, ...seasonBody } = data;
       const created = (this._get('SELECT created FROM seasons WHERE id = ?', [id]) || {}).created || now;
@@ -14050,7 +14057,16 @@ class SqlCatalog {
     return { id, name: body.seasonName, team: body.team, year: body.year, level: body.level };
   }
 
-  deleteSeason(id) { this._run('DELETE FROM seasons WHERE id = ?', [id]); if (this.currentId === id) this.currentId = null; }
+  deleteSeason(id) {
+    // Explicit deepest-first delete — FK cascade is unreliable here (export() resets
+    // `PRAGMA foreign_keys`), so a bare `DELETE FROM seasons` would leave orphaned
+    // games/plays/clips that resurrect when a game id is reused. See saveSeason.
+    this._run('DELETE FROM plays WHERE game_id IN (SELECT id FROM games WHERE season_id = ?)', [id]);
+    this._run('DELETE FROM clips WHERE game_id IN (SELECT id FROM games WHERE season_id = ?)', [id]);
+    this._run('DELETE FROM games WHERE season_id = ?', [id]);
+    this._run('DELETE FROM seasons WHERE id = ?', [id]);
+    if (this.currentId === id) this.currentId = null;
+  }
   touchOpened(id) { this._run('UPDATE seasons SET last_opened = ? WHERE id = ?', [new Date().toISOString(), id]); }
 
   /** Import an existing season.json (post-_normalize) into the catalog. Idempotent per id. */
