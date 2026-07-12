@@ -414,6 +414,16 @@ imported by both parity + Study tests); the parity golden is unchanged (both
 synthetic + real 6-game still green). No UI consumes StudyQuery yet — it is the
 contract the Study SCREEN (Codex) will call. Full gate 31/31.
 
+Two-cohort COMPARISON is now wired: `study.compare({ base, against, dimension,
+measures, filters, minSample, context, labels })` runs the same query over two
+play sets (game-vs-season, recent-vs-prior — the caller slices; the engine stays
+pure) and aligns groups by value, returning per-row `{ a, b, deltas, sampleDelta
+}`. BOTH sides keep their own `matchingPlayIds`, each film-linked to its own
+scope's golden (test asserts base==game-scope golden, against==season-scope
+golden). `deltas[measure] = base − against` (numeric; null when a side lacks the
+group or the measure isn't numeric). Values present in only one cohort align with
+an empty side. `tools/e2e-study-query.mjs` now 24/24 (6 comparison assertions).
+
 Prior milestone (P0-d): REVIEWED — ACCEPTED (Claude independent review; no changes required)
 Commit: the commit containing this handoff block (impl 2d6d4bb; review adds this block)
 

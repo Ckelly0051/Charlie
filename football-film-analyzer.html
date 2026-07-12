@@ -25696,6 +25696,61 @@ class StudyQuery {
     });
     return { dimension, total: cohort.length, measures: measures.slice(), minSample, groups, warnings };
   }
+
+  _num(v) {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /**
+   * compare({ base, against, dimension, measures?, filters?, minSample?, context?, labels? })
+   * Runs the SAME query over two cohorts (e.g. this game vs the season, or recent
+   * vs prior games) and aligns groups by dimension value. Each row keeps BOTH
+   * sides' `matchingPlayIds` (each film-linked to its own cohort with the same
+   * golden parity as run()), and a numeric `deltas[measure] = base − against`
+   * (null when either side's measure isn't numeric or a side has no such group).
+   * Both cohorts get the SAME filters. StudyQuery stays pure — the caller slices
+   * the two play sets (game/season/date-range); this never reads the store.
+   *
+   *   -> { dimension, measures, minSample,
+   *        a: { label, total }, b: { label, total },
+   *        rows: [{ value, a:{sampleSize,belowMinSample,matchingPlayIds,measures},
+   *                 b:{…}, deltas:{measure:number|null}, sampleDelta }],
+   *        warnings }
+   */
+  compare({ base, against, dimension, measures = [], filters = [], minSample = 0, context = {}, labels = {} } = {}) {
+    if (!Array.isArray(base) || !Array.isArray(against)) {
+      throw new TypeError('StudyQuery.compare requires base and against play arrays');
+    }
+    const a = this.run({ plays: base, dimension, measures, filters, minSample, context });
+    const b = this.run({ plays: against, dimension, measures, filters, minSample, context });
+    const aMap = new Map(a.groups.map(g => [g.value, g]));
+    const bMap = new Map(b.groups.map(g => [g.value, g]));
+    const blank = () => ({ sampleSize: 0, belowMinSample: minSample > 0, matchingPlayIds: [], measures: {} });
+    const values = [...new Set([...aMap.keys(), ...bMap.keys()])].sort();
+    const rows = values.map(value => {
+      const ga = aMap.get(value) || blank();
+      const gb = bMap.get(value) || blank();
+      const deltas = {};
+      for (const m of measures) {
+        const na = this._num(ga.measures[m]), nb = this._num(gb.measures[m]);
+        deltas[m] = (na === null || nb === null) ? null : Number((na - nb).toFixed(4));
+      }
+      return {
+        value,
+        a: { sampleSize: ga.sampleSize, belowMinSample: ga.belowMinSample, matchingPlayIds: ga.matchingPlayIds, measures: ga.measures },
+        b: { sampleSize: gb.sampleSize, belowMinSample: gb.belowMinSample, matchingPlayIds: gb.matchingPlayIds, measures: gb.measures },
+        deltas, sampleDelta: ga.sampleSize - gb.sampleSize,
+      };
+    });
+    return {
+      dimension, measures: measures.slice(), minSample,
+      a: { label: labels.base || 'A', total: a.total },
+      b: { label: labels.against || 'B', total: b.total },
+      rows,
+      warnings: [...a.warnings.map(w => `${labels.base || 'A'}: ${w}`), ...b.warnings.map(w => `${labels.against || 'B'}: ${w}`)],
+    };
+  }
 }
 
 // ===== workspace-shell.js =====

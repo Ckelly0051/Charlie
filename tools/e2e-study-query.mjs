@@ -63,12 +63,24 @@ const result = await page.evaluate((fixture) => {
   const resultQ = study.run({ plays, dimension: 'result' });
   const tdGroup = resultQ.groups.find(g => g.value === 'Touchdown');
 
+  // Two-cohort comparison: game 1 (base) vs the whole season (against).
+  const g1Plays = store.data.games[0].plays;
+  const cmp = study.compare({ base: g1Plays, against: plays, dimension: 'formation', measures: ['sampleSize', 'successRate', 'runShare'], labels: { base: 'Game 1', against: 'Season' } });
+  const cmpShotgun = cmp.rows.find(r => r.value === 'Shotgun');
+  const cmpPistol = cmp.rows.find(r => r.value === 'Pistol'); // g2-only formation
+  const cmpMeta = { aTotal: cmp.a.total, bTotal: cmp.b.total, aLabel: cmp.a.label, bLabel: cmp.b.label, valueCount: cmp.rows.length, g1PlayCount: g1Plays.length };
+
   // Guards.
   const unknownThrows = (() => { try { study.run({ plays, dimension: 'nope' }); return false; } catch { return true; } })();
   const deferredThrows = (() => { try { study.run({ plays, dimension: 'fieldZone' }); return false; } catch { return true; } })();
+  const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formation' }); return false; } catch { return true; } })();
 
   return {
     grouped, playCount: plays.length,
+    cmpMeta,
+    cmpShotgun: cmpShotgun ? { aIds: cmpShotgun.a.matchingPlayIds, bIds: cmpShotgun.b.matchingPlayIds, deltas: cmpShotgun.deltas, sampleDelta: cmpShotgun.sampleDelta } : null,
+    cmpPistol: cmpPistol ? { aSample: cmpPistol.a.sampleSize, aIds: cmpPistol.a.matchingPlayIds, bIds: cmpPistol.b.matchingPlayIds, sampleDelta: cmpPistol.sampleDelta } : null,
+    compareBadArgsThrows,
     filter: {
       runTotal: passRun.total, expectRun,
       andTotal: andQ.total, expectAnd,
@@ -115,6 +127,17 @@ if (!result.missing) {
   ok(JSON.stringify(result.resultTdIds) === JSON.stringify(['g1::7']), 'Non-cut dimension (result) still groups and film-links', JSON.stringify(result.resultTdIds));
   ok(result.unknownThrows, 'Unknown Study dimension fails loudly');
   ok(result.deferredThrows, 'requires-context dimension (fieldZone) refuses to query');
+
+  // 4. Two-cohort comparison (game vs season).
+  const gm = result.cmpMeta;
+  ok(gm.aTotal === gm.g1PlayCount && gm.bTotal === result.playCount && gm.aTotal < gm.bTotal && gm.aLabel === 'Game 1' && gm.bLabel === 'Season', 'compare() runs both cohorts with labels + independent totals', JSON.stringify(gm));
+  // Both sides stay film-linked to their OWN scope's golden drilldown.
+  ok(JSON.stringify(result.cmpShotgun.aIds) === JSON.stringify(golden['game:g1'].drill['formation::Shotgun']), 'compare base side film-links to the game-scope golden');
+  ok(JSON.stringify(result.cmpShotgun.bIds) === JSON.stringify(golden.season.drill['formation::Shotgun']), 'compare against side film-links to the season-scope golden');
+  ok(typeof result.cmpShotgun.deltas.successRate === 'number' && typeof result.cmpShotgun.deltas.runShare === 'number', 'compare emits numeric per-measure deltas', JSON.stringify(result.cmpShotgun.deltas));
+  // A formation present only in game 2 shows an empty base side + a negative sampleDelta.
+  ok(result.cmpPistol.aSample === 0 && result.cmpPistol.aIds.length === 0 && result.cmpPistol.sampleDelta < 0 && JSON.stringify(result.cmpPistol.bIds) === JSON.stringify(golden.season.drill['formation::Pistol']), 'compare aligns a value missing from one cohort (Pistol: base empty, against present)', JSON.stringify(result.cmpPistol));
+  ok(result.compareBadArgsThrows, 'compare() with a non-array cohort fails loudly');
 }
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
