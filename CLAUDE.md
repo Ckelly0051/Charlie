@@ -103,10 +103,23 @@ Study analytics spine (registry → query → compare) is complete + parity-lock
 `TauriBackend` delegates load/save/deleteSeason to it and lazy-loads a vendored
 `sql-wasm.wasm` Tauri resource (browser bundle stays sql.js-free, 1.5M unchanged).
 FAIL-SAFE — any wasm/runtime error silently keeps today's JSON path, so flag-OFF
-is byte-identical. Node-tested (catalog-persistence 21/21); full gate 33/33
-flag-OFF. Build NOTE: the env bumps js mtimes between build and test, so run
-`bash build.sh` and the e2e gate in ONE command or e2e-parity's stale-bundle guard
-false-fails.
+is byte-identical. Node-tested; full gate 36/36 flag-OFF. Build NOTE: the env bumps
+js mtimes between build and test, so run `bash build.sh` and the e2e gate in ONE
+command or e2e-parity's stale-bundle guard false-fails.
+
+**A3 DESKTOP SMOKE PASSED on real film (`13f3411`, 2026-07-12).** Claude drove a
+from-source `cargo tauri dev` build via computer use on the coach's machine +
+real 451-play season: flag-ON `hasSQL:true`/`engineFailed:false` (sql.js WASM
+loads in WebView2 with the CSP `'wasm-unsafe-eval'` + `$RESOURCE` scope), no
+console warnings, `library.db` created (532KB), real season round-trips from the db
+(6 games/451 plays, source:db), throwaway save→load→durable-delete→no-resurrection,
+flag-OFF restore intact. **THEN a new catalog fuzzer (`tools/e2e-catalog-fuzzer.mjs`)
+caught a P0 the single-save smoke missed: `SqlCatalog` DUPLICATED play rows on every
+re-save (2→4→6…)** — `db.export()` resets sql.js's `PRAGMA foreign_keys` OFF so the
+cascade-reliant DELETEs orphaned children; fixed by explicit deepest-first child
+deletes in save/deleteSeason (`acc130c`), regression-pinned (catalog-persistence
+36/36). Release-cycle validation MUST edit/re-save a season, not just open it. See
+[[sqljs-fk-cascade-resave-corruption]].
 
 **A3 CODE REVIEW — ACCEPTED (`c76972a`).** Codex found two flag-ON failure-path defects the flag-OFF gate
 never exercised; both fixed reproduce-first with failing-first regressions:
