@@ -470,10 +470,18 @@ NEXT ACTIONS
         match on `clip_id` from the store first, falling back to filename heuristics
         only for legacy rows with no id. This is what folds the ghost-plays fix into
         the build instead of leaving it a follow-up patch.
+        GROUNDWORK DONE (`2c6522f`, dormant): `js/clip-identity.js` is the PURE,
+        tested filename-fallback matcher this rewire will adopt — tiered match
+        (exact path → basename → `(n)`-normalized → order, consume-once) returning
+        `unmatchedClips` (= what would ghost). NOT wired into the app yet (imported
+        by nothing; like the SqlCatalog A1 groundwork), so it changes no behavior.
+        `tools/e2e-clip-match.mjs` 13/13 pins R3 + subfolder distinctness + legacy
+        relink + dup-name pairing + truly-new-clip-stays-unmatched.
     R3. WINDOWS `(n)` NORMALIZATION. The filename-fallback tiers must strip a
         trailing ` (\d+)` for MATCHING only (never mutate stored names), consume-once,
         below exact path/basename — so a re-added `Play 12 (1).mp4` relinks to saved
         `Play 12`, while genuinely distinct `(1)`/`(2)` clips stay distinct.
+        (Implemented + tested in `js/clip-identity.js` per R2 groundwork above.)
     R4. ADD/RE-ADD IS AS SAFE AS REPAIR. Give addFiles the count-based order fallback
         the repair planner has (or route re-adds through it), and never silently
         auto-create a ghost play for an unmatched clip when orphaned tagged plays
