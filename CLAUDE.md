@@ -571,6 +571,39 @@ clip matcher 15/15, linked rehydrate 8/8, real 451-play round-trip/integrity cle
 and zero page errors. Review focus: migration idempotence, duplicate-ID repair,
 catalog-vs-path precedence, and managed/linked disk-file annotation.
 
+**Independent review of `4d0d6be` — ACCEPTED, no findings (Claude).** Verified
+against source with hand-traced algorithm walkthroughs (not just the tests) across
+all four requested focus areas:
+  - MIGRATION IDEMPOTENCE — `ensureClipIdentities()` reuses an already-valid
+    `catalogClipId` verbatim on repeat `saveSeason()` calls rather than
+    regenerating; a play's short-circuit check correctly no-ops once its id is
+    valid. Confirmed by the new "durable clip ids remain stable across reopen and
+    re-save" test.
+  - DUPLICATE-ID REPAIR — hand-traced the exact repair fixture (two distinct clips
+    forced to share one id): the ref-dedup pass gives them distinct ids, then the
+    PLAY backfill pass re-resolves each play by its own path-derived key (not the
+    stale forced id), so one play stays put and the other is correctly repointed
+    to its real clip — no cross-wiring, no orphaning.
+  - CATALOG-VS-PATH PRECEDENCE — confirmed in source that `planClipMatch` registers
+    the `catalog` tier before path/basename/norm/order; the new adversarial test
+    (catalog ids and filenames actively disagree) proves catalog wins.
+  - MANAGED/LINKED DISK-FILE ANNOTATION — `storage.js`'s `_catalogClipIdsForFiles()`
+    is a legitimate two-phase bootstrap: fresh disk files (no id yet) are matched to
+    saved `clipRefs` via the same legacy filename tiers (no regression vs.
+    pre-catalog behavior), THEN annotated before `rehydrateFromDisk`'s own
+    catalog-first match runs against `play.catalogClipId` from prior sessions.
+Non-blocking observation: because the bootstrap step only has filename tiers
+available, a wrong first-ever match could become "sticky" under catalog-tier
+precedence going forward (vs. the old system occasionally self-correcting
+run-to-run) — same rare trigger conditions as before, not worse in kind, just
+potentially more persistent; worth recalling if a "stuck-wrong-clip" report ever
+surfaces. Committed bundle re-verified BYTE-IDENTICAL to a fresh `build.sh`
+rebuild. Full gate re-run green: sql-catalog 16/16 (incl. real 451-play
+round-trip), catalog-persistence 44/44, catalog-fuzzer 640 ops clean, clip-match
+15/15, relink-legacy 7/7, relink-linked 8/8, integrity fuzzer against the REAL St.
+Joseph Mavericks fixture (not synthetic) 0 violations, onboarding 46/46 zero
+errors. Flag remains OFF by default.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer
