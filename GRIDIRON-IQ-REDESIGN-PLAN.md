@@ -458,13 +458,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 905231e  Plan ordering, audience, presentation, export (Codex)
+Latest implementation: fa14dc0  Intentional Save-to-Plan destination picker (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  fa14dc0  Save Study findings to an explicit existing or newly named plan
   905231e  Phase 3 ordering UI + audience + teaching mode + HTML export
   2ec15fa  Pure ordered PlanExport serializer (Claude)
   70ad55c  Defensive plan-item reorder seam (Claude)
@@ -518,17 +519,20 @@ Lane status:
     increments 1+2+3 DONE at 7f755c6 + d76e699 + f7cc373; true cross-game
     Study playback DONE at 1fce6b3, independently accepted at 84608a9, and all
     six review follow-ups resolved at 47cecc0. Phase 3 Plan foundation accepted;
-    ordering, audience, presentation, and export implemented at 905231e and ready
-    for independent review.
+    ordering, audience, presentation, and export accepted. Save-to-Plan now uses
+    an intentional destination picker at fa14dc0 and is ready for independent
+    review; exact composite film refs remain unchanged.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
-  Claude: independently review Codex's R1/R2 durable clip identity increment:
-    schema-v1 migration/idempotence, duplicate-ID repair, row-authoritative load,
-    catalog-first matching, managed/linked annotation, and legacy fallback parity.
-  Codex: hold further persistence work until that review returns.
-  Product follow-ups remain the Save-to-Plan picker and explicit comparison-
-    cohort selection; neither should bypass the parity-locked Study/Plan contracts.
+  R1/R2 durable clip identity: ACCEPTED at 668ebda.
+  Claude: independently review fa14dc0 (Save-to-Plan destination picker), focusing
+    on exact target selection, create/save failure behavior, keyboard/focus, and
+    unchanged StudyPlan composite refs.
+  Codex: hold the next Study UI increment until that review returns.
+  Next product follow-up after acceptance: explicit comparison-cohort selection
+    when saving a comparison finding. It must not bypass the parity-locked
+    Study/Plan contracts.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

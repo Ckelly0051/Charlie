@@ -384,6 +384,23 @@ non-blocking follow-ups (Codex's UX lane):
 Phase 3 foundation (plans contract + Study→Plan + Plan workspace + cross-game
 Watch) is complete and accepted. Next: Phase 3 ordering/presentation/export.
 
+**Save-to-Plan destination picker is ready for independent review (`fa14dc0`,
+Codex).** Study no longer silently appends to the active/first plan. `Save to
+Plan` opens a focused native dialog that previews the exact finding and linked-
+play count, defaults to the active existing plan when valid, always offers
+`Create new plan`, and requires an explicit `Save finding`. Cancel/Escape mutate
+nothing. `PlanScreen.addFindingTo(planId, item)` is the exact-target mutation
+seam; it refuses missing plan ids, preserves the StudyPlan item/composite refs,
+sets that plan active, persists, and renders. Desktop visual QA is clean; mobile
+is overflow-free with touch-ready controls. `e2e-study-screen` is 48/48 and pins
+no-mutation-before-confirm, cancel no-op, named-plan creation, exact existing-
+plan targeting, unchanged composite refs, keyboard-capable dialog semantics, and
+mobile layout. Fresh bundle + all 41 `tools/e2e-*.mjs` scripts passed. Shell
+remains opt-in; no release/tag. **Review focus:** exact target selection,
+create-then-save failure behavior, native-dialog keyboard/focus behavior, and
+film-ref parity. After acceptance, the next product increment is explicit
+comparison-cohort selection when saving a comparison finding.
+
 **Phase 3 ordering — data seam (`70ad55c`, Claude): plan-item reorder on
 SeasonStore.** The foundation ordering/presentation/export all need (both render
 items IN ORDER). `reorderPlanItems(planId, orderedIds)` applies an explicit order
