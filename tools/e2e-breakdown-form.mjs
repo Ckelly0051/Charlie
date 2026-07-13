@@ -105,13 +105,102 @@ ok(state.unit === 'special' && /Opponent scout · Special Teams/.test(state.pers
 ok(state.primary === 'Opponent Special Teams' && state.specialVisible && state.offenseHidden && state.defenseHidden, 'Special Teams exposes its complete phase group without competing side groups', JSON.stringify(state));
 ok(state.sharedPlayersHidden && state.specialistPlayersVisible && state.activeRole === 'kicker', 'Special Teams uses its dedicated Kicker/Returner block without duplicate shared roles', JSON.stringify(state));
 
+state = await page.evaluate(() => ({
+  editor: !!document.querySelector('.bdv-st-editor'),
+  unitChoices: document.querySelectorAll('[data-st-unit]').length,
+  legacyScoreHidden: getComputedStyle(document.querySelector('#tagScoreFor').closest('.chip-section')).display === 'none',
+  structuredBefore: window.app.tagger.plays[0].specialTeams || null,
+}));
+ok(state.editor && state.unitChoices === 6 && state.legacyScoreHidden, 'Redesigned Special Teams exposes six units and hides the legacy Scored-by control', JSON.stringify(state));
+ok(state.structuredBefore === null, 'Changing the play unit to Special Teams does not invent structured details');
+
+await page.evaluate(() => document.querySelector('[data-st-unit="puntReturn"]').click());
+await page.evaluate(() => {
+  document.querySelector('[data-st-outcome="returned"]').click();
+  document.querySelector('[data-st-score="touchdown"]').click();
+  const yds = document.querySelector('[data-st-input="return-yards"]');
+  yds.value = '-3'; yds.dispatchEvent(new Event('change', { bubbles: true }));
+  document.querySelector('[data-st-spot-side="end:own"]').click();
+  const end = document.querySelector('[data-st-input="end-yard"]');
+  end.value = '12'; end.dispatchEvent(new Event('change', { bubbles: true }));
+  const returner = document.querySelector('#tagPlayerReturner');
+  returner.value = '4'; returner.dispatchEvent(new Event('change', { bubbles: true }));
+});
+state = await page.evaluate(() => {
+  const play = window.app.tagger.plays[0];
+  return { st: play.specialTeams, legacy: { stType: play.tags.stType || '', outcome: play.tags.kickOutcome || '', scoreFor: play.tags.scoreFor || '' } };
+});
+ok(state.st.unit === 'puntReturn' && state.st.subjectRole === 'receiving' && state.st.outcome.status === 'returned' && state.st.outcome.score === 'touchdown', 'Punt Return writes a normalized phase, role, outcome, and score', JSON.stringify(state));
+ok(state.st.return.yards === -3 && state.st.return.end.fieldSide === 'own' && state.st.return.end.yardLine === '12', 'Structured return and end-spot fields preserve a negative return', JSON.stringify(state));
+ok(state.st.players.returner === '4' && state.legacy.stType === '' && state.legacy.outcome === '' && state.legacy.scoreFor === '', 'Specialist sync writes structured player data and never writes legacy ST fields', JSON.stringify(state));
+
+await page.evaluate(() => document.querySelector('[data-st-unit="fieldGoal"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="cancel"]');
+ok((await page.evaluate(() => window.app.tagger.plays[0].specialTeams.unit)) === 'puntReturn', 'Cancelling a unit change preserves existing structured details');
+await page.evaluate(() => document.querySelector('[data-st-unit="fieldGoal"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="ok"]');
+await page.evaluate(() => {
+  document.querySelector('[data-st-attempt="extraPoint"]').click();
+  document.querySelector('[data-st-outcome="good"]').click();
+});
+state = await page.evaluate(() => {
+  const play = window.app.tagger.plays[0];
+  return { st: play.specialTeams, points: window.app.stats.constructor.playPoints(play), side: window.app.stats.constructor.scoringSide(play) };
+});
+ok(state.st.attemptType === 'extraPoint' && state.st.outcome.score === 'extraPoint' && state.points === 1 && state.side === 'us', 'Extra Point + Good derives structured scoring without Scored-by', JSON.stringify(state));
+
+await page.evaluate(() => document.querySelector('[data-st-unit="puntReturn"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="ok"]');
+await page.evaluate(() => {
+  document.querySelector('[data-st-score="safety"]').click();
+});
+state = await page.evaluate(() => ({
+  labels: [...document.querySelectorAll('[data-st-owner]')].map(el => el.textContent.trim()),
+  before: window.app.stats.constructor.scoringSide(window.app.tagger.plays[0]),
+}));
+ok(state.labels.join('|') === 'Scouted team|Other team' && state.before === 'unknown', 'Opponent-scout safety fails closed and asks with subject-team labels', JSON.stringify(state));
+await page.evaluate(() => document.querySelector('[data-st-owner="opponent"]').click());
+ok((await page.evaluate(() => window.app.stats.constructor.scoringSide(window.app.tagger.plays[0]))) === 'them', 'Explicit rare ownership resolves the score without legacy Us/Them data');
+
+await page.evaluate(() => document.querySelector('[data-st-unit="fieldGoalBlock"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="ok"]');
+await page.evaluate(() => {
+  document.querySelector('[data-st-outcome="blocked"]').click();
+  document.querySelector('[data-st-score="touchdown"]').click();
+  document.querySelector('[data-st-recovery="subject"]').click();
+  const blocker = document.querySelector('[data-st-input="blocker"]');
+  blocker.value = '55'; blocker.dispatchEvent(new Event('change', { bubbles: true }));
+});
+state = await page.evaluate(() => ({
+  st: window.app.tagger.plays[0].specialTeams,
+  side: window.app.stats.constructor.scoringSide(window.app.tagger.plays[0]),
+}));
+ok(state.st.outcome.recoveredBy === 'subject' && state.st.outcome.score === 'touchdown' && state.st.players.blocker === '55' && state.side === 'us', 'Field Goal Block can chart recovery ownership, return score, and blocker', JSON.stringify(state));
+
+await page.evaluate(() => {
+  const play = window.app.tagger.plays[0];
+  window.app.tagger._loadTagForm(play);
+});
+state = await page.evaluate(() => ({
+  selectedUnit: document.querySelector('[data-st-unit].active')?.dataset.stUnit,
+  selectedScore: document.querySelector('[data-st-score].active')?.dataset.stScore,
+  owner: document.querySelector('[data-st-owner].active')?.dataset.stOwner,
+  allButtonsNative: [...document.querySelectorAll('.bdv-st-editor [data-st-unit],.bdv-st-editor [data-st-outcome],.bdv-st-editor [data-st-score]')].every(el => el.tagName === 'BUTTON' && el.type === 'button'),
+}));
+ok(state.selectedUnit === 'fieldGoalBlock' && state.selectedScore === 'touchdown' && state.allButtonsNative, 'Structured Special Teams reloads with keyboard-focusable selections intact', JSON.stringify(state));
+
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   formOverflow: document.querySelector('#tagForm').scrollWidth > document.querySelector('#tagForm').clientWidth,
   unitHeight: Math.min(...[...document.querySelectorAll('#tagUnit .pick')].map(el => el.getBoundingClientRect().height)),
+  stHeight: Math.min(...[...document.querySelectorAll('.bdv-st-editor .pick')].map(el => el.getBoundingClientRect().height)),
 }));
-ok(!state.pageOverflow && !state.formOverflow && state.unitHeight >= 44, 'Mobile composition is overflow-free with touch-sized unit controls', JSON.stringify(state));
+ok(!state.pageOverflow && !state.formOverflow && state.unitHeight >= 44 && state.stHeight >= 44, 'Mobile composition is overflow-free with touch-sized unit and phase controls', JSON.stringify(state));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 await browser.close();

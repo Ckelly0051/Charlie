@@ -27,6 +27,15 @@
 .breakdown-form-v2.mode-defense #tagPlayersSection .player-role[data-role="receiver"] { display: none; }
 .breakdown-form-v2.mode-special [data-bdv-section="people"],
 .breakdown-form-v2.mode-special #tagPlayersSection { display: none; }
+.breakdown-form-v2 .group-special .bdv-st-legacy { display: none; }
+.bdv-st-editor { display: grid; gap: 4px; }
+.bdv-st-legacy-note { padding: 8px 10px; border-left: 3px solid #d9a441; background: #242116; color: #ead7a3; font-size: 11px; font-weight: 700; }
+.bdv-st-choice-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.bdv-st-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 6px 0; }
+.bdv-st-field,.bdv-st-spot { display: grid; gap: 5px; min-width: 0; }
+.bdv-st-field > span,.bdv-st-spot > span { color: var(--text-dim); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.bdv-st-field input,.bdv-st-spot input { width: 100%; min-width: 0; height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); padding: 5px 8px; }
+.bdv-st-spot .pick-group { display: grid; grid-template-columns: auto auto minmax(58px,1fr); }
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .breakdown-form-v2.mode-defense #tagPlayersSection .player-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .breakdown-form-v2 .tag-notes { margin-top: 0; }
@@ -35,4 +44,6 @@
   .breakdown-form-v2 .unit-toggle-section, .bdv-head { margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; }
   .breakdown-form-v2 .unit-toggle .pick, .breakdown-form-v2 .pick { min-height: 44px; }
   .bdv-section-label { align-items: flex-start; flex-direction: column; gap: 1px; }
+  .bdv-st-choice-row,.bdv-st-metrics { grid-template-columns: 1fr; }
+  .bdv-st-field input,.bdv-st-spot input { min-height: 44px; }
 }

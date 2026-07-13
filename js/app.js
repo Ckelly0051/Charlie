@@ -71,6 +71,7 @@ class App {
     this.tagger.onLoadForm = (play) => {
       this.customFields.loadValues(play);
       this.playDiagram.renderPreview();
+      this.breakdownForm.loadPlay(play);
     };
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
