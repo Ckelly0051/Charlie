@@ -1,0 +1,29 @@
+/* Phase 4C: opt-in composition only. Existing controls remain the data owners. */
+.breakdown-form-v2 { padding: 0 14px 92px; }
+.breakdown-form-v2 .unit-toggle-section { margin: 0 -14px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.breakdown-form-v2 .unit-toggle .pick { min-height: 38px; border-radius: 4px; }
+.bdv-head { margin: 0 -14px 2px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: #111923; }
+.bdv-head div { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 12px; }
+.bdv-head span { color: #75a7ff; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.bdv-head strong { font-size: 14px; letter-spacing: 0; }
+.bdv-head small { grid-column: 1 / -1; color: var(--text-dim); font-size: 10px; }
+.breakdown-form-v2 .tag-progress-row { margin-top: 10px; }
+.breakdown-form-v2 .tag-helpers { margin-bottom: 6px; }
+.bdv-section-label { display: flex; align-items: baseline; gap: 8px; padding: 13px 0 7px; border-top: 1px solid var(--border); }
+.bdv-section-label strong { color: var(--text); font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
+.bdv-section-label span { color: var(--text-dim); font-size: 10px; }
+.breakdown-form-v2 .tag-side-groups { gap: 6px; }
+.breakdown-form-v2 .tag-group.is-secondary > .tag-group-head { display: flex; padding: 6px 8px; margin: 0; border: 0; border-bottom: 1px solid #263546; border-radius: 0; background: transparent; color: #aebbd0; }
+.breakdown-form-v2 .tag-group-body { padding-top: 5px; }
+.breakdown-form-v2 .chip-section { padding-top: 6px; padding-bottom: 6px; margin-bottom: 0; }
+.breakdown-form-v2 .chip-label { margin-bottom: 5px; }
+.breakdown-form-v2 .pick-group { gap: 5px; }
+.breakdown-form-v2 .pick { min-height: 32px; padding: 5px 8px; }
+.breakdown-form-v2 .player-role { min-height: 42px; }
+.breakdown-form-v2 .tag-notes { margin-top: 0; }
+@media (max-width: 800px) {
+  .breakdown-form-v2 { padding-left: 10px; padding-right: 10px; }
+  .breakdown-form-v2 .unit-toggle-section, .bdv-head { margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; }
+  .breakdown-form-v2 .unit-toggle .pick, .breakdown-form-v2 .pick { min-height: 44px; }
+  .bdv-section-label { align-items: flex-start; flex-direction: column; gap: 1px; }
+}

@@ -22,7 +22,7 @@ JS_FILES="
   js/version-manager.js js/scoreboard-ocr.js js/suggestion-engine.js js/cutup-exporter.js
   js/cutup-player.js js/play-grid.js js/season-manager.js js/season-library.js
   js/call-sheet-builder.js js/ui-polish.js js/wizard.js js/custom-fields.js
-  js/tag-library.js js/custom-chips.js js/tag-library-settings.js js/play-diagram.js js/updater.js js/app.js
+  js/tag-library.js js/custom-chips.js js/tag-library-settings.js js/breakdown-form.js js/play-diagram.js js/updater.js js/app.js
 "
 
 # Collision guard: every module shares ONE scope in the concatenated bundle, so a
@@ -62,6 +62,7 @@ cat css/workspace-shell.css >> "$OUTPUT"
 cat css/study-screen.css >> "$OUTPUT"
 cat css/plan-screen.css >> "$OUTPUT"
 cat css/tag-library-settings.css >> "$OUTPUT"
+cat css/breakdown-form.css >> "$OUTPUT"
 
 cat >> "$OUTPUT" << 'STYLEEND'
   </style>
