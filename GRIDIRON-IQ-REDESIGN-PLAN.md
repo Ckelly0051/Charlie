@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 0308486  Phase 4E-a structured Special Teams contract (Codex)
+Latest implementation: ae5afc9  Phase 4E-a review fixes and acceptance (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,6 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  ae5afc9  P4E-a adversarial review fixes; accepted after 45/45 gate
   0308486  Phase 4E-a pure Special Teams normalization, scoring, and ruleset seam
   3e9f87c  Phase 4D unit-specific player roles over existing stored keys
   e8f0abe  Phase 4C opt-in Break Down form hierarchy + perspective labels
@@ -559,7 +560,14 @@ Lane status:
     the legacy `scoreFor` fallback only when no structured score exists. Season
     normalization never auto-migrates legacy fields. Net-yard calculation
     requires an explicit touchback rule rather than inheriting the old hard-coded
-    20-yard assumption. Focused contract 12/12; fresh atomic full gate 45/45.
+    20-yard assumption. Adversarial review found and fixed seven contract bugs at
+    ae5afc9: stale legacy scores overriding a structured miss, recovery fields
+    overriding made-kick ownership, negative measurements becoming zero,
+    malformed events counting as tagged, missing XP attempt identity, ambiguous
+    points disappearing, and fake-play results being suppressed. `attemptType`
+    now distinguishes FG/XP misses; unattributed points are sparse so legacy
+    parity output stays byte-identical. Focused contract 19/19; fresh atomic full
+    gate 45/45; both parity goldens clean. P4E-a is ACCEPTED.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -582,11 +590,10 @@ NEXT ACTIONS
     as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
     charting. Use a phase-first, subject-role contract, derive scoring from the
     event, and make ruleset-sensitive calculations fail honestly. Next is an
-    independent review of implementation commit 0308486. Challenge scoring-side
-    derivation (especially recoveries/safeties), idempotent normalization and
-    unknown-field retention, negative returns, structured-first legacy fallback,
-    ruleset fail-closed behavior, and canonical save/snapshot/restore. Do not
-    begin P4E-b UI until this gate is accepted.
+    P4E-a is accepted at ae5afc9. Next is P4E-b: phase-first tagging UI behind
+    `ffa_breakdown_form_v2`, with no `Scored by Us/Them` control, team-name
+    ownership only for rare ambiguity, all six unit paths, and keyboard/mobile/
+    scout-perspective tests. Preserve legacy fields but never write `scoreFor`.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

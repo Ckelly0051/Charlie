@@ -199,6 +199,24 @@ unusual recovery touchdowns, safety unknown behavior, normalization idempotence
 and forward-key retention, signed returns, structured/legacy precedence, and
 touchback fail-closed behavior. P4E-b UI remains blocked until acceptance.
 
+**Phase 4E-a adversarial self-review is ACCEPTED after fixes (`ae5afc9`,
+Codex).** The review added failing-first cases that exposed seven real defects:
+a structured no-score event could revive stale legacy Good/Field Goal data;
+recovery could misattribute a made kick; negative kick/time values became zero;
+malformed structured objects inflated tagged progress; a missed XP lacked an
+explicit attempt identity; ambiguous points vanished from scoreboard totals;
+and authoritative structured data suppressed a fake's legitimate football TD.
+Fixes make any valid structured event authoritative, add `attemptType` for
+Field Goal/Extra Point, keep made-kick ownership role-based, reject invalid
+nonnegative measurements, validate structured tagged state, track ambiguous
+points in a sparse `unattributed` bucket, and allow only fakes to read TD/Safety
+from the general result when structured score is blank. The first full gate
+caught additive zero-valued `unattributed` fields drifting both parity goldens;
+the field is now emitted only when nonzero, restoring byte-identical legacy
+output. Focused contract 19/19, both parity fixtures clean, season 152/152, and
+final fresh atomic gate 45/45. **Next action:** P4E-b phase-first Special Teams
+UI behind the existing Break Down flag. New UI must never write `scoreFor`.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.
