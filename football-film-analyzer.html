@@ -8652,6 +8652,9 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-shell-active #statsDashboard .stats-overlay{left:var(--ws-side);top:var(--ws-top)}
 @media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
 @media(max-width:800px){body.ws-shell-active.ws-route-home .bottom-tabs,body.ws-shell-active.ws-route-study .bottom-tabs,body.ws-shell-active.ws-route-plan .bottom-tabs{display:none}}
+
+.ws-plan-picker{width:min(460px,calc(100vw - 32px));margin:auto;padding:0;border:1px solid #3a4a5d;border-radius:7px;background:#111821;color:var(--ws-text);box-shadow:0 24px 70px rgba(0,0,0,.62)}.ws-plan-picker::backdrop{background:rgba(4,7,11,.78);backdrop-filter:blur(2px)}.ws-plan-picker form{display:grid;gap:16px;padding:24px}.ws-plan-picker h2{margin:-8px 0 0;font-size:23px}.ws-plan-picker p{display:grid;gap:4px;margin:0;padding:12px;border-left:3px solid var(--ws-blue);background:#151e29}.ws-plan-picker p span{color:var(--ws-muted);font-size:12px}.ws-plan-picker label{display:grid;gap:7px;color:var(--ws-muted);font-size:11px;font-weight:800;text-transform:uppercase}.ws-plan-picker select,.ws-plan-picker input{width:100%;height:42px;border:1px solid var(--ws-line);border-radius:5px;background:#0d131b;color:var(--ws-text);padding:0 11px;font:inherit;text-transform:none}.ws-plan-picker select:focus,.ws-plan-picker input:focus{outline:2px solid #75a7ff;outline-offset:1px}.ws-plan-picker-name[hidden]{display:none}.ws-plan-picker-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:2px}.ws-plan-picker-actions .ws-btn{min-height:42px}
+@media(max-width:480px){.ws-plan-picker{width:calc(100vw - 20px)}.ws-plan-picker form{padding:20px 16px}.ws-plan-picker-actions .ws-btn{height:44px;flex:1}}
 .ws-study{min-width:0;min-height:0;overflow:auto;padding:26px 30px 34px}
 .ws-study>*{max-width:1280px;margin-left:auto;margin-right:auto}
 .ws-study-head{display:flex;align-items:flex-end;gap:24px}
@@ -27225,6 +27228,7 @@ class StudyScreen {
     this.filters = [];
     this._bound = false;
     this._watchToken = 0;
+    this._pendingPlanItem = null;
   }
 
   mount(host) {
@@ -27260,7 +27264,8 @@ class StudyScreen {
     if (this._bound) return;
     this._bound = true;
     this.host.addEventListener('change', e => {
-      if (e.target.id === 'wsStudySaved') { this._applyView(e.target.value); this._syncDeleteView(); }
+      if (e.target.id === 'wsStudyPlanTarget') this._syncPlanPicker();
+      else if (e.target.id === 'wsStudySaved') { this._applyView(e.target.value); this._syncDeleteView(); }
       else if (e.target.matches('[data-study-filter-dimension]')) {
         const filter = this.filters[Number(e.target.dataset.studyFilterDimension)];
         if (filter) { filter.dimension = e.target.value; filter.values = []; this._renderFilters(); this.render(); }
@@ -27278,6 +27283,8 @@ class StudyScreen {
       if (action === 'advanced') this.app.workspaceShell.showAdvancedReports();
       if (action === 'save') this._saveView();
       if (action === 'save-plan') this._saveToPlan();
+      if (action === 'plan-picker-cancel') this._closePlanPicker();
+      if (action === 'plan-picker-save') this._confirmPlanPicker();
       if (action === 'delete-view') this._deleteView();
       if (action === 'watch-all') this._watch(this.rows.flatMap(r => r.refs), 'Study results');
       if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
@@ -27604,8 +27611,48 @@ class StudyScreen {
     const measureName = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
     const scopeLabel = state.compare ? 'comparison' : state.scope === 'game' ? 'current game' : state.scope === 'range' ? 'date range' : 'full season';
     const item = this.app.studyPlan.finding({ dimensionName, measureName, scopeLabel, dimension: state.dimension, measure: state.measure, scope: state.scope, refs });
-    const plan = this.app.planScreen.addFinding(item);
-    this.app.tagger.toast?.(plan ? `Saved to ${plan.name}` : 'Could not save this plan finding');
+    this._openPlanPicker(item);
+  }
+  _openPlanPicker(item) {
+    this._closePlanPicker();
+    const plans = this.app.storage.seasonStore.plans();
+    const activeId = plans.some(plan => plan.id === this.app.planScreen.activeId) ? this.app.planScreen.activeId : plans[0]?.id;
+    const target = activeId || '__new__';
+    this._pendingPlanItem = item;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'ws-plan-picker';
+    dialog.innerHTML = `<form method="dialog"><div class="ws-eyebrow">Save Study finding</div><h2>Choose a game plan</h2><p><strong>${this._esc(item.label || 'Study finding')}</strong><span>${item.refs.length} linked play${item.refs.length === 1 ? '' : 's'} will stay attached.</span></p><label>Destination<select id="wsStudyPlanTarget">${plans.map(plan => `<option value="${this._esc(plan.id)}"${plan.id === target ? ' selected' : ''}>${this._esc(plan.name)}</option>`).join('')}<option value="__new__"${target === '__new__' ? ' selected' : ''}>Create new plan</option></select></label><label class="ws-plan-picker-name">Plan name<input id="wsStudyPlanName" maxlength="80" value="Game Plan" autocomplete="off"></label><div class="ws-plan-picker-actions"><button class="ws-btn" value="cancel" data-study-action="plan-picker-cancel">Cancel</button><button class="ws-btn ws-primary" value="default" data-study-action="plan-picker-save">Save finding</button></div></form>`;
+    dialog.addEventListener('cancel', event => { event.preventDefault(); this._closePlanPicker(); });
+    dialog.querySelector('form').addEventListener('submit', event => { event.preventDefault(); this._confirmPlanPicker(); });
+    this.host.appendChild(dialog);
+    this._syncPlanPicker();
+    dialog.showModal();
+    requestAnimationFrame(() => (target === '__new__' ? dialog.querySelector('#wsStudyPlanName') : dialog.querySelector('#wsStudyPlanTarget'))?.focus());
+  }
+  _syncPlanPicker() {
+    const dialog = this.host?.querySelector('.ws-plan-picker');
+    if (!dialog) return;
+    const isNew = dialog.querySelector('#wsStudyPlanTarget')?.value === '__new__';
+    dialog.querySelector('.ws-plan-picker-name').hidden = !isNew;
+  }
+  _confirmPlanPicker() {
+    const dialog = this.host?.querySelector('.ws-plan-picker');
+    const item = this._pendingPlanItem;
+    if (!dialog || !item) return;
+    const store = this.app.storage.seasonStore;
+    const target = dialog.querySelector('#wsStudyPlanTarget')?.value;
+    let plan = target === '__new__'
+      ? store.createPlan(dialog.querySelector('#wsStudyPlanName')?.value.trim() || 'Game Plan')
+      : store.getPlan(target);
+    if (plan) plan = this.app.planScreen.addFindingTo(plan.id, item);
+    if (!plan) { this.app.tagger.toast?.('Could not save this plan finding'); return; }
+    this._closePlanPicker();
+    this.app.tagger.toast?.(`Saved to ${plan.name}`);
+  }
+  _closePlanPicker() {
+    const dialog = this.host?.querySelector('.ws-plan-picker');
+    if (dialog) { if (dialog.open) dialog.close(); dialog.remove(); }
+    this._pendingPlanItem = null;
   }
   _applyView(id) {
     const view = this._views().find(item => item.id === id);
@@ -27660,6 +27707,7 @@ class PlanScreen {
   _active() { const plans = this._store().plans(); return this._store().getPlan(this.activeId) || plans[0] || null; }
   ensurePlan() { let plan = this._active(); if (!plan) { plan = this._store().createPlan('Game Plan'); if (!plan) return null; this.activeId = plan.id; this._store().persist(); } return plan; }
   addFinding(item) { const plan = this.ensurePlan(); if (!plan) return null; this._store().addPlanItem(plan.id, item); this._store().persist(); this.render(); return plan; }
+  addFindingTo(planId, item) { const plan = this._store().getPlan(planId); if (!plan) return null; const added = this._store().addPlanItem(plan.id, item); if (!added) return null; this.activeId = plan.id; this._store().persist(); this.render(); return plan; }
   render() {
     if (!this.host) return;
     const plans = this._store().plans(), plan = this._active();

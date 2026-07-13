@@ -20,6 +20,7 @@ export class StudyScreen {
     this.filters = [];
     this._bound = false;
     this._watchToken = 0;
+    this._pendingPlanItem = null;
   }
 
   mount(host) {
@@ -55,7 +56,8 @@ export class StudyScreen {
     if (this._bound) return;
     this._bound = true;
     this.host.addEventListener('change', e => {
-      if (e.target.id === 'wsStudySaved') { this._applyView(e.target.value); this._syncDeleteView(); }
+      if (e.target.id === 'wsStudyPlanTarget') this._syncPlanPicker();
+      else if (e.target.id === 'wsStudySaved') { this._applyView(e.target.value); this._syncDeleteView(); }
       else if (e.target.matches('[data-study-filter-dimension]')) {
         const filter = this.filters[Number(e.target.dataset.studyFilterDimension)];
         if (filter) { filter.dimension = e.target.value; filter.values = []; this._renderFilters(); this.render(); }
@@ -73,6 +75,8 @@ export class StudyScreen {
       if (action === 'advanced') this.app.workspaceShell.showAdvancedReports();
       if (action === 'save') this._saveView();
       if (action === 'save-plan') this._saveToPlan();
+      if (action === 'plan-picker-cancel') this._closePlanPicker();
+      if (action === 'plan-picker-save') this._confirmPlanPicker();
       if (action === 'delete-view') this._deleteView();
       if (action === 'watch-all') this._watch(this.rows.flatMap(r => r.refs), 'Study results');
       if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
@@ -399,8 +403,48 @@ export class StudyScreen {
     const measureName = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
     const scopeLabel = state.compare ? 'comparison' : state.scope === 'game' ? 'current game' : state.scope === 'range' ? 'date range' : 'full season';
     const item = this.app.studyPlan.finding({ dimensionName, measureName, scopeLabel, dimension: state.dimension, measure: state.measure, scope: state.scope, refs });
-    const plan = this.app.planScreen.addFinding(item);
-    this.app.tagger.toast?.(plan ? `Saved to ${plan.name}` : 'Could not save this plan finding');
+    this._openPlanPicker(item);
+  }
+  _openPlanPicker(item) {
+    this._closePlanPicker();
+    const plans = this.app.storage.seasonStore.plans();
+    const activeId = plans.some(plan => plan.id === this.app.planScreen.activeId) ? this.app.planScreen.activeId : plans[0]?.id;
+    const target = activeId || '__new__';
+    this._pendingPlanItem = item;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'ws-plan-picker';
+    dialog.innerHTML = `<form method="dialog"><div class="ws-eyebrow">Save Study finding</div><h2>Choose a game plan</h2><p><strong>${this._esc(item.label || 'Study finding')}</strong><span>${item.refs.length} linked play${item.refs.length === 1 ? '' : 's'} will stay attached.</span></p><label>Destination<select id="wsStudyPlanTarget">${plans.map(plan => `<option value="${this._esc(plan.id)}"${plan.id === target ? ' selected' : ''}>${this._esc(plan.name)}</option>`).join('')}<option value="__new__"${target === '__new__' ? ' selected' : ''}>Create new plan</option></select></label><label class="ws-plan-picker-name">Plan name<input id="wsStudyPlanName" maxlength="80" value="Game Plan" autocomplete="off"></label><div class="ws-plan-picker-actions"><button class="ws-btn" value="cancel" data-study-action="plan-picker-cancel">Cancel</button><button class="ws-btn ws-primary" value="default" data-study-action="plan-picker-save">Save finding</button></div></form>`;
+    dialog.addEventListener('cancel', event => { event.preventDefault(); this._closePlanPicker(); });
+    dialog.querySelector('form').addEventListener('submit', event => { event.preventDefault(); this._confirmPlanPicker(); });
+    this.host.appendChild(dialog);
+    this._syncPlanPicker();
+    dialog.showModal();
+    requestAnimationFrame(() => (target === '__new__' ? dialog.querySelector('#wsStudyPlanName') : dialog.querySelector('#wsStudyPlanTarget'))?.focus());
+  }
+  _syncPlanPicker() {
+    const dialog = this.host?.querySelector('.ws-plan-picker');
+    if (!dialog) return;
+    const isNew = dialog.querySelector('#wsStudyPlanTarget')?.value === '__new__';
+    dialog.querySelector('.ws-plan-picker-name').hidden = !isNew;
+  }
+  _confirmPlanPicker() {
+    const dialog = this.host?.querySelector('.ws-plan-picker');
+    const item = this._pendingPlanItem;
+    if (!dialog || !item) return;
+    const store = this.app.storage.seasonStore;
+    const target = dialog.querySelector('#wsStudyPlanTarget')?.value;
+    let plan = target === '__new__'
+      ? store.createPlan(dialog.querySelector('#wsStudyPlanName')?.value.trim() || 'Game Plan')
+      : store.getPlan(target);
+    if (plan) plan = this.app.planScreen.addFindingTo(plan.id, item);
+    if (!plan) { this.app.tagger.toast?.('Could not save this plan finding'); return; }
+    this._closePlanPicker();
+    this.app.tagger.toast?.(`Saved to ${plan.name}`);
+  }
+  _closePlanPicker() {
+    const dialog = this.host?.querySelector('.ws-plan-picker');
+    if (dialog) { if (dialog.open) dialog.close(); dialog.remove(); }
+    this._pendingPlanItem = null;
   }
   _applyView(id) {
     const view = this._views().find(item => item.id === id);
