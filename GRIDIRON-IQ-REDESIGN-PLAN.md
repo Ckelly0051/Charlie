@@ -463,16 +463,17 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 3e9f87c  Phase 4D unit-specific player-role UX (Codex)
+Latest implementation: 0308486  Phase 4E-a structured Special Teams contract (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
   Historical 4A boundary f09517d was also rebuilt in isolation on 2026-07-13
-  and passed all 42 harnesses present at that commit. Current 4C is 44/44;
+  and passed all 42 harnesses present at that commit. Current tree is 45/45;
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  0308486  Phase 4E-a pure Special Teams normalization, scoring, and ruleset seam
   3e9f87c  Phase 4D unit-specific player roles over existing stored keys
   e8f0abe  Phase 4C opt-in Break Down form hierarchy + perspective labels
   de62d70  Phase 4B customer-facing Team Settings tag-library editor
@@ -550,6 +551,15 @@ Lane status:
     hardened the focused gate from 11 to 14 assertions; independent Claude
     review of the stack remains requested. 4D increment 1 landed at 3e9f87c:
     unit-relevant player controls only, with all hidden assignments preserved.
+  Phase 4E Special Teams: researched contract reviewed and P4E-a implemented at
+    0308486. `SpecialTeamsModel` is pure/DOM-independent, preserves future keys,
+    derives subject role from six canonical units, supports signed return yards,
+    keeps scoring disposition separate from scoring type, and fails closed on
+    ambiguous ownership. StatsEngine reads structured scoring first and retains
+    the legacy `scoreFor` fallback only when no structured score exists. Season
+    normalization never auto-migrates legacy fields. Net-yard calculation
+    requires an explicit touchback rule rather than inheriting the old hard-coded
+    20-yard assumption. Focused contract 12/12; fresh atomic full gate 45/45.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -572,7 +582,11 @@ NEXT ACTIONS
     as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
     charting. Use a phase-first, subject-role contract, derive scoring from the
     event, and make ruleset-sensitive calculations fail honestly. Next is an
-    independent contract review before P4E-a; do not begin the UI first.
+    independent review of implementation commit 0308486. Challenge scoring-side
+    derivation (especially recoveries/safeties), idempotent normalization and
+    unknown-field retention, negative returns, structured-first legacy fallback,
+    ruleset fail-closed behavior, and canonical save/snapshot/restore. Do not
+    begin P4E-b UI until this gate is accepted.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

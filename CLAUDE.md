@@ -181,6 +181,24 @@ analytics. Old fields round-trip intact but remain labeled incomplete. **Next
 action:** independent contract review, then P4E-a pure normalization, ruleset
 seam, and failing-first persistence/scoring tests before any Special Teams UI.
 
+**Phase 4E-a structured Special Teams contract is ready for review (`0308486`,
+Codex).** The contract review separated ball/attempt disposition from scoring,
+added a rare explicit subject/opponent ownership override using team semantics
+rather than Us/Them copy, and requires ambiguous safety/recovery ownership to
+fail closed. `js/special-teams.js` is a pure, DOM-independent normalizer and
+accessor seam over six canonical units. It preserves unknown/future keys,
+derives the canonical subject role from unit, permits negative return yards,
+and computes net only when observed inputs or an explicit touchback rule permit
+it. `SeasonStore` normalizes only an existing `play.specialTeams`; it never
+creates trusted data from `stType`, `kickOutcome`, or `scoreFor`. `StatsEngine`
+prefers a structured score and subject/opponent attribution, then uses the
+unchanged legacy path when no structured score exists. The focused harness is
+12/12, including canonical persist/reopen and snapshot/restore; the fresh built
+bundle passes all 45 e2e scripts atomically, parity unchanged. **Review focus:**
+unusual recovery touchdowns, safety unknown behavior, normalization idempotence
+and forward-key retention, signed returns, structured/legacy precedence, and
+touchback fail-closed behavior. P4E-b UI remains blocked until acceptance.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.
