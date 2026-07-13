@@ -372,6 +372,11 @@ contract → tests each; never hand over "Phase 0" as one change):
 ### Phase 4 — Break Down redesign
 
 - Add charting-profile configuration without changing tag semantics.
+  **4A foundation ready for review (`f09517d`):** per-team Formation,
+  Backfield, and Front libraries support defaults, custom values, enabled/hidden
+  choices, legacy custom-chip migration, and historical-value preservation.
+  Modern custom `Power-I` is protected from the legacy Formation-to-Backfield
+  migration. The customer-facing settings UI follows after contract acceptance.
 - Recompose the existing tag form into football sections.
 - Add compact play strip backed by Film Room's existing model.
 - Preserve and surface video annotation tools over the film: freehand draw,
@@ -458,13 +463,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest review: 6a68064  Comparison-cohort save ACCEPTED (Claude)
+Latest implementation: f09517d  Phase 4A per-team tag-library foundation (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  f09517d  Phase 4A Formation/Backfield/Front library contract + migration guard
   6a68064  Independent review — 583ca2f comparison-cohort save ACCEPTED
   a0ece49  Remove dead addFinding/ensurePlan after picker review acceptance
   eb491bd  Independent review — fa14dc0 destination picker ACCEPTED
@@ -529,6 +535,8 @@ Lane status:
     comparison/both film explicitly at 583ca2f, accepted at 6a68064. The full
     Study-to-Plan save milestone is closed; exact composite film refs remain
     unchanged.
+  Phase 4 Break Down: 4A per-team tag-library foundation implemented at
+    f09517d and ready for independent review. Form recomposition has not started.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -537,7 +545,11 @@ NEXT ACTIONS
     path removed at a0ece49.
   Comparison-cohort selection 583ca2f: ACCEPTED at 6a68064. Study-to-Plan save
     milestone COMPLETE.
-  Codex: choose and scope the next redesign increment before implementation.
+  Claude: independently review f09517d Phase 4A, focusing on legacy-key
+    migration, team isolation, hidden/historical values across tag form + Film
+    Room, custom Front semantics, and the Power-I migration boundary.
+  Codex: after acceptance, build the customer-facing Team Settings tag-library
+    UI over this contract; do not begin form recomposition before review.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

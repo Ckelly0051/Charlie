@@ -78,6 +78,23 @@ pixel-aligned through resize/fullscreen/video changes; and never crop, resize, o
 cover the film when inactive. This is planned work only, not yet prototyped or
 implemented in the redesigned workspace.
 
+**Phase 4A tag-library foundation is ready for review (`f09517d`, Codex).** Adds
+pure `TagLibrary` state for per-team Formation, Backfield, and Front vocabulary:
+ordered defaults, custom values, enabled/hidden choices, restore defaults, and
+one-way lossless migration from `ffa_custom_chips_<team>` to
+`ffa_tag_libraries_<team>`. `CustomChips` now renders all three libraries;
+disabled values disappear from new tag-form and Film Room choices, while an
+active/historical hidden value remains visible and editable. No play tags are
+deleted or transformed. The documented `Power-I` blocker is fixed at the source:
+Formation-to-Backfield migration now runs only when a play genuinely lacks the
+`backfield` property; modern `backfield:''` preserves custom Formation `Power-I`
+exactly. `e2e-tag-library` is 11/11, Season tab is 152/152, and the final atomic
+build plus all 42 e2e scripts pass, including the real six-game integrity fixture.
+Shell remains opt-in; no release/tag. **Review focus:** one-way migration, team
+isolation, hidden-vs-historical behavior in both editors, custom Front semantics,
+Power-I boundary, malformed storage/fail-closed behavior. Next after acceptance:
+customer-facing Team Settings library UI over this contract.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.
