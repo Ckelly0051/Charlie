@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 42e5a00  Phase 4E-b phase-first Special Teams UI (Codex)
+Latest implementation: 994e30d  Phase 4E-c Special Teams analytics integration (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,6 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  994e30d  P4E-c structured Film Room, Study, and Advanced Reports integration
   42e5a00  P4E-b phase-first structured Special Teams charting UI
   ae5afc9  P4E-a adversarial review fixes; accepted after 45/45 gate
   0308486  Phase 4E-a pure Special Teams normalization, scoring, and ruleset seam
@@ -578,6 +579,14 @@ Lane status:
     require the in-app confirmation. Legacy details are quarantined, hidden, and
     not migrated; no cleanup occurs. Break Down 29/29, contract 19/19, tagging
     27/27, season 152/152, and fresh atomic full gate 45/45.
+  P4E-c landed at 994e30d. Film Room Special preset now shows structured Unit,
+    Outcome, Kick, and Return summaries; editing remains in the validated phase
+    form. Study adds validated unit/outcome/role/score dimensions. Advanced
+    Reports compute structured punt, kickoff, return, FG, and FG-block metrics;
+    mixed seasons ignore quarantined legacy details. Touchback net remains blank
+    without a configured rule. Legacy-only seasons retain byte-identical compute
+    output and both parity goldens remain clean. Contract 20/20, Break Down 31/31,
+    analytics registry 23/23, full atomic gate 45/45. Phase 4E is code-complete.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -600,11 +609,11 @@ NEXT ACTIONS
     as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
     charting. Use a phase-first, subject-role contract, derive scoring from the
     event, and make ruleset-sensitive calculations fail honestly. Next is an
-    P4E-b implementation 42e5a00 is ready for independent review. Focus on
-    unit-switch confirmation/no-loss, all six unit paths, FG/XP good/no-good,
-    return-attempt semantics, recovery TD ownership, opponent-scout labels,
-    specialist sync, legacy quarantine/no writes, keyboard behavior, and mobile
-    overflow. P4E-c Film Room/Study/report work waits for acceptance.
+    Phase 4E stack 0308486..994e30d is ready for Claude's comprehensive review.
+    Beta critical path: implement structured penalties from
+    GRIDIRON-IQ-PENALTY-MODEL.md, resolve review findings, run integrated desktop
+    smoke on real film, then package an opt-in beta with the redesign flag still
+    reversible. No legacy Special Teams cleanup without explicit confirmation.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

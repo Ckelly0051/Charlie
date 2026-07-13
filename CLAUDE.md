@@ -241,6 +241,25 @@ trusted. Current bytes remain untouched for safety. Before any cleanup deletes
 legacy keys, ask permission and obtain explicit confirmation immediately before
 acting. No cleanup is part of 42e5a00.
 
+**Phase 4E-c completes the Special Teams rebuild (`994e30d`, Codex).** Film
+Room's Special preset now reads structured Unit, Outcome, Kick, and Return
+summaries; those cells are intentionally read-only so edits stay in the
+validated phase form. Study exposes normalized Special Teams unit, outcome,
+subject role, and score dimensions. Advanced Reports computes structured punt,
+kickoff, return, Field Goal, and Field Goal Block metrics. If any structured
+events exist, quarantined legacy detail is excluded rather than blended into
+trusted totals; legacy-only seasons retain their exact old output. Touchback net
+is omitted without a configured rule, never hard-coded. Malformed structured
+objects fail closed in Film Room and Study. Focused contract 20/20, Break Down
+31/31, registry 23/23, both parity goldens clean, and atomic full gate 45/45.
+Phase 4E is code-complete and ready for Claude's comprehensive stack review.
+
+**Opt-in beta release bar:** structured penalties implemented and reviewed;
+Claude's comprehensive Phase 4 review resolved; integrated desktop smoke over
+real managed/linked film; then package the redesign behind its reversible flag.
+At the current pace this is approximately 3-5 focused build/review sessions,
+assuming no gate exposes a new persistence or analytics defect.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.
