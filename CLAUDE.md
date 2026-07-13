@@ -78,6 +78,10 @@ pixel-aligned through resize/fullscreen/video changes; and never crop, resize, o
 cover the film when inactive. This is planned work only, not yet prototyped or
 implemented in the redesigned workspace.
 
+**Copy TODO for the next implementation batch:** capitalize `Special Teams`
+consistently in redesigned unit selectors, headings, and labels. Do not spend a
+standalone prototype revision on this wording-only correction.
+
 **Scout perspective contract (2026-07-12):** Self-scout is the default/primary
 workflow and means our own games (our offense, defense, and special teams).
 Opponent scout means a future opponent's film versus a third team; that future

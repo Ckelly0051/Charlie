@@ -357,6 +357,10 @@ contract → tests each; never hand over "Phase 0" as one change):
 - Build filters, saved views, comparisons, and Watch Results.
 - Keep Advanced Reports one click away.
 - Add parity harnesses before enabling by default.
+- **Next increment:** add visual-first Study results over the accepted query
+  output: KPI summary, ranked effectiveness bars, run/pass composition, and
+  comparison deltas. Keep the exact film-linked result table and Advanced
+  Reports; visuals explain the canonical numbers rather than replacing them.
 
 ### Phase 3 — Plan
 
@@ -377,6 +381,8 @@ contract → tests each; never hand over "Phase 0" as one change):
   non-destructive, and consume or cover zero video pixels when tools are inactive.
 - Add Quick Chart as a profile, not a replacement workflow.
 - Migrate one unit at a time: offense, defense, then special teams.
+- Copy QA TODO: capitalize `Special Teams` consistently anywhere it appears as
+  a unit name, heading, selector, or chart label.
 
 ### Phase 5 — Default and cleanup
 
