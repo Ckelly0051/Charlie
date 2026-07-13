@@ -77,6 +77,16 @@ const rep = await page.evaluate(async () => {
     const relinked = plays.filter(p => liveClipIds.has(p.clipId));
     out.steps.relinkedCount = relinked.length;
     out.steps.clipCountAfter = pl.clips.length;
+
+    // Linked-folder setup pushes asset clips directly, then asks the shared
+    // auto-create path to build plays. Its visible count must refresh too.
+    pl.reset();
+    tagger.plays = [];
+    tagger.currentPlayId = null;
+    pl.clips.push({ id: pl._nextClipId++, name: 'linked-a', clipPath: 'linked-a', assetUrl: 'blob:linked-a', playId: null });
+    pl.clips.push({ id: pl._nextClipId++, name: 'linked-b', clipPath: 'linked-b', assetUrl: 'blob:linked-b', playId: null });
+    await pl._autoCreatePlays();
+    out.steps.linkedCountText = pl.clipCountEl && pl.clipCountEl.textContent;
   } catch (e) { out.err = String(e && e.stack || e); }
   return out;
 });
@@ -90,6 +100,7 @@ ok(s.distinctClipIds === 2, 'clips have DISTINCT identity (not collapsed to base
 ok(s.distinctPlayIds === 2, 'plays have DISTINCT identity', `distinct=${s.distinctPlayIds}`);
 ok(s.clipCountAfter === 2, 'reopen re-imports two clips', `got ${s.clipCountAfter}`);
 ok(s.relinkedCount === 2, 'BOTH plays relink on reopen (none orphaned)', `relinked=${s.relinkedCount}`);
+ok(s.linkedCountText === '2 clips', 'linked auto-create refreshes the visible playlist count', `got ${s.linkedCountText}`);
 ok(appErrors().length === 0, 'no console/page errors', appErrors().join(' | '));
 
 const repair = await page.evaluate(async () => {

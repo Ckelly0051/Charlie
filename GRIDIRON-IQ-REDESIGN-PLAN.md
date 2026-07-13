@@ -522,12 +522,11 @@ Lane status:
     for independent review.
 
 NEXT ACTIONS
-  Claude: independently review 905231e for reorder persistence/no-loss, exact
-    presentation-to-film refs, export accounting/XSS, audience compatibility,
-    keyboard/mobile accessibility, and classic-default isolation.
-  Codex: hold the next shared Plan surface until that review returns. After
-    acceptance, decide the two low UX follow-ups: Save-to-Plan picker and explicit
-    comparison-cohort selection.
+  R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
+  Shared next architecture milestone: durable catalog clip identity (R1/R2),
+    keeping the accepted filename matcher as the legacy fallback.
+  Product follow-ups remain the Save-to-Plan picker and explicit comparison-
+    cohort selection; neither should bypass the parity-locked Study/Plan contracts.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
@@ -599,15 +598,22 @@ NEXT ACTIONS
         duplicate basenames across subfolders, genuinely dup-named clips, managed vs
         linked, and reopen-after-repair. Reproduce-first, assert NO ghost/orphan
         plays and tags preserved. Do not build on repair until this passes.
-        AUTOMATED PORTION GREEN (current working milestone): `(n)` copies,
+        COMPLETE (2026-07-13): the automated portion covers `(n)` copies,
         wholesale rename/order, partial-match confirmation, cancellation,
         duplicate basenames across subfolders, managed persistence, linked-folder
         rehydrate (including linked `(n)` rename + every marked region sharing a
         stale clip id + managed-to-linked playlist replacement), reopen relink,
-        and the cross-game add race. Remaining acceptance
-        gate: a real-desktop single-file + folder smoke on managed and linked film
-        before calling R5 complete. Independent review accepted both `713324e`
-        and linked rehydrate follow-up `e08ea6a` with no findings (`135c43e`).
+        and the cross-game add race. Codex then led the real Tauri smoke with a
+        disposable seven-play season: managed single file, managed three-clip
+        folder, and linked three-clip folder all created the expected plays,
+        played, retained sentinel tags, and survived close/relaunch. Duplicate
+        basenames in distinct subfolders remained distinct; repeated linked-game
+        loads stayed at three clips. The real six-game season remained read-only.
+        A stale immediate `0 clips` label on linked creation was found and fixed by
+        refreshing playlist indicator/count in `_autoCreatePlays`, regression-
+        pinned in `e2e-clip-identity`. Focused film gates plus real-season integrity,
+        onboarding, and Film Room are green with zero page errors. Independent
+        review had already accepted `713324e` + `e08ea6a` (`135c43e`).
     (b) after a RELEASE CYCLE of flag-on real use: drop the JSON dual-write to
         single-write `.db`, then the dedicated library-root move + catalog
         backup-ring / version-history migrations. The A3 smoke only exercised a

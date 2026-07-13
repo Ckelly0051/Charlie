@@ -522,8 +522,8 @@ unmatched, the coach must choose matched-only, explicitly add as new plays, or
 cancel. Partial exact matches never order-pair unrelated leftovers. Multiple
 marked plays sharing a stale clip id follow their primary clip. Failing-first
 `e2e-relink-legacy` 7/7; clip matcher 14/14; managed, linked, reopen, race, and
-real six-game + synthetic integrity gates green. Still pending: the R5
-real-desktop single-file/folder smoke. Durable catalog `clip_id` authority (R1/R2)
+real six-game + synthetic integrity gates green. R5's real-desktop smoke passed
+on 2026-07-13 (details below). Durable catalog `clip_id` authority (R1/R2)
 remains future work; this is the safe legacy fallback, not that cutover.
 
 **Linked rehydrate follow-up (`e08ea6a`) — ACCEPTED, see review above.** An
@@ -535,6 +535,22 @@ region without creating/deleting plays. Failing-first `e2e-relink-linked` moved
 5/8 → 8/8; rehydrate is also an atomic playlist replacement, so switching a
 loaded game from managed to linked cannot append duplicate live clips. Managed
 re-add, repair, and pure matcher regressions remain green.
+
+**R5 REAL-DESKTOP FILM SMOKE — PASSED (2026-07-13, Codex led).** Built the
+current Tauri debug app from source and used a disposable `R5 Disposable Smoke`
+season plus read-only copies of local film. A managed single file created one
+play; a managed three-clip folder created three plays, including duplicate
+`0001.MOV` basenames in separate subfolders; and a linked three-clip folder
+created three plays without copying. Distinct formation sentinels were saved on
+all seven plays. After a full app close/relaunch, every game auto-loaded playable
+film with the same play counts and tags; repeated linked-game switches remained
+exactly three clips (no accumulation). The real six-game season was not edited.
+The smoke exposed one presentation-only defect: a newly linked playlist showed
+`0 clips` until reopen even though all three clips were live. `_autoCreatePlays`
+now refreshes the indicator and count; `e2e-clip-identity` pins the linked-style
+direct-asset path. Verification: clip-identity 19/19, relink-legacy 7/7,
+relink-linked 8/8, integrity 0 violations over the real six-game fixture,
+onboarding 46/46, Film Room 60/60, and zero page errors. R5 is complete.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
