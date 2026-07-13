@@ -22,6 +22,7 @@
  * the coach re-links the file when they open that game.
  */
 import { detectBackend } from './storage-backend.js';
+import { SpecialTeamsModel } from './special-teams.js';
 
 export class SeasonStore {
   constructor(backend) {
@@ -270,7 +271,12 @@ export class SeasonStore {
       g.gameInfo = g.gameInfo || {};
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
-      g.plays.forEach(p => { SeasonStore.migratePlayFormation(p); SeasonStore.stripStAlignment(p); SeasonStore.stripLeakedFronts(p); });
+      g.plays.forEach(p => {
+        SeasonStore.migratePlayFormation(p);
+        SeasonStore.stripStAlignment(p);
+        SeasonStore.stripLeakedFronts(p);
+        SpecialTeamsModel.normalizePlay(p);
+      });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
       d.activeGameId = d.games[0].id;

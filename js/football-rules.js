@@ -39,6 +39,6 @@ export const DRIVE_ENDERS = new Set([
  */
 export function isPlayTagged(play) {
   const t = (play && play.tags) || {};
-  return !!(t.playType || t.result || t.stType || t.runPass
+  return !!(play && play.specialTeams) || !!(t.playType || t.result || t.stType || t.runPass
     || t.formation || t.defFront || t.coverage || t.blitz);
 }

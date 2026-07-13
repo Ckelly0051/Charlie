@@ -9,6 +9,7 @@ import { AdvancedMetrics } from './advanced-metrics.js';
 import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
+import { SpecialTeamsModel } from './special-teams.js';
 
 const RUN_COLOR = '#f97316';
 const PASS_COLOR = '#38bdf8';
@@ -100,6 +101,8 @@ export class StatsEngine {
    * as 3 for offense plays that mark the drive's FG outcome directly.
    */
   static playPoints(p) {
+    const structured = SpecialTeamsModel.points(p);
+    if (structured) return structured;
     if (!p || !p.tags) return 0;
     const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
@@ -122,6 +125,12 @@ export class StatsEngine {
    *   or a Safety, our defense scored → 'us'.
    */
   static scoringSide(p) {
+    if (p && p.specialTeams && SpecialTeamsModel.points(p)) {
+      const team = SpecialTeamsModel.scoringTeam(p);
+      if (team === 'subject') return 'us';
+      if (team === 'opponent') return 'them';
+      return 'unknown';
+    }
     if (!p || !p.tags) return 'us';
     // Explicit "Scored by" wins — the one consistent way to attribute any kick /
     // special-teams score (XP, FG, 2-Pt, return TD) to us or the opponent, since
@@ -157,11 +166,12 @@ export class StatsEngine {
       if (!pts) return;
       // scoringSide honors the play's explicit "Scored by" (us/them) for kicks.
       const side = StatsEngine.scoringSide(p);
-      if (side === 'them') them += pts; else us += pts;
+      if (side === 'them') them += pts;
+      else if (side === 'us') us += pts;
       const q = p.tags.quarter || '';
       if (q) {
         if (!byQuarter[q]) byQuarter[q] = { us: 0, them: 0 };
-        byQuarter[q][side] += pts;
+        if (side === 'us' || side === 'them') byQuarter[q][side] += pts;
       }
       events.push({
         playId: p.id, quarter: q, points: pts, side,

@@ -120,7 +120,8 @@ play.specialTeams = {
     // returned | touchback | fairCatch | downed | outOfBounds | blocked |
     // muffed | recovered | good | noGood | badSnap | touchdown | safety
     recoveredBy: null,         // subject | opponent | unknown | null
-    score: 'touchdown'         // touchdown | fieldGoal | extraPoint | safety | null
+    score: 'touchdown',        // touchdown | fieldGoal | extraPoint | safety | null
+    scoredBy: null             // rare explicit override: subject | opponent | unknown | null
   },
 
   isOnside: false,
@@ -144,14 +145,17 @@ play.specialTeams = {
 - `unit` is coach-facing and intentionally distinguishes Kickoff from Kick
   Return and Punt from Punt Return. `subjectRole` is stored explicitly so
   analytics do not have to parse a label.
-- `outcome.status` describes ball state or attempt disposition. `score`
-  describes a scoring event. Neither stores `us` or `them`.
+- `outcome.status` describes ball state or attempt disposition only. It never
+  stores touchdown or safety; `score` is the one scoring-event field.
 - Scoring side is derived from `subjectRole`, `score`, and `recoveredBy`. If a
   rare play remains ambiguous, the UI asks which team possessed/scored using
-  team names. It never falls back to Us/Them wording.
+  team names and stores `scoredBy` as subject/opponent. It never falls back to
+  Us/Them wording. A safety without enough ownership evidence fails closed as
+  unknown instead of being assigned to the wrong team.
 - Kick distance, landing spot, return yards, and end spot are independent.
   Net, field-position value, and return opportunity are derived only when the
   required inputs and configured ruleset are known.
+- Return yards may be negative. Kick distance and timing values may not.
 - A fair catch, touchback, downed ball, or out-of-bounds kick is not silently
   counted as a return attempt.
 - Onside and fake are modifiers. A fake may also carry the normal run/pass
@@ -298,4 +302,3 @@ but unique-play KPIs must deduplicate composite play references.
 - Legacy seasons reopen byte-for-byte with old special-teams fields intact.
 - Full e2e, parity, integrity fuzzer, desktop smoke, and viewport QA pass before
   any default-on or release decision.
-
