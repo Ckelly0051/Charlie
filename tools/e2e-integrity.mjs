@@ -91,7 +91,17 @@ const campaign = async (fixture, seed, nOps) => {
       async commit() { sm.commitActive(); return { affected: [store.data.activeGameId] }; },
       async tagEdit() { const p = tagger.plays[ri(Math.max(tagger.plays.length, 1))]; if (p) { p.tags.playType = pick(['Run Inside', 'Run Outside', 'Short Pass', 'Deep Pass']); p.tags.runPass = p.tags.playType.includes('Run') ? 'Run' : 'Pass'; p.tags.result = pick(['Gain', 'No Gain', 'Touchdown']); p.tags.yardage = String(ri(25)); } sm.commitActive(); return { affected: [store.data.activeGameId] }; },
       async clearTags() { const p = tagger.getCurrentPlay && tagger.getCurrentPlay(); if (p) { p.tags.playType = ''; p.tags.result = ''; } sm.commitActive(); return { affected: [store.data.activeGameId] }; },
-      async addClips() { await tagger.playlist.addFiles(mkFiles(1 + ri(3))); sm.commitActive(); return { affected: [store.data.activeGameId] }; },
+      async addClips() {
+        // The stress operation intentionally adds genuinely-new clips. Answer
+        // the ghost-prevention confirmation explicitly so the fuzzer tests that
+        // path instead of waiting forever on an in-app modal.
+        const choice = tagger._choiceDialog;
+        tagger._choiceDialog = async () => 'new';
+        try { await tagger.playlist.addFiles(mkFiles(1 + ri(3))); }
+        finally { tagger._choiceDialog = choice; }
+        sm.commitActive();
+        return { affected: [store.data.activeGameId] };
+      },
       async switchGame() { const old = store.data.activeGameId; sm.switchToGame(pick(store.data.games.map(g => g.id))); return { affected: [old] }; },
       async newGame() { const before = store.data.games.map(g => g.id); sm.newGame(); return { affected: store.data.games.map(g => g.id).filter(i => !before.includes(i)), added: true }; },
       async removeGame() { if (store.data.games.length <= 2) return { skip: 1 }; const id = pick(store.data.games.map(g => g.id)); await sm.removeGame(id); return { affected: [id], removed: 1 }; },
@@ -151,7 +161,11 @@ const campaign = async (fixture, seed, nOps) => {
   return rep;
 };
 
-const realFixtures = FIXTURE_PATHS.filter(f => fs.existsSync(f)).map(f => JSON.parse(fs.readFileSync(f, 'utf-8')));
+// CI/review can force the portable fixture when a large private season exceeds
+// the local browser protocol budget; the default still prefers real data.
+const realFixtures = process.env.FFA_INTEGRITY_SYNTHETIC
+  ? []
+  : FIXTURE_PATHS.filter(f => fs.existsSync(f)).map(f => JSON.parse(fs.readFileSync(f, 'utf-8')));
 const fixtures = realFixtures.length ? realFixtures : [buildSynthetic()];
 for (const fixture of fixtures) {
   console.log(`\n${'='.repeat(72)}\nFIXTURE: ${fixture.seasonName || '(synthetic)'}  (${(fixture.games || []).length} games)`);

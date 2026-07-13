@@ -486,18 +486,22 @@ localStorage lands later with the coach. Flag-OFF + browser bundle unaffected
 still green. NEXT in this lane (needs coach, real code change): rewire
 `VersionManager` to read/write through this ring when `ffa_sql_catalog` is ON.
 
-**Ghost-plays investigation (`6f9d7aa`, code read — not yet fixed).** The coach's
+**Ghost-plays fallback fix (current working milestone — pending independent review).** The coach's
 "repair film adds duplicate/ghost plays" report was diagnosed: **Repair Film** is
 safe (3-tier match path→name→order, bails on any unmatched play), but **Add Clips /
 re-add a folder** (`playlist-manager.js` `addFiles`→`_relinkSavedPlays`→
-`_autoCreatePlays`) has no order fallback and auto-creates a whole-clip play for any
-clip that fails to relink → orphaned tagged play + duplicate untagged play (the
-v1.10.7 class). **Windows `(n)` rename-on-copy and dup basenames both defeat the
-filename matching and are defended nowhere.** The fix is folded into the file-system
-rebuild as REQUIREMENTS R1–R5 in `GRIDIRON-IQ-REDESIGN-PLAN.md` (authoritative
-`clip_id`, relink consumes it, `(n)`-normalized fallback tier, addFiles as safe as
-repair, and R5 — re-verify repair single+folders incl. `(n)`/dup cases BEFORE
-building on the file system). See [[windows-dup-rename-ghost-plays]].
+`_autoCreatePlays`) previously auto-created a whole-clip play for any clip that
+failed to relink → orphaned tagged play + duplicate untagged play (the v1.10.7
+class). `PlaylistManager.addFiles` now uses the pure `planClipMatch` fallback
+(path → basename → Windows `(n)` normalization → wholesale-rename order) BEFORE
+any mutation or copy. If orphaned tagged plays exist and selected files remain
+unmatched, the coach must choose matched-only, explicitly add as new plays, or
+cancel. Partial exact matches never order-pair unrelated leftovers. Multiple
+marked plays sharing a stale clip id follow their primary clip. Failing-first
+`e2e-relink-legacy` 7/7; clip matcher 14/14; managed, linked, reopen, race, and
+real six-game + synthetic integrity gates green. Still pending: independent review and the R5
+real-desktop single-file/folder smoke. Durable catalog `clip_id` authority (R1/R2)
+remains future work; this is the safe legacy fallback, not that cutover.
 
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 

@@ -34,42 +34,57 @@ const rep = await page.evaluate(async () => {
   const out = { err: null };
   try {
     const pl = window.app.playlist, tagger = window.app.tagger;
-    const mkFile = (rel) => { const f = new File([new Uint8Array(16)], rel.split('/').pop(), { type: 'video/mp4' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
-    const settle = async () => { for (let i = 0; i < 60 && tagger.plays.length < pl.clips.length; i++) await new Promise(r => setTimeout(r, 25)); };
+    const mkFile = rel => { const f = new File([new Uint8Array(16)], rel.split('/').pop(), { type: 'video/mp4' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
+    const play = (row, i) => ({
+      id: i + 1, timestamp: { start: i, end: i + 10 },
+      tags: { unit: 'offense', formation: `Saved ${i + 1}`, playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', custom: [] },
+      annotations: [], notes: `tagged-${i + 1}`, clipName: row.name || '', ...(row.path ? { clipPath: row.path } : {}), clipId: row.clipId ?? (900 + i)
+    });
+    const run = async (saved, files, choice = 'matched') => {
+      pl.reset(); tagger.plays = saved.map(play); tagger.nextId = tagger.plays.length + 1; tagger.currentPlayId = tagger.plays[0]?.id || null;
+      const dialogs = [], persisted = [];
+      tagger._choiceDialog = async (message, options) => { dialogs.push({ message, keys: options.map(option => option.key) }); return choice; };
+      pl.onFilmFiles = selected => persisted.push(...selected.map(file => file.webkitRelativePath || file.name));
+      const before = JSON.stringify(tagger.plays);
+      await pl.addFiles(files.map(mkFile));
+      const live = new Set(pl.clips.map(clip => clip.id));
+      return {
+        before, after: JSON.stringify(tagger.plays), playCount: tagger.plays.length, clipCount: pl.clips.length,
+        linked: tagger.plays.filter(savedPlay => savedPlay.id <= saved.length && live.has(savedPlay.clipId)).length,
+        tagged: tagger.plays.filter(savedPlay => savedPlay.tags?.result === 'Gain').length,
+        paths: tagger.plays.map(savedPlay => savedPlay.clipPath || savedPlay.clipName),
+        clipPaths: pl.clips.map(clip => clip.clipPath), dialogs, persisted
+      };
+    };
 
-    // --- seed LEGACY saved plays: basename clipName only, NO clipPath, stale clipId, tagged ---
-    pl.reset();
-    tagger.plays = ['IMG_6251', 'IMG_6252', 'IMG_6253'].map((base, i) => ({
-      id: i + 1, timestamp: { start: 0, end: 10 },
-      tags: { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', custom: [] },
-      annotations: [], notes: '', clipName: base, clipId: 900 + i   // stale id (not a live clip)
-    }));
-    tagger.nextId = 4;
-    const before = tagger.plays.length;
-
-    // --- coach re-adds the FOLDER (full relative paths) + one genuinely-new clip ---
-    await pl.addFiles([mkFile('St Peter/IMG_6251.mp4'), mkFile('St Peter/IMG_6252.mp4'), mkFile('St Peter/IMG_6253.mp4'), mkFile('St Peter/IMG_9999.mp4')]);
-    await settle();
-
-    out.before = before;
-    out.after = tagger.plays.length;
-    out.clips = pl.clips.length;
-    const liveClipIds = new Set(pl.clips.map(c => c.id));
-    const legacy = tagger.plays.filter(p => [1, 2, 3].includes(p.id));
-    out.legacyRelinked = legacy.filter(p => liveClipIds.has(p.clipId)).length;
-    out.legacyStillTagged = legacy.filter(p => p.tags && p.tags.result === 'Gain').length;
-    // the 3 legacy + exactly 1 new auto-created = 4 total, no dups
-    out.taggedTotal = tagger.plays.filter(p => p.tags && p.tags.playType).length;
+    out.intentionalNew = await run(
+      ['IMG_6251','IMG_6252','IMG_6253'].map(name => ({ name })),
+      ['St Peter/IMG_6251.mp4','St Peter/IMG_6252.mp4','St Peter/IMG_6253.mp4','St Peter/IMG_9999.mp4'],
+      'new'
+    );
+    out.windowsRename = await run([{ name: 'Play 12' }], ['Readd/Play 12 (1).mp4']);
+    out.orderFallback = await run([
+      { name: 'Old A', path: 'old/alpha', clipId: 900 },
+      { name: 'Old A second play', path: 'old/alpha', clipId: 900 },
+      { name: 'Old B', path: 'old/bravo', clipId: 901 }
+    ], ['new/X.mp4','new/Y.mp4']);
+    out.safePartial = await run([{ name: 'IMG_1' }, { name: 'IMG_2' }], ['Folder/IMG_1.mp4','Folder/NEW.mp4'], 'matched');
+    out.cancel = await run([{ name: 'IMG_1' }, { name: 'IMG_2' }], ['Folder/IMG_1.mp4','Folder/NEW.mp4'], 'cancel');
+    out.distinctFolders = await run([
+      { name: '0001', path: 'endzone/0001' }, { name: '0001', path: 'sideline/0001' }
+    ], ['endzone/0001.mp4','sideline/0001.mp4']);
   } catch (e) { out.err = String(e && e.stack || e); }
   return out;
 });
 
-console.log('\nLegacy folder re-add (St. Peter dup) ---------------------------');
+console.log('\nSafe folder re-add / ghost-play prevention ---------------------');
 if (rep.err) console.log('  IN-PAGE ERROR:', rep.err);
-ok(rep.after === 4, 'no duplicate plays (3 legacy + 1 new = 4)', `before=${rep.before} after=${rep.after}`);
-ok(rep.clips === 4, 'four clips in playlist', `got ${rep.clips}`);
-ok(rep.legacyRelinked === 3, 'all 3 legacy plays relinked to live clips (basename fallback)', `got ${rep.legacyRelinked}`);
-ok(rep.legacyStillTagged === 3, 'legacy tags preserved', `got ${rep.legacyStillTagged}`);
+ok(rep.intentionalNew?.playCount === 4 && rep.intentionalNew?.linked === 3 && rep.intentionalNew?.dialogs.length === 1, 'a genuinely new clip creates a play only after explicit Add as new choice', JSON.stringify(rep.intentionalNew));
+ok(rep.windowsRename?.playCount === 1 && rep.windowsRename?.linked === 1 && rep.windowsRename?.dialogs.length === 0, 'Windows (n)-renamed film relinks without a ghost or prompt', JSON.stringify(rep.windowsRename));
+ok(rep.orderFallback?.playCount === 3 && rep.orderFallback?.linked === 3 && rep.orderFallback?.clipCount === 2 && rep.orderFallback?.dialogs.length === 0, 'equal-count wholesale rename relinks by order, including multiple plays per stale clip', JSON.stringify(rep.orderFallback));
+ok(rep.safePartial?.playCount === 2 && rep.safePartial?.clipCount === 1 && rep.safePartial?.linked === 1 && rep.safePartial?.persisted.length === 1 && /IMG_1/.test(rep.safePartial.persisted[0]), 'Use matched only skips unmatched files before copy or play creation', JSON.stringify(rep.safePartial));
+ok(rep.cancel?.playCount === 2 && rep.cancel?.clipCount === 0 && rep.cancel?.persisted.length === 0 && rep.cancel?.before === rep.cancel?.after, 'Cancel leaves clips, plays, tags, and persistence untouched', JSON.stringify(rep.cancel));
+ok(rep.distinctFolders?.playCount === 2 && rep.distinctFolders?.linked === 2 && rep.distinctFolders?.paths[0] !== rep.distinctFolders?.paths[1], 'duplicate basenames in distinct folders remain distinct', JSON.stringify(rep.distinctFolders));
 ok(pageErrors.length === 0, 'no console/page errors', pageErrors.join(' | '));
 
 await browser.close();

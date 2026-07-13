@@ -569,13 +569,14 @@ NEXT ACTIONS
         match on `clip_id` from the store first, falling back to filename heuristics
         only for legacy rows with no id. This is what folds the ghost-plays fix into
         the build instead of leaving it a follow-up patch.
-        GROUNDWORK DONE (`2c6522f`, dormant): `js/clip-identity.js` is the PURE,
-        tested filename-fallback matcher this rewire will adopt — tiered match
-        (exact path → basename → `(n)`-normalized → order, consume-once) returning
-        `unmatchedClips` (= what would ghost). NOT wired into the app yet (imported
-        by nothing; like the SqlCatalog A1 groundwork), so it changes no behavior.
-        `tools/e2e-clip-match.mjs` 13/13 pins R3 + subfolder distinctness + legacy
-        relink + dup-name pairing + truly-new-clip-stays-unmatched.
+        FALLBACK LIVE (current working milestone; pending independent review):
+        `js/clip-identity.js` now drives PlaylistManager add/re-add — tiered match
+        (exact path → basename → `(n)`-normalized → wholesale-rename order,
+        consume-once) returning `unmatchedClips` (= what would ghost). Order is
+        deliberately allowed only when NO stronger match exists; after a partial
+        exact match, unrelated leftovers stay unmatched for coach confirmation.
+        `tools/e2e-clip-match.mjs` 14/14 pins this policy. Durable catalog-first
+        `clip_id` matching remains the unfinished R1/R2 cutover.
     R3. WINDOWS `(n)` NORMALIZATION. The filename-fallback tiers must strip a
         trailing ` (\d+)` for MATCHING only (never mutate stored names), consume-once,
         below exact path/basename — so a re-added `Play 12 (1).mp4` relinks to saved
@@ -585,12 +586,25 @@ NEXT ACTIONS
         the repair planner has (or route re-adds through it), and never silently
         auto-create a ghost play for an unmatched clip when orphaned tagged plays
         exist — hold/confirm instead.
+        IMPLEMENTED (current working milestone; pending independent review):
+        addFiles plans before mutating any clip/play/file. Ambiguous selections
+        offer `Use matched only`, explicit `Add unmatched as new plays`, or
+        `Cancel`. Matched-only copies only matched files; Cancel leaves serialized
+        plays and persistence untouched. Multiple marked plays sharing one stale
+        clip id follow the relinked primary. Failing-first
+        `tools/e2e-relink-legacy.mjs` now passes 7/7.
     R5. ★ RE-CHECK FILE REPAIR BEFORE BUILDING ON IT. Before committing any work that
         depends on the new file system, RE-VERIFY repair + re-add end to end for BOTH
         single files AND folders, explicitly covering: Windows `(n)`-renamed copies,
         duplicate basenames across subfolders, genuinely dup-named clips, managed vs
         linked, and reopen-after-repair. Reproduce-first, assert NO ghost/orphan
         plays and tags preserved. Do not build on repair until this passes.
+        AUTOMATED PORTION GREEN (current working milestone): `(n)` copies,
+        wholesale rename/order, partial-match confirmation, cancellation,
+        duplicate basenames across subfolders, managed persistence, linked-folder
+        rehydrate, reopen relink, and the cross-game add race. Remaining acceptance
+        gate: independent review plus a real-desktop single-file + folder smoke on
+        managed and linked film before calling R5 complete.
     (b) after a RELEASE CYCLE of flag-on real use: drop the JSON dual-write to
         single-write `.db`, then the dedicated library-root move + catalog
         backup-ring / version-history migrations. The A3 smoke only exercised a

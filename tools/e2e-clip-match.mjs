@@ -93,5 +93,14 @@ ok(normKey('endzone/PLAY 12 (1).mp4') === 'play 12', 'normKey = basename, dup-st
   ok(ghosts(r) === 0 && r.matches.every(m => m.tier === 'order'), 'wholesale-renamed clips with equal counts pair by folder order (no ghost)', JSON.stringify(r));
 }
 
+// ---- 9. partial match never order-pairs an unrelated equal remainder -------
+{
+  const r = planClipMatch(
+    [play('IMG_1'), play('IMG_2')],
+    [clip('Folder/IMG_1.mp4'), clip('Folder/NEW.mp4')]);
+  ok(r.matches.length === 1 && r.matches[0].tier === 'base' && r.unmatchedPlays.length === 1 && r.unmatchedClips.length === 1,
+    'a partial exact match leaves unrelated equal leftovers for coach confirmation', JSON.stringify(r));
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

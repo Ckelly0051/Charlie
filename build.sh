@@ -16,7 +16,7 @@ JS_FILES="
   js/football-rules.js js/video-controller.js js/canvas-overlay.js js/play-tagger.js
   js/roster-manager.js js/play-filter.js js/notes-manager.js js/sql-catalog.js js/catalog-persistence.js js/storage-backend.js
   js/season-store.js js/demo-season.js js/storage.js js/play-detector.js
-  js/clip-analyzer.js js/backend-client.js js/vision-analyzer.js js/playlist-manager.js
+  js/clip-analyzer.js js/backend-client.js js/vision-analyzer.js js/clip-identity.js js/playlist-manager.js
   js/quick-chart.js js/heat-maps.js js/advanced-metrics.js js/visualizations.js
   js/charts.js js/multi-angle.js js/stats-engine.js js/analytics-registry.js js/workspace-context.js js/study-query.js js/cross-game-cutup.js js/study-plan.js js/plan-export.js js/study-screen.js js/plan-screen.js js/workspace-shell.js js/history-manager.js
   js/version-manager.js js/scoreboard-ocr.js js/suggestion-engine.js js/cutup-exporter.js
