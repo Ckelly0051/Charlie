@@ -468,6 +468,9 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
+  Historical 4A boundary f09517d was also rebuilt in isolation on 2026-07-13
+  and passed all 42 harnesses present at that commit. Current 4C is 44/44;
+  its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
   e8f0abe  Phase 4C opt-in Break Down form hierarchy + perspective labels
@@ -538,11 +541,13 @@ Lane status:
     Study-to-Plan save milestone is closed; exact composite film refs remain
     unchanged.
   Phase 4 Break Down: 4A per-team tag-library foundation implemented at
-    f09517d and awaiting independent review. 4B customer-facing Team Settings
+    f09517d; its previously missing exact-commit full gate is now 42/42. 4B customer-facing Team Settings
     editor implemented at de62d70. At the coach's direction, 4C continued before
     that review and landed at e8f0abe: opt-in composition over the existing live
     form, with football hierarchy and subject-aware labels but no schema or tag
-    semantics change. All three increments are ready for independent review.
+    semantics change. Codex's adversarial 4C self-review found no defect and
+    hardened the focused gate from 11 to 14 assertions; independent Claude
+    review of the stack remains requested.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.

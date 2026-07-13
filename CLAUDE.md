@@ -78,7 +78,8 @@ pixel-aligned through resize/fullscreen/video changes; and never crop, resize, o
 cover the film when inactive. This is planned work only, not yet prototyped or
 implemented in the redesigned workspace.
 
-**Phase 4A tag-library foundation is ready for review (`f09517d`, Codex).** Adds
+**Phase 4A tag-library foundation passed its exact historical full gate
+(`f09517d`, Codex).** Adds
 pure `TagLibrary` state for per-team Formation, Backfield, and Front vocabulary:
 ordered defaults, custom values, enabled/hidden choices, restore defaults, and
 one-way lossless migration from `ffa_custom_chips_<team>` to
@@ -90,7 +91,10 @@ Formation-to-Backfield migration now runs only when a play genuinely lacks the
 `backfield` property; modern `backfield:''` preserves custom Formation `Power-I`
 exactly. `e2e-tag-library` is 11/11, Season tab is 152/152, and the final atomic
 build plus all 42 e2e scripts pass, including the real six-game integrity fixture.
-Shell remains opt-in; no release/tag. **Review focus:** one-way migration, team
+On 2026-07-13 Codex also checked out the exact commit in an isolated worktree,
+rebuilt it, and reran every harness present there: **42/42 green**. This closes
+the full-gate step Claude could not finish before its usage limit. Shell remains
+opt-in; no release/tag. **Review focus:** one-way migration, team
 isolation, hidden-vs-historical behavior in both editors, custom Front semantics,
 Power-I boundary, malformed storage/fail-closed behavior. Next after acceptance:
 customer-facing Team Settings library UI over this contract.
@@ -111,7 +115,8 @@ confirmation, case-insensitive duplicate handling, historical-tag preservation,
 and mobile overflow/touch sizing. Next after acceptance: Phase 4C Break Down
 form recomposition behind its own flag; do not change the stored play schema.
 
-**Phase 4C Break Down form composition is ready for review (`e8f0abe`, Codex).**
+**Phase 4C Break Down form composition passed Codex's adversarial self-review
+(`e8f0abe`, Codex; independent Claude review still pending).**
 At the coach's direction, work continued while the 4A/4B review is pending. A
 new `BreakdownForm` composition layer activates only when
 `ffa_breakdown_form_v2=1`; flag-off markup and behavior remain classic. It
@@ -121,10 +126,14 @@ Our/Opponent Offensive Look, Our/Opponent Defensive Call, Defense Faced,
 Offense Faced, and Special Teams. It does not clone controls, own tag state, or
 change the play schema, so existing listeners, Save & Next, custom libraries,
 Film Room, analytics, and persistence remain on their established paths. The
-focused harness is 11/11 (both flag states, complete field presence, chip/unit
-save paths, self/opponent labels, 390px overflow/touch sizing); tagging 27/27,
+focused harness is now 14/14: both flag states, every Offense/Defense/Special
+Teams/player/situation/helper field present, chip and all-unit save paths, the
+real game-perspective scout event, primary/faced collapse behavior, subject-aware
+Special Teams, and 390px overflow/touch sizing. Tagging remains 27/27,
 tag fields 15/15, tag-library settings 10/10, workspace shell 15/15, and the
-fresh bundle passes all 44 e2e scripts atomically. Visual QA at 1440x900 removed
+fresh bundle again passes all 44 e2e scripts atomically. Source tracing found no
+DOM mutation, perspective, field-reachability, collapse, or flag-off defect.
+Visual QA at 1440x900 removed
 a duplicate primary heading before commit. No release/tag. **Review focus:** DOM
 mutation safety, perspective synchronization, flag-off purity, primary/secondary
 collapse behavior, all-field reachability, and disabled/no-play presentation.

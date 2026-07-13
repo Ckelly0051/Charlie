@@ -21,7 +21,7 @@ await page.goto(URL, { waitUntil: 'networkidle0' });
 let state = await page.evaluate(() => ({
   mounted: document.querySelector('#tagForm').classList.contains('breakdown-form-v2'),
   sections: [...document.querySelectorAll('.bdv-section-label strong')].map(el => el.textContent),
-  required: ['tagUnit','tagDown','tagDistance','tagFormation','tagBackfield','tagStrength','tagPersonnel','tagMotion','tagRunPass','tagPlayType','tagPlayDir','tagResult','tagYardage','tagDefFront','tagCoverage','tagBlitz','tagPlayersSection','customFieldsSection','notesArea','tagHash','tagQuarter','tagFieldSide','tagYardLine'].every(id => !!document.getElementById(id)),
+  required: ['tagUnit','tagDown','tagDistance','tagFormation','tagBackfield','tagStrength','tagPersonnel','tagMotion','tagRunPass','tagPlayType','tagPlayDir','tagResult','tagYardage','tagDefFront','tagCoverage','tagBlitz','tagStType','tagScoreFor','tagKickOutcome','tagKickDistance','tagHangTime','tagReturnYards','tagKickedTo','tagPlayerKicker','tagPlayerReturner','tagPlayersSection','tagPlayerBC','tagPlayerPasser','tagPlayerReceiver','tagPlayerTackler','tagPlayerTakeaway','customFieldsSection','notesArea','tagHash','tagQuarter','tagFieldSide','tagYardLine','tagDriveNumber','customTagInput','autoDDToggle','templateSelect'].every(id => !!document.getElementById(id)),
   offense: document.querySelector('.group-offense .tag-group-head').textContent.trim(),
   defense: document.querySelector('.group-defense .tag-group-head').textContent.trim(),
 }));
@@ -49,13 +49,42 @@ state = await page.evaluate(() => ({
 ok(state.unit === 'defense' && /Defense/.test(state.perspective), 'Existing unit toggle still writes the play and updates composition');
 ok(/^Our Defensive Call/.test(state.defense) && /^Offense Faced/.test(state.offense), 'Defense leads with our call and labels the opponent look correctly', JSON.stringify(state));
 
-await page.evaluate(() => document.querySelector('#tagForm').classList.add('is-scout'));
+state = await page.evaluate(() => {
+  const primary = document.querySelector('.group-defense');
+  const secondary = document.querySelector('.group-offense');
+  primary.querySelector('.tag-group-head').click();
+  const primaryBodyVisible = getComputedStyle(primary.querySelector('.tag-group-body')).display !== 'none';
+  const secondaryStartedCollapsed = getComputedStyle(secondary.querySelector('.tag-group-body')).display === 'none';
+  secondary.querySelector('.tag-group-head').click();
+  const secondaryOpened = getComputedStyle(secondary.querySelector('.tag-group-body')).display !== 'none';
+  return { primaryBodyVisible, secondaryStartedCollapsed, secondaryOpened };
+});
+ok(state.primaryBodyVisible && state.secondaryStartedCollapsed && state.secondaryOpened, 'Primary form stays open while the faced group remains intentionally collapsible', JSON.stringify(state));
+
+await page.evaluate(() => {
+  const perspective = document.querySelector('#gamePerspective');
+  perspective.value = 'scout';
+  perspective.dispatchEvent(new Event('change', { bubbles: true }));
+});
 await page.waitForFunction(() => /Opponent scout/.test(document.querySelector('#bdvPerspective')?.textContent || ''));
 state = await page.evaluate(() => ({
   perspective: document.querySelector('#bdvPerspective').textContent,
   defense: document.querySelector('.group-defense .tag-group-head').textContent.trim(),
 }));
 ok(/Opponent scout/.test(state.perspective) && /^Opponent Defensive Call/.test(state.defense), 'Opponent scout labels the opponent as the analytics subject');
+
+await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
+await page.waitForFunction(() => document.querySelector('#tagForm').classList.contains('mode-special'));
+state = await page.evaluate(() => ({
+  perspective: document.querySelector('#bdvPerspective').textContent,
+  primary: document.querySelector('[data-bdv-section="look"] strong').textContent,
+  specialVisible: getComputedStyle(document.querySelector('.group-special')).display !== 'none',
+  offenseHidden: getComputedStyle(document.querySelector('.group-offense')).display === 'none',
+  defenseHidden: getComputedStyle(document.querySelector('.group-defense')).display === 'none',
+  unit: window.app.tagger.plays[0].tags.unit,
+}));
+ok(state.unit === 'special' && /Opponent scout · Special Teams/.test(state.perspective), 'Special Teams preserves the live unit-save path and subject context', JSON.stringify(state));
+ok(state.primary === 'Opponent Special Teams' && state.specialVisible && state.offenseHidden && state.defenseHidden, 'Special Teams exposes its complete phase group without competing side groups', JSON.stringify(state));
 
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({
