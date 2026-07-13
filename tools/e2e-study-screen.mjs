@@ -123,6 +123,12 @@ ok(planWatch.length === 2 && planWatch[0].refs.length > 0 && planWatch[1].refs.l
 await page.click('[data-plan-remove]');
 r = await page.evaluate(() => ({ items:window.app.storage.seasonStore.plans()[0].items.length, empty:/Save a finding from Study/.test(document.querySelector('#wsPlan')?.textContent||'') }));
 ok(r.items === 0 && r.empty, 'Plan items remove intentionally without deleting the plan', JSON.stringify(r));
+const deleteGuard = await page.evaluate(async () => {
+  const app=window.app, store=app.storage.seasonStore, plan=store.createPlan('Delete guard'); app.planScreen.activeId=plan.id; app.planScreen.render();
+  app.tagger._confirmDialog=async()=>false; document.querySelector('[data-plan-action="delete"]')?.click(); await new Promise(r=>setTimeout(r,0)); const kept=!!store.getPlan(plan.id);
+  app.tagger._confirmDialog=async()=>true; document.querySelector('[data-plan-action="delete"]')?.click(); await new Promise(r=>setTimeout(r,0)); return {kept,removed:!store.getPlan(plan.id)};
+});
+ok(deleteGuard.kept && deleteGuard.removed, 'Plan deletion requires intentional in-app confirmation', JSON.stringify(deleteGuard));
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 const savedId = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]')[0]?.id || '');
 await page.click('[data-study-action="clear-filters"]');
