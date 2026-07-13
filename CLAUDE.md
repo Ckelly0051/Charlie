@@ -384,6 +384,19 @@ non-blocking follow-ups (Codex's UX lane):
 Phase 3 foundation (plans contract + Study→Plan + Plan workspace + cross-game
 Watch) is complete and accepted. Next: Phase 3 ordering/presentation/export.
 
+**Phase 3 ordering — data seam (`70ad55c`, Claude): plan-item reorder on
+SeasonStore.** The foundation ordering/presentation/export all need (both render
+items IN ORDER). `reorderPlanItems(planId, orderedIds)` applies an explicit order
+(the drag seam) DEFENSIVELY — unknown/dup ids ignored, any item not named keeps its
+relative order and is appended, and it refuses to change the item count, so a
+partial/stale id list can never drop an item; `movePlanItem(planId, itemId, ±1)` is
+the accessible up/down move. One normalized path, bumps updatedAt, caller persists.
+Additive + DORMANT (nothing calls them yet; the Plan UI wires drag/buttons).
+`e2e-plan-contract` 31/31; integrity fuzzer 0 violations; bundle rebuilt (only my
+dormant change in-tree). LANE SPLIT for this milestone — Claude (data): reorder seam
+[done] + a pure plan-export serializer [next]; Codex (UI): drag handles,
+presentation/teaching full-screen view, export button/layout.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
