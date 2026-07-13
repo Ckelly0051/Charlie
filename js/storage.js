@@ -1,5 +1,6 @@
 import { SeasonStore } from './season-store.js';
 import { DemoSeason } from './demo-season.js';
+import { planClipMatch } from './clip-identity.js';
 
 /**
  * StorageManager - Handles save/load/export for projects.
@@ -397,9 +398,10 @@ export class StorageManager {
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
         }
         // Resolve clip URLs in parallel (see _autoLoadLinkedFilm) — order-preserving.
-        const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
+        const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
+        const clips = (await Promise.all(filesOnDisk.map(async (fileRef, i) => {
           const url = await backend.filmUrl(gameNode.id, fileRef);
-          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
         }))).filter(Boolean);
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
@@ -468,10 +470,11 @@ export class StorageManager {
       // Resolve clip URLs in PARALLEL — an 80-clip game was ~160 serial IPC
       // round-trips (linkedAbs + linkedFilmUrl per clip) on every reopen. map()
       // preserves order so the playlist stays in folder order.
-      const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
+      const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
+      const clips = (await Promise.all(filesOnDisk.map(async (fileRef, i) => {
         const abs = await backend.linkedAbs(absDir, this._fileRefPath(fileRef));
         const url = await backend.linkedFilmUrl(abs);
-        return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+        return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
       }))).filter(Boolean);
       if (clips.length > 0 && this.playlist) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
@@ -956,6 +959,7 @@ export class StorageManager {
       clipPaths: clipIndex.map(c => c.clipPath),
       clipRefs: clipIndex.map(c => ({
         id: c.clipPath,
+        catalogClipId: c.catalogClipId,
         originalName: c.originalName,
         originalRelativePath: c.clipPath,
         displayName: c.name,
@@ -984,15 +988,30 @@ export class StorageManager {
       const id = ((p.clipPath || p.clipName) || '').trim();
       if (!id) continue;
       const dur = (p.timestamp && p.timestamp.end && p.timestamp.end !== 999) ? p.timestamp.end : null;
-      put(id, { name: p.clipName || id, clipPath: p.clipPath || p.clipName || id, originalName: p.clipName || id, duration: dur });
+      put(id, { name: p.clipName || id, clipPath: p.clipPath || p.clipName || id, catalogClipId: p.catalogClipId || null, originalName: p.clipName || id, duration: dur });
     }
     if (this.playlist) {
       for (const c of this.playlist.clips) {
         const id = ((c.clipPath || c.name) || '').trim();
-        put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
+        put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, catalogClipId: c.catalogClipId || null, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
       }
     }
     return order.map(id => byId.get(id));
+  }
+
+  _catalogClipIdsForFiles(gameNode, files) {
+    const refs = (gameNode && Array.isArray(gameNode.clipRefs))
+      ? gameNode.clipRefs.filter(ref => ref && ref.catalogClipId)
+      : [];
+    const ids = new Array((files || []).length).fill(null);
+    if (!refs.length || !files || !files.length) return ids;
+    const incoming = files.map(file => ({
+      path: this._fileRefPath(file),
+      name: this._fileRefName(file),
+    }));
+    const plan = planClipMatch(refs, incoming);
+    for (const match of plan.matches) ids[match.clipIndex] = refs[match.playIndex].catalogClipId;
+    return ids;
   }
 
   _deserialize(data) {

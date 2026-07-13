@@ -102,5 +102,22 @@ ok(normKey('endzone/PLAY 12 (1).mp4') === 'play 12', 'normKey = basename, dup-st
     'a partial exact match leaves unrelated equal leftovers for coach confirmation', JSON.stringify(r));
 }
 
+// ---- 10. durable catalog identity outranks misleading filenames ------------
+{
+  const r = planClipMatch(
+    [
+      { catalogClipId: 'clip-a', clipPath: 'old/wrong-name-a' },
+      { catalogClipId: 'clip-b', clipPath: 'old/wrong-name-b' },
+    ],
+    [
+      { catalogClipId: 'clip-b', clipPath: 'new/looks-like-a' },
+      { catalogClipId: 'clip-a', clipPath: 'new/looks-like-b' },
+    ]);
+  ok(r.matches.length === 2
+    && r.matches.every(m => m.tier === 'catalog')
+    && r.matches.find(m => m.playIndex === 0)?.clipIndex === 1,
+    'durable catalog identity wins before misleading filename/path fallbacks', JSON.stringify(r));
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

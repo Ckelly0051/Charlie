@@ -97,6 +97,7 @@ export class PlaylistManager {
       file,
       name: this._displayName(file),
       clipPath: this._fileIdentity(file),
+      catalogClipId: file.catalogClipId || null,
       objectUrl: null,
       duration: null,
       playId: null
@@ -239,6 +240,8 @@ export class PlaylistManager {
       }
       if (stale(origId.get(primary))) staleToNew.set(origId.get(primary), clip.id);
       primary.clipId = clip.id;
+      clip.catalogClipId = clip.catalogClipId || primary.catalogClipId || this._newCatalogClipId();
+      primary.catalogClipId = clip.catalogClipId;
       primary.clipName = clip.name;
       primary.clipPath = clip.clipPath || clip.name;
       relinked++;
@@ -286,6 +289,7 @@ export class PlaylistManager {
         notes: '',
         clipName: clip.name,
         clipPath: clip.clipPath || clip.name,
+        catalogClipId: clip.catalogClipId || (clip.catalogClipId = this._newCatalogClipId()),
         clipId: clip.id
       };
 
@@ -376,7 +380,7 @@ export class PlaylistManager {
     const entries = sorted.map(file => {
       const displayName = String(file.name || '').replace(/\.[^.]+$/, '');
       const clipPath = this._pathWithoutExt(file.path || file.name);
-      return { id: this._nextClipId++, file: null, name: displayName, clipPath, assetUrl: file.url, objectUrl: null, duration: null, playId: null };
+      return { id: this._nextClipId++, file: null, name: displayName, clipPath, catalogClipId: file.catalogClipId || null, assetUrl: file.url, objectUrl: null, duration: null, playId: null };
     });
 
     // One matcher row per original clip. Multiple marked regions can share a
@@ -398,9 +402,11 @@ export class PlaylistManager {
       const entry = entries[match.clipIndex];
       const play = primaries[match.playIndex];
       entry.playId = play.id;
+      entry.catalogClipId = entry.catalogClipId || play.catalogClipId || this._newCatalogClipId();
       entry.duration = play.timestamp ? play.timestamp.end : null;
       if (originalIds.get(play) != null) staleToNew.set(originalIds.get(play), entry.id);
       play.clipId = entry.id;
+      play.catalogClipId = entry.catalogClipId;
       play.clipName = entry.name;
       play.clipPath = entry.clipPath;
     }
@@ -436,12 +442,14 @@ export class PlaylistManager {
         file: assetUrl ? null : file,
         name: this._displayName(refPath || file),
         clipPath: this._pathWithoutExt(refPath || this._fileIdentity(file)),
+        catalogClipId: m.catalogClipId || play.catalogClipId || this._newCatalogClipId(),
         objectUrl: null,
         assetUrl,
         duration: (play.timestamp && play.timestamp.end && play.timestamp.end !== 999) ? play.timestamp.end : null,
         playId: play.id
       };
       play.clipId = clip.id;
+      play.catalogClipId = clip.catalogClipId;
       play.clipName = clip.name;
       play.clipPath = clip.clipPath;
       this.clips.push(clip);
@@ -685,6 +693,11 @@ export class PlaylistManager {
 
   _playIdentity(play) {
     return (play && (play.clipPath || play.clipName)) || '';
+  }
+
+  _newCatalogClipId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return `clip_${crypto.randomUUID()}`;
+    return `clip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   }
 
   // Event system

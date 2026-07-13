@@ -523,8 +523,10 @@ Lane status:
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
-  Shared next architecture milestone: durable catalog clip identity (R1/R2),
-    keeping the accepted filename matcher as the legacy fallback.
+  Claude: independently review Codex's R1/R2 durable clip identity increment:
+    schema-v1 migration/idempotence, duplicate-ID repair, row-authoritative load,
+    catalog-first matching, managed/linked annotation, and legacy fallback parity.
+  Codex: hold further persistence work until that review returns.
   Product follow-ups remain the Save-to-Plan picker and explicit comparison-
     cohort selection; neither should bypass the parity-locked Study/Plan contracts.
   Claude in-lane options, none started:
@@ -564,18 +566,31 @@ NEXT ACTIONS
     R1. CLIP IDENTITY IS AUTHORITATIVE. Every clip gets a stable `clip_id` owned by
         the catalog (the `clips` table already has it). A play references its clip
         by that id, not by a filename.
+        CODE COMPLETE — AWAITING INDEPENDENT REVIEW (2026-07-13, Codex): schema
+        v2 adds `clips.clip_id` + `plays.catalog_clip_id`; JS carries the durable
+        value as `catalogClipId` while numeric `clipId` remains the transient live
+        playlist handle. Legacy refs receive deterministic IDs, clip-less games
+        synthesize rows from plays, duplicate imported IDs repair without orphans,
+        and normalized rows reattach identity on load. Catalog flag stays OFF.
     R2. RELINK CONSUMES THE DURABLE IDENTITY. Rewire relink/repair/rehydrate to
         match on `clip_id` from the store first, falling back to filename heuristics
         only for legacy rows with no id. This is what folds the ghost-plays fix into
         the build instead of leaving it a follow-up patch.
+        CODE COMPLETE — AWAITING INDEPENDENT REVIEW (2026-07-13, Codex): managed
+        and linked disk enumeration annotates files from saved clipRefs;
+        `planClipMatch` consumes `catalogClipId` first, then falls through unchanged
+        to path/base/Windows/order matching. New add, rehydrate, and repair paths
+        create or propagate durable IDs without changing tags or play IDs. Full
+        e2e suite green; focused gates: SQL 16/16, catalog 44/44 + 640-op fuzzer,
+        matcher 15/15, linked rehydrate 8/8, real 451-play fixture clean.
         FALLBACK LIVE + INDEPENDENTLY ACCEPTED (`713324e`, review `135c43e`):
         `js/clip-identity.js` now drives PlaylistManager add/re-add — tiered match
         (exact path → basename → `(n)`-normalized → wholesale-rename order,
         consume-once) returning `unmatchedClips` (= what would ghost). Order is
         deliberately allowed only when NO stronger match exists; after a partial
         exact match, unrelated leftovers stay unmatched for coach confirmation.
-        `tools/e2e-clip-match.mjs` 14/14 pins this policy. Durable catalog-first
-        `clip_id` matching remains the unfinished R1/R2 cutover.
+        `tools/e2e-clip-match.mjs` 15/15 pins this policy, including catalog-first
+        precedence. The R1/R2 cutover above now consumes it.
     R3. WINDOWS `(n)` NORMALIZATION. The filename-fallback tiers must strip a
         trailing ` (\d+)` for MATCHING only (never mutate stored names), consume-once,
         below exact path/basename — so a re-added `Play 12 (1).mp4` relinks to saved

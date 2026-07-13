@@ -13862,9 +13862,10 @@ class NotesManager {
  *
  * LOSSLESSNESS: each parent stores its non-child fields verbatim in a `body_json`
  * column; children (games, plays) live in their own tables (also body_json), and
- * are re-attached on load. `clips` is a normalized PROJECTION of game.clipRefs for
- * integrity / future queries — reassembly comes from the game body, so round-trip
- * is exact. Verified by tools/e2e-sql-catalog.mjs.
+ * are re-attached on load. Schema v2 makes `clips.clip_id` authoritative and
+ * writes that durable identity onto both clipRefs and plays as `catalogClipId`.
+ * The transient PlaylistManager `clipId` remains a separate live-session handle.
+ * Verified by tools/e2e-sql-catalog.mjs.
  */
 class SqlCatalog {
   constructor(SQL) {
@@ -13873,7 +13874,7 @@ class SqlCatalog {
     this.currentId = null;
     this.RETENTION = 25;
     this.VMAX = 20;            // named-save-point cap per season::game (mirrors VersionManager)
-    this.SCHEMA = 1;
+    this.SCHEMA = 2;
     this._seq = 0;
   }
 
@@ -13911,16 +13912,16 @@ class SqlCatalog {
       CREATE TABLE IF NOT EXISTS plays (
         rowid_key INTEGER PRIMARY KEY AUTOINCREMENT,
         play_id INTEGER, game_id TEXT NOT NULL, ord INTEGER,
-        ts_start REAL, ts_end REAL, clip_id INTEGER, clip_name TEXT, clip_path TEXT,
+        ts_start REAL, ts_end REAL, clip_id INTEGER, catalog_clip_id TEXT, clip_name TEXT, clip_path TEXT,
         unit TEXT, run_pass TEXT, result TEXT, down TEXT, distance TEXT,
         notes TEXT, body_json TEXT NOT NULL,
         FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
       );
       CREATE TABLE IF NOT EXISTS clips (
         rowid_key INTEGER PRIMARY KEY AUTOINCREMENT,
-        game_id TEXT NOT NULL, ord INTEGER, clip_path TEXT, name TEXT,
+        clip_id TEXT, game_id TEXT NOT NULL, ord INTEGER, clip_path TEXT, name TEXT,
         original_name TEXT, size INTEGER, partial_hash TEXT, duration REAL,
-        import_status TEXT,
+        import_status TEXT, body_json TEXT,
         FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
       );
       CREATE TABLE IF NOT EXISTS backups (
@@ -13943,6 +13944,10 @@ class SqlCatalog {
       CREATE INDEX IF NOT EXISTS ix_backups_season ON backups(season_id, t);
       CREATE INDEX IF NOT EXISTS ix_versions_scope ON versions(season_id, game_id, t);
     `);
+    this._ensureColumn('plays', 'catalog_clip_id', 'TEXT');
+    this._ensureColumn('clips', 'clip_id', 'TEXT');
+    this._ensureColumn('clips', 'body_json', 'TEXT');
+    this.db.run('CREATE UNIQUE INDEX IF NOT EXISTS ux_clips_id ON clips(clip_id) WHERE clip_id IS NOT NULL;');
     const has = this._get('SELECT id FROM migrations WHERE id = ?', [this.SCHEMA]);
     if (!has) {
       this.db.run('INSERT INTO migrations (id, applied_at) VALUES (?, ?)', [this.SCHEMA, new Date().toISOString()]);
@@ -13958,13 +13963,86 @@ class SqlCatalog {
   }
   _get(sql, params = []) { const rows = this._all(sql, params); return rows[0] || null; }
   _setMeta(k, v) { this.db.run('INSERT INTO meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', [k, v]); }
+  _ensureColumn(table, column, type) {
+    const cols = this._all(`PRAGMA table_info(${table})`);
+    if (!cols.some(c => c.name === column)) this.db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
   _newId(prefix) { this._seq = (this._seq + 1) & 0xffffff; return `${prefix}_${Date.now().toString(36)}_${this._seq.toString(36)}${Math.random().toString(36).slice(2, 6)}`; }
   static _countPlays(data) { return (data && data.games) ? data.games.reduce((s, g) => s + ((g.plays || []).length), 0) : 0; }
+
+  static _clipKey(value) {
+    return String(value || '').replace(/\\/g, '/').replace(/\.[^/.]+$/, '').toLowerCase();
+  }
+
+  static _stableClipId(gameId, identity, ordinal) {
+    const input = `${gameId}\u0000${identity}\u0000${ordinal}`;
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i++) {
+      hash ^= input.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `clip_${(hash >>> 0).toString(36)}_${ordinal}`;
+  }
+
+  /** Upgrade legacy path-only film metadata in place before both db and JSON writes. */
+  static ensureClipIdentities(data) {
+    const globallyUsed = new Set();
+    for (const game of ((data && data.games) || [])) {
+      const refs = Array.isArray(game.clipRefs) ? game.clipRefs : (game.clipRefs = []);
+      refs.forEach((ref, i) => {
+        const identity = ref.originalRelativePath || ref.libraryRelativePath || ref.id || ref.displayName || ref.originalName || `clip-${i + 1}`;
+        let id = ref.catalogClipId || SqlCatalog._stableClipId(game.id, identity, i);
+        let suffix = 1;
+        while (globallyUsed.has(id)) id = `${SqlCatalog._stableClipId(game.id, identity, i)}_${suffix++}`;
+        ref.catalogClipId = id;
+        globallyUsed.add(id);
+      });
+
+      const buckets = new Map();
+      refs.forEach(ref => {
+        const key = SqlCatalog._clipKey(ref.originalRelativePath || ref.libraryRelativePath || ref.id || ref.displayName || ref.originalName);
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key).push(ref);
+      });
+      const groupIds = new Map();
+      const cursors = new Map();
+      for (const play of (game.plays || [])) {
+        const identity = play.clipPath || play.clipName || '';
+        if (!identity) continue;
+        const key = SqlCatalog._clipKey(identity);
+        if (play.catalogClipId && refs.some(ref => ref.catalogClipId === play.catalogClipId
+          && SqlCatalog._clipKey(ref.originalRelativePath || ref.libraryRelativePath || ref.id || ref.displayName || ref.originalName) === key)) continue;
+        const group = play.clipId != null ? `live:${play.clipId}` : `path:${SqlCatalog._clipKey(identity)}`;
+        if (groupIds.has(group)) { play.catalogClipId = groupIds.get(group); continue; }
+        const bucket = buckets.get(key) || [];
+        const cursor = cursors.get(key) || 0;
+        let ref = bucket[Math.min(cursor, Math.max(0, bucket.length - 1))];
+        if (bucket.length > 1) cursors.set(key, cursor + 1);
+        if (!ref) {
+          ref = {
+            id: identity,
+            catalogClipId: SqlCatalog._stableClipId(game.id, identity, refs.length),
+            originalName: play.clipName || identity,
+            originalRelativePath: play.clipPath || play.clipName || identity,
+            displayName: play.clipName || identity,
+            duration: play.timestamp && play.timestamp.end !== 999 ? play.timestamp.end : null,
+            importStatus: 'missing',
+          };
+          refs.push(ref);
+          buckets.set(key, [ref]);
+        }
+        play.catalogClipId = ref.catalogClipId;
+        groupIds.set(group, ref.catalogClipId);
+      }
+    }
+    return data;
+  }
 
   // ---- canonical season save / load ---------------------------------------
   /** Decompose a season object into rows (one transaction). Full rewrite of that season. */
   saveSeason(data) {
     if (!data || !Array.isArray(data.games)) return false;
+    SqlCatalog.ensureClipIdentities(data);
     const id = data.id || this.currentId;
     if (!id) return false;
     const now = new Date().toISOString();
@@ -14004,22 +14082,22 @@ class SqlCatalog {
         (plays || []).forEach((p, pi) => {
           const t = p.tags || {};
           this._run(
-            `INSERT INTO plays (play_id,game_id,ord,ts_start,ts_end,clip_id,clip_name,clip_path,unit,run_pass,result,down,distance,notes,body_json)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            `INSERT INTO plays (play_id,game_id,ord,ts_start,ts_end,clip_id,catalog_clip_id,clip_name,clip_path,unit,run_pass,result,down,distance,notes,body_json)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [p.id != null ? p.id : null, game.id, pi,
              p.timestamp ? p.timestamp.start : null, p.timestamp ? p.timestamp.end : null,
-             p.clipId != null ? p.clipId : null, p.clipName || null, p.clipPath || null,
+             p.clipId != null ? p.clipId : null, p.catalogClipId || null, p.clipName || null, p.clipPath || null,
              t.unit || '', t.runPass || '', t.result || '', t.down || '', t.distance || '',
              p.notes || '', JSON.stringify(p)]);
         });
         // clips projection (from the durable clipRefs the game carries)
         (game.clipRefs || []).forEach((c, ci) => {
           this._run(
-            `INSERT INTO clips (game_id,ord,clip_path,name,original_name,size,partial_hash,duration,import_status)
-             VALUES (?,?,?,?,?,?,?,?,?)`,
-            [game.id, ci, c.originalRelativePath || c.id || c.displayName || '', c.displayName || c.name || '',
+            `INSERT INTO clips (clip_id,game_id,ord,clip_path,name,original_name,size,partial_hash,duration,import_status,body_json)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+            [c.catalogClipId || null, game.id, ci, c.originalRelativePath || c.id || c.displayName || '', c.displayName || c.name || '',
              c.originalName || '', c.size != null ? c.size : null, c.partialHash || null,
-             c.duration != null ? c.duration : null, c.importStatus || 'ready']);
+             c.duration != null ? c.duration : null, c.importStatus || 'ready', JSON.stringify(c)]);
         });
       });
       this.db.run('COMMIT');
@@ -14036,7 +14114,32 @@ class SqlCatalog {
     const season = JSON.parse(srow.body_json);
     season.games = this._all('SELECT id, body_json FROM games WHERE season_id = ? ORDER BY ord', [sid]).map(g => {
       const game = JSON.parse(g.body_json);
-      game.plays = this._all('SELECT body_json FROM plays WHERE game_id = ? ORDER BY ord', [g.id]).map(p => JSON.parse(p.body_json));
+      game.plays = this._all('SELECT catalog_clip_id, body_json FROM plays WHERE game_id = ? ORDER BY ord', [g.id]).map(p => {
+        const play = JSON.parse(p.body_json);
+        if (p.catalog_clip_id) play.catalogClipId = p.catalog_clip_id;
+        return play;
+      });
+      const clips = this._all('SELECT clip_id,clip_path,name,original_name,size,partial_hash,duration,import_status,body_json FROM clips WHERE game_id = ? ORDER BY ord', [g.id]);
+      if (clips.length) game.clipRefs = clips.map(c => {
+        let ref = null;
+        try { ref = c.body_json ? JSON.parse(c.body_json) : null; } catch (e) {}
+        if (ref) {
+          if (c.clip_id) ref.catalogClipId = c.clip_id;
+          return ref;
+        }
+        const legacy = {
+          id: c.clip_path || c.name || '',
+          originalName: c.original_name || '',
+          originalRelativePath: c.clip_path || '',
+          displayName: c.name || '',
+          importStatus: c.import_status || 'ready',
+        };
+        if (c.clip_id) legacy.catalogClipId = c.clip_id;
+        if (c.size != null) legacy.size = c.size;
+        if (c.partial_hash) legacy.partialHash = c.partial_hash;
+        if (c.duration != null) legacy.duration = c.duration;
+        return legacy;
+      });
       return game;
     });
     return season;
@@ -16787,9 +16890,10 @@ class StorageManager {
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-add the folder to repair.`, 12000);
         }
         // Resolve clip URLs in parallel (see _autoLoadLinkedFilm) — order-preserving.
-        const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
+        const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
+        const clips = (await Promise.all(filesOnDisk.map(async (fileRef, i) => {
           const url = await backend.filmUrl(gameNode.id, fileRef);
-          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+          return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
         }))).filter(Boolean);
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
@@ -16858,10 +16962,11 @@ class StorageManager {
       // Resolve clip URLs in PARALLEL — an 80-clip game was ~160 serial IPC
       // round-trips (linkedAbs + linkedFilmUrl per clip) on every reopen. map()
       // preserves order so the playlist stays in folder order.
-      const clips = (await Promise.all(filesOnDisk.map(async fileRef => {
+      const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
+      const clips = (await Promise.all(filesOnDisk.map(async (fileRef, i) => {
         const abs = await backend.linkedAbs(absDir, this._fileRefPath(fileRef));
         const url = await backend.linkedFilmUrl(abs);
-        return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), url } : null;
+        return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
       }))).filter(Boolean);
       if (clips.length > 0 && this.playlist) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
@@ -17346,6 +17451,7 @@ class StorageManager {
       clipPaths: clipIndex.map(c => c.clipPath),
       clipRefs: clipIndex.map(c => ({
         id: c.clipPath,
+        catalogClipId: c.catalogClipId,
         originalName: c.originalName,
         originalRelativePath: c.clipPath,
         displayName: c.name,
@@ -17374,15 +17480,30 @@ class StorageManager {
       const id = ((p.clipPath || p.clipName) || '').trim();
       if (!id) continue;
       const dur = (p.timestamp && p.timestamp.end && p.timestamp.end !== 999) ? p.timestamp.end : null;
-      put(id, { name: p.clipName || id, clipPath: p.clipPath || p.clipName || id, originalName: p.clipName || id, duration: dur });
+      put(id, { name: p.clipName || id, clipPath: p.clipPath || p.clipName || id, catalogClipId: p.catalogClipId || null, originalName: p.clipName || id, duration: dur });
     }
     if (this.playlist) {
       for (const c of this.playlist.clips) {
         const id = ((c.clipPath || c.name) || '').trim();
-        put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
+        put(id, { name: c.name || id, clipPath: c.clipPath || c.name || id, catalogClipId: c.catalogClipId || null, originalName: (c.file ? c.file.name : c.name) || id, duration: c.duration || null, importStatus: (c.assetUrl || c.file) ? 'ready' : 'missing' });
       }
     }
     return order.map(id => byId.get(id));
+  }
+
+  _catalogClipIdsForFiles(gameNode, files) {
+    const refs = (gameNode && Array.isArray(gameNode.clipRefs))
+      ? gameNode.clipRefs.filter(ref => ref && ref.catalogClipId)
+      : [];
+    const ids = new Array((files || []).length).fill(null);
+    if (!refs.length || !files || !files.length) return ids;
+    const incoming = files.map(file => ({
+      path: this._fileRefPath(file),
+      name: this._fileRefName(file),
+    }));
+    const plan = planClipMatch(refs, incoming);
+    for (const match of plan.matches) ids[match.clipIndex] = refs[match.playIndex].catalogClipId;
+    return ids;
   }
 
   _deserialize(data) {
@@ -19318,9 +19439,9 @@ IMPORTANT:
  * folder that has it becomes `foo (1).mp4`, `foo (2).mp4`; (b) genuinely
  * duplicate basenames in the saved data.
  *
- * SCOPE: this pure matcher now drives PlaylistManager's add/re-add safety path.
- * It remains the legacy filename fallback; the real cure (R1/R2) is a durable
- * catalog `clip_id` used before filename matching once that cutover lands.
+ * SCOPE: this pure matcher drives PlaylistManager's add/re-add and rehydrate
+ * safety paths. Catalog identity is the first tier; filename matching remains the
+ * backward-compatible fallback for legacy rows and newly selected local files.
  */
 
 /** Normalize separators and strip the file extension. */
@@ -19352,12 +19473,17 @@ function normKey(p) {
 
 /** A play's durable-ish identity source (clipPath preferred, clipName legacy). */
 function playIdentity(play) {
-  return (play && (play.clipPath || play.clipName)) || '';
+  return (play && (play.clipPath || play.clipName || play.originalRelativePath || play.displayName || play.name)) || '';
 }
 
 /** An incoming clip/file's identity source (path preferred, name fallback). */
 function clipIdentity(clip) {
-  return (clip && (clip.clipPath || clip.path || clip.name)) || '';
+  return (clip && (clip.clipPath || clip.path || clip.originalRelativePath || clip.displayName || clip.name)) || '';
+}
+
+/** Stable catalog identity, separate from PlaylistManager's transient clipId. */
+function catalogClipIdentity(item) {
+  return (item && (item.catalogClipId || item.durableClipId)) || '';
 }
 
 /**
@@ -19383,11 +19509,11 @@ function clipIdentity(clip) {
 function planClipMatch(plays, clips) {
   const P = (plays || []).map((p, i) => {
     const id = playIdentity(p);
-    return { i, path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
+    return { i, catalog: catalogClipIdentity(p), path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
   });
   const C = (clips || []).map((c, i) => {
     const id = clipIdentity(c);
-    return { i, path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
+    return { i, catalog: catalogClipIdentity(c), path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
   });
   const usedP = new Set(), usedC = new Set(), matches = [];
 
@@ -19411,6 +19537,7 @@ function planClipMatch(plays, clips) {
     }
   };
 
+  tier(x => x.catalog, 'catalog');
   tier(x => x.path, 'path');
   tier(x => x.base, 'base');
   tier(x => x.norm, 'norm');
@@ -19533,6 +19660,7 @@ class PlaylistManager {
       file,
       name: this._displayName(file),
       clipPath: this._fileIdentity(file),
+      catalogClipId: file.catalogClipId || null,
       objectUrl: null,
       duration: null,
       playId: null
@@ -19675,6 +19803,8 @@ class PlaylistManager {
       }
       if (stale(origId.get(primary))) staleToNew.set(origId.get(primary), clip.id);
       primary.clipId = clip.id;
+      clip.catalogClipId = clip.catalogClipId || primary.catalogClipId || this._newCatalogClipId();
+      primary.catalogClipId = clip.catalogClipId;
       primary.clipName = clip.name;
       primary.clipPath = clip.clipPath || clip.name;
       relinked++;
@@ -19722,6 +19852,7 @@ class PlaylistManager {
         notes: '',
         clipName: clip.name,
         clipPath: clip.clipPath || clip.name,
+        catalogClipId: clip.catalogClipId || (clip.catalogClipId = this._newCatalogClipId()),
         clipId: clip.id
       };
 
@@ -19812,7 +19943,7 @@ class PlaylistManager {
     const entries = sorted.map(file => {
       const displayName = String(file.name || '').replace(/\.[^.]+$/, '');
       const clipPath = this._pathWithoutExt(file.path || file.name);
-      return { id: this._nextClipId++, file: null, name: displayName, clipPath, assetUrl: file.url, objectUrl: null, duration: null, playId: null };
+      return { id: this._nextClipId++, file: null, name: displayName, clipPath, catalogClipId: file.catalogClipId || null, assetUrl: file.url, objectUrl: null, duration: null, playId: null };
     });
 
     // One matcher row per original clip. Multiple marked regions can share a
@@ -19834,9 +19965,11 @@ class PlaylistManager {
       const entry = entries[match.clipIndex];
       const play = primaries[match.playIndex];
       entry.playId = play.id;
+      entry.catalogClipId = entry.catalogClipId || play.catalogClipId || this._newCatalogClipId();
       entry.duration = play.timestamp ? play.timestamp.end : null;
       if (originalIds.get(play) != null) staleToNew.set(originalIds.get(play), entry.id);
       play.clipId = entry.id;
+      play.catalogClipId = entry.catalogClipId;
       play.clipName = entry.name;
       play.clipPath = entry.clipPath;
     }
@@ -19872,12 +20005,14 @@ class PlaylistManager {
         file: assetUrl ? null : file,
         name: this._displayName(refPath || file),
         clipPath: this._pathWithoutExt(refPath || this._fileIdentity(file)),
+        catalogClipId: m.catalogClipId || play.catalogClipId || this._newCatalogClipId(),
         objectUrl: null,
         assetUrl,
         duration: (play.timestamp && play.timestamp.end && play.timestamp.end !== 999) ? play.timestamp.end : null,
         playId: play.id
       };
       play.clipId = clip.id;
+      play.catalogClipId = clip.catalogClipId;
       play.clipName = clip.name;
       play.clipPath = clip.clipPath;
       this.clips.push(clip);
@@ -20121,6 +20256,11 @@ class PlaylistManager {
 
   _playIdentity(play) {
     return (play && (play.clipPath || play.clipName)) || '';
+  }
+
+  _newCatalogClipId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return `clip_${crypto.randomUUID()}`;
+    return `clip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   }
 
   // Event system

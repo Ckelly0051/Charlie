@@ -552,6 +552,25 @@ direct-asset path. Verification: clip-identity 19/19, relink-legacy 7/7,
 relink-linked 8/8, integrity 0 violations over the real six-game fixture,
 onboarding 46/46, Film Room 60/60, and zero page errors. R5 is complete.
 
+**R1/R2 DURABLE CLIP IDENTITY — CODE COMPLETE, AWAITING INDEPENDENT REVIEW
+(2026-07-13, Codex).** SqlCatalog schema v2 adds authoritative `clips.clip_id`
+and `plays.catalog_clip_id`; the JS/JSON model carries this as `catalogClipId`
+so the existing numeric `play.clipId` can remain a transient live-playlist handle.
+Legacy flag-on data is upgraded in place: existing clipRefs receive deterministic
+stable IDs, missing clip rows are synthesized from play references, duplicate
+imported IDs are repaired without orphaning plays, and the dual-written JSON gets
+the same upgraded object. Catalog load reattaches IDs from normalized rows rather
+than trusting stale body JSON. Managed and linked auto-load map disk files back to
+saved clipRefs, then `planClipMatch` uses catalog identity before exact path,
+basename, Windows `(n)`, or order fallbacks. New imports receive UUID-backed IDs;
+repair/relink propagate them without changing tags or play IDs. The catalog flag
+remains OFF by default and all legacy fallback tiers remain active. Verification:
+fresh bundle plus every `tools/e2e-*.mjs` harness green; SQL catalog 16/16,
+catalog persistence 44/44, catalog fuzzer 640 ops, SQL fuzzer 16 campaigns,
+clip matcher 15/15, linked rehydrate 8/8, real 451-play round-trip/integrity clean,
+and zero page errors. Review focus: migration idempotence, duplicate-ID repair,
+catalog-vs-path precedence, and managed/linked disk-file annotation.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer

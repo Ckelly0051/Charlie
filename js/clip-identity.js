@@ -10,9 +10,9 @@
  * folder that has it becomes `foo (1).mp4`, `foo (2).mp4`; (b) genuinely
  * duplicate basenames in the saved data.
  *
- * SCOPE: this pure matcher now drives PlaylistManager's add/re-add safety path.
- * It remains the legacy filename fallback; the real cure (R1/R2) is a durable
- * catalog `clip_id` used before filename matching once that cutover lands.
+ * SCOPE: this pure matcher drives PlaylistManager's add/re-add and rehydrate
+ * safety paths. Catalog identity is the first tier; filename matching remains the
+ * backward-compatible fallback for legacy rows and newly selected local files.
  */
 
 /** Normalize separators and strip the file extension. */
@@ -44,12 +44,17 @@ export function normKey(p) {
 
 /** A play's durable-ish identity source (clipPath preferred, clipName legacy). */
 export function playIdentity(play) {
-  return (play && (play.clipPath || play.clipName)) || '';
+  return (play && (play.clipPath || play.clipName || play.originalRelativePath || play.displayName || play.name)) || '';
 }
 
 /** An incoming clip/file's identity source (path preferred, name fallback). */
 export function clipIdentity(clip) {
-  return (clip && (clip.clipPath || clip.path || clip.name)) || '';
+  return (clip && (clip.clipPath || clip.path || clip.originalRelativePath || clip.displayName || clip.name)) || '';
+}
+
+/** Stable catalog identity, separate from PlaylistManager's transient clipId. */
+export function catalogClipIdentity(item) {
+  return (item && (item.catalogClipId || item.durableClipId)) || '';
 }
 
 /**
@@ -75,11 +80,11 @@ export function clipIdentity(clip) {
 export function planClipMatch(plays, clips) {
   const P = (plays || []).map((p, i) => {
     const id = playIdentity(p);
-    return { i, path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
+    return { i, catalog: catalogClipIdentity(p), path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
   });
   const C = (clips || []).map((c, i) => {
     const id = clipIdentity(c);
-    return { i, path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
+    return { i, catalog: catalogClipIdentity(c), path: pathNoExt(id), base: baseName(id), norm: normKey(id) };
   });
   const usedP = new Set(), usedC = new Set(), matches = [];
 
@@ -103,6 +108,7 @@ export function planClipMatch(plays, clips) {
     }
   };
 
+  tier(x => x.catalog, 'catalog');
   tier(x => x.path, 'path');
   tier(x => x.base, 'base');
   tier(x => x.norm, 'norm');

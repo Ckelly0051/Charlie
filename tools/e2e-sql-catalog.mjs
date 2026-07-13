@@ -65,6 +65,11 @@ const clipRows = cat._get('SELECT COUNT(*) n FROM clips').n;
 const playRows = cat._get('SELECT COUNT(*) n FROM plays').n;
 ok(clipRows === 10, 'clips projected as rows (6+4)', `got ${clipRows}`);
 ok(playRows === 10, 'plays stored as rows (6+4)', `got ${playRows}`);
+const durableRows = cat._all('SELECT clip_id FROM clips');
+const durablePlayRows = cat._all('SELECT catalog_clip_id FROM plays');
+const durableIds = new Set(durableRows.map(r => r.clip_id).filter(Boolean));
+ok(durableIds.size === 10, 'every clip row owns a unique durable catalog id', `got ${durableIds.size}`);
+ok(durablePlayRows.every(r => durableIds.has(r.catalog_clip_id)), 'every clip-backed play references an existing durable clip row');
 
 // 3. the v1.10.7 scenario: a game saved with NO clip arrays but real plays
 const noClipSeason = { ...norm(synthetic), id: 'sea_noclip', games: [mkGame('C', 5, false)], activeGameId: 'C' };
@@ -78,6 +83,29 @@ ok(bn.games[0].plays.length === 5, 'plays survive when film index is empty', `go
 const bytes = cat.toBytes();
 const cat2 = new SqlCatalog(SQL); await cat2.open(bytes);
 ok(deepEq(cat2.loadSeason('sea_synth'), norm(synthetic)), 'round-trips after toBytes()→reopen (persistence)');
+const idsBefore = cat._all('SELECT clip_id FROM clips WHERE game_id IN (?,?) ORDER BY game_id,ord', ['A', 'B']).map(r => r.clip_id);
+cat2.saveSeason(cat2.loadSeason('sea_synth'));
+const idsAfter = cat2._all('SELECT clip_id FROM clips WHERE game_id IN (?,?) ORDER BY game_id,ord', ['A', 'B']).map(r => r.clip_id);
+ok(deepEq(idsAfter, idsBefore), 'durable clip ids remain stable across reopen and re-save');
+
+// 4b. A schema-v1 database upgrades in place without dropping legacy rows.
+const legacyDb = new SQL.Database();
+legacyDb.run('CREATE TABLE plays (rowid_key INTEGER PRIMARY KEY AUTOINCREMENT, play_id INTEGER, game_id TEXT, ord INTEGER, body_json TEXT NOT NULL)');
+legacyDb.run('CREATE TABLE clips (rowid_key INTEGER PRIMARY KEY AUTOINCREMENT, game_id TEXT, ord INTEGER, clip_path TEXT, name TEXT)');
+legacyDb.run('INSERT INTO clips (game_id,ord,clip_path,name) VALUES (?,?,?,?)', ['legacy-game', 0, 'old/0001', '0001']);
+const legacyCat = new SqlCatalog(SQL); await legacyCat.open(legacyDb.export());
+const playCols = legacyCat._all('PRAGMA table_info(plays)').map(c => c.name);
+const clipCols = legacyCat._all('PRAGMA table_info(clips)').map(c => c.name);
+ok(playCols.includes('catalog_clip_id') && clipCols.includes('clip_id') && clipCols.includes('body_json'), 'schema v1 upgrades durable identity columns in place');
+ok(legacyCat._get('SELECT COUNT(*) n FROM clips').n === 1, 'schema upgrade retains existing legacy clip rows');
+
+const corrupt = { ...norm(synthetic), id: 'sea_duplicate_ids', games: [mkGame('D', 2, true)], activeGameId: 'D' };
+corrupt.games[0].clipRefs.forEach(ref => { ref.catalogClipId = 'clip-duplicate'; });
+corrupt.games[0].plays.forEach(play => { play.catalogClipId = 'clip-duplicate'; });
+cat2.saveSeason(corrupt);
+const repaired = cat2.loadSeason('sea_duplicate_ids').games[0];
+const repairedIds = new Set(repaired.clipRefs.map(ref => ref.catalogClipId));
+ok(repairedIds.size === 2 && repaired.plays.every(play => repairedIds.has(play.catalogClipId)), 'duplicate imported clip ids are repaired without orphaning plays');
 
 // 5. delete cascades
 cat2.deleteSeason('sea_synth');
