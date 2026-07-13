@@ -316,6 +316,23 @@ non-blocking (fix #1 before default-on; fixes are Codex's Study/UX lane):
 Delta direction/scaling correct (abs/max·50 centered vs query abs/max·100), sign→
 color consistent with the table. No parity break, no engine change.
 
+**Phase 3 Plan foundation — step 1 (`64c284f`, Claude): backward-compatible
+`plans:[]` data contract.** `SeasonStore` gains a SEASON-level `data.plans` array —
+a game-plan workspace that collects Study findings + composite `gameId::playId`
+film refs (same identity Study/CrossGameCutup use, so a plan item plays through the
+proven cross-game path). Additive: a pre-contract season has no `plans` key;
+`_normalize` defaults it to `[]` and touches nothing else; it rides through
+saveSeason / SqlCatalog `body_json` / the JSON mirror with NO persistence change.
+Defensive normalizer preserves unknown/future keys (shape grows without a
+migration), fills ids/timestamps, coerces refs to strings, filters junk. One
+mutation seam (`createPlan/renamePlan/setPlanNotes/addPlanItem/removePlanItem/
+deletePlan`) keeps the shape normalized. NOTHING consumes plans yet. Tests:
+`e2e-plan-contract` 22/22; real data path unaffected — integrity fuzzer 0
+violations, sql-catalog 10/10, onboarding 46/46. **Bundle rebuild deferred** (Codex
+had uncommitted study-screen fixes in-tree; plans is dormant so the bundle is
+unaffected — it rides in on the next legit build). NEXT: the Plan UI + a "save this
+Study finding to a plan" action, then Watch-a-plan through the cross-game player.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
