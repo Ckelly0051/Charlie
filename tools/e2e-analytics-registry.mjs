@@ -20,7 +20,10 @@ const result = await page.evaluate(() => {
   const registry = window.app?.analyticsRegistry;
   if (!registry) return { missing: true };
   const ids = xs => xs.map(x => x.id);
-  const play = { id: 7, __gid: 'g2', tags: {
+  const play = { id: 7, __gid: 'g2', penalties: [
+    { id: 'p1', team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false },
+    { id: 'p2', team: 'opponent', phase: 'defense', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true },
+  ], tags: {
     unit: 'offense', formation: 'Shotgun + Trips', playType: 'RPO + Short Pass',
     defFront: '4-3 + Jumbo Shift', blitz: 'A-Gap + Edge', result: 'Gain + Touchdown',
     down: '3', distance: '6', quarter: 'Q2', driveNumber: '4', motion: '',
@@ -59,6 +62,10 @@ const result = await page.evaluate(() => {
     customFields: registry.values('customField', play),
     playerRoles: registry.values('playerRole', play),
     grades: registry.values('grade', play),
+    penaltyTeams: registry.values('penaltyTeam', play),
+    penaltyFouls: registry.values('penaltyFoul', play),
+    penaltyRulings: registry.values('penaltyRuling', play),
+    penaltyCounts: registry.values('penaltyPlayCounts', play),
     ref: registry.playRef(play),
     selected: registry.readMeasures(stats, ['plays', 'successRate', 'epaPerPlay']),
     unresolvedMeasures,
@@ -90,6 +97,11 @@ if (!result.missing) {
   ok(result.runPass[0] === 'Pass', 'Run/pass uses canonical classifier');
   ok(result.custom[0] === 'Tempo' && result.customFields[0] === 'wristband=Blue', 'Custom tags and fields are queryable dimensions');
   ok(result.playerRoles[0] === 'passer=12' && result.grades[0] === 'passer=2', 'Player role and grade dimensions preserve role identity');
+  ok(JSON.stringify(result.penaltyTeams) === JSON.stringify(['subject','opponent'])
+    && JSON.stringify(result.penaltyFouls) === JSON.stringify(['Holding','Facemask'])
+    && JSON.stringify(result.penaltyRulings) === JSON.stringify(['accepted','declined'])
+    && JSON.stringify(result.penaltyCounts) === JSON.stringify(['No play','Play counts']),
+  'Structured penalty dimensions preserve every foul on the play');
   ok(result.ref === 'g2::7', 'Composite play reference is gameId::playId');
   ok(result.selected.plays === 1 && result.selected.successRate === '100.0' && result.selected.epaPerPlay === 0, 'Ready measures select canonical compute outputs', JSON.stringify(result.selected));
   ok(result.unresolvedMeasures.length === 0, 'EVERY ready measure resolves to a defined value (no silent undefined path)', JSON.stringify(result.unresolvedMeasures));

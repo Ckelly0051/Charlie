@@ -3,6 +3,7 @@
  * and owns no tag state; existing PlayTagger fields remain the only data path.
  */
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 
 export class BreakdownForm {
   static FLAG = 'ffa_breakdown_form_v2';
@@ -29,6 +30,7 @@ export class BreakdownForm {
     this._addHeader();
     this._addSectionLabels();
     this._mountSpecialTeams();
+    this._mountPenalties();
     this._syncPerspective();
     this.observer = new MutationObserver(records => {
       if (records.some(record => record.attributeName === 'class')) this._syncPerspective();
@@ -108,7 +110,115 @@ export class BreakdownForm {
       </div></div>
       ${st ? this._specialDetails(st) : ''}`;
     this._syncSpecialistLabels(st);
+    this._renderPenalties(play);
   }
+
+  _mountPenalties() {
+    const target = this.form.querySelector('#tagPlayersSection');
+    if (!target || this.form.querySelector('.bdv-penalties')) return;
+    const section = document.createElement('section');
+    section.className = 'bdv-penalties';
+    section.addEventListener('click', event => this._onPenaltyClick(event));
+    section.addEventListener('change', event => this._onPenaltyChange(event));
+    target.insertAdjacentElement('beforebegin', section);
+    this._renderPenalties(this.tagger.getCurrentPlay());
+  }
+
+  _renderPenalties(play) {
+    const section = this.form.querySelector('.bdv-penalties');
+    if (!section) return;
+    const penalties = PenaltyModel.normalizeList(play?.penalties);
+    const legacy = !penalties.length && String(play?.tags?.result || '').split(/\s*\+\s*/).includes('Penalty');
+    const subject = this.form.classList.contains('is-scout') ? 'Scouted team' : 'Our team';
+    const other = this.form.classList.contains('is-scout') ? 'Other team' : 'Opponent';
+    section.innerHTML = `<div class="bdv-pen-head"><div><strong>Penalties</strong><span>${penalties.length ? `${penalties.length} foul${penalties.length === 1 ? '' : 's'}` : 'None charted'}</span></div><button type="button" class="btn btn-sm" data-pen-add>Add penalty</button></div>
+      ${legacy ? '<div class="bdv-pen-legacy">Legacy penalty · details uncharted</div>' : ''}
+      <div class="bdv-pen-list">${penalties.map((penalty, index) => this._penaltyCard(penalty, index, subject, other)).join('')}</div>
+      ${penalties.length ? this._resultingSituation(play?.resultingSituation) : ''}`;
+  }
+
+  _penaltyCard(penalty, index, subject, other) {
+    const chip = (field, value, label) => `<button type="button" class="pick${penalty[field] === value ? ' active' : ''}" data-pen-chip="${index}:${field}:${value}">${label}</button>`;
+    return `<article class="bdv-pen-card" data-penalty="${index}">
+      <div class="bdv-pen-card-head"><strong>${penalty.foul || 'New penalty'}</strong><button type="button" class="bdv-pen-remove" data-pen-remove="${index}" aria-label="Remove penalty">&times;</button></div>
+      <div class="chip-section"><label class="chip-label">Charged to</label><div class="pick-group">${chip('team','subject',subject)}${chip('team','opponent',other)}${chip('team','unknown','Unknown')}</div></div>
+      <label class="bdv-pen-field"><span>Foul</span><input type="text" data-pen-input="${index}:foul" value="${this._esc(penalty.foul)}" list="bdvPenaltyFouls" placeholder="Foul name"></label>
+      <div class="chip-section"><label class="chip-label">Ruling</label><div class="pick-group">${chip('disposition','accepted','Accepted')}${chip('disposition','declined','Declined')}${chip('disposition','offsetting','Offsetting')}${chip('disposition','unknown','Unknown')}</div></div>
+      <div class="bdv-pen-grid">
+        <label class="bdv-pen-field"><span>Actual yards</span><input type="number" data-pen-input="${index}:yards" value="${penalty.yards ?? ''}" min="0" max="99" placeholder="yds"></label>
+        <label class="bdv-pen-field"><span>Player #</span><input type="number" data-pen-input="${index}:player" value="${this._esc(penalty.player)}" min="0" max="99" placeholder="#"></label>
+        <label class="bdv-pen-field"><span>Phase</span><select data-pen-input="${index}:phase">${[['offense','Offense'],['defense','Defense'],['special','Special Teams'],['deadBall','Dead ball'],['unknown','Unknown']].map(([v,l]) => `<option value="${v}"${penalty.phase === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      </div>
+      <div class="chip-section"><label class="chip-label">Play status</label><div class="pick-group">${chip('playCounts',true,'Play counts')}${chip('playCounts',false,'No play')}<button type="button" class="pick${penalty.playCounts == null ? ' active' : ''}" data-pen-chip="${index}:playCounts:unknown">Unknown</button></div></div>
+      <label class="bdv-pen-field"><span>Notes</span><input type="text" data-pen-input="${index}:notes" value="${this._esc(penalty.notes)}" placeholder="Enforcement notes"></label>
+    </article>`;
+  }
+
+  _resultingSituation(value) {
+    const sit = PenaltyModel.normalizeSituation(value) || { down:'', distance:'', fieldSide:'', yardLine:'', confirmed:false };
+    return `<div class="bdv-pen-situation"><div><strong>Resulting situation</strong><span>Next snap</span></div><div class="bdv-pen-sit-grid">
+      <label><span>Down</span><select data-pen-sit="down"><option value=""></option>${['1','2','3','4'].map(v => `<option value="${v}"${sit.down === v ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+      <label><span>Distance</span><input type="number" data-pen-sit="distance" value="${this._esc(sit.distance)}" min="1" max="99"></label>
+      <label><span>Side</span><select data-pen-sit="fieldSide"><option value=""></option><option value="own"${sit.fieldSide === 'own' ? ' selected' : ''}>Own</option><option value="opp"${sit.fieldSide === 'opp' ? ' selected' : ''}>Opp</option></select></label>
+      <label><span>Yard line</span><input type="number" data-pen-sit="yardLine" value="${this._esc(sit.yardLine)}" min="1" max="50"></label>
+    </div><label class="bdv-pen-confirm"><input type="checkbox" data-pen-sit="confirmed"${sit.confirmed ? ' checked' : ''}> Confirm for Auto D&amp;D</label></div>`;
+  }
+
+  _penaltyPhase(play) {
+    const unit = play?.tags?.unit || 'offense';
+    return unit === 'special' ? 'special' : unit === 'defense' ? 'defense' : 'offense';
+  }
+
+  _savePenaltyPlay(play) {
+    PenaltyModel.normalizePlay(play);
+    this.tagger._updateTimeline();
+    this.tagger._emit('play-updated', play);
+    this._renderPenalties(play);
+  }
+
+  async _onPenaltyClick(event) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    if (event.target.closest('[data-pen-add]')) {
+      play.penalties = PenaltyModel.normalizeList([...(play.penalties || []), { team:'subject', phase:this._penaltyPhase(play), foul:'', disposition:'accepted', yards:null, playCounts:null, player:'', automaticFirstDown:null, lossOfDown:null, notes:'', legacy:false }]);
+      this._savePenaltyPlay(play); return;
+    }
+    const remove = event.target.closest('[data-pen-remove]');
+    if (remove) {
+      const ok = await this.tagger._confirmDialog('Remove this structured penalty?', 'Remove Penalty');
+      if (!ok) return;
+      play.penalties.splice(Number(remove.dataset.penRemove), 1);
+      if (!play.penalties.length) delete play.resultingSituation;
+      this._savePenaltyPlay(play); return;
+    }
+    const chip = event.target.closest('[data-pen-chip]');
+    if (!chip) return;
+    const [indexRaw, field, raw] = chip.dataset.penChip.split(':');
+    const penalty = play.penalties?.[Number(indexRaw)];
+    if (!penalty) return;
+    penalty[field] = field === 'playCounts' ? (raw === 'true' ? true : raw === 'false' ? false : null) : raw;
+    this._savePenaltyPlay(play);
+  }
+
+  _onPenaltyChange(event) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    if (event.target.dataset.penInput) {
+      const [indexRaw, field] = event.target.dataset.penInput.split(':');
+      const penalty = play.penalties?.[Number(indexRaw)];
+      if (!penalty) return;
+      penalty[field] = field === 'yards' ? (event.target.value === '' ? null : Number(event.target.value)) : event.target.value;
+      this._savePenaltyPlay(play); return;
+    }
+    const field = event.target.dataset.penSit;
+    if (!field) return;
+    const sit = PenaltyModel.normalizeSituation(play.resultingSituation) || { down:'',distance:'',fieldSide:'',yardLine:'',confirmed:false };
+    sit[field] = field === 'confirmed' ? event.target.checked : event.target.value;
+    play.resultingSituation = PenaltyModel.normalizeSituation(sit);
+    this._savePenaltyPlay(play);
+  }
+
+  _esc(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
   _specialDetails(st) {
     const outcomes = {

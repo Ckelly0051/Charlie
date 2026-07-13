@@ -207,8 +207,51 @@ state = await page.evaluate(() => {
     malformedPhase: window.app.analyticsRegistry.values('specialTeamsPhase', { specialTeams: { unit: 'bogus' } }),
   };
 });
-ok(state.preset.join(',') === 'sit,stUnit,stOutcome,stKick,stReturn,notes' && /Field Goal Block/.test(state.unit) && /blocked/.test(state.outcome), 'Film Room Special preset reads structured unit and outcome columns', JSON.stringify(state));
+ok(state.preset.join(',') === 'sit,stUnit,stOutcome,stKick,stReturn,penalty,penaltyYards,notes' && /Field Goal Block/.test(state.unit) && /blocked/.test(state.outcome), 'Film Room Special preset reads structured unit and outcome columns', JSON.stringify(state));
 ok(state.studyUnit[0] === 'fieldGoalBlock' && state.studyOutcome[0] === 'blocked' && state.legacyPhase.length === 0 && state.malformedPhase.length === 0, 'Study dimensions consume validated structured Special Teams and quarantine legacy/malformed phases', JSON.stringify(state));
+
+await page.evaluate(() => document.querySelector('[data-pen-add]').click());
+await page.evaluate(() => {
+  document.querySelector('[data-pen-chip="0:team:subject"]').click();
+  const foul = document.querySelector('[data-pen-input="0:foul"]'); foul.value = 'Holding'; foul.dispatchEvent(new Event('change',{bubbles:true}));
+  const yards = document.querySelector('[data-pen-input="0:yards"]'); yards.value = '8'; yards.dispatchEvent(new Event('change',{bubbles:true}));
+  document.querySelector('[data-pen-chip="0:playCounts:false"]').click();
+  document.querySelector('[data-pen-add]').click();
+  document.querySelector('[data-pen-chip="1:team:opponent"]').click();
+  const foul2 = document.querySelector('[data-pen-input="1:foul"]'); foul2.value = 'Facemask'; foul2.dispatchEvent(new Event('change',{bubbles:true}));
+  document.querySelector('[data-pen-chip="1:disposition:declined"]').click();
+  for (const [key,value] of [['down','1'],['distance','10'],['fieldSide','opp'],['yardLine','35']]) {
+    const el = document.querySelector(`[data-pen-sit="${key}"]`); el.value=value; el.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  const confirmed=document.querySelector('[data-pen-sit="confirmed"]'); confirmed.checked=true; confirmed.dispatchEvent(new Event('change',{bubbles:true}));
+});
+state = await page.evaluate(() => {
+  const play=window.app.tagger.plays[0], next={id:902,timestamp:{start:6,end:10},tags:{down:'',distance:'',fieldSide:'own',yardLine:'',quarter:'',driveNumber:'',unit:'special',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]}};
+  window.app.tagger.applyNextSituation(play,next);
+  window.app.tagger._loadTagForm(play);
+  const grid=window.app.playGrid, cols=grid.constructor.COLUMNS;
+  const cell=key=>grid._cellHtml(play,cols.find(col=>col.key===key)).replace(/<[^>]*>/g,'');
+  const stats=window.app.stats.compute([play]);
+  return { penalties:play.penalties, situation:play.resultingSituation, next:next.tags, legacyResult:play.tags.result||'',
+    penaltyCell:cell('penalty'), penaltyYards:cell('penaltyYards'), preset:grid.constructor.PRESETS.special,
+    studyFouls:window.app.analyticsRegistry.values('penaltyFoul',play), studyRulings:window.app.analyticsRegistry.values('penaltyRuling',play),
+    summary:stats.penalties, report:window.app.stats._renderPenalties(stats) };
+});
+ok(state.penalties.length===2 && state.penalties[0].yards===8 && state.penalties[0].playCounts===false && state.penalties[1].disposition==='declined', 'Penalty editor stores multiple independent fouls and actual enforcement', JSON.stringify(state));
+ok(state.situation.confirmed && state.next.down==='1' && state.next.distance==='10' && state.next.fieldSide==='opp' && state.next.yardLine==='35', 'Confirmed resulting situation is the authoritative Auto D&D handoff', JSON.stringify(state));
+ok(!state.legacyResult.includes('Penalty'), 'Structured penalty entry does not add the legacy Penalty result');
+ok(state.preset.includes('penalty') && /Holding/.test(state.penaltyCell) && /Subject 8/.test(state.penaltyYards), 'Film Room summarizes structured penalties without a competing inline editor', JSON.stringify(state));
+ok(state.studyFouls.join(',')==='Holding,Facemask' && state.studyRulings.join(',')==='accepted,declined', 'Study exposes every foul and ruling as film-linked dimensions', JSON.stringify(state));
+ok(state.summary.flaggedPlays===1 && state.summary.fouls===2 && state.summary.accepted===1 && state.summary.declined===1 && state.summary.subjectYards===8 && /data-cut-type="penaltyFoul"/.test(state.report), 'Penalty report separates plays, foul records, rulings, accepted yards, and film links', JSON.stringify(state));
+
+await page.evaluate(() => document.querySelector('[data-pen-remove="0"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="cancel"]');
+ok((await page.evaluate(() => window.app.tagger.plays[0].penalties.length))===2, 'Cancelling penalty removal preserves every foul');
+await page.evaluate(() => document.querySelector('[data-pen-remove="0"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="ok"]');
+ok((await page.evaluate(() => window.app.tagger.plays[0].penalties.length))===1, 'Confirmed removal deletes only the selected foul');
 
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({

@@ -34,6 +34,7 @@ import { PlayTagger } from './play-tagger.js';
 
 import { isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 
 export class PlayGrid {
   /**
@@ -62,14 +63,16 @@ export class PlayGrid {
     { key: 'stOutcome', label: 'ST Outcome',type: 'st-readonly',                              unit: 'special' },
     { key: 'stKick',    label: 'Kick',      type: 'st-readonly',                              unit: 'special' },
     { key: 'stReturn',  label: 'Return',    type: 'st-readonly',                              unit: 'special' },
+    { key: 'penalty',   label: 'Penalty',   type: 'pen-readonly' },
+    { key: 'penaltyYards', label: 'Pen Yds', type: 'pen-readonly' },
     { key: 'notes',     label: 'Call / Notes', type: 'text' },
   ];
 
   static PRESETS = {
-    default: ['sit', 'formation', 'playType', 'result', 'yardage'],
-    offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage'],
-    defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage'],
-    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'notes'],
+    default: ['sit', 'formation', 'playType', 'result', 'yardage', 'penalty'],
+    offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
   constructor(tagger, videoController, cutupPlayer) {
@@ -325,7 +328,7 @@ export class PlayGrid {
       const res = StatsEngine.splitResults(t.result);
       const hit = (f.flags.has('td') && res.includes('Touchdown'))
         || (f.flags.has('to') && (res.includes('Interception') || res.includes('Fumble')))
-        || (f.flags.has('pen') && res.includes('Penalty'))
+        || (f.flags.has('pen') && (PenaltyModel.normalizeList(p.penalties).length > 0 || res.includes('Penalty')))
         || (f.flags.has('untagged') && PlayGrid.isUntagged(p));
       if (!hit) return false;
     }
@@ -581,6 +584,22 @@ export class PlayGrid {
 
   _cellHtml(p, col) {
     const t = p.tags || {};
+    if (col.type === 'pen-readonly') {
+      const penalties = PenaltyModel.normalizeList(p.penalties);
+      if (!penalties.length) {
+        return StatsEngine.hasResult(p, 'Penalty')
+          ? '<span class="pg-dim">Legacy · details uncharted</span>'
+          : '<span class="pg-dim">—</span>';
+      }
+      if (col.key === 'penalty') {
+        return this._esc(penalties.map(penalty => [penalty.foul || 'Unspecified', penalty.disposition === 'unknown' ? '' : penalty.disposition].filter(Boolean).join(' · ')).join(' / '));
+      }
+      return this._esc(penalties.map(penalty => {
+        if (penalty.disposition !== 'accepted') return penalty.disposition;
+        const team = penalty.team === 'subject' ? 'Subject' : penalty.team === 'opponent' ? 'Opponent' : 'Unknown';
+        return `${team} ${penalty.yards == null ? '—' : penalty.yards}`;
+      }).join(' / '));
+    }
     if (col.type === 'st-readonly') {
       const st = SpecialTeamsModel.normalize(p.specialTeams);
       if (!st) return '<span class="pg-dim">—</span>';
@@ -701,7 +720,7 @@ export class PlayGrid {
     const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
     const cell = this._cellEl(playId, colKey);
     if (!play || !col || !cell) return;
-    if (col.type === 'st-readonly') return;
+    if (col.type === 'st-readonly' || col.type === 'pen-readonly') return;
     this._closeEditor();
 
     const wrap = document.createElement('div');

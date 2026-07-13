@@ -1,6 +1,7 @@
 import { SeasonStore } from './season-store.js';
 import { DemoSeason } from './demo-season.js';
 import { planClipMatch } from './clip-identity.js';
+import { PenaltyModel } from './penalty-model.js';
 
 /**
  * StorageManager - Handles save/load/export for projects.
@@ -1187,7 +1188,7 @@ export class StorageManager {
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Takeaway', 'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade', 'Takeaway Grade',
-      'Custom Tags', 'Notes'
+      'Penalties JSON', 'Resulting Situation JSON', 'Custom Tags', 'Notes'
     ];
 
     const rows = this.tagger.plays.map(p => [
@@ -1227,6 +1228,8 @@ export class StorageManager {
       p.tags.grades?.receiver ?? '',
       p.tags.grades?.tackler ?? '',
       p.tags.grades?.takeaway ?? '',
+      Array.isArray(p.penalties) && p.penalties.length ? JSON.stringify(PenaltyModel.normalizeList(p.penalties)) : '',
+      p.resultingSituation ? JSON.stringify(PenaltyModel.normalizeSituation(p.resultingSituation)) : '',
       (p.tags.custom || []).join('; '),
       (p.notes || '')
     ]);
@@ -1280,6 +1283,7 @@ export class StorageManager {
       statsEngine._renderTendencies(stats),
       statsEngine._renderPersonnel(stats),
       statsEngine._renderBigPlays(stats),
+      statsEngine._renderPenalties(stats),
       statsEngine._renderIndividualStats(stats)
     ].join('\n');
 
@@ -1376,6 +1380,8 @@ ${body}
       passer: 'passer', qb: 'passer',
       receiver: 'receiver', rec: 'receiver',
       tackler: 'tackler',
+      penaltiesjson: 'penaltiesJson', structuredpenalties: 'penaltiesJson',
+      resultingsituationjson: 'resultingSituationJson', nextsituationjson: 'resultingSituationJson',
       notes: 'notes', note: 'notes',
     };
 
@@ -1404,11 +1410,21 @@ ${body}
         players: {}, custom: []
       };
       let notes = '';
+      let penalties = [];
+      let resultingSituation = null;
 
       for (const [colIdx, field] of Object.entries(colMap)) {
         const val = cells[parseInt(colIdx, 10)] || '';
         if (!val) continue;
         if (field === 'notes') { notes = val; continue; }
+        if (field === 'penaltiesJson') {
+          try { penalties = PenaltyModel.normalizeList(JSON.parse(val)); } catch {}
+          continue;
+        }
+        if (field === 'resultingSituationJson') {
+          try { resultingSituation = PenaltyModel.normalizeSituation(JSON.parse(val)); } catch {}
+          continue;
+        }
         if (playerFields.includes(field)) {
           tags.players[field] = val;
           continue;
@@ -1424,7 +1440,9 @@ ${body}
         timestamp: { start: 0, end: 0 },
         tags,
         annotations: [],
-        notes
+        notes,
+        ...(penalties.length ? { penalties } : {}),
+        ...(resultingSituation ? { resultingSituation } : {})
       };
       this.tagger.plays.push(play);
       count++;

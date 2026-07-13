@@ -1,4 +1,5 @@
 import { gainedFirstDown, isPlayTagged } from './football-rules.js';
+import { PenaltyModel } from './penalty-model.js';
 
 /**
  * ChipField — lightweight wrapper so a div.pick-group behaves like a
@@ -1329,6 +1330,16 @@ export class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
+    const penalties = PenaltyModel.normalizeList(prev.penalties);
+    if (penalties.length) {
+      const confirmed = PenaltyModel.confirmedSituation(prev);
+      return confirmed ? {
+        down: confirmed.down,
+        distance: confirmed.distance,
+        fieldSide: confirmed.fieldSide,
+        yardLine: confirmed.yardLine,
+      } : null;
+    }
     const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Safety']);
     const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (resultParts.some(r => stop.has(r))) return null;

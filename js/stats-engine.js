@@ -10,6 +10,7 @@ import { Visualizations } from './visualizations.js';
 import { Charts } from './charts.js';
 import { gainedFirstDown, DRIVE_ENDERS } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 
 const RUN_COLOR = '#f97316';
 const PASS_COLOR = '#38bdf8';
@@ -307,6 +308,8 @@ export class StatsEngine {
       playAction: this._playActionStats(offPlays),
       dirMotion: this._directionMotionStats(offPlays),
     };
+    const penalties = PenaltyModel.summarize(convSource);
+    if (penalties.hasData) stats.penalties = penalties;
     stats.takeaways = this._generateTakeaways(stats);
 
     return stats;
@@ -943,6 +946,32 @@ export class StatsEngine {
     if (st.returns.kick.n) cards.push(kpi('Kick Returns', st.returns.kick.n, `${v(st.returns.kick.avg)} avg · long ${st.returns.kick.long}${st.returns.kick.td ? ` · ${st.returns.kick.td} TD` : ''}`));
     if (st.returns.punt.n) cards.push(kpi('Punt Returns', st.returns.punt.n, `${v(st.returns.punt.avg)} avg · long ${st.returns.punt.long}${st.returns.punt.td ? ` · ${st.returns.punt.td} TD` : ''}`));
     return `<div class="stats-section"><h3>Special Teams</h3><div class="gi-hero">${cards.join('')}</div></div>`;
+  }
+
+  _renderPenalties(stats) {
+    const summary = stats.penalties;
+    if (!summary?.hasData) return '';
+    const esc = Charts._esc;
+    const fouls = new Map();
+    for (const row of summary.records) {
+      const name = row.penalty.foul || 'unknown';
+      if (!fouls.has(name)) fouls.set(name, { count: 0, yards: 0 });
+      const item = fouls.get(name);
+      item.count++;
+      if (row.penalty.disposition === 'accepted') item.yards += row.penalty.yards || 0;
+    }
+    const rows = [...fouls].sort((a, b) => b[1].count - a[1].count).map(([name, item]) =>
+      `<tr class="cut-row" data-cut-type="penaltyFoul" data-cut-val="${esc(name)}"><td>${esc(name === 'unknown' ? 'Unspecified' : name)}</td><td>${item.count}</td><td>${item.yards}</td></tr>`).join('');
+    return `<div class="stats-section"><h3>Penalties</h3>
+      <div class="gi-hero">
+        <div class="gi-kpi"><div class="gi-kpi-label">Flagged plays</div><div class="gi-kpi-value">${summary.flaggedPlays}</div><div class="gi-kpi-sub">${summary.fouls} foul record${summary.fouls === 1 ? '' : 's'}</div></div>
+        <div class="gi-kpi"><div class="gi-kpi-label">Accepted</div><div class="gi-kpi-value">${summary.accepted}</div><div class="gi-kpi-sub">${summary.declined} declined · ${summary.offsetting} offsetting</div></div>
+        <div class="gi-kpi"><div class="gi-kpi-label">Subject yards</div><div class="gi-kpi-value">${summary.subjectYards}</div><div class="gi-kpi-sub">accepted enforcement only</div></div>
+        <div class="gi-kpi"><div class="gi-kpi-label">Opponent yards</div><div class="gi-kpi-value">${summary.opponentYards}</div><div class="gi-kpi-sub">accepted enforcement only</div></div>
+      </div>
+      ${summary.incomplete ? `<div class="stats-cut-hint">${summary.incomplete} structured foul${summary.incomplete === 1 ? '' : 's'} still need team, ruling, or foul details.</div>` : ''}
+      <table class="stats-table stats-table-full"><thead><tr><th>Foul</th><th>Records</th><th>Accepted yards</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
   }
 
   _downStats(plays) {
@@ -1662,6 +1691,7 @@ export class StatsEngine {
               ${this._renderGameFlow(stats)}
               ${this._renderDriveChart(stats)}
               ${this._renderSpecialTeams(stats)}
+              ${this._renderPenalties(stats)}
             </div>
             <div class="stats-tab-pane" data-pane="offense">
               ${this._renderOffenseHero(stats)}
@@ -2028,6 +2058,9 @@ export class StatsEngine {
         const [front, cov] = val.split('|');
         return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(front) && (p.tags.coverage || '') === cov;
       }
+      case 'penaltyFoul': return p => PenaltyModel.normalizeList(p.penalties).some(item => (item.foul || 'unknown') === val);
+      case 'penaltyTeam': return p => PenaltyModel.normalizeList(p.penalties).some(item => item.team === val);
+      case 'penaltyDisposition': return p => PenaltyModel.normalizeList(p.penalties).some(item => item.disposition === val);
       case 'situation': {
         switch (val) {
           case 'redZone':    return p => isOff(p) && absYL(p) !== null && absYL(p) >= 80;

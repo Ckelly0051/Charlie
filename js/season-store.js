@@ -23,6 +23,7 @@
  */
 import { detectBackend } from './storage-backend.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 
 export class SeasonStore {
   constructor(backend) {
@@ -276,6 +277,7 @@ export class SeasonStore {
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);
         SpecialTeamsModel.normalizePlay(p);
+        PenaltyModel.normalizePlay(p);
       });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {

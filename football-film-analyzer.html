@@ -8792,6 +8792,23 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .bdv-st-field > span,.bdv-st-spot > span { color: var(--text-dim); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bdv-st-field input,.bdv-st-spot input { width: 100%; min-width: 0; height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); padding: 5px 8px; }
 .bdv-st-spot .pick-group { display: grid; grid-template-columns: auto auto minmax(58px,1fr); }
+.bdv-penalties { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.bdv-pen-head,.bdv-pen-card-head,.bdv-pen-situation > div:first-child { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.bdv-pen-head > div,.bdv-pen-situation > div:first-child { display:grid; }
+.bdv-pen-head strong,.bdv-pen-situation strong { font-size:12px; text-transform:uppercase; }
+.bdv-pen-head span,.bdv-pen-situation span { color:var(--text-dim); font-size:10px; }
+.bdv-pen-legacy { margin-top:8px; padding:8px 10px; border-left:3px solid #d9a441; background:#242116; color:#ead7a3; font-size:11px; font-weight:700; }
+.bdv-pen-list { display:grid; gap:8px; margin-top:8px; }
+.bdv-pen-card { padding:9px; border:1px solid var(--border); border-radius:4px; background:#111923; }
+.bdv-pen-card-head strong { font-size:12px; }
+.bdv-pen-remove { width:32px; height:32px; border:1px solid #67404a; border-radius:4px; background:#24171b; color:#ff9daa; font-size:18px; }
+.bdv-pen-grid,.bdv-pen-sit-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+.bdv-pen-sit-grid { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:8px; }
+.bdv-pen-field,.bdv-pen-sit-grid label { display:grid; gap:4px; min-width:0; }
+.bdv-pen-field span,.bdv-pen-sit-grid span { color:var(--text-dim); font-size:10px; font-weight:800; text-transform:uppercase; }
+.bdv-pen-field input,.bdv-pen-field select,.bdv-pen-sit-grid input,.bdv-pen-sit-grid select { width:100%; min-width:0; height:34px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); padding:5px 7px; }
+.bdv-pen-situation { margin-top:8px; padding:9px; border:1px solid #315783; border-radius:4px; background:#101c29; }
+.bdv-pen-confirm { display:flex; align-items:center; gap:7px; margin-top:8px; font-size:11px; font-weight:700; }
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .breakdown-form-v2.mode-defense #tagPlayersSection .player-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .breakdown-form-v2 .tag-notes { margin-top: 0; }
@@ -8802,6 +8819,8 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
   .bdv-section-label { align-items: flex-start; flex-direction: column; gap: 1px; }
   .bdv-st-choice-row,.bdv-st-metrics { grid-template-columns: 1fr; }
   .bdv-st-field input,.bdv-st-spot input { min-height: 44px; }
+  .bdv-pen-grid,.bdv-pen-sit-grid { grid-template-columns:1fr 1fr; }
+  .bdv-pen-field input,.bdv-pen-field select,.bdv-pen-sit-grid input,.bdv-pen-sit-grid select,.bdv-pen-remove { min-height:44px; }
 }
   </style>
 </head>
@@ -10684,6 +10703,101 @@ class SpecialTeamsModel {
     }
     if (status === 'fairCatch' || status === 'downed' || status === 'outOfBounds') return event.kick.distance;
     return null;
+  }
+}
+
+// ===== penalty-model.js =====
+/** Pure structured-penalty contract. No DOM or storage dependencies. */
+class PenaltyModel {
+  static TEAMS = new Set(['subject', 'opponent', 'unknown']);
+  static PHASES = new Set(['offense', 'defense', 'special', 'deadBall', 'unknown']);
+  static DISPOSITIONS = new Set(['accepted', 'declined', 'offsetting', 'unknown']);
+
+  static _id() { return `pen_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`; }
+  static _choice(value, set, fallback = 'unknown') { return set.has(value) ? value : fallback; }
+  static _text(value) { return typeof value === 'string' ? value : ''; }
+  static _tri(value) { return value === true || value === false ? value : null; }
+  static _yards(value) {
+    if (value === '' || value == null) return null;
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  static normalizePenalty(value, used = new Set()) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    let id = this._text(value.id);
+    if (!id || used.has(id)) id = this._id();
+    used.add(id);
+    return {
+      ...value,
+      id,
+      team: this._choice(value.team, this.TEAMS),
+      phase: this._choice(value.phase, this.PHASES),
+      foul: this._text(value.foul),
+      disposition: this._choice(value.disposition, this.DISPOSITIONS),
+      yards: this._yards(value.yards),
+      playCounts: this._tri(value.playCounts),
+      player: this._text(value.player),
+      automaticFirstDown: this._tri(value.automaticFirstDown),
+      lossOfDown: this._tri(value.lossOfDown),
+      notes: this._text(value.notes),
+      legacy: value.legacy === true,
+    };
+  }
+
+  static normalizeList(value) {
+    if (!Array.isArray(value)) return [];
+    const used = new Set();
+    return value.map(item => this.normalizePenalty(item, used)).filter(Boolean);
+  }
+
+  static normalizeSituation(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const down = ['1','2','3','4'].includes(String(value.down)) ? String(value.down) : '';
+    const distance = this._text(value.distance);
+    const fieldSide = value.fieldSide === 'own' || value.fieldSide === 'opp' ? value.fieldSide : '';
+    const yardLine = this._text(value.yardLine);
+    return { ...value, down, distance, fieldSide, yardLine, confirmed: value.confirmed === true };
+  }
+
+  static normalizePlay(play) {
+    if (!play || typeof play !== 'object') return [];
+    if (Object.prototype.hasOwnProperty.call(play, 'penalties')) play.penalties = this.normalizeList(play.penalties);
+    if (Object.prototype.hasOwnProperty.call(play, 'resultingSituation')) {
+      const situation = this.normalizeSituation(play.resultingSituation);
+      if (situation) play.resultingSituation = situation;
+    }
+    return Array.isArray(play.penalties) ? play.penalties : [];
+  }
+
+  static confirmedSituation(play) {
+    const situation = this.normalizeSituation(play?.resultingSituation);
+    if (!situation?.confirmed || !situation.down || !situation.distance || !situation.fieldSide || !situation.yardLine) return null;
+    return situation;
+  }
+
+  static summarize(plays) {
+    const records = [];
+    let flaggedPlays = 0;
+    for (const play of plays || []) {
+      const penalties = this.normalizeList(play?.penalties);
+      if (penalties.length) flaggedPlays++;
+      penalties.forEach(penalty => records.push({ play, penalty }));
+    }
+    const accepted = records.filter(row => row.penalty.disposition === 'accepted');
+    const yards = team => accepted.filter(row => row.penalty.team === team).reduce((sum, row) => sum + (row.penalty.yards || 0), 0);
+    return {
+      flaggedPlays,
+      fouls: records.length,
+      accepted: accepted.length,
+      declined: records.filter(row => row.penalty.disposition === 'declined').length,
+      offsetting: records.filter(row => row.penalty.disposition === 'offsetting').length,
+      incomplete: records.filter(row => row.penalty.disposition === 'unknown' || row.penalty.team === 'unknown' || !row.penalty.foul).length,
+      subjectYards: yards('subject'),
+      opponentYards: yards('opponent'),
+      records,
+      hasData: records.length > 0,
+    };
   }
 }
 
@@ -13135,6 +13249,16 @@ class PlayTagger {
    */
   computeNextSituation(prev) {
     const t = prev.tags;
+    const penalties = PenaltyModel.normalizeList(prev.penalties);
+    if (penalties.length) {
+      const confirmed = PenaltyModel.confirmedSituation(prev);
+      return confirmed ? {
+        down: confirmed.down,
+        distance: confirmed.distance,
+        fieldSide: confirmed.fieldSide,
+        yardLine: confirmed.yardLine,
+      } : null;
+    }
     const stop = new Set(['Touchdown', 'Interception', 'Fumble', 'Punt', 'Field Goal', 'Good', 'No Good', 'Safety']);
     const resultParts = String(t.result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (resultParts.some(r => stop.has(r))) return null;
@@ -16189,6 +16313,7 @@ class SeasonStore {
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);
         SpecialTeamsModel.normalizePlay(p);
+        PenaltyModel.normalizePlay(p);
       });
     });
     if (!d.activeGameId || !d.games.some(g => g.id === d.activeGameId)) {
@@ -17952,7 +18077,7 @@ class StorageManager {
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Takeaway', 'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade', 'Takeaway Grade',
-      'Custom Tags', 'Notes'
+      'Penalties JSON', 'Resulting Situation JSON', 'Custom Tags', 'Notes'
     ];
 
     const rows = this.tagger.plays.map(p => [
@@ -17992,6 +18117,8 @@ class StorageManager {
       p.tags.grades?.receiver ?? '',
       p.tags.grades?.tackler ?? '',
       p.tags.grades?.takeaway ?? '',
+      Array.isArray(p.penalties) && p.penalties.length ? JSON.stringify(PenaltyModel.normalizeList(p.penalties)) : '',
+      p.resultingSituation ? JSON.stringify(PenaltyModel.normalizeSituation(p.resultingSituation)) : '',
       (p.tags.custom || []).join('; '),
       (p.notes || '')
     ]);
@@ -18045,6 +18172,7 @@ class StorageManager {
       statsEngine._renderTendencies(stats),
       statsEngine._renderPersonnel(stats),
       statsEngine._renderBigPlays(stats),
+      statsEngine._renderPenalties(stats),
       statsEngine._renderIndividualStats(stats)
     ].join('\n');
 
@@ -18141,6 +18269,8 @@ ${body}
       passer: 'passer', qb: 'passer',
       receiver: 'receiver', rec: 'receiver',
       tackler: 'tackler',
+      penaltiesjson: 'penaltiesJson', structuredpenalties: 'penaltiesJson',
+      resultingsituationjson: 'resultingSituationJson', nextsituationjson: 'resultingSituationJson',
       notes: 'notes', note: 'notes',
     };
 
@@ -18169,11 +18299,21 @@ ${body}
         players: {}, custom: []
       };
       let notes = '';
+      let penalties = [];
+      let resultingSituation = null;
 
       for (const [colIdx, field] of Object.entries(colMap)) {
         const val = cells[parseInt(colIdx, 10)] || '';
         if (!val) continue;
         if (field === 'notes') { notes = val; continue; }
+        if (field === 'penaltiesJson') {
+          try { penalties = PenaltyModel.normalizeList(JSON.parse(val)); } catch {}
+          continue;
+        }
+        if (field === 'resultingSituationJson') {
+          try { resultingSituation = PenaltyModel.normalizeSituation(JSON.parse(val)); } catch {}
+          continue;
+        }
         if (playerFields.includes(field)) {
           tags.players[field] = val;
           continue;
@@ -18189,7 +18329,9 @@ ${body}
         timestamp: { start: 0, end: 0 },
         tags,
         annotations: [],
-        notes
+        notes,
+        ...(penalties.length ? { penalties } : {}),
+        ...(resultingSituation ? { resultingSituation } : {})
       };
       this.tagger.plays.push(play);
       count++;
@@ -22264,6 +22406,8 @@ class StatsEngine {
       playAction: this._playActionStats(offPlays),
       dirMotion: this._directionMotionStats(offPlays),
     };
+    const penalties = PenaltyModel.summarize(convSource);
+    if (penalties.hasData) stats.penalties = penalties;
     stats.takeaways = this._generateTakeaways(stats);
 
     return stats;
@@ -22900,6 +23044,32 @@ class StatsEngine {
     if (st.returns.kick.n) cards.push(kpi('Kick Returns', st.returns.kick.n, `${v(st.returns.kick.avg)} avg · long ${st.returns.kick.long}${st.returns.kick.td ? ` · ${st.returns.kick.td} TD` : ''}`));
     if (st.returns.punt.n) cards.push(kpi('Punt Returns', st.returns.punt.n, `${v(st.returns.punt.avg)} avg · long ${st.returns.punt.long}${st.returns.punt.td ? ` · ${st.returns.punt.td} TD` : ''}`));
     return `<div class="stats-section"><h3>Special Teams</h3><div class="gi-hero">${cards.join('')}</div></div>`;
+  }
+
+  _renderPenalties(stats) {
+    const summary = stats.penalties;
+    if (!summary?.hasData) return '';
+    const esc = Charts._esc;
+    const fouls = new Map();
+    for (const row of summary.records) {
+      const name = row.penalty.foul || 'unknown';
+      if (!fouls.has(name)) fouls.set(name, { count: 0, yards: 0 });
+      const item = fouls.get(name);
+      item.count++;
+      if (row.penalty.disposition === 'accepted') item.yards += row.penalty.yards || 0;
+    }
+    const rows = [...fouls].sort((a, b) => b[1].count - a[1].count).map(([name, item]) =>
+      `<tr class="cut-row" data-cut-type="penaltyFoul" data-cut-val="${esc(name)}"><td>${esc(name === 'unknown' ? 'Unspecified' : name)}</td><td>${item.count}</td><td>${item.yards}</td></tr>`).join('');
+    return `<div class="stats-section"><h3>Penalties</h3>
+      <div class="gi-hero">
+        <div class="gi-kpi"><div class="gi-kpi-label">Flagged plays</div><div class="gi-kpi-value">${summary.flaggedPlays}</div><div class="gi-kpi-sub">${summary.fouls} foul record${summary.fouls === 1 ? '' : 's'}</div></div>
+        <div class="gi-kpi"><div class="gi-kpi-label">Accepted</div><div class="gi-kpi-value">${summary.accepted}</div><div class="gi-kpi-sub">${summary.declined} declined · ${summary.offsetting} offsetting</div></div>
+        <div class="gi-kpi"><div class="gi-kpi-label">Subject yards</div><div class="gi-kpi-value">${summary.subjectYards}</div><div class="gi-kpi-sub">accepted enforcement only</div></div>
+        <div class="gi-kpi"><div class="gi-kpi-label">Opponent yards</div><div class="gi-kpi-value">${summary.opponentYards}</div><div class="gi-kpi-sub">accepted enforcement only</div></div>
+      </div>
+      ${summary.incomplete ? `<div class="stats-cut-hint">${summary.incomplete} structured foul${summary.incomplete === 1 ? '' : 's'} still need team, ruling, or foul details.</div>` : ''}
+      <table class="stats-table stats-table-full"><thead><tr><th>Foul</th><th>Records</th><th>Accepted yards</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
   }
 
   _downStats(plays) {
@@ -23619,6 +23789,7 @@ class StatsEngine {
               ${this._renderGameFlow(stats)}
               ${this._renderDriveChart(stats)}
               ${this._renderSpecialTeams(stats)}
+              ${this._renderPenalties(stats)}
             </div>
             <div class="stats-tab-pane" data-pane="offense">
               ${this._renderOffenseHero(stats)}
@@ -23985,6 +24156,9 @@ class StatsEngine {
         const [front, cov] = val.split('|');
         return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(front) && (p.tags.coverage || '') === cov;
       }
+      case 'penaltyFoul': return p => PenaltyModel.normalizeList(p.penalties).some(item => (item.foul || 'unknown') === val);
+      case 'penaltyTeam': return p => PenaltyModel.normalizeList(p.penalties).some(item => item.team === val);
+      case 'penaltyDisposition': return p => PenaltyModel.normalizeList(p.penalties).some(item => item.disposition === val);
       case 'situation': {
         switch (val) {
           case 'redZone':    return p => isOff(p) && absYL(p) !== null && absYL(p) >= 80;
@@ -26793,6 +26967,7 @@ class AnalyticsRegistry {
     const SE = this._SE;
     const tag = key => (p) => this._one(p?.tags?.[key]);
     const special = p => SpecialTeamsModel.normalize(p?.specialTeams);
+    const penalties = p => PenaltyModel.normalizeList(p?.penalties);
     const context = key => (_p, ctx) => this._one(ctx?.[key]);
     const pairs = (obj, split = false) => Object.entries(obj || {}).flatMap(([role, value]) => {
       const values = split ? SE.splitPlayers(value) : this._one(value);
@@ -26831,6 +27006,11 @@ class AnalyticsRegistry {
       ready('specialTeamsOutcome', 'Special Teams Outcome', p => this._one(special(p)?.outcome.status), 'SpecialTeamsModel.normalize.outcome.status'),
       ready('specialTeamsRole', 'Special Teams Role', p => this._one(special(p)?.subjectRole), 'SpecialTeamsModel.normalize.subjectRole'),
       ready('specialTeamsScore', 'Special Teams Score', p => this._one(special(p)?.outcome.score), 'SpecialTeamsModel.normalize.outcome.score'),
+      ready('penaltyTeam', 'Penalty Charged To', p => penalties(p).map(item => item.team), 'PenaltyModel.normalizeList.team', { multi: true }),
+      ready('penaltyFoul', 'Penalty Foul', p => penalties(p).map(item => item.foul).filter(Boolean), 'PenaltyModel.normalizeList.foul', { multi: true }),
+      ready('penaltyRuling', 'Penalty Ruling', p => penalties(p).map(item => item.disposition), 'PenaltyModel.normalizeList.disposition', { multi: true }),
+      ready('penaltyPhase', 'Penalty Phase', p => penalties(p).map(item => item.phase), 'PenaltyModel.normalizeList.phase', { multi: true }),
+      ready('penaltyPlayCounts', 'Penalty Play Counts', p => penalties(p).map(item => item.playCounts === true ? 'Play counts' : item.playCounts === false ? 'No play' : 'Unknown'), 'PenaltyModel.normalizeList.playCounts', { multi: true }),
       ready('customTag', 'Custom Tag', p => (p?.tags?.custom || []).filter(Boolean).map(String), 'play.tags.custom', { multi: true }),
       ready('customField', 'Custom Field', p => pairs(p?.tags?.customFields), 'play.tags.customFields', { multi: true }),
       ready('result', 'Result', p => SE.splitResults(p?.tags?.result), 'StatsEngine.splitResults', { multi: true }),
@@ -27572,7 +27752,9 @@ class StudyScreen {
     return ['formation', 'playType', 'runPass', 'down', 'distance', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
       'playDir', 'defFront', 'coverage', 'blitz', 'result', 'playerRole', 'grade',
-      'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'customTag', 'customField'];
+      'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore',
+      'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
+      'customTag', 'customField'];
   }
 
   static get MEASURES() {
@@ -29639,14 +29821,16 @@ class PlayGrid {
     { key: 'stOutcome', label: 'ST Outcome',type: 'st-readonly',                              unit: 'special' },
     { key: 'stKick',    label: 'Kick',      type: 'st-readonly',                              unit: 'special' },
     { key: 'stReturn',  label: 'Return',    type: 'st-readonly',                              unit: 'special' },
+    { key: 'penalty',   label: 'Penalty',   type: 'pen-readonly' },
+    { key: 'penaltyYards', label: 'Pen Yds', type: 'pen-readonly' },
     { key: 'notes',     label: 'Call / Notes', type: 'text' },
   ];
 
   static PRESETS = {
-    default: ['sit', 'formation', 'playType', 'result', 'yardage'],
-    offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage'],
-    defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage'],
-    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'notes'],
+    default: ['sit', 'formation', 'playType', 'result', 'yardage', 'penalty'],
+    offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
   constructor(tagger, videoController, cutupPlayer) {
@@ -29902,7 +30086,7 @@ class PlayGrid {
       const res = StatsEngine.splitResults(t.result);
       const hit = (f.flags.has('td') && res.includes('Touchdown'))
         || (f.flags.has('to') && (res.includes('Interception') || res.includes('Fumble')))
-        || (f.flags.has('pen') && res.includes('Penalty'))
+        || (f.flags.has('pen') && (PenaltyModel.normalizeList(p.penalties).length > 0 || res.includes('Penalty')))
         || (f.flags.has('untagged') && PlayGrid.isUntagged(p));
       if (!hit) return false;
     }
@@ -30158,6 +30342,22 @@ class PlayGrid {
 
   _cellHtml(p, col) {
     const t = p.tags || {};
+    if (col.type === 'pen-readonly') {
+      const penalties = PenaltyModel.normalizeList(p.penalties);
+      if (!penalties.length) {
+        return StatsEngine.hasResult(p, 'Penalty')
+          ? '<span class="pg-dim">Legacy · details uncharted</span>'
+          : '<span class="pg-dim">—</span>';
+      }
+      if (col.key === 'penalty') {
+        return this._esc(penalties.map(penalty => [penalty.foul || 'Unspecified', penalty.disposition === 'unknown' ? '' : penalty.disposition].filter(Boolean).join(' · ')).join(' / '));
+      }
+      return this._esc(penalties.map(penalty => {
+        if (penalty.disposition !== 'accepted') return penalty.disposition;
+        const team = penalty.team === 'subject' ? 'Subject' : penalty.team === 'opponent' ? 'Opponent' : 'Unknown';
+        return `${team} ${penalty.yards == null ? '—' : penalty.yards}`;
+      }).join(' / '));
+    }
     if (col.type === 'st-readonly') {
       const st = SpecialTeamsModel.normalize(p.specialTeams);
       if (!st) return '<span class="pg-dim">—</span>';
@@ -30278,7 +30478,7 @@ class PlayGrid {
     const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
     const cell = this._cellEl(playId, colKey);
     if (!play || !col || !cell) return;
-    if (col.type === 'st-readonly') return;
+    if (col.type === 'st-readonly' || col.type === 'pen-readonly') return;
     this._closeEditor();
 
     const wrap = document.createElement('div');
@@ -33764,6 +33964,7 @@ class BreakdownForm {
     this._addHeader();
     this._addSectionLabels();
     this._mountSpecialTeams();
+    this._mountPenalties();
     this._syncPerspective();
     this.observer = new MutationObserver(records => {
       if (records.some(record => record.attributeName === 'class')) this._syncPerspective();
@@ -33843,7 +34044,115 @@ class BreakdownForm {
       </div></div>
       ${st ? this._specialDetails(st) : ''}`;
     this._syncSpecialistLabels(st);
+    this._renderPenalties(play);
   }
+
+  _mountPenalties() {
+    const target = this.form.querySelector('#tagPlayersSection');
+    if (!target || this.form.querySelector('.bdv-penalties')) return;
+    const section = document.createElement('section');
+    section.className = 'bdv-penalties';
+    section.addEventListener('click', event => this._onPenaltyClick(event));
+    section.addEventListener('change', event => this._onPenaltyChange(event));
+    target.insertAdjacentElement('beforebegin', section);
+    this._renderPenalties(this.tagger.getCurrentPlay());
+  }
+
+  _renderPenalties(play) {
+    const section = this.form.querySelector('.bdv-penalties');
+    if (!section) return;
+    const penalties = PenaltyModel.normalizeList(play?.penalties);
+    const legacy = !penalties.length && String(play?.tags?.result || '').split(/\s*\+\s*/).includes('Penalty');
+    const subject = this.form.classList.contains('is-scout') ? 'Scouted team' : 'Our team';
+    const other = this.form.classList.contains('is-scout') ? 'Other team' : 'Opponent';
+    section.innerHTML = `<div class="bdv-pen-head"><div><strong>Penalties</strong><span>${penalties.length ? `${penalties.length} foul${penalties.length === 1 ? '' : 's'}` : 'None charted'}</span></div><button type="button" class="btn btn-sm" data-pen-add>Add penalty</button></div>
+      ${legacy ? '<div class="bdv-pen-legacy">Legacy penalty · details uncharted</div>' : ''}
+      <div class="bdv-pen-list">${penalties.map((penalty, index) => this._penaltyCard(penalty, index, subject, other)).join('')}</div>
+      ${penalties.length ? this._resultingSituation(play?.resultingSituation) : ''}`;
+  }
+
+  _penaltyCard(penalty, index, subject, other) {
+    const chip = (field, value, label) => `<button type="button" class="pick${penalty[field] === value ? ' active' : ''}" data-pen-chip="${index}:${field}:${value}">${label}</button>`;
+    return `<article class="bdv-pen-card" data-penalty="${index}">
+      <div class="bdv-pen-card-head"><strong>${penalty.foul || 'New penalty'}</strong><button type="button" class="bdv-pen-remove" data-pen-remove="${index}" aria-label="Remove penalty">&times;</button></div>
+      <div class="chip-section"><label class="chip-label">Charged to</label><div class="pick-group">${chip('team','subject',subject)}${chip('team','opponent',other)}${chip('team','unknown','Unknown')}</div></div>
+      <label class="bdv-pen-field"><span>Foul</span><input type="text" data-pen-input="${index}:foul" value="${this._esc(penalty.foul)}" list="bdvPenaltyFouls" placeholder="Foul name"></label>
+      <div class="chip-section"><label class="chip-label">Ruling</label><div class="pick-group">${chip('disposition','accepted','Accepted')}${chip('disposition','declined','Declined')}${chip('disposition','offsetting','Offsetting')}${chip('disposition','unknown','Unknown')}</div></div>
+      <div class="bdv-pen-grid">
+        <label class="bdv-pen-field"><span>Actual yards</span><input type="number" data-pen-input="${index}:yards" value="${penalty.yards ?? ''}" min="0" max="99" placeholder="yds"></label>
+        <label class="bdv-pen-field"><span>Player #</span><input type="number" data-pen-input="${index}:player" value="${this._esc(penalty.player)}" min="0" max="99" placeholder="#"></label>
+        <label class="bdv-pen-field"><span>Phase</span><select data-pen-input="${index}:phase">${[['offense','Offense'],['defense','Defense'],['special','Special Teams'],['deadBall','Dead ball'],['unknown','Unknown']].map(([v,l]) => `<option value="${v}"${penalty.phase === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      </div>
+      <div class="chip-section"><label class="chip-label">Play status</label><div class="pick-group">${chip('playCounts',true,'Play counts')}${chip('playCounts',false,'No play')}<button type="button" class="pick${penalty.playCounts == null ? ' active' : ''}" data-pen-chip="${index}:playCounts:unknown">Unknown</button></div></div>
+      <label class="bdv-pen-field"><span>Notes</span><input type="text" data-pen-input="${index}:notes" value="${this._esc(penalty.notes)}" placeholder="Enforcement notes"></label>
+    </article>`;
+  }
+
+  _resultingSituation(value) {
+    const sit = PenaltyModel.normalizeSituation(value) || { down:'', distance:'', fieldSide:'', yardLine:'', confirmed:false };
+    return `<div class="bdv-pen-situation"><div><strong>Resulting situation</strong><span>Next snap</span></div><div class="bdv-pen-sit-grid">
+      <label><span>Down</span><select data-pen-sit="down"><option value=""></option>${['1','2','3','4'].map(v => `<option value="${v}"${sit.down === v ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+      <label><span>Distance</span><input type="number" data-pen-sit="distance" value="${this._esc(sit.distance)}" min="1" max="99"></label>
+      <label><span>Side</span><select data-pen-sit="fieldSide"><option value=""></option><option value="own"${sit.fieldSide === 'own' ? ' selected' : ''}>Own</option><option value="opp"${sit.fieldSide === 'opp' ? ' selected' : ''}>Opp</option></select></label>
+      <label><span>Yard line</span><input type="number" data-pen-sit="yardLine" value="${this._esc(sit.yardLine)}" min="1" max="50"></label>
+    </div><label class="bdv-pen-confirm"><input type="checkbox" data-pen-sit="confirmed"${sit.confirmed ? ' checked' : ''}> Confirm for Auto D&amp;D</label></div>`;
+  }
+
+  _penaltyPhase(play) {
+    const unit = play?.tags?.unit || 'offense';
+    return unit === 'special' ? 'special' : unit === 'defense' ? 'defense' : 'offense';
+  }
+
+  _savePenaltyPlay(play) {
+    PenaltyModel.normalizePlay(play);
+    this.tagger._updateTimeline();
+    this.tagger._emit('play-updated', play);
+    this._renderPenalties(play);
+  }
+
+  async _onPenaltyClick(event) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    if (event.target.closest('[data-pen-add]')) {
+      play.penalties = PenaltyModel.normalizeList([...(play.penalties || []), { team:'subject', phase:this._penaltyPhase(play), foul:'', disposition:'accepted', yards:null, playCounts:null, player:'', automaticFirstDown:null, lossOfDown:null, notes:'', legacy:false }]);
+      this._savePenaltyPlay(play); return;
+    }
+    const remove = event.target.closest('[data-pen-remove]');
+    if (remove) {
+      const ok = await this.tagger._confirmDialog('Remove this structured penalty?', 'Remove Penalty');
+      if (!ok) return;
+      play.penalties.splice(Number(remove.dataset.penRemove), 1);
+      if (!play.penalties.length) delete play.resultingSituation;
+      this._savePenaltyPlay(play); return;
+    }
+    const chip = event.target.closest('[data-pen-chip]');
+    if (!chip) return;
+    const [indexRaw, field, raw] = chip.dataset.penChip.split(':');
+    const penalty = play.penalties?.[Number(indexRaw)];
+    if (!penalty) return;
+    penalty[field] = field === 'playCounts' ? (raw === 'true' ? true : raw === 'false' ? false : null) : raw;
+    this._savePenaltyPlay(play);
+  }
+
+  _onPenaltyChange(event) {
+    const play = this.tagger.getCurrentPlay();
+    if (!play) return;
+    if (event.target.dataset.penInput) {
+      const [indexRaw, field] = event.target.dataset.penInput.split(':');
+      const penalty = play.penalties?.[Number(indexRaw)];
+      if (!penalty) return;
+      penalty[field] = field === 'yards' ? (event.target.value === '' ? null : Number(event.target.value)) : event.target.value;
+      this._savePenaltyPlay(play); return;
+    }
+    const field = event.target.dataset.penSit;
+    if (!field) return;
+    const sit = PenaltyModel.normalizeSituation(play.resultingSituation) || { down:'',distance:'',fieldSide:'',yardLine:'',confirmed:false };
+    sit[field] = field === 'confirmed' ? event.target.checked : event.target.value;
+    play.resultingSituation = PenaltyModel.normalizeSituation(sit);
+    this._savePenaltyPlay(play);
+  }
+
+  _esc(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
   _specialDetails(st) {
     const outcomes = {

@@ -27,7 +27,10 @@ const res = await page.evaluate(async () => {
   sm._loadActiveGame();
   // Plays with adversarial cell values.
   sm.tagger.plays = [
-    { id: 1, timestamp: { start: 0, end: 5 }, notes: 'said "hi", ok', annotations: [], tags: { formation: 'A"B', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
+    { id: 1, timestamp: { start: 0, end: 5 }, notes: 'said "hi", ok', annotations: [], penalties: [
+      { id: 'p1', team: 'subject', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false, phase: 'offense' },
+      { id: 'p2', team: 'opponent', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true, phase: 'defense' },
+    ], resultingSituation: { down: '1', distance: '10', fieldSide: 'opp', yardLine: '35', confirmed: true }, tags: { formation: 'A"B', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
     { id: 2, timestamp: { start: 0, end: 5 }, notes: '', annotations: [], tags: { formation: '=EVIL', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '7', down: '2', distance: '4', custom: [], players: {}, grades: {} } },
   ];
   let blob = null;
@@ -35,9 +38,13 @@ const res = await page.evaluate(async () => {
   sm.exportCsv();
   const csv = await blob.text();
   const parsed = sm.importPlaysFromText(csv);
+  sm.tagger.plays = [];
+  sm.tagger.nextId = 1;
+  sm.applyPlayImport(parsed);
+  const structured = sm.tagger.plays[0];
   const roundtrippedQuote = (parsed.lines || []).some(row => row.some(c => c === 'A"B'));
   const roundtrippedNotes = (parsed.lines || []).some(row => row.some(c => c === 'said "hi", ok'));
-  return { csv, roundtrippedQuote, roundtrippedNotes };
+  return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties, situation: structured?.resultingSituation };
 });
 
 ok(res.csv.includes('"A""B"'), 'embedded quote in formation is escaped ("→"") on export', JSON.stringify(res.csv.split('\n')[1]?.slice(0, 60)));
@@ -46,6 +53,8 @@ ok(res.csv.includes(`"'=EVIL"`), 'formula-injection cell (=EVIL) is neutralized 
 ok(res.csv.includes('"-5"') && !res.csv.includes(`"'-5"`), 'signed number -5 stays numeric (NOT formula-guarded)');
 ok(res.roundtrippedQuote, 'export→import round-trips a doubled "" back to a literal quote (A"B)');
 ok(res.roundtrippedNotes, 'export→import round-trips notes containing a quote and a comma');
+ok(res.penalties?.length === 2 && res.penalties[0].yards === 8 && res.penalties[1].disposition === 'declined', 'export→import preserves multiple structured penalties');
+ok(res.situation?.confirmed === true && res.situation?.fieldSide === 'opp' && res.situation?.yardLine === '35', 'export→import preserves the coach-confirmed resulting situation');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

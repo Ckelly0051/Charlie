@@ -6,6 +6,7 @@
  * `requires-context`; consumers cannot accidentally invent a denominator.
  */
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -35,6 +36,7 @@ export class AnalyticsRegistry {
     const SE = this._SE;
     const tag = key => (p) => this._one(p?.tags?.[key]);
     const special = p => SpecialTeamsModel.normalize(p?.specialTeams);
+    const penalties = p => PenaltyModel.normalizeList(p?.penalties);
     const context = key => (_p, ctx) => this._one(ctx?.[key]);
     const pairs = (obj, split = false) => Object.entries(obj || {}).flatMap(([role, value]) => {
       const values = split ? SE.splitPlayers(value) : this._one(value);
@@ -73,6 +75,11 @@ export class AnalyticsRegistry {
       ready('specialTeamsOutcome', 'Special Teams Outcome', p => this._one(special(p)?.outcome.status), 'SpecialTeamsModel.normalize.outcome.status'),
       ready('specialTeamsRole', 'Special Teams Role', p => this._one(special(p)?.subjectRole), 'SpecialTeamsModel.normalize.subjectRole'),
       ready('specialTeamsScore', 'Special Teams Score', p => this._one(special(p)?.outcome.score), 'SpecialTeamsModel.normalize.outcome.score'),
+      ready('penaltyTeam', 'Penalty Charged To', p => penalties(p).map(item => item.team), 'PenaltyModel.normalizeList.team', { multi: true }),
+      ready('penaltyFoul', 'Penalty Foul', p => penalties(p).map(item => item.foul).filter(Boolean), 'PenaltyModel.normalizeList.foul', { multi: true }),
+      ready('penaltyRuling', 'Penalty Ruling', p => penalties(p).map(item => item.disposition), 'PenaltyModel.normalizeList.disposition', { multi: true }),
+      ready('penaltyPhase', 'Penalty Phase', p => penalties(p).map(item => item.phase), 'PenaltyModel.normalizeList.phase', { multi: true }),
+      ready('penaltyPlayCounts', 'Penalty Play Counts', p => penalties(p).map(item => item.playCounts === true ? 'Play counts' : item.playCounts === false ? 'No play' : 'Unknown'), 'PenaltyModel.normalizeList.playCounts', { multi: true }),
       ready('customTag', 'Custom Tag', p => (p?.tags?.custom || []).filter(Boolean).map(String), 'play.tags.custom', { multi: true }),
       ready('customField', 'Custom Field', p => pairs(p?.tags?.customFields), 'play.tags.customFields', { multi: true }),
       ready('result', 'Result', p => SE.splitResults(p?.tags?.result), 'StatsEngine.splitResults', { multi: true }),

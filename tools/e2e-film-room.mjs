@@ -369,7 +369,7 @@ r = await page.evaluate(async () => {
 });
 ok(r.pop && r.defHeads.includes('Front') && r.defHeads.includes('Cover') && !r.defHeads.includes('Formation'),
   'Defense preset swaps columns', JSON.stringify(r.defHeads));
-ok(JSON.stringify(r.saved) === JSON.stringify(['sit','defFront','coverage','blitz','result','yardage']),
+ok(JSON.stringify(r.saved) === JSON.stringify(['sit','defFront','coverage','blitz','result','yardage','penalty','penaltyYards']),
   'preset persisted to localStorage', JSON.stringify(r.saved));
 ok(r.withQtr.includes('quarter'), 'checkbox adds a column (persisted)', JSON.stringify(r.withQtr));
 

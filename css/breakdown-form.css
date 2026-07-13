@@ -36,6 +36,23 @@
 .bdv-st-field > span,.bdv-st-spot > span { color: var(--text-dim); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bdv-st-field input,.bdv-st-spot input { width: 100%; min-width: 0; height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); padding: 5px 8px; }
 .bdv-st-spot .pick-group { display: grid; grid-template-columns: auto auto minmax(58px,1fr); }
+.bdv-penalties { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.bdv-pen-head,.bdv-pen-card-head,.bdv-pen-situation > div:first-child { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.bdv-pen-head > div,.bdv-pen-situation > div:first-child { display:grid; }
+.bdv-pen-head strong,.bdv-pen-situation strong { font-size:12px; text-transform:uppercase; }
+.bdv-pen-head span,.bdv-pen-situation span { color:var(--text-dim); font-size:10px; }
+.bdv-pen-legacy { margin-top:8px; padding:8px 10px; border-left:3px solid #d9a441; background:#242116; color:#ead7a3; font-size:11px; font-weight:700; }
+.bdv-pen-list { display:grid; gap:8px; margin-top:8px; }
+.bdv-pen-card { padding:9px; border:1px solid var(--border); border-radius:4px; background:#111923; }
+.bdv-pen-card-head strong { font-size:12px; }
+.bdv-pen-remove { width:32px; height:32px; border:1px solid #67404a; border-radius:4px; background:#24171b; color:#ff9daa; font-size:18px; }
+.bdv-pen-grid,.bdv-pen-sit-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+.bdv-pen-sit-grid { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:8px; }
+.bdv-pen-field,.bdv-pen-sit-grid label { display:grid; gap:4px; min-width:0; }
+.bdv-pen-field span,.bdv-pen-sit-grid span { color:var(--text-dim); font-size:10px; font-weight:800; text-transform:uppercase; }
+.bdv-pen-field input,.bdv-pen-field select,.bdv-pen-sit-grid input,.bdv-pen-sit-grid select { width:100%; min-width:0; height:34px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text); padding:5px 7px; }
+.bdv-pen-situation { margin-top:8px; padding:9px; border:1px solid #315783; border-radius:4px; background:#101c29; }
+.bdv-pen-confirm { display:flex; align-items:center; gap:7px; margin-top:8px; font-size:11px; font-weight:700; }
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .breakdown-form-v2.mode-defense #tagPlayersSection .player-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .breakdown-form-v2 .tag-notes { margin-top: 0; }
@@ -46,4 +63,6 @@
   .bdv-section-label { align-items: flex-start; flex-direction: column; gap: 1px; }
   .bdv-st-choice-row,.bdv-st-metrics { grid-template-columns: 1fr; }
   .bdv-st-field input,.bdv-st-spot input { min-height: 44px; }
+  .bdv-pen-grid,.bdv-pen-sit-grid { grid-template-columns:1fr 1fr; }
+  .bdv-pen-field input,.bdv-pen-field select,.bdv-pen-sit-grid input,.bdv-pen-sit-grid select,.bdv-pen-remove { min-height:44px; }
 }
