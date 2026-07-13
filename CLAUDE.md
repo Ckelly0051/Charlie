@@ -503,6 +503,16 @@ real six-game + synthetic integrity gates green. Still pending: independent revi
 real-desktop single-file/folder smoke. Durable catalog `clip_id` authority (R1/R2)
 remains future work; this is the safe legacy fallback, not that cutover.
 
+**Linked rehydrate follow-up (current working milestone — pending review).** An
+adversarial R5 pass found `rehydrateFromDisk` still had its own exact/base matcher:
+linked Windows `(1)` copies stayed unassigned, and secondary marked regions sharing
+the primary's stale clip id could not play. It now uses `planClipMatch`, collapses
+one primary per stale clip id, and propagates the new live id to every marked
+region without creating/deleting plays. Failing-first `e2e-relink-linked` moved
+5/8 → 8/8; rehydrate is also an atomic playlist replacement, so switching a
+loaded game from managed to linked cannot append duplicate live clips. Managed
+re-add, repair, and pure matcher regressions remain green.
+
 ### ▶ REVIEW FOCUS (for a fresh code review — current risk surface, Jul 2026)
 
 The last few releases reworked **film storage reliability**. What a reviewer

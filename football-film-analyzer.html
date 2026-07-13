@@ -19801,60 +19801,51 @@ class PlaylistManager {
   }
 
   async rehydrateFromDisk(diskFiles, plays) {
+    // Rehydration is a replacement (reopen or managed -> linked), never an
+    // append. Keeping old live clips here produces duplicate playlist entries.
+    this.reset();
     const sorted = diskFiles.slice().sort((a, b) =>
       String(a.path || a.name || '').localeCompare(String(b.path || b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
-    // Two match indices off the plays' durable identity:
-    //   byPath — exact ext-stripped path (Pass 1) keeps same-basename clips in
-    //            different subfolders distinct (endzone/0001 vs sideline/0001).
-    //   byBase — basename only (Pass 2) relinks when the saved root differs from
-    //            the folder the coach picked now — e.g. a MANAGED game saved
-    //            'Game7/endzone/0001' relinked against a LINKED folder that lists
-    //            'endzone/0001' (the linked relink Codex flagged). Each list is
-    //            path-sorted so it aligns 1:1 with the path-sorted disk files.
-    const byPath = new Map();
-    const byBase = new Map();
-    for (const p of plays) {
-      const id = this._playIdentity(p);
-      if (!id) continue;
-      if (!byPath.has(id)) byPath.set(id, p);
-      const base = id.split('/').pop();
-      if (base) { if (!byBase.has(base)) byBase.set(base, []); byBase.get(base).push(p); }
-    }
-    for (const list of byBase.values()) list.sort((a, b) => String(this._playIdentity(a)).localeCompare(String(this._playIdentity(b)), undefined, { numeric: true, sensitivity: 'base' }));
-
-    const consumed = new Set();
     const entries = sorted.map(file => {
-      const displayName = file.name.replace(/\.[^.]+$/, '');
+      const displayName = String(file.name || '').replace(/\.[^.]+$/, '');
       const clipPath = this._pathWithoutExt(file.path || file.name);
-      return {
-        clipPath, base: clipPath.split('/').pop(), displayName,
-        entry: { id: this._nextClipId++, file: null, name: displayName, clipPath, assetUrl: file.url, objectUrl: null, duration: null, playId: null },
-      };
+      return { id: this._nextClipId++, file: null, name: displayName, clipPath, assetUrl: file.url, objectUrl: null, duration: null, playId: null };
     });
-    const link = (entry, play) => {
+
+    // One matcher row per original clip. Multiple marked regions can share a
+    // clipId and must all follow the primary when that clip is rehydrated.
+    const seenIds = new Set();
+    const primaries = [];
+    for (const play of (plays || [])) {
+      if (!this._playIdentity(play)) continue;
+      if (play.clipId != null) {
+        if (seenIds.has(play.clipId)) continue;
+        seenIds.add(play.clipId);
+      }
+      primaries.push(play);
+    }
+    const originalIds = new Map((plays || []).map(play => [play, play.clipId]));
+    const staleToNew = new Map();
+    const plan = planClipMatch(primaries, entries);
+    for (const match of plan.matches) {
+      const entry = entries[match.clipIndex];
+      const play = primaries[match.playIndex];
       entry.playId = play.id;
       entry.duration = play.timestamp ? play.timestamp.end : null;
+      if (originalIds.get(play) != null) staleToNew.set(originalIds.get(play), entry.id);
       play.clipId = entry.id;
       play.clipName = entry.name;
       play.clipPath = entry.clipPath;
-      consumed.add(play);
-    };
-
-    // Pass 1 — exact full-path identity.
-    for (const e of entries) {
-      const p = byPath.get(e.clipPath);
-      if (p && !consumed.has(p)) link(e.entry, p);
     }
-    // Pass 2 — basename fallback (root-mismatched relink), consume once, in order.
-    for (const e of entries) {
-      if (e.entry.playId != null) continue;
-      const cands = byBase.get(e.base) || byBase.get(e.displayName) || [];
-      const p = cands.find(pl => !consumed.has(pl));
-      if (p) link(e.entry, p);
+    if (staleToNew.size) {
+      for (const play of (plays || [])) {
+        const oldId = originalIds.get(play);
+        if (oldId != null && staleToNew.has(oldId)) play.clipId = staleToNew.get(oldId);
+      }
     }
 
-    for (const e of entries) this.clips.push(e.entry);
+    for (const entry of entries) this.clips.push(entry);
 
     this._updatePlaylistUI();
     this._updateClipIndicator();

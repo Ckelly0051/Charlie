@@ -602,7 +602,9 @@ NEXT ACTIONS
         AUTOMATED PORTION GREEN (current working milestone): `(n)` copies,
         wholesale rename/order, partial-match confirmation, cancellation,
         duplicate basenames across subfolders, managed persistence, linked-folder
-        rehydrate, reopen relink, and the cross-game add race. Remaining acceptance
+        rehydrate (including linked `(n)` rename + every marked region sharing a
+        stale clip id + managed-to-linked playlist replacement), reopen relink,
+        and the cross-game add race. Remaining acceptance
         gate: independent review plus a real-desktop single-file + folder smoke on
         managed and linked film before calling R5 complete.
     (b) after a RELEASE CYCLE of flag-on real use: drop the JSON dual-write to
