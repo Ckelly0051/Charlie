@@ -161,7 +161,7 @@ export class StudyScreen {
       const m = group.measures;
       return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
-    this._renderQueryVisuals(groups, measure, matching.length);
+    this._renderQueryVisuals(groups, measure, matching);
     this._setWatchAll(matching);
   }
 
@@ -174,7 +174,7 @@ export class StudyScreen {
     this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
       const delta = row.deltas[measure];
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
-      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
+      return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${this._deltaClass(measure, delta)}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
     this._renderCompareVisuals(rows, measure, result.a.label, result.b.label);
     this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : 'Watch current game');
@@ -200,7 +200,7 @@ export class StudyScreen {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  _renderQueryVisuals(groups, measure, total) {
+  _renderQueryVisuals(groups, measure, refs) {
     const host = this._control('wsStudyVisuals');
     if (!groups.length) { host.innerHTML = ''; return; }
     const ranked = groups.slice().sort((a, b) => (Number(b.measures[measure]) || 0) - (Number(a.measures[measure]) || 0));
@@ -209,10 +209,10 @@ export class StudyScreen {
     const bars = ranked.slice(0, 8).map(group => {
       const index = groups.indexOf(group), value = Number(group.measures[measure]) || 0;
       const width = Math.max(2, Math.round(Math.abs(value) / max * 100));
-      return `<button class="ws-study-bar-row" data-study-row="${index}"><span>${this._esc(group.value)}</span><i><b style="width:${width}%"></b></i><strong>${this._measure(measure, value)}</strong></button>`;
+      return `<button class="ws-study-bar-row" data-study-row="${index}" aria-label="Watch ${this._esc(group.value)} film"><span>${this._esc(group.value)}</span><i aria-hidden="true"><b style="width:${width}%"></b></i><strong>${this._measure(measure, value)}</strong></button>`;
     }).join('');
-    const weighted = key => groups.reduce((sum, group) => sum + (Number(group.measures[key]) || 0) * group.sampleSize, 0) / Math.max(1, total);
-    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${total}</strong></div><div><span>Top ${this._esc(metricName)}</span><strong>${this._esc(top.value)}</strong><small>${this._measure(measure, top.measures[measure])}</small></div><div><span>Run / Pass</span><strong>${this._pct(weighted('runShare'))} / ${this._pct(weighted('passShare'))}</strong><small>${groups.length} groups</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(metricName)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
+    const mix = this._runPassForRefs(refs);
+    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${refs.length}</strong></div><div><span>Highest ${this._esc(metricName)}</span><strong>${this._esc(top.value)}</strong><small>${this._measure(measure, top.measures[measure])}</small></div><div><span>Run / Pass</span><strong>${this._pct(mix.run)} / ${this._pct(mix.pass)}</strong><small>${mix.classified} classified plays</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(metricName)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
   }
 
   _renderCompareVisuals(rows, measure, aLabel, bLabel) {
@@ -223,10 +223,28 @@ export class StudyScreen {
     const bars = ranked.slice(0, 8).map(row => {
       const index = rows.indexOf(row), delta = Number(row.deltas[measure]) || 0;
       const width = Math.max(2, Math.round(Math.abs(delta) / max * 50));
-      return `<button class="ws-study-delta-row" data-study-row="${index}"><span>${this._esc(row.value)}</span><i><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}</strong></button>`;
+      const favorable = this._isFavorableDelta(measure, delta);
+      return `<button class="ws-study-delta-row ${favorable ? 'is-favorable' : delta ? 'is-unfavorable' : ''}" data-study-row="${index}" aria-label="Watch ${this._esc(row.value)} film"><span>${this._esc(row.value)}</span><i aria-hidden="true"><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong class="${this._deltaClass(measure, delta)}">${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}</strong></button>`;
     }).join('');
     host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
   }
+
+  _runPassForRefs(refs) {
+    const wanted = new Set(refs);
+    let run = 0, pass = 0;
+    for (const game of (this.app.storage.seasonStore.data?.games || [])) for (const play of (game.plays || [])) {
+      if (!wanted.has(`${game.id}::${play.id}`)) continue;
+      const values = this.app.analyticsRegistry.values('runPass', play);
+      if (values.includes('Run')) run++;
+      else if (values.includes('Pass')) pass++;
+    }
+    const classified = run + pass;
+    return { run: classified ? run / classified * 100 : 0, pass: classified ? pass / classified * 100 : 0, classified };
+  }
+
+  _lowerIsBetter(measure) { return ['negativeRate', 'turnovers'].includes(measure); }
+  _isFavorableDelta(measure, delta) { return delta !== 0 && (this._lowerIsBetter(measure) ? delta < 0 : delta > 0); }
+  _deltaClass(measure, delta) { return !delta ? '' : this._isFavorableDelta(measure, delta) ? 'is-positive' : 'is-negative'; }
 
   _seedDateRange() {
     const from = this._control('wsStudyDateFrom'), to = this._control('wsStudyDateTo');
