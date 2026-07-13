@@ -569,7 +569,7 @@ NEXT ACTIONS
         match on `clip_id` from the store first, falling back to filename heuristics
         only for legacy rows with no id. This is what folds the ghost-plays fix into
         the build instead of leaving it a follow-up patch.
-        FALLBACK LIVE (current working milestone; pending independent review):
+        FALLBACK LIVE + INDEPENDENTLY ACCEPTED (`713324e`, review `135c43e`):
         `js/clip-identity.js` now drives PlaylistManager add/re-add — tiered match
         (exact path → basename → `(n)`-normalized → wholesale-rename order,
         consume-once) returning `unmatchedClips` (= what would ghost). Order is
@@ -586,7 +586,7 @@ NEXT ACTIONS
         the repair planner has (or route re-adds through it), and never silently
         auto-create a ghost play for an unmatched clip when orphaned tagged plays
         exist — hold/confirm instead.
-        IMPLEMENTED (current working milestone; pending independent review):
+        IMPLEMENTED + INDEPENDENTLY ACCEPTED (`713324e`, review `135c43e`):
         addFiles plans before mutating any clip/play/file. Ambiguous selections
         offer `Use matched only`, explicit `Add unmatched as new plays`, or
         `Cancel`. Matched-only copies only matched files; Cancel leaves serialized
@@ -605,8 +605,9 @@ NEXT ACTIONS
         rehydrate (including linked `(n)` rename + every marked region sharing a
         stale clip id + managed-to-linked playlist replacement), reopen relink,
         and the cross-game add race. Remaining acceptance
-        gate: independent review plus a real-desktop single-file + folder smoke on
-        managed and linked film before calling R5 complete.
+        gate: a real-desktop single-file + folder smoke on managed and linked film
+        before calling R5 complete. Independent review accepted both `713324e`
+        and linked rehydrate follow-up `e08ea6a` with no findings (`135c43e`).
     (b) after a RELEASE CYCLE of flag-on real use: drop the JSON dual-write to
         single-write `.db`, then the dedicated library-root move + catalog
         backup-ring / version-history migrations. The A3 smoke only exercised a
