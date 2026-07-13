@@ -196,8 +196,8 @@ const deleteGuard = await page.evaluate(async () => {
   app.tagger._confirmDialog=async()=>true; document.querySelector('[data-plan-action="delete"]')?.click(); await new Promise(r=>setTimeout(r,0)); return {kept,removed:!store.getPlan(plan.id)};
 });
 ok(deleteGuard.kept && deleteGuard.removed, 'Plan deletion requires intentional in-app confirmation', JSON.stringify(deleteGuard));
-const noSeasonPlan=await page.evaluate(()=>{const app=window.app,store=app.storage.seasonStore,data=store.data;store.data=null;let result='threw';try{result=app.planScreen.addFinding({kind:'finding',refs:['g::1']});}catch(error){result=error.message;}finally{store.data=data;}return result;});
-ok(noSeasonPlan===null,'Plan creation fails closed when no season is open',String(noSeasonPlan));
+const noSeasonPlan=await page.evaluate(()=>{const app=window.app,store=app.storage.seasonStore,data=store.data;store.data=null;let result='threw';try{result=app.planScreen.addFindingTo('missing',{kind:'finding',refs:['g::1']});}catch(error){result=error.message;}finally{store.data=data;}return result;});
+ok(noSeasonPlan===null,'Exact-target Plan save fails closed when no season is open',String(noSeasonPlan));
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 const savedId = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]')[0]?.id || '');
 await page.click('[data-study-action="clear-filters"]');

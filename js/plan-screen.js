@@ -5,8 +5,6 @@ export class PlanScreen {
   _store() { return this.app.storage.seasonStore; }
   _persist() { this._store().persist(); this.render(); }
   _active() { const plans = this._store().plans(); return this._store().getPlan(this.activeId) || plans[0] || null; }
-  ensurePlan() { let plan = this._active(); if (!plan) { plan = this._store().createPlan('Game Plan'); if (!plan) return null; this.activeId = plan.id; this._store().persist(); } return plan; }
-  addFinding(item) { const plan = this.ensurePlan(); if (!plan) return null; this._store().addPlanItem(plan.id, item); this._store().persist(); this.render(); return plan; }
   addFindingTo(planId, item) { const plan = this._store().getPlan(planId); if (!plan) return null; const added = this._store().addPlanItem(plan.id, item); if (!added) return null; this.activeId = plan.id; this._store().persist(); this.render(); return plan; }
   render() {
     if (!this.host) return;
