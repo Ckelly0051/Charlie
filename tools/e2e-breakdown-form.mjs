@@ -193,6 +193,23 @@ state = await page.evaluate(() => ({
 }));
 ok(state.selectedUnit === 'fieldGoalBlock' && state.selectedScore === 'touchdown' && state.allButtonsNative, 'Structured Special Teams reloads with keyboard-focusable selections intact', JSON.stringify(state));
 
+state = await page.evaluate(() => {
+  const grid = window.app.playGrid;
+  const play = window.app.tagger.plays[0];
+  const cols = grid.constructor.COLUMNS;
+  const get = key => grid._cellHtml(play, cols.find(col => col.key === key)).replace(/<[^>]*>/g, '');
+  return {
+    preset: grid.constructor.PRESETS.special,
+    unit: get('stUnit'), outcome: get('stOutcome'), kick: get('stKick'), ret: get('stReturn'),
+    studyUnit: window.app.analyticsRegistry.values('specialTeamsPhase', play),
+    studyOutcome: window.app.analyticsRegistry.values('specialTeamsOutcome', play),
+    legacyPhase: window.app.analyticsRegistry.values('specialTeamsPhase', { tags: { stType: 'Punt' } }),
+    malformedPhase: window.app.analyticsRegistry.values('specialTeamsPhase', { specialTeams: { unit: 'bogus' } }),
+  };
+});
+ok(state.preset.join(',') === 'sit,stUnit,stOutcome,stKick,stReturn,notes' && /Field Goal Block/.test(state.unit) && /blocked/.test(state.outcome), 'Film Room Special preset reads structured unit and outcome columns', JSON.stringify(state));
+ok(state.studyUnit[0] === 'fieldGoalBlock' && state.studyOutcome[0] === 'blocked' && state.legacyPhase.length === 0 && state.malformedPhase.length === 0, 'Study dimensions consume validated structured Special Teams and quarantine legacy/malformed phases', JSON.stringify(state));
+
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,

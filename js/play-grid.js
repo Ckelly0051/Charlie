@@ -33,6 +33,7 @@ import { StatsEngine } from './stats-engine.js';
 import { PlayTagger } from './play-tagger.js';
 
 import { isPlayTagged } from './football-rules.js';
+import { SpecialTeamsModel } from './special-teams.js';
 
 export class PlayGrid {
   /**
@@ -57,6 +58,10 @@ export class PlayGrid {
     { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
     { key: 'blitz',     label: 'Blitz',     type: 'enum', src: 'tagBlitz',     multi: true,   unit: 'defense' },
     { key: 'stType',    label: 'ST Type',   type: 'enum', src: 'tagStType',                   unit: 'special' },
+    { key: 'stUnit',    label: 'ST Unit',   type: 'st-readonly',                              unit: 'special' },
+    { key: 'stOutcome', label: 'ST Outcome',type: 'st-readonly',                              unit: 'special' },
+    { key: 'stKick',    label: 'Kick',      type: 'st-readonly',                              unit: 'special' },
+    { key: 'stReturn',  label: 'Return',    type: 'st-readonly',                              unit: 'special' },
     { key: 'notes',     label: 'Call / Notes', type: 'text' },
   ];
 
@@ -64,7 +69,7 @@ export class PlayGrid {
     default: ['sit', 'formation', 'playType', 'result', 'yardage'],
     offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage'],
     defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage'],
-    special: ['sit', 'stType', 'result', 'yardage', 'notes'],
+    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'notes'],
   };
 
   constructor(tagger, videoController, cutupPlayer) {
@@ -576,6 +581,15 @@ export class PlayGrid {
 
   _cellHtml(p, col) {
     const t = p.tags || {};
+    if (col.type === 'st-readonly') {
+      const st = SpecialTeamsModel.normalize(p.specialTeams);
+      if (!st) return '<span class="pg-dim">—</span>';
+      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block' };
+      if (col.key === 'stUnit') return this._esc(names[st.unit] || st.unit);
+      if (col.key === 'stOutcome') return this._esc([st.attemptType, st.outcome.status, st.outcome.score].filter(Boolean).join(' · '));
+      if (col.key === 'stKick') return this._esc([st.kick.distance == null ? '' : `${st.kick.distance} yds`, st.kick.hangTime == null ? '' : `${st.kick.hangTime}s`].filter(Boolean).join(' · '));
+      if (col.key === 'stReturn') return this._esc([st.return.yards == null ? '' : `${st.return.yards} yds`, st.outcome.recoveredBy ? `possession: ${st.outcome.recoveredBy}` : ''].filter(Boolean).join(' · '));
+    }
     if (col.type === 'sit') return this._sit(t);
     if (col.type === 'yds') {
       const n = parseInt(t.yardage, 10);
@@ -687,6 +701,7 @@ export class PlayGrid {
     const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
     const cell = this._cellEl(playId, colKey);
     if (!play || !col || !cell) return;
+    if (col.type === 'st-readonly') return;
     this._closeEditor();
 
     const wrap = document.createElement('div');

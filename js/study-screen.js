@@ -4,7 +4,7 @@ export class StudyScreen {
     return ['formation', 'playType', 'runPass', 'down', 'distance', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
       'playDir', 'defFront', 'coverage', 'blitz', 'result', 'playerRole', 'grade',
-      'specialTeamsPhase', 'customTag', 'customField'];
+      'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'customTag', 'customField'];
   }
 
   static get MEASURES() {

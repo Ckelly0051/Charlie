@@ -172,6 +172,28 @@ test('scoreboard tracks ambiguous points without assigning them to either team',
   assert.equal(board.byQuarter.Q1.unattributed, 2);
 });
 
+test('structured reports ignore quarantined legacy details and reconcile unit metrics', () => {
+  const play = (id, st, tags = {}) => ({ id, tags: { unit: 'special', ...tags }, specialTeams: st });
+  const plays = [
+    play(1, event({ unit: 'punt', kick: { distance: 45, hangTime: 4.2 }, return: { attempted: true, yards: 10 }, outcome: { status: 'returned' } })),
+    play(2, event({ unit: 'punt', kick: { distance: 40, hangTime: 4.6 }, return: { attempted: false, yards: null }, outcome: { status: 'touchback' } })),
+    play(3, event({ unit: 'kickoffReturn', return: { attempted: true, yards: -2 }, outcome: { status: 'returned' } })),
+    play(4, event({ unit: 'kickoffReturn', return: { attempted: false, yards: null }, outcome: { status: 'fairCatch' } })),
+    play(5, event({ unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 37 }, outcome: { status: 'good', score: 'fieldGoal' } })),
+    play(6, event({ unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 42 }, outcome: { status: 'noGood', score: null } })),
+    play(7, event({ unit: 'fieldGoalBlock', outcome: { status: 'blocked', recoveredBy: 'subject' } })),
+    { id: 8, tags: { unit: 'special', stType: 'Punt', kickDistance: '99', kickOutcome: 'Touchback' } },
+  ];
+  const stats = Object.create(StatsEngine.prototype)._specialTeamsStats(plays);
+  assert.equal(stats.structured, true);
+  assert.equal(stats.punts.n, 2);
+  assert.equal(stats.punts.grossAvg, 42.5);
+  assert.equal(stats.punts.netAvg, 35);
+  assert.equal(stats.returns.kick.avg, -2);
+  assert.deepEqual({ made: stats.fg.made, att: stats.fg.att, pct: stats.fg.pct }, { made: 1, att: 2, pct: 50 });
+  assert.deepEqual(stats.blocks, { n: 1, blocked: 1 });
+});
+
 await testAsync('canonical persist, reopen, snapshot, and restore keep the event losslessly', async () => {
   let canonical = null;
   const backups = new Map();

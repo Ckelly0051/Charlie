@@ -848,6 +848,47 @@ export class StatsEngine {
   // kickOutcome); falls back gracefully when they're blank (legacy plays).
   _specialTeamsStats(plays) {
     const num = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+    const structured = (plays || []).map(p => ({ p, st: SpecialTeamsModel.normalize(p?.specialTeams) })).filter(x => x.st);
+    if (structured.length) {
+      const rows = unit => structured.filter(x => x.st.unit === unit);
+      const avg = (arr, get) => { const values = arr.map(get).filter(Number.isFinite); return values.length ? +(values.reduce((s, x) => s + x, 0) / values.length).toFixed(1) : null; };
+      const puntRows = rows('punt');
+      const koRows = rows('kickoff');
+      const fgRows = rows('fieldGoal').filter(x => x.st.attemptType === 'fieldGoal');
+      const made = x => x.st.outcome.status === 'good' && x.st.outcome.score === 'fieldGoal';
+      const punts = {
+        n: puntRows.length,
+        grossAvg: avg(puntRows, x => x.st.kick.distance),
+        netAvg: avg(puntRows, x => SpecialTeamsModel.netYards(x.st)),
+        hangAvg: avg(puntRows, x => x.st.kick.hangTime),
+        tbPct: puntRows.length ? Math.round(puntRows.filter(x => x.st.outcome.status === 'touchback').length / puntRows.length * 100) : 0,
+        blocked: puntRows.filter(x => x.st.outcome.status === 'blocked').length,
+      };
+      const kickoffs = {
+        n: koRows.length,
+        avg: avg(koRows, x => x.st.kick.distance),
+        tbPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'touchback').length / koRows.length * 100) : 0,
+        retAllowedAvg: avg(koRows.filter(x => x.st.outcome.status === 'returned'), x => x.st.return.yards),
+      };
+      const fg = {
+        att: fgRows.length,
+        made: fgRows.filter(made).length,
+        pct: fgRows.length ? Math.round(fgRows.filter(made).length / fgRows.length * 100) : 0,
+        long: fgRows.filter(made).reduce((m, x) => Math.max(m, x.st.kick.distance || 0), 0),
+        byDist: [['<30',0,29],['30-39',30,39],['40-49',40,49],['50+',50,99]].map(([label,lo,hi]) => {
+          const attempts = fgRows.filter(x => x.st.kick.distance != null && x.st.kick.distance >= lo && x.st.kick.distance <= hi);
+          return { label, att: attempts.length, made: attempts.filter(made).length };
+        }).filter(bucket => bucket.att),
+      };
+      const ret = unit => {
+        const arr = rows(unit);
+        const attempts = arr.filter(x => x.st.return.attempted === true && Number.isFinite(x.st.return.yards));
+        return { n: arr.length, avg: avg(attempts, x => x.st.return.yards), long: attempts.length ? Math.max(...attempts.map(x => x.st.return.yards)) : 0, td: arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject').length };
+      };
+      const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
+      const blocks = rows('fieldGoalBlock');
+      return { punts, kickoffs, fg, returns, blocks: { n: blocks.length, blocked: blocks.filter(x => x.st.outcome.status === 'blocked').length }, structured: true, hasData: true };
+    }
     const by = (type) => plays.filter(p => p.tags && p.tags.stType === type);
     const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
     const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good');
@@ -898,6 +939,7 @@ export class StatsEngine {
     if (st.punts.n) cards.push(kpi('Punts', st.punts.n, `${v(st.punts.grossAvg)} gross · ${v(st.punts.netAvg)} net · ${v(st.punts.hangAvg)}s hang · ${st.punts.tbPct}% TB`));
     if (st.kickoffs.n) cards.push(kpi('Kickoffs', st.kickoffs.n, `${v(st.kickoffs.avg)} avg · ${st.kickoffs.tbPct}% TB · ${v(st.kickoffs.retAllowedAvg)} ret allowed`));
     if (st.fg.att) cards.push(kpi('Field Goals', `${st.fg.made}/${st.fg.att}`, `${st.fg.pct}% · long ${st.fg.long}${st.fg.byDist.length ? ' · ' + st.fg.byDist.map(b => `${b.label} ${b.made}/${b.att}`).join(' · ') : ''}`));
+    if (st.blocks?.n) cards.push(kpi('Field Goal Block', st.blocks.n, `${st.blocks.blocked} blocked`));
     if (st.returns.kick.n) cards.push(kpi('Kick Returns', st.returns.kick.n, `${v(st.returns.kick.avg)} avg · long ${st.returns.kick.long}${st.returns.kick.td ? ` · ${st.returns.kick.td} TD` : ''}`));
     if (st.returns.punt.n) cards.push(kpi('Punt Returns', st.returns.punt.n, `${v(st.returns.punt.avg)} avg · long ${st.returns.punt.long}${st.returns.punt.td ? ` · ${st.returns.punt.td} TD` : ''}`));
     return `<div class="stats-section"><h3>Special Teams</h3><div class="gi-hero">${cards.join('')}</div></div>`;

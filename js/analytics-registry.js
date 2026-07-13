@@ -5,6 +5,8 @@
  * Required concepts without one canonical production meaning stay explicitly
  * `requires-context`; consumers cannot accidentally invent a denominator.
  */
+import { SpecialTeamsModel } from './special-teams.js';
+
 export class AnalyticsRegistry {
   constructor(statsEngine) {
     if (!statsEngine || typeof statsEngine.compute !== 'function') {
@@ -32,6 +34,7 @@ export class AnalyticsRegistry {
   _buildDimensions() {
     const SE = this._SE;
     const tag = key => (p) => this._one(p?.tags?.[key]);
+    const special = p => SpecialTeamsModel.normalize(p?.specialTeams);
     const context = key => (_p, ctx) => this._one(ctx?.[key]);
     const pairs = (obj, split = false) => Object.entries(obj || {}).flatMap(([role, value]) => {
       const values = split ? SE.splitPlayers(value) : this._one(value);
@@ -66,7 +69,10 @@ export class AnalyticsRegistry {
       ready('blitz', 'Blitz / Pressure', p => SE.splitBlitzes(p?.tags?.blitz), 'StatsEngine.splitBlitzes', { multi: true }),
       ready('playerRole', 'Player Role', p => pairs(p?.tags?.players, true), 'StatsEngine.splitPlayers', { multi: true }),
       ready('grade', 'Grade', p => pairs(p?.tags?.grades), 'play.tags.grades', { multi: true }),
-      ready('specialTeamsPhase', 'Special Teams Phase', tag('stType'), 'play.tags.stType'),
+      ready('specialTeamsPhase', 'Special Teams Unit', p => this._one(special(p)?.unit), 'SpecialTeamsModel.normalize.unit'),
+      ready('specialTeamsOutcome', 'Special Teams Outcome', p => this._one(special(p)?.outcome.status), 'SpecialTeamsModel.normalize.outcome.status'),
+      ready('specialTeamsRole', 'Special Teams Role', p => this._one(special(p)?.subjectRole), 'SpecialTeamsModel.normalize.subjectRole'),
+      ready('specialTeamsScore', 'Special Teams Score', p => this._one(special(p)?.outcome.score), 'SpecialTeamsModel.normalize.outcome.score'),
       ready('customTag', 'Custom Tag', p => (p?.tags?.custom || []).filter(Boolean).map(String), 'play.tags.custom', { multi: true }),
       ready('customField', 'Custom Field', p => pairs(p?.tags?.customFields), 'play.tags.customFields', { multi: true }),
       ready('result', 'Result', p => SE.splitResults(p?.tags?.result), 'StatsEngine.splitResults', { multi: true }),
