@@ -111,6 +111,26 @@ confirmation, case-insensitive duplicate handling, historical-tag preservation,
 and mobile overflow/touch sizing. Next after acceptance: Phase 4C Break Down
 form recomposition behind its own flag; do not change the stored play schema.
 
+**Phase 4C Break Down form composition is ready for review (`e8f0abe`, Codex).**
+At the coach's direction, work continued while the 4A/4B review is pending. A
+new `BreakdownForm` composition layer activates only when
+`ffa_breakdown_form_v2=1`; flag-off markup and behavior remain classic. It
+reuses the live production controls in place, adds the approved football-section
+hierarchy, tightens charting density, and makes headings perspective-aware:
+Our/Opponent Offensive Look, Our/Opponent Defensive Call, Defense Faced,
+Offense Faced, and Special Teams. It does not clone controls, own tag state, or
+change the play schema, so existing listeners, Save & Next, custom libraries,
+Film Room, analytics, and persistence remain on their established paths. The
+focused harness is 11/11 (both flag states, complete field presence, chip/unit
+save paths, self/opponent labels, 390px overflow/touch sizing); tagging 27/27,
+tag fields 15/15, tag-library settings 10/10, workspace shell 15/15, and the
+fresh bundle passes all 44 e2e scripts atomically. Visual QA at 1440x900 removed
+a duplicate primary heading before commit. No release/tag. **Review focus:** DOM
+mutation safety, perspective synchronization, flag-off purity, primary/secondary
+collapse behavior, all-field reachability, and disabled/no-play presentation.
+Next proposed slice is unit-specific role and penalty UX, starting with Defense;
+do not add a penalty schema without a separate failing-first data contract.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.

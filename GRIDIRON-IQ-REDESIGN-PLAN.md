@@ -463,13 +463,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: de62d70  Phase 4B Team Settings tag-library editor (Codex)
+Latest implementation: e8f0abe  Phase 4C opt-in Break Down form composition (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  e8f0abe  Phase 4C opt-in Break Down form hierarchy + perspective labels
   de62d70  Phase 4B customer-facing Team Settings tag-library editor
   f09517d  Phase 4A Formation/Backfield/Front library contract + migration guard
   6a68064  Independent review — 583ca2f comparison-cohort save ACCEPTED
@@ -538,8 +539,10 @@ Lane status:
     unchanged.
   Phase 4 Break Down: 4A per-team tag-library foundation implemented at
     f09517d and awaiting independent review. 4B customer-facing Team Settings
-    editor implemented at de62d70 and ready for independent review. Form
-    recomposition has not started.
+    editor implemented at de62d70. At the coach's direction, 4C continued before
+    that review and landed at e8f0abe: opt-in composition over the existing live
+    form, with football hierarchy and subject-aware labels but no schema or tag
+    semantics change. All three increments are ready for independent review.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -548,13 +551,14 @@ NEXT ACTIONS
     path removed at a0ece49.
   Comparison-cohort selection 583ca2f: ACCEPTED at 6a68064. Study-to-Plan save
     milestone COMPLETE.
-  Claude: independently review f09517d + de62d70 as the Phase 4A/4B stack,
+  Claude: independently review f09517d + de62d70 + e8f0abe as the Phase 4A/4B/4C stack,
     focusing on legacy migration, team isolation/switch freshness, hidden and
     historical values across tag form + Film Room, custom Front semantics,
-    Power-I preservation, editor focus/keyboard behavior, and mobile overflow.
-  Codex: hold Phase 4C form recomposition until the 4A/4B review clears. Once
-    accepted, compose the complete existing charting surface into the redesigned
-    Break Down workspace behind a separate opt-in flag; no stored-schema change.
+    Power-I preservation, editor focus/keyboard behavior, flag-off purity,
+    perspective synchronization, complete field reachability, and mobile overflow.
+  Codex next after review or explicit coach direction: Phase 4D unit-specific
+    player-role and penalty UX, beginning with Defense. Preserve current stored
+    fields; a richer penalty model requires its own reviewed data contract first.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
