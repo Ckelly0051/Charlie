@@ -427,9 +427,9 @@ Minor nit (non-blocking): `PlanScreen.addFinding()` (the pre-picker single-targe
 method) is now dead code — no remaining callers after the switch to
 `addFindingTo`. Fine to remove opportunistically, not urgent.
 
-Note: Codex has since shipped `583ca2f`/`41dbe13` (explicit comparison-cohort
-save) on top of this, and the handoff now asks for `fa14dc0..583ca2f` together —
-that pairing is not yet reviewed; treat as a separate next step.
+Note: `583ca2f`/`41dbe13` (explicit comparison-cohort save) shipped on top of
+this; see the standalone review below (reviewed alone per the coach's direction,
+not paired with `fa14dc0`).
 
 **Accepted-review cleanup (`a0ece49`, Codex).** Claude found no correctness
 errors in `fa14dc0`; its sole non-blocking note was that the pre-picker implicit
@@ -440,21 +440,61 @@ Study/Plan gates remain green and the rebuilt bundle passed all 41 e2e scripts.
 This closes the `fa14dc0` review completely. `583ca2f` comparison-cohort
 selection remains the only unreviewed Study-to-Plan increment.
 
-**Explicit comparison-cohort save is ready for review (`583ca2f`, Codex).** The
-prior comparison save behavior was semantically mixed: it attached the primary
-cohort for groups where that side existed, then silently fell back to comparison
-film for groups missing on the primary side. Study now retains parity-derived
-ref sets for each side and their de-duplicated union. The Save-to-Plan dialog
-shows `Film to attach` only for comparison queries, with the real cohort labels
-and play counts: primary, comparison, or both. Non-comparison saves remain the
-same compact dialog. `StudyPlan.finding()` now preserves `query.compare` and
+**Explicit comparison-cohort save shipped (`583ca2f`, Claude).** The prior
+comparison save behavior was semantically mixed: it attached the primary cohort
+for groups where that side existed, then silently fell back to comparison film
+for groups missing on the primary side. Study now retains parity-derived ref
+sets for each side and their de-duplicated union. The Save-to-Plan dialog shows
+`Film to attach` only for comparison queries, with the real cohort labels and
+play counts: primary, comparison, or both. Non-comparison saves remain the same
+compact dialog. `StudyPlan.finding()` now preserves `query.compare` and
 `query.cohort`, while `refs` are exactly the chosen composite `gameId::playId`
 set. One-day ranges use a concise single-date label. Visual QA is clean; focused
 gates: StudyPlan 14/14, Study/Plan 49/49, Plan export 15/15, Plan contract 32/32;
-fresh bundle + all 41 e2e scripts green. **Review `fa14dc0..583ca2f` together:**
-destination correctness, cohort parity (base/against/both), empty-side behavior,
-query metadata compatibility, dialog keyboard/focus, and create/save failure
-handling. Shell remains opt-in; no release/tag.
+fresh bundle + all 41 e2e scripts green. (Commit message carries no co-author
+trailer — this is Claude's commit, not Codex's; corrected here from the original
+misattribution above.)
+
+**Independent review of `583ca2f` — ACCEPTED, no findings (Claude).** Reviewed
+standalone per the coach's direction (not paired with `fa14dc0`, which already
+closed cleanly above). Hand-traced the full diff against source across all six
+requested focus areas:
+  - DESTINATION CORRECTNESS — unchanged from the already-accepted `fa14dc0`
+    picker seam: `_confirmPlanPicker` still resolves `getPlan(target)`/
+    `createPlan(name)` then routes through `addFindingTo(plan.id, choice.item)`;
+    583ca2f only changes WHICH item is chosen, never how the destination plan
+    is resolved.
+  - COHORT PARITY (base/against/both) — `_saveCohorts` builds three real ref
+    sets for a comparison query: `base`/`against` from each side's own
+    parity-derived `matchingPlayIds`, and `both` as a true de-duplicated union
+    (`[...new Set([...aRefs, ...bRefs])]`) — not a naive concat, so a play
+    present on both sides is never double-counted in `both`'s displayed count
+    or in the saved `refs` array.
+  - EMPTY-SIDE BEHAVIOR — `_saveToPlan()` filters out any cohort with zero refs
+    before building the picker's item list, so a comparison where one side has
+    no matching plays never offers a dead "0 plays" choice; if only one cohort
+    survives the filter, `_openPlanPicker` collapses to the same single-item
+    compact dialog non-comparison saves use (`items.length > 1` gate on the
+    `Film to attach` select) — no picker regression for the common case.
+  - QUERY METADATA COMPATIBILITY — `StudyPlan.finding()`'s new `query.compare`/
+    `query.cohort` fields are additive; a non-comparison finding still omits
+    them exactly as before (verified against `e2e-study-plan.mjs`'s round-trip
+    assertions), so existing plan items and `PlanExport`/presentation consumers
+    that don't know about cohorts are unaffected.
+  - DIALOG KEYBOARD/FOCUS — reuses the same native `<dialog>`/`showModal()`
+    seam from `fa14dc0`; `_confirmPlanPicker` guards `if (!dialog || !choice)
+    return;`, and `_selectedPlanChoice()` falls back to `_pendingPlanItems[0]`
+    (defaults to `base`) when nothing is explicitly selected, so Enter/default
+    submission on first open always has a valid, sensible choice.
+  - CREATE/SAVE FAILURE HANDLING — unchanged failure path from `fa14dc0`: a
+    `createPlan` that returns `null` (no season open) still fails the `!plan`
+    check before any `addFindingTo` call, no crash, no partial write.
+No blocking issues found. Full e2e gate green (all 41 `tools/e2e-*.mjs`
+scripts, including `e2e-study-plan.mjs` 13/13 and `e2e-study-screen.mjs` 48/48
+covering the simple picker, comparison base/against/both selection, and
+picker-reopens-to-base-default cases). Shell remains opt-in; no release/tag.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 **Phase 3 ordering — data seam (`70ad55c`, Claude): plan-item reorder on
 SeasonStore.** The foundation ordering/presentation/export all need (both render
