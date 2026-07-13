@@ -28,12 +28,19 @@ let state = await page.evaluate(() => ({
 ok(state.mounted && state.sections.length === 4, 'Flag-on mode composes four football sections over the live form', JSON.stringify(state));
 ok(state.required, 'Every production offense, defense, player, custom, note, and situation control remains present');
 ok(/^Our Offensive Look/.test(state.offense) && /^Defense Faced/.test(state.defense), 'Offense self-scout uses subject-correct section labels', JSON.stringify(state));
+state = await page.evaluate(() => ({
+  visible: [...document.querySelectorAll('#tagPlayersSection .player-role')].filter(el => getComputedStyle(el).display !== 'none').map(el => el.dataset.role),
+  detail: document.querySelector('[data-bdv-section="people"] span').textContent,
+}));
+ok(state.visible.join(',') === 'ballCarrier,passer,receiver' && /ball carrier/.test(state.detail), 'Offense exposes only its three relevant shared player roles', JSON.stringify(state));
 
 await page.evaluate(() => {
   const play = { id: 901, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', formation: '', backfield: '', strength: '', personnel: '', motion: '', runPass: '', playType: '', playDir: '', result: '', yardage: '', players: {}, grades: {}, custom: [] } };
   window.app.tagger.plays = [play];
   window.app.tagger.currentPlayId = play.id;
   window.app.tagger._loadTagForm(play);
+  document.querySelector('#tagPlayerBC').value = '22';
+  document.querySelector('#tagPlayerBC').dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('#tagFormation .pick[data-value="Shotgun"]').click();
 });
 ok((await page.evaluate(() => window.app.tagger.plays[0].tags.formation)) === 'Shotgun', 'Recomposition preserves the existing chip listener and tag-save path');
@@ -48,6 +55,14 @@ state = await page.evaluate(() => ({
 }));
 ok(state.unit === 'defense' && /Defense/.test(state.perspective), 'Existing unit toggle still writes the play and updates composition');
 ok(/^Our Defensive Call/.test(state.defense) && /^Offense Faced/.test(state.offense), 'Defense leads with our call and labels the opponent look correctly', JSON.stringify(state));
+state = await page.evaluate(() => ({
+  visible: [...document.querySelectorAll('#tagPlayersSection .player-role')].filter(el => getComputedStyle(el).display !== 'none').map(el => el.dataset.role),
+  active: document.querySelector('#tagPlayersSection .player-role.active')?.dataset.role,
+  retained: window.app.tagger.plays[0].tags.players.ballCarrier,
+  detail: document.querySelector('[data-bdv-section="people"] span').textContent,
+}));
+ok(state.visible.join(',') === 'tackler,takeaway' && state.active === 'tackler' && /tackles/.test(state.detail), 'Defense exposes Tackler/Takeaway and defaults quick-picks to Tackler', JSON.stringify(state));
+ok(state.retained === '22', 'Switching units hides but never clears an existing offensive player assignment');
 
 state = await page.evaluate(() => {
   const primary = document.querySelector('.group-defense');
@@ -81,10 +96,14 @@ state = await page.evaluate(() => ({
   specialVisible: getComputedStyle(document.querySelector('.group-special')).display !== 'none',
   offenseHidden: getComputedStyle(document.querySelector('.group-offense')).display === 'none',
   defenseHidden: getComputedStyle(document.querySelector('.group-defense')).display === 'none',
+  sharedPlayersHidden: getComputedStyle(document.querySelector('#tagPlayersSection')).display === 'none',
+  specialistPlayersVisible: getComputedStyle(document.querySelector('.group-special .player-roles')).display !== 'none',
+  activeRole: document.querySelector('.group-special .player-role.active')?.dataset.role,
   unit: window.app.tagger.plays[0].tags.unit,
 }));
 ok(state.unit === 'special' && /Opponent scout · Special Teams/.test(state.perspective), 'Special Teams preserves the live unit-save path and subject context', JSON.stringify(state));
 ok(state.primary === 'Opponent Special Teams' && state.specialVisible && state.offenseHidden && state.defenseHidden, 'Special Teams exposes its complete phase group without competing side groups', JSON.stringify(state));
+ok(state.sharedPlayersHidden && state.specialistPlayersVisible && state.activeRole === 'kicker', 'Special Teams uses its dedicated Kicker/Returner block without duplicate shared roles', JSON.stringify(state));
 
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({

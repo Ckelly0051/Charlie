@@ -68,6 +68,8 @@ export class BreakdownForm {
     if (perspective) perspective.textContent = `${scout ? 'Opponent scout' : 'Self-scout'} · ${unit === 'special' ? 'Special Teams' : unit[0].toUpperCase() + unit.slice(1)}`;
     const look = this.form.querySelector('[data-bdv-section="look"] strong');
     if (look) look.textContent = unit === 'special' ? `${subject} Special Teams` : unit === 'defense' ? `${subject} Defensive Call` : `${subject} Offensive Look`;
+    const people = this.form.querySelector('[data-bdv-section="people"] span');
+    if (people) people.textContent = unit === 'defense' ? 'tackles, takeaways, and grades' : unit === 'special' ? 'specialists live in the phase above' : 'ball carrier, passer, receiver, and grades';
   }
 
   _label(button, text) {

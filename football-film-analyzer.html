@@ -8776,6 +8776,15 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .breakdown-form-v2 .pick-group { gap: 5px; }
 .breakdown-form-v2 .pick { min-height: 32px; padding: 5px 8px; }
 .breakdown-form-v2 .player-role { min-height: 42px; }
+.breakdown-form-v2.mode-offense #tagPlayersSection .player-role[data-role="tackler"],
+.breakdown-form-v2.mode-offense #tagPlayersSection .player-role[data-role="takeaway"] { display: none; }
+.breakdown-form-v2.mode-defense #tagPlayersSection .player-role[data-role="ballCarrier"],
+.breakdown-form-v2.mode-defense #tagPlayersSection .player-role[data-role="passer"],
+.breakdown-form-v2.mode-defense #tagPlayersSection .player-role[data-role="receiver"] { display: none; }
+.breakdown-form-v2.mode-special [data-bdv-section="people"],
+.breakdown-form-v2.mode-special #tagPlayersSection { display: none; }
+.breakdown-form-v2.mode-offense #tagPlayersSection .player-roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.breakdown-form-v2.mode-defense #tagPlayersSection .player-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .breakdown-form-v2 .tag-notes { margin-top: 0; }
 @media (max-width: 800px) {
   .breakdown-form-v2 { padding-left: 10px; padding-right: 10px; }
@@ -33524,6 +33533,8 @@ class BreakdownForm {
     if (perspective) perspective.textContent = `${scout ? 'Opponent scout' : 'Self-scout'} · ${unit === 'special' ? 'Special Teams' : unit[0].toUpperCase() + unit.slice(1)}`;
     const look = this.form.querySelector('[data-bdv-section="look"] strong');
     if (look) look.textContent = unit === 'special' ? `${subject} Special Teams` : unit === 'defense' ? `${subject} Defensive Call` : `${subject} Offensive Look`;
+    const people = this.form.querySelector('[data-bdv-section="people"] span');
+    if (people) people.textContent = unit === 'defense' ? 'tackles, takeaways, and grades' : unit === 'special' ? 'specialists live in the phase above' : 'ball carrier, passer, receiver, and grades';
   }
 
   _label(button, text) {
