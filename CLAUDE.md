@@ -291,6 +291,31 @@ film; no analytics formulas were reimplemented. Advanced Reports remains one
 click away. Study 26/26, mobile overflow clean, and the fresh atomic full suite
 passes with zero failures. Shell remains opt-in; no release/tag.
 
+**Independent adversarial review of `a115d73` — ACCEPTED (Claude).** Presentation
+over the parity-locked engine; committed state re-verified green (study 26/26).
+FILM-LINK PARITY HOLDS: both table rows and visual bars emit
+`data-study-row="${groups.indexOf(group)}"` (ORIGINAL index, not the ranked
+position), and the handler resolves `this.rows[index].refs`, so a bar launches the
+exact same film as its row — verified in source. One real bug + polish, all
+non-blocking (fix #1 before default-on; fixes are Codex's Study/UX lane):
+  1. [Med/metric] The weighted Run/Pass KPI —
+     `Σ(measures[key]·sampleSize)/max(1,total)` with `total = matching.length`
+     (DEDUPED) — INFLATES for MULTI-VALUE dimensions (formation/playType/result/
+     defFront/blitz): a play in several groups is counted N× in the numerator, 1×
+     in the denominator, so `Σ sampleSize > total` and the KPI can exceed 100%
+     (unclamped `_pct`). Table per-group values + the parity engine are unaffected.
+     Fix: derive run/pass from the unique matching play set, not sample-weighted
+     overlapping shares (weighting is exact only when the dimension partitions).
+  2. [Low/UX] Ranking is strict descending raw value labeled "Top {metric}", so a
+     lower-is-better measure (Negative Play Rate, TO rate) shows the WORST group as
+     "Top"; signed measures (YPP) draw a positive-width bar for negative values.
+     Polarity-aware label/color, or rename "Highest".
+  3. [Low/a11y] Visual bar buttons' accessible name is just "Wing-T 48%" with no
+     hint they play film — add `aria-label="Watch {group} film"` and `aria-hidden`
+     the decorative bar `<i>`. Delta sign is textual (not color-only) — good.
+Delta direction/scaling correct (abs/max·50 centered vs query abs/max·100), sign→
+color consistent with the table. No parity break, no engine change.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
