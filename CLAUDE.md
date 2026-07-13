@@ -401,6 +401,36 @@ create-then-save failure behavior, native-dialog keyboard/focus behavior, and
 film-ref parity. After acceptance, the next product increment is explicit
 comparison-cohort selection when saving a comparison finding.
 
+**Independent review of `fa14dc0` — ACCEPTED, no findings (Claude).** Verified in
+an isolated `git worktree` (a concurrent uncommitted comparison-cohort WIP was
+sitting in the shared tree, so review ran there instead of touching it). Confirmed
+the committed bundle is BYTE-IDENTICAL to a fresh rebuild. Full gate green: all 41
+`tools/e2e-*.mjs` scripts pass (0 failures; `e2e-realdata.mjs`'s real-season
+diagnostic shows "✓ all views ok" on every game), `e2e-study-screen` independently
+re-run at 48/48. All four requested focus areas verified against source:
+  - EXACT TARGET SELECTION — `_confirmPlanPicker` resolves `getPlan(target)` /
+    `createPlan(name)` then routes through `addFindingTo(plan.id, item)`; a
+    stale/missing target resolves to `null` and fails closed with a toast, never
+    silently falling back to the active/first plan (the exact gap this fixes).
+  - CREATE-THEN-SAVE FAILURE — traced: if `createPlan` returns `null` (no season
+    open), `plan` stays falsy through the `addFindingTo` call and the code
+    correctly reaches the `!plan` toast branch, no crash, no partial write.
+  - NATIVE-DIALOG KEYBOARD/FOCUS — real `<dialog>` + `showModal()`; Escape fires
+    the native `cancel` event, `preventDefault()`+`_closePlanPicker()` mutates
+    nothing; initial focus goes to the name field (new plan) or destination
+    select (existing), matching the dialog's default action; reopening always
+    closes any stale dialog first (no accumulation).
+  - FILM-REF PARITY — `item.refs` is built once in `_saveToPlan` and passed
+    unchanged through the picker to `addPlanItem`; test asserts the saved item's
+    refs are byte-identical to the pre-picker set.
+Minor nit (non-blocking): `PlanScreen.addFinding()` (the pre-picker single-target
+method) is now dead code — no remaining callers after the switch to
+`addFindingTo`. Fine to remove opportunistically, not urgent.
+
+Note: Codex has since shipped `583ca2f`/`41dbe13` (explicit comparison-cohort
+save) on top of this, and the handoff now asks for `fa14dc0..583ca2f` together —
+that pairing is not yet reviewed; treat as a separate next step.
+
 **Explicit comparison-cohort save is ready for review (`583ca2f`, Codex).** The
 prior comparison save behavior was semantically mixed: it attached the primary
 cohort for groups where that side existed, then silently fell back to comparison
