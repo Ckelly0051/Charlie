@@ -22,6 +22,7 @@ import { StudyQuery } from './study-query.js';
 import { CrossGameCutup } from './cross-game-cutup.js';
 import { StudyScreen } from './study-screen.js';
 import { StudyPlan } from './study-plan.js';
+import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
 import { WorkspaceShell } from './workspace-shell.js';
 import { HistoryManager } from './history-manager.js';
@@ -87,6 +88,7 @@ class App {
     this.crossGameCutup = new CrossGameCutup();
     this.studyScreen = new StudyScreen(this);
     this.studyPlan = StudyPlan;
+    this.planExport = PlanExport;
     this.planScreen = new PlanScreen(this);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);

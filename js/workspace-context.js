@@ -1,10 +1,10 @@
-/** Stable shell routes for the redesign. P0-d defines contracts only; these
- * descriptors do not open, hide, or replace any production UI. */
+/** Stable shell routes for the redesign. These descriptors validate context;
+ * WorkspaceShell owns the corresponding UI adapters. */
 const WORKSPACE_ROUTES = Object.freeze([
   Object.freeze({ id: 'home', name: 'Home', target: 'team-home', requires: null }),
   Object.freeze({ id: 'breakdown', name: 'Break Down', target: 'classic-workspace', requires: 'game' }),
   Object.freeze({ id: 'study', name: 'Study', target: 'study-workspace', requires: 'season' }),
-  Object.freeze({ id: 'plan', name: 'Plan', target: 'coming-soon', requires: 'season' }),
+  Object.freeze({ id: 'plan', name: 'Plan', target: 'plan-workspace', requires: 'season' }),
 ]);
 
 /**

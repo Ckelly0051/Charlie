@@ -20,7 +20,7 @@
 export class PlanExport {
   /**
    * Resolve a plan into an ordered, film-linked export object:
-   *   { name, notes, createdAt, updatedAt, itemCount, playCount, missingCount,
+   *   { name, audience, notes, createdAt, updatedAt, itemCount, playCount, missingCount,
    *     items: [{ id, kind, label, note, query, refCount, resolved, missing,
    *               plays: [{ ref, gameId, gameName, playId, missing,
    *                         situation, formation, playType, result, yardage, notes }] }] }
@@ -42,6 +42,7 @@ export class PlanExport {
     const missingCount = items.reduce((s, it) => s + it.missing, 0);
     return {
       name: (plan && plan.name) || 'Game Plan',
+      audience: (plan && plan.audience) || 'staff',
       notes: (plan && plan.notes) || '',
       createdAt: (plan && plan.createdAt) || '',
       updatedAt: (plan && plan.updatedAt) || '',
@@ -51,7 +52,7 @@ export class PlanExport {
 
   static _resolveRef(ref, gmeta) {
     const sep = String(ref).indexOf('::');
-    if (sep <= 0) return null;                              // not a composite ref
+    if (sep <= 0) return { ref, gameId: '', gameName: 'Unknown game', playId: ref, missing: true, invalid: true };
     const gid = ref.slice(0, sep), pid = ref.slice(sep + 2);
     const g = gmeta.get(gid);
     const gameName = (g && (g.name || (g.gameInfo && g.gameInfo.opponent))) || gid;
@@ -82,12 +83,13 @@ export class PlanExport {
       `${exp.itemCount} item${exp.itemCount === 1 ? '' : 's'}`,
       `${exp.playCount} linked play${exp.playCount === 1 ? '' : 's'}`,
       exp.missingCount ? `${exp.missingCount} missing` : '',
+      exp.audience ? `Audience: ${PlanExport._audience(exp.audience)}` : '',
       dt(exp.updatedAt) ? `Updated ${dt(exp.updatedAt)}` : '',
     ].filter(Boolean).join(' · ');
 
     const items = exp.items.map((it, i) => {
       const rows = it.plays.length ? it.plays.map(p => p.missing
-        ? `<tr class="miss"><td>${e(p.gameName)}</td><td colspan="5">Play ${e(p.playId)} — film not found</td></tr>`
+        ? `<tr class="miss"><td>${e(p.gameName)}</td><td colspan="5">${p.invalid ? `Film reference ${e(p.ref)} is invalid` : `Play ${e(p.playId)} — film not found`}</td></tr>`
         : `<tr><td>${e(p.gameName)}</td><td>${e(p.situation)}</td><td>${e(p.formation)}</td><td>${e(p.playType)}</td><td>${e(p.result)}${p.yardage ? ` ${e(p.yardage)}` : ''}</td><td>${e(p.notes)}</td></tr>`
       ).join('') : '<tr><td colspan="6" class="muted">No linked film.</td></tr>';
       return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Formation</th><th>Play</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
@@ -106,4 +108,5 @@ export class PlanExport {
   }
 
   static _esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  static _audience(value) { return ({ staff: 'Coaching staff', players: 'Players', all: 'Staff and players' })[value] || value; }
 }

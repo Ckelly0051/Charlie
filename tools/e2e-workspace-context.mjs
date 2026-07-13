@@ -94,7 +94,7 @@ ok(!result.missing, 'App exposes the P0-d workspace interface');
 if (!result.missing) {
   ok(JSON.stringify(result.routes.map(r => r.id)) === JSON.stringify(['home','breakdown','study','plan']), 'Shell routes are stable and ordered');
   ok(result.routes.find(r => r.id === 'breakdown').target === 'classic-workspace' && result.routes.find(r => r.id === 'study').target === 'study-workspace', 'Break Down and Study expose their current workspace targets');
-  ok(result.routes.find(r => r.id === 'plan').target === 'coming-soon', 'Plan is an explicit controlled coming-soon route');
+  ok(result.routes.find(r => r.id === 'plan').target === 'plan-workspace', 'Plan exposes the live season plan workspace target');
   ok(result.snapshot.team.name === 'Mavericks' && result.snapshot.season.id === 's1' && result.snapshot.game.id === 'g1', 'Workspace snapshot carries team, season, and game identity');
   ok(result.snapshot.capabilities.canBreakDown && result.snapshot.capabilities.canStudy && result.snapshot.capabilities.canPlan, 'Workspace capabilities derive from open context');
   ok(result.breakRoute.ok && result.studyRoute.ok && result.planRoute.ok && !result.badRoute.ok, 'Route navigation is guarded and unknown routes fail');

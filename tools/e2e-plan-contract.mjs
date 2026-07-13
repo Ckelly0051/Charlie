@@ -39,7 +39,7 @@ const legacy = () => ({ version: 5, type: 'season', seasonName: 'Old', games: [{
   s.data = s._normalize(d);
   ok(s.data.plans.length === 1, 'non-object plan entries are filtered out', String(s.data.plans.length));
   const p = s.data.plans[0];
-  ok(!!p.id && !!p.createdAt && !!p.updatedAt && p.notes === '', 'a plan gets an id + timestamps + default notes');
+  ok(!!p.id && !!p.createdAt && !!p.updatedAt && p.notes === '' && p.audience === 'staff', 'a plan gets an id + timestamps + safe staff audience default');
   ok(p.color === 'red', 'UNKNOWN plan keys are preserved (forward-compat)');
   ok(p.items.length === 1, 'non-object plan items are filtered out', String(p.items.length));
   const it = p.items[0];
@@ -73,6 +73,8 @@ const legacy = () => ({ version: 5, type: 'season', seasonName: 'Old', games: [{
   ok(s.getPlan(p.id).name === 'Red Zone', 'renamePlan trims + sets the name');
   s.setPlanNotes(p.id, 'attack the boundary');
   ok(s.getPlan(p.id).notes === 'attack the boundary', 'setPlanNotes sets notes');
+  s.setPlanAudience(p.id, 'players');
+  ok(s.getPlan(p.id).audience === 'players', 'setPlanAudience sets the intended presentation audience');
   const it = s.addPlanItem(p.id, { kind: 'film', refs: ['g1::9'] });
   ok(s.getPlan(p.id).items.length === 1 && it.refs[0] === 'g1::9', 'addPlanItem appends a normalized item');
   ok(s.getPlan(p.id).updatedAt >= t0, 'a mutation advances updatedAt');

@@ -1,8 +1,7 @@
 # GridIron IQ Workspace Contract
 
-> P0-d interface baseline. This contract supports the approved Home / Break
-> Down / Study / Plan shell without enabling or rendering that shell. The
-> current production workspace remains unchanged.
+> Introduced as the P0-d interface baseline and now consumed by the opt-in Home /
+> Break Down / Study / Plan shell. Classic remains the default workspace.
 
 ## Shell Routes
 
@@ -11,7 +10,7 @@
 | `home` | Home | Existing team home/library | Always available |
 | `breakdown` | Break Down | Existing classic film workspace | Active game required |
 | `study` | Study | Study query workspace; Advanced Reports fallback | Open season required |
-| `plan` | Plan | Controlled coming-soon state | Open season required |
+| `plan` | Plan | Season plan workspace | Open season required |
 
 `WorkspaceContext.navigate()` only validates and records route state. It never
 opens, hides, or replaces production UI. Phase 1 owns the adapter from a route
@@ -64,14 +63,16 @@ must pass that ID explicitly because a coach may switch games while a large copy
 continues. Completion and failure clear the same key. This is display-state
 isolation; existing storage ownership remains unchanged.
 
-## Non-Goals And Invariants
+## Invariants
 
-- No shell UI, feature flag, route persistence, or default-layout change in P0-d.
-- No season schema or storage format change.
+- The shell remains opt-in behind `ffa_workspace_shell_v2`; no default-layout
+  change is implied by this contract.
+- Plan is additive (`plans: []`) and requires no storage-format migration.
 - No film copy/link/repair behavior change beyond transient status reporting.
 - Linked film always means referenced in place; it never implies a managed copy.
 - Browser film is never described as durable.
-- Plan remains coming-soon until its backward-compatible schema phase.
+- Plan uses the backward-compatible season-level `plans: []` contract and remains
+  guarded by an open season.
 - Study opens the query workspace; Advanced Reports remains one click away and
   analytics parity remains the release gate.
 

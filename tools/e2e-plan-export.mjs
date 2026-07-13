@@ -40,18 +40,19 @@ const games = [
   const plan = { name: 'P', items: [{ id: 'i', kind: 'film', label: 'x', refs: ['g1::3', 'g1::999', 'gX::1', 'bare'] }] };
   const exp = PlanExport.build(plan, games);
   const it = exp.items[0];
-  ok(it.refCount === 4 && it.resolved === 1 && it.missing === 2, 'missing play + missing game are flagged; a bare (non-composite) ref is skipped', JSON.stringify({ r: it.refCount, ok: it.resolved, miss: it.missing }));
-  ok(exp.missingCount === 2 && exp.playCount === 1, 'plan totals separate resolved from missing');
-  ok(it.plays.find(p => p.playId === '999').missing === true && it.plays.find(p => p.gameId === 'gX').missing === true, 'both a missing play and a missing game resolve to a missing marker');
+  ok(it.refCount === 4 && it.resolved === 1 && it.missing === 3, 'missing play, missing game, and malformed ref are all flagged', JSON.stringify({ r: it.refCount, ok: it.resolved, miss: it.missing }));
+  ok(exp.missingCount === 3 && exp.playCount === 1, 'every ref is accounted for as resolved or missing');
+  ok(it.plays.find(p => p.playId === '999').missing === true && it.plays.find(p => p.gameId === 'gX').missing === true && it.plays.find(p => p.invalid)?.ref === 'bare', 'missing and malformed references remain visible in the export structure');
 }
 
 // ---- 3. html renders a standalone doc ---------------------------------------
 {
-  const exp = PlanExport.build({ name: 'Install', notes: 'meeting @ 3', items: [{ id: 'i', kind: 'finding', label: 'Openers', refs: ['g1::3'] }] }, games);
+  const exp = PlanExport.build({ name: 'Install', audience: 'players', notes: 'meeting @ 3', items: [{ id: 'i', kind: 'finding', label: 'Openers', refs: ['g1::3'] }] }, games);
   const html = PlanExport.html(exp);
   ok(html.startsWith('<!doctype html>') && html.includes('<title>Install — Game Plan</title>'), 'html is a standalone document titled by the plan');
   ok(html.includes('Week 1 vs Central') && html.includes('3rd &amp; 7') && html.includes('Openers'), 'html includes resolved play context + item label');
   ok(html.includes('meeting @ 3'), 'html includes staff notes');
+  ok(exp.audience === 'players' && html.includes('Audience: Players'), 'audience survives serialization and appears in export metadata');
 }
 
 // ---- 4. XSS: every coach-entered string is escaped in html ------------------

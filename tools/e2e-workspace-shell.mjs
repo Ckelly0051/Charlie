@@ -74,8 +74,8 @@ ok(r.stats && r.appVisible, 'Study keeps Advanced Reports one click away');
 await page.click('.ws-sidebar [data-ws-route="study"]');
 
 await page.click('.ws-sidebar [data-ws-route="plan"]');
-r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));
-ok(r.route === 'plan' && r.plan && r.appHidden, 'Plan shows a controlled shell state without adding schema');
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden, text: document.querySelector('#wsPlan')?.textContent || '' }));
+ok(r.route === 'plan' && r.plan && r.appHidden && /GAME PLAN/.test(r.text), 'Plan opens the live season plan workspace');
 
 r = await page.evaluate(() => {
   const before = localStorage.getItem('ffa_workspace_shell_v2');

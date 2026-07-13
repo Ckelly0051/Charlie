@@ -67,7 +67,7 @@ export class SeasonStore {
    *
    * Shape (documented here so the Plan UI builds against a stable contract; the
    * normalizer PRESERVES unknown keys so the shape can grow without a migration):
-   *   plan = { id, name, createdAt, updatedAt, notes, items: [planItem] }
+   *   plan = { id, name, audience, createdAt, updatedAt, notes, items: [planItem] }
    *   planItem = { id, kind, label, refs: ['gameId::playId'], query, note, createdAt }
    *     kind: 'finding' (a saved Study result) | 'film' (bare film refs) | 'note'
    *     refs: composite film references — the SAME `gameId::playId` identity Study
@@ -76,7 +76,7 @@ export class SeasonStore {
    */
   blankPlan(name) {
     const now = new Date().toISOString();
-    return { id: this._planId(), name: (name || 'Game Plan'), createdAt: now, updatedAt: now, notes: '', items: [] };
+    return { id: this._planId(), name: (name || 'Game Plan'), audience: 'staff', createdAt: now, updatedAt: now, notes: '', items: [] };
   }
   _planId() { return 'plan' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -91,6 +91,7 @@ export class SeasonStore {
       ...p,                                              // preserve unknown/future keys
       id: p.id || this._planId(),
       name: typeof p.name === 'string' ? p.name : 'Game Plan',
+      audience: typeof p.audience === 'string' && p.audience.trim() ? p.audience.trim() : 'staff',
       createdAt: p.createdAt || now,
       updatedAt: p.updatedAt || p.createdAt || now,
       notes: typeof p.notes === 'string' ? p.notes : '',
@@ -132,6 +133,12 @@ export class SeasonStore {
   setPlanNotes(id, notes) {
     const p = this.getPlan(id); if (!p) return null;
     p.notes = typeof notes === 'string' ? notes : '';
+    p.updatedAt = new Date().toISOString();
+    return p;
+  }
+  setPlanAudience(id, audience) {
+    const p = this.getPlan(id); if (!p) return null;
+    p.audience = (typeof audience === 'string' && audience.trim()) ? audience.trim() : 'staff';
     p.updatedAt = new Date().toISOString();
     return p;
   }

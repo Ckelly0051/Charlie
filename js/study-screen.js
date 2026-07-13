@@ -400,7 +400,7 @@ export class StudyScreen {
     const scopeLabel = state.compare ? 'comparison' : state.scope === 'game' ? 'current game' : state.scope === 'range' ? 'date range' : 'full season';
     const item = this.app.studyPlan.finding({ dimensionName, measureName, scopeLabel, dimension: state.dimension, measure: state.measure, scope: state.scope, refs });
     const plan = this.app.planScreen.addFinding(item);
-    this.app.tagger.toast?.(`Saved to ${plan.name}`);
+    this.app.tagger.toast?.(plan ? `Saved to ${plan.name}` : 'Could not save this plan finding');
   }
   _applyView(id) {
     const view = this._views().find(item => item.id === id);
