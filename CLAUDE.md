@@ -266,6 +266,18 @@ two before this path goes default-on:
 Next: hand these to Codex (fixes are Codex's UX lane); then choose the next
 Phase 2/3 increment.
 
+**All six review follow-ups are resolved (`47cecc0`, Codex).** `VideoController`
+now emits `video-ended` and CutupPlayer advances/completes on it; Previous clamps
+at the first play. Study saves the launch game once, uses non-persisting transient
+game hops, reloads active-game film, keeps the shell breadcrumb synchronized, and
+restores the launch game after completion or cancellation. The regression harness
+now exercises native ended completion, Previous clamping, one persist per reel,
+active-film reload, launch restoration, cancellation without advancement, and
+Watch supersession; Study is 24/24 and the atomic full suite is green with zero
+failures. The same commit changes the approved prototype play-strip copy from
+`Result · Yardage` to `Result: Yardage` so the separator cannot resemble a minus.
+No release/tag; shell remains opt-in.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next

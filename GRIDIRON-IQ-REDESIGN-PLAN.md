@@ -452,13 +452,15 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 1fce6b3  Study true cross-game playback (Codex)
+Latest implementation: 47cecc0  Study cross-game playback hardening (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  47cecc0  Resolve all 6 cross-game review follow-ups + prototype colon separator
+  84608a9  Claude independent review — accepted with 6 non-blocking follow-ups
   1fce6b3  Study cross-game playback UI + awaitable CutupPlayer contract
   3956e14  docs — A3 re-save corruption P0 recorded
   acc130c  A3 P0 FIX — SqlCatalog re-save duplicated plays (FK cascade off) + catalog fuzzer
@@ -499,17 +501,13 @@ Lane status:
     DATA CONTRACT done + handed to Codex (94d3ef0).
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
     increments 1+2+3 DONE at 7f755c6 + d76e699 + f7cc373; true cross-game
-    Study playback DONE at 1fce6b3 and ready for independent review.
+    Study playback DONE at 1fce6b3, independently accepted at 84608a9, and all
+    six review follow-ups resolved at 47cecc0.
 
 NEXT ACTIONS
-  Claude: independently review implementation commit 1fce6b3 in this order:
-    correctness/data isolation; cancellation races; managed/linked/browser film
-    loading; numeric/string play IDs; unavailable-film accounting; regressions.
-    Re-run e2e-cross-game-cutup (13/13), e2e-study-screen (22/22), then the
-    atomic full gate. Do not redesign the Study UI during this review.
-  Codex: hold for review. After acceptance, select the next Phase 2/3 product
-    increment with the coach rather than starting an overlapping shared surface.
-  Claude in-lane options after review, none started:
+  Coach + agents: cross-game Study playback is complete and reviewed. Select the
+    next Phase 2/3 product increment before either agent starts a shared surface.
+  Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
         a REAL defended-nowhere gap, so this is NOT purely user error. Findings:
