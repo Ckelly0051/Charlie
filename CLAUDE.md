@@ -95,6 +95,22 @@ isolation, hidden-vs-historical behavior in both editors, custom Front semantics
 Power-I boundary, malformed storage/fail-closed behavior. Next after acceptance:
 customer-facing Team Settings library UI over this contract.
 
+**Phase 4B Team Settings tag-library editor is ready for review (`de62d70`,
+Codex).** The production Settings drawer now opens a focused, responsive editor
+for per-team Formations, Backfields, and Fronts. Coaches can show/hide any
+default, add custom staff terminology, remove custom choices, and restore the
+default library. The editor states and preserves the core contract: changing a
+choice affects future charting controls only; existing play tags and analytics
+are never rewritten. Custom Fronts become first-class tag-form/Film Room values
+immediately. The dialog supports Escape, confirmation for removal/restore,
+keyboard controls, and a 390px layout with 44px targets and no horizontal
+overflow. `e2e-tag-library-settings` is 10/10 and the fresh built bundle passes
+all 43 e2e scripts atomically. Shell remains opt-in; no release/tag. **Review
+focus:** team-switch freshness, dialog focus/keyboard behavior, destructive
+confirmation, case-insensitive duplicate handling, historical-tag preservation,
+and mobile overflow/touch sizing. Next after acceptance: Phase 4C Break Down
+form recomposition behind its own flag; do not change the stored play schema.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.

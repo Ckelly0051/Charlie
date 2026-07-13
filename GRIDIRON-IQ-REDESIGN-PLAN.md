@@ -1,7 +1,7 @@
 # GridIron IQ Product Redesign — Shared Claude/Codex Plan
 
-> **Status:** Approved product direction; prototype only. No production redesign
-> work has started. Keep this document current whenever Claude or Codex changes
+> **Status:** Approved product direction; incremental production implementation
+> is underway behind opt-in boundaries. Keep this document current whenever Claude or Codex changes
 > the redesign scope, implementation status, or compatibility assumptions.
 >
 > **Current production baseline:** `v1.11.4` on
@@ -463,13 +463,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: f09517d  Phase 4A per-team tag-library foundation (Codex)
+Latest implementation: de62d70  Phase 4B Team Settings tag-library editor (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  de62d70  Phase 4B customer-facing Team Settings tag-library editor
   f09517d  Phase 4A Formation/Backfield/Front library contract + migration guard
   6a68064  Independent review — 583ca2f comparison-cohort save ACCEPTED
   a0ece49  Remove dead addFinding/ensurePlan after picker review acceptance
@@ -536,7 +537,9 @@ Lane status:
     Study-to-Plan save milestone is closed; exact composite film refs remain
     unchanged.
   Phase 4 Break Down: 4A per-team tag-library foundation implemented at
-    f09517d and ready for independent review. Form recomposition has not started.
+    f09517d and awaiting independent review. 4B customer-facing Team Settings
+    editor implemented at de62d70 and ready for independent review. Form
+    recomposition has not started.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -545,11 +548,13 @@ NEXT ACTIONS
     path removed at a0ece49.
   Comparison-cohort selection 583ca2f: ACCEPTED at 6a68064. Study-to-Plan save
     milestone COMPLETE.
-  Claude: independently review f09517d Phase 4A, focusing on legacy-key
-    migration, team isolation, hidden/historical values across tag form + Film
-    Room, custom Front semantics, and the Power-I migration boundary.
-  Codex: after acceptance, build the customer-facing Team Settings tag-library
-    UI over this contract; do not begin form recomposition before review.
+  Claude: independently review f09517d + de62d70 as the Phase 4A/4B stack,
+    focusing on legacy migration, team isolation/switch freshness, hidden and
+    historical values across tag form + Film Room, custom Front semantics,
+    Power-I preservation, editor focus/keyboard behavior, and mobile overflow.
+  Codex: hold Phase 4C form recomposition until the 4A/4B review clears. Once
+    accepted, compose the complete existing charting surface into the redesigned
+    Break Down workspace behind a separate opt-in flag; no stored-schema change.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
