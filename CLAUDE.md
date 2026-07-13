@@ -431,6 +431,15 @@ Note: Codex has since shipped `583ca2f`/`41dbe13` (explicit comparison-cohort
 save) on top of this, and the handoff now asks for `fa14dc0..583ca2f` together —
 that pairing is not yet reviewed; treat as a separate next step.
 
+**Accepted-review cleanup (`a0ece49`, Codex).** Claude found no correctness
+errors in `fa14dc0`; its sole non-blocking note was that the pre-picker implicit
+`PlanScreen.addFinding()` method was dead. Removed it and its now-dead
+`ensurePlan()` helper, leaving `addFindingTo(planId, item)` as the only Study UI
+mutation path. The no-season regression now pins that exact-target API. Focused
+Study/Plan gates remain green and the rebuilt bundle passed all 41 e2e scripts.
+This closes the `fa14dc0` review completely. `583ca2f` comparison-cohort
+selection remains the only unreviewed Study-to-Plan increment.
+
 **Explicit comparison-cohort save is ready for review (`583ca2f`, Codex).** The
 prior comparison save behavior was semantically mixed: it attached the primary
 cohort for groups where that side existed, then silently fell back to comparison
