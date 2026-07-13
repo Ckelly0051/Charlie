@@ -316,6 +316,16 @@ non-blocking (fix #1 before default-on; fixes are Codex's Study/UX lane):
 Delta direction/scaling correct (abs/max·50 centered vs query abs/max·100), sign→
 color consistent with the table. No parity break, no engine change.
 
+**All visual Study review findings are resolved (`0064c1a`, Codex).** Run/pass
+now derives from the unique composite matching-ref set and canonical `runPass`
+dimension, so multi-value groups cannot inflate the KPI. Ranking copy is neutral
+`Highest`; comparison favorability understands lower-is-better Negative Play Rate
+and Turnovers while preserving the mathematical sign/side. Film bars now announce
+`Watch {group} film`, decorative bars are hidden from assistive technology, and
+KPI labels are more readable. Focused Study 26/26 and the final atomic full suite
+are green. The rebuilt bundle also includes Claude's dormant Phase 3 `plans:[]`
+contract. Next: Plan UI + Save Study finding to Plan.
+
 **Phase 3 Plan foundation — step 1 (`64c284f`, Claude): backward-compatible
 `plans:[]` data contract.** `SeasonStore` gains a SEASON-level `data.plans` array —
 a game-plan workspace that collects Study findings + composite `gameId::playId`

@@ -458,13 +458,15 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: a115d73  Study visual analysis summaries (Codex)
+Latest implementation: 0064c1a  Study visual review fixes + fresh bundle (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  0064c1a  Resolve visual Study metric, polarity, and accessibility review
+  64c284f  Phase 3 additive season-level plans:[] contract (Claude)
   a115d73  Study KPI, effectiveness, run/pass, and comparison visuals
   47cecc0  Resolve all 6 cross-game review follow-ups + prototype colon separator
   84608a9  Claude independent review — accepted with 6 non-blocking follow-ups
