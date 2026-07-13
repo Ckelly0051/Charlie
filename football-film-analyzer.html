@@ -8706,6 +8706,54 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-plan-toolbar{flex-wrap:wrap}.ws-plan-toolbar .grow{min-width:220px}.ws-plan-present{position:fixed;inset:0;z-index:10020;display:grid;grid-template-rows:64px minmax(0,1fr) 64px;background:#080b10;color:var(--ws-text);text-align:left}.ws-plan-present>header{display:grid;grid-template-columns:minmax(0,1fr) auto 38px;align-items:center;gap:18px;padding:0 24px;border-bottom:1px solid var(--ws-line);background:#0d1219}.ws-plan-present>header>div:first-child{display:grid;gap:2px}.ws-plan-present>header span,.ws-plan-present aside>span{color:#75a7ff;font-size:10px;font-weight:800;text-transform:uppercase}.ws-plan-present>header strong{font-size:17px}.ws-plan-present>header>div:nth-child(2){color:var(--ws-muted);font-size:12px;font-weight:800}.ws-plan-present>main{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:32px;min-height:0;padding:34px clamp(24px,5vw,72px);overflow:auto}.ws-plan-present>main>section{min-width:0}.ws-present-kicker{color:#75a7ff;font-size:11px;font-weight:800;text-transform:uppercase}.ws-plan-present h2{max-width:900px;margin:8px 0 6px;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(30px,4vw,54px);line-height:1}.ws-present-query{margin:0 0 20px;color:var(--ws-muted);font-size:12px;text-transform:uppercase}.ws-present-note{max-width:760px;margin:0 0 20px;padding-left:12px;border-left:2px solid var(--ws-blue);color:#d9e2ed}.ws-present-plays{max-width:900px;border-top:1px solid var(--ws-line)}.ws-present-play{display:grid;width:100%;grid-template-columns:minmax(150px,.7fr) minmax(180px,1fr) minmax(180px,1fr);gap:16px;align-items:center;min-height:58px;padding:9px 10px;border:0;border-bottom:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}.ws-present-play:not(.is-missing):hover,.ws-present-play:not(.is-missing):focus-visible{background:#142238;outline:1px solid #355f98}.ws-present-play span,.ws-present-play small{color:var(--ws-muted);font-size:11px}.ws-present-play.is-missing{opacity:.7}.ws-present-empty{padding:28px 10px;color:var(--ws-muted);border-top:1px solid var(--ws-line)}.ws-plan-present aside{align-self:start;padding:16px 0 0 20px;border-left:1px solid var(--ws-line)}.ws-plan-present aside p{white-space:pre-wrap;color:#d6dee8;line-height:1.6}.ws-plan-present>footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:0 24px;border-top:1px solid var(--ws-line);background:#0d1219}.ws-plan-present>footer .ws-btn:first-child{justify-self:start}.ws-plan-present>footer .ws-btn:last-child{justify-self:end}@media(max-width:800px){.ws-plan-present{grid-template-rows:54px minmax(0,1fr) 62px}.ws-plan-present>header{grid-template-columns:minmax(0,1fr) auto 38px;padding:0 12px}.ws-plan-present>main{display:block;padding:24px 15px}.ws-plan-present h2{font-size:34px}.ws-present-play{grid-template-columns:1fr;gap:3px;padding:11px 8px}.ws-plan-present aside{margin-top:28px;padding:16px 0 0;border-left:0;border-top:1px solid var(--ws-line)}.ws-plan-present>footer{grid-template-columns:1fr 1.25fr 1fr;gap:6px;padding:0 8px}.ws-plan-present>footer .ws-btn{padding:0 8px;font-size:12px}}
 .ws-plan-present h2{font-size:44px}@media(max-width:800px){.ws-plan-present h2{font-size:34px}}
 @media(max-width:800px){.ws-plan-present>footer .ws-btn{height:44px}.ws-plan-present>header .ws-icon-btn{width:40px;height:40px}}
+.tag-library-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(760px, calc(100dvh - 32px));
+  padding: 0;
+  color: var(--text);
+  background: #101720;
+  border: 1px solid #34465a;
+  border-radius: 6px;
+  box-shadow: 0 24px 72px rgba(0,0,0,.55);
+}
+.tag-library-dialog::backdrop { background: rgba(3,7,12,.72); }
+.tag-library-head, .tag-library-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; }
+.tag-library-head { border-bottom: 1px solid var(--border); }
+.tag-library-head h2 { margin: 2px 0 0; font-size: 20px; letter-spacing: 0; }
+.tag-library-eyebrow { color: #75a7ff; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.tag-library-close, .tag-library-remove {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  color: var(--text-dim); background: transparent; border: 0; border-radius: 4px; cursor: pointer; font-size: 22px;
+}
+.tag-library-close:hover, .tag-library-close:focus-visible { color: #fff; background: #1b2735; }
+.tag-library-promise { margin: 0; padding: 12px 20px; color: #b9c5d4; background: #162231; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.45; }
+.tag-library-tabs { display: grid; grid-template-columns: repeat(3, 1fr); padding: 12px 20px 0; border-bottom: 1px solid var(--border); }
+.tag-library-tabs button { min-height: 42px; color: var(--text-dim); background: transparent; border: 0; border-bottom: 2px solid transparent; font-weight: 750; cursor: pointer; }
+.tag-library-tabs button[aria-selected="true"] { color: #fff; border-bottom-color: #4c8dff; }
+.tag-library-content { padding: 14px 20px 20px; overflow: auto; }
+.tag-library-summary { display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--text-dim); font-size: 11px; text-transform: uppercase; }
+.tag-library-summary strong { color: #9abfff; }
+.tag-library-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 12px; }
+.tag-library-row { min-height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 10px; border: 1px solid #27384a; border-radius: 4px; background: #121c27; }
+.tag-library-row label { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.tag-library-row input { width: 18px; height: 18px; accent-color: #4c8dff; }
+.tag-library-row label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.tag-library-default { color: #75859a; font-size: 9px; font-weight: 750; text-transform: uppercase; }
+.tag-library-remove { width: 36px; height: 36px; color: #ee8893; font-size: 18px; }
+.tag-library-remove:hover, .tag-library-remove:focus-visible { background: rgba(202,64,80,.14); color: #ffb4bc; }
+.tag-library-add { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.tag-library-add > label { display: block; margin-bottom: 7px; color: var(--text-dim); font-size: 11px; font-weight: 750; text-transform: uppercase; }
+.tag-library-add > div { display: flex; gap: 8px; }
+.tag-library-add input { min-width: 0; flex: 1; }
+.tag-library-foot { border-top: 1px solid var(--border); }
+@media (max-width: 560px) {
+  .tag-library-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .tag-library-head, .tag-library-foot { padding: 12px 14px; }
+  .tag-library-promise, .tag-library-content { padding-left: 14px; padding-right: 14px; }
+  .tag-library-tabs { padding-left: 8px; padding-right: 8px; }
+  .tag-library-tabs button, .tag-library-row { min-height: 44px; }
+  .tag-library-list { grid-template-columns: 1fr; }
+}
   </style>
 </head>
 <body>
@@ -9789,6 +9837,18 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
             <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
             <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Charting vocabulary -->
+      <div class="sidebar-panel">
+        <h3 class="panel-title" data-toggle="tagLibrariesPanel">
+          <svg class="icon"><use href="#icon-tag"/></svg>
+          Tag Libraries
+        </h3>
+        <div class="panel-body collapsed" id="tagLibrariesPanel">
+          <p class="settings-note">Choose the formations, backfields, and fronts your staff uses.</p>
+          <button class="btn btn-sm" id="btnTagLibraries" type="button">Manage tag libraries</button>
         </div>
       </div>
 
@@ -33245,6 +33305,125 @@ class CustomChips {
   restoreDefaults() { this.library.restore(); this.reload(); }
 }
 
+// ===== tag-library-settings.js =====
+/** Team-scoped editor for the charting choices exposed by CustomChips. */
+class TagLibrarySettings {
+  static GROUPS = [
+    { key: 'formation', label: 'Formations', singular: 'formation', placeholder: 'e.g. Trey' },
+    { key: 'backfield', label: 'Backfields', singular: 'backfield', placeholder: 'e.g. Ace' },
+    { key: 'front', label: 'Fronts', singular: 'front', placeholder: 'e.g. Bear' },
+  ];
+
+  constructor(customChips, tagger) {
+    this.customChips = customChips;
+    this.tagger = tagger;
+    this.activeKey = 'formation';
+    this.dialog = this._build();
+    document.getElementById('btnTagLibraries')?.addEventListener('click', () => this.open());
+  }
+
+  _build() {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'tag-library-dialog';
+    dialog.id = 'tagLibraryDialog';
+    dialog.setAttribute('aria-labelledby', 'tagLibraryTitle');
+    dialog.innerHTML = `
+      <div class="tag-library-head">
+        <div><span class="tag-library-eyebrow">Team settings</span><h2 id="tagLibraryTitle">Tag libraries</h2></div>
+        <button class="tag-library-close" type="button" data-action="close" aria-label="Close tag libraries" title="Close">&times;</button>
+      </div>
+      <p class="tag-library-promise">Hidden choices disappear from charting. Existing plays and analytics stay unchanged.</p>
+      <div class="tag-library-tabs" role="tablist" aria-label="Tag library">
+        ${TagLibrarySettings.GROUPS.map((g, i) => `<button type="button" role="tab" data-group="${g.key}" aria-selected="${i === 0}">${g.label}</button>`).join('')}
+      </div>
+      <div class="tag-library-content"></div>
+      <div class="tag-library-foot">
+        <button class="btn btn-sm" type="button" data-action="restore">Restore defaults</button>
+        <button class="btn btn-sm btn-accent" type="button" data-action="close">Done</button>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', event => this._click(event));
+    dialog.addEventListener('change', event => this._change(event));
+    dialog.addEventListener('submit', event => this._submit(event));
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    return dialog;
+  }
+
+  open() {
+    this.render();
+    this.dialog.showModal();
+  }
+
+  render() {
+    const config = TagLibrarySettings.GROUPS.find(g => g.key === this.activeKey);
+    const group = this.customChips.library.group(config.key);
+    const custom = new Set(group.custom);
+    const enabled = new Set(group.enabled);
+    this.dialog.querySelectorAll('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.group === config.key)));
+    this.dialog.querySelector('.tag-library-content').innerHTML = `
+      <div class="tag-library-summary"><strong>${enabled.size} shown</strong><span>${group.values.length - enabled.size} hidden</span></div>
+      <div class="tag-library-list">
+        ${group.values.map(value => `<div class="tag-library-row">
+          <label><input type="checkbox" data-value="${this._esc(value)}" ${enabled.has(value) ? 'checked' : ''}><span>${this._esc(value)}</span></label>
+          ${custom.has(value) ? `<button type="button" class="tag-library-remove" data-remove="${this._esc(value)}" aria-label="Remove ${this._esc(value)}" title="Remove custom choice">&times;</button>` : '<span class="tag-library-default">Default</span>'}
+        </div>`).join('')}
+      </div>
+      <form class="tag-library-add">
+        <label for="tagLibraryAdd">Add custom ${config.singular}</label>
+        <div><input id="tagLibraryAdd" name="value" maxlength="40" autocomplete="off" placeholder="${config.placeholder}"><button class="btn btn-sm btn-accent" type="submit">Add</button></div>
+      </form>`;
+  }
+
+  async _click(event) {
+    const tab = event.target.closest('[data-group]');
+    if (tab) { this.activeKey = tab.dataset.group; this.render(); return; }
+    if (event.target.closest('[data-action="close"]')) { this.dialog.close(); return; }
+    if (event.target.closest('[data-action="restore"]')) {
+      const ok = await this.tagger._confirmDialog('Restore the default tag libraries? Custom choices will be removed, but existing plays stay unchanged.', 'Restore');
+      if (ok) { this.customChips.restoreDefaults(); this.render(); this._toast('TAG LIBRARIES RESTORED'); }
+      return;
+    }
+    const remove = event.target.closest('[data-remove]');
+    if (!remove) return;
+    const value = remove.dataset.remove;
+    const ok = await this.tagger._confirmDialog(`Remove "${value}" from charting choices? Existing plays tagged with it stay unchanged.`, 'Remove');
+    if (!ok) return;
+    this.customChips.library.remove(this.activeKey, value);
+    this.customChips.reload();
+    this.render();
+    this._toast(`${value.toUpperCase()} REMOVED`);
+  }
+
+  _change(event) {
+    const input = event.target.closest('input[type="checkbox"][data-value]');
+    if (!input) return;
+    this.customChips.setEnabled(this.activeKey, input.dataset.value, input.checked);
+    this.render();
+  }
+
+  _submit(event) {
+    if (!event.target.matches('.tag-library-add')) return;
+    event.preventDefault();
+    const input = event.target.elements.value;
+    const value = input.value.trim();
+    if (!value) { input.focus(); return; }
+    const group = this.customChips.library.group(this.activeKey);
+    if (group.values.some(item => item.toLowerCase() === value.toLowerCase())) {
+      this._toast(`${value.toUpperCase()} ALREADY EXISTS`);
+      input.select();
+      return;
+    }
+    if (!this.customChips.library.add(this.activeKey, value)) return;
+    this.customChips.reload();
+    this.render();
+    this.dialog.querySelector('#tagLibraryAdd')?.focus();
+    this._toast(`${value.toUpperCase()} ADDED`);
+  }
+
+  _toast(message) { if (this.tagger.toast) this.tagger.toast(message); }
+  _esc(value) { const span = document.createElement('span'); span.textContent = String(value); return span.innerHTML; }
+}
+
 // ===== play-diagram.js =====
 /**
  * PlayDiagram — schematic X's & O's drawing per play.
@@ -33676,6 +33855,7 @@ class App {
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
     this.customChips = new CustomChips(this.tagger);
+    this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.

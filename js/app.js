@@ -37,6 +37,7 @@ import { UIPolish } from './ui-polish.js';
 import { Wizard } from './wizard.js';
 import { CustomFieldsManager } from './custom-fields.js';
 import { CustomChips } from './custom-chips.js';
+import { TagLibrarySettings } from './tag-library-settings.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
@@ -61,6 +62,7 @@ class App {
     this.filter = new PlayFilter(this.tagger);
     this.customFields = new CustomFieldsManager(this.tagger);
     this.customChips = new CustomChips(this.tagger);
+    this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
