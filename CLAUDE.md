@@ -410,6 +410,33 @@ one build.sh line + wires the Export/Print button + presentation view. Tests:
 are done and dormant; Codex's UI (drag handles, presentation full-screen, export
 button) is the remaining Phase 3 work.
 
+**Phase 3 ordering/presentation/export UI is complete (`905231e`, Codex).** Wires
+both dormant data seams: drag handles + accessible up/down buttons call
+`reorderPlanItems`/`movePlanItem`; a full-screen presentation/teaching view and an
+Export/Print (downloadable standalone HTML) both consume the same
+`PlanExport.build()` structure so on-screen order and the printed doc can't drift.
+Adds a plan `audience` field (staff/players/all) surfaced in presentation + export.
+`workspace-context.js` route target flips `plan` from `coming-soon` to
+`plan-workspace`. `js/plan-export.js` added to `build.sh`.
+
+**Independent review of `905231e` — ACCEPTED, no findings (Claude).** Verified
+against source line-by-line + confirmed the committed bundle is BYTE-IDENTICAL to a
+fresh `build.sh` rebuild. Full gate re-run green: plan-contract 32/32, plan-export
+15/15, study-plan 13/13, study-screen 42/42, workspace-context 20/20, workspace-shell
+15/15, integrity fuzzer 0 violations, onboarding 46/46 zero errors. Confirmed my
+prior follow-up (#1, null-season `createPlan` deref) is fixed — `ensurePlan`/
+`addFinding` now guard and return `null`, pinned by a new "fails closed when no
+season is open" test. `_resolveRef` now surfaces a malformed ref as an explicit
+`invalid` marker instead of silently vanishing (a real honesty improvement).
+Reorder is a true no-op on an unchanged order (no needless persist); drag-drop onto
+itself resolves to a safe no-op. Presentation + export share one resolved structure
+(film-link parity holds); every interpolated string is escaped. The new
+capture-phase Escape/arrow listener only engages while presenting and can't fight
+`CutupPlayer`'s own shortcut handling (every in-presentation watch path closes
+presentation first). Mobile presentation is full-screen with ≥44px touch targets
+and no page overflow. Phase 3 (contract → Study→Plan → ordering → presentation →
+export) is now fully accepted end to end. Shell remains opt-in; no release/tag.
+
 **Phase 3 ordering + presentation + export is implementation-complete
 (`905231e`, Codex; independent review pending).** The dormant seams from
 `70ad55c` and `2ec15fa` are now wired into the opt-in Plan workspace: desktop
