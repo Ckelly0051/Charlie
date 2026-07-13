@@ -217,8 +217,10 @@ export class SeasonStore {
   static migratePlayFormation(p) {
     if (!p || !p.tags) return;
     const t = p.tags;
+    const legacy = !Object.prototype.hasOwnProperty.call(t, 'backfield');
     if (typeof t.backfield !== 'string') t.backfield = '';
     if (typeof t.strength !== 'string') t.strength = '';
+    if (!legacy) return;
     if (!t.formation || typeof t.formation !== 'string') return;
     const map = SeasonStore.BACKFIELD_FROM_FORMATION;
     const parts = t.formation.split(' + ').map(s => s.trim()).filter(Boolean);

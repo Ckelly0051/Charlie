@@ -1,7 +1,8 @@
+import { TagLibrary } from './tag-library.js';
 /**
- * CustomChips — lets a coach add their own Formation & Backfield chips.
+ * CustomChips — renders the active team's Formation, Backfield, and Front library.
  *
- * Scoped to the ACTIVE TEAM (localStorage `ffa_custom_chips_<teamId>`), the way
+ * Scoped to the ACTIVE TEAM (localStorage `ffa_tag_libraries_<teamId>`), the way
  * the roster is — a team's formation vocabulary is part of its identity, and a
  * JV vs Varsity staff keep their own. Custom chips are injected as first-class
  * `.pick` buttons and registered with the group's ChipField, so:
@@ -18,10 +19,12 @@ export class CustomChips {
   static GROUPS = [
     { key: 'formation', groupId: 'tagFormation', field: 'formation', label: 'formation' },
     { key: 'backfield', groupId: 'tagBackfield', field: 'backfield', label: 'backfield' },
+    { key: 'front', groupId: 'tagDefFront', field: 'defFront', label: 'front' },
   ];
 
   constructor(tagger) {
     this.tagger = tagger;
+    this.library = new TagLibrary();
     this.groups = [];
     for (const g of CustomChips.GROUPS) this._initGroup({ ...g });
   }
@@ -30,11 +33,13 @@ export class CustomChips {
   _teamId() {
     try { return localStorage.getItem('ffa_active_team_id') || 'default'; } catch (e) { return 'default'; }
   }
-  _key() { return 'ffa_custom_chips_' + this._teamId(); }
+  _key() { return this.library.key(); }
   _load() {
-    try { return JSON.parse(localStorage.getItem(this._key()) || '{}') || {}; } catch (e) { return {}; }
+    const out = {};
+    for (const g of CustomChips.GROUPS) out[g.key] = this.library.group(g.key).custom;
+    return out;
   }
-  _save(data) { try { localStorage.setItem(this._key(), JSON.stringify(data)); } catch (e) {} }
+  _save(data) { this.library.replaceCustom(data); }
 
   // ---- setup ----
   _initGroup(g) {
@@ -54,10 +59,11 @@ export class CustomChips {
     g.customBtns = [];
     this.groups.push(g);
     this._injectSaved(g);
+    this._applyVisibility(g);
   }
 
   _injectSaved(g) {
-    for (const v of (this._load()[g.key] || [])) this._injectChip(g, v);
+    for (const v of this.library.group(g.key).custom) this._injectChip(g, v);
   }
 
   /** True if a chip with this value already exists in the group (built-in or custom). */
@@ -95,17 +101,14 @@ export class CustomChips {
     if (!name) return;
     if (this._exists(g, name)) { this.tagger.toast && this.tagger.toast(`"${name}" already exists`); return; }
     this._injectChip(g, name);
-    const data = this._load();
-    data[g.key] = [...(data[g.key] || []), name];
-    this._save(data);
+    this.library.add(g.key, name);
+    this._applyVisibility(g);
     this._clearGridCache();
     this.tagger.toast && this.tagger.toast(`Added ${g.label}: ${name}`);
   }
 
   _remove(g, value, btn) {
-    const data = this._load();
-    data[g.key] = (data[g.key] || []).filter(x => x !== value);
-    this._save(data);
+    this.library.remove(g.key, value);
     g.fieldObj.unregisterChip(btn);
     btn.remove();
     g.customBtns = g.customBtns.filter(b => b !== btn);
@@ -119,6 +122,7 @@ export class CustomChips {
       for (const b of g.customBtns) { g.fieldObj.unregisterChip(b); b.remove(); }
       g.customBtns = [];
       this._injectSaved(g);
+      this._applyVisibility(g);
     }
     this._clearGridCache();
   }
@@ -126,4 +130,16 @@ export class CustomChips {
   _clearGridCache() {
     try { if (window.app && window.app.playGrid) window.app.playGrid._optionCache = {}; } catch (e) {}
   }
+  _applyVisibility(g) {
+    const enabled = new Set(this.library.group(g.key).enabled);
+    g.groupEl.querySelectorAll('.pick[data-value]').forEach(btn => btn.classList.toggle('library-hidden', !enabled.has(btn.dataset.value)));
+  }
+  setEnabled(key, value, enabled) {
+    const changed = this.library.setEnabled(key, value, enabled);
+    const group = this.groups.find(item => item.key === key);
+    if (group) this._applyVisibility(group);
+    if (changed) this._clearGridCache();
+    return changed;
+  }
+  restoreDefaults() { this.library.restore(); this.reload(); }
 }

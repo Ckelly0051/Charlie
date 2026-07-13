@@ -8181,3 +8181,4 @@ body { font-size: 13px; }
   50% { box-shadow: 0 0 0 2px var(--accent-border), 0 0 18px rgba(61,123,253,.35); }
 }
 @media (prefers-reduced-motion: reduce) { .gs-pulse { animation: none; } }
+.pick.library-hidden:not(.active){display:none}

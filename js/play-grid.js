@@ -671,12 +671,15 @@ export class PlayGrid {
 
   /** Options for an enum column, read live from the tag form's chip group so
    *  the grid can never offer values the form wouldn't. */
-  _options(col) {
-    if (this._optionCache[col.key]) return this._optionCache[col.key];
-    const opts = [...document.querySelectorAll(`#${col.src} .pick`)]
-      .map(b => b.dataset.value).filter(Boolean);
-    if (opts.length) this._optionCache[col.key] = opts;
-    return opts;
+  _options(col, current = []) {
+    let opts = this._optionCache[col.key];
+    if (!opts) {
+      opts = [...document.querySelectorAll(`#${col.src} .pick`)]
+        .filter(button => !button.classList.contains('library-hidden'))
+        .map(button => button.dataset.value).filter(Boolean);
+      if (opts.length) this._optionCache[col.key] = opts;
+    }
+    return [...new Set([...(opts || []), ...current].filter(Boolean))];
   }
 
   _openEditor(playId, colKey) {
@@ -694,7 +697,7 @@ export class PlayGrid {
     // the selection (and seeking the video) on a mouse pick is disorienting.
     if (col.type === 'enum' && !col.multi) {
       const cur = String(play.tags[col.key] || '');
-      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col).map(o =>
+      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [cur]).map(o =>
         `<button class="pg-chip${o === cur ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}
         <button class="pg-chip pg-chip-clear" data-v="" type="button">✕ none</button></div>`;
       wrap.addEventListener('click', (e) => {
@@ -703,7 +706,7 @@ export class PlayGrid {
       });
     } else if (col.type === 'enum' && col.multi) {
       const cur = new Set(String(play.tags[col.key] || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean));
-      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col).map(o =>
+      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [...cur]).map(o =>
         `<button class="pg-chip${cur.has(o) ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}</div>
         <div class="pg-pop-actions">
           <button class="btn btn-sm" data-act="clear" type="button">Clear</button>

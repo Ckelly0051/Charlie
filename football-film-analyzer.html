@@ -8195,6 +8195,7 @@ body { font-size: 13px; }
   50% { box-shadow: 0 0 0 2px var(--accent-border), 0 0 18px rgba(61,123,253,.35); }
 }
 @media (prefers-reduced-motion: reduce) { .gs-pulse { animation: none; } }
+.pick.library-hidden:not(.active){display:none}
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
@@ -15868,8 +15869,10 @@ class SeasonStore {
   static migratePlayFormation(p) {
     if (!p || !p.tags) return;
     const t = p.tags;
+    const legacy = !Object.prototype.hasOwnProperty.call(t, 'backfield');
     if (typeof t.backfield !== 'string') t.backfield = '';
     if (typeof t.strength !== 'string') t.strength = '';
+    if (!legacy) return;
     if (!t.formation || typeof t.formation !== 'string') return;
     const map = SeasonStore.BACKFIELD_FROM_FORMATION;
     const parts = t.formation.split(' + ').map(s => s.trim()).filter(Boolean);
@@ -29891,12 +29894,15 @@ class PlayGrid {
 
   /** Options for an enum column, read live from the tag form's chip group so
    *  the grid can never offer values the form wouldn't. */
-  _options(col) {
-    if (this._optionCache[col.key]) return this._optionCache[col.key];
-    const opts = [...document.querySelectorAll(`#${col.src} .pick`)]
-      .map(b => b.dataset.value).filter(Boolean);
-    if (opts.length) this._optionCache[col.key] = opts;
-    return opts;
+  _options(col, current = []) {
+    let opts = this._optionCache[col.key];
+    if (!opts) {
+      opts = [...document.querySelectorAll(`#${col.src} .pick`)]
+        .filter(button => !button.classList.contains('library-hidden'))
+        .map(button => button.dataset.value).filter(Boolean);
+      if (opts.length) this._optionCache[col.key] = opts;
+    }
+    return [...new Set([...(opts || []), ...current].filter(Boolean))];
   }
 
   _openEditor(playId, colKey) {
@@ -29914,7 +29920,7 @@ class PlayGrid {
     // the selection (and seeking the video) on a mouse pick is disorienting.
     if (col.type === 'enum' && !col.multi) {
       const cur = String(play.tags[col.key] || '');
-      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col).map(o =>
+      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [cur]).map(o =>
         `<button class="pg-chip${o === cur ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}
         <button class="pg-chip pg-chip-clear" data-v="" type="button">✕ none</button></div>`;
       wrap.addEventListener('click', (e) => {
@@ -29923,7 +29929,7 @@ class PlayGrid {
       });
     } else if (col.type === 'enum' && col.multi) {
       const cur = new Set(String(play.tags[col.key] || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean));
-      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col).map(o =>
+      wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [...cur]).map(o =>
         `<button class="pg-chip${cur.has(o) ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}</div>
         <div class="pg-pop-actions">
           <button class="btn btn-sm" data-act="clear" type="button">Clear</button>
@@ -33007,11 +33013,97 @@ class CustomFieldsManager {
   _attr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
 }
 
+// ===== tag-library.js =====
+/** Per-team charting vocabulary. Visibility changes controls, never stored tags. */
+class TagLibrary {
+  static VERSION = 1;
+  static DEFINITIONS = {
+    formation: ['Under Center','Pistol','Shotgun','Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Trips','Twins','Doubles','Bunch','Empty'],
+    backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Pistol','Diamond','Empty'],
+    front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
+  };
+
+  constructor({ storage, teamId } = {}) {
+    this.storage = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+    this.teamId = teamId || (() => {
+      try { return this.storage?.getItem('ffa_active_team_id') || 'default'; } catch { return 'default'; }
+    });
+  }
+  _teamId() { return typeof this.teamId === 'function' ? this.teamId() : this.teamId; }
+  key() { return `ffa_tag_libraries_${this._teamId()}`; }
+  legacyKey() { return `ffa_custom_chips_${this._teamId()}`; }
+  _blank() {
+    const groups = {};
+    for (const [key, defaults] of Object.entries(TagLibrary.DEFINITIONS)) groups[key] = { custom: [], enabled: defaults.slice() };
+    return { version: TagLibrary.VERSION, groups };
+  }
+  _read(key) { try { return JSON.parse(this.storage?.getItem(key) || 'null'); } catch { return null; } }
+  _write(state) { try { this.storage?.setItem(this.key(), JSON.stringify(state)); } catch {} return state; }
+  _remove(key) { try { this.storage?.removeItem(key); } catch {} }
+  _normalize(raw) {
+    const next = this._blank();
+    for (const [key, defaults] of Object.entries(TagLibrary.DEFINITIONS)) {
+      const source = raw?.groups?.[key] || {};
+      const custom = [...new Set((Array.isArray(source.custom) ? source.custom : []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
+      const values = [...defaults, ...custom];
+      const enabledSource = Array.isArray(source.enabled) ? source.enabled : values;
+      next.groups[key] = { custom, enabled: [...new Set(enabledSource.map(String).filter(value => values.includes(value)))] };
+    }
+    return next;
+  }
+  load() {
+    const current = this._read(this.key());
+    if (current) return this._normalize(current);
+    const legacy = this._read(this.legacyKey()) || {};
+    const migrated = this._blank();
+    for (const key of ['formation','backfield']) {
+      const defaults = TagLibrary.DEFINITIONS[key];
+      migrated.groups[key].custom = [...new Set((legacy[key] || []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
+      migrated.groups[key].enabled.push(...migrated.groups[key].custom);
+    }
+    const state = this._write(this._normalize(migrated));
+    this._remove(this.legacyKey());
+    return state;
+  }
+  group(key) { const defaults = TagLibrary.DEFINITIONS[key], state = this.load(), group = state.groups[key]; return defaults && group ? { values: [...defaults, ...group.custom], custom: group.custom.slice(), enabled: group.enabled.slice() } : { values: [], custom: [], enabled: [] }; }
+  add(key, value) {
+    const state = this.load(), group = state.groups[key], defaults = TagLibrary.DEFINITIONS[key], v = String(value || '').trim();
+    if (!group || !defaults || !v || defaults.includes(v) || group.custom.includes(v)) return false;
+    group.custom.push(v); group.enabled.push(v); this._write(state); return true;
+  }
+  remove(key, value) {
+    const state = this.load(), group = state.groups[key];
+    if (!group || !group.custom.includes(value)) return false;
+    group.custom = group.custom.filter(item => item !== value);
+    group.enabled = group.enabled.filter(item => item !== value);
+    this._write(state); return true;
+  }
+  setEnabled(key, value, enabled) {
+    const state = this.load(), group = state.groups[key];
+    if (!group || !this.group(key).values.includes(value)) return false;
+    const has = group.enabled.includes(value);
+    if (!!enabled === has) return false;
+    group.enabled = enabled ? [...group.enabled, value] : group.enabled.filter(item => item !== value);
+    this._write(state); return true;
+  }
+  replaceCustom(data = {}) {
+    const state = this.load();
+    for (const key of Object.keys(TagLibrary.DEFINITIONS)) {
+      const defaults = TagLibrary.DEFINITIONS[key], prior = state.groups[key];
+      const custom = [...new Set((data[key] || []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
+      prior.custom = custom;
+      prior.enabled = [...new Set([...prior.enabled.filter(value => defaults.includes(value)), ...custom])];
+    }
+    return this._write(state);
+  }
+  restore() { return this._write(this._blank()); }
+}
+
 // ===== custom-chips.js =====
 /**
- * CustomChips — lets a coach add their own Formation & Backfield chips.
+ * CustomChips — renders the active team's Formation, Backfield, and Front library.
  *
- * Scoped to the ACTIVE TEAM (localStorage `ffa_custom_chips_<teamId>`), the way
+ * Scoped to the ACTIVE TEAM (localStorage `ffa_tag_libraries_<teamId>`), the way
  * the roster is — a team's formation vocabulary is part of its identity, and a
  * JV vs Varsity staff keep their own. Custom chips are injected as first-class
  * `.pick` buttons and registered with the group's ChipField, so:
@@ -33028,10 +33120,12 @@ class CustomChips {
   static GROUPS = [
     { key: 'formation', groupId: 'tagFormation', field: 'formation', label: 'formation' },
     { key: 'backfield', groupId: 'tagBackfield', field: 'backfield', label: 'backfield' },
+    { key: 'front', groupId: 'tagDefFront', field: 'defFront', label: 'front' },
   ];
 
   constructor(tagger) {
     this.tagger = tagger;
+    this.library = new TagLibrary();
     this.groups = [];
     for (const g of CustomChips.GROUPS) this._initGroup({ ...g });
   }
@@ -33040,11 +33134,13 @@ class CustomChips {
   _teamId() {
     try { return localStorage.getItem('ffa_active_team_id') || 'default'; } catch (e) { return 'default'; }
   }
-  _key() { return 'ffa_custom_chips_' + this._teamId(); }
+  _key() { return this.library.key(); }
   _load() {
-    try { return JSON.parse(localStorage.getItem(this._key()) || '{}') || {}; } catch (e) { return {}; }
+    const out = {};
+    for (const g of CustomChips.GROUPS) out[g.key] = this.library.group(g.key).custom;
+    return out;
   }
-  _save(data) { try { localStorage.setItem(this._key(), JSON.stringify(data)); } catch (e) {} }
+  _save(data) { this.library.replaceCustom(data); }
 
   // ---- setup ----
   _initGroup(g) {
@@ -33064,10 +33160,11 @@ class CustomChips {
     g.customBtns = [];
     this.groups.push(g);
     this._injectSaved(g);
+    this._applyVisibility(g);
   }
 
   _injectSaved(g) {
-    for (const v of (this._load()[g.key] || [])) this._injectChip(g, v);
+    for (const v of this.library.group(g.key).custom) this._injectChip(g, v);
   }
 
   /** True if a chip with this value already exists in the group (built-in or custom). */
@@ -33105,17 +33202,14 @@ class CustomChips {
     if (!name) return;
     if (this._exists(g, name)) { this.tagger.toast && this.tagger.toast(`"${name}" already exists`); return; }
     this._injectChip(g, name);
-    const data = this._load();
-    data[g.key] = [...(data[g.key] || []), name];
-    this._save(data);
+    this.library.add(g.key, name);
+    this._applyVisibility(g);
     this._clearGridCache();
     this.tagger.toast && this.tagger.toast(`Added ${g.label}: ${name}`);
   }
 
   _remove(g, value, btn) {
-    const data = this._load();
-    data[g.key] = (data[g.key] || []).filter(x => x !== value);
-    this._save(data);
+    this.library.remove(g.key, value);
     g.fieldObj.unregisterChip(btn);
     btn.remove();
     g.customBtns = g.customBtns.filter(b => b !== btn);
@@ -33129,6 +33223,7 @@ class CustomChips {
       for (const b of g.customBtns) { g.fieldObj.unregisterChip(b); b.remove(); }
       g.customBtns = [];
       this._injectSaved(g);
+      this._applyVisibility(g);
     }
     this._clearGridCache();
   }
@@ -33136,6 +33231,18 @@ class CustomChips {
   _clearGridCache() {
     try { if (window.app && window.app.playGrid) window.app.playGrid._optionCache = {}; } catch (e) {}
   }
+  _applyVisibility(g) {
+    const enabled = new Set(this.library.group(g.key).enabled);
+    g.groupEl.querySelectorAll('.pick[data-value]').forEach(btn => btn.classList.toggle('library-hidden', !enabled.has(btn.dataset.value)));
+  }
+  setEnabled(key, value, enabled) {
+    const changed = this.library.setEnabled(key, value, enabled);
+    const group = this.groups.find(item => item.key === key);
+    if (group) this._applyVisibility(group);
+    if (changed) this._clearGridCache();
+    return changed;
+  }
+  restoreDefaults() { this.library.restore(); this.reload(); }
 }
 
 // ===== play-diagram.js =====

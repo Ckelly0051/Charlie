@@ -462,7 +462,8 @@ console.log('\n== 13. Formation→Backfield migration (Hudl model): split, idemp
 r = await page.evaluate(() => {
   const SeasonStore = window.app.storage.seasonStore.constructor;
   const mig = (formation, backfield) => {
-    const p = { tags: { formation, backfield } };
+    const p = { tags: { formation } };
+    if (backfield !== undefined) p.tags.backfield = backfield;
     SeasonStore.migratePlayFormation(p);
     return { f: p.tags.formation, b: p.tags.backfield, s: p.tags.strength };
   };
@@ -470,14 +471,16 @@ r = await page.evaluate(() => {
   const b = mig('I-Form', undefined);
   const c = mig('Shotgun + Empty', undefined);
   const d = mig('Shotgun + Trips', 'Strong');
+  const e = mig('Power-I', '');
   const a2 = { tags: { formation: a.f, backfield: a.b } };
   SeasonStore.migratePlayFormation(a2);
-  return { a, b, c, d, idempotent: a2.tags.formation === a.f && a2.tags.backfield === a.b };
+  return { a, b, c, d, e, idempotent: a2.tags.formation === a.f && a2.tags.backfield === a.b };
 });
 ok(r.a.f === 'Pistol + Trips' && r.a.b === 'Single', 'splits the backfield out of formation', JSON.stringify(r.a));
 ok(r.b.f === '' && r.b.b === 'I', 'bare backfield formation → backfield, formation empties', JSON.stringify(r.b));
 ok(r.c.f === 'Shotgun + Empty' && r.c.b === '', 'Empty stays in formation (dual citizen)', JSON.stringify(r.c));
 ok(r.d.f === 'Shotgun + Trips' && r.d.b === 'Strong', 'new-style play + deliberate backfield untouched', JSON.stringify(r.d));
+ok(r.e.f === 'Power-I' && r.e.b === '', 'modern custom Power-I formation is never rewritten', JSON.stringify(r.e));
 ok(r.idempotent, 'migration is idempotent (re-run is a no-op)', JSON.stringify(r));
 
 console.log('\n== 14. Backfield + Strength dimensions render + cut-to-film ==');
@@ -1077,7 +1080,7 @@ r = await page.evaluate(() => {
 ok(r.attempts === 3, 'pass attempts count each play once — "Incomplete + Interception" is 1 attempt, not 2', JSON.stringify(r));
 ok(r.tfl === 1, 'TFL counts only the real behind-the-line run — penalty, kneel and sack are excluded', JSON.stringify(r));
 
-console.log('\n== 35. Custom Formation/Backfield chips: per-team, first-class, grid-visible, removable ==');
+console.log('\n== 35. Custom Formation/Backfield/Front chips: per-team, first-class, grid-visible, removable ==');
 r = await page.evaluate(() => {
   const cc = window.app.customChips, t = window.app.tagger, grid = window.app.playGrid;
   try { localStorage.setItem('ffa_active_team_id', 'teamZ'); } catch (e) {}
@@ -1097,18 +1100,23 @@ r = await page.evaluate(() => {
   // grid editor reads options live from the DOM
   grid._optionCache = {};
   const gridSees = grid._options({ key: 'formation', src: 'tagFormation' }).includes('Trey');
-  const perTeamKey = cc._key() === 'ffa_custom_chips_teamZ';
+  cc.setEnabled('formation', 'Shotgun', false);
+  grid._optionCache = {};
+  const hiddenForNew = !grid._options({ key: 'formation', src: 'tagFormation' }).includes('Shotgun');
+  const historicalVisible = grid._options({ key: 'formation', src: 'tagFormation' }, ['Shotgun']).includes('Shotgun');
+  const perTeamKey = cc._key() === 'ffa_tag_libraries_teamZ';
   // remove clears DOM + storage
   cc._remove(g, 'Trey', chip);
   const removed = ![...g.groupEl.querySelectorAll('.pick[data-value]')].some(c => c.dataset.value === 'Trey')
     && !(cc._load().formation || []).includes('Trey');
-  try { localStorage.removeItem('ffa_active_team_id'); localStorage.removeItem('ffa_custom_chips_teamZ'); } catch (e) {}
-  return { boundToField, tagged, gridSees, perTeamKey, removed };
+  try { localStorage.removeItem('ffa_active_team_id'); localStorage.removeItem('ffa_custom_chips_teamZ'); localStorage.removeItem('ffa_tag_libraries_teamZ'); } catch (e) {}
+  return { boundToField, tagged, gridSees, hiddenForNew, historicalVisible, perTeamKey, removed };
 });
 ok(r.boundToField, 'a custom chip is a first-class ChipField chip (keyboard/click behave like built-ins)', JSON.stringify(r));
 ok(r.tagged === 'Trey', 'clicking a custom Formation chip tags the play with its value', JSON.stringify(r));
 ok(r.gridSees, 'the Film Room grid editor sees the custom chip (reads options live from the DOM)', JSON.stringify(r));
-ok(r.perTeamKey, 'custom chips are stored per active team (ffa_custom_chips_<teamId>)', JSON.stringify(r));
+ok(r.hiddenForNew && r.historicalVisible, 'hidden values leave future grid choices but remain editable on historical plays', JSON.stringify(r));
+ok(r.perTeamKey, 'tag libraries are stored per active team (ffa_tag_libraries_<teamId>)', JSON.stringify(r));
 ok(r.removed, 'removing a custom chip clears it from the group and storage', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
