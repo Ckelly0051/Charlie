@@ -564,9 +564,10 @@ NEXT ACTIONS
     Power-I preservation, editor focus/keyboard behavior, flag-off purity,
     perspective synchronization, complete field reachability, and mobile overflow.
   Codex next after review or explicit coach direction: continue Phase 4D only
-    within existing player/grade keys, or draft the structured penalty data
-    contract and failing-first migration tests. Do not implement richer penalty
-    controls until that backward-compatible contract is independently reviewed.
+    through the structured penalty program in GRIDIRON-IQ-PENALTY-MODEL.md.
+    Coach priority is correct future data over exact legacy semantics. Next is
+    independent contract review, then P4D-a pure normalization + failing-first
+    persistence tests. Do not begin the penalty UI before that contract gate.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

@@ -156,6 +156,18 @@ after each unit switch, turnover defaulting, ST duplication, and mobile role
 layout. Penalty redesign remains blocked on a separate backward-compatible data
 contract; do not dress the legacy `result:'Penalty'` flag up as structured data.
 
+**Penalty priority changed by coach (2026-07-13):** trustworthy future penalty
+tagging is more important than 1:1 semantic migration of the clunky legacy
+Penalty result. The researched contract and implementation gates now live in
+`GRIDIRON-IQ-PENALTY-MODEL.md`. Direction: copy QwikCut's explicit offensive/
+defensive penalty + yards separation, preserve Hudl's editable breakdown rhythm,
+and extend both with accepted/declined/offsetting, play-count status, multiple
+fouls, actual enforced yards, and an explicit resulting situation. The football
+result stays independent. Legacy penalties remain intact but are labeled
+incomplete; never infer charged team/foul/yards from old fields. **Next action:**
+independent review of the contract, then P4D-a pure normalization and failing-
+first persistence tests before any penalty UI.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.
