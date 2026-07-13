@@ -355,6 +355,13 @@ bundle + every e2e harness passed atomically. Shell remains opt-in; no release/t
 Next: Claude independently reviews `affd78f`, then Phase 3 ordering/presentation/
 export can be scoped.
 
+**Plan pre-review hardening (`bb37a1d`, Codex):** mobile visual QA was clean and
+found one destructive-action gap: deleting a plan was immediate. It now uses the
+app's in-product confirmation dialog with plan name/item count; cancel retains the
+plan and confirm deletes it. Regression raises the combined Study/Plan browser
+workflow to 33/33; the final atomic full suite is green. Claude should review
+`affd78f..bb37a1d` as one Phase 3 milestone.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
