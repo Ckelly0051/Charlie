@@ -33,7 +33,7 @@ export class StudyScreen {
       const item = this.app.analyticsRegistry.getMeasure(id);
       return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
     }).join('');
-    host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
+    host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
       <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
@@ -72,6 +72,7 @@ export class StudyScreen {
       const action = e.target.closest('[data-study-action]')?.dataset.studyAction;
       if (action === 'advanced') this.app.workspaceShell.showAdvancedReports();
       if (action === 'save') this._saveView();
+      if (action === 'save-plan') this._saveToPlan();
       if (action === 'delete-view') this._deleteView();
       if (action === 'watch-all') this._watch(this.rows.flatMap(r => r.refs), 'Study results');
       if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
@@ -389,6 +390,17 @@ export class StudyScreen {
     catch { this.app.tagger.toast?.('Could not save this Study view'); return; }
     this._loadViews(id);
     this.app.tagger.toast?.(`Saved Study view: ${name}`);
+  }
+  _saveToPlan() {
+    const refs = [...new Set(this.rows.flatMap(row => row.refs || []))];
+    if (!refs.length) { this.app.tagger.toast?.('No Study results to save'); return; }
+    const state = this._state();
+    const dimensionName = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
+    const measureName = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+    const scopeLabel = state.compare ? 'comparison' : state.scope === 'game' ? 'current game' : state.scope === 'range' ? 'date range' : 'full season';
+    const item = this.app.studyPlan.finding({ dimensionName, measureName, scopeLabel, dimension: state.dimension, measure: state.measure, scope: state.scope, refs });
+    const plan = this.app.planScreen.addFinding(item);
+    this.app.tagger.toast?.(`Saved to ${plan.name}`);
   }
   _applyView(id) {
     const view = this._views().find(item => item.id === id);

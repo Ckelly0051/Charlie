@@ -21,6 +21,8 @@ import { WorkspaceContext } from './workspace-context.js';
 import { StudyQuery } from './study-query.js';
 import { CrossGameCutup } from './cross-game-cutup.js';
 import { StudyScreen } from './study-screen.js';
+import { StudyPlan } from './study-plan.js';
+import { PlanScreen } from './plan-screen.js';
 import { WorkspaceShell } from './workspace-shell.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
@@ -84,6 +86,8 @@ class App {
     this.study = new StudyQuery(this.analyticsRegistry);
     this.crossGameCutup = new CrossGameCutup();
     this.studyScreen = new StudyScreen(this);
+    this.studyPlan = StudyPlan;
+    this.planScreen = new PlanScreen(this);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);

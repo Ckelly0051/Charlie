@@ -8697,6 +8697,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 @media(max-width:600px){.ws-study-kpis{grid-template-columns:1fr}.ws-study-kpis>div{border-left:0;border-top:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-top:0}.ws-study-chart{padding:12px}.ws-study-chart header{display:block}.ws-study-chart header span{display:block;margin-top:3px}.ws-study-bar-row,.ws-study-delta-row{grid-template-columns:minmax(90px,130px) 1fr 56px;gap:8px;font-size:12px}}
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
 .ws-study-kpis span,.ws-study-kpis small{font-size:11px}.ws-study-delta-row.is-favorable>i b{background:var(--ws-green)}.ws-study-delta-row.is-unfavorable>i b{background:var(--ws-red)}
+.ws-plan-state{overflow:auto;padding:26px 30px 40px}.ws-plan-state>*{max-width:1280px;margin-left:auto;margin-right:auto}.ws-plan-head{display:flex;align-items:end;gap:20px}.ws-plan-head h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:34px;margin:6px 0}.ws-plan-head p{margin:0;color:var(--ws-muted)}.ws-plan-head>.ws-btn{margin-left:auto}.ws-plan-toolbar{display:flex;gap:10px;align-items:end;padding:20px 0 14px;border-bottom:1px solid var(--ws-line)}.ws-plan-toolbar label{display:grid;gap:5px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}.ws-plan-toolbar .grow{flex:1}.ws-plan-toolbar input,.ws-plan-toolbar select,.ws-plan-state textarea{border:1px solid var(--ws-line);border-radius:5px;background:#111923;color:var(--ws-text)}.ws-plan-toolbar input,.ws-plan-toolbar select{height:36px;padding:0 9px}.ws-plan-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.7fr);gap:24px;padding-top:18px}.ws-plan-grid h2{font-size:12px;margin:0 0 10px}.ws-plan-grid h2 span{color:var(--ws-muted)}.ws-plan-items article{display:grid;grid-template-columns:1fr auto 34px;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--ws-line)}.ws-plan-items article div{display:grid;gap:3px}.ws-plan-items article span,.ws-plan-items article small{color:var(--ws-muted);font-size:10px;text-transform:uppercase}.ws-plan-state textarea{width:100%;min-height:180px;padding:12px;resize:vertical}.ws-plan-empty{display:grid;gap:8px;padding:28px 4px;color:var(--ws-muted)}.ws-plan-empty.large{place-items:center;min-height:300px;text-align:center}.ws-plan-empty strong{color:var(--ws-text);font-size:18px}.ws-plan-empty .ws-btn{margin-top:8px}@media(max-width:800px){.ws-plan-state{padding:20px 15px 80px}.ws-plan-head{display:block}.ws-plan-head>.ws-btn{margin-top:14px}.ws-plan-toolbar{display:grid;grid-template-columns:1fr 1fr}.ws-plan-toolbar .grow{grid-column:1/-1}.ws-plan-grid{grid-template-columns:1fr}.ws-plan-items article{grid-template-columns:1fr auto 34px}}
   </style>
 </head>
 <body>
@@ -26681,6 +26682,86 @@ class CrossGameCutup {
   }
 }
 
+// ===== study-plan.js =====
+/**
+ * StudyPlan — the DATA half of Phase 3 step 2: save a Study finding into a
+ * game-plan workspace, and resolve a plan back into a watchable cross-game reel.
+ *
+ * PURE + UNWIRED (like clip-identity.js): no DOM, no store, no film. Persistence is
+ * SeasonStore's (`createPlan` / `addPlanItem` — the plans:[] contract, `64c284f`);
+ * ordering + film is CrossGameCutup's; the Plan UI is Codex's. This module gives
+ * all three ONE canonical label + payload shape so a saved finding is consistent
+ * and re-watchable, and a plan flattens to the exact composite `gameId::playId`
+ * refs the cross-game player already consumes. Node-tested; the Study/Plan screens
+ * wire it up (e.g. `app.studyPlan`) when the UI lands.
+ *
+ *   const item = StudyPlan.finding({ dimensionName:'Formation', measureName:'Success Rate',
+ *       scopeLabel:'full season', groupValue:'Wing-T', sampleSize:18,
+ *       dimension:'formation', measure:'successRate', scope:'season', refs:['g1::3','g2::9'] });
+ *   seasonStore.addPlanItem(planId, item);              // normalized + persisted
+ *   const refs = StudyPlan.planRefs(plan);              // -> CrossGameCutup.plan(refs, games)
+ */
+class StudyPlan {
+  /**
+   * A stable, human label for a saved finding. A group-scoped finding reads
+   * "Wing-T — Success Rate (n=18)"; a whole-query finding reads
+   * "Formation — Success Rate · full season". Value formatting stays in the UI
+   * (units live in the Study screen's _measure), so the label is names + sample.
+   */
+  static label({ dimensionName, measureName, scopeLabel, groupValue, sampleSize } = {}) {
+    const measure = String(measureName || 'metric');
+    const n = (sampleSize != null && Number.isFinite(Number(sampleSize))) ? ` (n=${Number(sampleSize)})` : '';
+    if (groupValue != null && String(groupValue) !== '') return `${String(groupValue)} — ${measure}${n}`;
+    const dim = String(dimensionName || 'Study');
+    const scope = scopeLabel ? ` · ${String(scopeLabel)}` : '';
+    return `${dim} — ${measure}${scope}`;
+  }
+
+  /**
+   * Build the planItem payload for SeasonStore.addPlanItem from a Study finding.
+   * The store's _normalizePlanItem fills id/createdAt and re-coerces refs, so this
+   * only shapes the meaningful fields (and preserves the query context so the Plan
+   * screen can show / re-run what produced the finding).
+   */
+  static finding(opts = {}) {
+    return {
+      kind: 'finding',
+      label: opts.label || StudyPlan.label(opts),
+      refs: Array.isArray(opts.refs) ? opts.refs.map(String) : [],
+      query: {
+        dimension: opts.dimension != null ? opts.dimension : null,
+        measure: opts.measure != null ? opts.measure : null,
+        scope: opts.scope != null ? opts.scope : null,
+        group: opts.groupValue != null ? String(opts.groupValue) : null,
+      },
+      note: typeof opts.note === 'string' ? opts.note : '',
+    };
+  }
+
+  /** A bare film-reference item (a coach saving specific clips, no query context). */
+  static film(refs, label = '', note = '') {
+    return { kind: 'film', label: String(label || ''), refs: Array.isArray(refs) ? refs.map(String) : [], query: null, note: typeof note === 'string' ? note : '' };
+  }
+
+  /**
+   * Flatten a plan's items into a de-duped, order-preserving composite-ref list —
+   * exactly what CrossGameCutup.plan(refs, games) consumes to build the ordered
+   * reel. First occurrence wins; only 'finding'/'film' items contribute refs.
+   */
+  static planRefs(plan) {
+    if (!plan || !Array.isArray(plan.items)) return [];
+    const out = [], seen = new Set();
+    for (const it of plan.items) {
+      if (!it || !Array.isArray(it.refs)) continue;
+      for (const r of it.refs) {
+        const s = String(r);
+        if (s && !seen.has(s)) { seen.add(s); out.push(s); }
+      }
+    }
+    return out;
+  }
+}
+
 // ===== study-screen.js =====
 /** Interactive Study workspace over the parity-locked StudyQuery engine. */
 class StudyScreen {
@@ -26717,7 +26798,7 @@ class StudyScreen {
       const item = this.app.analyticsRegistry.getMeasure(id);
       return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
     }).join('');
-    host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
+    host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
       <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
@@ -26756,6 +26837,7 @@ class StudyScreen {
       const action = e.target.closest('[data-study-action]')?.dataset.studyAction;
       if (action === 'advanced') this.app.workspaceShell.showAdvancedReports();
       if (action === 'save') this._saveView();
+      if (action === 'save-plan') this._saveToPlan();
       if (action === 'delete-view') this._deleteView();
       if (action === 'watch-all') this._watch(this.rows.flatMap(r => r.refs), 'Study results');
       if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
@@ -27074,6 +27156,17 @@ class StudyScreen {
     this._loadViews(id);
     this.app.tagger.toast?.(`Saved Study view: ${name}`);
   }
+  _saveToPlan() {
+    const refs = [...new Set(this.rows.flatMap(row => row.refs || []))];
+    if (!refs.length) { this.app.tagger.toast?.('No Study results to save'); return; }
+    const state = this._state();
+    const dimensionName = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
+    const measureName = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+    const scopeLabel = state.compare ? 'comparison' : state.scope === 'game' ? 'current game' : state.scope === 'range' ? 'date range' : 'full season';
+    const item = this.app.studyPlan.finding({ dimensionName, measureName, scopeLabel, dimension: state.dimension, measure: state.measure, scope: state.scope, refs });
+    const plan = this.app.planScreen.addFinding(item);
+    this.app.tagger.toast?.(`Saved to ${plan.name}`);
+  }
   _applyView(id) {
     const view = this._views().find(item => item.id === id);
     if (!view) return;
@@ -27117,6 +27210,25 @@ class StudyScreen {
   _esc(value) { return String(value ?? '').replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char])); }
 }
 
+// ===== plan-screen.js =====
+class PlanScreen {
+  constructor(app) { this.app = app; this.host = null; this.activeId = ''; this._bound = false; }
+  mount(host) { if (!host || this.host === host) return; this.host = host; this._bind(); this.render(); }
+  show() { this.render(); }
+  _store() { return this.app.storage.seasonStore; }
+  _persist() { this._store().persist(); this.render(); }
+  _active() { const plans = this._store().plans(); return this._store().getPlan(this.activeId) || plans[0] || null; }
+  ensurePlan() { let plan = this._active(); if (!plan) { plan = this._store().createPlan('Game Plan'); this.activeId = plan.id; this._store().persist(); } return plan; }
+  addFinding(item) { const plan = this.ensurePlan(); this._store().addPlanItem(plan.id, item); this._store().persist(); this.render(); return plan; }
+  render() {
+    if (!this.host) return; const plans = this._store().plans(); const plan = this._active(); if (plan) this.activeId = plan.id;
+    this.host.innerHTML = `<div class="ws-plan-head"><div><div class="ws-eyebrow">Turn findings into action</div><h1>GAME PLAN</h1><p>Build a staff-ready plan from Study results and linked film.</p></div><button class="ws-btn ws-primary" data-plan-action="create">New plan</button></div>
+      ${plan ? `<div class="ws-plan-toolbar"><label>Plan<select id="wsPlanSelect">${plans.map(p=>`<option value="${this._esc(p.id)}"${p.id===plan.id?' selected':''}>${this._esc(p.name)}</option>`).join('')}</select></label><label class="grow">Name<input id="wsPlanName" value="${this._esc(plan.name)}"></label><button class="ws-btn" data-plan-action="watch" ${this.app.studyPlan.planRefs(plan).length?'':'disabled'}>Watch plan · ${this.app.studyPlan.planRefs(plan).length}</button><button class="ws-btn danger" data-plan-action="delete">Delete</button></div><div class="ws-plan-grid"><section><h2>PLAN ITEMS <span>${plan.items.length}</span></h2><div class="ws-plan-items">${plan.items.length?plan.items.map(item=>`<article><div><span>${this._esc(item.kind)}</span><strong>${this._esc(item.label||'Untitled item')}</strong><small>${item.refs.length} linked play${item.refs.length===1?'':'s'}</small></div><button class="ws-btn ws-small" data-plan-watch="${this._esc(item.id)}" ${item.refs.length?'':'disabled'}>Watch</button><button class="ws-icon-btn" data-plan-remove="${this._esc(item.id)}" aria-label="Remove ${this._esc(item.label||'item')}">×</button></article>`).join(''):'<div class="ws-plan-empty">Save a finding from Study to begin this plan.</div>'}</div></section><section><h2>STAFF NOTES</h2><textarea id="wsPlanNotes" placeholder="Install notes, assignments, and meeting emphasis">${this._esc(plan.notes)}</textarea></section></div>`:'<div class="ws-plan-empty large"><strong>No game plan yet</strong><span>Create a plan, then save findings from Study.</span><button class="ws-btn ws-primary" data-plan-action="create">Create game plan</button></div>'}`;
+  }
+  _bind() { if (this._bound) return; this._bound=true; this.host.addEventListener('change',e=>{if(e.target.id==='wsPlanSelect'){this.activeId=e.target.value;this.render();}if(e.target.id==='wsPlanName'){this._store().renamePlan(this.activeId,e.target.value);this._persist();}if(e.target.id==='wsPlanNotes'){this._store().setPlanNotes(this.activeId,e.target.value);this._persist();}}); this.host.addEventListener('click',e=>{const action=e.target.closest('[data-plan-action]')?.dataset.planAction;if(action==='create'){const p=this._store().createPlan(`Game Plan ${this._store().plans().length+1}`);this.activeId=p.id;this._persist();}if(action==='delete'&&this._active()){this._store().deletePlan(this.activeId);this.activeId='';this._persist();}if(action==='watch'&&this._active())this.app.studyScreen._watch(this.app.studyPlan.planRefs(this._active()),this._active().name);const remove=e.target.closest('[data-plan-remove]')?.dataset.planRemove;if(remove){this._store().removePlanItem(this.activeId,remove);this._persist();}const watch=e.target.closest('[data-plan-watch]')?.dataset.planWatch;if(watch){const item=this._active()?.items.find(i=>i.id===watch);if(item)this.app.studyScreen._watch(item.refs,item.label);}}); }
+  _esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+}
+
 // ===== workspace-shell.js =====
 /** Feature-flagged Phase 1 shell. Hosts the existing #app intact. */
 class WorkspaceShell {
@@ -27151,8 +27263,8 @@ class WorkspaceShell {
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div><div class="ws-eyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden><div><span>PLAN</span><h1>No game plan yet</h1><button class="ws-btn" data-ws-route="study">Open Study</button></div></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this._bind();
+      <section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main>`;
+    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id]}</span>${r.name}</button>`).join(''); }
   _bind() {
@@ -27183,6 +27295,7 @@ class WorkspaceShell {
     if (routeId==='home') await this.refreshHome();
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
     if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
+    if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
     return result;
   }
   _syncChrome() {
@@ -32902,6 +33015,8 @@ class App {
     this.study = new StudyQuery(this.analyticsRegistry);
     this.crossGameCutup = new CrossGameCutup();
     this.studyScreen = new StudyScreen(this);
+    this.studyPlan = StudyPlan;
+    this.planScreen = new PlanScreen(this);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
