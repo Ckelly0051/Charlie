@@ -486,7 +486,30 @@ localStorage lands later with the coach. Flag-OFF + browser bundle unaffected
 still green. NEXT in this lane (needs coach, real code change): rewire
 `VersionManager` to read/write through this ring when `ffa_sql_catalog` is ON.
 
-**Ghost-plays fallback fix (current working milestone — pending independent review).** The coach's
+**Independent review of `713324e` + `e08ea6a` — ACCEPTED, no findings (Claude).**
+Reviewed against source: matching correctness, cancellation safety, and accidental
+play creation, as requested. Both `addFiles`/`_relinkSavedPlays` and
+`rehydrateFromDisk` now share ONE tested `planClipMatch` policy (path → basename →
+Windows `(n)` → order) instead of two divergent hand-rolled matchers — closes the
+exact gap flagged in [[windows-dup-rename-ghost-plays]]. Traced that re-running the
+matcher on a coach-narrowed subset (the "matched only" choice) can never swap a
+play's clip assignment: order-tier only fires on strict full-set equality, so a
+subset recompute can't hit a different tier for an already-matched candidate.
+CANCELLATION: both dialogs (live-dup relink + the new ghost-prevention prompt)
+resolve BEFORE any mutation — file relink, clip creation, and `_autoCreatePlays`
+all happen strictly after; Cancel is a verified true no-op (pinned test). ACCIDENTAL
+CREATION: `_autoCreatePlays` only ever sees the coach-accepted subset now — no
+silent ghost path remains. BONUS: confirmed `e08ea6a`'s `rehydrateFromDisk` calling
+`reset()` first fixes a SEPARATE real bug — it's called on every linked-game
+auto-load (3 call sites), and previously never cleared `this.clips`, so reopening/
+reloading the same linked game within a session would accumulate duplicate clip
+objects (a second mechanism behind the coach's duplicate-film report, distinct from
+the ghost-play path); scenario 5 in `e2e-relink-linked` pins the fix directly.
+Committed bundle re-verified BYTE-IDENTICAL to a fresh `build.sh` rebuild. Full
+relevant gate green: clip-match 14/14, relink-legacy 7/7, relink-linked 8/8,
+integrity fuzzer 0 violations, onboarding 46/46, film-room 60/60, zero errors.
+
+**Ghost-plays fallback fix (`713324e`) — ACCEPTED, see review above.** The coach's
 "repair film adds duplicate/ghost plays" report was diagnosed: **Repair Film** is
 safe (3-tier match path→name→order, bails on any unmatched play), but **Add Clips /
 re-add a folder** (`playlist-manager.js` `addFiles`→`_relinkSavedPlays`→
@@ -499,11 +522,11 @@ unmatched, the coach must choose matched-only, explicitly add as new plays, or
 cancel. Partial exact matches never order-pair unrelated leftovers. Multiple
 marked plays sharing a stale clip id follow their primary clip. Failing-first
 `e2e-relink-legacy` 7/7; clip matcher 14/14; managed, linked, reopen, race, and
-real six-game + synthetic integrity gates green. Still pending: independent review and the R5
+real six-game + synthetic integrity gates green. Still pending: the R5
 real-desktop single-file/folder smoke. Durable catalog `clip_id` authority (R1/R2)
 remains future work; this is the safe legacy fallback, not that cutover.
 
-**Linked rehydrate follow-up (current working milestone — pending review).** An
+**Linked rehydrate follow-up (`e08ea6a`) — ACCEPTED, see review above.** An
 adversarial R5 pass found `rehydrateFromDisk` still had its own exact/base matcher:
 linked Windows `(1)` copies stayed unassigned, and secondary marked regions sharing
 the primary's stale clip id could not play. It now uses `planClipMatch`, collapses
