@@ -15698,6 +15698,38 @@ class SeasonStore {
     if (p.items.length < before) { p.updatedAt = new Date().toISOString(); return true; }
     return false;
   }
+  /**
+   * Reorder a plan's items to match `orderedIds` (the drag-reorder seam).
+   * Defensive: unknown ids are ignored, and any current item NOT named in
+   * `orderedIds` keeps its relative order and is appended — so a partial/stale id
+   * list can never drop an item. Returns true if the order actually changed.
+   */
+  reorderPlanItems(planId, orderedIds) {
+    const p = this.getPlan(planId); if (!p || !Array.isArray(orderedIds)) return false;
+    const byId = new Map(p.items.map(it => [it.id, it]));
+    const seen = new Set();
+    const next = [];
+    for (const id of orderedIds) { const it = byId.get(id); if (it && !seen.has(id)) { seen.add(id); next.push(it); } }
+    for (const it of p.items) { if (!seen.has(it.id)) next.push(it); }   // never drop unnamed items
+    if (next.length !== p.items.length) return false;                   // safety: no add/drop
+    const changed = next.some((it, i) => it !== p.items[i]);
+    if (!changed) return false;
+    p.items = next;
+    p.updatedAt = new Date().toISOString();
+    return true;
+  }
+  /** Accessible move: shift one item by `delta` (±1) within its plan. */
+  movePlanItem(planId, itemId, delta) {
+    const p = this.getPlan(planId); if (!p) return false;
+    const from = p.items.findIndex(it => it.id === itemId);
+    if (from < 0) return false;
+    const to = from + (delta < 0 ? -1 : 1);
+    if (to < 0 || to >= p.items.length) return false;
+    const [it] = p.items.splice(from, 1);
+    p.items.splice(to, 0, it);
+    p.updatedAt = new Date().toISOString();
+    return true;
+  }
 
   blankGame() {
     return {

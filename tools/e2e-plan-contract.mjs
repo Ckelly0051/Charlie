@@ -82,6 +82,28 @@ const legacy = () => ({ version: 5, type: 'season', seasonName: 'Old', games: [{
   ok(s.deletePlan('nope') === false, 'deletePlan on a missing id is a no-op false');
 }
 
+// ---- 5b. item reordering seam (drag + accessible up/down) ------------------
+{
+  const s = store();
+  s.data = s._normalize(legacy());
+  const p = s.createPlan('Order');
+  const a = s.addPlanItem(p.id, { kind: 'film', label: 'A', refs: ['g1::1'] });
+  const b = s.addPlanItem(p.id, { kind: 'film', label: 'B', refs: ['g1::2'] });
+  const c = s.addPlanItem(p.id, { kind: 'film', label: 'C', refs: ['g1::3'] });
+  const ids = () => s.getPlan(p.id).items.map(it => it.label).join('');
+  ok(ids() === 'ABC', 'items start in insertion order');
+  ok(s.reorderPlanItems(p.id, [c.id, a.id, b.id]) === true && ids() === 'CAB', 'reorderPlanItems applies an explicit order');
+  // partial/stale id list never drops an unnamed item — it stays, appended in order.
+  ok(s.reorderPlanItems(p.id, [b.id]) === true && ids() === 'BCA', 'a partial order keeps unnamed items (no drop), named-first');
+  ok(s.reorderPlanItems(p.id, [b.id]) === false, 'a no-op reorder returns false');
+  ok(s.reorderPlanItems(p.id, [b.id, 'ghost', b.id]) === false, 'unknown/duplicate ids are ignored (no add, no drop)');
+  ok(s.getPlan(p.id).items.length === 3, 'reorder never changes the item count');
+  // accessible move by ±1
+  ok(s.movePlanItem(p.id, s.getPlan(p.id).items[0].id, +1) === true && ids() === 'CBA', 'movePlanItem shifts an item down one');
+  ok(s.movePlanItem(p.id, s.getPlan(p.id).items[0].id, -1) === false, 'movePlanItem at the top edge (up) is a no-op false');
+  ok(s.movePlanItem(p.id, 'ghost', 1) === false, 'movePlanItem on a missing item is a no-op false');
+}
+
 // ---- 6. mutations on the wrong id never throw / never corrupt ---------------
 {
   const s = store();
