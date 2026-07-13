@@ -282,6 +282,15 @@ failures. The same commit changes the approved prototype play-strip copy from
 `Result · Yardage` to `Result: Yardage` so the separator cannot resemble a minus.
 No release/tag; shell remains opt-in.
 
+**Phase 2 Study visual analysis increment is complete (`a115d73`, Codex).**
+Canonical Study query results now render three compact KPIs, ranked primary-metric
+bars, weighted run/pass composition, and centered positive/negative comparison
+deltas above the unchanged exact-play table. Every visual row uses the same row
+index and `matchingPlayIds` as the table, so selecting a bar launches the same
+film; no analytics formulas were reimplemented. Advanced Reports remains one
+click away. Study 26/26, mobile overflow clean, and the fresh atomic full suite
+passes with zero failures. Shell remains opt-in; no release/tag.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
