@@ -458,13 +458,17 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: bb37a1d  Plan deletion confirmation hardening (Codex)
+Latest implementation: 905231e  Plan ordering, audience, presentation, export (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  905231e  Phase 3 ordering UI + audience + teaching mode + HTML export
+  2ec15fa  Pure ordered PlanExport serializer (Claude)
+  70ad55c  Defensive plan-item reorder seam (Claude)
+  337984d  Independent review — Phase 3 Plan foundation ACCEPTED
   bb37a1d  Plan destructive-delete confirmation + regression
   affd78f  Phase 3 Plan workspace, Study save, and cross-game Watch
   0064c1a  Resolve visual Study metric, polarity, and accessibility review
@@ -513,12 +517,17 @@ Lane status:
   Codex (visual shell / workspace UX): Phase 1 ACCEPTED; Phase 2 Study UI
     increments 1+2+3 DONE at 7f755c6 + d76e699 + f7cc373; true cross-game
     Study playback DONE at 1fce6b3, independently accepted at 84608a9, and all
-    six review follow-ups resolved at 47cecc0.
+    six review follow-ups resolved at 47cecc0. Phase 3 Plan foundation accepted;
+    ordering, audience, presentation, and export implemented at 905231e and ready
+    for independent review.
 
 NEXT ACTIONS
-  Claude: independently review affd78f for persistence correctness, XSS/accessibility,
-    exact Study-ref parity, Plan item/whole-plan Watch, and responsive behavior.
-  Codex: hold Phase 3 ordering/presentation/export until that review returns.
+  Claude: independently review 905231e for reorder persistence/no-loss, exact
+    presentation-to-film refs, export accounting/XSS, audience compatibility,
+    keyboard/mobile accessibility, and classic-default isolation.
+  Codex: hold the next shared Plan surface until that review returns. After
+    acceptance, decide the two low UX follow-ups: Save-to-Plan picker and explicit
+    comparison-cohort selection.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

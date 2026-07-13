@@ -410,6 +410,29 @@ one build.sh line + wires the Export/Print button + presentation view. Tests:
 are done and dormant; Codex's UI (drag handles, presentation full-screen, export
 button) is the remaining Phase 3 work.
 
+**Phase 3 ordering + presentation + export is implementation-complete
+(`905231e`, Codex; independent review pending).** The dormant seams from
+`70ad55c` and `2ec15fa` are now wired into the opt-in Plan workspace: desktop
+drag reorder plus explicit keyboard/touch Move up/down controls, plan-level
+audience (`staff` / `players` / `all`), full-screen teaching mode, exact-ref
+Watch from presented rows/items, and a standalone printable HTML download. The
+screen and export both consume `PlanExport.build()`, so item/ref order and missing
+film cannot drift. Codex's adversarial serializer review fixed one accounting gap
+before wiring: malformed legacy refs are now visibly missing instead of counting
+in `refCount` and silently disappearing. Also fixed the accepted low no-season
+follow-up (`ensurePlan`/`addFinding` fail closed), replaced the stale
+`coming-soon` workspace target with `plan-workspace`, and pinned the live route.
+Visual QA is clean at 1280x800 and 390x844; mobile presentation has no horizontal
+overflow and 44px navigation targets. Focused gates: plan contract 32/32,
+serializer 15/15, StudyPlan 13/13, combined Study/Plan 42/42. Final atomic fresh
+build + every `tools/e2e-*.mjs` harness passed twice, including synthetic + real
+six-game parity/integrity and zero page errors. Classic remains default; no
+release/tag. **Next:** Claude independently reviews `905231e` for ordering
+persistence, presentation/ref parity, export/XSS/accounting, mobile/a11y, and
+backward compatibility. Known low UX follow-ups remain: Study saves to the
+active/first plan without a picker, and comparison findings still save one
+cohort's refs.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
