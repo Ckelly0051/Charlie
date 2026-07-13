@@ -50,7 +50,112 @@ export class SeasonStore {
       id: '', seasonName: '', team: '', year: '', level: '',
       teamProfile: {}, roster: [],
       games: [g], activeGameId: g.id,
+      plans: [],
     };
+  }
+
+  /**
+   * Phase 3 Plan foundation — a season-level game-plan workspace.
+   *
+   * `data.plans` is a season-scoped array (NOT per-game): a plan collects Study
+   * findings + composite `gameId::playId` film references that legitimately span
+   * games, so it belongs above the game node. Additive + backward-compatible: a
+   * season saved before this contract simply has no `plans` key; `_normalize`
+   * defaults it to `[]` and never touches existing data. Persistence needs no
+   * change — `plans` rides in the season object through saveSeason / the SqlCatalog
+   * body_json / the JSON mirror like any other top-level key.
+   *
+   * Shape (documented here so the Plan UI builds against a stable contract; the
+   * normalizer PRESERVES unknown keys so the shape can grow without a migration):
+   *   plan = { id, name, createdAt, updatedAt, notes, items: [planItem] }
+   *   planItem = { id, kind, label, refs: ['gameId::playId'], query, note, createdAt }
+   *     kind: 'finding' (a saved Study result) | 'film' (bare film refs) | 'note'
+   *     refs: composite film references — the SAME `gameId::playId` identity Study
+   *           + CrossGameCutup already use, so a plan item plays through the proven
+   *           cross-game path with no new resolver.
+   */
+  blankPlan(name) {
+    const now = new Date().toISOString();
+    return { id: this._planId(), name: (name || 'Game Plan'), createdAt: now, updatedAt: now, notes: '', items: [] };
+  }
+  _planId() { return 'plan' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  _normalizePlans(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(p => this._normalizePlan(p)).filter(Boolean);
+  }
+  _normalizePlan(p) {
+    if (!p || typeof p !== 'object') return null;
+    const now = new Date().toISOString();
+    return {
+      ...p,                                              // preserve unknown/future keys
+      id: p.id || this._planId(),
+      name: typeof p.name === 'string' ? p.name : 'Game Plan',
+      createdAt: p.createdAt || now,
+      updatedAt: p.updatedAt || p.createdAt || now,
+      notes: typeof p.notes === 'string' ? p.notes : '',
+      items: Array.isArray(p.items) ? p.items.map(it => this._normalizePlanItem(it)).filter(Boolean) : [],
+    };
+  }
+  _normalizePlanItem(it) {
+    if (!it || typeof it !== 'object') return null;
+    return {
+      ...it,                                             // preserve unknown/future keys
+      id: it.id || ('pi' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
+      kind: typeof it.kind === 'string' ? it.kind : 'note',
+      label: typeof it.label === 'string' ? it.label : '',
+      refs: Array.isArray(it.refs) ? it.refs.map(String) : [],
+      note: typeof it.note === 'string' ? it.note : '',
+      createdAt: it.createdAt || new Date().toISOString(),
+    };
+  }
+
+  // ---- plan workspace API (mutations only; caller persists, like setActive) ---
+  // A single normalized seam so the Plan UI never hand-rolls plan shape / drifts
+  // updatedAt. These mutate `this.data.plans` and return the affected object; the
+  // caller decides when to persist() (matching the store's other mutators).
+  plans() { return (this.data && Array.isArray(this.data.plans)) ? this.data.plans : []; }
+  getPlan(id) { return this.plans().find(p => p.id === id) || null; }
+  createPlan(name) {
+    if (!this.data) return null;
+    if (!Array.isArray(this.data.plans)) this.data.plans = [];
+    const plan = this.blankPlan(name);
+    this.data.plans.push(plan);
+    return plan;
+  }
+  renamePlan(id, name) {
+    const p = this.getPlan(id); if (!p) return null;
+    p.name = (typeof name === 'string' && name.trim()) ? name.trim() : p.name;
+    p.updatedAt = new Date().toISOString();
+    return p;
+  }
+  setPlanNotes(id, notes) {
+    const p = this.getPlan(id); if (!p) return null;
+    p.notes = typeof notes === 'string' ? notes : '';
+    p.updatedAt = new Date().toISOString();
+    return p;
+  }
+  deletePlan(id) {
+    if (!this.data || !Array.isArray(this.data.plans)) return false;
+    const before = this.data.plans.length;
+    this.data.plans = this.data.plans.filter(p => p.id !== id);
+    return this.data.plans.length < before;
+  }
+  /** Append a Study finding / film reference to a plan. `item` follows planItem. */
+  addPlanItem(planId, item) {
+    const p = this.getPlan(planId); if (!p) return null;
+    const it = this._normalizePlanItem(item || {});
+    if (!it) return null;
+    p.items.push(it);
+    p.updatedAt = new Date().toISOString();
+    return it;
+  }
+  removePlanItem(planId, itemId) {
+    const p = this.getPlan(planId); if (!p) return false;
+    const before = p.items.length;
+    p.items = p.items.filter(it => it.id !== itemId);
+    if (p.items.length < before) { p.updatedAt = new Date().toISOString(); return true; }
+    return false;
   }
 
   blankGame() {
@@ -135,6 +240,7 @@ export class SeasonStore {
     d.team = d.team || (d.teamProfile && d.teamProfile.teamName) || '';
     d.year = d.year || '';
     d.level = d.level || '';
+    d.plans = this._normalizePlans(d.plans);   // Phase 3: season-level game-plan workspace (backward-compat default [])
     return d;
   }
 
