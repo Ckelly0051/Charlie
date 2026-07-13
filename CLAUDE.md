@@ -168,6 +168,19 @@ incomplete; never infer charged team/foul/yards from old fields. **Next action:*
 independent review of the contract, then P4D-a pure normalization and failing-
 first persistence tests before any penalty UI.
 
+**Special Teams redesign direction (2026-07-13):** the coach rejected the
+legacy `Scored by Us/Them` workflow as confusing and asked for a comparable-app
+review plus a rebuild if warranted. The rebuild is warranted. The researched
+contract lives in `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`: chart one of six
+coach-facing units, store the subject role explicitly, capture event-specific
+kick/return/attempt outcomes, and derive scoring rather than asking the coach to
+translate it into Us/Them. Onside and fake are modifiers. The current overloaded
+`kickOutcome` and duplicated Result semantics are compatibility-only, and the
+hard-coded 20-yard punt-touchback net adjustment must not survive into the new
+analytics. Old fields round-trip intact but remain labeled incomplete. **Next
+action:** independent contract review, then P4E-a pure normalization, ruleset
+seam, and failing-first persistence/scoring tests before any Special Teams UI.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.

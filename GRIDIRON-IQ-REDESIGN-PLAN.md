@@ -568,6 +568,11 @@ NEXT ACTIONS
     Coach priority is correct future data over exact legacy semantics. Next is
     independent contract review, then P4D-a pure normalization + failing-first
     persistence tests. Do not begin the penalty UI before that contract gate.
+  Special Teams redesign is now specified in GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md
+    as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
+    charting. Use a phase-first, subject-role contract, derive scoring from the
+    event, and make ruleset-sensitive calculations fail honestly. Next is an
+    independent contract review before P4E-a; do not begin the UI first.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
