@@ -803,13 +803,21 @@ export class StorageManager {
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }
 
-  /** Switch which game is active, persisting the one we're leaving. */
-  switchToGame(id) {
+  /** Switch which game is active. Reel playback may opt out of intermediate
+   * commits/persists after saving its launch game once. */
+  switchToGame(id, options = {}) {
+    const { commit = true, persist = true, reloadActiveFilm = false } = options;
     if (!this.seasonStore.data) return Promise.resolve(false);
-    if (id === this.seasonStore.data.activeGameId) return Promise.resolve(true);
-    this.commitActive();
+    if (id === this.seasonStore.data.activeGameId) {
+      if (!reloadActiveFilm) return Promise.resolve(true);
+      const active = this.seasonStore.activeGame();
+      return active
+        ? this._autoLoadFilm(active).then(() => true).catch(() => false)
+        : Promise.resolve(false);
+    }
+    if (commit) this.commitActive();
     if (!this.seasonStore.setActive(id)) return Promise.resolve(false);
-    this.seasonStore.persist();
+    if (persist) this.seasonStore.persist();
     this._clearForNewGame();
     return this._loadActiveGame();
   }

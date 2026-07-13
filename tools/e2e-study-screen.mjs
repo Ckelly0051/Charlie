@@ -127,18 +127,42 @@ const cutupContract = await page.evaluate(async () => {
   const pending = app.cutupPlayer.start([1], 'Stopped');
   app.cutupPlayer.stop();
   const stopped = await pending;
-  return { empty, stopped };
+  const endedPending = app.cutupPlayer.start([1], 'Ended');
+  app.vc.video.dispatchEvent(new Event('ended'));
+  const ended = await endedPending;
+  const prevPending = app.cutupPlayer.start([1, 2], 'Previous');
+  app.cutupPlayer.prev();
+  const prevIndex = app.cutupPlayer.index;
+  app.cutupPlayer.stop();
+  await prevPending;
+  return { empty, stopped, ended, prevIndex };
 });
-ok(cutupContract.empty.reason === 'empty' && !cutupContract.empty.completed && cutupContract.stopped.reason === 'stopped' && !cutupContract.stopped.completed,
-  'CutupPlayer exposes deterministic empty and stopped completion results', JSON.stringify(cutupContract));
+ok(cutupContract.empty.reason === 'empty' && !cutupContract.empty.completed
+  && cutupContract.stopped.reason === 'stopped' && !cutupContract.stopped.completed
+  && cutupContract.ended.reason === 'complete' && cutupContract.ended.completed
+  && cutupContract.prevIndex === 0,
+  'CutupPlayer settles empty/stopped/ended and clamps Previous at the first play', JSON.stringify(cutupContract));
 
 await page.evaluate(() => {
   const app = window.app;
   window.__studyCutupCalls = [];
+  window.__studySwitchCalls = [];
+  window.__studyPersistCount = 0;
+  const originalSwitch = app.storage.switchToGame.bind(app.storage);
+  const originalPersist = app.storage.seasonStore.persist.bind(app.storage.seasonStore);
+  app.storage.switchToGame = async (id, options) => {
+    window.__studySwitchCalls.push({ id, options: { ...(options || {}) } });
+    return originalSwitch(id, options);
+  };
+  app.storage.seasonStore.persist = (...args) => {
+    window.__studyPersistCount++;
+    return originalPersist(...args);
+  };
   app.workspace.filmHealth = async game => ({ ready: game?.id !== 'g-missing' });
   app.cutupPlayer.start = async (ids, label) => {
     window.__studyCutupCalls.push({ gameId: app.storage.seasonStore.data.activeGameId, ids: ids.map(String), label });
     if (ids.length) app.tagger.selectPlay(ids[0]);
+    if (window.__studyCutupMode === 'cancel') return { completed: false, reason: 'stopped' };
     return { completed: true, reason: 'complete' };
   };
 });
@@ -148,18 +172,67 @@ const watchResult = await page.evaluate(() => {
   return !!row;
 });
 await new Promise(resolve => setTimeout(resolve, 150));
-r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), game: window.app.storage.seasonStore.data.activeGameId, selected: window.app.tagger.currentPlayId }));
-ok(watchResult && r.route === 'breakdown' && r.game === 'g-study-2' && r.selected != null, 'Watch opens the matching play in its owning game', JSON.stringify(r));
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), game: window.app.storage.seasonStore.data.activeGameId, calls: window.__studyCutupCalls }));
+ok(watchResult && r.route === 'breakdown' && r.calls.at(-1)?.gameId === 'g-study-2' && r.game === 'g-study-1',
+  'Watch opens the owning game, then restores the launch game', JSON.stringify(r));
 
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyScope', 'season');
+const persistBeforeSeason = await page.evaluate(() => window.__studyPersistCount);
 await page.click('[data-study-action="watch-all"]');
 await page.waitForFunction(() => window.__studyCutupCalls?.length >= 3);
-r = await page.evaluate(() => ({ calls: window.__studyCutupCalls, game: window.app.storage.seasonStore.data.activeGameId }));
+r = await page.evaluate(() => ({ calls: window.__studyCutupCalls, switches: window.__studySwitchCalls, game: window.app.storage.seasonStore.data.activeGameId, persists: window.__studyPersistCount }));
 const seasonCalls = r.calls.slice(-2);
 ok(seasonCalls.length === 2 && seasonCalls[0].gameId === 'g-study-1' && seasonCalls[1].gameId === 'g-study-2'
-  && /Game 1 of 2/.test(seasonCalls[0].label) && /Game 2 of 2/.test(seasonCalls[1].label),
+  && /Game 1 of 2/.test(seasonCalls[0].label) && /Game 2 of 2/.test(seasonCalls[1].label)
+  && r.game === 'g-study-1' && r.persists === persistBeforeSeason + 1
+  && r.switches.some(call => call.id === 'g-study-1' && call.options.reloadActiveFilm === true),
   'Season Watch sequences every matching game with game-aware banner context', JSON.stringify(seasonCalls));
+
+const beforeCancel = r.calls.length;
+await page.evaluate(() => {
+  window.__studyCutupMode = 'cancel';
+  return window.app.workspaceShell.show('study');
+});
+await page.click('[data-study-action="watch-all"]');
+await page.waitForFunction(count => window.__studyCutupCalls?.length >= count + 1, {}, beforeCancel);
+await new Promise(resolve => setTimeout(resolve, 50));
+r = await page.evaluate(() => ({ calls: window.__studyCutupCalls, game: window.app.storage.seasonStore.data.activeGameId }));
+ok(r.calls.length === beforeCancel + 1 && r.game === 'g-study-1',
+  'A cancelled reel stops before the next game and restores the launch game', JSON.stringify(r.calls.slice(beforeCancel)));
+await page.evaluate(() => { window.__studyCutupMode = 'complete'; });
+
+const supersession = await page.evaluate(async () => {
+  const app = window.app;
+  const refs = ['g-study-1::1', 'g-study-2::1'];
+  const originalStart = app.cutupPlayer.start;
+  const originalStop = app.cutupPlayer.stop;
+  const calls = [];
+  let releaseFirst = null;
+  app.cutupPlayer.start = (ids, label) => {
+    calls.push({ game: app.storage.seasonStore.data.activeGameId, label });
+    if (label.startsWith('First')) return new Promise(resolve => { releaseFirst = resolve; });
+    return Promise.resolve({ completed: true, reason: 'complete' });
+  };
+  app.cutupPlayer.stop = () => {
+    if (releaseFirst) {
+      const resolve = releaseFirst;
+      releaseFirst = null;
+      resolve({ completed: false, reason: 'replaced' });
+    }
+  };
+  const first = app.studyScreen._watch(refs, 'First reel');
+  while (!releaseFirst) await new Promise(resolve => setTimeout(resolve, 0));
+  const second = app.studyScreen._watch(refs, 'Second reel');
+  await Promise.all([first, second]);
+  app.cutupPlayer.start = originalStart;
+  app.cutupPlayer.stop = originalStop;
+  return { calls, game: app.storage.seasonStore.data.activeGameId };
+});
+ok(supersession.calls.filter(call => call.label.startsWith('First')).length === 1
+  && supersession.calls.filter(call => call.label.startsWith('Second')).length === 2
+  && supersession.game === 'g-study-1',
+  'A second Watch supersedes the first without stale advancement', JSON.stringify(supersession));
 
 const beforeUnavailable = r.calls.length;
 await page.evaluate(() => {

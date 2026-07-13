@@ -175,6 +175,7 @@ export class VideoController {
 
     this.video.addEventListener('ended', () => {
       this._updatePlayPauseIcon(false);
+      this._emit('video-ended', {});
     });
 
     this.video.addEventListener('waiting', () => {

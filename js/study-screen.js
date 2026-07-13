@@ -274,32 +274,50 @@ export class StudyScreen {
       this.app.tagger.toast?.(`No matching film is available${skipped ? ` · ${skipped} play${skipped === 1 ? '' : 's'} skipped` : ''}`);
       return;
     }
+    const launchGameId = this.app.storage.seasonStore.data?.activeGameId;
+    // Save live charting once. Intermediate reel hops are read-only and remain
+    // transient; the persisted active game therefore stays at the launch scope.
+    this.app.storage.commitActive();
+    this.app.storage.seasonStore.persist();
     await this.app.workspaceShell.show('breakdown');
     let gamesPlayed = 0;
-    for (let index = 0; index < playable.length; index++) {
-      if (token !== this._watchToken) return;
-      const game = playable[index];
-      const loaded = await this.app.storage.switchToGame(game.gameId);
-      if (token !== this._watchToken) return;
-      if (!loaded) { unavailable += game.count; continue; }
-      const wanted = new Set(plan.segments
-        .filter(segment => segment.gameId === game.gameId)
-        .map(segment => String(segment.playId)));
-      const ids = (this.app.tagger.plays || [])
-        .filter(play => wanted.has(String(play.id)))
-        .map(play => play.id);
-      unavailable += Math.max(0, wanted.size - ids.length);
-      if (!ids.length) continue;
-      const skipped = unresolved + unavailable;
-      const context = `${label} · ${game.gameName} · Game ${index + 1} of ${playable.length}${skipped ? ` · ${skipped} skipped` : ''}`;
-      const result = await this.app.cutupPlayer.start(ids, context);
-      if (!result?.completed) return;
-      gamesPlayed++;
-    }
-    if (token === this._watchToken) {
-      const played = plan.total - unavailable;
-      const skipped = unresolved + unavailable;
-      this.app.tagger.toast?.(`Finished ${played} play${played === 1 ? '' : 's'} across ${gamesPlayed} game${gamesPlayed === 1 ? '' : 's'}${skipped ? ` · ${skipped} skipped` : ''}`);
+    try {
+      for (let index = 0; index < playable.length; index++) {
+        if (token !== this._watchToken) return;
+        const game = playable[index];
+        const loaded = await this.app.storage.switchToGame(game.gameId, {
+          commit: false, persist: false, reloadActiveFilm: true,
+        });
+        if (token !== this._watchToken) return;
+        if (!loaded) { unavailable += game.count; continue; }
+        this.app.workspaceShell._syncChrome?.();
+        const wanted = new Set(plan.segments
+          .filter(segment => segment.gameId === game.gameId)
+          .map(segment => String(segment.playId)));
+        const ids = (this.app.tagger.plays || [])
+          .filter(play => wanted.has(String(play.id)))
+          .map(play => play.id);
+        unavailable += Math.max(0, wanted.size - ids.length);
+        if (!ids.length) continue;
+        const skipped = unresolved + unavailable;
+        const context = `${label} · ${game.gameName} · Game ${index + 1} of ${playable.length}${skipped ? ` · ${skipped} skipped` : ''}`;
+        const result = await this.app.cutupPlayer.start(ids, context);
+        if (!result?.completed) return;
+        gamesPlayed++;
+      }
+      if (token === this._watchToken) {
+        const played = plan.total - unavailable;
+        const skipped = unresolved + unavailable;
+        this.app.tagger.toast?.(`Finished ${played} play${played === 1 ? '' : 's'} across ${gamesPlayed} game${gamesPlayed === 1 ? '' : 's'}${skipped ? ` · ${skipped} skipped` : ''}`);
+      }
+    } finally {
+      if (token === this._watchToken && launchGameId != null
+        && this.app.storage.seasonStore.data?.activeGameId !== launchGameId) {
+        await this.app.storage.switchToGame(launchGameId, {
+          commit: false, persist: false, reloadActiveFilm: true,
+        });
+        this.app.workspaceShell._syncChrome?.();
+      }
     }
   }
 

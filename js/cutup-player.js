@@ -22,6 +22,7 @@ export class CutupPlayer {
     this.bannerEl = null;
 
     this.vc.on('time-update', (d) => this._onTime(d.time));
+    this.vc.on('video-ended', () => this._onEnded());
   }
 
   /** Begin a cut-up over the given play IDs (sorted by time). */
@@ -81,8 +82,14 @@ export class CutupPlayer {
     }
   }
 
+  _onEnded() {
+    if (!this.active || this.index < 0) return;
+    if (this.index < this.queue.length - 1) this._goTo(this.index + 1);
+    else this.stop('complete');
+  }
+
   next() { this._goTo(this.index + 1); }
-  prev() { this._goTo(this.index - 1); }
+  prev() { this._goTo(Math.max(0, this.index - 1)); }
 
   stop(reason = 'stopped') {
     const settle = this._settle;
