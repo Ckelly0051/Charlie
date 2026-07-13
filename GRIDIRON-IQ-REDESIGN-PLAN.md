@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: e8f0abe  Phase 4C opt-in Break Down form composition (Codex)
+Latest implementation: 3e9f87c  Phase 4D unit-specific player-role UX (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,6 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  3e9f87c  Phase 4D unit-specific player roles over existing stored keys
   e8f0abe  Phase 4C opt-in Break Down form hierarchy + perspective labels
   de62d70  Phase 4B customer-facing Team Settings tag-library editor
   f09517d  Phase 4A Formation/Backfield/Front library contract + migration guard
@@ -547,7 +548,8 @@ Lane status:
     form, with football hierarchy and subject-aware labels but no schema or tag
     semantics change. Codex's adversarial 4C self-review found no defect and
     hardened the focused gate from 11 to 14 assertions; independent Claude
-    review of the stack remains requested.
+    review of the stack remains requested. 4D increment 1 landed at 3e9f87c:
+    unit-relevant player controls only, with all hidden assignments preserved.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -561,9 +563,10 @@ NEXT ACTIONS
     historical values across tag form + Film Room, custom Front semantics,
     Power-I preservation, editor focus/keyboard behavior, flag-off purity,
     perspective synchronization, complete field reachability, and mobile overflow.
-  Codex next after review or explicit coach direction: Phase 4D unit-specific
-    player-role and penalty UX, beginning with Defense. Preserve current stored
-    fields; a richer penalty model requires its own reviewed data contract first.
+  Codex next after review or explicit coach direction: continue Phase 4D only
+    within existing player/grade keys, or draft the structured penalty data
+    contract and failing-first migration tests. Do not implement richer penalty
+    controls until that backward-compatible contract is independently reviewed.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

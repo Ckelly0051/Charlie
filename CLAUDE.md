@@ -140,6 +140,22 @@ collapse behavior, all-field reachability, and disabled/no-play presentation.
 Next proposed slice is unit-specific role and penalty UX, starting with Defense;
 do not add a penalty schema without a separate failing-first data contract.
 
+**Phase 4D increment 1 — unit-specific player roles is ready for review
+(`3e9f87c`, Codex).** Under the opt-in 4C form only, Offense now shows Ball
+Carrier/Passer/Receiver, Defense shows Tackler(s)/Takeaway, and Special Teams
+uses its existing dedicated Kicker/Returner block instead of repeating the
+shared roles. The existing `RosterManager` remains the behavior owner and still
+defaults quick-picks by unit (including Takeaway on turnovers); this increment
+only aligns visible controls and section copy with that proven behavior. Hidden
+assignments are never cleared, so switching units or opening historical mixed
+data is lossless. No schema, stats, roster, persistence, or classic flag-off
+behavior changed. Focused Break Down is 18/18; tagging 27/27, Season/player
+analytics 152/152, Self-Scout 28/28, core 25/25, and full gate 44/44. No
+release/tag. **Review focus:** hidden-value preservation, active quick-pick role
+after each unit switch, turnover defaulting, ST duplication, and mobile role
+layout. Penalty redesign remains blocked on a separate backward-compatible data
+contract; do not dress the legacy `result:'Penalty'` flag up as structured data.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.
