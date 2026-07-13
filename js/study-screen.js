@@ -37,7 +37,7 @@ export class StudyScreen {
       <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
-      <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div>
+      <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div><div class="ws-study-visuals" id="wsStudyVisuals"></div>
       <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span id="wsStudyMetricHead">Success</span><span>Run / Pass</span><span id="wsStudyDeltaHead">Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
     this._bind();
     this._loadViews();
@@ -141,6 +141,7 @@ export class StudyScreen {
         : this.app.study.run({ ...args, plays: sets[state.scope] });
     } catch (error) {
       this.rows = [];
+      this._control('wsStudyVisuals').innerHTML = '';
       this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this query.')}</div>`;
       return;
     }
@@ -160,6 +161,7 @@ export class StudyScreen {
       const m = group.measures;
       return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
+    this._renderQueryVisuals(groups, measure, matching.length);
     this._setWatchAll(matching);
   }
 
@@ -174,6 +176,7 @@ export class StudyScreen {
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
       return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
+    this._renderCompareVisuals(rows, measure, result.a.label, result.b.label);
     this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : 'Watch current game');
   }
 
@@ -195,6 +198,34 @@ export class StudyScreen {
     return this.app.analyticsRegistry.listDimensions()
       .filter(item => item.availability === 'ready' && !excluded.has(item.id))
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _renderQueryVisuals(groups, measure, total) {
+    const host = this._control('wsStudyVisuals');
+    if (!groups.length) { host.innerHTML = ''; return; }
+    const ranked = groups.slice().sort((a, b) => (Number(b.measures[measure]) || 0) - (Number(a.measures[measure]) || 0));
+    const top = ranked[0], max = Math.max(1, ...ranked.map(group => Math.abs(Number(group.measures[measure]) || 0)));
+    const metricName = this.app.analyticsRegistry.getMeasure(measure)?.name || measure;
+    const bars = ranked.slice(0, 8).map(group => {
+      const index = groups.indexOf(group), value = Number(group.measures[measure]) || 0;
+      const width = Math.max(2, Math.round(Math.abs(value) / max * 100));
+      return `<button class="ws-study-bar-row" data-study-row="${index}"><span>${this._esc(group.value)}</span><i><b style="width:${width}%"></b></i><strong>${this._measure(measure, value)}</strong></button>`;
+    }).join('');
+    const weighted = key => groups.reduce((sum, group) => sum + (Number(group.measures[key]) || 0) * group.sampleSize, 0) / Math.max(1, total);
+    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${total}</strong></div><div><span>Top ${this._esc(metricName)}</span><strong>${this._esc(top.value)}</strong><small>${this._measure(measure, top.measures[measure])}</small></div><div><span>Run / Pass</span><strong>${this._pct(weighted('runShare'))} / ${this._pct(weighted('passShare'))}</strong><small>${groups.length} groups</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(metricName)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
+  }
+
+  _renderCompareVisuals(rows, measure, aLabel, bLabel) {
+    const host = this._control('wsStudyVisuals');
+    if (!rows.length) { host.innerHTML = ''; return; }
+    const ranked = rows.slice().sort((a, b) => Math.abs(Number(b.deltas[measure]) || 0) - Math.abs(Number(a.deltas[measure]) || 0));
+    const max = Math.max(1, ...ranked.map(row => Math.abs(Number(row.deltas[measure]) || 0)));
+    const bars = ranked.slice(0, 8).map(row => {
+      const index = rows.indexOf(row), delta = Number(row.deltas[measure]) || 0;
+      const width = Math.max(2, Math.round(Math.abs(delta) / max * 50));
+      return `<button class="ws-study-delta-row" data-study-row="${index}"><span>${this._esc(row.value)}</span><i><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}</strong></button>`;
+    }).join('');
+    host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
   }
 
   _seedDateRange() {

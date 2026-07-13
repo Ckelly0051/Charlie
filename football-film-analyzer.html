@@ -8683,6 +8683,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-study-summary{display:flex;align-items:baseline;gap:10px;padding:17px 0 12px}
 .ws-study-summary strong{font-size:18px}.ws-study-summary span{color:var(--ws-muted);font-size:12px}
 .ws-study-warning{padding:9px 11px;border-left:3px solid var(--ws-amber);background:rgba(230,174,75,.08);color:#e8c47f;font-size:12px;margin-bottom:10px}
+.ws-study-visuals{display:grid;gap:12px;margin:0 0 18px}.ws-study-kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ws-line);background:#0f1720}.ws-study-kpis>div{min-width:0;padding:14px 16px;border-left:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-left:0}.ws-study-kpis span,.ws-study-kpis small{display:block;color:var(--ws-muted);font-size:10px;font-weight:700;text-transform:uppercase}.ws-study-kpis strong{display:block;margin:5px 0 2px;font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-chart{border:1px solid var(--ws-line);background:#0f1720;padding:14px 16px}.ws-study-chart header{display:flex;justify-content:space-between;gap:16px;margin-bottom:8px}.ws-study-chart header span{color:var(--ws-muted);font-size:11px}.ws-study-bar-row,.ws-study-delta-row{display:grid;grid-template-columns:minmax(120px,190px) minmax(120px,1fr) 70px;gap:12px;align-items:center;width:100%;min-height:34px;border:0;border-top:1px solid rgba(113,132,153,.16);background:transparent;color:var(--ws-text);text-align:left}.ws-study-bar-row:hover,.ws-study-delta-row:hover{background:#152131}.ws-study-bar-row>span,.ws-study-delta-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-bar-row>i,.ws-study-delta-row>i{display:block;height:8px;background:#1c2835}.ws-study-bar-row>i b{display:block;height:100%;background:#3f83db}.ws-study-delta-row>i{display:flex;justify-content:center;background:linear-gradient(90deg,#1c2835 49.5%,#435164 50%,#1c2835 50.5%)}.ws-study-delta-row>i b{display:block;height:100%;background:var(--ws-green);margin-left:50%}.ws-study-delta-row>i b.negative{background:var(--ws-red);transform:translateX(-100%);margin-left:50%}.ws-study-bar-row>strong,.ws-study-delta-row>strong{text-align:right;font-variant-numeric:tabular-nums}
 .ws-study-results{border-top:1px solid var(--ws-line)}
 .ws-study-table-head,.ws-study-row{display:grid;grid-template-columns:minmax(150px,1.4fr) .55fr .75fr .9fr .75fr 74px;gap:12px;align-items:center}
 .ws-study-table-head{min-height:38px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
@@ -8693,6 +8694,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 @media(max-width:1100px){.ws-study-query{grid-template-columns:repeat(3,1fr)}.ws-study-table-head,.ws-study-row{grid-template-columns:minmax(130px,1.3fr) .5fr .8fr .85fr .7fr 70px}}
 @media(max-width:900px){.ws-study{padding:20px 15px 80px}.ws-study-head{display:block}.ws-study-actions{margin:16px 0 0;display:grid;grid-template-columns:1fr 1fr}.ws-study-actions [data-study-action="watch-all"]{grid-column:1/-1}.ws-study-query{grid-template-columns:1fr 1fr}.ws-study-filter-head{flex-wrap:wrap}.ws-study-filter-head span{width:100%;order:2}.ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}.ws-study-filter-row{grid-template-columns:1fr 34px}.ws-study-filter-row .ws-study-filter-values,.ws-study-filter-row select[data-study-filter-value]{grid-column:1/-1}.ws-study-table-head{display:none}.ws-study-row{grid-template-columns:minmax(115px,1.2fr) .45fr .75fr 68px}.ws-study-row>:nth-child(4),.ws-study-row>:nth-child(5){display:none}.ws-study-summary{display:block}.ws-study-summary span{display:block;margin-top:3px}}
 @media(max-width:600px){.ws-study-range{display:grid;grid-template-columns:1fr 1fr}.ws-study-range>strong,.ws-study-range>small{grid-column:1/-1}.ws-study-range>span{display:none}.ws-study-range input{width:100%}.ws-study-range>small{margin-left:0;padding-bottom:0}}
+@media(max-width:600px){.ws-study-kpis{grid-template-columns:1fr}.ws-study-kpis>div{border-left:0;border-top:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-top:0}.ws-study-chart{padding:12px}.ws-study-chart header{display:block}.ws-study-chart header span{display:block;margin-top:3px}.ws-study-bar-row,.ws-study-delta-row{grid-template-columns:minmax(90px,130px) 1fr 56px;gap:8px;font-size:12px}}
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
   </style>
 </head>
@@ -26612,7 +26614,7 @@ class StudyScreen {
       <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
-      <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div>
+      <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div><div class="ws-study-visuals" id="wsStudyVisuals"></div>
       <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span id="wsStudyMetricHead">Success</span><span>Run / Pass</span><span id="wsStudyDeltaHead">Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
     this._bind();
     this._loadViews();
@@ -26716,6 +26718,7 @@ class StudyScreen {
         : this.app.study.run({ ...args, plays: sets[state.scope] });
     } catch (error) {
       this.rows = [];
+      this._control('wsStudyVisuals').innerHTML = '';
       this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this query.')}</div>`;
       return;
     }
@@ -26735,6 +26738,7 @@ class StudyScreen {
       const m = group.measures;
       return `<div class="ws-study-row${group.belowMinSample ? ' is-small' : ''}"><strong>${this._esc(group.value)}</strong><span>${group.sampleSize}</span><span>${this._measure(measure, m[measure])}</span><span>${this._pct(m.runShare)} / ${this._pct(m.passShare)}</span><span>${this._pct(m.explosiveRate)}</span><button class="ws-btn ws-small" data-study-row="${index}" ${group.matchingPlayIds.length ? '' : 'disabled'}>Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
+    this._renderQueryVisuals(groups, measure, matching.length);
     this._setWatchAll(matching);
   }
 
@@ -26749,6 +26753,7 @@ class StudyScreen {
       const deltaText = delta == null ? '—' : `${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}`;
       return `<div class="ws-study-row ws-study-row-compare"><strong>${this._esc(row.value)}</strong><span>${row.a.sampleSize} / ${row.b.sampleSize}</span><span>${this._measure(measure, row.a.measures[measure])} / ${this._measure(measure, row.b.measures[measure])}</span><span>${this._pct(row.a.measures.runShare)} / ${this._pct(row.b.measures.runShare)}</span><span class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${deltaText}</span><button class="ws-btn ws-small" data-study-row="${index}">Watch</button></div>`;
     }).join('') : '<div class="ws-study-empty">No plays are available to compare.</div>';
+    this._renderCompareVisuals(rows, measure, result.a.label, result.b.label);
     this._setWatchAll(aRefs, compareMode === 'rangePrior' ? 'Watch date range' : 'Watch current game');
   }
 
@@ -26770,6 +26775,34 @@ class StudyScreen {
     return this.app.analyticsRegistry.listDimensions()
       .filter(item => item.availability === 'ready' && !excluded.has(item.id))
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _renderQueryVisuals(groups, measure, total) {
+    const host = this._control('wsStudyVisuals');
+    if (!groups.length) { host.innerHTML = ''; return; }
+    const ranked = groups.slice().sort((a, b) => (Number(b.measures[measure]) || 0) - (Number(a.measures[measure]) || 0));
+    const top = ranked[0], max = Math.max(1, ...ranked.map(group => Math.abs(Number(group.measures[measure]) || 0)));
+    const metricName = this.app.analyticsRegistry.getMeasure(measure)?.name || measure;
+    const bars = ranked.slice(0, 8).map(group => {
+      const index = groups.indexOf(group), value = Number(group.measures[measure]) || 0;
+      const width = Math.max(2, Math.round(Math.abs(value) / max * 100));
+      return `<button class="ws-study-bar-row" data-study-row="${index}"><span>${this._esc(group.value)}</span><i><b style="width:${width}%"></b></i><strong>${this._measure(measure, value)}</strong></button>`;
+    }).join('');
+    const weighted = key => groups.reduce((sum, group) => sum + (Number(group.measures[key]) || 0) * group.sampleSize, 0) / Math.max(1, total);
+    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${total}</strong></div><div><span>Top ${this._esc(metricName)}</span><strong>${this._esc(top.value)}</strong><small>${this._measure(measure, top.measures[measure])}</small></div><div><span>Run / Pass</span><strong>${this._pct(weighted('runShare'))} / ${this._pct(weighted('passShare'))}</strong><small>${groups.length} groups</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(metricName)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
+  }
+
+  _renderCompareVisuals(rows, measure, aLabel, bLabel) {
+    const host = this._control('wsStudyVisuals');
+    if (!rows.length) { host.innerHTML = ''; return; }
+    const ranked = rows.slice().sort((a, b) => Math.abs(Number(b.deltas[measure]) || 0) - Math.abs(Number(a.deltas[measure]) || 0));
+    const max = Math.max(1, ...ranked.map(row => Math.abs(Number(row.deltas[measure]) || 0)));
+    const bars = ranked.slice(0, 8).map(row => {
+      const index = rows.indexOf(row), delta = Number(row.deltas[measure]) || 0;
+      const width = Math.max(2, Math.round(Math.abs(delta) / max * 50));
+      return `<button class="ws-study-delta-row" data-study-row="${index}"><span>${this._esc(row.value)}</span><i><b class="${delta < 0 ? 'negative' : ''}" style="width:${width}%"></b></i><strong class="${delta > 0 ? 'is-positive' : delta < 0 ? 'is-negative' : ''}">${delta > 0 ? '+' : ''}${this._measure(measure, delta, false)}</strong></button>`;
+    }).join('');
+    host.innerHTML = `<section class="ws-study-chart"><header><strong>Largest changes</strong><span>${this._esc(aLabel)} vs ${this._esc(bLabel)}</span></header>${bars}</section>`;
   }
 
   _seedDateRange() {
