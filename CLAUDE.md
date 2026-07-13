@@ -401,6 +401,22 @@ create-then-save failure behavior, native-dialog keyboard/focus behavior, and
 film-ref parity. After acceptance, the next product increment is explicit
 comparison-cohort selection when saving a comparison finding.
 
+**Explicit comparison-cohort save is ready for review (`583ca2f`, Codex).** The
+prior comparison save behavior was semantically mixed: it attached the primary
+cohort for groups where that side existed, then silently fell back to comparison
+film for groups missing on the primary side. Study now retains parity-derived
+ref sets for each side and their de-duplicated union. The Save-to-Plan dialog
+shows `Film to attach` only for comparison queries, with the real cohort labels
+and play counts: primary, comparison, or both. Non-comparison saves remain the
+same compact dialog. `StudyPlan.finding()` now preserves `query.compare` and
+`query.cohort`, while `refs` are exactly the chosen composite `gameId::playId`
+set. One-day ranges use a concise single-date label. Visual QA is clean; focused
+gates: StudyPlan 14/14, Study/Plan 49/49, Plan export 15/15, Plan contract 32/32;
+fresh bundle + all 41 e2e scripts green. **Review `fa14dc0..583ca2f` together:**
+destination correctness, cohort parity (base/against/both), empty-side behavior,
+query metadata compatibility, dialog keyboard/focus, and create/save failure
+handling. Shell remains opt-in; no release/tag.
+
 **Phase 3 ordering — data seam (`70ad55c`, Claude): plan-item reorder on
 SeasonStore.** The foundation ordering/presentation/export all need (both render
 items IN ORDER). `reorderPlanItems(planId, orderedIds)` applies an explicit order

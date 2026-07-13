@@ -458,13 +458,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: fa14dc0  Intentional Save-to-Plan destination picker (Codex)
+Latest implementation: 583ca2f  Explicit comparison-cohort film selection (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  583ca2f  Choose primary, comparison, or both film cohorts for Plan
   fa14dc0  Save Study findings to an explicit existing or newly named plan
   905231e  Phase 3 ordering UI + audience + teaching mode + HTML export
   2ec15fa  Pure ordered PlanExport serializer (Claude)
@@ -520,19 +521,18 @@ Lane status:
     Study playback DONE at 1fce6b3, independently accepted at 84608a9, and all
     six review follow-ups resolved at 47cecc0. Phase 3 Plan foundation accepted;
     ordering, audience, presentation, and export accepted. Save-to-Plan now uses
-    an intentional destination picker at fa14dc0 and is ready for independent
-    review; exact composite film refs remain unchanged.
+    an intentional destination picker at fa14dc0; comparison saves now choose
+    primary/comparison/both film explicitly at 583ca2f. Both are ready for one
+    independent review; exact composite film refs remain unchanged.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
   R1/R2 durable clip identity: ACCEPTED at 668ebda.
-  Claude: independently review fa14dc0 (Save-to-Plan destination picker), focusing
-    on exact target selection, create/save failure behavior, keyboard/focus, and
-    unchanged StudyPlan composite refs.
+  Claude: independently review fa14dc0..583ca2f as one Save-to-Plan UX milestone,
+    focusing on exact plan targeting, base/against/both cohort parity, empty-side
+    behavior, query metadata compatibility, create/save failures, keyboard/focus,
+    and unchanged StudyPlan composite refs.
   Codex: hold the next Study UI increment until that review returns.
-  Next product follow-up after acceptance: explicit comparison-cohort selection
-    when saving a comparison finding. It must not bypass the parity-locked
-    Study/Plan contracts.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
