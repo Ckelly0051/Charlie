@@ -362,6 +362,28 @@ plan and confirm deletes it. Regression raises the combined Study/Plan browser
 workflow to 33/33; the final atomic full suite is green. Claude should review
 `affd78f..bb37a1d` as one Phase 3 milestone.
 
+**Independent review of `affd78f..bb37a1d` — ACCEPTED (Claude).** Phase 3 step 2 is
+a clean foundation; committed state re-verified green (study-plan 13/13,
+plan-contract 22/22, combined Study/Plan 33/33). FILM-LINK PARITY HOLDS: a saved
+finding's refs = the union of the Study result's composite `matchingPlayIds`, and
+both per-item and whole-plan Watch (`StudyPlan.planRefs`) route through the SAME
+vetted `studyScreen._watch` cross-game player — a plan plays the exact film the
+Study result did, no new resolver. All plan mutations go through the normalized
+`SeasonStore` seam + persist; name/notes/label/kind/id are XSS-escaped at every
+sink (matters — they travel in importable seasons); delete is confirm-gated
+(`bb37a1d`). Plan Watch inherits the cross-game player fixes from `47cecc0`. Three
+non-blocking follow-ups (Codex's UX lane):
+  1. [Low] `PlanScreen.ensurePlan()`/create deref `createPlan(...).id`, but
+     `SeasonStore.createPlan` returns null with no season open → throws. Hard to
+     reach (Plan route needs a season; `_saveToPlan` early-returns on empty refs)
+     but warrants a cheap guard.
+  2. [Low/UX] "Save to Plan" always appends to the active/first plan (auto-creating
+     "Game Plan") — no plan picker at save time.
+  3. [Low/UX] A comparison finding saves only one cohort's refs (labeled
+     "comparison").
+Phase 3 foundation (plans contract + Study→Plan + Plan workspace + cross-game
+Watch) is complete and accepted. Next: Phase 3 ordering/presentation/export.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next
