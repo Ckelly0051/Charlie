@@ -3,6 +3,7 @@
  * engine and the live tagger must agree on (so analytics never disagree with
  * what Auto Down & Distance does while charting).
  */
+import { SpecialTeamsModel } from './special-teams.js';
 
 /**
  * Did this play earn a first down? True when the play is explicitly tagged
@@ -39,6 +40,6 @@ export const DRIVE_ENDERS = new Set([
  */
 export function isPlayTagged(play) {
   const t = (play && play.tags) || {};
-  return !!(play && play.specialTeams) || !!(t.playType || t.result || t.stType || t.runPass
+  return !!(play && SpecialTeamsModel.normalize(play.specialTeams)) || !!(t.playType || t.result || t.stType || t.runPass
     || t.formation || t.defFront || t.coverage || t.blitz);
 }

@@ -16,7 +16,7 @@ export class SpecialTeamsModel {
     'returned', 'touchback', 'fairCatch', 'downed', 'outOfBounds',
     'blocked', 'muffed', 'recovered', 'good', 'noGood', 'badSnap',
   ]);
-  static SCORES = new Set(['touchdown', 'fieldGoal', 'extraPoint', 'twoPoint', 'safety']);
+  static SCORES = new Set(['touchdown', 'fieldGoal', 'extraPoint', 'safety']);
   static TEAMS = new Set(['subject', 'opponent', 'unknown']);
 
   static _object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
@@ -26,7 +26,7 @@ export class SpecialTeamsModel {
   static _number(value) {
     if (value === '' || value == null) return null;
     const n = Number(value);
-    return Number.isFinite(n) ? Math.max(0, n) : null;
+    return Number.isFinite(n) && n >= 0 ? n : null;
   }
   static _signedNumber(value) {
     if (value === '' || value == null) return null;
@@ -56,6 +56,7 @@ export class SpecialTeamsModel {
       version: this.VERSION,
       unit: value.unit,
       subjectRole: role,
+      attemptType: value.attemptType === 'fieldGoal' || value.attemptType === 'extraPoint' ? value.attemptType : null,
       kick: {
         ...kick,
         kind: this._text(kick.kind),
@@ -104,7 +105,7 @@ export class SpecialTeamsModel {
   static points(value) {
     const event = this.normalize(value && value.specialTeams ? value.specialTeams : value);
     if (!event || !event.outcome.score) return 0;
-    return { touchdown: 6, fieldGoal: 3, extraPoint: 1, twoPoint: 2, safety: 2 }[event.outcome.score] || 0;
+    return { touchdown: 6, fieldGoal: 3, extraPoint: 1, safety: 2 }[event.outcome.score] || 0;
   }
 
   /** Return subject/opponent/unknown. Never guesses an ambiguous safety. */
@@ -115,6 +116,11 @@ export class SpecialTeamsModel {
     if (explicit === 'subject' || explicit === 'opponent') return explicit;
     if (explicit === 'unknown') return 'unknown';
     if (event.outcome.score === 'safety') return 'unknown';
+    if (event.outcome.score === 'fieldGoal' || event.outcome.score === 'extraPoint') {
+      if (event.subjectRole === 'attempting') return 'subject';
+      if (event.subjectRole === 'defending') return 'opponent';
+      return 'unknown';
+    }
     if (event.outcome.recoveredBy === 'subject' || event.outcome.recoveredBy === 'opponent') {
       return event.outcome.recoveredBy;
     }

@@ -100,6 +100,8 @@ play.specialTeams = {
   subjectRole: 'receiving',
   // kicking | receiving | attempting | defending
 
+  attemptType: null,          // fieldGoal | extraPoint | null
+
   kick: {
     kind: 'traditional',       // editable/custom vocabulary
     direction: 'Left',         // offense/kicking-team perspective convention
@@ -145,6 +147,8 @@ play.specialTeams = {
 - `unit` is coach-facing and intentionally distinguishes Kickoff from Kick
   Return and Punt from Punt Return. `subjectRole` is stored explicitly so
   analytics do not have to parse a label.
+- `attemptType` distinguishes Field Goal from Extra Point even on a miss, when
+  no scoring value exists. Two-point tries remain offensive plays, not kicks.
 - `outcome.status` describes ball state or attempt disposition only. It never
   stores touchdown or safety; `score` is the one scoring-event field.
 - Scoring side is derived from `subjectRole`, `score`, and `recoveredBy`. If a

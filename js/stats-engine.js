@@ -101,8 +101,16 @@ export class StatsEngine {
    * as 3 for offense plays that mark the drive's FG outcome directly.
    */
   static playPoints(p) {
-    const structured = SpecialTeamsModel.points(p);
-    if (structured) return structured;
+    const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
+    if (structured) {
+      const points = SpecialTeamsModel.points(structured);
+      if (points) return points;
+      if (!structured.isFake) return 0;
+      const fakeResults = StatsEngine.splitResults(p && p.tags && p.tags.result);
+      if (fakeResults.includes('Touchdown')) return 6;
+      if (fakeResults.includes('Safety')) return 2;
+      return 0;
+    }
     if (!p || !p.tags) return 0;
     const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
@@ -125,11 +133,16 @@ export class StatsEngine {
    *   or a Safety, our defense scored → 'us'.
    */
   static scoringSide(p) {
-    if (p && p.specialTeams && SpecialTeamsModel.points(p)) {
+    const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
+    if (structured && SpecialTeamsModel.points(structured)) {
       const team = SpecialTeamsModel.scoringTeam(p);
       if (team === 'subject') return 'us';
       if (team === 'opponent') return 'them';
       return 'unknown';
+    }
+    if (structured && structured.isFake && StatsEngine.playPoints(p)) {
+      if (StatsEngine.hasResult(p, 'Safety')) return 'unknown';
+      return structured.subjectRole === 'kicking' || structured.subjectRole === 'attempting' ? 'us' : 'them';
     }
     if (!p || !p.tags) return 'us';
     // Explicit "Scored by" wins — the one consistent way to attribute any kick /
@@ -158,7 +171,7 @@ export class StatsEngine {
   computeScoreboard(playsOverride = null) {
     const plays = (playsOverride || (this.tagger ? this.tagger.plays : []) || [])
       .filter(p => p && p.tags);
-    let us = 0, them = 0;
+    let us = 0, them = 0, unattributed = 0;
     const events = [];
     const byQuarter = {};
     plays.forEach(p => {
@@ -168,20 +181,26 @@ export class StatsEngine {
       const side = StatsEngine.scoringSide(p);
       if (side === 'them') them += pts;
       else if (side === 'us') us += pts;
+      else unattributed += pts;
       const q = p.tags.quarter || '';
       if (q) {
         if (!byQuarter[q]) byQuarter[q] = { us: 0, them: 0 };
         if (side === 'us' || side === 'them') byQuarter[q][side] += pts;
+        else byQuarter[q].unattributed = (byQuarter[q].unattributed || 0) + pts;
       }
       events.push({
         playId: p.id, quarter: q, points: pts, side,
         type: this._scoreType(p), us, them
       });
     });
-    return { us, them, events, byQuarter, hasData: events.length > 0 };
+    return { us, them, ...(unattributed ? { unattributed } : {}), events, byQuarter, hasData: events.length > 0 };
   }
 
   _scoreType(p) {
+    const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
+    if (structured && structured.outcome.score) {
+      return { touchdown: 'TD', safety: 'Safety', extraPoint: 'XP', fieldGoal: 'FG' }[structured.outcome.score] || 'Score';
+    }
     const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
     if (res.includes('Touchdown')) return 'TD';
@@ -797,11 +816,24 @@ export class StatsEngine {
    * even on ST plays that carry no offensive playType.
    */
   _conversionStats(source) {
-    const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
+    const structured = p => SpecialTeamsModel.normalize(p && p.specialTeams);
+    const made = (p) => {
+      const event = structured(p);
+      if (event) return event.outcome.status === 'good' || event.outcome.score === 'extraPoint' || event.outcome.score === 'twoPoint';
+      return p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
+    };
     // Only OUR conversions count toward our PAT% — a kick marked 'Scored by:
     // Them' belongs to the opponent.
     const tally = (type) => {
-      const att = source.filter(p => p.tags.stType === type && StatsEngine.scoringSide(p) === 'us');
+      const wanted = type === 'XP' ? 'extraPoint' : 'twoPoint';
+      const att = source.filter(p => {
+        const event = structured(p);
+        if (event) {
+          const kind = event.attemptType || event.outcome.score;
+          return kind === wanted && event.subjectRole === 'attempting';
+        }
+        return p.tags.stType === type && StatsEngine.scoringSide(p) === 'us';
+      });
       const m = att.filter(p => made(p)).length;
       return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
     };

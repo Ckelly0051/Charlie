@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { SpecialTeamsModel } from '../js/special-teams.js';
 import { SeasonStore } from '../js/season-store.js';
 import { StatsEngine } from '../js/stats-engine.js';
+import { isPlayTagged } from '../js/football-rules.js';
 
 let pass = 0;
 const test = (label, fn) => {
@@ -18,6 +19,7 @@ const event = (overrides = {}) => ({
   version: 1,
   unit: 'puntReturn',
   subjectRole: 'receiving',
+  attemptType: null,
   kick: { kind: 'traditional', direction: 'Left', distance: 43, hangTime: 4.2, landing: { fieldSide: 'own', yardLine: '18' } },
   return: { attempted: true, yards: 12, end: { fieldSide: 'own', yardLine: '30' } },
   outcome: { status: 'returned', recoveredBy: null, score: null, scoredBy: null },
@@ -43,6 +45,13 @@ test('normalization is idempotent and preserves future keys', () => {
   assert.equal(once.return.attempted, null);
 });
 
+test('invalid nonnegative measurements fail closed instead of becoming zero', () => {
+  const normalized = SpecialTeamsModel.normalize(event({ kick: { distance: -4, hangTime: '-1', operationTime: 'bad' } }));
+  assert.equal(normalized.kick.distance, null);
+  assert.equal(normalized.kick.hangTime, null);
+  assert.equal(normalized.kick.operationTime, null);
+});
+
 test('unit owns the canonical subject role', () => {
   assert.equal(SpecialTeamsModel.normalize(event({ unit: 'kickoff', subjectRole: 'receiving' })).subjectRole, 'kicking');
   assert.equal(SpecialTeamsModel.normalize(event({ unit: 'fieldGoalBlock', subjectRole: 'attempting' })).subjectRole, 'defending');
@@ -53,6 +62,13 @@ test('made kicks attribute points from role without scoreFor', () => {
   const ours = event({ unit: 'fieldGoal', subjectRole: 'attempting', outcome: { status: 'good', score: 'fieldGoal' } });
   const theirs = event({ unit: 'fieldGoalBlock', subjectRole: 'defending', outcome: { status: 'good', score: 'fieldGoal' } });
   assert.equal(SpecialTeamsModel.points(ours), 3);
+  assert.equal(SpecialTeamsModel.scoringTeam(ours), 'subject');
+  assert.equal(SpecialTeamsModel.scoringTeam(theirs), 'opponent');
+});
+
+test('recovery cannot override ownership of a made kick', () => {
+  const ours = event({ unit: 'fieldGoal', outcome: { status: 'good', recoveredBy: 'opponent', score: 'fieldGoal' } });
+  const theirs = event({ unit: 'fieldGoalBlock', outcome: { status: 'good', recoveredBy: 'subject', score: 'fieldGoal' } });
   assert.equal(SpecialTeamsModel.scoringTeam(ours), 'subject');
   assert.equal(SpecialTeamsModel.scoringTeam(theirs), 'opponent');
 });
@@ -97,6 +113,13 @@ test('legacy-only plays are never auto-migrated', () => {
   assert.equal(play.tags.scoreFor, 'them');
 });
 
+test('malformed structured data is preserved but does not count as tagged', () => {
+  const play = { tags: {}, specialTeams: { unit: 'bogus', vendor: 'keep' } };
+  assert.equal(SpecialTeamsModel.normalizePlay(play), null);
+  assert.equal(play.specialTeams.vendor, 'keep');
+  assert.equal(isPlayTagged(play), false);
+});
+
 test('season normalization round-trips structured and legacy data', () => {
   const legacy = { id: 1, tags: { unit: 'special', stType: 'Punt', scoreFor: 'them' } };
   const modern = { id: 2, tags: { unit: 'special', stType: '' }, specialTeams: event({ futureMetric: 9 }) };
@@ -117,6 +140,36 @@ test('StatsEngine prefers structured scoring and keeps legacy fallback', () => {
   assert.equal(StatsEngine.scoringSide(structured), 'them');
   assert.equal(StatsEngine.playPoints(legacy), 1);
   assert.equal(StatsEngine.scoringSide(legacy), 'them');
+});
+
+test('a valid non-scoring structured event suppresses stale legacy scoring', () => {
+  const missed = { tags: { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', result: 'Good', scoreFor: 'us' }, specialTeams: event({ unit: 'fieldGoal', outcome: { status: 'noGood', score: null } }) };
+  assert.equal(StatsEngine.playPoints(missed), 0);
+});
+
+test('a fake may score through its football result without reviving stale kick fields', () => {
+  const fakeTd = { tags: { unit: 'special', result: 'Touchdown', kickOutcome: 'No Good' }, specialTeams: event({ unit: 'punt', isFake: true, outcome: { status: 'returned', score: null } }) };
+  const fakeMiss = { tags: { unit: 'special', result: 'Good', kickOutcome: 'Good' }, specialTeams: event({ unit: 'fieldGoal', isFake: true, outcome: { status: 'noGood', score: null } }) };
+  assert.equal(StatsEngine.playPoints(fakeTd), 6);
+  assert.equal(StatsEngine.scoringSide(fakeTd), 'us');
+  assert.equal(StatsEngine.playPoints(fakeMiss), 0);
+});
+
+test('structured conversion totals and score labels do not depend on legacy tags', () => {
+  const xp = { id: 7, tags: { unit: 'special', quarter: 'Q2' }, specialTeams: event({ unit: 'fieldGoal', attemptType: 'extraPoint', outcome: { status: 'good', score: 'extraPoint' } }) };
+  const missed = { id: 8, tags: { unit: 'special' }, specialTeams: event({ unit: 'fieldGoal', attemptType: 'extraPoint', outcome: { status: 'noGood', score: null } }) };
+  const engine = Object.create(StatsEngine.prototype);
+  assert.equal(engine._scoreType(xp), 'XP');
+  assert.deepEqual(engine._conversionStats([xp, missed]).xp, { att: 2, made: 1, pct: 50 });
+});
+
+test('scoreboard tracks ambiguous points without assigning them to either team', () => {
+  const safety = { id: 9, tags: { unit: 'special', quarter: 'Q1' }, specialTeams: event({ outcome: { status: 'returned', score: 'safety' } }) };
+  const board = Object.create(StatsEngine.prototype).computeScoreboard([safety]);
+  assert.equal(board.us, 0);
+  assert.equal(board.them, 0);
+  assert.equal(board.unattributed, 2);
+  assert.equal(board.byQuarter.Q1.unattributed, 2);
 });
 
 await testAsync('canonical persist, reopen, snapshot, and restore keep the event losslessly', async () => {
