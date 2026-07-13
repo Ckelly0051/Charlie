@@ -394,8 +394,21 @@ the accessible up/down move. One normalized path, bumps updatedAt, caller persis
 Additive + DORMANT (nothing calls them yet; the Plan UI wires drag/buttons).
 `e2e-plan-contract` 31/31; integrity fuzzer 0 violations; bundle rebuilt (only my
 dormant change in-tree). LANE SPLIT for this milestone — Claude (data): reorder seam
-[done] + a pure plan-export serializer [next]; Codex (UI): drag handles,
+[done] + a pure plan-export serializer [done]; Codex (UI): drag handles,
 presentation/teaching full-screen view, export button/layout.
+
+**Phase 3 export — data seam (`2ec15fa`, Claude): pure plan-export serializer.**
+`js/plan-export.js` — `PlanExport.build(plan, games)` resolves a plan into an
+ORDERED, film-linked structure (items in plan order, each composite `gameId::playId`
+ref resolved to its game + situation + play context; missing film flagged, not
+dropped); `PlanExport.html(exp)` renders a standalone printable doc that ESCAPES
+every coach-entered string (name/notes/labels/play notes — stored-XSS boundary).
+Presentation view + printed export consume the SAME `build()` structure so they
+can't drift. PURE + UNWIRED (not in build.sh; imported by nothing) — Codex adds the
+one build.sh line + wires the Export/Print button + presentation view. Tests:
+`e2e-plan-export` 14/14. Both my data seams for this milestone (reorder + export)
+are done and dormant; Codex's UI (drag handles, presentation full-screen, export
+button) is the remaining Phase 3 work.
 
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
