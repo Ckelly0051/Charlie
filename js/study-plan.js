@@ -48,6 +48,8 @@ export class StudyPlan {
         measure: opts.measure != null ? opts.measure : null,
         scope: opts.scope != null ? opts.scope : null,
         group: opts.groupValue != null ? String(opts.groupValue) : null,
+        compare: opts.compare != null ? String(opts.compare) : null,
+        cohort: opts.cohort != null ? String(opts.cohort) : null,
       },
       note: typeof opts.note === 'string' ? opts.note : '',
     };

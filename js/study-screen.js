@@ -20,7 +20,8 @@ export class StudyScreen {
     this.filters = [];
     this._bound = false;
     this._watchToken = 0;
-    this._pendingPlanItem = null;
+    this._pendingPlanItems = [];
+    this._saveCohorts = [];
   }
 
   mount(host) {
@@ -56,7 +57,7 @@ export class StudyScreen {
     if (this._bound) return;
     this._bound = true;
     this.host.addEventListener('change', e => {
-      if (e.target.id === 'wsStudyPlanTarget') this._syncPlanPicker();
+      if (e.target.id === 'wsStudyPlanTarget' || e.target.id === 'wsStudyPlanCohort') this._syncPlanPicker();
       else if (e.target.id === 'wsStudySaved') { this._applyView(e.target.value); this._syncDeleteView(); }
       else if (e.target.matches('[data-study-filter-dimension]')) {
         const filter = this.filters[Number(e.target.dataset.studyFilterDimension)];
@@ -146,6 +147,7 @@ export class StudyScreen {
         : this.app.study.run({ ...args, plays: sets[state.scope] });
     } catch (error) {
       this.rows = [];
+      this._saveCohorts = [];
       this._control('wsStudyVisuals').innerHTML = '';
       this._control('wsStudyRows').innerHTML = `<div class="ws-study-empty">${this._esc(error.message || 'Study could not run this query.')}</div>`;
       return;
@@ -161,6 +163,7 @@ export class StudyScreen {
     const matching = [...new Set(groups.flatMap(group => group.matchingPlayIds))];
     this.rows = groups.map(group => ({ label: group.value, refs: group.matchingPlayIds }));
     const scopeLabel = scope === 'game' ? 'current game' : scope === 'range' ? rangeName : 'full season';
+    this._saveCohorts = [{ id: 'result', label: scopeLabel, refs: matching }];
     this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension)} · ${this._esc(scopeLabel)}</span>`;
     this._control('wsStudyRows').innerHTML = groups.length ? groups.map((group, index) => {
       const m = group.measures;
@@ -174,6 +177,12 @@ export class StudyScreen {
     const rows = result.rows.filter(row => row.a.sampleSize > 0 || row.b.sampleSize > 0);
     const aRefs = [...new Set(rows.flatMap(row => row.a.matchingPlayIds))];
     const bRefs = [...new Set(rows.flatMap(row => row.b.matchingPlayIds))];
+    const bothRefs = [...new Set([...aRefs, ...bRefs])];
+    this._saveCohorts = [
+      { id: 'base', label: result.a.label, refs: aRefs },
+      { id: 'against', label: result.b.label, refs: bRefs },
+      { id: 'both', label: 'Both cohorts', refs: bothRefs },
+    ];
     this.rows = rows.map(row => ({ label: row.value, refs: row.a.matchingPlayIds.length ? row.a.matchingPlayIds : row.b.matchingPlayIds }));
     this._control('wsStudySummary').innerHTML = `<strong>${aRefs.length} vs ${bRefs.length} plays</strong><span>${this._esc(result.a.label)} compared with ${this._esc(result.b.label)}</span>`;
     this._control('wsStudyRows').innerHTML = rows.length ? rows.map((row, index) => {
@@ -266,6 +275,7 @@ export class StudyScreen {
   }
 
   _rangeLabel(from, to) {
+    if (from && to && from === to) return from;
     if (from && to) return `${from} through ${to}`;
     if (from) return `From ${from}`;
     if (to) return `Through ${to}`;
@@ -396,24 +406,31 @@ export class StudyScreen {
     this.app.tagger.toast?.(`Saved Study view: ${name}`);
   }
   _saveToPlan() {
-    const refs = [...new Set(this.rows.flatMap(row => row.refs || []))];
-    if (!refs.length) { this.app.tagger.toast?.('No Study results to save'); return; }
     const state = this._state();
     const dimensionName = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
     const measureName = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
-    const scopeLabel = state.compare ? 'comparison' : state.scope === 'game' ? 'current game' : state.scope === 'range' ? 'date range' : 'full season';
-    const item = this.app.studyPlan.finding({ dimensionName, measureName, scopeLabel, dimension: state.dimension, measure: state.measure, scope: state.scope, refs });
-    this._openPlanPicker(item);
+    const cohorts = this._saveCohorts.filter(cohort => cohort.refs.length).map(cohort => ({
+      ...cohort,
+      item: this.app.studyPlan.finding({
+        dimensionName, measureName, scopeLabel: cohort.label,
+        dimension: state.dimension, measure: state.measure, scope: state.scope,
+        compare: state.compare || null, cohort: cohort.id, refs: cohort.refs,
+      }),
+    }));
+    if (!cohorts.length) { this.app.tagger.toast?.('No Study results to save'); return; }
+    this._openPlanPicker(cohorts);
   }
-  _openPlanPicker(item) {
+  _openPlanPicker(items) {
     this._closePlanPicker();
     const plans = this.app.storage.seasonStore.plans();
     const activeId = plans.some(plan => plan.id === this.app.planScreen.activeId) ? this.app.planScreen.activeId : plans[0]?.id;
     const target = activeId || '__new__';
-    this._pendingPlanItem = item;
+    this._pendingPlanItems = items;
+    const item = items[0].item;
+    const cohortField = items.length > 1 ? `<label>Film to attach<select id="wsStudyPlanCohort">${items.map(choice => `<option value="${this._esc(choice.id)}">${this._esc(choice.label)} · ${choice.refs.length} play${choice.refs.length === 1 ? '' : 's'}</option>`).join('')}</select></label>` : '';
     const dialog = document.createElement('dialog');
     dialog.className = 'ws-plan-picker';
-    dialog.innerHTML = `<form method="dialog"><div class="ws-eyebrow">Save Study finding</div><h2>Choose a game plan</h2><p><strong>${this._esc(item.label || 'Study finding')}</strong><span>${item.refs.length} linked play${item.refs.length === 1 ? '' : 's'} will stay attached.</span></p><label>Destination<select id="wsStudyPlanTarget">${plans.map(plan => `<option value="${this._esc(plan.id)}"${plan.id === target ? ' selected' : ''}>${this._esc(plan.name)}</option>`).join('')}<option value="__new__"${target === '__new__' ? ' selected' : ''}>Create new plan</option></select></label><label class="ws-plan-picker-name">Plan name<input id="wsStudyPlanName" maxlength="80" value="Game Plan" autocomplete="off"></label><div class="ws-plan-picker-actions"><button class="ws-btn" value="cancel" data-study-action="plan-picker-cancel">Cancel</button><button class="ws-btn ws-primary" value="default" data-study-action="plan-picker-save">Save finding</button></div></form>`;
+    dialog.innerHTML = `<form method="dialog"><div class="ws-eyebrow">Save Study finding</div><h2>Choose a game plan</h2><p><strong data-plan-picker-label>${this._esc(item.label || 'Study finding')}</strong><span data-plan-picker-count>${item.refs.length} linked play${item.refs.length === 1 ? '' : 's'} will stay attached.</span></p>${cohortField}<label>Destination<select id="wsStudyPlanTarget">${plans.map(plan => `<option value="${this._esc(plan.id)}"${plan.id === target ? ' selected' : ''}>${this._esc(plan.name)}</option>`).join('')}<option value="__new__"${target === '__new__' ? ' selected' : ''}>Create new plan</option></select></label><label class="ws-plan-picker-name">Plan name<input id="wsStudyPlanName" maxlength="80" value="Game Plan" autocomplete="off"></label><div class="ws-plan-picker-actions"><button class="ws-btn" value="cancel" data-study-action="plan-picker-cancel">Cancel</button><button class="ws-btn ws-primary" value="default" data-study-action="plan-picker-save">Save finding</button></div></form>`;
     dialog.addEventListener('cancel', event => { event.preventDefault(); this._closePlanPicker(); });
     dialog.querySelector('form').addEventListener('submit', event => { event.preventDefault(); this._confirmPlanPicker(); });
     this.host.appendChild(dialog);
@@ -426,17 +443,26 @@ export class StudyScreen {
     if (!dialog) return;
     const isNew = dialog.querySelector('#wsStudyPlanTarget')?.value === '__new__';
     dialog.querySelector('.ws-plan-picker-name').hidden = !isNew;
+    const choice = this._selectedPlanChoice();
+    if (choice) {
+      dialog.querySelector('[data-plan-picker-label]').textContent = choice.item.label;
+      dialog.querySelector('[data-plan-picker-count]').textContent = `${choice.refs.length} linked play${choice.refs.length === 1 ? '' : 's'} will stay attached.`;
+    }
+  }
+  _selectedPlanChoice() {
+    const selected = this.host?.querySelector('#wsStudyPlanCohort')?.value;
+    return this._pendingPlanItems.find(choice => choice.id === selected) || this._pendingPlanItems[0] || null;
   }
   _confirmPlanPicker() {
     const dialog = this.host?.querySelector('.ws-plan-picker');
-    const item = this._pendingPlanItem;
-    if (!dialog || !item) return;
+    const choice = this._selectedPlanChoice();
+    if (!dialog || !choice) return;
     const store = this.app.storage.seasonStore;
     const target = dialog.querySelector('#wsStudyPlanTarget')?.value;
     let plan = target === '__new__'
       ? store.createPlan(dialog.querySelector('#wsStudyPlanName')?.value.trim() || 'Game Plan')
       : store.getPlan(target);
-    if (plan) plan = this.app.planScreen.addFindingTo(plan.id, item);
+    if (plan) plan = this.app.planScreen.addFindingTo(plan.id, choice.item);
     if (!plan) { this.app.tagger.toast?.('Could not save this plan finding'); return; }
     this._closePlanPicker();
     this.app.tagger.toast?.(`Saved to ${plan.name}`);
@@ -444,7 +470,7 @@ export class StudyScreen {
   _closePlanPicker() {
     const dialog = this.host?.querySelector('.ws-plan-picker');
     if (dialog) { if (dialog.open) dialog.close(); dialog.remove(); }
-    this._pendingPlanItem = null;
+    this._pendingPlanItems = [];
   }
   _applyView(id) {
     const view = this._views().find(item => item.id === id);

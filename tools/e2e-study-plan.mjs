@@ -19,10 +19,11 @@ ok(StudyPlan.label({ groupValue: '', dimensionName: 'Down', measureName: 'Conv' 
 
 // ---- 2. finding payload ------------------------------------------------------
 {
-  const it = StudyPlan.finding({ dimensionName: 'Formation', measureName: 'Success Rate', scopeLabel: 'full season', groupValue: 'Wing-T', sampleSize: 18, dimension: 'formation', measure: 'successRate', scope: 'season', refs: ['g1::3', 9, 'g2::4'] });
+  const it = StudyPlan.finding({ dimensionName: 'Formation', measureName: 'Success Rate', scopeLabel: 'full season', groupValue: 'Wing-T', sampleSize: 18, dimension: 'formation', measure: 'successRate', scope: 'season', compare: 'prior', cohort: 'against', refs: ['g1::3', 9, 'g2::4'] });
   ok(it.kind === 'finding' && it.label === 'Wing-T — Success Rate (n=18)', 'finding() carries kind + canonical label');
   ok(JSON.stringify(it.refs) === JSON.stringify(['g1::3', '9', 'g2::4']), 'finding() coerces refs to strings', JSON.stringify(it.refs));
   ok(it.query.dimension === 'formation' && it.query.measure === 'successRate' && it.query.scope === 'season' && it.query.group === 'Wing-T', 'finding() preserves the query context (re-runnable)', JSON.stringify(it.query));
+  ok(it.query.compare === 'prior' && it.query.cohort === 'against', 'finding() preserves the selected comparison cohort', JSON.stringify(it.query));
 }
 
 // ---- 3. film item ------------------------------------------------------------
