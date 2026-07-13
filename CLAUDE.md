@@ -78,9 +78,9 @@ pixel-aligned through resize/fullscreen/video changes; and never crop, resize, o
 cover the film when inactive. This is planned work only, not yet prototyped or
 implemented in the redesigned workspace.
 
-**Copy TODO for the next implementation batch:** capitalize `Special Teams`
-consistently in redesigned unit selectors, headings, and labels. Do not spend a
-standalone prototype revision on this wording-only correction.
+**Copy QA complete:** `Special Teams` is capitalized consistently in the
+redesigned prototype and opt-in production Study unit selector; the Study harness
+pins the production label.
 
 **Scout perspective contract (2026-07-12):** Self-scout is the default/primary
 workflow and means our own games (our offense, defense, and special teams).

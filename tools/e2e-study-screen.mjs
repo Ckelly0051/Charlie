@@ -48,9 +48,11 @@ let r = await page.evaluate(() => ({
   summary: document.querySelector('#wsStudySummary')?.textContent,
   groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent),
   statsHidden: document.querySelector('#statsDashboard')?.classList.contains('hidden'),
+  specialTeamsLabel: document.querySelector('#wsStudyUnit option[value="special"]')?.textContent,
 }));
 ok(r.visible && /2 matching plays/.test(r.summary) && r.groups.includes('Shotgun') && r.groups.includes('Pistol') && !r.groups.includes('Unknown'), 'Study defaults to the active-game cohort', JSON.stringify(r));
 ok(r.statsHidden, 'New Study UI does not silently open the legacy dashboard');
+ok(r.specialTeamsLabel === 'Special Teams', 'Study unit selector capitalizes Special Teams consistently', JSON.stringify(r));
 await capture('study-game-1280x800');
 
 await page.select('#wsStudyScope', 'season');

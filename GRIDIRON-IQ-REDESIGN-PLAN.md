@@ -381,8 +381,8 @@ contract → tests each; never hand over "Phase 0" as one change):
   non-destructive, and consume or cover zero video pixels when tools are inactive.
 - Add Quick Chart as a profile, not a replacement workflow.
 - Migrate one unit at a time: offense, defense, then special teams.
-- Copy QA TODO: capitalize `Special Teams` consistently anywhere it appears as
-  a unit name, heading, selector, or chart label.
+- Copy QA DONE: `Special Teams` is capitalized consistently in the redesign
+  prototype and opt-in production Study unit selector; the Study harness pins it.
 
 ### Phase 5 — Default and cleanup
 
