@@ -458,13 +458,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: a0ece49  Remove accepted dead implicit-save path (Codex)
+Latest review: 6a68064  Comparison-cohort save ACCEPTED (Claude)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  6a68064  Independent review — 583ca2f comparison-cohort save ACCEPTED
   a0ece49  Remove dead addFinding/ensurePlan after picker review acceptance
   eb491bd  Independent review — fa14dc0 destination picker ACCEPTED
   583ca2f  Choose primary, comparison, or both film cohorts for Plan
@@ -525,18 +526,18 @@ Lane status:
     ordering, audience, presentation, and export accepted. Save-to-Plan now uses
     an intentional destination picker at fa14dc0, accepted at eb491bd with its
     sole dead-code nit cleaned at a0ece49. Comparison saves choose primary/
-    comparison/both film explicitly at 583ca2f and still await independent
-    review; exact composite film refs remain unchanged.
+    comparison/both film explicitly at 583ca2f, accepted at 6a68064. The full
+    Study-to-Plan save milestone is closed; exact composite film refs remain
+    unchanged.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
   R1/R2 durable clip identity: ACCEPTED at 668ebda.
   Save-to-Plan destination picker fa14dc0: ACCEPTED at eb491bd; dead implicit
     path removed at a0ece49.
-  Claude: independently review 583ca2f comparison-cohort selection, focusing on
-    base/against/both parity, empty-side behavior, query metadata compatibility,
-    and unchanged StudyPlan composite refs.
-  Codex: hold the next Study UI increment until that review returns.
+  Comparison-cohort selection 583ca2f: ACCEPTED at 6a68064. Study-to-Plan save
+    milestone COMPLETE.
+  Codex: choose and scope the next redesign increment before implementation.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

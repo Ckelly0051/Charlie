@@ -438,7 +438,8 @@ errors in `fa14dc0`; its sole non-blocking note was that the pre-picker implicit
 mutation path. The no-season regression now pins that exact-target API. Focused
 Study/Plan gates remain green and the rebuilt bundle passed all 41 e2e scripts.
 This closes the `fa14dc0` review completely. `583ca2f` comparison-cohort
-selection remains the only unreviewed Study-to-Plan increment.
+selection was subsequently accepted at `6a68064`; the full Study-to-Plan save
+milestone is now closed.
 
 **Explicit comparison-cohort save shipped (`583ca2f`, Claude).** The prior
 comparison save behavior was semantically mixed: it attached the primary cohort
