@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: ae5afc9  Phase 4E-a review fixes and acceptance (Codex)
+Latest implementation: 42e5a00  Phase 4E-b phase-first Special Teams UI (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,6 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  42e5a00  P4E-b phase-first structured Special Teams charting UI
   ae5afc9  P4E-a adversarial review fixes; accepted after 45/45 gate
   0308486  Phase 4E-a pure Special Teams normalization, scoring, and ruleset seam
   3e9f87c  Phase 4D unit-specific player roles over existing stored keys
@@ -568,6 +569,15 @@ Lane status:
     now distinguishes FG/XP misses; unattributed points are sparse so legacy
     parity output stays byte-identical. Focused contract 19/19; fresh atomic full
     gate 45/45; both parity goldens clean. P4E-a is ACCEPTED.
+  P4E-b landed at 42e5a00 behind `ffa_breakdown_form_v2`. Six coach-facing
+    units write only `play.specialTeams`; the redesigned surface never writes
+    `stType`, `kickOutcome`, or `scoreFor`. Unit-specific outcomes, FG/XP attempt
+    identity, onside/fake modifiers, kick/return/spot values, recovery/scoring
+    ownership, and specialist roles are reachable. Rare ownership uses subject-
+    team labels, not Us/Them. Unit changes that would clear structured detail
+    require the in-app confirmation. Legacy details are quarantined, hidden, and
+    not migrated; no cleanup occurs. Break Down 29/29, contract 19/19, tagging
+    27/27, season 152/152, and fresh atomic full gate 45/45.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -590,10 +600,11 @@ NEXT ACTIONS
     as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
     charting. Use a phase-first, subject-role contract, derive scoring from the
     event, and make ruleset-sensitive calculations fail honestly. Next is an
-    P4E-a is accepted at ae5afc9. Next is P4E-b: phase-first tagging UI behind
-    `ffa_breakdown_form_v2`, with no `Scored by Us/Them` control, team-name
-    ownership only for rare ambiguity, all six unit paths, and keyboard/mobile/
-    scout-perspective tests. Preserve legacy fields but never write `scoreFor`.
+    P4E-b implementation 42e5a00 is ready for independent review. Focus on
+    unit-switch confirmation/no-loss, all six unit paths, FG/XP good/no-good,
+    return-attempt semantics, recovery TD ownership, opponent-scout labels,
+    specialist sync, legacy quarantine/no writes, keyboard behavior, and mobile
+    overflow. P4E-c Film Room/Study/report work waits for acceptance.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found

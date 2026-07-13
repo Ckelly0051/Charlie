@@ -217,6 +217,30 @@ output. Focused contract 19/19, both parity fixtures clean, season 152/152, and
 final fresh atomic gate 45/45. **Next action:** P4E-b phase-first Special Teams
 UI behind the existing Break Down flag. New UI must never write `scoreFor`.
 
+**Phase 4E-b phase-first Special Teams UI is ready for review (`42e5a00`,
+Codex).** Behind `ffa_breakdown_form_v2`, the Special Teams group now starts
+with six units: Kickoff, Kick Return, Punt, Punt Return, Field Goal/XP, and Field
+Goal Block. It writes only normalized `play.specialTeams`; no redesigned action
+writes `stType`, `kickOutcome`, or `scoreFor`. Applicable outcomes, FG/XP attempt
+identity, Onside/Fake, kick/return/possession/end spots, blocker/recoverer,
+scoring, and recovery ownership appear contextually. Safety and unusual recovery
+scores use subject-aware team labels and fail closed until resolved. Unit changes
+that would clear structured details use the in-app confirmation. Existing roster
+Kicker/Returner inputs sync into structured players. Classic flag-off behavior
+is unchanged. Break Down 29/29, Special Teams contract 19/19, tagging 27/27,
+season 152/152, and atomic full gate 45/45. **Review focus:** all unit paths,
+unit-switch cancellation, return-attempt state, blocked-kick return TD ownership,
+FG/XP scoring, opponent-scout labels, persistence/reload, mobile overflow, and
+legacy-field non-write.
+
+**Known-bad migration rule (coach decision, 2026-07-13):** do not migrate data
+we know is unreliable and do not build special compatibility machinery for data
+the coach must chart again. Legacy Special Teams details are quarantined and
+shown as uncharted; only their broad existing `unit:'special'` classification is
+trusted. Current bytes remain untouched for safety. Before any cleanup deletes
+legacy keys, ask permission and obtain explicit confirmation immediately before
+acting. No cleanup is part of 42e5a00.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.

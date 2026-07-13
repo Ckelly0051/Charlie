@@ -257,18 +257,20 @@ but unique-play KPIs must deduplicate composite play references.
 
 ## 8. Legacy Strategy
 
-- Preserve `stType`, `scoreFor`, `kickOutcome`, `kickDistance`, `returnYards`,
-  `hangTime`, and `kickedTo` exactly on old plays.
-- Do not convert `scoreFor` into trusted structured ownership. The coach has
-  already said its meaning was unclear.
-- Present an old play as `Legacy special teams - details incomplete` until it is
-  intentionally completed in the new editor.
-- Safe, one-to-one observations such as numeric kick distance may prefill the
-  completion form, but saving the structured record requires coach intent.
-- Structured analytics and legacy analytics remain labeled separately until
-  completion. No bulk destructive migration.
-- CSV and backups round-trip both representations during the compatibility
-  period.
+- Do not migrate `stType`, `scoreFor`, `kickOutcome`, `kickDistance`,
+  `returnYards`, `hangTime`, or `kickedTo` into the structured model. The coach
+  considers these details untrustworthy.
+- A legacy play may retain only the broad fact that it was already classified as
+  `unit:'special'`. Its detail surface reads `Legacy Special Teams - details
+  uncharted` until the coach intentionally selects a new unit and charts it.
+- Current saves continue to round-trip the old bytes only as a temporary safety
+  measure. The redesigned UI hides them and structured analytics never consume
+  them when a valid structured event exists.
+- Do not build inference, mapping, or merge machinery for known-bad detail.
+- A future cleanup may remove the quarantined legacy keys, but only after an
+  in-app preview and explicit coach confirmation immediately before deletion.
+- General rule: known-bad data is not migrated. Any destructive cleanup requires
+  permission and confirmation; absence of an answer means preserve the bytes.
 
 ## 9. Implementation Sequence And Gates
 
