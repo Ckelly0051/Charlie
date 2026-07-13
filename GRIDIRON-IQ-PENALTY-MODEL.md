@@ -1,8 +1,8 @@
 # GridIron IQ Structured Penalty Model
 
-> **Status:** Proposed Phase 4D contract. Product priority approved; production
-> implementation has not started. This model optimizes trustworthy future
-> charting over exact preservation of the legacy `result: 'Penalty'` workflow.
+> **Status:** Phase 4D implemented at `461d0b1`; independent review pending.
+> This model optimizes trustworthy future charting over semantic migration of
+> the legacy `result: 'Penalty'` workflow.
 
 ## 1. Product Decision
 
@@ -154,11 +154,13 @@ Legacy data is lower priority and must never contaminate the new model.
 - On read, an old Penalty result with no structured record is presented as
   `Legacy penalty - details incomplete`.
 - It remains searchable and counted in a separate `legacy/incomplete` bucket.
-- Opening Edit offers **Complete penalty details**. Saving creates a structured
-  record and removes only the `Penalty` component from `result`; other result
-  components remain unchanged.
+- New structured records are independent of the old Result chip. Creating or
+  editing them does not add, remove, reinterpret, or overwrite legacy Result.
 - Bulk destructive migration is prohibited. Export/restore must round-trip old
   data exactly until a coach completes it.
+- Product rule: known-bad legacy data is never migrated merely for parity. No
+  code may clear it without first asking permission and then obtaining an
+  explicit confirmation immediately before the destructive action.
 
 ## 6. Analytics Contract
 
@@ -203,6 +205,14 @@ available and clearly labeled.
 - Add penalty summary and Study dimensions/measures over composite film refs.
 - Extend analytics parity with explicit expected changes; do not overwrite the
   pre-penalty golden silently.
+
+Implemented: Film Room exposes read-only Penalty/Pen Yds summaries and keeps
+the validated multi-foul editor as the single editing surface. CSV round-trips
+structured penalties and resulting situation as JSON-safe columns. Study can
+group/filter by charged team, foul, ruling, phase, and whether the play counts.
+The Game report separates flagged plays from foul records, excludes declined/
+offsetting yards, and links foul rows to exact film. Legacy parity goldens are
+unchanged.
 
 ### Release gate
 

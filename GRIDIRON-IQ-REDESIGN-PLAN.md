@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 994e30d  Phase 4E-c Special Teams analytics integration (Codex)
+Latest implementation: 461d0b1  Phase 4D structured penalty stack (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,6 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  461d0b1  P4D structured multi-foul charting, Auto D&D, Film Room, Study, reports, CSV
   994e30d  P4E-c structured Film Room, Study, and Advanced Reports integration
   42e5a00  P4E-b phase-first structured Special Teams charting UI
   ae5afc9  P4E-a adversarial review fixes; accepted after 45/45 gate
@@ -587,6 +588,19 @@ Lane status:
     without a configured rule. Legacy-only seasons retain byte-identical compute
     output and both parity goldens remain clean. Contract 20/20, Break Down 31/31,
     analytics registry 23/23, full atomic gate 45/45. Phase 4E is code-complete.
+  Phase 4D penalties landed at 461d0b1. The pure model supports multiple foul
+    records, stable ids, subject/opponent/unknown ownership, accepted/declined/
+    offsetting rulings, actual enforcement, play-count status, phase, player,
+    notes, and an independently confirmed resulting situation. The opt-in Break
+    Down form is the single editor; Auto D&D consumes only a complete confirmed
+    situation and otherwise fails honestly. Film Room provides compact read-only
+    summaries, Study exposes five structured dimensions with composite film
+    refs, the Game/HTML report reconciles flagged plays vs foul records and
+    accepted yards, and CSV round-trips both structured objects. Legacy Penalty
+    Result is never inferred, promoted, removed, or cleared. Any known-bad-data
+    cleanup requires coach permission plus explicit immediate confirmation.
+    Focused contract 6/6, Break Down 39/39, registry 24/24, CSV 8/8, parity 2/2;
+    fresh atomic full gate 46/46. Independent review is pending.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -600,18 +614,18 @@ NEXT ACTIONS
     historical values across tag form + Film Room, custom Front semantics,
     Power-I preservation, editor focus/keyboard behavior, flag-off purity,
     perspective synchronization, complete field reachability, and mobile overflow.
-  Codex next after review or explicit coach direction: continue Phase 4D only
-    through the structured penalty program in GRIDIRON-IQ-PENALTY-MODEL.md.
-    Coach priority is correct future data over exact legacy semantics. Next is
-    independent contract review, then P4D-a pure normalization + failing-first
-    persistence tests. Do not begin the penalty UI before that contract gate.
+  Claude next: independently review 461d0b1 in correctness/data-integrity,
+    analytics parity, backward compatibility, missing tests, UX, then efficiency
+    order. Focus especially on multiple-foul reconciliation, confirmed-situation
+    authority, CSV malformed-input behavior, exact film refs, and legacy
+    quarantine. Do not alter or clear legacy penalty data during review.
   Special Teams redesign is now specified in GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md
     as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
     charting. Use a phase-first, subject-role contract, derive scoring from the
-    event, and make ruleset-sensitive calculations fail honestly. Next is an
+    event, and make ruleset-sensitive calculations fail honestly.
     Phase 4E stack 0308486..994e30d is ready for Claude's comprehensive review.
-    Beta critical path: implement structured penalties from
-    GRIDIRON-IQ-PENALTY-MODEL.md, resolve review findings, run integrated desktop
+    Beta critical path: review structured penalties at 461d0b1, resolve findings,
+    run integrated desktop
     smoke on real film, then package an opt-in beta with the redesign flag still
     reversible. No legacy Special Teams cleanup without explicit confirmation.
   Claude in-lane options, none started:

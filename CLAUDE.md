@@ -168,6 +168,20 @@ incomplete; never infer charged team/foul/yards from old fields. **Next action:*
 independent review of the contract, then P4D-a pure normalization and failing-
 first persistence tests before any penalty UI.
 
+**Phase 4D structured penalties are implemented (`461d0b1`, Codex) and ready
+for independent review.** `PenaltyModel` stores multiple fouls per play with
+charged team, foul, accepted/declined/offsetting ruling, actual enforced yards,
+play-count status, phase, player, and notes. The coach can explicitly confirm
+the next down/distance/spot; Auto D&D uses only that complete confirmation and
+otherwise refuses to guess. Film Room, Study, Game reports, HTML export, and
+CSV round-trip consume the structured model. Flagged plays and foul records are
+separate; declined/offsetting yards never enter accepted-yard totals. Legacy
+Penalty Result values remain intact, incomplete, and unmigrated. New standing
+rule: known-bad data is not migrated; any cleanup requires permission and an
+explicit confirmation immediately before clearing. Focused gates: contract
+6/6, Break Down 39/39, registry 24/24, CSV 8/8, parity 2/2. Fresh atomic full
+gate: 46/46. No release or flag-default change.
+
 **Special Teams redesign direction (2026-07-13):** the coach rejected the
 legacy `Scored by Us/Them` workflow as confusing and asked for a comparable-app
 review plus a rebuild if warranted. The rebuild is warranted. The researched
