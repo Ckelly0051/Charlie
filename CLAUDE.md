@@ -343,6 +343,18 @@ had uncommitted study-screen fixes in-tree; plans is dormant so the bundle is
 unaffected — it rides in on the next legit build). NEXT: the Plan UI + a "save this
 Study finding to a plan" action, then Watch-a-plan through the cross-game player.
 
+**Phase 3 Plan UI + Study integration is complete (`affd78f`, Codex).** Claude's
+pure `StudyPlan` adapter (13/13) is now wired with a dedicated responsive
+`PlanScreen`. Study can save its current exact composite-ref result set into the
+active season plan; Plan supports create/select/rename, staff notes, item removal,
+item Watch, and whole-plan Watch through the proven cross-game Study player. Every
+mutation uses the `SeasonStore` plan seam and persists immediately. The former
+Plan placeholder is gone. Focused gates: plan contract 22/22, StudyPlan 13/13,
+combined Study/Plan browser workflow 32/32 including mobile overflow; final fresh
+bundle + every e2e harness passed atomically. Shell remains opt-in; no release/tag.
+Next: Claude independently reviews `affd78f`, then Phase 3 ordering/presentation/
+export can be scoped.
+
 **A3 restore-ring migration is complete (`0fc9ee4`, flag-gated).** Restore points
 now persist as ROWS in the shared `library.db` (`SqlCatalog.backups`, pruned to
 RETENTION 25) instead of per-season `backups/season_<ts>.json` files — the next

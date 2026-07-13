@@ -458,13 +458,14 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 0064c1a  Study visual review fixes + fresh bundle (Codex)
+Latest implementation: affd78f  Plan UI + Study-to-Plan workflow (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
   unchanged (synthetic + real 6-game); 0 page errors.
 
 Recent redesign commits (newest first):
+  affd78f  Phase 3 Plan workspace, Study save, and cross-game Watch
   0064c1a  Resolve visual Study metric, polarity, and accessibility review
   64c284f  Phase 3 additive season-level plans:[] contract (Claude)
   a115d73  Study KPI, effectiveness, run/pass, and comparison visuals
@@ -514,8 +515,9 @@ Lane status:
     six review follow-ups resolved at 47cecc0.
 
 NEXT ACTIONS
-  Coach + agents: cross-game Study playback is complete and reviewed. Select the
-    next Phase 2/3 product increment before either agent starts a shared surface.
+  Claude: independently review affd78f for persistence correctness, XSS/accessibility,
+    exact Study-ref parity, Plan item/whole-plan Watch, and responsive behavior.
+  Codex: hold Phase 3 ordering/presentation/export until that review returns.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
