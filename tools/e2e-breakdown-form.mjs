@@ -243,6 +243,15 @@ ok(!state.legacyResult.includes('Penalty'), 'Structured penalty entry does not a
 ok(state.preset.includes('penalty') && /Holding/.test(state.penaltyCell) && /Subject 8/.test(state.penaltyYards), 'Film Room summarizes structured penalties without a competing inline editor', JSON.stringify(state));
 ok(state.studyFouls.join(',')==='Holding,Facemask' && state.studyRulings.join(',')==='accepted,declined', 'Study exposes every foul and ruling as film-linked dimensions', JSON.stringify(state));
 ok(state.summary.flaggedPlays===1 && state.summary.fouls===2 && state.summary.accepted===1 && state.summary.declined===1 && state.summary.subjectYards===8 && /data-cut-type="penaltyFoul"/.test(state.report), 'Penalty report separates plays, foul records, rulings, accepted yards, and film links', JSON.stringify(state));
+state = await page.evaluate(() => {
+  const suggestions = [...document.querySelectorAll('#bdvPenaltyFouls option')].map(option => option.value);
+  const yards = document.querySelector('[data-pen-input="0:yards"]');
+  yards.value = '9'; yards.dispatchEvent(new Event('change', { bubbles:true }));
+  const play = window.app.tagger.plays[0];
+  return { suggestions, confirmed:play.resultingSituation?.confirmed, next:window.app.tagger.computeNextSituation(play) };
+});
+ok(state.suggestions.includes('False Start') && state.suggestions.includes('Defensive Pass Interference') && state.suggestions.includes('Roughing the Kicker'), 'Penalty foul suggestions cover offense, defense, and Special Teams while allowing custom text', JSON.stringify(state));
+ok(state.confirmed===false && state.next===null, 'Changing enforcement invalidates a previously confirmed next situation', JSON.stringify(state));
 
 await page.evaluate(() => document.querySelector('[data-pen-remove="0"]').click());
 await page.waitForSelector('#ffaConfirmModal');

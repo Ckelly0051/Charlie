@@ -44,6 +44,7 @@ import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
 import { SeasonLibrary } from './season-library.js';
 import { PlayGrid } from './play-grid.js';
+import { configureBetaDefaults } from './beta-config.js';
 
 /**
  * Single source of truth for the displayed app version. Keep in lockstep with
@@ -51,10 +52,11 @@ import { PlayGrid } from './play-grid.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.4';
+const APP_VERSION = '1.12.0-beta.1';
 
 class App {
   constructor() {
+    configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
     // Initialize components
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);

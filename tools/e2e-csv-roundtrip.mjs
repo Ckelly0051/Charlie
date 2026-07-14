@@ -32,6 +32,9 @@ const res = await page.evaluate(async () => {
       { id: 'p2', team: 'opponent', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true, phase: 'defense' },
     ], resultingSituation: { down: '1', distance: '10', fieldSide: 'opp', yardLine: '35', confirmed: true }, tags: { formation: 'A"B', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '-5', down: '1', distance: '10', custom: [], players: {}, grades: {} } },
     { id: 2, timestamp: { start: 0, end: 5 }, notes: '', annotations: [], tags: { formation: '=EVIL', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '7', down: '2', distance: '4', custom: [], players: {}, grades: {} } },
+    { id: 3, timestamp: { start: 0, end: 0 }, notes: '', annotations: [], penalties: [
+      { id: 'p3', team: 'subject', foul: 'False Start', disposition: 'accepted', yards: 5, playCounts: false, phase: 'offense' },
+    ], tags: { formation: '', playType: '', runPass: '', result: '', yardage: '', down: '', distance: '', custom: [], players: {}, grades: {} } },
   ];
   let blob = null;
   sm._download = (b) => { blob = b; };
@@ -42,9 +45,10 @@ const res = await page.evaluate(async () => {
   sm.tagger.nextId = 1;
   sm.applyPlayImport(parsed);
   const structured = sm.tagger.plays[0];
+  const penaltyOnly = sm.tagger.plays.find(play => play.penalties?.[0]?.foul === 'False Start');
   const roundtrippedQuote = (parsed.lines || []).some(row => row.some(c => c === 'A"B'));
   const roundtrippedNotes = (parsed.lines || []).some(row => row.some(c => c === 'said "hi", ok'));
-  return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties, situation: structured?.resultingSituation };
+  return { csv, roundtrippedQuote, roundtrippedNotes, penalties: structured?.penalties, situation: structured?.resultingSituation, penaltyOnly };
 });
 
 ok(res.csv.includes('"A""B"'), 'embedded quote in formation is escaped ("→"") on export', JSON.stringify(res.csv.split('\n')[1]?.slice(0, 60)));
@@ -55,6 +59,7 @@ ok(res.roundtrippedQuote, 'export→import round-trips a doubled "" back to a li
 ok(res.roundtrippedNotes, 'export→import round-trips notes containing a quote and a comma');
 ok(res.penalties?.length === 2 && res.penalties[0].yards === 8 && res.penalties[1].disposition === 'declined', 'export→import preserves multiple structured penalties');
 ok(res.situation?.confirmed === true && res.situation?.fieldSide === 'opp' && res.situation?.yardLine === '35', 'export→import preserves the coach-confirmed resulting situation');
+ok(res.penaltyOnly?.penalties?.[0]?.yards === 5, 'CSV import retains a structured penalty-only row without legacy charting fields');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

@@ -29,6 +29,10 @@ const play = (i, clip) => ({
   clipId: i, clipName: clip, clipPath: `Wk1/${clip}`,
   tags: { unit: i % 3 === 1 ? 'defense' : 'offense', down: String(1 + (i % 4)), distance: '10', formation: 'Shotgun + Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 9), players: {}, grades: {}, custom: [] },
   annotations: [], notes: i % 5 === 0 ? `note ${i}` : '',
+  ...(i === 1 ? {
+    penalties: [{ id:`pen_${clip}`, team:'subject', phase:'defense', foul:'Holding', disposition:'accepted', yards:8, playCounts:false, player:'72', automaticFirstDown:null, lossOfDown:null, notes:'half distance', legacy:false }],
+    resultingSituation: { down:'1', distance:'10', fieldSide:'opp', yardLine:'35', confirmed:true },
+  } : {}),
 });
 const clipRef = (clip) => ({ id: `Wk1/${clip}`, originalName: `${clip}.MOV`, originalRelativePath: `Wk1/${clip}`, displayName: clip, duration: 12.5, importStatus: 'ready' });
 const mkGame = (gid, n, withClips) => {
@@ -59,6 +63,8 @@ cat.saveSeason(synthetic);
 const back = cat.loadSeason('sea_synth');
 ok(deepEq(back, norm(synthetic)), 'synthetic season round-trips losslessly',
   back ? `games ${back.games.length}/${synthetic.games.length}` : 'null');
+ok(back.games[0].plays[0].penalties[0].yards === 8 && back.games[0].plays[0].resultingSituation.confirmed === true,
+  'structured penalty tags and confirmed resulting situation are canonical SQL data');
 
 // 2. clips are first-class rows
 const clipRows = cat._get('SELECT COUNT(*) n FROM clips').n;

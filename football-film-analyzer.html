@@ -10553,6 +10553,23 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 
   <script>
 
+// ===== beta-config.js =====
+/** Apply beta-only desktop defaults once, while preserving later coach choices. */
+function configureBetaDefaults(storage, isDesktop, version) {
+  if (!isDesktop || !String(version).includes('-beta.')) return false;
+  const marker = `ffa_beta_defaults_${version}`;
+  try {
+    if (storage.getItem(marker) === '1') return false;
+    storage.setItem('ffa_workspace_shell_v2', '1');
+    storage.setItem('ffa_breakdown_form_v2', '1');
+    storage.setItem('ffa_sql_catalog', '1');
+    storage.setItem(marker, '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ===== special-teams.js =====
 /**
  * Pure Phase 4E special-teams contract. No DOM, storage, or app dependencies.
@@ -18322,7 +18339,7 @@ ${body}
       }
 
       // Skip rows with no useful data
-      if (!tags.playType && !tags.result && !tags.yardage && !tags.down) continue;
+      if (!tags.playType && !tags.result && !tags.yardage && !tags.down && !penalties.length) continue;
 
       const play = {
         id: this.tagger.nextId++,
@@ -34065,7 +34082,8 @@ class BreakdownForm {
     const legacy = !penalties.length && String(play?.tags?.result || '').split(/\s*\+\s*/).includes('Penalty');
     const subject = this.form.classList.contains('is-scout') ? 'Scouted team' : 'Our team';
     const other = this.form.classList.contains('is-scout') ? 'Other team' : 'Opponent';
-    section.innerHTML = `<div class="bdv-pen-head"><div><strong>Penalties</strong><span>${penalties.length ? `${penalties.length} foul${penalties.length === 1 ? '' : 's'}` : 'None charted'}</span></div><button type="button" class="btn btn-sm" data-pen-add>Add penalty</button></div>
+    const foulOptions = ['False Start','Holding','Illegal Formation','Illegal Motion','Delay of Game','Ineligible Receiver','Offensive Pass Interference','Intentional Grounding','Offside','Encroachment','Defensive Pass Interference','Facemask','Roughing the Passer','Personal Foul','Unsportsmanlike','Targeting','Block in the Back','Kick Catch Interference','Illegal Block','Roughing the Kicker','Running Into Kicker','Illegal Substitution'];
+    section.innerHTML = `<datalist id="bdvPenaltyFouls">${foulOptions.map(value => `<option value="${value}"></option>`).join('')}</datalist><div class="bdv-pen-head"><div><strong>Penalties</strong><span>${penalties.length ? `${penalties.length} foul${penalties.length === 1 ? '' : 's'}` : 'None charted'}</span></div><button type="button" class="btn btn-sm" data-pen-add>Add penalty</button></div>
       ${legacy ? '<div class="bdv-pen-legacy">Legacy penalty · details uncharted</div>' : ''}
       <div class="bdv-pen-list">${penalties.map((penalty, index) => this._penaltyCard(penalty, index, subject, other)).join('')}</div>
       ${penalties.length ? this._resultingSituation(play?.resultingSituation) : ''}`;
@@ -34103,7 +34121,8 @@ class BreakdownForm {
     return unit === 'special' ? 'special' : unit === 'defense' ? 'defense' : 'offense';
   }
 
-  _savePenaltyPlay(play) {
+  _savePenaltyPlay(play, invalidateSituation = false) {
+    if (invalidateSituation && play.resultingSituation?.confirmed) play.resultingSituation.confirmed = false;
     PenaltyModel.normalizePlay(play);
     this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
@@ -34115,7 +34134,7 @@ class BreakdownForm {
     if (!play) return;
     if (event.target.closest('[data-pen-add]')) {
       play.penalties = PenaltyModel.normalizeList([...(play.penalties || []), { team:'subject', phase:this._penaltyPhase(play), foul:'', disposition:'accepted', yards:null, playCounts:null, player:'', automaticFirstDown:null, lossOfDown:null, notes:'', legacy:false }]);
-      this._savePenaltyPlay(play); return;
+      this._savePenaltyPlay(play, true); return;
     }
     const remove = event.target.closest('[data-pen-remove]');
     if (remove) {
@@ -34123,7 +34142,7 @@ class BreakdownForm {
       if (!ok) return;
       play.penalties.splice(Number(remove.dataset.penRemove), 1);
       if (!play.penalties.length) delete play.resultingSituation;
-      this._savePenaltyPlay(play); return;
+      this._savePenaltyPlay(play, true); return;
     }
     const chip = event.target.closest('[data-pen-chip]');
     if (!chip) return;
@@ -34131,7 +34150,7 @@ class BreakdownForm {
     const penalty = play.penalties?.[Number(indexRaw)];
     if (!penalty) return;
     penalty[field] = field === 'playCounts' ? (raw === 'true' ? true : raw === 'false' ? false : null) : raw;
-    this._savePenaltyPlay(play);
+    this._savePenaltyPlay(play, true);
   }
 
   _onPenaltyChange(event) {
@@ -34142,7 +34161,7 @@ class BreakdownForm {
       const penalty = play.penalties?.[Number(indexRaw)];
       if (!penalty) return;
       penalty[field] = field === 'yards' ? (event.target.value === '' ? null : Number(event.target.value)) : event.target.value;
-      this._savePenaltyPlay(play); return;
+      this._savePenaltyPlay(play, true); return;
     }
     const field = event.target.dataset.penSit;
     if (!field) return;
@@ -34737,10 +34756,11 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.11.4';
+const APP_VERSION = '1.12.0-beta.1';
 
 class App {
   constructor() {
+    configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
     // Initialize components
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);

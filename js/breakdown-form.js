@@ -131,7 +131,8 @@ export class BreakdownForm {
     const legacy = !penalties.length && String(play?.tags?.result || '').split(/\s*\+\s*/).includes('Penalty');
     const subject = this.form.classList.contains('is-scout') ? 'Scouted team' : 'Our team';
     const other = this.form.classList.contains('is-scout') ? 'Other team' : 'Opponent';
-    section.innerHTML = `<div class="bdv-pen-head"><div><strong>Penalties</strong><span>${penalties.length ? `${penalties.length} foul${penalties.length === 1 ? '' : 's'}` : 'None charted'}</span></div><button type="button" class="btn btn-sm" data-pen-add>Add penalty</button></div>
+    const foulOptions = ['False Start','Holding','Illegal Formation','Illegal Motion','Delay of Game','Ineligible Receiver','Offensive Pass Interference','Intentional Grounding','Offside','Encroachment','Defensive Pass Interference','Facemask','Roughing the Passer','Personal Foul','Unsportsmanlike','Targeting','Block in the Back','Kick Catch Interference','Illegal Block','Roughing the Kicker','Running Into Kicker','Illegal Substitution'];
+    section.innerHTML = `<datalist id="bdvPenaltyFouls">${foulOptions.map(value => `<option value="${value}"></option>`).join('')}</datalist><div class="bdv-pen-head"><div><strong>Penalties</strong><span>${penalties.length ? `${penalties.length} foul${penalties.length === 1 ? '' : 's'}` : 'None charted'}</span></div><button type="button" class="btn btn-sm" data-pen-add>Add penalty</button></div>
       ${legacy ? '<div class="bdv-pen-legacy">Legacy penalty · details uncharted</div>' : ''}
       <div class="bdv-pen-list">${penalties.map((penalty, index) => this._penaltyCard(penalty, index, subject, other)).join('')}</div>
       ${penalties.length ? this._resultingSituation(play?.resultingSituation) : ''}`;
@@ -169,7 +170,8 @@ export class BreakdownForm {
     return unit === 'special' ? 'special' : unit === 'defense' ? 'defense' : 'offense';
   }
 
-  _savePenaltyPlay(play) {
+  _savePenaltyPlay(play, invalidateSituation = false) {
+    if (invalidateSituation && play.resultingSituation?.confirmed) play.resultingSituation.confirmed = false;
     PenaltyModel.normalizePlay(play);
     this.tagger._updateTimeline();
     this.tagger._emit('play-updated', play);
@@ -181,7 +183,7 @@ export class BreakdownForm {
     if (!play) return;
     if (event.target.closest('[data-pen-add]')) {
       play.penalties = PenaltyModel.normalizeList([...(play.penalties || []), { team:'subject', phase:this._penaltyPhase(play), foul:'', disposition:'accepted', yards:null, playCounts:null, player:'', automaticFirstDown:null, lossOfDown:null, notes:'', legacy:false }]);
-      this._savePenaltyPlay(play); return;
+      this._savePenaltyPlay(play, true); return;
     }
     const remove = event.target.closest('[data-pen-remove]');
     if (remove) {
@@ -189,7 +191,7 @@ export class BreakdownForm {
       if (!ok) return;
       play.penalties.splice(Number(remove.dataset.penRemove), 1);
       if (!play.penalties.length) delete play.resultingSituation;
-      this._savePenaltyPlay(play); return;
+      this._savePenaltyPlay(play, true); return;
     }
     const chip = event.target.closest('[data-pen-chip]');
     if (!chip) return;
@@ -197,7 +199,7 @@ export class BreakdownForm {
     const penalty = play.penalties?.[Number(indexRaw)];
     if (!penalty) return;
     penalty[field] = field === 'playCounts' ? (raw === 'true' ? true : raw === 'false' ? false : null) : raw;
-    this._savePenaltyPlay(play);
+    this._savePenaltyPlay(play, true);
   }
 
   _onPenaltyChange(event) {
@@ -208,7 +210,7 @@ export class BreakdownForm {
       const penalty = play.penalties?.[Number(indexRaw)];
       if (!penalty) return;
       penalty[field] = field === 'yards' ? (event.target.value === '' ? null : Number(event.target.value)) : event.target.value;
-      this._savePenaltyPlay(play); return;
+      this._savePenaltyPlay(play, true); return;
     }
     const field = event.target.dataset.penSit;
     if (!field) return;

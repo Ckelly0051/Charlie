@@ -1433,7 +1433,7 @@ ${body}
       }
 
       // Skip rows with no useful data
-      if (!tags.playType && !tags.result && !tags.yardage && !tags.down) continue;
+      if (!tags.playType && !tags.result && !tags.yardage && !tags.down && !penalties.length) continue;
 
       const play = {
         id: this.tagger.nextId++,

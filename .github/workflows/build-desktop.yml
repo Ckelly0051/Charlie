@@ -87,6 +87,7 @@ jobs:
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('GridIron IQ {0}', github.ref_name) || '' }}
           releaseDraft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           releaseBody: 'Desktop installers for GridIron IQ. Windows users: grab the .exe (NSIS) or .msi.'
 
       - name: Upload installers as artifact
