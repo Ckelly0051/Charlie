@@ -610,7 +610,10 @@ Lane status:
     close/reopen pins penalties and resultingSituation over synthetic and real
     6-game data. Rust check and fresh atomic full gate 47/47. The release is a
     GitHub prerelease; stable updater clients remain on v1.11.4. Coach is the
-    sole remaining reviewer/smoke tester.
+    sole remaining reviewer/smoke tester. `v1.12.0-2` packaging completed on all
+    three runners (Windows EXE/MSI, macOS DMG, Linux); the earlier textual
+    `v1.12.0-beta.1` tag is superseded after Windows rejected its nonnumeric MSI
+    prerelease identifier.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.

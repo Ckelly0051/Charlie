@@ -287,6 +287,9 @@ penalty-only row. SQL regression explicitly pins penalties and resultingSituatio
 through close/reopen, including the real 6-game fixture. Rust check green; fresh
 atomic gate 47/47; parity goldens unchanged. GitHub tag must be a prerelease so
 stable v1.11.4 clients do not receive it through the latest updater endpoint.
+Published replacement tag `v1.12.0-2` is confirmed prerelease; Windows EXE/MSI,
+macOS DMG, and Linux packages all built successfully. The textual tag
+`v1.12.0-beta.1` failed only at Windows MSI version validation and is superseded.
 
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
