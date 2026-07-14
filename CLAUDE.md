@@ -274,7 +274,7 @@ real managed/linked film; then package the redesign behind its reversible flag.
 At the current pace this is approximately 3-5 focused build/review sessions,
 assuming no gate exposes a new persistence or analytics defect.
 
-**v1.12.0-beta.1 functional desktop beta (`e6573b1`, Codex self-review).** The
+**v1.12.0-2 functional desktop beta (`e6573b1` plus packaging correction, Codex self-review).** The
 coach is the sole product reviewer and smoke tester. This is not prototype or
 temporary storage: first desktop launch enables the workspace shell, redesigned
 Break Down form, and SQL catalog, and all charting writes to the canonical

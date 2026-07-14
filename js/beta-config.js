@@ -1,6 +1,6 @@
 /** Apply beta-only desktop defaults once, while preserving later coach choices. */
 export function configureBetaDefaults(storage, isDesktop, version) {
-  if (!isDesktop || !String(version).includes('-beta.')) return false;
+  if (!isDesktop || !/-\d+$/.test(String(version))) return false;
   const marker = `ffa_beta_defaults_${version}`;
   try {
     if (storage.getItem(marker) === '1') return false;

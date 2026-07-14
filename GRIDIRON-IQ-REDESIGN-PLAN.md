@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: e6573b1  v1.12.0-beta.1 functional desktop beta (Codex)
+Latest implementation: e6573b1 + packaging correction  v1.12.0-2 functional desktop beta (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,7 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
-  e6573b1  v1.12.0-beta.1 packaging + penalty self-review fixes
+  e6573b1  functional beta packaging + penalty self-review fixes
   461d0b1  P4D structured multi-foul charting, Auto D&D, Film Room, Study, reports, CSV
   994e30d  P4E-c structured Film Room, Study, and Advanced Reports integration
   42e5a00  P4E-b phase-first structured Special Teams charting UI
@@ -602,7 +602,7 @@ Lane status:
     cleanup requires coach permission plus explicit immediate confirmation.
     Focused contract 6/6, Break Down 39/39, registry 24/24, CSV 8/8, parity 2/2;
     fresh atomic full gate 46/46. Superseded by the self-review and beta gate below.
-  Codex self-reviewed Phase 4D and packaged v1.12.0-beta.1 at e6573b1. Fixed
+  Codex self-reviewed Phase 4D and packaged the functional beta at e6573b1. Fixed
     stale resulting-situation confirmation after enforcement edits, the missing
     foul suggestion datalist, and penalty-only CSV row loss. The beta enables
     shell + redesigned Break Down + SQL catalog once on first desktop launch;
@@ -624,7 +624,7 @@ NEXT ACTIONS
     historical values across tag form + Film Room, custom Front semantics,
     Power-I preservation, editor focus/keyboard behavior, flag-off purity,
     perspective synchronization, complete field reachability, and mobile overflow.
-  Coach next: install v1.12.0-beta.1 and run the real-film smoke. Re-tagged data
+  Coach next: install v1.12.0-2 and run the real-film smoke. Re-tagged data
     is intended to be permanent. Verify reopen, game switching, backup creation,
     one restore on a copy/checkpoint, managed and linked playback, penalty and
     Special Teams charting, Study film links, and Plan export. Report product
