@@ -274,6 +274,20 @@ real managed/linked film; then package the redesign behind its reversible flag.
 At the current pace this is approximately 3-5 focused build/review sessions,
 assuming no gate exposes a new persistence or analytics defect.
 
+**v1.12.0-beta.1 functional desktop beta (`e6573b1`, Codex self-review).** The
+coach is the sole product reviewer and smoke tester. This is not prototype or
+temporary storage: first desktop launch enables the workspace shell, redesigned
+Break Down form, and SQL catalog, and all charting writes to the canonical
+season plus the existing JSON/Documents safety paths and backup ring. A one-time
+beta marker preserves a later choice to use classic layout. The self-review
+found and fixed three issues before packaging: enforcement edits now invalidate
+a stale confirmed next situation; the missing offense/defense/Special Teams
+foul suggestion datalist is real; and CSV no longer drops a structured
+penalty-only row. SQL regression explicitly pins penalties and resultingSituation
+through close/reopen, including the real 6-game fixture. Rust check green; fresh
+atomic gate 47/47; parity goldens unchanged. GitHub tag must be a prerelease so
+stable v1.11.4 clients do not receive it through the latest updater endpoint.
+
 **Copy QA complete:** `Special Teams` is capitalized consistently in the
 redesigned prototype and opt-in production Study unit selector; the Study harness
 pins the production label.

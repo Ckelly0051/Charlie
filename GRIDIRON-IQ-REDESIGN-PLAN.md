@@ -463,7 +463,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
 Branch: claude/football-film-analyzer-GRiCW
-Latest implementation: 461d0b1  Phase 4D structured penalty stack (Codex)
+Latest implementation: e6573b1  v1.12.0-beta.1 functional desktop beta (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   command — the env bumps js mtimes between build and test, so a separate build
   then gate makes e2e-parity's stale-bundle guard false-fail); parity golden
@@ -473,6 +473,7 @@ Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one
   its hardened focused review harness is 14/14.
 
 Recent redesign commits (newest first):
+  e6573b1  v1.12.0-beta.1 packaging + penalty self-review fixes
   461d0b1  P4D structured multi-foul charting, Auto D&D, Film Room, Study, reports, CSV
   994e30d  P4E-c structured Film Room, Study, and Advanced Reports integration
   42e5a00  P4E-b phase-first structured Special Teams charting UI
@@ -600,7 +601,16 @@ Lane status:
     Result is never inferred, promoted, removed, or cleared. Any known-bad-data
     cleanup requires coach permission plus explicit immediate confirmation.
     Focused contract 6/6, Break Down 39/39, registry 24/24, CSV 8/8, parity 2/2;
-    fresh atomic full gate 46/46. Independent review is pending.
+    fresh atomic full gate 46/46. Superseded by the self-review and beta gate below.
+  Codex self-reviewed Phase 4D and packaged v1.12.0-beta.1 at e6573b1. Fixed
+    stale resulting-situation confirmation after enforcement edits, the missing
+    foul suggestion datalist, and penalty-only CSV row loss. The beta enables
+    shell + redesigned Break Down + SQL catalog once on first desktop launch;
+    this is canonical persistent charting, not a disposable test store. SQL
+    close/reopen pins penalties and resultingSituation over synthetic and real
+    6-game data. Rust check and fresh atomic full gate 47/47. The release is a
+    GitHub prerelease; stable updater clients remain on v1.11.4. Coach is the
+    sole remaining reviewer/smoke tester.
 
 NEXT ACTIONS
   R5: COMPLETE after the 2026-07-13 real-desktop managed + linked smoke.
@@ -614,20 +624,18 @@ NEXT ACTIONS
     historical values across tag form + Film Room, custom Front semantics,
     Power-I preservation, editor focus/keyboard behavior, flag-off purity,
     perspective synchronization, complete field reachability, and mobile overflow.
-  Claude next: independently review 461d0b1 in correctness/data-integrity,
-    analytics parity, backward compatibility, missing tests, UX, then efficiency
-    order. Focus especially on multiple-foul reconciliation, confirmed-situation
-    authority, CSV malformed-input behavior, exact film refs, and legacy
-    quarantine. Do not alter or clear legacy penalty data during review.
+  Coach next: install v1.12.0-beta.1 and run the real-film smoke. Re-tagged data
+    is intended to be permanent. Verify reopen, game switching, backup creation,
+    one restore on a copy/checkpoint, managed and linked playback, penalty and
+    Special Teams charting, Study film links, and Plan export. Report product
+    findings directly; no additional agent review is required.
   Special Teams redesign is now specified in GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md
     as Phase 4E. The current `scoreFor` Us/Them workflow is rejected for new
     charting. Use a phase-first, subject-role contract, derive scoring from the
     event, and make ruleset-sensitive calculations fail honestly.
     Phase 4E stack 0308486..994e30d is ready for Claude's comprehensive review.
-    Beta critical path: review structured penalties at 461d0b1, resolve findings,
-    run integrated desktop
-    smoke on real film, then package an opt-in beta with the redesign flag still
-    reversible. No legacy Special Teams cleanup without explicit confirmation.
+    Beta critical path: package complete; coach smoke is the remaining gate.
+    No legacy Special Teams or penalty cleanup without explicit confirmation.
   Claude in-lane options, none started:
     (a) GHOST PLAYS — investigated 2026-07-12 (code read, not yet fixed). The coach
         thinks it was his own dup-named clips; partly true, but the code read found
