@@ -1,36 +1,31 @@
 /**
- * Opt-in composition layer for the production tag form. It moves no controls
- * and owns no tag state; existing PlayTagger fields remain the only data path.
+ * Opt-in composition layer for the production tag form. It moves the existing
+ * controls into coach-facing groups and owns no tag state; PlayTagger remains
+ * the only data path.
  */
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 
 export class BreakdownForm {
   static FLAG = 'ffa_breakdown_form_v2';
-  static SECTIONS = [
-    { before: '.tag-side-groups', key: 'look', title: 'Pre-snap look', detail: 'formation, personnel, structure' },
-    { before: '.core-hide-st', key: 'play', title: 'Play & result', detail: 'call, direction, outcome' },
-    { before: '#tagPlayersSection', key: 'people', title: 'Players & grades', detail: 'individual performance' },
-    { before: '.tag-notes', key: 'notes', title: 'Notes & details', detail: 'staff context and field position' },
-  ];
-
-  constructor(tagger, { storage } = {}) {
+  constructor(tagger, { storage, tagLibrarySettings } = {}) {
     this.tagger = tagger;
     this.form = tagger.tagForm;
     this.storage = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+    this.tagLibrarySettings = tagLibrarySettings || null;
     if (!this.form || !this.enabled()) return;
     this.mount();
   }
 
-  enabled() { try { return this.storage?.getItem(BreakdownForm.FLAG) === '1'; } catch { return false; } }
+  enabled() { try { return this.storage?.getItem(BreakdownForm.FLAG) === '1' || this.storage?.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
 
   mount() {
     if (this.form.classList.contains('breakdown-form-v2')) return;
     this.form.classList.add('breakdown-form-v2');
-    this._addHeader();
-    this._addSectionLabels();
     this._mountSpecialTeams();
     this._mountPenalties();
+    this._composeGroups();
+    this._mountLibraryLinks();
     this._syncPerspective();
     this.observer = new MutationObserver(records => {
       if (records.some(record => record.attributeName === 'class')) this._syncPerspective();
@@ -38,24 +33,67 @@ export class BreakdownForm {
     this.observer.observe(this.form, { attributes: true, attributeFilter: ['class'] });
   }
 
-  _addHeader() {
-    const unit = this.form.querySelector('.unit-toggle-section');
-    if (!unit) return;
-    const header = document.createElement('div');
-    header.className = 'bdv-head';
-    header.innerHTML = '<div><span>Charting view</span><strong id="bdvPerspective">Offensive self-scout</strong><small>No tag is required</small></div>';
-    unit.insertAdjacentElement('afterend', header);
+  _group(key, title, detail, nodes, open = false) {
+    const live = nodes.filter(Boolean);
+    if (!live.length) return null;
+    const details = document.createElement('details');
+    details.className = `bdv-group bdv-group-${key}`;
+    details.dataset.bdvGroup = key;
+    details.open = open;
+    details.innerHTML = `<summary><strong>${title}</strong><span>${detail}</span><i aria-hidden="true">▾</i></summary><div class="bdv-group-body"></div>`;
+    live[0].insertAdjacentElement('beforebegin', details);
+    details.querySelector('.bdv-group-body').append(...live);
+    return details;
   }
 
-  _addSectionLabels() {
-    for (const section of BreakdownForm.SECTIONS) {
-      const target = this.form.querySelector(section.before);
-      if (!target || this.form.querySelector(`[data-bdv-section="${section.key}"]`)) continue;
-      const label = document.createElement('div');
-      label.className = 'bdv-section-label';
-      label.dataset.bdvSection = section.key;
-      label.innerHTML = `<strong>${section.title}</strong><span>${section.detail}</span>`;
-      target.insertAdjacentElement('beforebegin', label);
+  _composeGroups() {
+    const sideGroups = this.form.querySelector('.tag-side-groups');
+    const down = this.form.querySelector('#tagDown')?.closest('.chip-section');
+    const legacyDetails = this.form.querySelector('.chip-details');
+    const detailSections = legacyDetails ? [...legacyDetails.querySelectorAll(':scope > .chip-section')] : [];
+    const situation = detailSections.filter(section => section.querySelector('#tagHash, #tagQuarter, #tagFieldSide'));
+    this._group('situation', 'Situation', 'down, distance, field position', [down, ...situation], true);
+
+    const playNodes = [...this.form.children].filter(node =>
+      node.classList?.contains('core-hide-st') || node.querySelector?.('#tagResult, #tagYardage'));
+    const play = this._group('play', 'Play & Result', 'call, direction, outcome', playNodes, true);
+    if (sideGroups && play) sideGroups.append(play);
+
+    this._group('penalties', 'Penalties', 'foul, enforcement, resulting situation', [this.form.querySelector('.bdv-penalties')]);
+    this._group('people', 'Players & Grades', 'individual performance and responsibility', [this.form.querySelector('#tagPlayersSection')]);
+    this._group('notes', 'Notes & Details', 'staff notes, custom fields, drive context', [
+      this.form.querySelector('#customFieldsSection'), this.form.querySelector('.tag-notes'), legacyDetails,
+    ]);
+    this._moveTemplateTools();
+  }
+
+  _moveTemplateTools() {
+    const helpers = this.form.querySelector('.tag-helpers');
+    const nav = this.form.querySelector('.tag-nav');
+    if (!helpers || !nav || this.form.querySelector('.bdv-template-tools')) return;
+    const details = document.createElement('details');
+    details.className = 'bdv-template-tools';
+    details.innerHTML = '<summary>Templates <span>Reusable staff presets</span><i aria-hidden="true">▾</i></summary><div></div>';
+    details.querySelector('div').append(helpers);
+    nav.insertAdjacentElement('beforebegin', details);
+  }
+
+  _mountLibraryLinks() {
+    const groups = [['tagFormation','formation'], ['tagBackfield','backfield'], ['tagDefFront','front']];
+    for (const [id, group] of groups) {
+      const label = this.form.querySelector(`#${id}`)?.previousElementSibling;
+      if (!label || label.querySelector('[data-edit-library]')) continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'bdv-field-link';
+      button.dataset.editLibrary = group;
+      button.textContent = 'Edit library';
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.tagLibrarySettings?.open(group);
+      });
+      label.append(button);
     }
   }
 
@@ -69,13 +107,16 @@ export class BreakdownForm {
     this._label(offense, unit === 'defense' ? 'Offense Faced' : `${subject} Offensive Look`);
     this._label(defense, unit === 'offense' ? 'Defense Faced' : `${subject} Defensive Call`);
     this._label(special, `${subject} Special Teams`);
-    const perspective = this.form.querySelector('#bdvPerspective');
-    if (perspective) perspective.textContent = `${scout ? 'Opponent scout' : 'Self-scout'} · ${unit === 'special' ? 'Special Teams' : unit[0].toUpperCase() + unit.slice(1)}`;
-    const look = this.form.querySelector('[data-bdv-section="look"] strong');
-    if (look) look.textContent = unit === 'special' ? `${subject} Special Teams` : unit === 'defense' ? `${subject} Defensive Call` : `${subject} Offensive Look`;
-    const people = this.form.querySelector('[data-bdv-section="people"] span');
+    const people = this.form.querySelector('[data-bdv-group="people"] summary span');
     if (people) people.textContent = unit === 'defense' ? 'tackles, takeaways, and grades' : unit === 'special' ? 'specialists live in the phase above' : 'ball carrier, passer, receiver, and grades';
     if (unit === 'special') this.loadPlay(this.tagger.getCurrentPlay());
+    const side = this.form.querySelector('.tag-side-groups');
+    const primary = unit === 'defense' ? this.form.querySelector('.group-defense') : unit === 'special' ? this.form.querySelector('.group-special') : this.form.querySelector('.group-offense');
+    const faced = unit === 'defense' ? this.form.querySelector('.group-offense') : this.form.querySelector('.group-defense');
+    const play = this.form.querySelector('[data-bdv-group="play"]');
+    if (side && primary) side.prepend(primary);
+    if (side && play && unit !== 'special') primary?.insertAdjacentElement('afterend', play);
+    if (side && faced && unit !== 'special') play?.insertAdjacentElement('afterend', faced);
   }
 
   _mountSpecialTeams() {

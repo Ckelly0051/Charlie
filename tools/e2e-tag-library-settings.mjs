@@ -51,6 +51,58 @@ state = await page.evaluate(() => ({
 }));
 ok(state.stored && state.chip && state.checked, 'A custom Front is persisted, enabled, and immediately chartable', JSON.stringify(state));
 
+await page.type('#tagLibraryAdd', 'Bear "Zero"');
+await page.click('.tag-library-add button[type="submit"]');
+state = await page.evaluate(() => {
+  const value = 'Bear "Zero"';
+  const input = [...document.querySelectorAll('#tagLibraryDialog input[data-value]')].find(item => item.dataset.value === value);
+  const remove = [...document.querySelectorAll('#tagLibraryDialog [data-remove]')].find(item => item.dataset.remove === value);
+  return {
+    stored: window.app.customChips.library.group('front').custom.includes(value),
+    input: !!input,
+    remove: !!remove,
+    aria: remove?.getAttribute('aria-label'),
+    stray: !!input?.getAttribute('zero"'),
+  };
+});
+ok(state.stored && state.input && state.remove && state.aria === 'Remove Bear "Zero"' && !state.stray, 'Quoted custom names remain exact inert DOM data', JSON.stringify(state));
+
+for (const [group, value] of [['formation','Trey Open'], ['backfield','Ace Offset']]) {
+  await page.click(`[data-group="${group}"]`);
+  await page.type('#tagLibraryAdd', value);
+  await page.click('.tag-library-add button[type="submit"]');
+}
+await page.click('[data-action="close"]');
+state = await page.evaluate(() => {
+  const play = { id: 77, timestamp: { start:0, end:5 }, tags: { unit:'offense', formation:'', backfield:'', defFront:'', players:{}, grades:{}, custom:[] } };
+  window.app.tagger.plays = [play]; window.app.tagger.currentPlayId = 77; window.app.tagger._loadTagForm(play);
+  document.querySelector('#tagFormation .pick[data-value="Trey Open"]').click();
+  document.querySelector('#tagBackfield .pick[data-value="Ace Offset"]').click();
+  document.querySelector('#tagDefFront .pick[data-value="Bear"]').click();
+  return { tags:{...play.tags}, custom: Object.fromEntries(['formation','backfield','front'].map(key => [key, window.app.customChips.library.group(key).custom])) };
+});
+ok(state.tags.formation === 'Trey Open' && state.tags.backfield === 'Ace Offset' && state.tags.defFront === 'Bear', 'Custom Formation, Backfield, and Front write immediately through PlayTagger', JSON.stringify(state));
+
+await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="defense"]').click());
+state = await page.evaluate(() => ({ visible: getComputedStyle(document.querySelector('#tagDefFront .pick[data-value="Bear"]')).display !== 'none', value: window.app.tagger.getCurrentPlay().tags.defFront }));
+ok(state.visible && state.value === 'Bear', 'Custom Front remains chartable as Our Defensive Call', JSON.stringify(state));
+await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="offense"]').click());
+state = await page.evaluate(() => ({ visible: getComputedStyle(document.querySelector('#tagDefFront .pick[data-value="Bear"]')).display !== 'none', value: window.app.tagger.getCurrentPlay().tags.defFront }));
+ok(state.visible && state.value === 'Bear', 'Custom Front remains chartable in Defense Faced', JSON.stringify(state));
+
+state = await page.evaluate(() => {
+  localStorage.setItem('ffa_active_team_id', 'settings-other-team');
+  window.app.customChips.reload();
+  const absent = ['Trey Open','Ace Offset','Bear'].every(value => !document.querySelector(`.pick[data-value="${value}"]`));
+  localStorage.setItem('ffa_active_team_id', 'settings-test');
+  window.app.customChips.reload();
+  const restored = ['Trey Open','Ace Offset','Bear'].every(value => !!document.querySelector(`.pick[data-value="${value}"]`));
+  return { absent, restored };
+});
+ok(state.absent && state.restored, 'Switching teams isolates and restores each staff vocabulary', JSON.stringify(state));
+
+await page.evaluate(() => window.app.tagLibrarySettings.open('front'));
+
 await page.click('.tag-library-remove[data-remove="Bear"]');
 await page.waitForFunction(() => !document.querySelector('.tag-library-row input[data-value="Bear"]'));
 state = await page.evaluate(() => ({

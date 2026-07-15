@@ -5,6 +5,7 @@ import { SeasonStore } from '../js/season-store.js';
 
 let pass = 0, fail = 0;
 const test = (label, fn) => { try { fn(); pass++; console.log(`  PASS  ${label}`); } catch (e) { fail++; console.log(`  FAIL  ${label} -- ${e.message}`); } };
+const testAsync = async (label, fn) => { try { await fn(); pass++; console.log(`  PASS  ${label}`); } catch (e) { fail++; console.log(`  FAIL  ${label} -- ${e.message}`); } };
 
 console.log('\n== Structured penalty contract ==');
 
@@ -55,6 +56,33 @@ test('season JSON round-trip keeps multiple fouls and resulting situation', () =
   const reopened = store._normalize(JSON.parse(JSON.stringify(store._normalize(data))));
   assert.equal(reopened.games[0].plays[0].penalties.length, 2);
   assert.equal(PenaltyModel.confirmedSituation(reopened.games[0].plays[0]).down, '1');
+});
+
+await testAsync('canonical persist, reopen, snapshot, and restore keep structured enforcement losslessly', async () => {
+  let canonical = null;
+  const backups = new Map();
+  const backend = {
+    saveSeason: async data => { canonical = JSON.parse(JSON.stringify(data)); return true; },
+    loadSeason: async () => JSON.parse(JSON.stringify(canonical)),
+    diskStatus: () => ({ bound:false }),
+    createBackup: async data => { const id = `b${backups.size + 1}`; backups.set(id, JSON.parse(JSON.stringify(data))); return id; },
+    getBackup: async id => JSON.parse(JSON.stringify(backups.get(id))),
+    listBackups: async () => [],
+  };
+  const source = { id:'s1', games:[{ id:'g1', gameInfo:{}, plays:[{ id:1, tags:{unit:'offense'}, penalties:[
+    { team:'subject', phase:'offense', foul:'Holding', disposition:'accepted', yards:8, playCounts:false, notes:'Spot foul' },
+    { team:'opponent', phase:'defense', foul:'Facemask', disposition:'declined', yards:15, player:'44' },
+  ], resultingSituation:{down:'1',distance:'10',fieldSide:'opp',yardLine:'35',confirmed:true} }] }], activeGameId:'g1' };
+  const first = new SeasonStore(backend); first.currentSeasonId = 's1'; first.data = first._normalize(source); first.persist();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const reopened = new SeasonStore(backend); reopened.currentSeasonId = 's1'; await reopened.load();
+  const saved = reopened.data.games[0].plays[0];
+  assert.equal(saved.penalties[0].notes, 'Spot foul'); assert.equal(saved.penalties[1].player, '44');
+  const backupId = await reopened.snapshot('Before edit');
+  saved.penalties[0].yards = 10; saved.resultingSituation.confirmed = false;
+  await reopened.restoreBackup(backupId);
+  const restored = reopened.data.games[0].plays[0];
+  assert.equal(restored.penalties[0].yards, 8); assert.equal(restored.resultingSituation.confirmed, true);
 });
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

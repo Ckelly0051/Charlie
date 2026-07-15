@@ -1992,7 +1992,7 @@ export class StatsEngine {
       const cutAttr = cut
         ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc((c.form || '—') + ' ' + (c.pt || ''))} — ${c.n} plays"`
         : '"';
-      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${Charts._esc(name)}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
+      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${name}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
     }).join('');
     const more = d.unique > 15 ? `<p class="self-scout-intro" style="margin-top:6px">…and ${d.unique - 15} more rare looks.</p>` : '';
     return `<div class="stats-section">

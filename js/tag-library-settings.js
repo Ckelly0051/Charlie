@@ -41,7 +41,8 @@ export class TagLibrarySettings {
     return dialog;
   }
 
-  open() {
+  open(group = null) {
+    if (TagLibrarySettings.GROUPS.some(item => item.key === group)) this.activeKey = group;
     this.render();
     this.dialog.showModal();
   }
@@ -52,18 +53,45 @@ export class TagLibrarySettings {
     const custom = new Set(group.custom);
     const enabled = new Set(group.enabled);
     this.dialog.querySelectorAll('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.group === config.key)));
-    this.dialog.querySelector('.tag-library-content').innerHTML = `
+    const content = this.dialog.querySelector('.tag-library-content');
+    content.innerHTML = `
       <div class="tag-library-summary"><strong>${enabled.size} shown</strong><span>${group.values.length - enabled.size} hidden</span></div>
-      <div class="tag-library-list">
-        ${group.values.map(value => `<div class="tag-library-row">
-          <label><input type="checkbox" data-value="${this._esc(value)}" ${enabled.has(value) ? 'checked' : ''}><span>${this._esc(value)}</span></label>
-          ${custom.has(value) ? `<button type="button" class="tag-library-remove" data-remove="${this._esc(value)}" aria-label="Remove ${this._esc(value)}" title="Remove custom choice">&times;</button>` : '<span class="tag-library-default">Default</span>'}
-        </div>`).join('')}
-      </div>
+      <div class="tag-library-list"></div>
       <form class="tag-library-add">
         <label for="tagLibraryAdd">Add custom ${config.singular}</label>
-        <div><input id="tagLibraryAdd" name="value" maxlength="40" autocomplete="off" placeholder="${config.placeholder}"><button class="btn btn-sm btn-accent" type="submit">Add</button></div>
+        <div><input id="tagLibraryAdd" name="value" maxlength="40" autocomplete="off"><button class="btn btn-sm btn-accent" type="submit">Add</button></div>
       </form>`;
+    content.querySelector('#tagLibraryAdd').placeholder = config.placeholder;
+    const list = content.querySelector('.tag-library-list');
+    group.values.forEach(value => {
+      const row = document.createElement('div');
+      row.className = 'tag-library-row';
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.value = value;
+      input.checked = enabled.has(value);
+      const text = document.createElement('span');
+      text.textContent = value;
+      label.append(input, text);
+      row.append(label);
+      if (custom.has(value)) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'tag-library-remove';
+        remove.dataset.remove = value;
+        remove.setAttribute('aria-label', `Remove ${value}`);
+        remove.title = 'Remove custom choice';
+        remove.textContent = '\u00d7';
+        row.append(remove);
+      } else {
+        const marker = document.createElement('span');
+        marker.className = 'tag-library-default';
+        marker.textContent = 'Default';
+        row.append(marker);
+      }
+      list.append(row);
+    });
   }
 
   async _click(event) {
@@ -113,5 +141,4 @@ export class TagLibrarySettings {
   }
 
   _toast(message) { if (this.tagger.toast) this.tagger.toast(message); }
-  _esc(value) { const span = document.createElement('span'); span.textContent = String(value); return span.innerHTML; }
 }

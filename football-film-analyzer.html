@@ -8652,10 +8652,271 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-film-row.state-empty>i{background:var(--ws-muted)}
 .ws-shell-active #statsDashboard .stats-overlay{left:var(--ws-side);top:var(--ws-top)}
 @media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
-@media(max-width:800px){body.ws-shell-active.ws-route-home .bottom-tabs,body.ws-shell-active.ws-route-study .bottom-tabs,body.ws-shell-active.ws-route-plan .bottom-tabs{display:none}}
+body.ws-shell-active .bottom-tabs{display:none}
+
+/* Break Down uses the approved compact top navigation so film receives the
+   width that the permanent workspace sidebar previously consumed. */
+.ws-top-brand,.ws-top-team,.ws-top-nav,.ws-mobile-nav{display:none}
+body.ws-shell-active.ws-route-breakdown .ws-shell{grid-template-columns:minmax(0,1fr)}
+body.ws-shell-active.ws-route-breakdown .ws-sidebar{display:none}
+body.ws-shell-active.ws-route-breakdown .ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:18px;font-weight:800}
+.ws-top-brand b{color:var(--ws-blue)}
+body.ws-shell-active.ws-route-breakdown .ws-top-team{display:block;flex:0 0 auto;height:38px;padding:0 10px;border:0;border-left:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}
+.ws-top-team strong,.ws-top-team span{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-top-team strong{font-size:11px}.ws-top-team span{font-size:9px;color:var(--ws-muted)}
+body.ws-shell-active.ws-route-breakdown .ws-top-nav{display:flex;align-self:stretch;flex:0 0 auto;gap:2px}
+.ws-top-nav button{min-width:76px;padding:0 9px;border:0;border-bottom:2px solid transparent;background:transparent;color:#91a0b2;font:inherit;font-size:11px;font-weight:750}.ws-top-nav button span{margin-right:5px}.ws-top-nav button:hover:not(:disabled){background:#141d28;color:#fff}.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:#17243a;color:#fff}.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
+body.ws-shell-active.ws-route-breakdown .ws-context{margin-left:auto;flex:1}
+
+@media(max-width:1150px) and (min-width:901px){body.ws-shell-active.ws-route-breakdown .ws-top-team{display:none}.ws-top-nav button{min-width:66px;padding:0 7px}.ws-top-nav button span{display:none}body.ws-shell-active.ws-route-breakdown .ws-context span,body.ws-shell-active.ws-route-breakdown .ws-context b{display:none}}
+
+@media(max-width:900px){
+  .ws-mobile-head strong{min-width:0;margin-left:auto;overflow:hidden;color:var(--ws-text);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+  .ws-mobile-head .ws-icon-btn{flex:0 0 auto}
+  .ws-mobile-nav{position:fixed;z-index:80;left:0;right:0;bottom:0;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#0d141d;border-top:1px solid var(--ws-line)}
+  .ws-mobile-nav button{min-width:0;min-height:56px;border:0;background:transparent;color:#8795a7;font:inherit;font-size:10px;font-weight:700}.ws-mobile-nav button span{display:block;height:21px;font-size:16px}.ws-mobile-nav button.active{color:#76a7ff;background:#132033}.ws-mobile-nav button:disabled{opacity:.35}
+  .ws-main{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+}
 
 .ws-plan-picker{width:min(460px,calc(100vw - 32px));margin:auto;padding:0;border:1px solid #3a4a5d;border-radius:7px;background:#111821;color:var(--ws-text);box-shadow:0 24px 70px rgba(0,0,0,.62)}.ws-plan-picker::backdrop{background:rgba(4,7,11,.78);backdrop-filter:blur(2px)}.ws-plan-picker form{display:grid;gap:16px;padding:24px}.ws-plan-picker h2{margin:-8px 0 0;font-size:23px}.ws-plan-picker p{display:grid;gap:4px;margin:0;padding:12px;border-left:3px solid var(--ws-blue);background:#151e29}.ws-plan-picker p span{color:var(--ws-muted);font-size:12px}.ws-plan-picker label{display:grid;gap:7px;color:var(--ws-muted);font-size:11px;font-weight:800;text-transform:uppercase}.ws-plan-picker select,.ws-plan-picker input{width:100%;height:42px;border:1px solid var(--ws-line);border-radius:5px;background:#0d131b;color:var(--ws-text);padding:0 11px;font:inherit;text-transform:none}.ws-plan-picker select:focus,.ws-plan-picker input:focus{outline:2px solid #75a7ff;outline-offset:1px}.ws-plan-picker-name[hidden]{display:none}.ws-plan-picker-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:2px}.ws-plan-picker-actions .ws-btn{min-height:42px}
 @media(max-width:480px){.ws-plan-picker{width:calc(100vw - 20px)}.ws-plan-picker form{padding:20px 16px}.ws-plan-picker-actions .ws-btn{height:44px;flex:1}}
+/* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
+.ws-breakdown { min-width: 0; min-height: 0; overflow: hidden; }
+.ws-shell, .ws-breakdown, .tag-library-dialog, .undo-toast { font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
+.bd-route { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.bd-context-bar {
+  min-width: 0; min-height: 58px; padding: 8px 12px;
+  display: grid; grid-template-columns: auto minmax(330px, auto) auto auto auto minmax(170px, 1fr) auto;
+  align-items: center; gap: 14px;
+  color: #dce5ef; background: #0d151e; border-bottom: 1px solid #2c3e52;
+}
+.bd-context-units .unit-toggle-section { margin: 0; padding: 0; border: 0; background: transparent; }
+.bd-context-units .unit-toggle { margin: 0; }
+.bd-film-context { min-width: 0; display: flex; align-items: stretch; }
+.bd-context-label { padding: 0 9px 0 0; align-self: center; color: #8192a6; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.bd-film-context button {
+  min-height: 38px; padding: 5px 11px; border: 1px solid #304257; border-right: 0;
+  color: #aab8c8; background: #111b26; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.bd-film-context button:first-of-type { border-radius: 4px 0 0 4px; }
+.bd-film-context button:last-child { border-right: 1px solid #304257; border-radius: 0 4px 4px 0; }
+.bd-film-context button small { display: block; color: #71849a; font-size: 9px; font-weight: 600; }
+.bd-film-context button:hover { color: #f4f7fb; background: #172536; }
+.bd-film-context button.active { color: #fff; background: #1f5da9; border-color: #3c7fd2; }
+.bd-film-context button.active small { color: #dbeaff; }
+.bd-film-context button:focus-visible { position: relative; z-index: 1; outline: 2px solid #80b2ff; outline-offset: 2px; }
+.bd-customize,.bd-game { min-height: 38px; padding: 6px 10px; color: #c8d4e2; background: #111b26; border: 1px solid #304257; border-radius: 4px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.bd-customize:hover,.bd-game:hover { color: #fff; border-color: #557ca9; }
+.bd-view-switch { display: flex; }
+.bd-view-switch button { min-height: 38px; padding: 5px 10px; color: #9eafc1; background: #0e1721; border: 1px solid #304257; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.bd-view-switch button:first-child { border-radius: 4px 0 0 4px; }
+.bd-view-switch button:last-child { border-left: 0; border-radius: 0 4px 4px 0; }
+.bd-view-switch button.active { color: #fff; background: #204d82; border-color: #4b83c5; }
+.bd-customize:focus-visible,.bd-game:focus-visible, .bd-view-switch button:focus-visible { outline: 2px solid #80b2ff; outline-offset: 2px; }
+.bd-play-context { min-width: 0; display: grid; grid-template-columns: auto auto; align-items: baseline; justify-content: start; gap: 2px 12px; }
+.bd-play-context > span { color: #73a9ef; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.bd-play-context > strong { overflow: hidden; color: #f4f7fb; font-size: 15px; white-space: nowrap; text-overflow: ellipsis; }
+.bd-play-context > small { grid-column: 1 / -1; color: #8e9daf; font-size: 10px; }
+.bd-route-state { display: grid; justify-items: end; gap: 4px; color: #aab7c6; font-size: 11px; white-space: nowrap; }
+#bdSaveState { padding-left: 14px; position: relative; font-weight: 700; }
+#bdSaveState::before { content: ''; position: absolute; left: 1px; top: 50%; width: 7px; height: 7px; border-radius: 50%; transform: translateY(-50%); }
+#bdSaveState.is-saved::before { background: #43b981; }
+#bdSaveState.is-pending::before { background: #e2a84a; }
+body.ws-shell-active.ws-route-breakdown .bd-coder-column .bd-head { display: none; }
+body.ws-shell-active.ws-route-breakdown .bd-coder-column > .tag-section > .game-header-bar,
+body.ws-shell-active.ws-route-breakdown .breakdown-form-v2 > .tag-progress-row { display: none; }
+.bd-workspace {
+  width: 100%; height: 100%; min-width: 0; min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(430px, 33vw, 580px);
+  background: #080d13;
+}
+.bd-media-column {
+  min-width: 0; min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(360px, 1fr) auto;
+  overflow: hidden;
+  border-right: 1px solid rgba(104, 151, 222, .42);
+}
+.bd-coder-column { min-width: 0; min-height: 0; overflow: hidden; background: #0f161f; }
+.bd-coder-column > .tag-section { width: 100%; height: 100%; overflow-y: auto; }
+.bd-media-column > .video-section {
+  position: relative; top: auto; width: 100%; height: auto;
+  min-height: 0; max-height: none; grid-area: auto !important;
+}
+.bd-media-column > .play-grid-section { max-height: 34vh; overflow: auto; grid-area: auto !important; }
+.ws-breakdown:not(.bd-film-room-mode) .bd-media-column { grid-template-rows: minmax(360px, 1fr); }
+.ws-breakdown.bd-film-room-mode .bd-media-column { grid-template-rows: minmax(300px, .72fr) minmax(220px, .28fr); }
+.bd-coder-column > .tag-section { grid-area: auto !important; }
+
+body.ws-shell-active.ws-route-breakdown .video-section {
+  border-bottom: max(12px, env(safe-area-inset-bottom)) solid #080d13;
+  background: #080d13;
+}
+
+body.ws-shell-active.ws-route-breakdown .video-container.breakdown-video-v2 {
+  position: relative;
+  border-bottom: 1px solid #263547;
+}
+
+body.ws-shell-active.ws-route-breakdown .breakdown-player-controls {
+  position: absolute;
+  z-index: 24;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: auto;
+  padding: 7px 9px;
+  border: 1px solid rgba(139, 168, 207, .32);
+  border-radius: 6px;
+  background: rgba(8, 13, 19, .92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .36);
+  backdrop-filter: blur(8px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+body.ws-shell-active.ws-route-breakdown .breakdown-controls-hidden .breakdown-player-controls {
+  opacity: 0;
+  transform: translateY(5px);
+  pointer-events: none;
+}
+
+.breakdown-player-drag {
+  flex: 0 0 18px;
+  align-self: stretch;
+  border: 0;
+  border-right: 1px solid rgba(139, 168, 207, .25);
+  background: transparent;
+  color: #9aaabd;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+body.ws-shell-active.ws-route-breakdown .breakdown-player-controls .transport-center { min-width: 100px; }
+body.ws-shell-active.ws-route-breakdown .breakdown-player-controls .video-timeline { display: none; }
+
+.breakdown-play-strip {
+  flex: 0 0 auto;
+  min-width: 0;
+  background: #0b121a;
+  border-top: 1px solid #263547;
+  border-bottom: 1px solid #263547;
+}
+
+.breakdown-play-strip > header {
+  height: 24px;
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9cabbc;
+  font-size: 10px;
+}
+
+.breakdown-play-strip > header strong { color: #f0f4f9; font-size: 10px; }
+
+.breakdown-play-track {
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+  min-height: 68px;
+  padding: 0 8px 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #50647c #111a24;
+}
+
+.breakdown-play-track::-webkit-scrollbar { height: 8px; }
+.breakdown-play-track::-webkit-scrollbar-track { background: #111a24; border-radius: 999px; }
+.breakdown-play-track::-webkit-scrollbar-thumb { background: #50647c; border: 2px solid #111a24; border-radius: 999px; }
+.breakdown-play-track::-webkit-scrollbar-thumb:hover { background: #6f86a1; }
+
+.breakdown-play-card {
+  flex: 0 0 190px;
+  width: 190px;
+  min-height: 61px;
+  padding: 6px 8px;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  text-align: left;
+  color: #e8eef6;
+  background: #111a24;
+  border: 1px solid #304155;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.breakdown-play-card:hover { border-color: #6483a8; background: #162333; }
+.breakdown-play-card.active { border-color: #4f94ff; background: #183253; box-shadow: inset 3px 0 #4f94ff; }
+.breakdown-play-card:focus-visible { outline: 2px solid #79aaff; outline-offset: 1px; }
+.breakdown-play-number { color: #94a7bc; font-size: 9px; font-weight: 700; }
+.breakdown-play-card strong { font-size: 14px; line-height: 1.1; }
+.breakdown-play-call { font-size: 10.5px; line-height: 1.25; overflow-wrap: anywhere; }
+
+body.ws-shell-active.ws-route-breakdown .video-play-controls {
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #0b121a;
+}
+
+body.ws-shell-active.ws-route-breakdown .video-play-controls .btn {
+  min-height: 30px;
+  padding: 4px 9px;
+  font-size: 11px;
+}
+
+body.ws-shell-active.ws-route-breakdown .video-play-controls #btnClearTags { margin-left: 16px; }
+body.ws-shell-active.ws-route-breakdown .video-play-controls .play-select { min-width: 120px; }
+body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-color: #63a6ef; text-transform: uppercase; font-weight: 750; letter-spacing: 0; }
+
+@media (min-width: 801px) and (max-width: 1050px) {
+  .bd-context-bar { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 12px; }
+  .bd-context-units { grid-column: 1; }
+  .bd-film-context { grid-column: 2 / -1; justify-self: end; }
+  .bd-context-label { display: none; }
+  .bd-customize { grid-column: 1; justify-self: start; }
+  .bd-game { grid-column: 2; }
+  .bd-view-switch { grid-column: 3; }
+  .bd-play-context { grid-column: 1 / 3; }
+  .bd-route-state { grid-column: 3; grid-row: 2; }
+}
+
+@media (max-width: 800px) {
+  .ws-breakdown { overflow-y: auto; }
+  .bd-route { height: auto; min-height: 100%; display: block; }
+  .bd-context-bar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; padding: 8px; }
+  .bd-context-units { grid-column: 1 / -1; }
+  .bd-film-context { grid-column: 1 / -1; overflow-x: auto; }
+  .bd-customize { grid-column: 1 / 3; min-height: 44px; }
+  .bd-game { grid-column: 3; min-height: 44px; }
+  .bd-view-switch { grid-column: 1; }
+  .bd-view-switch button { min-height: 44px; }
+  .bd-context-label { display: none; }
+  .bd-film-context button { flex: 1 0 auto; min-height: 44px; }
+  .bd-play-context { grid-column: 2; grid-template-columns: auto 1fr; gap: 1px 6px; }
+  .bd-play-context > small { display: none; }
+  .bd-route-state { grid-column: 3; align-self: center; gap: 1px; font-size: 10px; }
+  .bd-workspace { height: auto; min-height: 100%; display: block; }
+  .bd-media-column { display: block; border-right: 0; }
+  .bd-media-column > .video-section { height: auto !important; min-height: 320px !important; }
+  .bd-media-column > .play-grid-section { max-height: 42vh; }
+  .bd-coder-column { overflow: visible; }
+  .bd-coder-column > .tag-section { height: auto; overflow: visible; }
+  body.ws-shell-active.ws-route-breakdown .breakdown-player-controls { left: 8px; right: 8px; bottom: 8px; }
+  .breakdown-player-drag { display: none; }
+  .breakdown-play-track { scroll-snap-type: x proximity; }
+  .breakdown-play-card { flex-basis: 174px; width: 174px; scroll-snap-align: start; }
+  body.ws-shell-active.ws-route-breakdown .video-play-controls { overflow-x: auto; }
+  body.ws-shell-active.ws-route-breakdown .video-play-controls #btnClearTags { margin-left: 10px; }
+  body.ws-shell-active.ws-route-breakdown .tag-section .tag-nav { bottom: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.ws-shell-active.ws-route-breakdown .breakdown-player-controls { transition: none; }
+  .bdv-group > summary i, #btnTagSaveNext.just-saved { transition: none; animation: none; }
+}
 .ws-study{min-width:0;min-height:0;overflow:auto;padding:26px 30px 34px}
 .ws-study>*{max-width:1280px;margin-left:auto;margin-right:auto}
 .ws-study-head{display:flex;align-items:flex-end;gap:24px}
@@ -8765,6 +9026,14 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .bdv-head small { grid-column: 1 / -1; color: var(--text-dim); font-size: 10px; }
 .breakdown-form-v2 .tag-progress-row { margin-top: 10px; }
 .breakdown-form-v2 .tag-helpers { margin-bottom: 6px; }
+.bdv-template-tools { margin-top: 10px; border-top: 1px solid #26384b; }
+.bdv-template-tools > summary { min-height: 38px; padding: 7px 4px; display: flex; align-items: center; gap: 8px; color: #aebbd0; cursor: pointer; list-style: none; font-size: 11px; font-weight: 750; }
+.bdv-template-tools > summary::-webkit-details-marker { display: none; }
+.bdv-template-tools > summary span { color: #71849a; font-size: 10px; font-weight: 500; }
+.bdv-template-tools > summary i { margin-left: auto; font-style: normal; transition: transform 150ms ease; }
+.bdv-template-tools:not([open]) > summary i { transform: rotate(-90deg); }
+.bdv-template-tools > div { padding: 2px 0 8px; }
+.bdv-template-tools .tag-helpers { margin: 0; }
 .bdv-section-label { display: flex; align-items: baseline; gap: 8px; padding: 13px 0 7px; border-top: 1px solid var(--border); }
 .bdv-section-label strong { color: var(--text); font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
 .bdv-section-label span { color: var(--text-dim); font-size: 10px; }
@@ -8775,6 +9044,25 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .breakdown-form-v2 .chip-label { margin-bottom: 5px; }
 .breakdown-form-v2 .pick-group { gap: 5px; }
 .breakdown-form-v2 .pick { min-height: 32px; padding: 5px 8px; }
+.breakdown-form-v2 .pick kbd { display: none; }
+.breakdown-form-v2 .pick.active { color: #fff; background: #2468bb; border-color: #4c91e8; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.breakdown-form-v2 .tag-group-head { display: flex; margin: 0; padding: 10px 11px; color: #edf3fa; background: #121c27; border-color: #2d4055; border-radius: 4px 4px 0 0; }
+.breakdown-form-v2 .tag-group { margin-top: 8px; border: 1px solid #26384b; border-radius: 4px; background: #0e161f; }
+.breakdown-form-v2 .tag-group > .tag-group-body { padding: 4px 9px 8px; }
+.breakdown-form-v2 .tag-group.is-secondary > .tag-group-head { color: #b6c3d2; background: #101923; }
+.bdv-group { margin-top: 8px; border: 1px solid #26384b; border-radius: 4px; background: #0e161f; }
+.bdv-group > summary { min-height: 42px; padding: 8px 10px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; cursor: pointer; list-style: none; background: #121c27; }
+.bdv-group > summary::-webkit-details-marker { display: none; }
+.bdv-group > summary strong { color: #eef4fa; font-size: 12px; text-transform: uppercase; }
+.bdv-group > summary span { color: #8293a7; font-size: 10px; }
+.bdv-group > summary i { color: #8192a6; font-style: normal; transition: transform 150ms ease; }
+.bdv-group:not([open]) > summary i { transform: rotate(-90deg); }
+.bdv-group-body { padding: 4px 9px 8px; }
+.breakdown-form-v2.mode-special .bdv-group-play { display: none; }
+.breakdown-form-v2 #tagResult .pick[data-value="Penalty"] { display: none; }
+.bdv-field-link { float: right; margin-left: auto; padding: 0; color: #78aef5; background: transparent; border: 0; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+.bdv-field-link:hover { color: #b9d6ff; text-decoration: underline; }
+.bdv-field-link:focus-visible { outline: 2px solid #80b2ff; outline-offset: 2px; }
 .breakdown-form-v2 .player-role { min-height: 42px; }
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-role[data-role="tackler"],
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-role[data-role="takeaway"] { display: none; }
@@ -14187,6 +14475,7 @@ class NotesManager {
     this.notesArea = document.getElementById('notesArea');
     this.btnInsertTimestamp = document.getElementById('btnInsertTimestamp');
     this.debounceTimer = null;
+    this.pending = null;
 
     this._bindEvents();
   }
@@ -14195,7 +14484,15 @@ class NotesManager {
     // Auto-save notes on input
     this.notesArea.addEventListener('input', () => {
       clearTimeout(this.debounceTimer);
-      this.debounceTimer = setTimeout(() => this._saveNotes(), 500);
+      const play = this.tagger.getCurrentPlay();
+      if (!play) return;
+      const value = this.notesArea.value;
+      // Keep the canonical play current immediately so a game commit cannot
+      // serialize the pre-debounce value. The timer only batches the mutation
+      // event used by history/autosave.
+      play.notes = value;
+      this.pending = { play, value };
+      this.debounceTimer = setTimeout(() => this.flush(), 500);
     });
 
     // Insert timestamp
@@ -14205,6 +14502,7 @@ class NotesManager {
 
     // Update notes when play changes
     this.tagger.on('play-selected', (play) => {
+      this.flush();
       this.notesArea.value = play.notes || '';
     });
 
@@ -14214,10 +14512,29 @@ class NotesManager {
   }
 
   _saveNotes() {
-    const play = this.tagger.getCurrentPlay();
-    if (play) {
-      play.notes = this.notesArea.value;
+    const pending = this.pending;
+    if (pending) {
+      // Object identity is intentional: numeric play ids repeat across games.
+      // If the list was replaced (game switch/undo), the outgoing object was
+      // already updated before commit and must not emit into the new context.
+      if (this.tagger.plays.includes(pending.play) && pending.play.notes === pending.value) {
+        this.tagger._emit('play-updated', pending.play);
+      }
+    } else {
+      const play = this.tagger.getCurrentPlay();
+      const value = this.notesArea.value;
+      if (play && play.notes !== value) {
+        play.notes = value;
+        this.tagger._emit('play-updated', play);
+      }
     }
+    this.pending = null;
+  }
+
+  flush() {
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = null;
+    if (this.pending) this._saveNotes();
   }
 
   _insertTimestamp() {
@@ -14232,14 +14549,22 @@ class NotesManager {
     this.notesArea.value = text.substring(0, start) + stamp + text.substring(end);
     this.notesArea.selectionStart = this.notesArea.selectionEnd = start + stamp.length;
     this.notesArea.focus();
-    this._saveNotes();
+    const play = this.tagger.getCurrentPlay();
+    if (play) {
+      play.notes = this.notesArea.value;
+      this.pending = { play, value: play.notes };
+      this.flush();
+    }
   }
 
   loadNotes(notes) {
+    this.flush();
     this.notesArea.value = notes || '';
   }
 
   clear() {
+    clearTimeout(this.debounceTimer);
+    this.pending = null;
     this.notesArea.value = '';
   }
 }
@@ -24107,7 +24432,7 @@ class StatsEngine {
       const cutAttr = cut
         ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc((c.form || '—') + ' ' + (c.pt || ''))} — ${c.n} plays"`
         : '"';
-      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${Charts._esc(name)}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
+      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${name}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
     }).join('');
     const more = d.unique > 15 ? `<p class="self-scout-intro" style="margin-top:6px">…and ${d.unique - 15} more rare looks.</p>` : '';
     return `<div class="stats-section">
@@ -28366,6 +28691,169 @@ class PlanScreen {
   _esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 }
 
+// ===== breakdown-workspace.js =====
+/** Dedicated Break Down route using the canonical production DOM surfaces. */
+class BreakdownWorkspace {
+  constructor(app) {
+    this.app = app;
+    this.source = document.querySelector('#app .main-content');
+    this.video = this.source?.querySelector('.video-section') || null;
+    this.grid = this.source?.querySelector('#playGridSection') || null;
+    this.tags = this.source?.querySelector('.tag-section') || null;
+    this.unitControl = document.querySelector('#tagForm .unit-toggle-section');
+    this.unitParent = this.unitControl?.parentNode || null;
+    this.unitNext = this.unitControl?.nextSibling || null;
+    this.perspective = document.getElementById('gamePerspective');
+    this.host = null;
+    this.saveState = 'saved';
+    this.view = 'chart';
+    this._bound = false;
+  }
+
+  mount(host) {
+    if (!host || !this.source || !this.video || !this.grid || !this.tags) return false;
+    this.host = host;
+    host.innerHTML = `
+      <div class="bd-route">
+        <header class="bd-context-bar" aria-label="Charting context">
+          <div class="bd-context-units"></div>
+          <div class="bd-film-context" role="group" aria-label="Film context">
+            <span class="bd-context-label">Film context</span>
+            <button type="button" data-bd-context="self">Our games <small>Self-scout</small></button>
+            <button type="button" data-bd-context="scout">Opponent film <small>Scout</small></button>
+            <button type="button" data-bd-context="quick">Quick chart</button>
+          </div>
+          <button type="button" class="bd-customize" data-bd-customize>Customize fields</button>
+          <button type="button" class="bd-game" data-bd-game>Game</button>
+          <div class="bd-view-switch" role="group" aria-label="Break Down view">
+            <button type="button" class="active" data-bd-view="chart" aria-pressed="true">Chart</button>
+            <button type="button" data-bd-view="film-room" aria-pressed="false">Film Room</button>
+          </div>
+          <div class="bd-play-context" aria-live="polite">
+            <span id="bdChartSubject">Our offense</span>
+            <strong id="bdCurrentPlay">No play selected</strong>
+            <small id="bdPlayMeta">No tag is required</small>
+          </div>
+          <div class="bd-route-state">
+            <span id="bdTagProgress">0 / 0 tagged</span>
+            <span id="bdSaveState" class="is-saved">Saved</span>
+          </div>
+        </header>
+        <div class="bd-workspace"><section class="bd-media-column"></section><aside class="bd-coder-column"></aside></div>
+      </div>`;
+    if (this.unitControl) host.querySelector('.bd-context-units').append(this.unitControl);
+    host.querySelector('.bd-media-column').append(this.video, this.grid);
+    host.querySelector('.bd-coder-column').append(this.tags);
+    this.grid.hidden = true;
+    this._bind();
+    this.render();
+    return true;
+  }
+
+  _bind() {
+    if (!this._bound) {
+      this._bound = true;
+      ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded']
+        .forEach(event => this.app.tagger?.on(event, () => requestAnimationFrame(() => this.render())));
+      this.perspective?.addEventListener('change', () => this.render());
+      this.unitControl?.addEventListener('click', () => requestAnimationFrame(() => this.render()));
+    }
+    this.host?.querySelectorAll('[data-bd-context]').forEach(btn => {
+      btn.addEventListener('click', () => this._setContext(btn.dataset.bdContext));
+    });
+    this.host?.querySelector('[data-bd-customize]')?.addEventListener('click', () => this.app.tagLibrarySettings?.open());
+    this.host?.querySelector('[data-bd-game]')?.addEventListener('click', () => document.getElementById('btnEditGame')?.click());
+    this.host?.querySelectorAll('[data-bd-view]').forEach(btn => btn.addEventListener('click', () => this._setView(btn.dataset.bdView)));
+  }
+
+  _setView(view) {
+    const filmRoom = view === 'film-room';
+    this.view = filmRoom ? 'film-room' : 'chart';
+    this.grid.hidden = !filmRoom;
+    this.host?.classList.toggle('bd-film-room-mode', filmRoom);
+    this.host?.querySelectorAll('[data-bd-view]').forEach(btn => {
+      const active = btn.dataset.bdView === (filmRoom ? 'film-room' : 'chart');
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+  }
+
+  _setContext(context) {
+    if (context === 'quick') {
+      this.app.quickChart?.toggle();
+      this.render();
+      return;
+    }
+    if (!this.perspective) return;
+    if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
+    this.perspective.value = context === 'scout' ? 'scout' : this._unit();
+    this.perspective.dispatchEvent(new Event('change', { bubbles: true }));
+    this.render();
+  }
+
+  _unit() {
+    const playUnit = this.app.tagger?.getCurrentPlay()?.tags?.unit;
+    if (playUnit === 'defense' || playUnit === 'special') return playUnit;
+    const active = this.unitControl?.querySelector('.pick.active')?.dataset?.value;
+    return active === 'defense' || active === 'special' ? active : 'offense';
+  }
+
+  setSaveState(state) {
+    this.saveState = state === 'pending' ? 'pending' : 'saved';
+    this.render();
+  }
+
+  render() {
+    if (!this.host) return;
+    this.grid.hidden = this.view !== 'film-room';
+    const unit = this._unit();
+    const scout = this.perspective?.value === 'scout';
+    const quick = !!this.app.quickChart?.isActive;
+    const unitLabel = unit === 'defense' ? 'defense' : unit === 'special' ? 'Special Teams' : 'offense';
+    const subject = this.host.querySelector('#bdChartSubject');
+    if (subject) subject.textContent = `${scout ? 'Opponent' : 'Our'} ${unitLabel}`;
+
+    this.host.querySelectorAll('[data-bd-context]').forEach(btn => {
+      const active = btn.dataset.bdContext === (quick ? 'quick' : scout ? 'scout' : 'self');
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+
+    const play = this.app.tagger?.getCurrentPlay();
+    const current = this.host.querySelector('#bdCurrentPlay');
+    const meta = this.host.querySelector('#bdPlayMeta');
+    if (current) current.textContent = play ? `Play ${play.id}` : 'No play selected';
+    if (meta) {
+      const down = play?.tags?.down;
+      const distance = play?.tags?.distance;
+      meta.textContent = down ? `${this._ordinal(down)} & ${distance || '?'} · No tag is required` : 'No tag is required';
+    }
+
+    const progress = this.host.querySelector('#bdTagProgress');
+    const canonicalProgress = document.getElementById('tagProgressLabel');
+    if (progress) progress.textContent = canonicalProgress?.textContent || '0 / 0 tagged';
+    const save = this.host.querySelector('#bdSaveState');
+    if (save) {
+      save.textContent = this.saveState === 'pending' ? 'Saving...' : 'Saved';
+      save.classList.toggle('is-pending', this.saveState === 'pending');
+      save.classList.toggle('is-saved', this.saveState !== 'pending');
+    }
+  }
+
+  _ordinal(down) {
+    return ({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[String(down)] || String(down);
+  }
+
+  restore() {
+    if (!this.source || !this.video || !this.grid || !this.tags) return;
+    if (this.unitControl && this.unitParent) this.unitParent.insertBefore(this.unitControl, this.unitNext);
+    this.grid.hidden = false;
+    this.source.append(this.video, this.grid, this.tags);
+    if (this.host) this.host.innerHTML = '';
+    this.host = null;
+  }
+}
+
 // ===== workspace-shell.js =====
 /** Feature-flagged Phase 1 shell. Hosts the existing #app intact. */
 class WorkspaceShell {
@@ -28382,6 +28870,7 @@ class WorkspaceShell {
   disable() {
     if (!this.root) return;
     this._homeToken++;
+    this.app.breakdownWorkspace?.restore();
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
     document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
@@ -28395,13 +28884,13 @@ class WorkspaceShell {
       <button class="ws-team" data-ws-action="seasons"><strong id="wsTeamName">Team</strong><span id="wsTeamMeta">Season workspace</span></button>
       <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
       <div class="ws-side-foot"><button class="ws-classic" data-ws-action="classic">Use classic layout</button><div class="ws-save-state"><i></i>Season ready</div></div></aside>
-      <main class="ws-main"><header class="ws-topbar"><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
-      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><select id="wsMobileRoute" aria-label="Workspace view"><option value="home">Home</option><option value="breakdown">Break Down</option><option value="study">Study</option><option value="plan">Plan</option></select><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
+      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
+      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div><div class="ws-eyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
+      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id]}</span>${r.name}</button>`).join(''); }
   _bind() {
@@ -28416,7 +28905,6 @@ class WorkspaceShell {
       const gid = e.target.closest('[data-ws-game]')?.dataset.wsGame;
       if (gid) { if (this.app.storage.seasonStore.data?.activeGameId !== gid) this.app.storage.switchToGame(gid); await this.show('breakdown'); }
     });
-    this.root.querySelector('#wsMobileRoute').addEventListener('change', e => this.show(e.target.value));
   }
   async show(routeId) {
     if (!this.root) return { ok:false, reason:'shell-disabled' };
@@ -28426,9 +28914,8 @@ class WorkspaceShell {
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
-    this.root.querySelector('#wsMobileRoute').value = routeId;
-    const home=this.root.querySelector('#wsHome'), study=this.root.querySelector('#wsStudy'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
-    home.hidden=routeId!=='home'; study.hidden=routeId!=='study'; plan.hidden=routeId!=='plan'; outlet.hidden=routeId!=='breakdown';
+    const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
+    home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
     if (routeId==='home') await this.refreshHome();
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
     if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
@@ -28437,13 +28924,16 @@ class WorkspaceShell {
   }
   _syncChrome() {
     if (!this.root) return; const c=this.app.workspace.snapshot();
-    this._text('wsTeamName',c.team?.name||'Team'); this._text('wsTeamMeta',c.season?.name||'Season workspace'); this._text('wsContextTeam',c.team?.name||'Team'); this._text('wsContextSeason',c.season?.name||'No season open'); this._text('wsContextGame',c.game?.name||'Team home');
+    this._text('wsTeamName',c.team?.name||'Team'); this._text('wsTeamMeta',c.season?.name||'Season workspace'); this._text('wsTopTeamName',c.team?.name||'Team'); this._text('wsTopTeamMeta',c.season?.name||'Season workspace'); this._text('wsContextTeam',c.team?.name||'Team'); this._text('wsContextSeason',c.season?.name||'No season open'); this._text('wsContextGame',c.game?.name||'Team home'); this._text('wsMobileContext',c.game?.name||c.season?.name||'Team home');
     this.root.querySelectorAll('[data-ws-route="breakdown"]').forEach(b=>b.disabled=!c.capabilities.canBreakDown);
     this.root.querySelectorAll('[data-ws-route="study"],[data-ws-route="plan"]').forEach(b=>b.disabled=!c.capabilities.canStudy);
   }
   async refreshHome() {
     if (!this.root) return; const token=++this._homeToken; this._syncChrome(); const c=this.app.workspace.snapshot(); const store=this.app.storage.seasonStore; const game=store.data ? store.activeGame?.() : null;
-    this._text('wsGreeting',c.team?.name?`${c.team.name.toUpperCase()} HOME`:'TEAM HOME'); this._text('wsContinueTitle',c.game?.name||'No game open'); this._text('wsContinueMeta',c.game?`${c.game.playCount} plays · ${c.game.status.replace(/_/g,' ')}`:'Open a season to continue.'); this.root.querySelector('#wsResume').disabled=!c.capabilities.canBreakDown;
+    this._text('wsGreeting',c.team?.name?`${c.team.name.toUpperCase()} HOME`:'TEAM HOME'); this._text('wsContinueTitle',c.game?.name||'No game open'); this._text('wsContinueMeta',c.game?`${c.game.playCount} plays · ${c.game.status.replace(/_/g,' ')}`:'Open a season to continue.');
+    const resume=this.root.querySelector('#wsResume');
+    if(c.capabilities.canBreakDown){resume.disabled=false;resume.textContent='Continue breakdown';resume.dataset.wsRoute='breakdown';delete resume.dataset.wsAction;}
+    else{resume.disabled=false;resume.textContent=c.team?'Choose a season':'Set up team';delete resume.dataset.wsRoute;resume.dataset.wsAction='seasons';}
     const tagged=(game?.plays||[]).filter(p=>p?.tags&&(p.tags.playType||p.tags.runPass||p.tags.stType||p.tags.defFront||p.tags.coverage)).length,total=(game?.plays||[]).length,pct=total?Math.round(tagged/total*100):0;
     this._text('wsProgressText',total?`${tagged} of ${total} charted`:'0 plays'); this.root.querySelector('#wsProgressBar').style.width=`${pct}%`; this._text('wsHomeSummary',c.season?`${c.season.name} · ${c.season.gameCount} game${c.season.gameCount===1?'':'s'}`:'Choose a season to get started.'); this._text('wsGameMark',(c.game?.opponent||c.team?.name||'GI').trim().charAt(0).toUpperCase()||'GI');
     let seasons=[]; try{seasons=await this.app.storage.listSeasons();}catch{} try{if(this.app.library?._teams?.().length)seasons=this.app.library._teamSeasons(seasons,this.app.library._activeTeamId());}catch{}
@@ -28457,11 +28947,203 @@ class WorkspaceShell {
   }
   _renderSeasons(seasons,currentId){const list=this.root.querySelector('#wsSeasonList');if(!seasons.length){list.innerHTML='<div class="ws-empty">No seasons for this team.</div>';return;}const live=this.app.storage.seasonStore.data;list.innerHTML=seasons.slice(0,6).map(s=>{const isCurrent=s.id===currentId;const games=isCurrent&&live?live.games.length:(s.games||0);const plays=isCurrent&&live?live.games.reduce((n,g)=>n+(g.plays?.length||0),0):(s.plays||0);return `<div class="ws-season-row${isCurrent?' current':''}"><div><strong>${this._esc(s.name||'Untitled Season')}</strong><span>${games} game${games===1?'':'s'} · ${plays} play${plays===1?'':'s'}</span></div><button class="ws-btn ws-small" data-ws-season="${this._esc(s.id)}">${isCurrent?'Current':'Open'}</button></div>`;}).join('');}
   _renderFilmRow(game,h){const row=this.root.querySelector(`[data-film-id="${CSS.escape(String(game.id))}"]`);if(!row)return;row.className=`ws-film-row state-${h.state}`;const detail=h.progress?`${h.progress.done} of ${h.progress.total||'?'} clips`:h.expected?`${h.found} of ${h.expected} clips`:'';row.querySelector('span').textContent=detail?`${h.label} · ${detail}`:h.label;row.querySelector('button').textContent=h.action==='reconnect'?'Reconnect':h.action==='repair'?'Repair':'Open';}
-  showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
-  async _openLibrary(){const home=this.root.querySelector('#wsHome'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
+  showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsBreakdown').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
+  async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
   _esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+}
+
+// ===== breakdown-video.js =====
+/** Production presentation layer for the video-first Break Down workspace. */
+class BreakdownVideo {
+  constructor(tagger) {
+    this.tagger = tagger;
+    this.video = document.getElementById('videoContainer');
+    this.controls = document.querySelector('.playback-controls');
+    this.actions = document.querySelector('.video-play-controls');
+    this.track = null;
+    this.hideTimer = null;
+    this._mount();
+  }
+
+  _enabled() {
+    try { return localStorage.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; }
+  }
+
+  _mount() {
+    if (!this._enabled() || !this.video || !this.controls || !this.actions) return;
+    this.video.classList.add('breakdown-video-v2');
+    this.controls.classList.add('breakdown-player-controls');
+
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'breakdown-player-drag';
+    handle.setAttribute('aria-label', 'Move video controls');
+    handle.title = 'Drag up or down; double-click to reset';
+    handle.textContent = '⋮⋮';
+    this.controls.prepend(handle);
+    this.video.appendChild(this.controls);
+
+    const strip = document.createElement('section');
+    strip.className = 'breakdown-play-strip';
+    strip.setAttribute('aria-label', 'Plays');
+    strip.innerHTML = '<header><strong>PLAYS</strong><span data-play-count>No plays</span></header><div class="breakdown-play-track"></div>';
+    this.track = strip.querySelector('.breakdown-play-track');
+    this.actions.parentNode.insertBefore(strip, this.actions);
+
+    const copy = document.getElementById('btnCopyPrev');
+    if (copy) {
+      copy.textContent = 'Copy Last';
+      copy.classList.add('breakdown-copy-last');
+      const clear = document.getElementById('btnClearTags');
+      this.actions.insertBefore(copy, clear || null);
+    }
+
+    ['play-created', 'play-deleted', 'plays-loaded']
+      .forEach(event => this.tagger.on(event, () => this.render()));
+    this.tagger.on('play-updated', play => this._renderPlay(play));
+    this.tagger.on('play-selected', play => this._renderSelection(play));
+    this._bindPlayer(handle);
+    this.render();
+  }
+
+  _bindPlayer(handle) {
+    const show = () => {
+      clearTimeout(this.hideTimer);
+      this.video.classList.remove('breakdown-controls-hidden');
+      this.hideTimer = setTimeout(() => {
+        if (!this.controls.matches(':focus-within')) this.video.classList.add('breakdown-controls-hidden');
+      }, 1600);
+    };
+    this.video.addEventListener('pointermove', show);
+    this.video.addEventListener('pointerenter', show);
+    this.video.addEventListener('pointerleave', () => {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = setTimeout(() => this.video.classList.add('breakdown-controls-hidden'), 350);
+    });
+    this.controls.addEventListener('focusin', () => {
+      clearTimeout(this.hideTimer);
+      this.video.classList.remove('breakdown-controls-hidden');
+    });
+    this.controls.addEventListener('focusout', show);
+
+    const place = ratio => {
+      ratio = Math.max(0, Math.min(1, Number(ratio) || 0));
+      this.controlRatio = ratio;
+      const max = Math.max(0, this.video.clientHeight - this.controls.offsetHeight - 24);
+      this.controls.style.top = `${12 + max * ratio}px`;
+      this.controls.style.bottom = 'auto';
+    };
+    try {
+      const raw = localStorage.getItem('ffa_video_controls_y');
+      const stored = raw === null ? NaN : Number(raw);
+      if (Number.isFinite(stored) && stored >= 0 && stored <= 1) requestAnimationFrame(() => place(stored));
+    } catch {}
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        if (Number.isFinite(this.controlRatio)) requestAnimationFrame(() => place(this.controlRatio));
+      });
+      this.resizeObserver.observe(this.video);
+    }
+
+    handle.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      clearTimeout(this.hideTimer);
+      handle.setPointerCapture?.(event.pointerId);
+      const move = current => {
+        const rect = this.video.getBoundingClientRect();
+        const max = Math.max(1, rect.height - this.controls.offsetHeight - 24);
+        const top = Math.max(12, Math.min(rect.height - this.controls.offsetHeight - 12,
+          current.clientY - rect.top - this.controls.offsetHeight / 2));
+        const ratio = (top - 12) / max;
+        place(ratio);
+        try { localStorage.setItem('ffa_video_controls_y', String(ratio)); } catch {}
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        show();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    });
+    handle.addEventListener('dblclick', () => {
+      this.controlRatio = null;
+      this.controls.style.top = '';
+      this.controls.style.bottom = '';
+      try { localStorage.removeItem('ffa_video_controls_y'); } catch {}
+      show();
+    });
+    show();
+  }
+
+  _situation(play) {
+    const down = String(play.tags?.down || '');
+    const ordinal = ({ '1':'1st', '2':'2nd', '3':'3rd', '4':'4th' })[down] || 'Down —';
+    return ordinal + (play.tags?.distance ? ` & ${play.tags.distance}` : '');
+  }
+
+  _call(play) {
+    const tags = play.tags || {};
+    return tags.playType || tags.stType || tags.defFront || tags.formation || 'Untagged';
+  }
+
+  _result(play) {
+    const tags = play.tags || {};
+    const result = tags.result || tags.kickOutcome || 'No result';
+    const raw = String(tags.yardage ?? '').trim();
+    if (!raw) return result;
+    const yards = Number(raw);
+    return `${result}: ${yards > 0 ? '+' : ''}${raw}`;
+  }
+
+  render() {
+    if (!this.track) return;
+    const plays = this.tagger.plays || [];
+    this.track.replaceChildren();
+    plays.forEach(play => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'breakdown-play-card';
+      button.dataset.playId = String(play.id);
+      const number = document.createElement('span');
+      number.className = 'breakdown-play-number';
+      const situation = document.createElement('strong');
+      const call = document.createElement('span');
+      call.className = 'breakdown-play-call';
+      button.append(number, situation, call);
+      button.addEventListener('click', () => this.tagger.selectPlay(play.id));
+      this._updateCard(button, play);
+      this.track.appendChild(button);
+    });
+    const count = this.track.parentElement.querySelector('[data-play-count]');
+    count.textContent = plays.length ? `${plays.length} play${plays.length === 1 ? '' : 's'}` : 'No plays';
+    requestAnimationFrame(() => this.track.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' }));
+  }
+
+  _updateCard(button, play) {
+    if (!button || !play) return;
+    button.classList.toggle('active', play.id === this.tagger.currentPlayId);
+    button.setAttribute('aria-label', `Open play ${play.id}: ${this._situation(play)}, ${this._call(play)}, ${this._result(play)}`);
+    button.querySelector('.breakdown-play-number').textContent = `PLAY ${play.id}`;
+    button.querySelector('strong').textContent = this._situation(play);
+    button.querySelector('.breakdown-play-call').textContent = `${this._call(play)} · ${this._result(play)}`;
+  }
+
+  _renderPlay(play) {
+    if (!this.track || !play) return;
+    const button = [...this.track.children].find(item => item.dataset.playId === String(play.id));
+    if (button) this._updateCard(button, play);
+    else this.render();
+  }
+
+  _renderSelection(play) {
+    if (!this.track) return;
+    [...this.track.children].forEach(button => button.classList.toggle('active', button.dataset.playId === String(play?.id ?? '')));
+    const active = this.track.querySelector('.active');
+    if (active) requestAnimationFrame(() => active.scrollIntoView({ block: 'nearest', inline: 'center' }));
+  }
 }
 
 // ===== history-manager.js =====
@@ -28647,12 +29329,12 @@ class HistoryManager {
     if (!this.toastEl) this.toastEl = document.getElementById('undoToast');
     if (!this.toastEl) return;
     this.toastEl.textContent = '';
-    this.toastEl.appendChild(document.createTextNode(msg));
+    this.toastEl.appendChild(document.createTextNode(String(msg ?? '').toUpperCase()));
     if (opts.action && typeof opts.action.fn === 'function') {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'toast-action';
-      btn.textContent = opts.action.label || 'Undo';
+      btn.textContent = String(opts.action.label || 'Undo').toUpperCase();
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         clearTimeout(this._toastTimer);
@@ -33875,7 +34557,8 @@ class TagLibrarySettings {
     return dialog;
   }
 
-  open() {
+  open(group = null) {
+    if (TagLibrarySettings.GROUPS.some(item => item.key === group)) this.activeKey = group;
     this.render();
     this.dialog.showModal();
   }
@@ -33886,18 +34569,45 @@ class TagLibrarySettings {
     const custom = new Set(group.custom);
     const enabled = new Set(group.enabled);
     this.dialog.querySelectorAll('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.group === config.key)));
-    this.dialog.querySelector('.tag-library-content').innerHTML = `
+    const content = this.dialog.querySelector('.tag-library-content');
+    content.innerHTML = `
       <div class="tag-library-summary"><strong>${enabled.size} shown</strong><span>${group.values.length - enabled.size} hidden</span></div>
-      <div class="tag-library-list">
-        ${group.values.map(value => `<div class="tag-library-row">
-          <label><input type="checkbox" data-value="${this._esc(value)}" ${enabled.has(value) ? 'checked' : ''}><span>${this._esc(value)}</span></label>
-          ${custom.has(value) ? `<button type="button" class="tag-library-remove" data-remove="${this._esc(value)}" aria-label="Remove ${this._esc(value)}" title="Remove custom choice">&times;</button>` : '<span class="tag-library-default">Default</span>'}
-        </div>`).join('')}
-      </div>
+      <div class="tag-library-list"></div>
       <form class="tag-library-add">
         <label for="tagLibraryAdd">Add custom ${config.singular}</label>
-        <div><input id="tagLibraryAdd" name="value" maxlength="40" autocomplete="off" placeholder="${config.placeholder}"><button class="btn btn-sm btn-accent" type="submit">Add</button></div>
+        <div><input id="tagLibraryAdd" name="value" maxlength="40" autocomplete="off"><button class="btn btn-sm btn-accent" type="submit">Add</button></div>
       </form>`;
+    content.querySelector('#tagLibraryAdd').placeholder = config.placeholder;
+    const list = content.querySelector('.tag-library-list');
+    group.values.forEach(value => {
+      const row = document.createElement('div');
+      row.className = 'tag-library-row';
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.value = value;
+      input.checked = enabled.has(value);
+      const text = document.createElement('span');
+      text.textContent = value;
+      label.append(input, text);
+      row.append(label);
+      if (custom.has(value)) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'tag-library-remove';
+        remove.dataset.remove = value;
+        remove.setAttribute('aria-label', `Remove ${value}`);
+        remove.title = 'Remove custom choice';
+        remove.textContent = '\u00d7';
+        row.append(remove);
+      } else {
+        const marker = document.createElement('span');
+        marker.className = 'tag-library-default';
+        marker.textContent = 'Default';
+        row.append(marker);
+      }
+      list.append(row);
+    });
   }
 
   async _click(event) {
@@ -33947,41 +34657,35 @@ class TagLibrarySettings {
   }
 
   _toast(message) { if (this.tagger.toast) this.tagger.toast(message); }
-  _esc(value) { const span = document.createElement('span'); span.textContent = String(value); return span.innerHTML; }
 }
 
 // ===== breakdown-form.js =====
 /**
- * Opt-in composition layer for the production tag form. It moves no controls
- * and owns no tag state; existing PlayTagger fields remain the only data path.
+ * Opt-in composition layer for the production tag form. It moves the existing
+ * controls into coach-facing groups and owns no tag state; PlayTagger remains
+ * the only data path.
  */
 
 class BreakdownForm {
   static FLAG = 'ffa_breakdown_form_v2';
-  static SECTIONS = [
-    { before: '.tag-side-groups', key: 'look', title: 'Pre-snap look', detail: 'formation, personnel, structure' },
-    { before: '.core-hide-st', key: 'play', title: 'Play & result', detail: 'call, direction, outcome' },
-    { before: '#tagPlayersSection', key: 'people', title: 'Players & grades', detail: 'individual performance' },
-    { before: '.tag-notes', key: 'notes', title: 'Notes & details', detail: 'staff context and field position' },
-  ];
-
-  constructor(tagger, { storage } = {}) {
+  constructor(tagger, { storage, tagLibrarySettings } = {}) {
     this.tagger = tagger;
     this.form = tagger.tagForm;
     this.storage = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+    this.tagLibrarySettings = tagLibrarySettings || null;
     if (!this.form || !this.enabled()) return;
     this.mount();
   }
 
-  enabled() { try { return this.storage?.getItem(BreakdownForm.FLAG) === '1'; } catch { return false; } }
+  enabled() { try { return this.storage?.getItem(BreakdownForm.FLAG) === '1' || this.storage?.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
 
   mount() {
     if (this.form.classList.contains('breakdown-form-v2')) return;
     this.form.classList.add('breakdown-form-v2');
-    this._addHeader();
-    this._addSectionLabels();
     this._mountSpecialTeams();
     this._mountPenalties();
+    this._composeGroups();
+    this._mountLibraryLinks();
     this._syncPerspective();
     this.observer = new MutationObserver(records => {
       if (records.some(record => record.attributeName === 'class')) this._syncPerspective();
@@ -33989,24 +34693,67 @@ class BreakdownForm {
     this.observer.observe(this.form, { attributes: true, attributeFilter: ['class'] });
   }
 
-  _addHeader() {
-    const unit = this.form.querySelector('.unit-toggle-section');
-    if (!unit) return;
-    const header = document.createElement('div');
-    header.className = 'bdv-head';
-    header.innerHTML = '<div><span>Charting view</span><strong id="bdvPerspective">Offensive self-scout</strong><small>No tag is required</small></div>';
-    unit.insertAdjacentElement('afterend', header);
+  _group(key, title, detail, nodes, open = false) {
+    const live = nodes.filter(Boolean);
+    if (!live.length) return null;
+    const details = document.createElement('details');
+    details.className = `bdv-group bdv-group-${key}`;
+    details.dataset.bdvGroup = key;
+    details.open = open;
+    details.innerHTML = `<summary><strong>${title}</strong><span>${detail}</span><i aria-hidden="true">▾</i></summary><div class="bdv-group-body"></div>`;
+    live[0].insertAdjacentElement('beforebegin', details);
+    details.querySelector('.bdv-group-body').append(...live);
+    return details;
   }
 
-  _addSectionLabels() {
-    for (const section of BreakdownForm.SECTIONS) {
-      const target = this.form.querySelector(section.before);
-      if (!target || this.form.querySelector(`[data-bdv-section="${section.key}"]`)) continue;
-      const label = document.createElement('div');
-      label.className = 'bdv-section-label';
-      label.dataset.bdvSection = section.key;
-      label.innerHTML = `<strong>${section.title}</strong><span>${section.detail}</span>`;
-      target.insertAdjacentElement('beforebegin', label);
+  _composeGroups() {
+    const sideGroups = this.form.querySelector('.tag-side-groups');
+    const down = this.form.querySelector('#tagDown')?.closest('.chip-section');
+    const legacyDetails = this.form.querySelector('.chip-details');
+    const detailSections = legacyDetails ? [...legacyDetails.querySelectorAll(':scope > .chip-section')] : [];
+    const situation = detailSections.filter(section => section.querySelector('#tagHash, #tagQuarter, #tagFieldSide'));
+    this._group('situation', 'Situation', 'down, distance, field position', [down, ...situation], true);
+
+    const playNodes = [...this.form.children].filter(node =>
+      node.classList?.contains('core-hide-st') || node.querySelector?.('#tagResult, #tagYardage'));
+    const play = this._group('play', 'Play & Result', 'call, direction, outcome', playNodes, true);
+    if (sideGroups && play) sideGroups.append(play);
+
+    this._group('penalties', 'Penalties', 'foul, enforcement, resulting situation', [this.form.querySelector('.bdv-penalties')]);
+    this._group('people', 'Players & Grades', 'individual performance and responsibility', [this.form.querySelector('#tagPlayersSection')]);
+    this._group('notes', 'Notes & Details', 'staff notes, custom fields, drive context', [
+      this.form.querySelector('#customFieldsSection'), this.form.querySelector('.tag-notes'), legacyDetails,
+    ]);
+    this._moveTemplateTools();
+  }
+
+  _moveTemplateTools() {
+    const helpers = this.form.querySelector('.tag-helpers');
+    const nav = this.form.querySelector('.tag-nav');
+    if (!helpers || !nav || this.form.querySelector('.bdv-template-tools')) return;
+    const details = document.createElement('details');
+    details.className = 'bdv-template-tools';
+    details.innerHTML = '<summary>Templates <span>Reusable staff presets</span><i aria-hidden="true">▾</i></summary><div></div>';
+    details.querySelector('div').append(helpers);
+    nav.insertAdjacentElement('beforebegin', details);
+  }
+
+  _mountLibraryLinks() {
+    const groups = [['tagFormation','formation'], ['tagBackfield','backfield'], ['tagDefFront','front']];
+    for (const [id, group] of groups) {
+      const label = this.form.querySelector(`#${id}`)?.previousElementSibling;
+      if (!label || label.querySelector('[data-edit-library]')) continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'bdv-field-link';
+      button.dataset.editLibrary = group;
+      button.textContent = 'Edit library';
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.tagLibrarySettings?.open(group);
+      });
+      label.append(button);
     }
   }
 
@@ -34020,13 +34767,16 @@ class BreakdownForm {
     this._label(offense, unit === 'defense' ? 'Offense Faced' : `${subject} Offensive Look`);
     this._label(defense, unit === 'offense' ? 'Defense Faced' : `${subject} Defensive Call`);
     this._label(special, `${subject} Special Teams`);
-    const perspective = this.form.querySelector('#bdvPerspective');
-    if (perspective) perspective.textContent = `${scout ? 'Opponent scout' : 'Self-scout'} · ${unit === 'special' ? 'Special Teams' : unit[0].toUpperCase() + unit.slice(1)}`;
-    const look = this.form.querySelector('[data-bdv-section="look"] strong');
-    if (look) look.textContent = unit === 'special' ? `${subject} Special Teams` : unit === 'defense' ? `${subject} Defensive Call` : `${subject} Offensive Look`;
-    const people = this.form.querySelector('[data-bdv-section="people"] span');
+    const people = this.form.querySelector('[data-bdv-group="people"] summary span');
     if (people) people.textContent = unit === 'defense' ? 'tackles, takeaways, and grades' : unit === 'special' ? 'specialists live in the phase above' : 'ball carrier, passer, receiver, and grades';
     if (unit === 'special') this.loadPlay(this.tagger.getCurrentPlay());
+    const side = this.form.querySelector('.tag-side-groups');
+    const primary = unit === 'defense' ? this.form.querySelector('.group-defense') : unit === 'special' ? this.form.querySelector('.group-special') : this.form.querySelector('.group-offense');
+    const faced = unit === 'defense' ? this.form.querySelector('.group-offense') : this.form.querySelector('.group-defense');
+    const play = this.form.querySelector('[data-bdv-group="play"]');
+    if (side && primary) side.prepend(primary);
+    if (side && play && unit !== 'special') primary?.insertAdjacentElement('afterend', play);
+    if (side && faced && unit !== 'special') play?.insertAdjacentElement('afterend', faced);
   }
 
   _mountSpecialTeams() {
@@ -34756,7 +35506,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-2';
+const APP_VERSION = '1.12.0-3';
 
 class App {
   constructor() {
@@ -34770,7 +35520,7 @@ class App {
     this.customFields = new CustomFieldsManager(this.tagger);
     this.customChips = new CustomChips(this.tagger);
     this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
-    this.breakdownForm = new BreakdownForm(this.tagger);
+    this.breakdownForm = new BreakdownForm(this.tagger, { tagLibrarySettings: this.tagLibrarySettings });
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
@@ -34811,7 +35561,9 @@ class App {
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
     this.workspace = new WorkspaceContext(this);
+    this.breakdownWorkspace = new BreakdownWorkspace(this);
     this.workspaceShell = new WorkspaceShell(this);
+    this.breakdownVideo = new BreakdownVideo(this.tagger);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
@@ -36686,6 +37438,7 @@ class App {
     const yardsInput = document.getElementById('tagYardage');
 
     btnPrev?.addEventListener('click', () => {
+      this.notes?.flush();
       this.tagger.prevPlay();
       this._autoPlayCurrent();
     });
@@ -36763,6 +37516,7 @@ class App {
    *  a debounced write is armed, settling to "✓ Saved". The button stays the
    *  explicit-save action (Ctrl+S); this just makes persistence VISIBLE. */
   _renderSaveState(state) {
+    this.breakdownWorkspace?.setSaveState(state);
     const btn = document.getElementById('btnSave');
     if (!btn) return;
     const label = btn.querySelector('.btn-label');
@@ -36794,6 +37548,7 @@ class App {
       el.dispatchEvent(new Event('change', { bubbles: true }));
       el.blur();
     }
+    this.notes?.flush();
 
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.

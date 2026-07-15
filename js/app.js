@@ -25,6 +25,8 @@ import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
 import { WorkspaceShell } from './workspace-shell.js';
+import { BreakdownVideo } from './breakdown-video.js';
+import { BreakdownWorkspace } from './breakdown-workspace.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
@@ -52,7 +54,7 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-2';
+const APP_VERSION = '1.12.0-3';
 
 class App {
   constructor() {
@@ -66,7 +68,7 @@ class App {
     this.customFields = new CustomFieldsManager(this.tagger);
     this.customChips = new CustomChips(this.tagger);
     this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
-    this.breakdownForm = new BreakdownForm(this.tagger);
+    this.breakdownForm = new BreakdownForm(this.tagger, { tagLibrarySettings: this.tagLibrarySettings });
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     // Re-render custom-field inputs + diagram preview on every form load.
@@ -107,7 +109,9 @@ class App {
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
     this.workspace = new WorkspaceContext(this);
+    this.breakdownWorkspace = new BreakdownWorkspace(this);
     this.workspaceShell = new WorkspaceShell(this);
+    this.breakdownVideo = new BreakdownVideo(this.tagger);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish();
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
@@ -1982,6 +1986,7 @@ class App {
     const yardsInput = document.getElementById('tagYardage');
 
     btnPrev?.addEventListener('click', () => {
+      this.notes?.flush();
       this.tagger.prevPlay();
       this._autoPlayCurrent();
     });
@@ -2059,6 +2064,7 @@ class App {
    *  a debounced write is armed, settling to "✓ Saved". The button stays the
    *  explicit-save action (Ctrl+S); this just makes persistence VISIBLE. */
   _renderSaveState(state) {
+    this.breakdownWorkspace?.setSaveState(state);
     const btn = document.getElementById('btnSave');
     if (!btn) return;
     const label = btn.querySelector('.btn-label');
@@ -2090,6 +2096,7 @@ class App {
       el.dispatchEvent(new Event('change', { bubbles: true }));
       el.blur();
     }
+    this.notes?.flush();
 
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.

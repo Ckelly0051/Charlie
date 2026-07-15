@@ -753,10 +753,21 @@ r = await page.evaluate(() => {
   const top = d.calls[0];
   const cut = eng._buildCutFilter('bigCall', top.key);
   const html = eng._renderBigTwelve(plays, 'Test Offense');
+  const hostile = Array.from({ length: 8 }, () => mk({
+    unit: 'offense', formation: '<img src=x onerror=window.__btXss=1>',
+    strength: '<b>Right</b>', motion: '<script>bad()</script>',
+    playType: '<svg onload=window.__btXss=1>', runPass: 'Run', result: 'Gain', yardage: '1',
+  }));
+  const hostileHtml = eng._renderBigTwelve(hostile, '<img src=x>');
   return {
     total: d.total, unique: d.unique, topN: top.n, topPct: top.pct, to75: d.to75, to90: d.to90,
     cutN: plays.filter(p => cut(p)).length,
     rendered: /Core Calls/.test(html) && /Shotgun \+ Trips/.test(html) && /Jet mo/.test(html),
+    chipsRender: /<span class="bt-tag">Right<\/span>/.test(html)
+      && /<span class="bt-tag bt-mot">Jet mo<\/span>/.test(html)
+      && !/&lt;span class=/.test(html),
+    hostileSafe: !hostileHtml.includes('<img') && !hostileHtml.includes('<script')
+      && !hostileHtml.includes('<svg') && hostileHtml.includes('&lt;img'),
   };
 });
 ok(r.total === 20 && r.unique === 6, 'Big 12 rolls 20 snaps into 6 unique calls', JSON.stringify(r));
@@ -764,6 +775,8 @@ ok(r.topN === 10 && r.topPct === 50, 'dominant call (Shotgun Trips Right · Jet 
 ok(r.to75 === 2 && r.to90 === 4, 'cumulative coverage: 2 calls = 75%, 4 calls = 90%', JSON.stringify(r));
 ok(r.cutN === 10, 'the bigCall cut filter resolves to exactly that call\'s 10 snaps', JSON.stringify(r));
 ok(r.rendered, 'the report renders the core-calls table with the call signature', JSON.stringify(r));
+ok(r.chipsRender, 'Big 12 renders trusted call-format spans instead of showing raw markup', JSON.stringify(r));
+ok(r.hostileSafe, 'Big 12 escapes adversarial coach-entered call values at the trusted markup boundary', JSON.stringify(r));
 
 console.log('\n== 23. Re-adding clips: duplicate prompt (skip / re-link), no silent dupes ==');
 r = await page.evaluate(async () => {

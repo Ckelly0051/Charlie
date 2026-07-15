@@ -20,17 +20,19 @@ await page.goto(URL, { waitUntil: 'networkidle0' });
 
 let state = await page.evaluate(() => ({
   mounted: document.querySelector('#tagForm').classList.contains('breakdown-form-v2'),
-  sections: [...document.querySelectorAll('.bdv-section-label strong')].map(el => el.textContent),
+  sections: [...document.querySelectorAll('.bdv-group > summary strong')].map(el => el.textContent),
   required: ['tagUnit','tagDown','tagDistance','tagFormation','tagBackfield','tagStrength','tagPersonnel','tagMotion','tagRunPass','tagPlayType','tagPlayDir','tagResult','tagYardage','tagDefFront','tagCoverage','tagBlitz','tagStType','tagScoreFor','tagKickOutcome','tagKickDistance','tagHangTime','tagReturnYards','tagKickedTo','tagPlayerKicker','tagPlayerReturner','tagPlayersSection','tagPlayerBC','tagPlayerPasser','tagPlayerReceiver','tagPlayerTackler','tagPlayerTakeaway','customFieldsSection','notesArea','tagHash','tagQuarter','tagFieldSide','tagYardLine','tagDriveNumber','customTagInput','autoDDToggle','templateSelect'].every(id => !!document.getElementById(id)),
+  uniqueOwners: ['tagUnit','tagDown','tagDistance','tagFormation','tagBackfield','tagStrength','tagPersonnel','tagMotion','tagRunPass','tagPlayType','tagPlayDir','tagResult','tagYardage','tagDefFront','tagCoverage','tagBlitz','tagPlayersSection','notesArea','tagHash','tagQuarter','tagFieldSide','tagYardLine'].every(id => document.querySelectorAll(`#${id}`).length === 1),
   offense: document.querySelector('.group-offense .tag-group-head').textContent.trim(),
   defense: document.querySelector('.group-defense .tag-group-head').textContent.trim(),
 }));
-ok(state.mounted && state.sections.length === 4, 'Flag-on mode composes four football sections over the live form', JSON.stringify(state));
+ok(state.mounted && ['Situation','Play & Result','Penalties','Players & Grades','Notes & Details'].every(label => state.sections.includes(label)), 'Flag-on mode composes real football groups over the live form', JSON.stringify(state));
 ok(state.required, 'Every production offense, defense, player, custom, note, and situation control remains present');
+ok(state.uniqueOwners, 'Every production tag field keeps exactly one DOM owner');
 ok(/^Our Offensive Look/.test(state.offense) && /^Defense Faced/.test(state.defense), 'Offense self-scout uses subject-correct section labels', JSON.stringify(state));
 state = await page.evaluate(() => ({
   visible: [...document.querySelectorAll('#tagPlayersSection .player-role')].filter(el => getComputedStyle(el).display !== 'none').map(el => el.dataset.role),
-  detail: document.querySelector('[data-bdv-section="people"] span').textContent,
+  detail: document.querySelector('[data-bdv-group="people"] summary span').textContent,
 }));
 ok(state.visible.join(',') === 'ballCarrier,passer,receiver' && /ball carrier/.test(state.detail), 'Offense exposes only its three relevant shared player roles', JSON.stringify(state));
 
@@ -48,18 +50,18 @@ ok((await page.evaluate(() => window.app.tagger.plays[0].tags.formation)) === 'S
 await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="defense"]').click());
 await page.waitForFunction(() => document.querySelector('#tagForm').classList.contains('mode-defense'));
 state = await page.evaluate(() => ({
-  perspective: document.querySelector('#bdvPerspective').textContent,
+  firstGroup: document.querySelector('.tag-side-groups > .tag-group')?.dataset.group,
   defense: document.querySelector('.group-defense .tag-group-head').textContent.trim(),
   offense: document.querySelector('.group-offense .tag-group-head').textContent.trim(),
   unit: window.app.tagger.plays[0].tags.unit,
 }));
-ok(state.unit === 'defense' && /Defense/.test(state.perspective), 'Existing unit toggle still writes the play and updates composition');
+ok(state.unit === 'defense' && state.firstGroup === 'defense', 'Existing unit toggle still writes the play and updates composition');
 ok(/^Our Defensive Call/.test(state.defense) && /^Offense Faced/.test(state.offense), 'Defense leads with our call and labels the opponent look correctly', JSON.stringify(state));
 state = await page.evaluate(() => ({
   visible: [...document.querySelectorAll('#tagPlayersSection .player-role')].filter(el => getComputedStyle(el).display !== 'none').map(el => el.dataset.role),
   active: document.querySelector('#tagPlayersSection .player-role.active')?.dataset.role,
   retained: window.app.tagger.plays[0].tags.players.ballCarrier,
-  detail: document.querySelector('[data-bdv-section="people"] span').textContent,
+  detail: document.querySelector('[data-bdv-group="people"] summary span').textContent,
 }));
 ok(state.visible.join(',') === 'tackler,takeaway' && state.active === 'tackler' && /tackles/.test(state.detail), 'Defense exposes Tackler/Takeaway and defaults quick-picks to Tackler', JSON.stringify(state));
 ok(state.retained === '22', 'Switching units hides but never clears an existing offensive player assignment');
@@ -81,18 +83,16 @@ await page.evaluate(() => {
   perspective.value = 'scout';
   perspective.dispatchEvent(new Event('change', { bubbles: true }));
 });
-await page.waitForFunction(() => /Opponent scout/.test(document.querySelector('#bdvPerspective')?.textContent || ''));
+await page.waitForFunction(() => /^Opponent Defensive Call/.test(document.querySelector('.group-defense .tag-group-head')?.textContent || ''));
 state = await page.evaluate(() => ({
-  perspective: document.querySelector('#bdvPerspective').textContent,
   defense: document.querySelector('.group-defense .tag-group-head').textContent.trim(),
 }));
-ok(/Opponent scout/.test(state.perspective) && /^Opponent Defensive Call/.test(state.defense), 'Opponent scout labels the opponent as the analytics subject');
+ok(/^Opponent Defensive Call/.test(state.defense), 'Opponent scout labels the opponent as the analytics subject');
 
 await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
 await page.waitForFunction(() => document.querySelector('#tagForm').classList.contains('mode-special'));
 state = await page.evaluate(() => ({
-  perspective: document.querySelector('#bdvPerspective').textContent,
-  primary: document.querySelector('[data-bdv-section="look"] strong').textContent,
+  primary: document.querySelector('.group-special .tag-group-head').textContent.trim(),
   specialVisible: getComputedStyle(document.querySelector('.group-special')).display !== 'none',
   offenseHidden: getComputedStyle(document.querySelector('.group-offense')).display === 'none',
   defenseHidden: getComputedStyle(document.querySelector('.group-defense')).display === 'none',
@@ -101,8 +101,8 @@ state = await page.evaluate(() => ({
   activeRole: document.querySelector('.group-special .player-role.active')?.dataset.role,
   unit: window.app.tagger.plays[0].tags.unit,
 }));
-ok(state.unit === 'special' && /Opponent scout · Special Teams/.test(state.perspective), 'Special Teams preserves the live unit-save path and subject context', JSON.stringify(state));
-ok(state.primary === 'Opponent Special Teams' && state.specialVisible && state.offenseHidden && state.defenseHidden, 'Special Teams exposes its complete phase group without competing side groups', JSON.stringify(state));
+ok(state.unit === 'special' && /^Opponent Special Teams/.test(state.primary), 'Special Teams preserves the live unit-save path and subject context', JSON.stringify(state));
+ok(/^Opponent Special Teams/.test(state.primary) && state.specialVisible && state.offenseHidden && state.defenseHidden, 'Special Teams exposes its complete phase group without competing side groups', JSON.stringify(state));
 ok(state.sharedPlayersHidden && state.specialistPlayersVisible && state.activeRole === 'kicker', 'Special Teams uses its dedicated Kicker/Returner block without duplicate shared roles', JSON.stringify(state));
 
 state = await page.evaluate(() => ({
@@ -261,6 +261,51 @@ await page.evaluate(() => document.querySelector('[data-pen-remove="0"]').click(
 await page.waitForSelector('#ffaConfirmModal');
 await page.click('#ffaConfirmModal [data-act="ok"]');
 ok((await page.evaluate(() => window.app.tagger.plays[0].penalties.length))===1, 'Confirmed removal deletes only the selected foul');
+
+await page.evaluate(() => {
+  const blank = id => ({ id, timestamp:{start:(id-1)*6,end:(id-1)*6+5}, notes:'', tags:{unit:'defense',down:'1',distance:'10',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]} });
+  window.app.tagger.plays = [blank(1), blank(2)]; window.app.tagger.currentPlayId = 1; window.app.tagger._loadTagForm(window.app.tagger.plays[0]);
+  const tacklers = document.querySelector('#tagPlayerTackler'); tacklers.value='55, 22'; tacklers.dispatchEvent(new Event('change',{bubbles:true}));
+  const grade = document.querySelector('#tagGradeTackler'); grade.value='1'; grade.dispatchEvent(new Event('change',{bubbles:true}));
+  const notes = document.querySelector('#notesArea'); notes.value='Fit outside shoulder'; notes.dispatchEvent(new Event('input',{bubbles:true})); notes.dispatchEvent(new Event('change',{bubbles:true}));
+  document.querySelector('#btnTagSaveNext').click();
+});
+state = await page.evaluate(() => ({
+  current:window.app.tagger.currentPlayId, saved:document.querySelector('#btnTagSaveNext').classList.contains('just-saved'),
+  players:window.app.tagger.plays[0].tags.players, grades:window.app.tagger.plays[0].tags.grades, notes:window.app.tagger.plays[0].notes,
+}));
+ok(state.current===2 && state.saved && state.players.tackler==='55, 22' && state.grades.tackler===1 && state.notes==='Fit outside shoulder', 'Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback', JSON.stringify(state));
+await page.evaluate(() => document.querySelector('#btnTagPrev').click());
+state = await page.evaluate(() => ({ current:window.app.tagger.currentPlayId, tacklers:document.querySelector('#tagPlayerTackler').value, grade:document.querySelector('#tagGradeTackler').value, notes:document.querySelector('#notesArea').value }));
+ok(state.current===1 && state.tacklers==='55, 22' && state.grade==='1' && state.notes==='Fit outside shoulder', 'Reopening the play restores every R6 field for editing', JSON.stringify(state));
+
+state = await page.evaluate(() => {
+  const blank = (id, notes) => ({ id, timestamp:{start:0,end:5}, notes, tags:{unit:'offense',down:'1',distance:'10',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]} });
+  const outgoing = blank(1, 'Outgoing original');
+  const incoming = blank(1, 'Incoming original');
+  const tagger = window.app.tagger;
+  tagger.plays = [outgoing]; tagger.currentPlayId = 1; tagger._loadTagForm(outgoing);
+  const notes = document.querySelector('#notesArea');
+  notes.value = 'Outgoing pending'; notes.dispatchEvent(new Event('input',{bubbles:true}));
+  tagger.plays = [incoming]; tagger.currentPlayId = 1;
+  tagger._emit('plays-loaded'); tagger._emit('play-selected', incoming);
+  return { outgoing: outgoing.notes, incoming: incoming.notes };
+});
+ok(state.outgoing === 'Outgoing pending' && state.incoming === 'Incoming original', 'Pending notes stay on their originating play when the next game reuses its numeric id', JSON.stringify(state));
+
+state = await page.evaluate(async () => {
+  const tagger = window.app.tagger;
+  tagger._confirmDialog = async () => true;
+  const play = tagger.getCurrentPlay();
+  const notes = document.querySelector('#notesArea');
+  notes.value = 'Must be cleared'; notes.dispatchEvent(new Event('input',{bubbles:true}));
+  await tagger.clearCurrentTags();
+  await new Promise(resolve => setTimeout(resolve, 550));
+  return { stored: play.notes, visible: notes.value };
+});
+ok(state.stored === '' && state.visible === '', 'Clear Tags cancels a pending note instead of resurrecting it after debounce', JSON.stringify(state));
+
+await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
 
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({

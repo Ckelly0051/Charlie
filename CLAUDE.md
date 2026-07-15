@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Product redesign handoff (prototype approved; implementation not started)
+### Product redesign handoff (v1.12.0-3 smoke candidate)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
 `GRIDIRON-IQ-REDESIGN-PLAN.md`. The interactive source of truth is
@@ -30,6 +30,47 @@ The coach-approved prototype baseline is tagged **`design-v1`**, with final
 edge polish preserved as **`design-v1.1`**. Read
 `ux-prototype-v2/ITERATIONS.md` for the design decisions and exact historical
 commits. These are visual/product references, not deploy or desktop release tags.
+
+**Recovery status (2026-07-15, release candidate):** `R1` through the R3
+implementation and integrated R4-R8 presentation checkpoint in
+`BREAKDOWN-REDESIGN-PARITY.md` are complete. Break Down now has a dedicated
+production route plus a canonical charting header: one real unit control,
+self-scout/opponent-scout context, existing Quick Chart entry, current play/D&D,
+tag progress, and autosave state. The canonical form now uses real sections,
+shared tag libraries, structured penalty/Special Teams placement, and explicit
+Chart/Film Room modes. Current focused gates: route/video 27/27, form 46/46,
+library settings 15/15, library contract 11/11, penalties 7/7, Special Teams 20/20,
+tagging 27/27, real-data integrity zero violations, and R7
+accessibility/scaling 8/8; four viewports passed visual review. R4-R8 are
+complete; R9 is next. The R9 code review fixed a critical pending-note race:
+notes update their originating play immediately, debounce only the mutation
+notification, and use object identity so same-numbered plays in another game
+cannot receive them. Clear Tags and undo/replacement paths cannot replay stale
+notes. Quoted tag-library values now render through DOM APIs; movable controls
+reclamp after video resizing; ordinary tag edits update one stable play card.
+R8 is now complete: Chart hides the full spreadsheet by default; Film Room is an
+explicit mode in the media column and preserves play/tag state. Film Room is
+60/60 and the complete 49-script repository gate is green. The R9 parity-matrix
+audit and repair are complete locally. Break Down now replaces its desktop
+sidebar with compact top navigation, growing the 1440px media pane from roughly
+756px to roughly 964px (the approved reference is roughly 947px). Mobile now has
+one Home/Break Down/Study/Plan navigation system, no route select or legacy
+workflow tabs, and a compact header; Game remains reachable while duplicate
+progress is hidden and Templates moves below the charting groups. Situation is
+visible in the first 390x844 viewport. Fresh captures are in `.tmp-r9-fixed/`.
+The served-browser review then exposed an empty-origin dead end: all primary
+routes were disabled while setup was buried in season management. Empty Home now
+offers an enabled `Set up team` action (or `Choose a season` when appropriate),
+and the isolated sample was manually driven through season open, Break Down,
+play selection, and an enabled tag form. Focused gates are route/video `31/31`,
+workspace shell `18/18`, form `46/46`,
+and accessibility `8/8`; the fresh full 49-script gate is green. Read
+`BREAKDOWN-REDESIGN-PARITY.md` for the measured audit. The coach approved the
+R9 layout review and authorized `v1.12.0-3` as the single installed-desktop smoke
+candidate. Its rebuilt bundle passed the physical asset gate (Break Down video,
+workspace, form, shell, SVG, and packaged SQL resources) and the complete
+49-script repository gate in 186 seconds. The remaining release gate is the
+coach's real-film desktop smoke; rebuild only if that smoke finds a defect.
 
 **Prototype revision 2 (2026-07-12, Codex)** tightens the play strip and tag
 controls, adds a working Team Settings library editor for enabled/custom

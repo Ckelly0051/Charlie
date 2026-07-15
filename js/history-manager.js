@@ -180,12 +180,12 @@ export class HistoryManager {
     if (!this.toastEl) this.toastEl = document.getElementById('undoToast');
     if (!this.toastEl) return;
     this.toastEl.textContent = '';
-    this.toastEl.appendChild(document.createTextNode(msg));
+    this.toastEl.appendChild(document.createTextNode(String(msg ?? '').toUpperCase()));
     if (opts.action && typeof opts.action.fn === 'function') {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'toast-action';
-      btn.textContent = opts.action.label || 'Undo';
+      btn.textContent = String(opts.action.label || 'Undo').toUpperCase();
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         clearTimeout(this._toastTimer);

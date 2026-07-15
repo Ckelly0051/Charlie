@@ -9,6 +9,14 @@
 .bdv-head small { grid-column: 1 / -1; color: var(--text-dim); font-size: 10px; }
 .breakdown-form-v2 .tag-progress-row { margin-top: 10px; }
 .breakdown-form-v2 .tag-helpers { margin-bottom: 6px; }
+.bdv-template-tools { margin-top: 10px; border-top: 1px solid #26384b; }
+.bdv-template-tools > summary { min-height: 38px; padding: 7px 4px; display: flex; align-items: center; gap: 8px; color: #aebbd0; cursor: pointer; list-style: none; font-size: 11px; font-weight: 750; }
+.bdv-template-tools > summary::-webkit-details-marker { display: none; }
+.bdv-template-tools > summary span { color: #71849a; font-size: 10px; font-weight: 500; }
+.bdv-template-tools > summary i { margin-left: auto; font-style: normal; transition: transform 150ms ease; }
+.bdv-template-tools:not([open]) > summary i { transform: rotate(-90deg); }
+.bdv-template-tools > div { padding: 2px 0 8px; }
+.bdv-template-tools .tag-helpers { margin: 0; }
 .bdv-section-label { display: flex; align-items: baseline; gap: 8px; padding: 13px 0 7px; border-top: 1px solid var(--border); }
 .bdv-section-label strong { color: var(--text); font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
 .bdv-section-label span { color: var(--text-dim); font-size: 10px; }
@@ -19,6 +27,25 @@
 .breakdown-form-v2 .chip-label { margin-bottom: 5px; }
 .breakdown-form-v2 .pick-group { gap: 5px; }
 .breakdown-form-v2 .pick { min-height: 32px; padding: 5px 8px; }
+.breakdown-form-v2 .pick kbd { display: none; }
+.breakdown-form-v2 .pick.active { color: #fff; background: #2468bb; border-color: #4c91e8; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.breakdown-form-v2 .tag-group-head { display: flex; margin: 0; padding: 10px 11px; color: #edf3fa; background: #121c27; border-color: #2d4055; border-radius: 4px 4px 0 0; }
+.breakdown-form-v2 .tag-group { margin-top: 8px; border: 1px solid #26384b; border-radius: 4px; background: #0e161f; }
+.breakdown-form-v2 .tag-group > .tag-group-body { padding: 4px 9px 8px; }
+.breakdown-form-v2 .tag-group.is-secondary > .tag-group-head { color: #b6c3d2; background: #101923; }
+.bdv-group { margin-top: 8px; border: 1px solid #26384b; border-radius: 4px; background: #0e161f; }
+.bdv-group > summary { min-height: 42px; padding: 8px 10px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; cursor: pointer; list-style: none; background: #121c27; }
+.bdv-group > summary::-webkit-details-marker { display: none; }
+.bdv-group > summary strong { color: #eef4fa; font-size: 12px; text-transform: uppercase; }
+.bdv-group > summary span { color: #8293a7; font-size: 10px; }
+.bdv-group > summary i { color: #8192a6; font-style: normal; transition: transform 150ms ease; }
+.bdv-group:not([open]) > summary i { transform: rotate(-90deg); }
+.bdv-group-body { padding: 4px 9px 8px; }
+.breakdown-form-v2.mode-special .bdv-group-play { display: none; }
+.breakdown-form-v2 #tagResult .pick[data-value="Penalty"] { display: none; }
+.bdv-field-link { float: right; margin-left: auto; padding: 0; color: #78aef5; background: transparent; border: 0; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+.bdv-field-link:hover { color: #b9d6ff; text-decoration: underline; }
+.bdv-field-link:focus-visible { outline: 2px solid #80b2ff; outline-offset: 2px; }
 .breakdown-form-v2 .player-role { min-height: 42px; }
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-role[data-role="tackler"],
 .breakdown-form-v2.mode-offense #tagPlayersSection .player-role[data-role="takeaway"] { display: none; }
