@@ -81,9 +81,9 @@ const checks = [
   ['3-3-5 chip present', result.frontChips.includes('3-3-5')],
   ['Jumbo Shift chip present', result.frontChips.includes('Jumbo Shift')],
   ['Front group is multi-select', result.frontIsMulti],
-  // Power-I moved to the Backfield field ('Power') in the Hudl structure-only
-  // model (SeasonStore.BACKFIELD_FROM_FORMATION); Formation holds STRUCTURE only.
-  ['Wing-T/Flexbone/Double Wing/Bunch/Unbalanced are formation chips; Power-I is NOT (moved to Backfield)', ['Wing-T','Flexbone','Double Wing','Bunch','Unbalanced'].every(f => result.formChips.includes(f)) && !result.formChips.includes('Power-I')],
+  // Coach-approved structural looks are standard Formation chips. Legacy plays
+  // lacking a backfield property may still use the historical migration seam.
+  ['Power-I/Ace/Victory and core structural looks are standard formation chips', ['Power-I','Ace','Victory','Wing-T','Flexbone','Double Wing','Bunch','Unbalanced'].every(f => result.formChips.includes(f))],
   ['Motion chips Jet/Orbit/Shift/Trade', ['Jet','Orbit','Shift','Trade'].every(m => result.motionChips.includes(m))],
   ['Direction chips L/M/R', ['Left','Middle','Right'].every(d => result.dirChips.includes(d))],
   ['Form shows both front chips active for multi play', JSON.stringify([...result.activeFronts].sort()) === JSON.stringify(['Jumbo Shift','Maverick'])],

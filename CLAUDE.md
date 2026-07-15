@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Product redesign handoff (v1.12.0-3 smoke candidate)
+### Product redesign handoff (v1.12.0-4 continued-smoke candidate)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
 `GRIDIRON-IQ-REDESIGN-PLAN.md`. The interactive source of truth is
@@ -69,8 +69,31 @@ and accessibility `8/8`; the fresh full 49-script gate is green. Read
 R9 layout review and authorized `v1.12.0-3` as the single installed-desktop smoke
 candidate. Its rebuilt bundle passed the physical asset gate (Break Down video,
 workspace, form, shell, SVG, and packaged SQL resources) and the complete
-49-script repository gate in 186 seconds. The remaining release gate is the
-coach's real-film desktop smoke; rebuild only if that smoke finds a defect.
+49-script repository gate in 186 seconds. Installed smoke then found that form
+navigation left an active analytics example set: Save & Next used chronological
+order instead of the filtered cut-up queue. A local verified fix makes the cut-up
+own Previous, Skip, and Save & Next, avoids carrying situation/scheme between
+nonconsecutive examples, and consumes end-of-set without falling through. The
+focused form gate is `50/50`; ordinary tagging, Study, season analytics, and
+Film Room remain green. The fix and the coach-approved standard Formation
+values `Power-I`, `Ace`, and `Victory` are packaged in the `v1.12.0-4`
+continued-smoke candidate. The exact rebuilt bundle passed the physical asset
+check and complete 49-script repository gate in 187.7 seconds. Plan's blank
+real-season workspace is logged as
+BETA-004: Study computes data independently, while Plan only receives findings
+the coach explicitly promotes. The downstream item, reorder, Watch, Present,
+and Export machinery exists, but Plan neither explains nor links to that curation
+workflow and has almost no direct authoring. BETA-005 is a P0 data-model blocker before permanent
+re-tagging: Under Center, Shotgun, and Pistol must become a separate single-value
+QB-alignment dimension instead of competing with structural formations such as
+Ace. Formation, backfield, strength, and QB alignment must aggregate separately
+and cross-filter cleanly. Do not migrate or clear existing season data without
+showing the impact and receiving explicit coach confirmation. Do not implement
+or package findings one at a time. BETA-006 applies the same correction to
+coverage: Cover 0-6 are the primary shells, while Man/Zone/Match are a separate
+optional family dimension that stays blank by default. Do not make the current
+mixed field multi-select; shell and family must aggregate independently and
+support an exact intersection without double counting.
 
 **Prototype revision 2 (2026-07-12, Codex)** tightens the play strip and tag
 controls, adds a working Team Settings library editor for enabled/custom
@@ -139,6 +162,13 @@ opt-in; no release/tag. **Review focus:** one-way migration, team
 isolation, hidden-vs-historical behavior in both editors, custom Front semantics,
 Power-I boundary, malformed storage/fail-closed behavior. Next after acceptance:
 customer-facing Team Settings library UI over this contract.
+
+**Smoke-library addition (2026-07-15, local):** `Power-I`, `Ace`, and `Victory`
+are coach-approved standard offensive Formation values. Existing team-library
+records normalize same-named custom entries into defaults while preserving
+their enabled/hidden state; historical play tags are untouched. `Power-I`
+remains protected from the legacy Formation-to-Backfield migration whenever a
+modern play carries the `backfield` property.
 
 **Phase 4B Team Settings tag-library editor is ready for review (`de62d70`,
 Codex).** The production Settings drawer now opens a focused, responsive editor

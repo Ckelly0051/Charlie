@@ -280,6 +280,30 @@ state = await page.evaluate(() => ({ current:window.app.tagger.currentPlayId, ta
 ok(state.current===1 && state.tacklers==='55, 22' && state.grade==='1' && state.notes==='Fit outside shoulder', 'Reopening the play restores every R6 field for editing', JSON.stringify(state));
 
 state = await page.evaluate(() => {
+  const blank = (id, down, distance) => ({ id, timestamp:{start:(id-1)*6,end:(id-1)*6+5}, notes:'', tags:{unit:'offense',down,distance,fieldSide:'own',yardLine:'30',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]} });
+  const tagger = window.app.tagger;
+  tagger.plays = [blank(1, '1', '10'), blank(2, '2', '6'), blank(3, '3', '7')];
+  tagger.autoDD = true;
+  window.app.cutupPlayer.start([1, 3], 'Successful Wing-T plays');
+  const notes = document.querySelector('#notesArea');
+  notes.value = 'Reviewed example'; notes.dispatchEvent(new Event('input',{bubbles:true}));
+  document.querySelector('#btnTagSaveNext').click();
+  const afterSave = { current:tagger.currentPlayId, index:window.app.cutupPlayer.index, active:window.app.cutupPlayer.active,
+    note:tagger.plays[0].notes, nextDown:tagger.plays[2].tags.down, nextDistance:tagger.plays[2].tags.distance };
+  document.querySelector('#btnTagPrev').click();
+  const afterPrev = { current:tagger.currentPlayId, index:window.app.cutupPlayer.index };
+  document.querySelector('#btnTagSkip').click();
+  const afterSkip = { current:tagger.currentPlayId, index:window.app.cutupPlayer.index };
+  document.querySelector('#btnTagSaveNext').click();
+  const afterEnd = { current:tagger.currentPlayId, active:window.app.cutupPlayer.active };
+  return { afterSave, afterPrev, afterSkip, afterEnd };
+});
+ok(state.afterSave.current===3 && state.afterSave.index===1 && state.afterSave.active && state.afterSave.note==='Reviewed example', 'Save & Next stays inside the active analytics example set', JSON.stringify(state));
+ok(state.afterSave.nextDown==='3' && state.afterSave.nextDistance==='7', 'Filtered navigation never carries Auto D&D into a nonconsecutive example', JSON.stringify(state.afterSave));
+ok(state.afterPrev.current===1 && state.afterPrev.index===0 && state.afterSkip.current===3 && state.afterSkip.index===1, 'Previous and Skip use the same active example queue', JSON.stringify(state));
+ok(state.afterEnd.current===3 && !state.afterEnd.active, 'End of the example set never falls through to chronological navigation', JSON.stringify(state.afterEnd));
+
+state = await page.evaluate(() => {
   const blank = (id, notes) => ({ id, timestamp:{start:0,end:5}, notes, tags:{unit:'offense',down:'1',distance:'10',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]} });
   const outgoing = blank(1, 'Outgoing original');
   const incoming = blank(1, 'Incoming original');

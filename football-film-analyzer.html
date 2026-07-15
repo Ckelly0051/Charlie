@@ -9605,6 +9605,9 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                     <button class="pick" data-value="Wildcat" type="button">Wildcat</button>
                     <button class="pick" data-value="Unbalanced" type="button">Unbalanced</button>
                     <button class="pick" data-value="Goal Line" type="button">Goal Line</button>
+                    <button class="pick" data-value="Power-I" type="button">Power-I</button>
+                    <button class="pick" data-value="Ace" type="button">Ace</button>
+                    <button class="pick" data-value="Victory" type="button">Victory</button>
                     <!-- Receiver structure -->
                     <button class="pick" data-value="Trips" type="button">Trips</button>
                     <button class="pick" data-value="Twins" type="button">Twins</button>
@@ -34286,7 +34289,7 @@ class CustomFieldsManager {
 class TagLibrary {
   static VERSION = 1;
   static DEFINITIONS = {
-    formation: ['Under Center','Pistol','Shotgun','Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Trips','Twins','Doubles','Bunch','Empty'],
+    formation: ['Under Center','Pistol','Shotgun','Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch','Empty'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Pistol','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
   };
@@ -35506,7 +35509,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-3';
+const APP_VERSION = '1.12.0-4';
 
 class App {
   constructor() {
@@ -37439,6 +37442,10 @@ class App {
 
     btnPrev?.addEventListener('click', () => {
       this.notes?.flush();
+      if (this.cutupPlayer?.active) {
+        this.cutupPlayer.prev();
+        return;
+      }
       this.tagger.prevPlay();
       this._autoPlayCurrent();
     });
@@ -37549,6 +37556,17 @@ class App {
       el.blur();
     }
     this.notes?.flush();
+
+    // Analytics rows, Film Room selections, and Study results establish an
+    // intentional example set. While that cut-up is active, its queue owns
+    // navigation: falling through to chronological nextPlay() silently leaves
+    // the grouping the coach asked to review. Do not carry situation/scheme to
+    // a filtered example because those plays are usually nonconsecutive.
+    if (this.cutupPlayer?.active) {
+      if (!opts.skip) this._flashSaved();
+      this.cutupPlayer.next();
+      return;
+    }
 
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.

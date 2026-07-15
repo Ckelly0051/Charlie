@@ -52,10 +52,138 @@
   scrollbars, Save & Next feedback, keyboard behavior, and full persistence/
   playback gates.
 
+### BETA-003 - Save & Next leaves an analytics example set
+
+- **Status:** Fixed and included in the `v1.12.0-4` smoke candidate
+- **Reported:** 2026-07-15
+- **Surface:** Analytics success-rate row → Watch examples → Break Down
+- **Observed:** The first example opened correctly, but the charting Previous,
+  Skip, and Save & Next controls used chronological play order instead of the
+  active filtered cut-up queue.
+- **Impact:** The coach silently left the requested grouping while reviewing or
+  correcting its film examples.
+- **Fix:** While a cut-up is active, it owns charting navigation. Save & Next
+  flushes edits and advances within the example set without carrying Auto D&D
+  or scheme into a nonconsecutive play. Finishing the set never falls through
+  to chronological or next-clip navigation.
+- **Regression:** Nonconsecutive examples `1 → 3` are pinned for Save & Next,
+  Previous, Skip, end-of-set behavior, edit persistence, and D&D isolation.
+
+### BETA-004 - Plan stays blank despite real tagged Study data
+
+- **Status:** Documented; not fixed
+- **Reported:** 2026-07-15
+- **Provisional priority:** P1 product/UX blocker
+- **Surface:** Plan workspace in a real tagged season/game with populated Study
+- **Observed:** Even when Study has computed data from the active tagged game,
+  Plan remains blank apart from plan creation and staff notes. The screen gives
+  no clear explanation that Study data is not added automatically and no clear
+  path to add useful content. It reads like an unfinished notes page.
+- **Intended workflow:** Plan is the downstream teaching workspace for Study.
+  A coach runs a Study query, saves a finding and its exact film refs to a plan,
+  then uses Plan to reorder findings, watch the linked examples, present them
+  full-screen, edit audience/name/notes, export the ordered plan, remove items,
+  or delete the plan.
+- **Current technical state:** Study computes analysis independently; Plan is a
+  manually curated collection and does not auto-import available Study data.
+  Item/reorder/watch/present/export paths are implemented and regression-tested
+  only after a coach explicitly saves a Study finding. The Plan screen does not
+  explain this dependency or provide a useful route into it, and Plan has almost
+  no direct item-authoring capability.
+- **Product direction:** Keep the final plan intentionally curated rather than
+  dumping every metric into it, but surface useful Study results as suggestions.
+  Plan should explain `No findings added yet`, offer a prominent `Browse Study
+  insights` action, and show recent or relevant findings that can be added in
+  one click. Study needs a prominent `Add to Plan` action on each result and a
+  clear confirmation naming the destination plan.
+- **Acceptance direction:** A coach entering Plan from a real tagged game can
+  immediately distinguish available Study analysis from findings already added
+  to the plan, add a useful finding in one click, return to the correct plan,
+  and discover Watch, reorder, Present, and Export without prior instruction.
+
+### BETA-005 - QB alignment is incorrectly modeled as formation
+
+- **Status:** Documented; do not migrate or clear data without coach approval
+- **Reported:** 2026-07-15
+- **Provisional priority:** P0 data-model blocker before permanent re-tagging
+- **Surface:** Offensive Look charting, Formation analytics, Study dimensions
+- **Observed:** `Under Center`, `Shotgun`, and `Pistol` live in the same
+  multi-select `formation` field as structural formations such as `Ace`. The
+  formation report therefore treats a QB alignment as a peer formation row and
+  can obscure the structural formation the coach intends to study.
+- **Domain model:** Add a single-select `qbAlignment` dimension with `Under
+  Center`, `Shotgun`, and `Pistol`. Keep structural formation in `formation`,
+  back alignment in `backfield`, and side in `strength`. A play can then be
+  `qbAlignment: Shotgun`, `formation: Ace`, `backfield: Single`, and `strength:
+  Right` without conflating those concepts.
+- **Analytics contract:** Primary Formation charts group by structural
+  formation only. QB Alignment gets its own frequency/effectiveness dimension.
+  Study and reports support Formation x QB Alignment cross-tabs and combined
+  filters. Displayed call labels may compose the dimensions, but storage and
+  aggregation must remain separate.
+- **Comparable-app evidence:** Hudl publishes separate Offensive Formation,
+  Backfield, and Offensive Strength breakdown columns and explicitly advises
+  coaches to keep backfield data out of formation. QwikCut likewise lists
+  Backfield and Offensive Formation separately. Tactix calls Under Center,
+  Shotgun, and Pistol `Quarterback Alignment`; PFF lists detailed offensive
+  formation separately from shotgun/pistol/under-center.
+- **Existing-data rule:** Do not silently rewrite the coach's season. Before
+  any migration, present the exact affected-play count and request confirmation.
+  Known alignment tokens could then move losslessly into `qbAlignment`; a play
+  containing only `Shotgun` would retain blank structural formation rather than
+  inventing `Ace` or another look. The coach has already stated that known-bad
+  data need not be preserved, but clearing still requires explicit approval.
+- **Acceptance direction:** Charting `Shotgun + Ace` produces one Ace formation
+  rep and one Shotgun QB-alignment rep, never a competing Shotgun formation row;
+  all Formation, Study, filter, export, Film Room, and video-linked report paths
+  agree on the separation.
+
+### BETA-006 - Coverage shell and family cannot be charted together
+
+- **Status:** Documented; do not migrate or clear data without coach approval
+- **Reported:** 2026-07-15
+- **Provisional priority:** P0 data-model blocker before permanent re-tagging
+- **Surface:** Our Defensive Call, Defense Faced, coverage analytics and Study
+- **Observed:** `Cover 0` through `Cover 6`, `Man`, and `Zone` are peer choices
+  in one single-select `coverage` field. A coach therefore cannot accurately
+  chart combinations such as `Cover 2 + Zone` or `Cover 3 + Man`.
+- **Rejected shortcut:** Making the existing field multi-select would create the
+  same analytics error as QB alignment inside Formation: shells and families
+  would become competing rows in one dimension and inflate coverage counts.
+- **Domain model:** Keep a single optional `coverageShell` value (`Cover 0`
+  through `Cover 6`) and a separate optional `coverageFamily` value (`Man`,
+  `Zone`, or `Match`). Shell is the primary coverage tag; family is additional
+  detail and remains blank by default. Either field may remain blank when the
+  film does not support a confident tag.
+- **Analytics contract:** Coverage Shell and Coverage Family receive separate
+  frequency/effectiveness breakdowns. Study, Film Room, reports, and cut-ups can
+  filter each independently or cross-tab Shell x Family. The same canonical
+  fields apply to our coverage on defensive snaps and coverage faced on
+  offensive snaps; perspective changes labels, not stored meaning.
+- **Existing-data rule:** Before any migration, show the coach the affected-play
+  count and request confirmation. Existing exact `Man`/`Zone` tokens can move to
+  family without inventing a shell; exact `Cover N` tokens can move to shell
+  without inventing a family. Ambiguous/custom values remain untouched for
+  explicit review.
+- **Acceptance direction:** `Cover 3 + Man` produces one Cover 3 shell rep and
+  one Man family rep, can be queried as their intersection, and links to the
+  identical play set everywhere without double-counting the play. A coach can
+  chart Cover 2 alone without being forced to confirm its family, while the rare
+  match coverage remains representable as `Cover 2 + Match`.
+
 ## Release Notes
 
 - Superseded beta: `v1.12.0-2`
-- Replacement smoke candidate: `v1.12.0-3`; the rebuilt bundle passed the
-  physical asset gate and complete 49-script repository gate.
+- Superseded smoke candidate: `v1.12.0-3`.
+- Continued-smoke candidate: `v1.12.0-4`, containing the BETA-003 filtered-film
+  navigation fix and the coach-approved standard Formation values `Power-I`,
+  `Ace`, and `Victory`.
+- The exact rebuilt candidate passed the physical desktop-asset check and the
+  complete 49-script repository gate (187.7 seconds) with zero integrity or
+  page-error failures.
+- BETA-004 remains a documented Plan workflow gap. BETA-005 and BETA-006 remain
+  P0 data-model blockers: do not treat formation or coverage retagging in this
+  candidate as permanent until those models are corrected and explicitly
+  approved. No existing season data is migrated or cleared by this release.
 - Full Break Down redesign parity is tracked in
   `BREAKDOWN-REDESIGN-PARITY.md`.

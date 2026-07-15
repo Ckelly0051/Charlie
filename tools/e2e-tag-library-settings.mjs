@@ -26,7 +26,7 @@ let state = await page.evaluate(() => ({
   rows: document.querySelectorAll('#tagLibraryDialog .tag-library-row').length,
   promise: document.querySelector('.tag-library-promise').textContent,
 }));
-ok(state.open && state.tabs === 3 && state.rows === 17, 'Team Settings opens all three tag-library categories', JSON.stringify(state));
+ok(state.open && state.tabs === 3 && state.rows === 20, 'Team Settings opens all three tag-library categories', JSON.stringify(state));
 ok(/Existing plays and analytics stay unchanged/.test(state.promise), 'Editor states the non-destructive visibility contract');
 
 await page.evaluate(() => {

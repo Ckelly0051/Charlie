@@ -54,7 +54,7 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-3';
+const APP_VERSION = '1.12.0-4';
 
 class App {
   constructor() {
@@ -1987,6 +1987,10 @@ class App {
 
     btnPrev?.addEventListener('click', () => {
       this.notes?.flush();
+      if (this.cutupPlayer?.active) {
+        this.cutupPlayer.prev();
+        return;
+      }
       this.tagger.prevPlay();
       this._autoPlayCurrent();
     });
@@ -2097,6 +2101,17 @@ class App {
       el.blur();
     }
     this.notes?.flush();
+
+    // Analytics rows, Film Room selections, and Study results establish an
+    // intentional example set. While that cut-up is active, its queue owns
+    // navigation: falling through to chronological nextPlay() silently leaves
+    // the grouping the coach asked to review. Do not carry situation/scheme to
+    // a filtered example because those plays are usually nonconsecutive.
+    if (this.cutupPlayer?.active) {
+      if (!opts.skip) this._flashSaved();
+      this.cutupPlayer.next();
+      return;
+    }
 
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.

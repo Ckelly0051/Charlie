@@ -401,16 +401,21 @@ begins.
   four required viewports. Break Down now reclaims the desktop sidebar width;
   mobile has one workspace navigation system; Situation precedes secondary game/
   template chrome. No Missing or Partial rows remain locally.
-- **Release candidate:** coach screenshot approval is complete. `v1.12.0-3` is
-  the single installed-desktop smoke candidate. The rebuilt bundle passed an
-  explicit physical asset gate and the complete 49-script repository gate in
-  186 seconds. Installed real-film smoke remains the final R9 gate.
+- **Smoke findings:** coach screenshot approval is complete. Installed smoke on
+  `v1.12.0-3` found that charting navigation escaped active analytics example
+  sets. The `v1.12.0-4` continued-smoke candidate keeps Previous, Skip, and Save
+  & Next inside the filtered cut-up without carrying situation to
+  nonconsecutive examples. Plan's undiscoverable empty workflow is logged as
+  BETA-004; the formation and coverage model blockers are BETA-005/006.
 
 ## Current Local State
 
 - `v1.12.0-2` has been withdrawn from coach testing.
-- The Big Calls correction, full R1-R9 recovery, and parity-layout fixes are
-  rebuilt and full-gate tested as the `v1.12.0-3` smoke candidate.
-- The candidate is ready to commit, tag, and package for the coach's installed
-  desktop smoke. That exact package should be promoted if the smoke passes.
+- `v1.12.0-3` is superseded by the `v1.12.0-4` continued-smoke candidate.
+- The analytics-example navigation correction and standard `Power-I`, `Ace`,
+  and `Victory` Formation values are included in the candidate.
+- The exact rebuilt candidate passed the physical asset check and complete
+  49-script repository gate in 187.7 seconds.
+- BETA-004/005/006 remain open; the candidate must not be used for permanent
+  formation or coverage retagging until the P0 model corrections are complete.
 - No current season data has been migrated, cleared, or rewritten by this audit.
