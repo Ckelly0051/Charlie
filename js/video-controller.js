@@ -41,6 +41,7 @@ export class VideoController {
     // mid-retry on.
     this.corsBlocked = false;
     this._corsRetryPending = null;
+    this._lastTimeText = '';
 
     this._bindEvents();
   }
@@ -528,15 +529,22 @@ export class VideoController {
   }
 
   _setScrubPosition(pct) {
+    pct = Math.max(0, Math.min(1, Number(pct) || 0));
     const pctStr = (pct * 100) + '%';
-    this.scrubBarFill.style.width = pctStr;
+    // Transform stays on the compositor; animating width forced layout during
+    // playback and made high-resolution desktop film feel less stable.
+    this.scrubBarFill.style.transform = `scaleX(${pct})`;
     this.scrubBarHandle.style.left = pctStr;
   }
 
   _updateTime() {
     const cur = this._formatTime(this.video.currentTime);
     const dur = this._formatTime(this.video.duration || 0);
-    this.timeDisplay.textContent = `${cur} / ${dur}`;
+    const text = `${cur} / ${dur}`;
+    if (text !== this._lastTimeText) {
+      this.timeDisplay.textContent = text;
+      this._lastTimeText = text;
+    }
   }
 
   _formatTime(seconds) {

@@ -171,6 +171,33 @@
   chart Cover 2 alone without being forced to confirm its family, while the rare
   match coverage remains representable as `Cover 2 + Match`.
 
+### BETA-007 - Playback intermittently hitches during charting
+
+- **Status:** Fixed in the `v1.12.0-5` smoke candidate; installed-film
+  validation pending
+- **Reported:** 2026-07-15
+- **Surface:** Desktop Break Down video playback while charting
+- **Observed:** Film occasionally lagged or paused for roughly one to two
+  seconds during normal review.
+- **Root causes in app-controlled work:** Every video `timeupdate` cleared and
+  repainted the full-resolution drawing canvas even with no visible drawings.
+  In addition, the first and throttled automatic restore points could export the
+  full SQL catalog while the next charting example was already playing.
+- **Fix:** Playback canvas work now occurs only when entering or leaving a frame
+  with a drawing. The progress fill uses a compositor transform and the time
+  label skips duplicate DOM writes. Canonical tag autosaves remain immediate;
+  only the heavier automatic restore point waits for a stable pause. Manual and
+  pre-risk safety snapshots remain immediate and supersede pending automatic
+  work.
+- **Integrity guard:** Deferred snapshots are pinned to the active season and
+  discarded on transitions, preventing any cross-season write. The rebuilt
+  bundle passes the focused video workspace gate (`35/35`), catalog/backend
+  gates, video CORS gate, charting form (`50/50`), and the real six-game
+  integrity stress harness (960 operations, zero violations).
+- **Remaining validation:** The coach must confirm the improvement against the
+  original high-resolution desktop film. Decoder/codec or disk-throughput
+  stalls cannot be reproduced without that installed-film fixture.
+
 ## Release Notes
 
 - Superseded beta: `v1.12.0-2`
@@ -181,6 +208,12 @@
 - The exact rebuilt candidate passed the physical desktop-asset check and the
   complete 49-script repository gate (187.7 seconds) with zero integrity or
   page-error failures.
+- Playback candidate: `v1.12.0-5`, adding BETA-007's playback-safe canvas,
+  progress, and automatic restore-point work. The exact pre-version-stamp code
+  passed the complete 49-script repository gate in 243.8 seconds; the stamped
+  bundle passed the physical asset gate, Breakdown Video `35/35`, charting form
+  `50/50`, video CORS `14/14`, catalog/backend checks, and the real six-game
+  960-operation integrity stress with zero violations.
 - BETA-004 remains a documented Plan workflow gap. BETA-005 and BETA-006 remain
   P0 data-model blockers: do not treat formation or coverage retagging in this
   candidate as permanent until those models are corrected and explicitly

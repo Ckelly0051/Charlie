@@ -288,7 +288,10 @@ body {
   height: 100%;
   background: var(--accent-hover);
   border-radius: 4px;
-  width: 0%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
   pointer-events: none;
 }
 

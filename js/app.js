@@ -54,7 +54,7 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-4';
+const APP_VERSION = '1.12.0-5';
 
 class App {
   constructor() {
@@ -897,9 +897,11 @@ class App {
   }
 
   _wireEvents() {
-    // Re-render canvas annotations when video time changes
+    // Re-render only when playback enters/leaves an annotated frame. Clearing a
+    // full-resolution transparent canvas on every timeupdate caused visible
+    // hitches even in the overwhelmingly common no-drawings path.
     this.vc.on('time-update', () => {
-      this.canvas.render();
+      this.canvas.renderPlaybackFrame();
     });
 
     // Persist added film through ONE choke point: the playlist's onFilmFiles

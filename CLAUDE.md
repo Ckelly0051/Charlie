@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Product redesign handoff (v1.12.0-4 continued-smoke candidate)
+### Product redesign handoff (v1.12.0-5 playback-smoke candidate)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
 `GRIDIRON-IQ-REDESIGN-PLAN.md`. The interactive source of truth is
@@ -94,6 +94,21 @@ coverage: Cover 0-6 are the primary shells, while Man/Zone/Match are a separate
 optional family dimension that stays blank by default. Do not make the current
 mixed field multi-select; shell and family must aggregate independently and
 support an exact intersection without double counting.
+
+**BETA-007 playback optimization (2026-07-15, `v1.12.0-5` candidate):** intermittent desktop
+film hitches traced to avoidable app-side playback work. `CanvasOverlay` no
+longer clears/repaints its full-DPR canvas on every playback tick when no drawing
+is visible; the scrub fill uses compositor transforms and duplicate time-label
+writes are skipped. Canonical tag autosaves remain immediate. Only throttled
+automatic restore points defer until playback has stayed paused for 500 ms;
+manual/pre-risk snapshots remain immediate, supersede pending auto work, and a
+season-id pin plus transition cancellation prevents cross-season flushes. The
+rebuilt implementation passes Breakdown Video `35/35`, form `50/50`, video
+CORS, catalog/backend, the real six-game 960-op integrity stress, and the full
+49-script gate in 243.8 seconds. Installed-film validation remains necessary
+because the real codec/disk path is local-only. The exact stamped `v1.12.0-5`
+bundle additionally passes the physical asset check, Breakdown Video `35/35`,
+form `50/50`, CORS `14/14`, catalog/backend, and the 960-op integrity stress.
 
 **Prototype revision 2 (2026-07-12, Codex)** tightens the play strip and tag
 controls, adds a working Team Settings library editor for enabled/custom

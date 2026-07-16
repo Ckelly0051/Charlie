@@ -16,6 +16,7 @@ export class CanvasOverlay {
     this.drawStart = null;
     this.drawPoints = [];
     this.annotations = []; // master list, shared with app state
+    this._hasVisiblePlaybackAnnotations = false;
     this.undoStack = [];
     this.redoStack = [];
 
@@ -299,14 +300,32 @@ export class CanvasOverlay {
     const currentTime = this.vc.currentTime;
     const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
 
+    let hasVisible = false;
     // Render finalized annotations near current time
     for (const a of this.annotations) {
       if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
+        hasVisible = true;
         this._renderAnnotation(ctx, a, rect.width, rect.height);
       }
     }
 
     ctx.restore();
+    this._hasVisiblePlaybackAnnotations = hasVisible;
+  }
+
+  /** Playback ticks are frequent and the canvas can be several million pixels
+   *  at desktop DPR. Avoid clearing/repainting it when no annotation is visible;
+   *  render once when entering or leaving an annotated frame. Direct edits still
+   *  call render() immediately, so drawing behavior is unchanged. */
+  renderPlaybackFrame() {
+    const currentTime = this.vc.currentTime;
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const hasVisible = this.annotations.some(
+      annotation => Math.abs(annotation.timestamp - currentTime) <= frameDur / 2
+    );
+    if (!hasVisible && !this._hasVisiblePlaybackAnnotations) return false;
+    this.render();
+    return true;
   }
 
   _renderPreview(currentPos) {

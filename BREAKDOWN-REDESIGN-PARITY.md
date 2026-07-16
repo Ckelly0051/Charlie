@@ -416,6 +416,13 @@ begins.
   and `Victory` Formation values are included in the candidate.
 - The exact rebuilt candidate passed the physical asset check and complete
   49-script repository gate in 187.7 seconds.
+- `v1.12.0-5` adds the BETA-007 playback optimization: no empty-canvas repaint
+  during film, compositor-only progress fill, and automatic restore points
+  deferred to a stable pause without delaying canonical autosaves. The
+  pre-version-stamp implementation passed the complete 49-script gate in 243.8
+  seconds. The exact stamped bundle also passed the physical asset gate, focused
+  video/charting/catalog checks, and real-season integrity stress; installed
+  high-resolution film remains the required smoke.
 - BETA-004/005/006 remain open; the candidate must not be used for permanent
   formation or coverage retagging until the P0 model corrections are complete.
 - No current season data has been migrated, cleared, or rewritten by this audit.

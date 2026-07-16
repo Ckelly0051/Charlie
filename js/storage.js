@@ -19,6 +19,8 @@ export class StorageManager {
     this.canvas = canvasOverlay;
 
     this.autoSaveTimer = null;
+    this._deferredSnapshot = null;
+    this._snapshotIdleTimer = null;
     this.videoFileName = null;
     this.gameInfo = {};
     this.filter = null;
@@ -37,6 +39,22 @@ export class StorageManager {
     this.btnExportCsv = document.getElementById('btnExportCsv');
 
     this._bindEvents();
+
+    // Canonical autosaves remain immediate. The heavier restore-point write can
+    // wait for a stable pause so exporting the full catalog never interrupts the
+    // next example's playback. A quick scrub pause does not flush: playback must
+    // remain paused for a short idle window.
+    this.vc.on('play-state-change', ({ playing }) => {
+      clearTimeout(this._snapshotIdleTimer);
+      this._snapshotIdleTimer = null;
+      if (!playing && this._deferredSnapshot) {
+        this._snapshotIdleTimer = setTimeout(() => this._flushDeferredSnapshot(), 500);
+      }
+    });
+    this.vc.on('video-ended', () => {
+      clearTimeout(this._snapshotIdleTimer);
+      this._snapshotIdleTimer = setTimeout(() => this._flushDeferredSnapshot(), 0);
+    });
   }
 
   _bindEvents() {
@@ -99,6 +117,9 @@ export class StorageManager {
   _cancelPendingSaves() {
     clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = null;
+    clearTimeout(this._snapshotIdleTimer);
+    this._snapshotIdleTimer = null;
+    this._deferredSnapshot = null;
     if (this.seasonStore && this.seasonStore.cancelPendingDiskWrite) this.seasonStore.cancelPendingDiskWrite();
   }
 
@@ -118,9 +139,35 @@ export class StorageManager {
    */
   _maybeSnapshot(force, label) {
     const now = Date.now();
-    if (!force && this._lastSnapAt && (now - this._lastSnapAt) < 180000) return;
-    this._lastSnapAt = now;
+    if (force) {
+      this._deferredSnapshot = null;
+      clearTimeout(this._snapshotIdleTimer);
+      this._snapshotIdleTimer = null;
+    }
+    if (!force && (this._deferredSnapshot || (this._lastSnapAt && (now - this._lastSnapAt) < 180000))) return;
+    if (!force && !this.vc.paused) {
+      this._deferredSnapshot = {
+        label: label || 'Auto',
+        seasonId: this.seasonStore?.currentSeasonId || null,
+      };
+      return;
+    }
+    this._takeSnapshot(label);
+  }
+
+  _takeSnapshot(label) {
+    this._lastSnapAt = Date.now();
     if (this.seasonStore) this.seasonStore.snapshot(label || 'Auto').catch(() => {});
+  }
+
+  _flushDeferredSnapshot() {
+    this._snapshotIdleTimer = null;
+    if (!this._deferredSnapshot || !this.vc.paused) return false;
+    const pending = this._deferredSnapshot;
+    this._deferredSnapshot = null;
+    if (pending.seasonId !== (this.seasonStore?.currentSeasonId || null)) return false;
+    this._takeSnapshot(pending.label);
+    return true;
   }
 
   // ---- Season orchestration (bridge tagger/canvas <-> season store) --------

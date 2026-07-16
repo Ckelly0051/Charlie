@@ -81,6 +81,70 @@ ok(state.gameAction && state.gameHeaderHidden && state.canonicalProgressHidden &
 ok(state.sidebarHidden && state.topNavVisible && state.mediaWidth >= 900,
   'Desktop route gives the approved width to film with compact top navigation', JSON.stringify(state));
 
+state = await page.evaluate(() => {
+  const canvas = window.app.canvas;
+  const ctx = canvas.ctx;
+  const originalClear = ctx.clearRect.bind(ctx);
+  let clears = 0;
+  ctx.clearRect = (...args) => { clears++; return originalClear(...args); };
+  canvas.annotations = [];
+  canvas._hasVisiblePlaybackAnnotations = false;
+  const emptyRendered = canvas.renderPlaybackFrame();
+  canvas.annotations = [{ timestamp: window.app.vc.currentTime, tool: 'line', color: '#fff', lineWidth: 2,
+    start: { x: 0, y: 0 }, end: { x: 0.1, y: 0.1 } }];
+  const visibleRendered = canvas.renderPlaybackFrame();
+  canvas.annotations[0].timestamp = window.app.vc.currentTime + 10;
+  const exitRendered = canvas.renderPlaybackFrame();
+  const settledRendered = canvas.renderPlaybackFrame();
+  ctx.clearRect = originalClear;
+  canvas.annotations = [];
+  return { emptyRendered, visibleRendered, exitRendered, settledRendered, clears };
+});
+ok(!state.emptyRendered && state.visibleRendered && state.exitRendered && !state.settledRendered && state.clears === 2,
+  'Playback canvas paints only when entering or leaving an annotated frame', JSON.stringify(state));
+
+state = await page.evaluate(() => {
+  const storage = window.app.storage;
+  const originalSnapshot = storage.seasonStore.snapshot;
+  const originalPaused = Object.getOwnPropertyDescriptor(storage.vc, 'paused');
+  const originalLastSnapAt = storage._lastSnapAt;
+  const originalDeferred = storage._deferredSnapshot;
+  let paused = false, snapshots = 0, label = '';
+  Object.defineProperty(storage.vc, 'paused', { configurable: true, get: () => paused });
+  storage.seasonStore.snapshot = async value => { snapshots++; label = value; return {}; };
+  storage._lastSnapAt = 0;
+  storage._deferredSnapshot = null;
+  storage._maybeSnapshot(false, 'Playback-safe auto');
+  const duringPlayback = { snapshots, pending: storage._deferredSnapshot?.label };
+  paused = true;
+  const flushed = storage._flushDeferredSnapshot();
+  const afterPause = { snapshots, label, pending: storage._deferredSnapshot };
+  paused = false;
+  storage._lastSnapAt = 0;
+  storage._maybeSnapshot(false, 'Superseded auto');
+  storage._maybeSnapshot(true, 'Manual safety point');
+  const afterForced = { snapshots, label, pending: storage._deferredSnapshot };
+  storage._lastSnapAt = 0;
+  storage._maybeSnapshot(false, 'Old-season auto');
+  storage._deferredSnapshot.seasonId = 'not-the-active-season';
+  paused = true;
+  const crossSeasonFlushed = storage._flushDeferredSnapshot();
+  const afterCrossSeason = { snapshots, pending: storage._deferredSnapshot };
+  storage.seasonStore.snapshot = originalSnapshot;
+  storage._lastSnapAt = originalLastSnapAt;
+  storage._deferredSnapshot = originalDeferred;
+  if (originalPaused) Object.defineProperty(storage.vc, 'paused', originalPaused);
+  else delete storage.vc.paused;
+  return { duringPlayback, flushed, afterPause, afterForced, crossSeasonFlushed, afterCrossSeason };
+});
+ok(state.duringPlayback.snapshots === 0 && state.duringPlayback.pending === 'Playback-safe auto' && state.flushed &&
+  state.afterPause.snapshots === 1 && state.afterPause.label === 'Playback-safe auto' && state.afterPause.pending === null,
+  'Automatic restore points defer during playback and flush once at pause', JSON.stringify(state));
+ok(state.afterForced.snapshots === 2 && state.afterForced.label === 'Manual safety point' && state.afterForced.pending === null,
+  'A forced safety point remains immediate and supersedes a deferred automatic snapshot', JSON.stringify(state.afterForced));
+ok(!state.crossSeasonFlushed && state.afterCrossSeason.snapshots === 2 && state.afterCrossSeason.pending === null,
+  'A deferred restore point can never cross a season boundary', JSON.stringify(state.afterCrossSeason));
+
 await page.$eval('[data-edit-library="formation"]', button => { button.scrollIntoView({ block: 'center' }); button.click(); });
 state = await page.evaluate(() => ({ open: document.getElementById('tagLibraryDialog').open, tab: document.querySelector('#tagLibraryDialog [role="tab"][aria-selected="true"]')?.dataset.group }));
 ok(state.open && state.tab === 'formation', 'Field-level Edit library opens the shared editor at the correct vocabulary', JSON.stringify(state));

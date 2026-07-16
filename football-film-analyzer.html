@@ -302,7 +302,10 @@ body {
   height: 100%;
   background: var(--accent-hover);
   border-radius: 4px;
-  width: 0%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
   pointer-events: none;
 }
 
@@ -11199,6 +11202,7 @@ class VideoController {
     // mid-retry on.
     this.corsBlocked = false;
     this._corsRetryPending = null;
+    this._lastTimeText = '';
 
     this._bindEvents();
   }
@@ -11686,15 +11690,22 @@ class VideoController {
   }
 
   _setScrubPosition(pct) {
+    pct = Math.max(0, Math.min(1, Number(pct) || 0));
     const pctStr = (pct * 100) + '%';
-    this.scrubBarFill.style.width = pctStr;
+    // Transform stays on the compositor; animating width forced layout during
+    // playback and made high-resolution desktop film feel less stable.
+    this.scrubBarFill.style.transform = `scaleX(${pct})`;
     this.scrubBarHandle.style.left = pctStr;
   }
 
   _updateTime() {
     const cur = this._formatTime(this.video.currentTime);
     const dur = this._formatTime(this.video.duration || 0);
-    this.timeDisplay.textContent = `${cur} / ${dur}`;
+    const text = `${cur} / ${dur}`;
+    if (text !== this._lastTimeText) {
+      this.timeDisplay.textContent = text;
+      this._lastTimeText = text;
+    }
   }
 
   _formatTime(seconds) {
@@ -11741,6 +11752,7 @@ class CanvasOverlay {
     this.drawStart = null;
     this.drawPoints = [];
     this.annotations = []; // master list, shared with app state
+    this._hasVisiblePlaybackAnnotations = false;
     this.undoStack = [];
     this.redoStack = [];
 
@@ -12024,14 +12036,32 @@ class CanvasOverlay {
     const currentTime = this.vc.currentTime;
     const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
 
+    let hasVisible = false;
     // Render finalized annotations near current time
     for (const a of this.annotations) {
       if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
+        hasVisible = true;
         this._renderAnnotation(ctx, a, rect.width, rect.height);
       }
     }
 
     ctx.restore();
+    this._hasVisiblePlaybackAnnotations = hasVisible;
+  }
+
+  /** Playback ticks are frequent and the canvas can be several million pixels
+   *  at desktop DPR. Avoid clearing/repainting it when no annotation is visible;
+   *  render once when entering or leaving an annotated frame. Direct edits still
+   *  call render() immediately, so drawing behavior is unchanged. */
+  renderPlaybackFrame() {
+    const currentTime = this.vc.currentTime;
+    const frameDur = 1 / (parseInt(this.vc.fpsInput?.value) || 30);
+    const hasVisible = this.annotations.some(
+      annotation => Math.abs(annotation.timestamp - currentTime) <= frameDur / 2
+    );
+    if (!hasVisible && !this._hasVisiblePlaybackAnnotations) return false;
+    this.render();
+    return true;
   }
 
   _renderPreview(currentPos) {
@@ -17253,6 +17283,8 @@ class StorageManager {
     this.canvas = canvasOverlay;
 
     this.autoSaveTimer = null;
+    this._deferredSnapshot = null;
+    this._snapshotIdleTimer = null;
     this.videoFileName = null;
     this.gameInfo = {};
     this.filter = null;
@@ -17271,6 +17303,22 @@ class StorageManager {
     this.btnExportCsv = document.getElementById('btnExportCsv');
 
     this._bindEvents();
+
+    // Canonical autosaves remain immediate. The heavier restore-point write can
+    // wait for a stable pause so exporting the full catalog never interrupts the
+    // next example's playback. A quick scrub pause does not flush: playback must
+    // remain paused for a short idle window.
+    this.vc.on('play-state-change', ({ playing }) => {
+      clearTimeout(this._snapshotIdleTimer);
+      this._snapshotIdleTimer = null;
+      if (!playing && this._deferredSnapshot) {
+        this._snapshotIdleTimer = setTimeout(() => this._flushDeferredSnapshot(), 500);
+      }
+    });
+    this.vc.on('video-ended', () => {
+      clearTimeout(this._snapshotIdleTimer);
+      this._snapshotIdleTimer = setTimeout(() => this._flushDeferredSnapshot(), 0);
+    });
   }
 
   _bindEvents() {
@@ -17333,6 +17381,9 @@ class StorageManager {
   _cancelPendingSaves() {
     clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = null;
+    clearTimeout(this._snapshotIdleTimer);
+    this._snapshotIdleTimer = null;
+    this._deferredSnapshot = null;
     if (this.seasonStore && this.seasonStore.cancelPendingDiskWrite) this.seasonStore.cancelPendingDiskWrite();
   }
 
@@ -17352,9 +17403,35 @@ class StorageManager {
    */
   _maybeSnapshot(force, label) {
     const now = Date.now();
-    if (!force && this._lastSnapAt && (now - this._lastSnapAt) < 180000) return;
-    this._lastSnapAt = now;
+    if (force) {
+      this._deferredSnapshot = null;
+      clearTimeout(this._snapshotIdleTimer);
+      this._snapshotIdleTimer = null;
+    }
+    if (!force && (this._deferredSnapshot || (this._lastSnapAt && (now - this._lastSnapAt) < 180000))) return;
+    if (!force && !this.vc.paused) {
+      this._deferredSnapshot = {
+        label: label || 'Auto',
+        seasonId: this.seasonStore?.currentSeasonId || null,
+      };
+      return;
+    }
+    this._takeSnapshot(label);
+  }
+
+  _takeSnapshot(label) {
+    this._lastSnapAt = Date.now();
     if (this.seasonStore) this.seasonStore.snapshot(label || 'Auto').catch(() => {});
+  }
+
+  _flushDeferredSnapshot() {
+    this._snapshotIdleTimer = null;
+    if (!this._deferredSnapshot || !this.vc.paused) return false;
+    const pending = this._deferredSnapshot;
+    this._deferredSnapshot = null;
+    if (pending.seasonId !== (this.seasonStore?.currentSeasonId || null)) return false;
+    this._takeSnapshot(pending.label);
+    return true;
   }
 
   // ---- Season orchestration (bridge tagger/canvas <-> season store) --------
@@ -35509,7 +35586,7 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-4';
+const APP_VERSION = '1.12.0-5';
 
 class App {
   constructor() {
@@ -36352,9 +36429,11 @@ class App {
   }
 
   _wireEvents() {
-    // Re-render canvas annotations when video time changes
+    // Re-render only when playback enters/leaves an annotated frame. Clearing a
+    // full-resolution transparent canvas on every timeupdate caused visible
+    // hitches even in the overwhelmingly common no-drawings path.
     this.vc.on('time-update', () => {
-      this.canvas.render();
+      this.canvas.renderPlaybackFrame();
     });
 
     // Persist added film through ONE choke point: the playlist's onFilmFiles
