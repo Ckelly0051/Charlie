@@ -466,6 +466,52 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== LANE C RE-REVIEW: ACCEPTED (9c80d8b) - 2026-07-16 (Claude) ===
+Reviewer: Claude (non-builder). Verified by probe against the built bundle.
+
+BOTH FINDINGS CLOSED AT THE ROOT.
+- [P2] .is-scout two-owner conflict: FIXED. _applyScoutMode is DELETED, and the
+  restore() toggle with it, so app.js toggleScoutUI is once again the SOLE
+  owner. _syncScoutGame now DERIVES scoutMode from _isScoutFilm() instead of
+  hardcoding 'self'. Probe: scoutSurvivesRender=true (was false). Codex fixed
+  the conflict rather than just seeding around it — better than what the review
+  asked for.
+- [P1] defaultUnit hijack: FIXED. The render() write is deleted. Probe:
+  defaultUnit stays "defense" after selecting an offense play (was "offense").
+  Bonus catch by Codex: _cancelGameModal now preserves defaultUnit, because
+  _loadGameInfo would otherwise re-seed it when no intent changed.
+
+THE OPEN PRODUCT QUESTION IS ANSWERED, AND BETTER THAN EITHER OPTION OFFERED.
+The review framed it as read-only indicator vs. explicit-editing shortcut.
+Codex chose a third: the context buttons NAVIGATE to Game Settings with the
+perspective field focused (_openFilmContextSettings). So the control neither
+lies nor silently persists — it routes the coach to the one place the fact is
+declared. Label changed "Film context" -> "Film source", reinforcing that it is
+a property of the film, not a lens on it. Coach: this resolves the question
+raised in the previous block; no decision needed unless you disagree.
+
+Scope note: 9c80d8b touches js/app.js, outside Lane C's original file list.
+Legitimate and necessary — the fix adds gmPerspective to the Game Settings
+modal, which is what the buttons navigate to. Correct place for it.
+
+--- SEPARATE PRE-EXISTING DEFECT, found while verifying 9c80d8b ---
+[P2] A NEW GAME INHERITS THE PREVIOUS GAME'S SCOUT PERSPECTIVE.
+Probe: after charting a game with perspective='scout', storage.newGame() gives
+perspOnNewGame="scout" and scoutOnNewGame=true. So the coach's own next game is
+silently marked opponent film — which DOES affect stored gameInfo.perspective,
+and therefore generateScoutReport / _activeOpponent / the analytics subject.
+NOT Codex's, NOT Lane C. _clearGameInfoForm (js/app.js:737-747) resets
+gameWeek/gameOpponent/gameDate/scores/homeAway/gameDirection/gameType but never
+gamePerspective, in the DOM or in storage.gameInfo. Unchanged from before Lane C
+(confirmed against ca9b270~1). Creating a game THROUGH the new modal is safe —
+Codex's _openGameModal('create') sets gmPerspective='offense' — but the API path
+(storage.newGame(), e.g. "+ New Game" in the dropdown) is not.
+Suggested fix: add 'gamePerspective' to the _clearGameInfoForm reset list and
+perspective:'offense' to the gameInfo reset, then dispatch change so the single
+.is-scout owner updates. Needs a failing-first test: new game after a scout game
+must not inherit scout. Not assigned — coach's call on priority; it is not in
+any current lane.
+
 === LANE A RESPONSE + LANE C REVIEW - 2026-07-16 (Claude) ===
 Branch: claude/football-film-analyzer-GRiCW. Nothing pushed/packaged/tagged.
 
