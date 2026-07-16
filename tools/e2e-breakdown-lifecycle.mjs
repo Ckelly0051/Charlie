@@ -148,6 +148,58 @@ ok(races.placeRaceTop === '',
   'race: queued place() does not re-apply beta positioning after restore()',
   `style.top="${races.placeRaceTop}"`);
 
+// ---- 2d. An ACTIVE DRAG must not survive teardown ------------------------
+// pointerdown installs move/up on WINDOW and only removes them on pointerup.
+// If restore() runs mid-drag that pointerup may never come, so the listeners
+// outlive the handle: move -> place() repositions the CLASSIC controls and
+// persists a ratio, up -> show() re-arms the auto-hide. None of the assertions
+// above exercise this because none of them drag.
+const drag = await page2.evaluate(async () => {
+  const shell = window.app.workspaceShell;
+  await shell.enable();
+  await new Promise(r => setTimeout(r, 400));
+  try { localStorage.removeItem('ffa_video_controls_y'); } catch {}
+
+  const handle = document.querySelector('.breakdown-player-drag');
+  if (!handle) return { error: 'no drag handle' };
+  handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 300, pointerId: 1 }));
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 320, pointerId: 1 }));
+
+  shell.useClassic(false);                 // teardown mid-drag: no pointerup yet
+  await new Promise(r => setTimeout(r, 120));
+  // Baseline AFTER teardown: the move above was LIVE and legitimately persisted
+  // a ratio. The bug is a dead mount CHANGING it, not the live drag saving it.
+  let storedAtTeardown = null;
+  try { storedAtTeardown = localStorage.getItem('ffa_video_controls_y'); } catch {}
+
+  // The drag "continues" against a torn-down mount. clientY is far from the
+  // pre-teardown position so a leaked handler would write a different ratio.
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 700, pointerId: 1 }));
+  window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 700, pointerId: 1 }));
+  await new Promise(r => setTimeout(r, 2000));   // outlast show()'s 1600ms auto-hide
+
+  const pc = document.querySelector('.playback-controls');
+  let storedAfter = null;
+  try { storedAfter = localStorage.getItem('ffa_video_controls_y'); } catch {}
+  return {
+    top: pc?.style.top || '',
+    bottom: pc?.style.bottom || '',
+    hiddenClass: document.getElementById('videoContainer')?.classList.contains('breakdown-controls-hidden'),
+    storedAtTeardown,
+    storedAfter,
+    storedUnchanged: storedAtTeardown === storedAfter,
+  };
+});
+ok(drag.top === '' && drag.bottom === '',
+  'active drag + restore(): later pointermove does not reposition the classic controls',
+  `top="${drag.top}" bottom="${drag.bottom}"`);
+ok(drag.hiddenClass === false,
+  'active drag + restore(): later pointerup does not re-arm auto-hide on the classic layout',
+  `hiddenClass=${drag.hiddenClass}`);
+ok(drag.storedUnchanged,
+  'active drag + restore(): a dead mount cannot overwrite the stored ratio',
+  `atTeardown=${drag.storedAtTeardown} after=${drag.storedAfter}`);
+
 await page2.close();
 
 // ---- 2c. restore() un-mounts the beta presentation -----------------------

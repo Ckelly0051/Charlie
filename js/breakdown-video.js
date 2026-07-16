@@ -14,6 +14,7 @@ export class BreakdownVideo {
     // after that mount ended. Bumped on BOTH mount and restore: a callback from
     // generation N must not run after a teardown OR after a remount.
     this._gen = 0;
+    this._endDrag = null;   // set while a drag is in flight; restore() calls it
     // Captured BEFORE any mutation: mount() relocates these, and restore() has
     // to put them back exactly. Recording them at mount time would record the
     // already-moved position.
@@ -96,6 +97,7 @@ export class BreakdownVideo {
     if (!this._mounted) return false;
     this._gen++;            // invalidates every frame/observer callback in flight
     this._mounted = false;  // set FIRST: the persistent listeners guard on it
+    this._endDrag?.();      // a drag with no pointerup yet would outlive the handle
     this.video.classList.remove('breakdown-video-v2', 'breakdown-controls-hidden');
     this.controls.classList.remove('breakdown-player-controls');
     clearTimeout(this.hideTimer);
@@ -184,7 +186,16 @@ export class BreakdownVideo {
       event.preventDefault();
       clearTimeout(this.hideTimer);
       handle.setPointerCapture?.(event.pointerId);
+      // These live on WINDOW and were previously removed ONLY by pointerup. If
+      // restore() ran mid-drag that pointerup never came for this mount, so the
+      // listeners outlived the handle: move -> place() repositioned the CLASSIC
+      // controls and persisted a ratio, up -> show() re-armed the auto-hide.
+      // Bind them to this mount and expose the cleanup so restore() can end a
+      // drag that is still in progress.
+      const gen = this._gen;
+      const alive = () => gen === this._gen && this._mounted;
       const move = current => {
+        if (!alive()) return;
         const rect = this.video.getBoundingClientRect();
         const max = Math.max(1, rect.height - this.controls.offsetHeight - 24);
         const top = Math.max(12, Math.min(rect.height - this.controls.offsetHeight - 12,
@@ -194,9 +205,13 @@ export class BreakdownVideo {
         try { localStorage.setItem('ffa_video_controls_y', String(ratio)); } catch {}
       };
       const up = () => {
+        this._endDrag();
+        if (alive()) show();   // never re-arm auto-hide against a dead mount
+      };
+      this._endDrag = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
-        show();
+        this._endDrag = null;
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
