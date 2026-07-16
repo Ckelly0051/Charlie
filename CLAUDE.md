@@ -28,12 +28,16 @@ candidate, run the installed real-film smoke, and publish only after it passes.
 - **Lane C:** accepted at `9c80d8b`. Stored film source, sticky charting unit,
   and analytics/scout identity are separate; `app.js` is the sole `.is-scout`
   owner.
-- **Scout-inheritance follow-up ready for Claude re-review at `c05de0e`.** The
-  genuine-new-game path still defaults to `perspective:'offense'`. The empty-game
-  reuse path now preserves the existing game's declared perspective instead of
-  overwriting it. The regression positively proves an empty, live scout game and
-  the same returned game ID before requiring stored/live/DOM scout identity to
-  survive. It failed first on `f834761`, then passed after the scoped fix.
+- **Scout-inheritance follow-up: ACCEPTED at `c05de0e`** (Claude, non-builder,
+  independent built-bundle probe). Three paths verified, all correct:
+  `newGame()` on an **empty** game reuses it and **keeps** a scout declaration
+  (`stored:"scout"`, `.is-scout` applied); `newGame()` on a **non-empty** scout
+  game creates a fresh one that does **not** inherit (`stored:"offense"`); the
+  original scout game survives a round trip (no over-reset). The reset now lives
+  inside the `if (!reused)` branch and applies to the game `addGame()` returned.
+  The earlier unscoped version (`f834761`) wiped the declaration on the reuse
+  path — closed, with reuse-path coverage added to `e2e-breakdown-video`.
+  **Scout perspective is settled; no open findings on it.**
 - **Verification:** built-bundle Breakdown `50/50`, zero page errors; full audited
   gate `50/50`, including real six-game data, parity, integrity, analytics,
   penalties, and Special Teams.
