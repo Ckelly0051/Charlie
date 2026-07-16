@@ -466,6 +466,45 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== f834761 RE-REVIEW: CHANGES REQUESTED - 2026-07-16 (Claude, non-builder) ===
+NOT aligned on proceeding to the next step yet. One P1, verified by probe
+against the built bundle.
+
+The fix is right in intent and correct on the genuine-new-game path. The
+blankGame() default (season-store.js:205) and the _clearGameInfoForm DOM reset
+are both correct and should stay — they only affect actually-new games.
+
+[P1 — DATA] THE newGame() RESET IS UNSCOPED AND DESTROYS A REAL DECLARATION.
+js/storage.js newGame() has TWO paths (:883-888): create a new game, OR REUSE
+the current one when isEmptyActive() ("Don't stack empty husks"). The reset at
+:889-890 runs UNCONDITIONALLY — including the reuse path, where there is no new
+game to reset, so it overwrites the CURRENT game's perspective.
+
+Probe:
+  coach declares game 1 as opponent film   -> scout, .is-scout applied
+  clicks "+ New Game" (game still empty)   -> storedPerspective: "offense"
+  same game re-read                        -> perspDom "offense", stored "offense"
+The scout declaration is gone.
+
+Real scenario: open a season -> initial game is auto-created -> declare it
+Opponent film -> haven't tagged yet -> click "+ New Game". The toast says "your
+current game is still empty — it IS the new game" and the declaration is
+silently wiped. The coach then charts opponent film labelled as their own — the
+exact failure the scout contract exists to prevent.
+
+Unlike the original Lane C label defect (P2, display only), this one WRITES
+stored gameInfo.perspective, so it reaches generateScoutReport, _activeOpponent,
+and the analytics subject. It is a REGRESSION INTRODUCED BY THE FIX: before
+f834761 perspective was never reset, so an empty scout game kept its
+declaration.
+
+REQUESTED CHANGE: scope the reset to the genuine-new-game path (`if (!reused)`).
+FAILING-FIRST TEST REQUIRED: declare scout on an EMPTY game -> newGame() ->
+assert gameInfo.perspective is still 'scout' and .is-scout still applied. The
++21 lines added to e2e-breakdown-video.mjs presumably cover the create path; the
+REUSE path is untested — the same shape as every other miss this session, where
+the untested branch is the broken one.
+
 === CURRENT RELEASE REPAIR HANDOFF - 2026-07-16 ===
 Branch: claude/football-film-analyzer-GRiCW
 Published baseline: v1.12.0-6

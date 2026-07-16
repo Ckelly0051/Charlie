@@ -24,6 +24,27 @@ storage again.
 internal candidate, run the installed real-film smoke, and publish only after the
 smoke passes. Packaging is not publishing.
 
+> **⚠ OPEN P1 (DATA) — `f834761` needs one more change before proceeding.**
+> The scout-inheritance fix has an **unscoped reset that destroys a real
+> declaration**. `newGame()` (`js/storage.js:883-888`) has two paths: create a
+> new game, **or reuse the current one when `isEmptyActive()`** ("don't stack
+> empty husks"). The reset at `:889-890` runs **unconditionally**, so on the
+> reuse path it overwrites the *current* game's perspective.
+> Probe: declare game 1 as Opponent film → click "+ New Game" while it's still
+> empty → `storedPerspective: "offense"`. The declaration is gone, while the
+> toast says *"it IS the new game."* The coach then charts opponent film
+> labelled as their own — the exact failure the scout contract prevents.
+> Unlike the Lane C label defect (P2, display only), this **writes stored
+> `gameInfo.perspective`**, so it reaches `generateScoutReport` /
+> `_activeOpponent` / the analytics subject. It is a **regression introduced by
+> the fix**: before `f834761`, perspective was never reset, so an empty scout
+> game kept its declaration.
+> **Fix:** scope the reset to `if (!reused)`. The `blankGame()` default
+> (`season-store.js:205`) and the `_clearGameInfoForm` DOM reset are correct and
+> stay — they only affect actually-new games. **Needs a failing-first test on the
+> REUSE path**; the create path is covered, and the untested branch is the broken
+> one, as in every other miss this session.
+
 - **Lane D:** release-quality gate accepted.
 - **Lane A:** accepted at `22eb521` after Codex re-review. Pointer cancellation,
   foreign pointers, replacement gestures, and restore share one owning cleanup.
