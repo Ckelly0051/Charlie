@@ -18,12 +18,47 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-16, after v1.12.0-6)
+### Current working state (2026-07-16, after Lane 0 + Lane D)
+
+**Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging anything.** It is the
+quality bar now, and it was deliberately written *before* the risky repair lanes
+so the finish line cannot move. The two load-bearing rows are the four-viewport
+review (coach approves **before** packaging) and the installed real-film smoke —
+those are what was missing when `v1.12.0-2` shipped with a fully green gate and
+failed in the coach's first ten minutes. Correct order: **build internal
+candidate → smoke → publish.** Packaging is not publishing.
+
+**Use `bash tools/run-gate.sh`**, not an ad-hoc loop. Build+gate must be ONE
+command (mtime skew false-fails `e2e-parity`'s stale-bundle guard). Its
+`--self-test` proves the failure detector before you trust it — the ad-hoc runner
+this replaced grepped case-insensitively for `fail`, matched test *names* like
+"unknown groups fail closed", and reported 4 false failures out of 49.
+
+**Never hardcode the harness count**, and stop saying "49/49 green" — it was
+never true. The suite is **48 pass/fail harnesses + 1 diagnostic**:
+`tools/e2e-realdata.mjs` has no failure counter and `process.exit(0)`s
+unconditionally (`:116`), printing `🔴 HUNG` / `🟠 alert popped` / `!! exceptions`
+on real problems and exiting 0 anyway. It has been counted as a passing harness
+in every handoff for months. It cannot gate anything; a human must read it.
+The 2026-07-16 run: **48 pass/fail green + realdata diagnostic clean**, with
+`sql-catalog` at 17 (docs said 16) and `csv-roundtrip` at 9 (docs said 6).
+
+**`CODE-REVIEW-FINDINGS.md` is stale and its ☐ boxes mean UNVERIFIED, not open.**
+#1 (stats-engine XSS), #2 (exportCsv escaping), #5 (IndexedDB cache), and #6
+(linked-film parallelization) are verified fixed against source despite being
+marked open. Verify against code before working any item — the changelog alone
+is not evidence, since it disagreed with the findings doc and only the source
+settled it.
+
 - **Published baseline:** commit `92fdee8`, tag `v1.12.0-6`, is pushed on
   `claude/football-film-analyzer-GRiCW`. It contains the persistent
   `Autoplay next` preference and is the current installable smoke baseline.
-- **BETA-009 Home game preview is implemented and verified locally, but is not
-  committed, pushed, packaged, tagged, or released.** Home game rows are now
+- **BETA-009 Home game preview is COMMITTED as `b6ca8b3`** — its own checkpoint,
+  independently reviewed and gated (49/49 green) before commit. Not pushed, not
+  packaged, not tagged; no release is implied. Preview is read-only: every write
+  in the path was traced and no `switchToGame`/`commitActive`/`persist` is
+  reachable from game selection. Three non-blocking low findings are recorded in
+  the commit message. Home game rows are now
   selectable without opening or changing the active editor game. The selected
   game summary shows opponent/date/status, score, total plays, canonical charted
   count, and Offense/Defense/Special Teams play counts. Opening the game remains

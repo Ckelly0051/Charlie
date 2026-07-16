@@ -461,7 +461,51 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== CURRENT HANDOFF SNAPSHOT - 2026-07-16 ===
+=== CURRENT HANDOFF SNAPSHOT - 2026-07-16 (Claude) ===
+Owner: Claude | Phase: R1 beta repair — Lane 0 + Lane D | Status: both complete
+
+Branch: claude/football-film-analyzer-GRiCW
+Checkpoint: b6ca8b3 (BETA-009), committed. Not pushed, packaged, or tagged.
+
+LANE 0 — BETA-009 reviewed, gated, committed as its own checkpoint.
+- Active-game isolation verified by tracing every write in the preview path:
+  no switchToGame / commitActive / persist is reachable from selection.
+- Stale async Home state verified: refreshHome re-checks token AND season id
+  after the awaited filmHealth before touching the DOM.
+- Gate on the reviewed bytes: 48 pass/fail harnesses green + the realdata
+  diagnostic clean. NOTE: the b6ca8b3 commit message says "49 harnesses, 49
+  green". That phrasing is wrong — it was written before Lane D found that
+  e2e-realdata.mjs has no failure counter and exits 0 unconditionally. The
+  bytes were green; the characterization was inherited from months of handoffs
+  that all repeated it.
+- Three non-blocking low findings recorded in the commit message.
+
+LANE D — release quality gate established BEFORE the risky lanes (deliberate;
+an earlier draft scheduled it after, which is a moving finish line).
+- NEW: GRIDIRON-IQ-RELEASE-GATE.md — 9-row matrix, each row with owner +
+  evidence artifact + pass criterion. Rows 4 (four-viewport review, coach
+  approves BEFORE packaging) and 6 (installed real-film smoke) are the
+  load-bearing ones: they are what was missing when v1.12.0-2 shipped green
+  and failed in ten minutes. Corrects the impossible "smoke before packaging"
+  rule to: build internal candidate -> smoke -> publish. Packaging != publishing.
+- NEW: tools/run-gate.sh — canonical runner. Build+gate atomic. Failure
+  detection reads ONLY the result line; --self-test proves the detector on 10
+  known-green/known-red cases (10/10).
+- CODE-REVIEW-FINDINGS.md: header added, legend now says the box means
+  UNVERIFIED, not open. #1/#2/#5/#6 verified fixed against source.
+
+STOP HARDCODING THE HARNESS COUNT. It has been 42/44/45/46/47/49. This run
+found 49 with sql-catalog at 17 (docs said 16) and csv-roundtrip at 9 (docs
+said 6). Say "every current tools/e2e-*.mjs harness" and record the ACTUAL
+count in each handoff.
+
+NEXT: Lane A (classic-layout lifecycle + remount, P1) and Lane C (separate
+scout mode / charting unit / game metadata) — no file overlap, may run in
+parallel. Then B1 (2-pt contract) -> B2 -> E1-E4 (tag model, GATES the beta)
+-> G (Plan) -> internal candidate -> smoke -> publish. E5 (migration) is
+optional, non-gating, post-release.
+
+=== SUPERSEDED SNAPSHOT (Codex, BETA-009 pre-commit) ===
 Owner: Codex | Phase: Home season overview / BETA-009 | Status: implemented
 and focused-verification complete locally; ready for independent diff review
 
