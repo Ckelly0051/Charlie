@@ -43,6 +43,15 @@ await page.evaluate(async () => {
   const g = app.storage.seasonStore.activeGame();
   g.name = 'Week 1 vs Rivals'; g.gameInfo = { opponent: 'Rivals', date: '2026-09-01' };
   g.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', playType: 'Run Inside', result: 'Gain', yardage: '5' } }];
+  app.storage.seasonStore.data.games.push({
+    id: 'preview-game', name: 'Week 2 vs Knights', status: 'final', nextId: 4,
+    gameInfo: { opponent: 'Knights', date: '2026-09-08', scoreUs: 14, scoreThem: 7 },
+    plays: [
+      { id: 1, timestamp:{start:0,end:5}, tags:{unit:'offense',playType:'Run Outside',result:'Gain',yardage:'8'} },
+      { id: 2, timestamp:{start:6,end:11}, tags:{unit:'defense',defFront:'4-3',coverage:'Cover 3'} },
+      { id: 3, timestamp:{start:12,end:17}, tags:{unit:'special'} },
+    ],
+  });
   app.storage._loadActiveGame();
   await app.workspaceShell.show('home');
 });
@@ -52,14 +61,39 @@ r = await page.evaluate(() => ({
   resumeDisabled: document.querySelector('#wsResume')?.disabled,
   filmRows: document.querySelectorAll('.ws-film-row').length,
   filmStatus: document.querySelector('.ws-film-row span')?.textContent,
-  filmDot: getComputedStyle(document.querySelector('.ws-film-row > i')).backgroundColor,
+  filmDot: getComputedStyle(document.querySelector('.ws-film-row .ws-film-select > i')).backgroundColor,
   seasonCounts: document.querySelector('.ws-season-row.current span')?.textContent,
 }));
 ok(/Rivals/.test(r.title) && /2026 Varsity/.test(r.season) && !r.resumeDisabled, 'Home renders live season/game context and Resume command', JSON.stringify(r));
-ok(r.filmRows >= 1, 'Home renders the active season film inbox');
+ok(r.filmRows === 2, 'Home renders every game in the active season', JSON.stringify(r));
 ok(r.filmStatus && !/^(.*?) · \1$/.test(r.filmStatus), 'Film status does not repeat an empty-state label', r.filmStatus);
 ok(r.filmDot !== 'rgb(54, 201, 121)', 'Empty film uses a neutral health indicator, not ready green', r.filmDot);
-ok(r.seasonCounts === '1 game · 1 play', 'Current season row uses live counts and correct grammar', r.seasonCounts);
+ok(r.seasonCounts === '2 games · 4 plays', 'Current season row uses live counts and correct grammar', r.seasonCounts);
+
+await page.click('[data-ws-preview="preview-game"]');
+r = await page.evaluate(() => ({
+  activeGameId: window.app.storage.seasonStore.data.activeGameId,
+  previewId: window.app.workspaceShell._homeSelectedGameId,
+  title: document.querySelector('#wsContinueTitle')?.textContent,
+  meta: document.querySelector('#wsContinueMeta')?.textContent,
+  score: document.querySelector('#wsScoreValue')?.textContent,
+  plays: document.querySelector('#wsPlaysValue')?.textContent,
+  charted: document.querySelector('#wsChartedValue')?.textContent,
+  units: document.querySelector('#wsUnitsValue')?.textContent,
+  progress: document.querySelector('#wsProgressText')?.textContent,
+  action: document.querySelector('#wsResume')?.textContent,
+  actionGame: document.querySelector('#wsResume')?.dataset.wsGame,
+  selected: document.querySelector('[data-film-id="preview-game"]')?.classList.contains('selected'),
+  pressed: document.querySelector('[data-ws-preview="preview-game"]')?.getAttribute('aria-pressed'),
+}));
+ok(r.previewId === 'preview-game' && r.activeGameId !== 'preview-game' && r.selected && r.pressed === 'true',
+  'Selecting a Home game previews it without opening or changing the active editor game', JSON.stringify(r));
+ok(/Knights/.test(r.title) && /Sep/.test(r.meta) && /final/.test(r.meta) && r.score === '14–7',
+  'Selected-game summary shows opponent, date, status, and score', JSON.stringify(r));
+ok(r.plays === '3' && r.charted === '2 / 3' && r.units === 'O 1 · D 1 · ST 1' && r.progress === '2 of 3 charted',
+  'Selected-game summary shows total, canonical charted count, unit mix, and progress', JSON.stringify(r));
+ok(r.action === 'Open selected game' && r.actionGame === 'preview-game',
+  'Opening the selected game remains a separate explicit command', JSON.stringify(r));
 await capture('home-1280x800');
 await page.setViewport({ width: 1440, height: 900 });
 await capture('home-1440x900');

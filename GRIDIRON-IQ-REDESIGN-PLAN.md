@@ -461,7 +461,70 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== HANDOFF SNAPSHOT (keep this the first thing a fresh session reads) ===
+=== CURRENT HANDOFF SNAPSHOT - 2026-07-16 ===
+Owner: Codex | Phase: Home season overview / BETA-009 | Status: implemented
+and focused-verification complete locally; ready for independent diff review
+
+Branch: claude/football-film-analyzer-GRiCW
+Published baseline: 92fdee8 / v1.12.0-6 (pushed and installable)
+Current local work: UNCOMMITTED, UNPUSHED, UNPACKAGED, UNTAGGED
+
+Completed
+- Home game rows are selectable without opening a game or changing the active
+  editor's activeGameId.
+- The selected-game overview shows opponent, date/status, score, total plays,
+  canonical charted count, and Offense/Defense/Special Teams counts.
+- Open remains a separate explicit command; preview is read-only.
+- Existing film-health status stays visible and the empty-film dot uses a
+  neutral state instead of ready green.
+- Selection and summary work at desktop and mobile sizes; mobile selection
+  keeps a 44px target.
+
+Files changed locally
+- js/workspace-shell.js
+- css/workspace-shell.css
+- tools/e2e-workspace-shell.mjs
+- football-film-analyzer.html (fresh rebuild)
+
+Verification run against the rebuilt bundle
+- node tools/e2e-workspace-shell.mjs - 22/22, zero page errors
+- node tools/e2e-workspace-context.mjs - 20/20, zero page errors
+- node tools/e2e-onboarding.mjs - 46/46, zero page errors
+- node tools/e2e-breakdown-video.mjs - 36/36, zero page errors
+- The complete atomic repository gate has not yet been run for BETA-009.
+
+Data and release boundaries
+- No season data is migrated, cleared, rewritten, or reclassified.
+- No schema, catalog, film-storage, clip-identity, or tag semantics change.
+- Preview selection does not load or persist a different game.
+- BETA-009 is not part of v1.12.0-6 until a new commit/package is explicitly
+  approved.
+- Untracked scratch QA folders, AGENTS.md, CODE-REVIEW-FINDINGS.md, and unrelated
+  resume artifacts remain outside the increment.
+
+Open product findings
+- BETA-004: Plan discoverability/usefulness remains open.
+- BETA-005: QB alignment must be separated from structural Formation before
+  permanent formation retagging.
+- BETA-006: coverage shell must be separated from optional Man/Zone/Match family
+  before permanent coverage retagging.
+- Do not migrate or clear existing data for these model changes without showing
+  impact and receiving explicit coach confirmation immediately before acting.
+
+Next requested action
+1. Independently review the four-file BETA-009 local diff for correctness, stale
+   async Home state, accessibility, mobile overflow, and active-game isolation.
+2. Run the complete atomic repository gate on the reviewed bytes.
+3. Commit, package, tag, and push only after review/approval; update this block
+   with the resulting SHA/version and installed smoke result.
+
+Historical milestone details remain below and in git history, CLAUDE.md,
+BETA-SMOKE-FINDINGS.md, and BREAKDOWN-REDESIGN-PARITY.md.
+```
+
+### Archived Handoff (through v1.12.0-2)
+```
+=== ARCHIVED HANDOFF SNAPSHOT (through v1.12.0-2; reference only) ===
 Branch: claude/football-film-analyzer-GRiCW
 Latest implementation: e6573b1 + packaging correction  v1.12.0-2 functional desktop beta (Codex)
 Gate: fresh build + every tools/e2e-*.mjs harness green ATOMICALLY in one

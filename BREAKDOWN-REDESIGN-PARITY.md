@@ -408,6 +408,24 @@ begins.
   nonconsecutive examples. Plan's undiscoverable empty workflow is logged as
   BETA-004; the formation and coverage model blockers are BETA-005/006.
 
+## Post-v1.12.0-6 Home increment (BETA-009)
+
+- `v1.12.0-6` / `92fdee8` is the pushed beta baseline. The following work is
+  local only and is not in that release.
+- Home game rows can now be selected for read-only inspection without changing
+  the active Break Down game. A separate Open command is required to switch.
+- The selected-game overview reports opponent/date/status, score, total plays,
+  canonical charted count, and unit mix. Existing film-health state remains
+  visible per row.
+- Changed locally: `js/workspace-shell.js`, `css/workspace-shell.css`,
+  `tools/e2e-workspace-shell.mjs`, and rebuilt
+  `football-film-analyzer.html`.
+- Verification: shell `22/22`, context `20/20`, onboarding `46/46`, and
+  Break Down/video `36/36` with zero page errors.
+- No schema, tag, migration, film-storage, or active-game mutation is introduced.
+  Next action is independent diff review plus the complete atomic gate before
+  commit/package.
+
 ## Current Local State
 
 - `v1.12.0-2` has been withdrawn from coach testing.

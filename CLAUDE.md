@@ -18,7 +18,33 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Product redesign handoff (v1.12.0-6 autoplay-smoke candidate)
+### Current working state (2026-07-16, after v1.12.0-6)
+- **Published baseline:** commit `92fdee8`, tag `v1.12.0-6`, is pushed on
+  `claude/football-film-analyzer-GRiCW`. It contains the persistent
+  `Autoplay next` preference and is the current installable smoke baseline.
+- **BETA-009 Home game preview is implemented and verified locally, but is not
+  committed, pushed, packaged, tagged, or released.** Home game rows are now
+  selectable without opening or changing the active editor game. The selected
+  game summary shows opponent/date/status, score, total plays, canonical charted
+  count, and Offense/Defense/Special Teams play counts. Opening the game remains
+  a separate explicit command.
+- **Files in the BETA-009 increment:** `js/workspace-shell.js`,
+  `css/workspace-shell.css`, `tools/e2e-workspace-shell.mjs`, and the freshly
+  rebuilt `football-film-analyzer.html`. Scratch QA folders and unrelated
+  untracked files are excluded.
+- **Verified local gates:** workspace shell `22/22`, workspace context
+  `20/20`, onboarding `46/46`, and Break Down/video `36/36`; all report
+  zero page errors. The empty-film status-dot selector was corrected after a
+  failing-first focused assertion.
+- **Data safety:** this increment is read-only until the coach chooses Open. It
+  does not switch games during preview, alter tags, migrate data, change schema,
+  or touch film storage.
+- **Next action:** review the local BETA-009 diff, run the complete atomic gate,
+  then commit/package only after approval. BETA-004 (Plan discoverability),
+  BETA-005 (QB alignment model), and BETA-006 (coverage shell/family model)
+  remain open and unchanged.
+
+### Product redesign handoff (v1.12.0-6 published baseline)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
 `GRIDIRON-IQ-REDESIGN-PLAN.md`. The interactive source of truth is

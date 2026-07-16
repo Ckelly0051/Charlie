@@ -1,7 +1,9 @@
-# GridIron IQ v1.12.0-3 Beta Smoke Findings
+# GridIron IQ Beta Smoke Findings
 
-> Status: the two `v1.12.0-2` findings are fixed in the `v1.12.0-3` smoke
-> candidate. The coach is the sole installed-desktop reviewer and smoke tester.
+> Status (2026-07-16): `v1.12.0-6` at commit `92fdee8` is the pushed,
+> installable smoke baseline. BETA-009 is implemented and verified only in the
+> local working tree; it is not committed, pushed, packaged, tagged, or released.
+> The coach remains the sole installed-desktop reviewer and smoke tester.
 
 ## Findings
 
@@ -216,6 +218,32 @@
   cut-up `13/13`, accessibility `8/8`, Film Room `60/60`, and video CORS
   `14/14` are green before the complete release gate.
 
+### BETA-009 - Home games cannot be inspected without opening them
+
+- **Status:** Implemented and focused-verification complete locally; not
+  committed or packaged
+- **Reported:** 2026-07-16
+- **Surface:** Home / active-season game list and summary
+- **Observed:** Home displayed a useful `X of Y plays charted` value, but a
+  coach could not select another game to inspect its progress or score without
+  opening it and changing the active editor game. The summary therefore had
+  little value for scanning a season.
+- **Fix:** Each game row has a read-only selection target and a separate Open
+  command. Selection preserves `activeGameId` and updates the Home overview
+  with opponent, date/status, score, total plays, the canonical
+  `isPlayTagged` count, and Offense/Defense/Special Teams counts. The first
+  preview defaults to the previous selection, active game, or first game.
+- **UX:** Selected state, keyboard focus, neutral/ready/missing film-health dots,
+  and a 44px mobile target are explicit. The summary is a compact inline facts
+  band rather than another nested card.
+- **Data safety:** Preview is read-only. It does not load the game, alter tags,
+  migrate data, or write film/storage state.
+- **Regression:** workspace shell `22/22`, workspace context `20/20`,
+  onboarding `46/46`, and Break Down/video `36/36`; zero page errors. The
+  standalone bundle was rebuilt before these checks.
+- **Next gate:** independent diff review plus the complete atomic repository gate
+  before commit or packaging.
+
 ## Release Notes
 
 - Superseded beta: `v1.12.0-2`
@@ -236,6 +264,9 @@
   preference without changing the default behavior or tag persistence. The
   exact rebuilt bundle passed the physical asset check and complete 49-script
   repository gate in 256.4 seconds.
+- Local-only Home increment: BETA-009 adds selectable, read-only game previews
+  and a high-level selected-game summary. It is verified but remains uncommitted
+  and is not part of `v1.12.0-6`.
 - BETA-004 remains a documented Plan workflow gap. BETA-005 and BETA-006 remain
   P0 data-model blockers: do not treat formation or coverage retagging in this
   candidate as permanent until those models are corrected and explicitly
