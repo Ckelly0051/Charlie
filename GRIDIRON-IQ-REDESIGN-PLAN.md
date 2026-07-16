@@ -480,8 +480,16 @@ LANE 0 — BETA-009 reviewed, gated, committed as its own checkpoint.
   that all repeated it.
 - Three non-blocking low findings recorded in the commit message.
 
-LANE D — release quality gate. Status: REVIEWED TWICE, CHANGES APPLIED,
-AWAITING COACH SIGN-OFF. Not complete on my own say-so.
+LANE D — release quality gate. Status: ACCEPTED / COMPLETE.
+Reviewed twice by the non-builder reviewer; five defects found and fixed at
+e4b9c75; independently signed off (isolated full gate 49/49, adversarial
+self-test 15/15, real-data 16 games clean with normalization counters zero, no
+surviving browser/test processes after the clean rerun). The runner behaved
+correctly under the contention incident: crashed harnesses were reported RED
+instead of being silently certified — that is the behavior that was missing.
+GRIDIRON-IQ-RELEASE-GATE.md now governs every subsequent increment.
+Open improvement (not blocking): an automatic gate lock so two agents cannot
+run the suite concurrently.
 - Established BEFORE the risky lanes (deliberate; an earlier draft scheduled it
   after, which is a moving finish line).
 - GRIDIRON-IQ-RELEASE-GATE.md — matrix; each row has an owner, an evidence

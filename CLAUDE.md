@@ -81,8 +81,11 @@ settled it.
   does not switch games during preview, alter tags, migrate data, change schema,
   or touch film storage.
 - **Next action:** BETA-009 is done and committed (`b6ca8b3`). Lane D (the
-  release gate) is reviewed-twice, corrected, and **awaiting coach sign-off** —
-  the builder does not sign its own gate. After sign-off: Lane A
+  release gate) is **ACCEPTED / COMPLETE** — reviewed twice, corrected at
+  `e4b9c75`, and independently signed off by the non-builder reviewer
+  (isolated full gate 49/49, adversarial self-test 15/15, real-data 16 games
+  clean, no surviving browser processes). `GRIDIRON-IQ-RELEASE-GATE.md` now
+  governs every increment. Next: Lane A
   (classic-layout lifecycle + remount, P1) and Lane C (separate scout mode /
   charting unit / game metadata) may run in parallel, then B1 (2-pt contract) →
   B2 → E1–E4 (tag model; **gates the beta**) → G (Plan) → internal candidate →

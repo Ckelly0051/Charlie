@@ -174,6 +174,12 @@ Two honest caveats:
 Practical rule: no concurrent gate runs, no gate while packaging or driving a
 browser, and let the previous run's processes exit first.
 
+**Open improvement (not blocking):** an automatic gate lock in `run-gate.sh` —
+a lockfile that refuses to start when another run holds it — so two agents
+cannot accidentally run the suite concurrently and produce exactly the incident
+above. Until then the rule is enforced by discipline, which is the weaker
+option.
+
 **Re-save, don't just open.** The A3 desktop smoke passed while every re-save
 silently duplicated play rows, because the smoke only opened seasons. Any
 persistence validation must **edit and re-save**, not just load. See
