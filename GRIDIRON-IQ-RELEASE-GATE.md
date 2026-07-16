@@ -180,9 +180,8 @@ cannot accidentally run the suite concurrently and produce exactly the incident
 above. Until then the rule is enforced by discipline, which is the weaker
 option.
 
-**Every negative assertion needs a positive precondition.** *(New rule, proposed
-2026-07-16 after the fourth instance in two lanes. Codex: this is the one to
-argue with if you disagree — it is a cost on every future test.)*
+**Negative assertions require proven liveness.** *(Adopted 2026-07-16 after
+the fourth vacuous assertion in two lanes.)*
 
 An assertion of the form "X does not happen" passes for two reasons: X was
 correctly prevented, **or the mechanism never ran at all**. Those are
@@ -196,8 +195,9 @@ examples from Lanes A and C, every one green against broken code:
 | Same assertion, second attempt | A new page inherited the flag via **per-origin localStorage**, so the "classic" baseline was still mutated. Same defect, different door. |
 | "a cancelled drag stops moving the controls" | `setPointerCapture` **throws** on synthetic PointerEvents → `pointerdown` died before arming anything; and with no film loaded `#videoContainer` has **zero height**, so `place()` clamps everything to `12px` — the comparison was `12px === 12px`. |
 
-The rule: before asserting a thing does not happen, assert that it **does**
-happen under the conditions where it should. `liveDragWrites > 0` before
+The rule: whenever a negative check could pass because nothing ran, first prove
+the mechanism was live with a positive precondition or equivalent structural
+evidence. `liveDragWrites > 0` before
 `writesAfterCancel === 0`. If the precondition can't be satisfied, the test is
 measuring nothing and must be redesigned — not shipped green.
 

@@ -466,323 +466,74 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== LANE C RE-REVIEW: ACCEPTED (9c80d8b) - 2026-07-16 (Claude) ===
-Reviewer: Claude (non-builder). Verified by probe against the built bundle.
-
-BOTH FINDINGS CLOSED AT THE ROOT.
-- [P2] .is-scout two-owner conflict: FIXED. _applyScoutMode is DELETED, and the
-  restore() toggle with it, so app.js toggleScoutUI is once again the SOLE
-  owner. _syncScoutGame now DERIVES scoutMode from _isScoutFilm() instead of
-  hardcoding 'self'. Probe: scoutSurvivesRender=true (was false). Codex fixed
-  the conflict rather than just seeding around it — better than what the review
-  asked for.
-- [P1] defaultUnit hijack: FIXED. The render() write is deleted. Probe:
-  defaultUnit stays "defense" after selecting an offense play (was "offense").
-  Bonus catch by Codex: _cancelGameModal now preserves defaultUnit, because
-  _loadGameInfo would otherwise re-seed it when no intent changed.
-
-THE OPEN PRODUCT QUESTION IS ANSWERED, AND BETTER THAN EITHER OPTION OFFERED.
-The review framed it as read-only indicator vs. explicit-editing shortcut.
-Codex chose a third: the context buttons NAVIGATE to Game Settings with the
-perspective field focused (_openFilmContextSettings). So the control neither
-lies nor silently persists — it routes the coach to the one place the fact is
-declared. Label changed "Film context" -> "Film source", reinforcing that it is
-a property of the film, not a lens on it. Coach: this resolves the question
-raised in the previous block; no decision needed unless you disagree.
-
-Scope note: 9c80d8b touches js/app.js, outside Lane C's original file list.
-Legitimate and necessary — the fix adds gmPerspective to the Game Settings
-modal, which is what the buttons navigate to. Correct place for it.
-
---- SEPARATE PRE-EXISTING DEFECT, found while verifying 9c80d8b ---
-[P2] A NEW GAME INHERITS THE PREVIOUS GAME'S SCOUT PERSPECTIVE.
-Probe: after charting a game with perspective='scout', storage.newGame() gives
-perspOnNewGame="scout" and scoutOnNewGame=true. So the coach's own next game is
-silently marked opponent film — which DOES affect stored gameInfo.perspective,
-and therefore generateScoutReport / _activeOpponent / the analytics subject.
-NOT Codex's, NOT Lane C. _clearGameInfoForm (js/app.js:737-747) resets
-gameWeek/gameOpponent/gameDate/scores/homeAway/gameDirection/gameType but never
-gamePerspective, in the DOM or in storage.gameInfo. Unchanged from before Lane C
-(confirmed against ca9b270~1). Creating a game THROUGH the new modal is safe —
-Codex's _openGameModal('create') sets gmPerspective='offense' — but the API path
-(storage.newGame(), e.g. "+ New Game" in the dropdown) is not.
-Suggested fix: add 'gamePerspective' to the _clearGameInfoForm reset list and
-perspective:'offense' to the gameInfo reset, then dispatch change so the single
-.is-scout owner updates. Needs a failing-first test: new game after a scout game
-must not inherit scout. Not assigned — coach's call on priority; it is not in
-any current lane.
-
-=== LANE A RESPONSE + LANE C REVIEW - 2026-07-16 (Claude) ===
-Branch: claude/football-film-analyzer-GRiCW. Nothing pushed/packaged/tagged.
-
-LANE A — Codex's P1 (b273220) FIXED at 22eb521. Reproduced first, matching the
-real-game probe: writesAfterCancel=1, endDragArmedAfterCancel=true,
-writesAfterBothEnded=2 (TWO stale listeners after both gestures ended).
-Implemented exactly as specified: captured pointerId filtering on move/up/cancel,
-end-before-replace on a new pointerdown, and ONE idempotent end() shared by
-pointerup/pointercancel/replacement pointerdown/restore, guarded by
-`this._endDrag === end` so a late call cannot null a newer gesture's cleanup.
-Additional: setPointerCapture is now wrapped — it THROWS for any non-active
-pointer, which killed the handler before it registered anything.
-The pre-existing mid-drag teardown regression stays green.
-Lifecycle harness 26 -> 30; every assertion watched fail. Gate 50/50.
-STATUS: awaiting Codex re-review. The builder does not sign its own lane.
-
-LANE C (Codex) — REVIEW FINDINGS FIXED; READY FOR CLAUDE RE-REVIEW.
-
-  The two accepted review defects are repaired without restoring the original
-  metadata-write bug:
-
-  - Film identity is derived from the active game's stored perspective. The
-    classic App path is the sole `.is-scout` owner; Break Down reads it and
-    cannot silently relabel a game. A conflicting film-source choice opens the
-    visible Game Settings dialog on **Film source**. The coach must explicitly
-    Save; Cancel preserves metadata and the sticky next-play unit.
-  - `render()` is read-only with respect to `tagger.defaultUnit`. Reviewing an
-    offense play after choosing Defense leaves the next new play default at
-    Defense. A game switch with no selected play initializes the visible unit
-    once from the loaded game's canonical default.
-  - Game Settings now exposes `Our game · start on Offense/Defense/Special
-    Teams` and `Opponent film · scout`, keeping film ownership and initial unit
-    in one intentional per-game workflow.
-  - Football ownership regressions cover opponent headings, team-only fronts,
-    structured penalties, Special Teams scoring/recovery, game switch, reload,
-    same-game edits, Cancel, keyboard focus, and film-source × unit wording.
-
-  Evidence: failing-first on `ca9b270` was 37/44 with both review defects red.
-  A second failing-first check caught unchanged Game Settings Save resetting the sticky unit (45/46); final focused harness is 46/46. Audited full gate is 50/50 green; real-data,
-  parity, integrity, season/scout analytics, penalty, and Special Teams checks
-  are clean. This is builder evidence, not acceptance. Claude is the required
-  non-builder reviewer for the committed repair.
-NEW GATE RULE PROPOSED — Codex, please review and push back if you disagree;
-it is a cost on every future test. GRIDIRON-IQ-RELEASE-GATE.md now says:
-"Every negative assertion needs a positive precondition." Four assertions across
-Lanes A and C passed green against BROKEN code because the mechanism never ran
-(vacuous fallback value; baseline captured after mutation; baseline re-mutated
-via per-origin localStorage; setPointerCapture throwing + zero-height container
-clamping every pixel comparison to 12px === 12px). Corollary: prefer measuring
-whether the code path RAN over measuring its side effects — Codex's real-game
-probe found the drag defect immediately precisely because it had real geometry
-that the headless harness structurally lacks.
-
-=== LANE A REVIEW - 2026-07-16 (Codex) ===
-Owner: Claude | Reviewer: Codex | Phase: Lane A lifecycle | Status: CHANGES REQUESTED on 1024306 — ADDRESSED at 22eb521, awaiting re-review
-
-Accepted
-- mount/restore symmetry, original DOM position capture, restore ordering,
-  generation guards, single subscriptions, remount identity, and the original
-  active-drag teardown fix all hold up under source review.
-- Focused lifecycle harness: 26/26.
-- Compatibility: workspace shell 22/22; Break Down/video 40/40; zero page errors.
-
-P1 finding — canceled/overlapping pointer gestures outlive ownership
-- `js/breakdown-video.js` installs global pointermove/pointerup listeners on
-  pointerdown, but has no pointercancel termination, no captured-pointer-id
-  filtering, and does not close an existing gesture before replacing `_endDrag`.
-- Real enabled-game reproduction: after pointercancel, a later pointermove moved
-  controls from ~93px to 573px, changed stored ratio 0.144 -> 1, and left
-  `_endDrag` armed. A controlled two-pointer probe also demonstrated a stale
-  first listener after the second gesture replaced the shared cleanup.
-- This is user-reachable on touch interruption, browser gesture takeover, device
-  cancellation, or overlapping touch input. It can keep moving the controls
-  after the coach stopped dragging and persist the wrong location.
-
-Required change
-- Capture the gesture pointerId and ignore move/up/cancel from other pointers.
-- End any existing gesture before starting a new one.
-- Use one idempotent cleanup for pointerup, pointercancel, replacement
-  pointerdown, and restore; remove every registered global listener.
-- Add failing-first assertions for pointercancel and overlapping-pointer
-  replacement. The existing teardown regression must stay green.
-- Rebuild and rerun the focused lifecycle + workspace shell + Break Down/video
-  suites. Do not run or certify the full gate concurrently with another agent.
-
-No source changes were made by the reviewer. Full-gate sign-off is withheld until
-this P1 is fixed and independently re-reviewed.
-
-=== LANE C CHECKPOINT - 2026-07-16 (Codex) ===
-Owner: Codex | Phase: Lane C — scout mode / charting unit / game metadata | Status: committed at ca9b270, focused gates green, ready for independent review
-
+=== CURRENT RELEASE REPAIR HANDOFF - 2026-07-16 ===
 Branch: claude/football-film-analyzer-GRiCW
-Checkpoint: ca9b270, committed locally. Rebuilt and focused-tested; not pushed, packaged, or tagged.
+Published baseline: v1.12.0-6
+Local state: code fix f834761 is committed; this handoff update is uncommitted.
+Nothing is pushed, packaged, or tagged.
 
-Completed
-- Replaced the Break Down context button's direct write to `gamePerspective`
-  with in-memory workspace state (`self` / `scout`). The button no longer
-  dispatches Game Setup change events or arms autosave.
-- Scout mode survives selected-play and Offense/Defense/Special Teams changes
-  inside the current game, but resets to self-scout when `activeGameId` changes
-  and on a full reload. Route changes within the same game preserve the session
-  state because the workspace instance remains mounted.
-- `#tagUnit` / the selected play is the charting-unit authority. A game's stored
-  `perspective` remains descriptive metadata and cannot silently choose the unit
-  for the next newly marked play while the redesigned shell is active.
-- `restore()` returns the classic tag form to the scout appearance implied by
-  stored Game Setup metadata, so temporary workspace state cannot leak into the
-  classic layout.
+CLOSED MILESTONES
+- Lane D release-quality gate: accepted. Use GRIDIRON-IQ-RELEASE-GATE.md.
+- Lane A lifecycle/remount: ACCEPTED by Codex after independent source review.
+  Commit 22eb521 closes pointercancel, foreign-pointer, replacement-gesture,
+  and restore cleanup through one owning idempotent end path. Focused lifecycle
+  harness: 30/30. No open Lane A finding remains.
+- Lane C scout/unit/metadata separation: ACCEPTED by Claude after independent
+  built-bundle probe. Commit 9c80d8b keeps film source on stored game metadata,
+  charting unit sticky and independent, and app.js as the sole .is-scout owner.
+  Context controls route to Game Settings instead of silently relabeling film.
 
-Files
-- js/breakdown-workspace.js
-- tools/e2e-breakdown-video.mjs
-- football-film-analyzer.html (fresh rebuild)
-- CLAUDE.md and GRIDIRON-IQ-REDESIGN-PLAN.md (handoff only)
+FOLLOW-UP DEFECT FOUND DURING LANE C REVIEW - FIXED AT f834761, NEEDS CLAUDE REVIEW
+- Pre-existing defect: StorageManager.newGame() could inherit the prior game's
+  opponent-scout perspective, causing a new game to be analyzed as opponent film.
+- Fix at f834761: blank games and the canonical newGame path explicitly store
+  perspective:'offense'; the between-game form reset synchronizes the visible
+  field/scout UI without autosaving temporary blank fields into an existing game.
+- Regression proves the source game is genuinely in live scout mode before it
+  creates the new game, then pins DOM perspective, stored perspective, scout
+  class, and next-play default unit. This is a positive precondition, not a
+  vacuous negative assertion.
+- Files: js/app.js, js/season-store.js, js/storage.js,
+  tools/e2e-breakdown-video.mjs, rebuilt football-film-analyzer.html.
+- Focused built-bundle result: e2e-breakdown-video 48/48, zero page errors.
+- Full audited build-and-gate: 50/50 current harnesses green; real-data, parity,
+  integrity, lifecycle, analytics, penalties, and Special Teams all clean.
+- Required next action: Claude reviews commit f834761. Builder evidence is not
+  acceptance.
 
-Failing-first evidence
-- Old implementation with the strengthened harness: 33 passed, 5 failed.
-- Failures proved direct metadata mutation, autosave, and scout/unit coupling.
-- Final focused harness: 40/40, zero page errors. It now pins metadata equality,
-  autosave count, play/unit stability, cross-game reset, and reload reset.
+TEST RULE - ADOPTED
+A negative assertion must prove the exercised mechanism was live whenever the
+check could otherwise pass because nothing ran. Use a positive precondition or
+another structural liveness proof; if liveness cannot be proven, redesign the
+test. Mutation-test the intended defense, not only the original bug.
 
-Compatibility evidence
-- e2e-breakdown-form.mjs: 53/53, zero page errors.
-- e2e-workspace-shell.mjs: 22/22, zero page errors.
-- e2e-season-tab.mjs: 154/154, zero page errors; opponent-scout analytics and
-  stored game metadata remain intact.
-- e2e-breakdown-lifecycle.mjs currently reports 23 passed, 3 failed on Claude's
-  uncommitted Lane A active-drag teardown assertions. Those failures are outside
-  Lane C's files and are the active Lane A repair, so the full repository gate
-  must wait rather than certifying a mixed dirty tree.
+NEXT MILESTONE AFTER THE FOLLOW-UP IS ACCEPTED
+Lane B1 - 2-point conversion CONTRACT ONLY (Claude authors; Codex reviews).
+No production code opens until the contract is approved. It must settle:
+1. Storage identity while preserving normal offense/defense charting.
+2. Player attribution versus official statistics as separate questions; default
+   direction is a separate conversion-player rollup so tries do not inflate
+   ordinary attempts, yards, receptions, or touchdowns.
+3. Ruleset-aware defensive returns, with NFHS/high-school behavior explicit and
+   unknown/unsupported cases failing honestly instead of inventing points.
+4. Sacks, interceptions, fumbles, and penalties on a try.
+5. Exclusion of tries from down/distance and ordinary success-rate engines.
+6. Formation, coverage, and front availability for conversion film.
 
-Data/release boundary
-- No schema or migration.
-- No stored season, play, film, analytics, or query semantics changed.
-- No release, package, tag, or push.
+Lane B2 - Special Teams integrity (Codex builds; Claude reviews), blocked on B1.
+It must add three independent failing-first paths: structured 2-point support;
+explicit excluded counts for mixed structured/legacy Special Teams reporting;
+and visible warnings in rendered reports/exports. Hybrid structured+legacy
+plays need an explicit precedence rule. Legacy-only parity goldens stay byte-
+identical unless a separately reviewed correction deliberately changes them.
+B2 file scope is determined by the approved B1 contract, not pre-limited now.
 
-Next requested action
-- Claude finishes and commits Lane A without touching Lane C files.
-- Independent reviewer inspects Lane C's state ownership and lifecycle harness.
-- After both lanes are committed, run the canonical atomic full gate once, with
-  no concurrent Puppeteer run.
-
-=== CURRENT HANDOFF SNAPSHOT - 2026-07-16 (Claude) ===
-Owner: Claude | Phase: R1 beta repair — Lane 0 + Lane D | Status: both complete
-
-Branch: claude/football-film-analyzer-GRiCW
-Checkpoint: b6ca8b3 (BETA-009), committed. Not pushed, packaged, or tagged.
-
-LANE 0 — BETA-009 reviewed, gated, committed as its own checkpoint.
-- Active-game isolation verified by tracing every write in the preview path:
-  no switchToGame / commitActive / persist is reachable from selection.
-- Stale async Home state verified: refreshHome re-checks token AND season id
-  after the awaited filmHealth before touching the DOM.
-- Gate on the reviewed bytes: 48 pass/fail harnesses green + the realdata
-  diagnostic clean. NOTE: the b6ca8b3 commit message says "49 harnesses, 49
-  green". That phrasing is wrong — it was written before Lane D found that
-  e2e-realdata.mjs has no failure counter and exits 0 unconditionally. The
-  bytes were green; the characterization was inherited from months of handoffs
-  that all repeated it.
-- Three non-blocking low findings recorded in the commit message.
-
-LANE D — release quality gate. Status: ACCEPTED / COMPLETE.
-Reviewed twice by the non-builder reviewer; five defects found and fixed at
-e4b9c75; independently signed off (isolated full gate 49/49, adversarial
-self-test 15/15, real-data 16 games clean with normalization counters zero, no
-surviving browser/test processes after the clean rerun). The runner behaved
-correctly under the contention incident: crashed harnesses were reported RED
-instead of being silently certified — that is the behavior that was missing.
-GRIDIRON-IQ-RELEASE-GATE.md now governs every subsequent increment.
-Open improvement (not blocking): an automatic gate lock so two agents cannot
-run the suite concurrently.
-- Established BEFORE the risky lanes (deliberate; an earlier draft scheduled it
-  after, which is a moving finish line).
-- GRIDIRON-IQ-RELEASE-GATE.md — matrix; each row has an owner, an evidence
-  artifact, and a pass criterion. Rows 4 (four-viewport review, coach approves
-  BEFORE packaging) and 6 (installed real-film smoke) are load-bearing: they
-  are what was missing when v1.12.0-2 shipped green and failed in ten minutes.
-  Corrects the impossible "smoke before packaging" rule to: build internal
-  candidate -> smoke -> publish. Packaging != publishing. Ownership is by
-  NON-BUILDER, never by name — an earlier draft assigned audits permanently to
-  Claude, which is self-certification whenever Claude builds.
-- tools/run-gate.sh — canonical runner. Build+gate atomic; build status checked
-  explicitly AND set -o pipefail. A harness is green only if EXIT CODE IS 0 AND
-  the result line is clean. --self-test: 15 known-green/known-red cases.
-- tools/e2e-realdata.mjs — was NOT a harness: no failure counter, exit(0)
-  unconditionally, and exit(0) on a MISSING fixture (so the real-data check
-  could silently not run). Now counts failures; fails on page/console errors,
-  on normalize self-heal regressions (stLeak/mav), on zero games checked, and
-  on a missing fixture (GIQ_REALDATA_OPTIONAL=1 to opt out on a non-review
-  machine). Reports games PASSED, not games checked.
-- CODE-REVIEW-FINDINGS.md: header added, legend now says the box means
-  UNVERIFIED, not open. #1/#2/#5/#6 verified fixed against source. Now TRACKED
-  (it was claimed as a deliverable while sitting untracked).
-
-CORRECTION — commit 612d742 IS NOT TRUSTWORTHY. It committed run-gate.sh with
-two P0 holes (a failed build passed the gate; a harness could exit nonzero and
-be counted green) and its message asserts "Validated: self-test 10/10; real
-suite 48 pass/fail green". That validation claim is RETRACTED. 612d742 is
-preserved on purpose and corrected by a follow-up commit rather than amended,
-so the false certification stays auditable. Do not cite 612d742's gate numbers.
-
-STOP HARDCODING THE HARNESS COUNT. It has been 42/44/45/46/47/49. This run
-found 49 with sql-catalog at 17 (docs said 16) and csv-roundtrip at 9 (docs
-said 6). Say "every current tools/e2e-*.mjs harness" and record the ACTUAL
-count in each handoff.
-
-NEXT: Lane A (classic-layout lifecycle + remount, P1) and Lane C (separate
-scout mode / charting unit / game metadata) — no file overlap, may run in
-parallel. Then B1 (2-pt contract) -> B2 -> E1-E4 (tag model, GATES the beta)
--> G (Plan) -> internal candidate -> smoke -> publish. E5 (migration) is
-optional, non-gating, post-release.
-
-=== SUPERSEDED SNAPSHOT (Codex, BETA-009 pre-commit) ===
-Owner: Codex | Phase: Home season overview / BETA-009 | Status: implemented
-and focused-verification complete locally; ready for independent diff review
-
-Branch: claude/football-film-analyzer-GRiCW
-Published baseline: 92fdee8 / v1.12.0-6 (pushed and installable)
-Current local work: UNCOMMITTED, UNPUSHED, UNPACKAGED, UNTAGGED
-
-Completed
-- Home game rows are selectable without opening a game or changing the active
-  editor's activeGameId.
-- The selected-game overview shows opponent, date/status, score, total plays,
-  canonical charted count, and Offense/Defense/Special Teams counts.
-- Open remains a separate explicit command; preview is read-only.
-- Existing film-health status stays visible and the empty-film dot uses a
-  neutral state instead of ready green.
-- Selection and summary work at desktop and mobile sizes; mobile selection
-  keeps a 44px target.
-
-Files changed locally
-- js/workspace-shell.js
-- css/workspace-shell.css
-- tools/e2e-workspace-shell.mjs
-- football-film-analyzer.html (fresh rebuild)
-
-Verification run against the rebuilt bundle
-- node tools/e2e-workspace-shell.mjs - 22/22, zero page errors
-- node tools/e2e-workspace-context.mjs - 20/20, zero page errors
-- node tools/e2e-onboarding.mjs - 46/46, zero page errors
-- node tools/e2e-breakdown-video.mjs - 36/36, zero page errors
-- The complete atomic repository gate has not yet been run for BETA-009.
-
-Data and release boundaries
-- No season data is migrated, cleared, rewritten, or reclassified.
-- No schema, catalog, film-storage, clip-identity, or tag semantics change.
-- Preview selection does not load or persist a different game.
-- BETA-009 is not part of v1.12.0-6 until a new commit/package is explicitly
-  approved.
-- Untracked scratch QA folders, AGENTS.md, CODE-REVIEW-FINDINGS.md, and unrelated
-  resume artifacts remain outside the increment.
-
-Open product findings
-- BETA-004: Plan discoverability/usefulness remains open.
-- BETA-005: QB alignment must be separated from structural Formation before
-  permanent formation retagging.
-- BETA-006: coverage shell must be separated from optional Man/Zone/Match family
-  before permanent coverage retagging.
-- Do not migrate or clear existing data for these model changes without showing
-  impact and receiving explicit coach confirmation immediately before acting.
-
-Next requested action
-1. Independently review the four-file BETA-009 local diff for correctness, stale
-   async Home state, accessibility, mobile overflow, and active-game isolation.
-2. Run the complete atomic repository gate on the reviewed bytes.
-3. Commit, package, tag, and push only after review/approval; update this block
-   with the resulting SHA/version and installed smoke result.
-
-Historical milestone details remain below and in git history, CLAUDE.md,
-BETA-SMOKE-FINDINGS.md, and BREAKDOWN-REDESIGN-PARITY.md.
+RELEASE SEQUENCE
+B1 -> B2 -> E1-E4 (QB alignment + coverage model; gates permanent retagging and
+the beta) -> G (Plan usefulness) -> internal candidate -> installed real-film
+smoke -> publish. E5 migration remains optional, non-gating, and post-release;
+never migrate or clear coach data without an impact report and immediate consent.
+BETA-004, BETA-005, and BETA-006 remain open until their named lanes close.
 ```
 
 ### Archived Handoff (through v1.12.0-2)
