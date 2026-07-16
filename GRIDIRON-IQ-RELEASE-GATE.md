@@ -180,6 +180,41 @@ cannot accidentally run the suite concurrently and produce exactly the incident
 above. Until then the rule is enforced by discipline, which is the weaker
 option.
 
+**Every negative assertion needs a positive precondition.** *(New rule, proposed
+2026-07-16 after the fourth instance in two lanes. Codex: this is the one to
+argue with if you disagree — it is a cost on every future test.)*
+
+An assertion of the form "X does not happen" passes for two reasons: X was
+correctly prevented, **or the mechanism never ran at all**. Those are
+indistinguishable unless the test proves the mechanism was live. Four real
+examples from Lanes A and C, every one green against broken code:
+
+| What passed | Why it was vacuous |
+|---|---|
+| `cardUpdatesPerEvent: play ? cardUpdates : 1` | No season loaded → `plays[0]` undefined → returned a hardcoded `1` without emitting. Passed on **any** code. |
+| "`.playback-controls` returns to its original parent" | Baseline captured **after** `_mount()` had already moved it — compared the bug to itself. |
+| Same assertion, second attempt | A new page inherited the flag via **per-origin localStorage**, so the "classic" baseline was still mutated. Same defect, different door. |
+| "a cancelled drag stops moving the controls" | `setPointerCapture` **throws** on synthetic PointerEvents → `pointerdown` died before arming anything; and with no film loaded `#videoContainer` has **zero height**, so `place()` clamps everything to `12px` — the comparison was `12px === 12px`. |
+
+The rule: before asserting a thing does not happen, assert that it **does**
+happen under the conditions where it should. `liveDragWrites > 0` before
+`writesAfterCancel === 0`. If the precondition can't be satisfied, the test is
+measuring nothing and must be redesigned — not shipped green.
+
+Corollary: **prefer measuring whether the code path RAN over measuring its
+side effects.** Side effects depend on environment (layout, geometry, loaded
+data) that a headless harness often lacks. Counting invocations is
+geometry-independent. The reviewer's probe found the drag defect precisely
+because it ran against a **real loaded game** with real geometry; the harness
+structurally could not.
+
+**Mutation-test the fix, not just the bug.** Watching an assertion fail on the
+original code proves it detects *that* bug. It does not prove which defense
+catches it. Removing the drag guard alone left the suite green because the
+cleanup independently fixed it — and vice versa. Only removing **both** went
+red. That is worth knowing: it told us the redundancy is real rather than
+assumed.
+
 **Re-save, don't just open.** The A3 desktop smoke passed while every re-save
 silently duplicated play rows, because the smoke only opened seasons. Any
 persistence validation must **edit and re-save**, not just load. See

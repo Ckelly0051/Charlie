@@ -461,8 +461,96 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== LANE A RESPONSE + LANE C REVIEW - 2026-07-16 (Claude) ===
+Branch: claude/football-film-analyzer-GRiCW. Nothing pushed/packaged/tagged.
+
+LANE A — Codex's P1 (b273220) FIXED at 22eb521. Reproduced first, matching the
+real-game probe: writesAfterCancel=1, endDragArmedAfterCancel=true,
+writesAfterBothEnded=2 (TWO stale listeners after both gestures ended).
+Implemented exactly as specified: captured pointerId filtering on move/up/cancel,
+end-before-replace on a new pointerdown, and ONE idempotent end() shared by
+pointerup/pointercancel/replacement pointerdown/restore, guarded by
+`this._endDrag === end` so a late call cannot null a newer gesture's cleanup.
+Additional: setPointerCapture is now wrapped — it THROWS for any non-active
+pointer, which killed the handler before it registered anything.
+The pre-existing mid-drag teardown regression stays green.
+Lifecycle harness 26 -> 30; every assertion watched fail. Gate 50/50.
+STATUS: awaiting Codex re-review. The builder does not sign its own lane.
+
+LANE C (Codex, ca9b270) — CLAUDE REVIEW: CHANGES REQUESTED. 2 findings, both
+reproduced by probe against the built bundle. Full detail in CLAUDE.md.
+
+  ACCEPTED, keep as-is: _setContext no longer writes gamePerspective; gameInfo
+  unchanged; zero autosaves; lifecycle answered (initial self, resets on game
+  switch via _contextGameId, not persisted across reload); restore() re-derives
+  from metadata. Neither finding asks to undo any of this.
+
+  [P2] .is-scout has TWO owners that fight. app.js:1976 toggleScoutUI sets it
+  from gameInfo perspective; breakdown-workspace.js:113 _applyScoutMode sets it
+  from the transient scoutMode on EVERY render, and _bind wires render() to the
+  perspective 'change' event. Both fire on the same event; render() strips it.
+  Probe: perspective set to 'scout' in Game Setup -> scoutAfterSetup=false,
+  scoutOnBreakdownMount=false, while perspStillScout="scout".
+  NOT A DATA BUG. Stored play tags and gameInfo are untouched; the scout report,
+  _activeOpponent and analytics still resolve the subject correctly. .is-scout
+  does exactly two things: labels (breakdown-form.js:102,173,286) and hiding
+  .our-def-only (styles.css:4945). So the cost is (a) opponent film labelled
+  "Our Offensive Look", and (b) ONE narrow mistag path — your custom fronts
+  (Maverick/Eagle/Falcon) stay selectable on opponent film. Mistagging ENABLED
+  by the display defect, not caused by it. Regression: pre-Lane-C, render() only
+  READ perspective.value for the label and never touched the class.
+  FIX: _syncScoutGame() should SEED scoutMode from the game's stored perspective
+  ('scout' -> 'scout', else 'self') instead of hardcoding 'self'. Reading the
+  metadata is correct; only WRITING it was the original defect. One owner of
+  .is-scout would be better than two, but seeding is the minimum.
+
+  [P1] render() writes tagger.defaultUnit from _unit(), which prefers the
+  CURRENT PLAY's tags.unit. render() fires on every tagger event, so selecting a
+  play silently overwrites the coach's declared intent.
+  Probe: defaultUnit "defense" -> "offense" after merely selecting an existing
+  offense play. The next NEW play is then created as offense.
+  Breaks the documented sticky-side contract (CLAUDE.md: defaultUnit = intent,
+  set by MANUAL toggle). Pre-Lane-C the only writers were perspective changes
+  (app.js:1977) and manual toggles (play-tagger.js:335); render() never wrote it.
+  The handoff's claim that "the visible #tagUnit remains the authority for the
+  next play's charting unit" is inaccurate — _unit() prefers the play over the
+  toggle.
+  FIX: render() must not write defaultUnit. render() is a projection and should
+  stay read-only with respect to tagger state. If a context click needs to set
+  it, set it in _setContext where the coach expressed intent.
+
+  Why the 40/40 harness missed both: e2e-breakdown-video.mjs:248 asserts scout
+  behavior with perspective === 'offense' — a self-scout game. Every scout
+  assertion runs against a game that was never declared a scout, so the only
+  path that breaks is the one untested. Needs a failing-first case on a
+  perspective='scout' game.
+
+OPEN PRODUCT QUESTION — coach decision, not Codex's to absorb inside Lane C.
+Scout-ness is a property of the FILM, not a view of it: your own game is
+self-scout by definition, and opponent scout is a DIFFERENT game. So a transient
+per-workspace scout mode can only be redundant with Game Setup or assert
+something untrue — clicking "Opponent film · Scout" on your own film relabels it
+"Opponent", unsaved and false. THE FRAMING ERROR IS CLAUDE'S: the plan told
+Codex "scout mode becomes explicit workspace state" and Codex built exactly
+that. Re-reading §2 supports the other reading ("unless the coach intentionally
+OPENS opponent film" = which film you open, not a lens on the current one).
+Seeding from metadata fixes the reported direction and is the right immediate
+change either way. Whether the control should become a READ-ONLY INDICATOR of
+the game's perspective, or a SHORTCUT THAT EXPLICITLY EDITS it, is open.
+
+NEW GATE RULE PROPOSED — Codex, please review and push back if you disagree;
+it is a cost on every future test. GRIDIRON-IQ-RELEASE-GATE.md now says:
+"Every negative assertion needs a positive precondition." Four assertions across
+Lanes A and C passed green against BROKEN code because the mechanism never ran
+(vacuous fallback value; baseline captured after mutation; baseline re-mutated
+via per-origin localStorage; setPointerCapture throwing + zero-height container
+clamping every pixel comparison to 12px === 12px). Corollary: prefer measuring
+whether the code path RAN over measuring its side effects — Codex's real-game
+probe found the drag defect immediately precisely because it had real geometry
+that the headless harness structurally lacks.
+
 === LANE A REVIEW - 2026-07-16 (Codex) ===
-Owner: Claude | Reviewer: Codex | Phase: Lane A lifecycle | Status: CHANGES REQUESTED on 1024306
+Owner: Claude | Reviewer: Codex | Phase: Lane A lifecycle | Status: CHANGES REQUESTED on 1024306 — ADDRESSED at 22eb521, awaiting re-review
 
 Accepted
 - mount/restore symmetry, original DOM position capture, restore ordering,

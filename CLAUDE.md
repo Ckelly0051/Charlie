@@ -80,6 +80,57 @@ settled it.
 - **Data safety:** this increment is read-only until the coach chooses Open. It
   does not switch games during preview, alter tags, migrate data, change schema,
   or touch film storage.
+- **Lane A is fixed at `22eb521`** (Codex's P1 from `b273220`). Drag
+  cancellation, foreign pointers, and replacement gestures now end through one
+  idempotent cleanup shared by pointerup/pointercancel/replacement-pointerdown/
+  restore, with captured-pointerId filtering. `setPointerCapture` is wrapped: it
+  **throws for any non-active pointer** and previously killed the handler before
+  it armed. Reproduced first (`writesAfterCancel:1`, `endDragArmedAfterCancel:
+  true`, `writesAfterBothEnded:2` — two stale listeners). Lifecycle harness
+  30/30; gate 50/50. Awaiting Codex re-review — the builder does not sign its
+  own lane.
+
+- **Lane C (`ca9b270`, Codex) — Claude review: CHANGES REQUESTED, 2 findings.**
+  Both reproduced by probe, not inferred. The core change is ACCEPTED and should
+  stay: `_setContext` no longer writes `gamePerspective`, no autosave fires, and
+  the lifecycle questions are answered.
+  - **[P2] `.is-scout` has two owners that fight.** `app.js:1976` sets it from
+    `gameInfo` perspective; `breakdown-workspace.js:113` sets it from the
+    transient `scoutMode` on **every** `render()`. Both fire on the same
+    `change` event and `render()` strips it, so a game declared `scout` in Game
+    Setup displays "Our Offensive Look" on opponent film. **Not a data bug** —
+    stored tags and `gameInfo` are untouched (probe: `perspStillScout:"scout"`)
+    and analytics still resolve the subject. `.is-scout` only drives labels
+    (`breakdown-form.js:102,173,286`) and hides `.our-def-only`
+    (`styles.css:4945`) — the one real risk is your custom fronts staying
+    selectable on opponent film. **Fix:** `_syncScoutGame()` should *seed*
+    `scoutMode` from the stored perspective instead of hardcoding `'self'`.
+    Reading metadata is correct; only writing it was the defect.
+  - **[P1] `render()` writes `tagger.defaultUnit`** from `_unit()`, which
+    prefers the current play's `tags.unit`. Selecting a play overwrites intent —
+    probe: `"defense"` → `"offense"`, so the next NEW play is offense. Breaks
+    the sticky-side contract (`defaultUnit` = intent, set by **manual** toggle).
+    **Fix:** `render()` is a projection and must not write tagger state.
+  - Why 40/40 missed both: `e2e-breakdown-video.mjs:248` asserts scout behavior
+    on a game whose perspective is `'offense'` — every scout assertion runs
+    against a game that was never a scout.
+  - **Open product question (coach):** scout-ness is a property of the *film*,
+    not a view of it. A transient per-workspace scout mode can only be redundant
+    with Game Setup or assert something false. The framing error is Claude's —
+    the plan specified "scout mode as workspace state" and Codex built exactly
+    that. Seeding from metadata is right either way; whether the control becomes
+    a read-only indicator or an explicit metadata shortcut is undecided.
+
+- **New gate rule (proposed, `GRIDIRON-IQ-RELEASE-GATE.md`):** *every negative
+  assertion needs a positive precondition.* Four assertions across Lanes A and C
+  passed green against **broken** code because the mechanism never ran — a
+  vacuous fallback value, a baseline captured after mutation, that same baseline
+  re-mutated via per-origin localStorage, and `setPointerCapture` throwing while
+  a zero-height container clamped every pixel check to `12px === 12px`.
+  Corollary: prefer measuring whether the code path **ran** over its side
+  effects; Codex's real-game probe caught the drag defect immediately because it
+  had geometry the headless harness structurally lacks.
+
 - **Next action:** BETA-009 is done and committed (`b6ca8b3`). Lane D (the
   release gate) is **ACCEPTED / COMPLETE** — reviewed twice, corrected at
   `e4b9c75`, and independently signed off by the non-builder reviewer
