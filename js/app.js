@@ -54,11 +54,13 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-5';
+const APP_VERSION = '1.12.0-6';
 
 class App {
   constructor() {
     configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
+    try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
+    catch { this.autoPlayNext = true; }
     // Initialize components
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);
@@ -104,7 +106,9 @@ class App {
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.suggestions = new SuggestionEngine(this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
-    this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
+    this.cutupPlayer = new CutupPlayer(this.vc, this.tagger, {
+      shouldAutoPlayNext: () => this.autoPlayNext,
+    });
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer);
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
@@ -1986,6 +1990,15 @@ class App {
     const yardsMinus = document.getElementById('yardsMinus');
     const yardsPlus = document.getElementById('yardsPlus');
     const yardsInput = document.getElementById('tagYardage');
+    const autoplayNext = document.getElementById('autoplayNextToggle');
+
+    if (autoplayNext) {
+      autoplayNext.checked = this.autoPlayNext;
+      autoplayNext.addEventListener('change', () => {
+        this.autoPlayNext = autoplayNext.checked;
+        try { localStorage.setItem('ffa_autoplay_next', this.autoPlayNext ? '1' : '0'); } catch {}
+      });
+    }
 
     btnPrev?.addEventListener('click', () => {
       this.notes?.flush();
@@ -2056,7 +2069,8 @@ class App {
     const v = this.vc.videoElement || this.vc.video;
     if (v) {
       v.currentTime = play.timestamp.start;
-      v.play().catch(() => {});
+      if (this.autoPlayNext) v.play().catch(() => {});
+      else v.pause();
     }
   }
 

@@ -63,6 +63,7 @@ let state = await page.evaluate(() => {
     sidebarHidden: getComputedStyle(document.querySelector('.ws-sidebar')).display === 'none',
     topNavVisible: getComputedStyle(document.querySelector('.ws-top-nav')).display === 'flex',
     mediaWidth: Math.round(document.querySelector('.bd-media-column').getBoundingClientRect().width),
+    autoplayToggle: !!document.querySelector('.video-play-controls #autoplayNextToggle:checked'),
   };
 });
 ok(state.controlsInsideVideo, 'Real playback controls are contained inside the video surface', JSON.stringify(state));
@@ -80,6 +81,7 @@ ok(state.gameAction && state.gameHeaderHidden && state.canonicalProgressHidden &
   'Game setup, duplicate progress, and templates no longer precede the charting groups', JSON.stringify(state));
 ok(state.sidebarHidden && state.topNavVisible && state.mediaWidth >= 900,
   'Desktop route gives the approved width to film with compact top navigation', JSON.stringify(state));
+ok(state.autoplayToggle, 'Video action bar exposes Autoplay next with the backward-compatible ON default');
 
 state = await page.evaluate(() => {
   const canvas = window.app.canvas;

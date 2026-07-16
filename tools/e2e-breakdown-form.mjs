@@ -279,6 +279,32 @@ await page.evaluate(() => document.querySelector('#btnTagPrev').click());
 state = await page.evaluate(() => ({ current:window.app.tagger.currentPlayId, tacklers:document.querySelector('#tagPlayerTackler').value, grade:document.querySelector('#tagGradeTackler').value, notes:document.querySelector('#notesArea').value }));
 ok(state.current===1 && state.tacklers==='55, 22' && state.grade==='1' && state.notes==='Fit outside shoulder', 'Reopening the play restores every R6 field for editing', JSON.stringify(state));
 
+state = await page.evaluate(async () => {
+  const app = window.app;
+  const toggle = document.querySelector('#autoplayNextToggle');
+  const video = app.vc.video;
+  const originalPlay = video.play;
+  const originalPause = video.pause;
+  let plays = 0, pauses = 0;
+  video.play = () => { plays++; return Promise.resolve(); };
+  video.pause = () => { pauses++; };
+  toggle.checked = false;
+  toggle.dispatchEvent(new Event('change', { bubbles: true }));
+  app._autoPlayCurrent();
+  const off = { pref:app.autoPlayNext, stored:localStorage.getItem('ffa_autoplay_next'), plays, pauses };
+  toggle.checked = true;
+  toggle.dispatchEvent(new Event('change', { bubbles: true }));
+  app._autoPlayCurrent();
+  const on = { pref:app.autoPlayNext, stored:localStorage.getItem('ffa_autoplay_next'), plays, pauses };
+  video.play = originalPlay;
+  video.pause = originalPause;
+  return { exists:!!toggle, off, on };
+});
+ok(state.exists && !state.off.pref && state.off.stored==='0' && state.off.plays===0 && state.off.pauses===1,
+  'Autoplay next OFF seeks the selected play but keeps film paused and persists the choice', JSON.stringify(state));
+ok(state.on.pref && state.on.stored==='1' && state.on.plays===1,
+  'Autoplay next ON preserves the existing start-on-advance behavior', JSON.stringify(state));
+
 state = await page.evaluate(() => {
   const blank = (id, down, distance) => ({ id, timestamp:{start:(id-1)*6,end:(id-1)*6+5}, notes:'', tags:{unit:'offense',down,distance,fieldSide:'own',yardLine:'30',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]} });
   const tagger = window.app.tagger;
@@ -302,6 +328,32 @@ ok(state.afterSave.current===3 && state.afterSave.index===1 && state.afterSave.a
 ok(state.afterSave.nextDown==='3' && state.afterSave.nextDistance==='7', 'Filtered navigation never carries Auto D&D into a nonconsecutive example', JSON.stringify(state.afterSave));
 ok(state.afterPrev.current===1 && state.afterPrev.index===0 && state.afterSkip.current===3 && state.afterSkip.index===1, 'Previous and Skip use the same active example queue', JSON.stringify(state));
 ok(state.afterEnd.current===3 && !state.afterEnd.active, 'End of the example set never falls through to chronological navigation', JSON.stringify(state.afterEnd));
+
+state = await page.evaluate(async () => {
+  const app = window.app;
+  const video = app.vc.video;
+  const originalPlay = video.play;
+  const originalPause = video.pause;
+  let plays = 0, pauses = 0;
+  video.play = () => { plays++; return Promise.resolve(); };
+  video.pause = () => { pauses++; };
+  app.autoPlayNext = false;
+  app.cutupPlayer.start([1, 3], 'Autoplay preference examples');
+  await new Promise(resolve => setTimeout(resolve, 60));
+  plays = 0; pauses = 0;
+  app.cutupPlayer.next();
+  await new Promise(resolve => setTimeout(resolve, 60));
+  const result = { current:app.tagger.currentPlayId, plays, pauses, active:app.cutupPlayer.active };
+  app.cutupPlayer.stop();
+  app.autoPlayNext = true;
+  document.querySelector('#autoplayNextToggle').checked = true;
+  localStorage.setItem('ffa_autoplay_next', '1');
+  video.play = originalPlay;
+  video.pause = originalPause;
+  return result;
+});
+ok(state.current===3 && state.plays===0 && state.pauses===1 && state.active,
+  'Filtered-example Next honors Autoplay next OFF without leaving the example queue', JSON.stringify(state));
 
 state = await page.evaluate(() => {
   const blank = (id, notes) => ({ id, timestamp:{start:0,end:5}, notes, tags:{unit:'offense',down:'1',distance:'10',formation:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',playDir:'',result:'',yardage:'',defFront:'',coverage:'',blitz:'',stType:'',players:{},grades:{},custom:[]} });

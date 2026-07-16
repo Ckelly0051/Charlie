@@ -5724,6 +5724,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   z-index: 2;
 }
 .video-play-controls .btn { flex: 0 0 auto; }
+.autoplay-next-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.autoplay-next-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.autoplay-next-toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
 .video-play-controls .play-select {
   flex: 1 1 160px;
   min-width: 140px;
@@ -6215,6 +6229,7 @@ video.is-buffering { opacity: 0.6; }
     min-height: 28px !important;
     font-size: 11px !important;
   }
+  .autoplay-next-toggle { min-height: 44px; }
   .video-play-controls .play-select {
     padding: 3px 28px 3px 6px !important;
     font-size: 11px !important;
@@ -8871,6 +8886,11 @@ body.ws-shell-active.ws-route-breakdown .video-play-controls .btn {
 }
 
 body.ws-shell-active.ws-route-breakdown .video-play-controls #btnClearTags { margin-left: 16px; }
+body.ws-shell-active.ws-route-breakdown .video-play-controls .autoplay-next-toggle {
+  min-height: 30px;
+  padding: 3px 7px;
+  border-left: 1px solid #26384b;
+}
 body.ws-shell-active.ws-route-breakdown .video-play-controls .play-select { min-width: 120px; }
 body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-color: #63a6ef; text-transform: uppercase; font-weight: 750; letter-spacing: 0; }
 
@@ -8913,6 +8933,7 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
   .breakdown-play-card { flex-basis: 174px; width: 174px; scroll-snap-align: start; }
   body.ws-shell-active.ws-route-breakdown .video-play-controls { overflow-x: auto; }
   body.ws-shell-active.ws-route-breakdown .video-play-controls #btnClearTags { margin-left: 10px; }
+  body.ws-shell-active.ws-route-breakdown .video-play-controls .autoplay-next-toggle { min-height: 44px; }
   body.ws-shell-active.ws-route-breakdown .tag-section .tag-nav { bottom: 0; }
 }
 
@@ -9522,6 +9543,10 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
           <button class="btn btn-sm" id="btnClearTags" title="Reset this play's tags (keeps the play and video)">Clear Tags</button>
           <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
           <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
+          <label class="autoplay-next-toggle" title="When moving to another play, start its film automatically">
+            <input type="checkbox" id="autoplayNextToggle" checked>
+            <span>Autoplay next</span>
+          </label>
           <select id="playSelect" class="play-select" title="Current play">
             <option value="">No plays yet</option>
           </select>
@@ -30409,7 +30434,7 @@ class CutupExporter {
  * this just drives the existing <video> element for instant review.
  */
 class CutupPlayer {
-  constructor(videoController, tagger) {
+  constructor(videoController, tagger, options = {}) {
     this.vc = videoController;
     this.tagger = tagger;
     this.queue = [];
@@ -30419,6 +30444,9 @@ class CutupPlayer {
     this._armed = false;
     this._settle = null;
     this.bannerEl = null;
+    this.shouldAutoPlayNext = typeof options.shouldAutoPlayNext === 'function'
+      ? options.shouldAutoPlayNext
+      : () => true;
 
     this.vc.on('time-update', (d) => this._onTime(d.time));
     this.vc.on('video-ended', () => this._onEnded());
@@ -30443,7 +30471,7 @@ class CutupPlayer {
     return completion;
   }
 
-  _goTo(i) {
+  _goTo(i, { autoplay = true } = {}) {
     if (!this.active) return;
     if (i < 0) { this.stop('stopped'); return; }
     if (i >= this.queue.length) { this.stop('complete'); return; }
@@ -30453,10 +30481,13 @@ class CutupPlayer {
     // selectPlay seeks to the start (and switches clips in multi-clip mode).
     this.tagger.selectPlay(play.id);
     this._updateBanner();
-    // Resume playback shortly after the seek lands.
+    // Resume playback shortly after the seek lands when requested. Watch starts
+    // intentionally play; manual next/previous honors the coach's preference.
     setTimeout(() => {
-      if (this.active && this.vc.video && this.vc.video.paused) {
+      if (this.active && autoplay && this.vc.video && this.vc.video.paused) {
         this.vc.video.play().catch(() => {});
+      } else if (this.active && !autoplay && this.vc.video) {
+        this.vc.video.pause();
       }
     }, 40);
   }
@@ -30487,8 +30518,8 @@ class CutupPlayer {
     else this.stop('complete');
   }
 
-  next() { this._goTo(this.index + 1); }
-  prev() { this._goTo(Math.max(0, this.index - 1)); }
+  next() { this._goTo(this.index + 1, { autoplay: this.shouldAutoPlayNext() }); }
+  prev() { this._goTo(Math.max(0, this.index - 1), { autoplay: this.shouldAutoPlayNext() }); }
 
   stop(reason = 'stopped') {
     const settle = this._settle;
@@ -35586,11 +35617,13 @@ class Updater {
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-5';
+const APP_VERSION = '1.12.0-6';
 
 class App {
   constructor() {
     configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
+    try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
+    catch { this.autoPlayNext = true; }
     // Initialize components
     this.vc = new VideoController();
     this.canvas = new CanvasOverlay(this.vc);
@@ -35636,7 +35669,9 @@ class App {
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.suggestions = new SuggestionEngine(this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
-    this.cutupPlayer = new CutupPlayer(this.vc, this.tagger);
+    this.cutupPlayer = new CutupPlayer(this.vc, this.tagger, {
+      shouldAutoPlayNext: () => this.autoPlayNext,
+    });
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer);
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
@@ -37518,6 +37553,15 @@ class App {
     const yardsMinus = document.getElementById('yardsMinus');
     const yardsPlus = document.getElementById('yardsPlus');
     const yardsInput = document.getElementById('tagYardage');
+    const autoplayNext = document.getElementById('autoplayNextToggle');
+
+    if (autoplayNext) {
+      autoplayNext.checked = this.autoPlayNext;
+      autoplayNext.addEventListener('change', () => {
+        this.autoPlayNext = autoplayNext.checked;
+        try { localStorage.setItem('ffa_autoplay_next', this.autoPlayNext ? '1' : '0'); } catch {}
+      });
+    }
 
     btnPrev?.addEventListener('click', () => {
       this.notes?.flush();
@@ -37588,7 +37632,8 @@ class App {
     const v = this.vc.videoElement || this.vc.video;
     if (v) {
       v.currentTime = play.timestamp.start;
-      v.play().catch(() => {});
+      if (this.autoPlayNext) v.play().catch(() => {});
+      else v.pause();
     }
   }
 

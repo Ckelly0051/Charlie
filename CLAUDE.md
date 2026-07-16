@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Product redesign handoff (v1.12.0-5 playback-smoke candidate)
+### Product redesign handoff (v1.12.0-6 autoplay-smoke candidate)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
 `GRIDIRON-IQ-REDESIGN-PLAN.md`. The interactive source of truth is
@@ -109,6 +109,16 @@ CORS, catalog/backend, the real six-game 960-op integrity stress, and the full
 because the real codec/disk path is local-only. The exact stamped `v1.12.0-5`
 bundle additionally passes the physical asset check, Breakdown Video `35/35`,
 form `50/50`, CORS `14/14`, catalog/backend, and the 960-op integrity stress.
+
+**BETA-008 autoplay preference (2026-07-16, `v1.12.0-6` candidate):** the
+video action bar now exposes a persistent, default-on `Autoplay next` toggle.
+Off seeks and pauses on Previous, Save & Next, Skip, and manual filtered-example
+navigation; starting Watch still plays intentionally and an already-playing
+cut-up still advances continuously. The control is labeled/keyboard accessible,
+has a 44px mobile target, and passes form `53/53`, video `36/36`, cross-game
+cut-up `13/13`, a11y `8/8`, Film Room `60/60`, and CORS `14/14` before the full
+release gate. The exact rebuilt candidate then passed the complete 49-script
+gate in 256.4 seconds.
 
 **Prototype revision 2 (2026-07-12, Codex)** tightens the play strip and tag
 controls, adds a working Team Settings library editor for enabled/custom

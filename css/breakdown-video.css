@@ -187,6 +187,11 @@ body.ws-shell-active.ws-route-breakdown .video-play-controls .btn {
 }
 
 body.ws-shell-active.ws-route-breakdown .video-play-controls #btnClearTags { margin-left: 16px; }
+body.ws-shell-active.ws-route-breakdown .video-play-controls .autoplay-next-toggle {
+  min-height: 30px;
+  padding: 3px 7px;
+  border-left: 1px solid #26384b;
+}
 body.ws-shell-active.ws-route-breakdown .video-play-controls .play-select { min-width: 120px; }
 body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-color: #63a6ef; text-transform: uppercase; font-weight: 750; letter-spacing: 0; }
 
@@ -229,6 +234,7 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
   .breakdown-play-card { flex-basis: 174px; width: 174px; scroll-snap-align: start; }
   body.ws-shell-active.ws-route-breakdown .video-play-controls { overflow-x: auto; }
   body.ws-shell-active.ws-route-breakdown .video-play-controls #btnClearTags { margin-left: 10px; }
+  body.ws-shell-active.ws-route-breakdown .video-play-controls .autoplay-next-toggle { min-height: 44px; }
   body.ws-shell-active.ws-route-breakdown .tag-section .tag-nav { bottom: 0; }
 }
 

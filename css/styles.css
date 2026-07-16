@@ -5710,6 +5710,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   z-index: 2;
 }
 .video-play-controls .btn { flex: 0 0 auto; }
+.autoplay-next-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.autoplay-next-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.autoplay-next-toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
 .video-play-controls .play-select {
   flex: 1 1 160px;
   min-width: 140px;
@@ -6201,6 +6215,7 @@ video.is-buffering { opacity: 0.6; }
     min-height: 28px !important;
     font-size: 11px !important;
   }
+  .autoplay-next-toggle { min-height: 44px; }
   .video-play-controls .play-select {
     padding: 3px 28px 3px 6px !important;
     font-size: 11px !important;

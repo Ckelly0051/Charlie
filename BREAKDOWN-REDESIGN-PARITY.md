@@ -423,6 +423,11 @@ begins.
   seconds. The exact stamped bundle also passed the physical asset gate, focused
   video/charting/catalog checks, and real-season integrity stress; installed
   high-resolution film remains the required smoke.
+- `v1.12.0-6` adds the persistent `Autoplay next` charting preference. It
+  defaults on; when off, all manual next/previous charting paths seek and pause,
+  including filtered examples, without changing Watch cut-up startup or stored
+  play data. The exact candidate passed the complete 49-script repository gate
+  in 256.4 seconds.
 - BETA-004/005/006 remain open; the candidate must not be used for permanent
   formation or coverage retagging until the P0 model corrections are complete.
 - No current season data has been migrated, cleared, or rewritten by this audit.

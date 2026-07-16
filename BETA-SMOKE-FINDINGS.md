@@ -198,6 +198,24 @@
   original high-resolution desktop film. Decoder/codec or disk-throughput
   stalls cannot be reproduced without that installed-film fixture.
 
+### BETA-008 - Coach-selectable next-play autoplay
+
+- **Status:** Implemented in the `v1.12.0-6` smoke candidate
+- **Reported:** 2026-07-16
+- **Surface:** Break Down video action bar and charting navigation
+- **Behavior:** A persistent `Autoplay next` toggle defaults on for backward
+  compatibility. Off still seeks to and loads the next play and its tags, but
+  explicitly pauses film. Previous, Save & Next, Skip, and manual movement
+  within a filtered Study/analytics example set share the preference. Starting
+  a Watch cut-up remains intentional playback; automatic cut-up continuation
+  while already playing remains uninterrupted.
+- **UX:** The compact labeled checkbox lives beneath the video, is keyboard
+  accessible, and keeps a 44px touch target on mobile. Desktop, mobile, and
+  Windows 125%/150% scaling checks remain unclipped and overflow-free.
+- **Regression:** Charting form `53/53`, video workspace `36/36`, cross-game
+  cut-up `13/13`, accessibility `8/8`, Film Room `60/60`, and video CORS
+  `14/14` are green before the complete release gate.
+
 ## Release Notes
 
 - Superseded beta: `v1.12.0-2`
@@ -214,6 +232,10 @@
   bundle passed the physical asset gate, Breakdown Video `35/35`, charting form
   `50/50`, video CORS `14/14`, catalog/backend checks, and the real six-game
   960-operation integrity stress with zero violations.
+- Autoplay candidate: `v1.12.0-6`, adding the persistent BETA-008 next-play
+  preference without changing the default behavior or tag persistence. The
+  exact rebuilt bundle passed the physical asset check and complete 49-script
+  repository gate in 256.4 seconds.
 - BETA-004 remains a documented Plan workflow gap. BETA-005 and BETA-006 remain
   P0 data-model blockers: do not treat formation or coverage retagging in this
   candidate as permanent until those models are corrected and explicitly

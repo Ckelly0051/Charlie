@@ -10,7 +10,7 @@
  * this just drives the existing <video> element for instant review.
  */
 export class CutupPlayer {
-  constructor(videoController, tagger) {
+  constructor(videoController, tagger, options = {}) {
     this.vc = videoController;
     this.tagger = tagger;
     this.queue = [];
@@ -20,6 +20,9 @@ export class CutupPlayer {
     this._armed = false;
     this._settle = null;
     this.bannerEl = null;
+    this.shouldAutoPlayNext = typeof options.shouldAutoPlayNext === 'function'
+      ? options.shouldAutoPlayNext
+      : () => true;
 
     this.vc.on('time-update', (d) => this._onTime(d.time));
     this.vc.on('video-ended', () => this._onEnded());
@@ -44,7 +47,7 @@ export class CutupPlayer {
     return completion;
   }
 
-  _goTo(i) {
+  _goTo(i, { autoplay = true } = {}) {
     if (!this.active) return;
     if (i < 0) { this.stop('stopped'); return; }
     if (i >= this.queue.length) { this.stop('complete'); return; }
@@ -54,10 +57,13 @@ export class CutupPlayer {
     // selectPlay seeks to the start (and switches clips in multi-clip mode).
     this.tagger.selectPlay(play.id);
     this._updateBanner();
-    // Resume playback shortly after the seek lands.
+    // Resume playback shortly after the seek lands when requested. Watch starts
+    // intentionally play; manual next/previous honors the coach's preference.
     setTimeout(() => {
-      if (this.active && this.vc.video && this.vc.video.paused) {
+      if (this.active && autoplay && this.vc.video && this.vc.video.paused) {
         this.vc.video.play().catch(() => {});
+      } else if (this.active && !autoplay && this.vc.video) {
+        this.vc.video.pause();
       }
     }, 40);
   }
@@ -88,8 +94,8 @@ export class CutupPlayer {
     else this.stop('complete');
   }
 
-  next() { this._goTo(this.index + 1); }
-  prev() { this._goTo(Math.max(0, this.index - 1)); }
+  next() { this._goTo(this.index + 1, { autoplay: this.shouldAutoPlayNext() }); }
+  prev() { this._goTo(Math.max(0, this.index - 1), { autoplay: this.shouldAutoPlayNext() }); }
 
   stop(reason = 'stopped') {
     const settle = this._settle;
