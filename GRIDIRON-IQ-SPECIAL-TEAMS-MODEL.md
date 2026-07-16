@@ -167,6 +167,197 @@ play.specialTeams = {
 - Player roles remain compatible with the roster contract but expand beyond
   the legacy kicker/returner pair.
 
+## 4b. AMENDMENT — Two-Point Tries Are Special Teams (Lane B1)
+
+> **Status:** DRAFT for Codex review. Not implemented. No code exists for this.
+> **Author:** Claude. **Coach decisions recorded inline and marked COACH.**
+
+### 4b.1 This reverses an accepted decision — read this first
+
+§4 currently states: *"Two-point tries remain offensive plays, not kicks."*
+**That is reversed here.** It is not an oversight in this draft; it is the point
+of the amendment.
+
+**COACH:** *"The extra point and 2-pt tries are special teams plays — that is
+what they are by strict definition and that is where they should be charted and
+scored."*
+
+The football is unambiguous: the **try** is a special-teams down. Whether it is
+executed by kick or by run/pass does not change what the down is. XP already
+lives in Special Teams via `attemptType`; the 2-pt try was split off from its own
+down and sent to offense, which is why the two halves of one play type now live
+in two places.
+
+**This explains the `'twoPoint'` fossil.** `stats-engine.js` `_conversionStats`
+already compares `kind === 'twoPoint'` and `made()` already checks
+`outcome.score === 'twoPoint'` — but `SpecialTeamsModel` has no `twoPoint`
+anywhere, so **both comparisons are unreachable dead code** and a structured
+2-pt try can never be counted. The stats layer was written expecting 2-pt in
+Special Teams; §4 then decided otherwise; nobody removed the orphaned strings.
+This amendment makes the existing code reachable rather than deleting it.
+
+### 4b.2 Scope — deliberately narrow
+
+**COACH:** *"It's a play that's run only a handful of times per game… I think
+we're OK to keep it simple and not overengineer."* And: *"Special teams is
+stand-alone for the most part. You don't have to worry about next play
+dynamics."*
+
+| Concern | Decision | Source |
+|---|---|---|
+| Charting home | Special Teams — attempting **and** defending | COACH |
+| What is tracked | **Team score only.** No individual rollups | COACH |
+| Official player stats | **Excluded.** A 2-pt catch is not a reception; only the points count | COACH |
+| Success rate / D&D | **Excluded.** A try has no down and no distance | COACH |
+| Ruleset config | **None.** Standard values hardcoded | COACH |
+| Next-play dynamics | **None.** No Auto D&D carry; the try is self-contained | COACH |
+| CYO inversion (kick=2, run/pass=1) | **Explicitly out of scope** | COACH |
+
+**Standard scoring values, hardcoded:** kick XP = **1**; run/pass try = **2**;
+defensive return on a try = **2** to the defending team.
+
+**Player capture stays, rollups do not.** `players.{kicker, punter, returner,
+blocker, recoverer}` already exist and are already chartable. Leave them
+chartable on tries and build no rollup. The rollup is a pure read and is
+additive later at any time; **capture is not retroactive** — a season charted
+with no kicker recorded cannot be rolled up later without re-watching film.
+Keeping the fields chartable costs nothing today and preserves the option.
+
+### 4b.3 Why no ruleset gate (differs from §5, deliberately)
+
+§5 requires a configured ruleset before deriving touchback placement or net
+values. That is correct **because those are computed** — the film does not show
+them. A defensive try return is the opposite: **the film shows it outright.**
+
+**COACH:** NFHS ends the try on change of possession, so the defense cannot
+score at his level — *"It won't be used at my level, but the HS rules can vary
+somewhat so it is possible that it's needed. Plus, it's a part of the broader
+game."*
+
+So the field exists and is ungated. In a league where the rule does not apply,
+the situation never arises and the field is never used. The app records observed
+reality; it is not a rulebook and cannot verify a state's rules anyway. The
+tradeoff, stated plainly: **the app cannot warn "your league does not allow
+that."** That is accepted.
+
+### 4b.4 Model shape — RECOMMENDED
+
+Two candidates were considered. **Recommendation: extend `attemptType`. Do not
+add a seventh unit.**
+
+```javascript
+// SpecialTeamsModel changes — additive only.
+attemptType: 'fieldGoal' | 'extraPoint' | 'twoPoint' | null
+SCORES:     add 'twoPoint'          // worth 2
+```
+
+The attempting side reuses the existing `fieldGoal` unit (`subjectRole:
+'attempting'`); the defending side reuses `fieldGoalBlock` (`subjectRole:
+'defending'`). No new units, no new roles, no schema growth beyond one enum
+value in two places.
+
+**Why not a seventh unit.** A `twoPoint` unit would need a `twoPointDefense`
+peer to make the defensive return chartable — eight units to express one more
+attempt type, when `attemptType` already exists for exactly this purpose (it was
+introduced to separate FG from XP *on a miss*, where no score value exists).
+Same problem, same solved shape.
+
+**Honest wart, disclosed:** the `fieldGoal` unit already conflates a field goal
+(a scrimmage down) with an extra point (a try). Adding `twoPoint` widens that
+conflation. The alternative is renaming/splitting shipped, accepted units for a
+play run a handful of times a game — which contradicts the scope above. The
+coach-facing labels should carry the distinction the unit id does not:
+`Field Goal / Try` and `Field Goal / Try Defense`.
+
+### 4b.5 Scoring attribution — the one non-obvious branch
+
+`scoringTeam()` resolves `twoPoint` on the same branch as `fieldGoal`/
+`extraPoint`:
+
+- `subjectRole: 'attempting'` + `score: 'twoPoint'` → **subject** scores 2.
+- `subjectRole: 'defending'` + `score: 'twoPoint'` → **opponent** scores 2.
+  (We defended; they converted. The common case.)
+- **Defensive return** → the explicit `scoredBy` override, which
+  `scoringTeam()` already checks **first**:
+  - We defended and returned it: `subjectRole: 'defending'`, `score:
+    'twoPoint'`, `scoredBy: 'subject'`.
+  - We attempted and they returned it: `subjectRole: 'attempting'`, `score:
+    'twoPoint'`, `scoredBy: 'opponent'`.
+
+**The defaulting is correct by construction:** the common case (they converted
+against our defense) resolves right with no extra input, and the rare case (a
+return) *requires* an explicit statement. This is the same explicit-ownership
+mechanism the safety work already established, and it needs no new machinery.
+
+**This is the only place in the model where points flow to the opponent off the
+subject's own attempt.** Every existing exception in `scoringSide()` flips
+*toward* us (pick-six, scoop-and-score). This one flips away. It must be pinned
+by test, not assumed.
+
+### 4b.6 Branch table — the contract is these rows
+
+Enumerated up front rather than discovered one review at a time. Every row needs
+a test.
+
+| # | Unit / role | attemptType | status | score | scoredBy | Points | To |
+|---|---|---|---|---|---|---|---|
+| 1 | fieldGoal / attempting | extraPoint | good | extraPoint | — | 1 | subject |
+| 2 | fieldGoal / attempting | extraPoint | noGood | null | — | 0 | — |
+| 3 | fieldGoal / attempting | twoPoint | good | twoPoint | — | **2** | subject |
+| 4 | fieldGoal / attempting | twoPoint | noGood | null | — | 0 | — |
+| 5 | fieldGoal / attempting | twoPoint | badSnap | null | — | 0 | — |
+| 6 | fieldGoal / attempting | twoPoint | — | twoPoint | **opponent** | **2** | **opponent** (they returned ours) |
+| 7 | fieldGoalBlock / defending | twoPoint | good | twoPoint | — | 2 | opponent (they converted) |
+| 8 | fieldGoalBlock / defending | twoPoint | noGood | null | — | 0 | — |
+| 9 | fieldGoalBlock / defending | twoPoint | — | twoPoint | **subject** | **2** | **subject** (we returned theirs) |
+| 10 | any | twoPoint | — | twoPoint | unknown | 2 | **unattributed** (fails closed) |
+
+Row 10 uses the existing sparse `unattributed` bucket — which is emitted **only
+when nonzero** so parity goldens stay byte-identical. Do not regress that.
+
+`blocked` is intentionally absent for `twoPoint`: there is no kick to block. A
+`badSnap` on a run/pass try is real and retained.
+
+### 4b.7 Required failing-first tests
+
+Each must fail on current code before the fix, per
+`GRIDIRON-IQ-RELEASE-GATE.md`. **Every negative assertion needs a positive
+precondition** proving the mechanism ran — four assertions in Lanes A/C passed
+against broken code because nothing executed.
+
+1. **The fossil becomes reachable.** A structured 2-pt try is counted by
+   `_conversionStats`. Currently impossible — `attemptType` cannot be
+   `'twoPoint'`, so the comparison never matches. This is the failing-first case
+   that proves the whole amendment.
+2. **Every row of §4b.6**, especially rows 6 and 9 — points flowing to the
+   opponent off our own attempt, and to us off theirs.
+3. **Row 10 fails closed** and does **not** emit a zero-valued `unattributed`
+   field (that drifted both parity goldens once already).
+4. **Official stats exclusion** — a 2-pt pass/catch/run adds **nothing** to
+   passing, rushing, or receiving totals in `_individualStats`.
+5. **Success-rate and D&D exclusion.** ⚠ **Verify, do not assume.** A 2-pt try is
+   `unit:'special'` but may carry a real `playType` (Run Inside / Short Pass),
+   and `_currentPlays()` gates on `playType`. A try could therefore leak into
+   success rate and the D&D table. Requirement: `unit === 'special'` is excluded
+   from success rate, D&D, and run/pass efficiency **regardless of playType**.
+   Whether this leaks today is unknown and must be probed first.
+6. **Parity goldens stay byte-identical** for legacy-only seasons. Never
+   regenerate to pass.
+7. **Legacy `stType:'2-Pt'` plays are untouched** — not migrated, not inferred,
+   not promoted. Per the standing known-bad-data rule.
+
+### 4b.8 Open for Codex
+
+1. **Do you accept reversing §4's "two-point tries remain offensive plays"?**
+   This draft asserts the football is unambiguous. If you disagree, say so now —
+   this is the load-bearing decision and everything else follows from it.
+2. **`attemptType` vs a seventh unit** — §4b.4 recommends `attemptType` and
+   discloses the FG/try conflation wart. Is the wart worth avoiding at the cost
+   of two more units?
+3. **Test #5 is a real unknown.** If ST plays already leak into success rate,
+   that is a pre-existing defect wider than this amendment and should be its own
+   finding, not absorbed here.
+
 ## 5. Ruleset Contract
 
 Season or team settings must identify `NFHS`, `NCAA`, `NFL`, or `Custom` before
