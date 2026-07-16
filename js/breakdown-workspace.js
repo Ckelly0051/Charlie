@@ -13,6 +13,8 @@ export class BreakdownWorkspace {
     this.host = null;
     this.saveState = 'saved';
     this.view = 'chart';
+    this.scoutMode = 'self';
+    this._contextGameId = null;
     this._bound = false;
   }
 
@@ -90,11 +92,25 @@ export class BreakdownWorkspace {
       this.render();
       return;
     }
-    if (!this.perspective) return;
     if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
-    this.perspective.value = context === 'scout' ? 'scout' : this._unit();
-    this.perspective.dispatchEvent(new Event('change', { bubbles: true }));
+    this.scoutMode = context === 'scout' ? 'scout' : 'self';
+    this._applyScoutMode();
     this.render();
+  }
+
+  _activeGameId() {
+    return String(this.app.storage?.seasonStore?.data?.activeGameId || '');
+  }
+
+  _syncScoutGame() {
+    const gameId = this._activeGameId();
+    if (gameId === this._contextGameId) return;
+    this._contextGameId = gameId;
+    this.scoutMode = 'self';
+  }
+
+  _applyScoutMode() {
+    document.getElementById('tagForm')?.classList.toggle('is-scout', this.scoutMode === 'scout');
   }
 
   _unit() {
@@ -111,9 +127,12 @@ export class BreakdownWorkspace {
 
   render() {
     if (!this.host) return;
+    this._syncScoutGame();
+    this._applyScoutMode();
     this.grid.hidden = this.view !== 'film-room';
     const unit = this._unit();
-    const scout = this.perspective?.value === 'scout';
+    if (this.app.tagger) this.app.tagger.defaultUnit = unit;
+    const scout = this.scoutMode === 'scout';
     const quick = !!this.app.quickChart?.isActive;
     const unitLabel = unit === 'defense' ? 'defense' : unit === 'special' ? 'Special Teams' : 'offense';
     const subject = this.host.querySelector('#bdChartSubject');
@@ -155,6 +174,7 @@ export class BreakdownWorkspace {
     if (this.unitControl && this.unitParent) this.unitParent.insertBefore(this.unitControl, this.unitNext);
     this.grid.hidden = false;
     this.source.append(this.video, this.grid, this.tags);
+    document.getElementById('tagForm')?.classList.toggle('is-scout', this.perspective?.value === 'scout');
     if (this.host) this.host.innerHTML = '';
     this.host = null;
   }

@@ -14,10 +14,12 @@ await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 await page.goto(URL, { waitUntil: 'networkidle0' });
 
-await page.evaluate(async () => {
+const fixture = await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Varsity', team: 'Mavericks', year: '2026' });
-  const game = window.app.storage.seasonStore.activeGame();
+  const store = window.app.storage.seasonStore;
+  const game = store.activeGame();
   game.name = 'Week 1 vs Riverside';
+  const firstGameId = game.id;
   game.plays = Array.from({ length: 18 }, (_, i) => ({
     id: i + 1,
     timestamp: { start: i * 7, end: i * 7 + 5 },
@@ -29,8 +31,24 @@ await page.evaluate(async () => {
       players: {}, grades: {}, custom: [],
     },
   }));
-  window.app.storage._loadActiveGame();
+  const second = store.blankGame();
+  second.name = 'Week 2 vs Central';
+  second.gameInfo = { ...(second.gameInfo || {}), opponent: 'Central', perspective: 'defense' };
+  second.plays = [{
+    id: 1,
+    timestamp: { start: 0, end: 5 },
+    tags: {
+      unit: 'offense', down: '1', distance: '10', formation: 'Ace',
+      playType: 'Run Inside', result: 'Gain', yardage: '4',
+      players: {}, grades: {}, custom: [],
+    },
+  }];
+  store.addGame(second);
+  store.setActive(firstGameId);
+  store.persist();
+  await window.app.storage._loadActiveGame();
   await window.app.workspaceShell.show('breakdown');
+  return { seasonId: store.currentSeasonId, firstGameId, secondGameId: second.id };
 });
 
 let state = await page.evaluate(() => {
@@ -202,7 +220,35 @@ ok(state.controlsBottom <= state.videoBottom - 10, 'Moved video controls reclamp
 await page.click('[data-bd-view="chart"]');
 ok(await page.$eval('#playGridSection', el => el.hidden), 'Chart mode returns in one action without discarding Film Room state');
 
+state = await page.evaluate(() => {
+  const storage = window.app.storage;
+  window.__laneCOriginalAutoSave = storage._autoSave;
+  window.__laneCAutoSaves = 0;
+  storage._autoSave = () => { window.__laneCAutoSaves++; };
+  return {
+    perspective: document.getElementById('gamePerspective').value,
+    gameInfo: JSON.stringify(storage.gameInfo),
+  };
+});
+const metadataBeforeScout = state.gameInfo;
 await page.click('[data-bd-context="scout"]');
+await new Promise(resolve => setTimeout(resolve, 40));
+state = await page.evaluate(() => {
+  const result = {
+    perspective: document.getElementById('gamePerspective').value,
+    autoSaves: window.__laneCAutoSaves,
+    gameInfo: JSON.stringify(window.app.storage.gameInfo),
+    scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+    subject: document.getElementById('bdChartSubject').textContent,
+    context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+  };
+  window.app.storage._autoSave = window.__laneCOriginalAutoSave;
+  return result;
+});
+ok(state.perspective === 'offense' && state.autoSaves === 0 && state.gameInfo === metadataBeforeScout && state.scoutClass &&
+  state.context === 'scout' && state.subject === 'Opponent offense',
+  'Opponent scout is workspace state and never writes or autosaves Game Setup metadata', JSON.stringify(state));
+
 await page.click('#tagUnit .pick[data-value="defense"]');
 await new Promise(resolve => setTimeout(resolve, 40));
 state = await page.evaluate(() => ({
@@ -211,13 +257,27 @@ state = await page.evaluate(() => ({
   subject: document.getElementById('bdChartSubject').textContent,
   context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
 }));
-ok(state.perspective === 'scout' && state.scoutClass && state.context === 'scout' && state.subject === 'Opponent defense',
+ok(state.perspective === 'offense' && state.scoutClass && state.context === 'scout' && state.subject === 'Opponent defense',
   'Opponent scout remains distinct from the selected charting unit', JSON.stringify(state));
 
 await page.click('#tagUnit .pick[data-value="special"]');
 await new Promise(resolve => setTimeout(resolve, 40));
-state = await page.evaluate(() => document.getElementById('bdChartSubject').textContent);
-ok(state === 'Opponent Special Teams', 'Special Teams scout wording is correctly capitalized', state);
+state = await page.evaluate(() => ({
+  subject: document.getElementById('bdChartSubject').textContent,
+  perspective: document.getElementById('gamePerspective').value,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+}));
+ok(state.subject === 'Opponent Special Teams' && state.perspective === 'offense' && state.context === 'scout',
+  'Scout mode survives charting-unit changes without mutating game metadata', JSON.stringify(state));
+
+await page.click('.breakdown-play-card[data-play-id="10"]');
+state = await page.evaluate(() => ({
+  selected: window.app.tagger.currentPlayId,
+  perspective: document.getElementById('gamePerspective').value,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+}));
+ok(state.selected === 10 && state.perspective === 'offense' && state.context === 'scout',
+  'Selecting another play cannot alter scout mode or game metadata', JSON.stringify(state));
 
 await page.click('[data-bd-context="self"]');
 state = await page.evaluate(() => ({
@@ -225,8 +285,49 @@ state = await page.evaluate(() => ({
   scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
   subject: document.getElementById('bdChartSubject').textContent,
 }));
-ok(state.perspective === 'special' && !state.scoutClass && state.subject === 'Our Special Teams',
-  'Returning to self-scout preserves the selected unit through canonical perspective state', JSON.stringify(state));
+ok(state.perspective === 'offense' && !state.scoutClass && state.subject === 'Our offense',
+  'Returning to self-scout follows the selected play unit without rewriting metadata', JSON.stringify(state));
+
+await page.click('[data-bd-context="scout"]');
+await page.evaluate(async secondGameId => {
+  await window.app.storage.switchToGame(secondGameId, { persist: false });
+}, fixture.secondGameId);
+await new Promise(resolve => setTimeout(resolve, 60));
+state = await page.evaluate(() => ({
+  gameId: window.app.storage.seasonStore.data.activeGameId,
+  perspective: document.getElementById('gamePerspective').value,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+  subject: document.getElementById('bdChartSubject').textContent,
+  scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+  defaultUnit: window.app.tagger.defaultUnit,
+}));
+ok(state.gameId === fixture.secondGameId && state.perspective === 'defense' && state.defaultUnit === 'offense' &&
+  state.context === 'self' && state.subject === 'Our offense' && !state.scoutClass,
+  'Switching games resets transient scout mode and loads only the new game metadata', JSON.stringify(state));
+
+await page.evaluate(async firstGameId => {
+  await window.app.storage.switchToGame(firstGameId, { persist: false });
+  window.app.storage.commitActive();
+  window.app.storage.seasonStore.persist();
+}, fixture.firstGameId);
+await new Promise(resolve => setTimeout(resolve, 60));
+await page.click('[data-bd-context="scout"]');
+await page.reload({ waitUntil: 'networkidle0' });
+await page.waitForFunction(() => !!window.app?.workspaceShell?.root);
+await page.evaluate(async seasonId => {
+  await window.app.storage.openSeasonById(seasonId);
+  await window.app.workspaceShell.show('breakdown');
+}, fixture.seasonId);
+await new Promise(resolve => setTimeout(resolve, 60));
+state = await page.evaluate(() => ({
+  perspective: document.getElementById('gamePerspective').value,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+  subject: document.getElementById('bdChartSubject').textContent,
+  scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+}));
+ok(state.perspective === 'offense' && state.context === 'self' &&
+  state.subject === 'Our offense' && !state.scoutClass,
+  'Reload starts in self-scout while preserving stored game metadata', JSON.stringify(state));
 
 await page.click('[data-bd-context="quick"]');
 state = await page.evaluate(() => ({
