@@ -44,16 +44,71 @@ candidate, run the installed real-film smoke, and publish only after it passes.
 - **Test rule:** a negative assertion that could pass because nothing ran must
   prove mechanism liveness first, and the intended defense must be mutation-tested.
 
-**Next action:** Claude independently reviews `c05de0e`. After acceptance, Claude
-writes Lane B1's 2-point conversion contract and Codex reviews it. B1 settles
-storage identity, player attribution versus official stats, NFHS/ruleset-aware
-defensive returns, try sacks/turnovers/fouls, ordinary D&D/success exclusions,
-and formation/coverage/front availability. Codex then builds B2; Claude reviews.
+### Lane B1 — COMPLETE. Contract approved for implementation (`24d080c`)
 
-Release sequence: B1 -> B2 -> E1-E4 (QB alignment and coverage; gates permanent
-retagging and beta) -> G (Plan) -> internal candidate -> installed smoke ->
-publish. E5 migration is optional and post-release. Never migrate or clear coach
-data without an impact report and immediate confirmation.
+**Canonical contract: `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md` §4b.** Read it before
+touching tries, ST scoring, or analytics routing. Summary only below.
+
+**The defect it fixes — a release blocker, confirmed independently by both
+agents.** 2-Pt has always been a Special Teams play here (`index.html:464`
+legacy `stType` chip; `playPoints()` scores it). **Phase 4E's structured
+redesign dropped it:** six units with no try, `attemptType` limited to
+`fieldGoal|extraPoint`, legacy chips hidden as `.bdv-st-legacy`. So on the
+shipped beta (`ffa_breakdown_form_v2` ON by default on desktop) **a coach cannot
+chart a two-point conversion at all** — which can leave the scoreboard wrong and
+makes a full-game smoke impossible. §4's *"two-point tries remain offensive
+plays"* did not describe the app; it rationalized the omission, and it is
+reversed. This is also the whole explanation for the unreachable `'twoPoint'`
+strings in `_conversionStats`/`made()`.
+
+**Decided:**
+- **Dedicated `try` / `tryDefense` units.** `fieldGoal`/`fieldGoalBlock` stay
+  exclusively for field goals. Existing structured XP records stay readable,
+  **not migrated**.
+- **Attempt type / official result / events are three separate things.**
+  `result: converted|failed|noPlay` is the official ruling; `badSnap`, `blocked`,
+  `turnover`, `defensiveReturn` are **non-exclusive event details**. Required by
+  real football: bad-snap-then-converted, and the NCAA-documented blocked XP
+  recovered and passed in for **two** — where `attemptType` and `score`
+  legitimately disagree.
+- **No ruleset config.** Fixed values: XP kick **1**, two-point **2**, failed
+  **0**, No Play/Retry **0 and no attempt**. **A defensive return never scores
+  automatically** — charting one *requires* an explicit `No score` / `2 — our
+  team` / `2 — opponent`. That fails closed **without** a selector: the app
+  records the coach's official ruling instead of judging legality.
+- **Penalties:** `playCounts:false` → no attempt, no points; retry → `noPlay`;
+  declined → filmed result stands; unresolved → warn, do not finalize.
+- **Out of B1/B2:** try analytics, individual 2-pt rollups, formation/play-call/
+  front on a try. The existing `kicker`/`returner` roles do **not** describe a
+  run/pass try; do not pretend they fit.
+
+**Analytics routing — a blanket `unit==='special'` filter is WRONG.** A
+fake-punt rush is a real rushing attempt and belongs in the box score. Routing is
+**per play type** (§4b.7a matrix). Three confirmed defects for B2:
+`_individualStats(plays)` gets the **unpartitioned** list (`stats-engine.js:294`);
+the generic Scout Report has no ST exclusion (`:3174`); and — the inverse —
+`_specialTeamsStats(plays)` (`:303`) gets the caller's playType-filtered list, so
+**an ST play without a `playType` is dropped from its own report** (lesson #15
+again). `compute()` **does** partition `offPlays`/`defPlays` by unit (`:278`), so
+the main offensive dashboard is protected.
+
+**Real-data blast radius (audited):** 972 plays, 148 ST, only **2** carry a
+`playType`, **0** carry offensive player attribution, **0** structured fakes.
+The coach's offensive and player numbers are **not** polluted. Real defect,
+small scope — it rides in B2 as a routing contract, not its own lane.
+
+**Next action:** Codex builds **B2**; Claude reviews. B2 = the try model + ST UX,
+the scoring contract, penalty resolution, the three routing fixes with the §4b.7a
+matrix pinned by test, and the 17-item gate (§4b.8). If the fake policy cannot be
+settled cleanly inside B2, freeze current fake behavior and split it out rather
+than guess.
+
+**Release sequence: B1 ✅ → B2 → E1–E4 → G (Plan) → internal candidate →
+installed smoke → publish.** **B2 outranks E1–E4** — E1–E4 improve the accuracy
+of formations/coverages and gate permanent retagging, but B2 restores a missing
+piece of football a coach hits the first time they go for two. E5 migration is
+optional and post-release. Never migrate or clear coach data without an impact
+report and immediate confirmation.
 
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
