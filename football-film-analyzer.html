@@ -29099,6 +29099,11 @@ class BreakdownVideo {
     this.hideTimer = null;
     this._subscribed = false;
     this._mounted = false;
+    // Mount generation. Every deferred callback (rAF, ResizeObserver) captures
+    // this and bails if it changed, so work queued by one mount can never land
+    // after that mount ended. Bumped on BOTH mount and restore: a callback from
+    // generation N must not run after a teardown OR after a remount.
+    this._gen = 0;
     // Captured BEFORE any mutation: mount() relocates these, and restore() has
     // to put them back exactly. Recording them at mount time would record the
     // already-moved position.
@@ -29122,8 +29127,10 @@ class BreakdownVideo {
   mount() {
     if (this._mounted) return false;
     if (!this._enabled() || !this.video || !this.controls || !this.actions) return false;
+    this._gen++;
+    this._mounted = true;   // set BEFORE _mount(): the guarded listeners it binds
+                            // check this flag, and render() runs inside it.
     this._mount();
-    this._mounted = true;
     return true;
   }
 
@@ -29177,6 +29184,8 @@ class BreakdownVideo {
    *  attached and go inert via the null this.track guard. */
   restore() {
     if (!this._mounted) return false;
+    this._gen++;            // invalidates every frame/observer callback in flight
+    this._mounted = false;  // set FIRST: the persistent listeners guard on it
     this.video.classList.remove('breakdown-video-v2', 'breakdown-controls-hidden');
     this.controls.classList.remove('breakdown-player-controls');
     clearTimeout(this.hideTimer);
@@ -29200,7 +29209,6 @@ class BreakdownVideo {
       this._copyHome.el.classList.remove('breakdown-copy-last');
       this._copyHome.parent.insertBefore(this._copyHome.el, this._copyHome.next);
     }
-    this._mounted = false;
     return true;
   }
 
@@ -29243,11 +29251,21 @@ class BreakdownVideo {
     try {
       const raw = localStorage.getItem('ffa_video_controls_y');
       const stored = raw === null ? NaN : Number(raw);
-      if (Number.isFinite(stored) && stored >= 0 && stored <= 1) requestAnimationFrame(() => place(stored));
+      // place() writes controls.style.top. restore() clears it — so an unguarded
+      // frame queued here re-applies beta positioning to the CLASSIC controls
+      // after teardown.
+      const gen = this._gen;
+      if (Number.isFinite(stored) && stored >= 0 && stored <= 1) {
+        requestAnimationFrame(() => { if (gen === this._gen) place(stored); });
+      }
     } catch {}
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => {
-        if (Number.isFinite(this.controlRatio)) requestAnimationFrame(() => place(this.controlRatio));
+        // Guard the observer callback AND the frame it queues: disconnect()
+        // stops new callbacks but cannot recall one already in flight.
+        const gen = this._gen;
+        if (!this._mounted || !Number.isFinite(this.controlRatio)) return;
+        requestAnimationFrame(() => { if (gen === this._gen) place(this.controlRatio); });
       });
       this.resizeObserver.observe(this.video);
     }
@@ -29324,7 +29342,15 @@ class BreakdownVideo {
     });
     const count = this.track.parentElement.querySelector('[data-play-count]');
     count.textContent = plays.length ? `${plays.length} play${plays.length === 1 ? '' : 's'}` : 'No plays';
-    requestAnimationFrame(() => this.track.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' }));
+    // Capture the track locally AND check the generation: the entry guard above
+    // ran a frame ago, and restore() nulls this.track — re-reading it here threw
+    // "Cannot read properties of null (reading 'querySelector')" on a fast
+    // mount -> render -> restore.
+    const gen = this._gen, track = this.track;
+    requestAnimationFrame(() => {
+      if (gen !== this._gen) return;
+      track.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    });
   }
 
   _updateCard(button, play) {

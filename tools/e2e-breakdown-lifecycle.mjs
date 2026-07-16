@@ -56,12 +56,105 @@ ok(identity.vcSame && identity.pcSame,
   'DOM identity: #videoContainer and .playback-controls survive restore+enable as the SAME objects',
   JSON.stringify(identity));
 
-// ---- 2. restore() actually un-mounts the beta presentation ---------------
+// ---- 2. restore() returns chrome to its EXACT original position -----------
+// The true original position can only be captured from a CLASSIC boot, before
+// _mount() has moved anything. An earlier draft read it after the flag-on boot,
+// so it recorded the already-MUTATED parent and then never asserted it — a dead
+// variable that looked like coverage.
+const page2 = await browser.newPage();
+await page2.setViewport({ width: 1280, height: 800 });
+const errors2 = [];
+page2.on('pageerror', e => errors2.push(e.stack || e.message));
+// MUST clear the flag explicitly. localStorage is per-ORIGIN, and page1 already
+// set it on this same file:// origin — a new page inherits it. Without this the
+// "classic" boot is actually flag-on, the baseline snapshot captures the
+// already-MUTATED chrome, and the exact-restoration assertion compares the bug
+// against itself. (This is the second time this harness measured a mutated
+// baseline; the first was capturing it after _mount() had run.)
+await page2.evaluateOnNewDocument(() => localStorage.removeItem('ffa_workspace_shell_v2'));
+await page2.goto(URL, { waitUntil: 'networkidle0' });   // genuine classic boot
+await new Promise(r => setTimeout(r, 700));
+
+const exact = await page2.evaluate(async () => {
+  const pc = document.querySelector('.playback-controls');
+  const copy = document.getElementById('btnCopyPrev');
+  const snap = el => el && ({
+    parent: el.parentElement,
+    index: [...el.parentElement.children].indexOf(el),
+    text: el.textContent,
+    cls: el.className,
+  });
+  const pcBefore = snap(pc), copyBefore = snap(copy);
+  const mountedNow = !!document.querySelector('.breakdown-play-strip');
+
+  await window.app.workspaceShell.enable();
+  await new Promise(r => setTimeout(r, 450));
+  const mountedAfterEnable = !!document.querySelector('.breakdown-play-strip');
+
+  window.app.workspaceShell.useClassic(false);
+  await new Promise(r => setTimeout(r, 350));
+  const pcAfter = snap(document.querySelector('.playback-controls'));
+  const copyAfter = snap(document.getElementById('btnCopyPrev'));
+  const same = (a, b) => !!a && !!b && a.parent === b.parent && a.index === b.index
+    && a.text === b.text && a.cls === b.cls;
+  return {
+    classicBootIsClean: !mountedNow,
+    enableMounts: mountedAfterEnable,
+    pcExact: same(pcBefore, pcAfter),
+    copyExact: same(copyBefore, copyAfter),
+    detail: { pcBefore: pcBefore && { i: pcBefore.index, c: pcBefore.cls }, pcAfter: pcAfter && { i: pcAfter.index, c: pcAfter.cls },
+              copyBefore: copyBefore && { i: copyBefore.index, t: copyBefore.text }, copyAfter: copyAfter && { i: copyAfter.index, t: copyAfter.text } },
+  };
+});
+ok(exact.classicBootIsClean, 'classic boot (flag off) mounts no beta presentation');
+ok(exact.enableMounts, 'enable() from a classic boot mounts the presentation');
+ok(exact.pcExact, '.playback-controls returns to its EXACT original parent, sibling index, text and classes',
+  JSON.stringify(exact.detail));
+ok(exact.copyExact, '#btnCopyPrev returns to its EXACT original parent, sibling index, text and classes',
+  JSON.stringify(exact.detail));
+
+// ---- 2b. Deferred callbacks must not outlive their mount ------------------
+// render() queues an rAF that re-reads this.track; restore() nulls it.
+// _bindPlayer queues place(stored), which writes controls.style.top; restore()
+// has just cleared it. Both fire AFTER teardown unless they check ownership.
+const races = await page2.evaluate(async () => {
+  const thrown = [];
+  const onErr = e => thrown.push(String(e.message || e));
+  window.addEventListener('error', onErr);
+
+  // Race A: render() then immediate teardown, before the frame runs.
+  await window.app.workspaceShell.enable();
+  await new Promise(r => setTimeout(r, 400));
+  try { localStorage.setItem('ffa_video_controls_y', '0.5'); } catch {}
+  window.app.breakdownVideo.render();
+  window.app.workspaceShell.useClassic(false);          // same tick — rAF still queued
+  await new Promise(r => setTimeout(r, 250));
+  const renderRace = thrown.slice();
+
+  // Race B: mount reads the stored ratio and queues place(); tear down first.
+  thrown.length = 0;
+  await window.app.workspaceShell.enable();
+  window.app.workspaceShell.useClassic(false);          // before the queued frame
+  await new Promise(r => setTimeout(r, 250));
+  const topAfter = document.querySelector('.playback-controls')?.style.top || '';
+
+  window.removeEventListener('error', onErr);
+  return { renderRace, placeRaceTop: topAfter, placeThrown: thrown.slice() };
+});
+ok(races.renderRace.length === 0,
+  'race: render() rAF after restore() does not throw on a null track',
+  races.renderRace.join(' | '));
+ok(races.placeRaceTop === '',
+  'race: queued place() does not re-apply beta positioning after restore()',
+  `style.top="${races.placeRaceTop}"`);
+
+await page2.close();
+
+// ---- 2c. restore() un-mounts the beta presentation -----------------------
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); });
 await page.reload({ waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 700));
 const restored = await page.evaluate(async () => {
-  const pcOriginalParent = document.querySelector('.playback-controls')?.parentElement?.className || '';
   window.app.workspaceShell.useClassic(false);
   await new Promise(r => setTimeout(r, 300));
   return {
@@ -70,7 +163,6 @@ const restored = await page.evaluate(async () => {
     pcInsideVideo: !!document.querySelector('#videoContainer .playback-controls'),
     videoHasBetaClass: document.getElementById('videoContainer')?.classList.contains('breakdown-video-v2'),
     inlineTop: document.querySelector('.playback-controls')?.style.top || '',
-    pcOriginalParent,
   };
 });
 ok(restored.strips === 0, 'restore(): play strip is removed', `strips=${restored.strips}`);
@@ -171,7 +263,11 @@ ok(state.playSame, 'cycle: selected play survives');
 ok(state.controlsPresent && state.controlsClickable,
   'cycle: playback controls are present and still respond after remount', JSON.stringify(state));
 
-ok(errors.length === 0, 'No page errors', errors.slice(0, 2).join(' | '));
+// Both pages count. The classic-boot page drives the teardown races, so leaving
+// it unmonitored would hide exactly the throw this lane is fixing.
+const allErrors = [...errors, ...errors2];
+ok(allErrors.length === 0, 'No page errors (both flag-on and classic-boot pages)',
+  allErrors.slice(0, 2).join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
