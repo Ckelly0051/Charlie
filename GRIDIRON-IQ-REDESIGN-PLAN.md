@@ -152,6 +152,11 @@ Prototype revision 2.2 adds unit-aware full charting:
   changes ownership, not the stored directional convention.
 - The UI says **Our games · Self-scout** or **Opponent film · Scout** and names
   the subject in charting headings. This prevents a silent perspective mistake.
+- In **Break Down**, that film source is durable game metadata, not a transient
+  relabeling lens. Choosing the opposite source opens Game Settings and requires
+  an explicit save. In **Study**, scout mode remains an explicit query lens so
+  already-played opponents can be normalized at the query boundary without
+  mutating stored `tags.unit`.
 
 The earlier `ux-prototype/` is retained only as design exploration. It represents
 the rejected "simplified Chart + Review" direction; it is useful as the future
@@ -477,67 +482,32 @@ The pre-existing mid-drag teardown regression stays green.
 Lifecycle harness 26 -> 30; every assertion watched fail. Gate 50/50.
 STATUS: awaiting Codex re-review. The builder does not sign its own lane.
 
-LANE C (Codex, ca9b270) — CLAUDE REVIEW: CHANGES REQUESTED. 2 findings, both
-reproduced by probe against the built bundle. Full detail in CLAUDE.md.
+LANE C (Codex) — REVIEW FINDINGS FIXED; READY FOR CLAUDE RE-REVIEW.
 
-  ACCEPTED, keep as-is: _setContext no longer writes gamePerspective; gameInfo
-  unchanged; zero autosaves; lifecycle answered (initial self, resets on game
-  switch via _contextGameId, not persisted across reload); restore() re-derives
-  from metadata. Neither finding asks to undo any of this.
+  The two accepted review defects are repaired without restoring the original
+  metadata-write bug:
 
-  [P2] .is-scout has TWO owners that fight. app.js:1976 toggleScoutUI sets it
-  from gameInfo perspective; breakdown-workspace.js:113 _applyScoutMode sets it
-  from the transient scoutMode on EVERY render, and _bind wires render() to the
-  perspective 'change' event. Both fire on the same event; render() strips it.
-  Probe: perspective set to 'scout' in Game Setup -> scoutAfterSetup=false,
-  scoutOnBreakdownMount=false, while perspStillScout="scout".
-  NOT A DATA BUG. Stored play tags and gameInfo are untouched; the scout report,
-  _activeOpponent and analytics still resolve the subject correctly. .is-scout
-  does exactly two things: labels (breakdown-form.js:102,173,286) and hiding
-  .our-def-only (styles.css:4945). So the cost is (a) opponent film labelled
-  "Our Offensive Look", and (b) ONE narrow mistag path — your custom fronts
-  (Maverick/Eagle/Falcon) stay selectable on opponent film. Mistagging ENABLED
-  by the display defect, not caused by it. Regression: pre-Lane-C, render() only
-  READ perspective.value for the label and never touched the class.
-  FIX: _syncScoutGame() should SEED scoutMode from the game's stored perspective
-  ('scout' -> 'scout', else 'self') instead of hardcoding 'self'. Reading the
-  metadata is correct; only WRITING it was the original defect. One owner of
-  .is-scout would be better than two, but seeding is the minimum.
+  - Film identity is derived from the active game's stored perspective. The
+    classic App path is the sole `.is-scout` owner; Break Down reads it and
+    cannot silently relabel a game. A conflicting film-source choice opens the
+    visible Game Settings dialog on **Film source**. The coach must explicitly
+    Save; Cancel preserves metadata and the sticky next-play unit.
+  - `render()` is read-only with respect to `tagger.defaultUnit`. Reviewing an
+    offense play after choosing Defense leaves the next new play default at
+    Defense. A game switch with no selected play initializes the visible unit
+    once from the loaded game's canonical default.
+  - Game Settings now exposes `Our game · start on Offense/Defense/Special
+    Teams` and `Opponent film · scout`, keeping film ownership and initial unit
+    in one intentional per-game workflow.
+  - Football ownership regressions cover opponent headings, team-only fronts,
+    structured penalties, Special Teams scoring/recovery, game switch, reload,
+    same-game edits, Cancel, keyboard focus, and film-source × unit wording.
 
-  [P1] render() writes tagger.defaultUnit from _unit(), which prefers the
-  CURRENT PLAY's tags.unit. render() fires on every tagger event, so selecting a
-  play silently overwrites the coach's declared intent.
-  Probe: defaultUnit "defense" -> "offense" after merely selecting an existing
-  offense play. The next NEW play is then created as offense.
-  Breaks the documented sticky-side contract (CLAUDE.md: defaultUnit = intent,
-  set by MANUAL toggle). Pre-Lane-C the only writers were perspective changes
-  (app.js:1977) and manual toggles (play-tagger.js:335); render() never wrote it.
-  The handoff's claim that "the visible #tagUnit remains the authority for the
-  next play's charting unit" is inaccurate — _unit() prefers the play over the
-  toggle.
-  FIX: render() must not write defaultUnit. render() is a projection and should
-  stay read-only with respect to tagger state. If a context click needs to set
-  it, set it in _setContext where the coach expressed intent.
-
-  Why the 40/40 harness missed both: e2e-breakdown-video.mjs:248 asserts scout
-  behavior with perspective === 'offense' — a self-scout game. Every scout
-  assertion runs against a game that was never declared a scout, so the only
-  path that breaks is the one untested. Needs a failing-first case on a
-  perspective='scout' game.
-
-OPEN PRODUCT QUESTION — coach decision, not Codex's to absorb inside Lane C.
-Scout-ness is a property of the FILM, not a view of it: your own game is
-self-scout by definition, and opponent scout is a DIFFERENT game. So a transient
-per-workspace scout mode can only be redundant with Game Setup or assert
-something untrue — clicking "Opponent film · Scout" on your own film relabels it
-"Opponent", unsaved and false. THE FRAMING ERROR IS CLAUDE'S: the plan told
-Codex "scout mode becomes explicit workspace state" and Codex built exactly
-that. Re-reading §2 supports the other reading ("unless the coach intentionally
-OPENS opponent film" = which film you open, not a lens on the current one).
-Seeding from metadata fixes the reported direction and is the right immediate
-change either way. Whether the control should become a READ-ONLY INDICATOR of
-the game's perspective, or a SHORTCUT THAT EXPLICITLY EDITS it, is open.
-
+  Evidence: failing-first on `ca9b270` was 37/44 with both review defects red.
+  A second failing-first check caught unchanged Game Settings Save resetting the sticky unit (45/46); final focused harness is 46/46. Audited full gate is 50/50 green; real-data,
+  parity, integrity, season/scout analytics, penalty, and Special Teams checks
+  are clean. This is builder evidence, not acceptance. Claude is the required
+  non-builder reviewer for the committed repair.
 NEW GATE RULE PROPOSED — Codex, please review and push back if you disagree;
 it is a cost on every future test. GRIDIRON-IQ-RELEASE-GATE.md now says:
 "Every negative assertion needs a positive precondition." Four assertions across

@@ -37,8 +37,20 @@ ok(state.names && state.summaries, 'Header commands and collapsible groups expos
 
 await page.focus('[data-bd-context="scout"]');
 await page.keyboard.press('Enter');
-state = await page.evaluate(() => ({ scout:document.getElementById('tagForm').classList.contains('is-scout'), outline:getComputedStyle(document.activeElement).outlineStyle }));
-ok(state.scout && state.outline !== 'none', 'Keyboard activation works and retains a visible focus ring', JSON.stringify(state));
+await new Promise(resolve=>setTimeout(resolve,60));
+state = await page.evaluate(() => {
+  const focused = document.activeElement;
+  return {
+    scout: document.getElementById('tagForm').classList.contains('is-scout'),
+    perspective: document.getElementById('gamePerspective').value,
+    modal: !document.getElementById('gameModal').classList.contains('hidden'),
+    focused: focused?.id,
+    focusRing: getComputedStyle(focused).boxShadow,
+  };
+});
+ok(!state.scout && state.perspective === 'offense' && state.modal && state.focused === 'gmPerspective' && state.focusRing !== 'none',
+  'Keyboard activation opens canonical Film Source settings with visible focus and no silent relabel', JSON.stringify(state));
+await page.click('#gmCancel');
 
 state = await page.evaluate(() => {
   window.app.history._toast('Saved next play', { action:{label:'Undo',fn:()=>{}} });

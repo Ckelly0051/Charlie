@@ -10868,6 +10868,14 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
         </div>
       </div>
 
+      <label class="ng-lbl" for="gmPerspective">Film source</label>
+      <select id="gmPerspective" class="ng-input" title="Who this film belongs to and which unit a new play starts on.">
+        <option value="offense">Our game · start on Offense</option>
+        <option value="defense">Our game · start on Defense</option>
+        <option value="special">Our game · start on Special Teams</option>
+        <option value="scout">Opponent film · scout</option>
+      </select>
+
       <label class="ng-lbl">Final score <span class="ng-opt">(optional — add after the game)</span></label>
       <div class="ng-score-row">
         <input type="number" id="gameScoreUs" class="ng-input ng-score" placeholder="Us" min="0">
@@ -28843,7 +28851,7 @@ class BreakdownWorkspace {
         <header class="bd-context-bar" aria-label="Charting context">
           <div class="bd-context-units"></div>
           <div class="bd-film-context" role="group" aria-label="Film context">
-            <span class="bd-context-label">Film context</span>
+            <span class="bd-context-label">Film source</span>
             <button type="button" data-bd-context="self">Our games <small>Self-scout</small></button>
             <button type="button" data-bd-context="scout">Opponent film <small>Scout</small></button>
             <button type="button" data-bd-context="quick">Quick chart</button>
@@ -28910,8 +28918,8 @@ class BreakdownWorkspace {
       return;
     }
     if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
-    this.scoutMode = context === 'scout' ? 'scout' : 'self';
-    this._applyScoutMode();
+    const requestedScout = context === 'scout';
+    if (requestedScout !== this._isScoutFilm()) this._openFilmContextSettings();
     this.render();
   }
 
@@ -28919,15 +28927,24 @@ class BreakdownWorkspace {
     return String(this.app.storage?.seasonStore?.data?.activeGameId || '');
   }
 
-  _syncScoutGame() {
-    const gameId = this._activeGameId();
-    if (gameId === this._contextGameId) return;
-    this._contextGameId = gameId;
-    this.scoutMode = 'self';
+  _isScoutFilm() {
+    return this.perspective?.value === 'scout';
   }
 
-  _applyScoutMode() {
-    document.getElementById('tagForm')?.classList.toggle('is-scout', this.scoutMode === 'scout');
+  _openFilmContextSettings() {
+    this.app._openGameModal?.('edit');
+    setTimeout(() => document.getElementById('gmPerspective')?.focus(), 40);
+  }
+
+  _syncScoutGame() {
+    const gameId = this._activeGameId();
+    const changedGame = gameId !== this._contextGameId;
+    this._contextGameId = gameId;
+    this.scoutMode = this._isScoutFilm() ? 'scout' : 'self';
+    if (!changedGame || this.app.tagger?.getCurrentPlay()) return;
+    const unit = this.app.tagger?.defaultUnit || 'offense';
+    if (this.app.tagger?.unitField) this.app.tagger.unitField.value = unit;
+    this.app.tagger?.applyUnitMode?.(unit);
   }
 
   _unit() {
@@ -28945,10 +28962,8 @@ class BreakdownWorkspace {
   render() {
     if (!this.host) return;
     this._syncScoutGame();
-    this._applyScoutMode();
     this.grid.hidden = this.view !== 'film-room';
     const unit = this._unit();
-    if (this.app.tagger) this.app.tagger.defaultUnit = unit;
     const scout = this.scoutMode === 'scout';
     const quick = !!this.app.quickChart?.isActive;
     const unitLabel = unit === 'defense' ? 'defense' : unit === 'special' ? 'Special Teams' : 'offense';
@@ -28991,7 +29006,6 @@ class BreakdownWorkspace {
     if (this.unitControl && this.unitParent) this.unitParent.insertBefore(this.unitControl, this.unitNext);
     this.grid.hidden = false;
     this.source.append(this.video, this.grid, this.tags);
-    document.getElementById('tagForm')?.classList.toggle('is-scout', this.perspective?.value === 'scout');
     if (this.host) this.host.innerHTML = '';
     this.host = null;
   }
@@ -36531,11 +36545,13 @@ class App {
     if (mode === 'create') {
       ['gameWeek', 'gameOpponent', 'gameScoreUs', 'gameScoreThem', 'gameHomeAway'].forEach(id => this._setVal(id, ''));
       this._setVal('gameType', 'game');
+      this._setVal('gmPerspective', 'offense');
       this._setVal('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
       if (title) title.textContent = 'New game';
       if (saveBtn) saveBtn.textContent = 'Create game';
     } else {
       // Edit: inputs already reflect the active game (kept by _loadGameInfo).
+      this._setVal('gmPerspective', document.getElementById('gamePerspective')?.value || 'offense');
       if (title) title.textContent = 'Game settings';
       if (saveBtn) saveBtn.textContent = 'Save';
     }
@@ -36552,8 +36568,12 @@ class App {
   _cancelGameModal() {
     // Discard: restore inputs from the (unchanged) active game. A create draft
     // committed nothing, so this just clears the draft back to the current game.
+    // Loading metadata normally seeds the next-play unit; Cancel must preserve
+    // the coach's current sticky charting choice because no intent changed.
+    const defaultUnit = this.tagger?.defaultUnit;
     this._gameModalOpen = false;
     this._loadGameInfo(this.storage.gameInfo || {});
+    if (defaultUnit) this.tagger.defaultUnit = defaultUnit;
     this._closeGameModal();
   }
 
@@ -36563,6 +36583,7 @@ class App {
       week: val('gameWeek'), opponent: val('gameOpponent'), date: val('gameDate'),
       homeAway: val('gameHomeAway'), gameType: val('gameType') || 'game',
       scoreUs: val('gameScoreUs'), scoreThem: val('gameScoreThem'),
+      perspective: val('gmPerspective') || 'offense',
     };
     this._gameModalOpen = false;
     if (this._gameModalMode === 'create') {
@@ -36571,7 +36592,14 @@ class App {
       this._setVal('gameHomeAway', draft.homeAway); this._setVal('gameType', draft.gameType);
       this._setVal('gameScoreUs', draft.scoreUs); this._setVal('gameScoreThem', draft.scoreThem);
     }
-    this._saveGameInfo();   // reads inputs → storage.gameInfo (composes projectName + name)
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const perspectiveChanged = this._gameModalMode === 'create' || perspectiveEl?.value !== draft.perspective;
+    if (perspectiveEl && perspectiveChanged) {
+      perspectiveEl.value = draft.perspective;
+      perspectiveEl.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      this._saveGameInfo();
+    }
     this._renderGameSummary();
     this._closeGameModal();
     this._afterNewGame();

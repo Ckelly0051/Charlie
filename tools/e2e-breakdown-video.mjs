@@ -33,7 +33,7 @@ const fixture = await page.evaluate(async () => {
   }));
   const second = store.blankGame();
   second.name = 'Week 2 vs Central';
-  second.gameInfo = { ...(second.gameInfo || {}), opponent: 'Central', perspective: 'defense' };
+  second.gameInfo = { ...(second.gameInfo || {}), opponent: 'Central', perspective: 'scout' };
   second.plays = [{
     id: 1,
     timestamp: { start: 0, end: 5 },
@@ -225,6 +225,7 @@ state = await page.evaluate(() => {
   window.__laneCOriginalAutoSave = storage._autoSave;
   window.__laneCAutoSaves = 0;
   storage._autoSave = () => { window.__laneCAutoSaves++; };
+  window.app.tagger.defaultUnit = 'defense';
   return {
     perspective: document.getElementById('gamePerspective').value,
     gameInfo: JSON.stringify(storage.gameInfo),
@@ -241,13 +242,52 @@ state = await page.evaluate(() => {
     scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
     subject: document.getElementById('bdChartSubject').textContent,
     context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+    modalOpen: !document.getElementById('gameModal').classList.contains('hidden'),
+    focused: document.activeElement?.id,
   };
   window.app.storage._autoSave = window.__laneCOriginalAutoSave;
   return result;
 });
-ok(state.perspective === 'offense' && state.autoSaves === 0 && state.gameInfo === metadataBeforeScout && state.scoutClass &&
-  state.context === 'scout' && state.subject === 'Opponent offense',
-  'Opponent scout is workspace state and never writes or autosaves Game Setup metadata', JSON.stringify(state));
+ok(state.perspective === 'offense' && state.autoSaves === 0 && state.gameInfo === metadataBeforeScout && !state.scoutClass &&
+  state.context === 'self' && state.subject === 'Our offense' && state.modalOpen &&
+  state.focused === 'gmPerspective',
+  'Film-context choice opens the canonical setting without relabeling or autosaving the game', JSON.stringify(state));
+
+await page.click('#gmCancel');
+state = await page.evaluate(() => ({
+  perspective: document.getElementById('gamePerspective').value,
+  defaultUnit: window.app.tagger.defaultUnit,
+  modalOpen: !document.getElementById('gameModal').classList.contains('hidden'),
+}));
+ok(state.perspective === 'offense' && state.defaultUnit === 'defense' && !state.modalOpen,
+  'Cancelling Film Source preserves the sticky next-play unit and metadata', JSON.stringify(state));
+
+await page.click('[data-bd-game]');
+await page.click('#gmSave');
+state = await page.evaluate(() => ({
+  perspective: document.getElementById('gamePerspective').value,
+  defaultUnit: window.app.tagger.defaultUnit,
+}));
+ok(state.perspective === 'offense' && state.defaultUnit === 'defense',
+  'Saving unchanged game metadata preserves the sticky next-play unit', JSON.stringify(state));
+
+await page.click('[data-bd-context="scout"]');
+await new Promise(resolve => setTimeout(resolve, 50));
+await page.select('#gmPerspective', 'scout');
+await page.click('#gmSave');
+await new Promise(resolve => setTimeout(resolve, 60));
+state = await page.evaluate(() => ({
+  perspective: document.getElementById('gamePerspective').value,
+  scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+  subject: document.getElementById('bdChartSubject').textContent,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+  offenseLabel: document.querySelector('.group-offense .tag-group-head')?.textContent?.trim(),
+  customFrontHidden: [...document.querySelectorAll('.our-def-only')].every(el => getComputedStyle(el).display === 'none'),
+}));
+ok(state.perspective === 'scout' && state.scoutClass && state.context === 'scout' &&
+  state.subject === 'Opponent offense' && state.offenseLabel.includes('Opponent Offensive Look') &&
+  state.customFrontHidden,
+  'Declared opponent film owns scout wording and hides our defense-only calls', JSON.stringify(state));
 
 await page.click('#tagUnit .pick[data-value="defense"]');
 await new Promise(resolve => setTimeout(resolve, 40));
@@ -257,38 +297,80 @@ state = await page.evaluate(() => ({
   subject: document.getElementById('bdChartSubject').textContent,
   context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
 }));
-ok(state.perspective === 'offense' && state.scoutClass && state.context === 'scout' && state.subject === 'Opponent defense',
+ok(state.perspective === 'scout' && state.scoutClass && state.context === 'scout' && state.subject === 'Opponent defense',
   'Opponent scout remains distinct from the selected charting unit', JSON.stringify(state));
 
-await page.click('#tagUnit .pick[data-value="special"]');
-await new Promise(resolve => setTimeout(resolve, 40));
-state = await page.evaluate(() => ({
-  subject: document.getElementById('bdChartSubject').textContent,
-  perspective: document.getElementById('gamePerspective').value,
-  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
-}));
-ok(state.subject === 'Opponent Special Teams' && state.perspective === 'offense' && state.context === 'scout',
-  'Scout mode survives charting-unit changes without mutating game metadata', JSON.stringify(state));
-
 await page.click('.breakdown-play-card[data-play-id="10"]');
+await new Promise(resolve => setTimeout(resolve, 40));
 state = await page.evaluate(() => ({
   selected: window.app.tagger.currentPlayId,
   perspective: document.getElementById('gamePerspective').value,
   context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
 }));
-ok(state.selected === 10 && state.perspective === 'offense' && state.context === 'scout',
-  'Selecting another play cannot alter scout mode or game metadata', JSON.stringify(state));
+ok(state.selected === 10 && state.perspective === 'scout' && state.context === 'scout',
+  'Selecting another play cannot alter scout identity or game metadata', JSON.stringify(state));
+
+await page.click('#tagUnit .pick[data-value="defense"]');
+await page.click('.breakdown-play-card[data-play-id="11"]');
+await new Promise(resolve => setTimeout(resolve, 40));
+state = await page.evaluate(() => ({
+  selected: window.app.tagger.currentPlayId,
+  selectedUnit: window.app.tagger.getCurrentPlay()?.tags?.unit,
+  defaultUnit: window.app.tagger.defaultUnit,
+  visibleUnit: document.querySelector('#tagUnit .pick.active')?.dataset.value,
+}));
+ok(state.selected === 11 && state.selectedUnit === 'offense' && state.visibleUnit === 'offense' && state.defaultUnit === 'defense',
+  'Reviewing a play of another unit cannot overwrite the coach’s sticky next-play unit', JSON.stringify(state));
+
+await page.$eval('[data-pen-add]', el => el.click());
+await new Promise(resolve => setTimeout(resolve, 20));
+state = await page.evaluate(() => ({
+  penalties: window.app.tagger.getCurrentPlay()?.penalties?.length || 0,
+  cards: document.querySelectorAll('.bdv-pen-card').length,
+  owners: [...document.querySelectorAll('.bdv-pen-card [data-pen-chip]')]
+    .filter(el => el.dataset.penChip.includes(':team:'))
+    .map(el => el.textContent.trim()),
+}));
+ok(JSON.stringify(state.owners) === JSON.stringify(['Scouted team', 'Other team', 'Unknown']),
+  'Opponent-film penalties use subject-correct ownership labels', JSON.stringify(state));
+
+await page.click('#tagUnit .pick[data-value="special"]');
+await page.click('[data-st-unit="kickoff"]');
+await page.click('[data-st-score="safety"]');
+state = await page.evaluate(() => ({
+  subject: document.getElementById('bdChartSubject').textContent,
+  owners: [...document.querySelectorAll('.bdv-st-owner [data-st-owner]')].map(el => el.textContent.trim()),
+}));
+ok(state.subject === 'Opponent Special Teams' &&
+  JSON.stringify(state.owners) === JSON.stringify(['Scouted team', 'Other team']),
+  'Opponent-film Special Teams ownership stays subject-correct', JSON.stringify(state));
 
 await page.click('[data-bd-context="self"]');
+await new Promise(resolve => setTimeout(resolve, 40));
 state = await page.evaluate(() => ({
   perspective: document.getElementById('gamePerspective').value,
   scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
   subject: document.getElementById('bdChartSubject').textContent,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+  modalOpen: !document.getElementById('gameModal').classList.contains('hidden'),
 }));
-ok(state.perspective === 'offense' && !state.scoutClass && state.subject === 'Our offense',
-  'Returning to self-scout follows the selected play unit without rewriting metadata', JSON.stringify(state));
+ok(state.perspective === 'scout' && state.scoutClass && state.context === 'scout' &&
+  state.subject === 'Opponent Special Teams' && state.modalOpen,
+  'Self-scout choice cannot silently relabel declared opponent film', JSON.stringify(state));
 
-await page.click('[data-bd-context="scout"]');
+await page.select('#gmPerspective', 'offense');
+await page.click('#gmSave');
+await new Promise(resolve => setTimeout(resolve, 60));
+state = await page.evaluate(() => ({
+  perspective: document.getElementById('gamePerspective').value,
+  scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+  subject: document.getElementById('bdChartSubject').textContent,
+  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+}));
+ok(state.perspective === 'offense' && !state.scoutClass && state.context === 'self' &&
+  state.subject === 'Our Special Teams',
+  'An explicit same-game Film Settings change immediately restores self-scout ownership', JSON.stringify(state));
+
 await page.evaluate(async secondGameId => {
   await window.app.storage.switchToGame(secondGameId, { persist: false });
 }, fixture.secondGameId);
@@ -301,9 +383,9 @@ state = await page.evaluate(() => ({
   scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
   defaultUnit: window.app.tagger.defaultUnit,
 }));
-ok(state.gameId === fixture.secondGameId && state.perspective === 'defense' && state.defaultUnit === 'offense' &&
-  state.context === 'self' && state.subject === 'Our offense' && !state.scoutClass,
-  'Switching games resets transient scout mode and loads only the new game metadata', JSON.stringify(state));
+ok(state.gameId === fixture.secondGameId && state.perspective === 'scout' && state.defaultUnit === 'offense' &&
+  state.context === 'scout' && state.subject === 'Opponent offense' && state.scoutClass,
+  'Opening declared opponent film derives scout identity from that game', JSON.stringify(state));
 
 await page.evaluate(async firstGameId => {
   await window.app.storage.switchToGame(firstGameId, { persist: false });
@@ -311,7 +393,6 @@ await page.evaluate(async firstGameId => {
   window.app.storage.seasonStore.persist();
 }, fixture.firstGameId);
 await new Promise(resolve => setTimeout(resolve, 60));
-await page.click('[data-bd-context="scout"]');
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => !!window.app?.workspaceShell?.root);
 await page.evaluate(async seasonId => {
@@ -326,9 +407,8 @@ state = await page.evaluate(() => ({
   scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
 }));
 ok(state.perspective === 'offense' && state.context === 'self' &&
-  state.subject === 'Our offense' && !state.scoutClass,
-  'Reload starts in self-scout while preserving stored game metadata', JSON.stringify(state));
-
+  state.subject === 'Our Special Teams' && !state.scoutClass,
+  'Reload derives self-scout from the reopened game’s stored identity', JSON.stringify(state));
 await page.click('[data-bd-context="quick"]');
 state = await page.evaluate(() => ({
   active: window.app.quickChart.isActive,
@@ -347,7 +427,12 @@ await page.evaluate(() => window.app._renderSaveState('saved'));
 
 const labels = {};
 for (const context of ['self', 'scout']) {
-  await page.click(`[data-bd-context="${context}"]`);
+  await page.evaluate(value => {
+    const perspective = document.getElementById('gamePerspective');
+    perspective.value = value;
+    perspective.dispatchEvent(new Event('change', { bubbles: true }));
+  }, context === 'scout' ? 'scout' : 'offense');
+  await new Promise(resolve => setTimeout(resolve, 40));
   for (const unit of ['offense', 'defense', 'special']) {
     await page.click(`#tagUnit .pick[data-value="${unit}"]`);
     await new Promise(resolve => setTimeout(resolve, 20));
@@ -357,8 +442,12 @@ for (const context of ['self', 'scout']) {
 ok(JSON.stringify(labels) === JSON.stringify({
   'self:offense': 'Our offense', 'self:defense': 'Our defense', 'self:special': 'Our Special Teams',
   'scout:offense': 'Opponent offense', 'scout:defense': 'Opponent defense', 'scout:special': 'Opponent Special Teams',
-}), 'Every film-context and unit combination uses subject-correct wording', JSON.stringify(labels));
-await page.click('[data-bd-context="self"]');
+}), 'Every stored film context and unit combination uses subject-correct wording', JSON.stringify(labels));
+await page.evaluate(() => {
+  const perspective = document.getElementById('gamePerspective');
+  perspective.value = 'offense';
+  perspective.dispatchEvent(new Event('change', { bubbles: true }));
+});
 await page.click('#tagUnit .pick[data-value="offense"]');
 
 const out = process.env.FFA_BREAKDOWN_SCREENSHOTS;

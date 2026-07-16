@@ -782,11 +782,13 @@ class App {
     if (mode === 'create') {
       ['gameWeek', 'gameOpponent', 'gameScoreUs', 'gameScoreThem', 'gameHomeAway'].forEach(id => this._setVal(id, ''));
       this._setVal('gameType', 'game');
+      this._setVal('gmPerspective', 'offense');
       this._setVal('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
       if (title) title.textContent = 'New game';
       if (saveBtn) saveBtn.textContent = 'Create game';
     } else {
       // Edit: inputs already reflect the active game (kept by _loadGameInfo).
+      this._setVal('gmPerspective', document.getElementById('gamePerspective')?.value || 'offense');
       if (title) title.textContent = 'Game settings';
       if (saveBtn) saveBtn.textContent = 'Save';
     }
@@ -803,8 +805,12 @@ class App {
   _cancelGameModal() {
     // Discard: restore inputs from the (unchanged) active game. A create draft
     // committed nothing, so this just clears the draft back to the current game.
+    // Loading metadata normally seeds the next-play unit; Cancel must preserve
+    // the coach's current sticky charting choice because no intent changed.
+    const defaultUnit = this.tagger?.defaultUnit;
     this._gameModalOpen = false;
     this._loadGameInfo(this.storage.gameInfo || {});
+    if (defaultUnit) this.tagger.defaultUnit = defaultUnit;
     this._closeGameModal();
   }
 
@@ -814,6 +820,7 @@ class App {
       week: val('gameWeek'), opponent: val('gameOpponent'), date: val('gameDate'),
       homeAway: val('gameHomeAway'), gameType: val('gameType') || 'game',
       scoreUs: val('gameScoreUs'), scoreThem: val('gameScoreThem'),
+      perspective: val('gmPerspective') || 'offense',
     };
     this._gameModalOpen = false;
     if (this._gameModalMode === 'create') {
@@ -822,7 +829,14 @@ class App {
       this._setVal('gameHomeAway', draft.homeAway); this._setVal('gameType', draft.gameType);
       this._setVal('gameScoreUs', draft.scoreUs); this._setVal('gameScoreThem', draft.scoreThem);
     }
-    this._saveGameInfo();   // reads inputs → storage.gameInfo (composes projectName + name)
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const perspectiveChanged = this._gameModalMode === 'create' || perspectiveEl?.value !== draft.perspective;
+    if (perspectiveEl && perspectiveChanged) {
+      perspectiveEl.value = draft.perspective;
+      perspectiveEl.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      this._saveGameInfo();
+    }
     this._renderGameSummary();
     this._closeGameModal();
     this._afterNewGame();

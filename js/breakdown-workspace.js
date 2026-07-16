@@ -26,7 +26,7 @@ export class BreakdownWorkspace {
         <header class="bd-context-bar" aria-label="Charting context">
           <div class="bd-context-units"></div>
           <div class="bd-film-context" role="group" aria-label="Film context">
-            <span class="bd-context-label">Film context</span>
+            <span class="bd-context-label">Film source</span>
             <button type="button" data-bd-context="self">Our games <small>Self-scout</small></button>
             <button type="button" data-bd-context="scout">Opponent film <small>Scout</small></button>
             <button type="button" data-bd-context="quick">Quick chart</button>
@@ -93,8 +93,8 @@ export class BreakdownWorkspace {
       return;
     }
     if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
-    this.scoutMode = context === 'scout' ? 'scout' : 'self';
-    this._applyScoutMode();
+    const requestedScout = context === 'scout';
+    if (requestedScout !== this._isScoutFilm()) this._openFilmContextSettings();
     this.render();
   }
 
@@ -102,15 +102,24 @@ export class BreakdownWorkspace {
     return String(this.app.storage?.seasonStore?.data?.activeGameId || '');
   }
 
-  _syncScoutGame() {
-    const gameId = this._activeGameId();
-    if (gameId === this._contextGameId) return;
-    this._contextGameId = gameId;
-    this.scoutMode = 'self';
+  _isScoutFilm() {
+    return this.perspective?.value === 'scout';
   }
 
-  _applyScoutMode() {
-    document.getElementById('tagForm')?.classList.toggle('is-scout', this.scoutMode === 'scout');
+  _openFilmContextSettings() {
+    this.app._openGameModal?.('edit');
+    setTimeout(() => document.getElementById('gmPerspective')?.focus(), 40);
+  }
+
+  _syncScoutGame() {
+    const gameId = this._activeGameId();
+    const changedGame = gameId !== this._contextGameId;
+    this._contextGameId = gameId;
+    this.scoutMode = this._isScoutFilm() ? 'scout' : 'self';
+    if (!changedGame || this.app.tagger?.getCurrentPlay()) return;
+    const unit = this.app.tagger?.defaultUnit || 'offense';
+    if (this.app.tagger?.unitField) this.app.tagger.unitField.value = unit;
+    this.app.tagger?.applyUnitMode?.(unit);
   }
 
   _unit() {
@@ -128,10 +137,8 @@ export class BreakdownWorkspace {
   render() {
     if (!this.host) return;
     this._syncScoutGame();
-    this._applyScoutMode();
     this.grid.hidden = this.view !== 'film-room';
     const unit = this._unit();
-    if (this.app.tagger) this.app.tagger.defaultUnit = unit;
     const scout = this.scoutMode === 'scout';
     const quick = !!this.app.quickChart?.isActive;
     const unitLabel = unit === 'defense' ? 'defense' : unit === 'special' ? 'Special Teams' : 'offense';
@@ -174,7 +181,6 @@ export class BreakdownWorkspace {
     if (this.unitControl && this.unitParent) this.unitParent.insertBefore(this.unitControl, this.unitNext);
     this.grid.hidden = false;
     this.source.append(this.video, this.grid, this.tags);
-    document.getElementById('tagForm')?.classList.toggle('is-scout', this.perspective?.value === 'scout');
     if (this.host) this.host.innerHTML = '';
     this.host = null;
   }
