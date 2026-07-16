@@ -28987,6 +28987,9 @@ class WorkspaceShell {
   async enable() {
     try { localStorage.setItem('ffa_workspace_shell_v2', '1'); } catch {}
     if (!this.root) this._mount();
+    // Idempotent: no-ops when already mounted. Required because disable() now
+    // genuinely tears the presentation down, so re-enabling must rebuild it.
+    this.app.breakdownVideo?.mount();
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }
@@ -28994,6 +28997,9 @@ class WorkspaceShell {
   disable() {
     if (!this.root) return;
     this._homeToken++;
+    // Order matters: breakdownVideo un-mounts its chrome from .video-section
+    // BEFORE breakdownWorkspace moves that section back to the classic #app.
+    this.app.breakdownVideo?.restore();
     this.app.breakdownWorkspace?.restore();
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
@@ -29091,15 +29097,37 @@ class BreakdownVideo {
     this.actions = document.querySelector('.video-play-controls');
     this.track = null;
     this.hideTimer = null;
-    this._mount();
+    this._subscribed = false;
+    this._mounted = false;
+    // Captured BEFORE any mutation: mount() relocates these, and restore() has
+    // to put them back exactly. Recording them at mount time would record the
+    // already-moved position.
+    this._home = this.controls
+      ? { parent: this.controls.parentNode, next: this.controls.nextSibling }
+      : null;
+    const copy = document.getElementById('btnCopyPrev');
+    this._copyHome = copy ? { el: copy, parent: copy.parentNode, next: copy.nextSibling, text: copy.textContent } : null;
+    this.mount();
   }
 
   _enabled() {
     try { return localStorage.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; }
   }
 
+  /** Idempotent. The shell calls this on every enable(); restore() tears down.
+   *  Subscriptions and persistent-element listeners are bound ONCE (see
+   *  _bindPlayer) because #videoContainer and .playback-controls are re-parented
+   *  by restore(), never re-created — verified by DOM identity assertion in
+   *  tools/e2e-breakdown-lifecycle.mjs, not by inspection. */
+  mount() {
+    if (this._mounted) return false;
+    if (!this._enabled() || !this.video || !this.controls || !this.actions) return false;
+    this._mount();
+    this._mounted = true;
+    return true;
+  }
+
   _mount() {
-    if (!this._enabled() || !this.video || !this.controls || !this.actions) return;
     this.video.classList.add('breakdown-video-v2');
     this.controls.classList.add('breakdown-player-controls');
 
@@ -29127,12 +29155,53 @@ class BreakdownVideo {
       this.actions.insertBefore(copy, clear || null);
     }
 
-    ['play-created', 'play-deleted', 'plays-loaded']
-      .forEach(event => this.tagger.on(event, () => this.render()));
-    this.tagger.on('play-updated', play => this._renderPlay(play));
-    this.tagger.on('play-selected', play => this._renderSelection(play));
+    // Subscribe on FIRST mount only. PlayTagger has on() but no off() (verified:
+    // no off/removeListener/unsubscribe anywhere in js/), so a per-mount
+    // subscription would duplicate on every remount with no way to detach.
+    // Not needed: render/_renderPlay/_renderSelection all early-return on a null
+    // this.track, so restore() neutralizes them by nulling it. Subscribing here
+    // rather than in the constructor also keeps the classic path (flag off)
+    // subscribing nothing at all.
+    if (!this._subscribed) {
+      this._subscribed = true;
+      ['play-created', 'play-deleted', 'plays-loaded']
+        .forEach(event => this.tagger.on(event, () => this.render()));
+      this.tagger.on('play-updated', play => this._renderPlay(play));
+      this.tagger.on('play-selected', play => this._renderSelection(play));
+    }
     this._bindPlayer(handle);
     this.render();
+  }
+
+  /** Reverse every DOM mutation _mount() made. Subscriptions intentionally stay
+   *  attached and go inert via the null this.track guard. */
+  restore() {
+    if (!this._mounted) return false;
+    this.video.classList.remove('breakdown-video-v2', 'breakdown-controls-hidden');
+    this.controls.classList.remove('breakdown-player-controls');
+    clearTimeout(this.hideTimer);
+    this.hideTimer = null;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+
+    this.video.querySelector('.breakdown-player-drag')?.remove();
+    this.track?.closest('.breakdown-play-strip')?.remove();
+    this.track = null;                       // <- makes the tagger handlers inert
+
+    // Inline positioning written by place(); leaving it strands the classic
+    // controls at an absolute offset.
+    this.controls.style.top = '';
+    this.controls.style.bottom = '';
+    this.controlRatio = null;
+
+    if (this._home?.parent) this._home.parent.insertBefore(this.controls, this._home.next);
+    if (this._copyHome?.parent) {
+      this._copyHome.el.textContent = this._copyHome.text;
+      this._copyHome.el.classList.remove('breakdown-copy-last');
+      this._copyHome.parent.insertBefore(this._copyHome.el, this._copyHome.next);
+    }
+    this._mounted = false;
+    return true;
   }
 
   _bindPlayer(handle) {
@@ -29143,17 +29212,26 @@ class BreakdownVideo {
         if (!this.controls.matches(':focus-within')) this.video.classList.add('breakdown-controls-hidden');
       }, 1600);
     };
-    this.video.addEventListener('pointermove', show);
-    this.video.addEventListener('pointerenter', show);
-    this.video.addEventListener('pointerleave', () => {
-      clearTimeout(this.hideTimer);
-      this.hideTimer = setTimeout(() => this.video.classList.add('breakdown-controls-hidden'), 350);
-    });
-    this.controls.addEventListener('focusin', () => {
-      clearTimeout(this.hideTimer);
-      this.video.classList.remove('breakdown-controls-hidden');
-    });
-    this.controls.addEventListener('focusout', show);
+    // #videoContainer and .playback-controls PERSIST across restore() — they are
+    // re-parented, not re-created — and these handlers are inline arrows, so
+    // removeEventListener could never target them. Bind once; the guards below
+    // make them inert while unmounted.
+    if (!this._playerBound) {
+      this._playerBound = true;
+      this.video.addEventListener('pointermove', () => { if (this._mounted) show(); });
+      this.video.addEventListener('pointerenter', () => { if (this._mounted) show(); });
+      this.video.addEventListener('pointerleave', () => {
+        if (!this._mounted) return;
+        clearTimeout(this.hideTimer);
+        this.hideTimer = setTimeout(() => this.video.classList.add('breakdown-controls-hidden'), 350);
+      });
+      this.controls.addEventListener('focusin', () => {
+        if (!this._mounted) return;
+        clearTimeout(this.hideTimer);
+        this.video.classList.remove('breakdown-controls-hidden');
+      });
+      this.controls.addEventListener('focusout', () => { if (this._mounted) show(); });
+    }
 
     const place = ratio => {
       ratio = Math.max(0, Math.min(1, Number(ratio) || 0));

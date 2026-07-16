@@ -8,6 +8,9 @@ export class WorkspaceShell {
   async enable() {
     try { localStorage.setItem('ffa_workspace_shell_v2', '1'); } catch {}
     if (!this.root) this._mount();
+    // Idempotent: no-ops when already mounted. Required because disable() now
+    // genuinely tears the presentation down, so re-enabling must rebuild it.
+    this.app.breakdownVideo?.mount();
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }
@@ -15,6 +18,9 @@ export class WorkspaceShell {
   disable() {
     if (!this.root) return;
     this._homeToken++;
+    // Order matters: breakdownVideo un-mounts its chrome from .video-section
+    // BEFORE breakdownWorkspace moves that section back to the classic #app.
+    this.app.breakdownVideo?.restore();
     this.app.breakdownWorkspace?.restore();
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
