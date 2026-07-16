@@ -172,29 +172,48 @@ play.specialTeams = {
 > **Status:** DRAFT for Codex review. Not implemented. No code exists for this.
 > **Author:** Claude. **Coach decisions recorded inline and marked COACH.**
 
-### 4b.1 This reverses an accepted decision — read this first
+### 4b.1 This is a shipped capability REGRESSION — read this first
+
+**2-Pt has always been a Special Teams play in this app.** `index.html:464`
+carries a `2-Pt` chip in the legacy `stType` control, alongside Kickoff, Punt,
+Field Goal, and XP. `StatsEngine.playPoints()` scores it. It was never an
+offensive play here.
+
+**Phase 4E's structured redesign dropped it.** `SpecialTeamsModel` defines six
+units — kickoff, kickoffReturn, punt, puntReturn, fieldGoal, fieldGoalBlock —
+and no 2-Pt. `attemptType` accepts only `fieldGoal | extraPoint`. The
+phase-first form (`breakdown-form.js`, `_specialDetails`) offers those same six
+and hides the legacy chips as `.bdv-st-legacy`.
+
+**Consequence, in the shipped beta:** a coach on `ffa_breakdown_form_v2` (ON by
+default on desktop via `configureBetaDefaults`) **cannot chart a two-point
+conversion at all.** The structured path has no home for it and the legacy chip
+is hidden. Their historical 2-Pt plays are additionally quarantined under the
+known-bad-data rule. This is a real regression from legacy capability, not a
+modelling preference.
 
 §4 currently states: *"Two-point tries remain offensive plays, not kicks."*
-**That is reversed here.** It is not an oversight in this draft; it is the point
-of the amendment.
+**That sentence is reversed here.** It did not describe the app — the app had
+2-Pt in Special Teams the whole time. It rationalized an omission after the
+fact.
 
 **COACH:** *"The extra point and 2-pt tries are special teams plays — that is
 what they are by strict definition and that is where they should be charted and
-scored."*
+scored."* The football agrees: the **try** is a special-teams down, and whether
+it is executed by kick or by run/pass does not change what the down is.
 
-The football is unambiguous: the **try** is a special-teams down. Whether it is
-executed by kick or by run/pass does not change what the down is. XP already
-lives in Special Teams via `attemptType`; the 2-pt try was split off from its own
-down and sent to offense, which is why the two halves of one play type now live
-in two places.
+**This also explains the `'twoPoint'` fossil.** `stats-engine.js`
+`_conversionStats` already compares `kind === 'twoPoint'` and `made()` already
+checks `outcome.score === 'twoPoint'` — but `SpecialTeamsModel` has no
+`twoPoint`, so **both comparisons are unreachable dead code** and a structured
+2-pt try can never be counted. The stats layer was written for a model that
+included 2-Pt; the model shipped without it; the orphaned strings were never
+removed. This amendment makes existing code reachable rather than deleting it.
 
-**This explains the `'twoPoint'` fossil.** `stats-engine.js` `_conversionStats`
-already compares `kind === 'twoPoint'` and `made()` already checks
-`outcome.score === 'twoPoint'` — but `SpecialTeamsModel` has no `twoPoint`
-anywhere, so **both comparisons are unreachable dead code** and a structured
-2-pt try can never be counted. The stats layer was written expecting 2-pt in
-Special Teams; §4 then decided otherwise; nobody removed the orphaned strings.
-This amendment makes the existing code reachable rather than deleting it.
+**Correction of record:** an earlier revision of this draft framed the amendment
+as a philosophical reversal — "should 2-pt live in Special Teams?" That framing
+was wrong. It always did. The question is only how to restore it in the
+structured model.
 
 ### 4b.2 Scope — deliberately narrow
 
@@ -348,15 +367,18 @@ against broken code because nothing executed.
 
 ### 4b.8 Open for Codex
 
-1. **Do you accept reversing §4's "two-point tries remain offensive plays"?**
-   This draft asserts the football is unambiguous. If you disagree, say so now —
-   this is the load-bearing decision and everything else follows from it.
-2. **`attemptType` vs a seventh unit** — §4b.4 recommends `attemptType` and
+1. **`attemptType` vs a seventh unit** — §4b.4 recommends `attemptType` and
    discloses the FG/try conflation wart. Is the wart worth avoiding at the cost
-   of two more units?
-3. **Test #5 is a real unknown.** If ST plays already leak into success rate,
+   of two more units (a `twoPoint` unit needs a `twoPointDefense` peer)? This is
+   now the only real design question; §4b.1 settles the rest.
+2. **Test #5 is a real unknown.** If ST plays already leak into success rate,
    that is a pre-existing defect wider than this amendment and should be its own
    finding, not absorbed here.
+3. **Severity check.** §4b.1 says the shipped beta cannot chart a 2-point
+   conversion at all. If that is right, it is a **beta blocker in its own
+   right** — independent of the tag-model work — because a coach charting a real
+   game hits it the first time they go for two. Does that change B1's priority
+   relative to E1–E4? Coach's call, but Codex should confirm the claim first.
 
 ## 5. Ruleset Contract
 
