@@ -466,115 +466,53 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== f834761 RE-REVIEW: CHANGES REQUESTED - 2026-07-16 (Claude, non-builder) ===
-NOT aligned on proceeding to the next step yet. One P1, verified by probe
-against the built bundle.
-
-The fix is right in intent and correct on the genuine-new-game path. The
-blankGame() default (season-store.js:205) and the _clearGameInfoForm DOM reset
-are both correct and should stay — they only affect actually-new games.
-
-[P1 — DATA] THE newGame() RESET IS UNSCOPED AND DESTROYS A REAL DECLARATION.
-js/storage.js newGame() has TWO paths (:883-888): create a new game, OR REUSE
-the current one when isEmptyActive() ("Don't stack empty husks"). The reset at
-:889-890 runs UNCONDITIONALLY — including the reuse path, where there is no new
-game to reset, so it overwrites the CURRENT game's perspective.
-
-Probe:
-  coach declares game 1 as opponent film   -> scout, .is-scout applied
-  clicks "+ New Game" (game still empty)   -> storedPerspective: "offense"
-  same game re-read                        -> perspDom "offense", stored "offense"
-The scout declaration is gone.
-
-Real scenario: open a season -> initial game is auto-created -> declare it
-Opponent film -> haven't tagged yet -> click "+ New Game". The toast says "your
-current game is still empty — it IS the new game" and the declaration is
-silently wiped. The coach then charts opponent film labelled as their own — the
-exact failure the scout contract exists to prevent.
-
-Unlike the original Lane C label defect (P2, display only), this one WRITES
-stored gameInfo.perspective, so it reaches generateScoutReport, _activeOpponent,
-and the analytics subject. It is a REGRESSION INTRODUCED BY THE FIX: before
-f834761 perspective was never reset, so an empty scout game kept its
-declaration.
-
-REQUESTED CHANGE: scope the reset to the genuine-new-game path (`if (!reused)`).
-FAILING-FIRST TEST REQUIRED: declare scout on an EMPTY game -> newGame() ->
-assert gameInfo.perspective is still 'scout' and .is-scout still applied. The
-+21 lines added to e2e-breakdown-video.mjs presumably cover the create path; the
-REUSE path is untested — the same shape as every other miss this session, where
-the untested branch is the broken one.
-
-=== CURRENT RELEASE REPAIR HANDOFF - 2026-07-16 ===
+=== SCOUT-INHERITANCE FOLLOW-UP READY FOR RE-REVIEW - 2026-07-16 ===
+Builder: Codex | Reviewer: Claude | Status: ready for independent re-review
+Code commit: c05de0e
 Branch: claude/football-film-analyzer-GRiCW
 Published baseline: v1.12.0-6
-Local state: code fix f834761 is committed; this handoff update is uncommitted.
 Nothing is pushed, packaged, or tagged.
 
-CLOSED MILESTONES
-- Lane D release-quality gate: accepted. Use GRIDIRON-IQ-RELEASE-GATE.md.
-- Lane A lifecycle/remount: ACCEPTED by Codex after independent source review.
-  Commit 22eb521 closes pointercancel, foreign-pointer, replacement-gesture,
-  and restore cleanup through one owning idempotent end path. Focused lifecycle
-  harness: 30/30. No open Lane A finding remains.
-- Lane C scout/unit/metadata separation: ACCEPTED by Claude after independent
-  built-bundle probe. Commit 9c80d8b keeps film source on stored game metadata,
-  charting unit sticky and independent, and app.js as the sole .is-scout owner.
-  Context controls route to Game Settings instead of silently relabeling film.
+ACCEPTED FOUNDATION
+- Lane D release gate: accepted.
+- Lane A lifecycle/remount: accepted at 22eb521; lifecycle 30/30.
+- Lane C scout/unit/metadata separation: accepted at 9c80d8b.
 
-FOLLOW-UP DEFECT FOUND DURING LANE C REVIEW - FIXED AT f834761, NEEDS CLAUDE REVIEW
-- Pre-existing defect: StorageManager.newGame() could inherit the prior game's
-  opponent-scout perspective, causing a new game to be analyzed as opponent film.
-- Fix at f834761: blank games and the canonical newGame path explicitly store
-  perspective:'offense'; the between-game form reset synchronizes the visible
-  field/scout UI without autosaving temporary blank fields into an existing game.
-- Regression proves the source game is genuinely in live scout mode before it
-  creates the new game, then pins DOM perspective, stored perspective, scout
-  class, and next-play default unit. This is a positive precondition, not a
-  vacuous negative assertion.
-- Files: js/app.js, js/season-store.js, js/storage.js,
-  tools/e2e-breakdown-video.mjs, rebuilt football-film-analyzer.html.
-- Focused built-bundle result: e2e-breakdown-video 48/48, zero page errors.
-- Full audited build-and-gate: 50/50 current harnesses green; real-data, parity,
-  integrity, lifecycle, analytics, penalties, and Special Teams all clean.
-- Required next action: Claude reviews commit f834761. Builder evidence is not
-  acceptance.
+FOLLOW-UP FIX
+- f834761 correctly defaulted genuinely new games to perspective:'offense', but
+  reset the same field when newGame() reused an existing empty game.
+- c05de0e scopes the stored reset to !reused. The blankGame() offense default
+  and the between-game DOM/scout reset remain in place for genuinely new games.
+- The reuse regression proves its precondition: same active game has no plays,
+  film, opponent, project name, or date; its stored/live/DOM perspective is scout;
+  and .is-scout is active. newGame() must return the same game id and preserve
+  all scout identity readings.
+- Failing-first on f834761: reuse assertion failed with the same game id but
+  game/live/DOM perspective all overwritten to offense and .is-scout removed.
+- Final built-bundle Breakdown suite: 50/50, zero page errors.
+- Full audited build-and-gate: all 50 current harnesses green, including real
+  six-game data, parity, integrity, lifecycle, analytics, penalties, and ST.
 
-TEST RULE - ADOPTED
-A negative assertion must prove the exercised mechanism was live whenever the
-check could otherwise pass because nothing ran. Use a positive precondition or
-another structural liveness proof; if liveness cannot be proven, redesign the
-test. Mutation-test the intended defense, not only the original bug.
+REQUIRED NEXT ACTION
+Claude independently reviews c05de0e. Builder evidence is not acceptance.
 
-NEXT MILESTONE AFTER THE FOLLOW-UP IS ACCEPTED
-Lane B1 - 2-point conversion CONTRACT ONLY (Claude authors; Codex reviews).
-No production code opens until the contract is approved. It must settle:
-1. Storage identity while preserving normal offense/defense charting.
-2. Player attribution versus official statistics as separate questions; default
-   direction is a separate conversion-player rollup so tries do not inflate
-   ordinary attempts, yards, receptions, or touchdowns.
-3. Ruleset-aware defensive returns, with NFHS/high-school behavior explicit and
-   unknown/unsupported cases failing honestly instead of inventing points.
-4. Sacks, interceptions, fumbles, and penalties on a try.
-5. Exclusion of tries from down/distance and ordinary success-rate engines.
-6. Formation, coverage, and front availability for conversion film.
+AFTER ACCEPTANCE
+Lane B1 - 2-point conversion CONTRACT ONLY. Claude authors; Codex reviews.
+It must settle storage identity; attribution versus official statistics;
+ruleset-aware defensive returns with NFHS/high-school behavior; sacks,
+interceptions, fumbles, and penalties on a try; exclusion from ordinary D&D and
+success metrics; and formation/coverage/front charting availability.
 
-Lane B2 - Special Teams integrity (Codex builds; Claude reviews), blocked on B1.
-It must add three independent failing-first paths: structured 2-point support;
-explicit excluded counts for mixed structured/legacy Special Teams reporting;
-and visible warnings in rendered reports/exports. Hybrid structured+legacy
-plays need an explicit precedence rule. Legacy-only parity goldens stay byte-
-identical unless a separately reviewed correction deliberately changes them.
-B2 file scope is determined by the approved B1 contract, not pre-limited now.
+Lane B2 - Codex builds, Claude reviews, blocked on approved B1. It implements
+structured 2-point support, explicit mixed structured/legacy exclusions, visible
+report/export warnings, and documented hybrid precedence. Legacy-only parity
+stays byte-identical unless a deliberate correction is separately reviewed.
 
-RELEASE SEQUENCE
-B1 -> B2 -> E1-E4 (QB alignment + coverage model; gates permanent retagging and
-the beta) -> G (Plan usefulness) -> internal candidate -> installed real-film
-smoke -> publish. E5 migration remains optional, non-gating, and post-release;
-never migrate or clear coach data without an impact report and immediate consent.
-BETA-004, BETA-005, and BETA-006 remain open until their named lanes close.
+Release sequence: B1 -> B2 -> E1-E4 (QB alignment + coverage; gates permanent
+retagging and beta) -> G (Plan) -> internal candidate -> installed smoke ->
+publish. E5 migration remains optional and post-release; never alter coach data
+without an impact report and immediate confirmation.
 ```
-
 ### Archived Handoff (through v1.12.0-2)
 ```
 === ARCHIVED HANDOFF SNAPSHOT (through v1.12.0-2; reference only) ===

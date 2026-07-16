@@ -20,67 +20,36 @@ storage again.
 
 ### Current working state (2026-07-16, after Lanes D/A/C)
 
-**Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging anything.** Build an
-internal candidate, run the installed real-film smoke, and publish only after the
-smoke passes. Packaging is not publishing.
+**Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
+candidate, run the installed real-film smoke, and publish only after it passes.
 
-> **⚠ OPEN P1 (DATA) — `f834761` needs one more change before proceeding.**
-> The scout-inheritance fix has an **unscoped reset that destroys a real
-> declaration**. `newGame()` (`js/storage.js:883-888`) has two paths: create a
-> new game, **or reuse the current one when `isEmptyActive()`** ("don't stack
-> empty husks"). The reset at `:889-890` runs **unconditionally**, so on the
-> reuse path it overwrites the *current* game's perspective.
-> Probe: declare game 1 as Opponent film → click "+ New Game" while it's still
-> empty → `storedPerspective: "offense"`. The declaration is gone, while the
-> toast says *"it IS the new game."* The coach then charts opponent film
-> labelled as their own — the exact failure the scout contract prevents.
-> Unlike the Lane C label defect (P2, display only), this **writes stored
-> `gameInfo.perspective`**, so it reaches `generateScoutReport` /
-> `_activeOpponent` / the analytics subject. It is a **regression introduced by
-> the fix**: before `f834761`, perspective was never reset, so an empty scout
-> game kept its declaration.
-> **Fix:** scope the reset to `if (!reused)`. The `blankGame()` default
-> (`season-store.js:205`) and the `_clearGameInfoForm` DOM reset are correct and
-> stay — they only affect actually-new games. **Needs a failing-first test on the
-> REUSE path**; the create path is covered, and the untested branch is the broken
-> one, as in every other miss this session.
+- **Lane D:** accepted.
+- **Lane A:** accepted at `22eb521`; lifecycle `30/30`.
+- **Lane C:** accepted at `9c80d8b`. Stored film source, sticky charting unit,
+  and analytics/scout identity are separate; `app.js` is the sole `.is-scout`
+  owner.
+- **Scout-inheritance follow-up ready for Claude re-review at `c05de0e`.** The
+  genuine-new-game path still defaults to `perspective:'offense'`. The empty-game
+  reuse path now preserves the existing game's declared perspective instead of
+  overwriting it. The regression positively proves an empty, live scout game and
+  the same returned game ID before requiring stored/live/DOM scout identity to
+  survive. It failed first on `f834761`, then passed after the scoped fix.
+- **Verification:** built-bundle Breakdown `50/50`, zero page errors; full audited
+  gate `50/50`, including real six-game data, parity, integrity, analytics,
+  penalties, and Special Teams.
+- **Test rule:** a negative assertion that could pass because nothing ran must
+  prove mechanism liveness first, and the intended defense must be mutation-tested.
 
-- **Lane D:** release-quality gate accepted.
-- **Lane A:** accepted at `22eb521` after Codex re-review. Pointer cancellation,
-  foreign pointers, replacement gestures, and restore share one owning cleanup.
-  Focused lifecycle harness: `30/30`.
-- **Lane C:** accepted at `9c80d8b` after Claude's independent built-bundle
-  probe. Stored film source, sticky charting unit, and analytics/scout identity
-  are separate. `app.js` is the sole `.is-scout` owner; Break Down context
-  controls route to Game Settings and never silently mutate game metadata.
-- **Lane C review follow-up, fixed at `f834761` and awaiting independent review:** a
-  quick `newGame()` after opponent film inherited scout perspective. Blank games
-  and the canonical new-game path now explicitly store `perspective:'offense'`;
-  the between-game form reset synchronizes UI without autosaving temporary blank
-  fields into an existing game. The regression first proves live scout state,
-  then pins the new game's DOM value, stored value, scout class, and default unit.
-  Built-bundle Breakdown result: `48/48`, zero page errors; full audited gate:
-  `50/50` current harnesses green. Files:
-  `js/app.js`, `js/season-store.js`, `js/storage.js`,
-  `tools/e2e-breakdown-video.mjs`, and `football-film-analyzer.html`.
-- **Test rule adopted:** when a negative assertion could pass because nothing
-  ran, prove the mechanism was live with a positive precondition or equivalent
-  structural evidence. Mutation-test the intended defense, not only the old bug.
+**Next action:** Claude independently reviews `c05de0e`. After acceptance, Claude
+writes Lane B1's 2-point conversion contract and Codex reviews it. B1 settles
+storage identity, player attribution versus official stats, NFHS/ruleset-aware
+defensive returns, try sacks/turnovers/fouls, ordinary D&D/success exclusions,
+and formation/coverage/front availability. Codex then builds B2; Claude reviews.
 
-**Next action:** Claude independently reviews the new-game perspective follow-up
-at commit `f834761`. Then Claude authors Lane B1's football/data
-contract and Codex reviews it. B1 must settle 2-point storage identity, separate
-conversion-player attribution from official stats, define ruleset-aware defensive
-returns, cover sacks/turnovers/fouls, exclude tries from ordinary D&D/success
-metrics, and retain formation/coverage/front charting. Only after approval does
-Codex build B2: structured 2-point support, explicit mixed legacy exclusions,
-visible report/export warnings, and documented hybrid precedence.
-
-Release sequence: B1 -> B2 -> E1-E4 (QB alignment and coverage model; gates
-permanent retagging and the beta) -> G (Plan usefulness) -> internal candidate ->
-installed smoke -> publish. E5 migration is optional and post-release. Never
-migrate or clear coach data without an impact report and immediate confirmation.
-BETA-004, BETA-005, and BETA-006 remain open.
+Release sequence: B1 -> B2 -> E1-E4 (QB alignment and coverage; gates permanent
+retagging and beta) -> G (Plan) -> internal candidate -> installed smoke ->
+publish. E5 migration is optional and post-release. Never migrate or clear coach
+data without an impact report and immediate confirmation.
 
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
