@@ -463,20 +463,70 @@ appear in ST reports and film review. The accurate statement:
 > situational, and individual statistics. They remain available to dedicated
 > conversion, Special Teams, penalty, scoring, and film-review surfaces.**
 
-Exclusion applies on `unit === 'special'` **regardless of `playType`**.
+### 4b.7a Analytics routing matrix — the actual contract
 
-**Audit each of these explicitly:**
+> **A blanket `unit === 'special'` exclusion is WRONG and the draft proposed it.**
+> Codex caught it: **a fake-punt rush or pass may legitimately count in official
+> player statistics** — it is a real rushing/passing attempt. A blanket filter
+> would strip it from the box score, which is its own inaccuracy. Routing is
+> **per play type**, not per unit.
 
-| Surface | Tries must… |
+| Play | Base offense | Player box score | Scout tendencies | ST report | Conversions | Scoreboard |
+|---|---|---|---|---|---|---|
+| Normal offense | **Yes** | **Yes** | **Yes** | No | No | If scored |
+| **XP / 2-pt try** | **No** | **No** | **No** | **Yes** | **Yes** | **Yes** |
+| Kick / return | No | **ST roles only** | No | **Yes** | No | If scored |
+| Fake kick / punt | **No** | **Football-stat policy** ⚠ | **No** | **Yes** | No | If scored |
+
+⚠ **Fakes need care and are the reason the blunt rule fails.** A fake must not
+influence base-offense tendencies — the coach did not call it from an offensive
+personnel grouping — but the rush/pass it produced can legitimately belong in
+official player totals. Do **not** solve this with a blanket exclusion. If the
+fake policy cannot be settled inside B2, freeze current fake behavior and split
+it out rather than guessing.
+
+### 4b.7b Confirmed routing defects (Codex, verified against source)
+
+The main offensive dashboard is **protected**: `compute()` partitions `offPlays`
+/ `defPlays` by unit before rushing, passing, success, D&D, efficiency,
+tendencies, and EPA (`stats-engine.js:278-279`). Three real defects sit around
+it:
+
+1. **Individual statistics receive the unpartitioned list.**
+   `individuals: this._individualStats(plays)` (`:294`) — `plays`, not
+   `offPlays`. A classifiable ST play can enter player totals.
+2. **The generic Scout Report has no ST exclusion** (`:3174`) — it starts from
+   every play carrying a `playType` and builds D&D tables from them.
+3. **THE INVERSE DEFECT.** `specialTeams: this._specialTeamsStats(plays)`
+   (`:303`) receives the list `compute()` was given, which the caller already
+   filtered on `playType` — so **an ST play without a `playType` is omitted from
+   its own report**. This is lesson #15 again (*"gate on the unit's own fields,
+   not on a cross-unit field"*), and it means the ST report is undercounting
+   today.
+
+### 4b.7c What the coach's saved data actually shows
+
+Codex audited the local season mirrors, aggregate counts only:
+
+| Measure | Count |
 |---|---|
-| Individual rushing / passing / receiving / defensive totals | be **excluded** |
-| Success rate, D&D | be **excluded** |
-| Explosive rate, negative-play rate | be **excluded** |
-| Generic scout reports | be **excluded** |
-| Study queries | be **excluded** |
-| Scoreboard | be **included** — this is the one that must be right |
-| Dedicated conversion results | be **included** |
-| Special Teams reports, film review | be **included** |
+| Total plays | 972 |
+| Special Teams plays | 148 |
+| ST plays with `playType` or `runPass` | **2** |
+| …of those, with `down` + `yardage` (Scout D&D leak candidates) | **2** |
+| ST plays with offensive player attribution | **0** |
+| Structured fakes | **0** |
+| Legacy fake labels (neither classifiable as run/pass) | 2 |
+
+**Conclusion: the coach's offensive numbers and player totals are NOT broadly
+polluted.** Two existing plays are candidates for the Scout Report path. This is
+a real defect worth fixing — it is **not** evidence that the season's analytics
+are corrupted. The earlier draft's "unverified, may already leak, could be wider
+than this lane" framing was appropriately cautious but is now **answered**: the
+blast radius is two plays.
+
+**This is why it belongs in B2 and not a separate lane.** Three routing points,
+a matrix to pin, no data repair needed.
 
 ### 4b.7 Required failing-first tests
 
@@ -549,18 +599,45 @@ The outcome B1 must produce: **the coach can chart every XP and two-point
 situation, the scoreboard stays trustworthy, and the model does not create
 another field-goal-shaped workaround to unwind later.**
 
-### 4b.10 Open — for the coach
+### 4b.10 Priority — DECIDED
 
-**Priority.** §4b.1 asserts the shipped beta cannot chart a 2-pt conversion at
-all. If Codex confirms, that is a **beta blocker in its own right**, independent
-of the tag model — a coach hits it the first time they go for two. Does it
-outrank E1–E4?
+**Sequence: B1 contract → B2 implementation → E1–E4.** Both open questions are
+now answered.
 
-**Pre-existing leak (§4b.7).** Whether ST plays already contaminate offensive
-stats is **unverified**. If they do, the coach's current offensive numbers are
-already polluted by fakes and existing ST plays — a defect wider than this lane
-that should be split into its own finding rather than absorbed here. Probe
-before implementing.
+**Codex confirmed §4b.1 independently:** the beta's structured form cannot chart
+a two-point try — the unit list omits tries, `attemptType` rejects `twoPoint`,
+and the legacy control is hidden. That is a **release blocker** because it:
+
+- prevents charting a normal scoring event,
+- can leave the **scoreboard wrong**,
+- forces the coach outside the structured workflow,
+- undermines a full-game smoke test.
+
+**B2 outranks E1–E4.** E1–E4 improve the *accuracy* of formations and coverages
+and are required before permanent retagging. B2 **restores a missing piece of
+football**. A coach cannot smoke-test a real game without it.
+
+**The leak question is answered, not deferred** — see §4b.7b/§4b.7c. Three
+confirmed routing defects; two affected plays in the real data; no data repair
+needed. It rides in B2 as a small routing contract rather than becoming its own
+lane.
+
+### 4b.11 B2 scope — implementation lane
+
+B2 delivers, in one increment:
+
+1. The `try` / `tryDefense` model (§4b.3) and its Special Teams UX (§4b.2).
+2. The scoring contract (§4b.3b) — fixed values, explicit defensive-return
+   choice, no ruleset config.
+3. Penalty / no-play resolution (§4b.5).
+4. **The three routing fixes** (§4b.7b) and the routing matrix (§4b.7a) pinned
+   by test.
+5. The 17-item test gate (§4b.8).
+
+B2 does **not** deliver try analytics, player rollups, or formation charting on
+a try (§4b.9). If the fake policy in §4b.7a cannot be settled cleanly inside B2,
+freeze current fake behavior and split it out — do not guess at it under
+schedule pressure.
 
 ## 5. Ruleset Contract
 
