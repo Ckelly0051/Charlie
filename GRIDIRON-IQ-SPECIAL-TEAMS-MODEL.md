@@ -148,7 +148,8 @@ play.specialTeams = {
   Return and Punt from Punt Return. `subjectRole` is stored explicitly so
   analytics do not have to parse a label.
 - `attemptType` distinguishes Field Goal from Extra Point even on a miss, when
-  no scoring value exists. Two-point tries remain offensive plays, not kicks.
+  no scoring value exists. Two-point tries use the dedicated `try` / `tryDefense`
+  amendment in §4b; they are never stored as field-goal events.
 - `outcome.status` describes ball state or attempt disposition only. It never
   stores touchdown or safety; `score` is the one scoring-event field.
 - Scoring side is derived from `subjectRole`, `score`, and `recoveredBy`. If a
@@ -361,31 +362,15 @@ this amendment.
 
 ### 4b.4 Scoring attribution
 
-`scoringTeam()` resolves `twoPoint` on the existing `fieldGoal`/`extraPoint`
-branch:
+`scoringTeam()` reads the dedicated try result rather than routing through the
+field-goal branch. Converted `try` events award the subject 1 (`extraPoint`) or
+2 (`twoPoint`); converted `tryDefense` events award the opponent the same
+fixed value. `failed` and `noPlay` award nothing.
 
-- `attempting` + `score:'twoPoint'` → **subject** scores 2.
-- `defending` + `score:'twoPoint'` → **opponent** scores 2 (they converted).
-- **Defensive return** → the explicit `scoredBy` override, which
-  `scoringTeam()` already checks **first**:
-  - we defended and returned it → `defending` + `scoredBy:'subject'`
-  - we attempted and they returned it → `attempting` + `scoredBy:'opponent'`
-
-The defaulting is correct by construction: the common case resolves with no
-extra input; the rare case *requires* an explicit statement. This is the same
-explicit-ownership mechanism the safety work established. No new machinery.
-
-**Note:** the defensive return is the only place points flow to the opponent off
-the subject's own attempt. Every existing exception in `scoringSide()` flips
-*toward* us (pick-six, scoop-and-score). This one flips away. Pin it by test.
-
-**Why no ruleset gate.** §5 gates *derived* values (touchback placement, net)
-because the film does not show them. A defensive return is *observed*. **COACH:**
-NFHS ends the try on a change of possession so it cannot happen at his level —
-*"the HS rules can vary somewhat so it is possible that it's needed. Plus, it's
-a part of the broader game."* The field exists, ungated. Where the rule does not
-apply, the situation never arises. Accepted tradeoff: the app cannot warn that a
-league disallows it.
+A defensive-return event never awards points by itself. It requires the
+official-ruling choice from §4b.3b: `No score`, `2 points — our team`, or
+`2 points — opponent`. That explicit choice is authoritative and survives
+save/reopen, so the app never invents points and needs no ruleset selector.
 
 ### 4b.5 Penalty resolution
 
@@ -435,33 +420,15 @@ one of the three explicit choices, so ambiguity cannot be persisted. The sparse
 `unattributed` bucket is untouched by this amendment and must stay emitted only
 when nonzero — parity goldens depend on it.
 
-### 4b.6 THE REAL RISK — stats isolation
+### 4b.7 Analytics routing — verified, surface-specific
 
 **COACH:** *"The stats engine is what could be most impacted by inaccuracy if
 those ST stats are counted in offensive or defensive stats."*
 
-This is the load-bearing requirement, and it is **larger than 2-Pt**. A 2-pt try
-is `unit:'special'` but may carry a real `playType` (Run Inside, Short Pass) and
-real `yardage`. `_currentPlays()` gates on `playType`, **not** on unit. So an ST
-play carrying a playType may already be counted in:
-
-- success rate (`_isSuccessfulPlay`)
-- yards/play and run-pass efficiency
-- the Down & Distance table
-- explosive / negative-play rates
-
-**⚠ UNVERIFIED. This must be probed before any implementation, not assumed.**
-If ST plays already leak, that is a **pre-existing analytics defect wider than
-this amendment** and belongs to its own finding — it would mean the coach's
-offensive numbers are already contaminated by fakes and tries.
-
-**Requirement — corrected wording (Codex).** The first draft said *"scoring is
-the only place Special Teams plays count,"* which is false: ST plays legitimately
-appear in ST reports and film review. The accurate statement:
-
-> **Try and Special Teams plays are excluded from ordinary offensive, defensive,
-> situational, and individual statistics. They remain available to dedicated
-> conversion, Special Teams, penalty, scoring, and film-review surfaces.**
+The source and local data audit below replace the earlier unverified blanket
+concern. Normal team-offense metrics are already partitioned correctly. Three
+surrounding routes need repair, and §4b.7a defines where each football event
+legitimately belongs.
 
 ### 4b.7a Analytics routing matrix — the actual contract
 
