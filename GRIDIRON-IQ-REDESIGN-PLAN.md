@@ -480,19 +480,37 @@ LANE 0 — BETA-009 reviewed, gated, committed as its own checkpoint.
   that all repeated it.
 - Three non-blocking low findings recorded in the commit message.
 
-LANE D — release quality gate established BEFORE the risky lanes (deliberate;
-an earlier draft scheduled it after, which is a moving finish line).
-- NEW: GRIDIRON-IQ-RELEASE-GATE.md — 9-row matrix, each row with owner +
-  evidence artifact + pass criterion. Rows 4 (four-viewport review, coach
-  approves BEFORE packaging) and 6 (installed real-film smoke) are the
-  load-bearing ones: they are what was missing when v1.12.0-2 shipped green
-  and failed in ten minutes. Corrects the impossible "smoke before packaging"
-  rule to: build internal candidate -> smoke -> publish. Packaging != publishing.
-- NEW: tools/run-gate.sh — canonical runner. Build+gate atomic. Failure
-  detection reads ONLY the result line; --self-test proves the detector on 10
-  known-green/known-red cases (10/10).
+LANE D — release quality gate. Status: REVIEWED TWICE, CHANGES APPLIED,
+AWAITING COACH SIGN-OFF. Not complete on my own say-so.
+- Established BEFORE the risky lanes (deliberate; an earlier draft scheduled it
+  after, which is a moving finish line).
+- GRIDIRON-IQ-RELEASE-GATE.md — matrix; each row has an owner, an evidence
+  artifact, and a pass criterion. Rows 4 (four-viewport review, coach approves
+  BEFORE packaging) and 6 (installed real-film smoke) are load-bearing: they
+  are what was missing when v1.12.0-2 shipped green and failed in ten minutes.
+  Corrects the impossible "smoke before packaging" rule to: build internal
+  candidate -> smoke -> publish. Packaging != publishing. Ownership is by
+  NON-BUILDER, never by name — an earlier draft assigned audits permanently to
+  Claude, which is self-certification whenever Claude builds.
+- tools/run-gate.sh — canonical runner. Build+gate atomic; build status checked
+  explicitly AND set -o pipefail. A harness is green only if EXIT CODE IS 0 AND
+  the result line is clean. --self-test: 15 known-green/known-red cases.
+- tools/e2e-realdata.mjs — was NOT a harness: no failure counter, exit(0)
+  unconditionally, and exit(0) on a MISSING fixture (so the real-data check
+  could silently not run). Now counts failures; fails on page/console errors,
+  on normalize self-heal regressions (stLeak/mav), on zero games checked, and
+  on a missing fixture (GIQ_REALDATA_OPTIONAL=1 to opt out on a non-review
+  machine). Reports games PASSED, not games checked.
 - CODE-REVIEW-FINDINGS.md: header added, legend now says the box means
-  UNVERIFIED, not open. #1/#2/#5/#6 verified fixed against source.
+  UNVERIFIED, not open. #1/#2/#5/#6 verified fixed against source. Now TRACKED
+  (it was claimed as a deliverable while sitting untracked).
+
+CORRECTION — commit 612d742 IS NOT TRUSTWORTHY. It committed run-gate.sh with
+two P0 holes (a failed build passed the gate; a harness could exit nonzero and
+be counted green) and its message asserts "Validated: self-test 10/10; real
+suite 48 pass/fail green". That validation claim is RETRACTED. 612d742 is
+preserved on purpose and corrected by a follow-up commit rather than amended,
+so the false certification stays auditable. Do not cite 612d742's gate numbers.
 
 STOP HARDCODING THE HARNESS COUNT. It has been 42/44/45/46/47/49. This run
 found 49 with sql-catalog at 17 (docs said 16) and csv-roundtrip at 9 (docs

@@ -34,14 +34,20 @@ command (mtime skew false-fails `e2e-parity`'s stale-bundle guard). Its
 this replaced grepped case-insensitively for `fail`, matched test *names* like
 "unknown groups fail closed", and reported 4 false failures out of 49.
 
-**Never hardcode the harness count**, and stop saying "49/49 green" — it was
-never true. The suite is **48 pass/fail harnesses + 1 diagnostic**:
-`tools/e2e-realdata.mjs` has no failure counter and `process.exit(0)`s
-unconditionally (`:116`), printing `🔴 HUNG` / `🟠 alert popped` / `!! exceptions`
-on real problems and exiting 0 anyway. It has been counted as a passing harness
-in every handoff for months. It cannot gate anything; a human must read it.
-The 2026-07-16 run: **48 pass/fail green + realdata diagnostic clean**, with
-`sql-catalog` at 17 (docs said 16) and `csv-roundtrip` at 9 (docs said 6).
+**Never hardcode the harness count.** It has been 42/44/45/46/47/49 across
+milestones; the 2026-07-16 run found `sql-catalog` at 17 (docs said 16) and
+`csv-roundtrip` at 9 (docs said 6). Say "every current `tools/e2e-*.mjs`
+harness" and record the actual count in the handoff.
+
+**A harness is green only if its exit code is 0 AND its result line is clean.**
+Neither alone is sufficient — `e2e-special-teams-contract.mjs` prints
+`RESULT: N passed` with no failure count and reports failure *only* through
+`process.exitCode` (`:225-226`), so a result-line-only checker calls a failing
+special-teams run green. `tools/e2e-realdata.mjs` used to `process.exit(0)`
+unconditionally and was counted as a passing harness in months of handoffs; it
+now keeps a failure counter, fails on page/console errors, on zero games
+checked, and on a missing real fixture (set `GIQ_REALDATA_OPTIONAL=1` only on a
+machine that legitimately has no real season).
 
 **`CODE-REVIEW-FINDINGS.md` is stale and its ☐ boxes mean UNVERIFIED, not open.**
 #1 (stats-engine XSS), #2 (exportCsv escaping), #5 (IndexedDB cache), and #6
@@ -54,7 +60,7 @@ settled it.
   `claude/football-film-analyzer-GRiCW`. It contains the persistent
   `Autoplay next` preference and is the current installable smoke baseline.
 - **BETA-009 Home game preview is COMMITTED as `b6ca8b3`** — its own checkpoint,
-  independently reviewed and gated (49/49 green) before commit. Not pushed, not
+  independently reviewed and gated (every harness green) before commit. Not pushed, not
   packaged, not tagged; no release is implied. Preview is read-only: every write
   in the path was traced and no `switchToGame`/`commitActive`/`persist` is
   reachable from game selection. Three non-blocking low findings are recorded in
@@ -74,10 +80,15 @@ settled it.
 - **Data safety:** this increment is read-only until the coach chooses Open. It
   does not switch games during preview, alter tags, migrate data, change schema,
   or touch film storage.
-- **Next action:** review the local BETA-009 diff, run the complete atomic gate,
-  then commit/package only after approval. BETA-004 (Plan discoverability),
-  BETA-005 (QB alignment model), and BETA-006 (coverage shell/family model)
-  remain open and unchanged.
+- **Next action:** BETA-009 is done and committed (`b6ca8b3`). Lane D (the
+  release gate) is reviewed-twice, corrected, and **awaiting coach sign-off** —
+  the builder does not sign its own gate. After sign-off: Lane A
+  (classic-layout lifecycle + remount, P1) and Lane C (separate scout mode /
+  charting unit / game metadata) may run in parallel, then B1 (2-pt contract) →
+  B2 → E1–E4 (tag model; **gates the beta**) → G (Plan) → internal candidate →
+  installed smoke → publish. E5 (migration) is optional and non-gating.
+  BETA-004 (Plan discoverability), BETA-005 (QB alignment model), and BETA-006
+  (coverage shell/family model) remain open and unchanged.
 
 ### Product redesign handoff (v1.12.0-6 published baseline)
 

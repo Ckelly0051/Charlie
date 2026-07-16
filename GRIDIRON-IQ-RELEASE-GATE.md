@@ -32,17 +32,42 @@ Every row must pass before an internal candidate is promoted to a published
 release. A row is passed only with its named evidence — "I ran it" is not
 evidence.
 
+**Ownership is explicit, and the builder never self-certifies.** "agent" was the
+owner column in the first draft of this file; that let whoever wrote the code
+also declare it good, which contradicts §7 of the redesign plan and is the
+arrangement that produced the beta. The split:
+
+**The reviewer is defined by who did NOT build it — never by name.** An earlier
+draft of this table assigned the analytics/parity/persistence audit permanently
+to Claude. That is self-certification whenever Claude is the builder, which is
+the same hole in different clothing. Names below are **domain defaults for when
+the agent is not the builder**, not standing assignments.
+
+| Role | Owns |
+|------|------|
+| **Builder** (whoever wrote the increment) | Focused + complete automated gates. **Nothing else. Never audits or signs off its own increment**, regardless of domain. |
+| **Non-builder agent** | Independent code + regression review, and **every audit row below**. If the domain default is the builder, the other agent takes it. |
+| *Domain default — Claude* | Analytics, parity, persistence, data-integrity audit — **when Claude did not build the increment.** |
+| *Domain default — Codex* | UX, accessibility, screenshots, artifact construction + inspection — **when Codex did not build the increment.** |
+| **Coach** | Installed smoke; publication authorization. The only sign-off that cannot be delegated. |
+| **Codex** (post-approval) | Final record and publishing. |
+
+If both agents touched an increment, the coach names the reviewer. If no
+non-builder reviewer is available, the increment **waits** — it does not ship on
+the builder's own word.
+
 | # | Gate | Owner | Evidence artifact | Pass criterion |
 |---|------|-------|-------------------|----------------|
-| 1 | **Automated contracts + full repository gate** | agent | `tools/run-gate.sh` log with the actual counts | Every current pass/fail `tools/e2e-*.mjs` green, zero page errors. Build and gate run in ONE command (mtime skew false-fails `e2e-parity`'s stale-bundle guard). **Read the diagnostic line — it is not scored.** |
-| 2 | **Analytics parity** | agent | Parity golden diff | Synthetic + real six-game goldens byte-identical, or the deliberate change is called out and reviewed. **Never regenerate to make it pass.** |
-| 3 | **Data integrity** | agent | Integrity fuzzer log | Real six-game fixture, zero violations. Ops must include the class being changed (lesson #21: the fuzzer only catches what its op-set covers). |
-| 4 | **Four-viewport screenshot review** | agent captures, **coach approves** | Captures at 1440×900, 1280×720, 768×1024, 390×844 | No clipping, overlap, or page-level horizontal overflow. Coach sees them **before** packaging, not after. |
-| 5 | **Desktop artifact asset inspection** | agent | Asset check log against the exact stamped bundle | The packaged bundle — not the working tree — contains the expected video/workspace/form/shell/SVG/SQL resources. |
+| 1 | **Automated contracts + full repository gate** | **builder** runs; **other agent** re-runs on the reviewed bytes | `tools/run-gate.sh` log with the actual count | Every current `tools/e2e-*.mjs` green, zero page errors. A harness is green only if **exit code is 0 AND its result line is clean** — neither alone. Build and gate in ONE command. |
+| 2 | **Analytics parity** | **non-builder reviewer** (default Claude) | Parity golden diff | Synthetic + real six-game goldens byte-identical, or the deliberate change is called out and reviewed. **Never regenerate to make it pass.** |
+| 3 | **Data integrity** | **non-builder reviewer** (default Claude) | Integrity fuzzer log | Real six-game fixture, zero violations. Ops must include the class being changed (lesson #21: the fuzzer only catches what its op-set covers). |
+| 3b | **Real-data check actually ran** | **non-builder reviewer** (default Claude) | `e2e-realdata` result line | Non-zero games **passed** (not merely checked) against a real fixture; normalize self-heal counters at zero. A missing fixture is a **failure**, not a skip, unless `GIQ_REALDATA_OPTIONAL=1` is deliberately set on a non-review machine. |
+| 4 | **Four-viewport screenshot review** | **non-builder reviewer** (default Codex) captures; **coach approves** | Captures at 1440×900, 1280×720, 768×1024, 390×844 | No clipping, overlap, or page-level horizontal overflow. Coach sees them **before** packaging, not after. |
+| 5 | **Desktop artifact asset inspection** | **non-builder reviewer** (default Codex) | Asset check log against the exact stamped bundle | The packaged bundle — not the working tree — contains the expected video/workspace/form/shell/SVG/SQL resources. |
 | 6 | **Installed real-film smoke** | **coach** | Signed smoke record (template below) | Runs on the installed artifact against real high-resolution film. The only gate that can catch codec/disk/decoder behavior. |
-| 7 | **Reopen + persistence** | coach, inside #6 | Smoke record | Close and relaunch the app: film auto-loads, play counts and tags survive, no duplicate clips after repeated game switches. |
+| 7 | **Reopen + persistence** | coach, inside #6 | Smoke record | Close and relaunch: film auto-loads, play counts and tags survive, no duplicate clips after repeated game switches. **Edit and re-save — do not merely open.** |
 | 8 | **Analytics-to-film navigation** | coach, inside #6 | Smoke record | A stat row → Watch → the correct plays play. Charting navigation stays inside the example set (the BETA-003 class). |
-| 9 | **Signed smoke record** | coach | `SMOKE-<version>.md` | Names the exact SHA and artifact filename. An unsigned or SHA-less record does not count. |
+| 9 | **Signed smoke record + publication authorization** | **coach** authorizes; **Codex** publishes | `SMOKE-<version>.md` | Names the exact SHA and artifact filename. An unsigned or SHA-less record does not count. |
 
 ## Why #4 and #6 are the load-bearing rows
 
@@ -96,18 +121,29 @@ hardcoded number is a timestamp masquerading as a target, and it invites someone
 to stop at the number. Say **"every current `tools/e2e-*.mjs` harness"** and
 record the **actual counts** in each handoff.
 
-**"49/49 green" was never true — it is 48 tests + 1 diagnostic.**
-`tools/e2e-realdata.mjs` has **no failure counter and `process.exit(0)`s
-unconditionally** (`:116`). It prints `🔴 … HUNG`, `🟠 alert popped`, or
-`!! N exception(s)` when the coach's real season misbehaves — and still exits 0.
-It has been counted among the "green harnesses" in every handoff for months,
-including one written earlier in this same session. It cannot fail the gate; a
-human must **read** it. `run-gate.sh` now scores it separately and greps its own
-markers. Correct phrasing: **"N pass/fail harnesses green, plus the realdata
-diagnostic reviewed."**
+**A green result line is not a passing test.** Two ways that lied here:
 
-This is a small example of the general disease: a number that sounds like a
-guarantee, isn't one, and nobody checked because it was always green.
+1. **`e2e-realdata.mjs` could not fail.** It had no failure counter and
+   `process.exit(0)`'d unconditionally, printing `🔴 … HUNG` / `🟠 alert popped`
+   / `!! N exception(s)` / `console/page errors (N)` on the coach's real season
+   and exiting clean anyway. It also exited 0 when the fixture was **absent**,
+   so on any machine without the mirror the real-data check silently did not run
+   and the suite still looked green. It was counted among the "green harnesses"
+   in months of handoffs. **Fixed:** it now counts failures, fails on page/
+   console errors, on zero games checked, and on a missing fixture
+   (`GIQ_REALDATA_OPTIONAL=1` for a machine that legitimately has none), and is
+   scored like any other harness.
+2. **`e2e-special-teams-contract.mjs` reports failure only via
+   `process.exitCode`** (`:225-226`) — it prints `RESULT: N passed` with no
+   failure count. A checker reading only the result line calls a *failing*
+   special-teams run green. **Fixed:** a harness is green only if
+   **exit code is 0 AND the result line is clean**.
+
+The first version of `run-gate.sh` had both holes, and worse: it saw that
+odd `RESULT: 20 passed` line, noticed it lacked a failure count, and **codified
+it as a green self-test case** — encoding the vulnerability as intended
+behavior. That is the general disease in miniature: a number that sounds like a
+guarantee, isn't one, and goes unchecked precisely because it is always green.
 
 **A gate that cries wolf is worse than no gate.** This session's own runner used
 a case-insensitive grep for `fail`, which matched test *names* describing
@@ -116,6 +152,27 @@ failures out of 49. It was caught by reading the RESULT lines — but a checker
 that routinely reports false alarms trains everyone to skim past the real one.
 Any gate script must be verified against a known-green and a known-red run
 before it is trusted.
+
+**Run the gate ALONE. A green from a loaded machine is not evidence.**
+Observed 2026-07-16: a gate run started immediately after another gate run had
+four puppeteer harnesses (`e2e-realdata`, `e2e-relink-legacy`,
+`e2e-relink-linked`, `e2e-season-tab`) die with no result line. Every one passed
+standalone, and a clean re-run was 49/49. The failure mode was **process death,
+not assertion failure** — consistent with contention from leftover browsers, and
+the runner correctly refused to call them green.
+
+Two honest caveats:
+- **One clean run does not prove those crashes were benign.** It proves they are
+  load-dependent. This project has already had one "flake" that was a real
+  cross-game corruption bug reproducible only under parallel load
+  ([[integrity-fuzzer-load-race]]). If these recur, chase them — do not
+  re-run until green and move on.
+- **A crash-under-load is indistinguishable from a real bug at a glance.** That
+  is precisely why the runner must fail closed on a missing result line rather
+  than skip it.
+
+Practical rule: no concurrent gate runs, no gate while packaging or driving a
+browser, and let the previous run's processes exit first.
 
 **Re-save, don't just open.** The A3 desktop smoke passed while every re-save
 silently duplicated play rows, because the smoke only opened seasons. Any

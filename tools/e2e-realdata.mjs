@@ -12,7 +12,27 @@ import path from 'path';
 const MIRROR = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons';
 const files = fs.existsSync(MIRROR)
   ? fs.readdirSync(MIRROR).map(d => path.join(MIRROR, d, 'season.json')).filter(f => fs.existsSync(f)) : [];
-if (!files.length) { console.log('No season.json at', MIRROR); process.exit(0); }
+
+// This was `process.exit(0)` — a missing fixture reported success, so on any
+// machine without the mirror the real-data gate silently did not run and the
+// suite still looked green. Fail CLOSED: the review machine must have the
+// fixture. A machine that legitimately has no real season sets
+// GIQ_REALDATA_OPTIONAL=1 and gets an explicit skip, not a fake pass.
+let failures = 0;
+let gamesChecked = 0;
+let gamesPassed = 0;
+if (!files.length) {
+  if (process.env.GIQ_REALDATA_OPTIONAL === '1') {
+    console.log('SKIP: no season.json at', MIRROR, '(GIQ_REALDATA_OPTIONAL=1)');
+    console.log('\n== RESULT: 0 passed, 0 failed (skipped) ==');
+    process.exit(0);
+  }
+  console.log('No season.json at', MIRROR);
+  console.log('\n== RESULT: 0 passed, 1 failed ==');
+  console.log('   The real-data check did not run. This is the designated review');
+  console.log('   machine unless GIQ_REALDATA_OPTIONAL=1 is set.');
+  process.exit(1);
+}
 
 const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
 const OUR = ['Maverick', 'Eagle', 'Falcon', 'Jumbo Shift'];
@@ -74,6 +94,12 @@ for (const file of files) {
   await new Promise(r => setTimeout(r, 400));
   const seed = await page.evaluate(seedFn, season, OUR);
   console.log(`  normalize self-heal: ST leaks after load = ${seed.stLeak}  |  our-own front on offense after load = ${seed.mav}`);
+  // These were printed and never enforced: the self-healing normalization this
+  // harness exists to verify could regress on the coach's real season and the
+  // run would still report green. Nonzero means stripStAlignment /
+  // stripLeakedFronts did not fire — that is a failure, not a note.
+  if (seed.stLeak) { console.log(`  FAIL: ${seed.stLeak} ST alignment leak(s) survived normalize`); failures++; }
+  if (seed.mav) { console.log(`  FAIL: ${seed.mav} our-own front(s) survived on offense after normalize`); failures++; }
 
   for (const g of seed.games) {
     // Fresh page per game so a prior hang can't bleed over and state can't accrue.
@@ -105,12 +131,31 @@ for (const file of files) {
     else if (threw.length) status = `!! ${threw.length} exception(s)`;
     console.log(`  vs ${g.opp.padEnd(30)} plays=${String(g.plays).padStart(3)}  ${status}`);
     threw.forEach(t => console.log('       - ' + t));
+    // Every one of these markers used to print and exit 0: a hung render loop on
+    // the coach's real season sailed through the gate as green.
+    // checked != passed — a failed game must not be reported as a pass.
+    gamesChecked++;
+    if (hung.length || dialogs.length || threw.length) failures++;
+    else gamesPassed++;
   }
   if (errors.length) {
     console.log(`  console/page errors (${errors.length}):`);
     [...new Set(errors)].slice(0, 10).forEach(e => console.log('     - ' + e));
+    failures += errors.length;
   }
 }
 await browser.close();
+
+// A fixture that exists but yields zero checked games is not a pass — it means
+// the seasons parsed to nothing and the check was vacuous.
+if (!gamesChecked) {
+  console.log('  no games were checked despite a present fixture');
+  failures++;
+}
+
 console.log(`\n${'='.repeat(72)}\nDONE.`);
-process.exit(0);
+// gamesPassed, not gamesChecked: a game that hung or threw is checked but NOT
+// passed, and reporting it as passed is the same lie in a smaller place.
+console.log(`  ${gamesChecked} game(s) checked, ${gamesPassed} clean`);
+console.log(`== RESULT: ${gamesPassed} passed, ${failures} failed ==`);
+process.exit(failures ? 1 : 0);
