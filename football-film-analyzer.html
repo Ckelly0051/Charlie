@@ -18197,12 +18197,11 @@ class StorageManager {
     // a click that closes the menu and changes nothing reads as broken.
     const reused = this.seasonStore.isEmptyActive();
     if (!reused) {
-      this.seasonStore.addGame();
+      const game = this.seasonStore.addGame();
+      game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
     } else {
       window.app?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
     }
-    const game = this.seasonStore.activeGame();
-    if (game) game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
     this.seasonStore.persist();
     this._clearForNewGame();
     this._loadActiveGame();

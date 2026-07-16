@@ -408,6 +408,33 @@ ok(!!state.gameId && state.perspective === 'offense' && state.storedPerspective 
   !state.scoutClass && state.defaultUnit === 'offense',
   'A fresh game cannot inherit the previous game’s opponent-scout identity', JSON.stringify(state));
 
+state = await page.evaluate(() => {
+  const storage = window.app.storage;
+  const perspective = document.getElementById('gamePerspective');
+  perspective.value = 'scout';
+  perspective.dispatchEvent(new Event('change', { bubbles: true }));
+  const before = {
+    gameId: storage.seasonStore.activeGame()?.id,
+    empty: storage.seasonStore.isEmptyActive(),
+    perspective: storage.gameInfo.perspective,
+    scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+  };
+  const game = storage.newGame();
+  return {
+    before,
+    gameId: game?.id,
+    gamePerspective: game?.gameInfo?.perspective,
+    livePerspective: storage.gameInfo.perspective,
+    domPerspective: perspective.value,
+    scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+  };
+});
+ok(!!state.before.gameId && state.before.empty && state.before.perspective === 'scout' && state.before.scoutClass,
+  'Empty-game reuse regression starts from a live, explicitly declared scout game', JSON.stringify(state.before));
+ok(state.gameId === state.before.gameId && state.gamePerspective === 'scout' &&
+  state.livePerspective === 'scout' && state.domPerspective === 'scout' && state.scoutClass,
+  'Reusing an empty game preserves its declared opponent-film identity', JSON.stringify(state));
+
 await page.evaluate(async firstGameId => {
   await window.app.storage.switchToGame(firstGameId, { persist: false });
   window.app.storage.commitActive();
