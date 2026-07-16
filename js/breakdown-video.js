@@ -183,9 +183,14 @@ export class BreakdownVideo {
     }
 
     handle.addEventListener('pointerdown', event => {
+      // End any gesture still in flight BEFORE replacing _endDrag. Without this
+      // a second pointerdown orphaned the first gesture's window listeners with
+      // no reference left to remove them — they fired forever.
+      this._endDrag?.();
       event.preventDefault();
       clearTimeout(this.hideTimer);
-      handle.setPointerCapture?.(event.pointerId);
+      const pointerId = event.pointerId;
+      try { handle.setPointerCapture?.(pointerId); } catch {}
       // These live on WINDOW and were previously removed ONLY by pointerup. If
       // restore() ran mid-drag that pointerup never came for this mount, so the
       // listeners outlived the handle: move -> place() repositioned the CLASSIC
@@ -194,8 +199,11 @@ export class BreakdownVideo {
       // drag that is still in progress.
       const gen = this._gen;
       const alive = () => gen === this._gen && this._mounted;
+      // Only this pointer drives this gesture. Without the filter a second
+      // finger, or any unrelated pointer, moved the controls.
+      const mine = e => !e || e.pointerId === undefined || e.pointerId === pointerId;
       const move = current => {
-        if (!alive()) return;
+        if (!mine(current) || !alive()) return;
         const rect = this.video.getBoundingClientRect();
         const max = Math.max(1, rect.height - this.controls.offsetHeight - 24);
         const top = Math.max(12, Math.min(rect.height - this.controls.offsetHeight - 12,
@@ -204,17 +212,34 @@ export class BreakdownVideo {
         place(ratio);
         try { localStorage.setItem('ffa_video_controls_y', String(ratio)); } catch {}
       };
-      const up = () => {
-        this._endDrag();
-        if (alive()) show();   // never re-arm auto-hide against a dead mount
-      };
-      this._endDrag = () => {
+      // ONE idempotent cleanup, shared by pointerup, pointercancel, a
+      // replacement pointerdown, and restore(). Removes every listener this
+      // gesture registered. It must not touch _endDrag if a newer gesture
+      // already owns it.
+      const end = () => {
         window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        this._endDrag = null;
+        window.removeEventListener('pointerup', finish);
+        window.removeEventListener('pointercancel', cancel);
+        try { handle.releasePointerCapture?.(pointerId); } catch {}
+        if (this._endDrag === end) this._endDrag = null;
       };
+      const finish = e => {
+        if (!mine(e)) return;
+        const wasAlive = alive();
+        end();
+        if (wasAlive) show();   // never re-arm auto-hide against a dead mount
+      };
+      // Cancellation ends the gesture the same way; the drag is simply over.
+      const cancel = e => {
+        if (!mine(e)) return;
+        const wasAlive = alive();
+        end();
+        if (wasAlive) show();
+      };
+      this._endDrag = end;
       window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
+      window.addEventListener('pointerup', finish);
+      window.addEventListener('pointercancel', cancel);
     });
     handle.addEventListener('dblclick', () => {
       this.controlRatio = null;

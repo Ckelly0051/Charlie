@@ -200,6 +200,102 @@ ok(drag.storedUnchanged,
   'active drag + restore(): a dead mount cannot overwrite the stored ratio',
   `atTeardown=${drag.storedAtTeardown} after=${drag.storedAfter}`);
 
+// ---- 2e. A gesture must end when it is cancelled or replaced -------------
+// The teardown fix above only covers restore(). Ordinary drag CANCELLATION is
+// separate: pointerdown registers global move/up but nothing listens for
+// pointercancel, nothing filters by the owning pointerId, and a replacement
+// pointerdown overwrites _endDrag — orphaning the first gesture's listeners
+// with no way to remove them. Reachable on touch interruption, browser gesture
+// takeover, device cancellation, or a second finger.
+const gestures = await page2.evaluate(async () => {
+  const shell = window.app.workspaceShell;
+  const bv = window.app.breakdownVideo;
+  // Measure whether the stale HANDLER RUNS, not whether pixels move. With no
+  // film loaded #videoContainer has no layout, so place() clamps every position
+  // to 12px and every ratio to 0 — comparing pixel values cannot distinguish
+  // "correctly stopped" from "never started". Every drag move writes this key,
+  // so counting writes detects a live listener regardless of geometry.
+  let writes = 0;
+  const realSet = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = (k, v) => { if (k === 'ffa_video_controls_y') writes++; return realSet(k, v); };
+  const resetWrites = () => { writes = 0; };
+
+  // --- Case 1: pointercancel ---
+  await shell.enable();
+  // MUST show the breakdown route. enable() lands on Home, leaving #wsBreakdown
+  // hidden, so the video's getBoundingClientRect().height is 0 and place()
+  // clamps every position to 12px — the drag mechanism cannot be exercised.
+  await shell.show('breakdown');
+  await new Promise(r => setTimeout(r, 400));
+  const handle = document.querySelector('.breakdown-player-drag');
+  if (!handle) return { error: 'no handle' };
+  // Neutralize pointer capture. Synthetic PointerEvents create no active
+  // pointer, so setPointerCapture THROWS and kills the pointerdown handler
+  // before it registers move/up — every assertion below would then pass
+  // vacuously against a handler that never armed.
+  const neutralize = el => { el.setPointerCapture = () => {}; el.releasePointerCapture = () => {}; };
+  neutralize(handle);
+  handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 200, pointerId: 1 }));
+  resetWrites();
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 520, pointerId: 1 }));
+  // PRECONDITION: the live drag must actually drive the handler. Without this,
+  // "no writes after cancel" cannot distinguish "correctly stopped" from
+  // "never started" — the trap that made an earlier version of these
+  // assertions pass against the unfixed code.
+  const liveDragWrites = writes;
+
+  window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, clientY: 520, pointerId: 1 }));
+  await new Promise(r => setTimeout(r, 60));
+  const endDragArmedAfterCancel = !!bv._endDrag;
+
+  // The gesture is over. A later move must not reach the handler at all.
+  resetWrites();
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 60, pointerId: 1 }));
+  await new Promise(r => setTimeout(r, 60));
+  const cancel = {
+    liveDragWrites,
+    writesAfterCancel: writes,
+    endDragArmedAfterCancel,
+  };
+
+  // --- Case 2: overlapping pointers / replacement pointerdown ---
+  window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 760, pointerId: 1 }));
+  await new Promise(r => setTimeout(r, 60));
+  const h2 = document.querySelector('.breakdown-player-drag');
+  neutralize(h2);
+  h2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 200, pointerId: 11 }));
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 240, pointerId: 11 }));
+  // A second finger starts a new gesture; it replaces _endDrag, orphaning
+  // pointer 11's listeners with no reference left to remove them.
+  h2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 300, pointerId: 22 }));
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 310, pointerId: 22 }));
+  window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 310, pointerId: 22 }));
+  await new Promise(r => setTimeout(r, 60));
+
+  // Pointer 11's gesture was superseded and pointer 22's is finished. Nothing
+  // should be listening: a move from EITHER pointer must not reach the handler.
+  resetWrites();
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 580, pointerId: 11 }));
+  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 590, pointerId: 22 }));
+  await new Promise(r => setTimeout(r, 60));
+  const overlap = { writesAfterBothEnded: writes, endDragArmed: !!bv._endDrag };
+
+  localStorage.setItem = realSet;
+  return { cancel, overlap };
+});
+ok(gestures.cancel?.liveDragWrites > 0,
+  'precondition: a live drag drives the handler (guards the assertions below against passing because nothing ran)',
+  JSON.stringify(gestures.cancel));
+ok(gestures.cancel?.writesAfterCancel === 0,
+  'pointercancel: a cancelled drag stops driving the handler',
+  JSON.stringify(gestures.cancel));
+ok(gestures.cancel?.endDragArmedAfterCancel === false,
+  'pointercancel: the gesture cleanup is disarmed, not left pending',
+  `armed=${gestures.cancel?.endDragArmedAfterCancel}`);
+ok(gestures.overlap?.writesAfterBothEnded === 0 && gestures.overlap?.endDragArmed === false,
+  'overlapping pointers: a superseded gesture leaves no stale listener',
+  JSON.stringify(gestures.overlap));
+
 await page2.close();
 
 // ---- 2c. restore() un-mounts the beta presentation -----------------------
