@@ -461,6 +461,60 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== LANE C CHECKPOINT - 2026-07-16 (Codex) ===
+Owner: Codex | Phase: Lane C — scout mode / charting unit / game metadata | Status: committed at ca9b270, focused gates green, ready for independent review
+
+Branch: claude/football-film-analyzer-GRiCW
+Checkpoint: ca9b270, committed locally. Rebuilt and focused-tested; not pushed, packaged, or tagged.
+
+Completed
+- Replaced the Break Down context button's direct write to `gamePerspective`
+  with in-memory workspace state (`self` / `scout`). The button no longer
+  dispatches Game Setup change events or arms autosave.
+- Scout mode survives selected-play and Offense/Defense/Special Teams changes
+  inside the current game, but resets to self-scout when `activeGameId` changes
+  and on a full reload. Route changes within the same game preserve the session
+  state because the workspace instance remains mounted.
+- `#tagUnit` / the selected play is the charting-unit authority. A game's stored
+  `perspective` remains descriptive metadata and cannot silently choose the unit
+  for the next newly marked play while the redesigned shell is active.
+- `restore()` returns the classic tag form to the scout appearance implied by
+  stored Game Setup metadata, so temporary workspace state cannot leak into the
+  classic layout.
+
+Files
+- js/breakdown-workspace.js
+- tools/e2e-breakdown-video.mjs
+- football-film-analyzer.html (fresh rebuild)
+- CLAUDE.md and GRIDIRON-IQ-REDESIGN-PLAN.md (handoff only)
+
+Failing-first evidence
+- Old implementation with the strengthened harness: 33 passed, 5 failed.
+- Failures proved direct metadata mutation, autosave, and scout/unit coupling.
+- Final focused harness: 40/40, zero page errors. It now pins metadata equality,
+  autosave count, play/unit stability, cross-game reset, and reload reset.
+
+Compatibility evidence
+- e2e-breakdown-form.mjs: 53/53, zero page errors.
+- e2e-workspace-shell.mjs: 22/22, zero page errors.
+- e2e-season-tab.mjs: 154/154, zero page errors; opponent-scout analytics and
+  stored game metadata remain intact.
+- e2e-breakdown-lifecycle.mjs currently reports 23 passed, 3 failed on Claude's
+  uncommitted Lane A active-drag teardown assertions. Those failures are outside
+  Lane C's files and are the active Lane A repair, so the full repository gate
+  must wait rather than certifying a mixed dirty tree.
+
+Data/release boundary
+- No schema or migration.
+- No stored season, play, film, analytics, or query semantics changed.
+- No release, package, tag, or push.
+
+Next requested action
+- Claude finishes and commits Lane A without touching Lane C files.
+- Independent reviewer inspects Lane C's state ownership and lifecycle harness.
+- After both lanes are committed, run the canonical atomic full gate once, with
+  no concurrent Puppeteer run.
+
 === CURRENT HANDOFF SNAPSHOT - 2026-07-16 (Claude) ===
 Owner: Claude | Phase: R1 beta repair — Lane 0 + Lane D | Status: both complete
 

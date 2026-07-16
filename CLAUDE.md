@@ -93,6 +93,25 @@ settled it.
   BETA-004 (Plan discoverability), BETA-005 (QB alignment model), and BETA-006
   (coverage shell/family model) remain open and unchanged.
 
+- **Lane C is committed as `ca9b270` by Codex and ready for independent review.**
+  Break Down now owns a transient `self` / `scout` workspace state instead of
+  writing `gamePerspective`. Context clicks do not mutate or autosave Game Setup
+  metadata. Scout mode survives play and unit changes within the current game,
+  resets to self-scout on game switch and reload, and the visible `#tagUnit`
+  remains the authority for the next play's charting unit. Restoring the classic
+  layout restores its metadata-driven scout appearance.
+- **Lane C evidence:** the revised Break Down/video harness failed first at
+  `33 passed, 5 failed` on the old implementation, then passed `40/40` after the
+  fix. Compatibility passes: Break Down form `53/53`, workspace shell `22/22`,
+  and season/scout analytics `154/154`, all with zero page errors. The complete
+  repository gate is intentionally pending because Claude's uncommitted Lane A
+  active-drag regressions currently report three known failures in
+  `e2e-breakdown-lifecycle.mjs`; those are not Lane C files or findings.
+- **Lane C files:** `js/breakdown-workspace.js`,
+  `tools/e2e-breakdown-video.mjs`, and the rebuilt
+  `football-film-analyzer.html`. No schema, season data, stored play tags, film
+  paths, or analytics definitions changed.
+
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
