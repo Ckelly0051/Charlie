@@ -202,7 +202,7 @@ export class SeasonStore {
   blankGame() {
     return {
       id: this._newId(), name: 'New Game', status: 'active',
-      gameInfo: {}, plays: [], annotations: [],
+      gameInfo: { perspective: 'offense' }, plays: [], annotations: [],
       nextId: 1, currentPlayId: null,
       videoFileName: null, clipNames: [], isMultiClip: false,
     };

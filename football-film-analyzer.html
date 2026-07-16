@@ -16664,7 +16664,7 @@ class SeasonStore {
   blankGame() {
     return {
       id: this._newId(), name: 'New Game', status: 'active',
-      gameInfo: {}, plays: [], annotations: [],
+      gameInfo: { perspective: 'offense' }, plays: [], annotations: [],
       nextId: 1, currentPlayId: null,
       videoFileName: null, clipNames: [], isMultiClip: false,
     };
@@ -18201,6 +18201,8 @@ class StorageManager {
     } else {
       window.app?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
     }
+    const game = this.seasonStore.activeGame();
+    if (game) game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
     this.seasonStore.persist();
     this._clearForNewGame();
     this._loadActiveGame();
@@ -36501,13 +36503,24 @@ class App {
     ['gameWeek', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
      'gameHomeAway', 'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = 'game';
+    const perspectiveEl = document.getElementById('gamePerspective');
+    if (perspectiveEl) perspectiveEl.value = 'offense';
     // Team identity (team name, jersey color) carries forward across games, so
     // it's intentionally left in place here.
     this.storage.gameInfo = {
       ...this.storage.gameInfo,
       projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
-      homeAway: '', gameType: '', direction: '',
+      homeAway: '', gameType: '', direction: '', perspective: 'offense',
     };
+    // Perspective owns both scout styling and the default unit for the next
+    // play. A fresh game must not inherit either from the previous film. Suppress
+    // the normal save listener: this form is between games and has no owner yet.
+    if (perspectiveEl) {
+      const wasLoading = this._loadingGameInfo;
+      this._loadingGameInfo = true;
+      perspectiveEl.dispatchEvent(new Event('change'));
+      this._loadingGameInfo = wasLoading;
+    }
     this._trackedScore = null;
     this._renderGameSummary();
   }

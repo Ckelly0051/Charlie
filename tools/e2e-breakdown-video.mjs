@@ -387,6 +387,27 @@ ok(state.gameId === fixture.secondGameId && state.perspective === 'scout' && sta
   state.context === 'scout' && state.subject === 'Opponent offense' && state.scoutClass,
   'Opening declared opponent film derives scout identity from that game', JSON.stringify(state));
 
+state = await page.evaluate(() => {
+  const before = {
+    perspective: document.getElementById('gamePerspective').value,
+    scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+  };
+  const game = window.app.storage.newGame();
+  return {
+    before,
+    gameId: game?.id,
+    perspective: document.getElementById('gamePerspective').value,
+    storedPerspective: window.app.storage.gameInfo.perspective,
+    scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
+    defaultUnit: window.app.tagger.defaultUnit,
+  };
+});
+ok(state.before.perspective === 'scout' && state.before.scoutClass,
+  'New-game perspective regression starts from live opponent-scout state', JSON.stringify(state.before));
+ok(!!state.gameId && state.perspective === 'offense' && state.storedPerspective === 'offense' &&
+  !state.scoutClass && state.defaultUnit === 'offense',
+  'A fresh game cannot inherit the previous game’s opponent-scout identity', JSON.stringify(state));
+
 await page.evaluate(async firstGameId => {
   await window.app.storage.switchToGame(firstGameId, { persist: false });
   window.app.storage.commitActive();

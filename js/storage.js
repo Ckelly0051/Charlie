@@ -886,6 +886,8 @@ export class StorageManager {
     } else {
       window.app?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
     }
+    const game = this.seasonStore.activeGame();
+    if (game) game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
     this.seasonStore.persist();
     this._clearForNewGame();
     this._loadActiveGame();

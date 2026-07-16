@@ -738,13 +738,24 @@ class App {
     ['gameWeek', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
      'gameHomeAway', 'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = 'game';
+    const perspectiveEl = document.getElementById('gamePerspective');
+    if (perspectiveEl) perspectiveEl.value = 'offense';
     // Team identity (team name, jersey color) carries forward across games, so
     // it's intentionally left in place here.
     this.storage.gameInfo = {
       ...this.storage.gameInfo,
       projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
-      homeAway: '', gameType: '', direction: '',
+      homeAway: '', gameType: '', direction: '', perspective: 'offense',
     };
+    // Perspective owns both scout styling and the default unit for the next
+    // play. A fresh game must not inherit either from the previous film. Suppress
+    // the normal save listener: this form is between games and has no owner yet.
+    if (perspectiveEl) {
+      const wasLoading = this._loadingGameInfo;
+      this._loadingGameInfo = true;
+      perspectiveEl.dispatchEvent(new Event('change'));
+      this._loadingGameInfo = wasLoading;
+    }
     this._trackedScore = null;
     this._renderGameSummary();
   }
