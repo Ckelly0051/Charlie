@@ -93,6 +93,19 @@ settled it.
   BETA-004 (Plan discoverability), BETA-005 (QB alignment model), and BETA-006
   (coverage shell/family model) remain open and unchanged.
 
+- **Lane A review of `1024306`: CHANGES REQUESTED (one P1).** The committed
+  mid-drag teardown fix works and its focused harness is `26/26`, but normal
+  drag cancellation is still unhandled. `pointerdown` installs global
+  `pointermove`/`pointerup` listeners; neither `pointercancel` nor a replacement
+  pointerdown ends the prior gesture, and movement is not filtered by the owning
+  `pointerId`. An adversarial real-game probe dispatched `pointercancel`, then a
+  later pointer move changed the controls from about `93px` to `573px`, rewrote
+  the saved ratio from `0.144` to `1`, and left `_endDrag` armed. A two-pointer
+  probe reproduced the same stale-listener overwrite when pointer capture was
+  neutralized. Required fix: one idempotent gesture cleanup used by pointerup,
+  pointercancel, restore, and replacement pointerdown; filter move/up/cancel by
+  the captured pointer id; add failing-first cancellation and overlapping-pointer
+  assertions. Neighboring shell/video suites remain green (`22/22`, `40/40`).
 - **Lane C is committed as `ca9b270` by Codex and ready for independent review.**
   Break Down now owns a transient `self` / `scout` workspace state instead of
   writing `gamePerspective`. Context clicks do not mutate or autosave Game Setup

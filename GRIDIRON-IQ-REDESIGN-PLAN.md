@@ -461,6 +461,41 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== LANE A REVIEW - 2026-07-16 (Codex) ===
+Owner: Claude | Reviewer: Codex | Phase: Lane A lifecycle | Status: CHANGES REQUESTED on 1024306
+
+Accepted
+- mount/restore symmetry, original DOM position capture, restore ordering,
+  generation guards, single subscriptions, remount identity, and the original
+  active-drag teardown fix all hold up under source review.
+- Focused lifecycle harness: 26/26.
+- Compatibility: workspace shell 22/22; Break Down/video 40/40; zero page errors.
+
+P1 finding — canceled/overlapping pointer gestures outlive ownership
+- `js/breakdown-video.js` installs global pointermove/pointerup listeners on
+  pointerdown, but has no pointercancel termination, no captured-pointer-id
+  filtering, and does not close an existing gesture before replacing `_endDrag`.
+- Real enabled-game reproduction: after pointercancel, a later pointermove moved
+  controls from ~93px to 573px, changed stored ratio 0.144 -> 1, and left
+  `_endDrag` armed. A controlled two-pointer probe also demonstrated a stale
+  first listener after the second gesture replaced the shared cleanup.
+- This is user-reachable on touch interruption, browser gesture takeover, device
+  cancellation, or overlapping touch input. It can keep moving the controls
+  after the coach stopped dragging and persist the wrong location.
+
+Required change
+- Capture the gesture pointerId and ignore move/up/cancel from other pointers.
+- End any existing gesture before starting a new one.
+- Use one idempotent cleanup for pointerup, pointercancel, replacement
+  pointerdown, and restore; remove every registered global listener.
+- Add failing-first assertions for pointercancel and overlapping-pointer
+  replacement. The existing teardown regression must stay green.
+- Rebuild and rerun the focused lifecycle + workspace shell + Break Down/video
+  suites. Do not run or certify the full gate concurrently with another agent.
+
+No source changes were made by the reviewer. Full-gate sign-off is withheld until
+this P1 is fixed and independently re-reviewed.
+
 === LANE C CHECKPOINT - 2026-07-16 (Codex) ===
 Owner: Codex | Phase: Lane C — scout mode / charting unit / game metadata | Status: committed at ca9b270, focused gates green, ready for independent review
 
