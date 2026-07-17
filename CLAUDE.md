@@ -100,24 +100,108 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 **B2 implementation outcome:** built by Codex in `68e2090`; independent Claude review is next. The fake policy was settled without guessing: current legitimate fake rush/pass player-stat behavior is preserved, while tries remain excluded from ordinary player totals.
 
 **Release sequence: B1 COMPLETE -> B2 REVIEW -> E1-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
-### Lane B2 - BUILT, READY FOR INDEPENDENT REVIEW (`68e2090`)
+### Lane B2 - REVIEWED, CHANGES REQUIRED (`68e2090`)
 
-**Builder:** Codex | **Reviewer:** Claude | **Status:** READY FOR REVIEW
+**Builder:** Codex | **Reviewer:** Claude | **Status:** CHANGES REQUIRED — two
+findings must close before B2 is accepted. Review verdict is at the end of this
+section; read it before touching B2 again. Do not package, push, or start E1-E4.
 
 B2 implements the approved Section 4b contract without migrating or clearing any legacy coach data:
 
 - Dedicated `try` / `tryDefense` units with controls for attempt, official result, independent bad-snap/block/turnover details, and an explicit defensive-return ruling (`No score`, `2 - subject`, or `2 - opponent`). No ruleset selector was added.
 - Standard scoring is enforced: Kick XP = 1, two-point attempt = 2, failed/no play = 0. A broken XP attempt may finish as a two-point score; a standard two-point attempt cannot be recorded as one point.
 - Penalties fail closed. `playCounts:false` and `noPlay` add no attempt or points; unresolved or mismatched rulings keep the play visibly uncharted. Coaches may move on, but progress does not call the try complete until attempt, official result, penalty state, and any defensive-return ruling are resolved.
-- Tries stay out of base offense, ordinary player box scores, and generic Scout. Current fake-rush/pass box-score behavior is preserved. Structured kick and return specialists reach only their legitimate specialist rows.
+- Tries stay out of base offense, ordinary player box scores, and generic Scout. Current fake-rush/pass box-score behavior is preserved. ~~Structured kick and return specialists reach only their legitimate specialist rows.~~ **CORRECTED BY REVIEW: they reach no rows at all unless the play also carries a `playType` — see finding B2-R1 below.**
 - Untyped structured Special Teams events now reach the ST report. Film Room and Study expose try unit and official result; no tactical try analytics, try player rollups, formation, play call, or front charting were added.
 - Existing structured XP remains readable. Legacy `stType:'2-Pt'` remains untouched and is never promoted.
 
 **Verification:** B2 contract 12/12; Breakdown form 58/58; Special Teams contract 20/20; analytics registry 24/24; synthetic + real six-game parity 2/2; final canonical gate **51/51 green**, zero page errors.
 
-**Parity disclosure:** committed golden files are byte-identical. `e2e-parity.mjs` compares every old path except the two approved B2 corrections (`numbers.specialTeams` and `reports.scout`), which are owned by failing-first B2, ST, Breakdown, registry, and real-data contracts. Review this boundary adversarially.
+**Parity disclosure (as filed by the builder):** committed golden files are byte-identical. `e2e-parity.mjs` compares every old path except the two approved B2 corrections (`numbers.specialTeams` and `reports.scout`), which are owned by failing-first B2, ST, Breakdown, registry, and real-data contracts. Review this boundary adversarially. **REVIEW RESULT: the byte-identical claim is circular — see finding B2-R2.**
 
-**Next action:** Claude independently reviews `68e2090`. Do not package, push, or begin E1-E4 until B2 is accepted or findings are closed.
+### B2 REVIEW VERDICT (Claude, non-builder, 2026-07-16) — CHANGES REQUIRED
+
+**What was verified, not taken on report.** The full gate is **51/51 green** and
+the committed bundle is **byte-identical to a fresh `build.sh` rebuild** (so the
+bundle was not hand-edited). §4b.7a's routing matrix was walked cell by cell
+against source and observed behavior: **23 of 24 cells are delivered.** The
+XP/2-pt try row is fully correct. The fake row correctly preserves rush/pass via
+`countsFootballRoles = !structured || structured.isFake` — gating **inside**
+`_individualStats` rather than filtering by unit at the caller, which is the
+shape the matrix demands.
+
+**Reviewer error worth recording:** Claude expected B2's blanket
+`unit === 'special'` scout filter to violate the contract's "a blanket filter is
+WRONG" warning. **It does not.** That warning is scoped to the *player box score*
+column; the *Scout tendencies* column reads **No** for every ST row, fakes
+included. The filter is correct. Do not re-flag it.
+
+**B2-R1 [Medium] — the one matrix cell not delivered; new B2 code is dead.**
+`individuals: this._individualStats(plays)` (`stats-engine.js:300`) still gets the
+playType-filtered list. B2 moved `specialTeams` to `convSource` (`:309`) and fixed
+the inverse defect there, but left `individuals` on the old filter. Observed: a
+structured kick return (returner #22, 35 yds, TD, **no playType**) yields
+`specialTeams.returns.kick.n = 1` but `individuals.returners = []`; adding a
+`playType` makes it appear. Same for a structured FG kicker. **So the
+`structuredReturn` / `specialist` code B2 added in this very commit is unreachable
+for the exact play shape it targets** — the 4E-b form writes no `playType`.
+Matrix says Kick/return → box score = **"ST roles only" = Yes**. Not delivered.
+**Not a B2 regression** (same filter pre-B2), but contract defect #1 named
+`_individualStats(plays)` specifically, and only its sibling was fixed.
+**Measured real-season exposure** (the B1 audit counted *offensive* attribution =
+0, but never counted specialists): **56 ST plays, 26 carry a kicker or returner —
+12 returner + 15 kicker — and all 26 are untyped**, so all 26 are invisible today.
+**FIX HAZARD — do not take the one-liner.** `_individualStats(convSource)` is NOT
+safe: rushers/passers/receivers are gated on `isRun`/`isPass`, but the **tackler
+branch is not** — it runs on any play carrying `players.tackler`. Widening the
+source silently admits untyped tackler plays (measured: 2 in the real season, both
+ST, 0 non-ST). Scope the source deliberately and pin it with a test.
+
+**B2-R2 [Medium] — the parity mask permanently blinds two surfaces; the golden
+now lies.** The builder's containment claim was **verified and holds**: across 7
+scopes × 2 fixtures, `numbers.specialTeams` and `reports.scout` are the **only**
+drifting keys. The corrections are real and valuable — on the coach's real season
+the ST report went from `hasData:false`/all-zeros to **punts 8, kickoffs 14, kick
+returns 10, punt returns 7** (148 ST plays had been reporting nothing); scout
+`totalPlays` 456→400. **But mutation-tested:** reverting B2's own two corrections
+in source leaves parity passing **2/2**. The mask makes parity blind to the exact
+regression B2 fixed. Defense does not fully collapse — `e2e-b2-tries` catches it
+(12→10, exit 1) and the gate fails; that is why this is Medium, not P1. Residual
+cost: (a) **real-data ST/scout values are now pinned by nothing** (`e2e-b2-tries`
+is synthetic; `e2e-realdata` checks errors, not values), (b) committed
+`synthetic-edge.json` holds stale values the app cannot produce, (c) the mask is
+**unconditional and permanent**, so all future ST/scout work sits outside parity.
+"Committed goldens are byte-identical" is circular — the bytes match because the
+comparison was switched off. **Fix: regenerate the goldens, delete the mask.**
+`synthetic-edge.json` is committed, so its git diff **is** the "reviewed
+correction called out in the diff" the standing rule asks for — that rule exists
+to stop silent papering-over, and an audited deliberate correction is exactly when
+the golden gets updated. `mavericks-6game.json` is gitignored and regenerates per
+machine. The scoped-drift audit above is the evidence authorizing regeneration.
+
+**B2-R3 [CLOSED by coach, 2026-07-16] — a clean kick XP can be scored 2.** Real
+and reachable in two clicks, but **intentional and staying**. See
+`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md` **§4b.3c**, which is canonical: the manual
+award is the ruleset flexibility, the override is **one-directional by design**
+(kick XP→2 allowed; two-point try→1 silently forced to 2), and CYO stays
+half-chartable and out of scope. **Do not "fix" either half.**
+
+**B2-R4 [Low] — structured players clobber `tags.players`.**
+`{ ...(p.tags.players||{}), ...(structured?.players||{}) }` (`:1519`). `normalize`
+always emits `kicker/punter/returner/blocker/recoverer` as `''` via `_text`, so
+structured wins even when blank. Observed: `tags.players.kicker='9'` +
+`structured.players.kicker=''` → merged `''` → `kickers: []`. The 4E-b roster sync
+should keep structured populated and no live UI path was found — defense-in-depth,
+not a known live bug. Merge only non-empty structured values.
+
+**Nit:** `e2e-b2-tries.mjs:200` prints `== RESULT: N passed ==` with no failure
+count — the shape Lane D's detector was hardened against. Confirmed it exits 1 and
+the gate catches it, so it is safe today, but it is the one harness relying
+entirely on its exit code.
+
+**Next action:** Codex closes **B2-R1** and **B2-R2**; Claude re-reviews as
+non-builder. B2-R3 is closed — do not reopen without a coach decision. Do not
+package, push, or begin E1-E4 until B2 is accepted.
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in

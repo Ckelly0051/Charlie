@@ -360,6 +360,47 @@ silently inherit someone else's rules, because nothing is inherited at all.
 §5's existing touchback ruleset is a separate concern and is **not** changed by
 this amendment.
 
+### 4b.3c The XP point award is coach-overridable — DECIDED, do not "fix" it
+
+**COACH, 2026-07-16, closing a B2 review finding:** *"I am OK leaving 3 as-is.
+Just let the coach score it how he wants."*
+
+Claude's B2 review flagged that a **clean** kick XP can be scored 2. Verified:
+`{unit:'try', attemptType:'extraPoint', result:'converted', events: all
+false/null, outcome.score:'twoPoint'}` normalizes to `score:'twoPoint'` and
+`points()` returns **2**. `_tryDetails` renders the `2 Points` chip for **any**
+converted try — gated only on `result === 'converted' && !defensiveReturn`, with
+no requirement that a bad snap, block, or turnover occurred. Two clicks.
+
+**This is intentional and stays.** It is the same principle as §4b.3b: the app
+records the coach's official ruling rather than judging legality. With no
+ruleset selector, **the manual award IS the ruleset flexibility** — it needs no
+config and invents nothing.
+
+**The asymmetry is deliberate, and it is the whole shape of the decision:**
+
+| Charted | Behavior | Status |
+|---|---|---|
+| Kick XP awarded **2** | Records 2 | **Coach's ruling wins** |
+| Two-point try awarded **1** | **Silently forced to 2** | **Standard rules enforced** |
+
+`normalize` forces any `twoPoint` attempt to `score:'twoPoint'`; the form never
+offers a `1 Point` chip for one. So the override is **one-directional by
+design**: the coach may award an XP two points, but may not award a two-point
+try one point.
+
+**Known, accepted consequence.** CYO's inverted values (kick XP = 2, run/pass
+try = 1) are therefore **half-chartable** — the kick side works, the run/pass
+side does not. That is fine: the coach ruled CYO explicitly out of scope
+(*"build the scoring around the standard rules"*), and the coach chose to
+document this rather than change code. The reviewer offered symmetric-override
+and fail-loudly alternatives; both were declined.
+
+**Do not "fix" either half.** Gating the `2 Points` chip on a broken-play event
+would remove an intended coach override. Un-forcing `twoPoint → 2` would remove
+an intended standard-rules guard. Both were considered and rejected on
+2026-07-16. Reopen only on an explicit coach decision.
+
 ### 4b.4 Scoring attribution
 
 `scoringTeam()` reads the dedicated try result rather than routing through the
