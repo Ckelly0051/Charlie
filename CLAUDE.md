@@ -164,9 +164,23 @@ wording is corrected. E1-R1 through E1-R9 are closed. The coach-approved cleanup
 remains bounded to 12 ST plays losing `backfield`, with 1 of those also losing
 `strength`; no other E1 cleanup is authorized.
 
-### Lane E2 — BUILT, ready for independent review (`bf9d42a`)
+### Lane E2 — review fixes applied, ready for re-review (`80b8ebf`)
 
-**Builder:** Claude | **Reviewer:** Codex (non-builder) | **Status:** READY FOR REVIEW
+**Builder:** Claude | **Reviewer:** Codex (non-builder) | **Status:** RE-REVIEW (`bf9d42a` built → Codex CHANGES REQUIRED → fixes `80b8ebf`)
+
+**E2 review round 1 (Codex, on `bf9d42a`) — both findings closed in `80b8ebf`:**
+- **E2-R1 [P1] permanent-data regression.** `copyFromPrevious` (Same-as-Last) and
+  `applyTemplate` wrote `SCHEME_KEYS`/template entries — now including `unit` + the
+  four alignment fields — directly, with no ST strip. A legacy ST source or a
+  template saved from a mis-tagged play could stamp forbidden alignment onto a
+  play ending `unit:'special'`, violating the E1-R9 invariant. Both now call
+  `_stripStAlignment(play)` after writing. Failing-first tests 16d/16e (liveness:
+  present-then-stripped) + 16f (offense copy keeps its look — unit-conditional).
+- **E2-R2 [P2] projection.** Backfield was treated atomically, so a malformed
+  multi-value backfield (`Pistol + Diamond`) kept its alignment token. Backfield
+  is now split symmetrically with formation; alignment tokens stripped
+  unconditionally, first supplies `qbAlignment` (tier 3). Test 8b. Normal
+  single-value backfield unaffected. **e2e-tag-model 26/26; parity 2/2; gate 52/52.**
 
 E2 is the **pure data layer** for the accepted E1 contract — no analytics or UI
 change (the P4E-a "normalizer seam" shape):
