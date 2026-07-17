@@ -4,6 +4,7 @@
  * what Auto Down & Distance does while charting).
  */
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 
 /**
  * Did this play earn a first down? True when the play is explicitly tagged
@@ -40,6 +41,14 @@ export const DRIVE_ENDERS = new Set([
  */
 export function isPlayTagged(play) {
   const t = (play && play.tags) || {};
-  return !!(play && SpecialTeamsModel.normalize(play.specialTeams)) || !!(t.playType || t.result || t.stType || t.runPass
+  const special = SpecialTeamsModel.normalize(play?.specialTeams);
+  if (special?.unit === 'try' || special?.unit === 'tryDefense') {
+    const penalties = PenaltyModel.normalizeList(play?.penalties);
+    const unresolvedPenalty = penalties.some(penalty => penalty.playCounts == null || penalty.disposition === 'unknown');
+    const noPlayMismatch = penalties.some(penalty => penalty.playCounts === false) && special.result !== 'noPlay';
+    return !!(special.attemptType && special.result && !unresolvedPenalty && !noPlayMismatch
+      && (!special.events.defensiveReturn || special.outcome.returnAward != null));
+  }
+  return !!special || !!(t.playType || t.result || t.stType || t.runPass
     || t.formation || t.defFront || t.coverage || t.blitz);
 }

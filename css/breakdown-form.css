@@ -56,6 +56,11 @@
 .breakdown-form-v2.mode-special #tagPlayersSection { display: none; }
 .breakdown-form-v2 .group-special .bdv-st-legacy { display: none; }
 .bdv-st-editor { display: grid; gap: 4px; }
+.bdv-try-summary { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:8px 10px; border-left:3px solid var(--accent); background:#101c29; }
+.bdv-try-summary strong { font-size:12px; text-transform:uppercase; }
+.bdv-try-summary span,.bdv-optional { color:var(--text-dim); font-size:10px; font-weight:700; }
+.bdv-try-warning { padding:8px 10px; border-left:3px solid #d9a441; background:#242116; color:#ead7a3; font-size:11px; font-weight:700; }
+
 .bdv-st-legacy-note { padding: 8px 10px; border-left: 3px solid #d9a441; background: #242116; color: #ead7a3; font-size: 11px; font-weight: 700; }
 .bdv-st-choice-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 .bdv-st-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 6px 0; }

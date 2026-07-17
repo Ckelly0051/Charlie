@@ -9115,6 +9115,11 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
 .breakdown-form-v2.mode-special #tagPlayersSection { display: none; }
 .breakdown-form-v2 .group-special .bdv-st-legacy { display: none; }
 .bdv-st-editor { display: grid; gap: 4px; }
+.bdv-try-summary { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:8px 10px; border-left:3px solid var(--accent); background:#101c29; }
+.bdv-try-summary strong { font-size:12px; text-transform:uppercase; }
+.bdv-try-summary span,.bdv-optional { color:var(--text-dim); font-size:10px; font-weight:700; }
+.bdv-try-warning { padding:8px 10px; border-left:3px solid #d9a441; background:#242116; color:#ead7a3; font-size:11px; font-weight:700; }
+
 .bdv-st-legacy-note { padding: 8px 10px; border-left: 3px solid #d9a441; background: #242116; color: #ead7a3; font-size: 11px; font-weight: 700; }
 .bdv-st-choice-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 .bdv-st-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 6px 0; }
@@ -10929,13 +10934,19 @@ class SpecialTeamsModel {
     puntReturn: 'receiving',
     fieldGoal: 'attempting',
     fieldGoalBlock: 'defending',
+    try: 'attempting',
+    tryDefense: 'defending',
   });
   static STATUSES = new Set([
     'returned', 'touchback', 'fairCatch', 'downed', 'outOfBounds',
     'blocked', 'muffed', 'recovered', 'good', 'noGood', 'badSnap',
   ]);
-  static SCORES = new Set(['touchdown', 'fieldGoal', 'extraPoint', 'safety']);
+  static SCORES = new Set(['touchdown', 'fieldGoal', 'extraPoint', 'twoPoint', 'safety']);
   static TEAMS = new Set(['subject', 'opponent', 'unknown']);
+  static TRY_ATTEMPTS = new Set(['extraPoint', 'twoPoint']);
+  static TRY_RESULTS = new Set(['converted', 'failed', 'noPlay']);
+  static TURNOVERS = new Set(['interception', 'fumble']);
+  static RETURN_AWARDS = new Set(['none', 'subject', 'opponent']);
 
   static _object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
   static _text(value) { return typeof value === 'string' ? value : ''; }
@@ -10969,12 +10980,48 @@ class SpecialTeamsModel {
     const ret = this._object(value.return);
     const outcome = this._object(value.outcome);
     const players = this._object(value.players);
+    const events = this._object(value.events);
+    const isTry = value.unit === 'try' || value.unit === 'tryDefense';
+    const attemptType = isTry
+      ? this._choice(value.attemptType, this.TRY_ATTEMPTS)
+      : (value.attemptType === 'fieldGoal' || value.attemptType === 'extraPoint' ? value.attemptType : null);
+    const result = isTry ? this._choice(value.result, this.TRY_RESULTS) : null;
+    const defensiveReturn = isTry && events.defensiveReturn === true;
+    const returnAward = defensiveReturn ? this._choice(outcome.returnAward, this.RETURN_AWARDS) : null;
+    let score = this._choice(outcome.score, this.SCORES);
+    let scoredBy = this._choice(outcome.scoredBy, this.TEAMS);
+    if (isTry) {
+      if (defensiveReturn && (returnAward === 'subject' || returnAward === 'opponent')) {
+        score = 'twoPoint';
+        scoredBy = returnAward;
+      } else if (defensiveReturn) {
+        score = null;
+        scoredBy = null;
+      } else if (result !== 'converted') {
+        score = null;
+        scoredBy = null;
+      } else if (!attemptType) {
+        score = null;
+        scoredBy = null;
+      } else if (attemptType === 'twoPoint') {
+        score = 'twoPoint';
+      } else if (score !== 'extraPoint' && score !== 'twoPoint') {
+        score = attemptType;
+      }
+    }
     return {
       ...value,
       version: this.VERSION,
       unit: value.unit,
       subjectRole: role,
-      attemptType: value.attemptType === 'fieldGoal' || value.attemptType === 'extraPoint' ? value.attemptType : null,
+      attemptType,
+      result,
+      events: {
+        badSnap: isTry && events.badSnap === true,
+        blocked: isTry && events.blocked === true,
+        turnover: isTry ? this._choice(events.turnover, this.TURNOVERS) : null,
+        defensiveReturn,
+      },
       kick: {
         ...kick,
         kind: this._text(kick.kind),
@@ -10994,8 +11041,9 @@ class SpecialTeamsModel {
         ...outcome,
         status: this._choice(outcome.status, this.STATUSES),
         recoveredBy: this._choice(outcome.recoveredBy, this.TEAMS),
-        score: this._choice(outcome.score, this.SCORES),
-        scoredBy: this._choice(outcome.scoredBy, this.TEAMS),
+        score,
+        scoredBy,
+        returnAward,
       },
       isOnside: value.isOnside === true,
       isFake: value.isFake === true,
@@ -11023,7 +11071,13 @@ class SpecialTeamsModel {
   static points(value) {
     const event = this.normalize(value && value.specialTeams ? value.specialTeams : value);
     if (!event || !event.outcome.score) return 0;
-    return { touchdown: 6, fieldGoal: 3, extraPoint: 1, safety: 2 }[event.outcome.score] || 0;
+    if (event.unit === 'try' || event.unit === 'tryDefense') {
+      if (event.events.defensiveReturn) {
+        return event.outcome.returnAward === 'subject' || event.outcome.returnAward === 'opponent' ? 2 : 0;
+      }
+      if (event.result !== 'converted') return 0;
+    }
+    return { touchdown: 6, fieldGoal: 3, extraPoint: 1, twoPoint: 2, safety: 2 }[event.outcome.score] || 0;
   }
 
   /** Return subject/opponent/unknown. Never guesses an ambiguous safety. */
@@ -11034,7 +11088,7 @@ class SpecialTeamsModel {
     if (explicit === 'subject' || explicit === 'opponent') return explicit;
     if (explicit === 'unknown') return 'unknown';
     if (event.outcome.score === 'safety') return 'unknown';
-    if (event.outcome.score === 'fieldGoal' || event.outcome.score === 'extraPoint') {
+    if (event.outcome.score === 'fieldGoal' || event.outcome.score === 'extraPoint' || event.outcome.score === 'twoPoint') {
       if (event.subjectRole === 'attempting') return 'subject';
       if (event.subjectRole === 'defending') return 'opponent';
       return 'unknown';
@@ -11205,7 +11259,15 @@ const DRIVE_ENDERS = new Set([
  */
 function isPlayTagged(play) {
   const t = (play && play.tags) || {};
-  return !!(play && SpecialTeamsModel.normalize(play.specialTeams)) || !!(t.playType || t.result || t.stType || t.runPass
+  const special = SpecialTeamsModel.normalize(play?.specialTeams);
+  if (special?.unit === 'try' || special?.unit === 'tryDefense') {
+    const penalties = PenaltyModel.normalizeList(play?.penalties);
+    const unresolvedPenalty = penalties.some(penalty => penalty.playCounts == null || penalty.disposition === 'unknown');
+    const noPlayMismatch = penalties.some(penalty => penalty.playCounts === false) && special.result !== 'noPlay';
+    return !!(special.attemptType && special.result && !unresolvedPenalty && !noPlayMismatch
+      && (!special.events.defensiveReturn || special.outcome.returnAward != null));
+  }
+  return !!special || !!(t.playType || t.result || t.stType || t.runPass
     || t.formation || t.defFront || t.coverage || t.blitz);
 }
 
@@ -22673,9 +22735,15 @@ class StatsEngine {
    * 'Good' result (paired with the ST type); a 'Field Goal' result also counts
    * as 3 for offense plays that mark the drive's FG outcome directly.
    */
+  static _tryPenaltyResolved(p) {
+    const penalties = PenaltyModel.normalizeList(p?.penalties);
+    return !penalties.some(penalty => penalty.playCounts !== true || penalty.disposition === 'unknown');
+  }
+
   static playPoints(p) {
     const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
     if (structured) {
+      if ((structured.unit === 'try' || structured.unit === 'tryDefense') && !StatsEngine._tryPenaltyResolved(p)) return 0;
       const points = SpecialTeamsModel.points(structured);
       if (points) return points;
       if (!structured.isFake) return 0;
@@ -22772,7 +22840,7 @@ class StatsEngine {
   _scoreType(p) {
     const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
     if (structured && structured.outcome.score) {
-      return { touchdown: 'TD', safety: 'Safety', extraPoint: 'XP', fieldGoal: 'FG' }[structured.outcome.score] || 'Score';
+      return { touchdown: 'TD', safety: 'Safety', extraPoint: 'XP', twoPoint: '2-Pt', fieldGoal: 'FG' }[structured.outcome.score] || 'Score';
     }
     const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
@@ -22872,7 +22940,7 @@ class StatsEngine {
       defensive: this._defensiveStats(defPlays),
       gameFlow: this._gameFlowStats(offPlays),
       conversions: this._conversionStats(convSource),
-      specialTeams: this._specialTeamsStats(plays),
+      specialTeams: this._specialTeamsStats(convSource),
       scoreboard: this.computeScoreboard(convSource),
       hash: this._hashStats(offPlays),
       personnelSituation: this._personnelSituationStats(offPlays),
@@ -23392,24 +23460,31 @@ class StatsEngine {
    */
   _conversionStats(source) {
     const structured = p => SpecialTeamsModel.normalize(p && p.specialTeams);
-    const made = (p) => {
+    const official = p => StatsEngine._tryPenaltyResolved(p);
+    const made = (p, wanted) => {
       const event = structured(p);
-      if (event) return event.outcome.status === 'good' || event.outcome.score === 'extraPoint' || event.outcome.score === 'twoPoint';
+      if (event?.unit === 'try' || event?.unit === 'tryDefense') {
+        return official(p) && event.result === 'converted' && event.outcome.score === wanted;
+      }
+      if (event) return event.outcome.status === 'good' || event.outcome.score === wanted;
       return p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
     };
-    // Only OUR conversions count toward our PAT% — a kick marked 'Scored by:
-    // Them' belongs to the opponent.
     const tally = (type) => {
       const wanted = type === 'XP' ? 'extraPoint' : 'twoPoint';
       const att = source.filter(p => {
         const event = structured(p);
+        if (event?.unit === 'try' || event?.unit === 'tryDefense') {
+          if (!official(p) || event.result === 'noPlay' || event.subjectRole !== 'attempting') return false;
+          const officialType = event.result === 'converted' ? event.outcome.score : event.attemptType;
+          return officialType === wanted;
+        }
         if (event) {
           const kind = event.attemptType || event.outcome.score;
           return kind === wanted && event.subjectRole === 'attempting';
         }
         return p.tags.stType === type && StatsEngine.scoringSide(p) === 'us';
       });
-      const m = att.filter(p => made(p)).length;
+      const m = att.filter(p => made(p, wanted)).length;
       return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
     };
     const two = tally('2-Pt');
@@ -23462,7 +23537,8 @@ class StatsEngine {
       };
       const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
       const blocks = rows('fieldGoalBlock');
-      return { punts, kickoffs, fg, returns, blocks: { n: blocks.length, blocked: blocks.filter(x => x.st.outcome.status === 'blocked').length }, structured: true, hasData: true };
+      const tries = { n: rows('try').length + rows('tryDefense').length };
+      return { punts, kickoffs, fg, returns, tries, blocks: { n: blocks.length, blocked: blocks.filter(x => x.st.outcome.status === 'blocked').length }, structured: true, hasData: true };
     }
     const by = (type) => plays.filter(p => p.tags && p.tags.stType === type);
     const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
@@ -23515,6 +23591,7 @@ class StatsEngine {
     if (st.kickoffs.n) cards.push(kpi('Kickoffs', st.kickoffs.n, `${v(st.kickoffs.avg)} avg · ${st.kickoffs.tbPct}% TB · ${v(st.kickoffs.retAllowedAvg)} ret allowed`));
     if (st.fg.att) cards.push(kpi('Field Goals', `${st.fg.made}/${st.fg.att}`, `${st.fg.pct}% · long ${st.fg.long}${st.fg.byDist.length ? ' · ' + st.fg.byDist.map(b => `${b.label} ${b.made}/${b.att}`).join(' · ') : ''}`));
     if (st.blocks?.n) cards.push(kpi('Field Goal Block', st.blocks.n, `${st.blocks.blocked} blocked`));
+    if (st.tries?.n) cards.push(kpi('Try Downs', st.tries.n, 'XP and two-point attempts charted'));
     if (st.returns.kick.n) cards.push(kpi('Kick Returns', st.returns.kick.n, `${v(st.returns.kick.avg)} avg · long ${st.returns.kick.long}${st.returns.kick.td ? ` · ${st.returns.kick.td} TD` : ''}`));
     if (st.returns.punt.n) cards.push(kpi('Punt Returns', st.returns.punt.n, `${v(st.returns.punt.avg)} avg · long ${st.returns.punt.long}${st.returns.punt.td ? ` · ${st.returns.punt.td} TD` : ''}`));
     return `<div class="stats-section"><h3>Special Teams</h3><div class="gi-hero">${cards.join('')}</div></div>`;
@@ -24073,29 +24150,46 @@ class StatsEngine {
     const kickers = {};
 
     plays.forEach(p => {
-      const players = p.tags.players || {};
+      const structured = SpecialTeamsModel.normalize(p.specialTeams);
+      const players = { ...(p.tags.players || {}), ...(structured?.players || {}) };
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
+      const countsFootballRoles = !structured || structured.isFake;
 
       // --- Special teams ---
-      if (players.returner && st.includes('Return')) {
+      const structuredReturn = structured && ['kickoffReturn','puntReturn'].includes(structured.unit);
+      if (players.returner && (structuredReturn || (!structured && st.includes('Return')))) {
         const id = players.returner;
+        const returnYards = structuredReturn && Number.isFinite(structured.return.yards) ? structured.return.yards : yds;
+        const returnTd = structuredReturn
+          ? structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject'
+          : isTD;
         if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0 };
         returners[id].returns++;
-        returners[id].yards += yds;
-        if (isTD) returners[id].tds++;
-        if (yds > returners[id].long) returners[id].long = yds;
+        returners[id].yards += returnYards;
+        if (returnTd) returners[id].tds++;
+        if (returnYards > returners[id].long) returners[id].long = returnYards;
       }
-      if (players.kicker && st) {
+      const specialist = structured ? (players.punter || players.kicker) : players.kicker;
+      if (specialist && structured && !structured.isFake && ['fieldGoal','punt'].includes(structured.unit)) {
+        const id = specialist;
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
+        if (structured.unit === 'fieldGoal') {
+          kickers[id].fgAtt++;
+          if (structured.outcome.status === 'good') kickers[id].fgMade++;
+        } else {
+          kickers[id].punts++;
+          kickers[id].puntYds += structured.kick.distance || 0;
+        }
+      } else if (players.kicker && !structured && st) {
         const id = players.kicker;
         if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
         if (st === 'Field Goal' || st === 'XP') {
           kickers[id].fgAtt++;
-          // 'Good'/'Field Goal' (made) or a scoring result counts as made
           if (StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Field Goal') || StatsEngine.hasResult(p, 'Touchdown')) kickers[id].fgMade++;
         } else if (st === 'Punt') {
           kickers[id].punts++;
@@ -24103,6 +24197,7 @@ class StatsEngine {
         }
       }
 
+      if (countsFootballRoles) {
       // Ball carrier (rushing)
       if (players.ballCarrier && isRun) {
         const id = players.ballCarrier;
@@ -24195,6 +24290,7 @@ class StatsEngine {
             tacklers[id].gradeCount++;
           }
         });
+      }
       }
     });
 
@@ -24826,7 +24922,7 @@ class StatsEngine {
           </div>
         </div>
         ${qTable}
-        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense &amp; Special Teams plays score for ${team}; Defense plays score for ${opp}.</p>
+        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Structured scoring follows the charted subject/opponent ruling; legacy plays retain their established unit-based fallback.</p>
       </div>`;
   }
 
@@ -24843,7 +24939,7 @@ class StatsEngine {
       <div class="stats-section">
         <h3>PAT &amp; 2-Point Conversions</h3>
         <div class="sit-gauges-row">${cards}</div>
-        <p class="viz-caption">Tag the ST Play Type (2-Pt / XP) and pick <b>Good</b> or <b>No Good</b> in Result to chart conversion success.</p>
+        <p class="viz-caption">Chart the try in Special Teams, choose Kick XP or Two-Point, then record the official result.</p>
       </div>`;
   }
 
@@ -25744,9 +25840,10 @@ class StatsEngine {
   }
 
   generateScoutReport(playsOverride = null) {
-    const plays = playsOverride || this._currentPlays();
+    const source = playsOverride || this._currentPlays();
+    const plays = source.filter(p => (p.tags?.unit || 'offense') !== 'special');
     if (plays.length === 0) return null;
-    const stats = this.compute(playsOverride || undefined);
+    const stats = this.compute(plays);
     const formationDetail = {};
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p);
@@ -27477,7 +27574,7 @@ class AnalyticsRegistry {
       ready('playerRole', 'Player Role', p => pairs(p?.tags?.players, true), 'StatsEngine.splitPlayers', { multi: true }),
       ready('grade', 'Grade', p => pairs(p?.tags?.grades), 'play.tags.grades', { multi: true }),
       ready('specialTeamsPhase', 'Special Teams Unit', p => this._one(special(p)?.unit), 'SpecialTeamsModel.normalize.unit'),
-      ready('specialTeamsOutcome', 'Special Teams Outcome', p => this._one(special(p)?.outcome.status), 'SpecialTeamsModel.normalize.outcome.status'),
+      ready('specialTeamsOutcome', 'Special Teams Outcome', p => { const event = special(p); return this._one(event?.result || event?.outcome.status); }, 'SpecialTeamsModel.normalize.result | outcome.status'),
       ready('specialTeamsRole', 'Special Teams Role', p => this._one(special(p)?.subjectRole), 'SpecialTeamsModel.normalize.subjectRole'),
       ready('specialTeamsScore', 'Special Teams Score', p => this._one(special(p)?.outcome.score), 'SpecialTeamsModel.normalize.outcome.score'),
       ready('penaltyTeam', 'Penalty Charged To', p => penalties(p).map(item => item.team), 'PenaltyModel.normalizeList.team', { multi: true }),
@@ -31372,9 +31469,9 @@ class PlayGrid {
     if (col.type === 'st-readonly') {
       const st = SpecialTeamsModel.normalize(p.specialTeams);
       if (!st) return '<span class="pg-dim">—</span>';
-      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block' };
+      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block', try:'Try - Attempting', tryDefense:'Try - Defending' };
       if (col.key === 'stUnit') return this._esc(names[st.unit] || st.unit);
-      if (col.key === 'stOutcome') return this._esc([st.attemptType, st.outcome.status, st.outcome.score].filter(Boolean).join(' · '));
+      if (col.key === 'stOutcome') return this._esc([st.attemptType, st.result || st.outcome.status, st.events?.badSnap ? 'badSnap' : '', st.events?.blocked ? 'blocked' : '', st.events?.turnover || '', st.events?.defensiveReturn ? 'defensiveReturn' : '', st.outcome.returnAward || '', st.outcome.score].filter(Boolean).join(' · '));
       if (col.key === 'stKick') return this._esc([st.kick.distance == null ? '' : `${st.kick.distance} yds`, st.kick.hangTime == null ? '' : `${st.kick.hangTime}s`].filter(Boolean).join(' · '));
       if (col.key === 'stReturn') return this._esc([st.return.yards == null ? '' : `${st.return.yards} yds`, st.outcome.recoveredBy ? `possession: ${st.outcome.recoveredBy}` : ''].filter(Boolean).join(' · '));
     }
@@ -35115,6 +35212,7 @@ class BreakdownForm {
     const units = [
       ['kickoff', 'Kickoff'], ['kickoffReturn', 'Kick Return'], ['punt', 'Punt'],
       ['puntReturn', 'Punt Return'], ['fieldGoal', 'Field Goal / XP'], ['fieldGoalBlock', 'Field Goal Block'],
+      ['try', this.form.classList.contains('is-scout') ? 'Scouted Team Try' : 'Our Team Try'], ['tryDefense', 'Defending a Try'],
     ];
     editor.innerHTML = `
       ${legacy ? '<div class="bdv-st-legacy-note">Legacy Special Teams · details uncharted</div>' : ''}
@@ -35235,7 +35333,48 @@ class BreakdownForm {
 
   _esc(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
+  _tryDetails(st) {
+    const subject = this.form.classList.contains('is-scout') ? 'Scouted team' : 'Our team';
+    const other = this.form.classList.contains('is-scout') ? 'Other team' : 'Opponent';
+    const penalties = PenaltyModel.normalizeList(this.tagger.getCurrentPlay()?.penalties);
+    const penaltyUnresolved = penalties.some(penalty => penalty.playCounts == null || penalty.disposition === 'unknown');
+    const noPlayMismatch = penalties.some(penalty => penalty.playCounts === false) && st.result !== 'noPlay';
+    const tryIncomplete = !st.attemptType || !st.result;
+    const returnUnresolved = st.events.defensiveReturn && st.outcome.returnAward == null;
+    const chip = (attr, value, label, active) => `<button type="button" class="pick${active ? ' active' : ''}" ${attr}="${value}">${label}</button>`;
+    return `
+      <div class="bdv-try-summary"><strong>${st.subjectRole === 'attempting' ? `${subject} try` : `${other} try`}</strong><span>${st.subjectRole === 'attempting' ? 'Chart the attempt and official result' : `Chart ${subject.toLowerCase()} defending the try`}</span></div>
+      <div class="chip-section"><label class="chip-label">Attempt</label><div class="pick-group">
+        ${chip('data-st-try-attempt','extraPoint','Kick XP',st.attemptType === 'extraPoint')}
+        ${chip('data-st-try-attempt','twoPoint','Two-Point',st.attemptType === 'twoPoint')}
+      </div></div>
+      <div class="chip-section"><label class="chip-label">Official result</label><div class="pick-group">
+        ${chip('data-st-try-result','converted','Converted',st.result === 'converted')}
+        ${chip('data-st-try-result','failed','Failed',st.result === 'failed')}
+        ${chip('data-st-try-result','noPlay','No Play / Retry',st.result === 'noPlay')}
+      </div></div>
+      <div class="chip-section"><label class="chip-label">What happened <span class="bdv-optional">Optional</span></label><div class="pick-group">
+        ${chip('data-st-try-event','badSnap','Bad Snap',st.events.badSnap)}
+        ${chip('data-st-try-event','blocked','Blocked',st.events.blocked)}
+        ${chip('data-st-try-turnover','interception','Interception',st.events.turnover === 'interception')}
+        ${chip('data-st-try-turnover','fumble','Fumble',st.events.turnover === 'fumble')}
+        ${chip('data-st-try-event','defensiveReturn','Defensive Return',st.events.defensiveReturn)}
+      </div></div>
+      ${st.result === 'converted' && !st.events.defensiveReturn ? `<div class="chip-section bdv-try-points"><label class="chip-label">Points awarded</label><div class="pick-group">
+        ${st.attemptType === 'extraPoint' ? chip('data-st-try-score','extraPoint','1 Point',st.outcome.score === 'extraPoint') : ''}
+        ${chip('data-st-try-score','twoPoint','2 Points',st.outcome.score === 'twoPoint')}
+      </div></div>` : ''}
+      ${st.events.defensiveReturn ? `<div class="chip-section bdv-try-ruling"><label class="chip-label">Official return ruling</label><div class="pick-group">
+        ${chip('data-st-return-award','none','No Score',st.outcome.returnAward === 'none')}
+        ${chip('data-st-return-award','subject',`2 Points - ${subject}`,st.outcome.returnAward === 'subject')}
+        ${chip('data-st-return-award','opponent',`2 Points - ${other}`,st.outcome.returnAward === 'opponent')}
+      </div></div>` : ''}
+      ${tryIncomplete ? '<div class="bdv-try-warning" role="status">Choose the attempt and official result before finishing this play.</div>' : ''}
+      ${returnUnresolved ? '<div class="bdv-try-warning" role="status">Choose the official return ruling before finishing this play.</div>' : ''}
+      ${penaltyUnresolved || noPlayMismatch ? '<div class="bdv-try-warning" role="status">Resolve the penalty ruling and set No Play / Retry when the snap does not count.</div>' : ''}`;
+  }
   _specialDetails(st) {
+    if (st.unit === 'try' || st.unit === 'tryDefense') return this._tryDetails(st);
     const outcomes = {
       kickoff: [['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['outOfBounds','Out of Bounds'],['recovered','Recovered']],
       kickoffReturn: [['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['muffed','Muffed'],['outOfBounds','Out of Bounds']],
@@ -35299,7 +35438,7 @@ class BreakdownForm {
 
   _newSpecial(unit) {
     return SpecialTeamsModel.normalize({ version: 1, unit, subjectRole: SpecialTeamsModel.ROLES[unit], attemptType: null,
-      kick: {}, return: {}, outcome: {}, isOnside: false, isFake: false, players: {}, notes: '', legacy: false });
+      result: null, events: {}, kick: {}, return: {}, outcome: {}, isOnside: false, isFake: false, players: {}, notes: '', legacy: false });
   }
 
   _saveSpecial(update) {
@@ -35315,7 +35454,7 @@ class BreakdownForm {
   }
 
   _hasSpecialDetails(st) {
-    return !!(st.attemptType || st.outcome.status || st.outcome.score || st.outcome.recoveredBy || st.outcome.scoredBy
+    return !!(st.attemptType || st.result || Object.values(st.events || {}).some(Boolean) || st.outcome.returnAward || st.outcome.status || st.outcome.score || st.outcome.recoveredBy || st.outcome.scoredBy
       || st.isOnside || st.isFake || st.kick.distance != null || st.kick.hangTime != null
       || st.kick.landing.fieldSide || st.kick.landing.yardLine || st.return.yards != null
       || st.return.end.fieldSide || st.return.end.yardLine || Object.values(st.players).some(Boolean));
@@ -35335,6 +35474,54 @@ class BreakdownForm {
       this.tagger._updateTimeline();
       this.tagger._emit('play-updated', play);
       this.loadPlay(play);
+      return;
+    }
+    if (button.dataset.stTryAttempt) {
+      this._saveSpecial(st => {
+        st.attemptType = button.dataset.stTryAttempt;
+        if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.attemptType;
+      });
+      return;
+    }
+    if (button.dataset.stTryResult) {
+      this._saveSpecial(st => {
+        st.result = button.dataset.stTryResult;
+        if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.outcome.score || st.attemptType;
+        else if (!st.events.defensiveReturn || !['subject','opponent'].includes(st.outcome.returnAward)) { st.outcome.score = null; st.outcome.scoredBy = null; }
+      });
+      return;
+    }
+    if (button.dataset.stTryScore) {
+      this._saveSpecial(st => {
+        st.result = 'converted';
+        st.outcome.score = button.dataset.stTryScore;
+        st.outcome.scoredBy = null;
+      });
+      return;
+    }
+    if (button.dataset.stTryTurnover) {
+      this._saveSpecial(st => { st.events.turnover = st.events.turnover === button.dataset.stTryTurnover ? null : button.dataset.stTryTurnover; });
+      return;
+    }
+    if (button.dataset.stTryEvent) {
+      this._saveSpecial(st => {
+        const key = button.dataset.stTryEvent;
+        st.events[key] = !st.events[key];
+        if (key === 'defensiveReturn') {
+          st.outcome.returnAward = null;
+          st.outcome.score = st.events.defensiveReturn ? null : (st.result === 'converted' ? st.attemptType : null);
+          st.outcome.scoredBy = null;
+          if (st.events.defensiveReturn && st.result === 'converted') st.result = 'failed';
+        }
+      });
+      return;
+    }
+    if (button.dataset.stReturnAward) {
+      this._saveSpecial(st => {
+        st.outcome.returnAward = button.dataset.stReturnAward;
+        st.outcome.score = st.outcome.returnAward === 'none' ? null : 'twoPoint';
+        st.outcome.scoredBy = st.outcome.returnAward === 'none' ? null : st.outcome.returnAward;
+      });
       return;
     }
     if (button.dataset.stOutcome) this._saveSpecial(st => {

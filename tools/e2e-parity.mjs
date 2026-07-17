@@ -144,6 +144,19 @@ const fixtures = [{ name: 'synthetic-edge', data: syntheticEdge() }];
 if (fs.existsSync(REAL)) fixtures.push({ name: 'mavericks-6game', data: JSON.parse(fs.readFileSync(REAL, 'utf-8')), local: true });
 else console.log('  (real 6-game fixture not present — synthetic only)');
 
+// B2 deliberately repairs two analytics routes that the original golden froze:
+// untyped ST now reaches its own report, and all ST stays out of generic Scout.
+// Those surfaces have dedicated failing-first contracts, so preserve the old
+// golden bytes and compare every unrelated analytics path exactly as before.
+const parityComparable = (snapshot, golden) => {
+  const comparable = JSON.parse(JSON.stringify(snapshot));
+  for (const scope of Object.keys(comparable)) {
+    if (!golden[scope]) continue;
+    if (comparable[scope]?.numbers && golden[scope]?.numbers) comparable[scope].numbers.specialTeams = golden[scope].numbers.specialTeams;
+    if (comparable[scope]?.reports && golden[scope]?.reports) comparable[scope].reports.scout = golden[scope].reports.scout;
+  }
+  return comparable;
+};
 for (const fx of fixtures) {
   const snap = await capture(page, fx.data);
   const gp = goldenPath(fx.name);
@@ -160,14 +173,15 @@ for (const fx of fixtures) {
     ok(false, `${fx.name}: golden exists (run --update first)`); continue;
   }
   const golden = JSON.parse(fs.readFileSync(gp, 'utf-8'));
-  if (JSON.stringify(snap) === JSON.stringify(golden)) {
+  const comparable = parityComparable(snap, golden);
+  if (JSON.stringify(comparable) === JSON.stringify(golden)) {
     ok(true, `${fx.name}: analytics snapshot matches golden (${scopes.length} scopes, ${nDrill} drilldowns)`);
   } else {
     const allScopes = [...new Set([...scopes, ...Object.keys(golden)])];
-    const bad = allScopes.filter(s => JSON.stringify(snap[s]) !== JSON.stringify(golden[s]));
+    const bad = allScopes.filter(s => JSON.stringify(comparable[s]) !== JSON.stringify(golden[s]));
     let detail = `scopes drifted: ${bad.join(', ')}`;
     if (bad.length) {
-      const s = bad[0], A = snap[s] || {}, B = golden[s] || {};
+      const s = bad[0], A = comparable[s] || {}, B = golden[s] || {};
       const secs = ['numbers', 'drill', 'reports'].filter(k => JSON.stringify(A[k]) !== JSON.stringify(B[k]));
       detail += ` | ${s}: ${secs.join(',')}`;
     }

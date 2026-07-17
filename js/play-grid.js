@@ -603,9 +603,9 @@ export class PlayGrid {
     if (col.type === 'st-readonly') {
       const st = SpecialTeamsModel.normalize(p.specialTeams);
       if (!st) return '<span class="pg-dim">—</span>';
-      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block' };
+      const names = { kickoff:'Kickoff', kickoffReturn:'Kick Return', punt:'Punt', puntReturn:'Punt Return', fieldGoal:'Field Goal / XP', fieldGoalBlock:'Field Goal Block', try:'Try - Attempting', tryDefense:'Try - Defending' };
       if (col.key === 'stUnit') return this._esc(names[st.unit] || st.unit);
-      if (col.key === 'stOutcome') return this._esc([st.attemptType, st.outcome.status, st.outcome.score].filter(Boolean).join(' · '));
+      if (col.key === 'stOutcome') return this._esc([st.attemptType, st.result || st.outcome.status, st.events?.badSnap ? 'badSnap' : '', st.events?.blocked ? 'blocked' : '', st.events?.turnover || '', st.events?.defensiveReturn ? 'defensiveReturn' : '', st.outcome.returnAward || '', st.outcome.score].filter(Boolean).join(' · '));
       if (col.key === 'stKick') return this._esc([st.kick.distance == null ? '' : `${st.kick.distance} yds`, st.kick.hangTime == null ? '' : `${st.kick.hangTime}s`].filter(Boolean).join(' · '));
       if (col.key === 'stReturn') return this._esc([st.return.yards == null ? '' : `${st.return.yards} yds`, st.outcome.recoveredBy ? `possession: ${st.outcome.recoveredBy}` : ''].filter(Boolean).join(' · '));
     }

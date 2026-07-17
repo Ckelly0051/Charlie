@@ -111,10 +111,35 @@ state = await page.evaluate(() => ({
   legacyScoreHidden: getComputedStyle(document.querySelector('#tagScoreFor').closest('.chip-section')).display === 'none',
   structuredBefore: window.app.tagger.plays[0].specialTeams || null,
 }));
-ok(state.editor && state.unitChoices === 6 && state.legacyScoreHidden, 'Redesigned Special Teams exposes six units and hides the legacy Scored-by control', JSON.stringify(state));
+ok(state.editor && state.unitChoices === 8 && state.legacyScoreHidden, 'Redesigned Special Teams exposes dedicated kick, return, field-goal, and try units while hiding the legacy Scored-by control', JSON.stringify(state));
 ok(state.structuredBefore === null, 'Changing the play unit to Special Teams does not invent structured details');
 
+await page.evaluate(() => document.querySelector('[data-st-unit="try"]').click());
+await page.evaluate(() => {
+  document.querySelector('[data-st-try-attempt="extraPoint"]').click();
+  document.querySelector('[data-st-try-result="converted"]').click();
+  document.querySelector('[data-st-try-event="blocked"]').click();
+  document.querySelector('[data-st-try-score="twoPoint"]').click();
+});
+state = await page.evaluate(() => {
+  const play = window.app.tagger.plays[0];
+  const grid = window.app.playGrid, cols = grid.constructor.COLUMNS;
+  const cell = key => grid._cellHtml(play, cols.find(col => col.key === key)).replace(/<[^>]*>/g, '');
+  return { st: play.specialTeams, points: window.app.stats.constructor.playPoints(play), kickInputs: document.querySelectorAll('[data-st-input="kick-distance"],[data-st-input="hang-time"]').length, unitCell: cell('stUnit'), outcomeCell: cell('stOutcome'), studyOutcome: window.app.analyticsRegistry.values('specialTeamsOutcome', play) };
+});
+ok(state.st.unit === 'try' && state.st.attemptType === 'extraPoint' && state.st.result === 'converted' && state.st.events.blocked && state.st.outcome.score === 'twoPoint' && state.points === 2, 'Blocked XP can finish as an official two-point conversion', JSON.stringify(state));
+ok(state.kickInputs === 0, 'Try charting does not expose field-goal distance or hang-time controls');
+ok(state.unitCell === 'Try - Attempting' && /converted/.test(state.outcomeCell) && /blocked/.test(state.outcomeCell) && state.studyOutcome[0] === 'converted', 'Film Room and Study expose the official try result and optional event details', JSON.stringify(state));
+await page.evaluate(() => document.querySelector('[data-st-try-event="defensiveReturn"]').click());
+state = await page.evaluate(() => ({ warning: document.querySelector('.bdv-try-warning')?.textContent || '', points: window.app.stats.constructor.playPoints(window.app.tagger.plays[0]), result: window.app.tagger.plays[0].specialTeams.result }));
+ok(state.result === 'failed' && state.points === 0 && /official return ruling/i.test(state.warning), 'A defensive return fails closed until the coach records the official ruling', JSON.stringify(state));
+await page.evaluate(() => document.querySelector('[data-st-return-award="opponent"]').click());
+state = await page.evaluate(() => ({ st: window.app.tagger.plays[0].specialTeams, points: window.app.stats.constructor.playPoints(window.app.tagger.plays[0]), side: window.app.stats.constructor.scoringSide(window.app.tagger.plays[0]) }));
+ok(state.st.outcome.returnAward === 'opponent' && state.points === 2 && state.side === 'them', 'The explicit return ruling persists two points for the selected team', JSON.stringify(state));
+
 await page.evaluate(() => document.querySelector('[data-st-unit="puntReturn"]').click());
+await page.waitForSelector('#ffaConfirmModal');
+await page.click('#ffaConfirmModal [data-act="ok"]');
 await page.evaluate(() => {
   document.querySelector('[data-st-outcome="returned"]').click();
   document.querySelector('[data-st-score="touchdown"]').click();

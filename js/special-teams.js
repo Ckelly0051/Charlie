@@ -11,13 +11,19 @@ export class SpecialTeamsModel {
     puntReturn: 'receiving',
     fieldGoal: 'attempting',
     fieldGoalBlock: 'defending',
+    try: 'attempting',
+    tryDefense: 'defending',
   });
   static STATUSES = new Set([
     'returned', 'touchback', 'fairCatch', 'downed', 'outOfBounds',
     'blocked', 'muffed', 'recovered', 'good', 'noGood', 'badSnap',
   ]);
-  static SCORES = new Set(['touchdown', 'fieldGoal', 'extraPoint', 'safety']);
+  static SCORES = new Set(['touchdown', 'fieldGoal', 'extraPoint', 'twoPoint', 'safety']);
   static TEAMS = new Set(['subject', 'opponent', 'unknown']);
+  static TRY_ATTEMPTS = new Set(['extraPoint', 'twoPoint']);
+  static TRY_RESULTS = new Set(['converted', 'failed', 'noPlay']);
+  static TURNOVERS = new Set(['interception', 'fumble']);
+  static RETURN_AWARDS = new Set(['none', 'subject', 'opponent']);
 
   static _object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
   static _text(value) { return typeof value === 'string' ? value : ''; }
@@ -51,12 +57,48 @@ export class SpecialTeamsModel {
     const ret = this._object(value.return);
     const outcome = this._object(value.outcome);
     const players = this._object(value.players);
+    const events = this._object(value.events);
+    const isTry = value.unit === 'try' || value.unit === 'tryDefense';
+    const attemptType = isTry
+      ? this._choice(value.attemptType, this.TRY_ATTEMPTS)
+      : (value.attemptType === 'fieldGoal' || value.attemptType === 'extraPoint' ? value.attemptType : null);
+    const result = isTry ? this._choice(value.result, this.TRY_RESULTS) : null;
+    const defensiveReturn = isTry && events.defensiveReturn === true;
+    const returnAward = defensiveReturn ? this._choice(outcome.returnAward, this.RETURN_AWARDS) : null;
+    let score = this._choice(outcome.score, this.SCORES);
+    let scoredBy = this._choice(outcome.scoredBy, this.TEAMS);
+    if (isTry) {
+      if (defensiveReturn && (returnAward === 'subject' || returnAward === 'opponent')) {
+        score = 'twoPoint';
+        scoredBy = returnAward;
+      } else if (defensiveReturn) {
+        score = null;
+        scoredBy = null;
+      } else if (result !== 'converted') {
+        score = null;
+        scoredBy = null;
+      } else if (!attemptType) {
+        score = null;
+        scoredBy = null;
+      } else if (attemptType === 'twoPoint') {
+        score = 'twoPoint';
+      } else if (score !== 'extraPoint' && score !== 'twoPoint') {
+        score = attemptType;
+      }
+    }
     return {
       ...value,
       version: this.VERSION,
       unit: value.unit,
       subjectRole: role,
-      attemptType: value.attemptType === 'fieldGoal' || value.attemptType === 'extraPoint' ? value.attemptType : null,
+      attemptType,
+      result,
+      events: {
+        badSnap: isTry && events.badSnap === true,
+        blocked: isTry && events.blocked === true,
+        turnover: isTry ? this._choice(events.turnover, this.TURNOVERS) : null,
+        defensiveReturn,
+      },
       kick: {
         ...kick,
         kind: this._text(kick.kind),
@@ -76,8 +118,9 @@ export class SpecialTeamsModel {
         ...outcome,
         status: this._choice(outcome.status, this.STATUSES),
         recoveredBy: this._choice(outcome.recoveredBy, this.TEAMS),
-        score: this._choice(outcome.score, this.SCORES),
-        scoredBy: this._choice(outcome.scoredBy, this.TEAMS),
+        score,
+        scoredBy,
+        returnAward,
       },
       isOnside: value.isOnside === true,
       isFake: value.isFake === true,
@@ -105,7 +148,13 @@ export class SpecialTeamsModel {
   static points(value) {
     const event = this.normalize(value && value.specialTeams ? value.specialTeams : value);
     if (!event || !event.outcome.score) return 0;
-    return { touchdown: 6, fieldGoal: 3, extraPoint: 1, safety: 2 }[event.outcome.score] || 0;
+    if (event.unit === 'try' || event.unit === 'tryDefense') {
+      if (event.events.defensiveReturn) {
+        return event.outcome.returnAward === 'subject' || event.outcome.returnAward === 'opponent' ? 2 : 0;
+      }
+      if (event.result !== 'converted') return 0;
+    }
+    return { touchdown: 6, fieldGoal: 3, extraPoint: 1, twoPoint: 2, safety: 2 }[event.outcome.score] || 0;
   }
 
   /** Return subject/opponent/unknown. Never guesses an ambiguous safety. */
@@ -116,7 +165,7 @@ export class SpecialTeamsModel {
     if (explicit === 'subject' || explicit === 'opponent') return explicit;
     if (explicit === 'unknown') return 'unknown';
     if (event.outcome.score === 'safety') return 'unknown';
-    if (event.outcome.score === 'fieldGoal' || event.outcome.score === 'extraPoint') {
+    if (event.outcome.score === 'fieldGoal' || event.outcome.score === 'extraPoint' || event.outcome.score === 'twoPoint') {
       if (event.subjectRole === 'attempting') return 'subject';
       if (event.subjectRole === 'defending') return 'opponent';
       return 'unknown';

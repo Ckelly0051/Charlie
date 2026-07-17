@@ -101,9 +101,15 @@ export class StatsEngine {
    * 'Good' result (paired with the ST type); a 'Field Goal' result also counts
    * as 3 for offense plays that mark the drive's FG outcome directly.
    */
+  static _tryPenaltyResolved(p) {
+    const penalties = PenaltyModel.normalizeList(p?.penalties);
+    return !penalties.some(penalty => penalty.playCounts !== true || penalty.disposition === 'unknown');
+  }
+
   static playPoints(p) {
     const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
     if (structured) {
+      if ((structured.unit === 'try' || structured.unit === 'tryDefense') && !StatsEngine._tryPenaltyResolved(p)) return 0;
       const points = SpecialTeamsModel.points(structured);
       if (points) return points;
       if (!structured.isFake) return 0;
@@ -200,7 +206,7 @@ export class StatsEngine {
   _scoreType(p) {
     const structured = SpecialTeamsModel.normalize(p && p.specialTeams);
     if (structured && structured.outcome.score) {
-      return { touchdown: 'TD', safety: 'Safety', extraPoint: 'XP', fieldGoal: 'FG' }[structured.outcome.score] || 'Score';
+      return { touchdown: 'TD', safety: 'Safety', extraPoint: 'XP', twoPoint: '2-Pt', fieldGoal: 'FG' }[structured.outcome.score] || 'Score';
     }
     const res = StatsEngine.splitResults(p.tags.result);
     const st = p.tags.stType || '';
@@ -300,7 +306,7 @@ export class StatsEngine {
       defensive: this._defensiveStats(defPlays),
       gameFlow: this._gameFlowStats(offPlays),
       conversions: this._conversionStats(convSource),
-      specialTeams: this._specialTeamsStats(plays),
+      specialTeams: this._specialTeamsStats(convSource),
       scoreboard: this.computeScoreboard(convSource),
       hash: this._hashStats(offPlays),
       personnelSituation: this._personnelSituationStats(offPlays),
@@ -820,24 +826,31 @@ export class StatsEngine {
    */
   _conversionStats(source) {
     const structured = p => SpecialTeamsModel.normalize(p && p.specialTeams);
-    const made = (p) => {
+    const official = p => StatsEngine._tryPenaltyResolved(p);
+    const made = (p, wanted) => {
       const event = structured(p);
-      if (event) return event.outcome.status === 'good' || event.outcome.score === 'extraPoint' || event.outcome.score === 'twoPoint';
+      if (event?.unit === 'try' || event?.unit === 'tryDefense') {
+        return official(p) && event.result === 'converted' && event.outcome.score === wanted;
+      }
+      if (event) return event.outcome.status === 'good' || event.outcome.score === wanted;
       return p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
     };
-    // Only OUR conversions count toward our PAT% — a kick marked 'Scored by:
-    // Them' belongs to the opponent.
     const tally = (type) => {
       const wanted = type === 'XP' ? 'extraPoint' : 'twoPoint';
       const att = source.filter(p => {
         const event = structured(p);
+        if (event?.unit === 'try' || event?.unit === 'tryDefense') {
+          if (!official(p) || event.result === 'noPlay' || event.subjectRole !== 'attempting') return false;
+          const officialType = event.result === 'converted' ? event.outcome.score : event.attemptType;
+          return officialType === wanted;
+        }
         if (event) {
           const kind = event.attemptType || event.outcome.score;
           return kind === wanted && event.subjectRole === 'attempting';
         }
         return p.tags.stType === type && StatsEngine.scoringSide(p) === 'us';
       });
-      const m = att.filter(p => made(p)).length;
+      const m = att.filter(p => made(p, wanted)).length;
       return { att: att.length, made: m, pct: att.length ? Math.round(m / att.length * 100) : 0 };
     };
     const two = tally('2-Pt');
@@ -890,7 +903,8 @@ export class StatsEngine {
       };
       const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
       const blocks = rows('fieldGoalBlock');
-      return { punts, kickoffs, fg, returns, blocks: { n: blocks.length, blocked: blocks.filter(x => x.st.outcome.status === 'blocked').length }, structured: true, hasData: true };
+      const tries = { n: rows('try').length + rows('tryDefense').length };
+      return { punts, kickoffs, fg, returns, tries, blocks: { n: blocks.length, blocked: blocks.filter(x => x.st.outcome.status === 'blocked').length }, structured: true, hasData: true };
     }
     const by = (type) => plays.filter(p => p.tags && p.tags.stType === type);
     const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
@@ -943,6 +957,7 @@ export class StatsEngine {
     if (st.kickoffs.n) cards.push(kpi('Kickoffs', st.kickoffs.n, `${v(st.kickoffs.avg)} avg · ${st.kickoffs.tbPct}% TB · ${v(st.kickoffs.retAllowedAvg)} ret allowed`));
     if (st.fg.att) cards.push(kpi('Field Goals', `${st.fg.made}/${st.fg.att}`, `${st.fg.pct}% · long ${st.fg.long}${st.fg.byDist.length ? ' · ' + st.fg.byDist.map(b => `${b.label} ${b.made}/${b.att}`).join(' · ') : ''}`));
     if (st.blocks?.n) cards.push(kpi('Field Goal Block', st.blocks.n, `${st.blocks.blocked} blocked`));
+    if (st.tries?.n) cards.push(kpi('Try Downs', st.tries.n, 'XP and two-point attempts charted'));
     if (st.returns.kick.n) cards.push(kpi('Kick Returns', st.returns.kick.n, `${v(st.returns.kick.avg)} avg · long ${st.returns.kick.long}${st.returns.kick.td ? ` · ${st.returns.kick.td} TD` : ''}`));
     if (st.returns.punt.n) cards.push(kpi('Punt Returns', st.returns.punt.n, `${v(st.returns.punt.avg)} avg · long ${st.returns.punt.long}${st.returns.punt.td ? ` · ${st.returns.punt.td} TD` : ''}`));
     return `<div class="stats-section"><h3>Special Teams</h3><div class="gi-hero">${cards.join('')}</div></div>`;
@@ -1501,29 +1516,46 @@ export class StatsEngine {
     const kickers = {};
 
     plays.forEach(p => {
-      const players = p.tags.players || {};
+      const structured = SpecialTeamsModel.normalize(p.specialTeams);
+      const players = { ...(p.tags.players || {}), ...(structured?.players || {}) };
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
+      const countsFootballRoles = !structured || structured.isFake;
 
       // --- Special teams ---
-      if (players.returner && st.includes('Return')) {
+      const structuredReturn = structured && ['kickoffReturn','puntReturn'].includes(structured.unit);
+      if (players.returner && (structuredReturn || (!structured && st.includes('Return')))) {
         const id = players.returner;
+        const returnYards = structuredReturn && Number.isFinite(structured.return.yards) ? structured.return.yards : yds;
+        const returnTd = structuredReturn
+          ? structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject'
+          : isTD;
         if (!returners[id]) returners[id] = { num: id, returns: 0, yards: 0, tds: 0, long: 0 };
         returners[id].returns++;
-        returners[id].yards += yds;
-        if (isTD) returners[id].tds++;
-        if (yds > returners[id].long) returners[id].long = yds;
+        returners[id].yards += returnYards;
+        if (returnTd) returners[id].tds++;
+        if (returnYards > returners[id].long) returners[id].long = returnYards;
       }
-      if (players.kicker && st) {
+      const specialist = structured ? (players.punter || players.kicker) : players.kicker;
+      if (specialist && structured && !structured.isFake && ['fieldGoal','punt'].includes(structured.unit)) {
+        const id = specialist;
+        if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
+        if (structured.unit === 'fieldGoal') {
+          kickers[id].fgAtt++;
+          if (structured.outcome.status === 'good') kickers[id].fgMade++;
+        } else {
+          kickers[id].punts++;
+          kickers[id].puntYds += structured.kick.distance || 0;
+        }
+      } else if (players.kicker && !structured && st) {
         const id = players.kicker;
         if (!kickers[id]) kickers[id] = { num: id, fgAtt: 0, fgMade: 0, punts: 0, puntYds: 0 };
         if (st === 'Field Goal' || st === 'XP') {
           kickers[id].fgAtt++;
-          // 'Good'/'Field Goal' (made) or a scoring result counts as made
           if (StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Field Goal') || StatsEngine.hasResult(p, 'Touchdown')) kickers[id].fgMade++;
         } else if (st === 'Punt') {
           kickers[id].punts++;
@@ -1531,6 +1563,7 @@ export class StatsEngine {
         }
       }
 
+      if (countsFootballRoles) {
       // Ball carrier (rushing)
       if (players.ballCarrier && isRun) {
         const id = players.ballCarrier;
@@ -1623,6 +1656,7 @@ export class StatsEngine {
             tacklers[id].gradeCount++;
           }
         });
+      }
       }
     });
 
@@ -2254,7 +2288,7 @@ export class StatsEngine {
           </div>
         </div>
         ${qTable}
-        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Offense &amp; Special Teams plays score for ${team}; Defense plays score for ${opp}.</p>
+        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Structured scoring follows the charted subject/opponent ruling; legacy plays retain their established unit-based fallback.</p>
       </div>`;
   }
 
@@ -2271,7 +2305,7 @@ export class StatsEngine {
       <div class="stats-section">
         <h3>PAT &amp; 2-Point Conversions</h3>
         <div class="sit-gauges-row">${cards}</div>
-        <p class="viz-caption">Tag the ST Play Type (2-Pt / XP) and pick <b>Good</b> or <b>No Good</b> in Result to chart conversion success.</p>
+        <p class="viz-caption">Chart the try in Special Teams, choose Kick XP or Two-Point, then record the official result.</p>
       </div>`;
   }
 
@@ -3172,9 +3206,10 @@ export class StatsEngine {
   }
 
   generateScoutReport(playsOverride = null) {
-    const plays = playsOverride || this._currentPlays();
+    const source = playsOverride || this._currentPlays();
+    const plays = source.filter(p => (p.tags?.unit || 'offense') !== 'special');
     if (plays.length === 0) return null;
-    const stats = this.compute(playsOverride || undefined);
+    const stats = this.compute(plays);
     const formationDetail = {};
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p);

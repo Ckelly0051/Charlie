@@ -143,6 +143,7 @@ export class BreakdownForm {
     const units = [
       ['kickoff', 'Kickoff'], ['kickoffReturn', 'Kick Return'], ['punt', 'Punt'],
       ['puntReturn', 'Punt Return'], ['fieldGoal', 'Field Goal / XP'], ['fieldGoalBlock', 'Field Goal Block'],
+      ['try', this.form.classList.contains('is-scout') ? 'Scouted Team Try' : 'Our Team Try'], ['tryDefense', 'Defending a Try'],
     ];
     editor.innerHTML = `
       ${legacy ? '<div class="bdv-st-legacy-note">Legacy Special Teams · details uncharted</div>' : ''}
@@ -263,7 +264,48 @@ export class BreakdownForm {
 
   _esc(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
+  _tryDetails(st) {
+    const subject = this.form.classList.contains('is-scout') ? 'Scouted team' : 'Our team';
+    const other = this.form.classList.contains('is-scout') ? 'Other team' : 'Opponent';
+    const penalties = PenaltyModel.normalizeList(this.tagger.getCurrentPlay()?.penalties);
+    const penaltyUnresolved = penalties.some(penalty => penalty.playCounts == null || penalty.disposition === 'unknown');
+    const noPlayMismatch = penalties.some(penalty => penalty.playCounts === false) && st.result !== 'noPlay';
+    const tryIncomplete = !st.attemptType || !st.result;
+    const returnUnresolved = st.events.defensiveReturn && st.outcome.returnAward == null;
+    const chip = (attr, value, label, active) => `<button type="button" class="pick${active ? ' active' : ''}" ${attr}="${value}">${label}</button>`;
+    return `
+      <div class="bdv-try-summary"><strong>${st.subjectRole === 'attempting' ? `${subject} try` : `${other} try`}</strong><span>${st.subjectRole === 'attempting' ? 'Chart the attempt and official result' : `Chart ${subject.toLowerCase()} defending the try`}</span></div>
+      <div class="chip-section"><label class="chip-label">Attempt</label><div class="pick-group">
+        ${chip('data-st-try-attempt','extraPoint','Kick XP',st.attemptType === 'extraPoint')}
+        ${chip('data-st-try-attempt','twoPoint','Two-Point',st.attemptType === 'twoPoint')}
+      </div></div>
+      <div class="chip-section"><label class="chip-label">Official result</label><div class="pick-group">
+        ${chip('data-st-try-result','converted','Converted',st.result === 'converted')}
+        ${chip('data-st-try-result','failed','Failed',st.result === 'failed')}
+        ${chip('data-st-try-result','noPlay','No Play / Retry',st.result === 'noPlay')}
+      </div></div>
+      <div class="chip-section"><label class="chip-label">What happened <span class="bdv-optional">Optional</span></label><div class="pick-group">
+        ${chip('data-st-try-event','badSnap','Bad Snap',st.events.badSnap)}
+        ${chip('data-st-try-event','blocked','Blocked',st.events.blocked)}
+        ${chip('data-st-try-turnover','interception','Interception',st.events.turnover === 'interception')}
+        ${chip('data-st-try-turnover','fumble','Fumble',st.events.turnover === 'fumble')}
+        ${chip('data-st-try-event','defensiveReturn','Defensive Return',st.events.defensiveReturn)}
+      </div></div>
+      ${st.result === 'converted' && !st.events.defensiveReturn ? `<div class="chip-section bdv-try-points"><label class="chip-label">Points awarded</label><div class="pick-group">
+        ${st.attemptType === 'extraPoint' ? chip('data-st-try-score','extraPoint','1 Point',st.outcome.score === 'extraPoint') : ''}
+        ${chip('data-st-try-score','twoPoint','2 Points',st.outcome.score === 'twoPoint')}
+      </div></div>` : ''}
+      ${st.events.defensiveReturn ? `<div class="chip-section bdv-try-ruling"><label class="chip-label">Official return ruling</label><div class="pick-group">
+        ${chip('data-st-return-award','none','No Score',st.outcome.returnAward === 'none')}
+        ${chip('data-st-return-award','subject',`2 Points - ${subject}`,st.outcome.returnAward === 'subject')}
+        ${chip('data-st-return-award','opponent',`2 Points - ${other}`,st.outcome.returnAward === 'opponent')}
+      </div></div>` : ''}
+      ${tryIncomplete ? '<div class="bdv-try-warning" role="status">Choose the attempt and official result before finishing this play.</div>' : ''}
+      ${returnUnresolved ? '<div class="bdv-try-warning" role="status">Choose the official return ruling before finishing this play.</div>' : ''}
+      ${penaltyUnresolved || noPlayMismatch ? '<div class="bdv-try-warning" role="status">Resolve the penalty ruling and set No Play / Retry when the snap does not count.</div>' : ''}`;
+  }
   _specialDetails(st) {
+    if (st.unit === 'try' || st.unit === 'tryDefense') return this._tryDetails(st);
     const outcomes = {
       kickoff: [['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['outOfBounds','Out of Bounds'],['recovered','Recovered']],
       kickoffReturn: [['returned','Returned'],['touchback','Touchback'],['fairCatch','Fair Catch'],['muffed','Muffed'],['outOfBounds','Out of Bounds']],
@@ -327,7 +369,7 @@ export class BreakdownForm {
 
   _newSpecial(unit) {
     return SpecialTeamsModel.normalize({ version: 1, unit, subjectRole: SpecialTeamsModel.ROLES[unit], attemptType: null,
-      kick: {}, return: {}, outcome: {}, isOnside: false, isFake: false, players: {}, notes: '', legacy: false });
+      result: null, events: {}, kick: {}, return: {}, outcome: {}, isOnside: false, isFake: false, players: {}, notes: '', legacy: false });
   }
 
   _saveSpecial(update) {
@@ -343,7 +385,7 @@ export class BreakdownForm {
   }
 
   _hasSpecialDetails(st) {
-    return !!(st.attemptType || st.outcome.status || st.outcome.score || st.outcome.recoveredBy || st.outcome.scoredBy
+    return !!(st.attemptType || st.result || Object.values(st.events || {}).some(Boolean) || st.outcome.returnAward || st.outcome.status || st.outcome.score || st.outcome.recoveredBy || st.outcome.scoredBy
       || st.isOnside || st.isFake || st.kick.distance != null || st.kick.hangTime != null
       || st.kick.landing.fieldSide || st.kick.landing.yardLine || st.return.yards != null
       || st.return.end.fieldSide || st.return.end.yardLine || Object.values(st.players).some(Boolean));
@@ -363,6 +405,54 @@ export class BreakdownForm {
       this.tagger._updateTimeline();
       this.tagger._emit('play-updated', play);
       this.loadPlay(play);
+      return;
+    }
+    if (button.dataset.stTryAttempt) {
+      this._saveSpecial(st => {
+        st.attemptType = button.dataset.stTryAttempt;
+        if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.attemptType;
+      });
+      return;
+    }
+    if (button.dataset.stTryResult) {
+      this._saveSpecial(st => {
+        st.result = button.dataset.stTryResult;
+        if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.outcome.score || st.attemptType;
+        else if (!st.events.defensiveReturn || !['subject','opponent'].includes(st.outcome.returnAward)) { st.outcome.score = null; st.outcome.scoredBy = null; }
+      });
+      return;
+    }
+    if (button.dataset.stTryScore) {
+      this._saveSpecial(st => {
+        st.result = 'converted';
+        st.outcome.score = button.dataset.stTryScore;
+        st.outcome.scoredBy = null;
+      });
+      return;
+    }
+    if (button.dataset.stTryTurnover) {
+      this._saveSpecial(st => { st.events.turnover = st.events.turnover === button.dataset.stTryTurnover ? null : button.dataset.stTryTurnover; });
+      return;
+    }
+    if (button.dataset.stTryEvent) {
+      this._saveSpecial(st => {
+        const key = button.dataset.stTryEvent;
+        st.events[key] = !st.events[key];
+        if (key === 'defensiveReturn') {
+          st.outcome.returnAward = null;
+          st.outcome.score = st.events.defensiveReturn ? null : (st.result === 'converted' ? st.attemptType : null);
+          st.outcome.scoredBy = null;
+          if (st.events.defensiveReturn && st.result === 'converted') st.result = 'failed';
+        }
+      });
+      return;
+    }
+    if (button.dataset.stReturnAward) {
+      this._saveSpecial(st => {
+        st.outcome.returnAward = button.dataset.stReturnAward;
+        st.outcome.score = st.outcome.returnAward === 'none' ? null : 'twoPoint';
+        st.outcome.scoredBy = st.outcome.returnAward === 'none' ? null : st.outcome.returnAward;
+      });
       return;
     }
     if (button.dataset.stOutcome) this._saveSpecial(st => {
