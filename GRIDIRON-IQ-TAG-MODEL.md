@@ -1,6 +1,6 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
-> **Status: DRAFT — awaiting independent review (Codex).** Authored by Claude,
+> **Status: REVIEWED — CHANGES REQUIRED (Codex, 2026-07-17).** Authored by Claude,
 > 2026-07-17. This is the canonical contract for BETA-005 (QB alignment) and
 > BETA-006 (coverage shell/family). **E2 (normalization), E3 (analytics), and
 > E4 (charting UI) implement this document. No code changes until it is
@@ -372,3 +372,97 @@ the §7 hazard.
 **Next action after approval:** E2 — pure normalization + the non-mutating
 projection, failing-first, no analytics changes. Then E3 (analytics + parity),
 then E4 (charting UI + libraries, behind the existing flag).
+
+---
+
+## 13. Independent review — CHANGES REQUIRED (Codex, 2026-07-17)
+
+The four-dimension offensive model and the coverage split are approved in
+direction. The following contract defects must be resolved before E2 begins.
+
+### E1-R1 [High] — blank-valid and exact-intersection rules contradict
+
+Sections 6.4 and 10.16 correctly say blank values are valid and omitted from an
+analysis. Section 6.5 and test 8 incorrectly require every filtered play to land
+in a cross-tab cell. Those cannot both hold. Cross-tabs must use an explicit
+**eligible denominator**: plays with values for every axis. Cell counts sum to
+that eligible count, and the result reports `eligible`, `omitted`, and total
+filtered plays. The same rule applies to shell/family and alignment/strength.
+
+### E1-R2 [High] — read-only projection conflicts with normalization defaults
+
+Section 5 promises no mutation and test 2 requires a byte-identical play, while
+5.1 also requires `_normalize` to add `qbAlignment:''` and
+`coverageFamily:''`. `_normalize` mutates loaded data and a later autosave makes
+those keys durable. Pick one contract. Recommendation: the projection treats
+missing keys as blank without adding them to existing plays; only newly created
+plays receive explicit blank keys. This is genuinely read-only and satisfies D3.
+
+### E1-R3 [Medium] — explicit target values must not preserve wrong-field tokens
+
+"Never overwrite" is correct for the target field, but the draft is ambiguous
+about the source field. If `qbAlignment:'Pistol'` already exists while legacy
+`formation:'Shotgun + Trips'` remains, projection must preserve Pistol **and
+still remove Shotgun from projected formation**. Likewise, an explicit
+`coverageFamily` must not leave legacy `Man`/`Zone` in projected `coverage`.
+All recognized wrong-field tokens are always removed from the old dimension;
+they only supply the target when the target is blank. For malformed multiple
+alignments, first supplies the blank target and all alignment tokens are removed.
+
+### E1-R4 [Medium, football] — “Coverage Shell” is the wrong coach-facing label
+
+Keep the stored key `coverage`; that part is approved. But Cover 0–Cover 6 are
+coverage calls, not strictly shells. A shell normally describes the pre-snap
+safety structure (zero-high, one-high, two-high), and calling Cover 3 a shell
+will confuse knowledgeable coaches. Use UI label **Coverage** or **Coverage
+Call**. Keep the optional second field as **Coverage Family** (`Man`, `Zone`,
+`Match`). Do not infer one from the other.
+
+### E1-R5 [Medium, football] — the “exact call” omits backfield
+
+Section 8a mandates `[qbAlignment, formation, strength, motion, playType]`, but
+Section 3 defines backfield as one of the four orthogonal pre-snap dimensions.
+Under Center + Ace + I and Under Center + Ace + Offset are different looks and
+must not collapse into one exact call. Big Twelve must key on
+`[qbAlignment, formation, backfield, strength, motion, playType]` and display the
+same fields. Personnel remains outside this signature unless separately decided.
+
+Composite decisions:
+- `comboFStr` remains Formation x Strength; alignment does not join it.
+- `comboFD` remains Formation x Down/Distance; alignment does not join it.
+- `comboFS` remains Formation x Situation; alignment does not join it.
+- `bigCall` includes alignment and backfield as specified above.
+- Add/retain a separate QB Alignment x Strength cross-tab; do not silently widen
+  the existing Formation x Strength contract.
+
+### E1-R6 [Medium] — do not knowingly ship the backfield/strength carry defect
+
+The draft identifies that `backfield` and `strength` are absent from both carry
+lists, then defers it. That would make the new four-part model internally
+inconsistent during the coach's permanent re-tag: alignment carries, while two
+other pre-snap look fields unexpectedly disappear. This is the same small,
+high-risk surface E2 already changes. Add both keys to `CARRY_SCHEME_KEYS` and
+`SCHEME_KEYS`, preserve same-unit and Special Teams stripping rules, and cover
+carry, Same-as-Last, and templates with failing-first tests. This is a bug fix,
+not an unrelated feature.
+
+### E1-R7 [Low] — library uniqueness needs an enforceable rule
+
+Section 6.1 forbids a value from appearing in two dimension libraries, while 6.6
+allows custom values everywhere. Without validation a coach can immediately add
+`Pistol` back to Backfield or `Empty` back to Formation. At minimum, reserve the
+canonical moved values against re-creation in their old libraries with a clear
+validation message. Do not impose global cross-library uniqueness on unrelated
+custom football terminology without a separate coach decision.
+
+### Approved open items
+
+- Stored key remains `coverage`; only the UI terminology changes per E1-R4.
+- `Power-I` remains a valid formation. It may coexist with `Under Center` and
+  `Power`; this is meaningful coach terminology, not a duplicate stored value.
+- `ST_ALIGNMENT_KEYS` remains owned by `season-store.js`, and the tagger consumes
+  that source rather than maintaining an inline copy. This scope belongs in E2.
+
+**Next action:** Claude revises this contract only. Codex re-reviews the revised
+bytes. No E2 code until these seven findings are closed or explicitly decided by
+the coach.
