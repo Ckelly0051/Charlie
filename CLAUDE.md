@@ -97,12 +97,12 @@ the main offensive dashboard is protected.
 The coach's offensive and player numbers are **not** polluted. Real defect,
 small scope — it rides in B2 as a routing contract, not its own lane.
 
-**B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`. Claude independent re-review is next.
+**B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`; **Claude re-reviewed and ACCEPTED `0250010` (2026-07-17)**. Lane B is complete.
 
-**Release sequence: B1 COMPLETE -> B2 RE-REVIEW -> E1-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
-### Lane B2 - FIXES READY FOR RE-REVIEW (`0250010`)
+**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1-E4 (NEXT) -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+### Lane B2 - ACCEPTED (`0250010`, re-review 2026-07-17)
 
-**Builder:** Codex | **Reviewer:** Claude | **Status:** FIXES READY FOR RE-REVIEW. Do not package, push, or start E1-E4 until Claude accepts `0250010`.
+**Builder:** Codex | **Reviewer:** Claude | **Status:** ACCEPTED. Lane B closed. E1-E4 may begin.
 
 B2 implements the approved Section 4b contract without migrating or clearing any legacy coach data:
 
@@ -126,7 +126,32 @@ an intentional manual override and was not changed.
 
 **Verification on exact rebuilt bytes:** `e2e-b2-tries` 13/13; synthetic + real
 six-game parity 2/2; real-data 16/16; canonical gate **51/51 green**. No push or
-package. Claude must independently re-run/review `0250010` before B2 acceptance.
+package.
+
+**RE-REVIEW — ACCEPTED (Claude, non-builder, 2026-07-17).** Every closure was
+verified empirically, not taken on report:
+- **B2-R1 CLOSED.** All original probes flip: untyped structured returner/kicker
+  now reach the box score while the ST report agrees. Six boundary probes pass,
+  including the subtle one — a play *admitted* for its returner does not leak its
+  tackler through the same admission (the exact fix hazard; the reworked
+  `countsFootballRoles` gate covers it). Fake-punt rush preserved; identity-Set
+  prevents double-counting a typed play present in both source lists. The new
+  13th `e2e-b2-tries` assertion pins `tacklers: []` explicitly and is
+  mutation-resistant by construction: pre-fix code fails it (specialists absent)
+  and a naive `convSource` widening fails it (legacy tackler '44' enters).
+- **B2-R2 CLOSED.** Mask deleted; parity compares raw snapshots again. The
+  committed `synthetic-edge.json` diff was audited key-by-key: **only**
+  `numbers.specialTeams`, `reports.scout`, and `numbers.individuals.kickers`
+  drift — exactly the reviewed corrections, nothing else. Mutation re-run:
+  reverting B2's corrections now FAILS parity 0/2 **including on the real
+  six-game fixture** — the exact blindness the mask created is gone and real ST/
+  scout values are pinned again.
+- **B2-R4 CLOSED** (blank structured kicker no longer clobbers the roster
+  input; probe confirms #9 survives). **Nit CLOSED** (`e2e-b2-tries` prints an
+  explicit failure count). **B2-R3 remains closed** per §4b.3c — confirmed
+  unchanged.
+- **Gate:** bundle byte-identical to a fresh rebuild; full canonical gate
+  **51/51 green** re-run independently. Nothing pushed, packaged, or tagged.
 ### B2 REVIEW VERDICT (Claude, non-builder, 2026-07-16) — CHANGES REQUIRED
 
 **What was verified, not taken on report.** The full gate is **51/51 green** and
@@ -207,7 +232,7 @@ count — the shape Lane D's detector was hardened against. Confirmed it exits 1
 the gate catches it, so it is safe today, but it is the one harness relying
 entirely on its exit code.
 
-**Next action:** Claude independently re-reviews `0250010`. B2-R3 stays closed. Do not package, push, or begin E1-E4 until B2 is accepted.
+**Next action:** RESOLVED — `0250010` re-reviewed and ACCEPTED 2026-07-17 (see the Lane B2 ACCEPTED section above). Lane B is complete; E1-E4 is next.
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in

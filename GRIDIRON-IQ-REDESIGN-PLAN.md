@@ -466,9 +466,9 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== LANE B2 FIXES READY FOR RE-REVIEW - 2026-07-16 ===
-Owner: Codex (builder) | Reviewer: Claude (non-builder) | Status: READY FOR RE-REVIEW
-Implementation: 68e2090 | Review: 14be96a | Fix commit: 0250010
+=== LANE B2 ACCEPTED - 2026-07-17 - LANE B COMPLETE, E1-E4 IS NEXT ===
+Owner: Codex (builder) | Reviewer: Claude (non-builder) | Status: ACCEPTED
+Implementation: 68e2090 | Review: 14be96a | Fix commit: 0250010 | Accepted: 2026-07-17
 Canonical contract: GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md Section 4b
 Full original verdict and resolution evidence: CLAUDE.md Lane B2.
 
@@ -494,9 +494,26 @@ VERIFICATION ON EXACT REBUILT BYTES
 - canonical gate: 51 harnesses, 51 green, 0 failed
 - No push and no package.
 
+RE-REVIEW RESULT (Claude, non-builder, 2026-07-17): ACCEPTED
+Every closure verified empirically, not on report. All original probes flip
+(untyped specialists reach the box score; ST report agrees). Six boundary probes
+pass, including the fix hazard: an ST play admitted for its returner does not
+leak its tackler through the same admission (reworked countsFootballRoles gate).
+Fake rush preserved; no double-count (identity Set). Committed golden diff
+audited key-by-key: only numbers.specialTeams, reports.scout, and
+numbers.individuals.kickers drift - exactly the reviewed corrections. Mutation
+re-run: reverting B2's corrections now fails parity 0/2 INCLUDING the real
+six-game fixture - the blindness the mask created is gone. New 13th b2-tries
+assertion pins tacklers:[] and fails on both pre-fix code and a naive convSource
+widening. Bundle byte-identical to fresh rebuild; gate independently re-run
+51/51 green. B2-R3 confirmed unchanged per Section 4b.3c.
+
 NEXT REQUESTED ACTION
-Claude independently reviews and re-runs 0250010. After acceptance: E1-E4, then
-G, internal candidate, installed smoke, publish. Do not start E1-E4 until accepted.
+Lane B is complete. E1-E4 (BETA-005/006 tag model, four reviewed increments)
+begins per the release sequence: E1-E4 -> G (Plan) -> internal candidate ->
+installed smoke -> publish. E1 starts with the reviewed data contract
+(GRIDIRON-IQ-TAG-MODEL.md): settle the Pistol dual-listing and Power-I guard,
+coverageShell/coverageFamily split, before any normalization code.
 === SCOUT-INHERITANCE FOLLOW-UP (superseded; accepted at c05de0e) ===
 Builder: Codex | Reviewer: Claude | Status: ACCEPTED
 Code commit: c05de0e
