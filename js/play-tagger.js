@@ -1,5 +1,6 @@
 import { gainedFirstDown, isPlayTagged } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
+import { SeasonStore } from './season-store.js';
 
 /**
  * ChipField — lightweight wrapper so a div.pick-group behaves like a
@@ -388,8 +389,8 @@ export class PlayTagger {
       timestamp: { start: 0, end: duration || 0 },
       autoFull: true,
       tags: {
-        down: '', distance: '', formation: '', playType: '', runPass: '',
-        defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '',
         hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '',
         motion: '', playDir: '',
         driveNumber: this.currentDrive.toString(),
@@ -471,10 +472,12 @@ export class PlayTagger {
         down: '',
         distance: '',
         formation: '',
+        qbAlignment: '',
         playType: '',
         runPass: '',
         defFront: '',
         coverage: '',
+        coverageFamily: '',
         blitz: '',
         result: '',
         yardage: '',
@@ -613,8 +616,8 @@ export class PlayTagger {
 
     if (play) {
       play.tags = {
-        down: '', distance: '', formation: '', playType: '', runPass: '', defFront: '',
-        coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
+        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '', defFront: '',
+        coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
         yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
         unit: play.tags.unit || this.defaultUnit || 'offense',
@@ -648,8 +651,9 @@ export class PlayTagger {
   // play concept). Play-specific fields (result, yardage, players, notes,
   // down/distance — owned by Auto D&D) are intentionally NOT copied.
   static get SCHEME_KEYS() {
-    return ['unit', 'formation', 'personnel', 'motion', 'runPass', 'playType',
-            'defFront', 'coverage', 'blitz', 'hash'];
+    return ['unit', 'qbAlignment', 'formation', 'backfield', 'strength', 'personnel',
+            'motion', 'runPass', 'playType', 'defFront', 'coverage', 'coverageFamily',
+            'blitz', 'hash'];
   }
 
   /** Copy scheme tags from the play immediately before the current one. */
@@ -1248,7 +1252,8 @@ export class PlayTagger {
   /** Alignment fields the carry-scheme toggle copies forward — pre-snap looks
    *  only, never what happened on the snap (play type / result / yardage). */
   static get CARRY_SCHEME_KEYS() {
-    return ['formation', 'personnel', 'defFront', 'coverage'];
+    return ['qbAlignment', 'formation', 'backfield', 'strength', 'personnel',
+            'defFront', 'coverage', 'coverageFamily'];
   }
 
   /** Fill the next play's blank alignment fields from the previous play.
@@ -1284,7 +1289,9 @@ export class PlayTagger {
   _stripStAlignment(play) {
     if (!play || (play.tags.unit || 'offense') !== 'special') return false;
     let changed = false;
-    ['formation', 'personnel', 'defFront', 'coverage', 'blitz'].forEach(k => {
+    // Single source of truth (GRIDIRON-IQ-TAG-MODEL.md §7): consume SeasonStore's
+    // list instead of an inline copy that would silently drift from it.
+    SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => {
       if (play.tags[k]) { play.tags[k] = ''; changed = true; }
     });
     return changed;

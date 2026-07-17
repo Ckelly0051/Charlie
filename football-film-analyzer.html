@@ -10920,6 +10920,79 @@ function configureBetaDefaults(storage, isDesktop, version) {
   }
 }
 
+// ===== tag-projection.js =====
+/**
+ * Read-time tag projection — the single source of truth for reading a play's
+ * pre-snap look after the BETA-005/006 model split (GRIDIRON-IQ-TAG-MODEL.md §5).
+ *
+ * Legacy plays charted QB alignment INTO `formation` (and, rarely, `Pistol` into
+ * `backfield`) and coverage family INTO `coverage`, because the old single field
+ * forced it. This module READS such a play in the four correct dimensions and
+ * removes the wrong-field token from the old dimension. It NEVER writes: it
+ * returns a new object; the stored play is untouched. Every analytics/UI consumer
+ * (E3/E4) must read a play's look through `project()` — no consumer may parse
+ * `formation` for alignment itself.
+ *
+ * Pure, DOM-free, Node-testable — same mold as special-teams.js / football-rules.js.
+ */
+class TagProjection {
+  // The three QB-alignment values, wrong in BOTH `formation` and `backfield` (D1).
+  static QB_ALIGNMENTS = ['Under Center', 'Shotgun', 'Pistol'];
+  // Coverage family values, wrong in `coverage` (D2/E1-R8: Match included).
+  static COVERAGE_FAMILIES = ['Man', 'Zone', 'Match'];
+  // The one backfield value that legacy data stored in `formation` (D2).
+  static FORMATION_BACKFIELD_TOKENS = ['Empty'];
+
+  static _split(v) {
+    return typeof v === 'string' ? v.split(' + ').map(s => s.trim()).filter(Boolean) : [];
+  }
+  static _isAlignment(v) { return this.QB_ALIGNMENTS.includes(v); }
+
+  /**
+   * Return a projected READ-VIEW of `tags`. Input is never mutated. Missing
+   * `qbAlignment`/`coverageFamily` properties read as blank (E1-R2: legacy plays
+   * lack them entirely — consumers must not assume the key exists).
+   */
+  static project(tags) {
+    const t = tags && typeof tags === 'object' ? tags : {};
+    const out = { ...t };
+
+    // --- Formation: split off alignment tokens and the Empty backfield token. ---
+    const fParts = this._split(t.formation);
+    const alignInFormation = fParts.filter(p => this._isAlignment(p));
+    const emptyInFormation = fParts.some(p => this.FORMATION_BACKFIELD_TOKENS.includes(p));
+    const structure = fParts.filter(p => !this._isAlignment(p) && !this.FORMATION_BACKFIELD_TOKENS.includes(p));
+
+    // --- Backfield: strip an alignment token (legacy Pistol); it may supply QB. ---
+    const bfRaw = typeof t.backfield === 'string' ? t.backfield : '';
+    const bfIsAlignment = this._isAlignment(bfRaw);
+
+    // --- qbAlignment supply precedence (E1-R8): explicit > first formation token
+    //     > backfield Pistol. Explicit is never overwritten. ---
+    let qb = typeof t.qbAlignment === 'string' ? t.qbAlignment : '';
+    if (!qb) qb = alignInFormation[0] || '';
+    if (!qb && bfIsAlignment) qb = bfRaw;
+
+    // Backfield projected: strip alignment token; supply Empty from formation only
+    // when the backfield is otherwise blank (never overwrite a deliberate pick).
+    let backfield = bfIsAlignment ? '' : bfRaw;
+    if (!backfield && emptyInFormation) backfield = 'Empty';
+
+    // --- Coverage (single-value): a family token IS the whole value. ---
+    const covRaw = typeof t.coverage === 'string' ? t.coverage : '';
+    const covIsFamily = this.COVERAGE_FAMILIES.includes(covRaw);
+    let family = typeof t.coverageFamily === 'string' ? t.coverageFamily : '';
+    if (!family && covIsFamily) family = covRaw;
+
+    out.qbAlignment = qb;
+    out.formation = structure.join(' + ');
+    out.backfield = backfield;
+    out.coverage = covIsFamily ? '' : covRaw;
+    out.coverageFamily = family;
+    return out;
+  }
+}
+
 // ===== special-teams.js =====
 /**
  * Pure Phase 4E special-teams contract. No DOM, storage, or app dependencies.
@@ -12758,8 +12831,8 @@ class PlayTagger {
       timestamp: { start: 0, end: duration || 0 },
       autoFull: true,
       tags: {
-        down: '', distance: '', formation: '', playType: '', runPass: '',
-        defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '',
         hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '',
         motion: '', playDir: '',
         driveNumber: this.currentDrive.toString(),
@@ -12841,10 +12914,12 @@ class PlayTagger {
         down: '',
         distance: '',
         formation: '',
+        qbAlignment: '',
         playType: '',
         runPass: '',
         defFront: '',
         coverage: '',
+        coverageFamily: '',
         blitz: '',
         result: '',
         yardage: '',
@@ -12983,8 +13058,8 @@ class PlayTagger {
 
     if (play) {
       play.tags = {
-        down: '', distance: '', formation: '', playType: '', runPass: '', defFront: '',
-        coverage: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
+        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '', defFront: '',
+        coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '', hash: '', quarter: '',
         yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
         unit: play.tags.unit || this.defaultUnit || 'offense',
@@ -13018,8 +13093,9 @@ class PlayTagger {
   // play concept). Play-specific fields (result, yardage, players, notes,
   // down/distance — owned by Auto D&D) are intentionally NOT copied.
   static get SCHEME_KEYS() {
-    return ['unit', 'formation', 'personnel', 'motion', 'runPass', 'playType',
-            'defFront', 'coverage', 'blitz', 'hash'];
+    return ['unit', 'qbAlignment', 'formation', 'backfield', 'strength', 'personnel',
+            'motion', 'runPass', 'playType', 'defFront', 'coverage', 'coverageFamily',
+            'blitz', 'hash'];
   }
 
   /** Copy scheme tags from the play immediately before the current one. */
@@ -13618,7 +13694,8 @@ class PlayTagger {
   /** Alignment fields the carry-scheme toggle copies forward — pre-snap looks
    *  only, never what happened on the snap (play type / result / yardage). */
   static get CARRY_SCHEME_KEYS() {
-    return ['formation', 'personnel', 'defFront', 'coverage'];
+    return ['qbAlignment', 'formation', 'backfield', 'strength', 'personnel',
+            'defFront', 'coverage', 'coverageFamily'];
   }
 
   /** Fill the next play's blank alignment fields from the previous play.
@@ -13654,7 +13731,9 @@ class PlayTagger {
   _stripStAlignment(play) {
     if (!play || (play.tags.unit || 'offense') !== 'special') return false;
     let changed = false;
-    ['formation', 'personnel', 'defFront', 'coverage', 'blitz'].forEach(k => {
+    // Single source of truth (GRIDIRON-IQ-TAG-MODEL.md §7): consume SeasonStore's
+    // list instead of an inline copy that would silently drift from it.
+    SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => {
       if (play.tags[k]) { play.tags[k] = ''; changed = true; }
     });
     return changed;
@@ -16765,7 +16844,17 @@ class SeasonStore {
   // that propagated play-to-play through the Save-&-Next carry, coding every ST
   // play as "Under Center"). Strip it. Idempotent and safe — nothing intentional
   // can ever live in these fields on an ST play.
-  static ST_ALIGNMENT_KEYS = ['formation', 'personnel', 'defFront', 'coverage', 'blitz'];
+  //
+  // This is the SINGLE SOURCE OF TRUTH for the strip list — play-tagger consumes
+  // it rather than keeping its own copy (GRIDIRON-IQ-TAG-MODEL.md §7). The E1
+  // model split adds four keys: `qbAlignment`/`coverageFamily` (new dimensions)
+  // and `backfield`/`strength`, which E1-R6 also carries forward and therefore
+  // must also be strippable here. The `backfield`/`strength` clear is a
+  // coach-approved, bounded cleanup: on the real six-game season it clears
+  // exactly 12 backfield values (1 of which also has strength) — leaked pre-snap
+  // looks the ST form could never legitimately set (§7b).
+  static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formation', 'backfield', 'strength',
+    'personnel', 'defFront', 'coverage', 'coverageFamily', 'blitz'];
   static stripStAlignment(p) {
     if (!p || !p.tags || (p.tags.unit || 'offense') !== 'special') return;
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
@@ -18828,8 +18917,8 @@ ${body}
       if (cells.every(c => !c)) continue;
 
       const tags = {
-        down: '', distance: '', formation: '', playType: '', runPass: '',
-        defFront: '', coverage: '', blitz: '', result: '',
+        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
         fieldSide: 'own', personnel: '', motion: '', playDir: '', driveNumber: '',
         players: {}, custom: []
@@ -20795,8 +20884,8 @@ class PlaylistManager {
         // real duration is backfilled by _backfillDurations once it resolves.
         timestamp: { start: 0, end: clip.duration || 999 },
         tags: {
-          down: '', distance: '', formation: '', playType: '', runPass: '',
-          defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+          down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+          defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '',
           hash: '', custom: []
         },
         annotations: [],

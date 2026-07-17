@@ -281,8 +281,8 @@ export class PlaylistManager {
         // real duration is backfilled by _backfillDurations once it resolves.
         timestamp: { start: 0, end: clip.duration || 999 },
         tags: {
-          down: '', distance: '', formation: '', playType: '', runPass: '',
-          defFront: '', coverage: '', blitz: '', result: '', yardage: '',
+          down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+          defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '',
           hash: '', custom: []
         },
         annotations: [],

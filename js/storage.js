@@ -1451,8 +1451,8 @@ ${body}
       if (cells.every(c => !c)) continue;
 
       const tags = {
-        down: '', distance: '', formation: '', playType: '', runPass: '',
-        defFront: '', coverage: '', blitz: '', result: '',
+        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
         fieldSide: 'own', personnel: '', motion: '', playDir: '', driveNumber: '',
         players: {}, custom: []
