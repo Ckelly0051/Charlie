@@ -5,9 +5,10 @@ import { StatsEngine } from '../js/stats-engine.js';
 import { isPlayTagged } from '../js/football-rules.js';
 
 let pass = 0;
+let fail = 0;
 const test = (label, fn) => {
   try { fn(); pass++; console.log(`  PASS  ${label}`); }
-  catch (error) { console.error(`  FAIL  ${label}\n        ${error.message}`); process.exitCode = 1; }
+  catch (error) { fail++; console.error(`  FAIL  ${label}\n        ${error.message}`); process.exitCode = 1; }
 };
 
 const special = (overrides = {}) => ({
@@ -197,6 +198,33 @@ test('compute routes untyped structured plays into their own ST report', () => {
   assert.equal(stats.specialTeams.punts.n, 1);
 });
 
-console.log(`\n== RESULT: ${pass} passed ==`);
+test('compute includes untyped ST specialists without admitting untyped ST tacklers', () => {
+  const kickReturn = play(1, SpecialTeamsModel.normalize(special({
+    unit: 'kickoffReturn', result: undefined, events: undefined, attemptType: null,
+    return: { attempted: true, yards: 19 }, players: { returner: '7' },
+    outcome: { status: 'returned', score: null }, isFake: false,
+  })), { players: { tackler: '55' } });
+  const punt = play(2, SpecialTeamsModel.normalize(special({
+    unit: 'punt', result: undefined, events: undefined, attemptType: null,
+    kick: { distance: 42 }, players: { punter: '' },
+    outcome: { status: 'downed', score: null }, isFake: false,
+  })), { stType: 'Punt', players: { kicker: '9' } });
+  const legacyReturn = play(3, null, {
+    stType: 'Kick Return', yardage: '11', players: { returner: '3', tackler: '44' },
+  });
+  delete legacyReturn.specialTeams;
+  const engine = Object.create(StatsEngine.prototype);
+  engine.tagger = { plays: [kickReturn, punt, legacyReturn] };
+  engine.filter = null;
+  engine.advanced = { summarize: () => ({}) };
+  const stats = engine.compute();
+  assert.deepEqual(stats.individuals.returners.map(row => row.num).sort(), ['3', '7']);
+  assert.equal(stats.individuals.returners.find(row => row.num === '7').yards, 19);
+  assert.deepEqual(stats.individuals.kickers.map(row => row.num), ['9']);
+  assert.equal(stats.individuals.kickers[0].punts, 1);
+  assert.equal(stats.individuals.kickers[0].puntYds, 42);
+  assert.deepEqual(stats.individuals.tacklers, []);
+});
+console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (process.exitCode) process.exit(process.exitCode);
 

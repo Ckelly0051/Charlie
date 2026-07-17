@@ -283,6 +283,25 @@ export class StatsEngine {
     // default to offense.
     const offPlays = plays.filter(p => (p.tags.unit || 'offense') === 'offense');
     const defPlays = plays.filter(p => p.tags.unit === 'defense');
+    const individualSource = [...plays];
+    const individualSeen = new Set(individualSource);
+    for (const p of convSource) {
+      if (individualSeen.has(p) || p.tags.unit !== 'special') continue;
+      const structured = SpecialTeamsModel.normalize(p.specialTeams);
+      const tagPlayers = p.tags.players || {};
+      const eventPlayers = structured?.players || {};
+      const hasStructuredSpecialist = structured
+        && ['kickoffReturn', 'puntReturn', 'fieldGoal', 'punt'].includes(structured.unit)
+        && [eventPlayers.kicker, eventPlayers.punter, eventPlayers.returner,
+          tagPlayers.kicker, tagPlayers.returner].some(value => String(value || '').trim());
+      const hasLegacySpecialist = !structured
+        && ['Kick Return', 'Punt Return', 'Field Goal', 'XP', 'Punt'].includes(p.tags.stType)
+        && [tagPlayers.kicker, tagPlayers.returner].some(value => String(value || '').trim());
+      if (hasStructuredSpecialist || hasLegacySpecialist) {
+        individualSource.push(p);
+        individualSeen.add(p);
+      }
+    }
 
     const stats = {
       totalPlays: offPlays.length,
@@ -297,7 +316,7 @@ export class StatsEngine {
       turnovers: this._turnoverStats(offPlays),
       tendencies: this._tendencyStats(offPlays),
       bigPlays: this._bigPlays(offPlays),
-      individuals: this._individualStats(plays),
+      individuals: this._individualStats(individualSource),
       drives: this._driveStats(offPlays),
       situational: this._situationalStats(offPlays),
       efficiency: this._efficiencyStats(offPlays),
@@ -1517,14 +1536,18 @@ export class StatsEngine {
 
     plays.forEach(p => {
       const structured = SpecialTeamsModel.normalize(p.specialTeams);
-      const players = { ...(p.tags.players || {}), ...(structured?.players || {}) };
+      const structuredPlayers = Object.fromEntries(Object.entries(structured?.players || {})
+        .filter(([, value]) => String(value || '').trim()));
+      const players = { ...(p.tags.players || {}), ...structuredPlayers };
       const yds = parseInt(p.tags.yardage) || 0;
       const isRun = StatsEngine.isRun(p);
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
       const st = p.tags.stType || '';
-      const countsFootballRoles = !structured || structured.isFake;
+      const countsFootballRoles = structured
+        ? structured.isFake
+        : (p.tags.unit || 'offense') !== 'special' || isRun || isPass;
 
       // --- Special teams ---
       const structuredReturn = structured && ['kickoffReturn','puntReturn'].includes(structured.unit);

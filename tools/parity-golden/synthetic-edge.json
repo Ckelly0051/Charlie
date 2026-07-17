@@ -420,7 +420,15 @@
      }
     ],
     "returners": [],
-    "kickers": []
+    "kickers": [
+     {
+      "num": "19",
+      "fgAtt": 1,
+      "fgMade": 1,
+      "punts": 1,
+      "puntYds": 0
+     }
+    ]
    },
    "drives": {
     "total": 8,
@@ -1154,10 +1162,10 @@
    },
    "specialTeams": {
     "punts": {
-     "n": 0,
-     "grossAvg": null,
-     "netAvg": null,
-     "hangAvg": null,
+     "n": 1,
+     "grossAvg": 42,
+     "netAvg": 42,
+     "hangAvg": 4.1,
      "tbPct": 0,
      "blocked": 0
     },
@@ -1168,11 +1176,17 @@
      "retAllowedAvg": null
     },
     "fg": {
-     "att": 0,
-     "made": 0,
-     "pct": 0,
-     "long": 0,
-     "byDist": []
+     "att": 1,
+     "made": 1,
+     "pct": 100,
+     "long": 37,
+     "byDist": [
+      {
+       "label": "30-39",
+       "att": 1,
+       "made": 1
+      }
+     ]
     },
     "returns": {
      "kick": {
@@ -1188,7 +1202,7 @@
       "td": 0
      }
     },
-    "hasData": false
+    "hasData": true
    },
    "scoreboard": {
     "us": 9,
@@ -2993,7 +3007,7 @@
     ]
    },
    "scout": {
-    "totalPlays": 27,
+    "totalPlays": 25,
     "stats": {
      "totalPlays": 16,
      "allPlays": 24,
@@ -4185,7 +4199,7 @@
       "hasData": false
      },
      "scoreboard": {
-      "us": 9,
+      "us": 6,
       "them": 0,
       "events": [
        {
@@ -4195,15 +4209,6 @@
         "side": "us",
         "type": "TD",
         "us": 6,
-        "them": 0
-       },
-       {
-        "playId": 17,
-        "quarter": "",
-        "points": 3,
-        "side": "us",
-        "type": "FG",
-        "us": 9,
         "them": 0
        }
       ],
@@ -4491,9 +4496,9 @@
     "formationDetail": [
      {
       "name": "Unknown",
-      "total": 11,
+      "total": 9,
       "runs": 0,
-      "passes": 11,
+      "passes": 9,
       "yards": 2,
       "tds": 0,
       "runPct": 0
@@ -4578,13 +4583,6 @@
       "runPct": 100
      },
      {
-      "key": "?&?",
-      "runs": 0,
-      "passes": 3,
-      "total": 3,
-      "runPct": 0
-     },
-     {
       "key": "2&8",
       "runs": 0,
       "passes": 3,
@@ -4607,6 +4605,13 @@
      },
      {
       "key": "2&7",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     },
+     {
+      "key": "?&?",
       "runs": 0,
       "passes": 1,
       "total": 1,
@@ -5026,7 +5031,15 @@
      }
     ],
     "returners": [],
-    "kickers": []
+    "kickers": [
+     {
+      "num": "19",
+      "fgAtt": 1,
+      "fgMade": 1,
+      "punts": 1,
+      "puntYds": 0
+     }
+    ]
    },
    "drives": {
     "total": 8,
@@ -5624,10 +5637,10 @@
    },
    "specialTeams": {
     "punts": {
-     "n": 0,
-     "grossAvg": null,
-     "netAvg": null,
-     "hangAvg": null,
+     "n": 1,
+     "grossAvg": 42,
+     "netAvg": 42,
+     "hangAvg": 4.1,
      "tbPct": 0,
      "blocked": 0
     },
@@ -5638,11 +5651,17 @@
      "retAllowedAvg": null
     },
     "fg": {
-     "att": 0,
-     "made": 0,
-     "pct": 0,
-     "long": 0,
-     "byDist": []
+     "att": 1,
+     "made": 1,
+     "pct": 100,
+     "long": 37,
+     "byDist": [
+      {
+       "label": "30-39",
+       "att": 1,
+       "made": 1
+      }
+     ]
     },
     "returns": {
      "kick": {
@@ -5658,7 +5677,7 @@
       "td": 0
      }
     },
-    "hasData": false
+    "hasData": true
    },
    "scoreboard": {
     "us": 9,
@@ -6960,7 +6979,7 @@
     "schemePlays": 5
    },
    "scout": {
-    "totalPlays": 18,
+    "totalPlays": 16,
     "stats": {
      "totalPlays": 10,
      "allPlays": 15,
@@ -7962,7 +7981,7 @@
       "hasData": false
      },
      "scoreboard": {
-      "us": 9,
+      "us": 6,
       "them": 0,
       "events": [
        {
@@ -7972,15 +7991,6 @@
         "side": "us",
         "type": "TD",
         "us": 6,
-        "them": 0
-       },
-       {
-        "playId": 17,
-        "quarter": "",
-        "points": 3,
-        "side": "us",
-        "type": "FG",
-        "us": 9,
         "them": 0
        }
       ],
@@ -8227,15 +8237,6 @@
     },
     "formationDetail": [
      {
-      "name": "Unknown",
-      "total": 8,
-      "runs": 0,
-      "passes": 8,
-      "yards": 2,
-      "tds": 0,
-      "runPct": 0
-     },
-     {
       "name": "Shotgun",
       "total": 7,
       "runs": 6,
@@ -8252,6 +8253,15 @@
       "yards": 30,
       "tds": 0,
       "runPct": 86
+     },
+     {
+      "name": "Unknown",
+      "total": 6,
+      "runs": 0,
+      "passes": 6,
+      "yards": 2,
+      "tds": 0,
+      "runPct": 0
      },
      {
       "name": "Empty",
@@ -8290,13 +8300,6 @@
       "runPct": 58
      },
      {
-      "key": "?&?",
-      "runs": 0,
-      "passes": 3,
-      "total": 3,
-      "runPct": 0
-     },
-     {
       "key": "2&5",
       "runs": 0,
       "passes": 1,
@@ -8312,6 +8315,13 @@
      },
      {
       "key": "2&7",
+      "runs": 0,
+      "passes": 1,
+      "total": 1,
+      "runPct": 0
+     },
+     {
+      "key": "?&?",
       "runs": 0,
       "passes": 1,
       "total": 1,
