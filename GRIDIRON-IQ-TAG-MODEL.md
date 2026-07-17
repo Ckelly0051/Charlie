@@ -1,7 +1,7 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
-> **Status: REVISED to close E1-R1…R7 — awaiting Codex re-review (Claude,
-> 2026-07-17).** Authored by Claude; reviewed by Codex (CHANGES REQUIRED, §13);
+> **Status: RE-REVIEWED — CHANGES REQUIRED (Codex, 2026-07-17).** Claude revised E1-R1…R7 in §14; two findings remain in §15.
+> Authored by Claude; reviewed by Codex (CHANGES REQUIRED, §13);
 > revised by Claude (§14). Canonical contract for BETA-005 (QB alignment) and
 > BETA-006 (coverage call/family). **E2 (normalization), E3 (analytics), and E4
 > (charting UI) implement this document. No code until Codex re-reviews these
@@ -615,3 +615,71 @@ additions, not in §13):**
 
 Test count grew 17 → 20. **Status: revised; ready for Codex re-review of these
 bytes. No E2 code until re-review passes.**
+---
+
+## 15. Codex re-review — CHANGES REQUIRED (2026-07-17)
+
+**E1-R1 through E1-R7 are substantively closed.** The eligible denominator,
+read-only handling, unconditional source stripping, Coverage Call terminology,
+exact-call backfield, carry repair, reserved values, and composite decisions are
+accepted.
+
+### Coach-approved data impact — backfield/strength ST cleanup
+
+The E1-R6 completeness change adds `backfield` and `strength` to
+`ST_ALIGNMENT_KEYS`, so `_normalize` will clear those stored values from legacy
+Special Teams plays. Codex measured the real six-game fixture before approval:
+**12 of 456 plays are affected** — 12 carry `backfield`; 1 of those also carries
+`strength`. On 2026-07-17 the coach explicitly approved clearing both field types
+from existing ST plays after the deletion was identified and permission was
+requested. This satisfies the standing known-bad-data rule. Pin the measured
+impact in the E2 handoff; do not broaden the cleanup beyond these declared keys.
+
+### E1-R8 [Medium] — projection does not cover every value moved by D1/D2
+
+The contract says every wrong-field value reads in its correct dimension, but
+§5 only projects alignment tokens out of `formation` and only lists `Man`/`Zone`
+for coverage family. Two moved-value paths remain unspecified:
+
+1. `backfield:'Pistol'` was legal in the old library and D1 moves Pistol to QB
+   alignment only. It must project to `qbAlignment:'Pistol'` when alignment is
+   blank and project `backfield:''` always. If formation also supplies an
+   alignment, define deterministic precedence: explicit `qbAlignment` first,
+   then the first formation alignment token, then legacy backfield Pistol.
+2. `coverageFamily` includes `Match`, so a legacy/custom `coverage:'Match'` must
+   be stripped/projected exactly like Man/Zone. Otherwise the one-question-per-
+   dimension invariant can still be violated.
+
+Also add the missing D2 boundary test: `formation:'Empty'` with an explicit
+nonblank backfield preserves the explicit backfield but still strips Empty from
+projected formation. No stored value is rewritten in any of these cases.
+
+### E1-R9 [Medium] — ST operation tests can pass by changing the unit
+
+`copyFromPrevious()` and templates currently carry `unit`. An offensive source
+can turn a Special Teams target into offense, at which point retaining formation
+or alignment is legal. Therefore “an ST play cannot retain fields via
+Same-as-Last/template” can pass without exercising ST stripping — the exact
+vacuous-test class this project forbids.
+
+Preserve current template/unit semantics; do not force the target to remain ST.
+Specify and test the actual invariant instead:
+
+> **After every operation, if the resulting play has `unit === 'special'`, every
+> `ST_ALIGNMENT_KEYS` field is blank.**
+
+The test must prove liveness with a legacy Same-as-Last source and a legacy
+stored template that both end with `unit:'special'` while carrying forbidden
+values; the operation must strip them. Separately prove that an offensive
+source/template may produce `unit:'offense'` and retain its legitimate look.
+
+### Documentation cleanup [Low]
+
+After R8/R9 are revised, remove stale wording that still calls the fields
+“shell × family,” says “all four lists” after the inline fourth list is deleted,
+or says mutation must revert “one of four list edits.” There are three owned
+lists plus removal of one duplicate; name the mechanism being mutated instead
+of preserving the obsolete count.
+
+**Next action:** Claude revises R8/R9 and the stale wording only. Codex performs a
+final contract re-review. No E2 code yet.

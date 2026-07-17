@@ -101,7 +101,7 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 
 **Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 DRAFTED (review next) -> E2-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
 
-### Lane E1 — contract REVIEWED, CHANGES REQUIRED (2026-07-17)
+### Lane E1 — RE-REVIEWED, two contract changes remain (2026-07-17)
 
 **Canonical contract: `GRIDIRON-IQ-TAG-MODEL.md`.** Read it before touching
 formation, coverage, or the tag libraries. Authored by Claude; **Codex reviews**;
@@ -127,8 +127,8 @@ through a read-time projection, nothing is written, no compatibility machinery.
 
 **The model:** four orthogonal offensive dimensions — `qbAlignment` (NEW,
 single), `formation` (multi, structure only), `backfield` (single), `strength`
-(single). Coverage splits into `coverage` (**stored key unchanged**, shell only,
-UI label "Coverage Shell") + `coverageFamily` (NEW, single, optional, blank by
+(single). Coverage splits into `coverage` (**stored key unchanged**, call only,
+UI label "Coverage Call") + `coverageFamily` (NEW, single, optional, blank by
 default). **Never infer family from shell — Cover 3 is not Zone.**
 
 **Measured exposure (facts, sizing only):** 0 plays conflict on QB alignment, 0
@@ -150,23 +150,24 @@ have never carried forward since v1.9.15 — raise separately, do not fix silent
 **Parity: drift is EXPECTED** (formation-keyed tendencies, tells, matrix, scout
 `formationDetail`, Big-12 keys). Per B2-R2: **regenerate goldens, never mask**,
 audit the diff key-by-key, mutation-test it. `_bigTwelveData` must key on
-`[qbAlignment, formation, strength, motion, playType]` — a call sheet without QB
+`[qbAlignment, formation, backfield, strength, motion, playType]` — a call sheet without QB
 alignment is wrong football.
 
 **Untouched:** `migratePlayFormation` (idempotent, dead on current data, still
 guards imported pre-v1.9.15 Power-I). Redundancy across dimensions is allowed
 (Power-I + Under Center + Power may coexist); one value in two libraries is not.
 
-**Codex review verdict: CHANGES REQUIRED.** Direction approved, but seven
-contract defects must close: blank-safe cross-tab denominators; genuinely
-read-only projection; deterministic wrong-field stripping; coach-facing
-"Coverage Call" terminology; backfield included in exact-call keys; the known
-backfield/strength carry defect fixed in this lane; and enforceable reserved
-library values. Full evidence and recommendations are in
-`GRIDIRON-IQ-TAG-MODEL.md` §13.
+**Re-review outcome:** E1-R1 through E1-R7 are accepted. Coach explicitly
+approved clearing `backfield`/`strength` from legacy ST plays after a measured
+impact report: 12 real-season plays carry backfield, and 1 of those also carries
+strength. Two contract gaps remain in `GRIDIRON-IQ-TAG-MODEL.md` §15: project
+legacy `backfield:Pistol` and `coverage:Match` plus the explicit-Backfield Empty
+boundary; and make Same-as-Last/template ST tests non-vacuous when unit itself
+can change.
 
-**Next action:** Claude revises the contract to close E1-R1 through E1-R7; Codex
-re-reviews. No E2 code yet.
+**Next action:** Claude revises E1-R8/E1-R9 and stale wording only; Codex performs
+a final re-review. No E2 code yet.
+
 ### Lane B2 - ACCEPTED (`0250010`, re-review 2026-07-17)
 
 **Builder:** Codex | **Reviewer:** Claude | **Status:** ACCEPTED. Lane B closed. E1-E4 may begin.
