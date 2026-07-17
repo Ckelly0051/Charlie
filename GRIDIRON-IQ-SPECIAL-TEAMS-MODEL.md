@@ -606,6 +606,16 @@ a try (§4b.9). If the fake policy in §4b.7a cannot be settled cleanly inside B
 freeze current fake behavior and split it out — do not guess at it under
 schedule pressure.
 
+### 4b.12 B2 implementation status
+
+Built by Codex in `68e2090`; awaiting Claude's independent review.
+
+- Dedicated model, scoring, penalty/no-play behavior, explicit return ruling, routing matrix, Film Room/Study visibility, and charted-progress boundary are implemented.
+- No legacy try data was migrated or cleared.
+- Standard two-point attempts are locked to two points; the broken-XP branch may finish as a two-point score.
+- Current fake rush/pass player-stat behavior is preserved; structured kick and return specialists route to specialist rows.
+- Focused B2 contract: 12/12. Canonical full gate: 51/51 green.
+- Existing parity goldens were not regenerated. The two approved routing corrections are excluded from old-golden comparison and pinned by dedicated B2/ST/UI/registry/real-data contracts; this boundary is queued for adversarial review.
 ## 5. Ruleset Contract
 
 Season or team settings must identify `NFHS`, `NCAA`, `NFL`, or `Custom` before

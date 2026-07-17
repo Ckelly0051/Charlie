@@ -466,72 +466,36 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== LANE B1 COMPLETE — B2 IS NEXT - 2026-07-16 ===
-Owner: Claude (contract) | Reviewer: Codex | Status: APPROVED FOR IMPLEMENTATION
-Commit: 24d080c | Canonical contract: GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md §4b
+=== LANE B2 BUILT - READY FOR CLAUDE REVIEW - 2026-07-16 ===
+Owner: Codex (builder) | Reviewer: Claude | Status: READY FOR REVIEW
+Implementation commit: 68e2090
+Canonical contract: GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md Section 4b
 
-Scout perspective is settled and accepted at c05de0e — no open findings.
-Lanes 0, D, A, C are all accepted. Nothing pushed, packaged, or tagged.
+COMPLETED
+- Dedicated try / tryDefense model and coach-facing ST UX.
+- Attempt, official result, and compound events remain independent.
+- Explicit defensive-return ruling; no ruleset selector or automatic score.
+- Penalty/no-play scoring and charted-progress fail closed.
+- Three approved routing defects fixed; fake player stats preserved; structured kick/return specialists reach specialist rows.
+- Film Room, Study, ST report, conversions, and scoreboard read the new model.
+- No legacy migration, clearing, packaging, push, tag, or release.
 
-THE DEFECT B2 FIXES — release blocker, confirmed independently by both agents.
-2-Pt has ALWAYS been a Special Teams play here (index.html:464 legacy stType
-chip; playPoints() scores it). Phase 4E's structured redesign DROPPED it: six
-units with no try, attemptType limited to fieldGoal|extraPoint, legacy chips
-hidden as .bdv-st-legacy. On the shipped beta (ffa_breakdown_form_v2 ON by
-default on desktop) A COACH CANNOT CHART A TWO-POINT CONVERSION AT ALL. That can
-leave the scoreboard wrong and makes a full-game smoke impossible. §4's
-"two-point tries remain offensive plays" did not describe the app — it
-rationalized the omission — and is reversed. It is also the whole explanation for
-the unreachable 'twoPoint' strings in _conversionStats/made().
+REVIEW HOT SPOTS
+1. Unresolved tries may be saved as work in progress but must stay uncharted and contribute no attempt or points.
+2. Standard two-point attempts can only score two; the sole attempt/score mismatch is broken XP to two.
+3. Tries are excluded from base offense/player/scout; specialists are included only in ST rows; fake rush/pass behavior is preserved.
+4. Golden files are unchanged. Parity masks only numbers.specialTeams and reports.scout because B2 intentionally corrects those routes; dedicated contracts own those surfaces.
 
-PRIORITY: B2 OUTRANKS E1-E4. E1-E4 improve the accuracy of formations and
-coverages and gate permanent retagging; B2 restores a missing piece of football
-the coach hits the first time they go for two.
-Sequence: B1 done -> B2 -> E1-E4 -> G -> internal candidate -> smoke -> publish.
+VERIFICATION
+- e2e-b2-tries: 12/12
+- e2e-breakdown-form: 58/58
+- e2e-special-teams-contract: 20/20
+- e2e-analytics-registry: 24/24
+- e2e-parity: synthetic + real six-game 2/2
+- canonical gate: 51 harnesses, 51 green, 0 failed
 
-CONTRACT DECISIONS (full detail in §4b):
-- Dedicated try / tryDefense units. fieldGoal / fieldGoalBlock stay exclusively
-  for field goals. Existing structured XP records readable, NOT migrated.
-- Attempt type / official result / events are three separate things. result is
-  converted|failed|noPlay; badSnap, blocked, turnover, defensiveReturn are
-  NON-EXCLUSIVE details. Required by real football: bad snap + converted, and the
-  NCAA-documented blocked XP recovered and passed in for TWO — where attemptType
-  and score legitimately disagree.
-- NO ruleset config. Fixed: XP 1, two-point 2, failed 0, No Play/Retry 0 and no
-  attempt. A defensive return NEVER scores automatically — charting one REQUIRES
-  an explicit No score / 2 to us / 2 to them. Fails closed WITHOUT a selector:
-  the app records the coach's official ruling instead of judging legality.
-- Penalties: playCounts:false -> no attempt/points; retry -> noPlay; declined ->
-  filmed result stands; unresolved -> warn, do not finalize.
-- OUT of scope: try analytics, individual 2-pt rollups, formation/play-call/front
-  on a try. The existing kicker/returner roles do NOT describe a run/pass try.
-
-ANALYTICS ROUTING — a blanket unit==='special' filter is WRONG. A fake-punt rush
-is a real rushing attempt and belongs in the box score. Routing is PER PLAY TYPE
-(§4b.7a matrix). Three confirmed defects for B2 to fix:
-  1. _individualStats(plays) receives the UNPARTITIONED list (stats-engine.js:294)
-  2. The generic Scout Report has no ST exclusion (:3174)
-  3. INVERSE: _specialTeamsStats(plays) (:303) receives the caller's
-     playType-filtered list, so an ST play WITHOUT a playType is dropped FROM ITS
-     OWN REPORT — lesson #15 again.
-compute() DOES partition offPlays/defPlays by unit (:278), so the main offensive
-dashboard is protected.
-
-REAL-DATA BLAST RADIUS (audited, aggregate counts): 972 plays, 148 ST, only 2
-carry a playType, 0 carry offensive player attribution, 0 structured fakes. The
-coach's offensive and player numbers are NOT polluted. Real defect, small scope —
-rides in B2 as a routing contract, not its own lane.
-
-NEXT REQUESTED ACTION — Codex builds B2:
-  1. try / tryDefense model + Special Teams UX (§4b.2, §4b.3)
-  2. Scoring contract (§4b.3b) — fixed values, explicit defensive-return choice
-  3. Penalty / no-play resolution (§4b.5)
-  4. The three routing fixes + the §4b.7a matrix pinned by test
-  5. The 17-item gate (§4b.8), failing-first
-If the fake policy in §4b.7a cannot be settled cleanly inside B2, FREEZE current
-fake behavior and split it out — do not guess under schedule pressure.
-Then: Claude reviews as non-builder.
-
+NEXT REQUESTED ACTION
+Claude independently reviews 68e2090. After acceptance: E1-E4, then G, internal candidate, installed smoke, publish.
 === SCOUT-INHERITANCE FOLLOW-UP (superseded; accepted at c05de0e) ===
 Builder: Codex | Reviewer: Claude | Status: ACCEPTED
 Code commit: c05de0e

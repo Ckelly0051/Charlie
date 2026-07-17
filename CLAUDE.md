@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-16, after Lanes D/A/C)
+### Current working state (2026-07-16, B2 ready for review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -39,7 +39,7 @@ candidate, run the installed real-film smoke, and publish only after it passes.
   path — closed, with reuse-path coverage added to `e2e-breakdown-video`.
   **Scout perspective is settled; no open findings on it.**
 - **Verification:** built-bundle Breakdown `50/50`, zero page errors; full audited
-  gate `50/50`, including real six-game data, parity, integrity, analytics,
+  gate `51/51`, including real six-game data, parity, integrity, analytics,
   penalties, and Special Teams.
 - **Test rule:** a negative assertion that could pass because nothing ran must
   prove mechanism liveness first, and the intended defense must be mutation-tested.
@@ -97,19 +97,27 @@ the main offensive dashboard is protected.
 The coach's offensive and player numbers are **not** polluted. Real defect,
 small scope — it rides in B2 as a routing contract, not its own lane.
 
-**Next action:** Codex builds **B2**; Claude reviews. B2 = the try model + ST UX,
-the scoring contract, penalty resolution, the three routing fixes with the §4b.7a
-matrix pinned by test, and the 17-item gate (§4b.8). If the fake policy cannot be
-settled cleanly inside B2, freeze current fake behavior and split it out rather
-than guess.
+**B2 implementation outcome:** built by Codex in `68e2090`; independent Claude review is next. The fake policy was settled without guessing: current legitimate fake rush/pass player-stat behavior is preserved, while tries remain excluded from ordinary player totals.
 
-**Release sequence: B1 ✅ → B2 → E1–E4 → G (Plan) → internal candidate →
-installed smoke → publish.** **B2 outranks E1–E4** — E1–E4 improve the accuracy
-of formations/coverages and gate permanent retagging, but B2 restores a missing
-piece of football a coach hits the first time they go for two. E5 migration is
-optional and post-release. Never migrate or clear coach data without an impact
-report and immediate confirmation.
+**Release sequence: B1 COMPLETE -> B2 REVIEW -> E1-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+### Lane B2 - BUILT, READY FOR INDEPENDENT REVIEW (`68e2090`)
 
+**Builder:** Codex | **Reviewer:** Claude | **Status:** READY FOR REVIEW
+
+B2 implements the approved Section 4b contract without migrating or clearing any legacy coach data:
+
+- Dedicated `try` / `tryDefense` units with controls for attempt, official result, independent bad-snap/block/turnover details, and an explicit defensive-return ruling (`No score`, `2 - subject`, or `2 - opponent`). No ruleset selector was added.
+- Standard scoring is enforced: Kick XP = 1, two-point attempt = 2, failed/no play = 0. A broken XP attempt may finish as a two-point score; a standard two-point attempt cannot be recorded as one point.
+- Penalties fail closed. `playCounts:false` and `noPlay` add no attempt or points; unresolved or mismatched rulings keep the play visibly uncharted. Coaches may move on, but progress does not call the try complete until attempt, official result, penalty state, and any defensive-return ruling are resolved.
+- Tries stay out of base offense, ordinary player box scores, and generic Scout. Current fake-rush/pass box-score behavior is preserved. Structured kick and return specialists reach only their legitimate specialist rows.
+- Untyped structured Special Teams events now reach the ST report. Film Room and Study expose try unit and official result; no tactical try analytics, try player rollups, formation, play call, or front charting were added.
+- Existing structured XP remains readable. Legacy `stType:'2-Pt'` remains untouched and is never promoted.
+
+**Verification:** B2 contract 12/12; Breakdown form 58/58; Special Teams contract 20/20; analytics registry 24/24; synthetic + real six-game parity 2/2; final canonical gate **51/51 green**, zero page errors.
+
+**Parity disclosure:** committed golden files are byte-identical. `e2e-parity.mjs` compares every old path except the two approved B2 corrections (`numbers.specialTeams` and `reports.scout`), which are owned by failing-first B2, ST, Breakdown, registry, and real-data contracts. Review this boundary adversarially.
+
+**Next action:** Claude independently reviews `68e2090`. Do not package, push, or begin E1-E4 until B2 is accepted or findings are closed.
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in
