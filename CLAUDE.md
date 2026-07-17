@@ -99,7 +99,66 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 
 **B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`; **Claude re-reviewed and ACCEPTED `0250010` (2026-07-17)**. Lane B is complete.
 
-**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1-E4 (NEXT) -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 DRAFTED (review next) -> E2-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+
+### Lane E1 — tag-model contract DRAFTED, awaiting review (2026-07-17)
+
+**Canonical contract: `GRIDIRON-IQ-TAG-MODEL.md`.** Read it before touching
+formation, coverage, or the tag libraries. Authored by Claude; **Codex reviews**;
+no code until approved (B1 precedent). Summary only below.
+
+**The defect:** `tags.formation` is one multi-select field answering THREE
+questions — QB alignment (Under Center/Shotgun/Pistol), system/structure
+(Wing-T/Trips/Ace), and backfield (Empty) — so they compete for one slot.
+`tags.coverage` mixes shell (Cover 0-6) with family (Man/Zone), so **Cover 3
+Match is unchartable**.
+
+**COACH, 2026-07-17 — the governing fact:** *"I only tagged it that way because I
+had to."* Existing tags measure **what the tool allowed, not what the coach
+wanted**. They are NOT evidence of intent and must never be used to infer the
+model. (Claude initially reasoned from the tag distribution toward a model — that
+inference is invalid and is recorded here so it is not repeated.)
+
+**Decided (coach, 2026-07-17):** `Pistol` = **QB alignment only** (leaves the
+backfield library). `Empty` = **backfield only** (leaves formation; supersedes
+the v1.9.15 "Empty stays a dual citizen" note, now obsolete). Legacy reads:
+**re-tagging anyway — don't optimize for legacy**; old plays read honestly
+through a read-time projection, nothing is written, no compatibility machinery.
+
+**The model:** four orthogonal offensive dimensions — `qbAlignment` (NEW,
+single), `formation` (multi, structure only), `backfield` (single), `strength`
+(single). Coverage splits into `coverage` (**stored key unchanged**, shell only,
+UI label "Coverage Shell") + `coverageFamily` (NEW, single, optional, blank by
+default). **Never infer family from shell — Cover 3 is not Zone.**
+
+**Measured exposure (facts, sizing only):** 0 plays conflict on QB alignment, 0
+use Pistol/Empty in both fields, 0 of 270 coverage tags are Man/Zone, 0 carry
+Power-I, 0 lack the `backfield` property. **The model change is cheap; the cost
+is the ~12 analytics/UI surfaces, not the data.**
+
+**⚠ THE LESSON-#17 HAZARD — highest-risk detail in the lane.** `qbAlignment`'s
+values are the exact ones that once coded **every ST play "Under Center."** The
+alignment key lists are hard-coded in **FOUR places sharing no source**:
+`CARRY_SCHEME_KEYS` (`play-tagger.js:1250`), `SCHEME_KEYS` (`:650`),
+`ST_ALIGNMENT_KEYS` (`season-store.js:244`), and an **inline copy-paste
+duplicate** (`play-tagger.js:1287`). Adding `qbAlignment` to the carry lists but
+not the strip lists **reproduces the bug exactly, with the same value**. E2 must
+give the strip list a single source of truth and pin it with a mutation-verified
+test. Separate flagged gap: `backfield`/`strength` are in NEITHER carry list and
+have never carried forward since v1.9.15 — raise separately, do not fix silently.
+
+**Parity: drift is EXPECTED** (formation-keyed tendencies, tells, matrix, scout
+`formationDetail`, Big-12 keys). Per B2-R2: **regenerate goldens, never mask**,
+audit the diff key-by-key, mutation-test it. `_bigTwelveData` must key on
+`[qbAlignment, formation, strength, motion, playType]` — a call sheet without QB
+alignment is wrong football.
+
+**Untouched:** `migratePlayFormation` (idempotent, dead on current data, still
+guards imported pre-v1.9.15 Power-I). Redundancy across dimensions is allowed
+(Power-I + Under Center + Power may coexist); one value in two libraries is not.
+
+**Next action:** Codex reviews `GRIDIRON-IQ-TAG-MODEL.md` (four open items in
+§12). Then E2 (normalization + projection), E3 (analytics + parity), E4 (UI).
 ### Lane B2 - ACCEPTED (`0250010`, re-review 2026-07-17)
 
 **Builder:** Codex | **Reviewer:** Claude | **Status:** ACCEPTED. Lane B closed. E1-E4 may begin.
