@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-16, B2 ready for review)
+### Current working state (2026-07-16, B2 fixes ready for re-review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -97,28 +97,36 @@ the main offensive dashboard is protected.
 The coach's offensive and player numbers are **not** polluted. Real defect,
 small scope — it rides in B2 as a routing contract, not its own lane.
 
-**B2 implementation outcome:** built by Codex in `68e2090`; independent Claude review is next. The fake policy was settled without guessing: current legitimate fake rush/pass player-stat behavior is preserved, while tries remain excluded from ordinary player totals.
+**B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`. Claude independent re-review is next.
 
-**Release sequence: B1 COMPLETE -> B2 REVIEW -> E1-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
-### Lane B2 - REVIEWED, CHANGES REQUIRED (`68e2090`)
+**Release sequence: B1 COMPLETE -> B2 RE-REVIEW -> E1-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+### Lane B2 - FIXES READY FOR RE-REVIEW (`0250010`)
 
-**Builder:** Codex | **Reviewer:** Claude | **Status:** CHANGES REQUIRED — two
-findings must close before B2 is accepted. Review verdict is at the end of this
-section; read it before touching B2 again. Do not package, push, or start E1-E4.
+**Builder:** Codex | **Reviewer:** Claude | **Status:** FIXES READY FOR RE-REVIEW. Do not package, push, or start E1-E4 until Claude accepts `0250010`.
 
 B2 implements the approved Section 4b contract without migrating or clearing any legacy coach data:
 
 - Dedicated `try` / `tryDefense` units with controls for attempt, official result, independent bad-snap/block/turnover details, and an explicit defensive-return ruling (`No score`, `2 - subject`, or `2 - opponent`). No ruleset selector was added.
 - Standard scoring is enforced: Kick XP = 1, two-point attempt = 2, failed/no play = 0. A broken XP attempt may finish as a two-point score; a standard two-point attempt cannot be recorded as one point.
 - Penalties fail closed. `playCounts:false` and `noPlay` add no attempt or points; unresolved or mismatched rulings keep the play visibly uncharted. Coaches may move on, but progress does not call the try complete until attempt, official result, penalty state, and any defensive-return ruling are resolved.
-- Tries stay out of base offense, ordinary player box scores, and generic Scout. Current fake-rush/pass box-score behavior is preserved. ~~Structured kick and return specialists reach only their legitimate specialist rows.~~ **CORRECTED BY REVIEW: they reach no rows at all unless the play also carries a `playType` — see finding B2-R1 below.**
+- Tries stay out of base offense, ordinary player box scores, and generic Scout. Current fake-rush/pass box-score behavior is preserved. Untyped structured/legacy kick and return specialists now reach only their legitimate specialist rows; untyped ST tacklers remain excluded.
 - Untyped structured Special Teams events now reach the ST report. Film Room and Study expose try unit and official result; no tactical try analytics, try player rollups, formation, play call, or front charting were added.
 - Existing structured XP remains readable. Legacy `stType:'2-Pt'` remains untouched and is never promoted.
 
-**Verification:** B2 contract 12/12; Breakdown form 58/58; Special Teams contract 20/20; analytics registry 24/24; synthetic + real six-game parity 2/2; final canonical gate **51/51 green**, zero page errors.
+**Verification:** B2 contract 13/13; Breakdown form 58/58; Special Teams contract 20/20; analytics registry 24/24; synthetic + real six-game parity 2/2; final canonical gate **51/51 green**, zero page errors.
 
-**Parity disclosure (as filed by the builder):** committed golden files are byte-identical. `e2e-parity.mjs` compares every old path except the two approved B2 corrections (`numbers.specialTeams` and `reports.scout`), which are owned by failing-first B2, ST, Breakdown, registry, and real-data contracts. Review this boundary adversarially. **REVIEW RESULT: the byte-identical claim is circular — see finding B2-R2.**
+**Review-fix outcome (`0250010`):** B2-R1 closed with a deliberately scoped
+individual-stat source: untyped ST specialists are included, but untyped ST
+tacklers are not. B2-R2 closed by deleting the parity mask and deliberately
+regenerating the committed synthetic golden; the diff is limited to specialist
+individuals, Special Teams, and Scout. B2-R4 closed by allowing only non-empty
+structured player roles to override `tags.players`. The harness now reports an
+explicit failure count. B2-R3 remains CLOSED by coach decision: kick XP -> 2 is
+an intentional manual override and was not changed.
 
+**Verification on exact rebuilt bytes:** `e2e-b2-tries` 13/13; synthetic + real
+six-game parity 2/2; real-data 16/16; canonical gate **51/51 green**. No push or
+package. Claude must independently re-run/review `0250010` before B2 acceptance.
 ### B2 REVIEW VERDICT (Claude, non-builder, 2026-07-16) — CHANGES REQUIRED
 
 **What was verified, not taken on report.** The full gate is **51/51 green** and
@@ -199,9 +207,7 @@ count — the shape Lane D's detector was hardened against. Confirmed it exits 1
 the gate catches it, so it is safe today, but it is the one harness relying
 entirely on its exit code.
 
-**Next action:** Codex closes **B2-R1** and **B2-R2**; Claude re-reviews as
-non-builder. B2-R3 is closed — do not reopen without a coach decision. Do not
-package, push, or begin E1-E4 until B2 is accepted.
+**Next action:** Claude independently re-reviews `0250010`. B2-R3 stays closed. Do not package, push, or begin E1-E4 until B2 is accepted.
 ### Product redesign handoff (v1.12.0-6 published baseline)
 
 The clean-sheet Home / Break Down / Study / Plan direction is documented in

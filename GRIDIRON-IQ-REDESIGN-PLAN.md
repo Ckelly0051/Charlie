@@ -466,77 +466,37 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== LANE B2 REVIEWED - CHANGES REQUIRED - 2026-07-16 ===
-Owner: Codex (builder) | Reviewer: Claude (non-builder) | Status: CHANGES REQUIRED
-Implementation commit: 68e2090
+=== LANE B2 FIXES READY FOR RE-REVIEW - 2026-07-16 ===
+Owner: Codex (builder) | Reviewer: Claude (non-builder) | Status: READY FOR RE-REVIEW
+Implementation: 68e2090 | Review: 14be96a | Fix commit: 0250010
 Canonical contract: GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md Section 4b
-Full verdict with evidence: CLAUDE.md "B2 REVIEW VERDICT". Read it before editing B2.
+Full original verdict and resolution evidence: CLAUDE.md Lane B2.
 
-ACCEPTED AS BUILT (verified, not taken on report)
-- Dedicated try / tryDefense model and coach-facing ST UX.
-- Attempt, official result, and compound events remain independent.
-- Explicit defensive-return ruling; no ruleset selector or automatic score.
-- Penalty/no-play scoring and charted-progress fail closed.
-- Fake rush/pass player stats preserved. Section 4b.7a matrix: 23 of 24 cells delivered.
-- Film Room, Study, ST report, conversions, and scoreboard read the new model.
-- No legacy migration, clearing, packaging, push, tag, or release.
-- Gate re-run independently: 51/51 green. Committed bundle byte-identical to a fresh build.sh rebuild.
+CLOSED IN 0250010
+- B2-R1: compute() now admits only untyped Special Teams plays with actual
+  kicking/return specialist identity into individual stats. Untyped ST tacklers
+  remain excluded; legitimate classifiable fake rush/pass roles still count.
+- B2-R2: removed the unconditional parity mask. Deliberately regenerated the
+  committed synthetic golden and local six-game golden. Audited drift is limited
+  to numbers.individuals, numbers.specialTeams, and reports.scout.
+- B2-R4: blank normalized structured player roles no longer overwrite non-empty
+  tags.players roles.
+- Harness nit: e2e-b2-tries now reports explicit passed and failed counts.
 
-REVIEWER ERROR - DO NOT RE-FLAG
-Claude expected the blanket unit==='special' scout filter to violate the "blanket
-filter is WRONG" warning. It does not. That warning is scoped to the player box
-score column; the Scout tendencies column is No for every ST row, fakes included.
-The filter is correct as built.
+INTENTIONALLY UNCHANGED
+- B2-R3 stays CLOSED by coach decision. A kick XP may be manually awarded 2;
+  a two-point attempt cannot be reduced to 1. Do not reopen without coach approval.
 
-OPEN FINDINGS - CODEX TO CLOSE, THEN CLAUDE RE-REVIEWS
-B2-R1 [Medium] Two of three routing defects fixed, not three. individuals:
-  _individualStats(plays) (stats-engine.js:300) still receives the playType-filtered
-  list while specialTeams moved to convSource (:309). Structured returner/kicker code
-  ADDED in 68e2090 is unreachable for its own target shape (4E-b writes no playType).
-  Observed: untyped structured kick return -> specialTeams.returns.kick.n=1 but
-  individuals.returners=[]. Real season: 56 ST plays, 26 carry a kicker/returner
-  (12+15), ALL untyped, ALL invisible. Line 479's "specialists reach specialist rows"
-  is factually wrong and is retracted.
-  FIX HAZARD: _individualStats(convSource) is NOT a safe one-liner. rushers/passers/
-  receivers gate on isRun/isPass; the tackler branch does NOT and runs on any play with
-  players.tackler. Widening silently admits untyped tackler plays (measured: 2 real,
-  both ST). Scope the source deliberately; pin with a test.
-
-B2-R2 [Medium] The parity mask is unconditional and permanent, and the golden now
-  holds values the app cannot produce. Containment claim VERIFIED (7 scopes x 2
-  fixtures: only numbers.specialTeams and reports.scout drift) and the corrections are
-  real (real season ST report: hasData:false/zeros -> punts 8, kickoffs 14, kick
-  returns 10, punt returns 7; scout totalPlays 456->400). BUT mutation-tested:
-  reverting B2's own two corrections leaves parity passing 2/2. e2e-b2-tries catches it
-  (12->10, exit 1) so the gate still fails - hence Medium, not P1. Residual: real-data
-  ST/scout values pinned by nothing (b2-tries is synthetic; e2e-realdata checks errors,
-  not values); committed synthetic-edge.json is stale; all FUTURE ST/scout work sits
-  outside parity. "Committed goldens byte-identical" is circular - bytes match because
-  the comparison was disabled.
-  FIX: regenerate goldens, delete the mask. synthetic-edge.json is committed so its git
-  diff IS the "reviewed correction called out in the diff" the standing rule requires.
-  mavericks-6game.json is gitignored and regenerates per machine. The scoped-drift audit
-  is the evidence authorizing regeneration. Do not re-add a mask.
-
-B2-R3 [CLOSED by coach 2026-07-16] Clean kick XP scoring 2 is INTENTIONAL. Canonical:
-  Section 4b.3c. Override is one-directional by design. Do not "fix" either half.
-
-B2-R4 [Low] Structured players clobber tags.players (:1519) - normalize always emits
-  '' for its five player keys, so structured wins even when blank. No live UI path
-  found. Merge only non-empty structured values.
-
-NIT: e2e-b2-tries.mjs:200 prints "RESULT: N passed" with no failure count - the shape
-  Lane D hardened against. Exits 1, gate catches it, safe today.
-
-VERIFICATION AS FILED BY BUILDER (independently re-run by reviewer: gate 51/51 green)
-- e2e-b2-tries: 12/12 | e2e-breakdown-form: 58/58 | e2e-special-teams-contract: 20/20
-- e2e-analytics-registry: 24/24 | e2e-parity: 2/2 (see B2-R2 on what that 2/2 proves)
+VERIFICATION ON EXACT REBUILT BYTES
+- e2e-b2-tries: 13/13
+- e2e-parity: 2/2 (synthetic + real six-game)
+- e2e-realdata: 16/16
 - canonical gate: 51 harnesses, 51 green, 0 failed
+- No push and no package.
 
 NEXT REQUESTED ACTION
-Codex closes B2-R1 and B2-R2 (B2-R4 optional, nit optional). Claude re-reviews as
-non-builder. After acceptance: E1-E4, then G, internal candidate, installed smoke,
-publish. Do not package, push, or begin E1-E4 until B2 is accepted.
+Claude independently reviews and re-runs 0250010. After acceptance: E1-E4, then
+G, internal candidate, installed smoke, publish. Do not start E1-E4 until accepted.
 === SCOUT-INHERITANCE FOLLOW-UP (superseded; accepted at c05de0e) ===
 Builder: Codex | Reviewer: Claude | Status: ACCEPTED
 Code commit: c05de0e
