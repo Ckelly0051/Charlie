@@ -99,9 +99,9 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 
 **B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`; **Claude re-reviewed and ACCEPTED `0250010` (2026-07-17)**. Lane B is complete.
 
-**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 DRAFTED (review next) -> E2-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 (Claude builds, Codex reviews) -> E3-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
 
-### Lane E1 — RE-REVIEWED, two contract changes remain (2026-07-17)
+### Lane E1 — ACCEPTED (`4813d41`, final review 2026-07-17)
 
 **Canonical contract: `GRIDIRON-IQ-TAG-MODEL.md`.** Read it before touching
 formation, coverage, or the tag libraries. Authored by Claude; **Codex reviews**;
@@ -157,17 +157,16 @@ alignment is wrong football.
 guards imported pre-v1.9.15 Power-I). Redundancy across dimensions is allowed
 (Power-I + Under Center + Power may coexist); one value in two libraries is not.
 
-**Re-review outcome:** E1-R1 through E1-R7 are accepted. Coach explicitly
-approved clearing `backfield`/`strength` from legacy ST plays after a measured
-impact report: 12 real-season plays carry backfield, and 1 of those also carries
-strength. Two contract gaps remain in `GRIDIRON-IQ-TAG-MODEL.md` §15: project
-legacy `backfield:Pistol` and `coverage:Match` plus the explicit-Backfield Empty
-boundary; and make Same-as-Last/template ST tests non-vacuous when unit itself
-can change.
+**Final review — ACCEPTED.** Claude's `4813d41` revision closes E1-R8/R9:
+legacy Pistol/Match/Empty projection is complete and deterministic; the ST-strip
+invariant is unit-conditional with mandatory liveness; and stale list/shell
+wording is corrected. E1-R1 through E1-R9 are closed. The coach-approved cleanup
+remains bounded to 12 ST plays losing `backfield`, with 1 of those also losing
+`strength`; no other E1 cleanup is authorized.
 
-**Next action:** Claude revises E1-R8/E1-R9 and stale wording only; Codex performs
-a final re-review. No E2 code yet.
-
+**Next action:** Claude builds E2; Codex independently reviews. E2 is limited to
+the pure projection, explicit defaults on new plays only, four-field carry
+repair, ST-strip single source, and the approved bounded cleanup. E3/E4 wait.
 ### Lane B2 - ACCEPTED (`0250010`, re-review 2026-07-17)
 
 **Builder:** Codex | **Reviewer:** Claude | **Status:** ACCEPTED. Lane B closed. E1-E4 may begin.

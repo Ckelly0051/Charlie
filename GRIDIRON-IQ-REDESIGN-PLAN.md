@@ -466,50 +466,34 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== LANE E1 TAG-MODEL CONTRACT DRAFTED - READY FOR CODEX REVIEW - 2026-07-17 ===
-Owner: Claude (author) | Reviewer: Codex | Status: DRAFT, AWAITING REVIEW
-Canonical contract: GRIDIRON-IQ-TAG-MODEL.md. Summary: CLAUDE.md Lane E1.
-No code was written. B1 precedent: contract approved before implementation.
+=== LANE E1 TAG-MODEL CONTRACT ACCEPTED - 2026-07-17 ===
+Author: Claude | Reviewer: Codex | Status: ACCEPTED
+Final contract revision: 4813d41
+Canonical contract: GRIDIRON-IQ-TAG-MODEL.md; final verdict: Section 17.
+No production code was written in E1.
 
-WHAT IT SETTLES
-- formation answers THREE questions at once (QB alignment / system+structure /
-  backfield). coverage mixes shell with family, so Cover 3 Match is unchartable.
-- Coach 2026-07-17, governing fact: "I only tagged it that way because I had to."
-  Existing tags measure what the TOOL ALLOWED, not intent. Never infer the model
-  from the tag distribution. (Claude tried; the inference is invalid; recorded.)
-- Decided: Pistol = QB alignment only. Empty = backfield only (supersedes the
-  v1.9.15 dual-citizen note). Legacy = re-tagging anyway, don't optimize; a
-  read-time projection only, nothing written, no compatibility machinery.
-- Model: qbAlignment (NEW, single) + formation (multi, structure) + backfield
-  (single) + strength (single). coverage keeps its stored key as the shell;
-  coverageFamily is NEW/optional/blank. Never infer family from shell.
+SETTLED MODEL
+- qbAlignment single: Under Center / Shotgun / Pistol.
+- formation remains multi; backfield and strength remain single.
+- coverage stored key remains; UI label Coverage Call; optional single
+  coverageFamily is Man / Zone / Match. No inference between dimensions.
+- Read projection is non-mutating and covers every moved legacy value.
+- Big Call exact key includes qbAlignment + formation + backfield + strength +
+  motion + playType. Existing Formation composites are not silently widened.
+- Cross-tabs disclose total / eligible / omitted and sum cells to eligible.
 
-REVIEW FOCUS (four open items in Section 12)
-1. Keeping the stored key `coverage` instead of renaming to coverageShell.
-2. Which composites qbAlignment joins (_bigTwelveData mandated; the four combo*
-   cut filters need an explicit per-filter call - judge as football, not code).
-3. Power-I redundancy with Under Center + Power (contract allows redundancy,
-   forbids one value in two libraries).
-4. The ST-strip single-source-of-truth edit crosses two modules - scope OK in E2?
-
-HIGHEST-RISK DETAIL (Section 7): qbAlignment's values are the exact ones that
-once coded every ST play "Under Center" (lesson #17). Four hard-coded alignment
-key lists share no source - CARRY_SCHEME_KEYS (play-tagger.js:1250), SCHEME_KEYS
-(:650), ST_ALIGNMENT_KEYS (season-store.js:244), and an inline copy-paste
-duplicate (play-tagger.js:1287). Add to the carry lists but not the strip lists
-and the bug returns identically. E2 must unify the strip list + mutation-test it.
-
-MEASURED EXPOSURE (sizing only, NOT evidence of intent): 0 QB-alignment
-conflicts, 0 Pistol/Empty dual use, 0 of 270 coverage tags are Man/Zone, 0
-Power-I plays, 0 plays missing the backfield property. Model change is cheap;
-cost is the ~12 analytics/UI surfaces (42 refs across 8 modules).
+SAFETY / DATA DECISION
+- Three owned carry/strip lists; tagger inline ST-strip duplicate is deleted.
+- Any operation ending unit:special must leave every ST_ALIGNMENT_KEYS field blank.
+- Coach explicitly approved bounded legacy cleanup after impact report: 12 of
+  456 real-season ST plays lose backfield; 1 of those also loses strength; no
+  other E1 field cleanup is authorized.
+- 25 failing-first, mutation-verified contract cases specified.
 
 NEXT REQUESTED ACTION
-Codex reviews GRIDIRON-IQ-TAG-MODEL.md. After approval: E2 (pure normalization +
-non-mutating projection, failing-first) -> E3 (analytics + parity; regenerate
-goldens, never mask) -> E4 (charting UI + libraries behind the existing flag).
-Do not write E2 code until the contract is approved.
-
+Claude owns E2: pure projection + new-play defaults + carry repair + ST-strip
+single source + bounded cleanup. Codex independently reviews E2. Do not begin E3
+analytics/parity or E4 UI until E2 is accepted.
 === LANE B2 ACCEPTED - 2026-07-17 - LANE B COMPLETE, E1 IS NEXT ===
 Owner: Codex (builder) | Reviewer: Claude (non-builder) | Status: ACCEPTED
 Implementation: 68e2090 | Review: 14be96a | Fix commit: 0250010 | Accepted: 2026-07-17

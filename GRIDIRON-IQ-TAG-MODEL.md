@@ -1,13 +1,10 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
-> **Status: REVISED for E1-R8/R9 + cleanup — awaiting Codex's final re-review
-> (Claude, 2026-07-17).** History: draft → Codex CHANGES REQUIRED (§13) → Claude
-> revised R1–R7 (§14) → Codex re-review CHANGES REQUIRED (§15, R8/R9 + cleanup) →
-> Claude revised (§16). Canonical contract for BETA-005 (QB alignment) and
-> BETA-006 (coverage call/family). **E2 (normalization), E3 (analytics), and E4
-> (charting UI) implement this document. No code until Codex's final re-review
-> passes** — the B1 precedent: contract first, implementation second. Read §16 +
-> §15 (latest round) with §14 + §13 (first round).
+> **Status: ACCEPTED (Codex final review, 2026-07-17).** Claude's final contract
+> revision is `4813d41`; Codex independently closed E1-R1 through E1-R9 in §17.
+> This is the canonical contract for BETA-005 (QB alignment) and BETA-006
+> (coverage call/family). E2, E3, and E4 must implement these exact rules. Read
+> §16/§15 for the final review round and §14/§13 for the first.
 >
 > **This lane gates the beta.** It is the last data-model blocker before the
 > coach re-tags film permanently. Getting it wrong means re-tagging twice.
@@ -104,8 +101,7 @@ correction, accepted: a *shell* is the pre-snap safety structure (one-high /
 two-high / MOFO-MOFC). `Cover 0`–`Cover 6` are coverage **calls**, not shells —
 labeling Cover 3 a "shell" reads as wrong football to a coach who runs a
 shell-based system. The second field's label is **"Coverage Family"**
-(`Man`/`Zone`/`Match`). *(Coach-facing text — the coach may rename either label
-trivially; the football-correct default is "Coverage Call".)*
+(`Man`/`Zone`/`Match`).
 
 > **BETA-006 explicitly forbids making the mixed field multi-select.** Both
 > dimensions stay single-value. That is what makes the exact coverage-call ×
@@ -788,3 +784,31 @@ vacuous-assertion class this project forbids). Nothing rejected.
 **Net:** three owned key lists edited + one duplicate deleted (no "fourth
 list"). Gate grew 20 → **25** tests. **Status: revised; ready for Codex's final
 re-review of these bytes. No E2 code until it passes.**
+
+---
+
+## 17. Codex final review — ACCEPTED (2026-07-17)
+
+**Verdict: ACCEPTED, no open findings.** The final `4813d41` revision closes
+E1-R8 and E1-R9 at the contract root:
+
+- Every D1/D2 moved value has a deterministic read projection, including legacy
+  `backfield:Pistol`, `coverage:Match`, and `Empty` with an explicit backfield.
+  Source tokens are always stripped in the projected view; explicit target
+  values win; stored plays remain untouched by projection.
+- The Special Teams invariant is unit-conditional and non-vacuous. Same-as-Last
+  and templates may still change unit legitimately, but every operation that
+  ends with `unit:'special'` must strip every `ST_ALIGNMENT_KEYS` field, with
+  present-then-stripped liveness evidence.
+- The coach-approved destructive cleanup is bounded and measurable: exactly 12
+  real-season ST plays lose `backfield`, 1 of those also loses `strength`, and
+  no other key may be cleared by this E1 change.
+- Coverage terminology, exact-call backfield, eligible denominators, carry
+  completeness, library reservations, three-owned-lists/one-deleted-duplicate
+  ownership, and all 25 failing-first test requirements are internally
+  consistent and football-correct for this scope.
+
+**E1 is complete. Next:** Claude owns E2 (pure read projection, new-play defaults,
+carry repair, ST-strip single source, and the bounded approved cleanup). Codex is
+the non-builder reviewer. E3 analytics/parity and E4 UI remain blocked until E2
+is independently accepted.
