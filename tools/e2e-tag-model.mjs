@@ -85,6 +85,12 @@ test('8 · (E1-R8) backfield "Pistol" reads qbAlignment Pistol, backfield ""', (
   assert.equal(p.backfield, '');
 });
 
+test('8b · (E2-R2) malformed multi-value backfield strips its alignment token', () => {
+  const p = TagProjection.project(tags({ backfield: 'Pistol + Diamond' }));
+  assert.equal(p.backfield, 'Diamond', 'Pistol must be stripped from a multi-value backfield');
+  assert.equal(p.qbAlignment, 'Pistol', 'and it supplies qbAlignment when blank');
+});
+
 test('9 · (E1-R8) coverage "Match" strips/projects like Man/Zone', () => {
   const p = TagProjection.project(tags({ coverage: 'Match' }));
   assert.equal(p.coverageFamily, 'Match');
@@ -163,6 +169,51 @@ test('16c · (E1-R9 mutation) ST_ALIGNMENT_KEYS single source includes the 4 new
   const st = legacyPlay(4, { unit: 'special', strength: 'Left' });
   Object.create(PlayTagger.prototype)._stripStAlignment(st);
   assert.equal(st.tags.strength, '', 'tagger strip drifted from SeasonStore source');
+});
+
+test('16d · (E2-R1) Same-as-Last onto an ST result strips forbidden fields', () => {
+  // A legacy ST source carrying forbidden alignment. Copying it forward must not
+  // reproduce those values on the resulting ST play (E1-R9 invariant, any op).
+  const src = legacyPlay(40, {
+    unit: 'special', formation: 'Shotgun + Trips', qbAlignment: 'Shotgun',
+    backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
+  });
+  const cur = legacyPlay(41, { unit: 'offense' });
+  assert.equal(src.tags.backfield, 'Power', 'liveness: source carries forbidden values');
+  const pt = Object.create(PlayTagger.prototype);
+  pt.plays = [src, cur];
+  pt.getCurrentPlay = () => cur;
+  pt._loadTagForm = () => {}; pt._updateTimeline = () => {}; pt._emit = () => {};
+  pt.copyFromPrevious();
+  assert.equal(cur.tags.unit, 'special', 'copy carried the special unit');
+  for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(cur.tags[k], '', `${k} leaked via Same-as-Last`);
+});
+
+test('16e · (E2-R1) template application onto an ST result strips forbidden fields', () => {
+  const cur = legacyPlay(42, { unit: 'offense' });
+  const pt = Object.create(PlayTagger.prototype);
+  pt.getCurrentPlay = () => cur;
+  pt._templateStore = () => ({ leaky: {
+    unit: 'special', formation: 'Shotgun + Trips', qbAlignment: 'Shotgun',
+    backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
+  } });
+  pt._loadTagForm = () => {}; pt._updateTimeline = () => {}; pt._emit = () => {};
+  pt.applyTemplate('leaky');
+  assert.equal(cur.tags.unit, 'special');
+  for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(cur.tags[k], '', `${k} leaked via template`);
+});
+
+test('16f · (E2-R1) an OFFENSE Same-as-Last keeps its look (strip is unit-conditional)', () => {
+  const src = legacyPlay(43, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun', backfield: 'Power' });
+  const cur = legacyPlay(44, { unit: 'special' });
+  const pt = Object.create(PlayTagger.prototype);
+  pt.plays = [src, cur];
+  pt.getCurrentPlay = () => cur;
+  pt._loadTagForm = () => {}; pt._updateTimeline = () => {}; pt._emit = () => {};
+  pt.copyFromPrevious();
+  assert.equal(cur.tags.unit, 'offense', 'copy carried the offense unit');
+  assert.equal(cur.tags.formation, 'Trips', 'offense look must survive');
+  assert.equal(cur.tags.backfield, 'Power');
 });
 
 /* ---- §7 carry repair ---- */

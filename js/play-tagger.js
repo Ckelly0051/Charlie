@@ -664,6 +664,9 @@ export class PlayTagger {
     if (idx <= 0) return; // no previous play
     const prev = this.plays[idx - 1];
     PlayTagger.SCHEME_KEYS.forEach(k => { play.tags[k] = prev.tags[k] || (k === 'unit' ? 'offense' : ''); });
+    // Copying carries `unit` too — if the result is special, the alignment fields
+    // it just copied are forbidden and must be stripped (ST invariant, any op).
+    this._stripStAlignment(play);
     this._loadTagForm(play);
     this._updateTimeline();
     this._emit('play-updated', play);
@@ -711,6 +714,9 @@ export class PlayTagger {
     const tpl = this._templateStore()[name];
     if (!tpl) return;
     Object.entries(tpl).forEach(([k, v]) => { play.tags[k] = v; });
+    // A template can carry `unit:'special'` + forbidden alignment (saved from a
+    // mis-tagged play); strip it when the result is special (ST invariant).
+    this._stripStAlignment(play);
     this._loadTagForm(play);
     this._updateTimeline();
     this._emit('play-updated', play);

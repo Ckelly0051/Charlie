@@ -40,19 +40,23 @@ export class TagProjection {
     const emptyInFormation = fParts.some(p => this.FORMATION_BACKFIELD_TOKENS.includes(p));
     const structure = fParts.filter(p => !this._isAlignment(p) && !this.FORMATION_BACKFIELD_TOKENS.includes(p));
 
-    // --- Backfield: strip an alignment token (legacy Pistol); it may supply QB. ---
-    const bfRaw = typeof t.backfield === 'string' ? t.backfield : '';
-    const bfIsAlignment = this._isAlignment(bfRaw);
+    // --- Backfield: strip alignment tokens UNCONDITIONALLY (E2-R2). Backfield is
+    //     single-value in normal data, but a malformed/imported multi-value string
+    //     (`Pistol + Diamond`) must have its alignment token removed too — split it
+    //     symmetrically with formation rather than matching the whole value. ---
+    const bfParts = this._split(t.backfield);
+    const alignInBackfield = bfParts.filter(p => this._isAlignment(p));
+    const bfStructure = bfParts.filter(p => !this._isAlignment(p));
 
     // --- qbAlignment supply precedence (E1-R8): explicit > first formation token
-    //     > backfield Pistol. Explicit is never overwritten. ---
+    //     > backfield alignment token. Explicit is never overwritten. ---
     let qb = typeof t.qbAlignment === 'string' ? t.qbAlignment : '';
     if (!qb) qb = alignInFormation[0] || '';
-    if (!qb && bfIsAlignment) qb = bfRaw;
+    if (!qb) qb = alignInBackfield[0] || '';
 
-    // Backfield projected: strip alignment token; supply Empty from formation only
-    // when the backfield is otherwise blank (never overwrite a deliberate pick).
-    let backfield = bfIsAlignment ? '' : bfRaw;
+    // Backfield projected: alignment tokens removed; supply Empty from formation
+    // only when the backfield is otherwise blank (never overwrite a deliberate pick).
+    let backfield = bfStructure.join(' + ');
     if (!backfield && emptyInFormation) backfield = 'Empty';
 
     // --- Coverage (single-value): a family token IS the whole value. ---
