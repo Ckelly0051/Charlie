@@ -1,12 +1,13 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
-> **Status: RE-REVIEWED — CHANGES REQUIRED (Codex, 2026-07-17).** Claude revised E1-R1…R7 in §14; two findings remain in §15.
-> Authored by Claude; reviewed by Codex (CHANGES REQUIRED, §13);
-> revised by Claude (§14). Canonical contract for BETA-005 (QB alignment) and
+> **Status: REVISED for E1-R8/R9 + cleanup — awaiting Codex's final re-review
+> (Claude, 2026-07-17).** History: draft → Codex CHANGES REQUIRED (§13) → Claude
+> revised R1–R7 (§14) → Codex re-review CHANGES REQUIRED (§15, R8/R9 + cleanup) →
+> Claude revised (§16). Canonical contract for BETA-005 (QB alignment) and
 > BETA-006 (coverage call/family). **E2 (normalization), E3 (analytics), and E4
-> (charting UI) implement this document. No code until Codex re-reviews these
-> revised bytes** — the B1 precedent: contract first, implementation second.
-> Read §14 (resolution) and §13 (the review) together.
+> (charting UI) implement this document. No code until Codex's final re-review
+> passes** — the B1 precedent: contract first, implementation second. Read §16 +
+> §15 (latest round) with §14 + §13 (first round).
 >
 > **This lane gates the beta.** It is the last data-model blocker before the
 > coach re-tags film permanently. Getting it wrong means re-tagging twice.
@@ -107,8 +108,8 @@ shell-based system. The second field's label is **"Coverage Family"**
 trivially; the football-correct default is "Coverage Call".)*
 
 > **BETA-006 explicitly forbids making the mixed field multi-select.** Both
-> dimensions stay single-value. That is what makes the exact shell × family
-> intersection possible without double-counting (§6.5).
+> dimensions stay single-value. That is what makes the exact coverage-call ×
+> family intersection possible without double-counting (§6.5).
 
 ---
 
@@ -142,12 +143,24 @@ trivially; the football-correct default is "Coverage Call".)*
 > in its correct dimension and removed from the old one at read time. No stored
 > VALUE is ever moved or rewritten.**
 
+**Recognized wrong-field tokens (the complete set — E1-R8):**
+- *Alignment tokens* (`Under Center`, `Shotgun`, `Pistol`) are wrong in
+  **`formation`** AND in **`backfield`** (D1 moved `Pistol` out of the backfield
+  library). Both source fields are stripped; either may supply `qbAlignment`.
+- *Family tokens* (`Man`, `Zone`, **`Match`**) are wrong in **`coverage`**.
+  `Match` is a family value exactly like `Man`/`Zone` and must be
+  stripped/projected identically, or the one-question-per-dimension invariant
+  (§6.1) is still violated.
+
 | Stored (legacy) | Reads as |
 |---|---|
 | `formation: 'Under Center'` | `qbAlignment: 'Under Center'`, `formation: ''` |
 | `formation: 'Shotgun + Trips'` | `qbAlignment: 'Shotgun'`, `formation: 'Trips'` |
 | `formation: 'Empty'` | `backfield: 'Empty'` **only if `backfield` is blank**; `formation: ''` |
+| `formation: 'Empty'` + `backfield: 'Split'` (explicit) | `backfield: 'Split'` (kept), `formation: ''` (**Empty still stripped**) |
+| `backfield: 'Pistol'` | `qbAlignment: 'Pistol'` **if alignment blank**; `backfield: ''` (**always stripped**) |
 | `coverage: 'Man'` | `coverageFamily: 'Man'`, `coverage: ''` |
+| `coverage: 'Match'` | `coverageFamily: 'Match'`, `coverage: ''` |
 | `qbAlignment: 'Pistol'` + `formation: 'Shotgun + Trips'` | `qbAlignment: 'Pistol'` (kept), `formation: 'Trips'` (**Shotgun still stripped**) |
 
 **Rules — read-time only, and it is GENUINELY read-only (E1-R2):**
@@ -171,20 +184,27 @@ trivially; the football-correct default is "Coverage Call".)*
 2. **Wrong-field tokens are ALWAYS removed from the old dimension; they only
    SUPPLY the target when the target is blank (E1-R3).** These are two
    independent operations:
-   - *Strip:* every recognized alignment token (`Under Center`/`Shotgun`/
-     `Pistol`) is removed from projected `formation`; every recognized family
-     token (`Man`/`Zone`) is removed from projected `coverage` — **always**,
+   - *Strip:* every recognized alignment token is removed from projected
+     `formation` AND from projected `backfield`; every recognized family token
+     (`Man`/`Zone`/`Match`) is removed from projected `coverage` — **always**,
      regardless of whether the target already has a value.
    - *Supply:* the stripped token fills the target dimension **only if the target
      is currently blank**. If the coach already set `qbAlignment:'Pistol'`, a
      legacy `Shotgun` in formation is still stripped but does **not** overwrite
-     Pistol. (Mirrors `migratePlayFormation`'s "don't clobber a deliberate pick"
-     — but the strip is unconditional, the supply is conditional.)
-3. **First supplies, all are stripped, and it is unambiguous.** 0 plays carry >1
-   QB alignment today, so no tiebreak is needed. If one ever appears (import),
-   the **first** token supplies the blank target, and **all** alignment tokens
-   are stripped from formation — **do not guess** which was meant. Covered by a
-   test.
+     Pistol. Likewise an explicit `backfield:'Split'` survives while `Empty` is
+     still stripped from `formation`. (Mirrors `migratePlayFormation`'s "don't
+     clobber a deliberate pick" — but the strip is unconditional, the supply
+     conditional.)
+3. **Deterministic `qbAlignment` supply precedence (E1-R8).** Alignment can now
+   be supplied from three places. When the target is blank, take the first that
+   exists, in this fixed order — **do not guess**:
+   1. an explicit `qbAlignment` already on the play (never overwritten);
+   2. else the **first** alignment token in `formation`;
+   3. else a `Pistol` in legacy `backfield`.
+   Regardless of which supplies, **all** alignment tokens are stripped from BOTH
+   `formation` and `backfield`. 0 real plays hit tiers 2–3 today (0 multi-
+   alignment, 0 backfield-Pistol), so this is import/edge robustness — but it is
+   pinned by a test so it can never drift.
 4. **The projection is the single source of truth.** Every consumer reads
    through it (§8). No consumer may parse `formation` for alignment itself.
 
@@ -244,8 +264,9 @@ hold — the draft's original wording contradicted itself and is corrected here.
   in scope), `eligible` (plays with a value on every axis), and `omitted`
   (`total − eligible`). A cross-tab that shows cells without disclosing how many
   plays it dropped is dishonest and fails the gate.
-- For two single-value axes (**shell × family**, **qbAlignment × strength**)
-  each eligible play lands in exactly one cell, so `Σ cells === eligible`.
+- For two single-value axes (**coverage-call × family**, **qbAlignment ×
+  strength**) each eligible play lands in exactly one cell, so
+  `Σ cells === eligible`.
 - A cross-tab involving `formation` (multi) may repeat a play across rows, but
   **must not** repeat it along a single-value axis; `eligible` still gates it.
 
@@ -262,32 +283,74 @@ unit.* It exists because the Save-&-Next carry propagated `formation` onto
 Special Teams plays and **coded every ST play "Under Center."**
 
 `qbAlignment`'s values are **`Under Center`, `Shotgun`, `Pistol`** — the exact
-same value that caused that bug. And the alignment key lists are **hard-coded in
-four places that share no source**:
+same value that caused that bug. The alignment key lists are **hard-coded in
+three owned lists plus one copy-pasted duplicate**, sharing no source:
 
-| # | List | Location | Keys today | Must add (E1) |
+| # | List | Location | Keys today | E1 action |
 |---|---|---|---|---|
-| 1 | `CARRY_SCHEME_KEYS` | `play-tagger.js:1250` | `formation, personnel, defFront, coverage` | `qbAlignment`, `coverageFamily`, **`backfield`, `strength`** |
-| 2 | `SCHEME_KEYS` | `play-tagger.js:650` | `unit, formation, personnel, motion, runPass, playType, defFront, coverage, blitz, hash` | `qbAlignment`, `coverageFamily`, **`backfield`, `strength`** |
-| 3 | `ST_ALIGNMENT_KEYS` | `season-store.js:244` | `formation, personnel, defFront, coverage, blitz` | `qbAlignment`, `coverageFamily`, **`backfield`, `strength`** |
-| 4 | **inline duplicate** | `play-tagger.js:1287` | *same five, copy-pasted* | *(deleted — see below)* |
+| 1 | `CARRY_SCHEME_KEYS` | `play-tagger.js:1250` | `formation, personnel, defFront, coverage` | **add** `qbAlignment`, `coverageFamily`, `backfield`, `strength` |
+| 2 | `SCHEME_KEYS` | `play-tagger.js:650` | `unit, formation, personnel, motion, runPass, playType, defFront, coverage, blitz, hash` | **add** `qbAlignment`, `coverageFamily`, `backfield`, `strength` |
+| 3 | `ST_ALIGNMENT_KEYS` | `season-store.js:244` | `formation, personnel, defFront, coverage, blitz` | **add** `qbAlignment`, `coverageFamily`, `backfield`, `strength` |
+| — | inline duplicate | `play-tagger.js:1287` | *same five, copy-pasted from list 3* | **delete**; consume list 3's source |
 
-**Adding an alignment key to a CARRY list (1/2) but not the STRIP lists (3/4)
-reproduces lesson #17 exactly, with the same value.** List 4 is a copy-paste of
-list 3 and will drift. **Every key that carries forward must also be strippable
-from an ST play** — carry and strip lists move together or the leak returns.
+So E1 edits **three owned lists** and **removes one duplicate** — after this
+there is no fourth list. **Adding an alignment key to a CARRY list (1/2) but not
+the STRIP list (3) reproduces lesson #17 exactly, with the same value.** **Every
+key that carries forward must also be strippable from an ST play** — carry and
+strip move together or the leak returns.
 
 **Required by this contract:**
 - **E2 gives the ST-strip list a single source of truth** — `season-store.js`
   owns `ST_ALIGNMENT_KEYS`; `play-tagger.js:1287`'s inline copy is **deleted**
   and consumes that source. (Scoped, mechanical; not a refactor project.)
   Approved by Codex as E2 scope.
-- **A failing-first test must prove** an ST play cannot retain **any** of
-  `qbAlignment`, `coverageFamily`, `backfield`, `strength` through: the
-  Save-&-Next carry, Same-as-Last, a template, and `setUnit('special')` — and
-  that `_normalize` strips them retroactively.
-- The test must be **mutation-verified**: revert any single list edit and it
-  must fail.
+- **A failing-first test must prove the invariant in §7a** — not "the ST play
+  cannot retain fields," which can pass vacuously (§7a / E1-R9).
+- The test must be **mutation-verified**: revert any single one of the three
+  list edits (or restore the deleted duplicate to drift from list 3) and it must
+  fail. Name the mechanism, not a list count.
+
+### 7a. The ST-strip invariant — stated so the test cannot pass vacuously (E1-R9)
+
+`copyFromPrevious()` and templates **carry `unit`** (list 2 includes it). So an
+**offensive** source applied to a Special Teams target turns the target into
+offense — at which point retaining `formation`/`qbAlignment` is *legal*. A test
+worded "an ST play cannot retain alignment after Same-as-Last" can therefore
+pass **because the play stopped being ST**, exercising no stripping at all. That
+is the exact vacuous-assertion class this project forbids.
+
+**Do not force the target to stay ST** (that would break legitimate template/
+unit semantics). Test the real invariant instead:
+
+> **After ANY operation (carry, Same-as-Last, template, `setUnit`, `_normalize`),
+> if the resulting play has `unit === 'special'`, every `ST_ALIGNMENT_KEYS`
+> field is blank.**
+
+Liveness is mandatory (standing rule): the test MUST include a legacy
+Same-as-Last **source** and a legacy stored **template** that each end with
+`unit:'special'` while carrying forbidden alignment values, and prove the
+operation strips them (not that the value was never there). Separately prove an
+**offensive** source/template may legitimately produce `unit:'offense'` and
+**retain** its look — so the strip is shown to be unit-conditional, not blanket.
+
+### 7b. Coach-approved data impact — measured, bounded (Codex, 2026-07-17)
+
+Adding `backfield`/`strength` to `ST_ALIGNMENT_KEYS` means `_normalize` will
+**clear** those stored values from legacy Special Teams plays — a destructive
+change to existing data. Codex measured the real six-game fixture and requested
+permission; **the coach approved on 2026-07-17** after the exact deletion was
+identified. Measured impact, which E2 must pin and **must not exceed**:
+
+| Affected | Count (of 456) |
+|---|---|
+| ST plays carrying `backfield` (cleared) | **12** |
+| …of those also carrying `strength` (cleared) | **1** |
+| Any other field cleared | **0 — do not broaden** |
+
+These are leaked values the ST form could never legitimately set (same class as
+the "Under Center" leak), so clearing them satisfies the standing known-bad-data
+rule. **The cleanup is limited to `backfield`/`strength` on `unit:'special'`
+plays; E2 must not widen it.**
 
 **E1-R6 — the `backfield`/`strength` carry gap is FIXED in this lane, not
 deferred (reversing the draft).** `backfield` and `strength` are in **neither**
@@ -299,12 +362,13 @@ its sibling pre-snap-look fields `backfield`/`strength` would not — and this
 lands during the coach's **permanent re-tag**, the exact workflow E1 exists to
 enable. Carrying the QB alignment while the backfield silently resets snap-to-
 snap is a worse footgun than the original gap. Both are genuine pre-snap
-alignment; both belong in the carry. This is a bug fix on the same four lists
-§7 already edits — not scope creep, and not silent (it is specified here and
+alignment; both belong in the carry. This is a bug fix on the same lists §7
+already edits — not scope creep, and not silent (it is specified here and
 tested). **Completeness requirement Codex's finding did not state but this
 contract adds:** because they now carry, `backfield`/`strength` MUST also join
-`ST_ALIGNMENT_KEYS` (lists 3/4), or they become a fresh lesson-#17 leak onto ST
-plays. That is why the table above adds them to all four lists, not just 1/2.
+`ST_ALIGNMENT_KEYS` (list 3), or they become a fresh lesson-#17 leak onto ST
+plays. That is why the §7 table adds them to all three owned lists, not just the
+two carry lists — and the measured cleanup this produces is pinned in §7b.
 
 ---
 
@@ -410,49 +474,70 @@ rule).
    not promoted**). Same for `coverageFamily` set + legacy `Man` in `coverage`.
 6. `coverage:'Man'` → reads `coverageFamily:'Man'`, `coverage:''`.
 7. **`Cover 3` does NOT imply `Zone`** — family stays blank (§6.3).
-8. **(E1-R2)** Consumers read `qbAlignment`/`coverageFamily` defensively: a play
-   *object literal* lacking the property (not just `''`) aggregates as blank and
-   does not throw. (Guards the legacy-play asymmetry §5.1 creates.)
-9. Single-value dimensions are never split on `" + "` (registry `multi:false`
-   honored end-to-end).
-10. **(E1-R1) Eligible-denominator intersection:** a shell × family cross-tab
-    where some plays are blank on one axis reports `total`, `eligible`,
+8. **(E1-R8) `backfield:'Pistol'`** → reads `qbAlignment:'Pistol'` (when
+   alignment blank) and `backfield:''` (**always stripped**, since D1 removed
+   Pistol from the backfield library).
+9. **(E1-R8) `coverage:'Match'`** → reads `coverageFamily:'Match'`,
+   `coverage:''` — stripped/projected exactly like `Man`/`Zone`.
+10. **(E1-R8) supply precedence:** `formation:'Under Center'` +
+    `backfield:'Pistol'` (no explicit `qbAlignment`) → `qbAlignment:'Under
+    Center'` (formation token wins tier 2 over backfield-Pistol tier 3); BOTH
+    tokens stripped from their fields.
+11. **(E1-R8) D2 boundary:** `formation:'Empty'` + explicit `backfield:'Split'`
+    → `backfield:'Split'` preserved, `formation:''` (**Empty still stripped**).
+    No stored value rewritten in tests 8–11.
+12. **(E1-R2)** Consumers read `qbAlignment`/`coverageFamily` defensively: a play
+    *object literal* lacking the property (not just `''`) aggregates as blank and
+    does not throw. (Guards the legacy-play asymmetry §5.1 creates.)
+13. Single-value dimensions are never split on `" + "` (registry `multi:false`
+    honored end-to-end).
+14. **(E1-R1) Eligible-denominator intersection:** a coverage-call × family
+    cross-tab where some plays are blank on one axis reports `total`, `eligible`,
     `omitted`; cell counts sum to **`eligible`**, not `total`; omitted > 0 is
     surfaced. A play blank on an axis appears in **no** cell.
-11. `formation` (multi) may repeat a play across rows but never along a
+15. `formation` (multi) may repeat a play across rows but never along a
     single-value axis; `eligible` still gates the cross-tab.
-12. **(E1-R6) Lesson #17 (§7):** an ST play cannot retain **any** of
-    `qbAlignment`, `coverageFamily`, `backfield`, `strength` via carry,
-    Same-as-Last, template, or `setUnit('special')`; `_normalize` strips them
-    retroactively. **Mutation: revert any single one of the four list edits →
-    fails.**
-13. **(E1-R6) Carry works for all four pre-snap look fields:** on Save-&-Next to
+16. **(E1-R9) The ST-strip invariant, NOT a vacuous "cannot retain" (§7a):**
+    after carry / Same-as-Last / template / `setUnit` / `_normalize`, **if the
+    resulting play has `unit==='special'`, every `ST_ALIGNMENT_KEYS` field is
+    blank.** Liveness is mandatory: a legacy Same-as-Last *source* and a legacy
+    stored *template*, each ending `unit:'special'` while carrying forbidden
+    alignment values, must have those values **stripped by the operation** (prove
+    they were present first). Separately prove an offensive source/template may
+    produce `unit:'offense'` and **retain** its look — the strip is
+    unit-conditional. **Mutation: revert any one of the three list edits (or
+    restore the deleted inline duplicate so it drifts from list 3) → fails.**
+17. **(E1-R6) Carry works for all four pre-snap look fields:** on Save-&-Next to
     an untagged offensive play, `qbAlignment`, `backfield`, and `strength` carry
-    forward (with `formation` etc.); on an ST target they do not. Same-as-Last
-    and templates carry the same set. Failing-first (these keys do not carry
-    today).
-14. `Power-I` on a modern play (has `backfield`) is **never** migrated to
+    forward (with `formation` etc.); on an ST target they land blank (test 16).
+    Same-as-Last and templates carry the same set. Failing-first (these keys do
+    not carry today).
+18. **(E1-R6/R7b) ST cleanup impact is bounded (§7b):** `_normalize` clears
+    `backfield`/`strength` from `unit:'special'` plays and **nothing else** — on
+    the real fixture exactly **12** plays lose `backfield`, **1** also loses
+    `strength`, **0** other keys change. Pin the count; a broader clear fails.
+19. `Power-I` on a modern play (has `backfield`) is **never** migrated to
     `backfield:'Power'` — the existing guard still holds.
-15. A truly legacy play (no `backfield` property) still migrates exactly as
+20. A truly legacy play (no `backfield` property) still migrates exactly as
     today — `migratePlayFormation` behavior byte-identical.
-16. **(E1-R7)** `Pistol`/`Shotgun`/`Under Center` are rejected from the
+21. **(E1-R7)** `Pistol`/`Shotgun`/`Under Center` are rejected from the
     `formation` and `backfield` libraries with a validation message; `Empty` is
     rejected from `formation`; an unrelated custom value is still accepted in any
     library. Neither reserved value is deleted from any historical play tag.
-17. A disabled/hidden library value still renders on a historical play and still
+22. A disabled/hidden library value still renders on a historical play and still
     aggregates (existing `TagLibrary` contract).
-18. CSV round-trip carries `qbAlignment` + `coverageFamily`; a legacy CSV
+23. CSV round-trip carries `qbAlignment` + `coverageFamily`; a legacy CSV
      without those columns imports cleanly.
-19. Blank dimensions: an analysis needing a blank dimension omits the play and
+24. Blank dimensions: an analysis needing a blank dimension omits the play and
      reports the omission — it never imputes.
-20. Parity: goldens regenerated, drift limited to the audited key set (§9),
+25. Parity: goldens regenerated, drift limited to the audited key set (§9),
      mutation-verified.
 
 ---
 
 ## 11. Scope boundary
 
-**In:** the four offensive dimensions, the coverage shell/family split, the
+**In:** the four offensive dimensions, the coverage-call/family split, the
 libraries, the charting UI, the read projection, the aggregation contract, and
 the §7 hazard.
 
@@ -594,27 +679,29 @@ draft was wrong; R6 reversed a deferral on a sound argument.
 
 | Finding | Resolution | Where |
 |---|---|---|
-| **E1-R1** [High] | Cross-tabs use an **eligible denominator**; report `total`/`eligible`/`omitted`; blank-on-axis plays land in no cell. The old "sum to filtered count" wording deleted. | §6.5, tests 10–11 |
-| **E1-R2** [High] | Projection is **genuinely read-only**: `_normalize` does NOT backfill the two new keys onto existing plays (unlike v1.9.15 `backfield`); only *new* plays are born with them. **Added hazard the fix creates:** consumers must read the keys defensively — legacy plays lack the property entirely. | §5 rule 1, tests 1–2, 8 |
+| **E1-R1** [High] | Cross-tabs use an **eligible denominator**; report `total`/`eligible`/`omitted`; blank-on-axis plays land in no cell. The old "sum to filtered count" wording deleted. | §6.5, tests 14–15 |
+| **E1-R2** [High] | Projection is **genuinely read-only**: `_normalize` does NOT backfill the two new keys onto existing plays (unlike v1.9.15 `backfield`); only *new* plays are born with them. **Added hazard the fix creates:** consumers must read the keys defensively — legacy plays lack the property entirely. | §5 rule 1, tests 1–2, 12 |
 | **E1-R3** [Medium] | Strip and supply separated: wrong-field tokens are **always** stripped from the old dimension; they **supply** the target only when it is blank. | §5 rules 2–3, test 5 |
 | **E1-R4** [Medium] | UI label is **"Coverage Call"**, not "Coverage Shell" — Cover 0–6 are calls, a shell is the safety structure. Coach-overridable. | §3a |
 | **E1-R5** [Medium] | Exact call keys on **`[qbAlignment, formation, backfield, strength, motion, playType]`** — backfield was wrongly dropped. Per-composite table; separate `qbAlignment × strength` cross-tab. | §8a |
-| **E1-R6** [Medium] | `backfield`/`strength` carry gap **fixed in this lane, not deferred** — E1 itself makes it worse during the re-tag. **Added completeness requirement:** they must also join `ST_ALIGNMENT_KEYS` or they become a fresh lesson-#17 leak. | §7, §11, tests 12–13 |
-| **E1-R7** [Low] | Narrow **reserved-value** rule: the 4 moved tokens are rejected from their old libraries; no global cross-library uniqueness. | §6.1, test 16 |
+| **E1-R6** [Medium] | `backfield`/`strength` carry gap **fixed in this lane, not deferred** — E1 itself makes it worse during the re-tag. **Added completeness requirement:** they must also join `ST_ALIGNMENT_KEYS` or they become a fresh lesson-#17 leak. | §7, §11, tests 16–17 |
+| **E1-R7** [Low] | Narrow **reserved-value** rule: the 4 moved tokens are rejected from their old libraries; no global cross-library uniqueness. | §6.1, test 21 |
 
 **Two hazards Codex's own fixes introduce, now pinned by the contract (my
 additions, not in §13):**
 1. **R2 → defensive-read asymmetry.** Legacy plays will have no
    `qbAlignment`/`coverageFamily` property while `backfield`/`strength` are
    always present. Every E3 consumer must read the new keys with `?? ''` and
-   must not assume symmetry. Test 8 guards it.
+   must not assume symmetry. Test 12 guards it.
 2. **R6 → ST-strip completeness.** Adding `backfield`/`strength` to the carry
-   lists forces adding them to `ST_ALIGNMENT_KEYS` (both the season-store list
-   and the deleted inline copy), or they leak onto ST plays. The §7 table now
-   adds all new keys to all four lists.
+   lists forces adding them to `ST_ALIGNMENT_KEYS`. The §7 table adds them to all
+   **three owned lists** and deletes the inline duplicate, or they leak onto ST
+   plays.
 
-Test count grew 17 → 20. **Status: revised; ready for Codex re-review of these
-bytes. No E2 code until re-review passes.**
+*(§14 note: test numbers above refer to the FINAL §10 gate after the §16
+revision — the count grew again there. Original §14 revision took the gate 17 →
+20.)*
+
 ---
 
 ## 15. Codex re-review — CHANGES REQUIRED (2026-07-17)
@@ -683,3 +770,21 @@ of preserving the obsolete count.
 
 **Next action:** Claude revises R8/R9 and the stale wording only. Codex performs a
 final contract re-review. No E2 code yet.
+
+---
+
+## 16. Revision 2 — E1-R8/R9 + cleanup resolved (Claude, 2026-07-17)
+
+Both remaining findings accepted; E1-R9 is a catch on my own test (the exact
+vacuous-assertion class this project forbids). Nothing rejected.
+
+| Item | Resolution | Where |
+|---|---|---|
+| **Coach-approved ST cleanup** | Pinned the measured, bounded impact: `_normalize` clears `backfield`/`strength` from `unit:'special'` plays only — **12** plays lose `backfield`, **1** also `strength`, **0** other keys. E2 must not exceed it. | §7b, test 18 |
+| **E1-R8** [Medium] | Projection now covers **every** D1/D2 moved value: (a) `backfield:'Pistol'` strips always, supplies `qbAlignment` when blank; (b) `coverage:'Match'` strips/projects like `Man`/`Zone`; (c) deterministic supply precedence — explicit `qbAlignment` → first formation token → backfield Pistol; (d) added the D2 boundary (`Empty` + explicit backfield). | §5 table + rules 2–3, tests 8–11 |
+| **E1-R9** [Medium] | The ST-strip test is respecified as a **unit-conditional invariant** — *after any op, if the result is `unit:'special'`, all `ST_ALIGNMENT_KEYS` are blank* — because carrying `unit` from an offensive source can flip the target to offense and let the old wording pass vacuously. Liveness (present-then-stripped) is mandatory; an offensive source must be shown to retain its look. | §7a, test 16 |
+| **Doc cleanup** [Low] | "shell × family" → "coverage-call × family" (§3a, §6.5, tests). "Four lists" → **three owned lists + one deleted duplicate**; mutation names the mechanism, not a count (§7, §14). §13/§15 left verbatim as Codex's historical record. | throughout |
+
+**Net:** three owned key lists edited + one duplicate deleted (no "fourth
+list"). Gate grew 20 → **25** tests. **Status: revised; ready for Codex's final
+re-review of these bytes. No E2 code until it passes.**
