@@ -99,7 +99,7 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 
 **B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`; **Claude re-reviewed and ACCEPTED `0250010` (2026-07-17)**. Lane B is complete.
 
-**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 (Claude builds, Codex reviews) -> E3-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 BUILT (`bf9d42a`, Codex reviews next) -> E3-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
 
 ### Lane E1 — ACCEPTED (`4813d41`, final review 2026-07-17)
 
@@ -164,9 +164,46 @@ wording is corrected. E1-R1 through E1-R9 are closed. The coach-approved cleanup
 remains bounded to 12 ST plays losing `backfield`, with 1 of those also losing
 `strength`; no other E1 cleanup is authorized.
 
-**Next action:** Claude builds E2; Codex independently reviews. E2 is limited to
-the pure projection, explicit defaults on new plays only, four-field carry
-repair, ST-strip single source, and the approved bounded cleanup. E3/E4 wait.
+### Lane E2 — BUILT, ready for independent review (`bf9d42a`)
+
+**Builder:** Claude | **Reviewer:** Codex (non-builder) | **Status:** READY FOR REVIEW
+
+E2 is the **pure data layer** for the accepted E1 contract — no analytics or UI
+change (the P4E-a "normalizer seam" shape):
+
+- **`js/tag-projection.js` (NEW, pure, DOM-free):** `TagProjection.project(tags)`
+  — single read-time source of truth for the four-dimension split. Reads legacy
+  QB alignment out of `formation`/`backfield` into `qbAlignment`, coverage family
+  out of `coverage` into `coverageFamily`; strips wrong-field tokens **always**,
+  supplies the target **only when blank**, deterministic precedence (explicit
+  `qbAlignment` > first `formation` token > backfield `Pistol`). Never mutates
+  input. **No consumer wired yet — that is E3.**
+- **`season-store.js`:** `ST_ALIGNMENT_KEYS` is the single source of truth and
+  gains `qbAlignment`/`coverageFamily`/`backfield`/`strength`. The
+  `backfield`/`strength` clear on `unit:'special'` plays is the coach-approved
+  **bounded cleanup** — exactly **12** backfield / **1** strength on the real
+  six-game season, 0 other keys.
+- **`play-tagger.js`:** `CARRY_SCHEME_KEYS` + `SCHEME_KEYS` carry the four
+  pre-snap look fields (E1-R6); the inline ST-strip duplicate is **deleted**,
+  consuming `SeasonStore.ST_ALIGNMENT_KEYS` (E1-R9 single source); blank-play
+  templates born with `qbAlignment`/`coverageFamily = ''` (E1-R2).
+  `playlist-manager.js`/`storage.js` get the same new-play defaults.
+
+**Deliberately deferred — do NOT flag as missing:** projection has no consumer
+(E3 wires ~12 surfaces + regenerates goldens); no chip sets the new fields (E4);
+library reservations (E1-R7) + coverage-call/family labels are E4. Read-only
+projection means **legacy plays are NOT backfilled** — E3 consumers read the two
+new keys defensively (`?? ''`); intended asymmetry (§5.1).
+
+**Verification:** `e2e-tag-model` **22/22** (contract tests 1-13, 16-20;
+mutation-verified ST-strip; real-fixture 12/1/0). **Parity 2/2 UNCHANGED** — the
+cleanup touches no analytic. Full gate **52/52 green**. No push, package, or tag.
+
+**Review focus:** projection vs §5 (every moved-value path + precedence),
+read-only/no-mutation, ST-strip single source + non-vacuous E1-R9 invariant, the
+12/1/0 cleanup boundary, new-play defaults at every creation site, and that
+nothing analytic moved. **Next after acceptance:** E3.
+
 ### Lane B2 - ACCEPTED (`0250010`, re-review 2026-07-17)
 
 **Builder:** Codex | **Reviewer:** Claude | **Status:** ACCEPTED. Lane B closed. E1-E4 may begin.
