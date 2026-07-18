@@ -59,15 +59,21 @@ export class AnalyticsRegistry {
       deferred('fieldZone', 'Field Zone', 'No shared production field-zone bucketing function'),
       ready('hash', 'Hash', tag('hash'), 'play.tags.hash'),
       deferred('scoreSituation', 'Score Situation', 'Requires score-at-play context and canonical buckets'),
-      ready('formation', 'Formation', p => SE.splitFormations(p?.tags?.formation), 'StatsEngine.splitFormations', { multi: true }),
-      ready('backfield', 'Backfield', tag('backfield'), 'play.tags.backfield'),
-      ready('strength', 'Strength', tag('strength'), 'play.tags.strength'),
+      // E3: pre-snap look dimensions read the PROJECTED view (legacy alignment/
+      // family lifted into their own dimensions), never raw tags — see
+      // StatsEngine.proj / GRIDIRON-IQ-TAG-MODEL.md §5. qbAlignment/coverageFamily
+      // are single-value (multi:false) so a cross-tab places each play in one cell.
+      ready('qbAlignment', 'QB Alignment', p => this._one(SE.proj(p).qbAlignment), 'TagProjection.project.qbAlignment'),
+      ready('formation', 'Formation', p => SE.splitFormations(SE.proj(p).formation), 'StatsEngine.splitFormations(proj.formation)', { multi: true }),
+      ready('backfield', 'Backfield', p => this._one(SE.proj(p).backfield), 'TagProjection.project.backfield'),
+      ready('strength', 'Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
       ready('personnel', 'Personnel', tag('personnel'), 'play.tags.personnel'),
       ready('motion', 'Motion', p => [p?.tags?.motion || 'No Motion'], 'play.tags.motion | No Motion'),
       ready('playType', 'Play Type', p => SE.splitPlayTypes(p?.tags?.playType), 'StatsEngine.splitPlayTypes', { multi: true }),
       ready('playDir', 'Play Direction', tag('playDir'), 'play.tags.playDir'),
       ready('defFront', 'Defensive Front', p => SE.splitFronts(p?.tags?.defFront), 'StatsEngine.splitFronts', { multi: true }),
-      ready('coverage', 'Coverage', tag('coverage'), 'play.tags.coverage'),
+      ready('coverage', 'Coverage Call', p => this._one(SE.proj(p).coverage), 'TagProjection.project.coverage'),
+      ready('coverageFamily', 'Coverage Family', p => this._one(SE.proj(p).coverageFamily), 'TagProjection.project.coverageFamily'),
       ready('blitz', 'Blitz / Pressure', p => SE.splitBlitzes(p?.tags?.blitz), 'StatsEngine.splitBlitzes', { multi: true }),
       ready('playerRole', 'Player Role', p => pairs(p?.tags?.players, true), 'StatsEngine.splitPlayers', { multi: true }),
       ready('grade', 'Grade', p => pairs(p?.tags?.grades), 'play.tags.grades', { multi: true }),
