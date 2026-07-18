@@ -928,32 +928,69 @@ machine-checked.**
    its golden just bakes RAW drilldown keys while production emits PROJECTED ones —
    a green harness validating the wrong thing. The capture code is a first-class
    E3a consumer, not "just a golden."
-6. **`tools/e2e-raw-read-audit.mjs` (NEW, required)** — greps `stats-engine.js`
-   (and the parity capture) for raw `p.tags.formation|coverage|backfield|strength`
-   reads and FAILS on any outside an explicit allowlist (documented, e.g.
-   `StatsEngine.proj` itself, `migratePlayFormation`, the ST strip). Completion no
-   longer depends on remembering function names; a new raw read fails the gate.
+6. **`tools/e2e-raw-read-audit.mjs` (NEW, required)** — FAILS on any raw
+   `p.tags.<field>` read outside an explicit allowlist, so completion is machine-
+   checked, not remembered.
+   - **Scan (E3a):** `js/stats-engine.js`, **`js/analytics-registry.js`**, and
+     `tools/e2e-parity.mjs`.
+   - **All SIX fields:** `formation`, `backfield`, `strength`, `coverage`,
+     **`qbAlignment`, `coverageFamily`** (a raw read of the two new fields is just
+     as wrong — they must be read from the projection, not assumed present).
+   - **Allowlist names ONLY sites inside the scanned files** — e.g.
+     `StatsEngine.proj` (the seam itself). Do NOT list `migratePlayFormation` / the
+     ST strip: they live in `season-store.js`, which this audit does not scan.
+   - **E3b** expands the same audit to its named consumer modules (Film Room,
+     heat maps, filters, exports).
 7. **Cross-tabs** — `qbAlignment × strength` (new, §8a) + `coverage-call × family`,
    with the eligible-denominator contract (§6.5): report total/eligible/omitted;
    a play blank on an axis lands in no cell.
 
-### Fixture gap — Coverage-Call × Family cannot be positively tested today
+### Fixture gap — Coverage-Call × Family must be POSITIVELY tested (non-vacuous)
 Both fixtures (synthetic + real season) have coverage CALLS but **zero**
 `coverageFamily` values (0 Man/Zone/Match — measured). So a Coverage × Family
 cross-tab could contain broken cell logic and still pass with zero eligible
-plays. **Add to the synthetic fixture** explicit `Man`, `Zone`, `Match` plays
-**plus at least one blank-family** play, and assert on that cross-tab:
-`total`, `eligible`, `omitted`, blank-axis plays appear in **no** cell, and
-**cell counts sum exactly to `eligible`.** (Same requirement for
-`qbAlignment × strength`, which the real data DOES exercise.)
+plays. "Cell counts sum to eligible" is **insufficient** — both can be 0.
+
+**Add to the synthetic fixture a purpose-built cohort that makes `eligible > 0`
+provable:**
+- **Defensive-unit plays** (`unit:'defense'` — coverage is a defensive field; an
+  offense play has none, so an offensive fixture would be silently empty).
+- **A real coverage call on EVERY fixture play in the cohort** (e.g. `Cover 3`,
+  `Cover 1`, `Cover 2`), so the call axis is populated.
+- Family values spanning **`Man`, `Zone`, `Match`, AND at least one blank-family**
+  play.
+
+**Assert EXACT expected numbers (not just internal consistency):**
+- `total` = the cohort size (exact int),
+- **`eligible > 0`** and equals the exact count of plays with BOTH a call and a
+  family,
+- `omitted` = the exact count with a blank axis (`total − eligible`),
+- blank-axis plays appear in **no** cell,
+- each cell's count equals its exact expected value, and `Σ cells === eligible`.
+
+Same construction for **`qbAlignment × strength`** — the real season exercises it,
+but the synthetic fixture must still pin exact `total`/`eligible`/`omitted`/cell
+counts so a regression can't hide behind the real fixture being local-only.
 
 ### Parity + proof
+- **The parity capture MUST add explicit drilldowns for the new/changed
+  surfaces**, or a filter can be implemented wrong while the gate stays green
+  because nothing snapshots its output. Required NEW captures (`cap(type, vals)`)
+  before regenerating goldens:
+  - `qbAlignment` drilldowns (every projected alignment value present),
+  - `coverageFamily` drilldowns (Man/Zone/Match present in the fixture — see the
+    fixture requirement below),
+  - **projected `frontCoverage`** (front×projected-coverage),
+  - **six-field projected `bigCall`** (`[qbAlignment, formation, backfield,
+    strength, motion, playType]`).
+  A capture that isn't emitted proves nothing; name these explicitly in the
+  harness diff.
 - Regenerate BOTH parity goldens (`synthetic-edge.json` committed = the reviewed
   callout; `mavericks-6game.json` gitignored, regenerates per machine) ONCE at
-  the end — **after** the capture code (item 5) projects — and audit the drift
-  key-by-key (§9). Expected drift: formation-keyed tendencies, self-scout tells/
-  matrix, scout `formationDetail`, Big-12 keys. Coverage drift only where
-  non-shell values existed (0 on real data).
+  the end — **after** the capture code (item 5) projects AND the new captures
+  above exist — and audit the drift key-by-key (§9). Expected drift: formation-
+  keyed tendencies, self-scout tells/matrix, scout `formationDetail`, Big-12 keys.
+  Coverage drift only where non-shell values existed (0 on real data).
 - Update `e2e-analytics-registry` (formation → projected; new dims; legacy
   projection probe) and the Study goldens as the reviewed callouts.
 - **Granular mutation testing — break EACH seam independently** (a single broad
