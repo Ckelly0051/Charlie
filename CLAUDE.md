@@ -204,17 +204,40 @@ on return.** Found + fixed one High finding empirically (reproduced, not reasone
   `stripStAlignment` over every play at the top of `persist()`, the single choke
   all saves flow through, so no writer (present or future) can land a leak on disk.
   Closes the class, not the instance. Failing-first test 18c (proves *persist*
-  strips, with liveness). **e2e-tag-model 27/27; parity 2/2; gate 52/52.** This is
-  the third recurrence of one blind spot (E1-R9 vacuous test → E2-R1 two writers →
-  E2-R3 three more) — the structural choke is the durable answer; see the plan
-  review F7 lesson-#22 candidate.
+  strips, with liveness). This is the third recurrence of one blind spot (E1-R9
+  vacuous test → E2-R1 two writers → E2-R3 three more) — the structural choke is
+  the durable answer; see the plan review F7 lesson-#22 candidate.
+
+**E2-R3 re-review (Codex, on `38d195f`) — three gaps, all closed in `c00b98f`:**
+The self-review's persist-only fix was **partial**. Codex found:
+- **[High] the LIVE object still leaked.** `persist()` cleaned only the
+  season-store copy; the live tagger play stays dirty (`commitActive` clones it),
+  so UI/analytics reading `tagger.plays` kept seeing the leak. **Fix:**
+  `PlayTagger._emit()` strips a special play on `play-created`/`play-updated`
+  before listeners run — every writer emits through this seam (~28 sites), so it
+  is the universal LIVE choke. Test 18d.
+- **[Med] `persist()` was not the only serialization path.** `json()` (Save
+  Season download), `snapshot()`/`saveNow()` (backups), `bindDisk()` each
+  serialize `this.data` independently and bypassed the strip. **Fix:** all call
+  `_stripStAlignmentBeforeSave()` first; the "single choke" claim was wrong and
+  the comment is corrected. Test 18e.
+- **[Med] the 12/1/0 boundary test never measured "0 other"** (empty `forEach`;
+  `otherCleared` declared, never asserted). **Fix:** 18b now counts every
+  `ST_ALIGNMENT_KEYS` key except backfield/strength that clears on the real
+  special plays and asserts 0 — FAILS if the authorized strip list broadens.
+  Real fixture verified genuinely 12/1/0.
+
+**Two barriers now: live object clean at `_emit`, data-at-rest clean at every
+serialize.** e2e-tag-model **30/30**; parity 2/2; gate 52/52.
 
 Verified clean in the self-review: bundle byte-identical to a fresh rebuild;
 `tag-projection.js` robust to junk input + idempotent; static ST writers
 (`setUnit` ×2, carry) all guard; new-play defaults present at the creation sites.
 
-**E2 status: SELF-REVIEWED at the post-fix commit; awaiting Codex confirmation of
-E2-R3's fix before formal acceptance.** E3 remains blocked on that.
+**E2 status (`c00b98f`): E2-R1/R2 accepted by Codex; E2-R3 re-reviewed by Codex
+with three gaps, all now closed (two-barrier live+at-rest strip, real 0-other
+test). Awaiting Codex's confirmation of the `c00b98f` closures before formal
+acceptance.** E3 remains blocked on that.
 
 E2 is the **pure data layer** for the accepted E1 contract — no analytics or UI
 change (the P4E-a "normalizer seam" shape):
