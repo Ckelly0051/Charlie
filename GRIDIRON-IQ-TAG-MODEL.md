@@ -900,38 +900,80 @@ reconciles it, because one path is projected and one is not. **Wire registry +
 compute/reports + cut-filters together, regenerate goldens once, then green.**
 
 ### The surfaces to wire in ONE pass (then one golden regen)
+Codex re-review (2026-07-18) corrected this inventory — four additions, verified
+against source. Do not treat the list as remembered; **item 6 makes completeness
+machine-checked.**
 1. **`analytics-registry.js`** — `formation`/`backfield`/`strength`/`coverage`
    via `SE.proj`; ADD `qbAlignment` + `coverageFamily` dims (single, `multi:false`).
-2. **`stats-engine.js` compute + reports** — every raw `p.tags.formation` /
-   `.coverage` / `.backfield` / `.strength` read (31 refs) → `SE.proj(p).X`:
+2. **`stats-engine.js` compute + reports** — **40** direct
+   `p.tags.formation`/`.coverage`/`.backfield`/`.strength` reads (verified count,
+   not 31) → `SE.proj(p).X`. Every one classified (wire or allowlist, item 6):
    `_tendencyStats`, `_selfScoutGroup`/`_tellsFrom` (byFormation/byFormStr/
    comboFD/comboFS), `_selfScoutMatrix`, `_defensiveStats` (coverages),
    `_frontCoverageCombos`, `generateScoutReport` (`formationDetail`),
    `generateDefensiveSelfScout`, Tendency-Matrix extractors.
 3. **`_bigTwelveData`** — key on the six-field exact call
    `[qbAlignment, formation, backfield, strength, motion, playType]` (§8a).
-4. **`_buildCutFilter`** — the film-link predicates for `formation`/`comboF*`/
-   `bigCall`/`coverage` must read PROJECTED values, and ADD `qbAlignment` +
-   `coverageFamily` cut cases (else `matchingRefs`/Study-watch throw
-   "Unknown analytics cut" — hit in the probe). This is the film-link half; keep
-   it in E3a so registry dims and their cuts stay consistent.
-5. **Cross-tabs** — `qbAlignment × strength` (new, §8a) + `coverage-call ×
-   family`, with the eligible-denominator contract (§6.5): report
-   total/eligible/omitted; a play blank on an axis lands in no cell.
+4. **`_buildCutFilter` — EVERY coverage/formation-reading predicate** (film-link
+   half; kept in E3a so report rows and film links agree): `formation`,
+   `comboFStr`/`comboFD`/`comboFS`, `bigCall`, **`coverage` (line ~2112)**, and
+   **`frontCoverage` (line ~2116, reads raw `p.tags.coverage` — omitted from the
+   first draft; this is the exact report-row-vs-film-link mismatch class)**. ADD
+   `qbAlignment` + `coverageFamily` cut cases (else `matchingRefs`/Study-watch
+   throw "Unknown analytics cut" — hit in the probe).
+5. **`tools/e2e-parity.mjs` capture code (lines ~73/78/79/84/88+)** — the harness
+   **independently** enumerates drilldown values from **raw** `p.tags` (`cap('formation',
+   distinct(p => splitFormations(p.tags.formation)))`, same for backfield/strength/
+   coverage + the combo `set(...)` builders). It MUST project too, or regenerating
+   its golden just bakes RAW drilldown keys while production emits PROJECTED ones —
+   a green harness validating the wrong thing. The capture code is a first-class
+   E3a consumer, not "just a golden."
+6. **`tools/e2e-raw-read-audit.mjs` (NEW, required)** — greps `stats-engine.js`
+   (and the parity capture) for raw `p.tags.formation|coverage|backfield|strength`
+   reads and FAILS on any outside an explicit allowlist (documented, e.g.
+   `StatsEngine.proj` itself, `migratePlayFormation`, the ST strip). Completion no
+   longer depends on remembering function names; a new raw read fails the gate.
+7. **Cross-tabs** — `qbAlignment × strength` (new, §8a) + `coverage-call × family`,
+   with the eligible-denominator contract (§6.5): report total/eligible/omitted;
+   a play blank on an axis lands in no cell.
+
+### Fixture gap — Coverage-Call × Family cannot be positively tested today
+Both fixtures (synthetic + real season) have coverage CALLS but **zero**
+`coverageFamily` values (0 Man/Zone/Match — measured). So a Coverage × Family
+cross-tab could contain broken cell logic and still pass with zero eligible
+plays. **Add to the synthetic fixture** explicit `Man`, `Zone`, `Match` plays
+**plus at least one blank-family** play, and assert on that cross-tab:
+`total`, `eligible`, `omitted`, blank-axis plays appear in **no** cell, and
+**cell counts sum exactly to `eligible`.** (Same requirement for
+`qbAlignment × strength`, which the real data DOES exercise.)
 
 ### Parity + proof
 - Regenerate BOTH parity goldens (`synthetic-edge.json` committed = the reviewed
   callout; `mavericks-6game.json` gitignored, regenerates per machine) ONCE at
-  the end; audit the drift key-by-key (§9). Expected drift: formation-keyed
-  tendencies, self-scout tells/matrix, scout `formationDetail`, Big-12 keys.
-  Coverage drift only where non-shell values existed (0 on real data).
+  the end — **after** the capture code (item 5) projects — and audit the drift
+  key-by-key (§9). Expected drift: formation-keyed tendencies, self-scout tells/
+  matrix, scout `formationDetail`, Big-12 keys. Coverage drift only where
+  non-shell values existed (0 on real data).
 - Update `e2e-analytics-registry` (formation → projected; new dims; legacy
   projection probe) and the Study goldens as the reviewed callouts.
-- **Mutation-test:** reverting the projection wiring must fail parity.
-- **E3b (separate checkpoint)** then adds the consumer-parity EQUALITY assertions
-  (D-E3split): Study/Film Room matching-ID sets == the registry sets; exported
-  rows/counts == those sets. Zero core drift is necessary, not sufficient.
+- **Granular mutation testing — break EACH seam independently** (a single broad
+  "revert all projection" mutation is too coarse to prove each sibling is
+  protected): (a) registry projection, (b) report aggregation read, (c) a cut
+  predicate (incl. `frontCoverage`), (d) the Big-Call six-field signature, (e) the
+  eligible-denominator. Each reversion alone must fail a test.
+
+### Sharpened E3a / E3b boundary (Codex, 2026-07-18)
+- **E3a:** registry, StatsEngine, **every** canonical cut predicate including
+  `frontCoverage`, Study's new dimension→cut mappings, cross-tabs, **the parity
+  capture code (item 5)**, the raw-read audit (item 6), and one audited golden
+  regeneration.
+- **E3b:** Film Room, heat maps, filters, exports, labels, and the consumer-
+  specific play-ID EQUALITY tests (D-E3split): Study/Film Room matching-ID sets
+  == the registry sets; exported rows/counts == those sets. Zero core drift is
+  necessary, not sufficient.
 
 **Status:** E3a not yet committed — the probe intentionally reverted to green
-(`858f853`) rather than land a half-wired red gate. Next session builds the full
-atomic E3a per this plan.
+(`858f853`) rather than land a half-wired red gate. §19 revised per Codex's
+re-review (parity capture, `frontCoverage`, 40-not-31 + raw-read audit, positive
+Coverage×Family fixture, per-seam mutation). Next session builds the full atomic
+E3a per this plan.
