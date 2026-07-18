@@ -1647,6 +1647,16 @@ export class PlayTagger {
   }
 
   _emit(event, data) {
+    // LIVE barrier for the ST-alignment invariant (E1-R9): every writer — Film Room
+    // grid, AI vision stamp, suggestion engine, the tag form, copy/template — mutates
+    // a play and then emits play-created/play-updated. Stripping a special play here,
+    // before listeners run, keeps the in-memory object clean for the UI and analytics
+    // that read tagger.plays directly (persist() only cleans the season-store copy).
+    // Unit-conditional and idempotent. The persist/serialize strip is the second
+    // barrier for data at rest.
+    if ((event === 'play-updated' || event === 'play-created') && data && data.tags) {
+      this._stripStAlignment(data);
+    }
     (this.listeners[event] || []).forEach(cb => cb(data));
   }
 }

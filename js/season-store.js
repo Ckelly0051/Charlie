@@ -494,7 +494,7 @@ export class SeasonStore {
     }).map(x => x.g);
   }
 
-  json() { return JSON.stringify(this.data, null, 2); }
+  json() { this._stripStAlignmentBeforeSave(); return JSON.stringify(this.data, null, 2); }
 
   fileBase() {
     const raw = this.data.seasonName || (this.data.teamProfile && this.data.teamProfile.teamName) || 'season';
@@ -508,14 +508,14 @@ export class SeasonStore {
    * durable disk target (if one is bound). No new snapshot here — snapshots are
    * created on explicit saves / throttled auto-snapshots via snapshot().
    */
-  // Enforce the ST-alignment invariant at the WRITE boundary, not only on load
-  // (GRIDIRON-IQ-TAG-MODEL.md §7a / E1-R9). _normalize strips on deserialize, but
-  // any writer that mutates a play between loads — the Film Room grid inline
-  // editor, the AI vision stamp, the suggestion engine, or any future writer —
-  // could otherwise land a forbidden alignment value on a unit:'special' play and
-  // have it reach disk. Stripping here makes the invariant true by construction at
-  // the single choke every save flows through, instead of relying on each writer
-  // to remember. Idempotent, and only ever touches unit:'special' plays.
+  // DATA-AT-REST barrier for the ST-alignment invariant (GRIDIRON-IQ-TAG-MODEL.md
+  // §7a / E1-R9). _normalize strips on deserialize; the LIVE object is kept clean at
+  // the PlayTagger._emit seam. This is the second barrier: EVERY durable-write path
+  // — persist() (canonical), snapshot()/saveNow() (backups), bindDisk() (disk bind),
+  // and json() (the Save Season download) — calls this first, so a forbidden value
+  // can never reach a saved file, a restore point, or an export, regardless of which
+  // writer produced it. (persist() alone was NOT sufficient — the other paths
+  // serialize this.data independently.) Idempotent; only touches unit:'special'.
   _stripStAlignmentBeforeSave() {
     const games = this.data && Array.isArray(this.data.games) ? this.data.games : [];
     games.forEach(g => (g.plays || []).forEach(p => SeasonStore.stripStAlignment(p)));
@@ -564,6 +564,7 @@ export class SeasonStore {
 
   /** Take a restore point: a disk snapshot (if bound) + an in-app ring entry. */
   async snapshot(label) {
+    this._stripStAlignmentBeforeSave();
     const data = JSON.parse(JSON.stringify(this.data));
     if (this.backend.diskStatus().bound) {
       await this.backend.writeDisk(data, { snapshot: true, label });
@@ -598,6 +599,7 @@ export class SeasonStore {
 
   /** Bind a backup folder/target and immediately write the live file + a snapshot. */
   async bindDisk() {
+    this._stripStAlignmentBeforeSave();
     const ok = await this.backend.bindDisk();
     if (ok) await this.backend.writeDisk(JSON.parse(JSON.stringify(this.data)), { snapshot: true, label: 'Backup folder linked', prompt: true });
     return ok;
@@ -606,6 +608,7 @@ export class SeasonStore {
 
   /** Explicit "Save Season": canonical + live disk write + a labelled snapshot. */
   async saveNow(label) {
+    this._stripStAlignmentBeforeSave();
     await this.backend.saveSeason(this.data);
     const data = JSON.parse(JSON.stringify(this.data));
     let wroteDisk = false;

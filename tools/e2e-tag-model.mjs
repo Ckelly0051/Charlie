@@ -263,18 +263,23 @@ test('18b · (E1-R7b) real fixture impact is EXACTLY 12 backfield / 1 strength /
   if (!fs.existsSync(REAL)) { console.log('        (real fixture absent — skipped)'); return; }
   const data = JSON.parse(fs.readFileSync(REAL, 'utf-8'));
   const plays = (data.games || []).flatMap(g => g.plays || []);
+  // "0 other" must be MEASURED, not asserted by omission — the coach authorized
+  // clearing backfield/strength only, and this test must FAIL if the strip list is
+  // ever broadened to delete anything else the real special plays actually carry.
+  const OTHER = SeasonStore.ST_ALIGNMENT_KEYS.filter(k => k !== 'backfield' && k !== 'strength');
   let bfCleared = 0, strCleared = 0, otherCleared = 0;
+  const otherKeys = new Set();
   plays.forEach(p => {
     if ((p.tags?.unit) !== 'special') return;
     const before = { ...p.tags };
     SeasonStore.stripStAlignment(p);
     if (before.backfield && !p.tags.backfield) bfCleared++;
     if (before.strength && !p.tags.strength) strCleared++;
-    // any non-backfield/strength/ST-alignment key that changed value:
-    ['personnel', 'defFront', 'coverage', 'blitz', 'formation'].forEach(() => {});
+    OTHER.forEach(k => { if (before[k] && !p.tags[k]) { otherCleared++; otherKeys.add(k); } });
   });
   assert.equal(bfCleared, 12, `expected 12 backfield cleared, got ${bfCleared}`);
   assert.equal(strCleared, 1, `expected 1 strength cleared, got ${strCleared}`);
+  assert.equal(otherCleared, 0, `authorized boundary broadened: ${otherCleared} other clears (${[...otherKeys].join(', ')})`);
 });
 
 test('18c · (E2-R3) persist() strips ST alignment before saving — structural choke', () => {
@@ -305,6 +310,58 @@ test('18c · (E2-R3) persist() strips ST alignment before saving — structural 
   for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(st.tags[k] || '', '', `${k} reached disk on a special play`);
   assert.equal(off.tags.formation, 'Trips', 'offense look must survive the persist strip');
   assert.equal(off.tags.backfield, 'Power');
+});
+
+test('18d · (E2-R3b) _emit sanitizes a special play before listeners see it (LIVE barrier)', () => {
+  // Every writer (grid, AI stamp, suggestion, form, …) mutates a play then emits
+  // play-updated/created. Stripping at that seam keeps the LIVE object — which UI
+  // and analytics read directly — clean, not just the persisted copy.
+  const pt = Object.create(PlayTagger.prototype);
+  pt.listeners = {};
+  let seen = null;
+  pt.on('play-updated', p => { seen = { ...p.tags }; });
+  const play = legacyPlay(50, { unit: 'special', formation: 'Shotgun + Trips', backfield: 'Power', coverage: 'Cover 3', strength: 'Right' });
+  assert.equal(play.tags.formation, 'Shotgun + Trips', 'liveness: leak present pre-emit');
+  pt._emit('play-updated', play);
+  for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(play.tags[k] || '', '', `${k} not stripped on live object`);
+  assert.equal(seen.formation || '', '', 'listener saw a dirty play');
+  assert.equal(seen.backfield || '', '');
+});
+
+test('18d-2 · (E2-R3b) _emit leaves an OFFENSE play untouched', () => {
+  const pt = Object.create(PlayTagger.prototype);
+  pt.listeners = {};
+  const play = legacyPlay(51, { unit: 'offense', formation: 'Trips', backfield: 'Power' });
+  pt._emit('play-updated', play);
+  assert.equal(play.tags.formation, 'Trips');
+  assert.equal(play.tags.backfield, 'Power');
+});
+
+test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapshot/saveNow/bindDisk)', () => {
+  // persist() is not the only serialization path — the fix claimed it was. Backups,
+  // downloads, and disk binding must sanitize too, or forbidden ST values reach a
+  // restore point or an exported file.
+  const backend = {
+    saveSeason: () => true, diskStatus: () => ({ bound: false }),
+    createBackup: () => ({ id: 'b' }), listBackups: () => [],
+    bindDisk: async () => false, writeDisk: async () => true,
+  };
+  const store = new SeasonStore(backend);
+  store.currentSeasonId = 's1';
+  const leak = () => ({ version: 5, type: 'season', activeGameId: 'g1', games: [{ id: 'g1', plays: [
+    { id: 1, tags: { unit: 'special', formation: 'Shotgun + Trips', backfield: 'Power', players: {}, grades: {} } },
+  ] }] });
+  // json() — synchronous, returns sanitized text (the Save Season download path)
+  store.data = leak();
+  assert.equal(JSON.parse(store.json()).games[0].plays[0].tags.formation || '', '', 'json() leaked formation');
+  // snapshot / saveNow / bindDisk sanitize this.data synchronously before any await
+  for (const method of ['snapshot', 'saveNow', 'bindDisk']) {
+    store.data = leak();
+    store[method]('x');   // fire; the sanitize is the synchronous first line
+    const st = store.data.games[0].plays[0].tags;
+    assert.equal(st.formation || '', '', `${method}() did not sanitize this.data`);
+    assert.equal(st.backfield || '', '', `${method}() left backfield`);
+  }
 });
 
 /* ---- §4 existing migration guard must not break ---- */
