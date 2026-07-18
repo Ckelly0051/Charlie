@@ -277,6 +277,36 @@ test('18b · (E1-R7b) real fixture impact is EXACTLY 12 backfield / 1 strength /
   assert.equal(strCleared, 1, `expected 1 strength cleared, got ${strCleared}`);
 });
 
+test('18c · (E2-R3) persist() strips ST alignment before saving — structural choke', () => {
+  // The E1-R9 invariant must hold at the WRITE boundary, not just on load — so a
+  // leak from ANY writer (grid inline edit, AI stamp, suggestion engine) can never
+  // reach disk, present or future. persist() is the single choke all saves flow
+  // through.
+  const saved = [];
+  const backend = {
+    saveSeason: (d) => { saved.push(JSON.parse(JSON.stringify(d))); return true; },
+    diskStatus: () => ({ bound: false }),
+  };
+  const store = new SeasonStore(backend);
+  store.currentSeasonId = 's1';
+  store.data = { version: 5, type: 'season', activeGameId: 'g1', games: [{ id: 'g1', plays: [
+    // a special play a grid/AI/suggestion edit has leaked onto (liveness: values present)
+    { id: 1, tags: { unit: 'special', formation: 'Shotgun + Trips', coverage: 'Cover 3',
+      backfield: 'Power', strength: 'Right', qbAlignment: 'Shotgun', coverageFamily: 'Zone',
+      players: {}, grades: {} } },
+    // an offense play whose look must survive the strip
+    { id: 2, tags: { unit: 'offense', formation: 'Trips', backfield: 'Power', players: {}, grades: {} } },
+  ] }] };
+  assert.equal(store.data.games[0].plays[0].tags.formation, 'Shotgun + Trips', 'liveness: leak present pre-persist');
+  store.persist();
+  assert.equal(saved.length, 1, 'saveSeason was not called');
+  const st = saved[0].games[0].plays.find(p => p.id === 1);
+  const off = saved[0].games[0].plays.find(p => p.id === 2);
+  for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(st.tags[k] || '', '', `${k} reached disk on a special play`);
+  assert.equal(off.tags.formation, 'Trips', 'offense look must survive the persist strip');
+  assert.equal(off.tags.backfield, 'Power');
+});
+
 /* ---- §4 existing migration guard must not break ---- */
 
 test('19 · Power-I on a modern play (has backfield) is never migrated', () => {

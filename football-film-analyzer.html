@@ -17121,7 +17121,21 @@ class SeasonStore {
    * durable disk target (if one is bound). No new snapshot here — snapshots are
    * created on explicit saves / throttled auto-snapshots via snapshot().
    */
+  // Enforce the ST-alignment invariant at the WRITE boundary, not only on load
+  // (GRIDIRON-IQ-TAG-MODEL.md §7a / E1-R9). _normalize strips on deserialize, but
+  // any writer that mutates a play between loads — the Film Room grid inline
+  // editor, the AI vision stamp, the suggestion engine, or any future writer —
+  // could otherwise land a forbidden alignment value on a unit:'special' play and
+  // have it reach disk. Stripping here makes the invariant true by construction at
+  // the single choke every save flows through, instead of relying on each writer
+  // to remember. Idempotent, and only ever touches unit:'special' plays.
+  _stripStAlignmentBeforeSave() {
+    const games = this.data && Array.isArray(this.data.games) ? this.data.games : [];
+    games.forEach(g => (g.plays || []).forEach(p => SeasonStore.stripStAlignment(p)));
+  }
+
   persist() {
+    this._stripStAlignmentBeforeSave();
     // saveSeason returns false (or rejects) when the canonical write fails —
     // classically a localStorage quota error on a big season. Surfacing it ONCE
     // per failure streak lets the coach export a file before losing work; the
