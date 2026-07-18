@@ -877,3 +877,61 @@ and the app cannot know if the omission was intentional). So:
 **Build order:** E3a → (Codex review) → E3b → (Codex review) → E4 (incl.
 D-projform) → Lane R (D-laneR) + D-STdisclosure slice → G → candidate → smoke →
 publish.
+
+---
+
+## 19. E3a build plan — refined after a probe (Claude, 2026-07-18)
+
+**Architecture (decided + proven in a probe):** one seam, `StatsEngine.proj(p)`
+= `TagProjection.project(p.tags)`. **Every** analytics reader of
+`formation`/`backfield`/`strength`/`coverage`/`qbAlignment`/`coverageFamily` goes
+through it; no consumer reads raw `p.tags` for those. Registry extractors and
+stats-engine internals both use it. (`stats-engine.js` imports `TagProjection`.)
+
+### ⚠ E3a IS ATOMIC — do not salami-slice it (the probe's finding)
+A registry-only increment **reds the gate** and cannot be made consistently
+green. Reproduced: wiring the registry's `formation` dimension to the projection
+(so it drops `Shotgun`/`Under Center`/`Empty`) while `compute()` / reports / the
+`_buildCutFilter` film-link predicates still read RAW tags makes **Study
+internally disagree with itself** — its *dimension values* come from the registry
+(projected) but its *film-link drilldowns* come from the report cut filters (raw),
+so `e2e-study-query` fails (`queryFormations` ⊄ `goldFormations`). No golden edit
+reconciles it, because one path is projected and one is not. **Wire registry +
+compute/reports + cut-filters together, regenerate goldens once, then green.**
+
+### The surfaces to wire in ONE pass (then one golden regen)
+1. **`analytics-registry.js`** — `formation`/`backfield`/`strength`/`coverage`
+   via `SE.proj`; ADD `qbAlignment` + `coverageFamily` dims (single, `multi:false`).
+2. **`stats-engine.js` compute + reports** — every raw `p.tags.formation` /
+   `.coverage` / `.backfield` / `.strength` read (31 refs) → `SE.proj(p).X`:
+   `_tendencyStats`, `_selfScoutGroup`/`_tellsFrom` (byFormation/byFormStr/
+   comboFD/comboFS), `_selfScoutMatrix`, `_defensiveStats` (coverages),
+   `_frontCoverageCombos`, `generateScoutReport` (`formationDetail`),
+   `generateDefensiveSelfScout`, Tendency-Matrix extractors.
+3. **`_bigTwelveData`** — key on the six-field exact call
+   `[qbAlignment, formation, backfield, strength, motion, playType]` (§8a).
+4. **`_buildCutFilter`** — the film-link predicates for `formation`/`comboF*`/
+   `bigCall`/`coverage` must read PROJECTED values, and ADD `qbAlignment` +
+   `coverageFamily` cut cases (else `matchingRefs`/Study-watch throw
+   "Unknown analytics cut" — hit in the probe). This is the film-link half; keep
+   it in E3a so registry dims and their cuts stay consistent.
+5. **Cross-tabs** — `qbAlignment × strength` (new, §8a) + `coverage-call ×
+   family`, with the eligible-denominator contract (§6.5): report
+   total/eligible/omitted; a play blank on an axis lands in no cell.
+
+### Parity + proof
+- Regenerate BOTH parity goldens (`synthetic-edge.json` committed = the reviewed
+  callout; `mavericks-6game.json` gitignored, regenerates per machine) ONCE at
+  the end; audit the drift key-by-key (§9). Expected drift: formation-keyed
+  tendencies, self-scout tells/matrix, scout `formationDetail`, Big-12 keys.
+  Coverage drift only where non-shell values existed (0 on real data).
+- Update `e2e-analytics-registry` (formation → projected; new dims; legacy
+  projection probe) and the Study goldens as the reviewed callouts.
+- **Mutation-test:** reverting the projection wiring must fail parity.
+- **E3b (separate checkpoint)** then adds the consumer-parity EQUALITY assertions
+  (D-E3split): Study/Film Room matching-ID sets == the registry sets; exported
+  rows/counts == those sets. Zero core drift is necessary, not sufficient.
+
+**Status:** E3a not yet committed — the probe intentionally reverted to green
+(`858f853`) rather than land a half-wired red gate. Next session builds the full
+atomic E3a per this plan.
