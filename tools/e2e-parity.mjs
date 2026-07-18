@@ -70,28 +70,35 @@ const capture = async (page, fixture) => {
       const drill = {};
       const cap = (type, vals) => { for (const val of vals) drill[`${type}::${val}`] = plays.filter(eng._buildCutFilter(type, val)).map(pid).sort(); };
       // primary dimensions
-      cap('formation', distinct(p => SE.splitFormations(p.tags.formation || '')));
+      // E3a: capture the PROJECTED pre-snap look, matching production. Enumerating
+      // raw values here would bake raw drilldown keys into the golden while
+      // production emits projected ones — a green harness validating the wrong thing.
+      cap('formation', distinct(p => SE.splitFormations(SE.proj(p).formation)));
+      cap('qbAlignment', single(p => SE.proj(p).qbAlignment));
       cap('playType', distinct(p => SE.splitPlayTypes(p.tags.playType || '')));
       cap('defFront', distinct(p => SE.splitFronts(p.tags.defFront || '')));
       cap('blitz', distinct(p => SE.splitBlitzes(p.tags.blitz || '')));
       cap('personnel', single(p => p.tags.personnel));
-      cap('backfield', single(p => p.tags.backfield));
-      cap('strength', single(p => p.tags.strength));
+      cap('backfield', single(p => SE.proj(p).backfield));
+      cap('strength', single(p => SE.proj(p).strength));
       cap('down', single(p => p.tags.down));
       cap('playDir', single(p => p.tags.playDir));
       cap('motion', ['Jet', 'Orbit', 'Shift', 'Trade', 'No Motion'].filter(v => v === 'No Motion' || plays.some(p => (p.tags.motion || '') === v)));
       cap('hash', single(p => p.tags.hash));
-      cap('coverage', single(p => p.tags.coverage));
+      cap('coverage', single(p => SE.proj(p).coverage));
+      cap('coverageFamily', single(p => SE.proj(p).coverageFamily));
       cap('runpass', ['Run', 'Pass']);
       cap('situation', ['redZone', 'goalLine', 'backedUp', 'thirdLong', 'thirdShort', 'explosive', 'negative']);
       cap('dd', [...new Set(off.map(p => { const b = bucketOf(p.tags); return p.tags.down && b ? `${p.tags.down}|${b}` : null; }).filter(Boolean))].sort());
       // combo / tendency dimensions (self-scout + Big-12 + front×coverage film links)
       const set = (fn) => { const s = new Set(); for (const p of fn.src) fn.keys(p).forEach(v => v && s.add(v)); return [...s].sort(); };
-      cap('comboFStr', set({ src: off, keys: p => p.tags.strength ? SE.splitFormations(p.tags.formation || '').map(f => f && `${f}__${p.tags.strength}`) : [] }));
-      cap('comboFD', set({ src: off, keys: p => { const b = bucketOf(p.tags); return (p.tags.down && b) ? SE.splitFormations(p.tags.formation || '').map(f => f && `${f}__${p.tags.down}|${b}`) : []; } }));
-      cap('comboFS', set({ src: off, keys: p => { const sit = eng._matrixSit(p.tags); return sit ? SE.splitFormations(p.tags.formation || '').map(f => f && `${f}__${sit}`) : []; } }));
-      cap('bigCall', set({ src: off, keys: p => (p.tags.formation || p.tags.playType) ? [`${(p.tags.formation || '').trim()}|||${(p.tags.strength || '').trim()}|||${(p.tags.motion || '').trim()}|||${(p.tags.playType || '').trim()}`] : [] }));
-      cap('frontCoverage', set({ src: def, keys: p => p.tags.coverage ? SE.splitFronts(p.tags.defFront || '').map(f => f && `${f}|${p.tags.coverage}`) : [] }));
+      cap('comboFStr', set({ src: off, keys: p => SE.proj(p).strength ? SE.splitFormations(SE.proj(p).formation).map(f => f && `${f}__${SE.proj(p).strength}`) : [] }));
+      cap('comboFD', set({ src: off, keys: p => { const b = bucketOf(p.tags); return (p.tags.down && b) ? SE.splitFormations(SE.proj(p).formation).map(f => f && `${f}__${p.tags.down}|${b}`) : []; } }));
+      cap('comboFS', set({ src: off, keys: p => { const sit = eng._matrixSit(p.tags); return sit ? SE.splitFormations(SE.proj(p).formation).map(f => f && `${f}__${sit}`) : []; } }));
+      // Six-field projected Big Call (§8a), matching _bigTwelveData's key exactly.
+      cap('bigCall', set({ src: off, keys: p => { const r = SE.proj(p); const key = [(r.qbAlignment || '').trim(), (r.formation || '').trim(), (r.backfield || '').trim(), (r.strength || '').trim(), (p.tags.motion || '').trim(), (p.tags.playType || '').trim()]; return key.some(Boolean) ? [key.join('|||')] : []; } }));
+      // frontCoverage on the PROJECTED coverage call (line ~2116 in prod reads proj).
+      cap('frontCoverage', set({ src: def, keys: p => SE.proj(p).coverage ? SE.splitFronts(p.tags.defFront || '').map(f => f && `${f}|${SE.proj(p).coverage}`) : [] }));
       cap('ddDef', [...new Set(def.map(p => { const b = bucketOf(p.tags); return p.tags.down && b ? `${p.tags.down}|${b}` : null; }).filter(Boolean))].sort());
 
       const reports = {};
