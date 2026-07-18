@@ -928,19 +928,31 @@ machine-checked.**
    its golden just bakes RAW drilldown keys while production emits PROJECTED ones —
    a green harness validating the wrong thing. The capture code is a first-class
    E3a consumer, not "just a golden."
-6. **`tools/e2e-raw-read-audit.mjs` (NEW, required)** — FAILS on any raw
-   `p.tags.<field>` read outside an explicit allowlist, so completion is machine-
-   checked, not remembered.
-   - **Scan (E3a):** `js/stats-engine.js`, **`js/analytics-registry.js`**, and
-     `tools/e2e-parity.mjs`.
-   - **All SIX fields:** `formation`, `backfield`, `strength`, `coverage`,
-     **`qbAlignment`, `coverageFamily`** (a raw read of the two new fields is just
-     as wrong — they must be read from the projection, not assumed present).
-   - **Allowlist names ONLY sites inside the scanned files** — e.g.
-     `StatsEngine.proj` (the seam itself). Do NOT list `migratePlayFormation` / the
-     ST strip: they live in `season-store.js`, which this audit does not scan.
-   - **E3b** expands the same audit to its named consumer modules (Film Room,
-     heat maps, filters, exports).
+6. **Raw-read guard — two lines of defense (both required).** A naive grep is
+   insufficient: the registry already reads `p?.tags?.formation` (optional chain)
+   and `p?.tags?.[key]` (computed bracket, which can't be statically resolved to a
+   field name), and aliases (`const t = p.tags; t.formation`) or destructuring
+   (`const { formation } = p.tags`) evade a string match entirely.
+   - **6a — behavioral projection tests are the PRIMARY guarantee** (syntax-proof).
+     For **each** of the ~12 report/registry/cut surfaces, a legacy fixture play
+     (`formation:'Under Center + Trips'`, `coverage:'Man'`) MUST produce the
+     PROJECTED output (formation `Trips`, `qbAlignment` `Under Center`, coverage
+     blank, `coverageFamily` `Man`). If a surface still reads raw, its projected
+     assertion fails regardless of how the read was written.
+   - **6b — `tools/e2e-raw-read-audit.mjs` (NEW) as the second line** — an
+     **AST-based** scan (parse, walk member expressions on a `*.tags` object), NOT
+     a grep, covering direct dot, optional-chain, bracket-with-string-literal, and
+     destructuring of `.tags`. It FAILS on a raw read of any of the **six** fields
+     (`formation`/`backfield`/`strength`/`coverage`/`qbAlignment`/`coverageFamily`)
+     outside an allowlist, and **FLAGS every computed `tags[expr]` access** in the
+     scanned files for manual classification (it cannot resolve the field, so it
+     must be human-confirmed to route through `proj`, e.g. the registry's generic
+     `tag()` helper must NOT be used for the six).
+   - **Scan (E3a):** `js/stats-engine.js`, `js/analytics-registry.js`,
+     `tools/e2e-parity.mjs`. **Allowlist names ONLY sites inside the scanned
+     files** — e.g. `StatsEngine.proj` (the seam itself). Do NOT list
+     `migratePlayFormation` / the ST strip: they live in `season-store.js`, which
+     this audit does not scan. **E3b** expands the audit to its consumer modules.
 7. **Cross-tabs** — `qbAlignment × strength` (new, §8a) + `coverage-call × family`,
    with the eligible-denominator contract (§6.5): report total/eligible/omitted;
    a play blank on an axis lands in no cell.
@@ -951,26 +963,33 @@ Both fixtures (synthetic + real season) have coverage CALLS but **zero**
 cross-tab could contain broken cell logic and still pass with zero eligible
 plays. "Cell counts sum to eligible" is **insufficient** — both can be 0.
 
-**Add to the synthetic fixture a purpose-built cohort that makes `eligible > 0`
-provable:**
-- **Defensive-unit plays** (`unit:'defense'` — coverage is a defensive field; an
-  offense play has none, so an offensive fixture would be silently empty).
-- **A real coverage call on EVERY fixture play in the cohort** (e.g. `Cover 3`,
-  `Cover 1`, `Cover 2`), so the call axis is populated.
+**Each cross-tab cohort goes in its OWN dedicated synthetic game, tested at that
+game scope** — so `total` is exactly the cohort and expected values stay obvious
+and immune to unrelated fixture additions elsewhere. (Adding the cohort to a game
+that already holds defensive/coverage plays would fold those into the cross-tab
+`total`; a dedicated game avoids that. The alternative — pinning exact totals
+across the whole existing scope — is brittle and rejected.)
+
+**Coverage-Call × Family game:**
+- **Defensive-unit plays only** (`unit:'defense'` — coverage is a defensive
+  field; an offense play has none, so an offensive fixture would be silently
+  empty).
+- **A real coverage call on EVERY play in the game** (`Cover 3`/`Cover 1`/…), so
+  the call axis is always populated.
 - Family values spanning **`Man`, `Zone`, `Match`, AND at least one blank-family**
   play.
 
-**Assert EXACT expected numbers (not just internal consistency):**
-- `total` = the cohort size (exact int),
+**Assert EXACT expected numbers at that game scope:**
+- `total` = the game's play count (exact int),
 - **`eligible > 0`** and equals the exact count of plays with BOTH a call and a
   family,
 - `omitted` = the exact count with a blank axis (`total − eligible`),
 - blank-axis plays appear in **no** cell,
 - each cell's count equals its exact expected value, and `Σ cells === eligible`.
 
-Same construction for **`qbAlignment × strength`** — the real season exercises it,
-but the synthetic fixture must still pin exact `total`/`eligible`/`omitted`/cell
-counts so a regression can't hide behind the real fixture being local-only.
+**`qbAlignment × strength`:** its own dedicated game, same exact-count pinning —
+so a regression can't hide behind the real fixture being local-only, and its
+`total`/`eligible`/`omitted`/cells are unambiguous.
 
 ### Parity + proof
 - **The parity capture MUST add explicit drilldowns for the new/changed
