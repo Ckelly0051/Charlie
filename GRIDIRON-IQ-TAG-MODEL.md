@@ -812,3 +812,68 @@ E1-R8 and E1-R9 at the contract root:
 carry repair, ST-strip single source, and the bounded approved cleanup). Codex is
 the non-builder reviewer. E3 analytics/parity and E4 UI remain blocked until E2
 is independently accepted.
+
+---
+
+## 18. Coach-approved decisions for E3 / E4 / Lane R (2026-07-18)
+
+Four plan-review questions (`GRIDIRON-IQ-PLAN-REVIEW.md` F1/F3/F4/F5) answered by
+the coach. All approved; two tightened. **Binding for the implementer.**
+
+### D-E3split [F1] — E3 ships as two independently-reviewed checkpoints
+- **E3a:** projection-backed registry + StatsEngine. New dimensions
+  `qbAlignment` / `coverageFamily` (single-value, `multi:false`); the six-field
+  Big-12 "exact call" `[qbAlignment, formation, backfield, strength, motion,
+  playType]` (§8a); eligible-denominator cross-tabs (§6.5); **every**
+  formation/coverage consumer routed through `TagProjection.project`. Audited
+  golden regeneration (§9). **Reviewed by Codex before E3b starts.**
+- **E3b:** Study, Film Room, reports, exports, and exact film-link wiring.
+  **Reviewed independently before E4.**
+- **Proof standard — coach correction (do not weaken):** zero core parity drift
+  in E3b is REQUIRED but is **NOT sufficient** — a consumer can silently read raw
+  `tags.formation`, never route through the projection, and still not drift core
+  parity. E3b MUST add **consumer-specific equality assertions**: Study and Film
+  Room matching-play-ID sets EQUAL the canonical registry sets for the same
+  dimension/filter; exported rows/counts EQUAL those same sets. Equality-to-
+  registry is what actually proves a consumer was wired.
+
+### D-STdisclosure [F3] — legacy Special Teams exclusion is shown, never silent
+When structured ST events exist and legacy ST plays are therefore excluded from
+the structured report, show a **scope-aware** line, e.g. *"12 legacy Special
+Teams plays are not included in this structured report until reviewed."*
+**Hide it at zero. Never call the data deleted.** Ideally the message opens those
+exact plays (film-link / filter). This is a **trust feature, not compatibility
+work.** Orthogonal to BETA-005/006 — it's the 4E-c structured-vs-legacy
+quarantine — so schedule it as its own small slice, **not** inside the E3a
+projection wiring.
+
+### D-projform [F4] — the tag form shows the projected view; explicit save writes it
+Approved WITH strict safeguards (all mandatory; **E4**, not E3):
+1. Opening / selecting a play NEVER writes.
+2. Programmatic form load MUST NOT mark the play dirty.
+3. An explicit save (Save & Next, etc.) writes ONLY the affected tag fields — a
+   **field-level merge, NEVER replacing the whole `tags` object.**
+4. Unknown/custom fields, penalties, Special Teams data, players, and notes are
+   left untouched.
+5. The operation MUST be undoable.
+
+This delivers self-cleaning data during the re-tag without violating "no silent
+migration": the write happens **only on the coach's explicit save**.
+
+### D-laneR [F5] — "Legacy tags to review", NOT "re-tag progress"
+Build the count + filter, but name it **honestly**. The projection-moved-a-value
+signal detects only **legacy mixed-field tags** — it CANNOT identify every play
+that deserves re-charting (a `Flexbone` play missing QB alignment: blank is valid
+and the app cannot know if the omission was intentional). So:
+- Label: **"Legacy tags to review"** / *"214 plays contain legacy mixed-field
+  tags."*
+- Film Room filter: **"Legacy tag review."**
+- A play leaves the list once the coach **explicitly saves** the projected play
+  (ties to D-projform).
+- Read-only: "needs review" = the projection moved ≥1 stored value. Tracking
+  "every play the coach reviewed" needs NEW stored review state — **a separate
+  decision, out of scope here.**
+
+**Build order:** E3a → (Codex review) → E3b → (Codex review) → E4 (incl.
+D-projform) → Lane R (D-laneR) + D-STdisclosure slice → G → candidate → smoke →
+publish.

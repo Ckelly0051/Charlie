@@ -99,7 +99,7 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 
 **B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`; **Claude re-reviewed and ACCEPTED `0250010` (2026-07-17)**. Lane B is complete.
 
-**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 BUILT (`bf9d42a`, Codex reviews next) -> E3-E4 -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 ACCEPTED (`c00b98f`) -> E3a (building) -> E3b -> E4 -> Lane R + ST-disclosure -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
 
 ### Lane E1 — ACCEPTED (`4813d41`, final review 2026-07-17)
 
@@ -234,10 +234,13 @@ Verified clean in the self-review: bundle byte-identical to a fresh rebuild;
 `tag-projection.js` robust to junk input + idempotent; static ST writers
 (`setUnit` ×2, carry) all guard; new-play defaults present at the creation sites.
 
-**E2 status (`c00b98f`): E2-R1/R2 accepted by Codex; E2-R3 re-reviewed by Codex
-with three gaps, all now closed (two-barrier live+at-rest strip, real 0-other
-test). Awaiting Codex's confirmation of the `c00b98f` closures before formal
-acceptance.** E3 remains blocked on that.
+**E2 status: ACCEPTED (coach confirmed "e2 passed", 2026-07-18, at `c00b98f`).**
+E2-R1/R2 accepted; E2-R3 closed with the two-barrier live+at-rest strip and the
+real 0-other test. **E3 is now unblocked and building — see the coach-approved
+E3/E4/Lane-R decisions in `GRIDIRON-IQ-TAG-MODEL.md` §18 (E3 split + consumer-
+parity proof standard, ST disclosure, projected-form save, Legacy-tags-to-review
+naming).** E3 ships as E3a (registry + StatsEngine + golden regen) → Codex review
+→ E3b (Study/Film Room/exports + consumer-parity assertions) → Codex review → E4.
 
 E2 is the **pure data layer** for the accepted E1 contract — no analytics or UI
 change (the P4E-a "normalizer seam" shape):
