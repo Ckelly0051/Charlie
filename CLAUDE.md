@@ -164,9 +164,14 @@ wording is corrected. E1-R1 through E1-R9 are closed. The coach-approved cleanup
 remains bounded to 12 ST plays losing `backfield`, with 1 of those also losing
 `strength`; no other E1 cleanup is authorized.
 
-### Lane E2 — review fixes applied, ready for re-review (`80b8ebf`)
+### Lane E2 — self-reviewed after E2-R3 fix; awaiting Codex confirmation
 
-**Builder:** Claude | **Reviewer:** Codex (non-builder) | **Status:** RE-REVIEW (`bf9d42a` built → Codex CHANGES REQUIRED → fixes `80b8ebf`)
+**Builder:** Claude | **Reviewer:** Codex (non-builder), plus a Claude self-review
+while Codex was out | **Status:** SELF-REVIEWED, NOT yet formally accepted
+(`bf9d42a` built → Codex CHANGES REQUIRED E2-R1/R2 → fixes `80b8ebf` → Codex hit
+a usage wall before re-reviewing → coach asked Claude to self-review → Claude
+found + fixed E2-R3 at the write boundary). Codex confirms E2-R3 on return; E3
+blocked until then.
 
 **E2 review round 1 (Codex, on `bf9d42a`) — both findings closed in `80b8ebf`:**
 - **E2-R1 [P1] permanent-data regression.** `copyFromPrevious` (Same-as-Last) and
@@ -181,6 +186,35 @@ remains bounded to 12 ST plays losing `backfield`, with 1 of those also losing
   is now split symmetrically with formation; alignment tokens stripped
   unconditionally, first supplies `qbAlignment` (tier 3). Test 8b. Normal
   single-value backfield unaffected. **e2e-tag-model 26/26; parity 2/2; gate 52/52.**
+
+**E2 SELF-REVIEW (Claude, builder-as-reviewer, 2026-07-17 — Codex out on usage;
+coach asked Claude to review). Marked SELF-REVIEWED, NOT accepted — Codex confirms
+on return.** Found + fixed one High finding empirically (reproduced, not reasoned):
+- **E2-R3 [High, structural] — E1-R9 was enforced per-writer, not structurally.**
+  E2-R1 hand-patched `copyFromPrevious`/`applyTemplate`, but the Film Room grid
+  inline editor (`play-grid.js` `_applyEdit`, no unit check; `_openEditor` blocks
+  only `*-readonly` types, and the `default` preset renders `formation` for every
+  row incl. special ones) also writes ST-alignment fields onto a `unit:'special'`
+  play — **reproduced**: editing a special row's Formation cell →
+  `tags.formation='Shotgun + Trips'`, ST keys not blank. Same code shape at the AI
+  vision stamp (`app.js:1551`) and suggestion engine (`suggestion-engine.js:84`).
+  `_normalize` heals on load, but **`persist()` did not normalize**, so the leak
+  reached disk (and any `Save Season` export in that window). **Fix: a structural
+  strip at the write boundary** — `SeasonStore._stripStAlignmentBeforeSave()` runs
+  `stripStAlignment` over every play at the top of `persist()`, the single choke
+  all saves flow through, so no writer (present or future) can land a leak on disk.
+  Closes the class, not the instance. Failing-first test 18c (proves *persist*
+  strips, with liveness). **e2e-tag-model 27/27; parity 2/2; gate 52/52.** This is
+  the third recurrence of one blind spot (E1-R9 vacuous test → E2-R1 two writers →
+  E2-R3 three more) — the structural choke is the durable answer; see the plan
+  review F7 lesson-#22 candidate.
+
+Verified clean in the self-review: bundle byte-identical to a fresh rebuild;
+`tag-projection.js` robust to junk input + idempotent; static ST writers
+(`setUnit` ×2, carry) all guard; new-play defaults present at the creation sites.
+
+**E2 status: SELF-REVIEWED at the post-fix commit; awaiting Codex confirmation of
+E2-R3's fix before formal acceptance.** E3 remains blocked on that.
 
 E2 is the **pure data layer** for the accepted E1 contract — no analytics or UI
 change (the P4E-a "normalizer seam" shape):
