@@ -46,7 +46,7 @@ const ALLOW = [];   // { file, line, field }
 // This is stable under benign edits (text + count unchanged) yet catches the exact
 // duplicate/move bypass R4 names — proven by the sensitivity self-test below.
 const ACK = [
-  { file: 'js/analytics-registry.js', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — the ONLY computed tags read; verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
+  { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — the ONLY computed tags read; verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
 ];
 
 let pass = 0, fail = 0;
@@ -55,20 +55,44 @@ const ok = (cond, label, extra = '') => {
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
 
-const unwrap = n => (n && n.type === 'ChainExpression') ? n.expression : n;
+// E3b: unwrap optional chaining AND the `||`/`??` fallback idiom. `const t =
+// X.tags || {}` is a LogicalExpression, so the rev-1 detector never registered `t`
+// as a tags alias and silently missed every six-field read behind it (it hid
+// call-sheet-builder, plan-export, breakdown-video, cutup-exporter and
+// play-filter). The tags member is the LEFT operand.
+const unwrap = (n) => {
+  if (!n) return n;
+  if (n.type === 'ChainExpression') return unwrap(n.expression);
+  if (n.type === 'LogicalExpression') return unwrap(n.left);
+  return n;
+};
 const isTagsMember = (n) => {
   n = unwrap(n);
   return n && n.type === 'MemberExpression' && !n.computed
     && n.property.type === 'Identifier' && n.property.name === 'tags';
 };
-function walk(node, visit) {
+// The visitor receives the ENCLOSING METHOD name: E3b puts an ALLOWED editor read
+// and a FORBIDDEN display read with identical expression text in the same module
+// (play-grid `_tendency` vs `_openEditor`/`_applyEdit`), so file+expression alone
+// cannot classify them (E3b-P5).
+function walk(node, visit, method = '(top)') {
   if (!node || typeof node !== 'object') return;
-  if (Array.isArray(node)) { for (const n of node) walk(n, visit); return; }
-  if (typeof node.type === 'string') visit(node);
+  if (Array.isArray(node)) { for (const n of node) walk(n, visit, method); return; }
+  if (typeof node.type === 'string') {
+    visit(node, method);
+    const named = node.key?.name || node.id?.name;
+    const inner = (/Function|MethodDefinition|Property/.test(node.type) && named) ? named : method;
+    for (const k in node) {
+      if (k === 'loc' || k === 'start' || k === 'end' || k === 'range') continue;
+      const v = node[k];
+      if (v && typeof v === 'object') walk(v, visit, inner);
+    }
+    return;
+  }
   for (const k in node) {
     if (k === 'loc' || k === 'start' || k === 'end' || k === 'range') continue;
     const v = node[k];
-    if (v && typeof v === 'object') walk(v, visit);
+    if (v && typeof v === 'object') walk(v, visit, method);
   }
 }
 
@@ -90,7 +114,7 @@ for (const rel of FILES) {
   });
 
   // Pass 2 — raw reads of the six fields + computed flags.
-  walk(ast, node => {
+  walk(ast, (node, method) => {
     if (node.type !== 'MemberExpression' && node.type !== 'VariableDeclarator') return;
     const line = node.loc.start.line;
 
@@ -110,7 +134,7 @@ for (const rel of FILES) {
     // NEW or MOVED computed read is a distinct, unacknowledged site).
     if (node.type === 'MemberExpression' && node.computed
       && node.property.type !== 'Literal' && isTagsMember(node.object)) {
-      flags.push({ file: rel, line, code: src.slice(node.start, node.end).replace(/\s+/g, ' ') });
+      flags.push({ file: rel, line, method, code: src.slice(node.start, node.end).replace(/\s+/g, ' ') });
     }
     // alias read: aliasVar.FIELD
     if (node.type === 'MemberExpression' && !node.computed
@@ -144,27 +168,28 @@ ok(violations.length === 0, `zero un-allowlisted raw reads of the six projected 
 //   1. every ACK must be observed EXACTLY `count` times — 0 included, so a removed
 //      expression fails the ACK as stale (must be deleted from the ACK list);
 //   2. every observed computed read must be covered by an ACK.
+// Site identity = (file, ENCLOSING METHOD, expression text) + exact multiplicity.
+const siteKey = x => `${x.file}\0${x.method}\0${x.code}`;
 const classify = (fs) => {
   const bad = [];
   const acked = new Set();
   // Direction 1: ACK → observed count (catches duplicate=up, stale=0, fewer=down).
   for (const a of ACK) {
-    acked.add(`${a.file}\0${a.code}`);
-    const n = fs.filter(f => f.file === a.file && f.code === a.code).length;
+    acked.add(siteKey(a));
+    const n = fs.filter(f => siteKey(f) === siteKey(a)).length;
     if (n !== a.count) {
-      const kind = n > a.count ? 'duplicate' : n === 0 ? 'STALE ACK — expression removed, delete it' : 'fewer than acknowledged';
-      bad.push({ file: a.file, code: a.code, why: `ACK expects ${a.count} occurrence(s), found ${n} (${kind} — re-classify)` });
+      const kind = n > a.count ? 'duplicate' : n === 0 ? 'STALE ACK — expression removed/moved, delete it' : 'fewer than acknowledged';
+      bad.push({ file: a.file, method: a.method, code: a.code, why: `ACK expects ${a.count} occurrence(s), found ${n} (${kind} — re-classify)` });
     }
   }
-  // Direction 2: observed reads with no ACK at all.
+  // Direction 2: observed reads with no ACK for that exact site.
   const groups = new Map();
   for (const f of fs) {
-    const key = `${f.file}\0${f.code}`;
-    if (!groups.has(key)) groups.set(key, { file: f.file, code: f.code, lines: [] });
-    groups.get(key).lines.push(f.line);
+    if (!groups.has(siteKey(f))) groups.set(siteKey(f), { file: f.file, method: f.method, code: f.code, lines: [] });
+    groups.get(siteKey(f)).lines.push(f.line);
   }
   for (const g of groups.values()) {
-    if (!acked.has(`${g.file}\0${g.code}`)) bad.push({ ...g, why: 'no ACK for this expression' });
+    if (!acked.has(siteKey(g))) bad.push({ ...g, why: `no ACK for this expression in ${g.method}()` });
   }
   return bad;
 };
@@ -176,14 +201,14 @@ ok(bad.length === 0, `every computed .tags[expr] is acknowledged by exact site +
 // PERMANENT sensitivity self-tests (E3a-R4). Each input includes the real ACKed
 // read (so the ACK itself is satisfied) plus a probe, and asserts the probe alone
 // is caught — proving the ACK neither inherits to nor is bypassed by:
-const A = ACK[0];   // { file, code, count:1 }
-const real = { file: A.file, code: A.code, line: 10 };
+const A = ACK[0];   // { file, method, code, count:1 }
+const real = { file: A.file, method: A.method, code: A.code, line: 10 };
 // (a) a DIFFERENT computed read in the ACKed file.
-const differentRead = classify([real, { file: A.file, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
+const differentRead = classify([real, { file: A.file, method: A.method, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
 ok(differentRead.length === 1 && /no ACK/.test(differentRead[0].why),
   'sensitivity: a NEW different computed read in an ACKed file is caught');
 // (b) a DUPLICATE of the ACKed expression (the exact bypass text alone would pass).
-const duplicateRead = classify([real, { file: A.file, code: A.code, line: 2 }]);
+const duplicateRead = classify([real, { file: A.file, method: A.method, code: A.code, line: 2 }]);
 ok(duplicateRead.length === 1 && /found 2/.test(duplicateRead[0].why),
   'sensitivity: a DUPLICATE of the ACKed expression (count 2 > 1) is caught, not inherited');
 // (c) a STALE ACK — the ACKed expression is GONE (classify([]) must still fail on
@@ -191,6 +216,15 @@ ok(duplicateRead.length === 1 && /found 2/.test(duplicateRead[0].why),
 const staleAck = classify([]);
 ok(staleAck.length === 1 && /found 0/.test(staleAck[0].why),
   'sensitivity: an ACK whose expression is REMOVED (observed 0) fails as stale');
+// (d) E3b-P5 — METHOD SCOPING. The SAME expression text in a DIFFERENT method must
+//     NOT inherit the ack: play-grid holds an allowed editor read and a forbidden
+//     display read with identical text. Expect BOTH the stale ACK (its own method
+//     observed 0) and the unacknowledged foreign-method site.
+const otherMethod = classify([{ file: A.file, method: '_someDisplayMethod', code: A.code, line: 5 }]);
+ok(otherMethod.length === 2
+  && otherMethod.some(b => /found 0/.test(b.why))
+  && otherMethod.some(b => /_someDisplayMethod/.test(b.why)),
+  'sensitivity: the SAME expression in a DIFFERENT method is NOT auto-accepted (method-scoped ACK)');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);
