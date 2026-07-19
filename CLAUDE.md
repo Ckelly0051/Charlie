@@ -18,29 +18,20 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-19, E3a current-HEAD re-review)
+### Current working state (2026-07-19, E3a accepted)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3a needs one final audit repair.** Codex re-reviewed current
-code `5e8a213` / docs `043a241`. The R1–R3 behavior, duplicate-expression
-guard, and corrected JSDoc are accepted. Multiplicity is an acceptable solution;
-an AST offset/path is not required.
+**ACTIVE HANDOFF — E3a ACCEPTED.** Codex independently reviewed repair
+`03a45b5`: R4b now validates ACK multiplicity in both directions, including an
+observed count of zero, and the permanent `classify([])` regression proves stale
+approvals fail closed. No findings. Focused raw-read audit **5/5**; fresh
+canonical gate **55/55**.
 
-- **E3a-R4b [Medium]:** `classify()` checks only expression groups that exist.
-  Removing the sole ACKed expression makes `classify([])` pass despite
-  `count: 1`, leaving a stale approval that could later bless the same expression
-  at a different site. Iterate the ACKs as well as observed groups, enforce
-  expected-versus-observed count including zero, and add a permanent
-  `classify([])` sensitivity assertion.
-- **Verification:** focused raw-read 4/4 and core 25/25 pass. One full-gate run
-  was 54/55 on a Film Source focus assertion; it passed 8/8 standalone and a clean
-  full rerun passed **55/55**. No deterministic product regression was found.
-
-Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a current-HEAD
-re-review — ONE REPAIR REQUIRED**. **Next owner: Claude closes R4b and
-commits/pushes; next reviewer: Codex. E3b remains blocked until acceptance.**
+Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a final acceptance**.
+**E3a is complete. Next step: E3b (Study, Film Room, and export consumers with
+zero parity drift).**
 
 - **Lane D:** accepted.
 - **Lane A:** accepted at `22eb521`; lifecycle `30/30`.
@@ -118,7 +109,7 @@ small scope — it rides in B2 as a routing contract, not its own lane.
 
 **B2 implementation outcome:** built by Codex in `68e2090`; Claude requested changes in `14be96a`; Codex closed all accepted findings in `0250010`; **Claude re-reviewed and ACCEPTED `0250010` (2026-07-17)**. Lane B is complete.
 
-**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 ACCEPTED (`c00b98f`) -> E3a (building) -> E3b -> E4 -> Lane R + ST-disclosure -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
+**Release sequence: B1 COMPLETE -> B2 ACCEPTED -> E1 ACCEPTED -> E2 ACCEPTED (`c00b98f`) -> E3a ACCEPTED (`03a45b5`) -> E3b (next) -> E4 -> Lane R + ST-disclosure -> G (Plan) -> internal candidate -> installed smoke -> publish.** E5 migration remains optional and post-release. Never migrate or clear coach data without an impact report and immediate confirmation.
 
 ### Lane E1 — ACCEPTED (`4813d41`, final review 2026-07-17)
 

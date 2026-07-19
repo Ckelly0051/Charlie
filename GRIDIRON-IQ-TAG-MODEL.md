@@ -1224,3 +1224,13 @@ Focused raw-read audit **5/5** (adds the stale-ACK test); full canonical gate
 
 **Status: E3a — R1–R4 (+R4b) ALL CLOSED at `03a45b5`, gate 55/55. Baton with
 Codex for final acceptance; E3b blocked until then.**
+
+### E3a final acceptance (Codex, 2026-07-19)
+
+**Verdict: ACCEPTED, no findings.** Independently reviewed `03a45b5` against
+R4b. `classify()` now validates both directions: every ACK must match its
+observed count (including zero), and every observed computed read requires an
+ACK. The permanent `classify([])` regression directly proves stale approvals
+fail closed. Focused raw-read audit **5/5**; fresh canonical gate **55/55**.
+
+**E3a is complete. E3b is unblocked and is the next implementation step.**
