@@ -1251,66 +1251,103 @@ E3a wired the stats engine + registry + Study cuts. The rest splits cleanly by
   they touch the coach's actual stored tags; projecting there would hide what was
   typed, break inline editing, corrupt round-trip export, or mis-migrate data.
 
-### Machine-generated blast radius (AST scan of every `js/*.js`, not remembered)
-The E3a audit's detector was run over all modules for raw reads of the six fields.
-Classified (each verified against source this session):
+### Machine-generated blast radius — CORRECTED (rev 2)
+> **⚠ The rev-1 inventory was INCOMPLETE and the detector was at fault.** Its
+> `isTagsMember()` only matched a bare `X.tags` member, so the very common
+> defensive idiom **`const t = X.tags || {}`** (a `LogicalExpression`) never
+> registered as an alias — hiding every six-field read behind it. Codex caught two
+> (`call-sheet-builder.js`, `plan-export.js`); re-running with `||`/`??` unwrapping
+> surfaced **three more** (`breakdown-video.js`, `cutup-exporter.js`, and
+> `play-filter.js` — the last one FILTERS on formation and drives the cut-up
+> exporter, a direct film-link-parity risk). **The same gap exists in the committed
+> `tools/e2e-raw-read-audit.mjs` and must be fixed as part of E3b** (E3a's
+> conclusion still holds — stats-engine/registry/parity have 0 six-field reads even
+> under the corrected detector). Residual known limit: a six-field read behind a
+> *function parameter* (cross-function dataflow) is still not statically resolvable
+> — behavioral consumer equality remains the PRIMARY proof (§19 6a).
 
-**PROJECT — E3b wires these (analytics display):**
-1. **`heat-maps.js:178`** `_renderFormationByPlay` — formation×play heat map splits
-   RAW formation (shows Shotgun/etc. as formation rows). → `splitFormations(proj)`.
-2. **`play-grid.js:539`** Film Room **column tendency** line ("Shotgun 48%") reads
-   `p.tags[col.key]` by dynamic key. → project when `col.key` ∈ the six.
-3. **`advanced-metrics.js:124-130`** EPA `groupBy(key)` reads `x.play.tags[key]`
-   by key AND defaults blank → `'Unknown'` (the SAME §6.4 violation as R2, now in
-   EPA). → project the six + OMIT blanks (no `'Unknown'` bucket).
-4. **Film Room** (`play-grid`): the Formation **cell value** ("Not charted" when
-   projected-blank), quick **filters**, and **Watch** cut-up all project; ADD a
-   `QB Alignment` + `Coverage Family` display column (coach decision below).
-5. **`storage.js` `exportCsv`** → projected six + new `QB Alignment`/`Coverage
-   Family` columns, no raw fallback; **`importPlaysFromText`** reads the two new
-   columns (coach decision below). NOTE: this is the ONE consumer whose default
-   flipped — CSV was raw-by-design, the coach moved it to projected.
+**PROJECT — E3b wires these (analytics display / export):**
+1. **`heat-maps.js:178`** `_renderFormationByPlay` — splits RAW formation (shows
+   Shotgun as a formation row). → `splitFormations(proj)`.
+2. **`play-grid.js:539`** `_tendency` — Film Room column tendency reads
+   `p.tags[col.key]` by dynamic key. → project when `col.key` ∈ the six, and use
+   the **§6.5 eligible denominator** (blank omitted, never an `Unknown` bucket).
+3. **`advanced-metrics.js:127`** `summarize` EPA `groupBy(key)` — reads by key AND
+   defaults blank → `'Unknown'` (the SAME §6.4 violation as E3a-R2, now in EPA).
+   → project the six + OMIT blanks.
+4. **Film Room** (`play-grid`): Formation **cell value** ("Not charted" when
+   projected-blank) + new `QB Alignment` / `Coverage Family` **display** columns.
+5. **`storage.js` `exportCsv` + `importPlaysFromText`** → projected columns per the
+   binding CSV contract below. (Default flipped: CSV was raw-by-design; the coach
+   moved it to projected.)
+6. **`play-filter.js:103`** `_matchesPlay` — the drawer "Filter Plays" panel that
+   drives the **cut-up exporter**. Filters on RAW formation today, so its play set
+   can DIVERGE from analytics. → project (film-link parity). *(Missed in rev 1.)*
+7. **`call-sheet-builder.js:175`** `_playLabel` and **`cutup-exporter.js:202`**
+   `_drawTitleCard` and **`breakdown-video.js:262`** `_call` — play-call
+   PRESENTATION surfaces. Rule (Codex): **any field labeled "Formation" is
+   structural-only**; a call/label may DELIBERATELY compose projected QB Alignment
+   + projected Formation (e.g. "Shotgun Trips"), but that composition must be
+   STATED and TESTED explicitly — never a raw passthrough. *(Missed in rev 1.)*
+8. **`plan-export.js:66`** `_resolveRef` — printable plan rows. → projected
+   structural Formation (same labeling rule). *(Named by Codex; missed in rev 1.)*
 
 **RAW BY DESIGN — E3b allowlists these (write/edit/store), each with a reason:**
-- **`play-tagger.js`** (418/1054/1058/1083/1084 + computed) — the tag FORM: shows
-  and edits the stored value the coach typed; `copyFromPrevious`/templates carry
-  raw. Projecting would hide the coach's own entry.
-- **`season-store.js`** (223-233 + 257) — `migratePlayFormation`/`_normalize`/
-  ST-strip: the data layer (§19 already excluded it).
-- **`suggestion-engine.js`** (67 + computed) — tagging auto-fill: conditions on and
-  writes raw stored tags.
-- **`season-library.js:786`** — onboarding "has a real tag" presence check.
-- **`app.js:1548-1551`** — AI vision stamp (writes stored tags).
-- **`play-grid.js:733/742/848`** — the inline cell EDITOR (reads the stored value
-  to edit it, writes it back).
+- **`play-tagger.js`** (`_loadTagForm` 1054/1058/1083/1084, `_wholeVideoPlaceholder`
+  418, + computed in `copyFromPrevious`/`saveTemplate`/`applyTemplate`/`_saveField`/
+  `_saveCurrentTags`/`applyCarryScheme`/`_stripStAlignment`) — the tag FORM edits
+  and carries the stored value the coach typed. (The form's own projected view is
+  **D-projform / E4**, not E3b.)
+- **`season-store.js`** (`migratePlayFormation` 223-233, `stripStAlignment` 257) —
+  the data/normalize layer (§19 already excluded it).
+- **`suggestion-engine.js`** (`_afterChange` 67, `_suggestField`, `_mostLikely`) —
+  tagging auto-fill: conditions on and writes raw stored tags.
+- **`season-library.js:786`** `_checklistItems` — onboarding "has a real tag"
+  presence check.
+- **`app.js:1548-1551`** `_stampAutoTags` — AI vision stamp (writes stored tags).
+- **`play-grid.js` `_openEditor` (733/742) + `_applyEdit` (848)** — the inline cell
+  EDITOR. **Except the Formation editor, which E3b changes — see E3b-P1 below.**
 
 ### Architecture — one shared by-key projection helper
-Add `StatsEngine.projField(p, key)` → returns `proj(p)[key]` for the six projected
-fields, else `p.tags[key]` (raw). The computed/dynamic-key DISPLAY sites
-(`play-grid` tendency, `advanced-metrics` groupBy) route through it, so a display
-projects the six and passes everything else through unchanged; editors never call
-it. This is the read-side twin of `proj`, for surfaces keyed by a runtime column.
+Add `StatsEngine.projField(p, key)` → `proj(p)[key]` for the six projected fields,
+else `p.tags[key]` (raw). The computed/dynamic-key DISPLAY sites (`play-grid`
+`_tendency`, `advanced-metrics` `groupBy`) route through it; **editors never call
+it**. Read-side twin of `proj`, for surfaces keyed by a runtime column.
 
 ### Consumer play-ID EQUALITY tests (the D-E3split standard — the point of E3b)
-Core parity (§ e2e-parity) proves the engine; E3b adds **per-consumer set
-equality**, so a consumer can't silently diverge while core stays green:
+Core parity proves the engine; E3b adds **per-consumer set equality** so a consumer
+cannot silently diverge while core stays green:
 - **Study** (`e2e-study-query`): for EVERY ready dimension incl. `qbAlignment`/
-  `coverageFamily`, assert each group's `matchingPlayIds` **==** `registry
-  .matchingRefs(cut, value)` for the same value (not merely golden-equal). Extend
-  beyond the current formation cover-check.
-- **Film Room** (`e2e-film-room`): a six-field quick-filter's resulting play set
-  **==** the registry cut set for that field/value; a Watch cut-up plays exactly
-  that set.
-- **Exports** (`e2e-*` for the HTML report / call sheet): the rendered analytics
-  rows/counts for a projected dimension **==** the registry set (raw CSV excluded —
-  it is a data dump, asserted to round-trip unchanged instead).
+  `coverageFamily`, each group's `matchingPlayIds` **==** `registry.matchingRefs
+  (cut, value)` — not merely golden-equal.
+- **Film Room** (`e2e-film-room`) — **P3: Film Room has NO six-field quick filter
+  (its filter state is unit/down/run-pass/flags only). Do NOT add one in a
+  projection lane.** Instead: **group the RENDERED row IDs by each projected cell
+  value** and assert those sets **==** the registry matching refs; then **select
+  that exact row set** and assert **Watch receives the same refs**. The tendency
+  line must use the SAME projected grouping and eligible denominator.
+- **`play-filter.js` → cut-up exporter:** the filtered play set for a projected
+  field **==** the registry cut set (this consumer *does* filter on formation).
+- **Exports:**
+  - **CSV** — **P2: NOT a raw dump any more.** Assert **per-row projected
+    equality** (each row's Formation/QB Alignment/Backfield/Strength/Coverage
+    Call/Coverage Family equals the projected view of that play) **plus a canonical
+    export→import round-trip** yielding clean split data with no re-mixing.
+  - **HTML report / call sheet / plan export** — rendered analytics rows/counts for
+    a projected dimension **==** the registry set; any deliberate
+    alignment+formation composition asserted explicitly.
 
 ### Audit expansion (E3b half of §19 item 6b)
-Expand `e2e-raw-read-audit.mjs`'s scan to the analytics-display consumers
-(`heat-maps.js`, `play-grid.js`, `advanced-metrics.js`); ALLOWLIST every
-raw-by-design site above by exact site with its reason (reusing the R4b
-site+multiplicity identity). A new raw read in a display consumer then fails.
-Behavioral projection tests (§19 6a) extend to each newly-wired surface.
+1. **Fix the detector gap first** — `isTagsMember()` must unwrap `ChainExpression`
+   AND `LogicalExpression` (`X.tags || {}`, `X?.tags ?? {}`), or the audit repeats
+   rev 1's blind spot on the very consumers E3b adds.
+2. **Expand the scan** to the analytics display/export consumers above.
+3. **P5 — ACK identity gains ENCLOSING METHOD context.** R4b's
+   (file, expression, count) identity was enough for one known helper, but E3b puts
+   **allowed editor reads and forbidden display reads in the SAME module with the
+   SAME expression text** (`play-grid` `_tendency` vs `_openEditor`/`_applyEdit`,
+   all `p.tags[col.key]`). Bind classification to **(file, enclosing method,
+   expression, count)**. Behavioral consumer equality remains the primary proof.
 
 ### COACH DECISIONS (binding, 2026-07-19) — both overrode Claude's rec
 1. **Film Room = full projection, no raw fallback.** The Formation cell shows the
@@ -1325,13 +1362,18 @@ Behavioral projection tests (§19 6a) extend to each newly-wired surface.
 2. **CSV export = projected, with the split columns (changes in E3b).** Exported
    data must agree with Film Room/Study/analytics. Contract: `Formation` =
    projected structural only; **new `QB Alignment` column**; `Backfield`/`Strength`
-   = projected canonical; `Coverage Call` = projected Cover 0-6; **new `Coverage
-   Family` column** (Man/Zone/Match); **no raw fallback** (never Shotgun/Pistol/
-   Under Center under Formation); blank optional values stay blank. → `exportCsv`
-   moves OUT of raw-by-design into PROJECT; `importPlaysFromText` reads the two new
-   columns into `qbAlignment`/`coverageFamily` (so an export→import round-trip
-   yields clean split data — no re-mixing). The stored season JSON is untouched;
-   only the CSV artifact changes.
+   = projected canonical; `Coverage Call` = the projected coverage call; **new
+   `Coverage Family` column** (Man/Zone/Match); **no raw fallback** (never
+   Shotgun/Pistol/Under Center under Formation); blank optional values stay blank.
+   → `exportCsv` moves OUT of raw-by-design into PROJECT. The stored season JSON is
+   untouched; only the CSV artifact changes.
+   **P2 correction (Codex):** `Coverage Call` **includes custom coach calls** —
+   projection removes ONLY `Man`/`Zone`/`Match`, NOT every value outside Cover 0-6.
+   Do not narrow the column to the Cover 0-6 enum. **`importPlaysFromText` must
+   accept the new `Coverage Call` / `QB Alignment` / `Coverage Family` headers AND
+   still accept the legacy `Coverage` header**, reading them into
+   `coverage`/`qbAlignment`/`coverageFamily` so an export→import round-trip yields
+   clean split data with no re-mixing.
 
 ### E3b / E4 editing boundary — COACH DECIDED (2026-07-19)
 - **Formation stays EDITABLE in E3b** (Film Room already edits it). "Not charted"
@@ -1347,35 +1389,49 @@ Behavioral projection tests (§19 6a) extend to each newly-wired surface.
   Alignment, Coverage Call, and Coverage Family round-trip INDEPENDENTLY; and Film
   Room, tag form, CSV, Study, and analytics all resolve IDENTICAL play sets.
 
-**⚠ Micro-mechanic for Codex/build review — the one edge in "Formation stays
-editable in E3b".** A legacy play stores `formation:'Shotgun'`; projection derives
-`qbAlignment` FROM that string. If the coach explicitly picks a structural
-formation ("Trips") and the editor writes raw `formation='Trips'`, the derived
-`qbAlignment` vanishes — a sibling was effectively rewritten (violates the coach's
-"editing one field does not rewrite siblings"). **Proposed E3b write semantics
-(needs sign-off):** an explicit Formation edit on a play whose stored `formation`
-still carries a legacy alignment token first PROMOTES that token into an explicit
-`tags.qbAlignment` (only if `qbAlignment` is still blank), THEN writes the coach's
-structural choice to `tags.formation`. This is triggered ONLY by an explicit edit
-(never on view), preserves the alignment, and is the minimal, contained piece of
-D-projform that E3b's "Formation editable" requires. If instead E3b should treat a
-legacy alignment-only play's Formation as **read-only until E4**, say so — that is
-the only alternative that avoids the promote-on-edit.
+**E3b-P1 [High] RESOLVED (Codex) — the Formation editor CANNOT remain raw.**
+Verified against source: `_openEditor` seeds the picker from raw
+`play.tags[col.key]`, and `_options(col, current)` returns
+`[...new Set([...libraryOpts, ...current])]` — it deliberately re-adds the CURRENT
+value even when absent from the library. So on a legacy `formation:'Shotgun'` play,
+opening the projected **"Not charted"** cell would put **`Shotgun` back into the
+structural Formation picker** — re-offering the exact misclassification E1 removed.
+**Required:**
+- **Initialize this one editor from the PROJECTED structural Formation**, so an
+  alignment-only play seeds empty and the picker contains structural values only.
+- **Promote-on-explicit-commit is APPROVED** with these bounds: before replacing
+  raw Formation, materialize the currently **effective projected QB Alignment** into
+  `tags.qbAlignment` **only when that target is blank**, then write Formation. This
+  preserves effective data — it is NOT a semantic sibling change.
+- **Opening / canceling / no-op navigation writes NOTHING.** The commit is **one
+  undoable transaction.** An existing explicit `qbAlignment` **wins** (never
+  overwritten).
+
+### E3b-P4 [Medium] — persisted Film Room columns need an UPGRADE RULE
+Updating the column presets alone will NOT expose `QB Alignment` / `Coverage
+Family` to a coach who already has a saved `ffa_film_room_cols`. Required rule:
+- **No saved preference** → use the new defaults.
+- **Saved list EXACTLY matches an old preset** → upgrade it to the corresponding
+  new preset (so a coach on stock columns gets the new ones).
+- **Otherwise** → PRESERVE the custom layout untouched, and expose both new columns
+  in the **Columns** menu so they can be added deliberately.
+- **Placement:** Offense/Default put `QB Alignment` **after** Formation; Defense
+  puts `Coverage Family` **after** Coverage Call.
 
 ### Verification
 Failing-first per surface; the per-consumer EQUALITY assertions above; a CSV
-round-trip test proving export→import yields clean split data with no re-mix; the
-expanded audit; full `tools/run-gate.sh`. Analytics parity goldens UNCHANGED (E3b
-wires display/export consumers that E3a's golden already reflects — any core golden
-drift is a finding, not an update). No package/tag.
+round-trip test (export→import → clean split data, no re-mix, legacy `Coverage`
+header still accepted); the saved-column upgrade-rule cases (none / exact-preset /
+custom); the corrected + expanded audit (detector gap fixed, method-scoped ACKs);
+full `tools/run-gate.sh`. Analytics parity goldens UNCHANGED — E3b wires
+display/export consumers that E3a's golden already reflects, so **any core golden
+drift is a finding, not an update**. No package/tag.
 
-**Status: E3b plan drafted; all coach decisions recorded (full projection, "Not
-charted", new QB Alignment + Coverage Family columns, projected CSV, Formation
-editable in E3b / new fields editable in E4). One micro-mechanic flagged for
-sign-off: the promote-on-explicit-edit write for a legacy play's Formation.
-Awaiting Codex plan review (E3a precedent), then build — starting with the
-unambiguous display consumers (heat-maps, advanced-metrics, play-grid tendency,
-the `projField` helper) which don't touch the editing edge.**
+**Status: §20 REVISED to rev 2 (Claude) — E3b-P1..P5 all resolved in place, plus a
+self-found correction Codex's P2 exposed: the rev-1 detector missed
+`const t = X.tags || {}`, so the inventory was incomplete (5 consumer files added,
+including `play-filter.js`, and the committed audit tool carries the same gap).
+Awaiting a short Codex re-review of this revision, then build.**
 
 ### E3b plan review — CHANGES REQUESTED (Codex, 2026-07-19)
 
@@ -1426,3 +1482,54 @@ the `projField` helper) which don't touch the editing edge.**
 **Required next action:** Claude revises §20 to resolve P1–P5 and returns the plan
 for a short re-review. Do not begin E3b implementation against the contradictory
 version.
+
+### §20 revised to rev 2 — P1–P5 resolved IN PLACE (Claude, 2026-07-19)
+
+All five accepted; each verified against source before revising. §20 was edited in
+place (not appended to) because an implementer reading the contradictory version
+would build the wrong thing.
+
+- **P1 CLOSED.** Confirmed in source: `_options(col, current)` returns
+  `[...new Set([...libraryOpts, ...current])]`, so the raw-seeded editor WOULD
+  re-add `Shotgun` to the structural picker. §20 now requires the Formation editor
+  to initialize from **projected** structural Formation, and records the approved
+  **promote-on-explicit-commit** bounds verbatim: materialize the effective
+  projected QB Alignment into `tags.qbAlignment` **only when blank**, then write
+  Formation; open/cancel/no-op writes nothing; one undoable transaction; an
+  explicit `qbAlignment` wins.
+- **P2 CLOSED.** The self-contradicting "raw unchanged dump" equality bullet is
+  GONE — CSV now asserts **per-row projected equality + canonical export→import
+  round-trip**, the importer accepts `Coverage Call`/`QB Alignment`/`Coverage
+  Family` **and** legacy `Coverage`, and the coverage semantic is corrected:
+  `Coverage Call` **keeps custom calls** — projection strips only Man/Zone/Match,
+  not everything outside Cover 0-6. `call-sheet-builder.js` + `plan-export.js` are
+  now classified, under the rule that any field labeled *Formation* is
+  structural-only and a deliberate alignment+formation composition must be stated
+  and tested.
+- **P3 CLOSED.** Verified: Film Room's filter state is unit/down/run-pass/flags —
+  no six-field quick filter. The plan no longer implies adding one; it now groups
+  **rendered row IDs** by projected cell value, asserts those sets equal registry
+  matching refs, selects that exact row set, and asserts **Watch** receives the same
+  refs. Tendencies use the same projected grouping + eligible denominator.
+- **P4 CLOSED.** Added the saved-`ffa_film_room_cols` upgrade rule (none → new
+  defaults; exact old-preset match → upgrade; otherwise preserve custom and expose
+  both columns in the Columns menu) with the specified placements, plus its three
+  test cases.
+- **P5 CLOSED.** ACK identity becomes **(file, enclosing method, expression,
+  count)** — necessary because `play-grid` holds an ALLOWED editor read and a
+  FORBIDDEN display read with identical expression text in one module.
+
+**Self-found correction that P2 exposed (worth recording):** the rev-1 "machine-
+generated blast radius" was presented as authoritative but its detector matched only
+a bare `X.tags`, so **`const t = X.tags || {}`** never registered as an alias.
+Codex found two hidden files by reading code; re-running with `||`/`??` unwrapping
+surfaced **three more** — `breakdown-video.js`, `cutup-exporter.js`, and
+**`play-filter.js`**, which filters on formation and drives the cut-up exporter (a
+direct film-link-parity risk that rev 1 would have shipped past). **The committed
+`tools/e2e-raw-read-audit.mjs` has the same gap and its fix is now E3b task #1.**
+E3a's conclusion is unaffected — stats-engine/registry/parity still show 0
+six-field raw reads under the corrected detector. Residual limit, stated: a read
+behind a *function parameter* is not statically resolvable, so behavioral consumer
+equality stays the PRIMARY proof.
+
+**Status: rev 2 ready for a short Codex re-review. No E3b implementation started.**
