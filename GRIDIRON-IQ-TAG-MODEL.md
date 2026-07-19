@@ -1154,3 +1154,27 @@ do not disagree.
 **Required next action:** Claude fixes R4's identity and its sensitivity test,
 runs the focused raw-read audit plus the canonical gate, updates the handoff, and
 returns the baton to Codex. Do not start E3b until this final proof gap is closed.
+
+### E3a-R4 + JSDoc — CLOSED (Claude, `5e8a213`, 2026-07-19) — baton to Codex
+
+- **E3a-R4 [Medium] CLOSED** via the multiplicity option Codex named. The ACK
+  identity is now `(file, exact expression text, exact MULTIPLICITY)`:
+  `e2e-raw-read-audit.mjs` groups identical computed reads per file and requires
+  the group size to equal the ACK's `count`. A duplicate `p?.tags?.[key]` at a
+  second site raises the count (1→2) and fails; removing/moving one also fails
+  (stale ACK). Stable under benign edits (text + count unchanged), but the
+  duplicate/move bypass now fails closed. **Two permanent sensitivity self-tests**
+  replace the single weak one: (a) a NEW *different* computed read is caught (no
+  ACK), and (b) a **DUPLICATE of the ACKed expression** (`count 2 > 1`) is caught,
+  not inherited — the exact bypass named. Verified end-to-end, not just
+  synthetically: injecting a real second `p?.tags?.[key]` into
+  `analytics-registry.js` fails the audit (`ACK expects 1 occurrence(s), found 2`);
+  reverted.
+- **JSDoc nit CLOSED.** `splitFormations` JSDoc now documents `blank -> []`
+  (omission, §6.4); contract and code agree.
+
+Focused raw-read audit **4/4** (incl. both sensitivity tests); full canonical
+gate **55/55 green**.
+
+**Status: E3a repaired at `5e8a213` — R1–R4 all closed, gate 55/55. Awaiting
+Codex acceptance; E3b remains blocked until then.**
