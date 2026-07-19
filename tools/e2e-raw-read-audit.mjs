@@ -136,22 +136,35 @@ const violations = findings.filter(f => !isAllowed(f));
 for (const v of violations) console.log(`  FAIL  raw read ${v.file}:${v.line} — ${v.form} (field "${v.field}") must route through StatsEngine.proj`);
 ok(violations.length === 0, `zero un-allowlisted raw reads of the six projected fields (found ${findings.length}, allowlisted ${findings.length - violations.length})`);
 
-// Computed flags — classified by (file, expression text) with EXACT MULTIPLICITY.
-// A group of identical computed reads in a file is acknowledged only when an ACK
-// entry names that (file, code) AND its count equals the group size — so a
-// duplicate (count up) or a stale ACK (count down) both fail (E3a-R4).
+// Computed flags — classified by (file, expression text) with EXACT MULTIPLICITY,
+// validated in BOTH directions (E3a-R4 re-review — the observed-groups-only check
+// missed a STALE ACK: if the ACKed expression is removed, no group forms, its
+// count:1 is never validated, and the stale approval could later bless a single
+// new identical-text read elsewhere):
+//   1. every ACK must be observed EXACTLY `count` times — 0 included, so a removed
+//      expression fails the ACK as stale (must be deleted from the ACK list);
+//   2. every observed computed read must be covered by an ACK.
 const classify = (fs) => {
-  const groups = new Map();   // `${file}\0${code}` -> { file, code, lines:[] }
+  const bad = [];
+  const acked = new Set();
+  // Direction 1: ACK → observed count (catches duplicate=up, stale=0, fewer=down).
+  for (const a of ACK) {
+    acked.add(`${a.file}\0${a.code}`);
+    const n = fs.filter(f => f.file === a.file && f.code === a.code).length;
+    if (n !== a.count) {
+      const kind = n > a.count ? 'duplicate' : n === 0 ? 'STALE ACK — expression removed, delete it' : 'fewer than acknowledged';
+      bad.push({ file: a.file, code: a.code, why: `ACK expects ${a.count} occurrence(s), found ${n} (${kind} — re-classify)` });
+    }
+  }
+  // Direction 2: observed reads with no ACK at all.
+  const groups = new Map();
   for (const f of fs) {
     const key = `${f.file}\0${f.code}`;
     if (!groups.has(key)) groups.set(key, { file: f.file, code: f.code, lines: [] });
     groups.get(key).lines.push(f.line);
   }
-  const bad = [];
   for (const g of groups.values()) {
-    const ack = ACK.find(a => a.file === g.file && a.code === g.code);
-    if (!ack) { bad.push({ ...g, why: 'no ACK for this expression' }); continue; }
-    if (ack.count !== g.lines.length) bad.push({ ...g, why: `ACK expects ${ack.count} occurrence(s), found ${g.lines.length} (duplicate/removed — re-classify)` });
+    if (!acked.has(`${g.file}\0${g.code}`)) bad.push({ ...g, why: 'no ACK for this expression' });
   }
   return bad;
 };
@@ -160,18 +173,24 @@ for (const f of flags) console.log(`  computed ${f.code} at ${f.file}:${f.line}`
 ok(bad.length === 0, `every computed .tags[expr] is acknowledged by exact site + multiplicity (${flags.length} flagged)`,
   bad.map(b => `${b.file} "${b.code}" — ${b.why}`).join('; '));
 
-// PERMANENT sensitivity self-test (E3a-R4): the ACK must not inherit to (a) a
-// DIFFERENT computed read, nor (b) a DUPLICATE of the ACKed expression. Both must
-// be caught. (b) is the exact bypass the re-review named — text alone would pass it.
-const ackedSite = ACK[0];   // { file, code, count:1 }
-const differentRead = classify([{ file: ackedSite.file, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
-ok(differentRead.length === 1, 'sensitivity: a NEW different computed read in an ACKed file is caught');
-const duplicateRead = classify([
-  { file: ackedSite.file, code: ackedSite.code, line: 1 },
-  { file: ackedSite.file, code: ackedSite.code, line: 2 },   // a second identical site
-]);
+// PERMANENT sensitivity self-tests (E3a-R4). Each input includes the real ACKed
+// read (so the ACK itself is satisfied) plus a probe, and asserts the probe alone
+// is caught — proving the ACK neither inherits to nor is bypassed by:
+const A = ACK[0];   // { file, code, count:1 }
+const real = { file: A.file, code: A.code, line: 10 };
+// (a) a DIFFERENT computed read in the ACKed file.
+const differentRead = classify([real, { file: A.file, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
+ok(differentRead.length === 1 && /no ACK/.test(differentRead[0].why),
+  'sensitivity: a NEW different computed read in an ACKed file is caught');
+// (b) a DUPLICATE of the ACKed expression (the exact bypass text alone would pass).
+const duplicateRead = classify([real, { file: A.file, code: A.code, line: 2 }]);
 ok(duplicateRead.length === 1 && /found 2/.test(duplicateRead[0].why),
   'sensitivity: a DUPLICATE of the ACKed expression (count 2 > 1) is caught, not inherited');
+// (c) a STALE ACK — the ACKed expression is GONE (classify([]) must still fail on
+//     the unvalidated count:1), so a removed read cannot leave a blessing behind.
+const staleAck = classify([]);
+ok(staleAck.length === 1 && /found 0/.test(staleAck[0].why),
+  'sensitivity: an ACK whose expression is REMOVED (observed 0) fails as stale');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);
