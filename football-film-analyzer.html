@@ -22781,7 +22781,8 @@ const SUCCESS_RATE_TIP = 'Share of plays that stay on schedule for the down/dist
 class StatsEngine {
   /**
    * Split a (possibly multi-select) formation string into its component
-   * formations. "Pistol + Spread" -> ["Pistol", "Spread"]; blank -> ["Unknown"].
+   * formations. "Trips + Bunch" -> ["Trips", "Bunch"]; blank -> [] (OMITTED per
+   * §6.4 — an alignment-only play falls out of formation analytics, not "Unknown").
    */
   static splitFormations(formation) {
     // Blank → [] (OMITTED, not imputed): §6.4/§6.5. Formation is optional and

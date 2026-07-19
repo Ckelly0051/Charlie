@@ -38,11 +38,15 @@ const FILES = ['js/stats-engine.js', 'js/analytics-registry.js', 'tools/e2e-pari
 const ALLOW = [];   // { file, line, field }
 
 // Computed `X.tags[expr]` reads, manually classified as safe (they never route one
-// of the six fields around proj). Identity is (file, EXACT expression text) — NOT
-// the filename — so a new/moved/different computed read anywhere in the same file
-// is a distinct, unacknowledged site and fails the audit (finding 4).
+// of the six fields around proj). Identity is (file, EXACT expression text, exact
+// MULTIPLICITY) — E3a-R4 re-review: text alone is not an AST site, so a DUPLICATE
+// of an ACKed expression elsewhere in the same file would inherit the ack silently.
+// `count` pins how many times that expression may appear; a duplicate raises the
+// count and fails until re-classified, and removing one also fails (stale ACK).
+// This is stable under benign edits (text + count unchanged) yet catches the exact
+// duplicate/move bypass R4 names — proven by the sensitivity self-test below.
 const ACK = [
-  { file: 'js/analytics-registry.js', code: 'p?.tags?.[key]', reason: "generic tag(key) helper — verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
+  { file: 'js/analytics-registry.js', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — the ONLY computed tags read; verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
 ];
 
 let pass = 0, fail = 0;
@@ -132,18 +136,42 @@ const violations = findings.filter(f => !isAllowed(f));
 for (const v of violations) console.log(`  FAIL  raw read ${v.file}:${v.line} — ${v.form} (field "${v.field}") must route through StatsEngine.proj`);
 ok(violations.length === 0, `zero un-allowlisted raw reads of the six projected fields (found ${findings.length}, allowlisted ${findings.length - violations.length})`);
 
-// Computed flags — each must be acknowledged by (file, EXACT expression text).
-const isAcked = f => ACK.some(a => a.file === f.file && a.code === f.code);
-const unacked = flags.filter(f => !isAcked(f));
-for (const f of flags) console.log(`  ${isAcked(f) ? 'ack ' : 'NEW '} computed ${f.code} at ${f.file}:${f.line}`);
-ok(unacked.length === 0, `every computed .tags[expr] is acknowledged by exact site (${flags.length} flagged, ${unacked.length} unreviewed)`,
-  unacked.map(f => `${f.file}:${f.line} (${f.code})`).join(', '));
+// Computed flags — classified by (file, expression text) with EXACT MULTIPLICITY.
+// A group of identical computed reads in a file is acknowledged only when an ACK
+// entry names that (file, code) AND its count equals the group size — so a
+// duplicate (count up) or a stale ACK (count down) both fail (E3a-R4).
+const classify = (fs) => {
+  const groups = new Map();   // `${file}\0${code}` -> { file, code, lines:[] }
+  for (const f of fs) {
+    const key = `${f.file}\0${f.code}`;
+    if (!groups.has(key)) groups.set(key, { file: f.file, code: f.code, lines: [] });
+    groups.get(key).lines.push(f.line);
+  }
+  const bad = [];
+  for (const g of groups.values()) {
+    const ack = ACK.find(a => a.file === g.file && a.code === g.code);
+    if (!ack) { bad.push({ ...g, why: 'no ACK for this expression' }); continue; }
+    if (ack.count !== g.lines.length) bad.push({ ...g, why: `ACK expects ${ack.count} occurrence(s), found ${g.lines.length} (duplicate/removed — re-classify)` });
+  }
+  return bad;
+};
+const bad = classify(flags);
+for (const f of flags) console.log(`  computed ${f.code} at ${f.file}:${f.line}`);
+ok(bad.length === 0, `every computed .tags[expr] is acknowledged by exact site + multiplicity (${flags.length} flagged)`,
+  bad.map(b => `${b.file} "${b.code}" — ${b.why}`).join('; '));
 
-// PERMANENT sensitivity self-test (finding 4): the ACK must be site-specific, not
-// file-wide — a DIFFERENT computed read in an already-acknowledged file must NOT
-// inherit the ack. Synthesize one and assert it classifies as unacknowledged.
-const synthetic = { file: 'js/analytics-registry.js', code: 'p.tags[__unreviewed_expr__]' };
-ok(!isAcked(synthetic), 'ACK is site-specific: a new computed read in an ACKed file is NOT auto-accepted');
+// PERMANENT sensitivity self-test (E3a-R4): the ACK must not inherit to (a) a
+// DIFFERENT computed read, nor (b) a DUPLICATE of the ACKed expression. Both must
+// be caught. (b) is the exact bypass the re-review named — text alone would pass it.
+const ackedSite = ACK[0];   // { file, code, count:1 }
+const differentRead = classify([{ file: ackedSite.file, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
+ok(differentRead.length === 1, 'sensitivity: a NEW different computed read in an ACKed file is caught');
+const duplicateRead = classify([
+  { file: ackedSite.file, code: ackedSite.code, line: 1 },
+  { file: ackedSite.file, code: ackedSite.code, line: 2 },   // a second identical site
+]);
+ok(duplicateRead.length === 1 && /found 2/.test(duplicateRead[0].why),
+  'sensitivity: a DUPLICATE of the ACKed expression (count 2 > 1) is caught, not inherited');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);
