@@ -1263,8 +1263,13 @@ Classified (each verified against source this session):
 3. **`advanced-metrics.js:124-130`** EPA `groupBy(key)` reads `x.play.tags[key]`
    by key AND defaults blank → `'Unknown'` (the SAME §6.4 violation as R2, now in
    EPA). → project the six + OMIT blanks (no `'Unknown'` bucket).
-4. **Film Room filter + Watch** (`play-grid` quick filters / `PlayFilter` →
-   cut-up) and the **cell VALUE render** — see the open decision below.
+4. **Film Room** (`play-grid`): the Formation **cell value** ("Not charted" when
+   projected-blank), quick **filters**, and **Watch** cut-up all project; ADD a
+   `QB Alignment` + `Coverage Family` display column (coach decision below).
+5. **`storage.js` `exportCsv`** → projected six + new `QB Alignment`/`Coverage
+   Family` columns, no raw fallback; **`importPlaysFromText`** reads the two new
+   columns (coach decision below). NOTE: this is the ONE consumer whose default
+   flipped — CSV was raw-by-design, the coach moved it to projected.
 
 **RAW BY DESIGN — E3b allowlists these (write/edit/store), each with a reason:**
 - **`play-tagger.js`** (418/1054/1058/1083/1084 + computed) — the tag FORM: shows
@@ -1272,9 +1277,6 @@ Classified (each verified against source this session):
   raw. Projecting would hide the coach's own entry.
 - **`season-store.js`** (223-233 + 257) — `migratePlayFormation`/`_normalize`/
   ST-strip: the data layer (§19 already excluded it).
-- **`storage.js:1254/1262`** — `exportCsv`: a data round-trip re-imported by
-  `importPlaysFromText`; must preserve the coach's exact tags. (The HTML *analytics*
-  report already runs through the E3a-projected StatsEngine.)
 - **`suggestion-engine.js`** (67 + computed) — tagging auto-fill: conditions on and
   writes raw stored tags.
 - **`season-library.js:786`** — onboarding "has a real tag" presence check.
@@ -1310,23 +1312,52 @@ raw-by-design site above by exact site with its reason (reusing the R4b
 site+multiplicity identity). A new raw read in a display consumer then fails.
 Behavioral projection tests (§19 6a) extend to each newly-wired surface.
 
-### Open product decisions (coach's call — recommendation given)
-1. **Film Room formation CELL text.** When a play is alignment-only (projected
-   formation blank), the Formation column cell can show **(A)** the projected
-   structural value (blank/"—" for alignment-only), matching analytics, or **(B)**
-   the raw stored value ("Shotgun"), matching the editor you click into.
-   *Recommendation: B for the cell text (it is the thing you edit), A for the
-   tendency/filter/Watch (analytics + film-link parity).* Same split as the editor
-   being raw while the tendency projects.
-2. **CSV export columns.** Keep `exportCsv` raw + single Formation column
-   (round-trip fidelity) for E3b, and add `qbAlignment`/`coverageFamily` columns
-   later in E4. *Recommendation: yes — don't change the export schema mid-lane.*
+### COACH DECISIONS (binding, 2026-07-19) — both overrode Claude's rec
+1. **Film Room = full projection, no raw fallback.** The Formation cell shows the
+   projected structural formation; an alignment-only play reads **"Not charted"**
+   (NOT raw "Shotgun", NOT "Unknown" — "Unknown" looks like a real category;
+   showing "Shotgun" reinforces the exact misclassification E1 fixed). **Add a
+   dedicated `QB Alignment` column** beside Formation in the default Film Room
+   columns; the alignment-only play reads `QB Alignment: Shotgun`. Tooltip on the
+   Formation cell: *"QB alignment is charted separately."* Formation analytics keep
+   OMITTING that play; QB Alignment analytics INCLUDE it. (Same for coverage: a
+   `Coverage Family` column parallels `Coverage Call`.)
+2. **CSV export = projected, with the split columns (changes in E3b).** Exported
+   data must agree with Film Room/Study/analytics. Contract: `Formation` =
+   projected structural only; **new `QB Alignment` column**; `Backfield`/`Strength`
+   = projected canonical; `Coverage Call` = projected Cover 0-6; **new `Coverage
+   Family` column** (Man/Zone/Match); **no raw fallback** (never Shotgun/Pistol/
+   Under Center under Formation); blank optional values stay blank. → `exportCsv`
+   moves OUT of raw-by-design into PROJECT; `importPlaysFromText` reads the two new
+   columns into `qbAlignment`/`coverageFamily` (so an export→import round-trip
+   yields clean split data — no re-mixing). The stored season JSON is untouched;
+   only the CSV artifact changes.
+
+### E3b / E4 boundary this surfaced (Claude — confirm)
+The coach's "clicking *Not charted* opens the Formation editor" implies EDITING a
+projected cell. That is the **D-projform** work (§18): editing a legacy play's
+Formation cell with a raw write would DESTROY the QB alignment carried inside the
+stored `formation:'Shotgun'` string (projection reads qbAlignment FROM it), and the
+new QB Alignment column would go blank — data loss. So the split is:
+- **E3b:** projected DISPLAY everywhere (Film Room Formation → "Not charted", new
+  QB Alignment + Coverage Family columns, heat maps, EPA, tendencies), projected
+  CSV export + import of the new columns, and the per-consumer EQUALITY tests. The
+  new projected columns are **display/read-through** in Film Room; editing the six
+  projected fields still goes through the existing form path (unchanged, raw) so
+  nothing clobbers the stored alignment.
+- **E4 (D-projform):** make the projected cells/columns editable with the
+  field-level MERGE safeguards (Formation editor writes structural formation
+  WITHOUT dropping qbAlignment; QB Alignment editable in its own control; never
+  replace the whole tags object; undoable), plus the qbAlignment/coverageFamily
+  chip libraries (E1-R7 reservations).
 
 ### Verification
-Failing-first per surface; the per-consumer EQUALITY assertions above; the
-expanded audit; full `tools/run-gate.sh`; parity goldens UNCHANGED (E3b wires
-display/export consumers that E3a's golden already reflects — any golden drift is
-a finding, not an update). No package/tag.
+Failing-first per surface; the per-consumer EQUALITY assertions above; a CSV
+round-trip test proving export→import yields clean split data with no re-mix; the
+expanded audit; full `tools/run-gate.sh`. Analytics parity goldens UNCHANGED (E3b
+wires display/export consumers that E3a's golden already reflects — any core golden
+drift is a finding, not an update). No package/tag.
 
-**Status: E3b plan drafted — awaiting coach sign-off on the two product decisions
-+ Codex plan review (E3a precedent), then build.**
+**Status: E3b plan drafted, coach decisions recorded (both binding). Awaiting Codex
+plan review (E3a precedent) + coach confirm on the E3b/E4 editing boundary above,
+then build.**
