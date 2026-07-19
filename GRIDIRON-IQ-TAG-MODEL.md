@@ -1333,23 +1333,34 @@ Behavioral projection tests (§19 6a) extend to each newly-wired surface.
    yields clean split data — no re-mixing). The stored season JSON is untouched;
    only the CSV artifact changes.
 
-### E3b / E4 boundary this surfaced (Claude — confirm)
-The coach's "clicking *Not charted* opens the Formation editor" implies EDITING a
-projected cell. That is the **D-projform** work (§18): editing a legacy play's
-Formation cell with a raw write would DESTROY the QB alignment carried inside the
-stored `formation:'Shotgun'` string (projection reads qbAlignment FROM it), and the
-new QB Alignment column would go blank — data loss. So the split is:
-- **E3b:** projected DISPLAY everywhere (Film Room Formation → "Not charted", new
-  QB Alignment + Coverage Family columns, heat maps, EPA, tendencies), projected
-  CSV export + import of the new columns, and the per-consumer EQUALITY tests. The
-  new projected columns are **display/read-through** in Film Room; editing the six
-  projected fields still goes through the existing form path (unchanged, raw) so
-  nothing clobbers the stored alignment.
-- **E4 (D-projform):** make the projected cells/columns editable with the
-  field-level MERGE safeguards (Formation editor writes structural formation
-  WITHOUT dropping qbAlignment; QB Alignment editable in its own control; never
-  replace the whole tags object; undoable), plus the qbAlignment/coverageFamily
-  chip libraries (E1-R7 reservations).
+### E3b / E4 editing boundary — COACH DECIDED (2026-07-19)
+- **Formation stays EDITABLE in E3b** (Film Room already edits it). "Not charted"
+  opens the structural Formation selector; the selector contains **only structural
+  formations** (Shotgun/Pistol/Under Center are NOT there — they are QB alignment).
+- **Viewing/clicking a legacy play must NEVER auto-write** a projected value. Only
+  an explicit coach choice writes, and it writes **only that field** — no sibling
+  rewrite.
+- **QB Alignment + Coverage Family are DISPLAY-ONLY in E3b.** Their safe inline
+  editing lands in **E4**, with the projection-aware editing tests below.
+- **E4 (D-projform) must prove:** untouched plays are never modified; editing one
+  field never rewrites a sibling; clearing a value is intentional; Formation, QB
+  Alignment, Coverage Call, and Coverage Family round-trip INDEPENDENTLY; and Film
+  Room, tag form, CSV, Study, and analytics all resolve IDENTICAL play sets.
+
+**⚠ Micro-mechanic for Codex/build review — the one edge in "Formation stays
+editable in E3b".** A legacy play stores `formation:'Shotgun'`; projection derives
+`qbAlignment` FROM that string. If the coach explicitly picks a structural
+formation ("Trips") and the editor writes raw `formation='Trips'`, the derived
+`qbAlignment` vanishes — a sibling was effectively rewritten (violates the coach's
+"editing one field does not rewrite siblings"). **Proposed E3b write semantics
+(needs sign-off):** an explicit Formation edit on a play whose stored `formation`
+still carries a legacy alignment token first PROMOTES that token into an explicit
+`tags.qbAlignment` (only if `qbAlignment` is still blank), THEN writes the coach's
+structural choice to `tags.formation`. This is triggered ONLY by an explicit edit
+(never on view), preserves the alignment, and is the minimal, contained piece of
+D-projform that E3b's "Formation editable" requires. If instead E3b should treat a
+legacy alignment-only play's Formation as **read-only until E4**, say so — that is
+the only alternative that avoids the promote-on-edit.
 
 ### Verification
 Failing-first per surface; the per-consumer EQUALITY assertions above; a CSV
@@ -1358,6 +1369,10 @@ expanded audit; full `tools/run-gate.sh`. Analytics parity goldens UNCHANGED (E3
 wires display/export consumers that E3a's golden already reflects — any core golden
 drift is a finding, not an update). No package/tag.
 
-**Status: E3b plan drafted, coach decisions recorded (both binding). Awaiting Codex
-plan review (E3a precedent) + coach confirm on the E3b/E4 editing boundary above,
-then build.**
+**Status: E3b plan drafted; all coach decisions recorded (full projection, "Not
+charted", new QB Alignment + Coverage Family columns, projected CSV, Formation
+editable in E3b / new fields editable in E4). One micro-mechanic flagged for
+sign-off: the promote-on-explicit-edit write for a legacy play's Formation.
+Awaiting Codex plan review (E3a precedent), then build — starting with the
+unambiguous display consumers (heat-maps, advanced-metrics, play-grid tendency,
+the `projField` helper) which don't touch the editing edge.**
