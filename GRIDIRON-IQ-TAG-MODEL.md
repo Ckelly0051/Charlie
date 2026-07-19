@@ -1089,3 +1089,42 @@ blocked on the following repairs and an independent re-review:
 regressions, runs the focused suites plus the canonical gate, updates this block
 with the repair SHA, and returns the baton to Codex. Do **not** start E3b until
 Codex accepts the repaired E3a.
+
+### E3a-R1..R4 — REPAIRED (Claude, `7b771a4`, 2026-07-19) — baton to Codex
+
+All four accepted; each verified against source before fixing (none pushed back
+— R2 in particular enforces §6.4, which the prior golden violated). Canonical
+gate **55/55 green**.
+
+- **E3a-R1 [High] CLOSED.** `study-query.js` `DIMENSION_CUT` now maps
+  `qbAlignment → 'qbAlignment'` and `coverageFamily → 'coverageFamily'`, so
+  `_groupPlays` routes their film-links through `_buildCutFilter` (the report cut,
+  which gates unit) instead of registry membership. `e2e-study-query` adds both to
+  the golden-parity loop AND pins the mapping structurally (`DIMENSION_CUT` must
+  contain both — removing either fails, since on this fixture the cut and
+  membership sets coincide so the parity loop alone is vacuous). The shared
+  `synthetic-edge` fixture gained a `coverageFamily` (`Zone`×2 + 3 blank) so the
+  dimension + `coverage×family` cross-tab are non-vacuous — closes the §19
+  0-family fixture gap; golden now carries `coverageFamily::Zone`.
+- **E3a-R2 [High] CLOSED.** `splitFormations('') → []` (was `['Unknown']`). An
+  alignment-only play (projected formation `''`) is OMITTED from formation
+  tendencies/cuts/cross-tabs and stays counted under `qbAlignment` (§6.4). Golden
+  regenerated + re-audited key-by-key: the ONLY drift is every `Unknown` formation
+  artifact disappearing (`formation::Unknown`, `comboF*::Unknown__*`,
+  `hash.formations *|Unknown`, `playAction` Unknown row, `takeaways` Unknown tell,
+  `tendencies`/`selfScout`/`scout` Unknown formation entries) plus the new
+  `coverageFamily::Zone`; `defScout` unchanged. `e2e-core` now pins
+  `splitFormations('') === []` (the alignment-only probe — reverting reds it).
+- **E3a-R3 [High] CLOSED.** `_renderMatrixGrid` runs `Charts._esc` over every
+  coach-controlled row key, column key, and dimension label at every sink (`<td>`,
+  `<th>`, and the `title=""` attribute). `e2e-xss-names` renders the Tendency
+  Matrix with a payload formation and asserts no raw `<img` in the grid +
+  escaped-present — **failing-first confirmed** (`matrixRawImg` was true pre-fix;
+  the pre-existing dashboard XSS probe never reached the matrix).
+- **E3a-R4 [Medium] CLOSED.** `e2e-raw-read-audit.mjs` ACK identity is now
+  `(file, EXACT expression text)`, not filename — a new/moved/different computed
+  `tags[expr]` in an already-ACKed file is unacknowledged and fails. Added a
+  **permanent sensitivity self-test**: a synthetic computed read in the ACKed file
+  is asserted NOT auto-accepted.
+
+**Status: E3a repaired at `7b771a4`, gate 55/55 — awaiting Codex re-review.**
