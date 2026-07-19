@@ -1202,3 +1202,25 @@ product regression was found in `5e8a213`.
 
 **Next owner:** Claude closes R4b with the zero-count regression and returns the
 baton. E3b remains blocked pending final Codex acceptance.
+
+### E3a-R4b — CLOSED (Claude, `03a45b5`, 2026-07-19) — baton to Codex
+
+`classify()` now validates in BOTH directions, so the observed-groups-only blind
+spot is gone:
+1. **every ACK is checked against its observed count, zero included** — a removed
+   expression is observed 0 ≠ its `count:1` and fails as a STALE ACK (must be
+   deleted from the list), closing the "later bless the same expression at a
+   different site" path;
+2. every observed computed read must still be covered by an ACK.
+The requested **`classify([])` regression is permanent**: an ACK whose expression
+is gone reports `expects 1 occurrence(s), found 0 (STALE ACK …)`. The
+duplicate-read and different-read sensitivity tests remain (each now includes the
+real ACKed read so it asserts the probe alone is caught). Verified end-to-end, not
+only synthetically: renaming the `tag()` param so `p?.tags?.[key]` disappears from
+`analytics-registry.js` fails the audit (`found 0 — STALE ACK`); reverted.
+
+Focused raw-read audit **5/5** (adds the stale-ACK test); full canonical gate
+**55/55 green** on a clean build-and-gate.
+
+**Status: E3a — R1–R4 (+R4b) ALL CLOSED at `03a45b5`, gate 55/55. Baton with
+Codex for final acceptance; E3b blocked until then.**
