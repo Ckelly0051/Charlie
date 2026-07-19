@@ -25569,6 +25569,7 @@ class StatsEngine {
   static _matrixDimensions() {
     return [
       { id: 'formation',  label: 'Formation',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formation) },
+      { id: 'qbAlignment', label: 'QB Alignment', extract: p => [StatsEngine.proj(p).qbAlignment || ''].filter(Boolean) },
       { id: 'backfield',  label: 'Backfield',  extract: p => [StatsEngine.proj(p).backfield || ''].filter(Boolean) },
       { id: 'strength',   label: 'Strength',   extract: p => [StatsEngine.proj(p).strength || ''].filter(Boolean) },
       { id: 'playType',   label: 'Play Type',  extract: p => StatsEngine.splitPlayTypes(p.tags.playType) },
@@ -25577,6 +25578,7 @@ class StatsEngine {
       { id: 'personnel',  label: 'Personnel',   extract: p => [p.tags.personnel || 'Unknown'] },
       { id: 'defFront',   label: 'Def Front',   extract: p => StatsEngine.splitFronts(p.tags.defFront) },
       { id: 'coverage',   label: 'Coverage',    extract: p => [StatsEngine.proj(p).coverage || ''].filter(Boolean) },
+      { id: 'coverageFamily', label: 'Coverage Family', extract: p => [StatsEngine.proj(p).coverageFamily || ''].filter(Boolean) },
       { id: 'hash',       label: 'Hash',        extract: p => [p.tags.hash || 'Unknown'] },
       { id: 'playDir',    label: 'Direction',   extract: p => [p.tags.playDir || ''].filter(Boolean) },
       { id: 'motion',     label: 'Motion',      extract: p => [p.tags.motion || 'No Motion'] },
@@ -25595,10 +25597,14 @@ class StatsEngine {
     const rowCounts = {};
     const colCounts = {};
 
+    let eligible = 0;   // §6.5: plays carrying a value on EVERY axis of the cross-tab
     plays.forEach(p => {
       const rows = rowDim.extract(p);
       const cols = colDim.extract(p);
+      // A play blank on any axis is OMITTED from the cross-tab — never forced into
+      // a cell (§6.5 / §6.4). It still counts in `total`; the gap is `omitted`.
       if (!rows.length || !cols.length) return;
+      eligible++;
       const isRun = StatsEngine.isRun(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
@@ -25621,12 +25627,22 @@ class StatsEngine {
 
     const rowKeys = [...rowSet].sort((a, b) => (rowCounts[b] || 0) - (rowCounts[a] || 0));
     const colKeys = [...colSet].sort((a, b) => (colCounts[b] || 0) - (colCounts[a] || 0));
-    return { rowDim, colDim, rowKeys, colKeys, cells, total: plays.length };
+    // §6.5 eligible-denominator disclosure: total (in scope), eligible (a value on
+    // every axis), omitted (total − eligible). For two single-value axes each
+    // eligible play lands in exactly one cell, so Σ cell.count === eligible; a
+    // multi-value axis (e.g. formation) may repeat a play across rows, so the sum
+    // can exceed eligible along that axis, but eligible still gates the cross-tab.
+    const total = plays.length;
+    return { rowDim, colDim, rowKeys, colKeys, cells, total, eligible, omitted: total - eligible };
   }
 
   _renderMatrixGrid(matrix) {
     if (!matrix.rowKeys.length || !matrix.colKeys.length) return '<p style="opacity:.6">Not enough data for this combination.</p>';
     const maxCount = Math.max(1, ...Object.values(matrix.cells).map(c => c.count));
+    // §6.5 honesty: disclose the eligible denominator — how many in-scope plays
+    // this cross-tab dropped for lacking a value on one of the two axes.
+    const omitted = matrix.omitted || 0;
+    const disclose = `<p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">${matrix.eligible} of ${matrix.total} plays charted on both axes${omitted ? ` · ${omitted} omitted (blank on ${matrix.rowDim.label} or ${matrix.colDim.label})` : ''}</p>`;
 
     let header = `<th>${matrix.rowDim.label} \\ ${matrix.colDim.label}</th>`;
     matrix.colKeys.forEach(c => { header += `<th>${c}</th>`; });
@@ -25655,7 +25671,7 @@ class StatsEngine {
       body += `<tr>${row}</tr>`;
     });
 
-    return `<div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
+    return `${disclose}<div class="tm-wrap"><table class="stats-table stats-table-full tm-table">
       <thead><tr>${header}</tr></thead>
       <tbody>${body}</tbody>
     </table></div>`;
