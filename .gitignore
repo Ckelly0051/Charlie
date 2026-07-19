@@ -20,3 +20,12 @@ _shots/
 # Parity: the real-season golden holds the coach's real data (PII) — local only.
 # The synthetic-edge golden IS committed (reproducible on CI).
 tools/parity-golden/mavericks-6game.json
+
+# Personal documents that live in this working tree but must NEVER be committed
+# (a resume generator carrying phone/email/employment history was swept into
+# fc00ce0 by a `git add -A` and had to be untracked + purged from history).
+*_Resume*.docx
+*Resume*.pdf
+tools/build_charles_kelly_resume.py
+resume_qa/
+resume_qa_rewritten/

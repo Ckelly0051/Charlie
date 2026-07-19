@@ -52,8 +52,11 @@ export class StatsEngine {
    *  coach's stored value (§20). */
   static PROJECTED_FIELDS = ['formation', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
-    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] || '';
-    return (p && p.tags ? p.tags[key] : '') || '';
+    // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
+    // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
+    // null/undefined become ''.
+    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] ?? '';
+    return (p && p.tags ? p.tags[key] : undefined) ?? '';
   }
 
   /**

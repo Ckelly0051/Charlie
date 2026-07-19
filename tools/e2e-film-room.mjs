@@ -260,13 +260,32 @@ r = await page.evaluate(() => {
   // ELIGIBLE denominator — an alignment-only play (projected formation blank) is
   // omitted rather than counted as a "Shotgun" formation.
   const SE = window.app.stats.constructor;
-  window.app.tagger.plays.forEach(p => String(SE.projField(p, 'formation') || '').split(/\s*\+\s*/)
-    .map(s => s.trim()).filter(Boolean).forEach(v => { counts[v] = (counts[v] || 0) + 1; total++; }));
+  window.app.tagger.plays.forEach(p => {
+    const vals = String(SE.projField(p, 'formation') || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    if (!vals.length) return;
+    total++;                                   // ONE per eligible play (§6.5)
+    vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+  });
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   const expected = `${top[0]} ${Math.round(top[1] / total * 100)}%`;
-  return { text: formTd ? formTd.textContent.trim() : null, expected };
+
+  // DETERMINISTIC multi-value case — does NOT mirror the implementation. Three
+  // eligible plays, "Wing-T" on ALL of them, one carrying a second token:
+  //   eligible plays = 3, Wing-T = 3  ->  "Wing-T 100%"
+  // The token-counting bug yields 4 tokens -> "Wing-T 75%", so this case FAILS on
+  // the old math and is the failing-first pin for the denominator.
+  const mk = (id, formation) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'offense', formation } });
+  const multi = [mk(1, 'Wing-T + Trips'), mk(2, 'Wing-T'), mk(3, 'Wing-T')];
+  const multiTend = window.app.playGrid._tendency({ key: 'formation', type: 'enum' }, multi);
+  // Top value on a SUBSET: Trips is on 2 of 3 eligible plays -> "Trips 67%".
+  // (Token math would be 2/4 = 50%, so this also discriminates.)
+  const subset = [mk(1, 'Wing-T + Trips'), mk(2, 'Trips'), mk(3, 'Ace')];
+  const subsetTend = window.app.playGrid._tendency({ key: 'formation', type: 'enum' }, subset);
+  return { text: formTd ? formTd.textContent.trim() : null, expected, multiTend, subsetTend };
 });
 ok(r.text === r.expected, 'formation tendency = top value + share', JSON.stringify(r));
+ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)', JSON.stringify(r.multiTend));
+ok(r.subsetTend === 'Trips 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
 // Multi-enum inline edit: Result cell — click to focus, click again to edit.
 r = await page.evaluate(async () => {

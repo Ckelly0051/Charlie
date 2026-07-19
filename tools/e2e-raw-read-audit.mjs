@@ -100,19 +100,23 @@ function walk(node, visit, method = '(top)') {
 const findings = [];   // hard raw reads
 const flags = [];      // computed tags[expr]
 
-for (const rel of FILES) {
-  const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+/** Scan ONE source string with the real detector. Extracted so a permanent AST
+ *  FIXTURE can drive the same parser path the scanned files do — the sensitivity
+ *  tests below only exercise classify(), so without this a regression in
+ *  unwrap()/isTagsMember() would leave every test green (E3b review finding 3). */
+function scanSource(src, rel, sink = { findings, flags }) {
   let ast;
   try { ast = parse(src, { ecmaVersion: 'latest', sourceType: 'module', locations: true }); }
-  catch (e) { ok(false, `parse ${rel}`, e.message); continue; }
+  catch (e) { return { parseError: e.message }; }
 
-  // Pass 1 — alias identifiers assigned directly from a `.tags` member.
+  // Pass 1 — alias identifiers assigned from a `.tags` member (incl. `|| {}`).
   const aliases = new Set();
   walk(ast, node => {
     if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && isTagsMember(node.init)) {
       aliases.add(node.id.name);
     }
   });
+  const findings = sink.findings, flags = sink.flags;
 
   // Pass 2 — raw reads of the six fields + computed flags.
   walk(ast, (node, method) => {
@@ -151,9 +155,45 @@ for (const rel of FILES) {
       }
     }
   });
+  return {};
+}
+
+for (const rel of FILES) {
+  const res = scanSource(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel);
+  if (res.parseError) ok(false, `parse ${rel}`, res.parseError);
 }
 
 console.log('\n== E3a raw-read audit (AST) ==');
+
+// PERMANENT PARSER-LEVEL REGRESSION (E3b review finding 3). The sensitivity tests
+// below only exercise classify(); a regression in unwrap()/isTagsMember() would
+// leave them all green. This fixture drives the REAL detector over the exact
+// idioms that must be caught — most importantly `const t = p.tags || {}`, the
+// LogicalExpression alias that hid five consumer files from the rev-1 inventory.
+// NOTE: each probe uses a DISTINCT alias name on purpose. An earlier version reused
+// `t` everywhere, so the ONE bare `const t = p.tags` registered `t` for the whole
+// source and the `|| {}` / `?? {}` probes were detected through THAT — the fixture
+// passed even with the LogicalExpression fix reverted (found by mutating it).
+const FIXTURE = `
+  export function probeA(p) { const ta = p.tags || {}; return ta.formation; }      // alias via || {}
+  export function probeB(p) { const tb = p?.tags ?? {}; return tb.coverage; }      // alias via ?? {}
+  export function probeC(p) { const tc = p.tags; return tc.backfield; }            // bare alias
+  export function probeD(p) { return p?.tags?.strength; }                          // optional chain
+  export function probeE(p) { return p.tags['qbAlignment']; }                      // bracket literal
+  export function probeF(p) { const { coverageFamily } = p.tags; return coverageFamily; } // destructure
+  export function probeG(p) { return p.tags.personnel; }                           // NOT one of the six
+`;
+const fx = { findings: [], flags: [] };
+const fxRes = scanSource(FIXTURE, 'FIXTURE', fx);
+ok(!fxRes.parseError, 'detector fixture parses');
+const fxFields = fx.findings.map(f => f.field).sort();
+ok(JSON.stringify(fxFields) === JSON.stringify(['backfield', 'coverage', 'coverageFamily', 'formation', 'qbAlignment', 'strength']),
+  'detector catches ALL six raw-read forms incl. the `|| {}` / `?? {}` alias idioms',
+  JSON.stringify(fxFields));
+ok(fx.findings.some(f => f.form === 'alias ta.formation') && fx.findings.some(f => f.form === 'alias tb.coverage'),
+  'detector resolves `const t = X.tags || {}` and `?? {}` as tags ALIASES (the rev-1 blind spot)',
+  JSON.stringify(fx.findings.map(f => f.form)));
+ok(!fxFields.includes('personnel'), 'detector does not over-report non-projected fields');
 
 // Hard findings, minus the allowlist.
 const isAllowed = f => ALLOW.some(a => a.file === f.file && a.line === f.line && a.field === f.field);

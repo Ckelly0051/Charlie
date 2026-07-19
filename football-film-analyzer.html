@@ -22828,8 +22828,11 @@ class StatsEngine {
    *  coach's stored value (§20). */
   static PROJECTED_FIELDS = ['formation', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
-    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] || '';
-    return (p && p.tags ? p.tags[key] : '') || '';
+    // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
+    // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
+    // null/undefined become ''.
+    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] ?? '';
+    return (p && p.tags ? p.tags[key] : undefined) ?? '';
   }
 
   /**
@@ -31630,12 +31633,17 @@ class PlayGrid {
       let total = 0;
       visible.forEach(p => {
         // E3b: DISPLAY surface → read the PROJECTED value for the six projected
-        // fields (raw passthrough otherwise). Blank is OMITTED, so `total` is the
-        // §6.5 ELIGIBLE denominator (plays actually carrying this value), never an
-        // invented 'Unknown' bucket. The inline EDITOR still reads/writes raw.
-        String(StatsEngine.projField(p, col.key) || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(v => {
-          counts[v] = (counts[v] || 0) + 1; total++;
-        });
+        // fields (raw passthrough otherwise). The inline EDITOR still reads/writes raw.
+        const vals = String(StatsEngine.projField(p, col.key) || '')
+          .split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+        // §6.5 ELIGIBLE denominator: `total` counts each eligible PLAY ONCE — never
+        // once per token. A multi-value play ("Wing-T + Trips") lands in several
+        // rows but must not inflate the denominator, or a value present on EVERY
+        // eligible play reads below 100%. A blank projection is omitted entirely
+        // (not eligible), never an invented 'Unknown' bucket.
+        if (!vals.length) return;
+        total++;
+        vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
       });
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
       if (!top || total < 3) return '';
