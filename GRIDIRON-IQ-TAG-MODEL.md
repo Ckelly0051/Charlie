@@ -1234,3 +1234,99 @@ ACK. The permanent `classify([])` regression directly proves stale approvals
 fail closed. Focused raw-read audit **5/5**; fresh canonical gate **55/55**.
 
 **E3a is complete. E3b is unblocked and is the next implementation step.**
+
+## 20. E3b build plan — consumer wiring + film-link EQUALITY (Claude, 2026-07-19)
+
+**Goal (§18 D-E3split):** wire the remaining analytics *display/export* consumers
+through the projected view, and prove — per consumer, not just via core parity —
+that **Study and Film Room matching play-ID sets EQUAL the canonical registry
+sets, and exported analytics rows/counts equal those same sets.** Zero core parity
+drift is necessary, NOT sufficient.
+
+### The E3b principle — project on READ for analytics, stay raw for WRITE/EDIT/STORE
+E3a wired the stats engine + registry + Study cuts. The rest splits cleanly by
+*role*, and conflating the two would corrupt the coach's data or the editor:
+- **Analytics DISPLAY/EXPORT consumers → PROJECT** the six fields on read.
+- **Write / edit / normalize / storage / onboarding surfaces → RAW by design** —
+  they touch the coach's actual stored tags; projecting there would hide what was
+  typed, break inline editing, corrupt round-trip export, or mis-migrate data.
+
+### Machine-generated blast radius (AST scan of every `js/*.js`, not remembered)
+The E3a audit's detector was run over all modules for raw reads of the six fields.
+Classified (each verified against source this session):
+
+**PROJECT — E3b wires these (analytics display):**
+1. **`heat-maps.js:178`** `_renderFormationByPlay` — formation×play heat map splits
+   RAW formation (shows Shotgun/etc. as formation rows). → `splitFormations(proj)`.
+2. **`play-grid.js:539`** Film Room **column tendency** line ("Shotgun 48%") reads
+   `p.tags[col.key]` by dynamic key. → project when `col.key` ∈ the six.
+3. **`advanced-metrics.js:124-130`** EPA `groupBy(key)` reads `x.play.tags[key]`
+   by key AND defaults blank → `'Unknown'` (the SAME §6.4 violation as R2, now in
+   EPA). → project the six + OMIT blanks (no `'Unknown'` bucket).
+4. **Film Room filter + Watch** (`play-grid` quick filters / `PlayFilter` →
+   cut-up) and the **cell VALUE render** — see the open decision below.
+
+**RAW BY DESIGN — E3b allowlists these (write/edit/store), each with a reason:**
+- **`play-tagger.js`** (418/1054/1058/1083/1084 + computed) — the tag FORM: shows
+  and edits the stored value the coach typed; `copyFromPrevious`/templates carry
+  raw. Projecting would hide the coach's own entry.
+- **`season-store.js`** (223-233 + 257) — `migratePlayFormation`/`_normalize`/
+  ST-strip: the data layer (§19 already excluded it).
+- **`storage.js:1254/1262`** — `exportCsv`: a data round-trip re-imported by
+  `importPlaysFromText`; must preserve the coach's exact tags. (The HTML *analytics*
+  report already runs through the E3a-projected StatsEngine.)
+- **`suggestion-engine.js`** (67 + computed) — tagging auto-fill: conditions on and
+  writes raw stored tags.
+- **`season-library.js:786`** — onboarding "has a real tag" presence check.
+- **`app.js:1548-1551`** — AI vision stamp (writes stored tags).
+- **`play-grid.js:733/742/848`** — the inline cell EDITOR (reads the stored value
+  to edit it, writes it back).
+
+### Architecture — one shared by-key projection helper
+Add `StatsEngine.projField(p, key)` → returns `proj(p)[key]` for the six projected
+fields, else `p.tags[key]` (raw). The computed/dynamic-key DISPLAY sites
+(`play-grid` tendency, `advanced-metrics` groupBy) route through it, so a display
+projects the six and passes everything else through unchanged; editors never call
+it. This is the read-side twin of `proj`, for surfaces keyed by a runtime column.
+
+### Consumer play-ID EQUALITY tests (the D-E3split standard — the point of E3b)
+Core parity (§ e2e-parity) proves the engine; E3b adds **per-consumer set
+equality**, so a consumer can't silently diverge while core stays green:
+- **Study** (`e2e-study-query`): for EVERY ready dimension incl. `qbAlignment`/
+  `coverageFamily`, assert each group's `matchingPlayIds` **==** `registry
+  .matchingRefs(cut, value)` for the same value (not merely golden-equal). Extend
+  beyond the current formation cover-check.
+- **Film Room** (`e2e-film-room`): a six-field quick-filter's resulting play set
+  **==** the registry cut set for that field/value; a Watch cut-up plays exactly
+  that set.
+- **Exports** (`e2e-*` for the HTML report / call sheet): the rendered analytics
+  rows/counts for a projected dimension **==** the registry set (raw CSV excluded —
+  it is a data dump, asserted to round-trip unchanged instead).
+
+### Audit expansion (E3b half of §19 item 6b)
+Expand `e2e-raw-read-audit.mjs`'s scan to the analytics-display consumers
+(`heat-maps.js`, `play-grid.js`, `advanced-metrics.js`); ALLOWLIST every
+raw-by-design site above by exact site with its reason (reusing the R4b
+site+multiplicity identity). A new raw read in a display consumer then fails.
+Behavioral projection tests (§19 6a) extend to each newly-wired surface.
+
+### Open product decisions (coach's call — recommendation given)
+1. **Film Room formation CELL text.** When a play is alignment-only (projected
+   formation blank), the Formation column cell can show **(A)** the projected
+   structural value (blank/"—" for alignment-only), matching analytics, or **(B)**
+   the raw stored value ("Shotgun"), matching the editor you click into.
+   *Recommendation: B for the cell text (it is the thing you edit), A for the
+   tendency/filter/Watch (analytics + film-link parity).* Same split as the editor
+   being raw while the tendency projects.
+2. **CSV export columns.** Keep `exportCsv` raw + single Formation column
+   (round-trip fidelity) for E3b, and add `qbAlignment`/`coverageFamily` columns
+   later in E4. *Recommendation: yes — don't change the export schema mid-lane.*
+
+### Verification
+Failing-first per surface; the per-consumer EQUALITY assertions above; the
+expanded audit; full `tools/run-gate.sh`; parity goldens UNCHANGED (E3b wires
+display/export consumers that E3a's golden already reflects — any golden drift is
+a finding, not an update). No package/tag.
+
+**Status: E3b plan drafted — awaiting coach sign-off on the two product decisions
++ Codex plan review (E3a precedent), then build.**
