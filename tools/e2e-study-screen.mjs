@@ -29,8 +29,8 @@ await page.evaluate(async () => {
   const g1 = store.activeGame();
   g1.id = 'g-study-1'; g1.name = 'Week 1 vs Rivals'; g1.gameInfo = { opponent: 'Rivals', date: '2026-09-01' };
   g1.plays = [
-    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Shotgun', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', custom: [] } },
-    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Ace', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', custom: [] } },
     { id: 3, timestamp: { start: 10, end: 14 }, tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', custom: [] } },
   ];
   const g2 = store.addGame({ id: 'g-study-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
@@ -50,7 +50,7 @@ let r = await page.evaluate(() => ({
   statsHidden: document.querySelector('#statsDashboard')?.classList.contains('hidden'),
   specialTeamsLabel: document.querySelector('#wsStudyUnit option[value="special"]')?.textContent,
 }));
-ok(r.visible && /2 matching plays/.test(r.summary) && r.groups.includes('Shotgun') && r.groups.includes('Pistol') && !r.groups.includes('Unknown'), 'Study defaults to the active-game cohort', JSON.stringify(r));
+ok(r.visible && /2 matching plays/.test(r.summary) && r.groups.includes('Trips') && r.groups.includes('Ace') && !r.groups.includes('Unknown'), 'Study defaults to the active-game cohort', JSON.stringify(r));
 ok(r.statsHidden, 'New Study UI does not silently open the legacy dashboard');
 ok(r.specialTeamsLabel === 'Special Teams', 'Study unit selector capitalizes Special Teams consistently', JSON.stringify(r));
 await capture('study-game-1280x800');

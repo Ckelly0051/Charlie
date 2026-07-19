@@ -762,7 +762,10 @@ r = await page.evaluate(() => {
   return {
     total: d.total, unique: d.unique, topN: top.n, topPct: top.pct, to75: d.to75, to90: d.to90,
     cutN: plays.filter(p => cut(p)).length,
-    rendered: /Core Calls/.test(html) && /Shotgun \+ Trips/.test(html) && /Jet mo/.test(html),
+    // Post-E3a projection: 'Shotgun' is QB alignment, 'Trips' the structural
+    // formation, so the call signature renders "Shotgun Trips" (qb + form), not
+    // the raw "Shotgun + Trips" formation string.
+    rendered: /Core Calls/.test(html) && /Shotgun Trips/.test(html) && /Jet mo/.test(html),
     chipsRender: /<span class="bt-tag">Right<\/span>/.test(html)
       && /<span class="bt-tag bt-mot">Jet mo<\/span>/.test(html)
       && !/&lt;span class=/.test(html),

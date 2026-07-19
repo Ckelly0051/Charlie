@@ -66,8 +66,11 @@ const result = await page.evaluate((fixture) => {
   // Two-cohort comparison: game 1 (base) vs the whole season (against).
   const g1Plays = store.data.games[0].plays;
   const cmp = study.compare({ base: g1Plays, against: plays, dimension: 'formation', measures: ['sampleSize', 'successRate', 'runShare'], labels: { base: 'Game 1', against: 'Season' } });
-  const cmpShotgun = cmp.rows.find(r => r.value === 'Shotgun');
-  const cmpPistol = cmp.rows.find(r => r.value === 'Pistol'); // g2-only formation
+  // Post-E3a projection: 'Shotgun'/'Pistol' are QB ALIGNMENT, not formations, so the
+  // surviving structural formations are used — 'Trips' (both games) and 'Flexbone'
+  // (g2-only), mirroring the base-present / base-empty cohort intent.
+  const cmpTrips = cmp.rows.find(r => r.value === 'Trips');
+  const cmpFlexbone = cmp.rows.find(r => r.value === 'Flexbone'); // g2-only formation
   const cmpMeta = { aTotal: cmp.a.total, bTotal: cmp.b.total, aLabel: cmp.a.label, bLabel: cmp.b.label, valueCount: cmp.rows.length, g1PlayCount: g1Plays.length };
 
   // Guards.
@@ -78,8 +81,8 @@ const result = await page.evaluate((fixture) => {
   return {
     grouped, playCount: plays.length,
     cmpMeta,
-    cmpShotgun: cmpShotgun ? { aIds: cmpShotgun.a.matchingPlayIds, bIds: cmpShotgun.b.matchingPlayIds, deltas: cmpShotgun.deltas, sampleDelta: cmpShotgun.sampleDelta } : null,
-    cmpPistol: cmpPistol ? { aSample: cmpPistol.a.sampleSize, aIds: cmpPistol.a.matchingPlayIds, bIds: cmpPistol.b.matchingPlayIds, sampleDelta: cmpPistol.sampleDelta } : null,
+    cmpTrips: cmpTrips ? { aIds: cmpTrips.a.matchingPlayIds, bIds: cmpTrips.b.matchingPlayIds, deltas: cmpTrips.deltas, sampleDelta: cmpTrips.sampleDelta } : null,
+    cmpFlexbone: cmpFlexbone ? { aSample: cmpFlexbone.a.sampleSize, aIds: cmpFlexbone.a.matchingPlayIds, bIds: cmpFlexbone.b.matchingPlayIds, sampleDelta: cmpFlexbone.sampleDelta } : null,
     compareBadArgsThrows,
     filter: {
       runTotal: passRun.total, expectRun,
@@ -132,11 +135,11 @@ if (!result.missing) {
   const gm = result.cmpMeta;
   ok(gm.aTotal === gm.g1PlayCount && gm.bTotal === result.playCount && gm.aTotal < gm.bTotal && gm.aLabel === 'Game 1' && gm.bLabel === 'Season', 'compare() runs both cohorts with labels + independent totals', JSON.stringify(gm));
   // Both sides stay film-linked to their OWN scope's golden drilldown.
-  ok(JSON.stringify(result.cmpShotgun.aIds) === JSON.stringify(golden['game:g1'].drill['formation::Shotgun']), 'compare base side film-links to the game-scope golden');
-  ok(JSON.stringify(result.cmpShotgun.bIds) === JSON.stringify(golden.season.drill['formation::Shotgun']), 'compare against side film-links to the season-scope golden');
-  ok(typeof result.cmpShotgun.deltas.successRate === 'number' && typeof result.cmpShotgun.deltas.runShare === 'number', 'compare emits numeric per-measure deltas', JSON.stringify(result.cmpShotgun.deltas));
+  ok(JSON.stringify(result.cmpTrips.aIds) === JSON.stringify(golden['game:g1'].drill['formation::Trips']), 'compare base side film-links to the game-scope golden');
+  ok(JSON.stringify(result.cmpTrips.bIds) === JSON.stringify(golden.season.drill['formation::Trips']), 'compare against side film-links to the season-scope golden');
+  ok(typeof result.cmpTrips.deltas.successRate === 'number' && typeof result.cmpTrips.deltas.runShare === 'number', 'compare emits numeric per-measure deltas', JSON.stringify(result.cmpTrips.deltas));
   // A formation present only in game 2 shows an empty base side + a negative sampleDelta.
-  ok(result.cmpPistol.aSample === 0 && result.cmpPistol.aIds.length === 0 && result.cmpPistol.sampleDelta < 0 && JSON.stringify(result.cmpPistol.bIds) === JSON.stringify(golden.season.drill['formation::Pistol']), 'compare aligns a value missing from one cohort (Pistol: base empty, against present)', JSON.stringify(result.cmpPistol));
+  ok(result.cmpFlexbone.aSample === 0 && result.cmpFlexbone.aIds.length === 0 && result.cmpFlexbone.sampleDelta < 0 && JSON.stringify(result.cmpFlexbone.bIds) === JSON.stringify(golden.season.drill['formation::Flexbone']), 'compare aligns a value missing from one cohort (Flexbone: base empty, against present)', JSON.stringify(result.cmpFlexbone));
   ok(result.compareBadArgsThrows, 'compare() with a non-array cohort fails loudly');
 }
 

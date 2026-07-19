@@ -89,7 +89,7 @@ r = await page.evaluate(() => {
   const plays = [];
   // Offensive plays so the offensive self-scout (ssReport) is non-null.
   for (let i = 0; i < 6; i++) {
-    plays.push(mk({ unit: 'offense', down: '1', distance: '10', formation: 'Shotgun',
+    plays.push(mk({ unit: 'offense', down: '1', distance: '10', formation: 'Trips',
       playType: i % 2 ? 'Short Pass' : 'Run Inside', runPass: i % 2 ? 'Pass' : 'Run',
       result: 'Gain', yardage: '6' }));
   }
@@ -129,12 +129,12 @@ ok(r.count === 1, 'one defensive-self-scout computation per dashboard render', J
 console.log('\n== 5. Actionable tells: distance buckets, clickable-to-film, defensive counter ==');
 r = await page.evaluate(() => {
   const mk = window.__mk;
-  // 10 offensive plays: Shotgun on 3rd down, varied exact distances 8-12
+  // 10 offensive plays: Trips on 3rd down, varied exact distances 8-12
   // (all "Long"), every one a pass — a strong, exploitable, single tell that
   // ONLY emerges if exact distances are bucketed together.
   const plays = [];
   for (let i = 0; i < 10; i++) plays.push(mk({ unit: 'offense', down: '3',
-    distance: String(8 + (i % 5)), formation: 'Shotgun', playType: 'Short Pass',
+    distance: String(8 + (i % 5)), formation: 'Trips', playType: 'Short Pass',
     runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
   window.app.tagger.plays = plays;
   window.app.stats.filter.active = false;
@@ -162,7 +162,7 @@ r = await page.evaluate(() => {
     threat: /DC keys (run|pass)/.test(pane.innerHTML),
   };
 });
-ok(r.comboVal === 'Shotgun__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
+ok(r.comboVal === 'Trips__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
 ok(r.comboMatched === 10, 'exact distances 8-12 all bucket into "3rd & Long" (n=10)', JSON.stringify(r));
 ok(r.deadLinks === 0, 'every clickable tell resolves to at least one play', JSON.stringify(r));
 ok(r.cutRows >= 1, 'tells render as clickable cut-rows', JSON.stringify(r));
@@ -173,11 +173,11 @@ console.log('\n== 6. Predictability Map: Formation × Situation heat-map, click-
 r = await page.evaluate(() => {
   const mk = window.__mk;
   const plays = [];
-  // I-Form 1st = run-heavy; Shotgun 3rd & Long = pass-heavy; Singleback 2nd & Med = balanced.
+  // I-Form 1st = run-heavy; Trips 3rd & Long = pass-heavy; Singleback 2nd & Med = balanced.
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
     formation: 'I-Form', playType: i < 7 ? 'Run Inside' : 'Short Pass', runPass: i < 7 ? 'Run' : 'Pass', result: 'Gain', yardage: '4' }));
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '3', distance: String(8 + i % 4),
-    formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
+    formation: 'Trips', playType: 'Short Pass', runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '5',
     formation: 'Singleback', playType: i % 2 ? 'Short Pass' : 'Run Inside', runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
   window.app.tagger.plays = plays;
@@ -185,7 +185,7 @@ r = await page.evaluate(() => {
   const m = window.app.stats.generateSelfScout().matrix;
   // 1st & 4th collapse to the down; 2nd/3rd bucket by distance.
   const iformFirst = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'I-Form__1')).length;
-  const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Shotgun__3|Long')).length;
+  const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Trips__3|Long')).length;
   window.app.stats.showDashboard();
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
@@ -199,16 +199,16 @@ ok(r.hasMap, 'Predictability Map section renders', JSON.stringify(r));
 ok(r.rows.length === 3 && r.cols.length === 3, 'matrix has 3 formations × 3 situations present in data', JSON.stringify(r));
 ok(r.cols.includes('1') && r.cols.includes('3|Long'), '1st collapses to the down; 3rd buckets by distance', JSON.stringify(r));
 ok(r.iformFirst === 8, 'I-Form × 1st cell cut resolves to its 8 plays', JSON.stringify(r));
-ok(r.shotgun3L === 8, 'Shotgun × 3rd & Long cell cut resolves to its 8 plays', JSON.stringify(r));
+ok(r.shotgun3L === 8, 'Trips × 3rd & Long cell cut resolves to its 8 plays', JSON.stringify(r));
 ok(r.clickableCells >= 3, 'populated cells are clickable to film', JSON.stringify(r));
 
 console.log('\n== 7. Personnel → Formation Diversity: locked/leaning tells, click-to-film ==');
 r = await page.evaluate(() => {
   const mk = window.__mk;
   const plays = [];
-  // 11 personnel → always Shotgun (locked, 100%)
+  // 11 personnel → always Trips (locked, 100%)
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
-    personnel: '11', formation: 'Shotgun', playType: i % 2 ? 'Short Pass' : 'Run Inside',
+    personnel: '11', formation: 'Trips', playType: i % 2 ? 'Short Pass' : 'Run Inside',
     runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
   // 12 personnel → I-Form 6/8 (75%, leaning), Singleback 2/8
   for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
@@ -217,7 +217,7 @@ r = await page.evaluate(() => {
     personnel: '12', formation: 'Singleback', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' }));
   // 21 personnel → diverse (no tell) — 3 formations roughly equal
   for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '5',
-    personnel: '21', formation: ['I-Form', 'Singleback', 'Pistol'][i % 3],
+    personnel: '21', formation: ['I-Form', 'Singleback', 'Bunch'][i % 3],
     playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3' }));
   window.app.tagger.plays = plays;
   window.app.stats.filter.active = false;
@@ -249,7 +249,7 @@ r = await page.evaluate(() => {
     hasPersonnelTell: insightTags.includes('Personnel Tell'),
   };
 });
-ok(r.p11TopPct === 100 && r.p11TopForm === 'Shotgun', '11 personnel locked to Shotgun at 100%', JSON.stringify(r));
+ok(r.p11TopPct === 100 && r.p11TopForm === 'Trips', '11 personnel locked to Trips at 100%', JSON.stringify(r));
 ok(r.p12TopPct === 75 && r.p12TopForm === 'I-Form', '12 personnel leaning to I-Form at 75%', JSON.stringify(r));
 ok(r.p21TopPct <= 50, '21 personnel is diverse (no tell)', JSON.stringify(r));
 ok(r.hasSection, 'Personnel → Formation Diversity section renders', JSON.stringify(r));

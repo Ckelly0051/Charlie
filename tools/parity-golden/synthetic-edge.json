@@ -181,25 +181,12 @@
    },
    "tendencies": {
     "formations": {
-     "Shotgun": 7,
      "Trips": 7,
-     "Empty": 1,
+     "Unknown": 7,
      "Wildcat": 1,
-     "Under Center": 2,
-     "Pistol": 4,
      "Flexbone": 1
     },
     "formationList": [
-     {
-      "name": "Shotgun",
-      "count": 7,
-      "runs": 6,
-      "passes": 1,
-      "yards": 30,
-      "successes": 6,
-      "avg": "4.3",
-      "successPct": "86"
-     },
      {
       "name": "Trips",
       "count": 7,
@@ -211,34 +198,14 @@
       "successPct": "86"
      },
      {
-      "name": "Pistol",
-      "count": 4,
+      "name": "Unknown",
+      "count": 7,
       "runs": 4,
-      "passes": 0,
-      "yards": 28,
-      "successes": 4,
-      "avg": "7.0",
-      "successPct": "100"
-     },
-     {
-      "name": "Under Center",
-      "count": 2,
-      "runs": 0,
-      "passes": 2,
-      "yards": 11,
-      "successes": 1,
-      "avg": "5.5",
-      "successPct": "50"
-     },
-     {
-      "name": "Empty",
-      "count": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 48,
-      "successes": 1,
-      "avg": "48.0",
-      "successPct": "100"
+      "passes": 3,
+      "yards": 87,
+      "successes": 6,
+      "avg": "12.4",
+      "successPct": "86"
      },
      {
       "name": "Wildcat",
@@ -1267,12 +1234,10 @@
      }
     ],
     "formations": {
-     "Middle|Shotgun": 6,
      "Middle|Trips": 6,
-     "Left|Empty": 1,
-     "Right|Pistol": 4,
-     "Middle|Flexbone": 1,
-     "Left|Under Center": 1
+     "Left|Unknown": 2,
+     "Right|Unknown": 4,
+     "Middle|Flexbone": 1
     },
     "hasData": true
    },
@@ -1375,7 +1340,7 @@
     "straightYPA": "16.0",
     "formationList": [
      {
-      "name": "Under Center",
+      "name": "Unknown",
       "count": 1,
       "yards": 11,
       "successes": 1,
@@ -1447,17 +1412,17 @@
       "s": 602,
       "cut": [
        "formation",
-       "Shotgun"
+       "Trips"
       ],
-      "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
+      "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
      },
      {
       "s": 602,
       "cut": [
        "formation",
-       "Trips"
+       "Unknown"
       ],
-      "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+      "text": "<strong>Unknown</strong>: 86% success (7 plays, 12.4 avg)"
      },
      {
       "s": 500,
@@ -1485,14 +1450,6 @@
       "s": 249.99999999999994,
       "cut": [
        "formation",
-       "Shotgun"
-      ],
-      "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
-     },
-     {
-      "s": 249.99999999999994,
-      "cut": [
-       "formation",
        "Trips"
       ],
       "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
@@ -1500,35 +1457,25 @@
      {
       "s": 200,
       "cut": [
-       "formation",
-       "Pistol"
+       "hash",
+       "Right"
       ],
-      "text": "<strong>Pistol</strong> is 100% run — add a pass concept to keep the defense honest"
+      "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+     },
+     {
+      "s": 199.9999999999999,
+      "cut": [
+       "playDir",
+       "Right"
+      ],
+      "text": "<strong>67%</strong> of runs go <strong>Right</strong> (8/12) — defenses will overload that side"
      }
     ]
    }
   },
   "drill": {
-   "formation::Empty": [
-    "g1::7"
-   ],
    "formation::Flexbone": [
     "g2::5"
-   ],
-   "formation::Pistol": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "formation::Shotgun": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6",
-    "g1::8"
    ],
    "formation::Trips": [
     "g1::1",
@@ -1539,15 +1486,37 @@
     "g1::6",
     "g1::8"
    ],
-   "formation::Under Center": [
-    "g1::10",
-    "g2::6"
-   ],
    "formation::Unknown": [
-    "g1::18"
+    "g1::10",
+    "g1::18",
+    "g1::7",
+    "g2::1",
+    "g2::2",
+    "g2::3",
+    "g2::4",
+    "g2::6"
    ],
    "formation::Wildcat": [
     "g1::9"
+   ],
+   "qbAlignment::Pistol": [
+    "g2::1",
+    "g2::2",
+    "g2::3",
+    "g2::4"
+   ],
+   "qbAlignment::Shotgun": [
+    "g1::1",
+    "g1::2",
+    "g1::3",
+    "g1::4",
+    "g1::5",
+    "g1::6",
+    "g1::8"
+   ],
+   "qbAlignment::Under Center": [
+    "g1::10",
+    "g2::6"
    ],
    "playType::Deep Pass": [
     "g1::7"
@@ -1639,6 +1608,9 @@
    ],
    "personnel::23": [
     "g2::6"
+   ],
+   "backfield::Empty": [
+    "g1::7"
    ],
    "backfield::Power": [
     "g2::1",
@@ -1819,20 +1791,6 @@
    "dd::3|Short": [
     "g2::6"
    ],
-   "comboFStr::Pistol__Left": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "comboFStr::Shotgun__Right": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6"
-   ],
    "comboFStr::Trips__Right": [
     "g1::1",
     "g1::2",
@@ -1841,28 +1799,14 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFD::Empty__2|Medium": [
-    "g1::7"
-   ],
-   "comboFD::Flexbone__1|Long": [
-    "g2::5"
-   ],
-   "comboFD::Pistol__2|Medium": [
+   "comboFStr::Unknown__Left": [
     "g2::1",
     "g2::2",
     "g2::3",
     "g2::4"
    ],
-   "comboFD::Shotgun__1|Long": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6"
-   ],
-   "comboFD::Shotgun__3|Long": [
-    "g1::8"
+   "comboFD::Flexbone__1|Long": [
+    "g2::5"
    ],
    "comboFD::Trips__1|Long": [
     "g1::1",
@@ -1875,37 +1819,24 @@
    "comboFD::Trips__3|Long": [
     "g1::8"
    ],
-   "comboFD::Under Center__2|Long": [
+   "comboFD::Unknown__2|Long": [
     "g1::10"
    ],
-   "comboFD::Under Center__3|Short": [
-    "g2::6"
-   ],
-   "comboFD::Wildcat__1|Long": [
-    "g1::9"
-   ],
-   "comboFS::Empty__2|Medium": [
-    "g1::7"
-   ],
-   "comboFS::Flexbone__1": [
-    "g2::5"
-   ],
-   "comboFS::Pistol__2|Medium": [
+   "comboFD::Unknown__2|Medium": [
+    "g1::7",
     "g2::1",
     "g2::2",
     "g2::3",
     "g2::4"
    ],
-   "comboFS::Shotgun__1": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6"
+   "comboFD::Unknown__3|Short": [
+    "g2::6"
    ],
-   "comboFS::Shotgun__3|Long": [
-    "g1::8"
+   "comboFD::Wildcat__1|Long": [
+    "g1::9"
+   ],
+   "comboFS::Flexbone__1": [
+    "g2::5"
    ],
    "comboFS::Trips__1": [
     "g1::1",
@@ -1918,48 +1849,55 @@
    "comboFS::Trips__3|Long": [
     "g1::8"
    ],
-   "comboFS::Under Center__2|Long": [
+   "comboFS::Unknown__2|Long": [
     "g1::10"
    ],
-   "comboFS::Under Center__3|Short": [
-    "g2::6"
-   ],
-   "comboFS::Wildcat__1": [
-    "g1::9"
-   ],
-   "bigCall::Empty|||||||||Deep Pass": [
-    "g1::7"
-   ],
-   "bigCall::Flexbone|||||||||Run Outside": [
-    "g2::5"
-   ],
-   "bigCall::Pistol|||Left||||||Run Inside": [
+   "comboFS::Unknown__2|Medium": [
+    "g1::7",
     "g2::1",
     "g2::2",
     "g2::3",
     "g2::4"
    ],
-   "bigCall::Shotgun + Trips|||Right|||Jet|||Run Inside": [
+   "comboFS::Unknown__3|Short": [
+    "g2::6"
+   ],
+   "comboFS::Wildcat__1": [
+    "g1::9"
+   ],
+   "bigCall::Pistol||||||Power|||Left||||||Run Inside": [
+    "g2::1",
+    "g2::2",
+    "g2::3",
+    "g2::4"
+   ],
+   "bigCall::Shotgun|||Trips|||Single|||Right|||Jet|||Run Inside": [
     "g1::2",
     "g1::4",
     "g1::6"
    ],
-   "bigCall::Shotgun + Trips|||Right||||||Run Inside": [
+   "bigCall::Shotgun|||Trips|||Single|||Right||||||Run Inside": [
     "g1::1",
     "g1::3",
     "g1::5"
    ],
-   "bigCall::Shotgun + Trips|||||||||RPO + Short Pass": [
+   "bigCall::Shotgun|||Trips||||||||||||RPO + Short Pass": [
     "g1::8"
    ],
-   "bigCall::Under Center|||||||||Play Action": [
+   "bigCall::Under Center|||||||||||||||Play Action": [
     "g1::10"
    ],
-   "bigCall::Under Center|||||||||Short Pass": [
+   "bigCall::Under Center|||||||||||||||Short Pass": [
     "g2::6"
    ],
-   "bigCall::Wildcat|||||||||Run Outside": [
+   "bigCall::|||Flexbone||||||||||||Run Outside": [
+    "g2::5"
+   ],
+   "bigCall::|||Wildcat||||||||||||Run Outside": [
     "g1::9"
+   ],
+   "bigCall::||||||Empty|||||||||Deep Pass": [
+    "g1::7"
    ],
    "frontCoverage::3-4|Cover 3": [
     "g1::11",
@@ -1995,8 +1933,8 @@
   "reports": {
    "selfScout": {
     "totalPlays": 16,
-    "predictability": 81,
-    "predLabel": "Very Predictable",
+    "predictability": 63,
+    "predLabel": "Predictable",
     "tells": [
      {
       "dim": "Down & Dist",
@@ -2019,28 +1957,6 @@
       "cutType": "dd",
       "cutVal": "1|Long",
       "score": 240
-     },
-     {
-      "dim": "Formation × Down",
-      "label": "Shotgun on 1st &amp; Long",
-      "n": 6,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 5,
-      "leanSuccRate": 100,
-      "overallAvg": 5,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "effective",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "comboFD",
-      "cutVal": "Shotgun__1|Long",
-      "score": 180
      },
      {
       "dim": "Formation × Down",
@@ -2110,28 +2026,6 @@
      },
      {
       "dim": "Formation × Strength",
-      "label": "Shotgun Right",
-      "n": 6,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 5,
-      "leanSuccRate": 100,
-      "overallAvg": 5,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "effective",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "comboFStr",
-      "cutVal": "Shotgun__Right",
-      "score": 180
-     },
-     {
-      "dim": "Formation × Strength",
       "label": "Trips Right",
       "n": 6,
       "lean": "Run",
@@ -2151,28 +2045,6 @@
       "cutType": "comboFStr",
       "cutVal": "Trips__Right",
       "score": 180
-     },
-     {
-      "dim": "Formation",
-      "label": "From Shotgun",
-      "n": 7,
-      "lean": "Run",
-      "leanPct": 86,
-      "leanAvg": 5,
-      "leanSuccRate": 100,
-      "overallAvg": 4.3,
-      "overallSucc": 86,
-      "tds": 0,
-      "turnovers": 1,
-      "explosives": 0,
-      "verdict": "effective",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "formation",
-      "cutVal": "Shotgun",
-      "score": 151.2
      },
      {
       "dim": "Formation",
@@ -2261,6 +2133,72 @@
       "cutType": "personnel",
       "cutVal": "21",
       "score": 75
+     },
+     {
+      "dim": "Hash",
+      "label": "Right hash",
+      "n": 4,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 7,
+      "leanSuccRate": 100,
+      "overallAvg": 7,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "dominant",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "hash",
+      "cutVal": "Right",
+      "score": 60
+     },
+     {
+      "dim": "Backfield",
+      "label": "From Power backfield",
+      "n": 4,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 7,
+      "leanSuccRate": 100,
+      "overallAvg": 7,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "dominant",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "backfield",
+      "cutVal": "Power",
+      "score": 60
+     },
+     {
+      "dim": "Strength",
+      "label": "Strong Left",
+      "n": 4,
+      "lean": "Run",
+      "leanPct": 100,
+      "leanAvg": 7,
+      "leanSuccRate": 100,
+      "overallAvg": 7,
+      "overallSucc": 100,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "dominant",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "strength",
+      "cutVal": "Left",
+      "score": 60
      }
     ],
     "matrix": {
@@ -2287,22 +2225,12 @@
       }
      ],
      "rows": [
-      "Shotgun",
       "Trips",
-      "Pistol",
-      "Under Center",
-      "Empty",
+      "Unknown",
       "Wildcat",
       "Flexbone"
      ],
      "cells": {
-      "Shotgun\u00011": {
-       "n": 6,
-       "runs": 6,
-       "passes": 0,
-       "succ": 6,
-       "yards": 30
-      },
       "Trips\u00011": {
        "n": 6,
        "runs": 6,
@@ -2310,19 +2238,12 @@
        "succ": 6,
        "yards": 30
       },
-      "Empty\u00012|Medium": {
-       "n": 1,
-       "runs": 0,
+      "Unknown\u00012|Medium": {
+       "n": 5,
+       "runs": 4,
        "passes": 1,
-       "succ": 1,
-       "yards": 48
-      },
-      "Shotgun\u00013|Long": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 0,
-       "yards": 0
+       "succ": 5,
+       "yards": 76
       },
       "Trips\u00013|Long": {
        "n": 1,
@@ -2338,19 +2259,12 @@
        "succ": 0,
        "yards": 3
       },
-      "Under Center\u00012|Long": {
+      "Unknown\u00012|Long": {
        "n": 1,
        "runs": 0,
        "passes": 1,
        "succ": 1,
        "yards": 11
-      },
-      "Pistol\u00012|Medium": {
-       "n": 4,
-       "runs": 4,
-       "passes": 0,
-       "succ": 4,
-       "yards": 28
       },
       "Flexbone\u00011": {
        "n": 1,
@@ -2359,7 +2273,7 @@
        "succ": 1,
        "yards": 14
       },
-      "Under Center\u00013|Short": {
+      "Unknown\u00013|Short": {
        "n": 1,
        "runs": 0,
        "passes": 1,
@@ -2368,39 +2282,13 @@
       }
      },
      "rowN": {
-      "Shotgun": 7,
       "Trips": 7,
-      "Empty": 1,
+      "Unknown": 7,
       "Wildcat": 1,
-      "Under Center": 2,
-      "Pistol": 4,
       "Flexbone": 1
      }
     },
     "formationRows": [
-     {
-      "key": "Shotgun",
-      "n": 7,
-      "runs": 6,
-      "passes": 1,
-      "yards": 30,
-      "runYards": 30,
-      "passYards": 0,
-      "runSucc": 6,
-      "passSucc": 0,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 1,
-      "runPct": 86,
-      "passPct": 14,
-      "lean": "Run",
-      "leanPct": 86,
-      "avg": 4.3,
-      "succRate": 86,
-      "runAvg": 5,
-      "passAvg": 0,
-      "tell": true
-     },
      {
       "key": "Trips",
       "n": 7,
@@ -2425,72 +2313,26 @@
       "tell": true
      },
      {
-      "key": "Pistol",
-      "n": 4,
+      "key": "Unknown",
+      "n": 7,
       "runs": 4,
-      "passes": 0,
-      "yards": 28,
+      "passes": 3,
+      "yards": 87,
       "runYards": 28,
-      "passYards": 0,
+      "passYards": 59,
       "runSucc": 4,
-      "passSucc": 0,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 0,
-      "runPct": 100,
-      "passPct": 0,
-      "lean": "Run",
-      "leanPct": 100,
-      "avg": 7,
-      "succRate": 100,
-      "runAvg": 7,
-      "passAvg": 0,
-      "tell": true
-     },
-     {
-      "key": "Under Center",
-      "n": 2,
-      "runs": 0,
-      "passes": 2,
-      "yards": 11,
-      "runYards": 0,
-      "passYards": 11,
-      "runSucc": 0,
-      "passSucc": 1,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 0,
-      "runPct": 0,
-      "passPct": 100,
-      "lean": "Pass",
-      "leanPct": 100,
-      "avg": 5.5,
-      "succRate": 50,
-      "runAvg": 0,
-      "passAvg": 5.5,
-      "tell": false
-     },
-     {
-      "key": "Empty",
-      "n": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 48,
-      "runYards": 0,
-      "passYards": 48,
-      "runSucc": 0,
-      "passSucc": 1,
+      "passSucc": 2,
       "explosives": 1,
       "tds": 1,
       "turnovers": 0,
-      "runPct": 0,
-      "passPct": 100,
-      "lean": "Pass",
-      "leanPct": 100,
-      "avg": 48,
-      "succRate": 100,
-      "runAvg": 0,
-      "passAvg": 48,
+      "runPct": 57,
+      "passPct": 43,
+      "lean": "Run",
+      "leanPct": 57,
+      "avg": 12.4,
+      "succRate": 86,
+      "runAvg": 7,
+      "passAvg": 19.7,
       "tell": false
      },
      {
@@ -2801,16 +2643,11 @@
      {
       "personnel": "11",
       "n": 7,
-      "uniqueFormations": 2,
-      "topFormation": "Shotgun",
+      "uniqueFormations": 1,
+      "topFormation": "Trips",
       "topCount": 7,
       "topPct": 100,
       "formations": [
-       {
-        "formation": "Shotgun",
-        "count": 7,
-        "pct": 100
-       },
        {
         "formation": "Trips",
         "count": 7,
@@ -2822,12 +2659,12 @@
       "personnel": "21",
       "n": 5,
       "uniqueFormations": 2,
-      "topFormation": "Pistol",
+      "topFormation": "Unknown",
       "topCount": 4,
       "topPct": 80,
       "formations": [
        {
-        "formation": "Pistol",
+        "formation": "Unknown",
         "count": 4,
         "pct": 80
        },
@@ -2841,19 +2678,14 @@
     ],
     "recommendations": [
      "<span class=\"ss-rec-label\">1st &amp; Long</span>: your run lean (100%) is productive at 5.9 yds/88% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
-     "<span class=\"ss-rec-label\">Shotgun on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "<span class=\"ss-rec-label\">Trips on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">From Single backfield</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "<span class=\"ss-rec-label ss-rec-strength\">Middle hash</span>: you run 100% and it's <strong>working</strong> — 6.3 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "<span class=\"ss-rec-label ss-rec-strength\">21 personnel</span>: you run 100% and it's <strong>working</strong> — 6.2 yds, 80% success. Keep riding it. The tendency is a feature, not a bug.",
+     "<span class=\"ss-rec-label ss-rec-strength\">Right hash</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
     ],
     "insights": [
-     {
-      "type": "direction",
-      "priority": 360,
-      "text": "From <strong>Shotgun</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
-      "tag": "Direction Tell"
-     },
      {
       "type": "direction",
       "priority": 360,
@@ -2863,19 +2695,19 @@
      {
       "type": "personnel",
       "priority": 315,
-      "text": "<strong>11 personnel</strong> lines up in <strong>Shotgun</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
      },
      {
       "type": "direction",
-      "priority": 240,
-      "text": "From <strong>Pistol</strong>, you go <strong>left</strong> 100% of the time (4/4 plays). A DC with film will shade that direction.",
+      "priority": 300,
+      "text": "From <strong>Unknown</strong>, you go <strong>left</strong> 100% of the time (5/5 plays). A DC with film will shade that direction.",
       "tag": "Direction Tell"
      },
      {
       "type": "personnel",
       "priority": 135,
-      "text": "<strong>21 personnel</strong> lines up in <strong>Pistol</strong> 80% of the time (4/5 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "text": "<strong>21 personnel</strong> lines up in <strong>Unknown</strong> 80% of the time (4/5 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
      }
     ],
@@ -3189,25 +3021,12 @@
      },
      "tendencies": {
       "formations": {
-       "Shotgun": 7,
        "Trips": 7,
-       "Empty": 1,
+       "Unknown": 7,
        "Wildcat": 1,
-       "Under Center": 2,
-       "Pistol": 4,
        "Flexbone": 1
       },
       "formationList": [
-       {
-        "name": "Shotgun",
-        "count": 7,
-        "runs": 6,
-        "passes": 1,
-        "yards": 30,
-        "successes": 6,
-        "avg": "4.3",
-        "successPct": "86"
-       },
        {
         "name": "Trips",
         "count": 7,
@@ -3219,34 +3038,14 @@
         "successPct": "86"
        },
        {
-        "name": "Pistol",
-        "count": 4,
+        "name": "Unknown",
+        "count": 7,
         "runs": 4,
-        "passes": 0,
-        "yards": 28,
-        "successes": 4,
-        "avg": "7.0",
-        "successPct": "100"
-       },
-       {
-        "name": "Under Center",
-        "count": 2,
-        "runs": 0,
-        "passes": 2,
-        "yards": 11,
-        "successes": 1,
-        "avg": "5.5",
-        "successPct": "50"
-       },
-       {
-        "name": "Empty",
-        "count": 1,
-        "runs": 0,
-        "passes": 1,
-        "yards": 48,
-        "successes": 1,
-        "avg": "48.0",
-        "successPct": "100"
+        "passes": 3,
+        "yards": 87,
+        "successes": 6,
+        "avg": "12.4",
+        "successPct": "86"
        },
        {
         "name": "Wildcat",
@@ -4252,12 +4051,10 @@
        }
       ],
       "formations": {
-       "Middle|Shotgun": 6,
        "Middle|Trips": 6,
-       "Left|Empty": 1,
-       "Right|Pistol": 4,
-       "Middle|Flexbone": 1,
-       "Left|Under Center": 1
+       "Left|Unknown": 2,
+       "Right|Unknown": 4,
+       "Middle|Flexbone": 1
       },
       "hasData": true
      },
@@ -4360,7 +4157,7 @@
       "straightYPA": "16.0",
       "formationList": [
        {
-        "name": "Under Center",
+        "name": "Unknown",
         "count": 1,
         "yards": 11,
         "successes": 1,
@@ -4432,17 +4229,17 @@
         "s": 602,
         "cut": [
          "formation",
-         "Shotgun"
+         "Trips"
         ],
-        "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
+        "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
        },
        {
         "s": 602,
         "cut": [
          "formation",
-         "Trips"
+         "Unknown"
         ],
-        "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+        "text": "<strong>Unknown</strong>: 86% success (7 plays, 12.4 avg)"
        },
        {
         "s": 500,
@@ -4470,14 +4267,6 @@
         "s": 249.99999999999994,
         "cut": [
          "formation",
-         "Shotgun"
-        ],
-        "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
-       },
-       {
-        "s": 249.99999999999994,
-        "cut": [
-         "formation",
          "Trips"
         ],
         "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
@@ -4485,10 +4274,18 @@
        {
         "s": 200,
         "cut": [
-         "formation",
-         "Pistol"
+         "hash",
+         "Right"
         ],
-        "text": "<strong>Pistol</strong> is 100% run — add a pass concept to keep the defense honest"
+        "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+       },
+       {
+        "s": 199.9999999999999,
+        "cut": [
+         "playDir",
+         "Right"
+        ],
+        "text": "<strong>67%</strong> of runs go <strong>Right</strong> (8/12) — defenses will overload that side"
        }
       ]
      }
@@ -4496,21 +4293,12 @@
     "formationDetail": [
      {
       "name": "Unknown",
-      "total": 9,
-      "runs": 0,
-      "passes": 9,
-      "yards": 2,
-      "tds": 0,
-      "runPct": 0
-     },
-     {
-      "name": "Shotgun",
-      "total": 7,
-      "runs": 6,
-      "passes": 1,
-      "yards": 30,
-      "tds": 0,
-      "runPct": 86
+      "total": 16,
+      "runs": 4,
+      "passes": 12,
+      "yards": 89,
+      "tds": 1,
+      "runPct": 25
      },
      {
       "name": "Trips",
@@ -4520,33 +4308,6 @@
       "yards": 30,
       "tds": 0,
       "runPct": 86
-     },
-     {
-      "name": "Pistol",
-      "total": 4,
-      "runs": 4,
-      "passes": 0,
-      "yards": 28,
-      "tds": 0,
-      "runPct": 100
-     },
-     {
-      "name": "Under Center",
-      "total": 2,
-      "runs": 0,
-      "passes": 2,
-      "yards": 11,
-      "tds": 0,
-      "runPct": 0
-     },
-     {
-      "name": "Empty",
-      "total": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 48,
-      "tds": 1,
-      "runPct": 0
      },
      {
       "name": "Wildcat",
@@ -4824,23 +4585,11 @@
    },
    "tendencies": {
     "formations": {
-     "Shotgun": 7,
      "Trips": 7,
-     "Empty": 1,
-     "Wildcat": 1,
-     "Under Center": 1
+     "Unknown": 2,
+     "Wildcat": 1
     },
     "formationList": [
-     {
-      "name": "Shotgun",
-      "count": 7,
-      "runs": 6,
-      "passes": 1,
-      "yards": 30,
-      "successes": 6,
-      "avg": "4.3",
-      "successPct": "86"
-     },
      {
       "name": "Trips",
       "count": 7,
@@ -4852,13 +4601,13 @@
       "successPct": "86"
      },
      {
-      "name": "Empty",
-      "count": 1,
+      "name": "Unknown",
+      "count": 2,
       "runs": 0,
-      "passes": 1,
-      "yards": 48,
-      "successes": 1,
-      "avg": "48.0",
+      "passes": 2,
+      "yards": 59,
+      "successes": 2,
+      "avg": "29.5",
       "successPct": "100"
      },
      {
@@ -4870,16 +4619,6 @@
       "successes": 0,
       "avg": "3.0",
       "successPct": "0"
-     },
-     {
-      "name": "Under Center",
-      "count": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 11,
-      "successes": 1,
-      "avg": "11.0",
-      "successPct": "100"
      }
     ],
     "playTypes": {
@@ -5731,9 +5470,8 @@
      }
     ],
     "formations": {
-     "Middle|Shotgun": 6,
      "Middle|Trips": 6,
-     "Left|Empty": 1
+     "Left|Unknown": 1
     },
     "hasData": true
    },
@@ -5810,7 +5548,7 @@
     "straightYPA": "24.0",
     "formationList": [
      {
-      "name": "Under Center",
+      "name": "Unknown",
       "count": 1,
       "yards": 11,
       "successes": 1,
@@ -5882,14 +5620,6 @@
       "s": 602,
       "cut": [
        "formation",
-       "Shotgun"
-      ],
-      "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
-     },
-     {
-      "s": 602,
-      "cut": [
-       "formation",
        "Trips"
       ],
       "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
@@ -5928,34 +5658,18 @@
       "s": 249.99999999999994,
       "cut": [
        "formation",
-       "Shotgun"
-      ],
-      "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
-     },
-     {
-      "s": 249.99999999999994,
-      "cut": [
-       "formation",
        "Trips"
       ],
       "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+     },
+     {
+      "s": 170,
+      "text": "Only <strong>0.8 pts/drive</strong> — drives are stalling before the end zone"
      }
     ]
    }
   },
   "drill": {
-   "formation::Empty": [
-    "g1::7"
-   ],
-   "formation::Shotgun": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6",
-    "g1::8"
-   ],
    "formation::Trips": [
     "g1::1",
     "g1::2",
@@ -5965,14 +5679,25 @@
     "g1::6",
     "g1::8"
    ],
-   "formation::Under Center": [
-    "g1::10"
-   ],
    "formation::Unknown": [
-    "g1::18"
+    "g1::10",
+    "g1::18",
+    "g1::7"
    ],
    "formation::Wildcat": [
     "g1::9"
+   ],
+   "qbAlignment::Shotgun": [
+    "g1::1",
+    "g1::2",
+    "g1::3",
+    "g1::4",
+    "g1::5",
+    "g1::6",
+    "g1::8"
+   ],
+   "qbAlignment::Under Center": [
+    "g1::10"
    ],
    "playType::Deep Pass": [
     "g1::7"
@@ -6038,6 +5763,9 @@
    ],
    "personnel::21": [
     "g1::9"
+   ],
+   "backfield::Empty": [
+    "g1::7"
    ],
    "backfield::Single": [
     "g1::1",
@@ -6159,14 +5887,6 @@
    "dd::3|Long": [
     "g1::8"
    ],
-   "comboFStr::Shotgun__Right": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6"
-   ],
    "comboFStr::Trips__Right": [
     "g1::1",
     "g1::2",
@@ -6174,20 +5894,6 @@
     "g1::4",
     "g1::5",
     "g1::6"
-   ],
-   "comboFD::Empty__2|Medium": [
-    "g1::7"
-   ],
-   "comboFD::Shotgun__1|Long": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6"
-   ],
-   "comboFD::Shotgun__3|Long": [
-    "g1::8"
    ],
    "comboFD::Trips__1|Long": [
     "g1::1",
@@ -6200,25 +5906,14 @@
    "comboFD::Trips__3|Long": [
     "g1::8"
    ],
-   "comboFD::Under Center__2|Long": [
+   "comboFD::Unknown__2|Long": [
     "g1::10"
+   ],
+   "comboFD::Unknown__2|Medium": [
+    "g1::7"
    ],
    "comboFD::Wildcat__1|Long": [
     "g1::9"
-   ],
-   "comboFS::Empty__2|Medium": [
-    "g1::7"
-   ],
-   "comboFS::Shotgun__1": [
-    "g1::1",
-    "g1::2",
-    "g1::3",
-    "g1::4",
-    "g1::5",
-    "g1::6"
-   ],
-   "comboFS::Shotgun__3|Long": [
-    "g1::8"
    ],
    "comboFS::Trips__1": [
     "g1::1",
@@ -6231,33 +5926,36 @@
    "comboFS::Trips__3|Long": [
     "g1::8"
    ],
-   "comboFS::Under Center__2|Long": [
+   "comboFS::Unknown__2|Long": [
     "g1::10"
+   ],
+   "comboFS::Unknown__2|Medium": [
+    "g1::7"
    ],
    "comboFS::Wildcat__1": [
     "g1::9"
    ],
-   "bigCall::Empty|||||||||Deep Pass": [
-    "g1::7"
-   ],
-   "bigCall::Shotgun + Trips|||Right|||Jet|||Run Inside": [
+   "bigCall::Shotgun|||Trips|||Single|||Right|||Jet|||Run Inside": [
     "g1::2",
     "g1::4",
     "g1::6"
    ],
-   "bigCall::Shotgun + Trips|||Right||||||Run Inside": [
+   "bigCall::Shotgun|||Trips|||Single|||Right||||||Run Inside": [
     "g1::1",
     "g1::3",
     "g1::5"
    ],
-   "bigCall::Shotgun + Trips|||||||||RPO + Short Pass": [
+   "bigCall::Shotgun|||Trips||||||||||||RPO + Short Pass": [
     "g1::8"
    ],
-   "bigCall::Under Center|||||||||Play Action": [
+   "bigCall::Under Center|||||||||||||||Play Action": [
     "g1::10"
    ],
-   "bigCall::Wildcat|||||||||Run Outside": [
+   "bigCall::|||Wildcat||||||||||||Run Outside": [
     "g1::9"
+   ],
+   "bigCall::||||||Empty|||||||||Deep Pass": [
+    "g1::7"
    ],
    "frontCoverage::3-4|Cover 3": [
     "g1::11",
@@ -6283,7 +5981,7 @@
   "reports": {
    "selfScout": {
     "totalPlays": 10,
-    "predictability": 81,
+    "predictability": 86,
     "predLabel": "Very Predictable",
     "tells": [
      {
@@ -6307,28 +6005,6 @@
       "cutType": "dd",
       "cutVal": "1|Long",
       "score": 210
-     },
-     {
-      "dim": "Formation × Down",
-      "label": "Shotgun on 1st &amp; Long",
-      "n": 6,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 5,
-      "leanSuccRate": 100,
-      "overallAvg": 5,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "effective",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "comboFD",
-      "cutVal": "Shotgun__1|Long",
-      "score": 180
      },
      {
       "dim": "Formation × Down",
@@ -6420,28 +6096,6 @@
      },
      {
       "dim": "Formation × Strength",
-      "label": "Shotgun Right",
-      "n": 6,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 5,
-      "leanSuccRate": 100,
-      "overallAvg": 5,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "effective",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "comboFStr",
-      "cutVal": "Shotgun__Right",
-      "score": 180
-     },
-     {
-      "dim": "Formation × Strength",
       "label": "Trips Right",
       "n": 6,
       "lean": "Run",
@@ -6461,28 +6115,6 @@
       "cutType": "comboFStr",
       "cutVal": "Trips__Right",
       "score": 180
-     },
-     {
-      "dim": "Formation",
-      "label": "From Shotgun",
-      "n": 7,
-      "lean": "Run",
-      "leanPct": 86,
-      "leanAvg": 5,
-      "leanSuccRate": 100,
-      "overallAvg": 4.3,
-      "overallSucc": 86,
-      "tds": 0,
-      "turnovers": 1,
-      "explosives": 0,
-      "verdict": "effective",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "formation",
-      "cutVal": "Shotgun",
-      "score": 151.2
      },
      {
       "dim": "Formation",
@@ -6549,20 +6181,11 @@
       }
      ],
      "rows": [
-      "Shotgun",
       "Trips",
-      "Empty",
-      "Wildcat",
-      "Under Center"
+      "Unknown",
+      "Wildcat"
      ],
      "cells": {
-      "Shotgun\u00011": {
-       "n": 6,
-       "runs": 6,
-       "passes": 0,
-       "succ": 6,
-       "yards": 30
-      },
       "Trips\u00011": {
        "n": 6,
        "runs": 6,
@@ -6570,19 +6193,12 @@
        "succ": 6,
        "yards": 30
       },
-      "Empty\u00012|Medium": {
+      "Unknown\u00012|Medium": {
        "n": 1,
        "runs": 0,
        "passes": 1,
        "succ": 1,
        "yards": 48
-      },
-      "Shotgun\u00013|Long": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 0,
-       "yards": 0
       },
       "Trips\u00013|Long": {
        "n": 1,
@@ -6598,7 +6214,7 @@
        "succ": 0,
        "yards": 3
       },
-      "Under Center\u00012|Long": {
+      "Unknown\u00012|Long": {
        "n": 1,
        "runs": 0,
        "passes": 1,
@@ -6607,37 +6223,12 @@
       }
      },
      "rowN": {
-      "Shotgun": 7,
       "Trips": 7,
-      "Empty": 1,
-      "Wildcat": 1,
-      "Under Center": 1
+      "Unknown": 2,
+      "Wildcat": 1
      }
     },
     "formationRows": [
-     {
-      "key": "Shotgun",
-      "n": 7,
-      "runs": 6,
-      "passes": 1,
-      "yards": 30,
-      "runYards": 30,
-      "passYards": 0,
-      "runSucc": 6,
-      "passSucc": 0,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 1,
-      "runPct": 86,
-      "passPct": 14,
-      "lean": "Run",
-      "leanPct": 86,
-      "avg": 4.3,
-      "succRate": 86,
-      "runAvg": 5,
-      "passAvg": 0,
-      "tell": true
-     },
      {
       "key": "Trips",
       "n": 7,
@@ -6662,15 +6253,15 @@
       "tell": true
      },
      {
-      "key": "Empty",
-      "n": 1,
+      "key": "Unknown",
+      "n": 2,
       "runs": 0,
-      "passes": 1,
-      "yards": 48,
+      "passes": 2,
+      "yards": 59,
       "runYards": 0,
-      "passYards": 48,
+      "passYards": 59,
       "runSucc": 0,
-      "passSucc": 1,
+      "passSucc": 2,
       "explosives": 1,
       "tds": 1,
       "turnovers": 0,
@@ -6678,10 +6269,10 @@
       "passPct": 100,
       "lean": "Pass",
       "leanPct": 100,
-      "avg": 48,
+      "avg": 29.5,
       "succRate": 100,
       "runAvg": 0,
-      "passAvg": 48,
+      "passAvg": 29.5,
       "tell": false
      },
      {
@@ -6705,29 +6296,6 @@
       "succRate": 0,
       "runAvg": 3,
       "passAvg": 0,
-      "tell": false
-     },
-     {
-      "key": "Under Center",
-      "n": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 11,
-      "runYards": 0,
-      "passYards": 11,
-      "runSucc": 0,
-      "passSucc": 1,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 0,
-      "runPct": 0,
-      "passPct": 100,
-      "lean": "Pass",
-      "leanPct": 100,
-      "avg": 11,
-      "succRate": 100,
-      "runAvg": 0,
-      "passAvg": 11,
       "tell": false
      }
     ],
@@ -6923,16 +6491,11 @@
      {
       "personnel": "11",
       "n": 7,
-      "uniqueFormations": 2,
-      "topFormation": "Shotgun",
+      "uniqueFormations": 1,
+      "topFormation": "Trips",
       "topCount": 7,
       "topPct": 100,
       "formations": [
-       {
-        "formation": "Shotgun",
-        "count": 7,
-        "pct": 100
-       },
        {
         "formation": "Trips",
         "count": 7,
@@ -6943,17 +6506,11 @@
     ],
     "recommendations": [
      "<span class=\"ss-rec-label\">1st &amp; Long</span>: your run lean (100%) is adequate at 4.7 yds/86% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
-     "<span class=\"ss-rec-label\">Shotgun on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "<span class=\"ss-rec-label\">Trips on 1st &amp; Long</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Middle hash</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
     ],
     "insights": [
-     {
-      "type": "direction",
-      "priority": 360,
-      "text": "From <strong>Shotgun</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
-      "tag": "Direction Tell"
-     },
      {
       "type": "direction",
       "priority": 360,
@@ -6963,7 +6520,7 @@
      {
       "type": "personnel",
       "priority": 315,
-      "text": "<strong>11 personnel</strong> lines up in <strong>Shotgun</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
      }
     ],
@@ -7139,23 +6696,11 @@
      },
      "tendencies": {
       "formations": {
-       "Shotgun": 7,
        "Trips": 7,
-       "Empty": 1,
-       "Wildcat": 1,
-       "Under Center": 1
+       "Unknown": 2,
+       "Wildcat": 1
       },
       "formationList": [
-       {
-        "name": "Shotgun",
-        "count": 7,
-        "runs": 6,
-        "passes": 1,
-        "yards": 30,
-        "successes": 6,
-        "avg": "4.3",
-        "successPct": "86"
-       },
        {
         "name": "Trips",
         "count": 7,
@@ -7167,13 +6712,13 @@
         "successPct": "86"
        },
        {
-        "name": "Empty",
-        "count": 1,
+        "name": "Unknown",
+        "count": 2,
         "runs": 0,
-        "passes": 1,
-        "yards": 48,
-        "successes": 1,
-        "avg": "48.0",
+        "passes": 2,
+        "yards": 59,
+        "successes": 2,
+        "avg": "29.5",
         "successPct": "100"
        },
        {
@@ -7185,16 +6730,6 @@
         "successes": 0,
         "avg": "3.0",
         "successPct": "0"
-       },
-       {
-        "name": "Under Center",
-        "count": 1,
-        "runs": 0,
-        "passes": 1,
-        "yards": 11,
-        "successes": 1,
-        "avg": "11.0",
-        "successPct": "100"
        }
       ],
       "playTypes": {
@@ -8023,9 +7558,8 @@
        }
       ],
       "formations": {
-       "Middle|Shotgun": 6,
        "Middle|Trips": 6,
-       "Left|Empty": 1
+       "Left|Unknown": 1
       },
       "hasData": true
      },
@@ -8102,7 +7636,7 @@
       "straightYPA": "24.0",
       "formationList": [
        {
-        "name": "Under Center",
+        "name": "Unknown",
         "count": 1,
         "yards": 11,
         "successes": 1,
@@ -8174,14 +7708,6 @@
         "s": 602,
         "cut": [
          "formation",
-         "Shotgun"
-        ],
-        "text": "<strong>Shotgun</strong>: 86% success (7 plays, 4.3 avg)"
-       },
-       {
-        "s": 602,
-        "cut": [
-         "formation",
          "Trips"
         ],
         "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
@@ -8220,30 +7746,26 @@
         "s": 249.99999999999994,
         "cut": [
          "formation",
-         "Shotgun"
-        ],
-        "text": "<strong>Shotgun</strong> is 86% run — add a pass concept to keep the defense honest"
-       },
-       {
-        "s": 249.99999999999994,
-        "cut": [
-         "formation",
          "Trips"
         ],
         "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+       },
+       {
+        "s": 170,
+        "text": "Only <strong>0.8 pts/drive</strong> — drives are stalling before the end zone"
        }
       ]
      }
     },
     "formationDetail": [
      {
-      "name": "Shotgun",
-      "total": 7,
-      "runs": 6,
-      "passes": 1,
-      "yards": 30,
-      "tds": 0,
-      "runPct": 86
+      "name": "Unknown",
+      "total": 8,
+      "runs": 0,
+      "passes": 8,
+      "yards": 61,
+      "tds": 1,
+      "runPct": 0
      },
      {
       "name": "Trips",
@@ -8255,24 +7777,6 @@
       "runPct": 86
      },
      {
-      "name": "Unknown",
-      "total": 6,
-      "runs": 0,
-      "passes": 6,
-      "yards": 2,
-      "tds": 0,
-      "runPct": 0
-     },
-     {
-      "name": "Empty",
-      "total": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 48,
-      "tds": 1,
-      "runPct": 0
-     },
-     {
       "name": "Wildcat",
       "total": 1,
       "runs": 1,
@@ -8280,15 +7784,6 @@
       "yards": 3,
       "tds": 0,
       "runPct": 100
-     },
-     {
-      "name": "Under Center",
-      "total": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 11,
-      "tds": 0,
-      "runPct": 0
      }
     ],
     "downTendency": [
@@ -8500,20 +7995,19 @@
    },
    "tendencies": {
     "formations": {
-     "Pistol": 4,
-     "Flexbone": 1,
-     "Under Center": 1
+     "Unknown": 5,
+     "Flexbone": 1
     },
     "formationList": [
      {
-      "name": "Pistol",
-      "count": 4,
+      "name": "Unknown",
+      "count": 5,
       "runs": 4,
-      "passes": 0,
+      "passes": 1,
       "yards": 28,
       "successes": 4,
-      "avg": "7.0",
-      "successPct": "100"
+      "avg": "5.6",
+      "successPct": "80"
      },
      {
       "name": "Flexbone",
@@ -8524,16 +8018,6 @@
       "successes": 1,
       "avg": "14.0",
       "successPct": "100"
-     },
-     {
-      "name": "Under Center",
-      "count": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 0,
-      "successes": 0,
-      "avg": "0.0",
-      "successPct": "0"
      }
     ],
     "playTypes": {
@@ -9072,9 +8556,9 @@
      }
     ],
     "formations": {
-     "Right|Pistol": 4,
+     "Right|Unknown": 4,
      "Middle|Flexbone": 1,
-     "Left|Under Center": 1
+     "Left|Unknown": 1
     },
     "hasData": true
    },
@@ -9168,16 +8652,17 @@
     "hasMotionData": false
    },
    "takeaways": {
-    "working": [],
-    "fix": [
+    "working": [
      {
-      "s": 200,
+      "s": 400,
       "cut": [
        "formation",
-       "Pistol"
+       "Unknown"
       ],
-      "text": "<strong>Pistol</strong> is 100% run — add a pass concept to keep the defense honest"
-     },
+      "text": "<strong>Unknown</strong>: 80% success (5 plays, 5.6 avg)"
+     }
+    ],
+    "fix": [
      {
       "s": 200,
       "cut": [
@@ -9185,6 +8670,14 @@
        "Right"
       ],
       "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+     },
+     {
+      "s": 150,
+      "cut": [
+       "formation",
+       "Unknown"
+      ],
+      "text": "<strong>Unknown</strong> is 80% run — add a pass concept to keep the defense honest"
      }
     ]
    }
@@ -9193,16 +8686,22 @@
    "formation::Flexbone": [
     "g2::5"
    ],
-   "formation::Pistol": [
+   "formation::Unknown": [
+    "g2::1",
+    "g2::2",
+    "g2::3",
+    "g2::4",
+    "g2::6"
+   ],
+   "qbAlignment::Pistol": [
     "g2::1",
     "g2::2",
     "g2::3",
     "g2::4"
    ],
-   "formation::Under Center": [
+   "qbAlignment::Under Center": [
     "g2::6"
    ],
-   "formation::Unknown": [],
    "playType::Deep Pass": [],
    "playType::Run Inside": [
     "g2::1",
@@ -9329,7 +8828,7 @@
    "dd::3|Short": [
     "g2::6"
    ],
-   "comboFStr::Pistol__Left": [
+   "comboFStr::Unknown__Left": [
     "g2::1",
     "g2::2",
     "g2::3",
@@ -9338,38 +8837,38 @@
    "comboFD::Flexbone__1|Long": [
     "g2::5"
    ],
-   "comboFD::Pistol__2|Medium": [
+   "comboFD::Unknown__2|Medium": [
     "g2::1",
     "g2::2",
     "g2::3",
     "g2::4"
    ],
-   "comboFD::Under Center__3|Short": [
+   "comboFD::Unknown__3|Short": [
     "g2::6"
    ],
    "comboFS::Flexbone__1": [
     "g2::5"
    ],
-   "comboFS::Pistol__2|Medium": [
+   "comboFS::Unknown__2|Medium": [
     "g2::1",
     "g2::2",
     "g2::3",
     "g2::4"
    ],
-   "comboFS::Under Center__3|Short": [
+   "comboFS::Unknown__3|Short": [
     "g2::6"
    ],
-   "bigCall::Flexbone|||||||||Run Outside": [
+   "bigCall::Pistol||||||Power|||Left||||||Run Inside": [
+    "g2::1",
+    "g2::2",
+    "g2::3",
+    "g2::4"
+   ],
+   "bigCall::Under Center|||||||||||||||Short Pass": [
+    "g2::6"
+   ],
+   "bigCall::|||Flexbone||||||||||||Run Outside": [
     "g2::5"
-   ],
-   "bigCall::Pistol|||Left||||||Run Inside": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "bigCall::Under Center|||||||||Short Pass": [
-    "g2::6"
    ],
    "frontCoverage::4-4|Cover 2": [
     "g2::7",
@@ -9385,12 +8884,12 @@
   "reports": {
    "selfScout": {
     "totalPlays": 6,
-    "predictability": 100,
+    "predictability": 78,
     "predLabel": "Very Predictable",
     "tells": [
      {
       "dim": "Formation × Down",
-      "label": "Pistol on 2nd &amp; Medium",
+      "label": "Unknown on 2nd &amp; Medium",
       "n": 4,
       "lean": "Run",
       "leanPct": 100,
@@ -9407,29 +8906,7 @@
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
       "cutType": "comboFD",
-      "cutVal": "Pistol__2|Medium",
-      "score": 60
-     },
-     {
-      "dim": "Formation",
-      "label": "From Pistol",
-      "n": 4,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 7,
-      "leanSuccRate": 100,
-      "overallAvg": 7,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "dominant",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "formation",
-      "cutVal": "Pistol",
+      "cutVal": "Unknown__2|Medium",
       "score": 60
      },
      {
@@ -9544,7 +9021,7 @@
      },
      {
       "dim": "Formation × Strength",
-      "label": "Pistol Left",
+      "label": "Unknown Left",
       "n": 4,
       "lean": "Run",
       "leanPct": 100,
@@ -9561,8 +9038,30 @@
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
       "cutType": "comboFStr",
-      "cutVal": "Pistol__Left",
+      "cutVal": "Unknown__Left",
       "score": 60
+     },
+     {
+      "dim": "Formation",
+      "label": "From Unknown",
+      "n": 5,
+      "lean": "Run",
+      "leanPct": 80,
+      "leanAvg": 7,
+      "leanSuccRate": 100,
+      "overallAvg": 5.6,
+      "overallSucc": 80,
+      "tds": 0,
+      "turnovers": 0,
+      "explosives": 0,
+      "verdict": "dominant",
+      "counter": {
+       "threat": "a DC keys run — loads the box and cheats a safety down",
+       "fix": "play-action, a quick throw, or a screen off the same look"
+      },
+      "cutType": "formation",
+      "cutVal": "Unknown",
+      "score": 45
      }
     ],
     "matrix": {
@@ -9581,12 +9080,11 @@
       }
      ],
      "rows": [
-      "Pistol",
-      "Flexbone",
-      "Under Center"
+      "Unknown",
+      "Flexbone"
      ],
      "cells": {
-      "Pistol\u00012|Medium": {
+      "Unknown\u00012|Medium": {
        "n": 4,
        "runs": 4,
        "passes": 0,
@@ -9600,7 +9098,7 @@
        "succ": 1,
        "yards": 14
       },
-      "Under Center\u00013|Short": {
+      "Unknown\u00013|Short": {
        "n": 1,
        "runs": 0,
        "passes": 1,
@@ -9609,17 +9107,16 @@
       }
      },
      "rowN": {
-      "Pistol": 4,
-      "Flexbone": 1,
-      "Under Center": 1
+      "Unknown": 5,
+      "Flexbone": 1
      }
     },
     "formationRows": [
      {
-      "key": "Pistol",
-      "n": 4,
+      "key": "Unknown",
+      "n": 5,
       "runs": 4,
-      "passes": 0,
+      "passes": 1,
       "yards": 28,
       "runYards": 28,
       "passYards": 0,
@@ -9628,12 +9125,12 @@
       "explosives": 0,
       "tds": 0,
       "turnovers": 0,
-      "runPct": 100,
-      "passPct": 0,
+      "runPct": 80,
+      "passPct": 20,
       "lean": "Run",
-      "leanPct": 100,
-      "avg": 7,
-      "succRate": 100,
+      "leanPct": 80,
+      "avg": 5.6,
+      "succRate": 80,
       "runAvg": 7,
       "passAvg": 0,
       "tell": true
@@ -9658,29 +9155,6 @@
       "avg": 14,
       "succRate": 100,
       "runAvg": 14,
-      "passAvg": 0,
-      "tell": false
-     },
-     {
-      "key": "Under Center",
-      "n": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 0,
-      "runYards": 0,
-      "passYards": 0,
-      "runSucc": 0,
-      "passSucc": 0,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 0,
-      "runPct": 0,
-      "passPct": 100,
-      "lean": "Pass",
-      "leanPct": 100,
-      "avg": 0,
-      "succRate": 0,
-      "runAvg": 0,
       "passAvg": 0,
       "tell": false
      }
@@ -9832,12 +9306,12 @@
       "personnel": "21",
       "n": 4,
       "uniqueFormations": 1,
-      "topFormation": "Pistol",
+      "topFormation": "Unknown",
       "topCount": 4,
       "topPct": 100,
       "formations": [
        {
-        "formation": "Pistol",
+        "formation": "Unknown",
         "count": 4,
         "pct": 100
        }
@@ -9845,9 +9319,9 @@
      }
     ],
     "recommendations": [
-     "<span class=\"ss-rec-label ss-rec-strength\">Pistol on 2nd &amp; Medium</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
-     "<span class=\"ss-rec-label ss-rec-strength\">From Pistol</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
+     "<span class=\"ss-rec-label ss-rec-strength\">Unknown on 2nd &amp; Medium</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "<span class=\"ss-rec-label ss-rec-strength\">2nd &amp; Medium</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
+     "<span class=\"ss-rec-label ss-rec-strength\">21 personnel</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
     ],
     "insights": [],
@@ -10004,20 +9478,19 @@
      },
      "tendencies": {
       "formations": {
-       "Pistol": 4,
-       "Flexbone": 1,
-       "Under Center": 1
+       "Unknown": 5,
+       "Flexbone": 1
       },
       "formationList": [
        {
-        "name": "Pistol",
-        "count": 4,
+        "name": "Unknown",
+        "count": 5,
         "runs": 4,
-        "passes": 0,
+        "passes": 1,
         "yards": 28,
         "successes": 4,
-        "avg": "7.0",
-        "successPct": "100"
+        "avg": "5.6",
+        "successPct": "80"
        },
        {
         "name": "Flexbone",
@@ -10028,16 +9501,6 @@
         "successes": 1,
         "avg": "14.0",
         "successPct": "100"
-       },
-       {
-        "name": "Under Center",
-        "count": 1,
-        "runs": 0,
-        "passes": 1,
-        "yards": 0,
-        "successes": 0,
-        "avg": "0.0",
-        "successPct": "0"
        }
       ],
       "playTypes": {
@@ -10576,9 +10039,9 @@
        }
       ],
       "formations": {
-       "Right|Pistol": 4,
+       "Right|Unknown": 4,
        "Middle|Flexbone": 1,
-       "Left|Under Center": 1
+       "Left|Unknown": 1
       },
       "hasData": true
      },
@@ -10672,16 +10135,17 @@
       "hasMotionData": false
      },
      "takeaways": {
-      "working": [],
-      "fix": [
+      "working": [
        {
-        "s": 200,
+        "s": 400,
         "cut": [
          "formation",
-         "Pistol"
+         "Unknown"
         ],
-        "text": "<strong>Pistol</strong> is 100% run — add a pass concept to keep the defense honest"
-       },
+        "text": "<strong>Unknown</strong>: 80% success (5 plays, 5.6 avg)"
+       }
+      ],
+      "fix": [
        {
         "s": 200,
         "cut": [
@@ -10689,28 +10153,27 @@
          "Right"
         ],
         "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+       },
+       {
+        "s": 150,
+        "cut": [
+         "formation",
+         "Unknown"
+        ],
+        "text": "<strong>Unknown</strong> is 80% run — add a pass concept to keep the defense honest"
        }
       ]
      }
     },
     "formationDetail": [
      {
-      "name": "Pistol",
-      "total": 4,
+      "name": "Unknown",
+      "total": 8,
       "runs": 4,
-      "passes": 0,
+      "passes": 4,
       "yards": 28,
       "tds": 0,
-      "runPct": 100
-     },
-     {
-      "name": "Unknown",
-      "total": 3,
-      "runs": 0,
-      "passes": 3,
-      "yards": 0,
-      "tds": 0,
-      "runPct": 0
+      "runPct": 50
      },
      {
       "name": "Flexbone",
@@ -10720,15 +10183,6 @@
       "yards": 14,
       "tds": 0,
       "runPct": 100
-     },
-     {
-      "name": "Under Center",
-      "total": 1,
-      "runs": 0,
-      "passes": 1,
-      "yards": 0,
-      "tds": 0,
-      "runPct": 0
      }
     ],
     "downTendency": [
