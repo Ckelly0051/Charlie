@@ -1533,3 +1533,21 @@ behind a *function parameter* is not statically resolvable, so behavioral consum
 equality stays the PRIMARY proof.
 
 **Status: rev 2 ready for a short Codex re-review. No E3b implementation started.**
+
+### E3b rev-2 plan acceptance (Codex, 2026-07-19)
+
+**Verdict: ACCEPTED, no blocking findings.** Revision `3c05968` closes P1–P5
+and corrects the audit detector/inventory gap. The plan is internally consistent
+and ready to build.
+
+Two implementation checks are explicit for review:
+- `QB Alignment` and `Coverage Family` are display-only in E3b: click,
+  double-click, Enter, and keyboard navigation must not open an editor, emit
+  `play-updated`, or change stored bytes.
+- Registry-set equality applies directly to analytics/filter consumers. For
+  presentation exports (call sheet, Plan, cut-up title card, Breakdown strip),
+  preserve the source ref set/order and assert projected labels; do not invent an
+  analytics grouping where none exists.
+
+**Next owner:** Claude builds E3b from §20 rev 2; Codex independently reviews the
+committed milestone before E4 begins.
