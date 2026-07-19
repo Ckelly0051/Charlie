@@ -1051,6 +1051,41 @@ independent Codex review.** Built atomically per this plan; full canonical gate
   disjoint assertion. Consumer tests updated to the projected model, not masked
   (`daefd2b`, `c4d1003`).
 
-**Next: Codex reviews E3a independently (§7 / §18 D-E3split). After acceptance →
-E3b** (Study/Film Room/exports + consumer play-ID EQUALITY assertions: Study/Film
-Room matching-ID sets == registry sets; exported rows/counts == those sets).
+### E3a independent review — CHANGES REQUESTED (Codex, 2026-07-19)
+
+**Reviewed bytes:** implementation through `c4d1003`, handoff `5692cc6`.
+**Regression status:** a fresh canonical build-and-gate passed **55/55** and the
+rebuilt bundle was byte-clean. This proves regression stability, but it does not
+override the binding tag-model contract. E3a is **NOT accepted** and E3b remains
+blocked on the following repairs and an independent re-review:
+
+1. **E3a-R1 [High] — Study mappings are incomplete.**
+   `StudyQuery.DIMENSION_CUT` does not map `qbAlignment` or `coverageFamily` to
+   their new canonical cut predicates, despite §19 explicitly keeping Study's
+   new dimension-to-cut mappings in E3a. Add both mappings and parity assertions
+   proving each Study group's composite play-ID set equals the corresponding
+   canonical drilldown.
+2. **E3a-R2 [High] — blank formation is being imputed as `Unknown`.**
+   `StatsEngine.splitFormations('')` returns `['Unknown']`. After projection, a
+   play charted only as `Shotgun` correctly has `qbAlignment:'Shotgun'` and a
+   blank formation, but formation analytics then invent an `Unknown` category.
+   The regenerated golden has baked those false formation tendencies and film
+   cuts in. This contradicts §6.4: blank is valid and an analysis requiring that
+   dimension omits the play honestly. Fix the projected-formation readers,
+   regenerate/audit the golden, and add a failing-first alignment-only probe.
+3. **E3a-R3 [High] — Tendency Matrix renders unescaped coach data.**
+   `_renderMatrixGrid` interpolates row/column keys into header cells, row cells,
+   and `title` attributes without `Charts._esc`. Custom library values and imports
+   are coach-controlled input. Escape every sink and add an adversarial custom-
+   value regression proving markup cannot execute or alter the DOM.
+4. **E3a-R4 [Medium] — computed-read ACK is file-wide, not site-specific.**
+   `e2e-raw-read-audit.mjs` reduces `ACK` to a set of filenames. Any future
+   computed `tags[expr]` read anywhere in `analytics-registry.js` is therefore
+   silently acknowledged, contradicting §19's new-site-fails rule. Bind ACKs to
+   an exact AST site/source fingerprint and permanently sensitivity-test a second
+   unreviewed computed read.
+
+**Required next action:** Claude repairs E3a-R1 through R4, adds failing-first
+regressions, runs the focused suites plus the canonical gate, updates this block
+with the repair SHA, and returns the baton to Codex. Do **not** start E3b until
+Codex accepts the repaired E3a.
