@@ -660,24 +660,6 @@
     ],
     "byFormation": [
      {
-      "name": "Empty",
-      "total": 4.88,
-      "count": 1,
-      "perPlay": 4.88
-     },
-     {
-      "name": "Pistol",
-      "total": 2.88,
-      "count": 4,
-      "perPlay": 0.72
-     },
-     {
-      "name": "Shotgun",
-      "total": 0,
-      "count": 6,
-      "perPlay": 0
-     },
-     {
       "name": "Trips",
       "total": 0,
       "count": 6,
@@ -3349,24 +3331,6 @@
       ],
       "byFormation": [
        {
-        "name": "Empty",
-        "total": 4.88,
-        "count": 1,
-        "perPlay": 4.88
-       },
-       {
-        "name": "Pistol",
-        "total": 2.88,
-        "count": 4,
-        "perPlay": 0.72
-       },
-       {
-        "name": "Shotgun",
-        "total": 0,
-        "count": 6,
-        "perPlay": 0
-       },
-       {
         "name": "Trips",
         "total": 0,
         "count": 6,
@@ -4834,18 +4798,6 @@
      }
     ],
     "byFormation": [
-     {
-      "name": "Empty",
-      "total": 4.88,
-      "count": 1,
-      "perPlay": 4.88
-     },
-     {
-      "name": "Shotgun",
-      "total": 0,
-      "count": 6,
-      "perPlay": 0
-     },
      {
       "name": "Trips",
       "total": 0,
@@ -6857,18 +6809,6 @@
       ],
       "byFormation": [
        {
-        "name": "Empty",
-        "total": 4.88,
-        "count": 1,
-        "perPlay": 4.88
-       },
-       {
-        "name": "Shotgun",
-        "total": 0,
-        "count": 6,
-        "perPlay": 0
-       },
-       {
         "name": "Trips",
         "total": 0,
         "count": 6,
@@ -7932,14 +7872,7 @@
       "perPlay": 0.72
      }
     ],
-    "byFormation": [
-     {
-      "name": "Pistol",
-      "total": 2.88,
-      "count": 4,
-      "perPlay": 0.72
-     }
-    ],
+    "byFormation": [],
     "byPersonnel": [
      {
       "name": "21",
@@ -9225,14 +9158,7 @@
         "perPlay": 0.72
        }
       ],
-      "byFormation": [
-       {
-        "name": "Pistol",
-        "total": 2.88,
-        "count": 4,
-        "perPlay": 0.72
-       }
-      ],
+      "byFormation": [],
       "byPersonnel": [
        {
         "name": "21",

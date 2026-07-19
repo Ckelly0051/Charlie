@@ -13,6 +13,11 @@
  * Required tags: yardLine + fieldSide, down, distance, yardage, result.
  * Plays missing any required field are skipped (returns null).
  */
+// stats-engine imports THIS module; the cycle is safe because StatsEngine is only
+// referenced at call time, never during module evaluation (and the built bundle
+// shares one scope). Keeps ONE canonical projection helper.
+import { StatsEngine } from './stats-engine.js';
+
 export class AdvancedMetrics {
   /** Expected Points at a given (yardLineFromOwnGoal 1..99, down, distance) */
   ep(yl, down, distance) {
@@ -123,12 +128,18 @@ export class AdvancedMetrics {
     // formation "Pistol + Spread") so EPA is attributed to each component.
     const groupBy = (key, multi = false) => {
       const m = {};
+      const projected = StatsEngine.PROJECTED_FIELDS.includes(key);
       for (const x of withEpa) {
-        const raw = x.play.tags[key] || 'Unknown';
+        // E3b: read the PROJECTED value for the six projected fields, and OMIT a
+        // blank instead of imputing 'Unknown' (§6.4) — an alignment-only play has
+        // no structural formation and must fall out of formation EPA, not invent a
+        // category. Non-projected keys keep their existing 'Unknown' bucket.
+        const raw = projected ? StatsEngine.projField(x.play, key) : (x.play.tags[key] || 'Unknown');
         const keys = multi
           ? (String(raw).split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean) || [])
-          : [raw];
-        if (!keys.length) keys.push('Unknown');
+          : (raw ? [raw] : []);
+        if (!keys.length && !projected) keys.push('Unknown');
+        if (!keys.length) continue;   // projected + blank → omitted
         for (const k of keys) {
           if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
           m[k].total += x.epa;

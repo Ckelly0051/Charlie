@@ -44,6 +44,18 @@ export class StatsEngine {
     return TagProjection.project(p && p.tags ? p.tags : {});
   }
 
+  /** E3b: the by-KEY read-side twin of `proj`, for DISPLAY surfaces keyed by a
+   *  runtime column/dimension id (Film Room's `col.key`, EPA's `groupBy(key)`).
+   *  Returns the PROJECTED value for the six projected fields and the raw tag for
+   *  everything else, so one dynamic-key display projects the six and passes the
+   *  rest through unchanged. EDITORS must never call this — they read and write the
+   *  coach's stored value (§20). */
+  static PROJECTED_FIELDS = ['formation', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
+  static projField(p, key) {
+    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] || '';
+    return (p && p.tags ? p.tags[key] : '') || '';
+  }
+
   /**
    * Split a (possibly multi-select) play-type string into components.
    * "RPO + Short Pass" -> ["RPO", "Short Pass"]; blank -> ["Unknown"].

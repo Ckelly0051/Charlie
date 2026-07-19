@@ -105,6 +105,39 @@ const results = await page.evaluate(() => {
   const ucKey = big.calls.find(c => c.qb === 'Under Center').key;
   t('cut bigCall(Under Center key) matches only BC1', eq(registry.matchingRefs([BC1, BC2], 'bigCall', ucKey), ['g1::5']), JSON.stringify(registry.matchingRefs([BC1, BC2], 'bigCall', ucKey)));
 
+  // ================= E3b — newly wired display consumers ====================
+  // An ALIGNMENT-ONLY play: stored formation is the alignment token, so its
+  // PROJECTED structural formation is blank and it must be OMITTED (§6.4), never
+  // shown as a "Shotgun" formation row nor bucketed as "Unknown".
+  const ALIGN_ONLY = { id: 9, [g]: 'g1', timestamp: { start: 0, end: 1 }, tags: {
+    unit: 'offense', formation: 'Under Center', playType: 'Run Inside', runPass: 'Run',
+    result: 'Gain', yardage: '5', down: '1', distance: '10' } };
+
+  // --- projField: projected for the six, raw passthrough otherwise ---
+  t('projField(formation) returns PROJECTED structure', SE.projField(OFF, 'formation') === 'Trips', SE.projField(OFF, 'formation'));
+  t('projField(qbAlignment) returns projected alignment', SE.projField(OFF, 'qbAlignment') === 'Shotgun', SE.projField(OFF, 'qbAlignment'));
+  t('projField(formation) is BLANK for an alignment-only play', SE.projField(ALIGN_ONLY, 'formation') === '', JSON.stringify(SE.projField(ALIGN_ONLY, 'formation')));
+  t('projField passes NON-projected keys through raw', SE.projField(OFF, 'playType') === 'Short Pass', SE.projField(OFF, 'playType'));
+
+  // --- heat maps (Formation × Play Type) ---
+  const hm = eng.heatMaps._renderFormationByPlay([OFF, ALIGN_ONLY]);
+  t('heat map rows use PROJECTED formation (Trips present)', /Trips/.test(hm), '');
+  t('heat map has NO raw Shotgun formation row', !/Shotgun/.test(hm), '');
+  t('heat map has NO invented Unknown formation row', !/Unknown/.test(hm), '');
+
+  // --- EPA byFormation (advanced-metrics groupBy) ---
+  // EPA needs field position, so these carry fieldSide/yardLine — without them
+  // `withEpa` is empty and the omit-assertion would pass VACUOUSLY.
+  const epaPlay = (id, formation) => ({ id, [g]: 'g1', timestamp: { start: 0, end: 1 }, tags: {
+    unit: 'offense', formation, playType: 'Run Inside', runPass: 'Run', result: 'Gain',
+    yardage: '5', down: '1', distance: '10', fieldSide: 'own', yardLine: '25' } });
+  const adv = eng.compute([epaPlay(20, 'Shotgun + Trips'), epaPlay(21, 'Under Center')]).advanced;
+  const epaForms = (adv.byFormation || []).map(f => f.name).sort();
+  t('EPA byFormation is non-vacuous (has rows)', epaForms.length > 0, JSON.stringify(epaForms));
+  t('EPA byFormation keys on projected structure only', eq(epaForms, ['Trips']), JSON.stringify(epaForms));
+  t('EPA byFormation OMITS the alignment-only play (no Unknown/Shotgun)',
+    !epaForms.includes('Unknown') && !epaForms.includes('Shotgun'), JSON.stringify(epaForms));
+
   return { out };
 });
 

@@ -536,7 +536,11 @@ export class PlayGrid {
       const counts = {};
       let total = 0;
       visible.forEach(p => {
-        String(p.tags[col.key] || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(v => {
+        // E3b: DISPLAY surface → read the PROJECTED value for the six projected
+        // fields (raw passthrough otherwise). Blank is OMITTED, so `total` is the
+        // §6.5 ELIGIBLE denominator (plays actually carrying this value), never an
+        // invented 'Unknown' bucket. The inline EDITOR still reads/writes raw.
+        String(StatsEngine.projField(p, col.key) || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(v => {
           counts[v] = (counts[v] || 0) + 1; total++;
         });
       });

@@ -1423,9 +1423,24 @@ Failing-first per surface; the per-consumer EQUALITY assertions above; a CSV
 round-trip test (export→import → clean split data, no re-mix, legacy `Coverage`
 header still accepted); the saved-column upgrade-rule cases (none / exact-preset /
 custom); the corrected + expanded audit (detector gap fixed, method-scoped ACKs);
-full `tools/run-gate.sh`. Analytics parity goldens UNCHANGED — E3b wires
-display/export consumers that E3a's golden already reflects, so **any core golden
-drift is a finding, not an update**. No package/tag.
+full `tools/run-gate.sh`.
+
+**Parity-golden rule — CORRECTED during build (Claude, rev 3).** Rev 2 asserted
+"goldens UNCHANGED; any drift is a finding." **That was wrong, and my error:** it
+assumed E3a's golden already reflected every analytic, but **`advanced-metrics.js`
+(EPA) was OUTSIDE E3a's scope while its raw reads ARE captured in parity.** Wiring
+it necessarily and correctly drifts the golden. The rule is therefore:
+- **Drilldowns (film links) MUST NOT drift** — a moved play-ID set IS a finding.
+- **`numbers.advanced` (EPA) drift is EXPECTED exactly once**, when EPA is wired,
+  and must be audited leaf-by-leaf.
+- Everything else unchanged; any other drift is a finding.
+
+**Audited actual drift (this build):** ONE leaf, `advanced.byFormation` (and its
+copy embedded in `reports.scout.stats`): `Empty(1), Pistol(4), Shotgun(6),
+Trips(6)` → `Trips(6)`. EPA-by-formation had been bucketing QB **alignments** and a
+**backfield** as formations — the E1 misclassification still live in EPA — and now
+counts only real structural formations, omitting alignment-only plays per §6.4.
+**Drilldowns: zero change in every scope**, so no film link moved. No package/tag.
 
 **Status: §20 REVISED to rev 2 (Claude) — E3b-P1..P5 all resolved in place, plus a
 self-found correction Codex's P2 exposed: the rev-1 detector missed

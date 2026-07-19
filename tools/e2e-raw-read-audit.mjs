@@ -46,7 +46,8 @@ const ALLOW = [];   // { file, line, field }
 // This is stable under benign edits (text + count unchanged) yet catches the exact
 // duplicate/move bypass R4 names — proven by the sensitivity self-test below.
 const ACK = [
-  { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — the ONLY computed tags read; verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
+  { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
+  { file: 'js/stats-engine.js', method: 'projField', code: 'p.tags[key]', count: 1, reason: "E3b: projField IS the sanctioned by-key projection seam — it returns proj(p)[key] for the six PROJECTED_FIELDS and reaches this raw read ONLY for non-projected keys. Method-scoped (E3b-P5): this same expression text is forbidden in a display method." },
 ];
 
 let pass = 0, fail = 0;
@@ -201,29 +202,30 @@ ok(bad.length === 0, `every computed .tags[expr] is acknowledged by exact site +
 // PERMANENT sensitivity self-tests (E3a-R4). Each input includes the real ACKed
 // read (so the ACK itself is satisfied) plus a probe, and asserts the probe alone
 // is caught — proving the ACK neither inherits to nor is bypassed by:
-const A = ACK[0];   // { file, method, code, count:1 }
-const real = { file: A.file, method: A.method, code: A.code, line: 10 };
-// (a) a DIFFERENT computed read in the ACKed file.
-const differentRead = classify([real, { file: A.file, method: A.method, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
+const A = ACK[0];
+// A synthetic observation set that satisfies EVERY ACK exactly (count-aware), so a
+// probe added to it is the ONLY thing that can fail. Stays correct as ACKs grow.
+const baseline = ACK.flatMap(a => Array.from({ length: a.count }, (_, i) =>
+  ({ file: a.file, method: a.method, code: a.code, line: 900 + i })));
+ok(classify(baseline).length === 0, 'sensitivity baseline: a fully-satisfied ACK set is clean');
+// (a) a DIFFERENT computed read in the ACKed file+method.
+const differentRead = classify([...baseline, { file: A.file, method: A.method, code: 'p.tags[__unreviewed_expr__]', line: 1 }]);
 ok(differentRead.length === 1 && /no ACK/.test(differentRead[0].why),
   'sensitivity: a NEW different computed read in an ACKed file is caught');
 // (b) a DUPLICATE of the ACKed expression (the exact bypass text alone would pass).
-const duplicateRead = classify([real, { file: A.file, method: A.method, code: A.code, line: 2 }]);
+const duplicateRead = classify([...baseline, { file: A.file, method: A.method, code: A.code, line: 2 }]);
 ok(duplicateRead.length === 1 && /found 2/.test(duplicateRead[0].why),
   'sensitivity: a DUPLICATE of the ACKed expression (count 2 > 1) is caught, not inherited');
-// (c) a STALE ACK — the ACKed expression is GONE (classify([]) must still fail on
-//     the unvalidated count:1), so a removed read cannot leave a blessing behind.
+// (c) a STALE ACK — every ACKed expression GONE (classify([]) must still fail on
+//     the unvalidated counts), so a removed read cannot leave a blessing behind.
 const staleAck = classify([]);
-ok(staleAck.length === 1 && /found 0/.test(staleAck[0].why),
+ok(staleAck.length === ACK.length && staleAck.every(b => /found 0/.test(b.why)),
   'sensitivity: an ACK whose expression is REMOVED (observed 0) fails as stale');
 // (d) E3b-P5 — METHOD SCOPING. The SAME expression text in a DIFFERENT method must
 //     NOT inherit the ack: play-grid holds an allowed editor read and a forbidden
-//     display read with identical text. Expect BOTH the stale ACK (its own method
-//     observed 0) and the unacknowledged foreign-method site.
-const otherMethod = classify([{ file: A.file, method: '_someDisplayMethod', code: A.code, line: 5 }]);
-ok(otherMethod.length === 2
-  && otherMethod.some(b => /found 0/.test(b.why))
-  && otherMethod.some(b => /_someDisplayMethod/.test(b.why)),
+//     display read with identical text.
+const otherMethod = classify([...baseline, { file: A.file, method: '_someDisplayMethod', code: A.code, line: 5 }]);
+ok(otherMethod.length === 1 && /_someDisplayMethod/.test(otherMethod[0].why),
   'sensitivity: the SAME expression in a DIFFERENT method is NOT auto-accepted (method-scoped ACK)');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

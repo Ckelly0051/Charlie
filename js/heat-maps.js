@@ -10,6 +10,11 @@
  *      cols = play types), green-shaded
  *   4. Hash Tendency — what kind of plays you call from each hash
  */
+// stats-engine imports THIS module, so this is a cycle — safe because StatsEngine
+// is only referenced at render() call time, never during module evaluation (and the
+// built bundle shares one scope). Keeps ONE canonical splitter/projection.
+import { StatsEngine } from './stats-engine.js';
+
 export class HeatMaps {
   render(plays) {
     return `
@@ -175,7 +180,10 @@ export class HeatMaps {
   _renderFormationByPlay(plays) {
     // Formation is multi-select ("Pistol + Spread"); split each play into its
     // component looks so every formation gets its own matrix row.
-    const formsOf = (p) => String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    // E3b: read the PROJECTED structural formation — a play charted only as
+    // "Shotgun" is QB alignment, not a formation, and must not appear as a
+    // formation row (§6.4: blank is omitted, never imputed).
+    const formsOf = (p) => StatsEngine.splitFormations(StatsEngine.proj(p).formation);
     const formations = [...new Set(plays.flatMap(formsOf))];
     const playTypes = [...new Set(plays.map(p => p.tags.playType).filter(Boolean))];
 

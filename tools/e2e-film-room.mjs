@@ -255,7 +255,12 @@ r = await page.evaluate(() => {
   // manual top-formation calc over visible plays (no filters active)
   const counts = {};
   let total = 0;
-  window.app.tagger.plays.forEach(p => String(p.tags.formation || '').split(/\s*\+\s*/)
+  // E3b: the tendency line is a DISPLAY surface and reads the PROJECTED formation,
+  // so the independent expectation must project too. `total` is therefore the §6.5
+  // ELIGIBLE denominator — an alignment-only play (projected formation blank) is
+  // omitted rather than counted as a "Shotgun" formation.
+  const SE = window.app.stats.constructor;
+  window.app.tagger.plays.forEach(p => String(SE.projField(p, 'formation') || '').split(/\s*\+\s*/)
     .map(s => s.trim()).filter(Boolean).forEach(v => { counts[v] = (counts[v] || 0) + 1; total++; }));
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   const expected = `${top[0]} ${Math.round(top[1] / total * 100)}%`;

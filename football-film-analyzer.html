@@ -21718,6 +21718,10 @@ class QuickChart {
  *      cols = play types), green-shaded
  *   4. Hash Tendency — what kind of plays you call from each hash
  */
+// stats-engine imports THIS module, so this is a cycle — safe because StatsEngine
+// is only referenced at render() call time, never during module evaluation (and the
+// built bundle shares one scope). Keeps ONE canonical splitter/projection.
+
 class HeatMaps {
   render(plays) {
     return `
@@ -21883,7 +21887,10 @@ class HeatMaps {
   _renderFormationByPlay(plays) {
     // Formation is multi-select ("Pistol + Spread"); split each play into its
     // component looks so every formation gets its own matrix row.
-    const formsOf = (p) => String(p.tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    // E3b: read the PROJECTED structural formation — a play charted only as
+    // "Shotgun" is QB alignment, not a formation, and must not appear as a
+    // formation row (§6.4: blank is omitted, never imputed).
+    const formsOf = (p) => StatsEngine.splitFormations(StatsEngine.proj(p).formation);
     const formations = [...new Set(plays.flatMap(formsOf))];
     const playTypes = [...new Set(plays.map(p => p.tags.playType).filter(Boolean))];
 
@@ -22002,6 +22009,10 @@ class HeatMaps {
  * Required tags: yardLine + fieldSide, down, distance, yardage, result.
  * Plays missing any required field are skipped (returns null).
  */
+// stats-engine imports THIS module; the cycle is safe because StatsEngine is only
+// referenced at call time, never during module evaluation (and the built bundle
+// shares one scope). Keeps ONE canonical projection helper.
+
 class AdvancedMetrics {
   /** Expected Points at a given (yardLineFromOwnGoal 1..99, down, distance) */
   ep(yl, down, distance) {
@@ -22112,12 +22123,18 @@ class AdvancedMetrics {
     // formation "Pistol + Spread") so EPA is attributed to each component.
     const groupBy = (key, multi = false) => {
       const m = {};
+      const projected = StatsEngine.PROJECTED_FIELDS.includes(key);
       for (const x of withEpa) {
-        const raw = x.play.tags[key] || 'Unknown';
+        // E3b: read the PROJECTED value for the six projected fields, and OMIT a
+        // blank instead of imputing 'Unknown' (§6.4) — an alignment-only play has
+        // no structural formation and must fall out of formation EPA, not invent a
+        // category. Non-projected keys keep their existing 'Unknown' bucket.
+        const raw = projected ? StatsEngine.projField(x.play, key) : (x.play.tags[key] || 'Unknown');
         const keys = multi
           ? (String(raw).split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean) || [])
-          : [raw];
-        if (!keys.length) keys.push('Unknown');
+          : (raw ? [raw] : []);
+        if (!keys.length && !projected) keys.push('Unknown');
+        if (!keys.length) continue;   // projected + blank → omitted
         for (const k of keys) {
           if (!m[k]) m[k] = { name: k, total: 0, count: 0 };
           m[k].total += x.epa;
@@ -22801,6 +22818,18 @@ class StatsEngine {
   // tools/e2e-raw-read-audit.mjs), or Study and the dashboard will disagree.
   static proj(p) {
     return TagProjection.project(p && p.tags ? p.tags : {});
+  }
+
+  /** E3b: the by-KEY read-side twin of `proj`, for DISPLAY surfaces keyed by a
+   *  runtime column/dimension id (Film Room's `col.key`, EPA's `groupBy(key)`).
+   *  Returns the PROJECTED value for the six projected fields and the raw tag for
+   *  everything else, so one dynamic-key display projects the six and passes the
+   *  rest through unchanged. EDITORS must never call this — they read and write the
+   *  coach's stored value (§20). */
+  static PROJECTED_FIELDS = ['formation', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
+  static projField(p, key) {
+    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] || '';
+    return (p && p.tags ? p.tags[key] : '') || '';
   }
 
   /**
@@ -31600,7 +31629,11 @@ class PlayGrid {
       const counts = {};
       let total = 0;
       visible.forEach(p => {
-        String(p.tags[col.key] || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(v => {
+        // E3b: DISPLAY surface → read the PROJECTED value for the six projected
+        // fields (raw passthrough otherwise). Blank is OMITTED, so `total` is the
+        // §6.5 ELIGIBLE denominator (plays actually carrying this value), never an
+        // invented 'Unknown' bucket. The inline EDITOR still reads/writes raw.
+        String(StatsEngine.projField(p, col.key) || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean).forEach(v => {
           counts[v] = (counts[v] || 0) + 1; total++;
         });
       });
