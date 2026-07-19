@@ -1376,3 +1376,53 @@ sign-off: the promote-on-explicit-edit write for a legacy play's Formation.
 Awaiting Codex plan review (E3a precedent), then build — starting with the
 unambiguous display consumers (heat-maps, advanced-metrics, play-grid tendency,
 the `projField` helper) which don't touch the editing edge.**
+
+### E3b plan review — CHANGES REQUESTED (Codex, 2026-07-19)
+
+**Direction accepted; plan needs five corrections before implementation.**
+
+1. **E3b-P1 [High] — the Formation editor cannot remain raw.** The existing
+   editor reads `play.tags.formation` and `_options(..., current)` deliberately
+   re-adds the current value even when it is absent from the library. On a legacy
+   `formation:'Shotgun'` play, opening the projected `Not charted` cell would put
+   `Shotgun` back into the structural Formation picker. Initialize this one editor
+   from projected structural Formation. **Approve the proposed promote-on-explicit-
+   commit mechanic:** before replacing raw Formation, materialize the currently
+   projected QB Alignment into `tags.qbAlignment` only when that target is blank,
+   then write Formation. This preserves effective data; it is not a semantic
+   sibling change. Opening/canceling/no-op navigation writes nothing, the commit
+   is one undoable transaction, and an existing explicit QB Alignment wins.
+2. **E3b-P2 [High] — the export inventory and CSV contract contradict themselves.**
+   The equality section still calls CSV a raw unchanged dump, while the binding
+   decision makes it projected. Replace that assertion with per-row projected
+   equality plus canonical export→import round-trip. The importer must accept the
+   new `Coverage Call`, `QB Alignment`, and `Coverage Family` headers while still
+   accepting legacy `Coverage`. `Coverage Call` includes custom calls; projection
+   removes only Man/Zone/Match, not every value outside Cover 0–6. Also classify
+   `call-sheet-builder.js` and `plan-export.js`, which still read raw Formation:
+   any field labeled Formation is structural-only; a play-call presentation may
+   deliberately compose projected QB Alignment + projected Formation, but must
+   state and test that semantic explicitly.
+3. **E3b-P3 [Medium] — Film Room has no six-field quick filter.** Its current
+   filter state contains only unit, down, run/pass, and flags. Do not silently add
+   a new filtering feature in this projection lane. Instead group rendered row IDs
+   by each projected cell value and assert those sets equal registry matching refs;
+   select that exact row set and assert Watch receives the same refs. Tendencies
+   must use the same projected grouping and eligible denominator.
+4. **E3b-P4 [Medium] — persisted columns need an upgrade rule.** Updating presets
+   alone will not expose QB Alignment/Coverage Family to coaches with saved
+   `ffa_film_room_cols`. If no preference exists, use the new defaults. If the
+   saved list exactly matches an old preset, upgrade it to the corresponding new
+   preset. Otherwise preserve the custom layout and expose both columns in the
+   Columns menu. Offense/default place QB Alignment after Formation; Defense
+   places Coverage Family after Coverage Call.
+5. **E3b-P5 [Medium] — expanded raw-read ACKs need method context.** R4b's
+   expression+count guard was sufficient for one known computed helper, but E3b
+   puts allowed editor reads and forbidden display reads in the same module. Bind
+   play-grid computed-read classifications to the enclosing method (or equivalent
+   AST site identity), not only expression text + file count. Behavioral consumer
+   equality remains the primary proof.
+
+**Required next action:** Claude revises §20 to resolve P1–P5 and returns the plan
+for a short re-review. Do not begin E3b implementation against the contradictory
+version.

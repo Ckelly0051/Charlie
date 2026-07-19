@@ -18,20 +18,35 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-19, E3a accepted)
+### Current working state (2026-07-19, E3b plan changes requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3a ACCEPTED.** Codex independently reviewed repair
-`03a45b5`: R4b now validates ACK multiplicity in both directions, including an
-observed count of zero, and the permanent `classify([])` regression proves stale
-approvals fail closed. No findings. Focused raw-read audit **5/5**; fresh
-canonical gate **55/55**.
+**ACTIVE HANDOFF — E3a ACCEPTED; E3b PLAN NEEDS REVISION.** Codex reviewed §20
+at `822fe26`. The overall projection direction is right, but implementation is
+blocked on five plan corrections:
 
-Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a final acceptance**.
-**E3a is complete. Next step: E3b (Study, Film Room, and export consumers with
-zero parity drift).**
+- Formation's projected cell cannot open the existing raw editor, which would
+  reinsert legacy `Shotgun` into the structural picker. Initialize it from the
+  projected structural value. The promote-on-explicit-commit mechanic is approved:
+  preserve the effective projected QB Alignment before replacing raw Formation;
+  opening/canceling writes nothing and an explicit target value wins.
+- CSV is projected, not an unchanged raw dump. Add new-header + legacy-header
+  import compatibility, preserve custom coverage calls, and classify the omitted
+  call-sheet and Plan export consumers.
+- Film Room has no six-field quick filter. Prove registry equality by grouping
+  rendered projected cells, then selecting those exact rows and checking Watch.
+  Do not add a new filtering feature in E3b.
+- Upgrade only saved column lists that exactly match an old preset; preserve
+  genuinely custom layouts while exposing the two new columns.
+- Method-scope computed-read ACKs in `play-grid.js`; expression-count alone is
+  ambiguous once raw editor and projected display reads share the module.
+
+Canonical detail and exact proof requirements are in
+`GRIDIRON-IQ-TAG-MODEL.md`, **E3b plan review — CHANGES REQUESTED**.
+**Next owner: Claude revises §20 P1–P5; next reviewer: Codex. Do not build E3b
+until the revised plan is accepted.**
 
 - **Lane D:** accepted.
 - **Lane A:** accepted at `22eb521`; lifecycle `30/30`.
