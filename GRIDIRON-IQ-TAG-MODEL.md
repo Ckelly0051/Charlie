@@ -1549,6 +1549,67 @@ equality stays the PRIMARY proof.
 
 **Status: rev 2 ready for a short Codex re-review. No E3b implementation started.**
 
+### E3b plan rev 2 — ACCEPTED (Codex, 2026-07-19, `e402e4d`)
+No blocking findings. Two implementation checks emphasized, binding on the build:
+1. **`qbAlignment` and `coverageFamily` remain COMPLETELY display-only in E3b.**
+2. **Presentation exports preserve their play references and ORDER and project
+   their LABELS; registry grouping equality is reserved for actual analytics and
+   filter consumers** (do not force a call sheet / plan export to prove registry
+   grouping — prove refs/order + projected labels instead).
+
+### E3b-1 + E3b-2 — BUILT and ACCEPTED (Codex, 2026-07-19, `e668bf8`)
+
+**E3b-1 (`3187c99`) — audit detector repair + method-scoped ACKs (plan task #1).**
+`unwrap()` now recurses through `LogicalExpression`, closing the
+`const t = X.tags || {}` blind spot that hid five consumer files from the rev-1
+inventory. ACK identity became **(file, enclosing method, expression, count)** —
+required because E3b puts an ALLOWED editor read and a FORBIDDEN display read with
+identical expression text in one module (`play-grid` `_tendency` vs
+`_openEditor`/`_applyEdit`).
+
+**E3b-2 (`29f024a`) — `projField` seam + three display consumers.**
+`StatsEngine.projField(p, key)` is the by-KEY read-side twin of `proj()` for
+surfaces keyed by a runtime column id; editors never call it. Wired: `heat-maps`
+`_renderFormationByPlay`, `advanced-metrics` `groupBy` (EPA — projected AND blanks
+OMITTED per §6.4, the same violation E3a-R2 fixed), and `play-grid` `_tendency`.
+
+**Review round 1 (`e668bf8`) — 3 code findings, all fixed:**
+- **[P1] tendency denominator.** `_tendency` counted TOKENS, not eligible plays —
+  and the comment I added claimed §6.5 eligibility the code did not provide. Now
+  one count per eligible play. Pinned by two DETERMINISTIC cases that do not mirror
+  the implementation (`Wing-T 100%` where token math gave 75%; `Trips 67%` where it
+  gave 50%), both verified failing-first.
+- **[P2] no permanent parser-level guard.** Extracted `scanSource()` and added a
+  permanent AST FIXTURE over all six raw-read forms. **The first fixture was
+  VACUOUS** — every probe reused the alias name `t`, so one bare
+  `const t = p.tags` registered the alias for the whole source and the `|| {}`
+  probes passed even with `unwrap()` reverted; caught by mutating `unwrap()`.
+  Distinct names per probe; the mutation now correctly drops formation+coverage.
+- **[Low] `projField` used `|| ''`**, blanking a legitimate `0`/`false`. Now `?? ''`.
+
+**[P0] PII in pushed history — REMEDIATED.** `fc00ce0` swept in a resume generator
+(phone/email/employment history) via a `git add -A`; it reached the PUBLIC remote.
+Branch history was rewritten (`filter-branch --index-filter --prune-empty`) and
+force-pushed with `--force-with-lease`. Verified from a FRESH CLONE of the remote:
+the path is absent from all reachable history and no object matching
+`resume|Resume|Kelly` exists; code content byte-identical to the pre-rewrite
+backup; gate 55/55 after. **Residual, explicitly tested:** the old commit is STILL
+fetchable by direct SHA until GitHub garbage-collects — GitHub Support must purge
+it, and the data should be treated as disclosed. `.gitignore` now blocks the resume
+artifacts. Root cause: staging with `git add -A` instead of explicit paths.
+
+**Codex verification:** audit 11/11, Film Room 62/62, projection 40/40, synthetic +
+real-season parity clean, canonical gate 55/55 on a fresh rebuild, no unrelated
+files in the rewritten commit.
+
+**Remaining E3b:** `play-filter.js` projection (filter → cut-up film-link parity);
+Film Room Formation cell "Not charted" + `QB Alignment` / `Coverage Family`
+display-only columns + the P4 saved-column upgrade rule + the P1 Formation-editor
+change (seed from projected, promote-on-explicit-commit); projected CSV
+export/import (P2 contract); presentation-export labels (refs/ORDER preserved);
+the per-consumer play-ID EQUALITY assertions; and the audit scan expansion to each
+newly wired consumer. **E4 stays blocked until final E3b acceptance.**
+
 ### E3b rev-2 plan acceptance (Codex, 2026-07-19)
 
 **Verdict: ACCEPTED, no blocking findings.** Revision `3c05968` closes P1–P5
