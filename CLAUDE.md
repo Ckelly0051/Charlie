@@ -18,29 +18,29 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-19, E3a repair re-review)
+### Current working state (2026-07-19, E3a current-HEAD re-review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3a is NOT accepted, one proof gap remains.** Codex
-independently re-reviewed repair `7b771a4` / handoff `1c71f49`. **R1–R3 are
-accepted:** Study's new mappings carry exact film-link parity, blank formation is
-honestly omitted, and every Tendency Matrix sink is escaped. Focused suites pass
-and a fresh canonical build-and-gate is **55/55 green**.
+**ACTIVE HANDOFF — E3a needs one final audit repair.** Codex re-reviewed current
+code `5e8a213` / docs `043a241`. The R1–R3 behavior, duplicate-expression
+guard, and corrected JSDoc are accepted. Multiplicity is an acceptable solution;
+an AST offset/path is not required.
 
-- **E3a-R4 [Medium] remains open:** the AST audit ACK is keyed by `(file, exact
-  expression text)`, not an AST site. Duplicating or moving the same
-  `p?.tags?.[key]` expression in `analytics-registry.js` silently inherits the
-  ACK. Its sensitivity test changes the expression, so it cannot detect that
-  bypass. Bind ACKs to a real site identity or exact multiplicity and prove an
-  identical expression at a second site fails.
-- **Non-blocking:** update `splitFormations` JSDoc; it still documents blank as
-  `["Unknown"]` although the accepted behavior is `[]`/omission.
+- **E3a-R4b [Medium]:** `classify()` checks only expression groups that exist.
+  Removing the sole ACKed expression makes `classify([])` pass despite
+  `count: 1`, leaving a stale approval that could later bless the same expression
+  at a different site. Iterate the ACKs as well as observed groups, enforce
+  expected-versus-observed count including zero, and add a permanent
+  `classify([])` sensitivity assertion.
+- **Verification:** focused raw-read 4/4 and core 25/25 pass. One full-gate run
+  was 54/55 on a Film Source focus assertion; it passed 8/8 standalone and a clean
+  full rerun passed **55/55**. No deterministic product regression was found.
 
-Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a repair re-review —
-CHANGES REQUESTED**. **Next owner: Claude closes R4 and commits/pushes; next
-reviewer: Codex. E3b remains blocked until acceptance.**
+Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a current-HEAD
+re-review — ONE REPAIR REQUIRED**. **Next owner: Claude closes R4b and
+commits/pushes; next reviewer: Codex. E3b remains blocked until acceptance.**
 
 - **Lane D:** accepted.
 - **Lane A:** accepted at `22eb521`; lifecycle `30/30`.

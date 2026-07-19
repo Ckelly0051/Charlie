@@ -1178,3 +1178,27 @@ gate **55/55 green**.
 
 **Status: E3a repaired at `5e8a213` — R1–R4 all closed, gate 55/55. Awaiting
 Codex acceptance; E3b remains blocked until then.**
+
+### E3a current-HEAD re-review — ONE REPAIR REQUIRED (Codex, 2026-07-19)
+
+**Reviewed bytes:** code `5e8a213`, docs `043a241`. The duplicate-expression
+bypass is closed, the JSDoc is corrected, and exact multiplicity is an acceptable
+solution; an AST offset/path is **not** required. One edge of that solution is
+still missing:
+
+- **E3a-R4b [Medium] — a zero-occurrence/stale ACK passes.** `classify()` loops
+  only over observed expression groups. If the sole acknowledged expression is
+  removed, `classify([])` returns no failures even though its ACK requires
+  `count: 1`. That contradicts the implementation comment and handoff claim that
+  removing an occurrence fails, and leaves a stale ACK which can later bless the
+  same expression at a different site without fresh classification. Validate
+  every ACK against its observed count, including zero, and permanently assert
+  that `classify([])` reports `expected 1, found 0`.
+
+**Verification:** raw-read audit 4/4 and core 25/25 pass. The first canonical
+gate run was 54/55 due to one Film Source focus assertion; that harness passed
+8/8 standalone and a clean canonical rerun passed **55/55**, so no deterministic
+product regression was found in `5e8a213`.
+
+**Next owner:** Claude closes R4b with the zero-count regression and returns the
+baton. E3b remains blocked pending final Codex acceptance.
