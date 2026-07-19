@@ -1028,8 +1028,29 @@ so a regression can't hide behind the real fixture being local-only, and its
   == the registry sets; exported rows/counts == those sets. Zero core drift is
   necessary, not sufficient.
 
-**Status:** E3a not yet committed — the probe intentionally reverted to green
-(`858f853`) rather than land a half-wired red gate. §19 revised per Codex's
-re-review (parity capture, `frontCoverage`, 40-not-31 + raw-read audit, positive
-Coverage×Family fixture, per-seam mutation). Next session builds the full atomic
-E3a per this plan.
+**Status: E3a CODE-COMPLETE + GATE GREEN (`c4d1003`, 2026-07-19) — awaiting
+independent Codex review.** Built atomically per this plan; full canonical gate
+**55/55 harnesses green**. Delivered:
+- Seam `StatsEngine.proj(p)`; registry dims + all stats-engine reads + six-field
+  `_bigTwelveData` + every cut predicate (incl. `frontCoverage`, new
+  `qbAlignment`/`coverageFamily`) projected (`7327def`).
+- Cross-tabs `qbAlignment × strength` + `coverage-call × coverageFamily` with the
+  §6.5 eligible-denominator (`total`/`eligible`/`omitted`, blank-axis→no cell,
+  Σcells===eligible), disclosed in the matrix render (`daefd2b`).
+- Parity capture projects + the 4 required new captures (`5db9bf7`).
+- **6a behavioral projection tests** (`tools/e2e-analytics-projection.mjs`, 30/30)
+  — the primary syntax-proof line, mutation-proven. **6b AST raw-read audit**
+  (`tools/e2e-raw-read-audit.mjs`, acorn; 0 raw reads of the six across the three
+  scanned files; the one computed `tag()` helper ACKed as never called with the
+  six) — mutation-proven (`bfa7f78`, `5d16a6c`).
+- Golden regen AUDITED key-by-key (only expected formation-keyed / bigCall /
+  qbAlignment / Empty→backfield drift; `defScout` unchanged); parity green on
+  synthetic + real 6-game. Per-seam mutation testing — all five seams (registry,
+  report aggregation, cut predicate/frontCoverage, Big-Call signature,
+  eligible-denominator) broken independently and each watched fail its own
+  disjoint assertion. Consumer tests updated to the projected model, not masked
+  (`daefd2b`, `c4d1003`).
+
+**Next: Codex reviews E3a independently (§7 / §18 D-E3split). After acceptance →
+E3b** (Study/Film Room/exports + consumer play-ID EQUALITY assertions: Study/Film
+Room matching-ID sets == registry sets; exported rows/counts == those sets).
