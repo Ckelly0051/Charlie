@@ -4,6 +4,7 @@
     "puppeteer": "^25.1.0"
   },
   "devDependencies": {
+    "acorn": "^8.17.0",
     "sql.js": "^1.14.1"
   }
 }
