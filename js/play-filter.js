@@ -1,6 +1,8 @@
 /**
  * PlayFilter - Filters plays by any combination of criteria.
  */
+import { StatsEngine } from './stats-engine.js';
+
 export class PlayFilter {
   constructor(playTagger) {
     this.tagger = playTagger;
@@ -100,7 +102,11 @@ export class PlayFilter {
       if (!c.playTypes.some(t => playParts.includes(t))) return false;
     }
     if (c.formations.length) {
-      const playForms = String(tags.formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+      // E3b: this filter FEEDS the cut-up exporter, so it must select the SAME
+      // plays analytics does — read the PROJECTED structural formation. A raw read
+      // would match a legacy alignment token ("Shotgun") that is no longer a
+      // formation, diverging the coach's film set from every report.
+      const playForms = StatsEngine.splitFormations(StatsEngine.proj(p).formation);
       if (!c.formations.some(f => playForms.includes(f))) return false;
     }
     if (c.personnel.length && !c.personnel.includes(tags.personnel)) return false;

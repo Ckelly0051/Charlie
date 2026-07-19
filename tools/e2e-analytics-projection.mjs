@@ -125,6 +125,27 @@ const results = await page.evaluate(() => {
   t('heat map has NO raw Shotgun formation row', !/Shotgun/.test(hm), '');
   t('heat map has NO invented Unknown formation row', !/Unknown/.test(hm), '');
 
+  // --- play-filter (drawer "Filter Plays" → cut-up exporter) EQUALITY ---
+  // This filter selects the film the coach exports, so its set must EQUAL the
+  // registry cut set for the same value. OFF is "Shotgun + Trips" (projects to
+  // Trips); ALIGN_ONLY is "Under Center" (projects to no structural formation).
+  const pf = window.app.filter;
+  const filterSet = (formation, plays) => {
+    const saved = JSON.parse(JSON.stringify(pf.criteria));
+    pf.criteria.formations = [formation];
+    const got = plays.filter(p => pf._matchesPlay(p)).map(p => registry.playRef(p)).sort();
+    pf.criteria = saved;
+    return got;
+  };
+  const cohort = [OFF, ALIGN_ONLY, OFFBF];
+  t('play-filter[Trips] EQUALS the registry cut set',
+    eq(filterSet('Trips', cohort), registry.matchingRefs(cohort, 'formation', 'Trips')),
+    JSON.stringify({ filter: filterSet('Trips', cohort), registry: registry.matchingRefs(cohort, 'formation', 'Trips') }));
+  t('play-filter[Shotgun] selects NOTHING (alignment is not a formation)',
+    eq(filterSet('Shotgun', cohort), []), JSON.stringify(filterSet('Shotgun', cohort)));
+  t('play-filter[Under Center] selects NOTHING (alignment-only play omitted)',
+    eq(filterSet('Under Center', cohort), []), JSON.stringify(filterSet('Under Center', cohort)));
+
   // --- EPA byFormation (advanced-metrics groupBy) ---
   // EPA needs field position, so these carry fieldSide/yardLine — without them
   // `withEpa` is empty and the omit-assertion would pass VACUOUSLY.
