@@ -39,7 +39,7 @@ const result = await page.evaluate((fixture) => {
   const plays = store.data.games.flatMap(g => g.plays || []);
 
   // Dimension -> the golden drilldown cut type it must reproduce.
-  const dims = { formation: 'formation', coverage: 'coverage', defFront: 'defFront', runPass: 'runpass', down: 'down', personnel: 'personnel', blitz: 'blitz' };
+  const dims = { formation: 'formation', qbAlignment: 'qbAlignment', coverage: 'coverage', coverageFamily: 'coverageFamily', defFront: 'defFront', runPass: 'runpass', down: 'down', personnel: 'personnel', blitz: 'blitz' };
   const grouped = {};
   for (const [dim, cut] of Object.entries(dims)) {
     const q = study.run({ plays, dimension: dim, measures: ['sampleSize', 'runShare', 'passShare', 'successRate'] });
@@ -78,8 +78,13 @@ const result = await page.evaluate((fixture) => {
   const deferredThrows = (() => { try { study.run({ plays, dimension: 'fieldZone' }); return false; } catch { return true; } })();
   const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formation' }); return false; } catch { return true; } })();
 
+  // Finding 1: the new dimensions must ROUTE THROUGH the report cut (film-link
+  // parity), not registry membership. On this fixture both paths coincide, so pin
+  // the mapping structurally — removing it must fail here.
+  const DC = window.app.study.constructor.DIMENSION_CUT;
   return {
     grouped, playCount: plays.length,
+    dimCut: { qbAlignment: DC.qbAlignment, coverageFamily: DC.coverageFamily },
     cmpMeta,
     cmpTrips: cmpTrips ? { aIds: cmpTrips.a.matchingPlayIds, bIds: cmpTrips.b.matchingPlayIds, deltas: cmpTrips.deltas, sampleDelta: cmpTrips.sampleDelta } : null,
     cmpFlexbone: cmpFlexbone ? { aSample: cmpFlexbone.a.sampleSize, aIds: cmpFlexbone.a.matchingPlayIds, bIds: cmpFlexbone.b.matchingPlayIds, sampleDelta: cmpFlexbone.sampleDelta } : null,
@@ -119,6 +124,11 @@ if (!result.missing) {
   const goldFormations = Object.keys(gd).filter(k => k.startsWith('formation::')).map(k => k.slice('formation::'.length)).sort();
   const queryFormations = result.grouped.formation.groups.map(g => g.value).sort();
   ok(JSON.stringify(goldFormations) === JSON.stringify(queryFormations), 'Formation query values exactly cover the golden formation drilldowns', JSON.stringify({ goldFormations, queryFormations }));
+
+  // 1b. The two new E3a dimensions map to their canonical cuts (film-link parity,
+  //     not registry membership) — finding 1.
+  ok(result.dimCut.qbAlignment === 'qbAlignment' && result.dimCut.coverageFamily === 'coverageFamily',
+    'Study routes qbAlignment + coverageFamily through their report cuts', JSON.stringify(result.dimCut));
 
   // 2. Filter semantics.
   ok(result.filter.runTotal === result.filter.expectRun, 'OR-within filter cohort matches isRun set', JSON.stringify(result.filter));

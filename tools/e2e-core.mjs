@@ -38,7 +38,7 @@ let r = await page.evaluate(() => {
   };
 });
 ok(JSON.stringify(r.form2) === JSON.stringify(['Pistol', 'Spread']), 'splitFormations splits on " + "', JSON.stringify(r.form2));
-ok(JSON.stringify(r.formEmpty) === JSON.stringify(['Unknown']), 'splitFormations("") → ["Unknown"] (untagged plays still bucket into tendency tables)', JSON.stringify(r.formEmpty));
+ok(JSON.stringify(r.formEmpty) === JSON.stringify([]), 'splitFormations("") → [] (blank formation is OMITTED, not imputed to Unknown — §6.4; an alignment-only play falls out of formation tendencies/cuts, stays counted under qbAlignment)', JSON.stringify(r.formEmpty));
 ok(JSON.stringify(r.formOne) === JSON.stringify(['Shotgun']), 'single formation → one-element array', JSON.stringify(r.formOne));
 ok(JSON.stringify(r.types) === JSON.stringify(['RPO', 'Short Pass']), 'splitPlayTypes splits', JSON.stringify(r.types));
 ok(JSON.stringify(r.results) === JSON.stringify(['Fumble', 'Touchdown']), 'splitResults splits (scoop-and-score)', JSON.stringify(r.results));

@@ -38,9 +38,11 @@ const FILES = ['js/stats-engine.js', 'js/analytics-registry.js', 'tools/e2e-pari
 const ALLOW = [];   // { file, line, field }
 
 // Computed `X.tags[expr]` reads, manually classified as safe (they never route one
-// of the six fields around proj). A new, unlisted computed read fails the audit.
+// of the six fields around proj). Identity is (file, EXACT expression text) — NOT
+// the filename — so a new/moved/different computed read anywhere in the same file
+// is a distinct, unacknowledged site and fails the audit (finding 4).
 const ACK = [
-  { file: 'js/analytics-registry.js', reason: "generic tag(key) helper — verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
+  { file: 'js/analytics-registry.js', code: 'p?.tags?.[key]', reason: "generic tag(key) helper — verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
 ];
 
 let pass = 0, fail = 0;
@@ -100,10 +102,11 @@ for (const rel of FILES) {
       && isTagsMember(node.object)) {
       findings.push({ file: rel, line, field: node.property.value, form: "bracket .tags['" + node.property.value + "']" });
     }
-    // computed non-literal on .tags → FLAG
+    // computed non-literal on .tags → FLAG (identity = exact expression text, so a
+    // NEW or MOVED computed read is a distinct, unacknowledged site).
     if (node.type === 'MemberExpression' && node.computed
       && node.property.type !== 'Literal' && isTagsMember(node.object)) {
-      flags.push({ file: rel, line, form: '.tags[<computed>]' });
+      flags.push({ file: rel, line, code: src.slice(node.start, node.end).replace(/\s+/g, ' ') });
     }
     // alias read: aliasVar.FIELD
     if (node.type === 'MemberExpression' && !node.computed
@@ -129,12 +132,18 @@ const violations = findings.filter(f => !isAllowed(f));
 for (const v of violations) console.log(`  FAIL  raw read ${v.file}:${v.line} — ${v.form} (field "${v.field}") must route through StatsEngine.proj`);
 ok(violations.length === 0, `zero un-allowlisted raw reads of the six projected fields (found ${findings.length}, allowlisted ${findings.length - violations.length})`);
 
-// Computed flags — each must be acknowledged.
-const ackFiles = new Set(ACK.map(a => a.file));
-const unacked = flags.filter(f => !ackFiles.has(f.file));
-for (const f of flags) console.log(`  ${ackFiles.has(f.file) ? 'ack ' : 'NEW '} computed .tags[expr] at ${f.file}:${f.line}`);
-ok(unacked.length === 0, `every computed .tags[expr] is acknowledged (${flags.length} flagged, ${unacked.length} unreviewed)`,
-  unacked.map(f => `${f.file}:${f.line}`).join(', '));
+// Computed flags — each must be acknowledged by (file, EXACT expression text).
+const isAcked = f => ACK.some(a => a.file === f.file && a.code === f.code);
+const unacked = flags.filter(f => !isAcked(f));
+for (const f of flags) console.log(`  ${isAcked(f) ? 'ack ' : 'NEW '} computed ${f.code} at ${f.file}:${f.line}`);
+ok(unacked.length === 0, `every computed .tags[expr] is acknowledged by exact site (${flags.length} flagged, ${unacked.length} unreviewed)`,
+  unacked.map(f => `${f.file}:${f.line} (${f.code})`).join(', '));
+
+// PERMANENT sensitivity self-test (finding 4): the ACK must be site-specific, not
+// file-wide — a DIFFERENT computed read in an already-acknowledged file must NOT
+// inherit the ack. Synthesize one and assert it classifies as unacknowledged.
+const synthetic = { file: 'js/analytics-registry.js', code: 'p.tags[__unreviewed_expr__]' };
+ok(!isAcked(synthetic), 'ACK is site-specific: a new computed read in an ACKed file is NOT auto-accepted');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

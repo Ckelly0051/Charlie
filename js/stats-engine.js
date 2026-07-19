@@ -25,8 +25,10 @@ export class StatsEngine {
    * formations. "Pistol + Spread" -> ["Pistol", "Spread"]; blank -> ["Unknown"].
    */
   static splitFormations(formation) {
-    const parts = String(formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
-    return parts.length ? parts : ['Unknown'];
+    // Blank → [] (OMITTED, not imputed): §6.4/§6.5. Formation is optional and
+    // structure-only now; an alignment-only play (projected formation '') must fall
+    // out of formation tendencies/cuts/cross-tabs, never bucket as 'Unknown'.
+    return String(formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
   // E3: the ONE seam every analytics consumer reads a play's pre-snap look
@@ -2880,17 +2882,19 @@ export class StatsEngine {
   _renderMatrixGrid(matrix) {
     if (!matrix.rowKeys.length || !matrix.colKeys.length) return '<p style="opacity:.6">Not enough data for this combination.</p>';
     const maxCount = Math.max(1, ...Object.values(matrix.cells).map(c => c.count));
+    const esc = Charts._esc;   // row/col keys are coach-controlled formation/coverage/
+                               // custom library values (importable) → escape every sink.
     // §6.5 honesty: disclose the eligible denominator — how many in-scope plays
     // this cross-tab dropped for lacking a value on one of the two axes.
     const omitted = matrix.omitted || 0;
-    const disclose = `<p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">${matrix.eligible} of ${matrix.total} plays charted on both axes${omitted ? ` · ${omitted} omitted (blank on ${matrix.rowDim.label} or ${matrix.colDim.label})` : ''}</p>`;
+    const disclose = `<p class="tm-eligible" style="opacity:.7;font-size:.85em;margin:0 0 6px">${matrix.eligible} of ${matrix.total} plays charted on both axes${omitted ? ` · ${omitted} omitted (blank on ${esc(matrix.rowDim.label)} or ${esc(matrix.colDim.label)})` : ''}</p>`;
 
-    let header = `<th>${matrix.rowDim.label} \\ ${matrix.colDim.label}</th>`;
-    matrix.colKeys.forEach(c => { header += `<th>${c}</th>`; });
+    let header = `<th>${esc(matrix.rowDim.label)} \\ ${esc(matrix.colDim.label)}</th>`;
+    matrix.colKeys.forEach(c => { header += `<th>${esc(c)}</th>`; });
 
     let body = '';
     matrix.rowKeys.forEach(r => {
-      let row = `<td style="font-weight:600;white-space:nowrap">${r}</td>`;
+      let row = `<td style="font-weight:600;white-space:nowrap">${esc(r)}</td>`;
       matrix.colKeys.forEach(c => {
         const cell = matrix.cells[`${r}\0${c}`];
         if (!cell || !cell.count) {
@@ -2903,7 +2907,7 @@ export class StatsEngine {
         const runPct = Math.round((cell.runs / cell.count) * 100);
         const bg = `rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)})`;
         const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
-        row += `<td class="tm-cell" style="background:${bg};border:${border}" title="${r} × ${c}: ${cell.count} plays, ${runPct}% run, ${succPct}% success, ${avg} avg">
+        row += `<td class="tm-cell" style="background:${bg};border:${border}" title="${esc(r)} × ${esc(c)}: ${cell.count} plays, ${runPct}% run, ${succPct}% success, ${avg} avg">
           <div class="tm-count">${cell.count}</div>
           <div class="tm-split">${runPct}R/${100 - runPct}P</div>
           <div class="tm-succ">${succPct}% · ${avg}y</div>

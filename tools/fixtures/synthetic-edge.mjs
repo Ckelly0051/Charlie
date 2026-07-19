@@ -17,7 +17,10 @@ export function syntheticEdge() {
     { down: '3', distance: '9', formation: 'Shotgun + Trips', personnel: '11', playType: 'RPO + Short Pass', runPass: 'Pass', result: 'Interception', yardage: '0', players: { passer: '12' } },
     { down: '1', distance: '10', formation: 'Wildcat', personnel: '21', playType: 'Run Outside', runPass: 'Run', result: 'Loss', yardage: '3', playDir: 'Right' },
     { down: '2', distance: '7', formation: 'Under Center', personnel: '12', playType: 'Play Action', runPass: 'Pass', result: 'Gain', yardage: '11', custom: ['BOOT'], customFields: { edge: 'Wide' } },
-    ...Array.from({ length: 5 }, (_, i) => ({ unit: 'defense', down: '1', distance: '10', defFront: i % 2 ? '4-3 + Jumbo Shift' : '3-4', coverage: 'Cover 3', blitz: i % 2 ? 'A-Gap + Edge' : '', playType: 'Short Pass', runPass: 'Pass', result: i === 0 ? 'Sack' : 'No Gain', yardage: i === 0 ? '-6' : '2', players: { tackler: i === 0 ? '55' : '55, 22' } })),
+    // coverageFamily on 2 of 5 (Zone), 3 blank — makes the coverage-call × family
+    // cross-tab + the coverageFamily dimension non-vacuous (0 family values was a
+    // known fixture gap), and exercises the omit-blank-family path.
+    ...Array.from({ length: 5 }, (_, i) => ({ unit: 'defense', down: '1', distance: '10', defFront: i % 2 ? '4-3 + Jumbo Shift' : '3-4', coverage: 'Cover 3', coverageFamily: i < 2 ? 'Zone' : '', blitz: i % 2 ? 'A-Gap + Edge' : '', playType: 'Short Pass', runPass: 'Pass', result: i === 0 ? 'Sack' : 'No Gain', yardage: i === 0 ? '-6' : '2', players: { tackler: i === 0 ? '55' : '55, 22' } })),
     { unit: 'special', stType: 'Punt', kickOutcome: 'Downed', kickDistance: '42', hangTime: '4.1', kickedTo: '15', players: { kicker: '19' } },
     { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '37', result: 'Good', players: { kicker: '19' } },
     {},

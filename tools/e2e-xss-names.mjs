@@ -63,6 +63,14 @@ const res = await page.evaluate(async () => {
   call(() => { const r = eng.generateScoutReport && eng.generateScoutReport(); if (eng.renderScoutReport) eng.renderScoutReport(); });
   call(() => eng.generateDefensiveSelfScout && eng.generateDefensiveSelfScout());
 
+  // Tendency Matrix: row/col keys are coach-controlled formation/coverage/custom
+  // library values (importable). _renderMatrixGrid interpolates them into <td>,
+  // <th>, and the title="" attribute — a direct stored-XSS sink.
+  let matrixHtml = '';
+  call(() => { matrixHtml = eng._renderMatrixGrid(eng._computeMatrix(plays.filter(p => p.tags.unit === 'offense'), 'formation', 'down')); });
+  const matrixRawImg = /<img/i.test(matrixHtml);
+  const matrixEscaped = matrixHtml.includes('&lt;img');
+
   // Tag form: render the custom-tag play's chips.
   call(() => { tagger.currentPlayId = id - 1; tagger._renderCustomTags([P]); });
 
@@ -72,12 +80,13 @@ const res = await page.evaluate(async () => {
   const html = document.body.innerHTML;
   const liveImgs = [...document.querySelectorAll('img')].filter(im => (im.getAttribute('src') || '') === 'x').length;
   if (eng.hideDashboard) call(() => eng.hideDashboard());
-  return { xss: window.__xss, liveImgs, escapedPresent: html.includes('&lt;img') || html.includes('&amp;lt;img') };
+  return { xss: window.__xss, liveImgs, escapedPresent: html.includes('&lt;img') || html.includes('&amp;lt;img'), matrixRawImg, matrixEscaped };
 });
 
 ok(res.xss === 0, 'no payload handler fired across stats dashboard/reports + tag form (formation/front/coverage/blitz/hash/custom)', JSON.stringify(res));
 ok(res.liveImgs === 0, 'no live <img src=x> payload element was injected into the DOM', JSON.stringify(res));
 ok(res.escapedPresent, 'the payload text is preserved but escaped (rendered as literal text)', JSON.stringify(res));
+ok(!res.matrixRawImg && res.matrixEscaped, 'Tendency Matrix escapes coach-controlled row/col values (no raw <img in the grid)', JSON.stringify(res));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

@@ -34,10 +34,10 @@ export class StudyQuery {
    *  registry value extractor instead (still film-linked, just not in the golden). */
   static get DIMENSION_CUT() {
     return {
-      formation: 'formation', playType: 'playType', personnel: 'personnel',
-      backfield: 'backfield', strength: 'strength', down: 'down',
+      formation: 'formation', qbAlignment: 'qbAlignment', playType: 'playType',
+      personnel: 'personnel', backfield: 'backfield', strength: 'strength', down: 'down',
       playDir: 'playDir', motion: 'motion', hash: 'hash', coverage: 'coverage',
-      defFront: 'defFront', blitz: 'blitz', runPass: 'runpass',
+      coverageFamily: 'coverageFamily', defFront: 'defFront', blitz: 'blitz', runPass: 'runpass',
     };
   }
 

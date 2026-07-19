@@ -182,7 +182,6 @@
    "tendencies": {
     "formations": {
      "Trips": 7,
-     "Unknown": 7,
      "Wildcat": 1,
      "Flexbone": 1
     },
@@ -195,16 +194,6 @@
       "yards": 30,
       "successes": 6,
       "avg": "4.3",
-      "successPct": "86"
-     },
-     {
-      "name": "Unknown",
-      "count": 7,
-      "runs": 4,
-      "passes": 3,
-      "yards": 87,
-      "successes": 6,
-      "avg": "12.4",
       "successPct": "86"
      },
      {
@@ -1235,8 +1224,6 @@
     ],
     "formations": {
      "Middle|Trips": 6,
-     "Left|Unknown": 2,
-     "Right|Unknown": 4,
      "Middle|Flexbone": 1
     },
     "hasData": true
@@ -1338,16 +1325,7 @@
     "paYPA": "11.0",
     "straightCompPct": "33.3",
     "straightYPA": "16.0",
-    "formationList": [
-     {
-      "name": "Unknown",
-      "count": 1,
-      "yards": 11,
-      "successes": 1,
-      "avg": "11.0",
-      "successPct": "100"
-     }
-    ],
+    "formationList": [],
     "hasData": true
    },
    "dirMotion": {
@@ -1417,14 +1395,6 @@
       "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
      },
      {
-      "s": 602,
-      "cut": [
-       "formation",
-       "Unknown"
-      ],
-      "text": "<strong>Unknown</strong>: 86% success (7 plays, 12.4 avg)"
-     },
-     {
       "s": 500,
       "cut": [
        "coverage",
@@ -1485,16 +1455,6 @@
     "g1::5",
     "g1::6",
     "g1::8"
-   ],
-   "formation::Unknown": [
-    "g1::10",
-    "g1::18",
-    "g1::7",
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4",
-    "g2::6"
    ],
    "formation::Wildcat": [
     "g1::9"
@@ -1731,6 +1691,10 @@
     "g1::14",
     "g1::15"
    ],
+   "coverageFamily::Zone": [
+    "g1::11",
+    "g1::12"
+   ],
    "runpass::Run": [
     "g1::1",
     "g1::2",
@@ -1799,12 +1763,6 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFStr::Unknown__Left": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
    "comboFD::Flexbone__1|Long": [
     "g2::5"
    ],
@@ -1818,19 +1776,6 @@
    ],
    "comboFD::Trips__3|Long": [
     "g1::8"
-   ],
-   "comboFD::Unknown__2|Long": [
-    "g1::10"
-   ],
-   "comboFD::Unknown__2|Medium": [
-    "g1::7",
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "comboFD::Unknown__3|Short": [
-    "g2::6"
    ],
    "comboFD::Wildcat__1|Long": [
     "g1::9"
@@ -1848,19 +1793,6 @@
    ],
    "comboFS::Trips__3|Long": [
     "g1::8"
-   ],
-   "comboFS::Unknown__2|Long": [
-    "g1::10"
-   ],
-   "comboFS::Unknown__2|Medium": [
-    "g1::7",
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "comboFS::Unknown__3|Short": [
-    "g2::6"
    ],
    "comboFS::Wildcat__1": [
     "g1::9"
@@ -1933,8 +1865,8 @@
   "reports": {
    "selfScout": {
     "totalPlays": 16,
-    "predictability": 63,
-    "predLabel": "Predictable",
+    "predictability": 80,
+    "predLabel": "Very Predictable",
     "tells": [
      {
       "dim": "Down & Dist",
@@ -2208,25 +2140,12 @@
        "label": "1st"
       },
       {
-       "key": "2|Medium",
-       "label": "2nd & Med"
-      },
-      {
-       "key": "2|Long",
-       "label": "2nd & Long"
-      },
-      {
-       "key": "3|Short",
-       "label": "3rd & Short"
-      },
-      {
        "key": "3|Long",
        "label": "3rd & Long"
       }
      ],
      "rows": [
       "Trips",
-      "Unknown",
       "Wildcat",
       "Flexbone"
      ],
@@ -2237,13 +2156,6 @@
        "passes": 0,
        "succ": 6,
        "yards": 30
-      },
-      "Unknown\u00012|Medium": {
-       "n": 5,
-       "runs": 4,
-       "passes": 1,
-       "succ": 5,
-       "yards": 76
       },
       "Trips\u00013|Long": {
        "n": 1,
@@ -2259,31 +2171,16 @@
        "succ": 0,
        "yards": 3
       },
-      "Unknown\u00012|Long": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 1,
-       "yards": 11
-      },
       "Flexbone\u00011": {
        "n": 1,
        "runs": 1,
        "passes": 0,
        "succ": 1,
        "yards": 14
-      },
-      "Unknown\u00013|Short": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 0,
-       "yards": 0
       }
      },
      "rowN": {
       "Trips": 7,
-      "Unknown": 7,
       "Wildcat": 1,
       "Flexbone": 1
      }
@@ -2311,29 +2208,6 @@
       "runAvg": 5,
       "passAvg": 0,
       "tell": true
-     },
-     {
-      "key": "Unknown",
-      "n": 7,
-      "runs": 4,
-      "passes": 3,
-      "yards": 87,
-      "runYards": 28,
-      "passYards": 59,
-      "runSucc": 4,
-      "passSucc": 2,
-      "explosives": 1,
-      "tds": 1,
-      "turnovers": 0,
-      "runPct": 57,
-      "passPct": 43,
-      "lean": "Run",
-      "leanPct": 57,
-      "avg": 12.4,
-      "succRate": 86,
-      "runAvg": 7,
-      "passAvg": 19.7,
-      "tell": false
      },
      {
       "key": "Wildcat",
@@ -2658,16 +2532,11 @@
      {
       "personnel": "21",
       "n": 5,
-      "uniqueFormations": 2,
-      "topFormation": "Unknown",
-      "topCount": 4,
-      "topPct": 80,
+      "uniqueFormations": 1,
+      "topFormation": "Wildcat",
+      "topCount": 1,
+      "topPct": 20,
       "formations": [
-       {
-        "formation": "Unknown",
-        "count": 4,
-        "pct": 80
-       },
        {
         "formation": "Wildcat",
         "count": 1,
@@ -2696,18 +2565,6 @@
       "type": "personnel",
       "priority": 315,
       "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
-      "tag": "Personnel Tell"
-     },
-     {
-      "type": "direction",
-      "priority": 300,
-      "text": "From <strong>Unknown</strong>, you go <strong>left</strong> 100% of the time (5/5 plays). A DC with film will shade that direction.",
-      "tag": "Direction Tell"
-     },
-     {
-      "type": "personnel",
-      "priority": 135,
-      "text": "<strong>21 personnel</strong> lines up in <strong>Unknown</strong> 80% of the time (4/5 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
      }
     ],
@@ -3022,7 +2879,6 @@
      "tendencies": {
       "formations": {
        "Trips": 7,
-       "Unknown": 7,
        "Wildcat": 1,
        "Flexbone": 1
       },
@@ -3035,16 +2891,6 @@
         "yards": 30,
         "successes": 6,
         "avg": "4.3",
-        "successPct": "86"
-       },
-       {
-        "name": "Unknown",
-        "count": 7,
-        "runs": 4,
-        "passes": 3,
-        "yards": 87,
-        "successes": 6,
-        "avg": "12.4",
         "successPct": "86"
        },
        {
@@ -4052,8 +3898,6 @@
       ],
       "formations": {
        "Middle|Trips": 6,
-       "Left|Unknown": 2,
-       "Right|Unknown": 4,
        "Middle|Flexbone": 1
       },
       "hasData": true
@@ -4155,16 +3999,7 @@
       "paYPA": "11.0",
       "straightCompPct": "33.3",
       "straightYPA": "16.0",
-      "formationList": [
-       {
-        "name": "Unknown",
-        "count": 1,
-        "yards": 11,
-        "successes": 1,
-        "avg": "11.0",
-        "successPct": "100"
-       }
-      ],
+      "formationList": [],
       "hasData": true
      },
      "dirMotion": {
@@ -4234,14 +4069,6 @@
         "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
        },
        {
-        "s": 602,
-        "cut": [
-         "formation",
-         "Unknown"
-        ],
-        "text": "<strong>Unknown</strong>: 86% success (7 plays, 12.4 avg)"
-       },
-       {
         "s": 500,
         "cut": [
          "coverage",
@@ -4291,15 +4118,6 @@
      }
     },
     "formationDetail": [
-     {
-      "name": "Unknown",
-      "total": 16,
-      "runs": 4,
-      "passes": 12,
-      "yards": 89,
-      "tds": 1,
-      "runPct": 25
-     },
      {
       "name": "Trips",
       "total": 7,
@@ -4586,7 +4404,6 @@
    "tendencies": {
     "formations": {
      "Trips": 7,
-     "Unknown": 2,
      "Wildcat": 1
     },
     "formationList": [
@@ -4599,16 +4416,6 @@
       "successes": 6,
       "avg": "4.3",
       "successPct": "86"
-     },
-     {
-      "name": "Unknown",
-      "count": 2,
-      "runs": 0,
-      "passes": 2,
-      "yards": 59,
-      "successes": 2,
-      "avg": "29.5",
-      "successPct": "100"
      },
      {
       "name": "Wildcat",
@@ -5470,8 +5277,7 @@
      }
     ],
     "formations": {
-     "Middle|Trips": 6,
-     "Left|Unknown": 1
+     "Middle|Trips": 6
     },
     "hasData": true
    },
@@ -5546,16 +5352,7 @@
     "paYPA": "11.0",
     "straightCompPct": "50.0",
     "straightYPA": "24.0",
-    "formationList": [
-     {
-      "name": "Unknown",
-      "count": 1,
-      "yards": 11,
-      "successes": 1,
-      "avg": "11.0",
-      "successPct": "100"
-     }
-    ],
+    "formationList": [],
     "hasData": true
    },
    "dirMotion": {
@@ -5678,11 +5475,6 @@
     "g1::5",
     "g1::6",
     "g1::8"
-   ],
-   "formation::Unknown": [
-    "g1::10",
-    "g1::18",
-    "g1::7"
    ],
    "formation::Wildcat": [
     "g1::9"
@@ -5844,6 +5636,10 @@
     "g1::14",
     "g1::15"
    ],
+   "coverageFamily::Zone": [
+    "g1::11",
+    "g1::12"
+   ],
    "runpass::Run": [
     "g1::1",
     "g1::2",
@@ -5906,12 +5702,6 @@
    "comboFD::Trips__3|Long": [
     "g1::8"
    ],
-   "comboFD::Unknown__2|Long": [
-    "g1::10"
-   ],
-   "comboFD::Unknown__2|Medium": [
-    "g1::7"
-   ],
    "comboFD::Wildcat__1|Long": [
     "g1::9"
    ],
@@ -5925,12 +5715,6 @@
    ],
    "comboFS::Trips__3|Long": [
     "g1::8"
-   ],
-   "comboFS::Unknown__2|Long": [
-    "g1::10"
-   ],
-   "comboFS::Unknown__2|Medium": [
-    "g1::7"
    ],
    "comboFS::Wildcat__1": [
     "g1::9"
@@ -6168,21 +5952,12 @@
        "label": "1st"
       },
       {
-       "key": "2|Medium",
-       "label": "2nd & Med"
-      },
-      {
-       "key": "2|Long",
-       "label": "2nd & Long"
-      },
-      {
        "key": "3|Long",
        "label": "3rd & Long"
       }
      ],
      "rows": [
       "Trips",
-      "Unknown",
       "Wildcat"
      ],
      "cells": {
@@ -6192,13 +5967,6 @@
        "passes": 0,
        "succ": 6,
        "yards": 30
-      },
-      "Unknown\u00012|Medium": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 1,
-       "yards": 48
       },
       "Trips\u00013|Long": {
        "n": 1,
@@ -6213,18 +5981,10 @@
        "passes": 0,
        "succ": 0,
        "yards": 3
-      },
-      "Unknown\u00012|Long": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 1,
-       "yards": 11
       }
      },
      "rowN": {
       "Trips": 7,
-      "Unknown": 2,
       "Wildcat": 1
      }
     },
@@ -6251,29 +6011,6 @@
       "runAvg": 5,
       "passAvg": 0,
       "tell": true
-     },
-     {
-      "key": "Unknown",
-      "n": 2,
-      "runs": 0,
-      "passes": 2,
-      "yards": 59,
-      "runYards": 0,
-      "passYards": 59,
-      "runSucc": 0,
-      "passSucc": 2,
-      "explosives": 1,
-      "tds": 1,
-      "turnovers": 0,
-      "runPct": 0,
-      "passPct": 100,
-      "lean": "Pass",
-      "leanPct": 100,
-      "avg": 29.5,
-      "succRate": 100,
-      "runAvg": 0,
-      "passAvg": 29.5,
-      "tell": false
      },
      {
       "key": "Wildcat",
@@ -6697,7 +6434,6 @@
      "tendencies": {
       "formations": {
        "Trips": 7,
-       "Unknown": 2,
        "Wildcat": 1
       },
       "formationList": [
@@ -6710,16 +6446,6 @@
         "successes": 6,
         "avg": "4.3",
         "successPct": "86"
-       },
-       {
-        "name": "Unknown",
-        "count": 2,
-        "runs": 0,
-        "passes": 2,
-        "yards": 59,
-        "successes": 2,
-        "avg": "29.5",
-        "successPct": "100"
        },
        {
         "name": "Wildcat",
@@ -7558,8 +7284,7 @@
        }
       ],
       "formations": {
-       "Middle|Trips": 6,
-       "Left|Unknown": 1
+       "Middle|Trips": 6
       },
       "hasData": true
      },
@@ -7634,16 +7359,7 @@
       "paYPA": "11.0",
       "straightCompPct": "50.0",
       "straightYPA": "24.0",
-      "formationList": [
-       {
-        "name": "Unknown",
-        "count": 1,
-        "yards": 11,
-        "successes": 1,
-        "avg": "11.0",
-        "successPct": "100"
-       }
-      ],
+      "formationList": [],
       "hasData": true
      },
      "dirMotion": {
@@ -7758,15 +7474,6 @@
      }
     },
     "formationDetail": [
-     {
-      "name": "Unknown",
-      "total": 8,
-      "runs": 0,
-      "passes": 8,
-      "yards": 61,
-      "tds": 1,
-      "runPct": 0
-     },
      {
       "name": "Trips",
       "total": 7,
@@ -7995,20 +7702,9 @@
    },
    "tendencies": {
     "formations": {
-     "Unknown": 5,
      "Flexbone": 1
     },
     "formationList": [
-     {
-      "name": "Unknown",
-      "count": 5,
-      "runs": 4,
-      "passes": 1,
-      "yards": 28,
-      "successes": 4,
-      "avg": "5.6",
-      "successPct": "80"
-     },
      {
       "name": "Flexbone",
       "count": 1,
@@ -8556,9 +8252,7 @@
      }
     ],
     "formations": {
-     "Right|Unknown": 4,
-     "Middle|Flexbone": 1,
-     "Left|Unknown": 1
+     "Middle|Flexbone": 1
     },
     "hasData": true
    },
@@ -8652,16 +8346,7 @@
     "hasMotionData": false
    },
    "takeaways": {
-    "working": [
-     {
-      "s": 400,
-      "cut": [
-       "formation",
-       "Unknown"
-      ],
-      "text": "<strong>Unknown</strong>: 80% success (5 plays, 5.6 avg)"
-     }
-    ],
+    "working": [],
     "fix": [
      {
       "s": 200,
@@ -8670,14 +8355,6 @@
        "Right"
       ],
       "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
-     },
-     {
-      "s": 150,
-      "cut": [
-       "formation",
-       "Unknown"
-      ],
-      "text": "<strong>Unknown</strong> is 80% run — add a pass concept to keep the defense honest"
      }
     ]
    }
@@ -8685,13 +8362,6 @@
   "drill": {
    "formation::Flexbone": [
     "g2::5"
-   ],
-   "formation::Unknown": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4",
-    "g2::6"
    ],
    "qbAlignment::Pistol": [
     "g2::1",
@@ -8828,35 +8498,11 @@
    "dd::3|Short": [
     "g2::6"
    ],
-   "comboFStr::Unknown__Left": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
    "comboFD::Flexbone__1|Long": [
     "g2::5"
    ],
-   "comboFD::Unknown__2|Medium": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "comboFD::Unknown__3|Short": [
-    "g2::6"
-   ],
    "comboFS::Flexbone__1": [
     "g2::5"
-   ],
-   "comboFS::Unknown__2|Medium": [
-    "g2::1",
-    "g2::2",
-    "g2::3",
-    "g2::4"
-   ],
-   "comboFS::Unknown__3|Short": [
-    "g2::6"
    ],
    "bigCall::Pistol||||||Power|||Left||||||Run Inside": [
     "g2::1",
@@ -8884,31 +8530,9 @@
   "reports": {
    "selfScout": {
     "totalPlays": 6,
-    "predictability": 78,
+    "predictability": 100,
     "predLabel": "Very Predictable",
     "tells": [
-     {
-      "dim": "Formation × Down",
-      "label": "Unknown on 2nd &amp; Medium",
-      "n": 4,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 7,
-      "leanSuccRate": 100,
-      "overallAvg": 7,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "dominant",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "comboFD",
-      "cutVal": "Unknown__2|Medium",
-      "score": 60
-     },
      {
       "dim": "Down & Dist",
       "label": "2nd &amp; Medium",
@@ -9018,50 +8642,6 @@
       "cutType": "strength",
       "cutVal": "Left",
       "score": 60
-     },
-     {
-      "dim": "Formation × Strength",
-      "label": "Unknown Left",
-      "n": 4,
-      "lean": "Run",
-      "leanPct": 100,
-      "leanAvg": 7,
-      "leanSuccRate": 100,
-      "overallAvg": 7,
-      "overallSucc": 100,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "dominant",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "comboFStr",
-      "cutVal": "Unknown__Left",
-      "score": 60
-     },
-     {
-      "dim": "Formation",
-      "label": "From Unknown",
-      "n": 5,
-      "lean": "Run",
-      "leanPct": 80,
-      "leanAvg": 7,
-      "leanSuccRate": 100,
-      "overallAvg": 5.6,
-      "overallSucc": 80,
-      "tds": 0,
-      "turnovers": 0,
-      "explosives": 0,
-      "verdict": "dominant",
-      "counter": {
-       "threat": "a DC keys run — loads the box and cheats a safety down",
-       "fix": "play-action, a quick throw, or a screen off the same look"
-      },
-      "cutType": "formation",
-      "cutVal": "Unknown",
-      "score": 45
      }
     ],
     "matrix": {
@@ -9069,72 +8649,25 @@
       {
        "key": "1",
        "label": "1st"
-      },
-      {
-       "key": "2|Medium",
-       "label": "2nd & Med"
-      },
-      {
-       "key": "3|Short",
-       "label": "3rd & Short"
       }
      ],
      "rows": [
-      "Unknown",
       "Flexbone"
      ],
      "cells": {
-      "Unknown\u00012|Medium": {
-       "n": 4,
-       "runs": 4,
-       "passes": 0,
-       "succ": 4,
-       "yards": 28
-      },
       "Flexbone\u00011": {
        "n": 1,
        "runs": 1,
        "passes": 0,
        "succ": 1,
        "yards": 14
-      },
-      "Unknown\u00013|Short": {
-       "n": 1,
-       "runs": 0,
-       "passes": 1,
-       "succ": 0,
-       "yards": 0
       }
      },
      "rowN": {
-      "Unknown": 5,
       "Flexbone": 1
      }
     },
     "formationRows": [
-     {
-      "key": "Unknown",
-      "n": 5,
-      "runs": 4,
-      "passes": 1,
-      "yards": 28,
-      "runYards": 28,
-      "passYards": 0,
-      "runSucc": 4,
-      "passSucc": 0,
-      "explosives": 0,
-      "tds": 0,
-      "turnovers": 0,
-      "runPct": 80,
-      "passPct": 20,
-      "lean": "Run",
-      "leanPct": 80,
-      "avg": 5.6,
-      "succRate": 80,
-      "runAvg": 7,
-      "passAvg": 0,
-      "tell": true
-     },
      {
       "key": "Flexbone",
       "n": 1,
@@ -9301,27 +8834,11 @@
       "tell": false
      }
     ],
-    "personnelDiversity": [
-     {
-      "personnel": "21",
-      "n": 4,
-      "uniqueFormations": 1,
-      "topFormation": "Unknown",
-      "topCount": 4,
-      "topPct": 100,
-      "formations": [
-       {
-        "formation": "Unknown",
-        "count": 4,
-        "pct": 100
-       }
-      ]
-     }
-    ],
+    "personnelDiversity": [],
     "recommendations": [
-     "<span class=\"ss-rec-label ss-rec-strength\">Unknown on 2nd &amp; Medium</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "<span class=\"ss-rec-label ss-rec-strength\">2nd &amp; Medium</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "<span class=\"ss-rec-label ss-rec-strength\">21 personnel</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
+     "<span class=\"ss-rec-label ss-rec-strength\">Right hash</span>: you run 100% and it's <strong>working</strong> — 7 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
     ],
     "insights": [],
@@ -9478,20 +8995,9 @@
      },
      "tendencies": {
       "formations": {
-       "Unknown": 5,
        "Flexbone": 1
       },
       "formationList": [
-       {
-        "name": "Unknown",
-        "count": 5,
-        "runs": 4,
-        "passes": 1,
-        "yards": 28,
-        "successes": 4,
-        "avg": "5.6",
-        "successPct": "80"
-       },
        {
         "name": "Flexbone",
         "count": 1,
@@ -10039,9 +9545,7 @@
        }
       ],
       "formations": {
-       "Right|Unknown": 4,
-       "Middle|Flexbone": 1,
-       "Left|Unknown": 1
+       "Middle|Flexbone": 1
       },
       "hasData": true
      },
@@ -10135,16 +9639,7 @@
       "hasMotionData": false
      },
      "takeaways": {
-      "working": [
-       {
-        "s": 400,
-        "cut": [
-         "formation",
-         "Unknown"
-        ],
-        "text": "<strong>Unknown</strong>: 80% success (5 plays, 5.6 avg)"
-       }
-      ],
+      "working": [],
       "fix": [
        {
         "s": 200,
@@ -10153,28 +9648,11 @@
          "Right"
         ],
         "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
-       },
-       {
-        "s": 150,
-        "cut": [
-         "formation",
-         "Unknown"
-        ],
-        "text": "<strong>Unknown</strong> is 80% run — add a pass concept to keep the defense honest"
        }
       ]
      }
     },
     "formationDetail": [
-     {
-      "name": "Unknown",
-      "total": 8,
-      "runs": 4,
-      "passes": 4,
-      "yards": 28,
-      "tds": 0,
-      "runPct": 50
-     },
      {
       "name": "Flexbone",
       "total": 1,
