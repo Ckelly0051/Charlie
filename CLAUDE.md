@@ -18,32 +18,30 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-19, E3a changes requested)
+### Current working state (2026-07-19, E3a repair re-review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3a is NOT accepted.** Codex independently reviewed the
-implementation through `c4d1003` / handoff `5692cc6`. A fresh canonical gate was
-55/55 green and the bundle rebuilt cleanly, but four contract defects remain:
+**ACTIVE HANDOFF — E3a is NOT accepted, one proof gap remains.** Codex
+independently re-reviewed repair `7b771a4` / handoff `1c71f49`. **R1–R3 are
+accepted:** Study's new mappings carry exact film-link parity, blank formation is
+honestly omitted, and every Tendency Matrix sink is escaped. Focused suites pass
+and a fresh canonical build-and-gate is **55/55 green**.
 
-- **E3a-R1 [High]:** `StudyQuery.DIMENSION_CUT` lacks `qbAlignment` and
-  `coverageFamily`, so the two new Study dimensions bypass canonical cut/parity
-  wiring.
-- **E3a-R2 [High]:** projected blank formations become `formation::Unknown`.
-  This is not "honest bucketing"; it contradicts `GRIDIRON-IQ-TAG-MODEL.md` §6.4.
-  A coach charting only QB alignment supplied no formation, so formation analysis
-  must omit that play rather than invent a category. The golden must be corrected.
-- **E3a-R3 [High]:** `_renderMatrixGrid` inserts coach-controlled row/column values
-  into HTML and attributes without escaping. Fix all sinks and add adversarial
-  custom/imported-value coverage.
-- **E3a-R4 [Medium]:** the AST audit acknowledges computed reads by whole filename,
-  so a second unreviewed `tags[expr]` in that file passes. ACK the exact site and
-  add a permanent detector-sensitivity regression.
+- **E3a-R4 [Medium] remains open:** the AST audit ACK is keyed by `(file, exact
+  expression text)`, not an AST site. Duplicating or moving the same
+  `p?.tags?.[key]` expression in `analytics-registry.js` silently inherits the
+  ACK. Its sensitivity test changes the expression, so it cannot detect that
+  bypass. Bind ACKs to a real site identity or exact multiplicity and prove an
+  identical expression at a second site fails.
+- **Non-blocking:** update `splitFormations` JSDoc; it still documents blank as
+  `["Unknown"]` although the accepted behavior is `[]`/omission.
 
-Canonical detail and required proof are in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a
-independent review — CHANGES REQUESTED**. **Next owner: Claude repairs R1-R4 and
-commits/pushes; next reviewer: Codex. E3b is blocked until acceptance.**
+Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3a repair re-review —
+CHANGES REQUESTED**. **Next owner: Claude closes R4 and commits/pushes; next
+reviewer: Codex. E3b remains blocked until acceptance.**
+
 - **Lane D:** accepted.
 - **Lane A:** accepted at `22eb521`; lifecycle `30/30`.
 - **Lane C:** accepted at `9c80d8b`. Stored film source, sticky charting unit,

@@ -1128,3 +1128,29 @@ gate **55/55 green**.
   is asserted NOT auto-accepted.
 
 **Status: E3a repaired at `7b771a4`, gate 55/55 — awaiting Codex re-review.**
+
+### E3a repair re-review — CHANGES REQUESTED (Codex, 2026-07-19)
+
+**Reviewed bytes:** repair `7b771a4`, handoff `1c71f49`. **R1, R2, and R3 are
+accepted.** The focused core, Study, XSS, raw-read, and parity suites pass, and a
+fresh canonical build-and-gate is **55/55 green**. E3a remains blocked only on
+the following proof defect:
+
+1. **E3a-R4 [Medium] remains open — the ACK is expression-specific, not
+   site-specific.** `e2e-raw-read-audit.mjs` identifies an ACK by only
+   `(file, expression text)`. A second `p?.tags?.[key]` at any other AST site in
+   `analytics-registry.js` therefore inherits the existing ACK and passes, as
+   does moving that expression elsewhere in the file. The permanent sensitivity
+   test uses a *different* expression (`p.tags[__unreviewed_expr__]`), so it does
+   not exercise the bypass. Bind the ACK to a real site identity (for example
+   file + enclosing function/AST path, or enforce an exact multiplicity for each
+   acknowledged expression) and permanently prove that a duplicate identical
+   expression at a second site fails.
+
+**Non-blocking cleanup:** the `splitFormations` JSDoc still says blank input
+returns `["Unknown"]`; update it to describe omission so the contract and code
+do not disagree.
+
+**Required next action:** Claude fixes R4's identity and its sensitivity test,
+runs the focused raw-read audit plus the canonical gate, updates the handoff, and
+returns the baton to Codex. Do not start E3b until this final proof gap is closed.
