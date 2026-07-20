@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-2 changes requested)
+### Current working state (2026-07-20, E4-2 review fixes built, awaiting Codex re-review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -284,10 +284,49 @@ Existing focused tests remain green (projection form 51/51), which confirms the
 fixture gap rather than correctness. No full gate rerun because the production
 data-loss defect blocks acceptance.
 
-**Next:** Claude fixes the reconciliation rule and closes the Film Room proof
-gaps with failing-first mutations, then returns for Codex re-review. Canonical
-season save/reopen durability remains a separate required proof before
-packaging.
+**BOTH findings from `5b1f3c1` are FIXED at `5b1f3c1`'s repair commit — see
+below (mirrors the E4-1 review cycle's own repair-then-mutation-verify pattern):**
+
+1. **Pistol/Empty data loss — root-caused and fixed.** The blank-check that
+   gates promotion (`reconcileSiblings`'s forward loop) read `play.tags[pair.
+   sibling]` RAW. Since Backfield is now BOTH a sibling (of Formation, for
+   'Empty') and a primary in its own right (for QB Alignment, via a legacy
+   'Pistol'), a raw `backfield:'Pistol'` looked "already explicit" and
+   permanently blocked the Empty promotion — and because Formation's own Empty
+   token gets self-cleaned away in the SAME commit regardless (via
+   `commitProjectedLook`'s per-primary self-clean, or simply by the primary
+   being overwritten), the information was lost from BOTH fields at once, with
+   no way to recover it after the fact. Fix: new
+   `TagProjection._ownStructuralValue(key, tags)` strips a field's OWN
+   registered pairs' tokens (if it has any as a primary) before the blank
+   check — so `backfield:'Pistol'` correctly reads as "no real structural
+   content" and the Empty promotion proceeds. Directly reproduced (both via an
+   explicit Formation edit and via Save & Next) with a throwaway script before
+   writing the permanent test, confirmed the exact reported symptom, fixed,
+   then made permanent as `tools/e2e-tag-projform.mjs` section 16 (both
+   commit paths) and `tools/e2e-film-room.mjs` section 8j (the same shape
+   through the grid, since the review named Film Room explicitly).
+   Mutation-verified: reverting to the raw check reproduces the loss exactly
+   in both new sections.
+2. **Film Room test-hardening — closed.** `tools/e2e-film-room.mjs`'s P1c
+   section (8g) now enumerates every DESCRIPTOR RELATIONSHIP
+   (`formation->qbAlignment`, `formation->backfield`, `backfield->qbAlignment`,
+   `coverage->coverageFamily`) instead of primary keys, so a relationship
+   attached to an already-covered primary can't silently escape again — the
+   missing `formation->backfield` case is now driven explicitly. New section
+   8i directly commits-and-clears QB Alignment, Backfield, and Coverage
+   Family THROUGH THE GRID (not just Strength), each with a genuine
+   before/after DOM read, revisit-after-a-full-re-render, and undo/redo. New
+   section 8j drives the combined Pistol+Empty case through the grid
+   specifically. Mutation-verified: disabling `reconcileSiblings`'s reverse
+   branch entirely is caught by all three siblings in section 8i.
+
+`tools/e2e-tag-projform.mjs`: 51 → 54. `tools/e2e-film-room.mjs`: 174 → 179
+(new sections 8i, 8j; 8g extended). Full gate rerun **57/57 green**, zero
+regression.
+
+**Next:** Codex re-review of the fixes. Canonical season save/reopen
+durability remains a separate required proof before packaging.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).

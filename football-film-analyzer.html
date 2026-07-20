@@ -11054,6 +11054,33 @@ class TagProjection {
   }
 
   /**
+   * E4-2 review fix: a field's raw stored value can hold a legacy token that
+   * belongs to a DIFFERENT relationship than the one currently being checked
+   * — `backfield` can be a SIBLING of `formation` (for 'Empty') while ALSO
+   * being a PRIMARY in its own right (for `qbAlignment`, via a legacy
+   * 'Pistol'). Before promoting into a sibling, `reconcileSiblings` must ask
+   * "does this field have genuine content of ITS OWN?", not "is its raw
+   * string non-empty?" — a raw 'Pistol' is not real backfield content once
+   * Pistol is exclusively QB-alignment vocabulary; treating it as such
+   * permanently blocked the Formation -> Backfield Empty promotion (the raw
+   * value never looked "blank"), and losing that race meant Formation's own
+   * Empty token got self-cleaned away in the SAME commit with nowhere left to
+   * land — total data loss for a real "Pistol backfield + Empty formation"
+   * play. Strips every one of `key`'s OWN registered pairs' tokens (if it has
+   * any as a primary) before the blank check; a no-op for fields that are
+   * never a primary (qbAlignment, coverageFamily).
+   */
+  static _ownStructuralValue(key, tags) {
+    const raw = tags[key];
+    if (typeof raw !== 'string') return '';
+    const pairs = this.PROJECTED_PAIRS[key];
+    if (!pairs) return raw;
+    let value = raw;
+    for (const pair of pairs) value = this.stripSiblingToken(key, pair.sibling, value);
+    return value;
+  }
+
+  /**
    * THE single promote-then-strip commit mechanic (E4/E4-2) — shared by the
    * tag form's per-field save (`PlayTagger._saveField`), its whole-play
    * canonicalization (`PlayTagger.commitProjectedLook`), and Film Room's grid
@@ -11085,7 +11112,18 @@ class TagProjection {
     const pairs = this.PROJECTED_PAIRS[key];
     if (pairs) {
       for (const pair of pairs) {
-        if (!String(play.tags[pair.sibling] || '').trim()) {
+        // "Is the sibling already blank?" must check its OWN STRUCTURAL value
+        // (with any of ITS OWN registered tokens stripped), not the raw stored
+        // value — a sibling can itself be a PRIMARY with an unrelated legacy
+        // token embedded (Backfield's raw 'Pistol' belongs to Backfield's OWN
+        // qbAlignment relationship, not to Formation's Empty relationship).
+        // Checking raw treated 'Pistol' as "already explicit", permanently
+        // blocking the Empty promotion — and since Formation's raw Empty token
+        // gets stripped in this SAME commit regardless (self-clean, below),
+        // the Empty information was lost from BOTH fields at once. Checking
+        // the structural value correctly recognizes backfield as having NO
+        // real content of its own here, so Empty still gets promoted in.
+        if (!String(this._ownStructuralValue(pair.sibling, play.tags) || '').trim()) {
           const effective = this.project(play.tags)[pair.sibling];
           if (effective) { play.tags[pair.sibling] = effective; changed = true; }
         }

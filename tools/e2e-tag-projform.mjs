@@ -500,6 +500,54 @@ r = await page.evaluate(async () => {
 ok((r.rawAfterCommit.backfield || '') === '' && r.rawAfterCommit.formation === 'Wing-T', 'clearing the DERIVED Backfield strips the Empty token out of Formation\'s raw stored value in the SAME commit', JSON.stringify(r.rawAfterCommit));
 ok((r.revisitBackfield || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit — Empty does not silently reappear', JSON.stringify(r));
 
+console.log('\n== 16. E4-2 review fix: "Pistol backfield + Empty formation" survives BOTH an explicit Formation edit and Save & Next ==');
+// Codex E4-2 review, item #1 (High): formation:"Ace + Empty", backfield:"Pistol"
+// correctly PROJECTS as qbAlignment=Pistol / formation=Ace / backfield=Empty —
+// but committing (either an explicit Formation edit or the untouched-play
+// Save & Next canonicalization) used to LOSE the Empty. Root cause: the
+// forward-promote blank-check read RAW backfield ("Pistol", non-empty) and
+// treated it as "already explicit", permanently blocking the Empty
+// promotion — and Formation's own Empty token gets self-cleaned away in the
+// SAME commit regardless, so the information vanished from BOTH fields at
+// once. Fixed via TagProjection._ownStructuralValue, which strips backfield's
+// OWN qbAlignment-relationship token before checking blankness.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger, hist = window.app.history;
+  const SE = window.app.stats.constructor;
+  const mk = (id) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } });
+
+  // Path A: an explicit Formation commit (toggle the only active chip off).
+  const idA = 9117;
+  const playA = mk(idA);
+  t.plays.push(playA);
+  const beforeA = SE.proj(playA);
+  t.selectPlay(idA);
+  hist.reset();
+  document.querySelector('#tagFormation .pick[data-value="Ace"]').click();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterA = t.getPlay(idA);
+  const resultA = { formation: afterA.tags.formation, backfield: afterA.tags.backfield, qbAlignment: afterA.tags.qbAlignment };
+
+  // Path B: Save & Next on a wholly untouched play (commitProjectedLook).
+  const idB = 9118;
+  const playB = mk(idB);
+  t.plays.push(playB);
+  const beforeB = SE.proj(playB);
+  t.selectPlay(idB);
+  document.getElementById('btnTagSaveNext').click();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterB = t.getPlay(idB);
+  const resultB = { formation: afterB.tags.formation, backfield: afterB.tags.backfield, qbAlignment: afterB.tags.qbAlignment };
+
+  return { beforeA, resultA, beforeB, resultB };
+});
+ok(r.beforeA.qbAlignment === 'Pistol' && r.beforeA.formation === 'Ace' && r.beforeA.backfield === 'Empty',
+  'prereq: the fixture genuinely projects as Pistol / Ace / Empty before any commit', JSON.stringify(r.beforeA));
+ok(r.resultA.backfield === 'Empty' && r.resultA.qbAlignment === 'Pistol',
+  'Path A (explicit Formation edit): Backfield stays Empty and QB Alignment stays Pistol — neither is lost', JSON.stringify(r.resultA));
+ok(r.resultB.formation === 'Ace' && r.resultB.backfield === 'Empty' && r.resultB.qbAlignment === 'Pistol',
+  'Path B (Save & Next canonicalization): all three dimensions land correctly — Empty is not lost to the self-clean race', JSON.stringify(r.resultB));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

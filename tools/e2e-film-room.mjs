@@ -891,9 +891,17 @@ r = await page.evaluate(async () => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  // Codex E4-2 review, item #2: enumerate every DESCRIPTOR RELATIONSHIP
+  // (primary -> sibling pair), not just primary KEYS — Object.keys(PROJECTED_PAIRS)
+  // is ['formation','backfield','coverage'], which is only 3, but Formation
+  // alone has TWO registered relationships (-> qbAlignment AND -> backfield),
+  // so a primary-keyed enumeration silently lets Formation -> Backfield escape
+  // coverage entirely (it did, in the version this review corrected).
+  const relationships = Object.entries(PG.PROJECTED_PAIRS)
+    .flatMap(([primary, pairs]) => pairs.map(pair => `${primary}->${pair.sibling}`));
   const prereq = { hasHistory: !!(hist && typeof hist.undo === 'function' && Array.isArray(hist.stack)),
                    playCount: tagger.plays.length,
-                   pairs: Object.keys(PG.PROJECTED_PAIRS) };
+                   relationships };
   // FAIL CLOSED with a readable reason instead of the old skip (or a bare
   // TypeError deeper in): the proofs below must never be reported as passing
   // because the machinery they claim to exercise was absent.
@@ -922,22 +930,29 @@ r = await page.evaluate(async () => {
   };
   return {
     prereq,
-    formation: await runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
-    // E4-2: backfield is now ALSO a registered primary (a legacy 'Pistol' can
-    // still be embedded in backfield's raw string, promoted to qbAlignment).
-    backfield: await runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
-    coverage:  await runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
+    formationQb: await runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
+    // E4-2 review fix: this relationship escaped every prior test — Formation
+    // alone embeds BOTH a QB Alignment token and (now) a Backfield 'Empty'
+    // token, and the two must be driven independently since one primary
+    // commit must protect BOTH siblings in the same transaction.
+    formationBackfield: await runPair('formation', 'backfield', 'Ace + Empty', 'Trips', 'offense'),
+    // Backfield is now ALSO a registered primary in its own right (a legacy
+    // 'Pistol' can still be embedded in backfield's raw string, promoted to
+    // qbAlignment).
+    backfieldQb: await runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
+    coverageFamily: await runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
   };
 });
-// Prerequisites fail closed — if these break, the four proofs below cannot silently pass.
+// Prerequisites fail closed — if these break, the proofs below cannot silently pass.
 ok(r.prereq.hasHistory, 'P1c prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
 ok(r.prereq.playCount > 0, 'P1c prereq: real plays exist to edit', JSON.stringify(r.prereq));
-ok(JSON.stringify(r.prereq.pairs) === JSON.stringify(['formation', 'backfield', 'coverage']),
-  'P1c prereq: ALL THREE registered primaries are covered by this test (E4-2 added backfield)', JSON.stringify(r.prereq.pairs));
+ok(JSON.stringify(r.prereq.relationships) === JSON.stringify(['formation->qbAlignment', 'formation->backfield', 'backfield->qbAlignment', 'coverage->coverageFamily']),
+  'P1c prereq: ALL FOUR registered RELATIONSHIPS are covered by this test — enumerated by relationship, not by primary key, so Formation->Backfield cannot silently escape again', JSON.stringify(r.prereq.relationships));
 for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
-  ['Formation/QB Alignment', r.formation, 'Under Center', 'Trips', 'Under Center'],
-  ['Backfield/QB Alignment', r.backfield, 'Pistol', 'Diamond', 'Pistol'],
-  ['Coverage/Coverage Family', r.coverage, 'Man', 'Cover 3', 'Man'],
+  ['Formation/QB Alignment', r.formationQb, 'Under Center', 'Trips', 'Under Center'],
+  ['Formation/Backfield', r.formationBackfield, 'Ace + Empty', 'Trips', 'Empty'],
+  ['Backfield/QB Alignment', r.backfieldQb, 'Pistol', 'Diamond', 'Pistol'],
+  ['Coverage/Coverage Family', r.coverageFamily, 'Man', 'Cover 3', 'Man'],
 ]) {
   ok(c.entries === 1, `P1c ${name}: the promote+write commit records EXACTLY ONE history entry`, JSON.stringify(c));
   ok(c.after.p === primaryNew && c.after.s === sibValue, `P1c ${name}: commit wrote the primary + promoted sibling`, JSON.stringify(c.after));
@@ -1023,6 +1038,114 @@ ok(r.strengthOnlyChanged, 'E4-2: editing Strength touches NO other field', JSON.
 ok(r.strengthUndone === '', 'E4-2: UNDO reverts the Strength edit', JSON.stringify(r));
 ok(r.parity.gridQbAlignment === 'Under Center' && JSON.stringify(r.parity.formChip) === JSON.stringify(['Under Center']),
   'E4-2 cross-surface parity: a Formation edit made in the GRID promotes QB Alignment identically to how the TAG FORM displays it — no divergent write path', JSON.stringify(r.parity));
+
+console.log('\n== 8i. E4-2 review fix: DIRECT commit-and-clear of QB Alignment, Backfield, and Coverage Family through the GRID, each with revisit + undo/redo ==');
+// Codex E4-2 review, item #2: 8h only directly committed Strength (no
+// registered relationship) and only VIEWED/CANCELED QB Alignment — it never
+// directly committed THEN CLEARED a sibling's own grid cell. This drives the
+// SAME derived-clear-survives-a-revisit proof e2e-tag-projform.mjs runs
+// through the tag form, but through the GRID's real _applyEdit path, for all
+// three siblings that can be genuinely derived: qbAlignment (from Formation),
+// backfield (from Formation's Empty), coverageFamily (from Coverage).
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
+  const tagger = window.app.tagger;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+  const runClear = async (siblingKey, primaryKey, primaryLegacy, unit, id) => {
+    const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit, down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], [primaryKey]: primaryLegacy } };
+    tagger.plays.push(play);
+    grid.refresh(); await raf2();
+    const derivedBefore = grid._cellHtml(play, PG.COLUMNS.find(c => c.key === siblingKey));
+    hist.reset();
+    const depth0 = hist.stack.length;
+    // A direct commit of '' on the SIBLING's own column — exactly what the
+    // grid's "✕ none" chip-popover choice produces via _openEditor's commit.
+    grid._applyEdit(play, PG.COLUMNS.find(c => c.key === siblingKey), '');
+    await raf2();
+    const entries = hist.stack.length - depth0;
+    const now = () => { const p = tagger.getPlay(id); return { primary: p?.tags[primaryKey], sibling: p?.tags[siblingKey] || '' }; };
+    const afterCommit = now();
+    hist.undo(); await raf2();
+    const undone = now();
+    hist.redo(); await raf2();
+    const redone = now();
+    // Revisit: re-render the grid from scratch and re-read the cell — proves
+    // the clear is durable in the DATA, not merely a transient DOM state.
+    grid.refresh(); await raf2();
+    const revisitCell = grid._cellHtml(tagger.getPlay(id), PG.COLUMNS.find(c => c.key === siblingKey));
+    tagger.plays = tagger.plays.filter(pl => pl.id !== id);
+    grid.refresh(); await raf2();
+    return { derivedBefore, entries, afterCommit, undone, redone, revisitCell };
+  };
+
+  return {
+    qbAlignment: await runClear('qbAlignment', 'formation', 'Ace + Shotgun', 'offense', 9202),
+    backfield: await runClear('backfield', 'formation', 'Wing-T + Empty', 'offense', 9203),
+    coverageFamily: await runClear('coverageFamily', 'coverage', 'Man', 'defense', 9204),
+  };
+});
+for (const [name, c, derivedText, primaryAfterClear, primaryAfterUndo] of [
+  ['QB Alignment (from Formation)', r.qbAlignment, 'Shotgun', 'Ace', 'Ace + Shotgun'],
+  ['Backfield (from Formation)', r.backfield, 'Empty', 'Wing-T', 'Wing-T + Empty'],
+  ['Coverage Family (from Coverage)', r.coverageFamily, 'Man', '', 'Man'],
+]) {
+  ok(c.derivedBefore === derivedText,
+    `${name}: the DERIVED value is genuinely shown before any commit`, JSON.stringify(c.derivedBefore));
+  ok(c.entries === 1, `${name}: the direct clear is EXACTLY one history entry`, JSON.stringify(c));
+  ok(c.afterCommit.sibling === '' && c.afterCommit.primary === primaryAfterClear,
+    `${name}: clearing the sibling strips the primary's raw token in the SAME commit`, JSON.stringify(c.afterCommit));
+  ok(c.undone.primary === primaryAfterUndo && c.undone.sibling === '',
+    `${name}: UNDO restores the raw legacy primary TOGETHER with the (still-derived, not explicit) sibling`, JSON.stringify(c.undone));
+  ok(c.redone.primary === primaryAfterClear && c.redone.sibling === '',
+    `${name}: REDO restores the stripped primary TOGETHER with the cleared sibling`, JSON.stringify(c.redone));
+  ok(c.revisitCell !== derivedText,
+    `${name}: the clear STICKS after a full grid re-render — the derived value does not silently reappear`, JSON.stringify(c.revisitCell));
+}
+
+console.log('\n== 8j. E4-2 review fix: the combined "Pistol backfield + Empty formation" case, exercised through the GRID ==');
+// Codex named this exact combined shape explicitly ("including the combined
+// Pistol Empty case"). formation:"Ace + Empty", backfield:"Pistol" projects
+// as qbAlignment=Pistol / formation=Ace / backfield=Empty; an explicit
+// Formation commit through the GRID's real _applyEdit path must preserve
+// BOTH promotions (qbAlignment AND backfield) in one transaction, with
+// working undo/redo. tools/e2e-tag-projform.mjs section 16 proves this same
+// shape through the TAG FORM; this is the Film Room grid's own proof, since
+// the review explicitly asked this not be Film-Room-untested.
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
+  const tagger = window.app.tagger;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const SE = window.app.stats.constructor;
+  const id = 9205;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } };
+  tagger.plays.push(play);
+  const before = SE.proj(play);
+  grid.refresh(); await raf2();
+  hist.reset();
+  const depth0 = hist.stack.length;
+  grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'formation'), 'Trips');
+  await raf2();
+  const entries = hist.stack.length - depth0;
+  const now = () => { const p = tagger.getPlay(id); return { formation: p?.tags.formation, backfield: p?.tags.backfield, qbAlignment: p?.tags.qbAlignment }; };
+  const afterCommit = now();
+  hist.undo(); await raf2();
+  const undone = now();
+  hist.redo(); await raf2();
+  const redone = now();
+  tagger.plays = tagger.plays.filter(pl => pl.id !== id);
+  grid.refresh(); await raf2();
+  return { before, entries, afterCommit, undone, redone };
+});
+ok(r.before.qbAlignment === 'Pistol' && r.before.formation === 'Ace' && r.before.backfield === 'Empty',
+  'prereq: the fixture genuinely projects as Pistol / Ace / Empty', JSON.stringify(r.before));
+ok(r.entries === 1, 'the Formation commit through the grid is EXACTLY one history entry', JSON.stringify(r));
+ok(r.afterCommit.formation === 'Trips' && r.afterCommit.backfield === 'Empty' && r.afterCommit.qbAlignment === 'Pistol',
+  'a GRID Formation commit preserves BOTH promotions (QB Alignment AND Backfield) — neither is lost', JSON.stringify(r.afterCommit));
+ok(r.undone.formation === 'Ace + Empty' && r.undone.backfield === 'Pistol' && (r.undone.qbAlignment || '') === '',
+  'UNDO restores the raw legacy Formation and Backfield ("Pistol") together, removing only the PROMOTED QB Alignment', JSON.stringify(r.undone));
+ok(r.redone.formation === 'Trips' && r.redone.backfield === 'Empty' && r.redone.qbAlignment === 'Pistol',
+  'REDO restores the commit and BOTH promoted siblings together', JSON.stringify(r.redone));
 
 console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==');
 // P3's exact contract (TAG-MODEL.md §20): Film Room has NO six-field quick
