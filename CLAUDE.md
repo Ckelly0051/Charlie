@@ -18,37 +18,60 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b complete and accepted)
+### Current working state (2026-07-20, E4-1 built, awaiting Codex review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b FINAL ACCEPTANCE at `5dce03c`.** The complete
-consumer-projection lane is accepted. Study, Film Room, filters, CSV, call
-labels, Plan, cut-up titles, and Breakdown captions use the canonical projected
-tag view where required while edit/store paths remain deliberate. Film links
-retain exact composite refs, all six projected Film Room columns equal registry
-sets, and their tendencies use projected grouping with eligible denominators.
+**E3b FINAL ACCEPTANCE at `5dce03c`.** The complete consumer-projection lane is
+accepted. Study, Film Room, filters, CSV, call labels, Plan, cut-up titles, and
+Breakdown captions use the canonical projected tag view where required while
+edit/store paths remain deliberate. Film links retain exact composite refs, all
+six projected Film Room columns equal registry sets, and their tendencies use
+projected grouping with eligible denominators.
 
-Independent verification: Film Room 139/139, Study query 35/35, Study screen
-55/55, raw-read audit 11/11, and canonical fresh-build gate 56/56 including
-real data, parity, integrity, storage, and zero page errors. No findings remain.
+**ACTIVE HANDOFF — E4-1 BUILT at `7f2e42c`, awaiting Codex review.**
+Implements D-projform (§18/§20): the PRIMARY tag form — not just Film Room's
+grid, done in E3b — now shows the projected view and writes only on explicit
+commit. Under Center/Pistol/Shotgun removed from `#tagFormation`, Man/Zone
+removed from `#tagCoverage`; new `#tagQbAlignment`/`#tagCoverageFamily` chip
+groups added. `_loadTagForm` seeds Formation/Coverage from the PROJECTED value
+(a correctness fix, not just display honesty — see the play-tagger.js comment
+on why raw-seeding a legacy multi-value Formation is a live data-corruption
+hazard with ChipField's actual internals). `_saveField` and `_saveCurrentTags`
+("New Drive") both carry the SAME promote-on-explicit-commit guard Film Room's
+grid editor already had (E3b-P1), now sharing one descriptor —
+`TagProjection.PROJECTED_PAIRS`, moved from `PlayGrid` (kept there as a getter
+alias, zero behavior change, confirmed via a full Film Room re-run before
+touching anything else). Found and fixed one pre-existing bug along the way
+(`suggestion-engine.js` `_flash`/`_addSuggestionHint` assumed a raw DOM element
+for a target that's always been a ChipField wrapper — the actual suggestion
+worked, only the cosmetic flash crashed, since inception).
 
-**Next:** E4 projection-aware editing is unblocked. It must decide safe editing
-for the split fields and the newly exposed Backfield/Strength columns without
-writing on view/cancel. Canonical season save/reopen durability remains a
-separate required proof before packaging; CSV round-trip is not its substitute.
+Deliberately NOT done this increment, flagged not silently skipped: 'Empty'
+stays in Formation's chip list, 'Pistol' stays in Backfield's — same class of
+value-belongs-to-a-different-dimension issue as the three moved, but adding a
+THIRD sibling relationship to `formation` needs its own failing-first proof.
+The raw-read audit was not extended to `play-tagger.js` — it would need to
+classify several pre-existing, deliberately-raw call sites
+(`copyFromPrevious`/`applyTemplate`) outside this increment's scope.
 
-Review emphasis during implementation:
-- QB Alignment/Coverage Family remain display-only in E3b under every edit
-  gesture and emit no write event.
-- Analytics/filter consumers prove registry-set equality; presentation exports
-  preserve source refs/order and prove projected labels instead of inventing an
-  analytics grouping.
+Independent verification (mine, awaiting Codex's): gate 57/57 (56 existing +
+new `tools/e2e-tag-projform.mjs`, 22 assertions), Film Room 139/139 unchanged,
+zero regression. Test-harness lesson recorded in the commit and worth restating
+here: never hold a play object reference across a `page.evaluate()` boundary in
+this style of test — something in the app rebuilds `tagger.plays` with fresh
+objects between calls, orphaning a captured reference while `t.plays` holds a
+live object with the same id. Always re-fetch via `t.getPlay(id)` inside the
+same evaluate call that acts on it.
+
+**Next:** Codex review of E4-1. Canonical season save/reopen durability remains
+a separate required proof before packaging — still open, still not substituted
+for by CSV round-trip or anything in E4-1.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
-acceptance**. **Next owner: Claude builds E3b; next reviewer: Codex. E4 remains
-blocked until the committed E3b milestone is independently accepted.**
+acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
+**Builder: Claude. Reviewer: Codex.**
 
 - **Lane D:** accepted.
 - **Lane A:** accepted at `22eb521`; lifecycle `30/30`.
