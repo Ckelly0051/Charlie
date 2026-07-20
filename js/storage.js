@@ -2,6 +2,9 @@ import { SeasonStore } from './season-store.js';
 import { DemoSeason } from './demo-season.js';
 import { planClipMatch } from './clip-identity.js';
 import { PenaltyModel } from './penalty-model.js';
+// E3b: exportCsv reads the pre-snap look through the projection seam. No cycle —
+// stats-engine.js imports charts/heat-maps/metrics, never storage.js.
+import { StatsEngine } from './stats-engine.js';
 
 /**
  * StorageManager - Handles save/load/export for projects.
@@ -1231,15 +1234,27 @@ export class StorageManager {
 
     const headers = [
       'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
-      'Field Side', 'Yard Line', 'Formation', 'Personnel', 'Motion',
-      'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front', 'Coverage', 'Blitz', 'Result',
+      'Field Side', 'Yard Line',
+      // E3b: the pre-snap look exports PROJECTED (GRIDIRON-IQ-TAG-MODEL.md §20), so
+      // a CSV agrees with Film Room, Study, and analytics instead of re-publishing
+      // the legacy mixed field. Formation is STRUCTURE only; QB Alignment and
+      // Coverage Family are their own columns. There is deliberately NO fallback
+      // that puts Shotgun/Pistol/Under Center back in Formation, and a blank
+      // optional exports blank — "Unknown" would read as a real analytics category.
+      'Formation', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
+      'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front',
+      'Coverage Call', 'Coverage Family', 'Blitz', 'Result',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Takeaway', 'Kicker', 'Returner',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade', 'Takeaway Grade',
       'Penalties JSON', 'Resulting Situation JSON', 'Custom Tags', 'Notes'
     ];
 
-    const rows = this.tagger.plays.map(p => [
+    const rows = this.tagger.plays.map(p => {
+      // ONE projection per play, read through the same seam analytics uses, so a
+      // CSV row and a Film Room row can never disagree about the same play.
+      const look = StatsEngine.proj(p);
+      return [
       p.id,
       p.clipName || '',
       p.timestamp.start.toFixed(2),
@@ -1251,7 +1266,10 @@ export class StorageManager {
       p.tags.distance,
       p.tags.fieldSide || '',
       p.tags.yardLine || '',
-      p.tags.formation,
+      look.formation ?? '',
+      look.qbAlignment ?? '',
+      look.backfield ?? '',
+      look.strength ?? '',
       p.tags.personnel || '',
       p.tags.motion || '',
       p.tags.runPass || '',
@@ -1259,7 +1277,8 @@ export class StorageManager {
       p.tags.playDir || '',
       p.tags.stType || '',
       p.tags.defFront,
-      p.tags.coverage,
+      look.coverage ?? '',
+      look.coverageFamily ?? '',
       p.tags.blitz,
       p.tags.result,
       p.tags.yardage,
@@ -1280,7 +1299,8 @@ export class StorageManager {
       p.resultingSituation ? JSON.stringify(PenaltyModel.normalizeSituation(p.resultingSituation)) : '',
       (p.tags.custom || []).join('; '),
       (p.notes || '')
-    ]);
+      ];
+    });
 
     // Append any user-defined custom fields as extra columns.
     let cfDefs = [];
@@ -1413,6 +1433,14 @@ ${body}
       down: 'down', dn: 'down',
       distance: 'distance', dist: 'distance', togo: 'distance',
       formation: 'formation', form: 'formation', offform: 'formation', offenseformation: 'formation',
+      // E3b: the four split look dimensions. `qbalignment` etc. are the headers our
+      // own projected export writes; the legacy `coverage` alias below stays so a
+      // pre-E3b CSV (ours or Hudl's) still imports — projection then reads it
+      // honestly at read time, exactly as it does for a legacy stored play.
+      qbalignment: 'qbAlignment', qbalign: 'qbAlignment', qbal: 'qbAlignment',
+      backfield: 'backfield', backs: 'backfield',
+      strength: 'strength', formationstrength: 'strength',
+      coveragecall: 'coverage', coveragefamily: 'coverageFamily', covfamily: 'coverageFamily',
       personnel: 'personnel', pers: 'personnel', offpers: 'personnel',
       hash: 'hash', hashmark: 'hash',
       motion: 'motion',
@@ -1451,7 +1479,8 @@ ${body}
       if (cells.every(c => !c)) continue;
 
       const tags = {
-        down: '', distance: '', formation: '', qbAlignment: '', playType: '', runPass: '',
+        down: '', distance: '', formation: '', qbAlignment: '', backfield: '', strength: '',
+        playType: '', runPass: '',
         defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '',
         yardage: '', hash: '', quarter: '', yardLine: '',
         fieldSide: 'own', personnel: '', motion: '', playDir: '', driveNumber: '',

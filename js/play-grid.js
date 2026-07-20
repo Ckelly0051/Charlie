@@ -86,14 +86,16 @@ export class PlayGrid {
   /** E3b: legacy plays carry TWO dimensions inside ONE stored field — an alignment
    *  inside `formation`, a family inside `coverage`. Projection derives the sibling
    *  FROM that string, so overwriting the primary field on an edit would silently
-   *  destroy it. These two maps make the defence STRUCTURAL rather than a
-   *  per-field special case (the Formation fix alone left Coverage exposed):
-   *    PROMOTE_ON_COMMIT — primary field -> sibling to materialize first
-   *    OPTION_EXCLUDE    — primary field -> values that belong to the sibling and
-   *                        must never be offered in the primary's picker
-   *  Both keep working if a third such pair is ever added. */
-  //  ONE descriptor per pair — not two parallel maps, which could drift apart and
-  //  leave a field excluded-but-not-promoted (or worse, promoted-but-not-excluded).
+   *  destroy it. ONE descriptor per pair makes the defence STRUCTURAL rather than a
+   *  per-field special case (the Formation fix alone left Coverage exposed), and
+   *  keeps the two halves from drifting apart — an earlier revision used two
+   *  parallel maps, which could leave a field excluded-but-not-promoted (or worse,
+   *  promoted-but-not-excluded). Per entry:
+   *    sibling     — the projected field to materialize BEFORE overwriting the primary
+   *    excludeFrom — the TagProjection list whose values belong to the sibling and
+   *                  must never be offered in the primary's picker
+   *  Adding a third pair here wires both halves at once; the Film Room harness
+   *  asserts every registered pair is covered, so a new one cannot ship untested. */
   static PROJECTED_PAIRS = {
     formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
     coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },

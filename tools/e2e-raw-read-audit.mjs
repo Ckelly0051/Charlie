@@ -35,6 +35,10 @@ const FILES = [
   // E3b: analytics DISPLAY/FILTER consumers, added as each is wired. A raw
   // six-field read in any of these is a film-link/analytics divergence.
   'js/heat-maps.js', 'js/advanced-metrics.js', 'js/play-filter.js', 'js/play-grid.js',
+  // E3b: exportCsv publishes the six fields to a file the coach opens in Excel and
+  // re-imports. A raw read here would ship a CSV that disagrees with every on-screen
+  // surface — the same divergence class, just with a longer feedback loop.
+  'js/storage.js',
 ];
 
 // Resolvable raw reads that are LEGITIMATE (must live inside a scanned file). Empty
