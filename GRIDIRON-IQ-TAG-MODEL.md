@@ -1602,7 +1602,20 @@ artifacts. Root cause: staging with `git add -A` instead of explicit paths.
 real-season parity clean, canonical gate 55/55 on a fresh rebuild, no unrelated
 files in the rewritten commit.
 
-**Remaining E3b:** `play-filter.js` projection (filter → cut-up film-link parity);
+### E3b-3 — BUILT and ACCEPTED (Codex, 2026-07-19, `89daf98`)
+`play-filter._matchesPlay` read RAW formation while feeding the **cut-up
+exporter**, so exported film could diverge from every report. Now projected.
+First filter-consumer EQUALITY assertions (D-E3split): the filter's set EQUALS
+`registry.matchingRefs`, and `Shotgun` / `Under Center` select NOTHING.
+**Lesson worth carrying:** under a raw read the POSITIVE `[Trips]` equality still
+passed (because `"Shotgun + Trips"` contains `Trips` either way) — only the two
+ABSENCE assertions caught the regression. Presence-only equality would have
+shipped the bug; every remaining consumer gets both shapes. Audit scan expanded to
+heat-maps/advanced-metrics/play-filter (0 raw six-field reads); EPA's remaining
+computed read method-scoped ACKed. Codex verified 43/43, 11/11, core 25/25,
+parity clean, gate 55/55.
+
+**Remaining E3b:**
 Film Room Formation cell "Not charted" + `QB Alignment` / `Coverage Family`
 display-only columns + the P4 saved-column upgrade rule + the P1 Formation-editor
 change (seed from projected, promote-on-explicit-commit); projected CSV

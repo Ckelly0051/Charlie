@@ -31149,6 +31149,10 @@ class PlayGrid {
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
     { key: 'formation', label: 'Formation', type: 'enum', src: 'tagFormation', multi: true,  unit: 'offense' },
+    // E3b: QB Alignment is charted SEPARATELY from structural Formation. Both new
+    // columns are `proj-readonly` — DISPLAY-ONLY in E3b by contract; their safe
+    // inline editing (with the field-level merge) lands in E4 / D-projform.
+    { key: 'qbAlignment', label: 'QB Align', type: 'proj-readonly', unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
@@ -31158,6 +31162,7 @@ class PlayGrid {
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
     { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
     { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
+    { key: 'coverageFamily', label: 'Cov Family', type: 'proj-readonly',                      unit: 'defense' },
     { key: 'blitz',     label: 'Blitz',     type: 'enum', src: 'tagBlitz',     multi: true,   unit: 'defense' },
     { key: 'stType',    label: 'ST Type',   type: 'enum', src: 'tagStType',                   unit: 'special' },
     { key: 'stUnit',    label: 'ST Unit',   type: 'st-readonly',                              unit: 'special' },
@@ -31169,7 +31174,19 @@ class PlayGrid {
     { key: 'notes',     label: 'Call / Notes', type: 'text' },
   ];
 
+  // E3b coach decision: Offense/Default place QB Alignment AFTER Formation;
+  // Defense places Coverage Family AFTER Coverage Call.
   static PRESETS = {
+    default: ['sit', 'formation', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
+    offense: ['sit', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    defense: ['sit', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
+  };
+
+  /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
+   *  so their saved list can be UPGRADED to the new one. A customized list is
+   *  preserved untouched (the new columns stay available in the Columns menu). */
+  static LEGACY_PRESETS = {
     default: ['sit', 'formation', 'playType', 'result', 'yardage', 'penalty'],
     offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
     defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
@@ -31204,13 +31221,28 @@ class PlayGrid {
 
   // ---------- Persistence ----------
 
+  /** E3b-P4 — saved-column upgrade rule. Updating the presets alone would never
+   *  expose QB Alignment / Coverage Family to a coach who already has a saved
+   *  `ffa_film_room_cols`. Rules:
+   *    - saved list EXACTLY matches a pre-E3b preset  -> upgrade to the new preset
+   *    - otherwise (a CUSTOM layout)                  -> preserve it untouched
+   *  (No saved preference at all takes the new defaults via _loadCols' fallback.)
+   *  A preserved custom layout keeps both new columns available in the Columns menu. */
+  static _upgradeCols(cols) {
+    const same = (a, b) => a.length === b.length && a.every((k, i) => k === b[i]);
+    for (const name of Object.keys(PlayGrid.LEGACY_PRESETS)) {
+      if (same(cols, PlayGrid.LEGACY_PRESETS[name])) return PlayGrid.PRESETS[name].slice();
+    }
+    return cols;   // custom layout — untouched
+  }
+
   _loadCols() {
     try {
       const v = JSON.parse(localStorage.getItem('ffa_film_room_cols') || 'null');
       if (Array.isArray(v) && v.length) {
         const known = new Set(PlayGrid.COLUMNS.map(c => c.key));
         const cols = v.filter(k => known.has(k));
-        if (cols.length) return cols;
+        if (cols.length) return PlayGrid._upgradeCols(cols);
       }
     } catch (e) {}
     return PlayGrid.PRESETS.default.slice();
@@ -31729,6 +31761,25 @@ class PlayGrid {
       return `<span class="${cls}">${disp}</span>`;
     }
     if (col.key === 'notes') return this._esc(p.notes || '');
+    // E3b: DISPLAY-ONLY projected columns (QB Alignment, Coverage Family). Editing
+    // them is E4 / D-projform, so they render as plain read-only text.
+    if (col.type === 'proj-readonly') {
+      const v = StatsEngine.projField(p, col.key);
+      return v ? this._esc(v) : '<span class="pg-dim">—</span>';
+    }
+    // E3b: every other cell for one of the six projected fields shows the PROJECTED
+    // value — never the raw legacy token. A play charted only as "Shotgun" has no
+    // structural formation, so Formation reads "Not charted" (NOT "Shotgun", which
+    // would re-assert the misclassification E1 removed, and NOT "Unknown", which
+    // reads like a real analytics category rather than missing optional data).
+    if (StatsEngine.PROJECTED_FIELDS.includes(col.key)) {
+      const v = StatsEngine.projField(p, col.key);
+      if (v) return this._esc(v);
+      if (col.key === 'formation') {
+        return '<span class="pg-notcharted" title="QB alignment is charted separately">Not charted</span>';
+      }
+      return '';
+    }
     return this._esc(t[col.key] || '');
   }
 
@@ -31830,7 +31881,9 @@ class PlayGrid {
     const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
     const cell = this._cellEl(playId, colKey);
     if (!play || !col || !cell) return;
-    if (col.type === 'st-readonly' || col.type === 'pen-readonly') return;
+    // `proj-readonly` (QB Alignment, Coverage Family) is DISPLAY-ONLY in E3b by
+    // contract — editing them requires the E4/D-projform field-level merge.
+    if (col.type === 'st-readonly' || col.type === 'pen-readonly' || col.type === 'proj-readonly') return;
     this._closeEditor();
 
     const wrap = document.createElement('div');

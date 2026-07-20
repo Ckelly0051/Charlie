@@ -287,6 +287,51 @@ ok(r.text === r.expected, 'formation tendency = top value + share', JSON.stringi
 ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)', JSON.stringify(r.multiTend));
 ok(r.subsetTend === 'Trips 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
+console.log('\n== 8d. E3b: projected cells + display-only columns + saved-column upgrade ==');
+r = await page.evaluate(() => {
+  const grid = window.app.playGrid, PG = grid.constructor;
+  const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
+  const cell = (p, key) => grid._cellHtml
+    ? grid._cellHtml(p, PG.COLUMNS.find(c => c.key === key))
+    : grid._cell(p, PG.COLUMNS.find(c => c.key === key));
+  const alignOnly = mk(1, { formation: 'Under Center' });      // projects to NO structural formation
+  const structural = mk(2, { formation: 'Shotgun + Trips' });  // projects to Trips
+  const defFam = mk(3, { unit: 'defense', coverage: 'Cover 3', coverageFamily: 'Zone' });
+  return {
+    alignFormation: cell(alignOnly, 'formation'),
+    alignQb: cell(alignOnly, 'qbAlignment'),
+    structFormation: cell(structural, 'formation'),
+    structQb: cell(structural, 'qbAlignment'),
+    covFamily: cell(defFam, 'coverageFamily'),
+    // display-only: the editor must refuse to open for the new columns
+    qbType: PG.COLUMNS.find(c => c.key === 'qbAlignment').type,
+    famType: PG.COLUMNS.find(c => c.key === 'coverageFamily').type,
+    // P4 upgrade rule
+    upgradeStockDefault: PG._upgradeCols(PG.LEGACY_PRESETS.default.slice()),
+    upgradeStockDefense: PG._upgradeCols(PG.LEGACY_PRESETS.defense.slice()),
+    upgradeCustom: PG._upgradeCols(['sit', 'formation', 'notes']),
+    newDefault: PG.PRESETS.default,
+    newDefense: PG.PRESETS.defense,
+  };
+});
+ok(/Not charted/.test(r.alignFormation) && !/Shotgun/.test(r.alignFormation) && !/Unknown/.test(r.alignFormation),
+  'alignment-only play: Formation cell reads "Not charted" (never Shotgun/Unknown)', JSON.stringify(r.alignFormation));
+ok(/QB alignment is charted separately/.test(r.alignFormation),
+  'the "Not charted" cell carries the explanatory tooltip', JSON.stringify(r.alignFormation));
+ok(/Under Center/.test(r.alignQb), 'QB Alignment column shows the projected alignment', JSON.stringify(r.alignQb));
+ok(/Trips/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
+  'structural play: Formation cell shows projected structure only', JSON.stringify(r.structFormation));
+ok(/Shotgun/.test(r.structQb), 'QB Alignment column shows alignment split out of a mixed formation', JSON.stringify(r.structQb));
+ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the projected family', JSON.stringify(r.covFamily));
+ok(r.qbType === 'proj-readonly' && r.famType === 'proj-readonly',
+  'QB Alignment + Coverage Family are DISPLAY-ONLY in E3b (editor refuses to open)', JSON.stringify(r));
+ok(JSON.stringify(r.upgradeStockDefault) === JSON.stringify(r.newDefault),
+  'P4: a saved list matching the OLD default preset upgrades to the new one', JSON.stringify(r.upgradeStockDefault));
+ok(JSON.stringify(r.upgradeStockDefense) === JSON.stringify(r.newDefense),
+  'P4: a saved list matching the OLD defense preset upgrades to the new one', JSON.stringify(r.upgradeStockDefense));
+ok(JSON.stringify(r.upgradeCustom) === JSON.stringify(['sit', 'formation', 'notes']),
+  'P4: a CUSTOM saved layout is preserved untouched', JSON.stringify(r.upgradeCustom));
+
 // Multi-enum inline edit: Result cell — click to focus, click again to edit.
 r = await page.evaluate(async () => {
   const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -393,7 +438,9 @@ r = await page.evaluate(async () => {
 });
 ok(r.pop && r.defHeads.includes('Front') && r.defHeads.includes('Cover') && !r.defHeads.includes('Formation'),
   'Defense preset swaps columns', JSON.stringify(r.defHeads));
-ok(JSON.stringify(r.saved) === JSON.stringify(['sit','defFront','coverage','blitz','result','yardage','penalty','penaltyYards']),
+// E3b: the Defense preset now carries Coverage Family immediately after Coverage
+// Call (coach-specified placement).
+ok(JSON.stringify(r.saved) === JSON.stringify(['sit','defFront','coverage','coverageFamily','blitz','result','yardage','penalty','penaltyYards']),
   'preset persisted to localStorage', JSON.stringify(r.saved));
 ok(r.withQtr.includes('quarter'), 'checkbox adds a column (persisted)', JSON.stringify(r.withQtr));
 
