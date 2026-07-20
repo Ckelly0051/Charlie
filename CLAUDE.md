@@ -18,36 +18,24 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b-8 review)
+### Current working state (2026-07-20, E3b-9 accepted)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-8 CHANGES REQUESTED on `216bf6e`.** The projected CSV
-columns themselves are correct: export uses one `StatsEngine.proj()` result per
-play, keeps Formation structural, separates QB Alignment and Coverage Family,
-preserves custom Coverage Calls, exports blank optionals as blank, and accepts
-the legacy Coverage header. Focused suites are green (CSV projection 18/18,
-legacy CSV 9/9, raw-read audit 11/11), but two importer data-loss paths are
-outside those assertions.
+**ACTIVE HANDOFF — E3b-9 ACCEPTED at `6d87914`.** Both E3b-8 CSV import
+findings are closed. Unit now round-trips through a bounded three-unit
+normalizer, so defense and Special Teams cannot silently become offense.
+Row liveness is derived from recognized mapped content, so plays charted only
+with a canonical look survive while truly blank rows remain skipped.
 
-1. **Unit is exported but never imported.** `importPlaysFromText` has no `unit`
-alias and `applyPlayImport` has no unit default. Exported defensive and Special
-Teams rows therefore reopen with blank unit; StatsEngine treats blank as offense.
-The six-field raw/projection equality still passes, while the play moves to the
-wrong analytics partition. Add Unit mapping and assert every imported row keeps
-its source unit; include a defensive registry/cut equality after import.
+Independent verification: projected CSV 22/22, legacy CSV 9/9, analytics
+projection 43/43, canonical fresh-build gate 56/56. No blocking findings.
 
-2. **Look-only rows are silently dropped.** The useful-row gate checks only
-playType/result/yardage/down/penalties. A coach who charts only Formation, QB
-Alignment, Backfield, Strength, Coverage Call, or Coverage Family loses that row
-on import, contrary to the product rule that no chip is required. Replace the
-old fixed-field gate with a mapped-content/liveness rule and add failing-first
-alignment-only and coverage-family-only rows.
-
-Do not widen this repair into every pre-existing CSV asymmetry. E3b acceptance
-requires preserving analytical unit identity and every row whose only meaningful
-data is one of the newly canonical look dimensions.
+Scope note: this accepts the E3b projected-field CSV contract; it does not claim
+that every historical CSV column forms a complete season backup. Canonical
+season save/reopen durability remains a separate open proof, and CSV is not its
+substitute.
 
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit

@@ -466,6 +466,19 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-9 ACCEPTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: 6d87914
+
+- Unit import is restored and normalized to offense/defense/special; exact source
+  unit equality is pinned across offense, defense, and Special Teams rows.
+- Row liveness follows recognized mapped content. Formation-only and
+  coverage-family-only rows survive; a genuinely blank row remains skipped.
+- Independent checks: projected CSV 22/22, legacy CSV 9/9, analytics projection
+  43/43, canonical fresh-build gate 56/56.
+- No blocking findings. Acceptance covers the projected-field CSV contract, not
+  a claim that CSV replaces canonical season backup/save/reopen.
+- Remaining E3b: presentation-export labels and Study/Watch equality.
+
 === E3b-8 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: 216bf6e
 
