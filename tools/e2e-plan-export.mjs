@@ -31,7 +31,7 @@ const games = [
   ok(exp.name === 'Third Down' && exp.itemCount === 2 && exp.playCount === 3 && exp.missingCount === 0, 'build summarizes name + item/play counts', JSON.stringify({ i: exp.itemCount, p: exp.playCount }));
   ok(exp.items[0].label === '3rd & long' && exp.items[1].label === 'Base runs', 'items stay in PLAN order');
   const p0 = exp.items[0].plays[0];
-  ok(p0.gameName === 'Week 1 vs Central' && p0.situation === '3rd & 7' && p0.formation === 'Trips' && p0.result === 'Gain' && p0.yardage === '22', 'a ref resolves to its game + situation + context', JSON.stringify(p0));
+  ok(p0.gameName === 'Week 1 vs Central' && p0.situation === '3rd & 7' && p0.look === 'Trips' && p0.result === 'Gain' && p0.yardage === '22', 'a ref resolves to its game + situation + context', JSON.stringify(p0));
   ok(exp.items[0].plays[1].gameName === 'Week 2 vs North', 'a cross-game ref resolves to the other game');
 }
 
@@ -65,21 +65,31 @@ const games = [
   ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'), 'coach-entered strings (name/notes/label/game/play notes) are HTML-escaped');
 }
 
-// ---- 5. E3b: formation is the PROJECTED spoken-call label, not a raw read --
+// ---- 5. E3b: `look` is the PROJECTED spoken-call label, not a raw read -----
 {
   // A legacy play with the alignment token still mixed into `formation` — the
-  // exact shape E1-E3 corrected. The export must show the split label, never
-  // the raw "Shotgun + Trips" string.
+  // exact shape E1-E3 corrected. The export must show the split label under
+  // `look` (never `formation` — that key name would repeat the exact mistake
+  // being corrected), and never the raw "Shotgun + Trips" string.
   const g = [{ id: 'g1', name: 'Week 1', plays: [
     play(3, { down: '3', distance: '7', formation: 'Shotgun + Trips', playType: 'Deep Pass', result: 'Gain', yardage: '22' }),
     play(4, { down: '1', distance: '10', formation: 'Trips + Empty', backfield: 'Pistol', playType: 'Run Inside', result: 'Gain', yardage: '3' }),
+    // Multiple STRUCTURAL tags at once — projected formation is itself a
+    // " + "-joined string here, which must not leak into the composed phrase.
+    play(5, { down: '2', distance: '5', formation: 'Shotgun + Flexbone + Trips', playType: 'Screen', result: 'Gain', yardage: '6' }),
   ] }];
-  const plan = { name: 'P', items: [{ id: 'i', kind: 'film', label: 'x', refs: ['g1::3', 'g1::4'] }] };
+  const plan = { name: 'P', items: [{ id: 'i', kind: 'film', label: 'x', refs: ['g1::3', 'g1::4', 'g1::5'] }] };
   const exp = PlanExport.build(plan, g);
   const plays = exp.items[0].plays;
-  ok(plays[0].formation === 'Shotgun Trips', 'a legacy mixed formation exports as the SPLIT label, not the raw " + "-joined string', JSON.stringify(plays[0].formation));
-  ok(!plays[0].formation.includes('+'), 'the export never leaks the " + " join artifact into a presentation label');
-  ok(plays[1].formation === 'Pistol Trips', 'legacy Empty-in-formation + Pistol-in-backfield still composes correctly through the same seam', JSON.stringify(plays[1].formation));
+  ok(!('formation' in plays[0]), 'the export field is named `look`, not `formation` — a combined phrase must never sit under a Formation-shaped key', JSON.stringify(Object.keys(plays[0])));
+  ok(plays[0].look === 'Shotgun Trips', 'a legacy mixed formation exports as the SPLIT label, not the raw " + "-joined string', JSON.stringify(plays[0].look));
+  ok(!plays[0].look.includes('+'), 'the export never leaks the " + " join artifact into a presentation label');
+  ok(plays[1].look === 'Pistol Trips', 'legacy Empty-in-formation + Pistol-in-backfield still composes correctly through the same seam', JSON.stringify(plays[1].look));
+  ok(plays[2].look === 'Shotgun Flexbone Trips' && !plays[2].look.includes('+'), 'a MULTI-structure look (two structural tags at once) composes with plain spaces, no internal "+"', JSON.stringify(plays[2].look));
+
+  const html = PlanExport.html(exp);
+  ok(html.includes('<th>Look</th>') && !html.includes('<th>Formation</th>'), 'the printable table column is headed "Look", not "Formation"', html.match(/<th>[^<]*<\/th>/g)?.join(','));
+  ok(html.includes('Shotgun Flexbone Trips') && !/Shotgun Flexbone \+ Trips/.test(html), 'the rendered html shows the multi-structure look with no internal "+"');
 }
 
 // ---- 6. null-safety ---------------------------------------------------------

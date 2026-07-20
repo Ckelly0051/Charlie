@@ -396,6 +396,19 @@ test('26b · lookLabel projects a LEGACY mixed formation into the same phrase', 
   assert.ok(!TagProjection.lookLabel(t).includes('+'), 'the " + " join artifact must not leak into a spoken-call label');
 });
 
+test('26b-2 · lookLabel strips the internal "+" from a MULTI-structure formation too', () => {
+  // A coach charting TWO structural tags at once ("Flexbone + Trips") leaves
+  // projected formation itself " + "-joined — the composed phrase must not
+  // just avoid the join between qbAlignment/formation, it must strip every
+  // internal "+" in the whole label.
+  const t = tags({ unit: 'offense', formation: 'Shotgun + Flexbone + Trips' });
+  assert.equal(TagProjection.lookLabel(t), 'Shotgun Flexbone Trips');
+  assert.ok(!TagProjection.lookLabel(t).includes('+'));
+  // Same check with no alignment charted at all — structure-only multi-value.
+  const t2 = tags({ unit: 'offense', formation: 'Flexbone + Trips' });
+  assert.equal(TagProjection.lookLabel(t2), 'Flexbone Trips');
+});
+
 test('26c · lookLabel omits the missing half instead of inventing a placeholder', () => {
   assert.equal(TagProjection.lookLabel(tags({ formation: 'Trips' })), 'Trips', 'structure only, no alignment');
   assert.equal(TagProjection.lookLabel(tags({ qbAlignment: 'Pistol' })), 'Pistol', 'alignment only, no structure');

@@ -11010,10 +11010,17 @@ class TagProjection {
    * Analytics never reads this: it is a string for humans, never a grouping key.
    * Order is alignment-then-structure, and either half may be absent — a play with
    * only "Trips" reads "Trips", and one with only "Shotgun" reads "Shotgun".
+   *
+   * Projected `formation` is itself a " + "-joined MULTI-value string when the
+   * coach charted more than one structural tag (e.g. "Flexbone + Trips"). A naive
+   * `[qbAlignment, formation].join(' ')` therefore leaks that internal storage
+   * delimiter into the phrase ("Shotgun Flexbone + Trips") — re-split every
+   * structural token and join the WHOLE phrase with plain spaces so no "+" ever
+   * reaches a human-facing surface.
    */
   static lookLabel(tags) {
     const p = this.project(tags);
-    return [p.qbAlignment, p.formation].filter(Boolean).join(' ');
+    return [p.qbAlignment, ...this._split(p.formation)].filter(Boolean).join(' ');
   }
 }
 
@@ -28538,10 +28545,14 @@ class StudyPlan {
  * Escaping: plan name/notes/labels + play notes travel in importable seasons, so
  * html() escapes every interpolated string (stored-XSS boundary, lesson #18).
  *
- * E3b: `formation` here is TagProjection.lookLabel — a presentation STRING
+ * E3b: `look` here is TagProjection.lookLabel — a presentation STRING
  * (alignment + structure, e.g. "Shotgun Trips"), not a raw `tags.formation`
- * read and not a Formation ANALYTICS column. Refs and order are untouched;
- * only the label is projected. See tag-projection.js `lookLabel` for why this
+ * read and not a Formation ANALYTICS column. It is deliberately named `look`,
+ * not `formation` — labeling a combined alignment+structure phrase "Formation"
+ * would repeat the exact classification mistake E1-E3 corrected (a coach
+ * reading "Shotgun Trips" under a literal "Formation" heading would reasonably
+ * conclude Shotgun IS a formation). Refs and order are untouched; only the
+ * label is projected. See tag-projection.js `lookLabel` for why this
  * composition is deliberate here but forbidden in a column-shaped surface.
  */
 
@@ -28551,7 +28562,7 @@ class PlanExport {
    *   { name, audience, notes, createdAt, updatedAt, itemCount, playCount, missingCount,
    *     items: [{ id, kind, label, note, query, refCount, resolved, missing,
    *               plays: [{ ref, gameId, gameName, playId, missing,
-   *                         situation, formation, playType, result, yardage, notes }] }] }
+   *                         situation, look, playType, result, yardage, notes }] }] }
    * Items stay in plan order; refs within an item resolve in their stored order.
    */
   static build(plan, games) {
@@ -28591,7 +28602,7 @@ class PlanExport {
     return {
       ...base, missing: false,
       situation: PlanExport._situation(t),
-      formation: TagProjection.lookLabel(t), playType: t.playType || '',
+      look: TagProjection.lookLabel(t), playType: t.playType || '',
       result: t.result || '', yardage: (t.yardage != null ? String(t.yardage) : ''),
       notes: play.notes || '',
     };
@@ -28618,9 +28629,12 @@ class PlanExport {
     const items = exp.items.map((it, i) => {
       const rows = it.plays.length ? it.plays.map(p => p.missing
         ? `<tr class="miss"><td>${e(p.gameName)}</td><td colspan="5">${p.invalid ? `Film reference ${e(p.ref)} is invalid` : `Play ${e(p.playId)} — film not found`}</td></tr>`
-        : `<tr><td>${e(p.gameName)}</td><td>${e(p.situation)}</td><td>${e(p.formation)}</td><td>${e(p.playType)}</td><td>${e(p.result)}${p.yardage ? ` ${e(p.yardage)}` : ''}</td><td>${e(p.notes)}</td></tr>`
+        : `<tr><td>${e(p.gameName)}</td><td>${e(p.situation)}</td><td>${e(p.look)}</td><td>${e(p.playType)}</td><td>${e(p.result)}${p.yardage ? ` ${e(p.yardage)}` : ''}</td><td>${e(p.notes)}</td></tr>`
       ).join('') : '<tr><td colspan="6" class="muted">No linked film.</td></tr>';
-      return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Formation</th><th>Play</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+      // "Look" (not "Formation") — this column shows the composed alignment +
+      // structure spoken-call phrase (TagProjection.lookLabel), and labeling that
+      // "Formation" would repeat the exact classification mistake E1-E3 corrected.
+      return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Look</th><th>Play</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
     }).join('');
 
     return `<!doctype html><html><head><meta charset="utf-8"><title>${e(exp.name)} — Game Plan</title><style>
@@ -29191,7 +29205,7 @@ class PlanScreen {
     const query=[item.query?.group,item.query?.dimension,item.query?.measure].filter(Boolean).map(value=>this._esc(value)).join(' / ');
     const plays=item.plays.length?item.plays.map(play=>play.missing
       ? `<div class="ws-present-play is-missing"><span>${this._esc(play.gameName)}</span><strong>${play.invalid?'Invalid film reference':`Play ${this._esc(play.playId)} not found`}</strong></div>`
-      : `<button class="ws-present-play" data-plan-present-ref="${this._esc(play.ref)}"><span>${this._esc(play.gameName)}${play.situation?` · ${this._esc(play.situation)}`:''}</span><strong>${this._esc(play.formation||'Unlabeled formation')}</strong><small>${this._esc(play.playType||'Unlabeled play')}${play.result?` · ${this._esc(play.result)}${play.yardage?`: ${this._esc(play.yardage)}`:''}`:''}</small></button>`).join('')
+      : `<button class="ws-present-play" data-plan-present-ref="${this._esc(play.ref)}"><span>${this._esc(play.gameName)}${play.situation?` · ${this._esc(play.situation)}`:''}</span><strong>${this._esc(play.look||'Unlabeled look')}</strong><small>${this._esc(play.playType||'Unlabeled play')}${play.result?` · ${this._esc(play.result)}${play.yardage?`: ${this._esc(play.yardage)}`:''}`:''}</small></button>`).join('')
       : '<div class="ws-present-empty">No film is linked to this item.</div>';
     return `<div class="ws-plan-present" role="dialog" aria-modal="true" aria-label="Present ${this._esc(exp.name)}"><header><div><span>${this._esc(this.app.planExport._audience(exp.audience))}</span><strong>${this._esc(exp.name)}</strong></div><div>${this.presentationIndex+1} of ${exp.items.length}</div><button class="ws-icon-btn" data-plan-present-action="close" aria-label="Close presentation">&times;</button></header><main><section><div class="ws-present-kicker">${this.presentationIndex+1} · ${this._esc(item.kind)}</div><h2>${this._esc(item.label||'Untitled item')}</h2>${query?`<p class="ws-present-query">${query}</p>`:''}${item.note?`<p class="ws-present-note">${this._esc(item.note)}</p>`:''}<div class="ws-present-plays">${plays}</div></section><aside><span>Talking points</span><p>${exp.notes?this._esc(exp.notes):'No staff notes added.'}</p></aside></main><footer><button class="ws-btn" data-plan-present-action="prev" ${this.presentationIndex===0?'disabled':''}>&larr; Previous</button><button class="ws-btn ws-primary" data-plan-present-watch ${resolved.length?'':'disabled'}>Watch item · ${resolved.length}</button><button class="ws-btn" data-plan-present-action="next" ${this.presentationIndex===exp.items.length-1?'disabled':''}>Next &rarr;</button></footer></div>`;
   }

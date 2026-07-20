@@ -17,10 +17,14 @@
  * Escaping: plan name/notes/labels + play notes travel in importable seasons, so
  * html() escapes every interpolated string (stored-XSS boundary, lesson #18).
  *
- * E3b: `formation` here is TagProjection.lookLabel — a presentation STRING
+ * E3b: `look` here is TagProjection.lookLabel — a presentation STRING
  * (alignment + structure, e.g. "Shotgun Trips"), not a raw `tags.formation`
- * read and not a Formation ANALYTICS column. Refs and order are untouched;
- * only the label is projected. See tag-projection.js `lookLabel` for why this
+ * read and not a Formation ANALYTICS column. It is deliberately named `look`,
+ * not `formation` — labeling a combined alignment+structure phrase "Formation"
+ * would repeat the exact classification mistake E1-E3 corrected (a coach
+ * reading "Shotgun Trips" under a literal "Formation" heading would reasonably
+ * conclude Shotgun IS a formation). Refs and order are untouched; only the
+ * label is projected. See tag-projection.js `lookLabel` for why this
  * composition is deliberate here but forbidden in a column-shaped surface.
  */
 import { TagProjection } from './tag-projection.js';
@@ -31,7 +35,7 @@ export class PlanExport {
    *   { name, audience, notes, createdAt, updatedAt, itemCount, playCount, missingCount,
    *     items: [{ id, kind, label, note, query, refCount, resolved, missing,
    *               plays: [{ ref, gameId, gameName, playId, missing,
-   *                         situation, formation, playType, result, yardage, notes }] }] }
+   *                         situation, look, playType, result, yardage, notes }] }] }
    * Items stay in plan order; refs within an item resolve in their stored order.
    */
   static build(plan, games) {
@@ -71,7 +75,7 @@ export class PlanExport {
     return {
       ...base, missing: false,
       situation: PlanExport._situation(t),
-      formation: TagProjection.lookLabel(t), playType: t.playType || '',
+      look: TagProjection.lookLabel(t), playType: t.playType || '',
       result: t.result || '', yardage: (t.yardage != null ? String(t.yardage) : ''),
       notes: play.notes || '',
     };
@@ -98,9 +102,12 @@ export class PlanExport {
     const items = exp.items.map((it, i) => {
       const rows = it.plays.length ? it.plays.map(p => p.missing
         ? `<tr class="miss"><td>${e(p.gameName)}</td><td colspan="5">${p.invalid ? `Film reference ${e(p.ref)} is invalid` : `Play ${e(p.playId)} — film not found`}</td></tr>`
-        : `<tr><td>${e(p.gameName)}</td><td>${e(p.situation)}</td><td>${e(p.formation)}</td><td>${e(p.playType)}</td><td>${e(p.result)}${p.yardage ? ` ${e(p.yardage)}` : ''}</td><td>${e(p.notes)}</td></tr>`
+        : `<tr><td>${e(p.gameName)}</td><td>${e(p.situation)}</td><td>${e(p.look)}</td><td>${e(p.playType)}</td><td>${e(p.result)}${p.yardage ? ` ${e(p.yardage)}` : ''}</td><td>${e(p.notes)}</td></tr>`
       ).join('') : '<tr><td colspan="6" class="muted">No linked film.</td></tr>';
-      return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Formation</th><th>Play</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+      // "Look" (not "Formation") — this column shows the composed alignment +
+      // structure spoken-call phrase (TagProjection.lookLabel), and labeling that
+      // "Formation" would repeat the exact classification mistake E1-E3 corrected.
+      return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Look</th><th>Play</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
     }).join('');
 
     return `<!doctype html><html><head><meta charset="utf-8"><title>${e(exp.name)} — Game Plan</title><style>

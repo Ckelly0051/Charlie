@@ -87,9 +87,16 @@ export class TagProjection {
    * Analytics never reads this: it is a string for humans, never a grouping key.
    * Order is alignment-then-structure, and either half may be absent — a play with
    * only "Trips" reads "Trips", and one with only "Shotgun" reads "Shotgun".
+   *
+   * Projected `formation` is itself a " + "-joined MULTI-value string when the
+   * coach charted more than one structural tag (e.g. "Flexbone + Trips"). A naive
+   * `[qbAlignment, formation].join(' ')` therefore leaks that internal storage
+   * delimiter into the phrase ("Shotgun Flexbone + Trips") — re-split every
+   * structural token and join the WHOLE phrase with plain spaces so no "+" ever
+   * reaches a human-facing surface.
    */
   static lookLabel(tags) {
     const p = this.project(tags);
-    return [p.qbAlignment, p.formation].filter(Boolean).join(' ');
+    return [p.qbAlignment, ...this._split(p.formation)].filter(Boolean).join(' ');
   }
 }
