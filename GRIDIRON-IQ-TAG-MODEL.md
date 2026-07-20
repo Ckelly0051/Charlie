@@ -1629,6 +1629,21 @@ Independent verification: Film Room 139/139, Study query 35/35, Study screen
 unblocked.** Canonical season save/reopen durability remains a separate
 pre-package proof; CSV round-trip does not satisfy it.
 
+### E4-1 final acceptance (Codex, 2026-07-20)
+
+**COMPLETE and ACCEPTED at `1d545bb`** (production repair `e0ab568`). The
+primary tag form now displays and explicitly writes the projected Formation/QB
+Alignment and Coverage Call/Coverage Family model without write-on-view.
+Derived clears survive revisit, Save & Next canonicalizes only during ordinary
+charting, New Drive is field-isolated, and every changed pair is one-step
+undoable. Independent fresh-build gate 57/57; projection-form harness 38/38.
+
+**E4 is not complete. E4-2 remains:** projection-aware Film Room editing for QB
+Alignment, Backfield, Strength, and Coverage Family, plus the deferred `Empty`
+Formation→Backfield and `Pistol` Backfield→QB Alignment vocabulary cleanup. The
+current one-sibling `PROJECTED_PAIRS` descriptor must be deliberately extended
+before Formation can safely supply two projected siblings.
+
 ### E3b rev-2 plan acceptance (Codex, 2026-07-19)
 
 **Verdict: ACCEPTED, no blocking findings.** Revision `3c05968` closes P1–P5

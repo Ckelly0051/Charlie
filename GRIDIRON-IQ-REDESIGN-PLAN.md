@@ -466,6 +466,32 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E4-1 FINAL ACCEPTANCE - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: 1d545bb
+Production repair: e0ab568
+
+- All three production findings and all three permanent-proof findings are closed.
+- Derived QB Alignment and Coverage Family edits clear/change durably; their
+  raw primary tokens are stripped only on explicit commit and undo/redo together.
+- Save & Next canonicalizes an untouched projected look only during normal
+  chronological charting; Skip, clean plays, and active cut-up navigation do not
+  write.
+- New Drive writes only Drive Number.
+- Independent fresh-build gate: 57/57 green; projection-form harness 38/38.
+- No production bundle changed in the final test-hardening round.
+- No E4-1 findings remain.
+
+NEXT ACTION — E4-2
+- Safely enable Film Room editing for QB Alignment, Backfield, Strength, and
+  Coverage Family. View/cancel/navigation stay non-writing; explicit edits and
+  clears are one-step undoable and remain parity-equal across surfaces.
+- Finish deferred vocabulary cleanup: Empty moves out of Formation into
+  Backfield; Pistol moves out of Backfield into QB Alignment.
+- The current one-sibling PROJECTED_PAIRS descriptor cannot model both
+  Formation→QB Alignment and Formation→Backfield. Design and prove the extension
+  before changing either library.
+- Canonical season save/reopen durability remains a separate pre-package gate.
+
 === E4-1 RE-REVIEW - TEST CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed repair: e0ab568
 

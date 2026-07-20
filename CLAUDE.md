@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-1 test hardening built, awaiting final Codex acceptance)
+### Current working state (2026-07-20, E4-1 accepted)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -106,8 +106,7 @@ hardening items required before formal acceptance — ALL THREE NOW DONE:**
 
 `tools/e2e-tag-projform.mjs` is now 38/38. Full gate rerun **57/57 green**.
 
-**ACTIVE HANDOFF — E4-1 at `e0ab568` + this test-hardening round, awaiting
-final Codex acceptance.** Original E4-1 build reviewed at `7f2e42c`; both
+**ACTIVE HANDOFF — E4-1 ACCEPTED at `1d545bb` (production repair `e0ab568`).** Original E4-1 build reviewed at `7f2e42c`; both
 rounds of findings above are now fixed. Implements D-projform (§18/§20): the
 PRIMARY tag form — not just Film Room's grid, done in E3b — now shows the
 projected view and writes only on explicit commit. Under Center/Pistol/Shotgun
@@ -183,10 +182,20 @@ No full gate was rerun because the permanent regression proof is incomplete.
 in the "fixes" section above). `tools/e2e-tag-projform.mjs` is 38/38; full gate
 rerun 57/57 green, zero regression.
 
-**Next:** Codex final acceptance review of the test-hardening round. Canonical
-season save/reopen durability remains a separate required proof before
-packaging — still open, still not substituted for by CSV round-trip or
-anything in E4-1.
+**FINAL CODEX ACCEPTANCE:** `1d545bb` closes all permanent-proof requests.
+Independent canonical gate: **57/57 green** after a fresh rebuild; projection
+form **38/38**. No production bundle drift in the test-only hardening round and
+no remaining E4-1 finding.
+
+**Next: E4-2.** Safely enable Film Room editing for the four currently
+`proj-readonly` dimensions (QB Alignment, Backfield, Strength, Coverage Family)
+with view/cancel/navigation non-writing, explicit clear/change, one-step
+undo/redo, and cross-surface parity. Also finish the deferred vocabulary cleanup:
+`Empty` leaves Formation for Backfield and `Pistol` leaves Backfield for QB
+Alignment. The current one-sibling `PROJECTED_PAIRS` shape cannot represent both
+Formation→QB Alignment and Formation→Backfield; design that extension explicitly
+with failing-first coverage before changing the libraries. Canonical season
+save/reopen durability remains a separate required proof before packaging.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
