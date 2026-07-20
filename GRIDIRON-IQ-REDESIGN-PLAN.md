@@ -466,6 +466,47 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-13 RE-REVIEW - CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: efaaa48
+
+CLOSED
+- Missing-group equality now compares independently enumerated value keys in
+  both directions.
+- Film Room row grouping covers all six projected fields, including
+  multi-structure formation, with composite refs.
+- QB Alignment and Coverage Family are present and queryable in the real Study
+  primary selector.
+- Focused checks: Study query 35/35, Film Room 126/126, Study screen 53/53,
+  raw-read audit 11/11.
+
+REMAINING REQUIRED FIXES
+1. Tie Study dimension coverage to the canonical mapping. The test still
+   duplicates all 15 DIMENSION_CUT entries in a literal object. Generate from
+   `StudyQuery.DIMENSION_CUT` or assert exact key/value equality so adding or
+   changing a canonical mapping makes this harness fail.
+2. Complete composite Watch equality. The row comparison preserves
+   `gameId::playId`, but the final Watch assertion compares `watchedIds` with
+   `shotgunIds` as bare numbers. Map intercepted IDs through the active fixture
+   game and compare directly with `shotgunRefs`; assert the game prefix.
+3. Complete the explicitly requested tendency proof. Current tendency assertions
+   cover formation only. For formation, qbAlignment, backfield, strength,
+   coverage, and coverageFamily, derive top value/share from the independent
+   expected grouping and eligible-play denominator and compare the rendered
+   tendency output.
+4. Complete Study's new-dimension UI-to-film path. After selecting QB Alignment
+   (or Coverage Family), intercept `StudyScreen._watch`, click the rendered row,
+   and assert exact registry composite refs. Existing generic Watch tests do not
+   prove the new dimension remains linked through the screen.
+
+ADVISORY FOR E4
+- Backfield and Strength were newly exposed as display-only Film Room columns.
+  This does not block E3b, but E4 must make an explicit editing decision; they
+  are established charting fields, unlike the newly split sibling fields.
+
+NEXT ACTION
+Claude closes these four narrow proofs and returns for final Codex acceptance.
+E3b remains unpackageable and E4 remains blocked.
+
 === E3b-12 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: c78df6a
 
