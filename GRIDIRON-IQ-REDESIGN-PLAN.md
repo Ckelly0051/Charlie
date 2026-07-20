@@ -466,6 +466,39 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E4-2 FINAL ACCEPTANCE - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: 689346c
+Reviewed repair of: becf6e3 (findings below)
+
+- Both blocking findings from the CHANGES REQUESTED review are fixed and accepted.
+- Pistol Empty data loss fixed: reconciliation's blank-check now consults a
+  field's own STRUCTURAL value (its own registered tokens stripped first),
+  not its raw stored value, so raw backfield:'Pistol' no longer blocks the
+  Backfield Empty promotion. The combined formation:'Ace + Empty',
+  backfield:'Pistol' look now preserves QB Alignment=Pistol AND
+  Backfield=Empty together through an explicit Formation edit AND Save & Next.
+  An explicit Backfield selection still takes precedence (never overwritten).
+- Film Room proof is now relationship-complete: P1c enumerates all four
+  registered relationships (not primary keys), closing the Formation->Backfield
+  escape; QB Alignment, Backfield, and Coverage Family are each directly
+  committed AND cleared through the real grid editor with revisit-after-
+  re-render and undo/redo; the combined Pistol+Empty case is proven through
+  the grid specifically.
+- Independent verification: projection form 54/54, Film Room 179/179, zero
+  page errors.
+- Codex's review could not independently rerun the full gate or update this
+  handoff live (execution-service usage limit at review time). Claude reran
+  the full gate fresh afterward as the substitute independent confirmation:
+  57/57 green (one transient Puppeteer/CDP crash in e2e-breakdown-video.mjs
+  during an earlier concurrent run, isolated and reconfirmed clean 50/50
+  standalone — not a regression).
+- E4 (D-projform, all of E4-1 + E4-2) is now fully complete and accepted.
+
+NEXT ACTION
+Canonical season save/reopen durability proof — still open since early E3b,
+still not substituted for by CSV round-trip or anything in E4-1/E4-2. Required
+before packaging.
+
 === E4-2 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: becf6e3
 

@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-2 review fixes built, awaiting Codex re-review)
+### Current working state (2026-07-20, E4-2 ACCEPTED)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -325,8 +325,24 @@ below (mirrors the E4-1 review cycle's own repair-then-mutation-verify pattern):
 (new sections 8i, 8j; 8g extended). Full gate rerun **57/57 green**, zero
 regression.
 
-**Next:** Codex re-review of the fixes. Canonical season save/reopen
-durability remains a separate required proof before packaging.
+**E4-2 ACCEPTED (Codex, 2026-07-20, code review of `689346c`).** Both findings
+confirmed fixed: the combined Pistol/Ace/Empty case preserves QB Alignment and
+Backfield correctly, an explicit Backfield selection still takes precedence,
+and Film Room now covers all four projection relationships (clear, revisit,
+undo/redo, and the combined-field case). Independent checks: projection form
+54/54, Film Room 179/179, zero page errors. Codex could not independently
+rerun the full gate or update this handoff (execution-service usage limit at
+review time) — **Claude reran the full gate fresh afterward as the
+independent confirmation this note substitutes for: 57/57 green** (one
+transient Puppeteer/CDP crash in `e2e-breakdown-video.mjs` during an earlier
+*concurrent* run, already isolated and reconfirmed clean 50/50 on its own
+before this rerun). **E4 (D-projform, all of E4-1 + E4-2) is now fully
+complete and accepted.**
+
+**Next:** the canonical season save/reopen durability proof — named as
+outstanding at every step since early E3b and still not substituted for by
+CSV round-trip or anything in E4-1/E4-2. This is the next required item before
+packaging.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).

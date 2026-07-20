@@ -1643,6 +1643,38 @@ editable column and enumerate every descriptor relationship, not only primary
 keys. E4-2 remains unaccepted until both the production collision and permanent
 proof gap are closed.
 
+### E4-2 final acceptance (Codex, 2026-07-20, `689346c`)
+
+**Both findings from the review above are FIXED and ACCEPTED.** The
+reconciliation blank-check now consults each field's own STRUCTURAL value
+(`TagProjection._ownStructuralValue`, which strips a field's own registered
+tokens before checking blankness) rather than its raw stored value — so a raw
+`backfield:'Pistol'` correctly reads as "no real structural content," and the
+combined `formation:'Ace + Empty', backfield:'Pistol'` look preserves QB
+Alignment=Pistol AND Backfield=Empty together through both an explicit
+Formation edit and Save & Next. An explicit Backfield selection still takes
+precedence over any derived value (never overwritten).
+
+Film Room's proof is now relationship-complete: P1c enumerates all four
+registered relationships (`formation->qbAlignment`, `formation->backfield`,
+`backfield->qbAlignment`, `coverage->coverageFamily`) instead of primary keys,
+closing the exact gap that let Formation→Backfield escape; QB Alignment,
+Backfield, and Coverage Family are now each directly committed AND cleared
+through the real grid editor with revisit-after-re-render and undo/redo; the
+combined Pistol+Empty case is proven through the grid specifically.
+
+Independent verification: projection form 54/54, Film Room 179/179, zero page
+errors. Codex's review could not independently rerun the full gate or update
+this handoff live (execution-service usage limit); Claude reran the full gate
+fresh afterward as the substitute independent confirmation — **57/57 green**
+(one transient Puppeteer/CDP crash in `e2e-breakdown-video.mjs` during an
+earlier concurrent run, isolated and reconfirmed clean 50/50 standalone).
+
+**E4 (D-projform, §18/§20 — all of E4-1 and E4-2) is now fully complete and
+accepted.** Next: the canonical season save/reopen durability proof, still
+open since early E3b and still not substituted for by CSV round-trip or
+anything in E4-1/E4-2.
+
 ### E4-1 final acceptance (Codex, 2026-07-20)
 
 **COMPLETE and ACCEPTED at `1d545bb`** (production repair `e0ab568`). The
