@@ -1437,6 +1437,13 @@ ${body}
       // own projected export writes; the legacy `coverage` alias below stays so a
       // pre-E3b CSV (ours or Hudl's) still imports — projection then reads it
       // honestly at read time, exactly as it does for a legacy stored play.
+      // `Unit` has been an EXPORT column all along but was never imported, so every
+      // round-tripped defensive/ST play came back unit-less — and StatsEngine reads a
+      // unit-less play as OFFENSE, silently corrupting every unit-partitioned metric
+      // while the six projected fields still looked perfect.
+      // (`side` is deliberately NOT aliased here — it already means fieldSide below,
+      // and a duplicate key would silently resolve to whichever came last.)
+      unit: 'unit', unitside: 'unit',
       qbalignment: 'qbAlignment', qbalign: 'qbAlignment', qbal: 'qbAlignment',
       backfield: 'backfield', backs: 'backfield',
       strength: 'strength', formationstrength: 'strength',
@@ -1478,7 +1485,10 @@ ${body}
     for (const cells of lines) {
       if (cells.every(c => !c)) continue;
 
+      // `unit` defaults to offense to match a blank play from the tag form. A CSV
+      // with no Unit column therefore behaves exactly as it did before.
       const tags = {
+        unit: 'offense',
         down: '', distance: '', formation: '', qbAlignment: '', backfield: '', strength: '',
         playType: '', runPass: '',
         defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '',
@@ -1489,6 +1499,10 @@ ${body}
       let notes = '';
       let penalties = [];
       let resultingSituation = null;
+      // Did the coach chart ANY value on this row? Drives the skip guard below.
+      // `unit` deliberately does not count — it is defaulted for every row, so
+      // counting it would mean never skipping anything.
+      let charted = false;
 
       for (const [colIdx, field] of Object.entries(colMap)) {
         const val = cells[parseInt(colIdx, 10)] || '';
@@ -1504,13 +1518,32 @@ ${body}
         }
         if (playerFields.includes(field)) {
           tags.players[field] = val;
+          charted = true;
+          continue;
+        }
+        if (field === 'unit') {
+          // Only the three real units may be written. An unrecognized value keeps
+          // the 'offense' default rather than inventing a fourth unit that no form,
+          // filter, or report knows how to render.
+          const u = val.toLowerCase().replace(/[^a-z]/g, '');
+          const known = { offense: 'offense', off: 'offense', o: 'offense',
+                          defense: 'defense', def: 'defense', d: 'defense',
+                          special: 'special', specialteams: 'special', st: 'special' };
+          if (known[u]) tags.unit = known[u];
           continue;
         }
         tags[field] = val;
+        charted = true;
       }
 
-      // Skip rows with no useful data
-      if (!tags.playType && !tags.result && !tags.yardage && !tags.down && !penalties.length) continue;
+      // Skip only a row where the coach charted NOTHING. The old guard demanded a
+      // playType, result, yardage, down, or penalty, so a play charted solely as
+      // "Shotgun + Trips" or "Cover 3" was silently DROPPED on import — which
+      // contradicts the standing rule that a coach may chart only the fields they
+      // want (blank values are valid; Save & Next never required a chip). `charted`
+      // is set by the mapping loop above, so any real value on any mapped column
+      // keeps the row, while a genuinely blank row is still skipped.
+      if (!charted && !notes && !penalties.length && !resultingSituation) continue;
 
       const play = {
         id: this.tagger.nextId++,

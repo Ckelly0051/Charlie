@@ -53,7 +53,16 @@ const res = await page.evaluate(async () => {
             playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '9', down: '2', distance: '9' }),
     // 6. Sparse play: every optional look field blank — must stay blank.
     mk(6, { unit: 'offense', playType: 'Screen', runPass: 'Pass', result: 'No Gain', yardage: '0', down: '3', distance: '3' }),
+    // 7-8. MINIMALLY charted: the coach charted ONLY a look. No playType, result,
+    //      yardage, down, or penalty. Charting only the fields you want is an
+    //      explicit product rule — these rows must survive a round trip, not vanish.
+    mk(7, { unit: 'offense', formation: 'Shotgun + Trips' }),
+    mk(8, { unit: 'defense', coverage: 'Match', defFront: '3-3-5' }),
+    // 9. Special Teams: unit must survive. StatsEngine reads a unit-less play as
+    //    OFFENSE, so a dropped unit silently corrupts every unit-partitioned metric.
+    mk(9, { unit: 'special', stType: 'Punt', result: 'Punt' }),
   ];
+  const exportedUnits = sm.tagger.plays.map(p => p.tags.unit);
 
   let blob = null;
   sm._download = (b) => { blob = b; };
@@ -99,6 +108,21 @@ const res = await page.evaluate(async () => {
       ({ formation, qbAlignment, backfield, strength, coverage, coverageFamily }))(StatsEngine.proj(p)),
   }));
 
+  const importedUnits = sm.tagger.plays.map(p => p.tags.unit);
+  const importedLooks = sm.tagger.plays.map(p => {
+    const q = StatsEngine.proj(p);
+    return { formation: q.formation, qbAlignment: q.qbAlignment, coverage: q.coverage, coverageFamily: q.coverageFamily };
+  });
+
+  // A row with genuinely nothing charted must STILL be skipped — the fix for the
+  // minimal-play drop must not widen into "import every blank line".
+  const emptyRowCsv = 'Play #,Unit,Formation,Coverage Call,Play Type,Result\n7,offense,,,,\n8,offense,Trips,,,';
+  const emptyParsed = sm.importPlaysFromText(emptyRowCsv);
+  sm.tagger.plays = [];
+  sm.tagger.nextId = 1;
+  sm.applyPlayImport(emptyParsed);
+  const emptyRowResult = { count: sm.tagger.plays.length, formations: sm.tagger.plays.map(p => p.tags.formation) };
+
   // LEGACY header compatibility: a pre-E3b export used plain `Coverage`.
   const legacyCsv = 'Down,Distance,Formation,Coverage,Play Type,Result,Yardage\n1,10,Trips,Cover 3,Short Pass,Gain,6';
   const legacyParsed = sm.importPlaysFromText(legacyCsv);
@@ -109,6 +133,7 @@ const res = await page.evaluate(async () => {
 
   return {
     headers, mismatches, formationLeak, imported,
+    exportedUnits, importedUnits, importedLooks, emptyRowResult,
     row1: { formation: cell(0, 'Formation'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Strength') },
     row2: { call: cell(1, 'Coverage Call'), family: cell(1, 'Coverage Family') },
     row3: { call: cell(2, 'Coverage Call'), family: cell(2, 'Coverage Family') },
@@ -147,7 +172,18 @@ ok(res.formationLeak.length === 0,
   'NO Formation cell in the export contains an alignment token', JSON.stringify(res.formationLeak));
 
 // --- Round trip ---
-ok(res.imported.length === 6, 'export→import produces one play per exported row', String(res.imported.length));
+ok(res.imported.length === 9, 'export→import produces one play per exported row — INCLUDING minimally charted ones',
+  `${res.imported.length} of 9; formations back: ${JSON.stringify(res.importedLooks?.map(l => l.formation))}`);
+ok(JSON.stringify(res.importedUnits) === JSON.stringify(res.exportedUnits),
+  'every play\'s UNIT survives the round trip (a lost unit reads as offense and corrupts unit-partitioned analytics)',
+  `exported ${JSON.stringify(res.exportedUnits)} -> imported ${JSON.stringify(res.importedUnits)}`);
+ok(res.importedLooks?.[6]?.formation === 'Trips' && res.importedLooks?.[6]?.qbAlignment === 'Shotgun',
+  'a play charted with ONLY a formation survives import and lands split', JSON.stringify(res.importedLooks?.[6]));
+ok(res.importedLooks?.[7]?.coverageFamily === 'Match' && res.importedLooks?.[7]?.coverage === '',
+  'a play charted with ONLY a coverage family survives import', JSON.stringify(res.importedLooks?.[7]));
+ok(res.emptyRowResult?.count === 1 && res.emptyRowResult?.formations?.[0] === 'Trips',
+  'a row with NOTHING charted is still skipped — the fix does not widen into importing blank lines',
+  JSON.stringify(res.emptyRowResult));
 const rt = res.imported.every(p => JSON.stringify(p.raw) === JSON.stringify(p.proj));
 ok(rt, 'imported plays are ALREADY canonical — re-projecting changes nothing (no re-mixing)',
   JSON.stringify(res.imported.find(p => JSON.stringify(p.raw) !== JSON.stringify(p.proj))));
