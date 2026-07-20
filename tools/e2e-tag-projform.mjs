@@ -201,6 +201,52 @@ r = await page.evaluate(async () => {
 ok((r.rawAfterCommit.qbAlignment || '') === '' && r.rawAfterCommit.formation === 'Wing-T', 'clearing the DERIVED QB Alignment strips the Shotgun token out of Formation\'s raw stored value in the SAME commit', JSON.stringify(r.rawAfterCommit));
 ok((r.revisitQbAlignment || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit — Shotgun does not silently reappear, because the raw legacy token is actually gone, not just hidden this one time', JSON.stringify(r));
 
+console.log('\n== 7c. Coverage Family DERIVED clear strips Coverage too — the DISTINCT single-value branch, with revisit + undo/redo (Codex e0ab568 re-review, item #1) ==');
+// 7b only exercised stripSiblingToken's MULTI-value (formation) branch.
+// Coverage is single-value: the whole raw field IS the family token when it
+// matches, so stripSiblingToken has a genuinely separate code path
+// (`primaryKey === 'coverage'` -> return '' instead of filter-and-rejoin).
+// This also proves the undo/redo pairing Codex asked for on this branch,
+// mirroring section 4's Formation undo/redo but for the reverse (clear) case.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger, hist = window.app.history;
+  const id = 9113;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'defense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], coverage: 'Man' } };
+  t.plays.push(play);
+  t.selectPlay(id);   // seeds Coverage Family 'Man' from the DERIVED value — the whole raw `coverage` IS the family token
+  hist.reset();
+  const depth0 = hist.stack.length;
+  document.querySelector('#tagCoverageFamily .pick[data-value="Man"]').click();   // re-tap the derived-active chip = explicit clear
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterCommit = t.getPlay(id);
+  const commitResult = { coverage: afterCommit.tags.coverage, coverageFamily: afterCommit.tags.coverageFamily, entries: hist.stack.length - depth0 };
+
+  hist.undo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p1 = t.getPlay(id);
+  const afterUndo = { coverage: p1.tags.coverage, coverageFamily: p1.tags.coverageFamily };
+
+  hist.redo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p2 = t.getPlay(id);
+  const afterRedo = { coverage: p2.tags.coverage, coverageFamily: p2.tags.coverageFamily };
+
+  // Re-visit AFTER the undo/redo cycle — proves the clear survives on the
+  // STORED tags, not just the live chip UI from the original commit.
+  t.selectPlay(id);
+  const revisit = t.getPlay(id);
+  return {
+    commitResult, afterUndo, afterRedo,
+    revisitCoverageFamily: revisit.tags.coverageFamily,
+    revisitChip: [...document.querySelectorAll('#tagCoverageFamily .pick.active')].map(el => el.dataset.value),
+  };
+});
+ok(r.commitResult.coverage === '' && r.commitResult.coverageFamily === '', 'clearing the DERIVED Coverage Family strips the Man token out of Coverage\'s raw stored value (the distinct single-value branch) in the SAME commit', JSON.stringify(r.commitResult));
+ok(r.commitResult.entries === 1, 'the strip + clear commit is EXACTLY one history entry', JSON.stringify(r.commitResult));
+ok(r.afterUndo.coverage === 'Man' && (r.afterUndo.coverageFamily || '') === '', 'UNDO restores the raw legacy Coverage AND removes the cleared Coverage Family TOGETHER', JSON.stringify(r.afterUndo));
+ok((r.afterRedo.coverage || '') === '' && (r.afterRedo.coverageFamily || '') === '', 'REDO restores the stripped Coverage AND the cleared Coverage Family TOGETHER', JSON.stringify(r.afterRedo));
+ok((r.revisitCoverageFamily || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit after the undo/redo cycle — Man does not silently reappear', JSON.stringify(r));
+
 console.log('\n== 8. Formation / QB Alignment / Coverage Call / Coverage Family round-trip INDEPENDENTLY (requirement #6) ==');
 r = await page.evaluate(async (ids) => {
   const t = window.app.tagger;
@@ -232,10 +278,29 @@ r = await page.evaluate(async () => {
   const legacy = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Ace' } };
   t.plays.push(legacy);
   t.selectPlay(legacyId);   // review only — no chip touched
+  // At this point legacyId is the LAST play in t.plays (cleanId is pushed
+  // below, after this action), so nextPlayWithSituation() finds no next play
+  // to advance to — Save & Next's canonicalization is the ONLY thing that can
+  // touch history here, isolating the one-entry assertion from advance-related
+  // carry-forward writes (auto D&D / carry scheme), which only ever fire
+  // inside the `if (advanced)` branch.
+  hist.reset();
+  const depth0 = hist.stack.length;
   document.getElementById('btnTagSaveNext').click();
   await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
-  const afterLegacy = t.getPlay(legacyId);
-  const legacyResult = { formation: afterLegacy.tags.formation, qbAlignment: afterLegacy.tags.qbAlignment };
+  const afterCommit = t.getPlay(legacyId);
+  const commitResult = { formation: afterCommit.tags.formation, qbAlignment: afterCommit.tags.qbAlignment, entries: hist.stack.length - depth0 };
+
+  hist.undo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p1 = t.getPlay(legacyId);
+  const afterUndo = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
+
+  hist.redo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p2 = t.getPlay(legacyId);
+  const afterRedo = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
+  const legacyResult = commitResult;
 
   // A CLEAN modern play (nothing to canonicalize) must stay a true no-op — Save
   // & Next must not manufacture a history entry on every ordinary navigation.
@@ -249,12 +314,15 @@ r = await page.evaluate(async () => {
   await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const afterClean = t.getPlay(cleanId);
   return {
-    legacyResult,
+    legacyResult, afterUndo, afterRedo,
     cleanUnchanged: afterClean.tags.formation === 'Ace' && afterClean.tags.qbAlignment === 'Under Center',
     noHistoryEntryForClean: hist.stack.length === depthBefore,
   };
 });
 ok(r.legacyResult.formation === 'Ace' && r.legacyResult.qbAlignment === 'Under Center', 'Save & Next canonicalizes an untouched legacy play\'s projected look — it can now leave the Legacy Tags to Review list', JSON.stringify(r.legacyResult));
+ok(r.legacyResult.entries === 1, 'the canonicalization commit is EXACTLY one history entry, even though it touches BOTH the primary and the sibling', JSON.stringify(r.legacyResult));
+ok(r.afterUndo.formation === 'Under Center + Ace' && (r.afterUndo.qbAlignment || '') === '', 'UNDO restores BOTH raw legacy pairs together (Formation back to its embedded string, QB Alignment back to unset)', JSON.stringify(r.afterUndo));
+ok(r.afterRedo.formation === 'Ace' && r.afterRedo.qbAlignment === 'Under Center', 'REDO restores BOTH canonical pairs together', JSON.stringify(r.afterRedo));
 ok(r.cleanUnchanged, 'a play with nothing to canonicalize is untouched by Save & Next', JSON.stringify(r));
 ok(r.noHistoryEntryForClean, 'Save & Next on an already-clean play creates NO history entry — a true no-op, not busywork on every navigation', JSON.stringify(r));
 
@@ -301,7 +369,14 @@ r = await page.evaluate(async () => {
   document.getElementById('btnNewDrive').click();
   await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const after = t.getPlay(id);
-  const onlyDriveNumberChanged = Object.keys(before).every(k => k === 'driveNumber' || JSON.stringify(after.tags[k]) === JSON.stringify(before[k]));
+  // Codex e0ab568 re-review item #3: compare the UNION of keys on both sides,
+  // not just Object.keys(before) — the original check could only detect a
+  // CHANGED existing key, so a regression that silently ADDS a brand-new key
+  // (e.g. a stray qbAlignment/coverageFamily write) to `after.tags` that was
+  // never present in `before` at all would pass undetected.
+  const allKeys = new Set([...Object.keys(before), ...Object.keys(after.tags)]);
+  const onlyDriveNumberChanged = [...allKeys].every(k => k === 'driveNumber'
+    || JSON.stringify(after.tags[k] ?? null) === JSON.stringify(before[k] ?? null));
   return { formation: after.tags.formation, qbAlignment: after.tags.qbAlignment, driveNumber: after.tags.driveNumber, onlyDriveNumberChanged };
 });
 ok(r.formation === 'Shotgun + Twins' && (r.qbAlignment || '') === '', '"New Drive" leaves an untouched legacy Formation exactly as stored — it does NOT promote or strip anything', JSON.stringify(r));

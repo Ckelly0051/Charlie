@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-1 test hardening requested)
+### Current working state (2026-07-20, E4-1 test hardening built, awaiting final Codex acceptance)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -78,24 +78,57 @@ INVERTED to "New Drive does NOT touch" since the fix changes the intended
 behavior, not just closes a gap). Full gate **57/57 green**, zero regression.
 Bundle rebuilt and verified.
 
-**ACTIVE HANDOFF — E4-1 production fixes at `e0ab568` are correct; TEST CHANGES REQUESTED.**
-Original E4-1 build reviewed at `7f2e42c`; findings above are now fixed.
-Implements D-projform (§18/§20): the PRIMARY tag form — not just Film Room's
-grid, done in E3b — now shows the projected view and writes only on explicit
-commit. Under Center/Pistol/Shotgun removed from `#tagFormation`, Man/Zone
-removed from `#tagCoverage`; new `#tagQbAlignment`/`#tagCoverageFamily` chip
-groups added. `_loadTagForm` seeds Formation/Coverage from the PROJECTED value
-(a correctness fix, not just display honesty — see the play-tagger.js comment
-on why raw-seeding a legacy multi-value Formation is a live data-corruption
-hazard with ChipField's actual internals). `_saveField` and `_saveCurrentTags`
-("New Drive") both carry the SAME promote-on-explicit-commit guard Film Room's
-grid editor already had (E3b-P1), now sharing one descriptor —
+**Codex re-review of `e0ab568` (at `1c7e9b1`): production fixes PASS
+(independent runtime probing confirmed all four behaviors), three test-only
+hardening items required before formal acceptance — ALL THREE NOW DONE:**
+1. **Coverage/Coverage Family's DERIVED clear + revisit + undo/redo, the
+   distinct single-value branch.** New section 7c: `stripSiblingToken` has a
+   genuinely separate code path for `coverage` (whole-field-is-the-token) vs
+   `formation` (filter-and-rejoin a multi-value string), and 7b only exercised
+   the formation branch. Mutation-verified: disabling the coverage branch
+   reproduces 3 failures in the new section (commit, redo, revisit-sticks).
+2. **Save & Next's one-entry undo/redo contract**, on the exact legacy fixture.
+   Section 9 now resets history around the legacy play's Save & Next, asserts
+   `entries === 1`, then undoes (both raw pairs restored together) and redoes
+   (both canonical pairs restored together). Mutation-verified: disabling
+   `commitProjectedLook()` drops entries to 0 and breaks the redo assertion.
+   (Note: a same-tick double-`_emit` mutation did NOT move the entries count —
+   `HistoryManager._record` intentionally coalesces same-label edits within
+   800ms, so the entries count alone can't distinguish "one clean commit" from
+   "two commits that happened to coalesce"; the undo/redo pairing checks are
+   the substantive proof and were confirmed sensitive to a real break.)
+3. **New Drive's isolation check now catches ADDED keys, not just changed
+   ones.** The old check only iterated `Object.keys(before)`, so a regression
+   that adds a brand-new key present in neither the original fixture nor
+   `driveNumber` would pass undetected. Now compares the UNION of keys on both
+   sides. Mutation-verified: a mutation that stamps an unrelated new key
+   (`strength`) onto the play is caught; reverted, the fixed code passes clean.
+
+`tools/e2e-tag-projform.mjs` is now 38/38. Full gate rerun **57/57 green**.
+
+**ACTIVE HANDOFF — E4-1 at `e0ab568` + this test-hardening round, awaiting
+final Codex acceptance.** Original E4-1 build reviewed at `7f2e42c`; both
+rounds of findings above are now fixed. Implements D-projform (§18/§20): the
+PRIMARY tag form — not just Film Room's grid, done in E3b — now shows the
+projected view and writes only on explicit commit. Under Center/Pistol/Shotgun
+removed from `#tagFormation`, Man/Zone removed from `#tagCoverage`; new
+`#tagQbAlignment`/`#tagCoverageFamily` chip groups added. `_loadTagForm` seeds
+Formation/Coverage from the PROJECTED value (a correctness fix, not just
+display honesty — see the play-tagger.js comment on why raw-seeding a legacy
+multi-value Formation is a live data-corruption hazard with ChipField's actual
+internals). `_saveField` carries the promote-on-explicit-commit guard Film
+Room's grid editor already had (E3b-P1) in BOTH directions (primary→sibling
+promote, and sibling→primary strip on a direct sibling commit — the reverse
+case added in the fix round above), sharing one descriptor —
 `TagProjection.PROJECTED_PAIRS`, moved from `PlayGrid` (kept there as a getter
 alias, zero behavior change, confirmed via a full Film Room re-run before
-touching anything else). Found and fixed one pre-existing bug along the way
-(`suggestion-engine.js` `_flash`/`_addSuggestionHint` assumed a raw DOM element
-for a target that's always been a ChipField wrapper — the actual suggestion
-worked, only the cosmetic flash crashed, since inception).
+touching anything else). "New Drive" now writes only `driveNumber` via
+`_saveField` directly (`_saveCurrentTags` deleted — dead code, was its only
+caller); Save & Next canonicalizes the current play's projected look via the
+new `PlayTagger.commitProjectedLook()`. Found and fixed one pre-existing bug
+along the way (`suggestion-engine.js` `_flash`/`_addSuggestionHint` assumed a
+raw DOM element for a target that's always been a ChipField wrapper — the
+actual suggestion worked, only the cosmetic flash crashed, since inception).
 
 Deliberately NOT done this increment, flagged not silently skipped: 'Empty'
 stays in Formation's chip list, 'Pistol' stays in Backfield's — same class of
@@ -146,10 +179,14 @@ These are test-proof findings, not production defects. Focused E4 harness is
 30/30 and the independent adversarial probe passed every production behavior.
 No full gate was rerun because the permanent regression proof is incomplete.
 
-**Next:** Claude adds the three failing-first assertions and returns for final
-Codex acceptance. Canonical season save/reopen durability remains a separate
-required proof before packaging — still open, still not substituted for by CSV
-round-trip or anything in E4-1.
+**All three test-hardening items are DONE** (see the summary + mutation notes
+in the "fixes" section above). `tools/e2e-tag-projform.mjs` is 38/38; full gate
+rerun 57/57 green, zero regression.
+
+**Next:** Codex final acceptance review of the test-hardening round. Canonical
+season save/reopen durability remains a separate required proof before
+packaging — still open, still not substituted for by CSV round-trip or
+anything in E4-1.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
