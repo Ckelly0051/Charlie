@@ -18,27 +18,20 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b-10 changes requested)
+### Current working state (2026-07-20, E3b-10 accepted)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-10 CHANGES REQUESTED at `26b0ec1`.** The centralized
-presentation seam is directionally correct and the four consumers no longer
-read raw formation, but two semantic gaps remain:
+**ACTIVE HANDOFF — E3b-10 ACCEPTED at `11cca88`.** Both presentation-label
+findings are closed. `lookLabel()` re-splits projected multi-value formation and
+builds a delimiter-free spoken phrase. Plan's generated presentation structure
+and printable table call that composed value `Look`, never `Formation`; this is
+an internal transient view, not stored plan/season data, and both consumers were
+updated together without changing refs or order.
 
-1. Plan export places `TagProjection.lookLabel()` under a literal `Formation`
-   column. The accepted contract says every Formation-labeled cell is structural
-   only. Use projected `formation` there, or separately propose and approve a
-   schema/header rename to `Look`; do not silently change the column's meaning.
-2. `lookLabel()` still leaks the storage delimiter for a valid multi-structure
-   formation: Shotgun + `Flexbone + Trips` renders `Shotgun Flexbone + Trips`.
-   Compose projected structural tokens into a human-facing phrase and add modern
-   and legacy multi-structure tests.
-
-Independent focused verification: tag model 35/35, plan export 18/18, season
-tab 161/161, but an adversarial valid-input probe reproduces the delimiter leak.
-No full gate was run because changes are required.
+Independent verification: tag model 36/36, Plan export 22/22, season tab
+161/161, and canonical fresh-build gate 56/56. No blocking findings.
 
 Scope note: E3b-9 remains accepted. Canonical season save/reopen durability
 remains a separate open proof, and CSV is not its substitute.

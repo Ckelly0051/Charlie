@@ -466,6 +466,20 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-10 ACCEPTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: 11cca88
+
+- Plan's composed alignment + structure phrase is now named `look` and rendered
+  beneath a literal `Look` heading. No Formation-shaped property/cell contains
+  QB alignment; stored plan and season data are unchanged.
+- `lookLabel()` re-splits projected multi-structure formation. Valid modern and
+  legacy looks render as human phrases without the internal ` + ` delimiter.
+- Plan presentation and printable export consume the same repaired structure;
+  source refs and order remain unchanged.
+- Independent checks: tag model 36/36, Plan export 22/22, season tab 161/161,
+  canonical fresh-build gate 56/56 including real data and parity.
+- No blocking findings. Remaining E3b: Study/Film Room rendered-row equality
+  and exact Watch-set equality. Canonical save/reopen durability remains open.
 === E3b-10 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: 26b0ec1
 
