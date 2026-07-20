@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-1 changes requested)
+### Current working state (2026-07-20, E4-1 fixes built, awaiting Codex re-review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -30,7 +30,56 @@ edit/store paths remain deliberate. Film links retain exact composite refs, all
 six projected Film Room columns equal registry sets, and their tendencies use
 projected grouping with eligible denominators.
 
-**ACTIVE HANDOFF — E4-1 REVIEWED at `7f2e42c`; CHANGES REQUESTED.**
+**E4-1 review findings (from `5edf101`) are FIXED, awaiting Codex re-review.**
+All three verified against source before fixing (per protocol — never taken on
+report), each reproduced on the pre-fix code, then mutation-verified after:
+
+1. **Clearing a DERIVED sibling now strips the primary too.** `_saveField`
+   already promoted a blank sibling FROM the primary on an explicit primary
+   commit (forward case); it had no REVERSE case — committing the sibling
+   field directly (including clearing it) never touched the primary, so
+   `project()`'s precedence (explicit sibling > primary's embedded token) had
+   nothing to override and the legacy token silently won again on the next
+   read. Fix: `TagProjection.primaryForSibling(key)` + `stripSiblingToken
+   (primaryKey, rawValue)` (new, tag-projection.js) — scoped to strip ONLY
+   this pair's own token(s) from the primary's raw value, never touching any
+   other token the primary may carry (e.g. Formation's still-deferred 'Empty').
+   `_saveField` calls this reverse case whenever the committed key IS a
+   registered sibling. Mutation-verified: disabling the reverse-strip block
+   reproduces the exact bug (Shotgun reappears on re-visit).
+2. **Save & Next now performs the promised projected save.** `_advancePlay`
+   previously only flushed a focused input and navigated — an untouched
+   legacy play stayed byte-identical forever, so it could never leave the
+   planned Legacy Tags to Review list (§18 D-laneR's exit condition is exactly
+   "the coach explicitly saves the projected play"). Fix: new
+   `PlayTagger.commitProjectedLook()` applies the SAME promote-then-strip
+   mechanic for BOTH registered pairs as one field-level commit, called from
+   `_advancePlay` — **scoped to normal chronological advance only**, placed
+   AFTER the cut-up-active early return (not Skip, and not filtered Study/Film
+   Room cut-up navigation, per Codex's exact scoping — a curated review queue
+   isn't the coach's "done with this play" moment the way ordinary charting
+   is). A genuinely clean play is a true no-op: no mutation, no history entry.
+   Mutation-verified twice: disabling the call reproduces the missed
+   canonicalization; hoisting it before the cutup-active check reproduces
+   canonicalizing during a filtered cut-up (the narrower scope Codex named).
+3. **"New Drive" now writes ONLY Drive Number.** It called the bulk
+   `_saveCurrentTags()` (deleted, now dead — was its only caller), which
+   rewrote every displayed field from its current chip value on a click that
+   only meant to bump the drive counter — a field-level-merge violation
+   regardless of the promote guard it also carried. Fix: the handler now calls
+   `_saveField('driveNumber')` directly, the same single-field commit every
+   other field's own change listener already uses. Mutation-verified:
+   reintroducing a bulk rewrite after the scoped write reproduces the
+   unrelated-field churn.
+
+`tools/e2e-tag-projform.mjs` grew from 22 to 30 assertions (new sections 7b,
+9, 9b, renumbered 10; old section 9's "New Drive promotes" assertion was
+INVERTED to "New Drive does NOT touch" since the fix changes the intended
+behavior, not just closes a gap). Full gate **57/57 green**, zero regression.
+Bundle rebuilt and verified.
+
+**ACTIVE HANDOFF — E4-1 fixes built at (pending commit); awaiting Codex re-review.**
+Original E4-1 build reviewed at `7f2e42c`; findings above are now fixed.
 Implements D-projform (§18/§20): the PRIMARY tag form — not just Film Room's
 grid, done in E3b — now shows the projected view and writes only on explicit
 commit. Under Center/Pistol/Shotgun removed from `#tagFormation`, Man/Zone
@@ -65,35 +114,20 @@ objects between calls, orphaning a captured reference while `t.plays` holds a
 live object with the same id. Always re-fetch via `t.getPlay(id)` inside the
 same evaluate call that acts on it.
 
-**Codex review findings (blocking E4-1 acceptance):**
-1. Clearing a DERIVED sibling is not durable. On legacy
-   `formation:'Shotgun + Trips'`, re-tapping the projected Shotgun chip writes
-   `qbAlignment:''` but leaves the raw Formation untouched; the next form load
-   derives Shotgun again. Coverage/Coverage Family has the same defect. The new
-   clear test covers only a modern explicitly stored sibling, so it cannot catch
-   this branch. Canonicalize the pair atomically on an explicit sibling edit and
-   prove clear/change + undo/redo for both registered pairs.
-2. The literal **Save & Next** path never writes the projected play. `_advancePlay`
-   only flushes a focused input and navigates; an untouched legacy play remains
-   byte-identical and therefore cannot leave the promised Legacy-tag-review set.
-   Add an explicit, field-level projected commit before normal chronological
-   advance (not Skip and not filtered cut-up navigation), with one undoable
-   transaction and no unrelated-field writes.
-3. **New Drive** violates the affected-field-only rule. It calls
-   `_saveCurrentTags()`, which rewrites every known tag and now silently
-   canonicalizes both projected pairs even though the coach changed only the
-   drive number. Save only `driveNumber`; assert every other stored tag remains
-   byte-identical, including legacy mixed values.
+**Codex review findings from `5edf101` — ALL THREE FIXED, see the "fixes"
+paragraph above this section for the exact repair + mutation-verification for
+each.** Summary of what was found (kept for history):
+1. Clearing a DERIVED sibling was not durable — the raw primary field kept the
+   legacy token, so it silently re-derived on the next form load.
+2. Save & Next never performed the projected save — an untouched legacy play
+   stayed byte-identical, unable to ever leave the Legacy Tags to Review list.
+3. New Drive violated the affected-field-only rule via the bulk
+   `_saveCurrentTags()` path, silently canonicalizing both pairs on a click
+   that only meant to bump the drive counter.
 
-Codex independently reproduced #1 and #2 in the built bundle. Existing focused
-tests remain green (tag-projform 22/22, tag-model 36/36, Breakdown form 58/58,
-Film Room 139/139), demonstrating missing discrimination rather than a broad
-regression. No full gate was rerun because acceptance is blocked.
-
-**Next:** Claude fixes all three with failing-first coverage and returns the
-commit for Codex re-review. Canonical season save/reopen durability remains a
-separate required proof before packaging — still open, still not substituted
-for by CSV round-trip or anything in E4-1.
+**Next:** Codex re-reviews the fixes. Canonical season save/reopen durability
+remains a separate required proof before packaging — still open, still not
+substituted for by CSV round-trip or anything in E4-1.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).

@@ -355,12 +355,22 @@ export class PlayTagger {
       });
     }
 
-    // New Drive button
+    // New Drive button — only Drive Number actually changes here, so only
+    // Drive Number is written (E4 review fix: the old bulk _saveCurrentTags()
+    // re-wrote EVERY displayed field from its current chip value, including
+    // Formation/Coverage's now-PROJECTED display, on a click that only meant
+    // to bump the drive counter — a field-level-merge contract violation, not
+    // just an unrelated-field one, since the coach never touched those chips).
+    // driveNumber is a plain input, so setting .value alone fires no 'change'
+    // event; _saveField('driveNumber') is the same single-field commit every
+    // other field's own change listener already uses.
     if (this.btnNewDrive) {
       this.btnNewDrive.addEventListener('click', () => {
         this.currentDrive++;
-        if (this.tagFields.driveNumber) this.tagFields.driveNumber.value = this.currentDrive;
-        this._saveCurrentTags();
+        if (this.tagFields.driveNumber) {
+          this.tagFields.driveNumber.value = this.currentDrive;
+          this._saveField('driveNumber');
+        }
       });
     }
 
@@ -948,6 +958,21 @@ export class PlayTagger {
       const effective = StatsEngine.proj(play)[pair.sibling];
       if (effective) play.tags[pair.sibling] = effective;
     }
+    // REVERSE case (E4 review fix): the coach is committing a SIBLING field
+    // directly (QB Alignment / Coverage Family), not the primary. Writing a
+    // blank here to CLEAR it has nothing to override — project()'s precedence
+    // only re-derives the sibling from the primary when the sibling is blank,
+    // so the primary's still-embedded legacy token would simply win again on
+    // the next read and the clear would silently not stick. Strip exactly
+    // this pair's own token out of the primary's raw stored value at the same
+    // moment (a no-op when there's nothing to strip). See
+    // TagProjection.stripSiblingToken for why this is scoped to just this
+    // pair's tokens.
+    const primaryKey = TagProjection.primaryForSibling(key);
+    if (primaryKey) {
+      const stripped = TagProjection.stripSiblingToken(primaryKey, play.tags[primaryKey]);
+      if (stripped !== play.tags[primaryKey]) play.tags[primaryKey] = stripped;
+    }
     play.tags[key] = this.tagFields[key].value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
@@ -1064,26 +1089,36 @@ export class PlayTagger {
     this._emit('play-updated', play);
   }
 
-  _saveCurrentTags() {
+  /**
+   * D-projform E4 review fix (Codex): Save & Next is this app's "explicit
+   * save" gesture (per-field chip saves are already immediate; Save & Next is
+   * the coach's deliberate "I'm done with this play" moment — see
+   * App._advancePlay). An untouched LEGACY play — reviewed but never given a
+   * Formation/Coverage/QB Alignment/Coverage Family chip click this visit —
+   * previously left with its projected sibling still un-promoted and its
+   * primary field still raw, so it could never leave the (Lane R) "Legacy
+   * tags to review" list, whose exit condition (§18 D-laneR) is exactly "the
+   * coach explicitly saves the projected play." This applies the SAME
+   * promote-then-strip mechanic _saveField uses per-chip, for BOTH registered
+   * pairs, as one field-level-merge commit — never touching any other field
+   * (down, playType, result, players, notes, penalties, ST data, ...). A
+   * genuinely clean play is a true no-op: no mutation, no history entry, no
+   * play-updated emit, so Save & Next stays silent on the overwhelming
+   * majority of plays that need no cleanup.
+   */
+  commitProjectedLook() {
     const play = this.getCurrentPlay();
     if (!play) return;
-    // E4: this bulk path (currently only the "New Drive" button) re-writes
-    // EVERY field from its currently-DISPLAYED chip value — and Formation/
-    // Coverage now display the PROJECTED value, not raw. Without the same
-    // promote-on-commit guard _saveField uses, this would silently DROP a
-    // legacy sibling token (e.g. a "Shotgun + Trips" play's Shotgun) the coach
-    // never touched or intended to clear — the coach clicked "New Drive," not
-    // "confirm my formation." Apply the identical guard for every field that
-    // has a projected sibling, exactly once, before the bulk write below.
-    for (const [key, pair] of Object.entries(TagProjection.PROJECTED_PAIRS)) {
+    let changed = false;
+    for (const [primaryKey, pair] of Object.entries(TagProjection.PROJECTED_PAIRS)) {
       if (!String(play.tags[pair.sibling] || '').trim()) {
         const effective = StatsEngine.proj(play)[pair.sibling];
-        if (effective) play.tags[pair.sibling] = effective;
+        if (effective) { play.tags[pair.sibling] = effective; changed = true; }
       }
+      const stripped = TagProjection.stripSiblingToken(primaryKey, play.tags[primaryKey]);
+      if (stripped !== play.tags[primaryKey]) { play.tags[primaryKey] = stripped; changed = true; }
     }
-    for (const [key, el] of Object.entries(this.tagFields)) {
-      play.tags[key] = el.value;
-    }
+    if (!changed) return;
     this._updateTimeline();
     this._emit('play-updated', play);
   }

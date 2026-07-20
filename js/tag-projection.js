@@ -51,6 +51,41 @@ export class TagProjection {
   }
   static _isAlignment(v) { return this.QB_ALIGNMENTS.includes(v); }
 
+  /** Reverse of PROJECTED_PAIRS: given a sibling key (qbAlignment/
+   *  coverageFamily), return the primary key that embeds its legacy token
+   *  (formation/coverage), or null. E4 review fix — see stripSiblingToken. */
+  static primaryForSibling(siblingKey) {
+    for (const [primary, pair] of Object.entries(this.PROJECTED_PAIRS)) {
+      if (pair.sibling === siblingKey) return primary;
+    }
+    return null;
+  }
+
+  /**
+   * E4 review fix (Codex): a coach's explicit commit on a SIBLING field
+   * (QB Alignment / Coverage Family) — including CLEARING it — must survive a
+   * reload. project()'s precedence only re-derives a sibling from the primary
+   * when the sibling itself is blank, so writing '' has nothing to override:
+   * the primary's still-embedded legacy token would simply win again on the
+   * very next read, and the coach's clear silently would not stick. The fix is
+   * to strip exactly this pair's own token(s) out of the primary's RAW stored
+   * value at the same moment the sibling is committed — scoped to only this
+   * pair's tokens, so it never touches any other token the primary may carry
+   * (e.g. Formation's still-deferred 'Empty' token — out of scope, see the
+   * PROJECTED_PAIRS comment above). A no-op when there is no token to strip.
+   */
+  static stripSiblingToken(primaryKey, rawValue) {
+    const pair = this.PROJECTED_PAIRS[primaryKey];
+    if (!pair || typeof rawValue !== 'string') return rawValue;
+    const tokens = this[pair.excludeFrom];
+    if (primaryKey === 'coverage') {
+      // Single-value: the whole field IS the family token when it matches.
+      return tokens.includes(rawValue) ? '' : rawValue;
+    }
+    // Multi-value (formation): drop only this pair's tokens, keep the rest.
+    return this._split(rawValue).filter(p => !tokens.includes(p)).join(' + ');
+  }
+
   /**
    * Return a projected READ-VIEW of `tags`. Input is never mutated. Missing
    * `qbAlignment`/`coverageFamily` properties read as blank (E1-R2: legacy plays

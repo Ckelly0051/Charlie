@@ -171,6 +171,36 @@ r = await page.evaluate(async (ids) => {
 }, IDS);
 ok((r.qbAlignment || '') === '' && r.activeChips === 0, 're-tapping the active QB Alignment chip clears it — the coach\'s explicit clear is honored, not silently re-derived', JSON.stringify(r));
 
+console.log('\n== 7b. Clearing a LEGACY-DERIVED sibling STRIPS the primary too — the clear actually SURVIVES a re-visit (Codex E4-1 review finding #1) ==');
+// Section 7 only proved clearing a MODERN explicit value. Before this fix,
+// clearing a DERIVED value (nothing explicit stored yet, only projected from
+// the primary field's embedded legacy token) had nothing to override:
+// project()'s precedence falls back to the still-embedded token whenever the
+// sibling is blank, so the clear looked like it worked in the moment, then
+// silently reappeared the next time the play was opened.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger;
+  const id = 9108;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Shotgun + Wing-T' } };
+  t.plays.push(play);
+  t.selectPlay(id);   // seeds QB Alignment 'Shotgun' from the DERIVED projected value (nothing stored yet)
+  document.querySelector('#tagQbAlignment .pick[data-value="Shotgun"]').click();   // re-tap the derived-active chip = explicit clear
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterCommit = t.getPlay(id);
+  const rawAfterCommit = { formation: afterCommit.tags.formation, qbAlignment: afterCommit.tags.qbAlignment };
+  // Re-visit: select the play again fresh, as if the coach came back to it —
+  // proves the clear survives on the STORED tags, not just the live chip UI.
+  t.selectPlay(id);
+  const revisit = t.getPlay(id);
+  return {
+    rawAfterCommit,
+    revisitQbAlignment: revisit.tags.qbAlignment,
+    revisitChip: [...document.querySelectorAll('#tagQbAlignment .pick.active')].map(el => el.dataset.value),
+  };
+});
+ok((r.rawAfterCommit.qbAlignment || '') === '' && r.rawAfterCommit.formation === 'Wing-T', 'clearing the DERIVED QB Alignment strips the Shotgun token out of Formation\'s raw stored value in the SAME commit', JSON.stringify(r.rawAfterCommit));
+ok((r.revisitQbAlignment || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit — Shotgun does not silently reappear, because the raw legacy token is actually gone, not just hidden this one time', JSON.stringify(r));
+
 console.log('\n== 8. Formation / QB Alignment / Coverage Call / Coverage Family round-trip INDEPENDENTLY (requirement #6) ==');
 r = await page.evaluate(async (ids) => {
   const t = window.app.tagger;
@@ -189,25 +219,96 @@ r = await page.evaluate(async (ids) => {
 ok(r.offAfter.formation === 'Ace' && r.offAfter.qbAlignment === 'Under Center' && r.offAfter.backfield === 'Split', 'Formation and QB Alignment are UNCHANGED by an unrelated Backfield edit', JSON.stringify(r.offAfter));
 ok(r.defAfter.coverage === 'Cover 2' && r.defAfter.coverageFamily === 'Zone' && r.defAfter.blitz === 'Edge', 'Coverage Call and Coverage Family are UNCHANGED by an unrelated Blitz edit', JSON.stringify(r.defAfter));
 
-console.log('\n== 9. The "New Drive" bulk-save path does NOT drop a legacy sibling it never touched ==');
-// Distinct from _saveField's per-chip path — _saveCurrentTags() re-writes every
-// field from its CURRENTLY DISPLAYED (projected) value. Without its own promote
-// guard, a coach who just clicks "New Drive" on an untouched legacy play would
-// silently lose the alignment token this section proves survives.
+console.log('\n== 9. Save & Next (the explicit-save gesture) canonicalizes an UNTOUCHED legacy play; a clean play stays a true no-op (Codex E4-1 review finding #2) ==');
+// D-projform rule 3 names "Save & Next, etc." as the explicit save. Before
+// this fix, Save & Next only flushed a focused input and navigated — a play
+// the coach merely REVIEWED (selected, never clicked a Formation/QB Alignment/
+// Coverage/Coverage Family chip) left with its legacy token still embedded and
+// its sibling still un-promoted, so it could never leave the (Lane R) "Legacy
+// tags to review" list, whose exit condition is exactly this explicit save.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger, hist = window.app.history;
+  const legacyId = 9109;
+  const legacy = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Ace' } };
+  t.plays.push(legacy);
+  t.selectPlay(legacyId);   // review only — no chip touched
+  document.getElementById('btnTagSaveNext').click();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterLegacy = t.getPlay(legacyId);
+  const legacyResult = { formation: afterLegacy.tags.formation, qbAlignment: afterLegacy.tags.qbAlignment };
+
+  // A CLEAN modern play (nothing to canonicalize) must stay a true no-op — Save
+  // & Next must not manufacture a history entry on every ordinary navigation.
+  const cleanId = 9110;
+  const clean = { id: cleanId, timestamp: { start: cleanId, end: cleanId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace', qbAlignment: 'Under Center' } };
+  t.plays.push(clean);
+  t.selectPlay(cleanId);
+  hist.reset();
+  const depthBefore = hist.stack.length;
+  document.getElementById('btnTagSaveNext').click();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterClean = t.getPlay(cleanId);
+  return {
+    legacyResult,
+    cleanUnchanged: afterClean.tags.formation === 'Ace' && afterClean.tags.qbAlignment === 'Under Center',
+    noHistoryEntryForClean: hist.stack.length === depthBefore,
+  };
+});
+ok(r.legacyResult.formation === 'Ace' && r.legacyResult.qbAlignment === 'Under Center', 'Save & Next canonicalizes an untouched legacy play\'s projected look — it can now leave the Legacy Tags to Review list', JSON.stringify(r.legacyResult));
+ok(r.cleanUnchanged, 'a play with nothing to canonicalize is untouched by Save & Next', JSON.stringify(r));
+ok(r.noHistoryEntryForClean, 'Save & Next on an already-clean play creates NO history entry — a true no-op, not busywork on every navigation', JSON.stringify(r));
+
+console.log('\n== 9b. Filtered cut-up navigation does NOT trigger the canonicalization (Codex E4-1 review finding #2, full scope) ==');
+// Codex scoped the commit to NORMAL chronological advance only — not Skip,
+// and not a filtered Study/Film Room cut-up review, where the coach is
+// scanning a curated example set that may not even be in play order.
+// Simulate an active cut-up (stub next() so this stays a pure canonicalization
+// check, no video required) and prove an untouched legacy play is left
+// exactly as it was while a cut-up owns navigation.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger;
+  const id = 9111;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Bunch' } };
+  t.plays.push(play);
+  t.selectPlay(id);
+  const cutup = window.app.cutupPlayer;
+  const realNext = cutup.next.bind(cutup);
+  cutup.next = () => {};   // stub — no real cut-up queue is needed for this check
+  cutup.active = true;
+  document.getElementById('btnTagSaveNext').click();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  cutup.active = false;
+  cutup.next = realNext;
+  const after = t.getPlay(id);
+  return { formation: after.tags.formation, qbAlignment: after.tags.qbAlignment };
+});
+ok(r.formation === 'Under Center + Bunch' && (r.qbAlignment || '') === '', 'Save & Next during an ACTIVE filtered cut-up leaves the play untouched — canonicalization is scoped to normal chronological advance only', JSON.stringify(r));
+
+console.log('\n== 10. "New Drive" writes ONLY Drive Number — a legacy sibling it never touched is left EXACTLY as it was (Codex E4-1 review finding #3) ==');
+// Before this fix, New Drive called the bulk _saveCurrentTags() path, which
+// re-wrote EVERY displayed field (including Formation/Coverage's PROJECTED
+// display) from a click that only meant to bump the drive counter — a
+// field-level-merge violation regardless of the promote guard it also had.
+// The fix: New Drive now commits ONLY driveNumber via the same single-field
+// _saveField path every other field's own change listener uses.
 r = await page.evaluate(async () => {
   const t = window.app.tagger;
   const id = 9106;
   const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Shotgun + Twins' } };
   t.plays.push(play);
   t.selectPlay(id);
+  const before = JSON.parse(JSON.stringify(t.getPlay(id).tags));
   document.getElementById('btnNewDrive').click();
   await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const after = t.getPlay(id);
-  return { formation: after.tags.formation, qbAlignment: after.tags.qbAlignment };
+  const onlyDriveNumberChanged = Object.keys(before).every(k => k === 'driveNumber' || JSON.stringify(after.tags[k]) === JSON.stringify(before[k]));
+  return { formation: after.tags.formation, qbAlignment: after.tags.qbAlignment, driveNumber: after.tags.driveNumber, onlyDriveNumberChanged };
 });
-ok(r.formation === 'Twins' && r.qbAlignment === 'Shotgun', 'clicking "New Drive" promotes the untouched legacy alignment instead of silently dropping it', JSON.stringify(r));
+ok(r.formation === 'Shotgun + Twins' && (r.qbAlignment || '') === '', '"New Drive" leaves an untouched legacy Formation exactly as stored — it does NOT promote or strip anything', JSON.stringify(r));
+ok(!!r.driveNumber, '"New Drive" DOES write the drive number itself', JSON.stringify(r));
+ok(r.onlyDriveNumberChanged, 'no field OTHER than driveNumber changed — a genuine single-field commit, not a bulk rewrite', JSON.stringify(r));
 
-console.log('\n== 10. Cross-surface identical play set — the tag form write agrees with Film Room / the registry ==');
+console.log('\n== 11. Cross-surface identical play set — the tag form write agrees with Film Room / the registry ==');
 r = await page.evaluate((ids) => {
   const t = window.app.tagger;
   const play = t.getPlay(ids.legacyFormation);   // now formation:'', qbAlignment:'Shotgun' from section 4

@@ -2154,6 +2154,19 @@ class App {
       return;
     }
 
+    // D-projform (E4 review fix): Save & Next/Enter is the app's "explicit
+    // save" gesture for the play being LEFT, during NORMAL chronological
+    // advance only — not Skip (deliberately excluded: it means "moving on
+    // without committing anything here," the same reason it doesn't carry
+    // situation forward), and not filtered cut-up navigation (already handled
+    // and returned above — a curated Study/Film Room review queue isn't the
+    // coach's "I'm done with this play" moment the way ordinary charting is).
+    // Canonicalize the projected Formation/QB Alignment/Coverage/Coverage
+    // Family fields now, even if the coach never touched one of those chips
+    // this visit. A play with nothing to canonicalize is a true no-op (see
+    // PlayTagger.commitProjectedLook).
+    if (!opts.skip) this.tagger.commitProjectedLook?.();
+
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.
     const advanced = opts.skip
