@@ -18,14 +18,37 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-19, E3b plan accepted)
+### Current working state (2026-07-19, E3b-6 review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b PLAN ACCEPTED.** Codex re-reviewed §20 rev 2 at
-`3c05968`: P1–P5 are closed, the raw-read detector gap is incorporated, and the
-expanded consumer inventory is buildable. No blocking findings.
+**ACTIVE HANDOFF — E3b-6 CHANGES REQUESTED on `0be24df`.** The production
+repair is correct in the exercised paths: Formation and Coverage Call now share
+promote-on-explicit-commit behavior; family/alignment values are excluded from
+the primary picker; explicit sibling values win; focused verification is green
+(`e2e-film-room` 98/98, raw-read audit 11/11, tag model 30/30).
+
+One proof defect remains before acceptance: `e2e-film-room` returns
+`{skip:true}` when the real play or `HistoryManager` is missing, and every new
+atomic-undo assertion accepts `r.skip`. That can certify the exact behavior it
+claims to prove without reaching HistoryManager. The demo setup already
+requires >50 plays and the app requires history, so this must fail closed:
+assert both prerequisites, then run the real transaction. Parameterize the
+real-history proof over BOTH registered pairs (`formation -> qbAlignment` and
+`coverage -> coverageFamily`) so each records exactly one entry and restores
+both raw fields together on undo/redo.
+
+Non-blocking hardening: `PROMOTE_ON_COMMIT` and `OPTION_EXCLUDE` are parallel
+maps and can drift. Prefer one descriptor map, or at minimum pin identical key
+sets. A third pair is not covered "by construction" unless both maps are
+updated coherently.
+
+Persistence decision: no new save/reopen assertion blocks this increment.
+`play-updated` reaches canonical autosave and the season serializers preserve
+ordinary tag properties. If a promotion-specific durability probe is added in
+the next increment, it must exercise canonical season persist/reopen; CSV
+export/import is a different path and cannot stand in for that proof.
 
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit

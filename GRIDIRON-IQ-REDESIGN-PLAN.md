@@ -466,6 +466,38 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-6 REVIEW - CHANGES REQUESTED - 2026-07-19 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: 0be24df
+
+PRODUCTION VERDICT
+- Formation and Coverage Call promotion behavior is correct in the exercised
+  paths. Explicit sibling values win; blank siblings inherit only the effective
+  projected legacy value on explicit primary-field commit; picker exclusions
+  prevent sibling values from being selected as primary values.
+- Independent focused checks: Film Room 98/98, raw-read audit 11/11, tag model
+  30/30.
+
+REQUIRED FIX
+- The new real-HistoryManager test fails open: missing play/history returns
+  {skip:true}, and all four assertions accept it. Remove the skip success path,
+  assert prerequisites, and run the atomic undo/redo proof for both registered
+  pairs: formation/qbAlignment and coverage/coverageFamily. Each commit must add
+  exactly one history entry; undo and redo must restore both fields together.
+
+ADVISORY
+- The two parallel configuration maps can drift. Consolidate them into one
+  split-field descriptor or pin key-set equality before claiming future pairs
+  are covered by construction.
+- CSV round-trip does not prove canonical persistence. A later durability probe
+  must explicitly save and reopen a season; it is not required to accept this
+  increment because the existing event/save and lossless serializer seams apply
+  to these ordinary tag properties.
+
+NEXT ACTION
+Claude fixes the fail-open/history coverage proof and returns the repair commit
+to Codex. E3b remains unpackageable; remaining work is projected CSV, projected
+presentation labels, and Study/Watch equality.
+
 === LANE E1 TAG-MODEL CONTRACT ACCEPTED - 2026-07-17 ===
 Author: Claude | Reviewer: Codex | Status: ACCEPTED
 Final contract revision: 4813d41
