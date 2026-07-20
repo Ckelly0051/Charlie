@@ -40,7 +40,11 @@ const FILES = [
 // Resolvable raw reads that are LEGITIMATE (must live inside a scanned file). Empty
 // today: every six-field read in these files goes through StatsEngine.proj, whose
 // own body reads `p.tags` (the object) but none of the six field names.
-const ALLOW = [];   // { file, line, field }
+// Identity is (file, METHOD, field) + exact multiplicity — NOT a line number, which
+// every edit above the site would invalidate. Same shape as the computed ACKs.
+const ALLOW = [
+  { file: 'js/play-grid.js', method: '_applyEdit', field: 'qbAlignment', count: 2, reason: "E3b-P1 promote-on-explicit-commit MUST read the STORED qbAlignment (is the target blank? does an explicit alignment already win?). Reading the PROJECTED value here would be wrong — it is never blank for a legacy play, so the promote would never fire and the alignment would be lost on the next Formation edit." },
+];
 
 // Computed `X.tags[expr]` reads, manually classified as safe (they never route one
 // of the six fields around proj). Identity is (file, EXACT expression text, exact
@@ -58,7 +62,10 @@ const ACK = [
   // with identical expression text — the exact case method-scoped ACKs exist for.
   // DISPLAY (_cellHtml, _tendency) goes through projField and is NOT listed here;
   // only the editor may touch the coach's stored value.
-  { file: 'js/play-grid.js', method: '_openEditor', code: 'play.tags[col.key]', count: 2, reason: "EDITOR seed: reads the STORED value so the coach edits what is actually saved (single-value + multi-value branches). NOTE: E3b-P1 will re-seed the FORMATION editor from the projected view; this count changes then, which is the audit doing its job." },
+  // NOTE: the former `_openEditor` ACK (count 2) is GONE on purpose — E3b-P1
+  // re-seeded both editor branches from projField(), so that expression no longer
+  // exists there. The stale-ACK check caught it and forced this deletion, which is
+  // exactly the behaviour R4b added.
   { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 1, reason: "EDITOR write: commits the coach's explicit choice to the stored tag. Raw by design — display never writes." },
 ];
 
@@ -139,13 +146,13 @@ function scanSource(src, rel, sink = { findings, flags }) {
     if (node.type === 'MemberExpression' && !node.computed
       && node.property.type === 'Identifier' && FIELDS.has(node.property.name)
       && isTagsMember(node.object)) {
-      findings.push({ file: rel, line, field: node.property.name, form: 'dot/optional-chain .tags.' + node.property.name });
+      findings.push({ file: rel, line, method, field: node.property.name, form: 'dot/optional-chain .tags.' + node.property.name });
     }
     // bracket string literal: X.tags['FIELD']
     if (node.type === 'MemberExpression' && node.computed
       && node.property.type === 'Literal' && FIELDS.has(node.property.value)
       && isTagsMember(node.object)) {
-      findings.push({ file: rel, line, field: node.property.value, form: "bracket .tags['" + node.property.value + "']" });
+      findings.push({ file: rel, line, method, field: node.property.value, form: "bracket .tags['" + node.property.value + "']" });
     }
     // computed non-literal on .tags → FLAG (identity = exact expression text, so a
     // NEW or MOVED computed read is a distinct, unacknowledged site).
@@ -157,13 +164,13 @@ function scanSource(src, rel, sink = { findings, flags }) {
     if (node.type === 'MemberExpression' && !node.computed
       && node.property.type === 'Identifier' && FIELDS.has(node.property.name)
       && node.object.type === 'Identifier' && aliases.has(node.object.name)) {
-      findings.push({ file: rel, line, field: node.property.name, form: `alias ${node.object.name}.${node.property.name}` });
+      findings.push({ file: rel, line, method, field: node.property.name, form: `alias ${node.object.name}.${node.property.name}` });
     }
     // destructuring: const { FIELD, … } = X.tags
     if (node.type === 'VariableDeclarator' && node.id.type === 'ObjectPattern' && isTagsMember(node.init)) {
       for (const prop of node.id.properties) {
         const key = prop.key && (prop.key.name || prop.key.value);
-        if (FIELDS.has(key)) findings.push({ file: rel, line, field: key, form: `destructure { ${key} } = .tags` });
+        if (FIELDS.has(key)) findings.push({ file: rel, line, method, field: key, form: `destructure { ${key} } = .tags` });
       }
     }
   });
@@ -207,11 +214,17 @@ ok(fx.findings.some(f => f.form === 'alias ta.formation') && fx.findings.some(f 
   JSON.stringify(fx.findings.map(f => f.form)));
 ok(!fxFields.includes('personnel'), 'detector does not over-report non-projected fields');
 
-// Hard findings, minus the allowlist.
-const isAllowed = f => ALLOW.some(a => a.file === f.file && a.line === f.line && a.field === f.field);
-const violations = findings.filter(f => !isAllowed(f));
-for (const v of violations) console.log(`  FAIL  raw read ${v.file}:${v.line} — ${v.form} (field "${v.field}") must route through StatsEngine.proj`);
-ok(violations.length === 0, `zero un-allowlisted raw reads of the six projected fields (found ${findings.length}, allowlisted ${findings.length - violations.length})`);
+// Hard findings vs the ALLOW list, validated in BOTH directions like the ACKs: an
+// allowed site must be observed EXACTLY `count` times (0 => stale entry, more =>
+// an unreviewed sibling read slipped in under the same method).
+const allowKey = x => `${x.file}\0${x.method}\0${x.field}`;
+const allowed = new Set(ALLOW.map(allowKey));
+const violations = findings.filter(f => !allowed.has(allowKey(f)));
+for (const v of violations) console.log(`  FAIL  raw read ${v.file}:${v.line} [${v.method}] — ${v.form} (field "${v.field}") must route through StatsEngine.proj`);
+const allowCountBad = ALLOW.filter(a => findings.filter(f => allowKey(f) === allowKey(a)).length !== a.count);
+for (const a of allowCountBad) console.log(`  FAIL  ALLOW ${a.file} ${a.method}() "${a.field}" expects ${a.count}, found ${findings.filter(f => allowKey(f) === allowKey(a)).length}`);
+ok(violations.length === 0 && allowCountBad.length === 0,
+  `zero un-allowlisted raw reads of the six projected fields (found ${findings.length}, allowlisted ${findings.length - violations.length})`);
 
 // Computed flags — classified by (file, expression text) with EXACT MULTIPLICITY,
 // validated in BOTH directions (E3a-R4 re-review — the observed-groups-only check

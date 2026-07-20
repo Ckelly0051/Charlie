@@ -326,41 +326,7 @@ ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the projected family'
 ok(r.qbType === 'proj-readonly' && r.famType === 'proj-readonly',
   'QB Alignment + Coverage Family are declared proj-readonly', JSON.stringify(r));
 
-// BEHAVIORAL display-only proof — the type check above is a DECLARATION and would
-// stay green if the _openEditor guard were deleted. Drive the real interactions.
-r = await page.evaluate(async () => {
-  const grid = window.app.playGrid, tagger = window.app.tagger;
-  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
-  const play = tagger.plays[0];
-  if (!play) return { skip: true };
-  const before = JSON.stringify(play.tags);
-  let updates = 0;
-  const onUpd = () => { updates++; };
-  tagger.on('play-updated', onUpd);
 
-  const results = {};
-  for (const key of ['qbAlignment', 'coverageFamily']) {
-    // make sure the column is actually rendered
-    if (!grid.cols.includes(key)) { grid.cols = [...grid.cols, key]; grid.refresh(); await raf2(); }
-    const td = grid._cellEl(play.id, key);
-    results[key + 'Rendered'] = !!td;
-    if (!td) continue;
-    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
-    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
-    td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); await raf2();
-    td.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
-    grid._openEditor(play.id, key); await raf2();                                  // direct call
-    results[key + 'Editor'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
-  }
-  tagger.off ? tagger.off('play-updated', onUpd) : null;
-  return { skip: false, ...results, updates, unchanged: JSON.stringify(play.tags) === before };
-});
-ok(r.skip || (r.qbAlignmentRendered && r.coverageFamilyRendered),
-  'display-only columns actually render a cell to interact with', JSON.stringify(r));
-ok(r.skip || (!r.qbAlignmentEditor && !r.coverageFamilyEditor),
-  'BEHAVIORAL: click / 2nd-click / dblclick / Enter / direct _openEditor open NO editor on the new columns', JSON.stringify(r));
-ok(r.skip || r.updates === 0, 'BEHAVIORAL: no play-updated event fired from the display-only columns', JSON.stringify(r));
-ok(r.skip || r.unchanged, 'BEHAVIORAL: play tags are byte-identical after all interactions', JSON.stringify(r));
 // P4 through the REAL persistence path. Calling _upgradeCols() directly proves
 // only the helper — removing its call from _loadCols() would leave that green. So
 // write localStorage and read back through _loadCols().
@@ -391,6 +357,8 @@ ok(eqJ(r.legacyDefense, r.newDefense), 'P4 via _loadCols: saved OLD defense pres
 ok(eqJ(r.custom, ['sit', 'formation', 'notes']), 'P4 via _loadCols: CUSTOM layout preserved untouched', JSON.stringify(r.custom));
 ok(r.newDefault.includes('qbAlignment') && r.newDefense.includes('coverageFamily'),
   'P4: the upgraded presets actually expose the new columns', JSON.stringify({ d: r.newDefault, f: r.newDefense }));
+
+
 
 // Multi-enum inline edit: Result cell — click to focus, click again to edit.
 r = await page.evaluate(async () => {
@@ -653,6 +621,154 @@ ok(r.exclusive === 'Loss', 'grid drops the exclusive rival: "Gain + Loss" → "L
 ok(r.exclSign === '-8', 'yardage then takes the Loss sign (-8), not flipped from a stale "Gain + Loss"', JSON.stringify(r));
 ok(r.autoGain === 'Gain' && r.autoGainSign === '12', 'positive yardage with no result auto-sets Gain (mirror of the form)', JSON.stringify(r));
 ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so Save & Next cannot overwrite it', JSON.stringify(r));
+
+
+// ===================================================================
+// E3b INTERACTIVE tests run LAST on purpose: they drive real clicks and open
+// editors, which changes the grid's selection/focus. An earlier test relies on
+// its row already being the current play (a first click that RE-selects triggers
+// a refresh that clears focus, so its "second click opens the editor" never
+// fires). Keeping these at the end means they cannot perturb anything upstream.
+// ===================================================================
+// BEHAVIORAL display-only proof — the type check above is a DECLARATION and would
+// stay green if the _openEditor guard were deleted. Drive the real interactions.
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, tagger = window.app.tagger;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const play = tagger.plays[0];
+  if (!play) return { skip: true };
+  const colsBefore = grid.cols.slice();   // RESTORED below — later tests assume the default set
+  const selBefore = tagger.currentPlayId; // RESTORED below — clicking cells re-selects, and a
+                                          // later test relies on its row already being current
+                                          // (a first click that re-selects refreshes and clears
+                                          // focus, so its "second click opens" would not fire).
+  const before = JSON.stringify(play.tags);
+  let updates = 0;
+  const onUpd = () => { updates++; };
+  tagger.on('play-updated', onUpd);
+
+  const results = {};
+  for (const key of ['qbAlignment', 'coverageFamily']) {
+    // make sure the column is actually rendered
+    if (!grid.cols.includes(key)) { grid.cols = [...grid.cols, key]; grid.refresh(); await raf2(); }
+    const td = grid._cellEl(play.id, key);
+    results[key + 'Rendered'] = !!td;
+    if (!td) continue;
+    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
+    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
+    td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); await raf2();
+    td.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
+    grid._openEditor(play.id, key); await raf2();                                  // direct call
+    results[key + 'Editor'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
+  }
+  tagger.off ? tagger.off('play-updated', onUpd) : null;
+  const res = { skip: false, ...results, updates, unchanged: JSON.stringify(play.tags) === before };
+  grid.cols = colsBefore; grid.refresh(); await raf2();   // restore shared state
+  if (selBefore != null) { tagger.selectPlay(selBefore); await raf2(); }
+  return res;
+});
+ok(r.skip || (r.qbAlignmentRendered && r.coverageFamilyRendered),
+  'display-only columns actually render a cell to interact with', JSON.stringify(r));
+ok(r.skip || (!r.qbAlignmentEditor && !r.coverageFamilyEditor),
+  'BEHAVIORAL: click / 2nd-click / dblclick / Enter / direct _openEditor open NO editor on the new columns', JSON.stringify(r));
+ok(r.skip || r.updates === 0, 'BEHAVIORAL: no play-updated event fired from the display-only columns', JSON.stringify(r));
+ok(r.skip || r.unchanged, 'BEHAVIORAL: play tags are byte-identical after all interactions', JSON.stringify(r));
+
+console.log('\n== 8e. E3b-P1: Formation editor projected seed + promote-on-commit ==');
+r = await page.evaluate(() => {
+  const grid = window.app.playGrid, PG = grid.constructor;
+  const SE = window.app.stats.constructor;
+  const col = PG.COLUMNS.find(c => c.key === 'formation');
+  const mk = (tags) => ({ id: 9001, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
+  const colsSnapshot = grid.cols.slice();
+  const out = {};
+
+  // (a) SEED — proven by OPENING THE REAL EDITOR and inspecting the rendered
+  //     chips. (An earlier version asserted on its own SE.projField() call, which
+  //     tested projField rather than the editor: reverting the seed to raw left it
+  //     green. Found by mutation.)
+  const openOn = (formationValue) => {
+    const real = grid.tagger.plays[0];
+    const saved = real.tags.formation;
+    real.tags.formation = formationValue;
+    grid.refresh();
+    grid._openEditor(real.id, 'formation');
+    const pop = document.querySelector('.pg-pop');
+    const chips = pop ? [...pop.querySelectorAll('.pg-chip[data-v]')] : [];
+    const res = {
+      opened: !!pop,
+      active: chips.filter(c => c.classList.contains('active')).map(c => c.dataset.v),
+      offered: chips.map(c => c.dataset.v),
+    };
+    grid._closeEditor();
+    real.tags.formation = saved;
+    grid.refresh();
+    return res;
+  };
+  const legacyOpen = openOn('Under Center');
+  out.legacyOpened = legacyOpen.opened;
+  out.seedLegacyActive = legacyOpen.active;                 // must be EMPTY
+  out.optsHaveAlignment = legacyOpen.offered.some(o => ['Under Center', 'Shotgun', 'Pistol'].includes(o));
+  const mixedOpen = openOn('Shotgun + Trips');
+  out.seedMixedActive = mixedOpen.active;                   // must be ['Trips'] only
+
+  // NOTE (honest scope): for FORMATION the `_options` alignment filter alone
+  // removes the chip, so the PROJECTED SEED is not independently observable through
+  // the rendered chips — reverting the seed to raw leaves these green (verified by
+  // mutation). The filter is the enforcing mechanism and IS discriminating (see the
+  // "offers NO QB alignments" assertion); the projected seed is defense-in-depth.
+
+  // (b) PROMOTE on explicit commit — alignment preserved into qbAlignment.
+  const p1 = mk({ formation: 'Under Center' });
+  grid._applyEdit(p1, col, 'Trips');
+  out.promoted = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
+
+  // (c) an EXISTING explicit qbAlignment WINS (never overwritten).
+  const p2 = mk({ formation: 'Shotgun + Trips', qbAlignment: 'Pistol' });
+  grid._applyEdit(p2, col, 'Bunch');
+  out.explicitWins = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
+
+  // (d) a play with NO alignment anywhere gains none (no invention).
+  const p3 = mk({ formation: 'Ace' });
+  grid._applyEdit(p3, col, 'Trips');
+  out.noInvention = { formation: p3.tags.formation, qbAlignment: p3.tags.qbAlignment || '' };
+
+  // (e) editing a DIFFERENT field never promotes (no sibling rewrite).
+  const p4 = mk({ formation: 'Under Center', playType: '' });
+  grid._applyEdit(p4, PG.COLUMNS.find(c => c.key === 'playType'), 'Run Inside');
+  out.otherField = { formation: p4.tags.formation, qbAlignment: p4.tags.qbAlignment || '' };
+
+  // (f) OPENING and CANCELLING must write NOTHING. Use an EXISTING rendered play —
+  // injecting a synthetic one into tagger.plays moves selection and leaves the
+  // tagger pointing at a popped play, which broke four later tests.
+  const real = grid.tagger.plays[0];
+  if (real) {
+    const selBefore = grid.tagger.currentPlayId;
+    const before5 = JSON.stringify(real.tags);
+    grid._openEditor(real.id, 'formation');
+    out.editorOpened = !!document.querySelector('.pg-pop');   // it IS editable (not a no-op test)
+    grid._closeEditor();
+    out.openCancelUnchanged = JSON.stringify(real.tags) === before5;
+    if (selBefore != null) grid.tagger.selectPlay(selBefore);   // restore via the real path
+  } else { out.editorOpened = false; out.openCancelUnchanged = true; }
+  return out;
+});
+ok(r.legacyOpened, 'P1 seed: the Formation editor opens (seed assertions are not vacuous)', JSON.stringify(r.legacyOpened));
+ok(Array.isArray(r.seedLegacyActive) && r.seedLegacyActive.length === 0,
+  'P1 seed: an alignment-only play seeds the REAL editor with NO active chip', JSON.stringify(r.seedLegacyActive));
+ok(JSON.stringify(r.seedMixedActive) === JSON.stringify(['Trips']),
+  'P1 seed: a mixed play activates ONLY its structural chip in the real editor', JSON.stringify(r.seedMixedActive));
+ok(!r.optsHaveAlignment, 'P1: the structural Formation picker offers NO QB alignments', JSON.stringify(r.optsHaveAlignment));
+ok(r.promoted.formation === 'Trips' && r.promoted.qbAlignment === 'Under Center',
+  'P1 promote: explicit commit writes the structural choice AND preserves the alignment', JSON.stringify(r.promoted));
+ok(r.explicitWins.formation === 'Bunch' && r.explicitWins.qbAlignment === 'Pistol',
+  'P1: an EXISTING explicit qbAlignment wins (never overwritten)', JSON.stringify(r.explicitWins));
+ok(r.noInvention.formation === 'Trips' && r.noInvention.qbAlignment === '',
+  'P1: no alignment is INVENTED when the play never had one', JSON.stringify(r.noInvention));
+ok(r.otherField.formation === 'Under Center' && r.otherField.qbAlignment === '',
+  'P1: editing a DIFFERENT field promotes nothing (no sibling rewrite)', JSON.stringify(r.otherField));
+ok(r.editorOpened, 'P1: the Formation editor DOES open (so the cancel test is not vacuous)', JSON.stringify(r.editorOpened));
+ok(r.openCancelUnchanged, 'P1: opening then cancelling the editor writes NOTHING', JSON.stringify(r.openCancelUnchanged));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }

@@ -1116,10 +1116,16 @@ r = await page.evaluate(() => {
   // grid editor reads options live from the DOM
   grid._optionCache = {};
   const gridSees = grid._options({ key: 'formation', src: 'tagFormation' }).includes('Trey');
-  cc.setEnabled('formation', 'Shotgun', false);
+  // E3b: the example must be a STRUCTURAL formation. This used to hide 'Shotgun',
+  // but Shotgun is QB ALIGNMENT now and the grid's structural Formation picker
+  // filters alignments out entirely — which would make "historically visible"
+  // unsatisfiable for reasons unrelated to library hiding. 'Trips' preserves the
+  // original intent: a HIDDEN library value still stays editable on a play that
+  // already carries it.
+  cc.setEnabled('formation', 'Trips', false);
   grid._optionCache = {};
-  const hiddenForNew = !grid._options({ key: 'formation', src: 'tagFormation' }).includes('Shotgun');
-  const historicalVisible = grid._options({ key: 'formation', src: 'tagFormation' }, ['Shotgun']).includes('Shotgun');
+  const hiddenForNew = !grid._options({ key: 'formation', src: 'tagFormation' }).includes('Trips');
+  const historicalVisible = grid._options({ key: 'formation', src: 'tagFormation' }, ['Trips']).includes('Trips');
   const perTeamKey = cc._key() === 'ffa_tag_libraries_teamZ';
   // remove clears DOM + storage
   cc._remove(g, 'Trey', chip);

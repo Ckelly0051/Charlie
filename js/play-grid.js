@@ -30,6 +30,7 @@
  * panel (PlayFilter keeps driving the cut-up exporter).
  */
 import { StatsEngine } from './stats-engine.js';
+import { TagProjection } from './tag-projection.js';
 import { PlayTagger } from './play-tagger.js';
 
 import { isPlayTagged } from './football-rules.js';
@@ -772,7 +773,12 @@ export class PlayGrid {
         .map(button => button.dataset.value).filter(Boolean);
       if (opts.length) this._optionCache[col.key] = opts;
     }
-    return [...new Set([...(opts || []), ...current].filter(Boolean))];
+    let all = [...new Set([...(opts || []), ...current].filter(Boolean))];
+    // E3b-P1: the STRUCTURAL Formation picker must not offer QB alignments. The
+    // shared tag-form chip group still carries them until E4 moves them to their
+    // own library, so filter here against the canonical list.
+    if (col.key === 'formation') all = all.filter(v => !TagProjection.QB_ALIGNMENTS.includes(v));
+    return all;
   }
 
   _openEditor(playId, colKey) {
@@ -792,7 +798,12 @@ export class PlayGrid {
     // flow), Tab hops sideways, mouse commits stay on the play — advancing
     // the selection (and seeking the video) on a mouse pick is disorienting.
     if (col.type === 'enum' && !col.multi) {
-      const cur = String(play.tags[col.key] || '');
+      // E3b-P1: seed the editor from the PROJECTED view for the six projected
+      // fields. Seeding from RAW would hand `_options` a legacy alignment token as
+      // `current`, and _options deliberately re-adds the current value even when
+      // it is absent from the library — putting "Shotgun" back into the STRUCTURAL
+      // Formation picker and re-offering the exact misclassification E1 removed.
+      const cur = String(StatsEngine.projField(play, col.key) || '');
       wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [cur]).map(o =>
         `<button class="pg-chip${o === cur ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}
         <button class="pg-chip pg-chip-clear" data-v="" type="button">✕ none</button></div>`;
@@ -801,7 +812,8 @@ export class PlayGrid {
         if (b) commit(b.dataset.v);
       });
     } else if (col.type === 'enum' && col.multi) {
-      const cur = new Set(String(play.tags[col.key] || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean));
+      // E3b-P1: projected seed (see the single-value branch above).
+      const cur = new Set(String(StatsEngine.projField(play, col.key) || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean));
       wrap.innerHTML = `<div class="pg-pop-chips">${this._options(col, [...cur]).map(o =>
         `<button class="pg-chip${cur.has(o) ? ' active' : ''}" data-v="${this._esc(o)}" type="button">${this._esc(o)}</button>`).join('')}</div>
         <div class="pg-pop-actions">
@@ -907,6 +919,19 @@ export class PlayGrid {
       // Multi-select fields: drop mutually-exclusive rivals exactly like the
       // form (no more "Gain + Loss", which flipped a gain negative below).
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
+      // E3b-P1 PROMOTE-ON-EXPLICIT-COMMIT. A legacy play stores its QB alignment
+      // INSIDE `formation` ("Shotgun"), and projection derives qbAlignment FROM
+      // that string. Overwriting formation with the coach's structural choice would
+      // silently destroy the alignment. So, only on this explicit commit, first
+      // materialize the currently EFFECTIVE projected alignment into
+      // `tags.qbAlignment` — and ONLY when that target is blank, so an existing
+      // explicit alignment always wins. Preserves effective data; not a semantic
+      // sibling change. Opening/cancelling never reaches here, so viewing writes
+      // nothing; the whole commit is one history entry (undoable as a unit).
+      if (col.key === 'formation' && !String(play.tags.qbAlignment || '').trim()) {
+        const effective = StatsEngine.proj(play).qbAlignment;
+        if (effective) play.tags.qbAlignment = effective;
+      }
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).
       if (col.key === 'playType') {
