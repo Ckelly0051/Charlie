@@ -288,14 +288,16 @@ ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, n
 ok(r.subsetTend === 'Trips 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
 console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across ALL SIX projected columns ==');
-// Review finding: the tendency proof above covers Formation only, but the P3
-// contract says "the tendency line must use the SAME projected grouping and
-// eligible denominator" for the projected columns generally. Two of the six
-// (formation, coverage) are type:'enum' and DO compute a real tendency line;
-// the other four (qbAlignment, backfield, strength, coverageFamily) are
-// type:'proj-readonly' and _tendency() returns '' for any type it doesn't
-// recognize — i.e. they make NO denominator claim at all today. Both halves
-// are asserted explicitly below so neither is assumed silently.
+// Review finding: the P3 contract says "the tendency line must use the SAME
+// projected grouping and eligible denominator" for the projected columns
+// generally, but the prior pass only wired it for the two type:'enum' columns
+// (formation, coverage) and left the four type:'proj-readonly' ones
+// (qbAlignment, backfield, strength, coverageFamily) rendering nothing.
+// proj-readonly means EDITING stays disabled (see _openEditor's guard, an
+// entirely separate code path) — it says nothing about whether a summary is
+// useful, so _tendency() now routes proj-readonly through the identical enum
+// math. All four are single-value, so the multi-value split is a no-op for
+// them; this is genuinely the SAME calculation, not a parallel one.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const mkDef = (id, coverage, coverageFamily) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'defense', coverage, coverageFamily } });
@@ -310,22 +312,39 @@ r = await page.evaluate(() => {
   const covPlays = [mkDef(1, 'Cover 2'), mkDef(2, 'Cover 2'), mkDef(3, 'Cover 2'), mkDef(4, 'Man')];
   const coverageTend = grid._tendency(grid.constructor.COLUMNS.find(c => c.key === 'coverage'), covPlays);
 
-  const mkOff = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, tags: Object.assign({ unit: 'offense' }, tags) });
-  const projReadonlyPlays = [
-    mkOff(4, { qbAlignment: 'Shotgun' }), mkOff(5, { qbAlignment: 'Shotgun' }), mkOff(6, {}),
-  ];
+  // Each proj-readonly column gets the SAME three-part proof formation/coverage
+  // already had: (a) top value + correct share, (b) a blank play EXCLUDED from
+  // the eligible denominator rather than counted as ineligible-but-present,
+  // (c) below the 3-eligible-play floor renders nothing at all.
+  const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, tags: Object.assign({ unit: 'offense' }, tags) });
+  const fixtures = {
+    qbAlignment: [mk(1, { qbAlignment: 'Shotgun' }), mk(2, { qbAlignment: 'Shotgun' }), mk(3, { qbAlignment: 'Under Center' }), mk(4, {})],
+    // NOT 'Pistol' — per TagProjection/E1, Pistol is exclusively QB alignment
+    // terminology now and gets stripped OUT of backfield unconditionally, so
+    // it would project to '' here rather than being a genuine second value.
+    backfield:   [mk(1, { backfield: 'I' }),         mk(2, { backfield: 'I' }),         mk(3, { backfield: 'Power' }),          mk(4, {})],
+    strength:    [mk(1, { strength: 'Right' }),      mk(2, { strength: 'Right' }),      mk(3, { strength: 'Left' }),            mk(4, {})],
+    coverageFamily: [mk(1, { coverageFamily: 'Zone' }), mk(2, { coverageFamily: 'Zone' }), mk(3, { coverageFamily: 'Man' }), mk(4, {})],
+  };
+  const expectedTop = { qbAlignment: 'Shotgun', backfield: 'I', strength: 'Right', coverageFamily: 'Zone' };
   const projReadonly = {};
-  for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
+  for (const key of Object.keys(fixtures)) {
     const col = grid.constructor.COLUMNS.find(c => c.key === key);
-    projReadonly[key] = { type: col.type, tendency: grid._tendency(col, projReadonlyPlays) };
+    const full = grid._tendency(col, fixtures[key]);
+    // Minimum-3-play threshold: the SAME fixture minus its 3rd eligible play
+    // (the 4th play stays — still blank/ineligible) drops eligible count to 2.
+    const belowFloor = grid._tendency(col, fixtures[key].filter(p => p.id !== 3));
+    projReadonly[key] = { type: col.type, full, belowFloor };
   }
-  return { coverageTend, projReadonly };
+  return { coverageTend, projReadonly, expectedTop };
 });
 ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses the ELIGIBLE denominator — the legacy family-mapped play is excluded, not counted as a third eligible play', JSON.stringify(r.coverageTend));
 for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
   const c = r.projReadonly[key];
-  ok(c.type === 'proj-readonly', `${key} is proj-readonly (display-only in E3b — confirms which half of the six columns this pins)`, JSON.stringify(c));
-  ok(c.tendency === '', `${key} renders NO tendency line (proj-readonly columns make no denominator claim, so there is nothing that could disagree with the eligible count)`, JSON.stringify(c));
+  const expected = `${r.expectedTop[key]} 67%`;
+  ok(c.type === 'proj-readonly', `${key} is proj-readonly (editing stays disabled — confirms this proof targets the right half of the six columns)`, JSON.stringify(c));
+  ok(c.full === expected, `${key} tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)`, JSON.stringify({ key, ...c }));
+  ok(c.belowFloor === '', `${key} renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)`, JSON.stringify({ key, ...c }));
 }
 
 console.log('\n== 8d. E3b: projected cells + display-only columns + saved-column upgrade ==');

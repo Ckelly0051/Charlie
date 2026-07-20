@@ -31804,7 +31804,14 @@ class PlayGrid {
       const pct = Math.round((runs / rp.length) * 100);
       return pct >= 50 ? `Run ${pct}%` : `Pass ${100 - pct}%`;
     }
-    if (col.type === 'enum') {
+    // proj-readonly (QB Alignment/Backfield/Strength/Coverage Family) is a
+    // DISPLAY-ONLY category column — editing stays disabled (see _openEditor's
+    // guard), but that has nothing to do with whether it's USEFUL to summarize.
+    // All four are single-value, so the multi-value split below is a no-op for
+    // them; routing through the identical enum math costs nothing and keeps
+    // exactly one denominator/eligibility implementation for every projected
+    // column instead of a second, divergence-prone copy.
+    if (col.type === 'enum' || col.type === 'proj-readonly') {
       const counts = {};
       let total = 0;
       visible.forEach(p => {
