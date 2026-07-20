@@ -42,9 +42,10 @@ const FILES = [
 // own body reads `p.tags` (the object) but none of the six field names.
 // Identity is (file, METHOD, field) + exact multiplicity — NOT a line number, which
 // every edit above the site would invalidate. Same shape as the computed ACKs.
-const ALLOW = [
-  { file: 'js/play-grid.js', method: '_applyEdit', field: 'qbAlignment', count: 2, reason: "E3b-P1 promote-on-explicit-commit MUST read the STORED qbAlignment (is the target blank? does an explicit alignment already win?). Reading the PROJECTED value here would be wrong — it is never blank for a legacy play, so the promote would never fire and the alignment would be lost on the next Formation edit." },
-];
+// (The earlier `_applyEdit` qbAlignment DOT entry is gone: the promote was made
+// STRUCTURAL via PROMOTE_ON_COMMIT, so it now reads the sibling by KEY and is
+// classified as a computed ACK below. The stale-count check forced this update.)
+const ALLOW = [];
 
 // Computed `X.tags[expr]` reads, manually classified as safe (they never route one
 // of the six fields around proj). Identity is (file, EXACT expression text, exact
@@ -67,6 +68,7 @@ const ACK = [
   // exists there. The stale-ACK check caught it and forced this deletion, which is
   // exactly the behaviour R4b added.
   { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 1, reason: "EDITOR write: commits the coach's explicit choice to the stored tag. Raw by design — display never writes." },
+  { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[sibling]', count: 2, reason: "E3b-P1 promote-on-explicit-commit, keyed by PROMOTE_ON_COMMIT (formation->qbAlignment, coverage->coverageFamily). Reads the STORED sibling to test 'is it blank?' (an explicit value must WIN) and writes the materialized value. Reading the PROJECTED sibling here would be wrong — it is never blank for a legacy play, so the promote would never fire and the sibling would be destroyed on the next primary-field edit." },
 ];
 
 let pass = 0, fail = 0;

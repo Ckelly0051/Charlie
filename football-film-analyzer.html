@@ -31183,6 +31183,18 @@ class PlayGrid {
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
+  /** E3b: legacy plays carry TWO dimensions inside ONE stored field — an alignment
+   *  inside `formation`, a family inside `coverage`. Projection derives the sibling
+   *  FROM that string, so overwriting the primary field on an edit would silently
+   *  destroy it. These two maps make the defence STRUCTURAL rather than a
+   *  per-field special case (the Formation fix alone left Coverage exposed):
+   *    PROMOTE_ON_COMMIT — primary field -> sibling to materialize first
+   *    OPTION_EXCLUDE    — primary field -> values that belong to the sibling and
+   *                        must never be offered in the primary's picker
+   *  Both keep working if a third such pair is ever added. */
+  static PROMOTE_ON_COMMIT = { formation: 'qbAlignment', coverage: 'coverageFamily' };
+  static OPTION_EXCLUDE = { formation: 'QB_ALIGNMENTS', coverage: 'COVERAGE_FAMILIES' };
+
   /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
    *  so their saved list can be UPGRADED to the new one. A customized list is
    *  preserved untouched (the new columns stay available in the Columns menu). */
@@ -31874,10 +31886,12 @@ class PlayGrid {
       if (opts.length) this._optionCache[col.key] = opts;
     }
     let all = [...new Set([...(opts || []), ...current].filter(Boolean))];
-    // E3b-P1: the STRUCTURAL Formation picker must not offer QB alignments. The
-    // shared tag-form chip group still carries them until E4 moves them to their
-    // own library, so filter here against the canonical list.
-    if (col.key === 'formation') all = all.filter(v => !TagProjection.QB_ALIGNMENTS.includes(v));
+    // E3b-P1: a primary picker must not offer values that belong to its projected
+    // SIBLING — the structural Formation picker must not offer QB alignments, and
+    // the Coverage CALL picker must not offer Man/Zone/Match. The shared tag-form
+    // chip groups still carry them until E4 moves them to their own libraries.
+    const exclude = PlayGrid.OPTION_EXCLUDE[col.key];
+    if (exclude) all = all.filter(v => !TagProjection[exclude].includes(v));
     return all;
   }
 
@@ -32019,18 +32033,20 @@ class PlayGrid {
       // Multi-select fields: drop mutually-exclusive rivals exactly like the
       // form (no more "Gain + Loss", which flipped a gain negative below).
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
-      // E3b-P1 PROMOTE-ON-EXPLICIT-COMMIT. A legacy play stores its QB alignment
-      // INSIDE `formation` ("Shotgun"), and projection derives qbAlignment FROM
-      // that string. Overwriting formation with the coach's structural choice would
-      // silently destroy the alignment. So, only on this explicit commit, first
-      // materialize the currently EFFECTIVE projected alignment into
-      // `tags.qbAlignment` — and ONLY when that target is blank, so an existing
-      // explicit alignment always wins. Preserves effective data; not a semantic
-      // sibling change. Opening/cancelling never reaches here, so viewing writes
-      // nothing; the whole commit is one history entry (undoable as a unit).
-      if (col.key === 'formation' && !String(play.tags.qbAlignment || '').trim()) {
-        const effective = StatsEngine.proj(play).qbAlignment;
-        if (effective) play.tags.qbAlignment = effective;
+      // E3b-P1 PROMOTE-ON-EXPLICIT-COMMIT (structural — see PROMOTE_ON_COMMIT).
+      // A legacy play stores its SIBLING dimension inside the primary field
+      // (alignment inside `formation`, family inside `coverage`), and projection
+      // derives that sibling FROM the string. Overwriting the primary with the
+      // coach's explicit choice would silently destroy it. So, only on this
+      // explicit commit, first materialize the currently EFFECTIVE projected
+      // sibling — and ONLY when that target is blank, so an existing explicit value
+      // always wins. Preserves effective data; not a semantic sibling change.
+      // Opening/cancelling never reaches here, so viewing writes nothing, and the
+      // whole commit is a single history entry (undoable as one unit).
+      const sibling = PlayGrid.PROMOTE_ON_COMMIT[col.key];
+      if (sibling && !String(play.tags[sibling] || '').trim()) {
+        const effective = StatsEngine.proj(play)[sibling];
+        if (effective) play.tags[sibling] = effective;
       }
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).

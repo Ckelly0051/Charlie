@@ -770,6 +770,75 @@ ok(r.otherField.formation === 'Under Center' && r.otherField.qbAlignment === '',
 ok(r.editorOpened, 'P1: the Formation editor DOES open (so the cancel test is not vacuous)', JSON.stringify(r.editorOpened));
 ok(r.openCancelUnchanged, 'P1: opening then cancelling the editor writes NOTHING', JSON.stringify(r.openCancelUnchanged));
 
+console.log('\n== 8f. E3b-P1b: COVERAGE CALL — same promote class as Formation ==');
+r = await page.evaluate(() => {
+  const grid = window.app.playGrid, PG = grid.constructor;
+  const col = PG.COLUMNS.find(c => c.key === 'coverage');
+  const mkD = (tags) => ({ id: 9101, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'defense' }, tags) });
+  const out = {};
+  // options must not offer the FAMILY values (Man/Zone/Match) in the CALL picker
+  grid._optionCache = {};
+  out.offered = grid._options(col, ['Man']);
+  out.offersFamily = out.offered.some(o => ['Man', 'Zone', 'Match'].includes(o));
+  // promote: legacy coverage:'Man' projects to blank call + family Man
+  const c1 = mkD({ coverage: 'Man' });
+  grid._applyEdit(c1, col, 'Cover 3');
+  out.promoted = { coverage: c1.tags.coverage, coverageFamily: c1.tags.coverageFamily };
+  // explicit family wins
+  const c2 = mkD({ coverage: 'Man', coverageFamily: 'Zone' });
+  grid._applyEdit(c2, col, 'Cover 2');
+  out.explicitWins = { coverage: c2.tags.coverage, coverageFamily: c2.tags.coverageFamily };
+  // no invention when there was never a family
+  const c3 = mkD({ coverage: 'Cover 1' });
+  grid._applyEdit(c3, col, 'Cover 4');
+  out.noInvention = { coverage: c3.tags.coverage, coverageFamily: c3.tags.coverageFamily || '' };
+  // editing a different field promotes nothing
+  const c4 = mkD({ coverage: 'Man' });
+  grid._applyEdit(c4, PG.COLUMNS.find(c => c.key === 'result'), 'Incomplete');
+  out.otherField = { coverage: c4.tags.coverage, coverageFamily: c4.tags.coverageFamily || '' };
+  return out;
+});
+ok(!r.offersFamily, 'P1b: the Coverage CALL picker offers NO family values (Man/Zone/Match)', JSON.stringify(r.offered));
+ok(r.promoted.coverage === 'Cover 3' && r.promoted.coverageFamily === 'Man',
+  'P1b promote: explicit Coverage commit preserves the family (Man) instead of destroying it', JSON.stringify(r.promoted));
+ok(r.explicitWins.coverage === 'Cover 2' && r.explicitWins.coverageFamily === 'Zone',
+  'P1b: an EXISTING explicit coverageFamily wins', JSON.stringify(r.explicitWins));
+ok(r.noInvention.coverage === 'Cover 4' && r.noInvention.coverageFamily === '',
+  'P1b: no family is INVENTED when the play never had one', JSON.stringify(r.noInvention));
+ok(r.otherField.coverage === 'Man' && r.otherField.coverageFamily === '',
+  'P1b: editing a DIFFERENT field promotes nothing', JSON.stringify(r.otherField));
+
+console.log('\n== 8g. E3b-P1c: promotion is ONE undoable transaction (real history) ==');
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const play = window.app.tagger.plays[0];          // a REAL play — synthetic ones
+  if (!play || !hist) return { skip: true };        // never reach HistoryManager
+  const savedF = play.tags.formation, savedQ = play.tags.qbAlignment;
+  play.tags.formation = 'Under Center'; play.tags.qbAlignment = '';
+  grid.refresh(); await raf2();
+  hist.reset();
+  const depth0 = hist.stack.length;
+  grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'formation'), 'Trips');
+  await raf2();
+  const entries = hist.stack.length - depth0;
+  const after = { f: play.tags.formation, q: play.tags.qbAlignment };
+  hist.undo(); await raf2();
+  const undone = { f: window.app.tagger.getPlay(play.id)?.tags.formation, q: window.app.tagger.getPlay(play.id)?.tags.qbAlignment || '' };
+  hist.redo(); await raf2();
+  const redone = { f: window.app.tagger.getPlay(play.id)?.tags.formation, q: window.app.tagger.getPlay(play.id)?.tags.qbAlignment || '' };
+  const p = window.app.tagger.getPlay(play.id);
+  if (p) { p.tags.formation = savedF; p.tags.qbAlignment = savedQ; }
+  grid.refresh();
+  return { skip: false, entries, after, undone, redone };
+});
+ok(r.skip || r.entries === 1, 'P1c: the promote+write commit records EXACTLY ONE history entry', JSON.stringify(r));
+ok(r.skip || (r.after.f === 'Trips' && r.after.q === 'Under Center'), 'P1c: commit wrote structure + promoted alignment', JSON.stringify(r.after));
+ok(r.skip || (r.undone.f === 'Under Center' && r.undone.q === ''),
+  'P1c: UNDO restores raw Formation AND blank QB Alignment TOGETHER', JSON.stringify(r.undone));
+ok(r.skip || (r.redone.f === 'Trips' && r.redone.q === 'Under Center'),
+  'P1c: REDO restores structural Formation AND promoted alignment TOGETHER', JSON.stringify(r.redone));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }
 else console.log('No console/page errors.');
