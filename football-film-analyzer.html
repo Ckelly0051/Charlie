@@ -9644,7 +9644,11 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                   <div class="pick-group multi" id="tagFormation">
                     <!-- E4: Under Center/Pistol/Shotgun moved to the QB Alignment
                          group below — they are QB alignment, not formation
-                         structure (GRIDIRON-IQ-TAG-MODEL.md E1 decision). -->
+                         structure (GRIDIRON-IQ-TAG-MODEL.md E1 decision).
+                         E4-2: Empty moved to the Backfield group — it's a
+                         back-alignment concept (no running back), not a
+                         formation structure, and Backfield already has its
+                         own Empty chip. -->
                     <!-- Named / system formations -->
                     <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
                     <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
@@ -9663,7 +9667,6 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                     <button class="pick" data-value="Twins" type="button">Twins</button>
                     <button class="pick" data-value="Doubles" type="button">Doubles</button>
                     <button class="pick" data-value="Bunch" type="button">Bunch</button>
-                    <button class="pick" data-value="Empty" type="button">Empty</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -9676,6 +9679,9 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                 </div>
                 <div class="chip-section">
                   <label class="chip-label">Backfield <span class="chip-hint">back alignment</span></label>
+                  <!-- E4-2: Pistol moved to the QB Alignment group — it's a QB
+                       alignment concept, not a back alignment, and QB
+                       Alignment already has its own Pistol chip. -->
                   <div class="pick-group" id="tagBackfield">
                     <button class="pick" data-value="Single" type="button">Single</button>
                     <button class="pick" data-value="Split" type="button">Split</button>
@@ -9684,7 +9690,6 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                     <button class="pick" data-value="Offset" type="button">Offset</button>
                     <button class="pick" data-value="Strong" type="button">Strong</button>
                     <button class="pick" data-value="Weak" type="button">Weak</button>
-                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
                     <button class="pick" data-value="Diamond" type="button">Diamond</button>
                     <button class="pick" data-value="Empty" type="button">Empty</button>
                   </div>
@@ -10958,30 +10963,47 @@ class TagProjection {
   // The one backfield value that legacy data stored in `formation` (D2).
   static FORMATION_BACKFIELD_TOKENS = ['Empty'];
 
-  /** E3b/E4: legacy plays carry TWO dimensions inside ONE stored field — an
-   *  alignment inside `formation`, a family inside `coverage`. Projection derives
-   *  the sibling FROM that string, so overwriting the primary field on an edit
-   *  would silently destroy it. ONE descriptor per pair makes the defence
-   *  STRUCTURAL rather than a per-field special case, and keeps every consumer
-   *  (Film Room's grid editor, the tag form) from drifting apart — moved here in
-   *  E4 from `PlayGrid` (its original E3b home) so BOTH consumers share the exact
-   *  same descriptor instead of two copies that could disagree. Per entry:
+  /** E3b/E4/E4-2: legacy plays carry MULTIPLE dimensions inside ONE stored
+   *  field — an alignment inside `formation` (and, rarely, `backfield`), a
+   *  receiver-count concept ('Empty') inside `formation`, a family inside
+   *  `coverage`. Projection derives the sibling FROM that string, so
+   *  overwriting the primary field on an edit would silently destroy it. ONE
+   *  descriptor per relationship makes the defence STRUCTURAL rather than a
+   *  per-field special case, and keeps every consumer (Film Room's grid
+   *  editor, the tag form) from drifting apart.
+   *
+   *  Shape: primary key -> ARRAY of sibling descriptors (a primary can embed
+   *  more than one sibling's legacy token — Formation alone embeds both a QB
+   *  Alignment token and a Backfield/'Empty' token). Per descriptor:
    *    sibling     — the projected field to materialize BEFORE overwriting the primary
    *    excludeFrom — the TagProjection list whose values belong to the sibling and
    *                  must never be offered in the primary's picker
-   *  Adding a third pair here wires both halves at once for every consumer at
-   *  once; each consumer's own test harness asserts every registered pair is
-   *  covered, so a new one cannot ship untested in either surface.
-   *  NOT registered here (deliberately, flagged, not silently skipped): Formation
-   *  also still allows the legacy 'Empty' backfield token (FORMATION_BACKFIELD_
-   *  TOKENS) and Backfield still allows 'Pistol' as a pickable chip — both are the
-   *  SAME class of pre-existing vocabulary cleanup as this pair mechanism exists
-   *  to protect, but adding a THIRD sibling to `formation` (backfield, alongside
-   *  qbAlignment) is out of scope for this increment and needs its own
-   *  failing-first proof, not a silent bundle-in. */
+   *
+   *  `backfield` appears on BOTH sides at once: it is a SIBLING of `formation`
+   *  (receives 'Empty' when formation had it and backfield was blank) AND a
+   *  PRIMARY in its own right for `qbAlignment` (a legacy 'Pistol' can still be
+   *  embedded in backfield's raw string). `reconcileSiblings` below handles
+   *  both directions generically — no per-relationship special-casing needed
+   *  in either consumer.
+   *
+   *  E4-2 extended this from the E4 shape (one sibling per primary) to enable
+   *  safely moving 'Empty' out of Formation into Backfield and 'Pistol' out of
+   *  Backfield into QB Alignment — this descriptor is deliberately extended
+   *  and proven FIRST, before either library actually changes (see the E4-2
+   *  handoff note). Adding a new relationship here wires promote+strip for
+   *  every consumer at once; each consumer's test harness asserts every
+   *  registered relationship is covered, so a new one cannot ship untested. */
   static PROJECTED_PAIRS = {
-    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
-    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+    formation: [
+      { sibling: 'qbAlignment', excludeFrom: 'QB_ALIGNMENTS' },
+      { sibling: 'backfield',   excludeFrom: 'FORMATION_BACKFIELD_TOKENS' },
+    ],
+    backfield: [
+      { sibling: 'qbAlignment', excludeFrom: 'QB_ALIGNMENTS' },
+    ],
+    coverage: [
+      { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+    ],
   };
 
   static _split(v) {
@@ -10989,39 +11011,91 @@ class TagProjection {
   }
   static _isAlignment(v) { return this.QB_ALIGNMENTS.includes(v); }
 
-  /** Reverse of PROJECTED_PAIRS: given a sibling key (qbAlignment/
-   *  coverageFamily), return the primary key that embeds its legacy token
-   *  (formation/coverage), or null. E4 review fix — see stripSiblingToken. */
-  static primaryForSibling(siblingKey) {
-    for (const [primary, pair] of Object.entries(this.PROJECTED_PAIRS)) {
-      if (pair.sibling === siblingKey) return primary;
+  /** Reverse of PROJECTED_PAIRS: given a sibling key, return the ARRAY of
+   *  primary keys that may embed its legacy token. `qbAlignment` has TWO
+   *  (`formation` and `backfield`); `backfield` and `coverageFamily` each have
+   *  ONE. E4 review fix, extended plural in E4-2 for the multi-primary case. */
+  static primariesForSibling(siblingKey) {
+    const primaries = [];
+    for (const [primary, pairs] of Object.entries(this.PROJECTED_PAIRS)) {
+      if (pairs.some(pair => pair.sibling === siblingKey)) primaries.push(primary);
     }
-    return null;
+    return primaries;
   }
 
   /**
-   * E4 review fix (Codex): a coach's explicit commit on a SIBLING field
-   * (QB Alignment / Coverage Family) — including CLEARING it — must survive a
-   * reload. project()'s precedence only re-derives a sibling from the primary
-   * when the sibling itself is blank, so writing '' has nothing to override:
-   * the primary's still-embedded legacy token would simply win again on the
-   * very next read, and the coach's clear silently would not stick. The fix is
-   * to strip exactly this pair's own token(s) out of the primary's RAW stored
-   * value at the same moment the sibling is committed — scoped to only this
-   * pair's tokens, so it never touches any other token the primary may carry
-   * (e.g. Formation's still-deferred 'Empty' token — out of scope, see the
-   * PROJECTED_PAIRS comment above). A no-op when there is no token to strip.
+   * E4 review fix (Codex), extended in E4-2 for multi-sibling primaries: a
+   * coach's explicit commit on a SIBLING field — including CLEARING it —
+   * must survive a reload. project()'s precedence only re-derives a sibling
+   * from a primary when the sibling itself is blank, so writing '' has
+   * nothing to override: the primary's still-embedded legacy token would
+   * simply win again on the very next read, and the coach's clear silently
+   * would not stick. The fix is to strip exactly THIS sibling's own token(s)
+   * out of the given primary's RAW stored value at the same moment the
+   * sibling is committed — scoped by BOTH primaryKey and siblingKey so a
+   * primary with more than one registered relationship (Formation ->
+   * QB Alignment AND Formation -> Backfield) never cross-strips the other
+   * relationship's tokens. A no-op when there is no token to strip.
    */
-  static stripSiblingToken(primaryKey, rawValue) {
-    const pair = this.PROJECTED_PAIRS[primaryKey];
+  static stripSiblingToken(primaryKey, siblingKey, rawValue) {
+    const pairs = this.PROJECTED_PAIRS[primaryKey];
+    const pair = pairs && pairs.find(p => p.sibling === siblingKey);
     if (!pair || typeof rawValue !== 'string') return rawValue;
     const tokens = this[pair.excludeFrom];
     if (primaryKey === 'coverage') {
-      // Single-value: the whole field IS the family token when it matches.
+      // Single ATOMIC value: the whole field IS the family token when it
+      // matches — Coverage never coexists with a shell AND a family at once.
       return tokens.includes(rawValue) ? '' : rawValue;
     }
-    // Multi-value (formation): drop only this pair's tokens, keep the rest.
+    // Multi-value (formation) or defensively-split single-value (backfield,
+    // per E2-R2 — a malformed multi-value string still gets its alignment
+    // token removed): drop only this pair's tokens, keep everything else.
     return this._split(rawValue).filter(p => !tokens.includes(p)).join(' + ');
+  }
+
+  /**
+   * THE single promote-then-strip commit mechanic (E4/E4-2) — shared by the
+   * tag form's per-field save (`PlayTagger._saveField`), its whole-play
+   * canonicalization (`PlayTagger.commitProjectedLook`), and Film Room's grid
+   * inline editor (`PlayGrid._applyEdit`), so all three call sites use one
+   * algorithm instead of drifting copies. Mutates `play.tags` in place for
+   * every field OTHER than `key` itself — the caller still writes
+   * `play.tags[key] = <the coach's new value>` afterward, once every other
+   * field has been protected.
+   *
+   *  - FORWARD: if `key` is a PRIMARY with registered sibling relationships
+   *    (formation, backfield, coverage), promote each relationship's sibling
+   *    from the CURRENTLY EFFECTIVE projected value, but ONLY when that
+   *    sibling is still blank (an existing explicit sibling always wins,
+   *    never overwritten).
+   *  - REVERSE: if `key` is a SIBLING (qbAlignment, backfield,
+   *    coverageFamily — note `backfield` can be EITHER role depending on
+   *    which relationship fired), strip `key`'s own token out of EVERY
+   *    primary that may still embed it. `qbAlignment` has two possible
+   *    primaries; both are checked.
+   *
+   * A key can be a primary and a sibling at once (`backfield`): both branches
+   * run, in the same call, before the caller's own write — exactly one
+   * field-level-merge commit, exactly one undoable transaction.
+   *
+   * Returns true if anything besides `key` was mutated.
+   */
+  static reconcileSiblings(play, key) {
+    let changed = false;
+    const pairs = this.PROJECTED_PAIRS[key];
+    if (pairs) {
+      for (const pair of pairs) {
+        if (!String(play.tags[pair.sibling] || '').trim()) {
+          const effective = this.project(play.tags)[pair.sibling];
+          if (effective) { play.tags[pair.sibling] = effective; changed = true; }
+        }
+      }
+    }
+    for (const primaryKey of this.primariesForSibling(key)) {
+      const stripped = this.stripSiblingToken(primaryKey, key, play.tags[primaryKey]);
+      if (stripped !== play.tags[primaryKey]) { play.tags[primaryKey] = stripped; changed = true; }
+    }
+    return changed;
   }
 
   /**
@@ -13486,40 +13560,21 @@ class PlayTagger {
   _saveField(key) {
     const play = this.getCurrentPlay();
     if (!play) return;
-    // E4 D-projform PROMOTE-ON-EXPLICIT-COMMIT — same mechanic + same shared
-    // TagProjection.PROJECTED_PAIRS descriptor as Film Room's grid editor
-    // (play-grid.js _applyEdit, E3b-P1). A legacy play stores its sibling
-    // dimension (QB alignment inside formation, coverage family inside
-    // coverage) INSIDE the primary field's string; overwriting the primary
-    // with the coach's new explicit pick would silently destroy that sibling
-    // data. So, only on THIS explicit commit — never on load/view/select —
-    // first materialize the currently EFFECTIVE projected sibling, and ONLY
-    // when that sibling target is still blank (an existing explicit value on
-    // the sibling always wins, never overwritten). This preserves effective
-    // data; it is not a semantic sibling change. The whole thing — promote +
-    // write — happens before the single play-updated emit below, so
-    // HistoryManager (which snapshots on play-updated) records it as ONE
-    // undoable transaction, exactly like the grid editor's proof requires.
-    const pair = TagProjection.PROJECTED_PAIRS[key];
-    if (pair && !String(play.tags[pair.sibling] || '').trim()) {
-      const effective = StatsEngine.proj(play)[pair.sibling];
-      if (effective) play.tags[pair.sibling] = effective;
-    }
-    // REVERSE case (E4 review fix): the coach is committing a SIBLING field
-    // directly (QB Alignment / Coverage Family), not the primary. Writing a
-    // blank here to CLEAR it has nothing to override — project()'s precedence
-    // only re-derives the sibling from the primary when the sibling is blank,
-    // so the primary's still-embedded legacy token would simply win again on
-    // the next read and the clear would silently not stick. Strip exactly
-    // this pair's own token out of the primary's raw stored value at the same
-    // moment (a no-op when there's nothing to strip). See
-    // TagProjection.stripSiblingToken for why this is scoped to just this
-    // pair's tokens.
-    const primaryKey = TagProjection.primaryForSibling(key);
-    if (primaryKey) {
-      const stripped = TagProjection.stripSiblingToken(primaryKey, play.tags[primaryKey]);
-      if (stripped !== play.tags[primaryKey]) play.tags[primaryKey] = stripped;
-    }
+    // E4/E4-2 D-projform PROMOTE-ON-EXPLICIT-COMMIT — same mechanic + same
+    // shared TagProjection descriptor as Film Room's grid editor
+    // (play-grid.js _applyEdit, E3b-P1). A legacy play stores a sibling
+    // dimension INSIDE a primary field's string (QB alignment inside
+    // formation/backfield, 'Empty' inside formation, coverage family inside
+    // coverage); overwriting the primary with the coach's new explicit pick
+    // would silently destroy that sibling data, and committing a sibling
+    // directly (including clearing it) would leave the primary's embedded
+    // token to silently re-win on the next read. `reconcileSiblings` runs
+    // BOTH directions in one call — see its doc comment for the full
+    // rationale, including why a key like `backfield` can be primary and
+    // sibling at once. The whole thing happens before the single
+    // play-updated emit below, so HistoryManager records it as ONE undoable
+    // transaction, exactly like the grid editor's proof requires.
+    TagProjection.reconcileSiblings(play, key);
     play.tags[key] = this.tagFields[key].value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
@@ -13641,13 +13696,18 @@ class PlayTagger {
    * save" gesture (per-field chip saves are already immediate; Save & Next is
    * the coach's deliberate "I'm done with this play" moment — see
    * App._advancePlay). An untouched LEGACY play — reviewed but never given a
-   * Formation/Coverage/QB Alignment/Coverage Family chip click this visit —
-   * previously left with its projected sibling still un-promoted and its
-   * primary field still raw, so it could never leave the (Lane R) "Legacy
-   * tags to review" list, whose exit condition (§18 D-laneR) is exactly "the
-   * coach explicitly saves the projected play." This applies the SAME
-   * promote-then-strip mechanic _saveField uses per-chip, for BOTH registered
-   * pairs, as one field-level-merge commit — never touching any other field
+   * Formation/Coverage/QB Alignment/Backfield/Coverage Family chip click this
+   * visit — previously left with its projected siblings still un-promoted and
+   * its primary fields still raw, so it could never leave the (Lane R)
+   * "Legacy tags to review" list, whose exit condition (§18 D-laneR) is
+   * exactly "the coach explicitly saves the projected play." For each
+   * registered PRIMARY (formation, backfield, coverage), this both runs
+   * `reconcileSiblings` (promotes each blank sibling) AND re-commits the
+   * primary to its OWN fully-projected value (`StatsEngine.proj(play)
+   * [primaryKey]`), which strips every registered sibling's token from it at
+   * once — the same self-clean an explicit chip commit on that field already
+   * produces, applied even when the coach never touched the chip. One
+   * field-level-merge commit per primary, never touching any other field
    * (down, playType, result, players, notes, penalties, ST data, ...). A
    * genuinely clean play is a true no-op: no mutation, no history entry, no
    * play-updated emit, so Save & Next stays silent on the overwhelming
@@ -13657,13 +13717,20 @@ class PlayTagger {
     const play = this.getCurrentPlay();
     if (!play) return;
     let changed = false;
-    for (const [primaryKey, pair] of Object.entries(TagProjection.PROJECTED_PAIRS)) {
-      if (!String(play.tags[pair.sibling] || '').trim()) {
-        const effective = StatsEngine.proj(play)[pair.sibling];
-        if (effective) { play.tags[pair.sibling] = effective; changed = true; }
+    for (const primaryKey of Object.keys(TagProjection.PROJECTED_PAIRS)) {
+      if (TagProjection.reconcileSiblings(play, primaryKey)) changed = true;
+      // project() always returns a STRING for these fields, even when blank;
+      // a legacy/synthetic play's tags object often has no key at all for a
+      // field it was never charted with (`undefined`, not `''`). Comparing
+      // those raw would flag a "change" for nearly every ordinary play that
+      // simply never carried e.g. `backfield` — normalize both sides through
+      // the same blank-equivalence _saveField already uses elsewhere so only
+      // a REAL legacy token being stripped counts as a change.
+      const projectedSelf = StatsEngine.proj(play)[primaryKey];
+      if (String(projectedSelf || '') !== String(play.tags[primaryKey] || '')) {
+        play.tags[primaryKey] = projectedSelf;
+        changed = true;
       }
-      const stripped = TagProjection.stripSiblingToken(primaryKey, play.tags[primaryKey]);
-      if (stripped !== play.tags[primaryKey]) { play.tags[primaryKey] = stripped; changed = true; }
     }
     if (!changed) return;
     this._updateTimeline();
@@ -13728,8 +13795,17 @@ class PlayTagger {
     this.tagFields.personnel.value = play.tags.personnel || '';
     this.tagFields.motion.value = play.tags.motion || '';
     this.tagFields.playDir.value = play.tags.playDir || '';
-    this.tagFields.backfield.value = play.tags.backfield || '';
-    this.tagFields.strength.value = play.tags.strength || '';
+    // E4-2: Backfield now has REAL sibling relationships too (it receives
+    // 'Empty' promoted from Formation, and supplies 'Pistol' to QB Alignment)
+    // — seeding it from RAW tags left a legacy "Wing-T + Empty" play showing
+    // Backfield as blank in the FORM while Film Room's grid correctly showed
+    // 'Empty' via projField, a real cross-surface divergence. Seed from the
+    // projected view like every other projected field. Strength has no
+    // sibling relationship (project() passes it through unchanged), but
+    // seeding it the same way keeps all six projected fields on ONE
+    // consistent seeding path instead of a silently-diverging exception.
+    this.tagFields.backfield.value = projected.backfield || '';
+    this.tagFields.strength.value = projected.strength || '';
     this.tagFields.driveNumber.value = play.tags.driveNumber || '';
     this.tagFields.stType.value = play.tags.stType || '';
     this.tagFields.scoreFor.value = play.tags.scoreFor || '';
@@ -31450,17 +31526,21 @@ class PlayGrid {
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
     { key: 'formation', label: 'Formation', type: 'enum', src: 'tagFormation', multi: true,  unit: 'offense' },
-    // E3b: QB Alignment is charted SEPARATELY from structural Formation. Both new
-    // columns are `proj-readonly` — DISPLAY-ONLY in E3b by contract; their safe
-    // inline editing (with the field-level merge) lands in E4 / D-projform.
-    { key: 'qbAlignment', label: 'QB Align', type: 'proj-readonly', unit: 'offense' },
-    // The remaining two of the six StatsEngine.PROJECTED_FIELDS. Same shape as
-    // QB Alignment/Coverage Family — DISPLAY-ONLY (proj-readonly) in E3b; safe
-    // inline editing lands in E4 / D-projform. Not in any default PRESET (no
-    // coach decision requested that), but available in the Columns menu like
-    // any other column, since PlayGrid.COLUMNS is its single source of truth.
-    { key: 'backfield', label: 'Backfield', type: 'proj-readonly', unit: 'offense' },
-    { key: 'strength',  label: 'Strength',  type: 'proj-readonly', unit: 'offense' },
+    // E4-2: QB Alignment, Backfield, Strength, and Coverage Family are now
+    // safely EDITABLE inline (E3b shipped them DISPLAY-ONLY/`proj-readonly`
+    // pending the field-level-merge machinery, which E4/E4-2 built). All four
+    // are single-select, so they use the plain `enum` editor like any other
+    // tag-form-backed column; `_applyEdit` routes every one of them through
+    // `TagProjection.reconcileSiblings` (the same promote/strip mechanic the
+    // tag form uses), so committing them here has EXACTLY the tag form's
+    // safety guarantees — view/cancel/navigation never write, and an explicit
+    // clear/change is one undoable transaction. Not in any default PRESET (no
+    // coach decision requested that for Backfield/Strength), but available in
+    // the Columns menu like any other column, since PlayGrid.COLUMNS is its
+    // single source of truth.
+    { key: 'qbAlignment', label: 'QB Align', type: 'enum', src: 'tagQbAlignment',              unit: 'offense' },
+    { key: 'backfield', label: 'Backfield', type: 'enum', src: 'tagBackfield',                 unit: 'offense' },
+    { key: 'strength',  label: 'Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
@@ -31470,7 +31550,7 @@ class PlayGrid {
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
     { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
     { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
-    { key: 'coverageFamily', label: 'Cov Family', type: 'proj-readonly',                      unit: 'defense' },
+    { key: 'coverageFamily', label: 'Cov Family', type: 'enum', src: 'tagCoverageFamily',      unit: 'defense' },
     { key: 'blitz',     label: 'Blitz',     type: 'enum', src: 'tagBlitz',     multi: true,   unit: 'defense' },
     { key: 'stType',    label: 'ST Type',   type: 'enum', src: 'tagStType',                   unit: 'special' },
     { key: 'stUnit',    label: 'ST Unit',   type: 'st-readonly',                              unit: 'special' },
@@ -31980,14 +32060,12 @@ class PlayGrid {
       const pct = Math.round((runs / rp.length) * 100);
       return pct >= 50 ? `Run ${pct}%` : `Pass ${100 - pct}%`;
     }
-    // proj-readonly (QB Alignment/Backfield/Strength/Coverage Family) is a
-    // DISPLAY-ONLY category column — editing stays disabled (see _openEditor's
-    // guard), but that has nothing to do with whether it's USEFUL to summarize.
-    // All four are single-value, so the multi-value split below is a no-op for
-    // them; routing through the identical enum math costs nothing and keeps
-    // exactly one denominator/eligibility implementation for every projected
-    // column instead of a second, divergence-prone copy.
-    if (col.type === 'enum' || col.type === 'proj-readonly') {
+    // QB Alignment/Backfield/Strength/Coverage Family are single-value, so the
+    // multi-value split below is a no-op for them; routing through the
+    // identical enum math costs nothing and keeps exactly one denominator/
+    // eligibility implementation for every projected column instead of a
+    // second, divergence-prone copy.
+    if (col.type === 'enum') {
       const counts = {};
       let total = 0;
       visible.forEach(p => {
@@ -32083,13 +32161,7 @@ class PlayGrid {
       return `<span class="${cls}">${disp}</span>`;
     }
     if (col.key === 'notes') return this._esc(p.notes || '');
-    // E3b: DISPLAY-ONLY projected columns (QB Alignment, Coverage Family). Editing
-    // them is E4 / D-projform, so they render as plain read-only text.
-    if (col.type === 'proj-readonly') {
-      const v = StatsEngine.projField(p, col.key);
-      return v ? this._esc(v) : '<span class="pg-dim">—</span>';
-    }
-    // E3b: every other cell for one of the six projected fields shows the PROJECTED
+    // E3b/E4-2: every cell for one of the six projected fields shows the PROJECTED
     // value — never the raw legacy token. A play charted only as "Shotgun" has no
     // structural formation, so Formation reads "Not charted" (NOT "Shotgun", which
     // would re-assert the misclassification E1 removed, and NOT "Unknown", which
@@ -32196,12 +32268,16 @@ class PlayGrid {
       if (opts.length) this._optionCache[col.key] = opts;
     }
     let all = [...new Set([...(opts || []), ...current].filter(Boolean))];
-    // E3b-P1: a primary picker must not offer values that belong to its projected
-    // SIBLING — the structural Formation picker must not offer QB alignments, and
-    // the Coverage CALL picker must not offer Man/Zone/Match. The shared tag-form
-    // chip groups still carry them until E4 moves them to their own libraries.
-    const exclude = PlayGrid.PROJECTED_PAIRS[col.key]?.excludeFrom;
-    if (exclude) all = all.filter(v => !TagProjection[exclude].includes(v));
+    // E3b-P1/E4-2: a primary picker must not offer values that belong to ANY
+    // of its registered projected SIBLINGS — the structural Formation picker
+    // must not offer QB alignments or the Backfield 'Empty' token, the
+    // Backfield picker must not offer QB alignments ('Pistol'), and the
+    // Coverage CALL picker must not offer Man/Zone/Match. `col.key` can have
+    // more than one registered sibling relationship (Formation has two), so
+    // every one of them is excluded, not just the first.
+    for (const pair of PlayGrid.PROJECTED_PAIRS[col.key] || []) {
+      all = all.filter(v => !TagProjection[pair.excludeFrom].includes(v));
+    }
     return all;
   }
 
@@ -32210,9 +32286,7 @@ class PlayGrid {
     const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
     const cell = this._cellEl(playId, colKey);
     if (!play || !col || !cell) return;
-    // `proj-readonly` (QB Alignment, Coverage Family) is DISPLAY-ONLY in E3b by
-    // contract — editing them requires the E4/D-projform field-level merge.
-    if (col.type === 'st-readonly' || col.type === 'pen-readonly' || col.type === 'proj-readonly') return;
+    if (col.type === 'st-readonly' || col.type === 'pen-readonly') return;
     this._closeEditor();
 
     const wrap = document.createElement('div');
@@ -32343,21 +32417,19 @@ class PlayGrid {
       // Multi-select fields: drop mutually-exclusive rivals exactly like the
       // form (no more "Gain + Loss", which flipped a gain negative below).
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
-      // E3b-P1 PROMOTE-ON-EXPLICIT-COMMIT (structural — see PROMOTE_ON_COMMIT).
-      // A legacy play stores its SIBLING dimension inside the primary field
-      // (alignment inside `formation`, family inside `coverage`), and projection
-      // derives that sibling FROM the string. Overwriting the primary with the
-      // coach's explicit choice would silently destroy it. So, only on this
-      // explicit commit, first materialize the currently EFFECTIVE projected
-      // sibling — and ONLY when that target is blank, so an existing explicit value
-      // always wins. Preserves effective data; not a semantic sibling change.
-      // Opening/cancelling never reaches here, so viewing writes nothing, and the
-      // whole commit is a single history entry (undoable as one unit).
-      const sibling = PlayGrid.PROJECTED_PAIRS[col.key]?.sibling;
-      if (sibling && !String(play.tags[sibling] || '').trim()) {
-        const effective = StatsEngine.proj(play)[sibling];
-        if (effective) play.tags[sibling] = effective;
-      }
+      // E3b-P1/E4/E4-2 PROMOTE-THEN-STRIP (structural — see
+      // TagProjection.reconcileSiblings, the exact same call the tag form's
+      // _saveField makes). A legacy play stores a sibling dimension inside a
+      // primary field (alignment inside formation/backfield, 'Empty' inside
+      // formation, family inside coverage), and projection derives that
+      // sibling FROM the string. Overwriting the primary with the coach's
+      // explicit choice would silently destroy it; committing a sibling
+      // directly (now that QB Alignment/Backfield/Strength/Coverage Family are
+      // editable here too) would leave the primary's embedded token to
+      // silently re-win on the next read. One call protects both directions.
+      // Opening/cancelling never reaches here, so viewing writes nothing, and
+      // the whole commit is a single history entry (undoable as one unit).
+      TagProjection.reconcileSiblings(play, col.key);
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).
       if (col.key === 'playType') {
@@ -35349,10 +35421,17 @@ class TagLibrary {
     // E4: Under Center/Pistol/Shotgun removed — they are QB Alignment, not
     // Formation structure (E1 decision; #tagQbAlignment is their new home, not a
     // TagLibrary-customizable group since the three values are fixed, not team
-    // vocabulary). 'Empty' deliberately left as-is — see tag-projection.js's
-    // PROJECTED_PAIRS comment for why that one is out of scope here.
-    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch','Empty'],
-    backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Pistol','Diamond','Empty'],
+    // vocabulary).
+    // E4-2: 'Empty' removed from Formation — it's a backfield concept (no
+    // running back), and Backfield already has its own 'Empty' chip as the
+    // correct home; TagProjection.PROJECTED_PAIRS now registers Formation ->
+    // Backfield so this move is read-time-safe (legacy plays project it out
+    // correctly, nothing is migrated). 'Pistol' removed from Backfield — it's
+    // QB alignment, not a back alignment; QB Alignment already has its own
+    // 'Pistol' chip, and PROJECTED_PAIRS now also registers Backfield ->
+    // QB Alignment for the same reason.
+    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch'],
+    backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
   };
 

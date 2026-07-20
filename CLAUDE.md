@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-1 accepted)
+### Current working state (2026-07-20, E4-2 built, awaiting Codex review)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -187,15 +187,76 @@ Independent canonical gate: **57/57 green** after a fresh rebuild; projection
 form **38/38**. No production bundle drift in the test-only hardening round and
 no remaining E4-1 finding.
 
-**Next: E4-2.** Safely enable Film Room editing for the four currently
-`proj-readonly` dimensions (QB Alignment, Backfield, Strength, Coverage Family)
-with view/cancel/navigation non-writing, explicit clear/change, one-step
-undo/redo, and cross-surface parity. Also finish the deferred vocabulary cleanup:
-`Empty` leaves Formation for Backfield and `Pistol` leaves Backfield for QB
-Alignment. The current one-sibling `PROJECTED_PAIRS` shape cannot represent both
-Formation→QB Alignment and Formation→Backfield; design that extension explicitly
-with failing-first coverage before changing the libraries. Canonical season
-save/reopen durability remains a separate required proof before packaging.
+**E4-2 BUILT, awaiting Codex review.** Implements the full scope from the E4-1
+acceptance note: descriptor extension, Film Room editing for the four
+`proj-readonly` dimensions, and the deferred Empty/Pistol vocabulary cleanup —
+in that dependency order, since the vocabulary move needed the descriptor
+extension to be safe.
+
+1. **`TagProjection.PROJECTED_PAIRS` extended from one-sibling-per-primary to
+   an ARRAY of sibling descriptors per primary**, since Formation alone embeds
+   two legacy tokens (QB Alignment AND, now, Backfield's 'Empty'), and
+   `backfield` needed to be BOTH a sibling (of Formation, for 'Empty') and a
+   primary in its own right (for QB Alignment, since a legacy 'Pistol' can
+   still live in backfield's raw string) at once:
+   ```js
+   formation: [{sibling:'qbAlignment',...}, {sibling:'backfield',...}],
+   backfield: [{sibling:'qbAlignment',...}],
+   coverage:  [{sibling:'coverageFamily',...}],
+   ```
+   `primaryForSibling` (singular) became `primariesForSibling` (plural — a
+   sibling can now have more than one primary). `stripSiblingToken` is now
+   scoped by BOTH primaryKey and siblingKey (a primary with two relationships
+   must never cross-strip the other one's tokens — mutation-verified: forcing
+   it to always use the first registered pair reproduces cross-contamination
+   exactly). New `TagProjection.reconcileSiblings(play, key)` is the single
+   promote-then-strip algorithm — handles the forward case (key is a primary:
+   promote each blank sibling) and the reverse case (key is a sibling: strip
+   its token from every primary that may embed it) in one call, so a key like
+   `backfield` gets both directions applied atomically. `_saveField`,
+   `commitProjectedLook`, and Film Room's `_applyEdit` all now call this ONE
+   function instead of three separate copies of promote/strip logic.
+2. **Film Room editing enabled for QB Alignment, Backfield, Strength, and
+   Coverage Family** — all four flip from `type:'proj-readonly'` to a plain
+   `type:'enum'` column with `src` pointing at their tag-form chip group
+   (identical shape to every other editable column); `_options()`'s exclude
+   filter now loops every registered pair for a column instead of assuming
+   one. Dead `proj-readonly` branches removed from `_tendency`/`_cellHtml`/
+   `_openEditor`'s guard (no column uses that type anymore).
+3. **`Empty` moved out of Formation into Backfield** (which already had its
+   own `Empty` chip — same real-world concept, wrong dimension) and **`Pistol`
+   moved out of Backfield into QB Alignment** (same story, reversed) —
+   `index.html` chip buttons + `TagLibrary.DEFINITIONS` both updated; no data
+   migrated, read-time projection already handled both values correctly.
+
+**One real bug found and fixed by the test process itself, not by the review:**
+`_loadTagForm` seeded Backfield and Strength from RAW `play.tags.*`, never
+updated when qbAlignment/coverageFamily got projected seeding in E4-1 — a
+legacy play with `Empty` embedded in Formation showed Backfield as BLANK in
+the tag form while Film Room's grid correctly showed `Empty`, a genuine
+cross-surface divergence exactly of the kind this lane exists to prevent (only
+surfaced once Backfield gained a real sibling relationship in E4-2; harmless
+before that). Fixed by seeding both from the projected view like the other
+four fields. Mutation-verified: reverting to the raw seed reproduces the
+divergence exactly.
+
+`tools/e2e-tag-projform.mjs` grew 38 → 51 (new sections 12-15: vocabulary
+moved, Formation→Backfield promote+undo/redo, Backfield→QB Alignment
+promote+undo/redo, derived-Backfield-clear-strips-Formation+revisit).
+`tools/e2e-film-room.mjs` P1c extended to cover all three registered primaries
+(added Backfield/QB Alignment); its former "proj-readonly stays disabled"
+assertions are INVERTED to prove the opposite (editor genuinely opens, but
+opening/canceling never writes) since that was the E3b-era contract, not the
+E4-2 one; new section 8h proves view/select/cancel non-writing, one-step
+undo/redo for the relationship-free Strength column, and cross-surface parity
+(a grid edit is visible identically in the tag form). Full gate **57/57
+green**, zero regression. Every new/changed guarantee mutation-verified
+(disabling each fix/relationship reproduces its exact defect, confirmed, then
+restored).
+
+**Next:** Codex review of E4-2. Canonical season save/reopen durability
+remains a separate required proof before packaging — still open, still not
+substituted for by CSV round-trip or anything in E4-1/E4-2.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).

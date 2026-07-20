@@ -79,7 +79,12 @@ const ACK = [
   // exists there. The stale-ACK check caught it and forced this deletion, which is
   // exactly the behaviour R4b added.
   { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 1, reason: "EDITOR write: commits the coach's explicit choice to the stored tag. Raw by design — display never writes." },
-  { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[sibling]', count: 2, reason: "E3b-P1 promote-on-explicit-commit, keyed by PROMOTE_ON_COMMIT (formation->qbAlignment, coverage->coverageFamily). Reads the STORED sibling to test 'is it blank?' (an explicit value must WIN) and writes the materialized value. Reading the PROJECTED sibling here would be wrong — it is never blank for a legacy play, so the promote would never fire and the sibling would be destroyed on the next primary-field edit." },
+  // E4-2: the former `_applyEdit` `play.tags[sibling]` ACK (count 2) is GONE on
+  // purpose — the promote-then-strip logic moved into
+  // TagProjection.reconcileSiblings (tag-projection.js, not a scanned file: it
+  // IS the sanctioned seam, same footing as StatsEngine.proj). _applyEdit now
+  // calls it as one opaque function; the stale-ACK check caught the removed
+  // expression and forced this deletion, exactly the behaviour R4b added.
 ];
 
 let pass = 0, fail = 0;

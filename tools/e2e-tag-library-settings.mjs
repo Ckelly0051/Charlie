@@ -28,7 +28,9 @@ let state = await page.evaluate(() => ({
 }));
 // E4: Formation lost Under Center/Pistol/Shotgun (moved to QB Alignment, a
 // fixed non-customizable group) — 20 -> 17 default formation rows.
-ok(state.open && state.tabs === 3 && state.rows === 17, 'Team Settings opens all three tag-library categories', JSON.stringify(state));
+// E4-2: Formation also lost Empty (moved to Backfield, which already had its
+// own Empty chip) — 17 -> 16.
+ok(state.open && state.tabs === 3 && state.rows === 16, 'Team Settings opens all three tag-library categories', JSON.stringify(state));
 ok(/Existing plays and analytics stay unchanged/.test(state.promise), 'Editor states the non-destructive visibility contract');
 
 // E4: 'Shotgun' is no longer a Formation library value (moved to QB Alignment,

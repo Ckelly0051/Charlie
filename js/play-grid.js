@@ -49,17 +49,21 @@ export class PlayGrid {
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
     { key: 'formation', label: 'Formation', type: 'enum', src: 'tagFormation', multi: true,  unit: 'offense' },
-    // E3b: QB Alignment is charted SEPARATELY from structural Formation. Both new
-    // columns are `proj-readonly` — DISPLAY-ONLY in E3b by contract; their safe
-    // inline editing (with the field-level merge) lands in E4 / D-projform.
-    { key: 'qbAlignment', label: 'QB Align', type: 'proj-readonly', unit: 'offense' },
-    // The remaining two of the six StatsEngine.PROJECTED_FIELDS. Same shape as
-    // QB Alignment/Coverage Family — DISPLAY-ONLY (proj-readonly) in E3b; safe
-    // inline editing lands in E4 / D-projform. Not in any default PRESET (no
-    // coach decision requested that), but available in the Columns menu like
-    // any other column, since PlayGrid.COLUMNS is its single source of truth.
-    { key: 'backfield', label: 'Backfield', type: 'proj-readonly', unit: 'offense' },
-    { key: 'strength',  label: 'Strength',  type: 'proj-readonly', unit: 'offense' },
+    // E4-2: QB Alignment, Backfield, Strength, and Coverage Family are now
+    // safely EDITABLE inline (E3b shipped them DISPLAY-ONLY/`proj-readonly`
+    // pending the field-level-merge machinery, which E4/E4-2 built). All four
+    // are single-select, so they use the plain `enum` editor like any other
+    // tag-form-backed column; `_applyEdit` routes every one of them through
+    // `TagProjection.reconcileSiblings` (the same promote/strip mechanic the
+    // tag form uses), so committing them here has EXACTLY the tag form's
+    // safety guarantees — view/cancel/navigation never write, and an explicit
+    // clear/change is one undoable transaction. Not in any default PRESET (no
+    // coach decision requested that for Backfield/Strength), but available in
+    // the Columns menu like any other column, since PlayGrid.COLUMNS is its
+    // single source of truth.
+    { key: 'qbAlignment', label: 'QB Align', type: 'enum', src: 'tagQbAlignment',              unit: 'offense' },
+    { key: 'backfield', label: 'Backfield', type: 'enum', src: 'tagBackfield',                 unit: 'offense' },
+    { key: 'strength',  label: 'Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
@@ -69,7 +73,7 @@ export class PlayGrid {
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
     { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
     { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
-    { key: 'coverageFamily', label: 'Cov Family', type: 'proj-readonly',                      unit: 'defense' },
+    { key: 'coverageFamily', label: 'Cov Family', type: 'enum', src: 'tagCoverageFamily',      unit: 'defense' },
     { key: 'blitz',     label: 'Blitz',     type: 'enum', src: 'tagBlitz',     multi: true,   unit: 'defense' },
     { key: 'stType',    label: 'ST Type',   type: 'enum', src: 'tagStType',                   unit: 'special' },
     { key: 'stUnit',    label: 'ST Unit',   type: 'st-readonly',                              unit: 'special' },
@@ -579,14 +583,12 @@ export class PlayGrid {
       const pct = Math.round((runs / rp.length) * 100);
       return pct >= 50 ? `Run ${pct}%` : `Pass ${100 - pct}%`;
     }
-    // proj-readonly (QB Alignment/Backfield/Strength/Coverage Family) is a
-    // DISPLAY-ONLY category column — editing stays disabled (see _openEditor's
-    // guard), but that has nothing to do with whether it's USEFUL to summarize.
-    // All four are single-value, so the multi-value split below is a no-op for
-    // them; routing through the identical enum math costs nothing and keeps
-    // exactly one denominator/eligibility implementation for every projected
-    // column instead of a second, divergence-prone copy.
-    if (col.type === 'enum' || col.type === 'proj-readonly') {
+    // QB Alignment/Backfield/Strength/Coverage Family are single-value, so the
+    // multi-value split below is a no-op for them; routing through the
+    // identical enum math costs nothing and keeps exactly one denominator/
+    // eligibility implementation for every projected column instead of a
+    // second, divergence-prone copy.
+    if (col.type === 'enum') {
       const counts = {};
       let total = 0;
       visible.forEach(p => {
@@ -682,13 +684,7 @@ export class PlayGrid {
       return `<span class="${cls}">${disp}</span>`;
     }
     if (col.key === 'notes') return this._esc(p.notes || '');
-    // E3b: DISPLAY-ONLY projected columns (QB Alignment, Coverage Family). Editing
-    // them is E4 / D-projform, so they render as plain read-only text.
-    if (col.type === 'proj-readonly') {
-      const v = StatsEngine.projField(p, col.key);
-      return v ? this._esc(v) : '<span class="pg-dim">—</span>';
-    }
-    // E3b: every other cell for one of the six projected fields shows the PROJECTED
+    // E3b/E4-2: every cell for one of the six projected fields shows the PROJECTED
     // value — never the raw legacy token. A play charted only as "Shotgun" has no
     // structural formation, so Formation reads "Not charted" (NOT "Shotgun", which
     // would re-assert the misclassification E1 removed, and NOT "Unknown", which
@@ -795,12 +791,16 @@ export class PlayGrid {
       if (opts.length) this._optionCache[col.key] = opts;
     }
     let all = [...new Set([...(opts || []), ...current].filter(Boolean))];
-    // E3b-P1: a primary picker must not offer values that belong to its projected
-    // SIBLING — the structural Formation picker must not offer QB alignments, and
-    // the Coverage CALL picker must not offer Man/Zone/Match. The shared tag-form
-    // chip groups still carry them until E4 moves them to their own libraries.
-    const exclude = PlayGrid.PROJECTED_PAIRS[col.key]?.excludeFrom;
-    if (exclude) all = all.filter(v => !TagProjection[exclude].includes(v));
+    // E3b-P1/E4-2: a primary picker must not offer values that belong to ANY
+    // of its registered projected SIBLINGS — the structural Formation picker
+    // must not offer QB alignments or the Backfield 'Empty' token, the
+    // Backfield picker must not offer QB alignments ('Pistol'), and the
+    // Coverage CALL picker must not offer Man/Zone/Match. `col.key` can have
+    // more than one registered sibling relationship (Formation has two), so
+    // every one of them is excluded, not just the first.
+    for (const pair of PlayGrid.PROJECTED_PAIRS[col.key] || []) {
+      all = all.filter(v => !TagProjection[pair.excludeFrom].includes(v));
+    }
     return all;
   }
 
@@ -809,9 +809,7 @@ export class PlayGrid {
     const col = PlayGrid.COLUMNS.find(c => c.key === colKey);
     const cell = this._cellEl(playId, colKey);
     if (!play || !col || !cell) return;
-    // `proj-readonly` (QB Alignment, Coverage Family) is DISPLAY-ONLY in E3b by
-    // contract — editing them requires the E4/D-projform field-level merge.
-    if (col.type === 'st-readonly' || col.type === 'pen-readonly' || col.type === 'proj-readonly') return;
+    if (col.type === 'st-readonly' || col.type === 'pen-readonly') return;
     this._closeEditor();
 
     const wrap = document.createElement('div');
@@ -942,21 +940,19 @@ export class PlayGrid {
       // Multi-select fields: drop mutually-exclusive rivals exactly like the
       // form (no more "Gain + Loss", which flipped a gain negative below).
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
-      // E3b-P1 PROMOTE-ON-EXPLICIT-COMMIT (structural — see PROMOTE_ON_COMMIT).
-      // A legacy play stores its SIBLING dimension inside the primary field
-      // (alignment inside `formation`, family inside `coverage`), and projection
-      // derives that sibling FROM the string. Overwriting the primary with the
-      // coach's explicit choice would silently destroy it. So, only on this
-      // explicit commit, first materialize the currently EFFECTIVE projected
-      // sibling — and ONLY when that target is blank, so an existing explicit value
-      // always wins. Preserves effective data; not a semantic sibling change.
-      // Opening/cancelling never reaches here, so viewing writes nothing, and the
-      // whole commit is a single history entry (undoable as one unit).
-      const sibling = PlayGrid.PROJECTED_PAIRS[col.key]?.sibling;
-      if (sibling && !String(play.tags[sibling] || '').trim()) {
-        const effective = StatsEngine.proj(play)[sibling];
-        if (effective) play.tags[sibling] = effective;
-      }
+      // E3b-P1/E4/E4-2 PROMOTE-THEN-STRIP (structural — see
+      // TagProjection.reconcileSiblings, the exact same call the tag form's
+      // _saveField makes). A legacy play stores a sibling dimension inside a
+      // primary field (alignment inside formation/backfield, 'Empty' inside
+      // formation, family inside coverage), and projection derives that
+      // sibling FROM the string. Overwriting the primary with the coach's
+      // explicit choice would silently destroy it; committing a sibling
+      // directly (now that QB Alignment/Backfield/Strength/Coverage Family are
+      // editable here too) would leave the primary's embedded token to
+      // silently re-win on the next read. One call protects both directions.
+      // Opening/cancelling never reaches here, so viewing writes nothing, and
+      // the whole commit is a single history entry (undoable as one unit).
+      TagProjection.reconcileSiblings(play, col.key);
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).
       if (col.key === 'playType') {

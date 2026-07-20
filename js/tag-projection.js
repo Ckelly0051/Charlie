@@ -20,30 +20,47 @@ export class TagProjection {
   // The one backfield value that legacy data stored in `formation` (D2).
   static FORMATION_BACKFIELD_TOKENS = ['Empty'];
 
-  /** E3b/E4: legacy plays carry TWO dimensions inside ONE stored field — an
-   *  alignment inside `formation`, a family inside `coverage`. Projection derives
-   *  the sibling FROM that string, so overwriting the primary field on an edit
-   *  would silently destroy it. ONE descriptor per pair makes the defence
-   *  STRUCTURAL rather than a per-field special case, and keeps every consumer
-   *  (Film Room's grid editor, the tag form) from drifting apart — moved here in
-   *  E4 from `PlayGrid` (its original E3b home) so BOTH consumers share the exact
-   *  same descriptor instead of two copies that could disagree. Per entry:
+  /** E3b/E4/E4-2: legacy plays carry MULTIPLE dimensions inside ONE stored
+   *  field — an alignment inside `formation` (and, rarely, `backfield`), a
+   *  receiver-count concept ('Empty') inside `formation`, a family inside
+   *  `coverage`. Projection derives the sibling FROM that string, so
+   *  overwriting the primary field on an edit would silently destroy it. ONE
+   *  descriptor per relationship makes the defence STRUCTURAL rather than a
+   *  per-field special case, and keeps every consumer (Film Room's grid
+   *  editor, the tag form) from drifting apart.
+   *
+   *  Shape: primary key -> ARRAY of sibling descriptors (a primary can embed
+   *  more than one sibling's legacy token — Formation alone embeds both a QB
+   *  Alignment token and a Backfield/'Empty' token). Per descriptor:
    *    sibling     — the projected field to materialize BEFORE overwriting the primary
    *    excludeFrom — the TagProjection list whose values belong to the sibling and
    *                  must never be offered in the primary's picker
-   *  Adding a third pair here wires both halves at once for every consumer at
-   *  once; each consumer's own test harness asserts every registered pair is
-   *  covered, so a new one cannot ship untested in either surface.
-   *  NOT registered here (deliberately, flagged, not silently skipped): Formation
-   *  also still allows the legacy 'Empty' backfield token (FORMATION_BACKFIELD_
-   *  TOKENS) and Backfield still allows 'Pistol' as a pickable chip — both are the
-   *  SAME class of pre-existing vocabulary cleanup as this pair mechanism exists
-   *  to protect, but adding a THIRD sibling to `formation` (backfield, alongside
-   *  qbAlignment) is out of scope for this increment and needs its own
-   *  failing-first proof, not a silent bundle-in. */
+   *
+   *  `backfield` appears on BOTH sides at once: it is a SIBLING of `formation`
+   *  (receives 'Empty' when formation had it and backfield was blank) AND a
+   *  PRIMARY in its own right for `qbAlignment` (a legacy 'Pistol' can still be
+   *  embedded in backfield's raw string). `reconcileSiblings` below handles
+   *  both directions generically — no per-relationship special-casing needed
+   *  in either consumer.
+   *
+   *  E4-2 extended this from the E4 shape (one sibling per primary) to enable
+   *  safely moving 'Empty' out of Formation into Backfield and 'Pistol' out of
+   *  Backfield into QB Alignment — this descriptor is deliberately extended
+   *  and proven FIRST, before either library actually changes (see the E4-2
+   *  handoff note). Adding a new relationship here wires promote+strip for
+   *  every consumer at once; each consumer's test harness asserts every
+   *  registered relationship is covered, so a new one cannot ship untested. */
   static PROJECTED_PAIRS = {
-    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
-    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+    formation: [
+      { sibling: 'qbAlignment', excludeFrom: 'QB_ALIGNMENTS' },
+      { sibling: 'backfield',   excludeFrom: 'FORMATION_BACKFIELD_TOKENS' },
+    ],
+    backfield: [
+      { sibling: 'qbAlignment', excludeFrom: 'QB_ALIGNMENTS' },
+    ],
+    coverage: [
+      { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+    ],
   };
 
   static _split(v) {
@@ -51,39 +68,91 @@ export class TagProjection {
   }
   static _isAlignment(v) { return this.QB_ALIGNMENTS.includes(v); }
 
-  /** Reverse of PROJECTED_PAIRS: given a sibling key (qbAlignment/
-   *  coverageFamily), return the primary key that embeds its legacy token
-   *  (formation/coverage), or null. E4 review fix — see stripSiblingToken. */
-  static primaryForSibling(siblingKey) {
-    for (const [primary, pair] of Object.entries(this.PROJECTED_PAIRS)) {
-      if (pair.sibling === siblingKey) return primary;
+  /** Reverse of PROJECTED_PAIRS: given a sibling key, return the ARRAY of
+   *  primary keys that may embed its legacy token. `qbAlignment` has TWO
+   *  (`formation` and `backfield`); `backfield` and `coverageFamily` each have
+   *  ONE. E4 review fix, extended plural in E4-2 for the multi-primary case. */
+  static primariesForSibling(siblingKey) {
+    const primaries = [];
+    for (const [primary, pairs] of Object.entries(this.PROJECTED_PAIRS)) {
+      if (pairs.some(pair => pair.sibling === siblingKey)) primaries.push(primary);
     }
-    return null;
+    return primaries;
   }
 
   /**
-   * E4 review fix (Codex): a coach's explicit commit on a SIBLING field
-   * (QB Alignment / Coverage Family) — including CLEARING it — must survive a
-   * reload. project()'s precedence only re-derives a sibling from the primary
-   * when the sibling itself is blank, so writing '' has nothing to override:
-   * the primary's still-embedded legacy token would simply win again on the
-   * very next read, and the coach's clear silently would not stick. The fix is
-   * to strip exactly this pair's own token(s) out of the primary's RAW stored
-   * value at the same moment the sibling is committed — scoped to only this
-   * pair's tokens, so it never touches any other token the primary may carry
-   * (e.g. Formation's still-deferred 'Empty' token — out of scope, see the
-   * PROJECTED_PAIRS comment above). A no-op when there is no token to strip.
+   * E4 review fix (Codex), extended in E4-2 for multi-sibling primaries: a
+   * coach's explicit commit on a SIBLING field — including CLEARING it —
+   * must survive a reload. project()'s precedence only re-derives a sibling
+   * from a primary when the sibling itself is blank, so writing '' has
+   * nothing to override: the primary's still-embedded legacy token would
+   * simply win again on the very next read, and the coach's clear silently
+   * would not stick. The fix is to strip exactly THIS sibling's own token(s)
+   * out of the given primary's RAW stored value at the same moment the
+   * sibling is committed — scoped by BOTH primaryKey and siblingKey so a
+   * primary with more than one registered relationship (Formation ->
+   * QB Alignment AND Formation -> Backfield) never cross-strips the other
+   * relationship's tokens. A no-op when there is no token to strip.
    */
-  static stripSiblingToken(primaryKey, rawValue) {
-    const pair = this.PROJECTED_PAIRS[primaryKey];
+  static stripSiblingToken(primaryKey, siblingKey, rawValue) {
+    const pairs = this.PROJECTED_PAIRS[primaryKey];
+    const pair = pairs && pairs.find(p => p.sibling === siblingKey);
     if (!pair || typeof rawValue !== 'string') return rawValue;
     const tokens = this[pair.excludeFrom];
     if (primaryKey === 'coverage') {
-      // Single-value: the whole field IS the family token when it matches.
+      // Single ATOMIC value: the whole field IS the family token when it
+      // matches — Coverage never coexists with a shell AND a family at once.
       return tokens.includes(rawValue) ? '' : rawValue;
     }
-    // Multi-value (formation): drop only this pair's tokens, keep the rest.
+    // Multi-value (formation) or defensively-split single-value (backfield,
+    // per E2-R2 — a malformed multi-value string still gets its alignment
+    // token removed): drop only this pair's tokens, keep everything else.
     return this._split(rawValue).filter(p => !tokens.includes(p)).join(' + ');
+  }
+
+  /**
+   * THE single promote-then-strip commit mechanic (E4/E4-2) — shared by the
+   * tag form's per-field save (`PlayTagger._saveField`), its whole-play
+   * canonicalization (`PlayTagger.commitProjectedLook`), and Film Room's grid
+   * inline editor (`PlayGrid._applyEdit`), so all three call sites use one
+   * algorithm instead of drifting copies. Mutates `play.tags` in place for
+   * every field OTHER than `key` itself — the caller still writes
+   * `play.tags[key] = <the coach's new value>` afterward, once every other
+   * field has been protected.
+   *
+   *  - FORWARD: if `key` is a PRIMARY with registered sibling relationships
+   *    (formation, backfield, coverage), promote each relationship's sibling
+   *    from the CURRENTLY EFFECTIVE projected value, but ONLY when that
+   *    sibling is still blank (an existing explicit sibling always wins,
+   *    never overwritten).
+   *  - REVERSE: if `key` is a SIBLING (qbAlignment, backfield,
+   *    coverageFamily — note `backfield` can be EITHER role depending on
+   *    which relationship fired), strip `key`'s own token out of EVERY
+   *    primary that may still embed it. `qbAlignment` has two possible
+   *    primaries; both are checked.
+   *
+   * A key can be a primary and a sibling at once (`backfield`): both branches
+   * run, in the same call, before the caller's own write — exactly one
+   * field-level-merge commit, exactly one undoable transaction.
+   *
+   * Returns true if anything besides `key` was mutated.
+   */
+  static reconcileSiblings(play, key) {
+    let changed = false;
+    const pairs = this.PROJECTED_PAIRS[key];
+    if (pairs) {
+      for (const pair of pairs) {
+        if (!String(play.tags[pair.sibling] || '').trim()) {
+          const effective = this.project(play.tags)[pair.sibling];
+          if (effective) { play.tags[pair.sibling] = effective; changed = true; }
+        }
+      }
+    }
+    for (const primaryKey of this.primariesForSibling(key)) {
+      const stripped = this.stripSiblingToken(primaryKey, key, play.tags[primaryKey]);
+      if (stripped !== play.tags[primaryKey]) { play.tags[primaryKey] = stripped; changed = true; }
+    }
+    return changed;
   }
 
   /**

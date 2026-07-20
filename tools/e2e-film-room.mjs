@@ -288,16 +288,17 @@ ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, n
 ok(r.subsetTend === 'Trips 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
 console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across ALL SIX projected columns ==');
-// Review finding: the P3 contract says "the tendency line must use the SAME
-// projected grouping and eligible denominator" for the projected columns
-// generally, but the prior pass only wired it for the two type:'enum' columns
-// (formation, coverage) and left the four type:'proj-readonly' ones
-// (qbAlignment, backfield, strength, coverageFamily) rendering nothing.
-// proj-readonly means EDITING stays disabled (see _openEditor's guard, an
-// entirely separate code path) — it says nothing about whether a summary is
-// useful, so _tendency() now routes proj-readonly through the identical enum
-// math. All four are single-value, so the multi-value split is a no-op for
-// them; this is genuinely the SAME calculation, not a parallel one.
+// Review finding (E3b): the P3 contract says "the tendency line must use the
+// SAME projected grouping and eligible denominator" for the projected columns
+// generally, but the prior pass only wired it for the two columns that were
+// editable at the time (formation, coverage) and left the other four
+// (qbAlignment, backfield, strength, coverageFamily — DISPLAY-ONLY/
+// `proj-readonly` in E3b, made genuinely editable in E4-2) rendering nothing.
+// Whether a column is editable is a separate concern from whether a summary
+// is useful, so _tendency() routes every projected column through the
+// identical enum math. All four are single-value, so the multi-value split
+// is a no-op for them; this is genuinely the SAME calculation, not a parallel
+// one.
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const mkDef = (id, coverage, coverageFamily) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'defense', coverage, coverageFamily } });
@@ -342,12 +343,12 @@ ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses th
 for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
   const c = r.projReadonly[key];
   const expected = `${r.expectedTop[key]} 67%`;
-  ok(c.type === 'proj-readonly', `${key} is proj-readonly (editing stays disabled — confirms this proof targets the right half of the six columns)`, JSON.stringify(c));
+  ok(c.type === 'enum', `${key} is a genuine editable enum column (E4-2) — confirms this proof targets the right half of the six columns`, JSON.stringify(c));
   ok(c.full === expected, `${key} tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)`, JSON.stringify({ key, ...c }));
   ok(c.belowFloor === '', `${key} renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)`, JSON.stringify({ key, ...c }));
 }
 
-console.log('\n== 8d. E3b: projected cells + display-only columns + saved-column upgrade ==');
+console.log('\n== 8d. E3b/E4-2: projected cells + editable projected columns + saved-column upgrade ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
@@ -363,7 +364,8 @@ r = await page.evaluate(() => {
     structFormation: cell(structural, 'formation'),
     structQb: cell(structural, 'qbAlignment'),
     covFamily: cell(defFam, 'coverageFamily'),
-    // display-only: the editor must refuse to open for the new columns
+    // E4-2: these columns are now genuinely editable (behavior proven in the
+    // dedicated BEHAVIORAL block below) — this just confirms the declared type.
     qbType: PG.COLUMNS.find(c => c.key === 'qbAlignment').type,
     famType: PG.COLUMNS.find(c => c.key === 'coverageFamily').type,
     // P4 upgrade rule
@@ -383,8 +385,8 @@ ok(/Trips/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
   'structural play: Formation cell shows projected structure only', JSON.stringify(r.structFormation));
 ok(/Shotgun/.test(r.structQb), 'QB Alignment column shows alignment split out of a mixed formation', JSON.stringify(r.structQb));
 ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the projected family', JSON.stringify(r.covFamily));
-ok(r.qbType === 'proj-readonly' && r.famType === 'proj-readonly',
-  'QB Alignment + Coverage Family are declared proj-readonly', JSON.stringify(r));
+ok(r.qbType === 'enum' && r.famType === 'enum',
+  'QB Alignment + Coverage Family are declared as genuine editable enum columns (E4-2)', JSON.stringify(r));
 
 
 // P4 through the REAL persistence path. Calling _upgradeCols() directly proves
@@ -690,8 +692,12 @@ ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so 
 // a refresh that clears focus, so its "second click opens the editor" never
 // fires). Keeping these at the end means they cannot perturb anything upstream.
 // ===================================================================
-// BEHAVIORAL display-only proof — the type check above is a DECLARATION and would
-// stay green if the _openEditor guard were deleted. Drive the real interactions.
+// BEHAVIORAL editable proof (E4-2) — the type check above is a DECLARATION
+// and would stay green even if _openEditor still refused these columns.
+// Drive the real interactions: E4-2 made qbAlignment/coverageFamily
+// genuinely editable, but OPENING the editor (without picking a chip) must
+// still write nothing — the same view/cancel-never-writes contract
+// D-projform requires of the tag form.
 r = await page.evaluate(async () => {
   const grid = window.app.playGrid, tagger = window.app.tagger;
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
@@ -716,10 +722,14 @@ r = await page.evaluate(async () => {
     if (!td) continue;
     td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
     td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
-    td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); await raf2();
+    results[key + 'EditorFromClick'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
+    grid._closeEditor();
     td.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
+    results[key + 'EditorFromEnter'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
+    grid._closeEditor();
     grid._openEditor(play.id, key); await raf2();                                  // direct call
-    results[key + 'Editor'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
+    results[key + 'EditorFromDirect'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
+    grid._closeEditor(); await raf2();                                             // cancel — no chip picked
   }
   tagger.off ? tagger.off('play-updated', onUpd) : null;
   const res = { skip: false, ...results, updates, unchanged: JSON.stringify(play.tags) === before };
@@ -728,11 +738,15 @@ r = await page.evaluate(async () => {
   return res;
 });
 ok(r.skip || (r.qbAlignmentRendered && r.coverageFamilyRendered),
-  'display-only columns actually render a cell to interact with', JSON.stringify(r));
-ok(r.skip || (!r.qbAlignmentEditor && !r.coverageFamilyEditor),
-  'BEHAVIORAL: click / 2nd-click / dblclick / Enter / direct _openEditor open NO editor on the new columns', JSON.stringify(r));
-ok(r.skip || r.updates === 0, 'BEHAVIORAL: no play-updated event fired from the display-only columns', JSON.stringify(r));
-ok(r.skip || r.unchanged, 'BEHAVIORAL: play tags are byte-identical after all interactions', JSON.stringify(r));
+  'the now-editable columns actually render a cell to interact with', JSON.stringify(r));
+ok(r.skip || (r.qbAlignmentEditorFromClick && r.coverageFamilyEditorFromClick),
+  'E4-2 BEHAVIORAL: a 2nd click genuinely OPENS the editor on the new columns (not just a type declaration)', JSON.stringify(r));
+ok(r.skip || (r.qbAlignmentEditorFromEnter && r.coverageFamilyEditorFromEnter),
+  'E4-2 BEHAVIORAL: Enter also opens the editor', JSON.stringify(r));
+ok(r.skip || (r.qbAlignmentEditorFromDirect && r.coverageFamilyEditorFromDirect),
+  'E4-2 BEHAVIORAL: a direct _openEditor call also opens it', JSON.stringify(r));
+ok(r.skip || r.updates === 0, 'E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event', JSON.stringify(r));
+ok(r.skip || r.unchanged, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction — view/cancel never writes', JSON.stringify(r));
 
 console.log('\n== 8e. E3b-P1: Formation editor projected seed + promote-on-commit ==');
 r = await page.evaluate(() => {
@@ -909,16 +923,20 @@ r = await page.evaluate(async () => {
   return {
     prereq,
     formation: await runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
+    // E4-2: backfield is now ALSO a registered primary (a legacy 'Pistol' can
+    // still be embedded in backfield's raw string, promoted to qbAlignment).
+    backfield: await runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
     coverage:  await runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
   };
 });
 // Prerequisites fail closed — if these break, the four proofs below cannot silently pass.
 ok(r.prereq.hasHistory, 'P1c prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
 ok(r.prereq.playCount > 0, 'P1c prereq: real plays exist to edit', JSON.stringify(r.prereq));
-ok(JSON.stringify(r.prereq.pairs) === JSON.stringify(['formation', 'coverage']),
-  'P1c prereq: BOTH registered pairs are covered by this test', JSON.stringify(r.prereq.pairs));
+ok(JSON.stringify(r.prereq.pairs) === JSON.stringify(['formation', 'backfield', 'coverage']),
+  'P1c prereq: ALL THREE registered primaries are covered by this test (E4-2 added backfield)', JSON.stringify(r.prereq.pairs));
 for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
   ['Formation/QB Alignment', r.formation, 'Under Center', 'Trips', 'Under Center'],
+  ['Backfield/QB Alignment', r.backfield, 'Pistol', 'Diamond', 'Pistol'],
   ['Coverage/Coverage Family', r.coverage, 'Man', 'Cover 3', 'Man'],
 ]) {
   ok(c.entries === 1, `P1c ${name}: the promote+write commit records EXACTLY ONE history entry`, JSON.stringify(c));
@@ -926,6 +944,85 @@ for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
   ok(c.undone.p === primaryLegacy && c.undone.s === '', `P1c ${name}: UNDO restores the raw primary AND blank sibling TOGETHER`, JSON.stringify(c.undone));
   ok(c.redone.p === primaryNew && c.redone.s === sibValue, `P1c ${name}: REDO restores the primary AND promoted sibling TOGETHER`, JSON.stringify(c.redone));
 }
+
+console.log('\n== 8h. E4-2: safe Film Room editing for QB Alignment/Backfield/Strength/Coverage Family ==');
+// These four columns were DISPLAY-ONLY (`proj-readonly`) in E3b, pending the
+// field-level-merge machinery E4/E4-2 built. Proves the same non-writing
+// view/cancel contract D-projform requires of the tag form ALSO holds for the
+// grid's inline editor, now that these cells are real editable enum cells —
+// plus one-step undo/redo for a relationship-free column (Strength) and
+// cross-surface parity (a grid edit is visible identically in the tag form
+// for the currently-loaded play).
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
+  const tagger = window.app.tagger;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const play = tagger.plays[1];
+  const saved = JSON.parse(JSON.stringify(play.tags));
+  const selBefore = tagger.currentPlayId;   // RESTORED below — this section reselects twice
+
+  // 1) VIEW/SELECT never writes — selecting the row (video follows) must not
+  //    touch any of the four newly-editable projected fields.
+  tagger.selectPlay(play.id);
+  await raf2();
+  const afterSelect = JSON.parse(JSON.stringify(tagger.getPlay(play.id).tags));
+  const selectUnchanged = JSON.stringify(afterSelect) === JSON.stringify(saved);
+
+  // 2) OPEN + CANCEL never writes — open the QB Alignment editor popover, then
+  //    close it WITHOUT committing (mirrors pressing Escape), and confirm the
+  //    play is untouched.
+  grid._openEditor(play.id, 'qbAlignment');
+  await raf2();
+  const editorOpened = !!grid._editor;
+  grid._closeEditor();
+  await raf2();
+  const afterCancel = JSON.parse(JSON.stringify(tagger.getPlay(play.id).tags));
+  const cancelUnchanged = JSON.stringify(afterCancel) === JSON.stringify(saved);
+
+  // 3) STRENGTH has NO registered sibling relationship at all — an explicit
+  //    edit must touch ONLY strength, in exactly one undoable transaction.
+  play.tags.unit = 'offense'; play.tags.strength = '';
+  grid.refresh(); await raf2();
+  hist.reset();
+  const depth0 = hist.stack.length;
+  grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'strength'), 'Right');
+  await raf2();
+  const strengthEntries = hist.stack.length - depth0;
+  const afterStrength = tagger.getPlay(play.id);
+  const strengthOnlyChanged = Object.keys(saved).every(k =>
+    k === 'strength' || k === 'unit' || JSON.stringify(afterStrength.tags[k] ?? null) === JSON.stringify(saved[k] ?? null));
+  hist.undo(); await raf2();
+  const strengthUndone = tagger.getPlay(play.id).tags.strength || '';
+
+  // 4) CROSS-SURFACE PARITY — select the play into the tag form and confirm
+  //    the QB Alignment chip reflects the grid's earlier edit identically
+  //    (the grid write and the form's read must never diverge).
+  const legacyId = 9201;
+  const legacyPlay = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Wing-T' } };
+  tagger.plays.push(legacyPlay);
+  grid._applyEdit(legacyPlay, PG.COLUMNS.find(c => c.key === 'formation'), 'Wing-T');
+  await raf2();
+  tagger.selectPlay(legacyId);
+  const formChip = [...document.querySelectorAll('#tagQbAlignment .pick.active')].map(el => el.dataset.value);
+  const parity = { gridQbAlignment: tagger.getPlay(legacyId).tags.qbAlignment, formChip };
+
+  // restore
+  const p = tagger.getPlay(play.id);
+  if (p) Object.assign(p.tags, saved);
+  tagger.plays = tagger.plays.filter(pl => pl.id !== legacyId);
+  if (selBefore != null) tagger.selectPlay(selBefore);
+  grid.refresh(); await raf2();
+
+  return { selectUnchanged, editorOpened, cancelUnchanged, strengthEntries, strengthOnlyChanged, strengthUndone, parity };
+});
+ok(r.selectUnchanged, 'E4-2: selecting a row (view) writes NOTHING to any of the four newly-editable projected fields', JSON.stringify(r));
+ok(r.editorOpened, 'E4-2 prereq: the QB Alignment editor actually opened (proves the guard was lifted, not that nothing ran)', JSON.stringify(r));
+ok(r.cancelUnchanged, 'E4-2: opening then CANCELING the QB Alignment editor writes NOTHING', JSON.stringify(r));
+ok(r.strengthEntries === 1, 'E4-2: an explicit Strength edit (no registered relationship) is exactly ONE history entry', JSON.stringify(r));
+ok(r.strengthOnlyChanged, 'E4-2: editing Strength touches NO other field', JSON.stringify(r));
+ok(r.strengthUndone === '', 'E4-2: UNDO reverts the Strength edit', JSON.stringify(r));
+ok(r.parity.gridQbAlignment === 'Under Center' && JSON.stringify(r.parity.formChip) === JSON.stringify(['Under Center']),
+  'E4-2 cross-surface parity: a Formation edit made in the GRID promotes QB Alignment identically to how the TAG FORM displays it — no divergent write path', JSON.stringify(r.parity));
 
 console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==');
 // P3's exact contract (TAG-MODEL.md §20): Film Room has NO six-field quick

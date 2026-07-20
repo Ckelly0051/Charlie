@@ -401,6 +401,105 @@ r = await page.evaluate((ids) => {
 ok(r.storedMatchesProjected, 'the tag form\'s write already IS the projected shape — proj(play) needs to change nothing further', JSON.stringify(r));
 ok(r.registryFindsIt, 'the SAME play the tag form just edited is found by an INDEPENDENT AnalyticsRegistry.matchingRefs lookup for qbAlignment=Shotgun', JSON.stringify(r));
 
+console.log('\n== 12. E4-2: Empty leaves Formation, Pistol leaves Backfield — the vocabulary actually moved ==');
+r = await page.evaluate(() => ({
+  formationValues: [...document.querySelectorAll('#tagFormation .pick')].map(el => el.dataset.value),
+  backfieldValues: [...document.querySelectorAll('#tagBackfield .pick')].map(el => el.dataset.value),
+}));
+ok(!r.formationValues.includes('Empty'), 'Formation no longer offers Empty (moved to Backfield)', JSON.stringify(r.formationValues));
+ok(r.backfieldValues.includes('Empty'), 'Backfield still offers its own pre-existing Empty chip', JSON.stringify(r.backfieldValues));
+ok(!r.backfieldValues.includes('Pistol'), 'Backfield no longer offers Pistol (moved to QB Alignment)', JSON.stringify(r.backfieldValues));
+
+console.log('\n== 13. E4-2: explicit Formation commit PROMOTES Backfield (Empty), ONE undoable transaction ==');
+// Mirrors section 4 (Formation -> QB Alignment) for the NEW Formation ->
+// Backfield relationship (Empty). A legacy play stores "Ace + Empty" with a
+// blank backfield; turning off Formation's only OTHER structural chip must
+// promote 'Empty' into Backfield in the SAME commit as the Formation write.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger, hist = window.app.history;
+  const id = 9114;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty' } };
+  t.plays.push(play);
+  t.selectPlay(id);   // Formation seeds 'Ace' (Empty stripped from the projected view); Backfield seeds '' explicitly, but the CHIP shows 'Empty' derived
+  hist.reset();
+  const depth0 = hist.stack.length;
+  document.querySelector('#tagFormation .pick[data-value="Ace"]').click();   // turn off the only active structural chip
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterCommit = t.getPlay(id);
+  const commitResult = { formation: afterCommit.tags.formation, backfield: afterCommit.tags.backfield, entries: hist.stack.length - depth0 };
+  hist.undo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p1 = t.getPlay(id);
+  const afterUndo = { formation: p1.tags.formation, backfield: p1.tags.backfield };
+  hist.redo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p2 = t.getPlay(id);
+  const afterRedo = { formation: p2.tags.formation, backfield: p2.tags.backfield };
+  return { commitResult, afterUndo, afterRedo };
+});
+ok(r.commitResult.formation === '' && r.commitResult.backfield === 'Empty', 'turning off the only structural chip clears Formation AND promotes the derived Backfield (Empty)', JSON.stringify(r.commitResult));
+ok(r.commitResult.entries === 1, 'the promote + write commit is EXACTLY one history entry', JSON.stringify(r.commitResult));
+ok(r.afterUndo.formation === 'Ace + Empty' && (r.afterUndo.backfield || '') === '', 'UNDO restores the raw legacy Formation AND removes the promoted Backfield TOGETHER', JSON.stringify(r.afterUndo));
+ok(r.afterRedo.formation === '' && r.afterRedo.backfield === 'Empty', 'REDO restores Formation AND the promoted Backfield TOGETHER', JSON.stringify(r.afterRedo));
+
+console.log('\n== 14. E4-2: explicit Backfield commit PROMOTES QB Alignment (Pistol) AND strips Formation, ONE undoable transaction ==');
+// Backfield is BOTH a sibling (of Formation, for Empty) and a primary (for
+// QB Alignment, for Pistol) at once. A legacy play stores backfield='Pistol'
+// with a blank qbAlignment; explicitly committing a NEW Backfield value must
+// promote qbAlignment='Pistol' in the SAME commit.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger, hist = window.app.history;
+  const id = 9115;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], backfield: 'Pistol' } };
+  t.plays.push(play);
+  t.selectPlay(id);   // Backfield chip shows blank (Pistol stripped from the projected view); QB Alignment shows 'Pistol' derived
+  hist.reset();
+  const depth0 = hist.stack.length;
+  document.querySelector('#tagBackfield .pick[data-value="Diamond"]').click();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterCommit = t.getPlay(id);
+  const commitResult = { backfield: afterCommit.tags.backfield, qbAlignment: afterCommit.tags.qbAlignment, entries: hist.stack.length - depth0 };
+  hist.undo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p1 = t.getPlay(id);
+  const afterUndo = { backfield: p1.tags.backfield, qbAlignment: p1.tags.qbAlignment };
+  hist.redo();
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const p2 = t.getPlay(id);
+  const afterRedo = { backfield: p2.tags.backfield, qbAlignment: p2.tags.qbAlignment };
+  return { commitResult, afterUndo, afterRedo };
+});
+ok(r.commitResult.backfield === 'Diamond' && r.commitResult.qbAlignment === 'Pistol', 'picking a new Backfield value promotes the derived QB Alignment (Pistol) instead of silently dropping it', JSON.stringify(r.commitResult));
+ok(r.commitResult.entries === 1, 'the promote + write commit is EXACTLY one history entry', JSON.stringify(r.commitResult));
+ok(r.afterUndo.backfield === 'Pistol' && (r.afterUndo.qbAlignment || '') === '', 'UNDO restores the raw legacy Backfield AND removes the promoted QB Alignment TOGETHER', JSON.stringify(r.afterUndo));
+ok(r.afterRedo.backfield === 'Diamond' && r.afterRedo.qbAlignment === 'Pistol', 'REDO restores Backfield AND the promoted QB Alignment TOGETHER', JSON.stringify(r.afterRedo));
+
+console.log('\n== 15. E4-2: clearing a DERIVED Backfield (Empty from Formation) strips Formation too — survives a re-visit ==');
+// Mirrors section 7b/7c for the THIRD registered relationship. Backfield
+// shows 'Empty' derived from Formation's embedded token; clearing it directly
+// must strip 'Empty' out of Formation's raw value, or the clear would not
+// stick on the next read.
+r = await page.evaluate(async () => {
+  const t = window.app.tagger;
+  const id = 9116;
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Wing-T + Empty' } };
+  t.plays.push(play);
+  t.selectPlay(id);   // Backfield chip shows 'Empty' derived (nothing stored yet)
+  document.querySelector('#tagBackfield .pick[data-value="Empty"]').click();   // re-tap the derived-active chip = explicit clear
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const afterCommit = t.getPlay(id);
+  const rawAfterCommit = { formation: afterCommit.tags.formation, backfield: afterCommit.tags.backfield };
+  t.selectPlay(id);   // re-visit
+  const revisit = t.getPlay(id);
+  return {
+    rawAfterCommit,
+    revisitBackfield: revisit.tags.backfield,
+    revisitChip: [...document.querySelectorAll('#tagBackfield .pick.active')].map(el => el.dataset.value),
+  };
+});
+ok((r.rawAfterCommit.backfield || '') === '' && r.rawAfterCommit.formation === 'Wing-T', 'clearing the DERIVED Backfield strips the Empty token out of Formation\'s raw stored value in the SAME commit', JSON.stringify(r.rawAfterCommit));
+ok((r.revisitBackfield || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit — Empty does not silently reappear', JSON.stringify(r));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
