@@ -122,14 +122,26 @@ export class SuggestionEngine {
     return top[0];
   }
 
+  // PRE-EXISTING bug, found (not introduced) while building E4's tag-form
+  // proofs: all three of _suggestField's real targets (personnel, defFront,
+  // coverage) are chip-group fields, so `this.tagger.tagFields[field]` is
+  // always a ChipField WRAPPER, never a raw DOM element — .classList/.title
+  // don't exist on it. `el.value = value` (the actual suggestion) worked fine
+  // (ChipField has a value setter), so the suggestion silently applied; only
+  // the cosmetic flash+tooltip crashed immediately after, every time this ran.
+  // Unwrap to the real DOM node the same way ChipField itself is defined
+  // (`this.el` in its constructor) when present.
+  _domEl(el) { return el && el.el ? el.el : el; }
+
   _flash(el) {
-    el.classList.add('field-suggested');
-    setTimeout(() => el.classList.remove('field-suggested'), 1200);
+    const node = this._domEl(el);
+    node.classList.add('field-suggested');
+    setTimeout(() => node.classList.remove('field-suggested'), 1200);
   }
 
   _addSuggestionHint(el, conditions) {
     const condText = Object.entries(conditions).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(', ');
-    el.title = `Suggested from ${condText} (click to change)`;
+    this._domEl(el).title = `Suggested from ${condText} (click to change)`;
   }
 
   _updateBadge() {

@@ -12,8 +12,11 @@ ok(state.groups.formation.custom.join(',')==='Trey'&&state.groups.formation.enab
 ok(storage.getItem('ffa_custom_chips_teamA')===null,'successful migration retires the legacy key');
 ok(state.groups.front.enabled.includes('4-2-5'),'Front library is first-class and defaults enabled');
 ok(library.add('front','Bear')&&library.group('front').enabled.includes('Bear'),'custom Front is added and enabled');
-ok(library.setEnabled('formation','Shotgun',false)&&!library.group('formation').enabled.includes('Shotgun'),'built-in values can be hidden without removal');
-ok(library.group('formation').values.includes('Shotgun'),'hidden built-in remains in the vocabulary');
+// E4: 'Shotgun' was removed from TagLibrary.DEFINITIONS.formation — it moved to
+// QB Alignment (a fixed, non-customizable group), so it's no longer a valid
+// example of a hideable BUILT-IN FORMATION value. 'Wing-T' remains one.
+ok(library.setEnabled('formation','Wing-T',false)&&!library.group('formation').enabled.includes('Wing-T'),'built-in values can be hidden without removal');
+ok(library.group('formation').values.includes('Wing-T'),'hidden built-in remains in the vocabulary');
 ok(['Power-I','Ace','Victory'].every(value=>library.group('formation').values.includes(value))&&!library.group('formation').custom.some(value=>['Power-I','Ace','Victory'].includes(value)),'coach-approved formations are standard library values');
 ok(!library.remove('formation','Power-I')&&library.group('formation').values.includes('Power-I'),'standard formations can be hidden but not removed as custom values');
 library.restore(); state=library.load();

@@ -2,7 +2,12 @@
 export class TagLibrary {
   static VERSION = 1;
   static DEFINITIONS = {
-    formation: ['Under Center','Pistol','Shotgun','Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch','Empty'],
+    // E4: Under Center/Pistol/Shotgun removed — they are QB Alignment, not
+    // Formation structure (E1 decision; #tagQbAlignment is their new home, not a
+    // TagLibrary-customizable group since the three values are fixed, not team
+    // vocabulary). 'Empty' deliberately left as-is — see tag-projection.js's
+    // PROJECTED_PAIRS comment for why that one is out of scope here.
+    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch','Empty'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Pistol','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
   };

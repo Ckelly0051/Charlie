@@ -1,6 +1,12 @@
 import { gainedFirstDown, isPlayTagged } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SeasonStore } from './season-store.js';
+import { TagProjection } from './tag-projection.js';
+// E4: the form must SEED from the projected view (StatsEngine.proj), never raw
+// tags — see the _loadTagForm/formation comment below for why seeding from raw
+// is not just "less honest" but an active data-corruption hazard for ChipField.
+// No import cycle: stats-engine.js does not import play-tagger.js.
+import { StatsEngine } from './stats-engine.js';
 
 /**
  * ChipField — lightweight wrapper so a div.pick-group behaves like a
@@ -133,6 +139,7 @@ export class PlayTagger {
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
       runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
       scoreFor: 'tagScoreFor', backfield: 'tagBackfield', strength: 'tagStrength',
+      qbAlignment: 'tagQbAlignment', coverageFamily: 'tagCoverageFamily',
       kickOutcome: 'tagKickOutcome', kickDistance: 'tagKickDistance',
       returnYards: 'tagReturnYards', hangTime: 'tagHangTime', kickedTo: 'tagKickedTo',
     };
@@ -922,6 +929,25 @@ export class PlayTagger {
   _saveField(key) {
     const play = this.getCurrentPlay();
     if (!play) return;
+    // E4 D-projform PROMOTE-ON-EXPLICIT-COMMIT — same mechanic + same shared
+    // TagProjection.PROJECTED_PAIRS descriptor as Film Room's grid editor
+    // (play-grid.js _applyEdit, E3b-P1). A legacy play stores its sibling
+    // dimension (QB alignment inside formation, coverage family inside
+    // coverage) INSIDE the primary field's string; overwriting the primary
+    // with the coach's new explicit pick would silently destroy that sibling
+    // data. So, only on THIS explicit commit — never on load/view/select —
+    // first materialize the currently EFFECTIVE projected sibling, and ONLY
+    // when that sibling target is still blank (an existing explicit value on
+    // the sibling always wins, never overwritten). This preserves effective
+    // data; it is not a semantic sibling change. The whole thing — promote +
+    // write — happens before the single play-updated emit below, so
+    // HistoryManager (which snapshots on play-updated) records it as ONE
+    // undoable transaction, exactly like the grid editor's proof requires.
+    const pair = TagProjection.PROJECTED_PAIRS[key];
+    if (pair && !String(play.tags[pair.sibling] || '').trim()) {
+      const effective = StatsEngine.proj(play)[pair.sibling];
+      if (effective) play.tags[pair.sibling] = effective;
+    }
     play.tags[key] = this.tagFields[key].value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
@@ -1041,6 +1067,20 @@ export class PlayTagger {
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
+    // E4: this bulk path (currently only the "New Drive" button) re-writes
+    // EVERY field from its currently-DISPLAYED chip value — and Formation/
+    // Coverage now display the PROJECTED value, not raw. Without the same
+    // promote-on-commit guard _saveField uses, this would silently DROP a
+    // legacy sibling token (e.g. a "Shotgun + Trips" play's Shotgun) the coach
+    // never touched or intended to clear — the coach clicked "New Drive," not
+    // "confirm my formation." Apply the identical guard for every field that
+    // has a projected sibling, exactly once, before the bulk write below.
+    for (const [key, pair] of Object.entries(TagProjection.PROJECTED_PAIRS)) {
+      if (!String(play.tags[pair.sibling] || '').trim()) {
+        const effective = StatsEngine.proj(play)[pair.sibling];
+        if (effective) play.tags[pair.sibling] = effective;
+      }
+    }
     for (const [key, el] of Object.entries(this.tagFields)) {
       play.tags[key] = el.value;
     }
@@ -1049,13 +1089,39 @@ export class PlayTagger {
   }
 
   _loadTagForm(play) {
+    // E4: Formation and Coverage seed from the PROJECTED view, never raw tags.
+    // This is not merely "more honest display" — it is a correctness fix.
+    // ChipField.set value() for a MULTI field stores every ' + '-token in
+    // `_values`, including ones with no matching chip button (silently, no
+    // error). If Formation seeded from a legacy `"Shotgun + Trips"` play, the
+    // 'Shotgun' token (no longer a Formation chip — see index.html E4 comment)
+    // would sit in `_values` alongside 'Trips', INVISIBLE (no chip shows
+    // active), but still present. If the coach then toggled ONLY 'Trips' off,
+    // the click handler mutates `_values` by removing just 'Trips' — 'Shotgun'
+    // would remain, and the next `change` event would silently WRITE 'Shotgun'
+    // back to play.tags.formation as the coach's own "explicit" edit, resurrecting
+    // exactly the value E1-E3 worked to remove. Seeding from the projected
+    // structural value (which never contains an alignment token) makes that
+    // scenario structurally impossible — `_values` can never hold a token with
+    // no matching chip in the first place. Coverage (single-select) doesn't have
+    // this specific hazard (a lone `_value` fully replaces on the next pick,
+    // never partially mutates), but is projected too for display consistency —
+    // the coach should see it exactly as every other consumer will read it.
+    const projected = StatsEngine.proj(play);
     this.tagFields.down.value = play.tags.down;
     this.tagFields.distance.value = play.tags.distance;
-    this.tagFields.formation.value = play.tags.formation;
+    this.tagFields.formation.value = projected.formation;
     this.tagFields.playType.value = play.tags.playType;
     this.tagFields.runPass.value = play.tags.runPass || '';
     this.tagFields.defFront.value = play.tags.defFront;
-    this.tagFields.coverage.value = play.tags.coverage;
+    this.tagFields.coverage.value = projected.coverage;
+    // Both are explicit-if-present, else DERIVED from a legacy mixed field
+    // (e.g. a play tagged only "Shotgun + Trips" shows QB Alignment=Shotgun
+    // here even though nothing is literally stored under that key yet) — this
+    // IS "the tag form shows the projected view." Nothing is written by this
+    // seed; ChipField's value setter never fires a change event.
+    this.tagFields.qbAlignment.value = projected.qbAlignment || '';
+    this.tagFields.coverageFamily.value = projected.coverageFamily || '';
     this.tagFields.blitz.value = play.tags.blitz;
     this.tagFields.result.value = play.tags.result;
     // If this play carries a rare result (FG/Good/Kneel/…) keep the "More"

@@ -317,12 +317,11 @@
               <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
               <div class="tag-group-body">
                 <div class="chip-section">
-                  <label class="chip-label">Formation <span class="chip-hint">select all that apply</span></label>
+                  <label class="chip-label">Formation <span class="chip-hint">structure — select all that apply</span></label>
                   <div class="pick-group multi" id="tagFormation">
-                    <!-- QB alignment -->
-                    <button class="pick" data-value="Under Center" type="button">Under Center</button>
-                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                    <!-- E4: Under Center/Pistol/Shotgun moved to the QB Alignment
+                         group below — they are QB alignment, not formation
+                         structure (GRIDIRON-IQ-TAG-MODEL.md E1 decision). -->
                     <!-- Named / system formations -->
                     <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
                     <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
@@ -342,6 +341,14 @@
                     <button class="pick" data-value="Doubles" type="button">Doubles</button>
                     <button class="pick" data-value="Bunch" type="button">Bunch</button>
                     <button class="pick" data-value="Empty" type="button">Empty</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">QB Alignment <span class="chip-hint">optional</span></label>
+                  <div class="pick-group" id="tagQbAlignment">
+                    <button class="pick" data-value="Under Center" type="button">Under Center</button>
+                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -424,16 +431,24 @@
                   </div>
                 </div>
                 <div class="chip-section">
-                  <label class="chip-label">Coverage</label>
+                  <label class="chip-label">Coverage <span class="chip-hint">the call</span></label>
                   <div class="pick-group" id="tagCoverage">
+                    <!-- E4: Man/Zone moved to the Coverage Family group below —
+                         they are family, not the shell/call (E1 decision). -->
                     <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
                     <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
                     <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
                     <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
                     <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
                     <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Coverage Family <span class="chip-hint">optional</span></label>
+                  <div class="pick-group" id="tagCoverageFamily">
                     <button class="pick" data-value="Man" type="button">Man</button>
                     <button class="pick" data-value="Zone" type="button">Zone</button>
+                    <button class="pick" data-value="Match" type="button">Match</button>
                   </div>
                 </div>
                 <div class="chip-section">

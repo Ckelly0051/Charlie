@@ -9640,12 +9640,11 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
               <button class="tag-group-head" type="button">Offense<span class="tag-group-caret">▾</span></button>
               <div class="tag-group-body">
                 <div class="chip-section">
-                  <label class="chip-label">Formation <span class="chip-hint">select all that apply</span></label>
+                  <label class="chip-label">Formation <span class="chip-hint">structure — select all that apply</span></label>
                   <div class="pick-group multi" id="tagFormation">
-                    <!-- QB alignment -->
-                    <button class="pick" data-value="Under Center" type="button">Under Center</button>
-                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
-                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
+                    <!-- E4: Under Center/Pistol/Shotgun moved to the QB Alignment
+                         group below — they are QB alignment, not formation
+                         structure (GRIDIRON-IQ-TAG-MODEL.md E1 decision). -->
                     <!-- Named / system formations -->
                     <button class="pick" data-value="Single Wing" type="button">Single Wing</button>
                     <button class="pick" data-value="Double Wing" type="button">Double Wing</button>
@@ -9665,6 +9664,14 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                     <button class="pick" data-value="Doubles" type="button">Doubles</button>
                     <button class="pick" data-value="Bunch" type="button">Bunch</button>
                     <button class="pick" data-value="Empty" type="button">Empty</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">QB Alignment <span class="chip-hint">optional</span></label>
+                  <div class="pick-group" id="tagQbAlignment">
+                    <button class="pick" data-value="Under Center" type="button">Under Center</button>
+                    <button class="pick" data-value="Pistol" type="button">Pistol</button>
+                    <button class="pick" data-value="Shotgun" type="button">Shotgun</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -9747,16 +9754,24 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
                   </div>
                 </div>
                 <div class="chip-section">
-                  <label class="chip-label">Coverage</label>
+                  <label class="chip-label">Coverage <span class="chip-hint">the call</span></label>
                   <div class="pick-group" id="tagCoverage">
+                    <!-- E4: Man/Zone moved to the Coverage Family group below —
+                         they are family, not the shell/call (E1 decision). -->
                     <button class="pick" data-value="Cover 0" type="button">Cover 0</button>
                     <button class="pick" data-value="Cover 1" type="button">Cover 1</button>
                     <button class="pick" data-value="Cover 2" type="button">Cover 2</button>
                     <button class="pick" data-value="Cover 3" type="button">Cover 3</button>
                     <button class="pick" data-value="Cover 4" type="button">Cover 4</button>
                     <button class="pick" data-value="Cover 6" type="button">Cover 6</button>
+                  </div>
+                </div>
+                <div class="chip-section">
+                  <label class="chip-label">Coverage Family <span class="chip-hint">optional</span></label>
+                  <div class="pick-group" id="tagCoverageFamily">
                     <button class="pick" data-value="Man" type="button">Man</button>
                     <button class="pick" data-value="Zone" type="button">Zone</button>
+                    <button class="pick" data-value="Match" type="button">Match</button>
                   </div>
                 </div>
                 <div class="chip-section">
@@ -10942,6 +10957,32 @@ class TagProjection {
   static COVERAGE_FAMILIES = ['Man', 'Zone', 'Match'];
   // The one backfield value that legacy data stored in `formation` (D2).
   static FORMATION_BACKFIELD_TOKENS = ['Empty'];
+
+  /** E3b/E4: legacy plays carry TWO dimensions inside ONE stored field — an
+   *  alignment inside `formation`, a family inside `coverage`. Projection derives
+   *  the sibling FROM that string, so overwriting the primary field on an edit
+   *  would silently destroy it. ONE descriptor per pair makes the defence
+   *  STRUCTURAL rather than a per-field special case, and keeps every consumer
+   *  (Film Room's grid editor, the tag form) from drifting apart — moved here in
+   *  E4 from `PlayGrid` (its original E3b home) so BOTH consumers share the exact
+   *  same descriptor instead of two copies that could disagree. Per entry:
+   *    sibling     — the projected field to materialize BEFORE overwriting the primary
+   *    excludeFrom — the TagProjection list whose values belong to the sibling and
+   *                  must never be offered in the primary's picker
+   *  Adding a third pair here wires both halves at once for every consumer at
+   *  once; each consumer's own test harness asserts every registered pair is
+   *  covered, so a new one cannot ship untested in either surface.
+   *  NOT registered here (deliberately, flagged, not silently skipped): Formation
+   *  also still allows the legacy 'Empty' backfield token (FORMATION_BACKFIELD_
+   *  TOKENS) and Backfield still allows 'Pistol' as a pickable chip — both are the
+   *  SAME class of pre-existing vocabulary cleanup as this pair mechanism exists
+   *  to protect, but adding a THIRD sibling to `formation` (backfield, alongside
+   *  qbAlignment) is out of scope for this increment and needs its own
+   *  failing-first proof, not a silent bundle-in. */
+  static PROJECTED_PAIRS = {
+    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
+    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+  };
 
   static _split(v) {
     return typeof v === 'string' ? v.split(' + ').map(s => s.trim()).filter(Boolean) : [];
@@ -12474,6 +12515,10 @@ class CanvasOverlay {
 }
 
 // ===== play-tagger.js =====
+// E4: the form must SEED from the projected view (StatsEngine.proj), never raw
+// tags — see the _loadTagForm/formation comment below for why seeding from raw
+// is not just "less honest" but an active data-corruption hazard for ChipField.
+// No import cycle: stats-engine.js does not import play-tagger.js.
 
 /**
  * ChipField — lightweight wrapper so a div.pick-group behaves like a
@@ -12606,6 +12651,7 @@ class PlayTagger {
       driveNumber: 'tagDriveNumber', stType: 'tagStType',
       runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
       scoreFor: 'tagScoreFor', backfield: 'tagBackfield', strength: 'tagStrength',
+      qbAlignment: 'tagQbAlignment', coverageFamily: 'tagCoverageFamily',
       kickOutcome: 'tagKickOutcome', kickDistance: 'tagKickDistance',
       returnYards: 'tagReturnYards', hangTime: 'tagHangTime', kickedTo: 'tagKickedTo',
     };
@@ -13395,6 +13441,25 @@ class PlayTagger {
   _saveField(key) {
     const play = this.getCurrentPlay();
     if (!play) return;
+    // E4 D-projform PROMOTE-ON-EXPLICIT-COMMIT — same mechanic + same shared
+    // TagProjection.PROJECTED_PAIRS descriptor as Film Room's grid editor
+    // (play-grid.js _applyEdit, E3b-P1). A legacy play stores its sibling
+    // dimension (QB alignment inside formation, coverage family inside
+    // coverage) INSIDE the primary field's string; overwriting the primary
+    // with the coach's new explicit pick would silently destroy that sibling
+    // data. So, only on THIS explicit commit — never on load/view/select —
+    // first materialize the currently EFFECTIVE projected sibling, and ONLY
+    // when that sibling target is still blank (an existing explicit value on
+    // the sibling always wins, never overwritten). This preserves effective
+    // data; it is not a semantic sibling change. The whole thing — promote +
+    // write — happens before the single play-updated emit below, so
+    // HistoryManager (which snapshots on play-updated) records it as ONE
+    // undoable transaction, exactly like the grid editor's proof requires.
+    const pair = TagProjection.PROJECTED_PAIRS[key];
+    if (pair && !String(play.tags[pair.sibling] || '').trim()) {
+      const effective = StatsEngine.proj(play)[pair.sibling];
+      if (effective) play.tags[pair.sibling] = effective;
+    }
     play.tags[key] = this.tagFields[key].value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
@@ -13514,6 +13579,20 @@ class PlayTagger {
   _saveCurrentTags() {
     const play = this.getCurrentPlay();
     if (!play) return;
+    // E4: this bulk path (currently only the "New Drive" button) re-writes
+    // EVERY field from its currently-DISPLAYED chip value — and Formation/
+    // Coverage now display the PROJECTED value, not raw. Without the same
+    // promote-on-commit guard _saveField uses, this would silently DROP a
+    // legacy sibling token (e.g. a "Shotgun + Trips" play's Shotgun) the coach
+    // never touched or intended to clear — the coach clicked "New Drive," not
+    // "confirm my formation." Apply the identical guard for every field that
+    // has a projected sibling, exactly once, before the bulk write below.
+    for (const [key, pair] of Object.entries(TagProjection.PROJECTED_PAIRS)) {
+      if (!String(play.tags[pair.sibling] || '').trim()) {
+        const effective = StatsEngine.proj(play)[pair.sibling];
+        if (effective) play.tags[pair.sibling] = effective;
+      }
+    }
     for (const [key, el] of Object.entries(this.tagFields)) {
       play.tags[key] = el.value;
     }
@@ -13522,13 +13601,39 @@ class PlayTagger {
   }
 
   _loadTagForm(play) {
+    // E4: Formation and Coverage seed from the PROJECTED view, never raw tags.
+    // This is not merely "more honest display" — it is a correctness fix.
+    // ChipField.set value() for a MULTI field stores every ' + '-token in
+    // `_values`, including ones with no matching chip button (silently, no
+    // error). If Formation seeded from a legacy `"Shotgun + Trips"` play, the
+    // 'Shotgun' token (no longer a Formation chip — see index.html E4 comment)
+    // would sit in `_values` alongside 'Trips', INVISIBLE (no chip shows
+    // active), but still present. If the coach then toggled ONLY 'Trips' off,
+    // the click handler mutates `_values` by removing just 'Trips' — 'Shotgun'
+    // would remain, and the next `change` event would silently WRITE 'Shotgun'
+    // back to play.tags.formation as the coach's own "explicit" edit, resurrecting
+    // exactly the value E1-E3 worked to remove. Seeding from the projected
+    // structural value (which never contains an alignment token) makes that
+    // scenario structurally impossible — `_values` can never hold a token with
+    // no matching chip in the first place. Coverage (single-select) doesn't have
+    // this specific hazard (a lone `_value` fully replaces on the next pick,
+    // never partially mutates), but is projected too for display consistency —
+    // the coach should see it exactly as every other consumer will read it.
+    const projected = StatsEngine.proj(play);
     this.tagFields.down.value = play.tags.down;
     this.tagFields.distance.value = play.tags.distance;
-    this.tagFields.formation.value = play.tags.formation;
+    this.tagFields.formation.value = projected.formation;
     this.tagFields.playType.value = play.tags.playType;
     this.tagFields.runPass.value = play.tags.runPass || '';
     this.tagFields.defFront.value = play.tags.defFront;
-    this.tagFields.coverage.value = play.tags.coverage;
+    this.tagFields.coverage.value = projected.coverage;
+    // Both are explicit-if-present, else DERIVED from a legacy mixed field
+    // (e.g. a play tagged only "Shotgun + Trips" shows QB Alignment=Shotgun
+    // here even though nothing is literally stored under that key yet) — this
+    // IS "the tag form shows the projected view." Nothing is written by this
+    // seed; ChipField's value setter never fires a change event.
+    this.tagFields.qbAlignment.value = projected.qbAlignment || '';
+    this.tagFields.coverageFamily.value = projected.coverageFamily || '';
     this.tagFields.blitz.value = play.tags.blitz;
     this.tagFields.result.value = play.tags.result;
     // If this play carries a rare result (FG/Good/Kneel/…) keep the "More"
@@ -30754,14 +30859,26 @@ class SuggestionEngine {
     return top[0];
   }
 
+  // PRE-EXISTING bug, found (not introduced) while building E4's tag-form
+  // proofs: all three of _suggestField's real targets (personnel, defFront,
+  // coverage) are chip-group fields, so `this.tagger.tagFields[field]` is
+  // always a ChipField WRAPPER, never a raw DOM element — .classList/.title
+  // don't exist on it. `el.value = value` (the actual suggestion) worked fine
+  // (ChipField has a value setter), so the suggestion silently applied; only
+  // the cosmetic flash+tooltip crashed immediately after, every time this ran.
+  // Unwrap to the real DOM node the same way ChipField itself is defined
+  // (`this.el` in its constructor) when present.
+  _domEl(el) { return el && el.el ? el.el : el; }
+
   _flash(el) {
-    el.classList.add('field-suggested');
-    setTimeout(() => el.classList.remove('field-suggested'), 1200);
+    const node = this._domEl(el);
+    node.classList.add('field-suggested');
+    setTimeout(() => node.classList.remove('field-suggested'), 1200);
   }
 
   _addSuggestionHint(el, conditions) {
     const condText = Object.entries(conditions).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(', ');
-    el.title = `Suggested from ${condText} (click to change)`;
+    this._domEl(el).title = `Suggested from ${condText} (click to change)`;
   }
 
   _updateBadge() {
@@ -31304,23 +31421,12 @@ class PlayGrid {
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
-  /** E3b: legacy plays carry TWO dimensions inside ONE stored field — an alignment
-   *  inside `formation`, a family inside `coverage`. Projection derives the sibling
-   *  FROM that string, so overwriting the primary field on an edit would silently
-   *  destroy it. ONE descriptor per pair makes the defence STRUCTURAL rather than a
-   *  per-field special case (the Formation fix alone left Coverage exposed), and
-   *  keeps the two halves from drifting apart — an earlier revision used two
-   *  parallel maps, which could leave a field excluded-but-not-promoted (or worse,
-   *  promoted-but-not-excluded). Per entry:
-   *    sibling     — the projected field to materialize BEFORE overwriting the primary
-   *    excludeFrom — the TagProjection list whose values belong to the sibling and
-   *                  must never be offered in the primary's picker
-   *  Adding a third pair here wires both halves at once; the Film Room harness
-   *  asserts every registered pair is covered, so a new one cannot ship untested. */
-  static PROJECTED_PAIRS = {
-    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
-    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
-  };
+  // E4: PROJECTED_PAIRS moved to TagProjection so the tag form's promote-on-
+  // commit shares the EXACT same descriptor as this grid's — see
+  // tag-projection.js for the full rationale. `PlayGrid.PROJECTED_PAIRS` stays
+  // as an alias so nothing that already reads it (this file, its test harness)
+  // needs to change.
+  static get PROJECTED_PAIRS() { return TagProjection.PROJECTED_PAIRS; }
 
   /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
    *  so their saved list can be UPGRADED to the new one. A customized list is
@@ -35170,7 +35276,12 @@ class CustomFieldsManager {
 class TagLibrary {
   static VERSION = 1;
   static DEFINITIONS = {
-    formation: ['Under Center','Pistol','Shotgun','Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch','Empty'],
+    // E4: Under Center/Pistol/Shotgun removed — they are QB Alignment, not
+    // Formation structure (E1 decision; #tagQbAlignment is their new home, not a
+    // TagLibrary-customizable group since the three values are fixed, not team
+    // vocabulary). 'Empty' deliberately left as-is — see tag-projection.js's
+    // PROJECTED_PAIRS comment for why that one is out of scope here.
+    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch','Empty'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Pistol','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
   };

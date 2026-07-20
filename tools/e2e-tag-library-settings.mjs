@@ -26,20 +26,24 @@ let state = await page.evaluate(() => ({
   rows: document.querySelectorAll('#tagLibraryDialog .tag-library-row').length,
   promise: document.querySelector('.tag-library-promise').textContent,
 }));
-ok(state.open && state.tabs === 3 && state.rows === 20, 'Team Settings opens all three tag-library categories', JSON.stringify(state));
+// E4: Formation lost Under Center/Pistol/Shotgun (moved to QB Alignment, a
+// fixed non-customizable group) — 20 -> 17 default formation rows.
+ok(state.open && state.tabs === 3 && state.rows === 17, 'Team Settings opens all three tag-library categories', JSON.stringify(state));
 ok(/Existing plays and analytics stay unchanged/.test(state.promise), 'Editor states the non-destructive visibility contract');
 
+// E4: 'Shotgun' is no longer a Formation library value (moved to QB Alignment,
+// fixed/non-customizable) — 'Wing-T' is the equivalent still-hideable example.
 await page.evaluate(() => {
-  window.app.tagger.plays = [{ id: 1, tags: { unit: 'offense', formation: 'Shotgun', backfield: '' } }];
-  document.querySelector('.tag-library-row input[data-value="Shotgun"]').click();
+  window.app.tagger.plays = [{ id: 1, tags: { unit: 'offense', formation: 'Wing-T', backfield: '' } }];
+  document.querySelector('.tag-library-row input[data-value="Wing-T"]').click();
 });
 state = await page.evaluate(() => ({
-  enabled: window.app.customChips.library.group('formation').enabled.includes('Shotgun'),
-  hidden: document.querySelector('#tagFormation .pick[data-value="Shotgun"]').classList.contains('library-hidden'),
+  enabled: window.app.customChips.library.group('formation').enabled.includes('Wing-T'),
+  hidden: document.querySelector('#tagFormation .pick[data-value="Wing-T"]').classList.contains('library-hidden'),
   tag: window.app.tagger.plays[0].tags.formation,
 }));
 ok(!state.enabled && state.hidden, 'Hiding a default removes it from future charting choices');
-ok(state.tag === 'Shotgun', 'Hiding a choice never rewrites historical play tags');
+ok(state.tag === 'Wing-T', 'Hiding a choice never rewrites historical play tags');
 
 await page.click('[data-group="front"]');
 await page.type('#tagLibraryAdd', 'Bear');
@@ -113,10 +117,10 @@ ok(!state.stored && !state.chip, 'Removing a custom choice updates both editor a
 
 await page.click('[data-action="restore"]');
 state = await page.evaluate(() => ({
-  shotgun: window.app.customChips.library.group('formation').enabled.includes('Shotgun'),
+  wingT: window.app.customChips.library.group('formation').enabled.includes('Wing-T'),
   custom: Object.values(window.app.customChips.library.load().groups).some(group => group.custom.length),
 }));
-ok(state.shotgun && !state.custom, 'Restore defaults reenables built-ins and clears custom choices');
+ok(state.wingT && !state.custom, 'Restore defaults reenables built-ins and clears custom choices');
 
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({

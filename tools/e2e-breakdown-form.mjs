@@ -43,9 +43,11 @@ await page.evaluate(() => {
   window.app.tagger._loadTagForm(play);
   document.querySelector('#tagPlayerBC').value = '22';
   document.querySelector('#tagPlayerBC').dispatchEvent(new Event('change', { bubbles: true }));
-  document.querySelector('#tagFormation .pick[data-value="Shotgun"]').click();
+  // E4: 'Shotgun' moved to QB Alignment (no longer a #tagFormation chip); any
+  // real structural value proves the same chip-listener recomposition path.
+  document.querySelector('#tagFormation .pick[data-value="Trips"]').click();
 });
-ok((await page.evaluate(() => window.app.tagger.plays[0].tags.formation)) === 'Shotgun', 'Recomposition preserves the existing chip listener and tag-save path');
+ok((await page.evaluate(() => window.app.tagger.plays[0].tags.formation)) === 'Trips', 'Recomposition preserves the existing chip listener and tag-save path');
 
 await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="defense"]').click());
 await page.waitForFunction(() => document.querySelector('#tagForm').classList.contains('mode-defense'));

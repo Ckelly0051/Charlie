@@ -90,23 +90,12 @@ export class PlayGrid {
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
-  /** E3b: legacy plays carry TWO dimensions inside ONE stored field — an alignment
-   *  inside `formation`, a family inside `coverage`. Projection derives the sibling
-   *  FROM that string, so overwriting the primary field on an edit would silently
-   *  destroy it. ONE descriptor per pair makes the defence STRUCTURAL rather than a
-   *  per-field special case (the Formation fix alone left Coverage exposed), and
-   *  keeps the two halves from drifting apart — an earlier revision used two
-   *  parallel maps, which could leave a field excluded-but-not-promoted (or worse,
-   *  promoted-but-not-excluded). Per entry:
-   *    sibling     — the projected field to materialize BEFORE overwriting the primary
-   *    excludeFrom — the TagProjection list whose values belong to the sibling and
-   *                  must never be offered in the primary's picker
-   *  Adding a third pair here wires both halves at once; the Film Room harness
-   *  asserts every registered pair is covered, so a new one cannot ship untested. */
-  static PROJECTED_PAIRS = {
-    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
-    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
-  };
+  // E4: PROJECTED_PAIRS moved to TagProjection so the tag form's promote-on-
+  // commit shares the EXACT same descriptor as this grid's — see
+  // tag-projection.js for the full rationale. `PlayGrid.PROJECTED_PAIRS` stays
+  // as an alias so nothing that already reads it (this file, its test harness)
+  // needs to change.
+  static get PROJECTED_PAIRS() { return TagProjection.PROJECTED_PAIRS; }
 
   /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
    *  so their saved list can be UPGRADED to the new one. A customized list is

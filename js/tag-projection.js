@@ -20,6 +20,32 @@ export class TagProjection {
   // The one backfield value that legacy data stored in `formation` (D2).
   static FORMATION_BACKFIELD_TOKENS = ['Empty'];
 
+  /** E3b/E4: legacy plays carry TWO dimensions inside ONE stored field — an
+   *  alignment inside `formation`, a family inside `coverage`. Projection derives
+   *  the sibling FROM that string, so overwriting the primary field on an edit
+   *  would silently destroy it. ONE descriptor per pair makes the defence
+   *  STRUCTURAL rather than a per-field special case, and keeps every consumer
+   *  (Film Room's grid editor, the tag form) from drifting apart — moved here in
+   *  E4 from `PlayGrid` (its original E3b home) so BOTH consumers share the exact
+   *  same descriptor instead of two copies that could disagree. Per entry:
+   *    sibling     — the projected field to materialize BEFORE overwriting the primary
+   *    excludeFrom — the TagProjection list whose values belong to the sibling and
+   *                  must never be offered in the primary's picker
+   *  Adding a third pair here wires both halves at once for every consumer at
+   *  once; each consumer's own test harness asserts every registered pair is
+   *  covered, so a new one cannot ship untested in either surface.
+   *  NOT registered here (deliberately, flagged, not silently skipped): Formation
+   *  also still allows the legacy 'Empty' backfield token (FORMATION_BACKFIELD_
+   *  TOKENS) and Backfield still allows 'Pistol' as a pickable chip — both are the
+   *  SAME class of pre-existing vocabulary cleanup as this pair mechanism exists
+   *  to protect, but adding a THIRD sibling to `formation` (backfield, alongside
+   *  qbAlignment) is out of scope for this increment and needs its own
+   *  failing-first proof, not a silent bundle-in. */
+  static PROJECTED_PAIRS = {
+    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
+    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+  };
+
   static _split(v) {
     return typeof v === 'string' ? v.split(' + ').map(s => s.trim()).filter(Boolean) : [];
   }
