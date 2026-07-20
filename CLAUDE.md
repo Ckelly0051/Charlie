@@ -18,37 +18,27 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-19, E3b-6 review)
+### Current working state (2026-07-20, E3b-7 accepted)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-6 CHANGES REQUESTED on `0be24df`.** The production
-repair is correct in the exercised paths: Formation and Coverage Call now share
-promote-on-explicit-commit behavior; family/alignment values are excluded from
-the primary picker; explicit sibling values win; focused verification is green
-(`e2e-film-room` 98/98, raw-read audit 11/11, tag model 30/30).
+**ACTIVE HANDOFF — E3b-7 ACCEPTED at `fbde37f`.** Codex independently verified
+the E3b-6 repair. The HistoryManager proof now fails closed, exercises real plays
+for BOTH Formation/QB Alignment and Coverage/Coverage Family, and pins one
+history entry with atomic undo/redo. The parallel configuration maps are now one
+`PROJECTED_PAIRS` descriptor, removing the drift class.
 
-One proof defect remains before acceptance: `e2e-film-room` returns
-`{skip:true}` when the real play or `HistoryManager` is missing, and every new
-atomic-undo assertion accepts `r.skip`. That can certify the exact behavior it
-claims to prove without reaching HistoryManager. The demo setup already
-requires >50 plays and the app requires history, so this must fail closed:
-assert both prerequisites, then run the real transaction. Parameterize the
-real-history proof over BOTH registered pairs (`formation -> qbAlignment` and
-`coverage -> coverageFamily`) so each records exactly one entry and restores
-both raw fields together on undo/redo.
+Independent verification on a fresh build: Film Room 105/105, raw-read audit
+11/11, and canonical gate 55/55 with real-season data and parity clean. No
+blocking findings. One documentation-only nit remains: the JSDoc immediately
+above `PROJECTED_PAIRS` still describes the removed two-map design; clean it up
+with the next code increment.
 
-Non-blocking hardening: `PROMOTE_ON_COMMIT` and `OPTION_EXCLUDE` are parallel
-maps and can drift. Prefer one descriptor map, or at minimum pin identical key
-sets. A third pair is not covered "by construction" unless both maps are
-updated coherently.
-
-Persistence decision: no new save/reopen assertion blocks this increment.
-`play-updated` reaches canonical autosave and the season serializers preserve
-ordinary tag properties. If a promotion-specific durability probe is added in
-the next increment, it must exercise canonical season persist/reopen; CSV
-export/import is a different path and cannot stand in for that proof.
+Persistence decision remains unchanged: a promotion-specific save/reopen probe
+is not required for this increment because `play-updated` reaches canonical
+autosave and ordinary tag properties already round-trip losslessly. CSV
+export/import is still not a substitute for canonical season persistence.
 
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit

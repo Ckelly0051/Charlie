@@ -466,6 +466,20 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-7 ACCEPTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: fbde37f
+
+- The fail-open skip was removed. Real HistoryManager transactions now cover
+  both formation/qbAlignment and coverage/coverageFamily, with exactly one
+  history entry and atomic undo/redo for each pair.
+- The two drifting maps were consolidated into one PROJECTED_PAIRS descriptor.
+- Independent fresh-build verification: Film Room 105/105, raw-read audit
+  11/11, canonical gate 55/55; real-season and parity checks clean.
+- No blocking findings. Documentation-only follow-up: replace the stale
+  two-map JSDoc above PROJECTED_PAIRS during the next code increment.
+- E3b remains unpackageable. Remaining: projected CSV export/import, projected
+  presentation labels, and Study/Watch equality.
+
 === E3b-6 REVIEW - CHANGES REQUESTED - 2026-07-19 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: 0be24df
 
