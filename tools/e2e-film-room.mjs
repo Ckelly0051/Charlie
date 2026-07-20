@@ -324,13 +324,73 @@ ok(/Trips/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
 ok(/Shotgun/.test(r.structQb), 'QB Alignment column shows alignment split out of a mixed formation', JSON.stringify(r.structQb));
 ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the projected family', JSON.stringify(r.covFamily));
 ok(r.qbType === 'proj-readonly' && r.famType === 'proj-readonly',
-  'QB Alignment + Coverage Family are DISPLAY-ONLY in E3b (editor refuses to open)', JSON.stringify(r));
-ok(JSON.stringify(r.upgradeStockDefault) === JSON.stringify(r.newDefault),
-  'P4: a saved list matching the OLD default preset upgrades to the new one', JSON.stringify(r.upgradeStockDefault));
-ok(JSON.stringify(r.upgradeStockDefense) === JSON.stringify(r.newDefense),
-  'P4: a saved list matching the OLD defense preset upgrades to the new one', JSON.stringify(r.upgradeStockDefense));
-ok(JSON.stringify(r.upgradeCustom) === JSON.stringify(['sit', 'formation', 'notes']),
-  'P4: a CUSTOM saved layout is preserved untouched', JSON.stringify(r.upgradeCustom));
+  'QB Alignment + Coverage Family are declared proj-readonly', JSON.stringify(r));
+
+// BEHAVIORAL display-only proof — the type check above is a DECLARATION and would
+// stay green if the _openEditor guard were deleted. Drive the real interactions.
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, tagger = window.app.tagger;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const play = tagger.plays[0];
+  if (!play) return { skip: true };
+  const before = JSON.stringify(play.tags);
+  let updates = 0;
+  const onUpd = () => { updates++; };
+  tagger.on('play-updated', onUpd);
+
+  const results = {};
+  for (const key of ['qbAlignment', 'coverageFamily']) {
+    // make sure the column is actually rendered
+    if (!grid.cols.includes(key)) { grid.cols = [...grid.cols, key]; grid.refresh(); await raf2(); }
+    const td = grid._cellEl(play.id, key);
+    results[key + 'Rendered'] = !!td;
+    if (!td) continue;
+    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
+    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
+    td.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); await raf2();
+    td.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
+    grid._openEditor(play.id, key); await raf2();                                  // direct call
+    results[key + 'Editor'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
+  }
+  tagger.off ? tagger.off('play-updated', onUpd) : null;
+  return { skip: false, ...results, updates, unchanged: JSON.stringify(play.tags) === before };
+});
+ok(r.skip || (r.qbAlignmentRendered && r.coverageFamilyRendered),
+  'display-only columns actually render a cell to interact with', JSON.stringify(r));
+ok(r.skip || (!r.qbAlignmentEditor && !r.coverageFamilyEditor),
+  'BEHAVIORAL: click / 2nd-click / dblclick / Enter / direct _openEditor open NO editor on the new columns', JSON.stringify(r));
+ok(r.skip || r.updates === 0, 'BEHAVIORAL: no play-updated event fired from the display-only columns', JSON.stringify(r));
+ok(r.skip || r.unchanged, 'BEHAVIORAL: play tags are byte-identical after all interactions', JSON.stringify(r));
+// P4 through the REAL persistence path. Calling _upgradeCols() directly proves
+// only the helper — removing its call from _loadCols() would leave that green. So
+// write localStorage and read back through _loadCols().
+r = await page.evaluate(() => {
+  const grid = window.app.playGrid, PG = grid.constructor;
+  const saved = localStorage.getItem('ffa_film_room_cols');
+  const via = (value) => {
+    if (value === null) localStorage.removeItem('ffa_film_room_cols');
+    else localStorage.setItem('ffa_film_room_cols', JSON.stringify(value));
+    return grid._loadCols();
+  };
+  const out = {
+    none: via(null),
+    legacyDefault: via(PG.LEGACY_PRESETS.default),
+    legacyOffense: via(PG.LEGACY_PRESETS.offense),
+    legacyDefense: via(PG.LEGACY_PRESETS.defense),
+    custom: via(['sit', 'formation', 'notes']),
+    newDefault: PG.PRESETS.default, newOffense: PG.PRESETS.offense, newDefense: PG.PRESETS.defense,
+  };
+  if (saved === null) localStorage.removeItem('ffa_film_room_cols'); else localStorage.setItem('ffa_film_room_cols', saved);
+  return out;
+});
+const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+ok(eqJ(r.none, r.newDefault), 'P4 via _loadCols: NO saved preference -> new defaults', JSON.stringify(r.none));
+ok(eqJ(r.legacyDefault, r.newDefault), 'P4 via _loadCols: saved OLD default preset -> upgraded', JSON.stringify(r.legacyDefault));
+ok(eqJ(r.legacyOffense, r.newOffense), 'P4 via _loadCols: saved OLD offense preset -> upgraded', JSON.stringify(r.legacyOffense));
+ok(eqJ(r.legacyDefense, r.newDefense), 'P4 via _loadCols: saved OLD defense preset -> upgraded', JSON.stringify(r.legacyDefense));
+ok(eqJ(r.custom, ['sit', 'formation', 'notes']), 'P4 via _loadCols: CUSTOM layout preserved untouched', JSON.stringify(r.custom));
+ok(r.newDefault.includes('qbAlignment') && r.newDefense.includes('coverageFamily'),
+  'P4: the upgraded presets actually expose the new columns', JSON.stringify({ d: r.newDefault, f: r.newDefense }));
 
 // Multi-enum inline edit: Result cell — click to focus, click again to edit.
 r = await page.evaluate(async () => {
