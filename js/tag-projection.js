@@ -72,4 +72,24 @@ export class TagProjection {
     out.coverageFamily = family;
     return out;
   }
+
+  /**
+   * E3b — PRESENTATION label for a play's pre-snap look, e.g. "Shotgun Trips".
+   *
+   * DELIBERATE COMPOSITION, stated here because it is the one place the two
+   * dimensions are intentionally rejoined: a call sheet, a cut-up overlay, and a
+   * play-strip caption name the call the way a coach SAYS it, in one phrase. That
+   * is not the same job as a Formation COLUMN, which must never show an alignment
+   * under a Formation header (the coach's Film Room ruling — a column implies a
+   * classification, a spoken call does not). Column-shaped surfaces therefore keep
+   * projected `formation` and `qbAlignment` in separate cells and must NOT use this.
+   *
+   * Analytics never reads this: it is a string for humans, never a grouping key.
+   * Order is alignment-then-structure, and either half may be absent — a play with
+   * only "Trips" reads "Trips", and one with only "Shotgun" reads "Shotgun".
+   */
+  static lookLabel(tags) {
+    const p = this.project(tags);
+    return [p.qbAlignment, p.formation].filter(Boolean).join(' ');
+  }
 }

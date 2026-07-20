@@ -381,6 +381,40 @@ test('20 · a truly legacy play (no backfield property) still migrates as before
   assert.equal(p.tags.formation, '');
 });
 
+/* ---- §20 E3b: lookLabel — the deliberate presentation composition ---- */
+
+test('26 · lookLabel joins alignment + structure for a MODERN split play', () => {
+  const t = tags({ unit: 'offense', qbAlignment: 'Shotgun', formation: 'Trips' });
+  assert.equal(TagProjection.lookLabel(t), 'Shotgun Trips');
+});
+
+test('26b · lookLabel projects a LEGACY mixed formation into the same phrase', () => {
+  // "Shotgun + Trips" never appears in the output — it is split then rejoined
+  // with a plain space, matching how a coach actually says the call.
+  const t = tags({ unit: 'offense', formation: 'Shotgun + Trips' });
+  assert.equal(TagProjection.lookLabel(t), 'Shotgun Trips');
+  assert.ok(!TagProjection.lookLabel(t).includes('+'), 'the " + " join artifact must not leak into a spoken-call label');
+});
+
+test('26c · lookLabel omits the missing half instead of inventing a placeholder', () => {
+  assert.equal(TagProjection.lookLabel(tags({ formation: 'Trips' })), 'Trips', 'structure only, no alignment');
+  assert.equal(TagProjection.lookLabel(tags({ qbAlignment: 'Pistol' })), 'Pistol', 'alignment only, no structure');
+  assert.equal(TagProjection.lookLabel(tags({})), '', 'nothing charted -> empty string, never "Unknown"');
+});
+
+test('26d · lookLabel never overwrites an explicit qbAlignment with a legacy formation token', () => {
+  // Precedence must match project(): explicit qbAlignment wins.
+  const t = tags({ unit: 'offense', qbAlignment: 'Under Center', formation: 'Shotgun + Trips' });
+  assert.equal(TagProjection.lookLabel(t), 'Under Center Trips');
+});
+
+test('26e · lookLabel is a display seam only — it never mutates the input', () => {
+  const t = tags({ formation: 'Shotgun + Trips' });
+  const before = JSON.stringify(t);
+  TagProjection.lookLabel(t);
+  assert.equal(JSON.stringify(t), before, 'lookLabel must not write back to the stored tags');
+});
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 console.log('   (E3 owns tests 14/15/23/24/25; E4 owns 21/22 — not in this harness)');
 if (fail) process.exit(1);

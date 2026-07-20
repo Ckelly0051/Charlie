@@ -39,6 +39,13 @@ const FILES = [
   // re-imports. A raw read here would ship a CSV that disagrees with every on-screen
   // surface — the same divergence class, just with a longer feedback loop.
   'js/storage.js',
+  // E3b: PRESENTATION exports/captions. These may compose alignment+formation into
+  // one spoken-call STRING via TagProjection.lookLabel (see tag-projection.js) —
+  // that composition is deliberate and lives inside lookLabel, not in these files.
+  // A raw `.tags.formation`/`.tags.coverage` etc. read here means the composition
+  // was bypassed and a legacy mixed value (e.g. "Shotgun + Trips") would print
+  // literally instead of through the projected label.
+  'js/call-sheet-builder.js', 'js/plan-export.js', 'js/cutup-exporter.js', 'js/breakdown-video.js',
 ];
 
 // Resolvable raw reads that are LEGITIMATE (must live inside a scanned file). Empty

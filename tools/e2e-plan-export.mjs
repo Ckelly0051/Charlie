@@ -65,7 +65,24 @@ const games = [
   ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'), 'coach-entered strings (name/notes/label/game/play notes) are HTML-escaped');
 }
 
-// ---- 5. null-safety ---------------------------------------------------------
+// ---- 5. E3b: formation is the PROJECTED spoken-call label, not a raw read --
+{
+  // A legacy play with the alignment token still mixed into `formation` — the
+  // exact shape E1-E3 corrected. The export must show the split label, never
+  // the raw "Shotgun + Trips" string.
+  const g = [{ id: 'g1', name: 'Week 1', plays: [
+    play(3, { down: '3', distance: '7', formation: 'Shotgun + Trips', playType: 'Deep Pass', result: 'Gain', yardage: '22' }),
+    play(4, { down: '1', distance: '10', formation: 'Trips + Empty', backfield: 'Pistol', playType: 'Run Inside', result: 'Gain', yardage: '3' }),
+  ] }];
+  const plan = { name: 'P', items: [{ id: 'i', kind: 'film', label: 'x', refs: ['g1::3', 'g1::4'] }] };
+  const exp = PlanExport.build(plan, g);
+  const plays = exp.items[0].plays;
+  ok(plays[0].formation === 'Shotgun Trips', 'a legacy mixed formation exports as the SPLIT label, not the raw " + "-joined string', JSON.stringify(plays[0].formation));
+  ok(!plays[0].formation.includes('+'), 'the export never leaks the " + " join artifact into a presentation label');
+  ok(plays[1].formation === 'Pistol Trips', 'legacy Empty-in-formation + Pistol-in-backfield still composes correctly through the same seam', JSON.stringify(plays[1].formation));
+}
+
+// ---- 6. null-safety ---------------------------------------------------------
 {
   const empty = PlanExport.build(null, null);
   ok(empty.name === 'Game Plan' && empty.itemCount === 0 && empty.playCount === 0, 'build is null-safe (empty plan)');

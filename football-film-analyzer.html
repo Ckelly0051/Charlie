@@ -10995,6 +10995,26 @@ class TagProjection {
     out.coverageFamily = family;
     return out;
   }
+
+  /**
+   * E3b — PRESENTATION label for a play's pre-snap look, e.g. "Shotgun Trips".
+   *
+   * DELIBERATE COMPOSITION, stated here because it is the one place the two
+   * dimensions are intentionally rejoined: a call sheet, a cut-up overlay, and a
+   * play-strip caption name the call the way a coach SAYS it, in one phrase. That
+   * is not the same job as a Formation COLUMN, which must never show an alignment
+   * under a Formation header (the coach's Film Room ruling — a column implies a
+   * classification, a spoken call does not). Column-shaped surfaces therefore keep
+   * projected `formation` and `qbAlignment` in separate cells and must NOT use this.
+   *
+   * Analytics never reads this: it is a string for humans, never a grouping key.
+   * Order is alignment-then-structure, and either half may be absent — a play with
+   * only "Trips" reads "Trips", and one with only "Shotgun" reads "Shotgun".
+   */
+  static lookLabel(tags) {
+    const p = this.project(tags);
+    return [p.qbAlignment, p.formation].filter(Boolean).join(' ');
+  }
 }
 
 // ===== special-teams.js =====
@@ -28517,7 +28537,14 @@ class StudyPlan {
  *
  * Escaping: plan name/notes/labels + play notes travel in importable seasons, so
  * html() escapes every interpolated string (stored-XSS boundary, lesson #18).
+ *
+ * E3b: `formation` here is TagProjection.lookLabel — a presentation STRING
+ * (alignment + structure, e.g. "Shotgun Trips"), not a raw `tags.formation`
+ * read and not a Formation ANALYTICS column. Refs and order are untouched;
+ * only the label is projected. See tag-projection.js `lookLabel` for why this
+ * composition is deliberate here but forbidden in a column-shaped surface.
  */
+
 class PlanExport {
   /**
    * Resolve a plan into an ordered, film-linked export object:
@@ -28564,7 +28591,7 @@ class PlanExport {
     return {
       ...base, missing: false,
       situation: PlanExport._situation(t),
-      formation: t.formation || '', playType: t.playType || '',
+      formation: TagProjection.lookLabel(t), playType: t.playType || '',
       result: t.result || '', yardage: (t.yardage != null ? String(t.yardage) : ''),
       notes: play.notes || '',
     };
@@ -29517,6 +29544,7 @@ class WorkspaceShell {
 
 // ===== breakdown-video.js =====
 /** Production presentation layer for the video-first Break Down workspace. */
+
 class BreakdownVideo {
   constructor(tagger) {
     this.tagger = tagger;
@@ -29777,7 +29805,7 @@ class BreakdownVideo {
 
   _call(play) {
     const tags = play.tags || {};
-    return tags.playType || tags.stType || tags.defFront || tags.formation || 'Untagged';
+    return tags.playType || tags.stType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
   }
 
   _result(play) {
@@ -30744,7 +30772,11 @@ class SuggestionEngine {
  *   - Confirmation dialog shows count + estimated render time
  *   - Modal progress overlay with current play, count, progress bar, cancel
  *   - Title cards (optional) overlaid between plays showing play number + tags
+ *
+ * E3b: the title-card look line is TagProjection.lookLabel (a presentation
+ * string), not a raw `tags.formation` read.
  */
+
 class CutupExporter {
   constructor(videoController, playTagger, playFilter, playlistManager) {
     this.vc = videoController;
@@ -30929,7 +30961,8 @@ class CutupExporter {
     const lines = [];
     if (t.quarter) lines.push(t.quarter);
     if (t.down) lines.push(`${t.down}${this._suffix(t.down)} & ${t.distance || '?'}`);
-    if (t.formation) lines.push(t.formation);
+    const look = TagProjection.lookLabel(t);
+    if (look) lines.push(look);
     if (t.playType) lines.push(t.playType);
     if (t.result) lines.push(`${t.result}${t.yardage ? ' (' + t.yardage + ' yds)' : ''}`);
 
@@ -34210,7 +34243,11 @@ class CallSheetBuilder {
   _playLabel(p) {
     const t = p.tags || {};
     const parts = [];
-    if (t.formation) parts.push(t.formation);
+    // E3b: the spoken-call label (alignment + structure), not a raw formation
+    // read — a legacy "Shotgun + Trips" play must not print "Shotgun + Trips"
+    // literally when qbAlignment/formation have since been split apart elsewhere.
+    const look = TagProjection.lookLabel(t);
+    if (look) parts.push(look);
     if (t.personnel) parts.push(t.personnel);
     if (t.playType) parts.push(t.playType);
     // Coaches often type the real play call ("Power R 34 Lead") in notes —

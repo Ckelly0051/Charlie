@@ -1034,6 +1034,17 @@ ok(r.pickSix === 'TD 40', 'pick-six "Interception + Touchdown" shows TD (was the
 ok(r.scoopScore === 'TD 20', 'scoop-and-score "Fumble + Touchdown" shows TD', JSON.stringify(r));
 ok(r.strip === 'Fum' && r.gain === '+8' && r.inc === 'Inc', 'other multi/single results map (strip-sack→Fum, gain→+8, incomplete→Inc)', JSON.stringify(r));
 
+console.log('\n== 31b. Call sheet: play label projects a legacy mixed formation (E3b) ==');
+r = await page.evaluate(() => {
+  const cs = window.app.callSheet;
+  const legacy = { id: 1, notes: '', tags: { formation: 'Shotgun + Trips', personnel: '11', playType: 'Deep Pass' } };
+  const modern = { id: 2, notes: '', tags: { qbAlignment: 'Pistol', formation: 'Ace', playType: 'Run Inside' } };
+  return { legacy: cs._playLabel(legacy), modern: cs._playLabel(modern) };
+});
+ok(r.legacy.startsWith('Shotgun Trips '), 'a legacy mixed formation label leads with the SPLIT phrase, not "Shotgun + Trips"', JSON.stringify(r));
+ok(!r.legacy.includes('+'), 'the call-sheet label never leaks the " + " join artifact');
+ok(r.modern.startsWith('Pistol Ace '), 'a modern split play composes qbAlignment + formation the same way', JSON.stringify(r));
+
 console.log('\n== 32. Cut-up export: real-region filter + seek never hangs ==');
 r = await page.evaluate(async () => {
   const cut = window.app.cutup;
@@ -1052,6 +1063,32 @@ r = await page.evaluate(async () => {
 ok(r.kept === '2', 'export filter keeps only plays with a real region (drops zero-length, was always-true)', JSON.stringify(r));
 ok(r.atMs < 200, 'a seek to the current position resolves immediately (no infinite hang)', JSON.stringify(r));
 ok(r.toMs >= 2500 && r.toMs < 5000, 'a seek that never fires "seeked" is bounded by the timeout (~3s), not forever', JSON.stringify(r));
+
+console.log('\n== 32b. Cut-up export: title card projects a legacy mixed formation (E3b) ==');
+r = await page.evaluate(async () => {
+  const cut = window.app.cutup;
+  const calls = [];
+  const fakeCtx = {
+    fillText: (text) => calls.push(text),
+    fillRect() {}, set fillStyle(v) {}, set font(v) {}, set textAlign(v) {},
+  };
+  const legacy = { id: 1, tags: { formation: 'Shotgun + Trips', down: '3', distance: '7' } };
+  await cut._drawTitleCard(fakeCtx, 400, 300, legacy, 1, 5);
+  return { calls };
+});
+ok(r.calls.some(c => c === 'Shotgun Trips'), 'the title card draws the SPLIT look label as its own line', JSON.stringify(r.calls));
+ok(!r.calls.some(c => c.includes('+')), 'no drawn line contains the " + " join artifact', JSON.stringify(r.calls));
+
+console.log('\n== 32c. Break Down video caption falls back to the projected look (E3b) ==');
+r = await page.evaluate(() => {
+  const bv = window.app.breakdownVideo;
+  // No playType/stType/defFront — the caption falls all the way back to the look.
+  const legacy = { tags: { formation: 'Shotgun + Trips' } };
+  const withPlayType = { tags: { formation: 'Shotgun + Trips', playType: 'Deep Pass' } };
+  return { legacy: bv._call(legacy), withPlayType: bv._call(withPlayType) };
+});
+ok(r.legacy === 'Shotgun Trips', 'the caption fallback shows the SPLIT look, not the raw joined formation', JSON.stringify(r));
+ok(r.withPlayType === 'Deep Pass', 'playType still wins over the look fallback when present', JSON.stringify(r));
 
 console.log('\n== 33. Persist hardening: max-id nextId + same-ms backups don\'t collide ==');
 r = await page.evaluate(async () => {

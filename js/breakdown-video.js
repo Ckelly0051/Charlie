@@ -1,4 +1,6 @@
 /** Production presentation layer for the video-first Break Down workspace. */
+import { TagProjection } from './tag-projection.js';
+
 export class BreakdownVideo {
   constructor(tagger) {
     this.tagger = tagger;
@@ -259,7 +261,7 @@ export class BreakdownVideo {
 
   _call(play) {
     const tags = play.tags || {};
-    return tags.playType || tags.stType || tags.defFront || tags.formation || 'Untagged';
+    return tags.playType || tags.stType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
   }
 
   _result(play) {

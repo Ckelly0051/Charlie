@@ -14,7 +14,12 @@
  *   - Confirmation dialog shows count + estimated render time
  *   - Modal progress overlay with current play, count, progress bar, cancel
  *   - Title cards (optional) overlaid between plays showing play number + tags
+ *
+ * E3b: the title-card look line is TagProjection.lookLabel (a presentation
+ * string), not a raw `tags.formation` read.
  */
+import { TagProjection } from './tag-projection.js';
+
 export class CutupExporter {
   constructor(videoController, playTagger, playFilter, playlistManager) {
     this.vc = videoController;
@@ -199,7 +204,8 @@ export class CutupExporter {
     const lines = [];
     if (t.quarter) lines.push(t.quarter);
     if (t.down) lines.push(`${t.down}${this._suffix(t.down)} & ${t.distance || '?'}`);
-    if (t.formation) lines.push(t.formation);
+    const look = TagProjection.lookLabel(t);
+    if (look) lines.push(look);
     if (t.playType) lines.push(t.playType);
     if (t.result) lines.push(`${t.result}${t.yardage ? ' (' + t.yardage + ' yds)' : ''}`);
 

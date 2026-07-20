@@ -16,7 +16,15 @@
  *
  * Escaping: plan name/notes/labels + play notes travel in importable seasons, so
  * html() escapes every interpolated string (stored-XSS boundary, lesson #18).
+ *
+ * E3b: `formation` here is TagProjection.lookLabel — a presentation STRING
+ * (alignment + structure, e.g. "Shotgun Trips"), not a raw `tags.formation`
+ * read and not a Formation ANALYTICS column. Refs and order are untouched;
+ * only the label is projected. See tag-projection.js `lookLabel` for why this
+ * composition is deliberate here but forbidden in a column-shaped surface.
  */
+import { TagProjection } from './tag-projection.js';
+
 export class PlanExport {
   /**
    * Resolve a plan into an ordered, film-linked export object:
@@ -63,7 +71,7 @@ export class PlanExport {
     return {
       ...base, missing: false,
       situation: PlanExport._situation(t),
-      formation: t.formation || '', playType: t.playType || '',
+      formation: TagProjection.lookLabel(t), playType: t.playType || '',
       result: t.result || '', yardage: (t.yardage != null ? String(t.yardage) : ''),
       notes: play.notes || '',
     };

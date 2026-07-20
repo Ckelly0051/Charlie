@@ -12,6 +12,7 @@
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { PlayDiagram } from './play-diagram.js';
 import { StatsEngine } from './stats-engine.js';
+import { TagProjection } from './tag-projection.js';
 
 const BUCKETS = [
   { id: 'openers',   label: 'Openers',        count: 8,  filter: (p, i) => i < 15 },
@@ -172,7 +173,11 @@ export class CallSheetBuilder {
   _playLabel(p) {
     const t = p.tags || {};
     const parts = [];
-    if (t.formation) parts.push(t.formation);
+    // E3b: the spoken-call label (alignment + structure), not a raw formation
+    // read — a legacy "Shotgun + Trips" play must not print "Shotgun + Trips"
+    // literally when qbAlignment/formation have since been split apart elsewhere.
+    const look = TagProjection.lookLabel(t);
+    if (look) parts.push(look);
     if (t.personnel) parts.push(t.personnel);
     if (t.playType) parts.push(t.playType);
     // Coaches often type the real play call ("Power R 34 Lead") in notes —
