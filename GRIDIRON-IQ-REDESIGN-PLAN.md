@@ -466,6 +466,28 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b FINAL ACCEPTANCE - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: 5dce03c
+
+- All E3b consumer projection and film-link equality work is accepted.
+- Study uses canonical DIMENSION_CUT coverage, exposes QB Alignment/Coverage
+  Family, and row Watch equals registry composite refs.
+- Film Room renders all six projected fields, preserves exact composite Watch
+  sets, and provides top/share tendencies using the projected grouping,
+  eligible-play denominator, and minimum-three threshold.
+- Filters and projected CSV, call-sheet, Plan, cut-up title, and Breakdown
+  presentation consumers are accepted; edit/store paths remain intentional.
+- Independent checks: Film Room 139/139, Study query 35/35, Study screen 55/55,
+  raw-read audit 11/11, canonical fresh-build gate 56/56.
+- No findings remain. E4 is unblocked.
+- Separate pre-package requirement: canonical season save/reopen durability must
+  be proved directly; CSV round-trip is not a substitute.
+
+NEXT ACTION
+Begin E4 projection-aware editing. Explicitly decide safe Film Room editing for
+Backfield/Strength alongside QB Alignment/Coverage Family. View, cancel, and
+navigation must never write.
+
 === E3b-14 RE-REVIEW - ONE CHANGE REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: 9afd51d
 

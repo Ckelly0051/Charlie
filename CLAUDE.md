@@ -18,32 +18,26 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b-14 one change requested)
+### Current working state (2026-07-20, E3b complete and accepted)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-14 CHANGES REQUESTED at `9afd51d`.** Three of the four
-prior findings are closed: Study reads the canonical DIMENSION_CUT mapping,
-Film Room Watch compares composite refs end to end, and the real Study UI proves
-QB Alignment/Coverage Family row-to-Watch registry equality with non-vacuous
-same-game fixtures.
+**ACTIVE HANDOFF — E3b FINAL ACCEPTANCE at `5dce03c`.** The complete
+consumer-projection lane is accepted. Study, Film Room, filters, CSV, call
+labels, Plan, cut-up titles, and Breakdown captions use the canonical projected
+tag view where required while edit/store paths remain deliberate. Film links
+retain exact composite refs, all six projected Film Room columns equal registry
+sets, and their tendencies use projected grouping with eligible denominators.
 
-One production issue remains. Film Room's four `proj-readonly` categorical
-columns (QB Alignment, Backfield, Strength, Coverage Family) render blank
-tendency cells because `_tendency()` handles only `type === 'enum'`. The
-binding E3b contract says projected column tendencies use the same projected
-grouping and eligible denominator. Pinning their absence does not close that
-contract and leaves useful at-a-glance information blank.
+Independent verification: Film Room 139/139, Study query 35/35, Study screen
+55/55, raw-read audit 11/11, and canonical fresh-build gate 56/56 including
+real data, parity, integrity, storage, and zero page errors. No findings remain.
 
-Required repair: let `proj-readonly` categorical columns use the existing enum
-tendency calculation while remaining non-editable. Add independent top/share
-and eligible-denominator assertions for QB Alignment, Backfield, Strength, and
-Coverage Family; preserve blank when fewer than three eligible plays exist.
-
-Independent focused verification before this finding: Study query 35/35, Film
-Room 135/135, Study screen 55/55. Builder reports canonical gate 56/56 and raw
-audit 11/11. No full gate was repeated because this production fix is required.
+**Next:** E4 projection-aware editing is unblocked. It must decide safe editing
+for the split fields and the newly exposed Backfield/Strength columns without
+writing on view/cancel. Canonical season save/reopen durability remains a
+separate required proof before packaging; CSV round-trip is not its substitute.
 
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit

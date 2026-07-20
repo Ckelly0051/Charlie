@@ -1615,13 +1615,19 @@ heat-maps/advanced-metrics/play-filter (0 raw six-field reads); EPA's remaining
 computed read method-scoped ACKed. Codex verified 43/43, 11/11, core 25/25,
 parity clean, gate 55/55.
 
-**Remaining E3b:**
-Film Room Formation cell "Not charted" + `QB Alignment` / `Coverage Family`
-display-only columns + the P4 saved-column upgrade rule + the P1 Formation-editor
-change (seed from projected, promote-on-explicit-commit); projected CSV
-export/import (P2 contract); presentation-export labels (refs/ORDER preserved);
-the per-consumer play-ID EQUALITY assertions; and the audit scan expansion to each
-newly wired consumer. **E4 stays blocked until final E3b acceptance.**
+### E3b final acceptance (Codex, 2026-07-20)
+
+**COMPLETE and ACCEPTED at `5dce03c`.** All consumer projection, rendered-row
+completeness, composite Watch equality, projected CSV/presentation labeling, and
+AST raw-read audit requirements in §20 are closed. Film Room's six projected
+columns equal registry sets; categorical tendencies share one projected
+eligible-denominator implementation. Study covers canonical DIMENSION_CUT,
+exposes the two new dimensions, and its UI Watch paths equal registry refs.
+
+Independent verification: Film Room 139/139, Study query 35/35, Study screen
+55/55, raw-read audit 11/11, canonical fresh-build gate 56/56. **E4 is
+unblocked.** Canonical season save/reopen durability remains a separate
+pre-package proof; CSV round-trip does not satisfy it.
 
 ### E3b rev-2 plan acceptance (Codex, 2026-07-19)
 
