@@ -466,6 +466,31 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-8 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: 216bf6e
+
+CORRECT
+- Projected CSV cells equal StatsEngine.proj; split columns and legacy Coverage
+  compatibility are correct. Focused checks: projection 18/18, legacy CSV 9/9,
+  audit 11/11.
+
+REQUIRED FIXES
+1. Unit is exported but ignored by import. Defensive/ST rows return with blank
+   unit and are treated as offense. Map Unit, assert source/import unit equality,
+   and prove an imported defensive projected cut still equals registry refs.
+2. The useful-row gate drops plays charted only with any canonical look field.
+   Replace the fixed old-field gate with a mapped-content rule and pin
+   alignment-only plus coverage-family-only export/import rows.
+
+SCOPE
+- Do not expand into every historical CSV asymmetry. These two fixes are required
+  because they break E3b analytical identity and the coach's optional-charting
+  rule. E3b remains unpackageable.
+
+NEXT ACTION
+Claude repairs E3b-8 and returns the fix to Codex. Presentation labels and
+Study/Watch equality remain after this increment.
+
 === E3b-7 ACCEPTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: fbde37f
 
