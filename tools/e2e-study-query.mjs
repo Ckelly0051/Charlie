@@ -38,13 +38,41 @@ const result = await page.evaluate((fixture) => {
   if (window.app.stats.filter) window.app.stats.filter.active = false;
   const plays = store.data.games.flatMap(g => g.plays || []);
 
-  // Dimension -> the golden drilldown cut type it must reproduce.
-  const dims = { formation: 'formation', qbAlignment: 'qbAlignment', coverage: 'coverage', coverageFamily: 'coverageFamily', defFront: 'defFront', runPass: 'runpass', down: 'down', personnel: 'personnel', blitz: 'blitz' };
+  // ALL 15 dimensions StudyQuery.DIMENSION_CUT maps to a report cut — every one
+  // of them, not a convenience subset. (Review finding: the first pass covered
+  // only 9/15; the golden file itself has drilldowns for all 15 cut prefixes,
+  // confirmed via tools/parity-golden/synthetic-edge.json before expanding.)
+  const dims = { formation: 'formation', qbAlignment: 'qbAlignment', playType: 'playType',
+    personnel: 'personnel', backfield: 'backfield', strength: 'strength', down: 'down',
+    playDir: 'playDir', motion: 'motion', hash: 'hash', coverage: 'coverage',
+    coverageFamily: 'coverageFamily', defFront: 'defFront', blitz: 'blitz', runPass: 'runpass' };
+  // Unit gate _buildCutFilter applies per cut (case-by-case in stats-engine.js) —
+  // needed below so the INDEPENDENT enumeration doesn't count a value from the
+  // wrong unit's plays and produce a false mismatch.
+  const OFF_DIMS = new Set(['formation', 'qbAlignment', 'playType', 'personnel', 'backfield',
+    'strength', 'down', 'playDir', 'motion', 'hash', 'runPass']);
   const registry = window.app.analyticsRegistry;
+  const isOff = p => (p.tags.unit || 'offense') === 'offense';
+  const isDef = p => p.tags.unit === 'defense';
+  // Review finding 1: BOTH prior checks derived their "expected" value set from
+  // the consumer's own output (Study's q.groups), so a value Study silently
+  // DROPS entirely was invisible to either check — the assertion never even
+  // looked for it. This enumerates the true distinct value set FIRST, straight
+  // off the raw play array via the registry's per-play value extractor (which
+  // StudyQuery.run() never calls directly — Study only reaches it through
+  // registry.values() called from ITS OWN _distinct()/_cohort(), a different
+  // call path than iterating `plays` here), so a dropped group shows up as a
+  // set-membership mismatch instead of silently having nothing to compare against.
+  const expectedValues = (dim) => {
+    const gate = OFF_DIMS.has(dim) ? isOff : isDef;
+    const set = new Set();
+    for (const p of plays) { if (!gate(p)) continue; for (const v of registry.values(dim, p)) if (v) set.add(v); }
+    return [...set].sort();
+  };
   const grouped = {};
   for (const [dim, cut] of Object.entries(dims)) {
     const q = study.run({ plays, dimension: dim, measures: ['sampleSize', 'runShare', 'passShare', 'successRate'] });
-    grouped[dim] = { cut, total: q.total, groups: q.groups.map(g => ({
+    grouped[dim] = { cut, total: q.total, expected: expectedValues(dim), groups: q.groups.map(g => ({
       value: g.value, ids: g.matchingPlayIds, sampleSize: g.sampleSize, measures: g.measures,
       // Independent second computation, NOT read from the golden file — the D-E3split
       // standard is "not merely golden-equal": the golden and Study's own grouping
@@ -55,8 +83,8 @@ const result = await page.evaluate((fixture) => {
     })) };
   }
 
-  // Filter semantics: OR within a filter, AND across filters.
-  const isOff = p => (p.tags.unit || 'offense') === 'offense';
+  // Filter semantics: OR within a filter, AND across filters. (isOff/isDef
+  // declared above, reused here — no second declaration.)
   const passRun = study.run({ plays, dimension: 'down', filters: [{ dimension: 'runPass', values: ['Run'] }] });
   const expectRun = plays.filter(p => window.app.stats.constructor.isRun(p)).length;
   const andQ = study.run({ plays, dimension: 'formation', filters: [{ dimension: 'runPass', values: ['Run'] }, { dimension: 'down', values: ['2'] }] });
@@ -147,6 +175,22 @@ if (!result.missing) {
     if (registryMismatch) break;
   }
   ok(!registryMismatch, `Every Study group's matchingPlayIds equals an INDEPENDENTLY-computed AnalyticsRegistry.matchingRefs (${registryChecked} groups, incl. qbAlignment/coverageFamily)`, registryMismatch);
+
+  // 1d. COMPLETENESS — catches a group Study silently DROPS entirely. Compares
+  // the value set Study reported against the value set independently enumerated
+  // from raw plays (built above, never touching study.run()'s own output).
+  let completenessMismatch = '';
+  let dimsChecked = 0;
+  for (const [dim, block] of Object.entries(result.grouped)) {
+    dimsChecked++;
+    const actual = block.groups.map(g => g.value).sort();
+    const expected = block.expected;
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      completenessMismatch = `${dim}: Study produced ${JSON.stringify(actual)}, independently-enumerated raw plays expect ${JSON.stringify(expected)}`;
+      break;
+    }
+  }
+  ok(!completenessMismatch, `Every Study dimension's group SET is complete — no value silently dropped (${dimsChecked} dimensions)`, completenessMismatch);
 
   // Golden coverage the other way: every report-backed formation drilldown is produced by a group.
   const goldFormations = Object.keys(gd).filter(k => k.startsWith('formation::')).map(k => k.slice('formation::'.length)).sort();

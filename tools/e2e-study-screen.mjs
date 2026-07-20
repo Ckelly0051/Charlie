@@ -362,6 +362,53 @@ await capture('plan-presentation-390x844');
 await page.keyboard.press('Escape');
 await page.evaluate(async itemId=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];store.removePlanItem(plan.id,itemId);await store.persist();app.planScreen.render();},mobilePresentation.itemId);
 await capture('study-390x844');
+
+// E3b review finding: qbAlignment/coverageFamily were 'ready' in the registry
+// and fully proven at the query-engine level, but StudyScreen.DIMENSIONS never
+// listed them, so a coach could not select either in the actual product — the
+// direct query tests passing said nothing about reachability through the UI
+// a coach actually uses. Drive the REAL <select> (fires a real 'change' event
+// through _bind(), same as every other selector test in this file) and prove
+// the resulting rows are genuine projected data, not just that the <option>
+// exists.
+await page.setViewport({ width: 1280, height: 800 });
+await page.evaluate(() => {
+  // g-study-1 is the ACTIVE game — mutate the LIVE tagger.plays, not
+  // store.data.games[...] directly. Writing only to store.data was silently
+  // undone: any later commitActive() (e.g. inside workspaceShell.show) re-
+  // serializes the live tagger array back over the active game's node,
+  // discarding a direct store.data edit that never went through the tagger.
+  window.app.tagger.plays.find(p => p.id === 1).tags.qbAlignment = 'Shotgun';   // offense play
+  window.app.tagger.plays.find(p => p.id === 3).tags.coverageFamily = 'Zone';   // defense play
+  window.app.storage.commitActive();
+  return window.app.workspaceShell.show('study');
+});
+// Reset every filter/scope/unit/compare knob this shared page has accumulated
+// from earlier sections in this file — this check must isolate the dimension
+// selector itself, not depend on incidentally-clean leftover state.
+if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) {
+  await page.click('[data-study-action="clear-filters"]');
+}
+await page.select('#wsStudyUnit', '');
+await page.select('#wsStudyCompare', '');
+await page.select('#wsStudyScope', 'season');
+r = await page.evaluate(() => ({
+  options: [...document.querySelectorAll('#wsStudyDimension option')].map(o => ({ value: o.value, text: o.textContent })),
+}));
+const qbOpt = r.options.find(o => o.value === 'qbAlignment');
+const famOpt = r.options.find(o => o.value === 'coverageFamily');
+ok(!!qbOpt && qbOpt.text === 'QB Alignment', '"Break down by" lists QB Alignment with the registry-derived label', JSON.stringify(r.options));
+ok(!!famOpt && famOpt.text === 'Coverage Family', '"Break down by" lists Coverage Family with the registry-derived label', JSON.stringify(r.options));
+
+await page.select('#wsStudyDimension', 'qbAlignment');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
+ok(r.groups.includes('Shotgun') && !r.groups.includes('Unknown'), 'selecting QB Alignment in the real UI renders the projected value from a live play, end to end', JSON.stringify(r));
+
+await page.select('#wsStudyDimension', 'coverageFamily');
+r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
+ok(r.groups.includes('Zone') && !r.groups.includes('Unknown'), 'selecting Coverage Family in the real UI renders the projected value from a live play, end to end', JSON.stringify(r));
+await page.select('#wsStudyDimension', 'formation');
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

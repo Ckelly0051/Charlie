@@ -1,9 +1,15 @@
 /** Interactive Study workspace over the parity-locked StudyQuery engine. */
 export class StudyScreen {
   static get DIMENSIONS() {
-    return ['formation', 'playType', 'runPass', 'down', 'distance', 'quarter',
+    // E3b review finding: qbAlignment/coverageFamily were 'ready' in the
+    // AnalyticsRegistry and fully proven at the query-engine level (registry-set
+    // equality, completeness), but this hardcoded list never listed them — so a
+    // coach could not select either dimension in Study at all. Positioned next to
+    // their structural counterpart (qbAlignment after formation, coverageFamily
+    // after coverage), mirroring the Film Room column placement.
+    return ['formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
-      'playDir', 'defFront', 'coverage', 'blitz', 'result', 'playerRole', 'grade',
+      'playDir', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore',
       'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
       'customTag', 'customField'];

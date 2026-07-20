@@ -28657,9 +28657,15 @@ class PlanExport {
 /** Interactive Study workspace over the parity-locked StudyQuery engine. */
 class StudyScreen {
   static get DIMENSIONS() {
-    return ['formation', 'playType', 'runPass', 'down', 'distance', 'quarter',
+    // E3b review finding: qbAlignment/coverageFamily were 'ready' in the
+    // AnalyticsRegistry and fully proven at the query-engine level (registry-set
+    // equality, completeness), but this hardcoded list never listed them — so a
+    // coach could not select either dimension in Study at all. Positioned next to
+    // their structural counterpart (qbAlignment after formation, coverageFamily
+    // after coverage), mirroring the Film Room column placement.
+    return ['formation', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion',
-      'playDir', 'defFront', 'coverage', 'blitz', 'result', 'playerRole', 'grade',
+      'playDir', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore',
       'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
       'customTag', 'customField'];
@@ -31261,6 +31267,13 @@ class PlayGrid {
     // columns are `proj-readonly` — DISPLAY-ONLY in E3b by contract; their safe
     // inline editing (with the field-level merge) lands in E4 / D-projform.
     { key: 'qbAlignment', label: 'QB Align', type: 'proj-readonly', unit: 'offense' },
+    // The remaining two of the six StatsEngine.PROJECTED_FIELDS. Same shape as
+    // QB Alignment/Coverage Family — DISPLAY-ONLY (proj-readonly) in E3b; safe
+    // inline editing lands in E4 / D-projform. Not in any default PRESET (no
+    // coach decision requested that), but available in the Columns menu like
+    // any other column, since PlayGrid.COLUMNS is its single source of truth.
+    { key: 'backfield', label: 'Backfield', type: 'proj-readonly', unit: 'offense' },
+    { key: 'strength',  label: 'Strength',  type: 'proj-readonly', unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },

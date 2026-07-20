@@ -53,6 +53,13 @@ export class PlayGrid {
     // columns are `proj-readonly` — DISPLAY-ONLY in E3b by contract; their safe
     // inline editing (with the field-level merge) lands in E4 / D-projform.
     { key: 'qbAlignment', label: 'QB Align', type: 'proj-readonly', unit: 'offense' },
+    // The remaining two of the six StatsEngine.PROJECTED_FIELDS. Same shape as
+    // QB Alignment/Coverage Family — DISPLAY-ONLY (proj-readonly) in E3b; safe
+    // inline editing lands in E4 / D-projform. Not in any default PRESET (no
+    // coach decision requested that), but available in the Columns menu like
+    // any other column, since PlayGrid.COLUMNS is its single source of truth.
+    { key: 'backfield', label: 'Backfield', type: 'proj-readonly', unit: 'offense' },
+    { key: 'strength',  label: 'Strength',  type: 'proj-readonly', unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
