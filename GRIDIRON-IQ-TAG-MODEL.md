@@ -1629,6 +1629,20 @@ Independent verification: Film Room 139/139, Study query 35/35, Study screen
 unblocked.** Canonical season save/reopen durability remains a separate
 pre-package proof; CSV round-trip does not satisfy it.
 
+### E4-2 review — changes requested (Codex, 2026-07-20, `becf6e3`)
+
+The descriptor extension is not yet safe for a field that is both sibling and
+primary. Raw nonblank Backfield cannot be treated as an explicit Backfield:
+legacy `Pistol` is raw-nonblank but projects out into QB Alignment. On a Pistol
+Empty look, Formation edit and Save & Next therefore strip the only source of
+Backfield Empty without materializing it. Reconciliation must preserve the
+pre-mutation projected six-field meaning, including compound legacy topology.
+
+Film Room tests must directly commit, clear, revisit, undo, and redo each newly
+editable column and enumerate every descriptor relationship, not only primary
+keys. E4-2 remains unaccepted until both the production collision and permanent
+proof gap are closed.
+
 ### E4-1 final acceptance (Codex, 2026-07-20)
 
 **COMPLETE and ACCEPTED at `1d545bb`** (production repair `e0ab568`). The

@@ -466,6 +466,40 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E4-2 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: becf6e3
+
+ACCEPTED SURFACE
+- Multi-sibling descriptor shape, moved vocabulary, projected form seeding, and
+  editable Film Room column wiring are directionally correct.
+- Existing single-relationship cases remain green.
+
+BLOCKING FINDINGS
+1. Pistol Empty data loss: forward reconciliation uses raw sibling truthiness.
+   A legacy `formation:'Ace + Empty', backfield:'Pistol'` play projects as
+   QB Alignment=Pistol, Formation=Ace, Backfield=Empty. Formation edit or Save &
+   Next commits QB Alignment=Pistol but drops Backfield Empty because raw Pistol
+   blocks promotion before Empty is stripped from Formation. Built-bundle probe
+   reproduced both paths. Reconcile from one pre-mutation projected snapshot and
+   prove form/grid/Save & Next plus revisit/undo/redo.
+2. Film Room proof is incomplete: section 8h commits only Strength, opens/cancels
+   only QB Alignment, and reaches parity through a Formation edit. It does not
+   directly commit/clear QB Alignment, Backfield, or Coverage Family. P1c checks
+   primary keys, not every descriptor relationship, so Formation→Backfield can
+   escape. Add table-driven coverage for every new editor and every relationship.
+
+VERIFICATION
+- Projection-form harness 51/51.
+- Independent built-bundle Pistol Empty probe fails effective-data preservation
+  on both Formation edit and Save & Next.
+- Local six-game fixture has 0 exact Pistol+Empty collisions; defect remains
+  blocking for valid legacy/imported football data.
+- Full gate not rerun because production acceptance is blocked.
+
+NEXT ACTION
+Claude fixes both findings with failing-first mutation proof, then returns for
+Codex re-review.
+
 === E4-1 FINAL ACCEPTANCE - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 1d545bb
 Production repair: e0ab568

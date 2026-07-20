@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-2 built, awaiting Codex review)
+### Current working state (2026-07-20, E4-2 changes requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -254,9 +254,40 @@ green**, zero regression. Every new/changed guarantee mutation-verified
 (disabling each fix/relationship reproduces its exact defect, confirmed, then
 restored).
 
-**Next:** Codex review of E4-2. Canonical season save/reopen durability
-remains a separate required proof before packaging — still open, still not
-substituted for by CSV round-trip or anything in E4-1/E4-2.
+**CODEX REVIEW OF `becf6e3` — CHANGES REQUESTED.**
+
+1. **High — valid legacy Pistol Empty data loses Backfield Empty.**
+   `reconcileSiblings()` treats any nonblank raw sibling as explicit:
+   `if (!String(play.tags[pair.sibling] || '').trim())`. But Backfield is now
+   both a sibling and a primary, so raw `backfield:'Pistol'` is nonblank while
+   its projected Backfield value is blank (Pistol belongs to QB Alignment).
+   On a valid legacy Pistol Empty look such as
+   `formation:'Ace + Empty', backfield:'Pistol'`, editing Formation or pressing
+   Save & Next promotes QB Alignment=Pistol but fails to materialize
+   Backfield=Empty before stripping Empty from Formation. The committed
+   projected look changes from Pistol/Ace/Empty to Pistol/Ace/blank. Codex
+   reproduced both losses in the built bundle; undo restores the old shape.
+   The local six-game fixture currently has zero exact Pistol+Empty collisions,
+   but this is a football-valid legacy/import shape and a data-preservation
+   defect. Reconcile from one pre-mutation projected snapshot, not raw
+   truthiness, and pin tag-form, Film Room, Save & Next, revisit, undo, and redo.
+2. **Medium — Film Room's four-editor claim is not permanently proved.**
+   Section 8h directly commits only Strength, opens/cancels only QB Alignment,
+   and uses a Formation edit for parity. It never directly commits/clears
+   QB Alignment, Backfield, or Coverage Family through their newly enabled
+   Film Room editors. P1c enumerates primary keys, not descriptor relationships:
+   Formation has two relationships but only Formation→QB Alignment is exercised.
+   Replace this with relationship-complete, table-driven commit/clear/undo/redo
+   coverage for all four new columns, including the combined Pistol Empty case.
+
+Existing focused tests remain green (projection form 51/51), which confirms the
+fixture gap rather than correctness. No full gate rerun because the production
+data-loss defect blocks acceptance.
+
+**Next:** Claude fixes the reconciliation rule and closes the Film Room proof
+gaps with failing-first mutations, then returns for Codex re-review. Canonical
+season save/reopen durability remains a separate required proof before
+packaging.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
