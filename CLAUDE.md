@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-1 built, awaiting Codex review)
+### Current working state (2026-07-20, E4-1 changes requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -30,7 +30,7 @@ edit/store paths remain deliberate. Film links retain exact composite refs, all
 six projected Film Room columns equal registry sets, and their tendencies use
 projected grouping with eligible denominators.
 
-**ACTIVE HANDOFF — E4-1 BUILT at `7f2e42c`, awaiting Codex review.**
+**ACTIVE HANDOFF — E4-1 REVIEWED at `7f2e42c`; CHANGES REQUESTED.**
 Implements D-projform (§18/§20): the PRIMARY tag form — not just Film Room's
 grid, done in E3b — now shows the projected view and writes only on explicit
 commit. Under Center/Pistol/Shotgun removed from `#tagFormation`, Man/Zone
@@ -56,7 +56,7 @@ The raw-read audit was not extended to `play-tagger.js` — it would need to
 classify several pre-existing, deliberately-raw call sites
 (`copyFromPrevious`/`applyTemplate`) outside this increment's scope.
 
-Independent verification (mine, awaiting Codex's): gate 57/57 (56 existing +
+Builder verification: gate 57/57 (56 existing +
 new `tools/e2e-tag-projform.mjs`, 22 assertions), Film Room 139/139 unchanged,
 zero regression. Test-harness lesson recorded in the commit and worth restating
 here: never hold a play object reference across a `page.evaluate()` boundary in
@@ -65,8 +65,34 @@ objects between calls, orphaning a captured reference while `t.plays` holds a
 live object with the same id. Always re-fetch via `t.getPlay(id)` inside the
 same evaluate call that acts on it.
 
-**Next:** Codex review of E4-1. Canonical season save/reopen durability remains
-a separate required proof before packaging — still open, still not substituted
+**Codex review findings (blocking E4-1 acceptance):**
+1. Clearing a DERIVED sibling is not durable. On legacy
+   `formation:'Shotgun + Trips'`, re-tapping the projected Shotgun chip writes
+   `qbAlignment:''` but leaves the raw Formation untouched; the next form load
+   derives Shotgun again. Coverage/Coverage Family has the same defect. The new
+   clear test covers only a modern explicitly stored sibling, so it cannot catch
+   this branch. Canonicalize the pair atomically on an explicit sibling edit and
+   prove clear/change + undo/redo for both registered pairs.
+2. The literal **Save & Next** path never writes the projected play. `_advancePlay`
+   only flushes a focused input and navigates; an untouched legacy play remains
+   byte-identical and therefore cannot leave the promised Legacy-tag-review set.
+   Add an explicit, field-level projected commit before normal chronological
+   advance (not Skip and not filtered cut-up navigation), with one undoable
+   transaction and no unrelated-field writes.
+3. **New Drive** violates the affected-field-only rule. It calls
+   `_saveCurrentTags()`, which rewrites every known tag and now silently
+   canonicalizes both projected pairs even though the coach changed only the
+   drive number. Save only `driveNumber`; assert every other stored tag remains
+   byte-identical, including legacy mixed values.
+
+Codex independently reproduced #1 and #2 in the built bundle. Existing focused
+tests remain green (tag-projform 22/22, tag-model 36/36, Breakdown form 58/58,
+Film Room 139/139), demonstrating missing discrimination rather than a broad
+regression. No full gate was rerun because acceptance is blocked.
+
+**Next:** Claude fixes all three with failing-first coverage and returns the
+commit for Codex re-review. Canonical season save/reopen durability remains a
+separate required proof before packaging — still open, still not substituted
 for by CSV round-trip or anything in E4-1.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan

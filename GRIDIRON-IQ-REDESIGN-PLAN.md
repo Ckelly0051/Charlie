@@ -466,6 +466,44 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E4-1 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: 7f2e42c
+
+ACCEPTED SURFACE
+- Projected Formation/Coverage and the new QB Alignment/Coverage Family groups
+  render without writing on view/select.
+- Primary pickers no longer offer the moved dimension values.
+- Editing a primary field promotes a missing derived sibling in one undoable
+  transaction; existing explicit siblings win.
+- Shared PROJECTED_PAIRS removes descriptor drift between Film Room and form.
+
+BLOCKING FINDINGS
+1. Derived clear is not durable. Clearing projected Shotgun on a legacy
+   `formation:'Shotgun + Trips'` play stores blank `qbAlignment` while retaining
+   the raw Shotgun token, so reload derives and reselects Shotgun. The same class
+   affects Coverage Family derived from raw Coverage. Canonicalize each pair on
+   explicit sibling edit; prove clear/change and undo/redo for both pairs.
+2. Save & Next does not perform D-projform's explicit projected save. It only
+   flushes a focused input and navigates, leaving an untouched legacy play
+   byte-identical and unable to leave the future Legacy-tag-review set. Commit
+   only moved projected fields before ordinary chronological advance, as one
+   undoable action. Skip and active cut-up navigation must remain non-writing.
+3. New Drive calls `_saveCurrentTags()` and rewrites every form field, including
+   silently canonicalizing unrelated projected pairs. That contradicts the
+   affected-field-only contract. Save only `driveNumber`; prove all other tags
+   stay byte-identical.
+
+VERIFICATION
+- Runtime probe reproduced #1 and #2 against the built bundle.
+- Existing focused suites remain green: tag-projform 22/22, tag-model 36/36,
+  Breakdown form 58/58, Film Room 139/139. Their green state is a coverage gap,
+  not evidence that the three branches work.
+- Full gate not rerun because E4-1 is not acceptable yet.
+
+NEXT ACTION
+Claude fixes the three findings with failing-first regressions, then returns the
+repair commit for Codex re-review.
+
 === E3b FINAL ACCEPTANCE - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 5dce03c
 
