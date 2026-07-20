@@ -18,25 +18,30 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b-9 accepted)
+### Current working state (2026-07-20, E3b-10 changes requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-9 ACCEPTED at `6d87914`.** Both E3b-8 CSV import
-findings are closed. Unit now round-trips through a bounded three-unit
-normalizer, so defense and Special Teams cannot silently become offense.
-Row liveness is derived from recognized mapped content, so plays charted only
-with a canonical look survive while truly blank rows remain skipped.
+**ACTIVE HANDOFF — E3b-10 CHANGES REQUESTED at `26b0ec1`.** The centralized
+presentation seam is directionally correct and the four consumers no longer
+read raw formation, but two semantic gaps remain:
 
-Independent verification: projected CSV 22/22, legacy CSV 9/9, analytics
-projection 43/43, canonical fresh-build gate 56/56. No blocking findings.
+1. Plan export places `TagProjection.lookLabel()` under a literal `Formation`
+   column. The accepted contract says every Formation-labeled cell is structural
+   only. Use projected `formation` there, or separately propose and approve a
+   schema/header rename to `Look`; do not silently change the column's meaning.
+2. `lookLabel()` still leaks the storage delimiter for a valid multi-structure
+   formation: Shotgun + `Flexbone + Trips` renders `Shotgun Flexbone + Trips`.
+   Compose projected structural tokens into a human-facing phrase and add modern
+   and legacy multi-structure tests.
 
-Scope note: this accepts the E3b projected-field CSV contract; it does not claim
-that every historical CSV column forms a complete season backup. Canonical
-season save/reopen durability remains a separate open proof, and CSV is not its
-substitute.
+Independent focused verification: tag model 35/35, plan export 18/18, season
+tab 161/161, but an adversarial valid-input probe reproduces the delimiter leak.
+No full gate was run because changes are required.
 
+Scope note: E3b-9 remains accepted. Canonical season save/reopen durability
+remains a separate open proof, and CSV is not its substitute.
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit
   gesture and emit no write event.

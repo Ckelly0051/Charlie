@@ -466,6 +466,32 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-10 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: 26b0ec1
+
+CORRECT
+- The presentation label is centralized and call sheet, cut-up title card,
+  breakdown-video fallback, and Plan no longer read raw formation directly.
+- Focused committed checks are green: tag model 35/35, plan export 18/18,
+  season tab 161/161. Source refs and ordering are untouched.
+
+REQUIRED FIXES
+1. PlanExport renders `lookLabel()` in a column literally headed `Formation`.
+   This violates the accepted rule that every Formation-labeled cell is
+   structural-only. `_resolveRef` must emit projected structural formation for
+   that property/cell. If the product instead wants a composed call phrase,
+   renaming the property/header to `Look` requires a separate explicit decision.
+2. `lookLabel()` handles only the single-structure fixture. A valid modern play
+   with qbAlignment `Shotgun` and formation `Flexbone + Trips` renders
+   `Shotgun Flexbone + Trips`, leaking the storage delimiter despite the helper's
+   presentation contract. Split the projected structural formation through the
+   canonical token seam and compose a human phrase; pin modern and legacy
+   multi-structure cases.
+
+NEXT ACTION
+Claude repairs both E3b-10 findings and returns the commit for Codex re-review.
+Do not weaken the structural Formation-column contract or alter refs/order.
+Study/Film Room rendered-row and Watch equality remain after this increment.
 === E3b-9 ACCEPTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 6d87914
 
