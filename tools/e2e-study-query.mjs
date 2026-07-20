@@ -38,17 +38,17 @@ const result = await page.evaluate((fixture) => {
   if (window.app.stats.filter) window.app.stats.filter.active = false;
   const plays = store.data.games.flatMap(g => g.plays || []);
 
-  // ALL 15 dimensions StudyQuery.DIMENSION_CUT maps to a report cut — every one
-  // of them, not a convenience subset. (Review finding: the first pass covered
-  // only 9/15; the golden file itself has drilldowns for all 15 cut prefixes,
-  // confirmed via tools/parity-golden/synthetic-edge.json before expanding.)
-  const dims = { formation: 'formation', qbAlignment: 'qbAlignment', playType: 'playType',
-    personnel: 'personnel', backfield: 'backfield', strength: 'strength', down: 'down',
-    playDir: 'playDir', motion: 'motion', hash: 'hash', coverage: 'coverage',
-    coverageFamily: 'coverageFamily', defFront: 'defFront', blitz: 'blitz', runPass: 'runpass' };
-  // Unit gate _buildCutFilter applies per cut (case-by-case in stats-engine.js) —
-  // needed below so the INDEPENDENT enumeration doesn't count a value from the
-  // wrong unit's plays and produce a false mismatch.
+  // Read the canonical mapping DIRECTLY off StudyQuery — no manually-duplicated
+  // dim->cut list to drift out of sync as DIMENSION_CUT grows or changes (review
+  // finding). Confirmed the golden file has drilldowns for all 15 current cut
+  // prefixes via tools/parity-golden/synthetic-edge.json before this went in.
+  const dims = { ...study.constructor.DIMENSION_CUT };
+  // Unit gate _buildCutFilter applies per cut (case-by-case in stats-engine.js).
+  // There is no introspectable canonical source for this split — it lives only
+  // as the isOff()/isDef() calls inside each stats-engine.js switch case — so
+  // this list is maintained by hand and must be updated if a dimension's gate
+  // changes; needed below so the INDEPENDENT enumeration doesn't count a value
+  // from the wrong unit's plays and produce a false mismatch.
   const OFF_DIMS = new Set(['formation', 'qbAlignment', 'playType', 'personnel', 'backfield',
     'strength', 'down', 'playDir', 'motion', 'hash', 'runPass']);
   const registry = window.app.analyticsRegistry;

@@ -287,6 +287,47 @@ ok(r.text === r.expected, 'formation tendency = top value + share', JSON.stringi
 ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)', JSON.stringify(r.multiTend));
 ok(r.subsetTend === 'Trips 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
+console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across ALL SIX projected columns ==');
+// Review finding: the tendency proof above covers Formation only, but the P3
+// contract says "the tendency line must use the SAME projected grouping and
+// eligible denominator" for the projected columns generally. Two of the six
+// (formation, coverage) are type:'enum' and DO compute a real tendency line;
+// the other four (qbAlignment, backfield, strength, coverageFamily) are
+// type:'proj-readonly' and _tendency() returns '' for any type it doesn't
+// recognize — i.e. they make NO denominator claim at all today. Both halves
+// are asserted explicitly below so neither is assumed silently.
+r = await page.evaluate(() => {
+  const grid = window.app.playGrid;
+  const mkDef = (id, coverage, coverageFamily) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'defense', coverage, coverageFamily } });
+  // 'Man' here is a LEGACY family value raw in `coverage` — projects to
+  // Coverage Call = '' (ineligible), Coverage Family = 'Man'. _tendency()
+  // requires >= 3 ELIGIBLE plays before it shows anything at all, so three
+  // real Cover 2 calls establish that floor; the fourth (Man) play must NOT
+  // count toward it. If Coverage Call's tendency counted the Man play anyway,
+  // eligible=4/Cover2=3 -> "75%" instead of the correct eligible=3/Cover2=3
+  // -> "100%" (mirrors the Formation multi-value discriminator above, for a
+  // single-value column instead).
+  const covPlays = [mkDef(1, 'Cover 2'), mkDef(2, 'Cover 2'), mkDef(3, 'Cover 2'), mkDef(4, 'Man')];
+  const coverageTend = grid._tendency(grid.constructor.COLUMNS.find(c => c.key === 'coverage'), covPlays);
+
+  const mkOff = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, tags: Object.assign({ unit: 'offense' }, tags) });
+  const projReadonlyPlays = [
+    mkOff(4, { qbAlignment: 'Shotgun' }), mkOff(5, { qbAlignment: 'Shotgun' }), mkOff(6, {}),
+  ];
+  const projReadonly = {};
+  for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
+    const col = grid.constructor.COLUMNS.find(c => c.key === key);
+    projReadonly[key] = { type: col.type, tendency: grid._tendency(col, projReadonlyPlays) };
+  }
+  return { coverageTend, projReadonly };
+});
+ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses the ELIGIBLE denominator — the legacy family-mapped play is excluded, not counted as a third eligible play', JSON.stringify(r.coverageTend));
+for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
+  const c = r.projReadonly[key];
+  ok(c.type === 'proj-readonly', `${key} is proj-readonly (display-only in E3b — confirms which half of the six columns this pins)`, JSON.stringify(c));
+  ok(c.tendency === '', `${key} renders NO tendency line (proj-readonly columns make no denominator claim, so there is nothing that could disagree with the eligible count)`, JSON.stringify(c));
+}
+
 console.log('\n== 8d. E3b: projected cells + display-only columns + saved-column upgrade ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
@@ -998,12 +1039,18 @@ r = await page.evaluate(async () => {
   shotgunIds.forEach(id => grid.selected.add(id));
   grid._render();
   await raf2();
-  let watchedIds = null;
+  // Review finding: comparing bare watched ids against bare shotgunIds (both
+  // stripped) weakened the composite-identity proof back to the same gap
+  // finding 3 already fixed elsewhere in this section. Convert the intercepted
+  // ids straight BACK into composite refs and compare against `shotgunRefs`
+  // (never stripped) — the whole Watch proof now stays at composite-ref
+  // granularity end to end.
+  let watchedRefs = null;
   grid.vc = { video: { src: 'fake.mp4' } };
-  grid.cutup = { start: (ids) => { watchedIds = ids.slice().sort((a, b) => a - b); } };
+  grid.cutup = { start: (ids) => { watchedRefs = ids.map(compositeRef).sort(); } };
   document.getElementById('pgWatch').click();
 
-  const out = { perCol, shotgunRefs, shotgunIds, watchedIds };
+  const out = { perCol, shotgunRefs, watchedRefs };
 
   grid.vc = savedVc; grid.cutup = savedCutup;
   tagger.plays = savedPlays;
@@ -1026,7 +1073,7 @@ ok(setEq(r.perCol.qbAlignment.rendered['Shotgun'], ['e3b-p3-fixture::9001', 'e3b
 ok(setEq(r.perCol.formation.rendered['Trips'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9009']) &&
    setEq(r.perCol.formation.rendered['Bunch'], ['e3b-p3-fixture::9002', 'e3b-p3-fixture::9009']),
   'a MULTI-structural formation play (9009, "Trips + Bunch") lands in BOTH rendered groups, alongside their single-value siblings', JSON.stringify({ trips: r.perCol.formation.rendered['Trips'], bunch: r.perCol.formation.rendered['Bunch'] }));
-ok(r.shotgunIds.length > 0 && setEq(r.watchedIds, r.shotgunIds), 'Watch receives EXACTLY the refs of the selected rendered row group, no more, no fewer', JSON.stringify({ selected: r.shotgunIds, watched: r.watchedIds }));
+ok(r.shotgunRefs.length > 0 && setEq(r.watchedRefs, r.shotgunRefs.slice().sort()), 'Watch receives EXACTLY the COMPOSITE refs of the selected rendered row group, no more, no fewer', JSON.stringify({ selected: r.shotgunRefs, watched: r.watchedRefs }));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }

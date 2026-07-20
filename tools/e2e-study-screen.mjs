@@ -378,9 +378,16 @@ await page.evaluate(() => {
   // undone: any later commitActive() (e.g. inside workspaceShell.show) re-
   // serializes the live tagger array back over the active game's node,
   // discarding a direct store.data edit that never went through the tagger.
-  window.app.tagger.plays.find(p => p.id === 1).tags.qbAlignment = 'Shotgun';   // offense play
-  window.app.tagger.plays.find(p => p.id === 3).tags.coverageFamily = 'Zone';   // defense play
-  window.app.storage.commitActive();
+  window.app.tagger.plays.find(p => p.id === 1).tags.qbAlignment = 'Shotgun';        // offense play
+  window.app.tagger.plays.find(p => p.id === 2).tags.qbAlignment = 'Under Center';   // a SECOND, DIFFERENT qbAlignment group, SAME game —
+  window.app.tagger.plays.find(p => p.id === 3).tags.coverageFamily = 'Zone';        // without this, a Watch bug that leaks every row's
+  // A second, different-valued coverageFamily group MUST stay in the SAME game as
+  // the first: a cross-game leak gets silently absorbed by _watch()'s per-game hop
+  // splitting (each hop calls cutupPlayer.start separately), so comparing only the
+  // single most-recent call would stay green even with the leak actually present —
+  // confirmed by reproducing that exact false-negative before writing this comment.
+  window.app.tagger.plays.push({ id: 4, timestamp: { start: 15, end: 19 }, notes: '', tags: { unit: 'defense', coverage: 'Cover 4', coverageFamily: 'Man', down: '2', custom: [] } });
+  window.app.storage.commitActive();                                                // refs into one row's click is undetectable (only one group exists)
   return window.app.workspaceShell.show('study');
 });
 // Reset every filter/scope/unit/compare knob this shared page has accumulated
@@ -404,9 +411,53 @@ await page.select('#wsStudyDimension', 'qbAlignment');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(r.groups.includes('Shotgun') && !r.groups.includes('Unknown'), 'selecting QB Alignment in the real UI renders the projected value from a live play, end to end', JSON.stringify(r));
 
+// Review finding: proving the row RENDERS is not the same as proving Watch
+// wires to it correctly. Click the real "Shotgun" row (reuses the SAME
+// window.__studyCutupCalls capture installed earlier in this file) and assert
+// the exact refs it receives equal an INDEPENDENTLY-computed
+// AnalyticsRegistry.matchingRefs — the same registry-set-equality standard
+// already proven at the engine level, now proven through the actual click path.
+let before = await page.evaluate(() => window.__studyCutupCalls.length);
+const qbClicked = await page.evaluate(() => {
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Shotgun');
+  row?.querySelector('[data-study-row]')?.click();
+  return !!row;
+});
+await page.waitForFunction(n => window.__studyCutupCalls.length > n, {}, before);
+r = await page.evaluate((n) => {
+  const call = window.__studyCutupCalls[n];
+  const refs = call.ids.map(id => `${call.gameId}::${id}`).sort();
+  // StudyScreen stamps __gid onto CLONES of the plays it queries (js/study-screen.js
+  // `stamp()`) rather than mutating store.data.games[...].plays in place — mirror
+  // that exact stamping here so matchingRefs resolves the same composite refs.
+  const plays = window.app.storage.seasonStore.data.games.flatMap(g => (g.plays || []).map(p => ({ ...p, __gid: String(g.id) })));
+  const registryRefs = window.app.analyticsRegistry.matchingRefs(plays, 'qbAlignment', 'Shotgun');
+  return { refs, registryRefs };
+}, before);
+ok(qbClicked && JSON.stringify(r.refs) === JSON.stringify(r.registryRefs) && r.registryRefs.length > 0,
+  'clicking Watch on the QB Alignment "Shotgun" row passes EXACTLY the registry-matching refs to the cut-up player', JSON.stringify(r));
+
 await page.select('#wsStudyDimension', 'coverageFamily');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(r.groups.includes('Zone') && !r.groups.includes('Unknown'), 'selecting Coverage Family in the real UI renders the projected value from a live play, end to end', JSON.stringify(r));
+
+before = await page.evaluate(() => window.__studyCutupCalls.length);
+const famClicked = await page.evaluate(() => {
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Zone');
+  row?.querySelector('[data-study-row]')?.click();
+  return !!row;
+});
+await page.waitForFunction(n => window.__studyCutupCalls.length > n, {}, before);
+r = await page.evaluate((n) => {
+  const call = window.__studyCutupCalls[n];
+  const refs = call.ids.map(id => `${call.gameId}::${id}`).sort();
+  const plays = window.app.storage.seasonStore.data.games.flatMap(g => (g.plays || []).map(p => ({ ...p, __gid: String(g.id) })));
+  const registryRefs = window.app.analyticsRegistry.matchingRefs(plays, 'coverageFamily', 'Zone');
+  return { refs, registryRefs };
+}, before);
+ok(famClicked && JSON.stringify(r.refs) === JSON.stringify(r.registryRefs) && r.registryRefs.length > 0,
+  'clicking Watch on the Coverage Family "Zone" row passes EXACTLY the registry-matching refs to the cut-up player', JSON.stringify(r));
+
 await page.select('#wsStudyDimension', 'formation');
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
