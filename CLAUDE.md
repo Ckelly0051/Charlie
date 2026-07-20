@@ -18,23 +18,32 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b-10 accepted)
+### Current working state (2026-07-20, E3b-12 changes requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-10 ACCEPTED at `11cca88`.** Both presentation-label
-findings are closed. `lookLabel()` re-splits projected multi-value formation and
-builds a delimiter-free spoken phrase. Plan's generated presentation structure
-and printable table call that composed value `Look`, never `Formation`; this is
-an internal transient view, not stored plan/season data, and both consumers were
-updated together without changing refs or order.
+**ACTIVE HANDOFF — E3b-12 CHANGES REQUESTED at `c78df6a`.** This is test-only;
+no production regression was introduced. The focused suites are green (Study
+query 28/28, Film Room 111/111, raw-read audit 11/11), but the new proof is not
+strong enough to close E3b:
 
-Independent verification: tag model 36/36, Plan export 22/22, season tab
-161/161, and canonical fresh-build gate 56/56. No blocking findings.
+1. Both equality checks derive expected value keys from consumer output. A group
+   omitted by Study or Film Room is never checked, so the test passes. Build the
+   expected value universe independently from registry values and compare keys
+   plus refs in both directions.
+2. Study covers 9 of 15 `DIMENSION_CUT` mappings, omitting playType, backfield,
+   strength, playDir, motion, and hash. Film Room covers only qbAlignment and
+   coverageFamily, not all six projected columns or their tendency outputs.
+3. Film Room strips `gameId::` before comparison and Watch capture, reducing the
+   identity contract to bare play IDs. Preserve/reconstruct composite refs.
+4. Production Study still omits QB Alignment and Coverage Family from the primary
+   `Break down by` selector. The harness calls StudyQuery directly and therefore
+   misses that coach-facing reachability defect.
 
-Scope note: E3b-9 remains accepted. Canonical season save/reopen durability
-remains a separate open proof, and CSV is not its substitute.
+No full gate was run because changes are required. E3b-10 remains accepted;
+canonical save/reopen durability remains a separate open proof.
+
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit
   gesture and emit no write event.

@@ -466,6 +466,48 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-12 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: c78df6a
+
+VERDICT
+- Test-only increment; no production regression found.
+- Focused suites pass: Study query 28/28, Film Room 111/111, raw-read audit
+  11/11. These green counts do not close the proof gaps below.
+
+REQUIRED FIXES
+1. FAIL-OPEN VALUE UNIVERSE: Study iterates only emitted groups; Film Room asks
+   the registry only about values found in rendered cells. If either consumer
+   drops a complete group, both checks still pass. Derive the expected value
+   universe independently from registry values, then compare group keys and
+   composite ref sets in BOTH directions. Pin a mutation that removes one whole
+   rendered/emitted group and watch the equality fail.
+2. INCOMPLETE DIMENSION SCOPE: Study hardcodes 9 dimensions while
+   StudyQuery.DIMENSION_CUT has 15; playType, backfield, strength, playDir,
+   motion, and hash are unproved. Generate coverage from the canonical mapping
+   and assert the mapping key set so future dimensions cannot be omitted.
+   Film Room compares only qbAlignment and coverageFamily; cover all six
+   projected columns: formation, qbAlignment, backfield, strength, coverage,
+   coverageFamily. Multi-value formation cells must group by canonical tokens,
+   while blank/Not charted placeholders remain ineligible.
+3. COMPOSITE IDENTITY LOST: Film Room converts `gameId::playId` registry refs to
+   bare numeric IDs before equality and captures bare Watch IDs. Reconstruct or
+   preserve the active game prefix for rendered and watched rows, then compare
+   exact composite refs. The test must be capable of detecting a wrong game id.
+4. STUDY UI REACHABILITY: `StudyScreen.DIMENSIONS` still omits qbAlignment and
+   coverageFamily, so coaches cannot choose either as the primary Break down by
+   dimension even though direct StudyQuery tests pass. Add both to the selector
+   and pin the rendered options plus a query/Watch path through the screen.
+
+ALSO PROVE
+- Film Room tendency value/share for every projected column comes from the same
+  independently expected grouping and eligible-play denominator.
+- Keep the existing selected-intersection Watch tests; refs/order and stored data
+  remain untouched.
+
+NEXT ACTION
+Claude repairs E3b-12 and returns it for Codex re-review. E3b is not closed and
+E4 remains blocked. Canonical save/reopen durability remains separately open.
+
 === E3b-10 ACCEPTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 11cca88
 
