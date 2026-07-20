@@ -40,10 +40,19 @@ const result = await page.evaluate((fixture) => {
 
   // Dimension -> the golden drilldown cut type it must reproduce.
   const dims = { formation: 'formation', qbAlignment: 'qbAlignment', coverage: 'coverage', coverageFamily: 'coverageFamily', defFront: 'defFront', runPass: 'runpass', down: 'down', personnel: 'personnel', blitz: 'blitz' };
+  const registry = window.app.analyticsRegistry;
   const grouped = {};
   for (const [dim, cut] of Object.entries(dims)) {
     const q = study.run({ plays, dimension: dim, measures: ['sampleSize', 'runShare', 'passShare', 'successRate'] });
-    grouped[dim] = { cut, total: q.total, groups: q.groups.map(g => ({ value: g.value, ids: g.matchingPlayIds, sampleSize: g.sampleSize, measures: g.measures })) };
+    grouped[dim] = { cut, total: q.total, groups: q.groups.map(g => ({
+      value: g.value, ids: g.matchingPlayIds, sampleSize: g.sampleSize, measures: g.measures,
+      // Independent second computation, NOT read from the golden file — the D-E3split
+      // standard is "not merely golden-equal": the golden and Study's own grouping
+      // could share the same bug, but AnalyticsRegistry.matchingRefs() is a SEPARATE
+      // code path (its own predicate lookup + its own composite-ref builder) computed
+      // FRESH against these same plays right now, so it can't inherit a stale golden.
+      registryIds: registry.matchingRefs(plays, cut, g.value),
+    })) };
   }
 
   // Filter semantics: OR within a filter, AND across filters.
@@ -119,6 +128,25 @@ if (!result.missing) {
     if (parityMismatch) break;
   }
   ok(!parityMismatch, `Every Study group's matchingPlayIds equals the parity golden drilldown (${checked} groups)`, parityMismatch);
+
+  // 1c. E3b — the D-E3split standard: registry-equal, NOT merely golden-equal.
+  // A stale or wrongly-regenerated golden could agree with a buggy Study grouping;
+  // AnalyticsRegistry.matchingRefs is computed FRESH here, off a totally separate
+  // predicate lookup, so it cannot inherit whatever bug the golden might share.
+  // Covers every dimension in `dims` above, INCLUDING qbAlignment/coverageFamily.
+  let registryMismatch = '';
+  let registryChecked = 0;
+  for (const [dim, block] of Object.entries(result.grouped)) {
+    for (const g of block.groups) {
+      registryChecked++;
+      if (JSON.stringify(g.ids) !== JSON.stringify(g.registryIds)) {
+        registryMismatch = `${dim}::${g.value}: Study ${JSON.stringify(g.ids)} != registry ${JSON.stringify(g.registryIds)}`;
+        break;
+      }
+    }
+    if (registryMismatch) break;
+  }
+  ok(!registryMismatch, `Every Study group's matchingPlayIds equals an INDEPENDENTLY-computed AnalyticsRegistry.matchingRefs (${registryChecked} groups, incl. qbAlignment/coverageFamily)`, registryMismatch);
 
   // Golden coverage the other way: every report-backed formation drilldown is produced by a group.
   const goldFormations = Object.keys(gd).filter(k => k.startsWith('formation::')).map(k => k.slice('formation::'.length)).sort();

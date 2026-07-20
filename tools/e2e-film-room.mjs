@@ -867,6 +867,105 @@ for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
   ok(c.redone.p === primaryNew && c.redone.s === sibValue, `P1c ${name}: REDO restores the primary AND promoted sibling TOGETHER`, JSON.stringify(c.redone));
 }
 
+console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (qbAlignment / coverageFamily) ==');
+// P3's exact contract (TAG-MODEL.md §20): Film Room has NO six-field quick
+// filter, so do not add one here — instead group the RENDERED row IDs by each
+// projected cell value, assert those sets equal AnalyticsRegistry.matchingRefs
+// (an INDEPENDENT computation, not Film Room's own code), then select that
+// exact row set and assert Watch receives the same refs. This is the LAST
+// section (see the E3b-INTERACTIVE banner above) and restores every piece of
+// state it touches.
+r = await page.evaluate(async () => {
+  const grid = window.app.playGrid, tagger = window.app.tagger, registry = window.app.analyticsRegistry;
+  const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  // matchingRefs is a pure function over the plays it's given + a gameId for the
+  // composite ref — it never reads the season store, so a synthetic id is fine
+  // even with no season currently open (an earlier section closes the season).
+  const gameId = 'e3b-p3-fixture';
+
+  const savedPlays = tagger.plays;
+  const savedCols = grid.cols.slice();
+  const savedSelected = new Set(grid.selected);
+  const savedVc = grid.vc, savedCutup = grid.cutup;
+
+  const mk = (id, unit, tags) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: Object.assign({ unit }, tags), __gid: gameId });
+  const plays = [
+    // OFFENSE — qbAlignment mix, including a LEGACY mixed play that must project.
+    mk(9001, 'offense', { formation: 'Trips',              qbAlignment: 'Shotgun',      playType: 'Short Pass' }),
+    mk(9002, 'offense', { formation: 'Shotgun + Bunch',                                  playType: 'Deep Pass' }),  // legacy -> projects Shotgun
+    mk(9003, 'offense', { formation: 'Ace',                 qbAlignment: 'Under Center', playType: 'Run Inside' }),
+    mk(9004, 'offense', { formation: 'Ace',                                              playType: 'Run Inside' }), // no alignment charted -> INELIGIBLE
+    // DEFENSE — coverageFamily mix, including a LEGACY value that must project.
+    mk(9005, 'defense', { coverage: 'Man',      defFront: '4-3' }),                                                  // legacy -> projects Man
+    mk(9006, 'defense', { coverage: 'Cover 2',  coverageFamily: 'Zone', defFront: '4-3' }),
+    mk(9007, 'defense', { coverage: 'Cover 3',  coverageFamily: 'Man',  defFront: '3-4' }),
+    mk(9008, 'defense', { coverage: 'Cover 4',  defFront: '4-3' }),                                                  // no family charted -> INELIGIBLE
+  ];
+
+  tagger.plays = plays;
+  grid.cols = ['sit', 'formation', 'qbAlignment', 'coverage', 'coverageFamily', 'playType'];
+  grid.selected.clear();
+  grid._render();
+  await raf2();
+
+  const emDash = '—';
+  const groupByRenderedCell = (colKey) => {
+    const out = {};
+    document.querySelectorAll('#pgRows .pg-row').forEach(row => {
+      const id = parseInt(row.dataset.id, 10);
+      const cell = row.querySelector(`td[data-k="${colKey}"]`);
+      const text = cell ? cell.textContent.trim() : '';
+      if (!text || text === emDash) return;   // blank placeholder = ineligible, never its own group
+      (out[text] = out[text] || []).push(id);
+    });
+    Object.values(out).forEach(arr => arr.sort((a, b) => a - b));
+    return out;
+  };
+  const registryGroup = (cutType, values) => {
+    const out = {};
+    for (const value of values) {
+      out[value] = registry.matchingRefs(plays, cutType, value)
+        .map(ref => parseInt(ref.split('::')[1], 10)).sort((a, b) => a - b);
+    }
+    return out;
+  };
+
+  const renderedQb = groupByRenderedCell('qbAlignment');
+  const registryQb = registryGroup('qbAlignment', Object.keys(renderedQb));
+  const renderedCov = groupByRenderedCell('coverageFamily');
+  const registryCov = registryGroup('coverageFamily', Object.keys(renderedCov));
+
+  // Select the RENDERED "Shotgun" row set and click Watch — cutup.start must
+  // receive EXACTLY those ids. Stub vc/cutup so no real video is needed.
+  const shotgunIds = renderedQb['Shotgun'] || [];
+  grid.selected.clear();
+  shotgunIds.forEach(id => grid.selected.add(id));
+  grid._render();
+  await raf2();
+  let watchedIds = null;
+  grid.vc = { video: { src: 'fake.mp4' } };
+  grid.cutup = { start: (ids) => { watchedIds = ids.slice().sort((a, b) => a - b); } };
+  document.getElementById('pgWatch').click();
+
+  const out = { renderedQb, registryQb, renderedCov, registryCov, shotgunIds, watchedIds };
+
+  grid.vc = savedVc; grid.cutup = savedCutup;
+  tagger.plays = savedPlays;
+  grid.cols = savedCols;
+  grid.selected = savedSelected;
+  grid._render();
+  await raf2();
+  return out;
+});
+
+const setEq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+ok(Object.keys(r.renderedQb).length > 0, 'the synthetic fixture actually renders a non-empty qbAlignment group set (not a vacuous pass)', JSON.stringify(r.renderedQb));
+ok(setEq(r.renderedQb, r.registryQb), 'rendered qbAlignment row groups == AnalyticsRegistry.matchingRefs, per value', JSON.stringify({ rendered: r.renderedQb, registry: r.registryQb }));
+ok(Object.keys(r.renderedCov).length > 0, 'the synthetic fixture actually renders a non-empty coverageFamily group set (not a vacuous pass)', JSON.stringify(r.renderedCov));
+ok(setEq(r.renderedCov, r.registryCov), 'rendered coverageFamily row groups == AnalyticsRegistry.matchingRefs, per value', JSON.stringify({ rendered: r.renderedCov, registry: r.registryCov }));
+ok(JSON.stringify(r.renderedQb['Shotgun']) === JSON.stringify([9001, 9002]), 'the legacy mixed play (9002) projects into the SAME rendered Shotgun group as the modern play (9001)', JSON.stringify(r.renderedQb['Shotgun']));
+ok(r.shotgunIds.length > 0 && setEq(r.watchedIds, r.shotgunIds), 'Watch receives EXACTLY the refs of the selected rendered row group, no more, no fewer', JSON.stringify({ selected: r.shotgunIds, watched: r.watchedIds }));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }
 else console.log('No console/page errors.');
