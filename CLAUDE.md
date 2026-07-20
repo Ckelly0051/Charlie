@@ -18,35 +18,32 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E3b-13 changes requested)
+### Current working state (2026-07-20, E3b-14 one change requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
 
-**ACTIVE HANDOFF — E3b-13 CHANGES REQUESTED at `efaaa48`.** The repair closes
-the fail-open missing-group defect, covers all six projected Film Room columns
-with composite row refs, and exposes QB Alignment/Coverage Family in the real
-Study selector. Focused suites are green: Study query 35/35, Film Room 126/126,
-Study screen 53/53, raw-read audit 11/11.
+**ACTIVE HANDOFF — E3b-14 CHANGES REQUESTED at `9afd51d`.** Three of the four
+prior findings are closed: Study reads the canonical DIMENSION_CUT mapping,
+Film Room Watch compares composite refs end to end, and the real Study UI proves
+QB Alignment/Coverage Family row-to-Watch registry equality with non-vacuous
+same-game fixtures.
 
-Four narrow proof gaps remain before E3b acceptance:
+One production issue remains. Film Room's four `proj-readonly` categorical
+columns (QB Alignment, Backfield, Strength, Coverage Family) render blank
+tendency cells because `_tendency()` handles only `type === 'enum'`. The
+binding E3b contract says projected column tendencies use the same projected
+grouping and eligible denominator. Pinning their absence does not close that
+contract and leaves useful at-a-glance information blank.
 
-1. Study's 15-dimension test map is still a duplicated hardcoded object, not
-   generated from or key-equal to `StudyQuery.DIMENSION_CUT`. A future canonical
-   mapping can be added without this test noticing.
-2. Film Room reconstructs composite rendered refs correctly, but the final Watch
-   assertion still compares bare numeric IDs and inaccurately calls them refs.
-   Re-prefix intercepted Watch IDs with the active fixture game and compare them
-   directly to `shotgunRefs`.
-3. The required tendency proof remains formation-only. Assert top value/share
-   from the independently expected grouping and eligible denominator for all six
-   projected columns.
-4. The new Study selector test renders QB Alignment/Coverage Family but never
-   clicks a result's Watch action. Pin one new-dimension row click and assert the
-   exact registry composite refs reach `StudyScreen._watch`.
+Required repair: let `proj-readonly` categorical columns use the existing enum
+tendency calculation while remaining non-editable. Add independent top/share
+and eligible-denominator assertions for QB Alignment, Backfield, Strength, and
+Coverage Family; preserve blank when fewer than three eligible plays exist.
 
-No full gate was run because changes are required. Production behavior reviewed
-so far is correct; these are closure-proof defects. E3b-10 remains accepted.
+Independent focused verification before this finding: Study query 35/35, Film
+Room 135/135, Study screen 55/55. Builder reports canonical gate 56/56 and raw
+audit 11/11. No full gate was repeated because this production fix is required.
 
 Review emphasis during implementation:
 - QB Alignment/Coverage Family remain display-only in E3b under every edit

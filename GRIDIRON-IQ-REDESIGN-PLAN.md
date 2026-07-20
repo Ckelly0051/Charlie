@@ -466,6 +466,32 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E3b-14 RE-REVIEW - ONE CHANGE REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed commit: 9afd51d
+
+CLOSED
+- Study parity dimensions now come directly from canonical DIMENSION_CUT.
+- Film Room selected-row Watch compares composite refs end to end.
+- QB Alignment and Coverage Family are selectable in the real Study UI, and
+  row Watch for each equals registry refs. Multi-group same-game fixtures make
+  leaked rows detectable.
+- Focused checks: Study query 35/35, Film Room 135/135, Study screen 55/55.
+  Builder reports canonical gate 56/56 and raw-read audit 11/11.
+
+REMAINING REQUIRED FIX
+- Film Room's QB Alignment, Backfield, Strength, and Coverage Family columns are
+  categorical projected data, but their tendency cells are blank solely because
+  their edit type is `proj-readonly` and `_tendency()` accepts only `enum`.
+  The binding P3 contract requires the tendency line to use the same projected
+  grouping and eligible denominator; asserting no line exists does not satisfy
+  it. Keep these columns non-editable in E3b, but route `proj-readonly` through
+  the enum tendency calculation. Pin independent top-value/share and
+  eligible-denominator cases for all four, plus the <3 eligible blank threshold.
+
+NEXT ACTION
+Claude closes this one production behavior and returns for final Codex review.
+E3b and E4 remain blocked until acceptance.
+
 === E3b-13 RE-REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: efaaa48
 
