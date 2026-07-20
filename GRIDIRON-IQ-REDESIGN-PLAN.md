@@ -466,6 +466,35 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== E4-1 RE-REVIEW - TEST CHANGES REQUESTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Reviewed repair: e0ab568
+
+PRODUCTION VERDICT
+- All three production defects from 5edf101 are fixed.
+- Independent built-bundle probe confirms derived Coverage Family clear,
+  revisit, undo/redo; Save & Next canonicalizes both pairs in one history
+  action; New Drive changes only Drive Number.
+- No remaining production-code finding.
+
+REQUIRED PERMANENT PROOF
+1. Add derived Coverage Family clear/change, revisit, and undo/redo. The harness
+   currently covers only QB Alignment, while Coverage uses a distinct
+   single-value strip branch.
+2. Assert one history entry for legacy Save & Next, then undo/redo both raw and
+   canonical pairs.
+3. Replace New Drive's one-way `Object.keys(before).every(...)` assertion with
+   complete state equality after removing only `driveNumber`; the current
+   check cannot detect newly added unrelated keys.
+
+VERIFICATION
+- E4 focused harness 30/30.
+- Independent adversarial runtime probe passed every repaired production path.
+- Full gate not rerun until the permanent proof is complete.
+
+NEXT ACTION
+Claude adds these three test-only, failing-first proofs and returns for final
+Codex acceptance.
+
 === E4-1 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: 7f2e42c
 

@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-20, E4-1 fixes built, awaiting Codex re-review)
+### Current working state (2026-07-20, E4-1 test hardening requested)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal
 candidate, run the installed real-film smoke, and publish only after it passes.
@@ -78,7 +78,7 @@ INVERTED to "New Drive does NOT touch" since the fix changes the intended
 behavior, not just closes a gap). Full gate **57/57 green**, zero regression.
 Bundle rebuilt and verified.
 
-**ACTIVE HANDOFF — E4-1 fixes built at (pending commit); awaiting Codex re-review.**
+**ACTIVE HANDOFF — E4-1 production fixes at `e0ab568` are correct; TEST CHANGES REQUESTED.**
 Original E4-1 build reviewed at `7f2e42c`; findings above are now fixed.
 Implements D-projform (§18/§20): the PRIMARY tag form — not just Film Room's
 grid, done in E3b — now shows the projected view and writes only on explicit
@@ -125,9 +125,31 @@ each.** Summary of what was found (kept for history):
    `_saveCurrentTags()` path, silently canonicalizing both pairs on a click
    that only meant to bump the drive counter.
 
-**Next:** Codex re-reviews the fixes. Canonical season save/reopen durability
-remains a separate required proof before packaging — still open, still not
-substituted for by CSV round-trip or anything in E4-1.
+**Codex re-review of `e0ab568`: production fixes PASS; three test-only changes
+remain before formal acceptance.** Independent built-bundle probing confirmed:
+derived Coverage Family clear strips raw Coverage and survives revisit; undo and
+redo restore both fields together; Save & Next canonicalizes both registered
+pairs in exactly one history entry; New Drive changes only Drive Number.
+
+Required permanent proof:
+1. Add the Coverage/Coverage Family DERIVED clear/change + revisit + undo/redo
+   case. The current new test covers only QB Alignment, while
+   `stripSiblingToken()` has a distinct single-value Coverage branch.
+2. On the legacy Save & Next fixture, assert exactly one history entry and prove
+   undo restores both raw pairs while redo restores both canonical pairs.
+3. Make the New Drive isolation assertion compare complete tag key/value state
+   after removing only `driveNumber` from each side. The current
+   `Object.keys(before).every(...)` cannot detect unrelated keys added by a
+   regression.
+
+These are test-proof findings, not production defects. Focused E4 harness is
+30/30 and the independent adversarial probe passed every production behavior.
+No full gate was rerun because the permanent regression proof is incomplete.
+
+**Next:** Claude adds the three failing-first assertions and returns for final
+Codex acceptance. Canonical season save/reopen durability remains a separate
+required proof before packaging — still open, still not substituted for by CSV
+round-trip or anything in E4-1.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
