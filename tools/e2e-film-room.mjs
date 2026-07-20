@@ -809,35 +809,63 @@ ok(r.otherField.coverage === 'Man' && r.otherField.coverageFamily === '',
   'P1b: editing a DIFFERENT field promotes nothing', JSON.stringify(r.otherField));
 
 console.log('\n== 8g. E3b-P1c: promotion is ONE undoable transaction (real history) ==');
+// NO skip path. An earlier version returned {skip:true} when the play or
+// HistoryManager was missing and every assertion accepted it — so it could
+// certify undo behaviour it never exercised. The prerequisites are now explicit
+// assertions that FAIL CLOSED, and BOTH registered pairs are driven.
 r = await page.evaluate(async () => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
+  const tagger = window.app.tagger;
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
-  const play = window.app.tagger.plays[0];          // a REAL play — synthetic ones
-  if (!play || !hist) return { skip: true };        // never reach HistoryManager
-  const savedF = play.tags.formation, savedQ = play.tags.qbAlignment;
-  play.tags.formation = 'Under Center'; play.tags.qbAlignment = '';
-  grid.refresh(); await raf2();
-  hist.reset();
-  const depth0 = hist.stack.length;
-  grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'formation'), 'Trips');
-  await raf2();
-  const entries = hist.stack.length - depth0;
-  const after = { f: play.tags.formation, q: play.tags.qbAlignment };
-  hist.undo(); await raf2();
-  const undone = { f: window.app.tagger.getPlay(play.id)?.tags.formation, q: window.app.tagger.getPlay(play.id)?.tags.qbAlignment || '' };
-  hist.redo(); await raf2();
-  const redone = { f: window.app.tagger.getPlay(play.id)?.tags.formation, q: window.app.tagger.getPlay(play.id)?.tags.qbAlignment || '' };
-  const p = window.app.tagger.getPlay(play.id);
-  if (p) { p.tags.formation = savedF; p.tags.qbAlignment = savedQ; }
-  grid.refresh();
-  return { skip: false, entries, after, undone, redone };
+  const prereq = { hasHistory: !!(hist && typeof hist.undo === 'function' && Array.isArray(hist.stack)),
+                   playCount: tagger.plays.length,
+                   pairs: Object.keys(PG.PROJECTED_PAIRS) };
+  // FAIL CLOSED with a readable reason instead of the old skip (or a bare
+  // TypeError deeper in): the proofs below must never be reported as passing
+  // because the machinery they claim to exercise was absent.
+  if (!prereq.hasHistory) throw new Error('P1c PREREQ FAILED: no real HistoryManager — undo/redo proofs cannot run');
+  if (!prereq.playCount) throw new Error('P1c PREREQ FAILED: no real plays — undo/redo proofs cannot run');
+  const runPair = async (colKey, sibling, legacyPrimary, pick, unit) => {
+    const play = tagger.plays[0];
+    const saved = { primary: play.tags[colKey], sib: play.tags[sibling], unit: play.tags.unit };
+    play.tags.unit = unit; play.tags[colKey] = legacyPrimary; play.tags[sibling] = '';
+    grid.refresh(); await raf2();
+    hist.reset();
+    const depth0 = hist.stack.length;
+    grid._applyEdit(play, PG.COLUMNS.find(c => c.key === colKey), pick);
+    await raf2();
+    const entries = hist.stack.length - depth0;
+    const now = () => { const p = tagger.getPlay(play.id); return { p: p?.tags[colKey], s: p?.tags[sibling] || '' }; };
+    const after = now();
+    hist.undo(); await raf2();
+    const undone = now();
+    hist.redo(); await raf2();
+    const redone = now();
+    const p = tagger.getPlay(play.id);
+    if (p) { p.tags[colKey] = saved.primary; p.tags[sibling] = saved.sib; p.tags.unit = saved.unit; }
+    grid.refresh(); await raf2();
+    return { entries, after, undone, redone };
+  };
+  return {
+    prereq,
+    formation: await runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
+    coverage:  await runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
+  };
 });
-ok(r.skip || r.entries === 1, 'P1c: the promote+write commit records EXACTLY ONE history entry', JSON.stringify(r));
-ok(r.skip || (r.after.f === 'Trips' && r.after.q === 'Under Center'), 'P1c: commit wrote structure + promoted alignment', JSON.stringify(r.after));
-ok(r.skip || (r.undone.f === 'Under Center' && r.undone.q === ''),
-  'P1c: UNDO restores raw Formation AND blank QB Alignment TOGETHER', JSON.stringify(r.undone));
-ok(r.skip || (r.redone.f === 'Trips' && r.redone.q === 'Under Center'),
-  'P1c: REDO restores structural Formation AND promoted alignment TOGETHER', JSON.stringify(r.redone));
+// Prerequisites fail closed — if these break, the four proofs below cannot silently pass.
+ok(r.prereq.hasHistory, 'P1c prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
+ok(r.prereq.playCount > 0, 'P1c prereq: real plays exist to edit', JSON.stringify(r.prereq));
+ok(JSON.stringify(r.prereq.pairs) === JSON.stringify(['formation', 'coverage']),
+  'P1c prereq: BOTH registered pairs are covered by this test', JSON.stringify(r.prereq.pairs));
+for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
+  ['Formation/QB Alignment', r.formation, 'Under Center', 'Trips', 'Under Center'],
+  ['Coverage/Coverage Family', r.coverage, 'Man', 'Cover 3', 'Man'],
+]) {
+  ok(c.entries === 1, `P1c ${name}: the promote+write commit records EXACTLY ONE history entry`, JSON.stringify(c));
+  ok(c.after.p === primaryNew && c.after.s === sibValue, `P1c ${name}: commit wrote the primary + promoted sibling`, JSON.stringify(c.after));
+  ok(c.undone.p === primaryLegacy && c.undone.s === '', `P1c ${name}: UNDO restores the raw primary AND blank sibling TOGETHER`, JSON.stringify(c.undone));
+  ok(c.redone.p === primaryNew && c.redone.s === sibValue, `P1c ${name}: REDO restores the primary AND promoted sibling TOGETHER`, JSON.stringify(c.redone));
+}
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }

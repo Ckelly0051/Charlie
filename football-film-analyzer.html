@@ -31192,8 +31192,12 @@ class PlayGrid {
    *    OPTION_EXCLUDE    — primary field -> values that belong to the sibling and
    *                        must never be offered in the primary's picker
    *  Both keep working if a third such pair is ever added. */
-  static PROMOTE_ON_COMMIT = { formation: 'qbAlignment', coverage: 'coverageFamily' };
-  static OPTION_EXCLUDE = { formation: 'QB_ALIGNMENTS', coverage: 'COVERAGE_FAMILIES' };
+  //  ONE descriptor per pair — not two parallel maps, which could drift apart and
+  //  leave a field excluded-but-not-promoted (or worse, promoted-but-not-excluded).
+  static PROJECTED_PAIRS = {
+    formation: { sibling: 'qbAlignment',    excludeFrom: 'QB_ALIGNMENTS' },
+    coverage:  { sibling: 'coverageFamily', excludeFrom: 'COVERAGE_FAMILIES' },
+  };
 
   /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
    *  so their saved list can be UPGRADED to the new one. A customized list is
@@ -31890,7 +31894,7 @@ class PlayGrid {
     // SIBLING — the structural Formation picker must not offer QB alignments, and
     // the Coverage CALL picker must not offer Man/Zone/Match. The shared tag-form
     // chip groups still carry them until E4 moves them to their own libraries.
-    const exclude = PlayGrid.OPTION_EXCLUDE[col.key];
+    const exclude = PlayGrid.PROJECTED_PAIRS[col.key]?.excludeFrom;
     if (exclude) all = all.filter(v => !TagProjection[exclude].includes(v));
     return all;
   }
@@ -32043,7 +32047,7 @@ class PlayGrid {
       // always wins. Preserves effective data; not a semantic sibling change.
       // Opening/cancelling never reaches here, so viewing writes nothing, and the
       // whole commit is a single history entry (undoable as one unit).
-      const sibling = PlayGrid.PROMOTE_ON_COMMIT[col.key];
+      const sibling = PlayGrid.PROJECTED_PAIRS[col.key]?.sibling;
       if (sibling && !String(play.tags[sibling] || '').trim()) {
         const effective = StatsEngine.proj(play)[sibling];
         if (effective) play.tags[sibling] = effective;
