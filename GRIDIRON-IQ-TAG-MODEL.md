@@ -1663,12 +1663,13 @@ Backfield, and Coverage Family are now each directly committed AND cleared
 through the real grid editor with revisit-after-re-render and undo/redo; the
 combined Pistol+Empty case is proven through the grid specifically.
 
-Independent verification: projection form 54/54, Film Room 179/179, zero page
-errors. Codex's review could not independently rerun the full gate or update
-this handoff live (execution-service usage limit); Claude reran the full gate
-fresh afterward as the substitute independent confirmation — **57/57 green**
-(one transient Puppeteer/CDP crash in `e2e-breakdown-video.mjs` during an
-earlier concurrent run, isolated and reconfirmed clean 50/50 standalone).
+Independent verification (Codex's own): projection form 54/54, Film Room
+179/179, zero page errors. Codex's review could not independently rerun the
+full gate or update this handoff live (execution-service usage limit); Claude
+(the builder) reran the full gate fresh afterward as builder-side validation,
+not a substitute for independent confirmation — **57/57 green** (one transient
+Puppeteer/CDP crash in `e2e-breakdown-video.mjs` during an earlier concurrent
+run, isolated and reconfirmed clean 50/50 standalone).
 
 **E4 (D-projform, §18/§20 — all of E4-1 and E4-2) is now fully complete and
 accepted.** Next: the canonical season save/reopen durability proof, still
@@ -1689,6 +1690,11 @@ Alignment, Backfield, Strength, and Coverage Family, plus the deferred `Empty`
 Formation→Backfield and `Pistol` Backfield→QB Alignment vocabulary cleanup. The
 current one-sibling `PROJECTED_PAIRS` descriptor must be deliberately extended
 before Formation can safely supply two projected siblings.
+
+> **Superseded** — this was accurate when written (E4-1 acceptance, before
+> E4-2 existed). See "E4-2 final acceptance" above: E4-2 is now also FIXED and
+> ACCEPTED, so E4 (all of E4-1 + E4-2) is fully complete. Kept here unedited as
+> the historical record of what was still open at E4-1 acceptance time.
 
 ### E3b rev-2 plan acceptance (Codex, 2026-07-19)
 

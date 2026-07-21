@@ -30,9 +30,11 @@ edit/store paths remain deliberate. Film links retain exact composite refs, all
 six projected Film Room columns equal registry sets, and their tendencies use
 projected grouping with eligible denominators.
 
-**E4-1 review findings (from `5edf101`) are FIXED, awaiting Codex re-review.**
-All three verified against source before fixing (per protocol — never taken on
-report), each reproduced on the pre-fix code, then mutation-verified after:
+**E4-1 review findings (from `5edf101`) are FIXED and ACCEPTED** (see "E4-1
+ACCEPTED at `1d545bb`" further below — this note is kept for the fix detail,
+not as the current status). All three verified against source before fixing
+(per protocol — never taken on report), each reproduced on the pre-fix code,
+then mutation-verified after:
 
 1. **Clearing a DERIVED sibling now strips the primary too.** `_saveField`
    already promoted a blank sibling FROM the primary on an explicit primary
@@ -329,15 +331,17 @@ regression.
 confirmed fixed: the combined Pistol/Ace/Empty case preserves QB Alignment and
 Backfield correctly, an explicit Backfield selection still takes precedence,
 and Film Room now covers all four projection relationships (clear, revisit,
-undo/redo, and the combined-field case). Independent checks: projection form
-54/54, Film Room 179/179, zero page errors. Codex could not independently
-rerun the full gate or update this handoff (execution-service usage limit at
-review time) — **Claude reran the full gate fresh afterward as the
-independent confirmation this note substitutes for: 57/57 green** (one
-transient Puppeteer/CDP crash in `e2e-breakdown-video.mjs` during an earlier
-*concurrent* run, already isolated and reconfirmed clean 50/50 on its own
-before this rerun). **E4 (D-projform, all of E4-1 + E4-2) is now fully
-complete and accepted.**
+undo/redo, and the combined-field case). Independent checks (Codex's own):
+projection form 54/54, Film Room 179/179, zero page errors. Codex could not
+independently rerun the full gate or update this handoff (execution-service
+usage limit at review time) — **Claude (the builder) reran the full gate fresh
+afterward as builder-side validation, not a substitute for independent
+confirmation: 57/57 green** (one transient Puppeteer/CDP crash in
+`e2e-breakdown-video.mjs` during an earlier *concurrent* run, already isolated
+and reconfirmed clean 50/50 on its own before this rerun). **E4 (D-projform,
+all of E4-1 + E4-2) is now fully complete and accepted**, with Codex's
+independent review as the acceptance authority and Claude's rerun standing
+only as a builder-side gate confirmation until Codex can independently rerun it.
 
 **Next:** the canonical season save/reopen durability proof — named as
 outstanding at every step since early E3b and still not substituted for by

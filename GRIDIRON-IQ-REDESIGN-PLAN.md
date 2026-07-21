@@ -484,15 +484,17 @@ Reviewed repair of: becf6e3 (findings below)
   committed AND cleared through the real grid editor with revisit-after-
   re-render and undo/redo; the combined Pistol+Empty case is proven through
   the grid specifically.
-- Independent verification: projection form 54/54, Film Room 179/179, zero
-  page errors.
+- Independent verification (Codex's own): projection form 54/54, Film Room
+  179/179, zero page errors.
 - Codex's review could not independently rerun the full gate or update this
-  handoff live (execution-service usage limit at review time). Claude reran
-  the full gate fresh afterward as the substitute independent confirmation:
-  57/57 green (one transient Puppeteer/CDP crash in e2e-breakdown-video.mjs
-  during an earlier concurrent run, isolated and reconfirmed clean 50/50
-  standalone — not a regression).
-- E4 (D-projform, all of E4-1 + E4-2) is now fully complete and accepted.
+  handoff live (execution-service usage limit at review time). Claude (the
+  builder) reran the full gate fresh afterward as builder-side validation,
+  not a substitute for independent confirmation: 57/57 green (one transient
+  Puppeteer/CDP crash in e2e-breakdown-video.mjs during an earlier concurrent
+  run, isolated and reconfirmed clean 50/50 standalone — not a regression).
+- E4 (D-projform, all of E4-1 + E4-2) is now fully complete and accepted,
+  with Codex's independent review as the acceptance authority; a fully
+  independent gate rerun by Codex remains pending, not yet done.
 
 NEXT ACTION
 Canonical season save/reopen durability proof — still open since early E3b,
