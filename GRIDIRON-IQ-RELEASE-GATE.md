@@ -22,14 +22,27 @@ global film-library root, while the game itself did not persist linked
 `filmMode`/`filmDir`. Playback could therefore still come from a managed C:
 copy. The root chooser also offered no durable visible confirmation.
 
-**Repair candidate status (`3a00ddd`, builder evidence only):** implementation is complete,
-Tauri compilation is green, focused storage proof is 23/23 plus 40/40, and the
-canonical gate is 59/59 green. This does **not** clear the blocker. Claude must
-independently review/rerun the committed bytes, then the coach must pass the
-installed D:-library smoke. Existing managed C: copies remain protected.
+**Repair candidate status (`3a00ddd`): CLAUDE'S INDEPENDENT REVIEW ACCEPTED, NO
+FINDINGS.** Builder evidence (Tauri compilation green, focused storage proof
+23/23 plus 40/40, canonical gate 59/59) was not taken on report — independently
+reproduced: `e2e-film-storage-setup` 23/23, `e2e-linked-film` 40/40, full gate
+59/59, `cargo check` clean, all rerun on a fresh rebuild. All six requirements
+below traced against source. Both bug fixes named in the repair (a rollback
+race in `_renderGamesPanel`'s `commitActive()` side effect; Film Room's
+movable-control clamp going stale after a layout resize) confirmed real and
+correctly fixed. Two of the highest-risk guarantees were mutation-tested
+(disabling the mid-link game-switch re-check, and disabling the failed-save
+rollback throw) — each reproduced its exact expected failure, then was
+restored and reconfirmed clean.
 
-No subsequent candidate passes this gate unless the evidence shows all of the
-following on the same committed bytes and installed artifact:
+**This clears the automated-review portion of the blocker but not the blocker
+itself** — the coach still must pass the installed D:-library smoke; codec/
+disk/decoder behavior and real reopen/persistence experience are outside what
+any headless harness can prove. Existing managed C: copies remain protected
+until that smoke passes.
+
+This candidate satisfies all of the following on the reviewed committed bytes
+(installed-artifact confirmation still pending):
 
 - the app-level library root remains unchanged after linking a game folder;
 - the game-level linked source is saved canonically and survives reopen;
@@ -37,7 +50,8 @@ following on the same committed bytes and installed artifact:
 - no managed import/copy call occurs in linked mode;
 - the UI visibly identifies the exact root and each game's actual source;
 - all plays, tags, clip refs, notes, ids, and backups remain unchanged; and
-- the coach signs the installed smoke before a new release tag is published.
+- the coach signs the installed smoke before a new release tag is published
+  (**still outstanding**).
 
 ## The rule that was wrong before
 

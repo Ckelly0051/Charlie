@@ -466,8 +466,47 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== DESKTOP STORAGE SMOKE REPAIR ACCEPTED - 2026-07-22 ===
+Owner: Codex | Reviewer: Claude | Status: ACCEPTED, NO FINDINGS
+Repair commit: 3a00ddd
+
+- All six repair-contract items verified against source, not taken on report:
+  one settings home (old standalone panel removed, new one nested under Team
+  & Film Settings, reachable pre-game from Team Hub); root/game-folder scopes
+  genuinely separate (TauriBackend.gameDirFromRoot distinguishes root-itself/
+  child/outside-root, including the prefix-lookalike case via a real
+  trailing-slash boundary, not naive startsWith); game link persists through
+  a SeasonStore.persist() call whose success is now actually awaited/checked
+  (was fire-and-forget); source truth visible (durable confirmation screen,
+  per-game resolved path with a render-token guard against stale overwrites);
+  fail-closed holds for outside-root, denied access, mid-link game switches,
+  and failed saves; regression proof reproduces the exact reported smoke
+  (D:/Football/Film root, St Peter 41-0 child, root unchanged, linked
+  metadata persists, zero managed-import calls).
+- Both named bug fixes confirmed real: the rollback race checks out against
+  _renderGamesPanel()'s actual commitActive() call; the Film Room reclamp()
+  fix correctly re-derives control position from the stored ratio against
+  current geometry instead of stale absolute pixels.
+- Independently reran e2e-film-storage-setup (23/23) and e2e-linked-film
+  (40/40) myself, plus the full canonical gate (59/59 green) and cargo check,
+  all on a fresh rebuild.
+- Mutation-verified two of the highest-risk guarantees: disabling the
+  mid-link game-switch re-check reproduced the exact race failure; disabling
+  the failed-save throw reproduced the rollback failure. Both restored and
+  reconfirmed clean.
+- Verified the new open_library_dir Rust command only opens paths already
+  inside the granted asset_protocol_scope/fs_scope -- an imported season's
+  filmDir cannot make the OS open an arbitrary path.
+
+NEXT ACTION
+Package an internal candidate and run the installed D:-library smoke -- this
+review covers automated proof only; codec/disk/decoder behavior and the
+coach's actual reopen/persistence experience remain unverified until that
+smoke runs. No installer or tag yet; managed C: copies stay protected until
+the smoke passes.
+
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
-Owner: Codex | Reviewer: Claude | Status: READY FOR INDEPENDENT REVIEW
+Owner: Codex | Reviewer: Claude | Status: READY FOR INDEPENDENT REVIEW (superseded by ACCEPTED above)
 Repair commit: 3a00ddd
 Failed installed baseline: e4bb438 / v1.12.0-8
 
