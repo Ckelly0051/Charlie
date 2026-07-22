@@ -1672,9 +1672,20 @@ Puppeteer/CDP crash in `e2e-breakdown-video.mjs` during an earlier concurrent
 run, isolated and reconfirmed clean 50/50 standalone).
 
 **E4 (D-projform, §18/§20 — all of E4-1 and E4-2) is now fully complete and
-accepted.** Next: the canonical season save/reopen durability proof, still
-open since early E3b and still not substituted for by CSV round-trip or
-anything in E4-1/E4-2.
+accepted.**
+
+**Canonical season save/reopen durability proof — DONE (`8d5c037`), pending
+Codex review.** Open since early E3b, never substituted for by CSV round-trip
+or anything in E4-1/E4-2. `tools/e2e-projform-durability.mjs` genuinely tears
+down the live app (`page.reload()`) after tagging plays through the real UI
+and persisting through the real canonical path, then reopens the season the
+way a relaunch would and compares raw tags/projected view/chip state
+byte-for-byte against the pre-reload snapshot — across all four registered
+projection relationships, both Pistol+Empty commit paths, a Film Room grid
+edit, a derived-clear, and a real six-game season copy when available. 39/39,
+mutation-verified against the exact historical Pistol/Empty defect, full gate
+58/58. Self-reviewed by the builder only; Codex review still required before
+packaging.
 
 ### E4-1 final acceptance (Codex, 2026-07-20)
 

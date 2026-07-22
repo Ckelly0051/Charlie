@@ -497,9 +497,15 @@ Reviewed repair of: becf6e3 (findings below)
   independent gate rerun by Codex remains pending, not yet done.
 
 NEXT ACTION
-Canonical season save/reopen durability proof — still open since early E3b,
-still not substituted for by CSV round-trip or anything in E4-1/E4-2. Required
-before packaging.
+Canonical season save/reopen durability proof is DONE (8d5c037), pending Codex
+review before packaging: tools/e2e-projform-durability.mjs tags plays through
+the real UI, persists through the real canonical path, does a genuine
+page.reload() (window.app fully torn down), reopens the season, and compares
+raw tags/projected view/chip state byte-for-byte against the pre-reload
+snapshot -- all four projection relationships, both Pistol+Empty commit paths,
+a Film Room grid edit, a derived-clear, plus a real six-game season copy when
+available. 39/39, mutation-verified against the exact historical Pistol/Empty
+defect, full gate 58/58. Self-reviewed by the builder only.
 
 === E4-2 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: becf6e3

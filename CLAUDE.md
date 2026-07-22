@@ -343,10 +343,29 @@ all of E4-1 + E4-2) is now fully complete and accepted**, with Codex's
 independent review as the acceptance authority and Claude's rerun standing
 only as a builder-side gate confirmation until Codex can independently rerun it.
 
-**Next:** the canonical season save/reopen durability proof — named as
-outstanding at every step since early E3b and still not substituted for by
-CSV round-trip or anything in E4-1/E4-2. This is the next required item before
-packaging.
+**Canonical season save/reopen durability proof — DONE (`8d5c037`).** Named as
+outstanding at every step since early E3b and never substituted for by CSV
+round-trip or anything in E4-1/E4-2. `tools/e2e-projform-durability.mjs` tags
+plays through the real tag-form/Film Room UI (legacy Formation→QB Alignment
+promotion, legacy Coverage→Coverage Family promotion, the combined
+Pistol+Empty case via both commit paths, a Film Room grid edit, a
+derived-value clear), persists through the real StorageManager/SeasonStore
+path, then does a genuine `page.reload()` — destroying `window.app`
+entirely — and reopens the season the way a relaunch would. Raw tags, the
+recomputed projected view, and tag-form chip state are compared byte-for-byte
+against a pre-reload snapshot. A second section repeats the shape against a
+copy of a real six-game season from the coach's Documents mirror when present
+(same fail-open convention as `e2e-realdata.mjs`, never written back to).
+**39/39 passing.** Mutation-verified: temporarily reverting
+`TagProjection.reconcileSiblings`'s blank-check to raw truthiness (the exact
+historical Pistol/Empty defect) reproduces a failure in this harness; restored
+and reconfirmed clean. Full canonical gate rerun **58/58 green**, zero
+regression. This was self-reviewed by Claude (the builder), not yet
+independently reviewed by Codex — flag for Codex's review before packaging.
+
+**Next:** Codex review of the durability proof above, then packaging per
+`GRIDIRON-IQ-RELEASE-GATE.md` (internal candidate → installed real-film smoke
+→ publish).
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
