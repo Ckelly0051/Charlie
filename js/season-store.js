@@ -523,14 +523,18 @@ export class SeasonStore {
 
   persist() {
     this._stripStAlignmentBeforeSave();
-    // saveSeason returns false (or rejects) when the canonical write fails —
-    // classically a localStorage quota error on a big season. Surfacing it ONCE
-    // per failure streak lets the coach export a file before losing work; the
-    // old fire-and-forget swallowed it, so a full quota meant silent data loss.
-    Promise.resolve(this.backend.saveSeason(this.data))
-      .then(ok => { if (ok === false) this._persistFailed(); else this._persistWarned = false; })
-      .catch(() => this._persistFailed());
+    // Return the durable result while preserving fire-and-forget callers.
+    // Storage transactions must not announce success until the canonical
+    // season bytes are actually accepted.
+    const saved = Promise.resolve(this.backend.saveSeason(this.data))
+      .then(ok => {
+        if (ok === false) { this._persistFailed(); return false; }
+        this._persistWarned = false;
+        return true;
+      })
+      .catch(() => { this._persistFailed(); return false; });
     this._scheduleDiskWrite();
+    return saved;
   }
 
   _persistFailed() {

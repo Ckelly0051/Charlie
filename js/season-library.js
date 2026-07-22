@@ -334,6 +334,7 @@ export class SeasonLibrary {
       if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
       if (t.closest && t.closest('#btnTeamRemove')) { this._removeTeam(); return; }
       if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
+      if (t.closest && t.closest('#btnTeamFilmSettings')) { this._openTeamFilmSettings(); return; }
 
       // Team switcher pills (multi-team: JV / Varsity / …)
       if (t.closest && t.closest('#btnAddTeam')) { this._showAddTeam(); return; }
@@ -577,9 +578,19 @@ export class SeasonLibrary {
 
   _openRoster() {
     this.hide();   // no-ops when no season is open (overlay must stay)
+    this._openSettingsPanel('rosterPanel');
+  }
+
+  _openTeamFilmSettings() {
+    window.app?.uiPolish?.initFilmStorageSetup?.();
+    window.app?.uiPolish?._renderFilmStorageSettings?.();
+    this._openSettingsPanel('gameInfoPanel');
+  }
+
+  _openSettingsPanel(panelId) {
     const drawer = document.getElementById('settingsDrawer');
     const scrim = document.querySelector('.drawer-scrim');
-    const panel = document.getElementById('rosterPanel');
+    const panel = document.getElementById(panelId);
     // If the library overlay is still up (no season open), the drawer's normal
     // z-index (600) would put it BEHIND the overlay (4000) — the click would
     // look dead. Raise it above; ui-polish strips the class on drawer close.
@@ -591,9 +602,7 @@ export class SeasonLibrary {
       drawer.classList.add('open');
       if (scrim) scrim.classList.add('active');
     }
-    if (panel && panel.classList.contains('collapsed')) {
-      panel.classList.remove('collapsed');
-    }
+    if (panel && panel.classList.contains('collapsed')) panel.classList.remove('collapsed');
   }
 
   // ---- Schedule ----

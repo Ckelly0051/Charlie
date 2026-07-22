@@ -928,6 +928,27 @@
               <option value="left">Right → Left</option>
             </select>
           </div>
+          <section class="team-film-storage" id="filmStoragePanel" hidden aria-labelledby="filmStorageHeading">
+            <div class="settings-subhead" id="filmStorageHeading">
+              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
+              <span>Film storage</span>
+            </div>
+            <div class="film-storage-status">
+              <span class="film-storage-label">FILM LIBRARY ROOT</span>
+              <strong id="filmStorageModeLabel">Not set up</strong>
+              <span id="filmStoragePathLabel">Choose where GridIron IQ should find game film.</span>
+            </div>
+            <button class="btn btn-sm btn-accent" id="btnFilmStorageSetup" type="button">Set up film storage</button>
+            <div class="game-film-source" id="gameFilmSource">
+              <span class="film-storage-label">THIS GAME'S FOLDER</span>
+              <strong id="gameFilmSourceMode">No game open</strong>
+              <span id="gameFilmSourcePath">Open a season and select a game to link its film.</span>
+              <div class="game-film-source-actions">
+                <button class="btn btn-sm" id="btnLinkGameFolder" type="button">Link game folder</button>
+                <button class="btn btn-sm" id="btnOpenGameFilmFolder" type="button" hidden>Open folder</button>
+              </div>
+            </div>
+          </section>
           <div class="tag-row">
             <label>Claude API Key</label>
             <input type="password" id="gameApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" style="font-family:monospace;font-size:12px">
@@ -944,21 +965,6 @@
             <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
             <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
           </div>
-        </div>
-      </div>
-
-      <!-- Desktop film storage -->
-      <div class="sidebar-panel" id="filmStoragePanel" hidden>
-        <h3 class="panel-title" data-toggle="filmStoragePanelBody">
-          <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
-          Film Storage
-        </h3>
-        <div class="panel-body collapsed" id="filmStoragePanelBody">
-          <div class="film-storage-status">
-            <strong id="filmStorageModeLabel">Not set up</strong>
-            <span id="filmStoragePathLabel">Choose where GridIron IQ should find game film.</span>
-          </div>
-          <button class="btn btn-sm btn-accent" id="btnFilmStorageSetup" type="button">Set up film storage</button>
         </div>
       </div>
 
@@ -1375,6 +1381,7 @@
             <div class="team-card-actions">
               <button class="btn btn-sm" id="btnTeamRoster" title="Manage roster">Roster</button>
               <button class="btn btn-sm" id="btnEditTeam" title="Edit team name &amp; colors">Edit</button>
+              <button class="btn btn-sm" id="btnTeamFilmSettings" title="Team and film storage settings">Team &amp; Film Settings</button>
             </div>
           </div>
           <!-- Inline team edit form (hidden by default) -->

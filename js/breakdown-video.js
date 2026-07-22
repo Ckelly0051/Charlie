@@ -116,6 +116,7 @@ export class BreakdownVideo {
     this.controls.style.top = '';
     this.controls.style.bottom = '';
     this.controlRatio = null;
+    this._placeControls = null;
 
     if (this._home?.parent) this._home.parent.insertBefore(this.controls, this._home.next);
     if (this._copyHome?.parent) {
@@ -162,6 +163,7 @@ export class BreakdownVideo {
       this.controls.style.top = `${12 + max * ratio}px`;
       this.controls.style.bottom = 'auto';
     };
+    this._placeControls = place;
     try {
       const raw = localStorage.getItem('ffa_video_controls_y');
       const stored = raw === null ? NaN : Number(raw);
@@ -251,6 +253,15 @@ export class BreakdownVideo {
       show();
     });
     show();
+  }
+
+  /** Re-apply the saved vertical ratio after an ancestor-driven layout change. */
+  reclamp() {
+    if (!this._mounted || !Number.isFinite(this.controlRatio) || !this._placeControls) return;
+    const gen = this._gen;
+    requestAnimationFrame(() => {
+      if (gen === this._gen && this._mounted) this._placeControls(this.controlRatio);
+    });
   }
 
   _situation(play) {

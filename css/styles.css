@@ -7522,6 +7522,24 @@ td.pg-cell-focus {
 .film-storage-status { display: grid; gap: 4px; margin: 0 0 12px; }
 .film-storage-status strong { font-size: 13px; color: var(--text); }
 .film-storage-status span { font-size: 11px; line-height: 1.45; color: var(--text-dim); overflow-wrap: anywhere; }
+.team-film-storage { margin: 16px 0; padding: 15px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.settings-subhead { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--text); font-size: 13px; font-weight: 750; }
+.settings-subhead .icon { width: 15px; height: 15px; color: var(--accent-hover); }
+.film-storage-label { color: var(--text-hint) !important; font-size: 9px !important; font-weight: 800; }
+.game-film-source { display: grid; gap: 4px; margin-top: 16px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; }
+.game-film-source[hidden] { display: none; }
+.game-film-source strong { color: var(--text); font-size: 13px; }
+.game-film-source > span:not(.film-storage-label) { color: var(--text-dim); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.game-film-source-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.film-storage-confirmation { display: flex; align-items: center; gap: 12px; margin: 22px 0 14px; padding: 16px; background: rgba(52, 211, 153, .08); border: 1px solid rgba(52, 211, 153, .35); border-radius: 7px; }
+.film-storage-confirmation > div { min-width: 0; display: grid; gap: 4px; }
+.film-storage-confirmation strong { font-size: 11px; color: #8ee8c5; }
+.film-storage-confirmation span:not(.film-storage-confirm-icon) { color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
+.film-storage-confirm-icon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #238761; color: #fff; font-weight: 900; }
+.film-storage-confirm-copy { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.55; }
+.film-storage-confirm-copy strong { color: var(--text); }
+.film-storage-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.team-card-actions { flex-wrap: wrap; justify-content: flex-end; }
 .film-storage-modal { position: fixed; inset: 0; z-index: 12000; display: grid; place-items: center; padding: 20px; }
 .film-storage-backdrop { position: absolute; inset: 0; background: rgba(3, 7, 12, .78); backdrop-filter: blur(3px); }
 .film-storage-card {

@@ -79,6 +79,7 @@ export class BreakdownWorkspace {
     this.view = filmRoom ? 'film-room' : 'chart';
     this.grid.hidden = !filmRoom;
     this.host?.classList.toggle('bd-film-room-mode', filmRoom);
+    this.app.breakdownVideo?.reclamp?.();
     this.host?.querySelectorAll('[data-bd-view]').forEach(btn => {
       const active = btn.dataset.bdView === (filmRoom ? 'film-room' : 'chart');
       btn.classList.toggle('active', active);

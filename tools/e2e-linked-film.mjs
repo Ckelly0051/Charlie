@@ -1,10 +1,10 @@
 /* LINKED-FILM PURE-LOGIC HARNESS (Node) ------------------------------------
    The linked film library is desktop-only (Tauri fs/dialog/convertFileSrc), so
-   its end-to-end path is validated on the desktop build. This covers the one
-   piece of PURE, portable logic: TauriBackend.relToRoot — resolving a chosen
-   folder to a path relative to the library root (or '' when it's outside the
-   root, so the caller stores an absolute path). Windows backslash + case
-   handling matters here.
+   its end-to-end path is validated on the desktop build. This covers the PURE,
+   portable root-boundary logic: relToRoot for legacy paths and gameDirFromRoot
+   for new links. New game folders must resolve to `.` or a relative child;
+   outside-root selections fail closed. Windows backslash + case handling
+   matters here.
 
    Run:  node tools/e2e-linked-film.mjs */
 import { TauriBackend } from '../js/storage-backend.js';
@@ -27,6 +27,16 @@ ok(rel('D:/Football/Film', ''), '', 'no path → empty');
 
 console.log('\nLinked-film isDirAllowed (P1-7 consent scope) -----------------');
 const allowed = TauriBackend.isDirAllowed;
+console.log('\nLinked-film gameDirFromRoot boundary --------------------------');
+const gameDir = TauriBackend.gameDirFromRoot;
+ok(gameDir('D:/Football/Film', 'D:/Football/Film/St Peter 41-0'), 'St Peter 41-0', 'child folder stores a relative reference');
+ok(gameDir('D:/Football/Film', 'D:/Football/Film'), '.', 'library root itself stores an explicit dot reference');
+ok(gameDir('D:/Football/Film/', 'd:\\football\\film\\Week 2'), 'Week 2', 'mixed separators and case remain inside the root');
+ok(gameDir('D:/Football/Film', 'D:/Football/Filmhouse/Week 2'), null, 'prefix lookalike outside root is rejected');
+ok(gameDir('D:/Football/Film', 'E:/Other/Week 2'), null, 'different drive is rejected');
+ok(gameDir('', 'D:/Football/Film/Week 2'), null, 'missing root fails closed');
+ok(gameDir('D:/Football/Film', ''), null, 'missing game folder fails closed');
+
 ok(allowed('C:/GridIron Library', [], 'C:/GridIron Library/Week7'), true, 'under the library root → allowed');
 ok(allowed('C:/GridIron Library', [], 'C:/GridIron Library'), true, 'the root itself → allowed');
 ok(allowed('C:/GridIron Library', [], 'c:\\gridiron library\\wk7'), true, 'under root, backslash + case → allowed');
@@ -72,9 +82,25 @@ saved = await backend.setLibraryRoot('D:/Football/Film');
 ok(saved, true, 'allowed root reports success');
 ok(backend.getLibraryRoot(), 'D:/Football/Film', 'allowed root persists after access succeeds');
 ok(backend.getFilmStorageMode(), 'linked', 'preference infers linked for existing pre-setup users');
+ok(await backend.linkedGameDir('.'), 'D:/Football/Film', 'dot game reference resolves to the exact library root');
 ok(backend.setFilmStorageMode('managed'), true, 'explicit managed preference persists');
+
+console.log('\nCanonical save result contract --------------------------------');
+let shouldSave = false, persistWarnings = 0;
+const saveBackend = {
+  saveSeason: async () => shouldSave,
+  diskStatus: () => ({ bound: false }),
+};
+const saveStore = new SeasonStore(saveBackend);
+saveStore.data = { version: 5, type: 'season', id: 'save-1', games: [] };
+saveStore.currentSeasonId = 'save-1';
+saveStore.onPersistError = () => { persistWarnings++; };
+ok(await saveStore.persist(), false, 'failed canonical save resolves false');
+ok(persistWarnings, 1, 'failed canonical save surfaces one warning');
+shouldSave = true;
 ok(backend.getFilmStorageMode(), 'managed', 'explicit preference wins over inferred linked root');
 ok(backend.setFilmStorageMode('bogus'), false, 'invalid storage mode is rejected');
+ok(await saveStore.persist(), true, 'successful canonical save resolves true');
 ok(backend.getFilmStorageMode(), 'managed', 'rejected mode cannot corrupt the saved preference');
 delete globalThis.localStorage;
 delete globalThis.window;

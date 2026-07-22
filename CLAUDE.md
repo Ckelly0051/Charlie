@@ -20,6 +20,34 @@ storage again.
 
 ### Current working state (2026-07-22, v1.12.0-8 linked-film blocker)
 
+**Repair implementation is complete and ready for independent Claude review.**
+No installer or release tag has been cut, and the existing managed C: copies
+remain protected until the coach passes the installed D:-library smoke.
+
+Implemented on the current repair commit:
+- Film Storage now lives inside Team & Film Settings, which is reachable from
+  Team Hub before opening a game. Root setup stays on an exact-path,
+  `No video will be copied` confirmation screen.
+- `Film Library Root` and `This Game's Folder` are separate. New game links
+  store only `.` or a relative child path; outside-root and prefix-lookalike
+  selections fail closed and cannot rewrite the root.
+- Linking is a canonical transaction. It preserves all play/tag/clip data,
+  waits for `SeasonStore.persist()` to report success, and restores the full
+  prior season on rejection. Pending autosaves are cancelled at the boundary.
+- A discovered rollback race was fixed: `_renderGamesPanel()` commits live
+  state, so rollback reload now skips that side-effecting render; otherwise a
+  cleared playlist could rewrite restored clip refs as missing.
+- Every active game now shows its actual source and resolved path, with Change
+  and OS-native Open Folder actions. Managed games identify the C: copy.
+- Film Room now explicitly reclamps movable controls after its layout resize;
+  this pre-existing defect was exposed by the full gate and fixed in the same
+  reviewed candidate because it could strand controls outside the video.
+
+Builder proof: `e2e-film-storage-setup` 23/23, `e2e-linked-film` 40/40,
+`cargo check` green, and canonical gate **59/59** green on a fresh rebuild.
+The non-builder must rerun and review these committed bytes before packaging.
+
+
 **The installed v1.12.0-8 candidate FAILED the real linked-library smoke. Stop
 testing and do not delete the existing managed C: copies.** The setup surface
 exists, but it conflates the one-time library root with an individual game's

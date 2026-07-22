@@ -7536,6 +7536,24 @@ td.pg-cell-focus {
 .film-storage-status { display: grid; gap: 4px; margin: 0 0 12px; }
 .film-storage-status strong { font-size: 13px; color: var(--text); }
 .film-storage-status span { font-size: 11px; line-height: 1.45; color: var(--text-dim); overflow-wrap: anywhere; }
+.team-film-storage { margin: 16px 0; padding: 15px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.settings-subhead { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--text); font-size: 13px; font-weight: 750; }
+.settings-subhead .icon { width: 15px; height: 15px; color: var(--accent-hover); }
+.film-storage-label { color: var(--text-hint) !important; font-size: 9px !important; font-weight: 800; }
+.game-film-source { display: grid; gap: 4px; margin-top: 16px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; }
+.game-film-source[hidden] { display: none; }
+.game-film-source strong { color: var(--text); font-size: 13px; }
+.game-film-source > span:not(.film-storage-label) { color: var(--text-dim); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.game-film-source-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.film-storage-confirmation { display: flex; align-items: center; gap: 12px; margin: 22px 0 14px; padding: 16px; background: rgba(52, 211, 153, .08); border: 1px solid rgba(52, 211, 153, .35); border-radius: 7px; }
+.film-storage-confirmation > div { min-width: 0; display: grid; gap: 4px; }
+.film-storage-confirmation strong { font-size: 11px; color: #8ee8c5; }
+.film-storage-confirmation span:not(.film-storage-confirm-icon) { color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
+.film-storage-confirm-icon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #238761; color: #fff; font-weight: 900; }
+.film-storage-confirm-copy { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.55; }
+.film-storage-confirm-copy strong { color: var(--text); }
+.film-storage-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.team-card-actions { flex-wrap: wrap; justify-content: flex-end; }
 .film-storage-modal { position: fixed; inset: 0; z-index: 12000; display: grid; place-items: center; padding: 20px; }
 .film-storage-backdrop { position: absolute; inset: 0; background: rgba(3, 7, 12, .78); backdrop-filter: blur(3px); }
 .film-storage-card {
@@ -10289,6 +10307,27 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
               <option value="left">Right → Left</option>
             </select>
           </div>
+          <section class="team-film-storage" id="filmStoragePanel" hidden aria-labelledby="filmStorageHeading">
+            <div class="settings-subhead" id="filmStorageHeading">
+              <svg class="icon"><use href="#icon-folder"/></svg>
+              <span>Film storage</span>
+            </div>
+            <div class="film-storage-status">
+              <span class="film-storage-label">FILM LIBRARY ROOT</span>
+              <strong id="filmStorageModeLabel">Not set up</strong>
+              <span id="filmStoragePathLabel">Choose where GridIron IQ should find game film.</span>
+            </div>
+            <button class="btn btn-sm btn-accent" id="btnFilmStorageSetup" type="button">Set up film storage</button>
+            <div class="game-film-source" id="gameFilmSource">
+              <span class="film-storage-label">THIS GAME'S FOLDER</span>
+              <strong id="gameFilmSourceMode">No game open</strong>
+              <span id="gameFilmSourcePath">Open a season and select a game to link its film.</span>
+              <div class="game-film-source-actions">
+                <button class="btn btn-sm" id="btnLinkGameFolder" type="button">Link game folder</button>
+                <button class="btn btn-sm" id="btnOpenGameFilmFolder" type="button" hidden>Open folder</button>
+              </div>
+            </div>
+          </section>
           <div class="tag-row">
             <label>Claude API Key</label>
             <input type="password" id="gameApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" style="font-family:monospace;font-size:12px">
@@ -10305,21 +10344,6 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
             <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
             <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
           </div>
-        </div>
-      </div>
-
-      <!-- Desktop film storage -->
-      <div class="sidebar-panel" id="filmStoragePanel" hidden>
-        <h3 class="panel-title" data-toggle="filmStoragePanelBody">
-          <svg class="icon"><use href="#icon-folder"/></svg>
-          Film Storage
-        </h3>
-        <div class="panel-body collapsed" id="filmStoragePanelBody">
-          <div class="film-storage-status">
-            <strong id="filmStorageModeLabel">Not set up</strong>
-            <span id="filmStoragePathLabel">Choose where GridIron IQ should find game film.</span>
-          </div>
-          <button class="btn btn-sm btn-accent" id="btnFilmStorageSetup" type="button">Set up film storage</button>
         </div>
       </div>
 
@@ -10736,6 +10760,7 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
             <div class="team-card-actions">
               <button class="btn btn-sm" id="btnTeamRoster" title="Manage roster">Roster</button>
               <button class="btn btn-sm" id="btnEditTeam" title="Edit team name &amp; colors">Edit</button>
+              <button class="btn btn-sm" id="btnTeamFilmSettings" title="Team and film storage settings">Team &amp; Film Settings</button>
             </div>
           </div>
           <!-- Inline team edit form (hidden by default) -->
@@ -15914,6 +15939,8 @@ class StorageBackend {
   async listLinkedFilm(_absDir) { return []; }
   async linkedFilmUrl(_absPath) { return null; }
   async linkedGameDir(_filmDir) { return ''; }
+  gameDirFromRoot(_absPath) { return null; }
+  async openLinkedDir(_filmDir) { return ''; }
   async linkedAbs(_absDir, _relPath) { return ''; }
   relToRoot(_absPath) { return ''; }
   rememberLinkedDir(_absPath) {}
@@ -16792,6 +16819,7 @@ class TauriBackend extends StorageBackend {
     if (/^([A-Za-z]:[\\/]|\/)/.test(filmDir)) return filmDir;   // already absolute
     const root = this.getLibraryRoot();
     if (!root) return '';
+    if (filmDir === '.') return root;
     const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
     try { return join ? await join(root, ...String(filmDir).split('/')) : `${root}/${filmDir}`; }
     catch (e) { return `${root}/${filmDir}`; }
@@ -16805,6 +16833,25 @@ class TauriBackend extends StorageBackend {
 
   /** Path of an absolute folder RELATIVE to the library root ('' if not under it). */
   relToRoot(absPath) { return TauriBackend.relToRoot(this.getLibraryRoot(), absPath); }
+  /** Distinguish the root itself (`.`) from an outside-root folder (`null`). */
+  gameDirFromRoot(absPath) { return TauriBackend.gameDirFromRoot(this.getLibraryRoot(), absPath); }
+  static gameDirFromRoot(root, absPath) {
+    if (!root || !absPath) return null;
+    const norm = s => String(s).replace(/\\/g, '/').replace(/\/+$/, '');
+    const r = norm(root), p = norm(absPath);
+    if (p.toLowerCase() === r.toLowerCase()) return '.';
+    const prefix = r + '/';
+    return p.toLowerCase().startsWith(prefix.toLowerCase()) ? p.slice(prefix.length) : null;
+  }
+  async openLinkedDir(filmDir) {
+    const absDir = await this.linkedGameDir(filmDir);
+    if (!absDir || !this.isLinkedDirAllowed(absDir)) return '';
+    if (!await this.allowLibraryDir(absDir)) return '';
+    const core = window.__TAURI__ && window.__TAURI__.core;
+    if (!core?.invoke) return '';
+    try { await core.invoke('open_library_dir', { path: absDir }); return absDir; }
+    catch (e) { return ''; }
+  }
   // Pure, testable: strip the root prefix; '' when absPath isn't under root.
   static relToRoot(root, absPath) {
     if (!root || !absPath) return '';
@@ -17545,14 +17592,18 @@ class SeasonStore {
 
   persist() {
     this._stripStAlignmentBeforeSave();
-    // saveSeason returns false (or rejects) when the canonical write fails —
-    // classically a localStorage quota error on a big season. Surfacing it ONCE
-    // per failure streak lets the coach export a file before losing work; the
-    // old fire-and-forget swallowed it, so a full quota meant silent data loss.
-    Promise.resolve(this.backend.saveSeason(this.data))
-      .then(ok => { if (ok === false) this._persistFailed(); else this._persistWarned = false; })
-      .catch(() => this._persistFailed());
+    // Return the durable result while preserving fire-and-forget callers.
+    // Storage transactions must not announce success until the canonical
+    // season bytes are actually accepted.
+    const saved = Promise.resolve(this.backend.saveSeason(this.data))
+      .then(ok => {
+        if (ok === false) { this._persistFailed(); return false; }
+        this._persistWarned = false;
+        return true;
+      })
+      .catch(() => { this._persistFailed(); return false; });
     this._scheduleDiskWrite();
+    return saved;
   }
 
   _persistFailed() {
@@ -18285,7 +18336,7 @@ class StorageManager {
     } catch (e) {}
   }
 
-  _loadActiveGame() {
+  _loadActiveGame({ renderGames = true } = {}) {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
     this._loadedGameId = g ? g.id : null;   // the tagger now holds THIS game; commitActive guards on it
@@ -18298,8 +18349,9 @@ class StorageManager {
       // the integrity harness caught: switchToGame never re-init'd history.)
       if (app.history && app.history.reset) app.history.reset();
       if (app._updateSeasonChip) app._updateSeasonChip();
-      if (app._renderGamesPanel) app._renderGamesPanel();
+      if (renderGames && app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
+      app.uiPolish?._renderFilmStorageSettings?.();
     }
     const filmReady = g
       ? this._autoLoadFilm(g).then(() => true).catch(() => false)
@@ -18451,55 +18503,100 @@ class StorageManager {
       this.tagger.toast?.('The film library is available in the desktop app.');
       return false;
     }
-    const game = this.seasonStore.activeGame();
+    let game = this.seasonStore.activeGame();
     if (!game) { this.tagger.toast?.('Open a game first, then link its film.'); return false; }
+    const gameId = game.id;
     let root = backend.getLibraryRoot();
     if (!root) {
-      root = await backend.pickFolder();
-      if (!root) return false;
-      const allowed = await backend.setLibraryRoot(root);
-      if (!allowed) {
-        this.tagger.toast?.('GridIron IQ could not access that folder. Choose another folder and try again.');
-        return false;
-      }
-      this.tagger.toast?.(`Film library folder set: ${root}`, 6000);
+      const mode = await window.app?.uiPolish?.ensureFilmStorageMode?.({ force: true });
+      root = backend.getLibraryRoot();
+      if (mode !== 'linked' || !root) return false;
     }
     const folder = await backend.pickFolder(root);
     if (!folder) return false;
-    await backend.allowLibraryDir(folder);
-    backend.rememberLinkedDir?.(folder);   // consent: this folder may be re-granted on reopen (P1-7)
+    if (this.seasonStore.activeGame()?.id !== gameId) {
+      this.tagger.toast?.('Game changed before the folder was linked. Try again on the intended game.');
+      return false;
+    }
+    if (backend.getLibraryRoot() !== root) {
+      this.tagger.toast?.('The film library root changed. Choose this game folder again.');
+      return false;
+    }
+    const norm = value => String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+    const fallbackRel = backend.relToRoot?.(folder) || '';
+    const filmDir = backend.gameDirFromRoot
+      ? backend.gameDirFromRoot(folder)
+      : (norm(folder) === norm(root) ? '.' : (fallbackRel || null));
+    if (filmDir == null) {
+      this.tagger.toast?.('Choose this game\'s folder inside your Film Library Root. The library root was not changed.', 8000);
+      return false;
+    }
+    if (!await backend.allowLibraryDir(folder)) {
+      this.tagger.toast?.('GridIron IQ could not access that game folder. Nothing was changed.');
+      return false;
+    }
     const files = await backend.listLinkedFilm(folder);
     if (!files.length) { this.tagger.toast?.('No video files found in that folder.'); return false; }
-    this._maybeSnapshot(true, 'Before linking film');
-    game.filmMode = 'linked';
-    game.filmDir = backend.relToRoot(folder) || folder;   // rel to root, else absolute
-    const clips = [];
-    for (const f of files) {
-      const abs = await backend.linkedAbs(folder, f.path);
+    const clips = await Promise.all(files.map(async f => {
+      const abs = await backend.linkedAbs(folder, this._fileRefPath(f));
       const url = await backend.linkedFilmUrl(abs);
-      clips.push({ name: this._fileRefName(f), path: this._fileRefPath(f), url });
+      return { name: this._fileRefName(f), path: this._fileRefPath(f), url };
+    }));
+    if (clips.some(c => !c.url)) {
+      this.tagger.toast?.('One or more clips could not be opened from that folder. Nothing was changed.');
+      return false;
     }
-    if (this.tagger.plays.length) {
-      await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
-    } else {
-      this.playlist.reset();
-      for (const c of clips) {
-        this.playlist.clips.push({
-          id: this.playlist._nextClipId++, file: null,
-          name: this._pathWithoutExt(c.name), clipPath: this._pathWithoutExt(c.path),
-          assetUrl: c.url, objectUrl: null, duration: null, playId: null,
-        });
-      }
-      await this.playlist._autoCreatePlays();
+    // File discovery and URL resolution cross native async boundaries. Recheck
+    // immediately before mutation so a game/root change cannot receive another
+    // game's playlist or linked-folder metadata.
+    if (this.seasonStore.activeGame()?.id !== gameId || backend.getLibraryRoot() !== root) {
+      this.tagger.toast?.('Game or film library changed before linking finished. Try again on the intended game.');
+      return false;
     }
-    if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
-    this.videoFileName = null;
-    backend.setFilmStorageMode?.('linked');
+
+
+    // Capture the live game before any relink mutation. The canonical write is
+    // the commit point; any exception or false save restores this exact state.
     this.commitActive();
-    this.seasonStore.persist();
-    this._signalSave?.('saved');
-    this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from your library — no copy made.`, 6000);
-    return true;
+    this._cancelPendingSaves();
+    const beforeSeason = JSON.parse(JSON.stringify(this.seasonStore.data));
+    this._maybeSnapshot(true, 'Before linking film');
+    try {
+      game = this.seasonStore.activeGame();
+      game.filmMode = 'linked';
+      game.filmDir = filmDir;
+      if (this.tagger.plays.length) {
+        await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+      } else {
+        this.playlist.reset();
+        for (const c of clips) {
+          this.playlist.clips.push({
+            id: this.playlist._nextClipId++, file: null,
+            name: this._pathWithoutExt(c.name), clipPath: this._pathWithoutExt(c.path),
+            assetUrl: c.url, objectUrl: null, duration: null, playId: null,
+          });
+        }
+        await this.playlist._autoCreatePlays();
+      }
+      if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
+      this.videoFileName = null;
+      this.commitActive();
+      const saved = await this.seasonStore.persist();
+      if (!saved) throw new Error('canonical season save failed');
+      backend.rememberLinkedDir?.(folder);
+      backend.setFilmStorageMode?.('linked');
+      this._signalSave?.('saved');
+      window.app?.uiPolish?._renderFilmStorageSettings?.();
+      this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from ${folder} - no copy made.`, 7000);
+      return true;
+    } catch (e) {
+      this.seasonStore.cancelPendingDiskWrite?.();
+      this.seasonStore.data = beforeSeason;
+      this._clearForNewGame();
+      await this._loadActiveGame({ renderGames: false });
+      this.tagger.toast?.('Film was not linked because the season could not be saved. Your previous film setup was restored.', 10000);
+      return false;
+    }
   }
 
   async importFilm(files) {
@@ -29731,6 +29828,7 @@ class BreakdownWorkspace {
     this.view = filmRoom ? 'film-room' : 'chart';
     this.grid.hidden = !filmRoom;
     this.host?.classList.toggle('bd-film-room-mode', filmRoom);
+    this.app.breakdownVideo?.reclamp?.();
     this.host?.querySelectorAll('[data-bd-view]').forEach(btn => {
       const active = btn.dataset.bdView === (filmRoom ? 'film-room' : 'chart');
       btn.classList.toggle('active', active);
@@ -30066,6 +30164,7 @@ class BreakdownVideo {
     this.controls.style.top = '';
     this.controls.style.bottom = '';
     this.controlRatio = null;
+    this._placeControls = null;
 
     if (this._home?.parent) this._home.parent.insertBefore(this.controls, this._home.next);
     if (this._copyHome?.parent) {
@@ -30112,6 +30211,7 @@ class BreakdownVideo {
       this.controls.style.top = `${12 + max * ratio}px`;
       this.controls.style.bottom = 'auto';
     };
+    this._placeControls = place;
     try {
       const raw = localStorage.getItem('ffa_video_controls_y');
       const stored = raw === null ? NaN : Number(raw);
@@ -30201,6 +30301,15 @@ class BreakdownVideo {
       show();
     });
     show();
+  }
+
+  /** Re-apply the saved vertical ratio after an ancestor-driven layout change. */
+  reclamp() {
+    if (!this._mounted || !Number.isFinite(this.controlRatio) || !this._placeControls) return;
+    const gen = this._gen;
+    requestAnimationFrame(() => {
+      if (gen === this._gen && this._mounted) this._placeControls(this.controlRatio);
+    });
   }
 
   _situation(play) {
@@ -33870,6 +33979,7 @@ class SeasonLibrary {
       if (t.closest && t.closest('#btnTeamEditCancel')) { this._showTeamEdit(false); return; }
       if (t.closest && t.closest('#btnTeamRemove')) { this._removeTeam(); return; }
       if (t.closest && t.closest('#btnTeamRoster')) { this._openRoster(); return; }
+      if (t.closest && t.closest('#btnTeamFilmSettings')) { this._openTeamFilmSettings(); return; }
 
       // Team switcher pills (multi-team: JV / Varsity / …)
       if (t.closest && t.closest('#btnAddTeam')) { this._showAddTeam(); return; }
@@ -34113,9 +34223,19 @@ class SeasonLibrary {
 
   _openRoster() {
     this.hide();   // no-ops when no season is open (overlay must stay)
+    this._openSettingsPanel('rosterPanel');
+  }
+
+  _openTeamFilmSettings() {
+    window.app?.uiPolish?.initFilmStorageSetup?.();
+    window.app?.uiPolish?._renderFilmStorageSettings?.();
+    this._openSettingsPanel('gameInfoPanel');
+  }
+
+  _openSettingsPanel(panelId) {
     const drawer = document.getElementById('settingsDrawer');
     const scrim = document.querySelector('.drawer-scrim');
-    const panel = document.getElementById('rosterPanel');
+    const panel = document.getElementById(panelId);
     // If the library overlay is still up (no season open), the drawer's normal
     // z-index (600) would put it BEHIND the overlay (4000) — the click would
     // look dead. Raise it above; ui-polish strips the class on drawer close.
@@ -34127,9 +34247,7 @@ class SeasonLibrary {
       drawer.classList.add('open');
       if (scrim) scrim.classList.add('active');
     }
-    if (panel && panel.classList.contains('collapsed')) {
-      panel.classList.remove('collapsed');
-    }
+    if (panel && panel.classList.contains('collapsed')) panel.classList.remove('collapsed');
   }
 
   // ---- Schedule ----
@@ -34843,6 +34961,11 @@ class UIPolish {
     this._initVideoLoadedHint();
     this._bindFilmStorageSettings();
   }
+  _activeFilmGame() {
+    const store = this.app?.storage?.seasonStore;
+    return store?.data ? store.activeGame?.() || null : null;
+  }
+
 
   _filmBackend() { return this.app?.storage?.seasonStore?.backend || null; }
 
@@ -34863,6 +34986,17 @@ class UIPolish {
     document.getElementById('btnFilmStorageSetup')?.addEventListener('click', () => {
       this.ensureFilmStorageMode({ force: true });
     });
+    document.getElementById('btnLinkGameFolder')?.addEventListener('click', async () => {
+      await this.app?.storage?.linkFilmFolder?.();
+      this._renderFilmStorageSettings();
+    });
+    document.getElementById('btnOpenGameFilmFolder')?.addEventListener('click', async () => {
+      const backend = this._filmBackend();
+      const game = this._activeFilmGame();
+      if (!game || game.filmMode !== 'linked') return;
+      const opened = await backend?.openLinkedDir?.(game.filmDir);
+      if (!opened) this.app?.tagger?.toast?.('COULD NOT OPEN THAT FILM FOLDER');
+    });
   }
 
   _renderFilmStorageSettings() {
@@ -34870,18 +35004,57 @@ class UIPolish {
     if (!panel || !this._isDesktopFilm()) return;
     panel.hidden = false;
     const backend = this._filmBackend();
+    const game = this._activeFilmGame();
     const mode = backend.getFilmStorageMode?.() || '';
     const root = backend.getLibraryRoot?.() || '';
     const modeEl = document.getElementById('filmStorageModeLabel');
     const pathEl = document.getElementById('filmStoragePathLabel');
     const btn = document.getElementById('btnFilmStorageSetup');
-    if (modeEl) modeEl.textContent = mode === 'linked' ? 'Existing library linked' : mode === 'managed' ? 'Managed by GridIron IQ' : 'Not set up';
+    if (modeEl) modeEl.textContent = mode === 'linked' ? 'Linked existing library' : mode === 'managed' ? 'Managed storage - copies film' : 'Not set up';
     if (pathEl) pathEl.textContent = mode === 'linked'
       ? (root || 'Choose a film library folder')
       : mode === 'managed'
         ? 'Film added through import is copied into GridIron IQ app storage.'
         : 'Choose how GridIron IQ should store game film.';
-    if (btn) btn.textContent = mode ? 'Change film storage' : 'Set up film storage';
+    if (btn) btn.textContent = mode === 'linked' ? 'Change library root' : mode ? 'Change storage mode' : 'Set up film storage';
+
+    const source = document.getElementById('gameFilmSource');
+    const sourceMode = document.getElementById('gameFilmSourceMode');
+    const sourcePath = document.getElementById('gameFilmSourcePath');
+    const linkBtn = document.getElementById('btnLinkGameFolder');
+    const openBtn = document.getElementById('btnOpenGameFilmFolder');
+    if (source) source.hidden = false;
+    if (!game) {
+      if (sourceMode) sourceMode.textContent = 'No game open';
+      if (sourcePath) sourcePath.textContent = 'Open a season and select a game to link its film.';
+      if (linkBtn) linkBtn.disabled = true;
+      if (openBtn) openBtn.hidden = true;
+    } else if (game.filmMode === 'linked' && game.filmDir) {
+      if (sourceMode) sourceMode.textContent = 'Linked - plays from your library';
+      if (sourcePath) sourcePath.textContent = 'Resolving linked folder...';
+      if (linkBtn) { linkBtn.disabled = false; linkBtn.textContent = 'Change game folder'; }
+      if (openBtn) openBtn.hidden = false;
+      const token = `${game.id}:${game.filmDir}:${root}`;
+      this._filmSourceRenderToken = token;
+      Promise.resolve(backend.linkedGameDir?.(game.filmDir)).then(absDir => {
+        if (this._filmSourceRenderToken !== token) return;
+        if (sourcePath) sourcePath.textContent = absDir || 'Linked folder unavailable - choose Change game folder.';
+      }).catch(() => {
+        if (this._filmSourceRenderToken === token && sourcePath) sourcePath.textContent = 'Linked folder unavailable - choose Change game folder.';
+      });
+    } else if (game.filmMode === 'managed') {
+      if (sourceMode) sourceMode.textContent = 'Managed copy';
+      if (sourcePath) sourcePath.textContent = 'This game uses a copy in GridIron IQ app storage.';
+      if (linkBtn) { linkBtn.disabled = false; linkBtn.textContent = 'Link existing folder instead'; }
+      if (openBtn) openBtn.hidden = true;
+    } else {
+      if (sourceMode) sourceMode.textContent = 'No folder linked for this game';
+      if (sourcePath) sourcePath.textContent = mode === 'linked'
+        ? 'Choose this game\'s folder inside the Film Library Root.'
+        : 'Set up film storage, then choose this game\'s folder.';
+      if (linkBtn) { linkBtn.disabled = false; linkBtn.textContent = 'Link game folder'; }
+      if (openBtn) openBtn.hidden = true;
+    }
     this._renderEmptyFilmActions();
   }
 
@@ -34923,6 +35096,7 @@ class UIPolish {
           <p class="film-storage-footnote">This choice affects video only. Seasons, tags, reports, and backups keep using GridIron IQ's protected app data.</p>
         </section>`;
       document.body.appendChild(overlay);
+      let selectedMode = current;
       const finish = value => {
         document.removeEventListener('keydown', onKey, true);
         overlay.remove();
@@ -34930,10 +35104,36 @@ class UIPolish {
         this._renderFilmStorageSettings();
         resolve(value);
       };
+      const showLinkedConfirmation = picked => {
+        const card = overlay.querySelector('.film-storage-card');
+        if (!card) return;
+        card.innerHTML = `
+          <div class="film-storage-head">
+            <div><div class="film-storage-kicker">FILM LIBRARY READY</div><h2 id="filmStorageTitle">Existing library connected</h2></div>
+            <button class="film-storage-close" type="button" data-storage-action="done" aria-label="Done">×</button>
+          </div>
+          <div class="film-storage-confirmation" data-storage-confirmation>
+            <span class="film-storage-confirm-icon">✓</span>
+            <div><strong>Film Library Root</strong><span id="filmStorageConfirmedPath"></span></div>
+          </div>
+          <p class="film-storage-confirm-copy"><strong>No video will be copied.</strong> For each game, choose its folder inside this library. GridIron IQ will play those original files in place.</p>
+          <div class="film-storage-confirm-actions">
+            <button class="btn" type="button" data-storage-action="change-root">Choose a different root</button>
+            <button class="btn btn-accent" type="button" data-storage-action="done">Done</button>
+          </div>`;
+        card.querySelector('#filmStorageConfirmedPath').textContent = picked;
+        card.setAttribute('data-storage-confirmation', '');
+        card.querySelector('.film-storage-confirm-actions [data-storage-action="done"]')?.focus();
+      };
       const choose = async action => {
-        if (action === 'cancel') { finish(current || ''); return; }
+        if (action === 'cancel' || action === 'done') { finish(selectedMode || ''); return; }
+        if (action === 'change-root') action = 'linked';
         if (action === 'managed') {
-          backend.setFilmStorageMode?.('managed');
+          if (backend.setFilmStorageMode?.('managed') === false) {
+            this.app?.tagger?.toast?.('FILM STORAGE SETTING COULD NOT BE SAVED');
+            return;
+          }
+          selectedMode = 'managed';
           this.app?.tagger?.toast?.('FILM STORAGE SET: GRIDIRON IQ MANAGED');
           finish('managed');
           return;
@@ -34942,7 +35142,8 @@ class UIPolish {
           const picked = await backend.pickFolder?.(backend.getLibraryRoot?.() || undefined);
           if (!picked) return;
           const oldRoot = backend.getLibraryRoot?.() || '';
-          if (oldRoot && oldRoot.toLowerCase() !== picked.toLowerCase()) {
+          const norm = value => String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+          if (oldRoot && norm(oldRoot) !== norm(picked)) {
             const confirmed = await this.app?.tagger?._choiceDialog?.(
               'Change the film library folder? Existing linked games under the old folder may need to be linked again. No film or tags will be deleted.',
               [{ key: 'change', label: 'Change folder', variant: 'btn-accent' }, { key: 'cancel', label: 'Cancel' }]
@@ -34950,13 +35151,16 @@ class UIPolish {
             if (confirmed !== 'change') return;
           }
           const allowed = await backend.setLibraryRoot?.(picked);
-          if (!allowed) {
-            this.app?.tagger?.toast?.('COULD NOT ACCESS THAT FOLDER. TRY ANOTHER LOCATION.');
+          if (!allowed) { this.app?.tagger?.toast?.('COULD NOT ACCESS THAT FOLDER. TRY ANOTHER LOCATION.'); return; }
+          if (backend.setFilmStorageMode?.('linked') === false) {
+            await backend.setLibraryRoot?.(oldRoot);
+            this.app?.tagger?.toast?.('FILM STORAGE SETTING COULD NOT BE SAVED');
             return;
           }
-          backend.setFilmStorageMode?.('linked');
+          selectedMode = 'linked';
+          this._renderFilmStorageSettings();
           this.app?.tagger?.toast?.('FILM LIBRARY LINKED - NO VIDEO WILL BE COPIED', 6000);
-          finish('linked');
+          showLinkedConfirmation(picked);
         }
       };
       overlay.addEventListener('click', e => {
@@ -34964,7 +35168,7 @@ class UIPolish {
         if (action) choose(action);
       });
       const onKey = e => {
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); finish(current || ''); }
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); finish(selectedMode || ''); }
         if (e.key !== 'Tab') return;
         const focusable = [...overlay.querySelectorAll('button')];
         if (!focusable.length) return;

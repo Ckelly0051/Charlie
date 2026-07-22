@@ -384,7 +384,7 @@ export class StorageManager {
     } catch (e) {}
   }
 
-  _loadActiveGame() {
+  _loadActiveGame({ renderGames = true } = {}) {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
     this._loadedGameId = g ? g.id : null;   // the tagger now holds THIS game; commitActive guards on it
@@ -397,8 +397,9 @@ export class StorageManager {
       // the integrity harness caught: switchToGame never re-init'd history.)
       if (app.history && app.history.reset) app.history.reset();
       if (app._updateSeasonChip) app._updateSeasonChip();
-      if (app._renderGamesPanel) app._renderGamesPanel();
+      if (renderGames && app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
+      app.uiPolish?._renderFilmStorageSettings?.();
     }
     const filmReady = g
       ? this._autoLoadFilm(g).then(() => true).catch(() => false)
@@ -550,55 +551,100 @@ export class StorageManager {
       this.tagger.toast?.('The film library is available in the desktop app.');
       return false;
     }
-    const game = this.seasonStore.activeGame();
+    let game = this.seasonStore.activeGame();
     if (!game) { this.tagger.toast?.('Open a game first, then link its film.'); return false; }
+    const gameId = game.id;
     let root = backend.getLibraryRoot();
     if (!root) {
-      root = await backend.pickFolder();
-      if (!root) return false;
-      const allowed = await backend.setLibraryRoot(root);
-      if (!allowed) {
-        this.tagger.toast?.('GridIron IQ could not access that folder. Choose another folder and try again.');
-        return false;
-      }
-      this.tagger.toast?.(`Film library folder set: ${root}`, 6000);
+      const mode = await window.app?.uiPolish?.ensureFilmStorageMode?.({ force: true });
+      root = backend.getLibraryRoot();
+      if (mode !== 'linked' || !root) return false;
     }
     const folder = await backend.pickFolder(root);
     if (!folder) return false;
-    await backend.allowLibraryDir(folder);
-    backend.rememberLinkedDir?.(folder);   // consent: this folder may be re-granted on reopen (P1-7)
+    if (this.seasonStore.activeGame()?.id !== gameId) {
+      this.tagger.toast?.('Game changed before the folder was linked. Try again on the intended game.');
+      return false;
+    }
+    if (backend.getLibraryRoot() !== root) {
+      this.tagger.toast?.('The film library root changed. Choose this game folder again.');
+      return false;
+    }
+    const norm = value => String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+    const fallbackRel = backend.relToRoot?.(folder) || '';
+    const filmDir = backend.gameDirFromRoot
+      ? backend.gameDirFromRoot(folder)
+      : (norm(folder) === norm(root) ? '.' : (fallbackRel || null));
+    if (filmDir == null) {
+      this.tagger.toast?.('Choose this game\'s folder inside your Film Library Root. The library root was not changed.', 8000);
+      return false;
+    }
+    if (!await backend.allowLibraryDir(folder)) {
+      this.tagger.toast?.('GridIron IQ could not access that game folder. Nothing was changed.');
+      return false;
+    }
     const files = await backend.listLinkedFilm(folder);
     if (!files.length) { this.tagger.toast?.('No video files found in that folder.'); return false; }
-    this._maybeSnapshot(true, 'Before linking film');
-    game.filmMode = 'linked';
-    game.filmDir = backend.relToRoot(folder) || folder;   // rel to root, else absolute
-    const clips = [];
-    for (const f of files) {
-      const abs = await backend.linkedAbs(folder, f.path);
+    const clips = await Promise.all(files.map(async f => {
+      const abs = await backend.linkedAbs(folder, this._fileRefPath(f));
       const url = await backend.linkedFilmUrl(abs);
-      clips.push({ name: this._fileRefName(f), path: this._fileRefPath(f), url });
+      return { name: this._fileRefName(f), path: this._fileRefPath(f), url };
+    }));
+    if (clips.some(c => !c.url)) {
+      this.tagger.toast?.('One or more clips could not be opened from that folder. Nothing was changed.');
+      return false;
     }
-    if (this.tagger.plays.length) {
-      await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
-    } else {
-      this.playlist.reset();
-      for (const c of clips) {
-        this.playlist.clips.push({
-          id: this.playlist._nextClipId++, file: null,
-          name: this._pathWithoutExt(c.name), clipPath: this._pathWithoutExt(c.path),
-          assetUrl: c.url, objectUrl: null, duration: null, playId: null,
-        });
-      }
-      await this.playlist._autoCreatePlays();
+    // File discovery and URL resolution cross native async boundaries. Recheck
+    // immediately before mutation so a game/root change cannot receive another
+    // game's playlist or linked-folder metadata.
+    if (this.seasonStore.activeGame()?.id !== gameId || backend.getLibraryRoot() !== root) {
+      this.tagger.toast?.('Game or film library changed before linking finished. Try again on the intended game.');
+      return false;
     }
-    if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
-    this.videoFileName = null;
-    backend.setFilmStorageMode?.('linked');
+
+
+    // Capture the live game before any relink mutation. The canonical write is
+    // the commit point; any exception or false save restores this exact state.
     this.commitActive();
-    this.seasonStore.persist();
-    this._signalSave?.('saved');
-    this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from your library — no copy made.`, 6000);
-    return true;
+    this._cancelPendingSaves();
+    const beforeSeason = JSON.parse(JSON.stringify(this.seasonStore.data));
+    this._maybeSnapshot(true, 'Before linking film');
+    try {
+      game = this.seasonStore.activeGame();
+      game.filmMode = 'linked';
+      game.filmDir = filmDir;
+      if (this.tagger.plays.length) {
+        await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+      } else {
+        this.playlist.reset();
+        for (const c of clips) {
+          this.playlist.clips.push({
+            id: this.playlist._nextClipId++, file: null,
+            name: this._pathWithoutExt(c.name), clipPath: this._pathWithoutExt(c.path),
+            assetUrl: c.url, objectUrl: null, duration: null, playId: null,
+          });
+        }
+        await this.playlist._autoCreatePlays();
+      }
+      if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
+      this.videoFileName = null;
+      this.commitActive();
+      const saved = await this.seasonStore.persist();
+      if (!saved) throw new Error('canonical season save failed');
+      backend.rememberLinkedDir?.(folder);
+      backend.setFilmStorageMode?.('linked');
+      this._signalSave?.('saved');
+      window.app?.uiPolish?._renderFilmStorageSettings?.();
+      this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from ${folder} - no copy made.`, 7000);
+      return true;
+    } catch (e) {
+      this.seasonStore.cancelPendingDiskWrite?.();
+      this.seasonStore.data = beforeSeason;
+      this._clearForNewGame();
+      await this._loadActiveGame({ renderGames: false });
+      this.tagger.toast?.('Film was not linked because the season could not be saved. Your previous film setup was restored.', 10000);
+      return false;
+    }
   }
 
   async importFilm(files) {

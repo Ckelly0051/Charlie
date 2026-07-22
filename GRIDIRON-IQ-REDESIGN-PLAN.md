@@ -467,7 +467,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ### Active Handoff
 ```
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
-Owner: Codex | Reviewer: Claude | Status: CHANGES REQUIRED before more smoke
+Owner: Codex | Reviewer: Claude | Status: READY FOR INDEPENDENT REVIEW
 Failed installed baseline: e4bb438 / v1.12.0-8
 
 - The installed smoke selected `D:\Football\Film` as the app-level library
@@ -478,6 +478,26 @@ Failed installed baseline: e4bb438 / v1.12.0-8
 - The picker also returned to the previous screen without a durable visible
   success state. Film Storage is separated from Team & Film Settings and cannot
   be reached naturally from the Team Hub before opening a game.
+
+IMPLEMENTED ON THE CURRENT REPAIR COMMIT
+- Consolidated Film Storage under Team & Film Settings and exposed it from
+  Team Hub before a game is open. Root setup ends on a persistent exact-path
+  confirmation stating that no video will be copied.
+- Separated the app-level root from per-game relative links. Exact root uses
+  `.`; child games use relative paths; outside-root choices fail closed.
+- Made linking transactional around the canonical season save. Save rejection
+  restores the complete prior season; pending autosaves and the side-effecting
+  games-panel render cannot rewrite restored clip metadata.
+- Added visible per-game source/path plus Change and native Open Folder actions.
+- Added first-run, failed-save, outside-root, and game-switch-race regressions.
+- Fixed the pre-existing movable-control clamp exposed by the full gate.
+
+BUILDER PROOF
+- `e2e-film-storage-setup.mjs`: 23/23
+- `e2e-linked-film.mjs`: 40/40
+- Tauri `cargo check`: green
+- Canonical `tools/run-gate.sh`: 59/59 green
+
 
 REPAIR CONTRACT
 1. Move Film Storage into Team & Film Settings and expose that settings surface
@@ -515,8 +535,9 @@ SEPARATE FOLLOW-UP IN THIS WORK CYCLE
   seam. It is not part of the storage release and provides no runtime benefit.
 
 NEXT ACTION
-Codex builds the blocking storage repair. Claude reviews that commit. The coach
-performs the installed D:-library smoke and alone authorizes publication.
+Claude independently reviews and reruns the committed focused tests plus gate.
+After acceptance, package an internal candidate for the coach's D:-library
+smoke. The coach alone authorizes any release tag or deletion of managed C: copies.
 
 === E4-2 FINAL ACCEPTANCE - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 689346c

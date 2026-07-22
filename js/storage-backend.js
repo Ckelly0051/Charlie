@@ -84,6 +84,8 @@ export class StorageBackend {
   async listLinkedFilm(_absDir) { return []; }
   async linkedFilmUrl(_absPath) { return null; }
   async linkedGameDir(_filmDir) { return ''; }
+  gameDirFromRoot(_absPath) { return null; }
+  async openLinkedDir(_filmDir) { return ''; }
   async linkedAbs(_absDir, _relPath) { return ''; }
   relToRoot(_absPath) { return ''; }
   rememberLinkedDir(_absPath) {}
@@ -962,6 +964,7 @@ export class TauriBackend extends StorageBackend {
     if (/^([A-Za-z]:[\\/]|\/)/.test(filmDir)) return filmDir;   // already absolute
     const root = this.getLibraryRoot();
     if (!root) return '';
+    if (filmDir === '.') return root;
     const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
     try { return join ? await join(root, ...String(filmDir).split('/')) : `${root}/${filmDir}`; }
     catch (e) { return `${root}/${filmDir}`; }
@@ -975,6 +978,25 @@ export class TauriBackend extends StorageBackend {
 
   /** Path of an absolute folder RELATIVE to the library root ('' if not under it). */
   relToRoot(absPath) { return TauriBackend.relToRoot(this.getLibraryRoot(), absPath); }
+  /** Distinguish the root itself (`.`) from an outside-root folder (`null`). */
+  gameDirFromRoot(absPath) { return TauriBackend.gameDirFromRoot(this.getLibraryRoot(), absPath); }
+  static gameDirFromRoot(root, absPath) {
+    if (!root || !absPath) return null;
+    const norm = s => String(s).replace(/\\/g, '/').replace(/\/+$/, '');
+    const r = norm(root), p = norm(absPath);
+    if (p.toLowerCase() === r.toLowerCase()) return '.';
+    const prefix = r + '/';
+    return p.toLowerCase().startsWith(prefix.toLowerCase()) ? p.slice(prefix.length) : null;
+  }
+  async openLinkedDir(filmDir) {
+    const absDir = await this.linkedGameDir(filmDir);
+    if (!absDir || !this.isLinkedDirAllowed(absDir)) return '';
+    if (!await this.allowLibraryDir(absDir)) return '';
+    const core = window.__TAURI__ && window.__TAURI__.core;
+    if (!core?.invoke) return '';
+    try { await core.invoke('open_library_dir', { path: absDir }); return absDir; }
+    catch (e) { return ''; }
+  }
   // Pure, testable: strip the root prefix; '' when absPath isn't under root.
   static relToRoot(root, absPath) {
     if (!root || !absPath) return '';
