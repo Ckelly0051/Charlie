@@ -14,8 +14,12 @@
    `page.reload()` — which destroys every live JS object, including
    `window.app` itself — and reopen the season fresh from BrowserBackend's
    localStorage store, the same canonical path a relaunch uses. Only then is
-   the play's raw AND projected state re-read and compared byte-for-byte
-   against what was true before the reload.
+   the play's raw AND projected state re-read and compared against what was
+   true before the reload — the relevant projection fields (unit, formation,
+   qbAlignment, backfield, strength, coverage, coverageFamily) via the `pick()`
+   helper below, not a literal full-object diff (reload legitimately fills in
+   unrelated blank schema keys a hand-built synthetic fixture may omit; see
+   the `pick()` comment).
 
    Covers, through this genuine reload boundary:
      1. A legacy Formation→QB Alignment promotion (multi-value primary).
@@ -280,16 +284,31 @@ if (!realFiles.length) {
   }, real);
   await sleep(400);
 
+  // Fingerprint EVERY game's play array up front, not just the active one —
+  // a coach's real season is multi-game, and a save/reopen bug could plausibly
+  // corrupt an INACTIVE game's data while leaving the active game (the only
+  // one previously checked here) untouched.
+  const gameFingerprintsBefore = await page.evaluate(() => {
+    const store = window.app.storage.seasonStore;
+    return store.data.games.map(g => ({ id: g.id, activeId: store.data.activeGameId, playCount: (g.plays || []).length, fp: JSON.stringify(g.plays) }));
+  });
+  ok(gameFingerprintsBefore.length >= 1, `real season (${realName}) has at least one game to fingerprint`, String(gameFingerprintsBefore.length));
+
   const realBefore = await page.evaluate(() => {
     const t = window.app.tagger;
     if (!t.plays.length) return { error: 'no plays in real fixture active game' };
-    const id = t.plays[0].id;
+    // Pick an OFFENSE play deterministically so #tagFormation is guaranteed
+    // present (Formation is hidden/collapsed for other units).
+    const offensePlay = t.plays.find(p => (p.tags.unit || 'offense') === 'offense') || t.plays[0];
+    const id = offensePlay.id;
     t.selectPlay(id);
+    const preClick = JSON.parse(JSON.stringify(t.getPlay(id).tags));
     // Apply one genuine legacy-shaped edit through the real UI so this proves
     // an actual WRITE survives, not just an untouched read-back.
     const chip = document.querySelector('#tagFormation .pick[data-value="Trips"]');
+    const chipFound = !!chip;
     if (chip) chip.click();
-    return { id, playCount: t.plays.length };
+    return { id, playCount: t.plays.length, preClick, chipFound };
   });
   await frame();
   const realSnapshotBefore = await page.evaluate((id) => {
@@ -297,6 +316,9 @@ if (!realFiles.length) {
     const play = t.getPlay(id);
     return { tags: JSON.parse(JSON.stringify(play.tags)), projected: TagProjection.project(play.tags) };
   }, realBefore.id);
+
+  ok(realBefore.chipFound, 'real-data: the Trips Formation chip is reachable on the edited (offense) play', JSON.stringify(realBefore));
+  ok(pick(realSnapshotBefore.tags) !== pick(realBefore.preClick), 'real-data: the UI click genuinely changed the play BEFORE persist (not a vacuous no-op — proves the reload comparison below is testing a real write)', JSON.stringify({ preClick: realBefore.preClick, postClick: realSnapshotBefore.tags }));
 
   await page.evaluate(() => { window.app.storage.commitActive(); return window.app.storage.seasonStore.persist(); });
   await sleep(300);
@@ -325,6 +347,22 @@ if (!realFiles.length) {
     ok(realAfter.playCountMatches, 'real-data: exact play count preserved across the reload', `before=${realBefore.playCount} after=${realAfter.playCount}`);
     ok(pick(realAfter.tags) === pick(realSnapshotBefore.tags), 'real-data: the genuine UI edit survives persist -> reload -> reopen (relevant fields)', JSON.stringify({ before: realSnapshotBefore.tags, after: realAfter.tags }));
     ok(pick(realAfter.projected) === pick(realSnapshotBefore.projected), 'real-data: projected view is unchanged after reload (no drift on real coach data)', JSON.stringify({ before: realSnapshotBefore.projected, after: realAfter.projected }));
+
+    // Every OTHER (non-edited) game's ENTIRE play array must be byte-identical
+    // across the reload — not just the active game's count. Catches data loss
+    // in an inactive game that a single-game check would miss entirely.
+    const gameFingerprintsAfter = await page.evaluate(() => {
+      const store = window.app.storage.seasonStore;
+      return store.data.games.map(g => ({ id: g.id, playCount: (g.plays || []).length, fp: JSON.stringify(g.plays) }));
+    });
+    const editedGameId = gameFingerprintsBefore.find(g => g.id === gameFingerprintsBefore[0].activeId)?.id ?? gameFingerprintsBefore[0].activeId;
+    ok(gameFingerprintsAfter.length === gameFingerprintsBefore.length, 'real-data: same number of games survives the reload (no game silently lost)', `before=${gameFingerprintsBefore.length} after=${gameFingerprintsAfter.length}`);
+    const otherBefore = gameFingerprintsBefore.filter(g => g.id !== editedGameId);
+    for (const g of otherBefore) {
+      const match = gameFingerprintsAfter.find(a => a.id === g.id);
+      ok(!!match, `real-data: inactive game ${g.id} still exists after reload`, JSON.stringify({ id: g.id }));
+      if (match) ok(match.fp === g.fp, `real-data: inactive game ${g.id}'s entire play array is byte-identical after reload (${g.playCount} plays, untouched by the edit)`, `before=${g.playCount} after=${match.playCount}`);
+    }
   }
   console.log('\n== RESULT: ' + pass + ' passed, ' + fail + ' failed ==');
 }

@@ -1674,18 +1674,33 @@ run, isolated and reconfirmed clean 50/50 standalone).
 **E4 (D-projform, §18/§20 — all of E4-1 and E4-2) is now fully complete and
 accepted.**
 
-**Canonical season save/reopen durability proof — DONE (`8d5c037`), pending
-Codex review.** Open since early E3b, never substituted for by CSV round-trip
-or anything in E4-1/E4-2. `tools/e2e-projform-durability.mjs` genuinely tears
-down the live app (`page.reload()`) after tagging plays through the real UI
-and persisting through the real canonical path, then reopens the season the
-way a relaunch would and compares raw tags/projected view/chip state
-byte-for-byte against the pre-reload snapshot — across all four registered
-projection relationships, both Pistol+Empty commit paths, a Film Room grid
-edit, a derived-clear, and a real six-game season copy when available. 39/39,
-mutation-verified against the exact historical Pistol/Empty defect, full gate
-58/58. Self-reviewed by the builder only; Codex review still required before
-packaging.
+**Canonical season save/reopen durability proof — DONE (`8d5c037`).** Open
+since early E3b, never substituted for by CSV round-trip or anything in
+E4-1/E4-2. `tools/e2e-projform-durability.mjs` genuinely tears down the live
+app (`page.reload()`) after tagging plays through the real UI and persisting
+through the real canonical path, then reopens the season the way a relaunch
+would and compares raw tags/projected view/chip state (a targeted allow-list
+of projection-relevant fields, not a literal full-object diff — reload
+legitimately fills in unrelated blank schema keys a synthetic fixture may
+omit) against the pre-reload snapshot — across all four registered projection
+relationships, both Pistol+Empty commit paths, a Film Room grid edit, a
+derived-clear, and a real season copy when available. 39/39, mutation-verified
+against the exact historical Pistol/Empty defect, full gate 58/58.
+
+**Codex review of `8d5c037` — ACCEPTED, three Low findings, all fixed.**
+Independent verification: durability proof 39/39, full gate 58/58, real
+fixture used (6 games, 449 plays), no production-code findings. Findings:
+(1) the real-data UI edit could pass vacuously with no assertion that the
+click actually changed anything — fixed by capturing pre-click tags and
+asserting a genuine change, plus asserting the Formation chip was reachable
+(now deterministically picks an offense play); (2) the real-season check only
+covered the active game — fixed by fingerprinting every OTHER game's entire
+play array byte-for-byte across the reload, not just a play count; (3) the
+docs overstated "byte-for-byte" as a full-object diff when it's actually the
+targeted field allow-list — corrected here and in the harness's own header
+comment. Re-verified: durability proof **53/53**, full gate **58/58**, zero
+regression. Codex's acceptance covers the BrowserBackend path only — the
+installed desktop smoke must still independently verify Tauri/file/SqlCatalog.
 
 ### E4-1 final acceptance (Codex, 2026-07-20)
 

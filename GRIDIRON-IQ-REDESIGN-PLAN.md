@@ -496,16 +496,33 @@ Reviewed repair of: becf6e3 (findings below)
   with Codex's independent review as the acceptance authority; a fully
   independent gate rerun by Codex remains pending, not yet done.
 
+=== DURABILITY PROOF ACCEPTED - 2026-07-20 ===
+Builder: Claude | Reviewer: Codex | Accepted commit: 8d5c037, hardening fixes
+in a follow-up commit
+
+- tools/e2e-projform-durability.mjs tags plays through the real UI, persists
+  through the real canonical path, does a genuine page.reload() (window.app
+  fully torn down), reopens the season, and compares raw tags/projected
+  view/chip state (a targeted allow-list of projection-relevant fields, not a
+  literal full-object diff) against the pre-reload snapshot -- all four
+  projection relationships, both Pistol+Empty commit paths, a Film Room grid
+  edit, a derived-clear, plus a real season copy when available.
+- Codex's independent verification: durability proof 39/39, full gate 58/58,
+  real fixture used (6 games, 449 plays), no production-code findings.
+- Three Low findings, all fixed: (1) the real-data UI edit could pass
+  vacuously with no assertion the click changed anything -- fixed by
+  asserting a genuine pre/post-click difference and that the Formation chip
+  was reachable (now deterministically picks an offense play); (2) the
+  real-season check covered only the active game -- fixed by fingerprinting
+  every OTHER game's entire play array byte-for-byte across the reload; (3)
+  docs overstated "byte-for-byte" as a full-object diff -- corrected.
+- Re-verified: durability proof 53/53, full gate 58/58, zero regression.
+- Codex's acceptance covers the BrowserBackend path only.
+
 NEXT ACTION
-Canonical season save/reopen durability proof is DONE (8d5c037), pending Codex
-review before packaging: tools/e2e-projform-durability.mjs tags plays through
-the real UI, persists through the real canonical path, does a genuine
-page.reload() (window.app fully torn down), reopens the season, and compares
-raw tags/projected view/chip state byte-for-byte against the pre-reload
-snapshot -- all four projection relationships, both Pistol+Empty commit paths,
-a Film Room grid edit, a derived-clear, plus a real six-game season copy when
-available. 39/39, mutation-verified against the exact historical Pistol/Empty
-defect, full gate 58/58. Self-reviewed by the builder only.
+Package an internal candidate and run the installed real-film smoke -- this
+must independently verify the Tauri/file/SqlCatalog path the durability proof
+above cannot reach headlessly -- then publish per GRIDIRON-IQ-RELEASE-GATE.md.
 
 === E4-2 REVIEW - CHANGES REQUESTED - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Reviewed commit: becf6e3

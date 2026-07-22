@@ -352,20 +352,52 @@ Pistol+Empty case via both commit paths, a Film Room grid edit, a
 derived-value clear), persists through the real StorageManager/SeasonStore
 path, then does a genuine `page.reload()` — destroying `window.app`
 entirely — and reopens the season the way a relaunch would. Raw tags, the
-recomputed projected view, and tag-form chip state are compared byte-for-byte
-against a pre-reload snapshot. A second section repeats the shape against a
-copy of a real six-game season from the coach's Documents mirror when present
-(same fail-open convention as `e2e-realdata.mjs`, never written back to).
-**39/39 passing.** Mutation-verified: temporarily reverting
-`TagProjection.reconcileSiblings`'s blank-check to raw truthiness (the exact
-historical Pistol/Empty defect) reproduces a failure in this harness; restored
-and reconfirmed clean. Full canonical gate rerun **58/58 green**, zero
-regression. This was self-reviewed by Claude (the builder), not yet
-independently reviewed by Codex — flag for Codex's review before packaging.
+recomputed projected view, and tag-form chip state are compared field-by-field
+(the relevant projection fields via a `pick()` allow-list — reload legitimately
+fills in unrelated blank schema keys a synthetic fixture may omit, so a literal
+full-object diff would false-fail on that, not on a real regression) against a
+pre-reload snapshot. A second section repeats the shape against a copy of a
+real season from the coach's Documents mirror when present (same fail-open
+convention as `e2e-realdata.mjs`, never written back to). **39/39 passing.**
+Mutation-verified: temporarily reverting `TagProjection.reconcileSiblings`'s
+blank-check to raw truthiness (the exact historical Pistol/Empty defect)
+reproduces a failure in this harness; restored and reconfirmed clean. Full
+canonical gate rerun **58/58 green**, zero regression.
 
-**Next:** Codex review of the durability proof above, then packaging per
-`GRIDIRON-IQ-RELEASE-GATE.md` (internal candidate → installed real-film smoke
-→ publish).
+**Codex review of `8d5c037` (durability proof) — ACCEPTED, three Low
+hardening items, all fixed.** Independent verification confirmed: durability
+proof 39/39, complete canonical gate 58/58, real fixture used (6 games, 449
+plays), no production-code findings. Three Low findings, all in the optional
+real-data section, all fixed in a follow-up commit:
+1. **The real-data UI edit could pass vacuously.** The chip click's effect was
+   never asserted before persisting — a missing chip or an ineffective click
+   could still pass the reopen comparison (comparing an untouched play to
+   itself). Fixed: capture the play's tags before the click, assert the
+   post-click value actually differs, and assert the Formation chip was found
+   at all (deterministically picking an OFFENSE play first, since Formation is
+   hidden/collapsed for other units).
+2. **The real-season proof checked only the active game.** It verified the
+   active game's play count and one edited play, so it would not have
+   detected data loss in one of the OTHER five games. Fixed: every other
+   game's ENTIRE play array is now fingerprinted (`JSON.stringify`) before and
+   after the reload and compared byte-for-byte, plus a check that the same
+   number of games survives — not just counts, the full play data for every
+   inactive game.
+3. **Docs overstated comparison scope.** "Byte-for-byte" implied a literal
+   full-object diff; the harness actually compares a targeted allow-list of
+   projection-relevant fields via `pick()` (reload legitimately fills in
+   unrelated blank schema keys omitted by a synthetic fixture, so a literal
+   full-object diff would false-fail on that). Corrected here and in the test's
+   own header comment.
+Re-verified after the fixes: durability proof **53/53** (up from 39/39 — the
+new assertions add real coverage, not just count), full canonical gate
+**58/58**, zero regression.
+
+**Next:** packaging per `GRIDIRON-IQ-RELEASE-GATE.md` (internal candidate →
+installed real-film smoke → publish). Codex's review explicitly flagged that
+its acceptance covers the **BrowserBackend** path only — the installed desktop
+smoke still must independently verify the Tauri/file/SqlCatalog path this
+harness cannot reach headlessly.
 
 Canonical detail is in `GRIDIRON-IQ-TAG-MODEL.md`, **E3b rev-2 plan
 acceptance** (E4's contract, D-projform, is §18/§20 of the same document).
