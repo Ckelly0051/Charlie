@@ -18,9 +18,9 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-22, v1.12.0-8 linked-film blocker)
+### Current working state (2026-07-22, v1.12.0-8 linked-film repair ACCEPTED)
 
-**Repair implementation is complete and ready for independent Claude review.**
+**Repair ACCEPTED — Claude's independent review found no findings.**
 **Repair commit:** `3a00ddd` (pushed to the shared feature branch).
 No installer or release tag has been cut, and the existing managed C: copies
 remain protected until the coach passes the installed D:-library smoke.
@@ -46,7 +46,41 @@ Implemented on the current repair commit:
 
 Builder proof: `e2e-film-storage-setup` 23/23, `e2e-linked-film` 40/40,
 `cargo check` green, and canonical gate **59/59** green on a fresh rebuild.
-The non-builder must rerun and review these committed bytes before packaging.
+
+**Claude's independent review (non-builder) — ACCEPTED, no findings.** Traced
+each of the six requirements below against source, not taken on report:
+one settings home (old standalone panel deleted, new one nested under Team &
+Film Settings, reachable pre-game via a Team Hub button); root/game-folder
+scopes genuinely separate (`TauriBackend.gameDirFromRoot` distinguishes
+root-itself/child/outside-root, including the prefix-lookalike case via a
+real trailing-slash boundary check, not naive `startsWith`); the game link
+persists through a `SeasonStore.persist()` call whose success is now actually
+awaited and checked (previously fire-and-forget); source truth is visible
+(durable confirmation screen, per-game resolved-path display with a
+render-token guard against stale overwrites); fail-closed holds for
+outside-root, denied access, mid-link game switches, and failed saves; and the
+regression proof reproduces the exact reported smoke (`D:/Football/Film` →
+`St Peter 41-0`, root unchanged, linked metadata persists, zero managed-import
+calls). Both named bug fixes verified as real: the rollback race checks out
+against `_renderGamesPanel()`'s actual `commitActive()` call at `app.js:583`;
+the Film Room resize fix (`reclamp()`) correctly re-derives control position
+from the stored ratio against current geometry instead of stale absolute
+pixels. Independently reran `e2e-film-storage-setup` 23/23 and
+`e2e-linked-film` 40/40 myself (not trusted from the report), plus the full
+canonical gate **59/59 green** and `cargo check` clean on a fresh rebuild.
+**Mutation-verified two of the highest-risk guarantees**: temporarily disabling
+the mid-link game-switch re-check reproduced the exact "game switch during
+native URL resolution" failure (`raced:true, raceSafe:false`); temporarily
+disabling the failed-save throw reproduced the rollback failure
+(`failed:true, failedRolledBack:false`). Both restored and reconfirmed clean.
+Also verified the new `open_library_dir` Rust command only opens paths already
+inside the granted `asset_protocol_scope`/`fs_scope` — an imported season's
+`filmDir` cannot be used to make the OS open an arbitrary path.
+
+**Still required before any release:** the installed real-film smoke against
+the D: library (this review only covers automated proof; codec/disk/decoder
+behavior and the coach's actual reopen/persistence experience are unverified
+until that runs). No installer or tag yet.
 
 
 **The installed v1.12.0-8 candidate FAILED the real linked-library smoke. Stop
@@ -87,10 +121,10 @@ a durable, visible confirmation.
    and byte-stable season/tag data outside the intended link fields.
 
 **Release rule:** this is a storage-integrity blocker. Build and review the
-repair as its own commit. Claude re-runs the focused tests and canonical gate on
-the reviewed bytes. Then package an internal candidate for the coach's installed
-D:-library smoke. No new release tag is cut until that smoke confirms the source
-path, reopen behavior, tag preservation, and no-copy behavior.
+repair as its own commit — **done, accepted above.** Next: package an internal
+candidate for the coach's installed D:-library smoke. No new release tag is cut
+until that smoke confirms the source path, reopen behavior, tag preservation,
+and no-copy behavior.
 
 **Separate cleanup in the same work cycle, never mixed into the storage commit:**
 - Codex may replace duplicate HTML escapers with an explicitly imported neutral
