@@ -9,13 +9,177 @@ function uiDropdownClosed() {
 }
 
 export class UIPolish {
-  constructor() {
+  constructor(app = null) {
+    this.app = app;
     this._initMoreMenu();
     this._initSidebarDrawer();
     this._initPanelCollapse();
     this._initBottomTabs();
     this._initEmptyStateCTA();
     this._initVideoLoadedHint();
+    this._bindFilmStorageSettings();
+  }
+
+  _filmBackend() { return this.app?.storage?.seasonStore?.backend || null; }
+
+  _isDesktopFilm() {
+    const backend = this._filmBackend();
+    return !!(window.__TAURI__ && backend?.supportsLinkedFilm?.());
+  }
+
+  initFilmStorageSetup() {
+    if (!this._isDesktopFilm()) return;
+    document.getElementById('filmStoragePanel')?.removeAttribute('hidden');
+    this._renderFilmStorageSettings();
+    const backend = this._filmBackend();
+    if (!backend.getFilmStorageMode?.()) setTimeout(() => this.ensureFilmStorageMode(), 120);
+  }
+
+  _bindFilmStorageSettings() {
+    document.getElementById('btnFilmStorageSetup')?.addEventListener('click', () => {
+      this.ensureFilmStorageMode({ force: true });
+    });
+  }
+
+  _renderFilmStorageSettings() {
+    const panel = document.getElementById('filmStoragePanel');
+    if (!panel || !this._isDesktopFilm()) return;
+    panel.hidden = false;
+    const backend = this._filmBackend();
+    const mode = backend.getFilmStorageMode?.() || '';
+    const root = backend.getLibraryRoot?.() || '';
+    const modeEl = document.getElementById('filmStorageModeLabel');
+    const pathEl = document.getElementById('filmStoragePathLabel');
+    const btn = document.getElementById('btnFilmStorageSetup');
+    if (modeEl) modeEl.textContent = mode === 'linked' ? 'Existing library linked' : mode === 'managed' ? 'Managed by GridIron IQ' : 'Not set up';
+    if (pathEl) pathEl.textContent = mode === 'linked'
+      ? (root || 'Choose a film library folder')
+      : mode === 'managed'
+        ? 'Film added through import is copied into GridIron IQ app storage.'
+        : 'Choose how GridIron IQ should store game film.';
+    if (btn) btn.textContent = mode ? 'Change film storage' : 'Set up film storage';
+    this._renderEmptyFilmActions();
+  }
+
+  ensureFilmStorageMode({ force = false } = {}) {
+    const backend = this._filmBackend();
+    if (!this._isDesktopFilm()) return Promise.resolve('managed');
+    const current = backend.getFilmStorageMode?.() || '';
+    if (current && !force) return Promise.resolve(current);
+    if (this._filmStoragePromise) return this._filmStoragePromise;
+
+    this._filmStoragePromise = new Promise(resolve => {
+      document.getElementById('filmStorageSetupModal')?.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'film-storage-modal';
+      overlay.id = 'filmStorageSetupModal';
+      overlay.innerHTML = `
+        <div class="film-storage-backdrop"></div>
+        <section class="film-storage-card" role="dialog" aria-modal="true" aria-labelledby="filmStorageTitle">
+          <div class="film-storage-head">
+            <div>
+              <div class="film-storage-kicker">DESKTOP SETUP</div>
+              <h2 id="filmStorageTitle">Where should your film live?</h2>
+            </div>
+            <button class="film-storage-close" type="button" data-storage-action="cancel" aria-label="Close">×</button>
+          </div>
+          <p class="film-storage-intro">Choose once now. You can change this later in Settings. GridIron IQ will never move or delete existing film during setup.</p>
+          <div class="film-storage-options">
+            <button class="film-storage-option is-recommended" type="button" data-storage-action="linked">
+              <span class="film-storage-option-top"><strong>Use my existing film library</strong><em>RECOMMENDED</em></span>
+              <span>Choose the folder you already keep on this computer or external drive. GridIron IQ plays files in place and makes no copy.</span>
+              <b>Choose library folder</b>
+            </button>
+            <button class="film-storage-option" type="button" data-storage-action="managed">
+              <span class="film-storage-option-top"><strong>Let GridIron IQ manage film</strong></span>
+              <span>Simple setup for new users. Imported video is copied into GridIron IQ's private app storage.</span>
+              <b>Use managed storage</b>
+            </button>
+          </div>
+          <p class="film-storage-footnote">This choice affects video only. Seasons, tags, reports, and backups keep using GridIron IQ's protected app data.</p>
+        </section>`;
+      document.body.appendChild(overlay);
+      const finish = value => {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        this._filmStoragePromise = null;
+        this._renderFilmStorageSettings();
+        resolve(value);
+      };
+      const choose = async action => {
+        if (action === 'cancel') { finish(current || ''); return; }
+        if (action === 'managed') {
+          backend.setFilmStorageMode?.('managed');
+          this.app?.tagger?.toast?.('FILM STORAGE SET: GRIDIRON IQ MANAGED');
+          finish('managed');
+          return;
+        }
+        if (action === 'linked') {
+          const picked = await backend.pickFolder?.(backend.getLibraryRoot?.() || undefined);
+          if (!picked) return;
+          const oldRoot = backend.getLibraryRoot?.() || '';
+          if (oldRoot && oldRoot.toLowerCase() !== picked.toLowerCase()) {
+            const confirmed = await this.app?.tagger?._choiceDialog?.(
+              'Change the film library folder? Existing linked games under the old folder may need to be linked again. No film or tags will be deleted.',
+              [{ key: 'change', label: 'Change folder', variant: 'btn-accent' }, { key: 'cancel', label: 'Cancel' }]
+            );
+            if (confirmed !== 'change') return;
+          }
+          const allowed = await backend.setLibraryRoot?.(picked);
+          if (!allowed) {
+            this.app?.tagger?.toast?.('COULD NOT ACCESS THAT FOLDER. TRY ANOTHER LOCATION.');
+            return;
+          }
+          backend.setFilmStorageMode?.('linked');
+          this.app?.tagger?.toast?.('FILM LIBRARY LINKED - NO VIDEO WILL BE COPIED', 6000);
+          finish('linked');
+        }
+      };
+      overlay.addEventListener('click', e => {
+        const action = e.target.closest('[data-storage-action]')?.dataset.storageAction;
+        if (action) choose(action);
+      });
+      const onKey = e => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); finish(current || ''); }
+        if (e.key !== 'Tab') return;
+        const focusable = [...overlay.querySelectorAll('button')];
+        if (!focusable.length) return;
+        const i = focusable.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); focusable[focusable.length - 1].focus(); }
+        else if (!e.shiftKey && i === focusable.length - 1) { e.preventDefault(); focusable[0].focus(); }
+      };
+      document.addEventListener('keydown', onKey, true);
+      overlay.querySelector('.film-storage-option')?.focus();
+    });
+    return this._filmStoragePromise;
+  }
+
+  /** Resolve desktop import intent before VideoController loads any files. */
+  async prepareFilmFiles(_files) {
+    if (!this._isDesktopFilm()) return true;
+    const game = this.app?.storage?.seasonStore?.activeGame?.();
+    if (!game) {
+      this.app?.tagger?.toast?.('OPEN A GAME BEFORE ADDING FILM');
+      return false;
+    }
+    const mode = await this.ensureFilmStorageMode();
+    if (!mode) return false;
+    if (mode === 'managed' || game.filmMode === 'managed') return true;
+    if (game.filmMode === 'linked') {
+      await this.app?.storage?.linkFilmFolder?.();
+      return false;
+    }
+    const choice = await this.app?.tagger?._choiceDialog?.(
+      'Your existing film library is the default. Link this game folder with no copy, or intentionally copy the selected files into GridIron IQ?',
+      [
+        { key: 'link', label: 'Link game folder', variant: 'btn-accent' },
+        { key: 'copy', label: 'Copy selected files' },
+        { key: 'cancel', label: 'Cancel' },
+      ]
+    );
+    if (choice === 'copy') return true;
+    if (choice === 'link') await this.app?.storage?.linkFilmFolder?.();
+    return false;
   }
 
   _initMoreMenu() {
@@ -228,7 +392,7 @@ export class UIPolish {
         <div class="dropzone-actions">
           <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
           <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
-          ${window.__TAURI__ ? '<button class="btn btn-secondary" type="button" data-action="link">Link from Library</button>' : ''}
+          ${window.__TAURI__ ? '<button class="btn btn-secondary" type="button" data-action="link">Link Existing Folder</button>' : ''}
         </div>
         <div class="empty-hint">${window.__TAURI__ ? 'Link references clips in your own folder — no copy. ' : ''}or drop a video or folder anywhere</div>
       </div>
@@ -245,8 +409,45 @@ export class UIPolish {
     const linkBtn = placeholder.querySelector('[data-action="link"]');
     if (linkBtn) linkBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      window.app?.storage?.linkFilmFolder?.();
+      const current = this._filmBackend()?.getFilmStorageMode?.() || '';
+      if (!current) {
+        this.ensureFilmStorageMode().then(mode => {
+          if (mode === 'linked') this.app?.storage?.linkFilmFolder?.();
+        });
+      } else {
+        this.app?.storage?.linkFilmFolder?.();
+      }
     });
+    this._renderEmptyFilmActions();
+  }
+
+  _renderEmptyFilmActions() {
+    const placeholder = document.getElementById('videoPlaceholder');
+    if (!placeholder || !window.__TAURI__) return;
+    const mode = this._filmBackend()?.getFilmStorageMode?.() || '';
+    const fileBtn = placeholder.querySelector('[data-action="file"]');
+    const folderBtn = placeholder.querySelector('[data-action="folder"]');
+    const linkBtn = placeholder.querySelector('[data-action="link"]');
+    if (!fileBtn || !folderBtn || !linkBtn) return;
+    fileBtn.textContent = mode === 'linked' ? 'Copy Video' : 'Add Video';
+    folderBtn.textContent = mode === 'linked' ? 'Copy Folder' : 'Add Folder';
+    linkBtn.textContent = mode ? 'Link Game Folder' : 'Choose Film Storage';
+    fileBtn.classList.toggle('btn-accent', mode !== 'linked');
+    fileBtn.classList.toggle('btn-secondary', mode === 'linked');
+    linkBtn.classList.toggle('btn-accent', mode === 'linked' || !mode);
+    linkBtn.classList.toggle('btn-secondary', mode === 'managed');
+    const hint = placeholder.querySelector('.empty-hint');
+    if (hint) hint.textContent = mode === 'linked'
+      ? 'Linked film plays from your library without making a copy.'
+      : mode === 'managed'
+        ? 'Imported film is copied into GridIron IQ. Link a folder to use it in place.'
+        : 'Choose where film should live before adding it.';
+    const topLabel = document.getElementById('fileLabel');
+    const folderLabel = document.querySelector('#btnLoadFolder .btn-label');
+    if (topLabel) topLabel.textContent = mode === 'linked'
+      ? 'Link from the game below, or drop files to choose'
+      : mode === 'managed' ? 'Drop video(s) / folder or click to load' : 'Choose film storage before adding film';
+    if (folderLabel) folderLabel.textContent = mode === 'linked' ? 'Copy Folder' : 'Folder';
   }
 
   /**

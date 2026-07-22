@@ -74,6 +74,8 @@ export class StorageBackend {
   // ---- linked film library (desktop only): coach-owned folder, referenced
   //      in place (no copy). Managed film (importFilm) is untouched by these. ----
   supportsLinkedFilm() { return false; }
+  getFilmStorageMode() { return 'managed'; }
+  setFilmStorageMode(_mode) { return false; }
   getLibraryRoot() { return ''; }
   async setLibraryRoot(_path) { return false; }
   async allowLibraryDir(_path) { return false; }
@@ -902,11 +904,31 @@ export class TauriBackend extends StorageBackend {
   // clips within it. Nothing is copied into app data. The static $APPDATA scope
   // (managed film) is untouched, so linked + managed games coexist.
   supportsLinkedFilm() { return this._ok(); }
+  getFilmStorageMode() {
+    try {
+      const saved = localStorage.getItem('ffa_film_storage_mode') || '';
+      if (saved === 'linked' || saved === 'managed') return saved;
+      // Coaches who linked film before the setup screen existed already made
+      // an intentional choice. Infer it instead of interrupting them again.
+      return this.getLibraryRoot() ? 'linked' : '';
+    } catch (e) { return ''; }
+  }
+
+  setFilmStorageMode(mode) {
+    if (mode !== 'linked' && mode !== 'managed') return false;
+    try { localStorage.setItem('ffa_film_storage_mode', mode); return true; }
+    catch (e) { return false; }
+  }
   getLibraryRoot() { try { return localStorage.getItem('ffa_film_library_root') || ''; } catch (e) { return ''; } }
 
   async setLibraryRoot(path) {
-    try { localStorage.setItem('ffa_film_library_root', path || ''); } catch (e) {}
-    return path ? this.allowLibraryDir(path) : true;
+    if (path && !await this.allowLibraryDir(path)) return false;
+    try {
+      localStorage.setItem('ffa_film_library_root', path || '');
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   /** Grant the WebView + fs plugin runtime access to a folder (Rust command). */

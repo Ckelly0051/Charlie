@@ -466,6 +466,33 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
+=== DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
+Builder: Codex | Status: v1.12.0-8 packaged; owner approved immediate publish;
+installed smoke follows release
+Failed candidate: v1.12.0-7
+
+- Smoke found a release-blocking UX omission: linked-film capability had no
+  first-launch/upgrade setup, no Settings root surface, and no intentional
+  storage decision. The backend feature was effectively hidden while prominent
+  film intake continued to imply managed copies.
+- Repair adds an explicit two-choice desktop setup (existing library/no copy vs
+  managed/copy), persistent Settings status + exact root + Change action,
+  mode-aware empty-film actions, and pre-load interception for top-bar pickers
+  and drag/drop. Linked mode cannot silently enter the copy pipeline.
+- Root changes are transactional. A denied folder is never saved. Changing an
+  existing root warns that old linked games may need relinking. Setup moves or
+  deletes nothing; season/tag data remains untouched.
+- Existing users with a saved linked root are inferred as linked and not
+  reprompted.
+- New proof: film-storage setup 12/12; linked-film 29/29; onboarding 46/46.
+- Canonical build + gate: 59/59 harnesses green.
+
+NEXT ACTION
+Push the branch and v1.12.0-8 tag per the owner's explicit decision that the
+broken current release should be replaced before smoke (no other active users).
+Then coach smoke must select the real D: library root, link an existing tagged
+game, play clips, reopen, and verify no duplicate video is created on C:.
+
 === E4-2 FINAL ACCEPTANCE - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 689346c
 Reviewed repair of: becf6e3 (findings below)

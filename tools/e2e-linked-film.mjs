@@ -52,5 +52,32 @@ ok(node.filmMode, 'linked', 'filmMode survives commit (was dropped by _serialize
 ok(node.filmDir, 'St Peter 41-0', 'filmDir survives commit');
 ok(node.status, 'final', 'status still carried');
 
+console.log('\nLinked-film storage preference + root transaction ----------');
+const memory = new Map();
+globalThis.window = { __TAURI__: {} };
+globalThis.localStorage = {
+  getItem: key => memory.has(key) ? memory.get(key) : null,
+  setItem: (key, value) => memory.set(key, String(value)),
+  removeItem: key => memory.delete(key),
+};
+const backend = new TauriBackend();
+backend.allowLibraryDir = async () => false;
+let saved = await backend.setLibraryRoot('D:/Denied');
+ok(saved, false, 'denied root reports failure');
+ok(backend.getLibraryRoot(), '', 'denied root is not remembered');
+ok(backend.getFilmStorageMode(), '', 'denied root cannot masquerade as a linked preference');
+
+backend.allowLibraryDir = async () => true;
+saved = await backend.setLibraryRoot('D:/Football/Film');
+ok(saved, true, 'allowed root reports success');
+ok(backend.getLibraryRoot(), 'D:/Football/Film', 'allowed root persists after access succeeds');
+ok(backend.getFilmStorageMode(), 'linked', 'preference infers linked for existing pre-setup users');
+ok(backend.setFilmStorageMode('managed'), true, 'explicit managed preference persists');
+ok(backend.getFilmStorageMode(), 'managed', 'explicit preference wins over inferred linked root');
+ok(backend.setFilmStorageMode('bogus'), false, 'invalid storage mode is rejected');
+ok(backend.getFilmStorageMode(), 'managed', 'rejected mode cannot corrupt the saved preference');
+delete globalThis.localStorage;
+delete globalThis.window;
+
 console.log(`\n${fail === 0 ? 'ALL PASS' : 'FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

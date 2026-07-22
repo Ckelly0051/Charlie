@@ -18,6 +18,51 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### Current working state (2026-07-22, desktop storage smoke repair)
+
+**The installed v1.12.0-7 candidate FAILED smoke and must not be published.**
+The linked-film backend existed, but the product exposed no first-launch or
+upgrade setup, no persistent Settings surface, and only a buried
+Link from Library action inside an empty game's video placeholder. The
+prominent Add Video/Add Folder/drop paths still implied the managed-copy
+workflow. This was a product/UX omission, not a coach-instruction failure.
+
+**Repair is packaged as v1.12.0-8 and approved by the owner for immediate publish:**
+- Desktop launch with no prior choice now opens **Where should your film live?**
+  after the Team Hub loads.
+- **Use my existing film library** opens the native folder picker, stores the
+  approved root, references each game's folder in place, and makes no video
+  copy. **Let GridIron IQ manage film** remains the simple option and clearly
+  discloses that imports are copied into private app storage.
+- A persistent **Settings -> Film Storage** panel always shows the selected
+  mode and exact linked root, with a Change action. Replacing an existing root
+  warns that old linked games may need relinking; setup never moves or deletes
+  film, tags, seasons, or backups.
+- Linked mode makes **Link Game Folder** the primary empty-game action. Legacy
+  pickers and drag/drop are intercepted BEFORE VideoController loads files or
+  creates plays; the coach must explicitly choose Link Game Folder or
+  Copy Selected Files. There is no remaining silent-copy path.
+- A denied/inaccessible root is transactional: it is not persisted and cannot
+  be inferred as a valid linked preference on relaunch. Existing pre-setup
+  users with a saved root are inferred as linked and are not reprompted.
+- Existing season/tag data is untouched. Linking an already tagged game still
+  uses the existing durable clip-identity relink path.
+
+**Verification on the rebuilt single-file bundle:**
+- tools/e2e-film-storage-setup.mjs: 12/12, zero page errors.
+- tools/e2e-linked-film.mjs: 29/29, including denied-root rollback and
+  preference inference.
+- tools/e2e-onboarding.mjs: 46/46, zero page errors.
+- Canonical build + gate: **59/59 harnesses green**, including the real-data,
+  durability, integrity, catalog, relink, and video suites.
+
+**Release decision:** the owner explicitly approved pushing and tagging
+v1.12.0-8 before installed smoke because the currently published build is
+already broken and no other users are active. After the workflow publishes,
+the coach runs the installed desktop smoke: select the real D: library root;
+link an existing tagged game; play multiple clips; close and reopen; verify
+tags persist and no new video appears under C: app data.
+
 ### Current working state (2026-07-20, E4-2 ACCEPTED)
 
 **Read `GRIDIRON-IQ-RELEASE-GATE.md` before packaging.** Build an internal

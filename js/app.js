@@ -54,7 +54,7 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-7';
+const APP_VERSION = '1.12.0-8';
 
 class App {
   constructor() {
@@ -117,7 +117,8 @@ class App {
     this.workspaceShell = new WorkspaceShell(this);
     this.breakdownVideo = new BreakdownVideo(this.tagger);
     this.callSheet = new CallSheetBuilder(this.tagger);
-    this.uiPolish = new UIPolish();
+    this.uiPolish = new UIPolish(this);
+    this.vc.beforeFilesSelected = files => this.uiPolish.prepareFilmFiles(files);
     this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
 
     // Give storage references
@@ -204,6 +205,7 @@ class App {
       this._bindGamesPanel();
       await this.library.open();
       await this.workspaceShell.init();
+      this.uiPolish.initFilmStorageSetup();
     }, 0);
 
     this._initVersionLabel();

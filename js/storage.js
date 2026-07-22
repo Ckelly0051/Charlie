@@ -556,7 +556,11 @@ export class StorageManager {
     if (!root) {
       root = await backend.pickFolder();
       if (!root) return false;
-      await backend.setLibraryRoot(root);
+      const allowed = await backend.setLibraryRoot(root);
+      if (!allowed) {
+        this.tagger.toast?.('GridIron IQ could not access that folder. Choose another folder and try again.');
+        return false;
+      }
       this.tagger.toast?.(`Film library folder set: ${root}`, 6000);
     }
     const folder = await backend.pickFolder(root);
@@ -589,6 +593,7 @@ export class StorageManager {
     }
     if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
     this.videoFileName = null;
+    backend.setFilmStorageMode?.('linked');
     this.commitActive();
     this.seasonStore.persist();
     this._signalSave?.('saved');
@@ -599,6 +604,20 @@ export class StorageManager {
   async importFilm(files) {
     const backend = this.seasonStore.backend;
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
+    // No desktop film is copied until the coach makes an explicit storage
+    // choice. This is the final guard for drag/drop and future import paths.
+    if (backend.supportsLinkedFilm?.() && !backend.getFilmStorageMode?.()) {
+      const mode = await window.app?.uiPolish?.ensureFilmStorageMode?.();
+      if (!mode) {
+        this.tagger.toast?.('Choose film storage before adding film.');
+        return;
+      }
+      if (mode === 'linked') {
+        this.tagger.toast?.('Your library is linked. Choose the game folder to keep these clips in place.', 6000);
+        await this.linkFilmFolder();
+        return;
+      }
+    }
     const game = this.seasonStore.activeGame();
     if (!game) return;
     // Linked games reference clips in the coach's own folder and are never copied

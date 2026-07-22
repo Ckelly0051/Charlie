@@ -48,9 +48,10 @@ export class VideoController {
 
   _bindEvents() {
     // File input — supports multiple files
-    this.fileInput.addEventListener('change', (e) => {
+    this.fileInput.addEventListener('change', async (e) => {
       const files = this._filterVideoFiles(Array.from(e.target.files));
       if (files.length > 0) {
+        if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) { e.target.value = ''; return; }
         this._showFolderBadge(files);
         this._emit('files-selected', { files });
       }
@@ -58,12 +59,13 @@ export class VideoController {
 
     // Folder picker (webkitdirectory) — scoops every video file inside
     if (this.folderInput) {
-      this.folderInput.addEventListener('change', (e) => {
+      this.folderInput.addEventListener('change', async (e) => {
         const files = this._filterVideoFiles(Array.from(e.target.files))
           // keep a natural sort order so plays load alphabetically
           .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
             b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
         if (files.length > 0) {
+          if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) { e.target.value = ''; return; }
           this._showFolderBadge(files);
           this._emit('files-selected', { files });
         } else {
@@ -104,6 +106,7 @@ export class VideoController {
         .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
           b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
       if (files.length > 0) {
+        if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) return;
         this._showFolderBadge(files);
         this._emit('files-selected', { files });
       } else if (e.dataTransfer.files.length || (items && items.length)) {
