@@ -21,6 +21,7 @@ storage again.
 ### Current working state (2026-07-22, v1.12.0-8 linked-film blocker)
 
 **Repair implementation is complete and ready for independent Claude review.**
+**Repair commit:** `3a00ddd` (pushed to the shared feature branch).
 No installer or release tag has been cut, and the existing managed C: copies
 remain protected until the coach passes the installed D:-library smoke.
 

@@ -468,6 +468,7 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ```
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
 Owner: Codex | Reviewer: Claude | Status: READY FOR INDEPENDENT REVIEW
+Repair commit: 3a00ddd
 Failed installed baseline: e4bb438 / v1.12.0-8
 
 - The installed smoke selected `D:\Football\Film` as the app-level library

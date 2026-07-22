@@ -22,7 +22,7 @@ global film-library root, while the game itself did not persist linked
 `filmMode`/`filmDir`. Playback could therefore still come from a managed C:
 copy. The root chooser also offered no durable visible confirmation.
 
-**Repair candidate status (builder evidence only):** implementation is complete,
+**Repair candidate status (`3a00ddd`, builder evidence only):** implementation is complete,
 Tauri compilation is green, focused storage proof is 23/23 plus 40/40, and the
 canonical gate is 59/59 green. This does **not** clear the blocker. Claude must
 independently review/rerun the committed bytes, then the coach must pass the
