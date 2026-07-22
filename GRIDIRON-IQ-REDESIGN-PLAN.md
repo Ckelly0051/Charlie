@@ -467,8 +467,8 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ### Active Handoff
 ```
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
-Builder: Codex | Status: v1.12.0-8 packaged; owner approved immediate publish;
-installed smoke follows release
+Builder: Codex | Status: e4bb438 + v1.12.0-8 pushed; desktop workflow
+29940184172 in progress; installed smoke follows release
 Failed candidate: v1.12.0-7
 
 - Smoke found a release-blocking UX omission: linked-film capability had no
@@ -488,10 +488,9 @@ Failed candidate: v1.12.0-7
 - Canonical build + gate: 59/59 harnesses green.
 
 NEXT ACTION
-Push the branch and v1.12.0-8 tag per the owner's explicit decision that the
-broken current release should be replaced before smoke (no other active users).
-Then coach smoke must select the real D: library root, link an existing tagged
-game, play clips, reopen, and verify no duplicate video is created on C:.
+Monitor GitHub Actions run 29940184172 through release publication. Then coach
+smoke must select the real D: library root, link an existing tagged game, play
+clips, reopen, and verify no duplicate video is created on C:.
 
 === E4-2 FINAL ACCEPTANCE - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 689346c

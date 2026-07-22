@@ -56,12 +56,12 @@ workflow. This was a product/UX omission, not a coach-instruction failure.
 - Canonical build + gate: **59/59 harnesses green**, including the real-data,
   durability, integrity, catalog, relink, and video suites.
 
-**Release decision:** the owner explicitly approved pushing and tagging
-v1.12.0-8 before installed smoke because the currently published build is
-already broken and no other users are active. After the workflow publishes,
-the coach runs the installed desktop smoke: select the real D: library root;
-link an existing tagged game; play multiple clips; close and reopen; verify
-tags persist and no new video appears under C: app data.
+**Release status:** source commit e4bb438 and tag v1.12.0-8 are pushed. GitHub
+Actions run 29940184172 (Build Desktop Installers) started against that exact
+commit. The owner explicitly approved publishing before installed smoke because
+the current release is broken and no other users are active. After publication,
+the coach tests the real D: library root, relink/reopen, tag persistence, and
+no-copy behavior.
 
 ### Current working state (2026-07-20, E4-2 ACCEPTED)
 
