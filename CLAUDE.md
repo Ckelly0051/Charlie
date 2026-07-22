@@ -18,15 +18,16 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-22, v1.12.0-9 linked-film repair PACKAGED)
+### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
 **Repair ACCEPTED — Claude's independent review found no findings.**
 **Repair commit:** `3a00ddd` (pushed to the shared feature branch).
-**Internal candidate:** `v1.12.0-9` at `6312657e06c00995fc562d25efda10d621dba6bc`.
-GitHub Actions run `29955733962` completed successfully on Windows, macOS,
-and Linux; the Windows artifact is `gridiron-iq-windows` (artifact
-`8544130869`). No release tag has been cut. Existing managed C: copies remain
-protected until the coach passes the installed D:-library smoke.
+**Published prerelease:** tag `v1.12.0-9` at exact source SHA
+`6312657e06c00995fc562d25efda10d621dba6bc`. Tagged GitHub Actions run
+`29959671084` completed successfully on Windows, macOS, and Linux and
+published the EXE, MSI, DMG, Linux packages, signatures, and `latest.json`.
+Existing managed C: copies remain protected until the coach passes the installed
+D:-library smoke.
 
 Implemented on the current repair commit:
 - Film Storage now lives inside Team & Film Settings, which is reachable from
@@ -80,11 +81,10 @@ Also verified the new `open_library_dir` Rust command only opens paths already
 inside the granted `asset_protocol_scope`/`fs_scope` — an imported season's
 `filmDir` cannot be used to make the OS open an arbitrary path.
 
-**Still required before any release:** install the `gridiron-iq-windows`
-artifact from Actions run `29955733962` and complete the real-film smoke
+**Still required before closing the storage blocker or deleting managed film:**
+install `v1.12.0-9` from the GitHub prerelease and complete the real-film smoke
 against the D: library. Codec/disk/decoder behavior and the coach's actual
-reopen/persistence experience remain unverified until that runs. The package is
-an internal candidate only; no release tag exists for `v1.12.0-9`.
+reopen/persistence experience remain unverified until that runs.
 
 
 **The installed v1.12.0-8 candidate FAILED the real linked-library smoke. Stop
@@ -125,10 +125,10 @@ a durable, visible confirmation.
    and byte-stable season/tag data outside the intended link fields.
 
 **Release rule:** this is a storage-integrity blocker. Build and review the
-repair as its own commit — **done, accepted above.** The internal candidate is
-**packaged and available** from Actions run `29955733962`. No new release tag
-is cut until the coach smoke confirms the source path, reopen behavior, tag
-preservation, and no-copy behavior.
+repair as its own commit — **done, accepted above.** At the coach's explicit
+direction, prerelease `v1.12.0-9` is now published. The installed smoke still
+must confirm the source path, reopen behavior, tag preservation, and no-copy
+behavior before the blocker closes or managed C: copies may be deleted.
 
 **Separate cleanup in the same work cycle, never mixed into the storage commit:**
 - Codex may replace duplicate HTML escapers with an explicitly imported neutral

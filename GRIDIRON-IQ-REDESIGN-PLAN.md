@@ -466,12 +466,12 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== DESKTOP STORAGE INTERNAL CANDIDATE PACKAGED - 2026-07-22 ===
+=== DESKTOP STORAGE PRERELEASE PUBLISHED - 2026-07-22 ===
 Owner: Codex | Reviewer: Claude | Status: ACCEPTED, NO FINDINGS
 Repair commit: 3a00ddd
 Candidate commit: 6312657e06c00995fc562d25efda10d621dba6bc (v1.12.0-9)
-Actions run: https://github.com/Ckelly0051/Charlie/actions/runs/29955733962
-Windows artifact: gridiron-iq-windows (artifact 8544130869)
+Tagged release run: https://github.com/Ckelly0051/Charlie/actions/runs/29959671084
+Published Windows assets: GridIron.IQ_1.12.0-9_x64-setup.exe and GridIron.IQ_1.12.0-9_x64_en-US.msi
 
 - All six repair-contract items verified against source, not taken on report:
   one settings home (old standalone panel removed, new one nested under Team
@@ -502,12 +502,12 @@ Windows artifact: gridiron-iq-windows (artifact 8544130869)
   filmDir cannot make the OS open an arbitrary path.
 
 NEXT ACTION
-Coach installs `gridiron-iq-windows` from Actions run `29955733962` and
-runs the D:-library smoke against exact candidate SHA
-`6312657e06c00995fc562d25efda10d621dba6bc`. The candidate passed the full
-59/59 gate and all three installer jobs, but codec/disk/decoder behavior and
-real reopen/persistence remain unverified. No tag or deletion of managed C:
-copies is authorized until the coach signs the smoke.
+Coach installs published prerelease `v1.12.0-9` and runs the D:-library smoke
+against exact source SHA `6312657e06c00995fc562d25efda10d621dba6bc`.
+The candidate passed the full 59/59 gate and both packaging runs on all three
+platforms, but codec/disk/decoder behavior and real reopen/persistence remain
+unverified. Publication was explicitly authorized by the coach; deletion of
+managed C: copies is still prohibited until the coach signs the smoke.
 
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
 Owner: Codex | Reviewer: Claude | Status: READY FOR INDEPENDENT REVIEW (superseded by ACCEPTED above)

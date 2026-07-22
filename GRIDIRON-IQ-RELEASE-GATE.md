@@ -35,13 +35,14 @@ correctly fixed. Two of the highest-risk guarantees were mutation-tested
 rollback throw) — each reproduced its exact expected failure, then was
 restored and reconfirmed clean.
 
-**Internal package built:** `v1.12.0-9` at exact source SHA
-`6312657e06c00995fc562d25efda10d621dba6bc`. GitHub Actions run
-`29955733962` completed successfully for Windows, macOS, and Linux. The
-coach smoke artifact is `gridiron-iq-windows` (artifact `8544130869`). This
-is not a published release and has no release tag.
+**Prerelease published by explicit coach authorization:** tag `v1.12.0-9` at
+exact source SHA `6312657e06c00995fc562d25efda10d621dba6bc`. Tagged
+GitHub Actions run `29959671084` completed successfully for Windows, macOS,
+and Linux and published the EXE, MSI, DMG, Linux packages, signatures, and
+`latest.json`. The installed D:-library smoke remains mandatory before this
+storage blocker closes or any managed C: film copy may be deleted.
 
-**Automated review and internal packaging are clear, but not the release blocker
+**Automated review and publication are complete, but not the storage blocker
 itself** — the coach still must pass the installed D:-library smoke; codec/
 disk/decoder behavior and real reopen/persistence experience are outside what
 any headless harness can prove. Existing managed C: copies remain protected
