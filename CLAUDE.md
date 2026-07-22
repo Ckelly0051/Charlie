@@ -18,50 +18,66 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### Current working state (2026-07-22, desktop storage smoke repair)
+### Current working state (2026-07-22, v1.12.0-8 linked-film blocker)
 
-**The installed v1.12.0-7 candidate FAILED smoke and must not be published.**
-The linked-film backend existed, but the product exposed no first-launch or
-upgrade setup, no persistent Settings surface, and only a buried
-Link from Library action inside an empty game's video placeholder. The
-prominent Add Video/Add Folder/drop paths still implied the managed-copy
-workflow. This was a product/UX omission, not a coach-instruction failure.
+**The installed v1.12.0-8 candidate FAILED the real linked-library smoke. Stop
+testing and do not delete the existing managed C: copies.** The setup surface
+exists, but it conflates the one-time library root with an individual game's
+folder. In the observed smoke, the coach selected `D:\Football\Film` as the
+library root and later selected `D:\Football\Film\St Peter 41-0` for Week 1.
+The latter selection overwrote `ffa_film_library_root`; the active game's
+canonical data still had no persisted `filmMode`/`filmDir`. Playback therefore
+did not prove that the app was using the D: source and may still have come from
+the managed C: copy or transient selection. The root picker also closed without
+a durable, visible confirmation.
 
-**Repair is packaged as v1.12.0-8 and approved by the owner for immediate publish:**
-- Desktop launch with no prior choice now opens **Where should your film live?**
-  after the Team Hub loads.
-- **Use my existing film library** opens the native folder picker, stores the
-  approved root, references each game's folder in place, and makes no video
-  copy. **Let GridIron IQ manage film** remains the simple option and clearly
-  discloses that imports are copied into private app storage.
-- A persistent **Settings -> Film Storage** panel always shows the selected
-  mode and exact linked root, with a Change action. Replacing an existing root
-  warns that old linked games may need relinking; setup never moves or deletes
-  film, tags, seasons, or backups.
-- Linked mode makes **Link Game Folder** the primary empty-game action. Legacy
-  pickers and drag/drop are intercepted BEFORE VideoController loads files or
-  creates plays; the coach must explicitly choose Link Game Folder or
-  Copy Selected Files. There is no remaining silent-copy path.
-- A denied/inaccessible root is transactional: it is not persisted and cannot
-  be inferred as a valid linked preference on relaunch. Existing pre-setup
-  users with a saved root are inferred as linked and are not reprompted.
-- Existing season/tag data is untouched. Linking an already tagged game still
-  uses the existing durable clip-identity relink path.
+**Blocking repair batch - Codex builds; Claude independently reviews:**
+1. **One settings home.** Team & Film Settings must be reachable from the Team
+   Hub before a game is opened. Film Storage belongs inside it; remove the
+   competing standalone Film Storage destination.
+2. **Separate scopes in the model and language.** `Film Library Root` is a
+   one-time app/team-level location such as `D:\Football\Film`. `This Game's
+   Folder` is a game-level link such as `St Peter 41-0`. Linking/changing a game
+   folder must never mutate the library root.
+3. **Persist the actual game link.** A successful game-folder selection writes
+   the canonical linked mode and game-folder reference through the season save
+   path, preserving every play id, clip ref, tag, note, and current-play value.
+   Reopen must resolve film from that linked D: folder without copying it to C:.
+4. **Make source truth visible.** Root selection remains on a confirmation state
+   showing the exact approved path and `No video will be copied`. Every linked
+   game shows a `Linked` source badge and its resolved folder, with clear Change
+   Folder/Open Folder actions. Managed games are labeled `Managed copy`.
+5. **Fail closed.** Cancelled, denied, invalid, outside-root, or failed saves do
+   not change either root or game metadata and never report success. A root
+   change does not silently rewrite existing game links.
+6. **Regression proof must reproduce the smoke exactly.** Select
+   `D:\Football\Film`, link Week 1 to its `St Peter 41-0` child, assert the root
+   remains unchanged, assert the game persists linked metadata, reopen, and
+   assert playback resolution points to D: with zero managed import/copy calls.
+   Also prove Team Hub access, visible confirmation, cancel/failure rollback,
+   and byte-stable season/tag data outside the intended link fields.
 
-**Verification on the rebuilt single-file bundle:**
-- tools/e2e-film-storage-setup.mjs: 12/12, zero page errors.
-- tools/e2e-linked-film.mjs: 29/29, including denied-root rollback and
-  preference inference.
-- tools/e2e-onboarding.mjs: 46/46, zero page errors.
-- Canonical build + gate: **59/59 harnesses green**, including the real-data,
-  durability, integrity, catalog, relink, and video suites.
+**Release rule:** this is a storage-integrity blocker. Build and review the
+repair as its own commit. Claude re-runs the focused tests and canonical gate on
+the reviewed bytes. Then package an internal candidate for the coach's installed
+D:-library smoke. No new release tag is cut until that smoke confirms the source
+path, reopen behavior, tag preservation, and no-copy behavior.
 
-**Release status:** source commit e4bb438 and tag v1.12.0-8 are pushed. GitHub
-Actions run 29940184172 (Build Desktop Installers) started against that exact
-commit. The owner explicitly approved publishing before installed smoke because
-the current release is broken and no other users are active. After publication,
-the coach tests the real D: library root, relink/reopen, tag persistence, and
-no-copy behavior.
+**Separate cleanup in the same work cycle, never mixed into the storage commit:**
+- Codex may replace duplicate HTML escapers with an explicitly imported neutral
+  `escapeHtml()` utility in a second commit. Do not rely on `Charts` being a
+  bundle-global: the modular `index.html` path must work. Preserve deliberate
+  null-to-empty behavior, escape all `[&<>"']`, retain `Charts._esc` as a
+  compatibility delegate until callers are audited, and add focused tests.
+- Do **not** split `stats-engine.js` during this release. Splitting it is a
+  maintainability refactor, not a runtime optimization, and its analytics and
+  film-link blast radius is unjustified while storage smoke is blocked. Revisit
+  only when a feature creates a concrete extraction seam, one seam per reviewed
+  commit with parity and real-data gates.
+
+**Published history:** source commit `e4bb438` and tag `v1.12.0-8` were pushed
+before this installed failure was discovered. They are a failed baseline, not
+evidence that linked storage is safe.
 
 ### Current working state (2026-07-20, E4-2 ACCEPTED)
 
@@ -2090,53 +2106,41 @@ v1.10.7 desktop build).
 ### Current Film Storage Truth
 
 - Browser build: no persistent film library; coach must re-add film when needed.
-- Desktop build: film is copied into app-managed storage under
-  `$APPDATA/seasons/<season-id>/films/<game-id>/...`.
-- The desktop asset protocol is currently scoped to `$APPDATA/**` in
-  `src-tauri/tauri.conf.json`, which is why managed copies are the reliable
-  playback path today.
-- Documents mirror stores season JSON/backups only. Films are intentionally not
-  mirrored there because they are large and re-linkable.
-- Safe cleanup guidance for coaches: after `Repair Film`, reopen the game and
-  verify video playback/tags line up before deleting or archiving the old source
-  film files.
+- Desktop has two intended modes. `managed` copies video under
+  `$APPDATA/seasons/<season-id>/films/<game-id>/...`; `linked` must play the
+  coach's existing external files in place without making that copy.
+- Documents mirror stores season JSON/backups only. Film is not mirrored.
+- `clipPath` / `clipRefs` remain the identity layer in both modes. Changing
+  storage location must never change play ids, tags, notes, or clip identity.
+- A linked configuration has two distinct scopes: one app/team-level library
+  root and one persisted game-folder reference per linked game. Those values are
+  not interchangeable.
+- `v1.12.0-8` does **not** reliably satisfy that contract: a game-folder choice
+  can overwrite the global root without saving the game's linked metadata. It
+  is a failed baseline until the active repair contract at the top of this file
+  is implemented and installed-smoked.
+- Do not delete managed C: film copies based on playback in `v1.12.0-8`.
+  Playback source must first be visible in the UI and independently verified
+  after persist/reopen on the repaired candidate.
+- Missing, moved, denied, or unavailable linked folders must show an actionable
+  Re-link state and must not mutate season data or fall silently into copy mode.
+- Root or mode changes never move or delete film. Cleanup is an explicit coach
+  action only after the repaired installed smoke proves the external source.
 - Leave untracked `.claude/` and `AGENTS.md` out of release commits unless the
   user explicitly asks for them.
 
-### Future State: Optional Linked Film Library
+### Linked Film Acceptance Coverage
 
-Goal: keep `Copy to GridIron IQ Library` as the default beginner-safe workflow,
-and add `Link Existing Folder` as an advanced desktop option for coaches who
-already maintain an organized film library and do not want duplicate files.
-
-Intended UX:
-- `Add Film` / `Repair Film` defaults to copying into the managed library.
-- Advanced option: `Link Existing Folder`.
-- Linked mode stores references to the coach's selected existing folder/files
-  and does not duplicate video.
-- If the linked folder is missing, moved, or on an unavailable drive, the app
-  should show a clear `Re-link Folder` / `Repair Film` prompt and must not alter
-  tags.
-
-Implementation notes for the future feature:
-- Add a per-game film storage mode: `managed` (current copy behavior) or
-  `linked` (external library references).
-- Preserve `clipPath` / `clipRefs` as the matching layer for both modes.
-- Store enough linked-root/path metadata to resolve clips on reopen without
-  changing play ids or tag data.
-- Expand Tauri asset permissions/scoping safely for user-selected linked roots;
-  avoid broad whole-drive access where possible.
-- Update auto-load to resolve managed files from app data and linked files from
-  the selected external root.
-- Switching modes or re-linking existing games should create a restore point
-  and preserve plays/tags/notes/current play ids.
-
-Future test coverage:
-- Copy mode still passes the existing `Repair Film` tests.
-- Linked new-season import loads from an external folder without copying.
-- Linked repair of old tagged games preserves play count, tags, notes, and ids.
-- Duplicate basenames in subfolders remain distinct in linked mode.
-- Missing linked folder prompts for re-link and does not mutate season data.
+- Managed copy mode continues to pass its existing Repair Film tests.
+- Linked root and game folder persist independently across reopen.
+- Linked new-season and existing tagged-game flows load externally with zero
+  managed writes/copies.
+- Duplicate basenames in subfolders remain distinct.
+- Root/game folder cancellation, invalid selection, permission denial, and save
+  failure are transactional.
+- Missing linked folders prompt for re-link without altering tags.
+- Switching or relinking creates the required restore point and preserves play
+  count, ids, clip refs, tags, notes, and current-play selection.
 
 ## Page Layout (single-column, top-to-bottom)
 

@@ -467,30 +467,56 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 ### Active Handoff
 ```
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
-Builder: Codex | Status: e4bb438 + v1.12.0-8 pushed; desktop workflow
-29940184172 in progress; installed smoke follows release
-Failed candidate: v1.12.0-7
+Owner: Codex | Reviewer: Claude | Status: CHANGES REQUIRED before more smoke
+Failed installed baseline: e4bb438 / v1.12.0-8
 
-- Smoke found a release-blocking UX omission: linked-film capability had no
-  first-launch/upgrade setup, no Settings root surface, and no intentional
-  storage decision. The backend feature was effectively hidden while prominent
-  film intake continued to imply managed copies.
-- Repair adds an explicit two-choice desktop setup (existing library/no copy vs
-  managed/copy), persistent Settings status + exact root + Change action,
-  mode-aware empty-film actions, and pre-load interception for top-bar pickers
-  and drag/drop. Linked mode cannot silently enter the copy pipeline.
-- Root changes are transactional. A denied folder is never saved. Changing an
-  existing root warns that old linked games may need relinking. Setup moves or
-  deletes nothing; season/tag data remains untouched.
-- Existing users with a saved linked root are inferred as linked and not
-  reprompted.
-- New proof: film-storage setup 12/12; linked-film 29/29; onboarding 46/46.
-- Canonical build + gate: 59/59 harnesses green.
+- The installed smoke selected `D:\Football\Film` as the app-level library
+  root, then selected its `St Peter 41-0` child for Week 1. The game selection
+  overwrote the global root while the game's canonical record still had no
+  `filmMode`/`filmDir`. Video playing was therefore not proof of D:-linked
+  playback; managed C: copies must remain in place.
+- The picker also returned to the previous screen without a durable visible
+  success state. Film Storage is separated from Team & Film Settings and cannot
+  be reached naturally from the Team Hub before opening a game.
+
+REPAIR CONTRACT
+1. Move Film Storage into Team & Film Settings and expose that settings surface
+   from Team Hub without requiring an open game.
+2. Keep `Film Library Root` app/team-scoped and `This Game's Folder`
+   game-scoped. The latter must never overwrite the former.
+3. Persist the game link canonically (`filmMode` plus folder reference), then
+   reopen and resolve the same D: source without entering managed import/copy.
+4. Keep exact-path confirmation visible after root selection. Show each game's
+   actual source (`Linked` plus path, or `Managed copy`) and provide Change/Open
+   actions.
+5. Cancel, denial, invalid/outside-root selection, and persistence failure all
+   roll back cleanly and cannot show success. Existing roots and game links are
+   never rewritten implicitly.
+6. Preserve all existing plays, clip refs, tags, notes, ids, and backups. No
+   cleanup or deletion of C: copies is authorized by this repair.
+
+REQUIRED PROOF
+- Reproduce the real hierarchy exactly: root `D:\Football\Film`, Week 1 child
+  `St Peter 41-0`.
+- Assert root unchanged after game linking; canonical game metadata present;
+  persist/reopen resolves D:; zero managed import/copy calls.
+- Assert Team Hub settings access, visible path/no-copy confirmation,
+  cancellation/failure rollback, and byte-stable non-link season data.
+- Builder runs focused failing-first tests plus the complete gate. Reviewer
+  independently reviews and reruns on the committed bytes. Coach then smokes an
+  internal installer before any new tag is published.
+
+SEPARATE FOLLOW-UP IN THIS WORK CYCLE
+- Codex implements neutral `escapeHtml()` dedup in its own commit after storage
+  acceptance: explicit ES-module imports, no bundle-global `Charts` assumption,
+  null-to-empty semantics, full five-character escaping, compatibility delegate
+  and focused tests. Claude reviews separately.
+- `stats-engine.js` splitting is deferred until a feature supplies a concrete
+  seam. It is not part of the storage release and provides no runtime benefit.
 
 NEXT ACTION
-Monitor GitHub Actions run 29940184172 through release publication. Then coach
-smoke must select the real D: library root, link an existing tagged game, play
-clips, reopen, and verify no duplicate video is created on C:.
+Codex builds the blocking storage repair. Claude reviews that commit. The coach
+performs the installed D:-library smoke and alone authorizes publication.
 
 === E4-2 FINAL ACCEPTANCE - 2026-07-20 ===
 Builder: Claude | Reviewer: Codex | Accepted commit: 689346c

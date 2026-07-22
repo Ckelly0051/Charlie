@@ -14,6 +14,25 @@
 > **This gate is defined before the work it governs**, on purpose. A quality bar
 > written after the risky increment is a finish line that moves.
 
+## Current release blocker - v1.12.0-8 linked-film scope collision
+
+The installed `v1.12.0-8` smoke exposed a release-blocking distinction the
+automated gate did not prove: selecting a game's child folder overwrote the
+global film-library root, while the game itself did not persist linked
+`filmMode`/`filmDir`. Playback could therefore still come from a managed C:
+copy. The root chooser also offered no durable visible confirmation.
+
+No subsequent candidate passes this gate unless the evidence shows all of the
+following on the same committed bytes and installed artifact:
+
+- the app-level library root remains unchanged after linking a game folder;
+- the game-level linked source is saved canonically and survives reopen;
+- resolved playback points to the selected external drive;
+- no managed import/copy call occurs in linked mode;
+- the UI visibly identifies the exact root and each game's actual source;
+- all plays, tags, clip refs, notes, ids, and backups remain unchanged; and
+- the coach signs the installed smoke before a new release tag is published.
+
 ## The rule that was wrong before
 
 Real-film smoke **cannot** happen "before packaging" — the coach needs an
