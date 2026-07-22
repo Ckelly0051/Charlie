@@ -54,7 +54,7 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-8';
+const APP_VERSION = '1.12.0-9';
 
 class App {
   constructor() {
