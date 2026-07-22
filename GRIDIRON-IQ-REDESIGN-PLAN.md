@@ -466,9 +466,12 @@ Completed / Files changed / Decisions made / Tests run / Known gaps / Next reque
 
 ### Active Handoff
 ```
-=== DESKTOP STORAGE SMOKE REPAIR ACCEPTED - 2026-07-22 ===
+=== DESKTOP STORAGE INTERNAL CANDIDATE PACKAGED - 2026-07-22 ===
 Owner: Codex | Reviewer: Claude | Status: ACCEPTED, NO FINDINGS
 Repair commit: 3a00ddd
+Candidate commit: 6312657e06c00995fc562d25efda10d621dba6bc (v1.12.0-9)
+Actions run: https://github.com/Ckelly0051/Charlie/actions/runs/29955733962
+Windows artifact: gridiron-iq-windows (artifact 8544130869)
 
 - All six repair-contract items verified against source, not taken on report:
   one settings home (old standalone panel removed, new one nested under Team
@@ -499,11 +502,12 @@ Repair commit: 3a00ddd
   filmDir cannot make the OS open an arbitrary path.
 
 NEXT ACTION
-Package an internal candidate and run the installed D:-library smoke -- this
-review covers automated proof only; codec/disk/decoder behavior and the
-coach's actual reopen/persistence experience remain unverified until that
-smoke runs. No installer or tag yet; managed C: copies stay protected until
-the smoke passes.
+Coach installs `gridiron-iq-windows` from Actions run `29955733962` and
+runs the D:-library smoke against exact candidate SHA
+`6312657e06c00995fc562d25efda10d621dba6bc`. The candidate passed the full
+59/59 gate and all three installer jobs, but codec/disk/decoder behavior and
+real reopen/persistence remain unverified. No tag or deletion of managed C:
+copies is authorized until the coach signs the smoke.
 
 === DESKTOP STORAGE SMOKE REPAIR - 2026-07-22 ===
 Owner: Codex | Reviewer: Claude | Status: READY FOR INDEPENDENT REVIEW (superseded by ACCEPTED above)
