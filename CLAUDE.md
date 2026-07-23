@@ -31,6 +31,15 @@ parked. No intermediate package or release; managed C: copies remain protected.
 Read GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md: after combined acceptance, publish
 one clean versioned beta milestone for coach smoke; there is no hidden/internal
 candidate phase.
+**Live execution state:** no C1 or C2 implementation checkpoint is committed yet.
+The worktree contains uncommitted route/lifecycle work in `app.js`,
+`season-manager.js`, `season-library.js`, `workspace-shell.js`, workspace CSS,
+the workspace-shell harness, and the generated bundle. Claude must inspect and
+reconcile these changes against the binding amendment; do not reset or assume
+acceptance. **Next action:** Claude reports the revised hard-retirement scope,
+then completes C1 and C2. At every pause or checkpoint, update this block with
+owner, status, exact commit, proof run, known gaps, and the next action before
+stopping.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
