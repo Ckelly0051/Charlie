@@ -250,5 +250,41 @@ const refA = await refRoundTrip(seasonA());
   ok((await cp2.listBackups('s1')).length === 25, 'backup ring prunes to RETENTION (25)', String((await cp2.listBackups('s1')).length));
 }
 
+// ---- 13. C2: a LINKED game's filmMode/filmDir survive the canonical store ---
+// The Refuge failure was a linked game that "played" but persisted as managed.
+// This pins the canonical desktop path: a game linked to a D: child folder must
+// round-trip filmMode='linked' + filmDir through the REAL SqlCatalog db AND the
+// json safety copy, in a mixed linked/managed season, with per-game isolation.
+// If the catalog dropped these fields (the suspected root cause) this reds.
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const refuge = { ...mkGame('refuge', 2), filmMode: 'linked', filmDir: 'Refuge 7-13' };
+  const managed = { ...mkGame('nd-prep', 2) }; // no filmMode -> managed by default
+  const mixed = season('s-film', 'Film Truth', [refuge, managed]);
+  ok(await cp.saveSeason('s-film', mixed) === true, 'C2: canonical save of a mixed linked/managed season succeeds');
+  // The JSON safety copy carries the linked metadata immediately (before any reopen).
+  const jsonRefuge = fs.state.json.get('s-film')?.games.find(g => g.id === 'refuge');
+  ok(jsonRefuge?.filmMode === 'linked' && jsonRefuge?.filmDir === 'Refuge 7-13',
+    'C2: filmMode/filmDir are written to the season.json safety copy before success', JSON.stringify(jsonRefuge && { m: jsonRefuge.filmMode, d: jsonRefuge.filmDir }));
+  // Reopen from the on-disk db (fresh session, canonical path).
+  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const loaded = await cp2.loadSeason('s-film');
+  ok(loaded?.source === 'db', 'C2: mixed season reopens from the canonical db', JSON.stringify(loaded?.source));
+  const dbRefuge = loaded.data.games.find(g => g.id === 'refuge');
+  const dbManaged = loaded.data.games.find(g => g.id === 'nd-prep');
+  ok(dbRefuge?.filmMode === 'linked' && dbRefuge?.filmDir === 'Refuge 7-13',
+    'C2: the LINKED game reopens from the db still linked to its D: child folder (no silent downgrade to managed)', JSON.stringify(dbRefuge && { m: dbRefuge.filmMode, d: dbRefuge.filmDir }));
+  ok((dbManaged?.filmMode == null || dbManaged.filmMode === 'managed') && dbManaged?.filmDir == null,
+    'C2: the managed game stays managed — linked metadata does not bleed across games', JSON.stringify(dbManaged && { m: dbManaged.filmMode, d: dbManaged.filmDir }));
+  // Self-heal path: a missing db must recover the linked truth from json, not lose it.
+  fs.state.db = null;
+  const cp3 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const healed = await cp3.loadSeason('s-film');
+  const healRefuge = healed?.data.games.find(g => g.id === 'refuge');
+  ok(healed?.source === 'json' && healRefuge?.filmMode === 'linked' && healRefuge?.filmDir === 'Refuge 7-13',
+    'C2: a missing db recovers the linked metadata from the json safety copy (never downgrades to managed)', JSON.stringify(healed?.source));
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

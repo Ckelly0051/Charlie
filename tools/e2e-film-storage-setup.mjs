@@ -240,6 +240,108 @@ ok(r.raced === false && r.raceSafe, 'Game switch during native URL resolution fa
 ok(intentResult.linkAccepted === false && intentResult.linked === 1, 'Link choice routes to folder linking before VideoController loads files', JSON.stringify(intentResult));
 ok(intentResult.managedAccepted === true, 'Managed mode proceeds through the normal import pipeline', JSON.stringify(intentResult));
 
+// ===================== C2: durable linked-film truth =====================
+
+// C2 root-cause reproduction: linkFilmFolder links the ACTIVE game. The Refuge
+// "false success" was reaching the link with the WRONG game active — the coach
+// chose Refuge's folder, but a different game was active, so that game got
+// linked and Refuge stayed managed (played from its C: copy). Under the C1
+// single-owner lifecycle the opened game IS the active game, so the link lands
+// on the game the coach opened. This proves both the mechanism and the fix.
+let c2 = await page.evaluate(async () => {
+  const app = window.app;
+  const state = window.__filmSetupState;
+  const store = app.storage.seasonStore;
+  state.mode = 'linked'; state.root = 'D:/Football/Film'; state.saveOk = true;
+  const mkGame = (id, name) => ({
+    id, name, status: 'active', gameInfo: { opponent: name },
+    plays: [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', custom: [] }, clipName: `${id}_1`, clipPath: `${id}_1` }],
+    annotations: [], nextId: 2, currentPlayId: 1, clipNames: [`${id}_1`], clipPaths: [`${id}_1`], isMultiClip: true,
+  });
+  store.currentSeasonId = 's2';
+  store.data = { version: 5, type: 'season', id: 's2', seasonName: 'Truth', activeGameId: 'other',
+    games: [mkGame('refuge', 'Refuge'), mkGame('other', 'ND Prep')] };
+  const setActive = (id) => {
+    store.data.activeGameId = id;
+    app.storage._loadedGameId = id;
+    const g = store.data.games.find(x => x.id === id);
+    app.tagger.plays = g.plays.map(p => JSON.parse(JSON.stringify(p)));
+    app.tagger.currentPlayId = g.currentPlayId; app.tagger.nextId = g.nextId;
+  };
+  const refugeFolder = 'D:/Football/Film/Refuge 7-13';
+
+  // Reproduction: WRONG game active (ND Prep), coach picks Refuge's folder.
+  setActive('other');
+  state.picked = refugeFolder;
+  await app.storage.linkFilmFolder();
+  const wrong = {
+    other: store.data.games.find(g => g.id === 'other').filmMode || null,
+    refuge: store.data.games.find(g => g.id === 'refuge').filmMode || null,
+  };
+
+  // Fix: open Refuge (single-owner lifecycle makes it the active game), link.
+  setActive('refuge');
+  state.picked = refugeFolder;
+  const linkedOk = await app.storage.linkFilmFolder();
+  const fixed = {
+    refugeMode: store.data.games.find(g => g.id === 'refuge').filmMode || null,
+    refugeDir: store.data.games.find(g => g.id === 'refuge').filmDir || null,
+    otherMode: store.data.games.find(g => g.id === 'other').filmMode || null,
+  };
+  return { wrong, linkedOk, fixed };
+});
+ok(c2.wrong.other === 'linked' && c2.wrong.refuge === null,
+  'C2 reproduction: linking with the WRONG game active links that game and leaves the intended game managed (the Refuge false-success class)', JSON.stringify(c2.wrong));
+ok(c2.linkedOk === true && c2.fixed.refugeMode === 'linked' && c2.fixed.refugeDir === 'Refuge 7-13' && c2.fixed.otherMode === 'linked',
+  'C2 fix: with the intended game active (single-owner lifecycle), the link lands on that game with its D: child folder', JSON.stringify(c2.fixed));
+
+// C2 OL Lakes honesty: a linked game with 82 charted clips but only 65 present
+// in its D: folder must report 17 missing — never silently imply complete film.
+c2 = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const names = Array.from({ length: 82 }, (_, i) => `OLL_${String(i + 1).padStart(3, '0')}`);
+  const present = names.slice(0, 65);   // 17 missing from the linked folder
+  const game = {
+    id: 'oll', name: 'OL Lakes', filmMode: 'linked', filmDir: 'OLL 13-13', status: 'final',
+    gameInfo: { opponent: 'OL Lakes' }, plays: [], annotations: [], nextId: 1,
+    clipNames: names.slice(), clipPaths: names.slice(), isMultiClip: true,
+  };
+  store.currentSeasonId = 's3';
+  store.data = { version: 5, type: 'season', id: 's3', seasonName: 'OLL', activeGameId: 'oll', games: [game] };
+  const backend = store.backend;
+  backend.listLinkedFilm = async () => present.map(n => ({ name: `${n}.mp4`, path: `${n}.mp4` }));
+  const health = await app.workspace.filmHealth(game);
+  return { state: health.state, mode: health.mode, expected: health.expected, found: health.found, missing: health.missing };
+});
+ok(c2.state === 'missing' && c2.mode === 'linked' && c2.expected === 82 && c2.found === 65 && c2.missing === 17,
+  'C2 OL Lakes: film health reports 17 of 82 charted clips missing from the linked D: folder (no false "complete film")', JSON.stringify(c2));
+
+// C2 no silent fallback: auto-loading a persisted LINKED game must resolve film
+// only from the linked D: folder — it must never call the managed-copy backend.
+c2 = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const backend = store.backend;
+  let managedListCalls = 0, managedUrlCalls = 0, linkedListCalls = 0;
+  backend.listFilmFiles = async () => { managedListCalls++; return []; };   // managed path (must NOT run)
+  backend.filmUrl = async () => { managedUrlCalls++; return null; };        // managed path (must NOT run)
+  const origLinkedList = backend.listLinkedFilm;
+  backend.listLinkedFilm = async (...a) => { linkedListCalls++; return [{ name: 'OLL_001.mp4', path: 'OLL_001.mp4' }]; };
+  const game = {
+    id: 'oll2', name: 'OL Lakes', filmMode: 'linked', filmDir: 'OLL 13-13',
+    plays: [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { custom: [] }, clipName: 'OLL_001', clipPath: 'OLL_001' }],
+    annotations: [], nextId: 2, currentPlayId: 1, clipNames: ['OLL_001'], clipPaths: ['OLL_001'], isMultiClip: true,
+  };
+  app.tagger.plays = game.plays.map(p => JSON.parse(JSON.stringify(p)));
+  app.tagger.currentPlayId = 1;
+  await app.storage._autoLoadFilm(game);
+  backend.listLinkedFilm = origLinkedList;
+  return { managedListCalls, managedUrlCalls, linkedListCalls };
+});
+ok(c2.linkedListCalls >= 1 && c2.managedListCalls === 0 && c2.managedUrlCalls === 0,
+  'C2 no silent fallback: a persisted linked game auto-loads from the D: folder and never calls the managed-copy backend', JSON.stringify(c2));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
