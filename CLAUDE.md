@@ -114,11 +114,65 @@ coach directly).** The batch below is one commit, re-review pending.
    a still-empty active game, then `openGame` straight into Break Down). Asserted
    in `e2e-workspace-shell` and `e2e-onboarding`.
 
-**Verification on committed bytes:** full canonical gate **60/60 green** (adds
-`e2e-film-load-race`); `cargo check` clean; P0 mutation-verified. **Deliberately
-deferred (flagged, not silently skipped):** the now-inert schedule-view render
-code (`_renderSchedule`, `#libraryScheduleView`) is left in place — unreachable
-as game entry (the requirement) — rather than risk a large deletion mid-
+**SELF-REVIEW of the above batch (2026-07-23, Codex unavailable) — ALL FOUR
+FINDINGS FIXED.** With Codex down, Claude ran an adversarial pass on its own
+commit (`36540cc`) at the coach's request. Verified against source, not taken on
+faith, since builder self-review is structurally weaker than independent review:
+1. **[Medium-High] The P0 fix had zero coverage on the multi-clip/linked-film
+   branches** — only single-video was tested, while all six real games are
+   linked+multi-clip. `e2e-film-load-race` gained two new scenarios exercising
+   `_autoLoadFilm`'s multi-clip branch and `_autoLoadLinkedFilm` directly.
+   **A genuine test-design bug was caught and fixed in the process:** the fix's
+   own new messaging guards (item 2 below) made the ORIGINAL back-to-back-tick
+   test timing bail out at the first checkpoint before ever reaching the deep
+   `filmUrl`/`rehydrateFromDisk` gate — silently defeating the mutation check on
+   the guard it meant to prove. Fixed by inserting a real macrotask yield between
+   starting the slow and fast loads so slow legitimately reaches the deep gate
+   while still current, matching the real-world timing of two game-opens
+   separated by actual time. All three guards (single-video, multi-clip, linked)
+   mutation-verified individually: each guard removed → its scenario reds; all
+   restored → 8/8 green.
+2. **[Medium] Superseded loads still narrated the WRONG game's film state** —
+   `_relinkToast`/missing-clip toasts/scope-widening calls fired even on a
+   superseded load, describing the outgoing game while the coach was on the new
+   one. Fixed: every message/side-effect after an `await` in both
+   `_autoLoadFilm` and `_autoLoadLinkedFilm` is now guarded by `!stale()`, not
+   just the final player/playlist mutation.
+3. **[Medium] A false test-coverage claim** — a comment claimed
+   `e2e-breakdown-a11y` covered shell-mobile Break Down; it only runs desktop
+   widths (1440/1152/960), verified. Fixed by measuring the mobile touch-target
+   test on the REAL shell Break Down route (creating a season + `shell.show
+   ('breakdown')`) instead of unwrapping to the retired classic surface. **This
+   uncovered a real, previously-invisible defect:** relocating the unit toggle
+   into the shell's `.bd-context-bar` (breakdown-workspace.js) drops it out of
+   `.tag-section`'s touch-sized chip padding, and nothing in the shell CSS
+   restored it — the chips were ~32px on the actual mobile product surface
+   (below the 44px target), while every sibling control in the same bar already
+   had an explicit mobile override. Fixed in `breakdown-video.css`.
+4. **[Nit] `_autoLoadLinkedFilm`'s `loadToken` had a side-effecting default
+   parameter** (`= ++this._filmLoadSeq`) that would silently invalidate an
+   in-flight load as a side effect of merely calling the function — the exact
+   hazard the guard exists to prevent. Made required (only caller already passes
+   it explicitly).
+(A fifth item — a defensive-guard removal in `season-library.js` — was
+re-examined on inspection and did not hold up as a real risk: the surrounding
+code already guards via optional chaining and `open()`'s own self-guard. The
+top-level guard was restored anyway as free defense-in-depth, not as a fix for
+a live bug.)
+
+**Verification on committed bytes:** full canonical gate **59/60 green**
+(adds `e2e-film-load-race`); `cargo check` clean; every guard mutation-verified
+individually. **The one non-green harness, `e2e-film-room.mjs` (2 failures in
+the E4-2 grid-editor click/Enter section on the QB Alignment column),
+confirmed PRE-EXISTING** — reproduced identically against the clean, already-
+committed `36540cc` bytes before any of this session's fixes were applied, via
+`git stash` + rebuild. Not caused by and not fixed as part of this batch; it is
+a separate grid-editor timing defect that deserves its own reproduce → root-
+cause pass, flagged here rather than silently left for Codex to rediscover.
+**Deliberately deferred (flagged, not silently skipped):** the now-inert
+schedule-view render code (`_renderSchedule`, `#libraryScheduleView`) is left
+in place — unreachable as game entry (the requirement) — rather than risk a
+large deletion mid-
 milestone; it's a clean follow-up. **Next:** Codex re-reviews the combined bytes;
 only after acceptance, publish the versioned beta.
 

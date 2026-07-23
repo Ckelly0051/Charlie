@@ -452,8 +452,13 @@ export class StorageManager {
       return this._autoLoadLinkedFilm(gameNode, loadToken);
     }
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
+    // Every toast/message below is guarded by `!stale()` in addition to every
+    // player/playlist mutation (F3, 2026-07-23 self-review): a superseded load
+    // must not tell the coach about the WRONG game's missing/incomplete film —
+    // messaging is a side effect just like the video swap it was already guarding.
     try {
       const filesOnDisk = await backend.listFilmFiles(gameNode.id);
+      if (stale()) return;
       console.log('Film auto-load:', { gameId: gameNode.id, filesOnDisk, isMultiClip: gameNode.isMultiClip, videoFileName: gameNode.videoFileName });
       if (filesOnDisk.length === 0) { this._relinkToast(gameNode, true); return; }
 
@@ -469,12 +474,15 @@ export class StorageManager {
           const url = await backend.filmUrl(gameNode.id, fileRef);
           return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
         }))).filter(Boolean);
+        if (stale()) return;
         console.log('Multi-clip URLs:', clips.map(c => ({ name: c.name, url: c.url.slice(0, 120) })));
         if (clips.length > 0 && clips[0].url) {
           try {
             const probe = await fetch(clips[0].url, { method: 'HEAD', mode: 'no-cors' });
+            if (stale()) return;
             console.log('Asset probe:', probe.type, probe.status, probe.ok);
           } catch (probeErr) {
+            if (stale()) return;
             console.warn('Asset probe failed:', probeErr.message);
             this.tagger.toast?.(`Asset protocol probe failed for ${clips[0].name}: ${probeErr.message}`, 10000);
           }
@@ -493,8 +501,9 @@ export class StorageManager {
         const match = filesOnDisk.find(f => this._fileRefName(f) === gameNode.videoFileName) || filesOnDisk[0];
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
+          if (stale()) return;
           console.log('Single-video URL:', url?.slice(0, 200));
-          if (url && !stale()) {
+          if (url) {
             this.vc.loadUrl(url, this._fileRefName(match));
           } else {
             console.warn('filmUrl returned null for', match);
@@ -503,20 +512,30 @@ export class StorageManager {
         }
       }
     } catch (e) {
+      if (stale()) return;
       console.warn('Film auto-load failed:', e);
       this._relinkToast(gameNode, true);
     }
   }
 
   /** Auto-load a LINKED game's film from the coach's library folder (no copy).
-   * `loadToken` is the latest-load-wins guard from _autoLoadFilm (or captured
-   * fresh if called directly); a superseded load aborts before mutating. */
-  async _autoLoadLinkedFilm(gameNode, loadToken = ++this._filmLoadSeq) {
+   * `loadToken` is the latest-load-wins guard captured by the caller — always
+   * `_autoLoadFilm` in production. Required (not defaulted): a default of
+   * `++this._filmLoadSeq` would silently invalidate any load already in flight
+   * as a side effect of merely calling this function, which is exactly the
+   * hazard this guard exists to prevent. A direct call (e.g. a test) must
+   * capture its own token the same way _autoLoadFilm does. */
+  async _autoLoadLinkedFilm(gameNode, loadToken) {
     const backend = this.seasonStore.backend;
     const stale = () => loadToken !== this._filmLoadSeq;
+    // Same messaging discipline as _autoLoadFilm (F3): every toast/scope-widening
+    // call after an await is guarded by !stale(), not just the final playlist
+    // mutation — a superseded load must not narrate the outgoing game.
     try {
       await backend.allowLibraryDir(backend.getLibraryRoot());
+      if (stale()) return;
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
+      if (stale()) return;
       if (!absDir) { this._relinkToast(gameNode, true); return; }
       // Only re-grant filesystem scope to a folder the coach consented to (under
       // the library root, or explicitly linked on this machine). An absolute
@@ -527,7 +546,9 @@ export class StorageManager {
         return;
       }
       await backend.allowLibraryDir(absDir);
+      if (stale()) return;
       const filesOnDisk = await backend.listLinkedFilm(absDir);
+      if (stale()) return;
       console.log('Linked film auto-load:', { gameId: gameNode.id, filmDir: gameNode.filmDir, absDir, count: filesOnDisk.length });
       if (!filesOnDisk.length) { this._relinkToast(gameNode, true); return; }
       if (this._expectedClipIdentities(gameNode).length > 0) {
@@ -546,13 +567,15 @@ export class StorageManager {
         const url = await backend.linkedFilmUrl(abs);
         return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
       }))).filter(Boolean);
-      if (clips.length > 0 && this.playlist && !stale()) {
+      if (stale()) return;
+      if (clips.length > 0 && this.playlist) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
         if (stale()) return;
         if (this.tagger.currentPlayId) this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
         if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
       }
     } catch (e) {
+      if (stale()) return;
       console.warn('Linked film auto-load failed:', e);
       this._relinkToast(gameNode, true);
     }

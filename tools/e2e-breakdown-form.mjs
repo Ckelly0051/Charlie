@@ -408,20 +408,32 @@ state = await page.evaluate(async () => {
 });
 ok(state.stored === '' && state.visible === '', 'Clear Tags cancels a pending note instead of resurrecting it after debounce', JSON.stringify(state));
 
+// Self-review finding F2 (2026-07-23): the composed form is now measured on the
+// REAL product surface (the shell's Break Down route), not an unwrap to the
+// retired classic layout — that comment claimed e2e-breakdown-a11y covers shell
+// mobile, which it does NOT (a11y only runs 1440/1152/960, verified). Break
+// Down's route guard requires an active game, which this harness never opens
+// (every earlier assertion manipulates window.app.tagger.plays directly). Create
+// one FIRST — createSeason resets tagger.plays via _loadActiveGame, so it must
+// run BEFORE the unit-chip click below, not after (applyUnitMode's CSS toggle
+// is play-independent, so the click still works against the fresh empty game).
+await page.evaluate(async () => {
+  if (!window.app.storage.seasonStore.hasCurrent()) {
+    await window.app.storage.createSeason({ name: 'Mobile QA', team: 'Mavericks', year: '2026' });
+  }
+  await window.app.workspaceShell.show('breakdown');
+});
 await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
-
-// The composed form lives in the shell's Break Down panel; unwrap to the visible
-// classic #app so the mobile unit/phase controls have real layout to measure.
-// (The shell's own mobile Break Down is covered by e2e-breakdown-a11y.)
-await page.evaluate(() => window.app.workspaceShell?.disable?.());
-await new Promise(r => setTimeout(r, 300));
 await page.setViewport({ width: 390, height: 844 });
+await new Promise(r => setTimeout(r, 300));
 state = await page.evaluate(() => ({
+  route: window.app.workspace.currentRoute(),
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   formOverflow: document.querySelector('#tagForm').scrollWidth > document.querySelector('#tagForm').clientWidth,
   unitHeight: Math.min(...[...document.querySelectorAll('#tagUnit .pick')].map(el => el.getBoundingClientRect().height)),
   stHeight: Math.min(...[...document.querySelectorAll('.bdv-st-editor .pick')].map(el => el.getBoundingClientRect().height)),
 }));
+ok(state.route === 'breakdown', 'Mobile composition is measured on the real shell Break Down route, not an unwrap', JSON.stringify(state));
 ok(!state.pageOverflow && !state.formOverflow && state.unitHeight >= 44 && state.stHeight >= 44, 'Mobile composition is overflow-free with touch-sized unit and phase controls', JSON.stringify(state));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 

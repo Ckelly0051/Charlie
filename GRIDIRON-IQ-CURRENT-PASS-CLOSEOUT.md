@@ -36,7 +36,7 @@
 >   clean. C1+C2 are one milestone — **no package/tag until Codex accepts**.
 >
 > **Codex re-review found four issues; all FIXED as one follow-up batch
-> (2026-07-23), re-review pending.** (1) P0 overlapping-open film-load race —
+> (2026-07-23).** (1) P0 overlapping-open film-load race —
 > latest-load-wins token in `storage.js`, new `e2e-film-load-race`, mutation-
 > verified. (2) Classic layout FULLY retired at the coach's direction ("just
 > remove it") — no flag, no "Use classic layout" button, `openSchedule` always
@@ -44,9 +44,27 @@
 > the tested internal teardown; engine + onboarding harnesses reworked to the
 > shell flow. (3) C2 now proves the REAL path (`app.openGame(Refuge)` → link →
 > persist → reopen from the saved payload, zero managed calls). (4) `+ New game`
-> is a first-class shell-Home action. Full gate **60/60 green**, `cargo check`
-> clean. Now-inert schedule-view render code is left in place (unreachable) as a
-> flagged follow-up cleanup, not deleted mid-milestone.
+> is a first-class shell-Home action. Now-inert schedule-view render code is left
+> in place (unreachable) as a flagged follow-up cleanup, not deleted mid-milestone.
+>
+> **With Codex unavailable, Claude self-reviewed that four-fix batch
+> adversarially and found + fixed four more issues (2026-07-23).** (a) The P0
+> fix's own test had zero coverage on the multi-clip/linked-film branches (your
+> six real games are all linked+multi-clip) — AND its timing was silently broken
+> by the fix's own messaging guards, masking the deep-guard mutation check; both
+> fixed, all three guards (single-video/multi-clip/linked) now mutation-verified
+> individually. (b) Superseded loads still toasted the WRONG game's film state —
+> every message after an await is now guarded by `!stale()`. (c) A false
+> "covered by e2e-breakdown-a11y" claim — fixed by measuring the REAL shell
+> mobile Break Down route, which **surfaced a genuine 32px touch-target defect**
+> (below the 44px minimum) in the relocated unit toggle, now fixed in CSS. (d) A
+> side-effecting default parameter on `_autoLoadLinkedFilm` made required. Full
+> canonical gate **59/60 green**; `cargo check` clean. **The one non-green
+> harness (`e2e-film-room.mjs`, 2 failures in the E4-2 grid-editor click/Enter
+> section) is a PRE-EXISTING defect** — confirmed via `git stash` to reproduce
+> identically against the clean `36540cc` bytes, before any of this session's
+> fixes. Not caused by this batch; flagged as a separate follow-up rather than
+> silently left for the next reviewer to rediscover. Re-review pending.
 
 ## 1. Goal
 

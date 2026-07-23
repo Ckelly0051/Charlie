@@ -217,6 +217,13 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
   .bd-game { grid-column: 3; min-height: 44px; }
   .bd-view-switch { grid-column: 1; }
   .bd-view-switch button { min-height: 44px; }
+  /* The unit toggle relocates here from .tag-section (breakdown-workspace.js
+     mount), which drops it out of .tag-section's own touch-sized chip padding
+     — nothing in this bar restored it, so the chips fell to a ~32px desktop
+     toolbar size at this breakpoint (self-review finding F2, 2026-07-23; caught
+     only once the mobile test measured the real shell route instead of an
+     unwrap to classic). Match the sibling controls in this same bar. */
+  .bd-context-units .unit-toggle .pick { min-height: 44px; }
   .bd-context-label { display: none; }
   .bd-film-context button { flex: 1 0 auto; min-height: 44px; }
   .bd-play-context { grid-column: 2; grid-template-columns: auto 1fr; gap: 1px 6px; }

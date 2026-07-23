@@ -405,6 +405,7 @@ export class SeasonLibrary {
   async openSchedule() {
     const store = this._storage()?.seasonStore;
     if (!store || !store.hasCurrent()) return this.open();
+    if (!this.overlay) return;
     const shell = window.app?.workspaceShell;
     if (shell?.root) {
       this.overlay?.classList.add('hidden');
