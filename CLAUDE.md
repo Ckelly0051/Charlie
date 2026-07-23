@@ -34,15 +34,32 @@ parked. No intermediate package or release; managed C: copies remain protected.
 Read GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md: after combined acceptance, publish
 one clean versioned beta milestone for coach smoke; there is no hidden/internal
 candidate phase.
-**Live execution state:** no C1 or C2 implementation checkpoint is committed yet.
-The worktree contains uncommitted route/lifecycle work in `app.js`,
-`season-manager.js`, `season-library.js`, `workspace-shell.js`, workspace CSS,
-the workspace-shell harness, and the generated bundle. Claude must inspect and
-reconcile these changes against the binding amendment; do not reset or assume
-acceptance. **Next action:** Claude reports the revised hard-retirement scope,
-then completes C1 and C2. At every pause or checkpoint, update this block with
-owner, status, exact commit, proof run, known gaps, and the next action before
-stopping.
+**Live execution state (Claude, C1 checkpoint committed):**
+- **C1 route retirement — COMMITTED at `afb8115`.** The legacy Team/Season
+  Library schedule is retired as a game-entry surface: `App.openGame(gid)` is
+  the one authoritative workspace-entry command, every route funnels through
+  it, and `openSchedule()` redirects to Home under the shell (grid can't show/
+  mount/restore). Home is the sole game entry; New Game routes through the one
+  command; Settings/More chrome relocated into the shell; Home highlights the
+  actual active game. Old data untouched (canonical loader only). Mutation
+  proof: disabling the retirement guard reds the "grid never shows" tests;
+  disabling clear-on-return reds "Home highlights current game." Proof run:
+  `e2e-workspace-shell` 33/33, onboarding 46/46 (classic fallback), full
+  canonical gate **59/59** green on the committed built bytes.
+- **C2 durable linked-film — IN PROGRESS.** Root-cause finding: the linked-film
+  production code is already correct post-`3a00ddd` (transactional link;
+  `filmMode`/`filmDir` persist to both SqlCatalog `.db` via `body_json` and
+  `season.json` before success; linked auto-load has no managed-C: fallback;
+  `filmHealth` reports expected/found/missing). Refuge's "false success" was the
+  wrong active game at link time — reachable on the released build via the C1
+  dual-ownership defect. C1 is the structural fix; C2 adds reproduce-first
+  regressions (wrong-game link prevented; linked metadata survives a catalog
+  save→reload; OL Lakes 82/65/17 missing reported; no managed fallback) and
+  only patches production if the reproduction surfaces a genuine new bug.
+- **Known gaps / next action:** build the C2 reproduction + regressions, rerun
+  the full gate + `cargo check` on rebuilt bytes, then update this block and
+  the closeout doc with the C2 commit SHA and proof. C1+C2 are one milestone —
+  no package/tag until combined Codex acceptance. Managed C: copies protected.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
