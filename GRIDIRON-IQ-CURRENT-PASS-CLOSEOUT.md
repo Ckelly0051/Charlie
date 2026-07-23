@@ -1,6 +1,6 @@
 # GridIron IQ Current-Pass Closeout
 
-> **Status:** ACTIVE REPAIR CONTRACT
+> **Status:** IMPLEMENTED — awaiting Codex combined review.
 >
 > **Builder:** Claude
 >
@@ -10,6 +10,30 @@
 >
 > This is one batched closeout pass. Do not package or publish individual fixes.
 > `GRIDIRON-IQ-PLAN-V2.md` is parked future work and is not part of this pass.
+>
+> **⚠ AMENDED by `GRIDIRON-IQ-CLOSEOUT-AMENDMENT-2026-07-23.md` (binding; it
+> controls on any conflict).** The original C1 below proposed routing the legacy
+> and redesigned game-entry paths through one command while KEEPING both
+> surfaces. **That "support both routes" interpretation is SUPERSEDED.** C1 now
+> RETIRES the obsolete Team/Season Library schedule game-entry route: one
+> workspace-entry command, one active-game owner, Home as the sole game entry;
+> old season data still loads through the canonical loader, but the old
+> game-entry UI does not survive. Read §3 Checkpoint C1 below only as background;
+> the amendment's "Revised C1" is the binding spec.
+>
+> **Implementation result (2026-07-23):**
+> - **C1 committed `afb8115`** — legacy schedule retired as a game-entry surface;
+>   `App.openGame()` is the one command every route funnels through;
+>   `openSchedule()` redirects to Home under the shell so the grid can't be
+>   reached/mounted/restored. Mutation-verified. `e2e-workspace-shell` 33/33.
+> - **C2 committed `660ccfa` (tests only)** — reproduce-first showed the
+>   linked-film production code already correct post-`3a00ddd`; Refuge's false
+>   success was the wrong-active-game defect that C1 fixes. Mutation-verified
+>   regressions: wrong-active-game reproduction + single-owner fix, real
+>   SqlCatalog save→reload keeps a linked game linked, OL Lakes 82/65/17 missing
+>   reported, no silent managed-C: fallback. No real data changed.
+> - Full canonical gate **59/59 green** on the committed bytes; `cargo check`
+>   clean. C1+C2 are one milestone — **no package/tag until Codex accepts**.
 
 ## 1. Goal
 

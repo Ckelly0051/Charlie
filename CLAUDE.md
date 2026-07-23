@@ -34,32 +34,46 @@ parked. No intermediate package or release; managed C: copies remain protected.
 Read GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md: after combined acceptance, publish
 one clean versioned beta milestone for coach smoke; there is no hidden/internal
 candidate phase.
-**Live execution state (Claude, C1 checkpoint committed):**
+**Live execution state (Claude — C1+C2 milestone COMPLETE, awaiting Codex review):**
 - **C1 route retirement — COMMITTED at `afb8115`.** The legacy Team/Season
   Library schedule is retired as a game-entry surface: `App.openGame(gid)` is
-  the one authoritative workspace-entry command, every route funnels through
-  it, and `openSchedule()` redirects to Home under the shell (grid can't show/
-  mount/restore). Home is the sole game entry; New Game routes through the one
-  command; Settings/More chrome relocated into the shell; Home highlights the
-  actual active game. Old data untouched (canonical loader only). Mutation
-  proof: disabling the retirement guard reds the "grid never shows" tests;
-  disabling clear-on-return reds "Home highlights current game." Proof run:
-  `e2e-workspace-shell` 33/33, onboarding 46/46 (classic fallback), full
-  canonical gate **59/59** green on the committed built bytes.
-- **C2 durable linked-film — IN PROGRESS.** Root-cause finding: the linked-film
-  production code is already correct post-`3a00ddd` (transactional link;
-  `filmMode`/`filmDir` persist to both SqlCatalog `.db` via `body_json` and
-  `season.json` before success; linked auto-load has no managed-C: fallback;
-  `filmHealth` reports expected/found/missing). Refuge's "false success" was the
-  wrong active game at link time — reachable on the released build via the C1
-  dual-ownership defect. C1 is the structural fix; C2 adds reproduce-first
-  regressions (wrong-game link prevented; linked metadata survives a catalog
-  save→reload; OL Lakes 82/65/17 missing reported; no managed fallback) and
-  only patches production if the reproduction surfaces a genuine new bug.
-- **Known gaps / next action:** build the C2 reproduction + regressions, rerun
-  the full gate + `cargo check` on rebuilt bytes, then update this block and
-  the closeout doc with the C2 commit SHA and proof. C1+C2 are one milestone —
-  no package/tag until combined Codex acceptance. Managed C: copies protected.
+  the one authoritative workspace-entry command, every route (shell Home, the
+  classic top-bar dropdown, games panel, season-stats modal, New Game) funnels
+  through it, and `openSchedule()` redirects to Home under the shell (grid
+  can't show/mount/restore via season open/create/demo/team-switch/season-
+  switch/direct call). Home is the sole game entry; Settings/More chrome
+  relocated into the shell; Home highlights the actual active game. Old data
+  untouched (canonical loader only). Mutation proof: disabling the retirement
+  guard reds the "grid never shows" tests; disabling clear-on-return reds "Home
+  highlights current game." `e2e-workspace-shell` 33/33, onboarding 46/46
+  (classic fallback exercised), full gate **59/59**.
+- **C2 durable linked-film — COMMITTED at `660ccfa` (tests only; no production
+  change).** Reproduce-first found the linked-film production code already
+  correct post-`3a00ddd`: transactional link; `filmMode`/`filmDir` persist to
+  both SqlCatalog `.db` (via `body_json`) and `season.json` before success;
+  linked auto-load routes only to the D: branch (no managed-C: fallback);
+  `filmHealth` reports expected/found/missing. Refuge's "false success" was the
+  WRONG active game at link time — reachable on the released build via the C1
+  dual-ownership defect — so **C1 is the structural fix**. C2 adds mutation-
+  verified regressions: wrong-active-game reproduction + single-owner fix, OL
+  Lakes 82/65/17 missing reported, no managed fallback (mutation: disable the
+  linked branch → reds), and a real SqlCatalog save→reload proving a linked
+  game stays linked (mutation: drop `filmMode`/`filmDir` in the catalog →
+  reds). No real data deleted/migrated/cleared/reinterpreted.
+- **Verification on committed bytes:** full canonical gate **59/59 green**,
+  `cargo check` clean. Six-game fingerprint discipline (closeout §5.9) is
+  covered by `e2e-integrity` (cross-game isolation fuzz) + `e2e-realdata` (real
+  six-game) + C2's per-game isolation assertion; no bespoke test added.
+- **Coach-first note (advisory, not blocking):** New Game/Delete Game remain
+  reachable in the shell via More → Season Report; a direct New-Game affordance
+  on Home would improve discoverability and is recommended as a fast-follow, not
+  built here to keep the milestone scoped.
+- **Next action:** Codex independently reviews the combined C1+C2 behavior and
+  reruns the gate on the committed built bytes. Only after acceptance: publish
+  ONE clean versioned GitHub beta milestone (per
+  `GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md`) as the coach's smoke artifact — no
+  intermediate/hidden candidate, no package or tag before acceptance. Managed
+  C: copies remain protected.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
