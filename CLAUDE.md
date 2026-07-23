@@ -21,6 +21,9 @@ storage again.
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**
+This is a documented exception to the default roles: after C1/C2, Claude/Fable
+returns to orchestration and Codex returns to primary implementation. Capacity
+overrides must be explicit in the active handoff.
 Read GRIDIRON-IQ-CLOSEOUT-AMENDMENT-2026-07-23.md first, then
 GRIDIRON-IQ-CURRENT-PASS-CLOSEOUT.md. The amendment controls where they
 conflict: C1 retires the obsolete Team/Season Library game-entry route instead

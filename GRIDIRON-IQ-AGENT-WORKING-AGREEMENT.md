@@ -25,6 +25,37 @@ The agent must give the coach a direct recommendation and material tradeoffs
 before implementation, even when a smaller patch could technically satisfy the
 immediate request.
 
+## Default Roles
+
+- **Coach:** football authority, product acceptance, approval for data-risk or
+  destructive actions, and installed smoke.
+- **Claude/Fable:** default orchestrator and product architect. Owns roadmap
+  coherence, coach-workflow framing, acceptance contracts, handoff continuity,
+  and independent product/architecture review when not the builder.
+- **Codex:** default primary builder and technical strategist. Owns repository
+  investigation, implementation design, code, regressions, gates, packaging,
+  Git, and release execution. Codex still challenges product and architecture
+  choices rather than acting as an order taker.
+
+Strategy is shared. Fable leads orchestration; Codex leads implementation
+strategy. The non-builder independently reviews the milestone.
+
+### Capacity fallback
+
+Usage limits may require a temporary role swap. A swap is valid only when the
+active handoff records the temporary builder, reviewer, exact checkpoint, and
+return condition. Work transfers at a committed, pushed, documented boundary
+whenever possible. The receiving agent continues from the handoff rather than
+reconstructing or restarting the lane.
+
+If Fable is unavailable, Codex may orchestrate and build from the accepted
+contract, but must obtain independent review before release. If Codex is
+unavailable, Fable may implement a bounded checkpoint and Codex reviews it when
+available. No agent self-certifies a release.
+
+**Current exception:** Claude is already building C1/C2 closeout work; Codex is
+its independent reviewer. After this milestone, the default returns to Fable
+orchestration and Codex implementation.
 ## Preservation Hierarchy
 
 Preserve, in order:
