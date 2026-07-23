@@ -18,6 +18,17 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### Active closeout pass (2026-07-23)
+
+**Claude builds; Codex independently reviews; the coach owns installed smoke.**
+Read GRIDIRON-IQ-CLOSEOUT-AMENDMENT-2026-07-23.md first, then
+GRIDIRON-IQ-CURRENT-PASS-CLOSEOUT.md. The amendment controls where they
+conflict: C1 retires the obsolete Team/Season Library game-entry route instead
+of synchronizing two routes; C2 closes Refuge link persistence and honest OL
+Lakes missing-film state. Read GRIDIRON-IQ-TRUSTED-ADVISOR-STANDARD.md and
+GRIDIRON-IQ-AGENT-WORKING-AGREEMENT.md as standing project rules. Plan V2 is
+parked. No intermediate package or release; managed C: copies remain protected.
+
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
 **Repair ACCEPTED — Claude's independent review found no findings.**

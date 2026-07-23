@@ -1,0 +1,227 @@
+# GridIron IQ Current-Pass Closeout
+
+> **Status:** ACTIVE REPAIR CONTRACT
+>
+> **Builder:** Claude
+>
+> **Independent reviewer:** Codex
+>
+> **Installed smoke authority:** Coach
+>
+> This is one batched closeout pass. Do not package or publish individual fixes.
+> `GRIDIRON-IQ-PLAN-V2.md` is parked future work and is not part of this pass.
+
+## 1. Goal
+
+Close the remaining gap between what the installed app appears to do and what
+its persisted navigation and film-storage state actually says. The result must
+be one stable beta candidate with a single game-opening lifecycle, durable
+linked-film metadata, visible source truth, and no changes to charted data.
+
+## 2. Installed Evidence To Reproduce
+
+### 2.1 Navigation and active-context defects
+
+1. Entering Break Down from the redesigned Home can omit the Settings/More
+   controls that appear when the same game is entered through the older Season
+   Library path.
+2. Returning Home after opening or linking one game can highlight the previous
+   game instead of the current game.
+3. The two routes visibly reach overlapping workspaces through different
+   lifecycle/state ownership. High CPU/GPU load was initially suspected, but
+   route-dependent reproduction makes timing only a possible amplifier, not
+   the accepted root cause.
+
+### 2.2 Read-only backend audit, 2026-07-22
+
+Configured library root: `D:\Football\Film`.
+
+The canonical SQLite catalog and JSON safety copy agree:
+
+| Game | Persisted source | Clip audit |
+|---|---|---|
+| St. Peter | Linked: `St Peter 41-0` | 69/69 exact |
+| ND Prep | Linked: `Marist 8-6-2025` | 79/79 exact |
+| Refuge | **Managed/default; no saved `filmMode` or `filmDir`** | Intended D: folder contains all 78 charted clip names |
+| OL Sorrows | Linked: `Sorrows 18-6` | 72/72 exact |
+| OL Lakes | Linked: `OLL 13-13` | 17 of 82 charted clip names absent from D: |
+| Holy Family | Linked: `Holy Family` | All 72 charted plays resolve |
+
+Refuge appeared to work because its 78-file managed C: copy remained available;
+the attempted D: link did not persist. OL Lakes is genuinely configured to use
+D:, but only 65 of its 82 charted clip references resolve there. The 17 missing
+filenames were not found elsewhere under `D:\Football\Film` and are also absent
+from the old managed copy.
+
+Old managed C: copies still exist for all six games. They must not be deleted in
+this pass.
+
+## 3. Scope
+
+### Checkpoint C1: One game-opening lifecycle
+
+Claude must first trace every caller that opens, previews, switches, or restores
+a game from Team Hub, Home, Season Library, Break Down, Study, and Plan.
+
+Required implementation outcomes:
+
+- One authoritative command owns active team/season/game selection and the
+  transition into the workspace.
+- Every supported entry route invokes that command instead of duplicating
+  selection, rendering, or restore behavior.
+- Settings/More availability is a deterministic workspace state, not an
+  incidental result of which route mounted the screen.
+- Home distinguishes an intentional preview selection from the active opened
+  game. Returning from Break Down highlights the actual current game.
+- A stale async render, film-health result, or prior-game callback cannot replace
+  current selection or chrome.
+- Re-entering the same game is idempotent and does not duplicate listeners,
+  subscriptions, saves, or film loads.
+- Existing Study and Plan context follows the same active game without changing
+  analytics or plan data.
+
+Do not solve this by merely forcing the missing bar visible with CSS. The test
+must prove lifecycle/context equality through both entry routes.
+
+### Checkpoint C2: Durable linked-film truth
+
+Reproduce the Refuge failure through the installed-flow equivalent before
+changing production code. Determine whether stale active-game context, the link
+transaction, rollback, autosave ordering, or route ownership caused the selected
+folder to play without persisting `filmMode='linked'` and `filmDir`.
+
+Required implementation outcomes:
+
+- A successful game-folder link persists to both canonical SQLite and the JSON
+  safety copy before success is shown.
+- Close/reopen resolves the same absolute D: folder and uses the linked branch
+  with zero managed import/copy calls.
+- A link operation remains scoped to the game the coach selected, even if Home
+  preview, active game, or rendering state changes during the async picker/save.
+- Cancel, denial, invalid/outside-root selection, game switch, and failed save
+  leave root, game metadata, clip references, tags, notes, and current play
+  unchanged.
+- The active workspace exposes a concise source status that distinguishes
+  `Linked` from `Managed`. The exact resolved path remains available in Team &
+  Film Settings. Do not build the full Plan V2 diagnostics center here.
+- Missing linked clips produce a durable, understandable game-health state. For
+  OL Lakes, the app must report 17 missing charted clips rather than silently
+  implying complete film.
+- The app must never fall back from a persisted linked game to an old managed
+  copy without explicitly telling the coach.
+
+OL Lakes is an audit case, not permission to alter data. Do not create phantom
+files, rewrite clip identities, clear plays, or silently switch it to managed
+mode. The coach will decide what to do with unavailable source film.
+
+## 4. Data-Safety Contract
+
+The repair may change only navigation/UI state and the intended game-level
+`filmMode`/`filmDir` link metadata.
+
+It must preserve, byte-for-byte where serialization permits:
+
+- Season, game, and play ids.
+- Play order and current-play identity.
+- Clip refs, catalog clip ids, clip names, and clip paths.
+- Tags, notes, annotations, roster, game information, plans, and versions.
+- Library root unless the coach explicitly changes the root.
+- Every other game's complete data while linking one game.
+
+No migration, managed-film deletion, bulk repair, or cleanup is authorized.
+Any discovered need to clear or rewrite real data stops for coach approval.
+
+## 5. Required Regression Proof
+
+Every new regression must be watched fail against pre-fix behavior and pass
+after the repair. At minimum:
+
+1. New Home -> open Game A -> Break Down has the same navigation/settings
+   contract as Season Library -> open Game A.
+2. Game A -> Home -> open Game B -> Home highlights Game B, never Game A.
+3. Rapid A/B switching with delayed film-health and folder-resolution promises
+   cannot restore A's selection, source badge, or chrome over B.
+4. Repeated open/restore cycles keep one listener/subscription set and one
+   logical film load per transition.
+5. Link `D:\Football\Film\Refuge 7-13` while the library root remains
+   `D:\Football\Film`; save, close/reopen, and assert canonical `linked` metadata
+   plus a D:-resolved playback URL and zero managed-copy calls.
+6. Switch games while the link picker/save is unresolved; no wrong-game link or
+   success message is permitted.
+7. Inject a canonical-save failure; both catalog and JSON remain at the prior
+   state and the UI reports that the link was not saved.
+8. Feed the OL Lakes fixture with 17 missing charted clips; the UI reports the
+   incomplete source and does not load those plays from C:.
+9. Fingerprint the entire six-game season before and after each link/navigation
+   scenario and allow only the explicitly expected metadata changes.
+
+Existing focused suites to extend or run:
+
+- `tools/e2e-workspace-shell.mjs`
+- Breakdown workspace/lifecycle harnesses
+- `tools/e2e-onboarding.mjs`
+- `tools/e2e-film-storage-setup.mjs`
+- `tools/e2e-linked-film.mjs`
+- Catalog persistence/backend and season durability harnesses
+- Full canonical release gate from `GRIDIRON-IQ-RELEASE-GATE.md`
+- `cargo check`
+
+The built `football-film-analyzer.html` must be regenerated only after source
+tests pass, then the full gate must run against those exact built bytes.
+
+## 6. Existing Uncommitted Work
+
+The shared worktree currently contains an uncommitted Codex navigation draft in:
+
+- `css/workspace-shell.css`
+- `js/season-library.js`
+- `js/workspace-shell.js`
+- `tools/e2e-workspace-shell.mjs`
+- the generated `football-film-analyzer.html`
+
+Claude must inspect this diff before editing. It is neither accepted code nor
+permission to discard unrelated work. Keep, rewrite, or supersede each hunk only
+after tracing it to this contract, and record that decision in the handoff.
+Temporary `.tmp-*` directories and untracked `AGENTS.md` remain excluded.
+`GRIDIRON-IQ-PLAN-V2.md` is a separate documentation artifact.
+
+## 7. Commit And Review Sequence
+
+1. **C1 internal checkpoint:** navigation/context source + failing-first tests.
+2. **C2 internal checkpoint:** link durability/source truth + failing-first tests.
+3. **Closeout docs checkpoint:** update this file, `CLAUDE.md`, the redesign
+   handoff, smoke findings, and release-gate status with exact SHAs and counts.
+4. Claude stops with a clean, committed source state. No tag, deployment, or
+   installer publication.
+5. Codex independently reviews the combined C1+C2 behavior, checks every changed
+   caller and persistence path, reruns focused suites and the full gate, and
+   records findings or acceptance.
+6. Only after acceptance is one internal candidate packaged.
+7. Coach runs the installed smoke and alone authorizes publication or deletion
+   of any managed C: film.
+
+Do not publish between C1 and C2. A green unit test or visually successful film
+load is not proof of persisted source truth.
+
+## 8. Installed Smoke To Close The Pass
+
+The final candidate passes only when the coach confirms:
+
+1. Open games through Home and the remaining legacy route; navigation and
+   Settings/More are identical.
+2. Switch among at least three games and return Home after each; the correct game
+   is selected every time.
+3. Link Refuge to its D: folder, close the application completely, reopen, and
+   see `Linked` plus the correct resolved source.
+4. Play several Refuge clips after restart with no new managed files created.
+5. OL Lakes visibly reports incomplete film; a present clip plays from D: and a
+   missing clip does not silently use C:.
+6. Edit one tag, Save & Next, restart, and verify the edit plus every other game
+   remains intact.
+7. Launch one Study result and play its exact film sequence.
+8. Create or update one Plan item, save, restart, and verify it remains.
+9. Confirm backup/save status and reopen the season successfully.
+
+Passing this smoke closes the current redesign/repair cycle. Further product
+work moves to the parked Plan V2 roadmap.
+
