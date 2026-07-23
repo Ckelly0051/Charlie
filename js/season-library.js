@@ -395,28 +395,25 @@ export class SeasonLibrary {
 
   /** Show the library at the SCHEDULE level (the open season's games).
    *
-   * RETIRED as a game-entry surface in the redesigned product (C1, binding
-   * amendment 2026-07-23). When the workspace shell owns the product, Home is
-   * the single place to pick and open a game, so ANY caller that would land on
-   * the legacy schedule is redirected to Home instead — the schedule grid and
-   * its per-game open handlers can no longer be reached, mounted, or restored
-   * through season open/create, demo, team switch, restore, or a direct call.
-   * The classic (flag-off) escape hatch still uses the schedule because it has
-   * no Home to fall back to. */
+   * FULLY RETIRED as a game-entry surface (C1, binding amendment 2026-07-23).
+   * Home is the single place to pick and open a game. Every caller that would
+   * land on the legacy schedule is redirected to Home — the schedule grid and
+   * its per-game open handlers cannot be reached, mounted, or restored through
+   * season open/create, demo, team switch, restore, or a direct call. With the
+   * classic-layout escape hatch removed, the shell is the unconditional product,
+   * so there is no flag-off state that could show the grid. */
   async openSchedule() {
     const store = this._storage()?.seasonStore;
     if (!store || !store.hasCurrent()) return this.open();
-    if (!this.overlay) return;
     const shell = window.app?.workspaceShell;
-    if (shell?.flagEnabled?.()) {
-      this.overlay.classList.add('hidden');
+    if (shell?.root) {
+      this.overlay?.classList.add('hidden');
       await shell.show('home');
       return;
     }
-    this._setLevel('schedule');
-    this._renderSchedule();
-    this._updateCloseBtn();
-    this.overlay.classList.remove('hidden');
+    // No shell mounted (crash-safety only — the shell mounts unconditionally in
+    // the product). Fall back to Team Home, never the retired schedule grid.
+    return this.open();
   }
 
   /**

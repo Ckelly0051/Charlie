@@ -5,13 +5,14 @@
  * play strip is inserted, and #btnCopyPrev is relocated. WorkspaceShell.disable()
  * restored breakdownWorkspace but never breakdownVideo, so the no-reload classic
  * transition left beta chrome behind. Empirically confirmed before this test was
- * written: after useClassic(false), the strip was still mounted and
+ * written: after a disable() (teardown), the strip was still mounted and
  * .playback-controls was still parented to #videoContainer.
  *
- * SCOPE / SEVERITY. The user-facing "Use classic layout" button calls
- * useClassic() with its default reload=true, which clears the flag and reloads —
- * so a real coach is NOT stranded in a mutated layout. This is lifecycle debt on
- * the no-reload path, P1, not a P0 escape-hatch failure.
+ * SCOPE / SEVERITY. WorkspaceShell.disable() is the INTERNAL mount/restore
+ * teardown contract — there is no longer a user-facing "Use classic layout"
+ * button (the classic escape hatch was retired, C1 2026-07-23). This harness
+ * pins that disable()/enable() rebuilds cleanly with no leaked listeners or
+ * tagger subscriptions, which matters for the shell's own lifecycle hygiene.
  *
  * WHAT THIS ASSERTS (and why not "byte-identical DOM"): a DOM snapshot compare
  * passes while retained listeners and tagger subscriptions leak. Handler
@@ -43,7 +44,7 @@ const identity = await page.evaluate(async () => {
   const pc = document.querySelector('.playback-controls');
   vc.__laneA = 'vc'; pc.__laneA = 'pc';
   const shell = window.app.workspaceShell;
-  shell.useClassic(false);
+  shell.disable();
   await new Promise(r => setTimeout(r, 250));
   await shell.enable();
   await new Promise(r => setTimeout(r, 400));
@@ -57,48 +58,44 @@ ok(identity.vcSame && identity.pcSame,
   JSON.stringify(identity));
 
 // ---- 2. restore() returns chrome to its EXACT original position -----------
-// The true original position can only be captured from a CLASSIC boot, before
-// _mount() has moved anything. An earlier draft read it after the flag-on boot,
-// so it recorded the already-MUTATED parent and then never asserted it — a dead
-// variable that looked like coverage.
+// The true original position is the UNMOUNTED chrome. There is no flag-off boot
+// anymore (the shell is the unconditional product), so disable() is how we reach
+// that clean baseline: tear the shell down, snapshot, then prove enable() ->
+// disable() returns every moved element to the identical parent/index/text/cls.
 const page2 = await browser.newPage();
 await page2.setViewport({ width: 1280, height: 800 });
 const errors2 = [];
 page2.on('pageerror', e => errors2.push(e.stack || e.message));
-// MUST clear the flag explicitly. localStorage is per-ORIGIN, and page1 already
-// set it on this same file:// origin — a new page inherits it. Without this the
-// "classic" boot is actually flag-on, the baseline snapshot captures the
-// already-MUTATED chrome, and the exact-restoration assertion compares the bug
-// against itself. (This is the second time this harness measured a mutated
-// baseline; the first was capturing it after _mount() had run.)
-await page2.evaluateOnNewDocument(() => localStorage.removeItem('ffa_workspace_shell_v2'));
-await page2.goto(URL, { waitUntil: 'networkidle0' });   // genuine classic boot
+await page2.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 700));
 
 const exact = await page2.evaluate(async () => {
-  const pc = document.querySelector('.playback-controls');
-  const copy = document.getElementById('btnCopyPrev');
+  const shell = window.app.workspaceShell;
+  // Reach the clean (unmounted) baseline by tearing the shell down.
+  shell.disable();
+  await new Promise(r => setTimeout(r, 350));
   const snap = el => el && ({
     parent: el.parentElement,
     index: [...el.parentElement.children].indexOf(el),
     text: el.textContent,
     cls: el.className,
   });
-  const pcBefore = snap(pc), copyBefore = snap(copy);
-  const mountedNow = !!document.querySelector('.breakdown-play-strip');
+  const pcBefore = snap(document.querySelector('.playback-controls'));
+  const copyBefore = snap(document.getElementById('btnCopyPrev'));
+  const cleanAfterDisable = !document.querySelector('.breakdown-play-strip');
 
-  await window.app.workspaceShell.enable();
+  await shell.enable();
   await new Promise(r => setTimeout(r, 450));
   const mountedAfterEnable = !!document.querySelector('.breakdown-play-strip');
 
-  window.app.workspaceShell.useClassic(false);
+  shell.disable();
   await new Promise(r => setTimeout(r, 350));
   const pcAfter = snap(document.querySelector('.playback-controls'));
   const copyAfter = snap(document.getElementById('btnCopyPrev'));
   const same = (a, b) => !!a && !!b && a.parent === b.parent && a.index === b.index
     && a.text === b.text && a.cls === b.cls;
   return {
-    classicBootIsClean: !mountedNow,
+    cleanAfterDisable,
     enableMounts: mountedAfterEnable,
     pcExact: same(pcBefore, pcAfter),
     copyExact: same(copyBefore, copyAfter),
@@ -106,8 +103,8 @@ const exact = await page2.evaluate(async () => {
               copyBefore: copyBefore && { i: copyBefore.index, t: copyBefore.text }, copyAfter: copyAfter && { i: copyAfter.index, t: copyAfter.text } },
   };
 });
-ok(exact.classicBootIsClean, 'classic boot (flag off) mounts no beta presentation');
-ok(exact.enableMounts, 'enable() from a classic boot mounts the presentation');
+ok(exact.cleanAfterDisable, 'disable() reaches a clean unmounted state (no beta presentation)');
+ok(exact.enableMounts, 'enable() after disable() re-mounts the presentation');
 ok(exact.pcExact, '.playback-controls returns to its EXACT original parent, sibling index, text and classes',
   JSON.stringify(exact.detail));
 ok(exact.copyExact, '#btnCopyPrev returns to its EXACT original parent, sibling index, text and classes',
@@ -127,14 +124,14 @@ const races = await page2.evaluate(async () => {
   await new Promise(r => setTimeout(r, 400));
   try { localStorage.setItem('ffa_video_controls_y', '0.5'); } catch {}
   window.app.breakdownVideo.render();
-  window.app.workspaceShell.useClassic(false);          // same tick — rAF still queued
+  window.app.workspaceShell.disable();          // same tick — rAF still queued
   await new Promise(r => setTimeout(r, 250));
   const renderRace = thrown.slice();
 
   // Race B: mount reads the stored ratio and queues place(); tear down first.
   thrown.length = 0;
   await window.app.workspaceShell.enable();
-  window.app.workspaceShell.useClassic(false);          // before the queued frame
+  window.app.workspaceShell.disable();          // before the queued frame
   await new Promise(r => setTimeout(r, 250));
   const topAfter = document.querySelector('.playback-controls')?.style.top || '';
 
@@ -165,7 +162,7 @@ const drag = await page2.evaluate(async () => {
   handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 300, pointerId: 1 }));
   window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 320, pointerId: 1 }));
 
-  shell.useClassic(false);                 // teardown mid-drag: no pointerup yet
+  shell.disable();                 // teardown mid-drag: no pointerup yet
   await new Promise(r => setTimeout(r, 120));
   // Baseline AFTER teardown: the move above was LIVE and legitimately persisted
   // a ratio. The bug is a dead mount CHANGING it, not the live drag saving it.
@@ -303,7 +300,7 @@ await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1');
 await page.reload({ waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 700));
 const restored = await page.evaluate(async () => {
-  window.app.workspaceShell.useClassic(false);
+  window.app.workspaceShell.disable();
   await new Promise(r => setTimeout(r, 300));
   return {
     strips: document.querySelectorAll('.breakdown-play-strip').length,
@@ -338,7 +335,7 @@ ok(remount.strips === 1 && remount.handles === 1 && remount.pcInsideVideo,
 const cycles = await page.evaluate(async () => {
   const shell = window.app.workspaceShell;
   for (let i = 0; i < 3; i++) {
-    shell.useClassic(false);
+    shell.disable();
     await new Promise(r => setTimeout(r, 150));
     await shell.enable();
     await new Promise(r => setTimeout(r, 250));
@@ -387,7 +384,7 @@ const state = await page.evaluate(async () => {
   const v = document.getElementById('videoPlayer');
   v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=';
   const before = { src: v.src, time: v.currentTime, play: window.app.tagger.currentPlayId };
-  shell.useClassic(false);
+  shell.disable();
   await new Promise(r => setTimeout(r, 200));
   await shell.enable();
   await new Promise(r => setTimeout(r, 350));

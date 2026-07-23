@@ -8785,7 +8785,9 @@ body.ws-shell-active .ws-global-tools .more-label{color:var(--ws-muted)}
 
 .ws-plan-picker{width:min(460px,calc(100vw - 32px));margin:auto;padding:0;border:1px solid #3a4a5d;border-radius:7px;background:#111821;color:var(--ws-text);box-shadow:0 24px 70px rgba(0,0,0,.62)}.ws-plan-picker::backdrop{background:rgba(4,7,11,.78);backdrop-filter:blur(2px)}.ws-plan-picker form{display:grid;gap:16px;padding:24px}.ws-plan-picker h2{margin:-8px 0 0;font-size:23px}.ws-plan-picker p{display:grid;gap:4px;margin:0;padding:12px;border-left:3px solid var(--ws-blue);background:#151e29}.ws-plan-picker p span{color:var(--ws-muted);font-size:12px}.ws-plan-picker label{display:grid;gap:7px;color:var(--ws-muted);font-size:11px;font-weight:800;text-transform:uppercase}.ws-plan-picker select,.ws-plan-picker input{width:100%;height:42px;border:1px solid var(--ws-line);border-radius:5px;background:#0d131b;color:var(--ws-text);padding:0 11px;font:inherit;text-transform:none}.ws-plan-picker select:focus,.ws-plan-picker input:focus{outline:2px solid #75a7ff;outline-offset:1px}.ws-plan-picker-name[hidden]{display:none}.ws-plan-picker-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:2px}.ws-plan-picker-actions .ws-btn{min-height:42px}
 @media(max-width:480px){.ws-plan-picker{width:calc(100vw - 20px)}.ws-plan-picker form{padding:20px 16px}.ws-plan-picker-actions .ws-btn{height:44px;flex:1}}
-/* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
+
+.ws-link-strong{color:#cfe0ff;font-weight:600}
+.ws-section-head .ws-link+.ws-link{margin-left:10px}/* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
 .ws-breakdown { min-width: 0; min-height: 0; overflow: hidden; }
 .ws-shell, .ws-breakdown, .tag-library-dialog, .undo-toast { font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
 .bd-route { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
@@ -17995,6 +17997,14 @@ class StorageManager {
     this.filter = null;
     this.seasonStore = new SeasonStore();
     this._loadedGameId = null;   // which game the live tagger holds (guards commitActive vs cross-game writes)
+    // Latest-film-load-wins guard. Film auto-load is async (list files, resolve
+    // N clip URLs, probe, rehydrate) and then mutates the SHARED player/playlist.
+    // Two rapid game opens run two overlapping _autoLoadFilm calls; if the FIRST
+    // game's load resolves LAST it would stamp its film onto the now-active
+    // second game (active=B, loaded=B, but the video shows A). Every load
+    // captures this monotonic token at entry and re-checks it is still current
+    // before each player/playlist mutation; a superseded load aborts silently.
+    this._filmLoadSeq = 0;
     // Tell the coach when a save fails (browser storage full) instead of losing
     // work silently. window.app/updater resolve lazily — this fires rarely.
     this.seasonStore.onPersistError = () => {
@@ -18398,10 +18408,16 @@ class StorageManager {
 
   async _autoLoadFilm(gameNode) {
     const backend = this.seasonStore.backend;
+    // Latest-load-wins: capture this load's token; a newer load (or a game
+    // teardown) bumps the sequence, so `stale()` becomes true and this load
+    // aborts before touching the shared player/playlist. Closes the overlapping-
+    // open race where a slow earlier load clobbers a faster later one.
+    const loadToken = ++this._filmLoadSeq;
+    const stale = () => loadToken !== this._filmLoadSeq;
     // Linked film: clips live in the coach's own library folder, referenced in
     // place (no copy). Managed film (below) is unchanged.
     if (gameNode.filmMode === 'linked' && backend.supportsLinkedFilm && backend.supportsLinkedFilm()) {
-      return this._autoLoadLinkedFilm(gameNode);
+      return this._autoLoadLinkedFilm(gameNode, loadToken);
     }
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     try {
@@ -18431,8 +18447,9 @@ class StorageManager {
             this.tagger.toast?.(`Asset protocol probe failed for ${clips[0].name}: ${probeErr.message}`, 10000);
           }
         }
-        if (clips.length > 0 && this.playlist) {
+        if (clips.length > 0 && this.playlist && !stale()) {
           await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+          if (stale()) return;
           if (this.tagger.currentPlayId) {
             this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
           }
@@ -18445,7 +18462,7 @@ class StorageManager {
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
           console.log('Single-video URL:', url?.slice(0, 200));
-          if (url) {
+          if (url && !stale()) {
             this.vc.loadUrl(url, this._fileRefName(match));
           } else {
             console.warn('filmUrl returned null for', match);
@@ -18459,9 +18476,12 @@ class StorageManager {
     }
   }
 
-  /** Auto-load a LINKED game's film from the coach's library folder (no copy). */
-  async _autoLoadLinkedFilm(gameNode) {
+  /** Auto-load a LINKED game's film from the coach's library folder (no copy).
+   * `loadToken` is the latest-load-wins guard from _autoLoadFilm (or captured
+   * fresh if called directly); a superseded load aborts before mutating. */
+  async _autoLoadLinkedFilm(gameNode, loadToken = ++this._filmLoadSeq) {
     const backend = this.seasonStore.backend;
+    const stale = () => loadToken !== this._filmLoadSeq;
     try {
       await backend.allowLibraryDir(backend.getLibraryRoot());
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
@@ -18494,8 +18514,9 @@ class StorageManager {
         const url = await backend.linkedFilmUrl(abs);
         return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
       }))).filter(Boolean);
-      if (clips.length > 0 && this.playlist) {
+      if (clips.length > 0 && this.playlist && !stale()) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+        if (stale()) return;
         if (this.tagger.currentPlayId) this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
         if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
       }
@@ -18872,6 +18893,7 @@ class StorageManager {
 
   /** Tear down per-game UI before loading a different game. */
   _clearForNewGame() {
+    this._filmLoadSeq++;   // invalidate any film load still in flight for the outgoing game
     try { if (this.vc && this.vc.unloadVideo) this.vc.unloadVideo(); } catch (e) {}
     try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
     this.videoFileName = null;
@@ -29967,9 +29989,16 @@ class WorkspaceShell {
       drawer: this._remember(document.getElementById('settingsDrawer')),
     };
   }
-  flagEnabled() { try { return localStorage.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
-  async init() { if (this.flagEnabled()) await this.enable(); }
+  // The redesigned workspace is THE product — there is no classic-layout escape
+  // hatch and no second game-entry route (C1, binding amendment 2026-07-23). The
+  // shell mounts unconditionally on every build.
+  async init() { await this.enable(); }
   async enable() {
+    // Kept as a compatibility signal: breakdown-form/breakdown-video read this
+    // key to know the redesigned workspace is active. The shell itself no longer
+    // gates on it — it is always on — but writing it keeps those modules enabled
+    // with zero change to their own logic (and joins the browser build to the
+    // one product). Nothing clears it; there is no flag-off state.
     try { localStorage.setItem('ffa_workspace_shell_v2', '1'); } catch {}
     if (!this.root) this._mount();
     // Idempotent: no-ops when already mounted. Required because disable() now
@@ -29978,7 +30007,9 @@ class WorkspaceShell {
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }
-  useClassic(reload = true) { try { localStorage.removeItem('ffa_workspace_shell_v2'); } catch {} if (reload) location.reload(); else this.disable(); }
+  // Internal lifecycle only — the tested mount/restore teardown contract (proves
+  // the shell rebuilds cleanly with no leaked listeners/subscriptions). NOT a
+  // product path: there is no user affordance that reaches it.
   disable() {
     if (!this.root) return;
     this._homeToken++;
@@ -29999,12 +30030,12 @@ class WorkspaceShell {
     root.innerHTML = `<aside class="ws-sidebar"><div class="ws-brand">GRIDIRON <b>IQ</b></div>
       <button class="ws-team" data-ws-action="seasons"><strong id="wsTeamName">Team</strong><span id="wsTeamMeta">Season workspace</span></button>
       <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
-      <div class="ws-side-foot"><button class="ws-classic" data-ws-action="classic">Use classic layout</button><div class="ws-save-state"><i></i>Season ready</div></div></aside>
+      <div class="ws-side-foot"><div class="ws-save-state"><i></i>Season ready</div></div></aside>
       <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
       <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" data-ws-action="settings" aria-label="Settings and more">⚙</button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
-      <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
+      <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
       <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
     document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
@@ -30014,8 +30045,8 @@ class WorkspaceShell {
       const route = e.target.closest('[data-ws-route]')?.dataset.wsRoute;
       if (route) { e.preventDefault(); await this.show(route); return; }
       const action = e.target.closest('[data-ws-action]')?.dataset.wsAction;
-      if (action === 'classic') this.useClassic();
       if (action === 'seasons') await this._openLibrary();
+      if (action === 'new-game') { await this._newGame(); return; }
       if (action === 'settings') this.app.uiPolish?._openDrawer?.();
       const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
       if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
@@ -30075,6 +30106,13 @@ class WorkspaceShell {
   _dateLabel(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
   showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsBreakdown').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
   async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
+  /** Home's direct "New game" action (C1 finding 4): with Home the sole game
+   * entry, creating a game belongs on Home, not buried under More. Creates the
+   * game in the active season (reusing a still-empty active game rather than
+   * stacking husks — storage.newGame owns that) and opens it into Break Down
+   * through the one authoritative open command. No season open → send the coach
+   * to the library to pick or create one first. */
+  async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const g=this.app.storage.newGame();if(g?.id!=null)await this.app.openGame(g.id);}
   _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
   _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
   _mountChrome(){const tools=this.root?.querySelector('.ws-global-tools');if(tools){if(this._chrome.settings?.el)tools.append(this._chrome.settings.el);if(this._chrome.more?.el)tools.append(this._chrome.more.el);}if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);}
@@ -34086,28 +34124,25 @@ class SeasonLibrary {
 
   /** Show the library at the SCHEDULE level (the open season's games).
    *
-   * RETIRED as a game-entry surface in the redesigned product (C1, binding
-   * amendment 2026-07-23). When the workspace shell owns the product, Home is
-   * the single place to pick and open a game, so ANY caller that would land on
-   * the legacy schedule is redirected to Home instead — the schedule grid and
-   * its per-game open handlers can no longer be reached, mounted, or restored
-   * through season open/create, demo, team switch, restore, or a direct call.
-   * The classic (flag-off) escape hatch still uses the schedule because it has
-   * no Home to fall back to. */
+   * FULLY RETIRED as a game-entry surface (C1, binding amendment 2026-07-23).
+   * Home is the single place to pick and open a game. Every caller that would
+   * land on the legacy schedule is redirected to Home — the schedule grid and
+   * its per-game open handlers cannot be reached, mounted, or restored through
+   * season open/create, demo, team switch, restore, or a direct call. With the
+   * classic-layout escape hatch removed, the shell is the unconditional product,
+   * so there is no flag-off state that could show the grid. */
   async openSchedule() {
     const store = this._storage()?.seasonStore;
     if (!store || !store.hasCurrent()) return this.open();
-    if (!this.overlay) return;
     const shell = window.app?.workspaceShell;
-    if (shell?.flagEnabled?.()) {
-      this.overlay.classList.add('hidden');
+    if (shell?.root) {
+      this.overlay?.classList.add('hidden');
       await shell.show('home');
       return;
     }
-    this._setLevel('schedule');
-    this._renderSchedule();
-    this._updateCloseBtn();
-    this.overlay.classList.remove('hidden');
+    // No shell mounted (crash-safety only — the shell mounts unconditionally in
+    // the product). Fall back to Team Home, never the retired schedule grid.
+    return this.open();
   }
 
   /**
@@ -37660,16 +37695,18 @@ class App {
       const ok = await this.storage.switchToGame(gid);
       if (ok === false) return false;
     }
-    // Deterministic chrome refresh in BOTH flag states.
+    // Deterministic chrome refresh.
     this._updateSeasonChip();
     this._renderGamesPanel();
     this.season?._renderAll?.();
     this._closeGameDropdown();
-    // Workspace transition. When the shell owns the workspace, Break Down is a
-    // shell route (its render relocates the canonical Settings/More chrome, so
-    // every route lands on identical chrome). In classic mode the #app IS the
-    // workspace, so only the library overlay needs to close.
-    if (this.workspaceShell?.flagEnabled?.()) {
+    // Workspace transition. Break Down is a shell route: its render relocates the
+    // canonical Settings/More chrome, so every entry route lands on identical
+    // chrome. The redesigned shell is the unconditional product and owns the
+    // workspace.
+    // The `.root` check is "is the shell mounted" (always true in the product);
+    // the else is pure crash-safety, not a second product route.
+    if (this.workspaceShell?.root) {
       await this.workspaceShell.show('breakdown');
     } else {
       this.library?.hide?.();

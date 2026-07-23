@@ -29,6 +29,14 @@ export class StorageManager {
     this.filter = null;
     this.seasonStore = new SeasonStore();
     this._loadedGameId = null;   // which game the live tagger holds (guards commitActive vs cross-game writes)
+    // Latest-film-load-wins guard. Film auto-load is async (list files, resolve
+    // N clip URLs, probe, rehydrate) and then mutates the SHARED player/playlist.
+    // Two rapid game opens run two overlapping _autoLoadFilm calls; if the FIRST
+    // game's load resolves LAST it would stamp its film onto the now-active
+    // second game (active=B, loaded=B, but the video shows A). Every load
+    // captures this monotonic token at entry and re-checks it is still current
+    // before each player/playlist mutation; a superseded load aborts silently.
+    this._filmLoadSeq = 0;
     // Tell the coach when a save fails (browser storage full) instead of losing
     // work silently. window.app/updater resolve lazily — this fires rarely.
     this.seasonStore.onPersistError = () => {
@@ -432,10 +440,16 @@ export class StorageManager {
 
   async _autoLoadFilm(gameNode) {
     const backend = this.seasonStore.backend;
+    // Latest-load-wins: capture this load's token; a newer load (or a game
+    // teardown) bumps the sequence, so `stale()` becomes true and this load
+    // aborts before touching the shared player/playlist. Closes the overlapping-
+    // open race where a slow earlier load clobbers a faster later one.
+    const loadToken = ++this._filmLoadSeq;
+    const stale = () => loadToken !== this._filmLoadSeq;
     // Linked film: clips live in the coach's own library folder, referenced in
     // place (no copy). Managed film (below) is unchanged.
     if (gameNode.filmMode === 'linked' && backend.supportsLinkedFilm && backend.supportsLinkedFilm()) {
-      return this._autoLoadLinkedFilm(gameNode);
+      return this._autoLoadLinkedFilm(gameNode, loadToken);
     }
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
     try {
@@ -465,8 +479,9 @@ export class StorageManager {
             this.tagger.toast?.(`Asset protocol probe failed for ${clips[0].name}: ${probeErr.message}`, 10000);
           }
         }
-        if (clips.length > 0 && this.playlist) {
+        if (clips.length > 0 && this.playlist && !stale()) {
           await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+          if (stale()) return;
           if (this.tagger.currentPlayId) {
             this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
           }
@@ -479,7 +494,7 @@ export class StorageManager {
         if (match) {
           const url = await backend.filmUrl(gameNode.id, match);
           console.log('Single-video URL:', url?.slice(0, 200));
-          if (url) {
+          if (url && !stale()) {
             this.vc.loadUrl(url, this._fileRefName(match));
           } else {
             console.warn('filmUrl returned null for', match);
@@ -493,9 +508,12 @@ export class StorageManager {
     }
   }
 
-  /** Auto-load a LINKED game's film from the coach's library folder (no copy). */
-  async _autoLoadLinkedFilm(gameNode) {
+  /** Auto-load a LINKED game's film from the coach's library folder (no copy).
+   * `loadToken` is the latest-load-wins guard from _autoLoadFilm (or captured
+   * fresh if called directly); a superseded load aborts before mutating. */
+  async _autoLoadLinkedFilm(gameNode, loadToken = ++this._filmLoadSeq) {
     const backend = this.seasonStore.backend;
+    const stale = () => loadToken !== this._filmLoadSeq;
     try {
       await backend.allowLibraryDir(backend.getLibraryRoot());
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
@@ -528,8 +546,9 @@ export class StorageManager {
         const url = await backend.linkedFilmUrl(abs);
         return url ? { name: this._fileRefName(fileRef), path: this._fileRefPath(fileRef), catalogClipId: catalogIds[i] || null, url } : null;
       }))).filter(Boolean);
-      if (clips.length > 0 && this.playlist) {
+      if (clips.length > 0 && this.playlist && !stale()) {
         await this.playlist.rehydrateFromDisk(clips, this.tagger.plays);
+        if (stale()) return;
         if (this.tagger.currentPlayId) this.playlist.switchToClipByPlayId(this.tagger.currentPlayId);
         if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
       }
@@ -906,6 +925,7 @@ export class StorageManager {
 
   /** Tear down per-game UI before loading a different game. */
   _clearForNewGame() {
+    this._filmLoadSeq++;   // invalidate any film load still in flight for the outgoing game
     try { if (this.vc && this.vc.unloadVideo) this.vc.unloadVideo(); } catch (e) {}
     try { if (this.playlist && this.playlist.reset) this.playlist.reset(); } catch (e) {}
     this.videoFileName = null;

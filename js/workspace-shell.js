@@ -15,9 +15,16 @@ export class WorkspaceShell {
       drawer: this._remember(document.getElementById('settingsDrawer')),
     };
   }
-  flagEnabled() { try { return localStorage.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
-  async init() { if (this.flagEnabled()) await this.enable(); }
+  // The redesigned workspace is THE product — there is no classic-layout escape
+  // hatch and no second game-entry route (C1, binding amendment 2026-07-23). The
+  // shell mounts unconditionally on every build.
+  async init() { await this.enable(); }
   async enable() {
+    // Kept as a compatibility signal: breakdown-form/breakdown-video read this
+    // key to know the redesigned workspace is active. The shell itself no longer
+    // gates on it — it is always on — but writing it keeps those modules enabled
+    // with zero change to their own logic (and joins the browser build to the
+    // one product). Nothing clears it; there is no flag-off state.
     try { localStorage.setItem('ffa_workspace_shell_v2', '1'); } catch {}
     if (!this.root) this._mount();
     // Idempotent: no-ops when already mounted. Required because disable() now
@@ -26,7 +33,9 @@ export class WorkspaceShell {
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }
-  useClassic(reload = true) { try { localStorage.removeItem('ffa_workspace_shell_v2'); } catch {} if (reload) location.reload(); else this.disable(); }
+  // Internal lifecycle only — the tested mount/restore teardown contract (proves
+  // the shell rebuilds cleanly with no leaked listeners/subscriptions). NOT a
+  // product path: there is no user affordance that reaches it.
   disable() {
     if (!this.root) return;
     this._homeToken++;
@@ -47,12 +56,12 @@ export class WorkspaceShell {
     root.innerHTML = `<aside class="ws-sidebar"><div class="ws-brand">GRIDIRON <b>IQ</b></div>
       <button class="ws-team" data-ws-action="seasons"><strong id="wsTeamName">Team</strong><span id="wsTeamMeta">Season workspace</span></button>
       <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
-      <div class="ws-side-foot"><button class="ws-classic" data-ws-action="classic">Use classic layout</button><div class="ws-save-state"><i></i>Season ready</div></div></aside>
+      <div class="ws-side-foot"><div class="ws-save-state"><i></i>Season ready</div></div></aside>
       <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
       <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" data-ws-action="settings" aria-label="Settings and more">⚙</button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
-      <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
+      <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
       <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
     document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
@@ -62,8 +71,8 @@ export class WorkspaceShell {
       const route = e.target.closest('[data-ws-route]')?.dataset.wsRoute;
       if (route) { e.preventDefault(); await this.show(route); return; }
       const action = e.target.closest('[data-ws-action]')?.dataset.wsAction;
-      if (action === 'classic') this.useClassic();
       if (action === 'seasons') await this._openLibrary();
+      if (action === 'new-game') { await this._newGame(); return; }
       if (action === 'settings') this.app.uiPolish?._openDrawer?.();
       const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
       if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
@@ -123,6 +132,13 @@ export class WorkspaceShell {
   _dateLabel(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
   showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsBreakdown').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
   async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
+  /** Home's direct "New game" action (C1 finding 4): with Home the sole game
+   * entry, creating a game belongs on Home, not buried under More. Creates the
+   * game in the active season (reusing a still-empty active game rather than
+   * stacking husks — storage.newGame owns that) and opens it into Break Down
+   * through the one authoritative open command. No season open → send the coach
+   * to the library to pick or create one first. */
+  async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const g=this.app.storage.newGame();if(g?.id!=null)await this.app.openGame(g.id);}
   _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
   _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
   _mountChrome(){const tools=this.root?.querySelector('.ws-global-tools');if(tools){if(this._chrome.settings?.el)tools.append(this._chrome.settings.el);if(this._chrome.more?.el)tools.append(this._chrome.more.el);}if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);}

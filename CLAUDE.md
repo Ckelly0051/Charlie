@@ -75,6 +75,53 @@ candidate phase.
   intermediate/hidden candidate, no package or tag before acceptance. Managed
   C: copies remain protected.
 
+**CODEX RE-REVIEW of the C1+C2 milestone — CHANGES REQUESTED; ALL FOUR FIXED
+(2026-07-23, coach relayed the verdict; classic-removal scope confirmed by the
+coach directly).** The batch below is one commit, re-review pending.
+
+1. **[P0] Wrong film could load for the active game — FIXED.** Overlapping game
+   opens run two overlapping `_autoLoadFilm` calls; if the FIRST (slow) game's
+   film resolved LAST it stamped its video onto the now-active SECOND game
+   (`active=B, loaded=B, film=A`). The `await` in `openGame` only ordered one
+   call's own workspace transition, not a slow prior load's side effects. Fix
+   (`storage.js`): a monotonic `_filmLoadSeq` latest-load-wins token captured at
+   the top of `_autoLoadFilm`/`_autoLoadLinkedFilm` (and bumped in
+   `_clearForNewGame`), re-checked before every player/playlist mutation
+   (`vc.loadUrl`, `rehydrateFromDisk`, `switchToClip*`); a superseded load
+   aborts. New harness `e2e-film-load-race` 4/4. **Mutation-verified:** dropping
+   the single-video `!stale()` guard reproduces the clobber exactly
+   (`loaded:['asset://fast','asset://slow']`), test reds; restored, green.
+2. **[P1] Classic layout not actually retired — FIXED (coach: "just remove it,
+   it's redundant").** The escape hatch is gone: removed the "Use classic
+   layout" button, `useClassic()`, and shell flag-gating; `WorkspaceShell.init()`
+   enables unconditionally; `openSchedule()` always redirects to Home (the
+   `_setLevel('schedule')` grid now has ZERO callers — unreachable). One product
+   route on every build (the browser build joins the shell too; `ffa_sql_catalog`
+   stays desktop-only). `disable()` is retained ONLY as the internal, tested
+   mount/restore teardown (no product affordance reaches it). Data-safe: layout
+   is pure presentation; no season/game/play/film data touched. `e2e-workspace-
+   shell` now asserts no classic button + no `useClassic` (35/35). The whole
+   engine-internals suite (tagging, film-room, season-tab, self-scout,
+   tag-projform, breakdown-form) and onboarding were reworked from the retired
+   schedule grid to the shell Home game-entry flow.
+3. **[P1] C2 didn't prove the real fix — FIXED.** Added a `e2e-film-storage-setup`
+   section that drives the ACTUAL path: `app.openGame(Refuge)` (the C1 command,
+   not `setActive()`) → assert Refuge is the single active game → `linkFilmFolder`
+   → assert linked metadata persisted to the saved payload → REOPEN from that
+   payload and assert film resolves from D: with zero managed-copy calls (30/30).
+4. **[P1 UX] New Game buried — FIXED.** A first-class `+ New game` action lives on
+   shell Home (`data-ws-action="new-game"` → create in the active season, reusing
+   a still-empty active game, then `openGame` straight into Break Down). Asserted
+   in `e2e-workspace-shell` and `e2e-onboarding`.
+
+**Verification on committed bytes:** full canonical gate **60/60 green** (adds
+`e2e-film-load-race`); `cargo check` clean; P0 mutation-verified. **Deliberately
+deferred (flagged, not silently skipped):** the now-inert schedule-view render
+code (`_renderSchedule`, `#libraryScheduleView`) is left in place — unreachable
+as game entry (the requirement) — rather than risk a large deletion mid-
+milestone; it's a clean follow-up. **Next:** Codex re-reviews the combined bytes;
+only after acceptance, publish the versioned beta.
+
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
 **Repair ACCEPTED — Claude's independent review found no findings.**

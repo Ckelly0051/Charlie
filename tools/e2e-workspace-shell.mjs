@@ -267,11 +267,23 @@ await page.click('.ws-sidebar [data-ws-route="plan"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden, text: document.querySelector('#wsPlan')?.textContent || '' }));
 ok(r.route === 'plan' && r.plan && r.appHidden && /GAME PLAN/.test(r.text), 'Plan opens the live season plan workspace');
 
+// Finding 2 (2026-07-23): the classic-layout escape hatch is fully retired —
+// there is no "Use classic layout" button and no useClassic() method, so there
+// is exactly one product route. Checked while the shell is mounted.
+r = await page.evaluate(() => ({
+  noClassicBtn: !document.querySelector('[data-ws-action="classic"]'),
+  noUseClassic: typeof window.app.workspaceShell.useClassic !== 'function',
+  newGameBtn: !!document.querySelector('[data-ws-action="new-game"]'),
+}));
+ok(r.noClassicBtn && r.noUseClassic, 'Classic-layout escape hatch fully retired: no "Use classic" button, no useClassic()', JSON.stringify(r));
+ok(r.newGameBtn, 'Home exposes a direct New Game action (finding 4)', JSON.stringify(r));
+
+// disable() remains as the INTERNAL mount/restore teardown contract (tested
+// lifecycle hygiene — proves the shell returns #app intact). It is not reachable
+// from any product affordance.
 r = await page.evaluate(() => {
-  const before = localStorage.getItem('ffa_workspace_shell_v2');
-  window.app.workspaceShell.useClassic(false);
+  window.app.workspaceShell.disable();
   return {
-    before, after: localStorage.getItem('ffa_workspace_shell_v2'),
     restored: document.querySelector('#app .main-content > .video-section') != null
       && document.querySelector('#app .main-content > #playGridSection') != null
       && document.querySelector('#app .main-content > .tag-section') != null,
@@ -280,7 +292,7 @@ r = await page.evaluate(() => {
       && !!document.querySelector('#app #settingsDrawer'),
   };
 });
-ok(r.before === '1' && r.after === null && r.restored && r.chromeRestored, 'Use classic layout clears the flag and restores canonical surfaces and Settings/More chrome', JSON.stringify(r));
+ok(r.restored && r.chromeRestored, 'disable() (internal teardown) restores canonical surfaces and Settings/More chrome', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });

@@ -21,17 +21,38 @@ page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
 const click = (sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);
+// After a reload the shell lands on Home; reopen the season from the library,
+// open game 1 from the film inbox, then switch to the Film Room view so the grid
+// surface is visible (the sole game-entry route; the schedule grid is retired).
+const reopenFilmRoom = async () => {
+  await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
+  await sleep(400);
+  await page.evaluate(() => document.querySelector('.season-card')?.click());
+  await sleep(700);
+  await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());
+  await sleep(700);
+  await page.evaluate(() => document.querySelector('[data-bd-view="film-room"]')?.click());
+  await sleep(400);
+};
 
 console.log('\n== 1. Setup: team + demo season + open game ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
+// Team/season setup lives in the library overlay, opened from the shell Home.
+await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
+await sleep(400);
 await page.type('#teamSetupName', 'Mavericks');
 await click('#btnTeamSetupSave');
 await sleep(300);
 await click('#btnExploreDemo');
 await sleep(900);
-await page.evaluate(() => document.querySelectorAll('.sch-row')[0].click());
+// Open game 1 from the shell Home film inbox (the sole game-entry route).
+await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());
 await sleep(700);
+// Break Down opens in Chart view (grid hidden); switch to the Film Room view so
+// the co-equal grid surface is visible (classic showed it inline under the video).
+await page.evaluate(() => document.querySelector('[data-bd-view="film-room"]')?.click());
+await sleep(400);
 
 console.log('\n== 2. Grid renders on demo data ==');
 let r = await page.evaluate(() => {
@@ -170,10 +191,7 @@ r = await page.evaluate(() => ({
 ok(r.collapsed && r.saved === '1', 'collapse toggles + persists', JSON.stringify(r));
 await page.reload({ waitUntil: 'networkidle0' });
 await sleep(800);
-await page.evaluate(() => document.querySelector('.season-card').click());
-await sleep(700);
-await page.evaluate(() => document.querySelectorAll('.sch-row')[0].click());
-await sleep(700);
+await reopenFilmRoom();
 r = await page.evaluate(() => ({
   collapsed: document.getElementById('playGridSection').classList.contains('collapsed'),
   rows: document.querySelectorAll('#pgRows .pg-row').length }));
@@ -186,10 +204,7 @@ await page.evaluate(() => localStorage.removeItem('ffa_film_room_collapsed'));
 await page.setViewport({ width: 800, height: 900 });
 await page.reload({ waitUntil: 'networkidle0' });
 await sleep(800);
-await page.evaluate(() => document.querySelector('.season-card').click());
-await sleep(700);
-await page.evaluate(() => document.querySelectorAll('.sch-row')[0].click());
-await sleep(700);
+await reopenFilmRoom();
 r = await page.evaluate(() => document.getElementById('playGridSection').classList.contains('collapsed'));
 ok(r, 'narrow viewport defaults to collapsed');
 await page.setViewport({ width: 1440, height: 900 });
@@ -573,7 +588,8 @@ ok(r.menuVisible && r.reapplied === r.filteredCount && r.reapplied < r.clearedCo
 ok(r.after.length === 0, 'saved filter deletable');
 
 console.log('\n== 9. Multi-team: add a JV team, switch between hubs ==');
-await click('#bcHome');
+// Open the library Team Home (team pills live there) from the shell.
+await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
 await sleep(500);
 r = await page.evaluate(() => ({
   pills: [...document.querySelectorAll('.team-pill[data-team]')].map(p => p.textContent.trim()),

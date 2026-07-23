@@ -342,6 +342,76 @@ c2 = await page.evaluate(async () => {
 ok(c2.linkedListCalls >= 1 && c2.managedListCalls === 0 && c2.managedUrlCalls === 0,
   'C2 no silent fallback: a persisted linked game auto-loads from the D: folder and never calls the managed-copy backend', JSON.stringify(c2));
 
+// ===== C1+C2 together: the REAL coach path (finding 3, 2026-07-23) =====
+// The earlier C2 reproduction used a direct setActive(). This proves the actual
+// installed flow that C1 governs: Home -> app.openGame(Refuge) makes Refuge the
+// single active game, link its D: folder, PERSIST, then REOPEN from the saved
+// payload through the same command and confirm the link resolved from D: with
+// zero managed-copy calls. This is the assertion that ties C1's single-owner
+// lifecycle to C2's durable linked-film truth end to end.
+const real = await page.evaluate(async () => {
+  const app = window.app;
+  const state = window.__filmSetupState;
+  const store = app.storage.seasonStore;
+  state.mode = 'linked'; state.root = 'D:/Football/Film'; state.saveOk = true; state.saved = null;
+  const backend = store.backend;
+  let managedList = 0, managedUrl = 0, linkedList = 0;
+  backend.listFilmFiles = async () => { managedList++; return []; };   // managed path — must NOT run for a linked game
+  backend.filmUrl = async () => { managedUrl++; return null; };
+  backend.listLinkedFilm = async () => { linkedList++; return [{ name: 'RF_001.mp4', path: 'RF_001.mp4' }]; };
+  const mkGame = (id, name) => ({
+    id, name, status: 'active', gameInfo: { opponent: name },
+    plays: [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', custom: [] }, clipName: 'RF_001', clipPath: 'RF_001' }],
+    annotations: [], nextId: 2, currentPlayId: 1, clipNames: ['RF_001'], clipPaths: ['RF_001'], isMultiClip: true,
+  });
+  store.currentSeasonId = 's4';
+  store.data = { version: 5, type: 'season', id: 's4', seasonName: 'RealPath', activeGameId: 'other',
+    games: [mkGame('refuge', 'Refuge'), mkGame('other', 'ND Prep')] };
+  // Seed the initially-active game into the live tagger so commitActive is coherent.
+  app.storage._loadedGameId = 'other';
+  app.tagger.plays = store.data.games[1].plays.map(p => JSON.parse(JSON.stringify(p)));
+  app.tagger.currentPlayId = 1; app.tagger.nextId = 2;
+
+  // C1: open Refuge through the ONE authoritative command (not setActive).
+  // switchToGame runs (and commits/persists) before the workspace transition, so
+  // the active-game truth holds even if the shell render is a no-op in-harness.
+  let openErr = null;
+  try { await app.openGame('refuge'); } catch (e) { openErr = String(e && e.message || e); }
+  const activeAfterOpen = store.data.activeGameId;
+
+  // Link Refuge's D: folder — linkFilmFolder targets the ACTIVE game.
+  state.picked = 'D:/Football/Film/Refuge 7-13';
+  const linkedOk = await app.storage.linkFilmFolder();
+  const savedRefuge = (state.saved && state.saved.games || []).find(g => g.id === 'refuge') || {};
+
+  // REOPEN: rebuild the season from the persisted payload (a fresh relaunch)
+  // and run the real active-game load path. openGame is idempotent for the
+  // already-active game, so a relaunch resolves film through _loadActiveGame ->
+  // _autoLoadFilm — which must take the linked D: branch with zero managed calls.
+  managedList = 0; managedUrl = 0; linkedList = 0;
+  store.data = JSON.parse(JSON.stringify(state.saved));
+  const reopenRefuge = store.data.games.find(g => g.id === 'refuge');
+  app.storage._loadedGameId = 'refuge';
+  app.tagger.plays = reopenRefuge.plays.map(p => JSON.parse(JSON.stringify(p)));
+  app.tagger.currentPlayId = reopenRefuge.currentPlayId;
+  let reopenErr = null;
+  try { await app.storage._autoLoadFilm(reopenRefuge); } catch (e) { reopenErr = String(e && e.message || e); }
+
+  return {
+    openErr, reopenErr, activeAfterOpen, linkedOk,
+    savedMode: savedRefuge.filmMode || null, savedDir: savedRefuge.filmDir || null,
+    reopenMode: reopenRefuge && reopenRefuge.filmMode || null,
+    reopenDir: reopenRefuge && reopenRefuge.filmDir || null,
+    managedList, managedUrl, linkedList,
+  };
+});
+ok(real.activeAfterOpen === 'refuge',
+  'C1 real path: app.openGame(Refuge) makes Refuge the single active game', JSON.stringify(real));
+ok(real.linkedOk === true && real.savedMode === 'linked' && real.savedDir === 'Refuge 7-13',
+  'C2 real path: linking the opened game persists linked metadata to the saved payload', JSON.stringify(real));
+ok(real.reopenMode === 'linked' && real.reopenDir === 'Refuge 7-13' && real.linkedList >= 1 && real.managedList === 0 && real.managedUrl === 0,
+  'C1+C2 real path: reopening from the saved payload resolves Refuge from D: with zero managed-copy calls', JSON.stringify(real));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

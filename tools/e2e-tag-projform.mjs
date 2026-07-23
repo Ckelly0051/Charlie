@@ -46,12 +46,16 @@ const click = (sel) => page.evaluate(s => { const el = document.querySelector(s)
 console.log('\n== 1. Setup: team + demo season + open game + a synthetic fixture ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
+// Team/season setup lives in the library overlay, opened from the shell Home.
+await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
+await sleep(400);
 await page.type('#teamSetupName', 'Mavericks');
 await click('#btnTeamSetupSave');
 await sleep(300);
 await click('#btnExploreDemo');
 await sleep(900);
-await page.evaluate(() => document.querySelectorAll('.sch-row')[0].click());
+// Open game 1 from the shell Home film inbox (the sole game-entry route).
+await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());
 await sleep(700);
 
 // Only IDs are kept on window — never object references (see the harness note

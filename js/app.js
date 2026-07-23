@@ -368,16 +368,18 @@ class App {
       const ok = await this.storage.switchToGame(gid);
       if (ok === false) return false;
     }
-    // Deterministic chrome refresh in BOTH flag states.
+    // Deterministic chrome refresh.
     this._updateSeasonChip();
     this._renderGamesPanel();
     this.season?._renderAll?.();
     this._closeGameDropdown();
-    // Workspace transition. When the shell owns the workspace, Break Down is a
-    // shell route (its render relocates the canonical Settings/More chrome, so
-    // every route lands on identical chrome). In classic mode the #app IS the
-    // workspace, so only the library overlay needs to close.
-    if (this.workspaceShell?.flagEnabled?.()) {
+    // Workspace transition. Break Down is a shell route: its render relocates the
+    // canonical Settings/More chrome, so every entry route lands on identical
+    // chrome. The redesigned shell is the unconditional product and owns the
+    // workspace.
+    // The `.root` check is "is the shell mounted" (always true in the product);
+    // the else is pure crash-safety, not a second product route.
+    if (this.workspaceShell?.root) {
       await this.workspaceShell.show('breakdown');
     } else {
       this.library?.hide?.();

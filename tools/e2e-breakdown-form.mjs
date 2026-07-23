@@ -410,6 +410,11 @@ ok(state.stored === '' && state.visible === '', 'Clear Tags cancels a pending no
 
 await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
 
+// The composed form lives in the shell's Break Down panel; unwrap to the visible
+// classic #app so the mobile unit/phase controls have real layout to measure.
+// (The shell's own mobile Break Down is covered by e2e-breakdown-a11y.)
+await page.evaluate(() => window.app.workspaceShell?.disable?.());
+await new Promise(r => setTimeout(r, 300));
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,

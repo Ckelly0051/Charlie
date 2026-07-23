@@ -34,6 +34,19 @@
 >   reported, no silent managed-C: fallback. No real data changed.
 > - Full canonical gate **59/59 green** on the committed bytes; `cargo check`
 >   clean. C1+C2 are one milestone — **no package/tag until Codex accepts**.
+>
+> **Codex re-review found four issues; all FIXED as one follow-up batch
+> (2026-07-23), re-review pending.** (1) P0 overlapping-open film-load race —
+> latest-load-wins token in `storage.js`, new `e2e-film-load-race`, mutation-
+> verified. (2) Classic layout FULLY retired at the coach's direction ("just
+> remove it") — no flag, no "Use classic layout" button, `openSchedule` always
+> redirects to Home, one product route on every build; `disable()` kept only as
+> the tested internal teardown; engine + onboarding harnesses reworked to the
+> shell flow. (3) C2 now proves the REAL path (`app.openGame(Refuge)` → link →
+> persist → reopen from the saved payload, zero managed calls). (4) `+ New game`
+> is a first-class shell-Home action. Full gate **60/60 green**, `cargo check`
+> clean. Now-inert schedule-view render code is left in place (unreachable) as a
+> flagged follow-up cleanup, not deleted mid-milestone.
 
 ## 1. Goal
 
