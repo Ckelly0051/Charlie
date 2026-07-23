@@ -28,6 +28,9 @@ of synchronizing two routes; C2 closes Refuge link persistence and honest OL
 Lakes missing-film state. Read GRIDIRON-IQ-TRUSTED-ADVISOR-STANDARD.md and
 GRIDIRON-IQ-AGENT-WORKING-AGREEMENT.md as standing project rules. Plan V2 is
 parked. No intermediate package or release; managed C: copies remain protected.
+Read GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md: after combined acceptance, publish
+one clean versioned beta milestone for coach smoke; there is no hidden/internal
+candidate phase.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
