@@ -343,6 +343,48 @@ class App {
     document.getElementById('bcGame')?.setAttribute('aria-expanded', 'false');
   }
 
+  /**
+   * The single authoritative "open this game into the workspace" command (C1).
+   * Every entry route — Home, the Season Library schedule, the classic top-bar
+   * game dropdown, the games panel, and the season-stats modal — funnels
+   * through here so active-game selection, chrome refresh, and the workspace
+   * transition are identical no matter where the coach clicked. That is what
+   * makes Settings/More availability a deterministic workspace state rather
+   * than an accident of which route mounted the screen.
+   *
+   * Idempotent: re-opening the already-active game does NOT re-switch,
+   * re-persist, or reload film. A failed switch opens nothing and returns false.
+   */
+  async openGame(gid) {
+    const store = this.storage?.seasonStore;
+    if (!store?.data || gid == null) return false;
+    const already = String(store.data.activeGameId) === String(gid);
+    if (!already) {
+      // switchToGame owns commit/persist/history-reset/film-load. AWAIT it so
+      // Break Down never renders before the target game is live (the
+      // delayed-switch race); a stale film-health or prior-game callback that
+      // resolves later cannot move the selection back, because the switch has
+      // already committed by the time the workspace transition runs.
+      const ok = await this.storage.switchToGame(gid);
+      if (ok === false) return false;
+    }
+    // Deterministic chrome refresh in BOTH flag states.
+    this._updateSeasonChip();
+    this._renderGamesPanel();
+    this.season?._renderAll?.();
+    this._closeGameDropdown();
+    // Workspace transition. When the shell owns the workspace, Break Down is a
+    // shell route (its render relocates the canonical Settings/More chrome, so
+    // every route lands on identical chrome). In classic mode the #app IS the
+    // workspace, so only the library overlay needs to close.
+    if (this.workspaceShell?.flagEnabled?.()) {
+      await this.workspaceShell.show('breakdown');
+    } else {
+      this.library?.hide?.();
+    }
+    return true;
+  }
+
   _renderGameDropdown() {
     const head = document.getElementById('gameDropdownHead');
     const list = document.getElementById('gameDropdownList');
@@ -389,13 +431,10 @@ class App {
         <div class="gd-actions">${actions}</div>`;
 
       row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!r.isActive) {
-          this.storage.switchToGame(g.id);
-          this._updateSeasonChip();
-          this.season._renderAll?.();
-        }
-        // Clicking the game you're already in = dismiss and return to it.
-        this._closeGameDropdown();
+        // Clicking the game you're already in = dismiss and return to it;
+        // otherwise the one authoritative command owns switch + chrome + close.
+        if (!r.isActive) this.openGame(g.id);
+        else this._closeGameDropdown();
       });
 
       row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
@@ -612,10 +651,7 @@ class App {
 
       card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.storage.switchToGame(g.id);
-        this._updateSeasonChip();
-        this._renderGamesPanel();
-        this.season._renderAll?.();
+        this.openGame(g.id);   // one authoritative open path (C1)
       });
 
       card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {

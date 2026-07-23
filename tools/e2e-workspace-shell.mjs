@@ -116,6 +116,144 @@ ok(r.dedicatedVisible && r.classicHidden && r.homeHidden && r.route === 'breakdo
 ok(r.videoOwners === 1 && r.tagOwners === 1 && r.legacyChrome === 0, 'Dedicated route has one canonical video/tag owner and no legacy app chrome', JSON.stringify(r));
 ok(r.sidebarDisplay === 'none' && r.topNavDisplay === 'flex' && r.mediaWidth >= 800, 'Desktop Break Down replaces the sidebar with compact navigation and restores film width', JSON.stringify(r));
 
+r = await page.evaluate(() => ({
+  settingsInShell: !!document.querySelector('.ws-global-tools #btnSidebarToggle'),
+  moreInShell: !!document.querySelector('.ws-global-tools #btnMoreMenu'),
+  settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
+  moreVisible: document.getElementById('btnMoreMenu')?.offsetParent !== null,
+  drawerOutsideHiddenApp: document.getElementById('settingsDrawer')?.parentElement === document.body,
+}));
+ok(r.settingsInShell && r.moreInShell && r.settingsVisible && r.moreVisible && r.drawerOutsideHiddenApp,
+  'Compact shell keeps canonical Settings and More controls visible and the drawer renderable', JSON.stringify(r));
+
+await page.click('#btnSidebarToggle');
+await new Promise(resolve => setTimeout(resolve, 320));
+r = await page.evaluate(() => ({ drawerOpen: document.getElementById('settingsDrawer')?.classList.contains('open') }));
+ok(r.drawerOpen, 'Shell Settings opens the canonical settings drawer', JSON.stringify(r));
+await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
+await new Promise(resolve => setTimeout(resolve, 320));
+await page.click('#btnMoreMenu');
+r = await page.evaluate(() => ({ moreOpen: !document.getElementById('moreDropdown')?.classList.contains('hidden') }));
+ok(r.moreOpen, 'Shell More opens the canonical action menu', JSON.stringify(r));
+await page.click('#btnMoreMenu');
+await capture('breakdown-tools-1280x800');
+// Linked-film reload can be slower under CPU/GPU or disk pressure. The route
+// must wait for switchToGame() instead of racing shell render against it.
+r = await page.evaluate(async () => {
+  const app = window.app;
+  await app.workspaceShell.show('home');
+  const originalLoad = app.storage._loadActiveGame;
+  const originalShow = app.workspaceShell.show;
+  let loadCompleted = false;
+  let breakdownBeforeLoad = false;
+  app.storage._loadActiveGame = async function (...args) {
+    await new Promise(resolve => setTimeout(resolve, 180));
+    const result = await originalLoad.apply(this, args);
+    loadCompleted = true;
+    return result;
+  };
+  app.workspaceShell.show = async function (route) {
+    if (route === 'breakdown' && !loadCompleted) breakdownBeforeLoad = true;
+    return originalShow.call(this, route);
+  };
+  document.querySelector('[data-ws-game="preview-game"]')?.click();
+  await new Promise(resolve => setTimeout(resolve, 650));
+  app.storage._loadActiveGame = originalLoad;
+  app.workspaceShell.show = originalShow;
+  return {
+    loadCompleted,
+    breakdownBeforeLoad,
+    activeGameId: app.storage.seasonStore.data.activeGameId,
+    route: app.workspace.currentRoute(),
+    breakdownVisible: !document.getElementById('wsBreakdown')?.hidden,
+    settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
+    moreVisible: document.getElementById('btnMoreMenu')?.offsetParent !== null,
+  };
+});
+ok(r.loadCompleted && !r.breakdownBeforeLoad && r.activeGameId === 'preview-game'
+    && r.route === 'breakdown' && r.breakdownVisible && r.settingsVisible && r.moreVisible,
+  'Delayed game switch finishes before Break Down renders and keeps Settings/More visible', JSON.stringify(r));
+
+// C1 (binding amendment 2026-07-23): the legacy Season Library SCHEDULE is
+// RETIRED as a game-entry surface. In the shell, Home is the single place to
+// open a game. Opening a season through the legacy handler must land on Home,
+// and a direct call to the retired schedule surface must redirect to Home and
+// never expose the game grid — it cannot be reached, mounted, or restored.
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const seasonId = app.storage.seasonStore.currentSeasonId;
+  await app.openGame('preview-game');              // start in Break Down
+  const beforeRoute = app.workspace.currentRoute();
+  await app.library._open(seasonId);               // legacy "Open season" handler
+  const afterOpen = {
+    route: app.workspace.currentRoute(),
+    scheduleHidden: document.getElementById('libraryScheduleView')?.classList.contains('hidden'),
+    libraryHidden: app.library.overlay.classList.contains('hidden'),
+    homeVisible: !document.getElementById('wsHome')?.hidden,
+  };
+  await app.library.openSchedule();                // direct call to the retired surface
+  const afterSchedule = {
+    route: app.workspace.currentRoute(),
+    scheduleHidden: document.getElementById('libraryScheduleView')?.classList.contains('hidden'),
+    homeVisible: !document.getElementById('wsHome')?.hidden,
+  };
+  return { beforeRoute, afterOpen, afterSchedule };
+});
+ok(r.beforeRoute === 'breakdown', 'Retirement precondition: openGame lands in Break Down', JSON.stringify(r));
+ok(r.afterOpen.route === 'home' && r.afterOpen.homeVisible && r.afterOpen.scheduleHidden && r.afterOpen.libraryHidden,
+  'Retired route: opening a season lands on Home, never the legacy schedule grid', JSON.stringify(r.afterOpen));
+ok(r.afterSchedule.route === 'home' && r.afterSchedule.homeVisible && r.afterSchedule.scheduleHidden,
+  'Retired route: a direct openSchedule() redirects to Home and never shows the game grid', JSON.stringify(r.afterSchedule));
+
+// Home must highlight the ACTUAL current game after a round trip — never the
+// previously opened game (closeout item 2 / amendment proof item 3).
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const A = app.storage.seasonStore.data.games.find(g => g.id !== 'preview-game').id;
+  const B = 'preview-game';
+  const selectedOnHome = () => document.querySelector('.ws-film-row.selected [data-ws-preview]')?.dataset.wsPreview;
+  await app.openGame(A); await app.workspaceShell.show('home'); const afterA = selectedOnHome();
+  await app.openGame(B); await app.workspaceShell.show('home'); const afterB = selectedOnHome();
+  return { A, B, afterA, afterB, active: app.storage.seasonStore.data.activeGameId };
+});
+ok(String(r.afterA) === String(r.A), 'Home highlights Game A after opening A and returning Home', JSON.stringify(r));
+ok(String(r.afterB) === String(r.B) && r.active === r.B,
+  'Game A -> Home -> Game B -> Home highlights Game B, never the previously opened game', JSON.stringify(r));
+
+// Re-opening the already-active game is idempotent: no extra film load, one
+// state owner, and it stays in Break Down (amendment proof item 5).
+r = await page.evaluate(async () => {
+  const app = window.app;
+  await app.openGame('preview-game');
+  const orig = app.storage._loadActiveGame; let loads = 0;
+  app.storage._loadActiveGame = function (...a) { loads++; return orig.apply(this, a); };
+  await app.openGame('preview-game');
+  await app.openGame('preview-game');
+  app.storage._loadActiveGame = orig;
+  return { loads, active: app.storage.seasonStore.data.activeGameId, route: app.workspace.currentRoute() };
+});
+ok(r.loads === 0 && r.active === 'preview-game' && r.route === 'breakdown',
+  'Re-opening the active game is idempotent — no extra film load, stays in Break Down', JSON.stringify(r));
+
+// Stale Home async (slow film-health from a prior game) cannot pull the
+// workspace off the game the coach actually opened next (amendment proof item 4).
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const A = app.storage.seasonStore.data.games.find(g => g.id !== 'preview-game').id;
+  await app.openGame(A);
+  const origHealth = app.workspace.filmHealth;
+  app.workspace.filmHealth = async (g) => { await new Promise(res => setTimeout(res, 160)); return { state: 'ready', label: `HEALTH ${g.id}`, expected: 0, found: 0 }; };
+  const homePromise = app.workspaceShell.show('home');   // A-context refreshHome, slow tail
+  await new Promise(res => setTimeout(res, 15));
+  await app.openGame('preview-game');                    // open B before the tail resolves
+  await homePromise.catch(() => {});
+  await new Promise(res => setTimeout(res, 260));         // let the stale A tail settle
+  app.workspace.filmHealth = origHealth;
+  return { route: app.workspace.currentRoute(), active: app.storage.seasonStore.data.activeGameId, breakdownVisible: !document.getElementById('wsBreakdown')?.hidden };
+});
+ok(r.route === 'breakdown' && r.active === 'preview-game' && r.breakdownVisible,
+  'Stale Home async from a prior game cannot pull the workspace off the game just opened', JSON.stringify(r));
+
 await page.click('.ws-top-nav [data-ws-route="study"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), study: !document.querySelector('#wsStudy')?.hidden, statsHidden: document.querySelector('#statsDashboard')?.classList.contains('hidden'), appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));
 ok(r.route === 'study' && r.study && r.statsHidden && r.appHidden, 'Study opens the query workspace inside the persistent shell');
@@ -137,9 +275,12 @@ r = await page.evaluate(() => {
     restored: document.querySelector('#app .main-content > .video-section') != null
       && document.querySelector('#app .main-content > #playGridSection') != null
       && document.querySelector('#app .main-content > .tag-section') != null,
+    chromeRestored: !!document.querySelector('#app .top-bar #btnSidebarToggle')
+      && !!document.querySelector('#app .top-bar .more-menu #btnMoreMenu')
+      && !!document.querySelector('#app #settingsDrawer'),
   };
 });
-ok(r.before === '1' && r.after === null && r.restored, 'Use classic layout clears the flag and restores canonical surfaces');
+ok(r.before === '1' && r.after === null && r.restored && r.chromeRestored, 'Use classic layout clears the flag and restores canonical surfaces and Settings/More chrome', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });

@@ -393,11 +393,26 @@ export class SeasonLibrary {
     this.overlay.classList.remove('hidden');
   }
 
-  /** Show the library at the SCHEDULE level (the open season's games). */
+  /** Show the library at the SCHEDULE level (the open season's games).
+   *
+   * RETIRED as a game-entry surface in the redesigned product (C1, binding
+   * amendment 2026-07-23). When the workspace shell owns the product, Home is
+   * the single place to pick and open a game, so ANY caller that would land on
+   * the legacy schedule is redirected to Home instead — the schedule grid and
+   * its per-game open handlers can no longer be reached, mounted, or restored
+   * through season open/create, demo, team switch, restore, or a direct call.
+   * The classic (flag-off) escape hatch still uses the schedule because it has
+   * no Home to fall back to. */
   async openSchedule() {
     const store = this._storage()?.seasonStore;
     if (!store || !store.hasCurrent()) return this.open();
     if (!this.overlay) return;
+    const shell = window.app?.workspaceShell;
+    if (shell?.flagEnabled?.()) {
+      this.overlay.classList.add('hidden');
+      await shell.show('home');
+      return;
+    }
     this._setLevel('schedule');
     this._renderSchedule();
     this._updateCloseBtn();
@@ -681,12 +696,17 @@ export class SeasonLibrary {
     });
   }
 
-  _openGame(id) {
+  /** Open a game from the classic schedule (flag-off escape hatch ONLY — the
+   *  schedule is retired as a game-entry surface under the shell). Delegates to
+   *  the ONE authoritative open command so there is a single game-open
+   *  lifecycle in every mode. */
+  async _openGame(id) {
     const storage = this._storage();
-    const store = storage?.seasonStore;
-    if (!storage || !store) return;
-    if (store.data && store.data.activeGameId !== id) storage.switchToGame(id);
+    if (!storage?.seasonStore) return;
     this.overlay.classList.add('hidden');
+    if (window.app?.openGame) { await window.app.openGame(id); return; }
+    // Defensive fallback (openGame is always present under window.app).
+    if (storage.seasonStore.data && storage.seasonStore.data.activeGameId !== id) await storage.switchToGame(id);
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     if (window.app?.season?._renderAll) window.app.season._renderAll();
   }

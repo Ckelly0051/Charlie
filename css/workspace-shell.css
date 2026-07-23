@@ -37,6 +37,20 @@ body.ws-shell-active.ws-route-breakdown .ws-top-nav{display:flex;align-self:stre
 .ws-top-nav button{min-width:76px;padding:0 9px;border:0;border-bottom:2px solid transparent;background:transparent;color:#91a0b2;font:inherit;font-size:11px;font-weight:750}.ws-top-nav button span{margin-right:5px}.ws-top-nav button:hover:not(:disabled){background:#141d28;color:#fff}.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:#17243a;color:#fff}.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
 body.ws-shell-active.ws-route-breakdown .ws-context{margin-left:auto;flex:1}
 
+/* Keep the canonical Settings drawer and More menu reachable in the compact
+   shell. The real controls are re-parented, so existing handlers and actions
+   remain the single source of truth across game switches. */
+.ws-global-tools{display:flex;align-items:center;gap:6px}
+body.ws-shell-active .ws-global-tools>.sidebar-toggle,
+body.ws-shell-active .ws-global-tools #btnMoreMenu{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;margin:0;padding:0 10px;border:1px solid var(--ws-line);border-radius:5px;background:#151e29;color:var(--ws-text);box-shadow:none;font:inherit;font-size:11px;font-weight:750}
+body.ws-shell-active .ws-global-tools>.sidebar-toggle:hover,
+body.ws-shell-active .ws-global-tools #btnMoreMenu:hover{border-color:#4b6078;background:#1d2937;color:#fff}
+body.ws-shell-active .ws-global-tools>.sidebar-toggle svg{width:15px;height:15px;stroke:currentColor}
+body.ws-shell-active .ws-global-tools .more-menu{position:relative}
+body.ws-shell-active .ws-global-tools .more-dropdown{top:calc(100% + 7px);right:0;left:auto;width:260px;border:1px solid var(--ws-line);background:#111821;color:var(--ws-text);box-shadow:0 18px 44px rgba(0,0,0,.48)}
+body.ws-shell-active .ws-global-tools .more-dropdown .btn{color:var(--ws-text)}
+body.ws-shell-active .ws-global-tools .more-dropdown .btn:hover{background:#1d2937;color:#fff}
+body.ws-shell-active .ws-global-tools .more-label{color:var(--ws-muted)}
 @media(max-width:1150px) and (min-width:901px){body.ws-shell-active.ws-route-breakdown .ws-top-team{display:none}.ws-top-nav button{min-width:66px;padding:0 7px}.ws-top-nav button span{display:none}body.ws-shell-active.ws-route-breakdown .ws-context span,body.ws-shell-active.ws-route-breakdown .ws-context b{display:none}}
 
 @media(max-width:900px){

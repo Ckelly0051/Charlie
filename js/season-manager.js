@@ -92,8 +92,13 @@ export class SeasonManager {
 
   newGame() {
     const storage = this._storage();
-    if (storage) storage.newGame();
+    if (!storage) return;
+    const g = storage.newGame();
     this._renderAll();
+    // Land the fresh game in the one canonical workspace (C1) so "New Game"
+    // from the Season Report modal enters Break Down the same way every other
+    // open does, instead of leaving the coach on a modal over a blank game.
+    if (window.app?.openGame && g?.id != null) { this.hide?.(); window.app.openGame(g.id); }
   }
 
   removeGame(id) {
@@ -106,6 +111,9 @@ export class SeasonManager {
   switchGame(id) {
     const storage = this._storage();
     if (!storage) return;
+    // Route through the ONE authoritative open command (C1) so the season-stats
+    // modal opens a game with the same lifecycle/chrome as every other surface.
+    if (window.app?.openGame) { window.app.openGame(id); return; }
     storage.switchToGame(id);
     this._renderAll();
   }

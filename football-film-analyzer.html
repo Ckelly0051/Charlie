@@ -8759,6 +8759,20 @@ body.ws-shell-active.ws-route-breakdown .ws-top-nav{display:flex;align-self:stre
 .ws-top-nav button{min-width:76px;padding:0 9px;border:0;border-bottom:2px solid transparent;background:transparent;color:#91a0b2;font:inherit;font-size:11px;font-weight:750}.ws-top-nav button span{margin-right:5px}.ws-top-nav button:hover:not(:disabled){background:#141d28;color:#fff}.ws-top-nav button.active{border-bottom-color:var(--ws-blue);background:#17243a;color:#fff}.ws-top-nav button:disabled{opacity:.35;cursor:not-allowed}
 body.ws-shell-active.ws-route-breakdown .ws-context{margin-left:auto;flex:1}
 
+/* Keep the canonical Settings drawer and More menu reachable in the compact
+   shell. The real controls are re-parented, so existing handlers and actions
+   remain the single source of truth across game switches. */
+.ws-global-tools{display:flex;align-items:center;gap:6px}
+body.ws-shell-active .ws-global-tools>.sidebar-toggle,
+body.ws-shell-active .ws-global-tools #btnMoreMenu{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;margin:0;padding:0 10px;border:1px solid var(--ws-line);border-radius:5px;background:#151e29;color:var(--ws-text);box-shadow:none;font:inherit;font-size:11px;font-weight:750}
+body.ws-shell-active .ws-global-tools>.sidebar-toggle:hover,
+body.ws-shell-active .ws-global-tools #btnMoreMenu:hover{border-color:#4b6078;background:#1d2937;color:#fff}
+body.ws-shell-active .ws-global-tools>.sidebar-toggle svg{width:15px;height:15px;stroke:currentColor}
+body.ws-shell-active .ws-global-tools .more-menu{position:relative}
+body.ws-shell-active .ws-global-tools .more-dropdown{top:calc(100% + 7px);right:0;left:auto;width:260px;border:1px solid var(--ws-line);background:#111821;color:var(--ws-text);box-shadow:0 18px 44px rgba(0,0,0,.48)}
+body.ws-shell-active .ws-global-tools .more-dropdown .btn{color:var(--ws-text)}
+body.ws-shell-active .ws-global-tools .more-dropdown .btn:hover{background:#1d2937;color:#fff}
+body.ws-shell-active .ws-global-tools .more-label{color:var(--ws-muted)}
 @media(max-width:1150px) and (min-width:901px){body.ws-shell-active.ws-route-breakdown .ws-top-team{display:none}.ws-top-nav button{min-width:66px;padding:0 7px}.ws-top-nav button span{display:none}body.ws-shell-active.ws-route-breakdown .ws-context span,body.ws-shell-active.ws-route-breakdown .ws-context b{display:none}}
 
 @media(max-width:900px){
@@ -29940,7 +29954,19 @@ class BreakdownWorkspace {
 
 /** Feature-flagged Phase 1 shell. Hosts the existing #app intact. */
 class WorkspaceShell {
-  constructor(app) { this.app = app; this.root = null; this.classicApp = null; this._homeToken = 0; this._homeSelectedGameId = null; this._homeFilmHealth = new Map(); }
+  constructor(app) {
+    this.app = app;
+    this.root = null;
+    this.classicApp = null;
+    this._homeToken = 0;
+    this._homeSelectedGameId = null;
+    this._homeFilmHealth = new Map();
+    this._chrome = {
+      settings: this._remember(document.getElementById('btnSidebarToggle')),
+      more: this._remember(document.getElementById('btnMoreMenu')?.closest('.more-menu')),
+      drawer: this._remember(document.getElementById('settingsDrawer')),
+    };
+  }
   flagEnabled() { try { return localStorage.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
   async init() { if (this.flagEnabled()) await this.enable(); }
   async enable() {
@@ -29960,6 +29986,7 @@ class WorkspaceShell {
     // BEFORE breakdownWorkspace moves that section back to the classic #app.
     this.app.breakdownVideo?.restore();
     this.app.breakdownWorkspace?.restore();
+    this._restoreChrome();
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
     document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
@@ -29973,13 +30000,13 @@ class WorkspaceShell {
       <button class="ws-team" data-ws-action="seasons"><strong id="wsTeamName">Team</strong><span id="wsTeamMeta">Season workspace</span></button>
       <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
       <div class="ws-side-foot"><button class="ws-classic" data-ws-action="classic">Use classic layout</button><div class="ws-save-state"><i></i>Season ready</div></div></aside>
-      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
-      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
+      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
+      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" data-ws-action="settings" aria-label="Settings and more">⚙</button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
       <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
+    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id]}</span>${r.name}</button>`).join(''); }
   _bind() {
@@ -29989,16 +30016,18 @@ class WorkspaceShell {
       const action = e.target.closest('[data-ws-action]')?.dataset.wsAction;
       if (action === 'classic') this.useClassic();
       if (action === 'seasons') await this._openLibrary();
+      if (action === 'settings') this.app.uiPolish?._openDrawer?.();
       const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
       if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
       const previewId = e.target.closest('[data-ws-preview]')?.dataset.wsPreview;
       if (previewId) { this._selectHomeGame(previewId); return; }
       const gid = e.target.closest('[data-ws-game]')?.dataset.wsGame;
-      if (gid) { if (this.app.storage.seasonStore.data?.activeGameId !== gid) this.app.storage.switchToGame(gid); await this.show('breakdown'); }
+      if (gid) { await this.app.openGame(gid); return; }   // one authoritative open path (C1)
     });
   }
   async show(routeId) {
     if (!this.root) return { ok:false, reason:'shell-disabled' };
+    const previousRoute = this.app.workspace.currentRoute();
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
     if (routeId !== 'breakdown') this.app.cutupPlayer?.stop();
     document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
@@ -30007,7 +30036,12 @@ class WorkspaceShell {
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
     const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
     home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
-    if (routeId==='home') await this.refreshHome();
+    if (routeId==='home') {
+      // A preview belongs only to the current Home visit. Returning from a game
+      // must highlight the canonical active game, not the prior Home preview.
+      if (previousRoute !== 'home') this._homeSelectedGameId = null;
+      await this.refreshHome();
+    }
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
     if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
     if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
@@ -30041,6 +30075,10 @@ class WorkspaceShell {
   _dateLabel(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
   showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsBreakdown').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
   async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
+  _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
+  _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
+  _mountChrome(){const tools=this.root?.querySelector('.ws-global-tools');if(tools){if(this._chrome.settings?.el)tools.append(this._chrome.settings.el);if(this._chrome.more?.el)tools.append(this._chrome.more.el);}if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);}
+  _restoreChrome(){this.app.uiPolish?._closeDrawer?.();document.getElementById('moreDropdown')?.classList.add('hidden');this._restore(this._chrome.settings);this._restore(this._chrome.more);this._restore(this._chrome.drawer);}
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
   _esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -32885,8 +32923,13 @@ class SeasonManager {
 
   newGame() {
     const storage = this._storage();
-    if (storage) storage.newGame();
+    if (!storage) return;
+    const g = storage.newGame();
     this._renderAll();
+    // Land the fresh game in the one canonical workspace (C1) so "New Game"
+    // from the Season Report modal enters Break Down the same way every other
+    // open does, instead of leaving the coach on a modal over a blank game.
+    if (window.app?.openGame && g?.id != null) { this.hide?.(); window.app.openGame(g.id); }
   }
 
   removeGame(id) {
@@ -32899,6 +32942,9 @@ class SeasonManager {
   switchGame(id) {
     const storage = this._storage();
     if (!storage) return;
+    // Route through the ONE authoritative open command (C1) so the season-stats
+    // modal opens a game with the same lifecycle/chrome as every other surface.
+    if (window.app?.openGame) { window.app.openGame(id); return; }
     storage.switchToGame(id);
     this._renderAll();
   }
@@ -34038,11 +34084,26 @@ class SeasonLibrary {
     this.overlay.classList.remove('hidden');
   }
 
-  /** Show the library at the SCHEDULE level (the open season's games). */
+  /** Show the library at the SCHEDULE level (the open season's games).
+   *
+   * RETIRED as a game-entry surface in the redesigned product (C1, binding
+   * amendment 2026-07-23). When the workspace shell owns the product, Home is
+   * the single place to pick and open a game, so ANY caller that would land on
+   * the legacy schedule is redirected to Home instead — the schedule grid and
+   * its per-game open handlers can no longer be reached, mounted, or restored
+   * through season open/create, demo, team switch, restore, or a direct call.
+   * The classic (flag-off) escape hatch still uses the schedule because it has
+   * no Home to fall back to. */
   async openSchedule() {
     const store = this._storage()?.seasonStore;
     if (!store || !store.hasCurrent()) return this.open();
     if (!this.overlay) return;
+    const shell = window.app?.workspaceShell;
+    if (shell?.flagEnabled?.()) {
+      this.overlay.classList.add('hidden');
+      await shell.show('home');
+      return;
+    }
     this._setLevel('schedule');
     this._renderSchedule();
     this._updateCloseBtn();
@@ -34326,12 +34387,17 @@ class SeasonLibrary {
     });
   }
 
-  _openGame(id) {
+  /** Open a game from the classic schedule (flag-off escape hatch ONLY — the
+   *  schedule is retired as a game-entry surface under the shell). Delegates to
+   *  the ONE authoritative open command so there is a single game-open
+   *  lifecycle in every mode. */
+  async _openGame(id) {
     const storage = this._storage();
-    const store = storage?.seasonStore;
-    if (!storage || !store) return;
-    if (store.data && store.data.activeGameId !== id) storage.switchToGame(id);
+    if (!storage?.seasonStore) return;
     this.overlay.classList.add('hidden');
+    if (window.app?.openGame) { await window.app.openGame(id); return; }
+    // Defensive fallback (openGame is always present under window.app).
+    if (storage.seasonStore.data && storage.seasonStore.data.activeGameId !== id) await storage.switchToGame(id);
     if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     if (window.app?.season?._renderAll) window.app.season._renderAll();
   }
@@ -37569,6 +37635,48 @@ class App {
     document.getElementById('bcGame')?.setAttribute('aria-expanded', 'false');
   }
 
+  /**
+   * The single authoritative "open this game into the workspace" command (C1).
+   * Every entry route — Home, the Season Library schedule, the classic top-bar
+   * game dropdown, the games panel, and the season-stats modal — funnels
+   * through here so active-game selection, chrome refresh, and the workspace
+   * transition are identical no matter where the coach clicked. That is what
+   * makes Settings/More availability a deterministic workspace state rather
+   * than an accident of which route mounted the screen.
+   *
+   * Idempotent: re-opening the already-active game does NOT re-switch,
+   * re-persist, or reload film. A failed switch opens nothing and returns false.
+   */
+  async openGame(gid) {
+    const store = this.storage?.seasonStore;
+    if (!store?.data || gid == null) return false;
+    const already = String(store.data.activeGameId) === String(gid);
+    if (!already) {
+      // switchToGame owns commit/persist/history-reset/film-load. AWAIT it so
+      // Break Down never renders before the target game is live (the
+      // delayed-switch race); a stale film-health or prior-game callback that
+      // resolves later cannot move the selection back, because the switch has
+      // already committed by the time the workspace transition runs.
+      const ok = await this.storage.switchToGame(gid);
+      if (ok === false) return false;
+    }
+    // Deterministic chrome refresh in BOTH flag states.
+    this._updateSeasonChip();
+    this._renderGamesPanel();
+    this.season?._renderAll?.();
+    this._closeGameDropdown();
+    // Workspace transition. When the shell owns the workspace, Break Down is a
+    // shell route (its render relocates the canonical Settings/More chrome, so
+    // every route lands on identical chrome). In classic mode the #app IS the
+    // workspace, so only the library overlay needs to close.
+    if (this.workspaceShell?.flagEnabled?.()) {
+      await this.workspaceShell.show('breakdown');
+    } else {
+      this.library?.hide?.();
+    }
+    return true;
+  }
+
   _renderGameDropdown() {
     const head = document.getElementById('gameDropdownHead');
     const list = document.getElementById('gameDropdownList');
@@ -37615,13 +37723,10 @@ class App {
         <div class="gd-actions">${actions}</div>`;
 
       row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!r.isActive) {
-          this.storage.switchToGame(g.id);
-          this._updateSeasonChip();
-          this.season._renderAll?.();
-        }
-        // Clicking the game you're already in = dismiss and return to it.
-        this._closeGameDropdown();
+        // Clicking the game you're already in = dismiss and return to it;
+        // otherwise the one authoritative command owns switch + chrome + close.
+        if (!r.isActive) this.openGame(g.id);
+        else this._closeGameDropdown();
       });
 
       row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
@@ -37838,10 +37943,7 @@ class App {
 
       card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.storage.switchToGame(g.id);
-        this._updateSeasonChip();
-        this._renderGamesPanel();
-        this.season._renderAll?.();
+        this.openGame(g.id);   // one authoritative open path (C1)
       });
 
       card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
