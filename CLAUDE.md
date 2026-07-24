@@ -219,8 +219,33 @@ as "latent" was a live bug:
   gap. Both omissions are now closed. Builder self-review reliably under-counts;
   this is the argument for Codex's independent pass, not a substitute for it.
 
-**Next:** Codex re-reviews the combined bytes; only after acceptance, publish the
-versioned beta.
+**MILESTONE PACKAGED AS `1.12.0-10` — LOCAL BUILD, NO PRERELEASE (coach
+decision, 2026-07-23).** Two standing process rules were changed by the coach
+and are recorded in `GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md`:
+1. **The prerelease/publish step is dropped as unnecessary process.** The smoke
+   artifact is a locally built installer (`cargo tauri build`), handed over
+   directly. No tag, no Actions run, no `latest.json`, no auto-update. This is
+   the same mechanism that produced the `v1.12.0-7` smoke build (which has
+   installers on disk and deliberately no tag). Publishing remains available if
+   real distribution is ever wanted; it is no longer a required step between
+   "milestone done" and "coach smokes it."
+2. **Proceeding without Codex's independent review for now.** Codex reviews when
+   its usage resets. That review still gates deleting any managed C: film and
+   any promotion to a stable published build.
+Version bumped in all four places (`js/app.js` APP_VERSION, `src-tauri/
+Cargo.toml`, `tauri.conf.json`, `Cargo.lock`); `dist/index.html` staged from the
+exact gated bundle (hash-verified identical); full canonical gate **60/60 green**
+on the stamped bytes; `cargo check` clean. **Keep the `-N` suffix on future
+versions** — `configureBetaDefaults` gates on `/-\d+$/` and is what seeds
+`ffa_sql_catalog` on a fresh profile, so a plain `1.13.0` would silently skip it.
+
+**Still open (not blockers, do not lose):**
+- Codex's independent review of the combined C1+C2+self-review bytes.
+- `e2e-film-room`'s E4-2 grid-editor section is load-sensitive (see the
+  retraction above) — harden its waits so it stops producing false reds.
+- The now-inert schedule-view render code (`_renderSchedule`,
+  `#libraryScheduleView`) is unreachable but still present; clean deletion.
+- Managed C: film copies remain protected until the installed smoke passes.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
@@ -3895,9 +3920,30 @@ so the feature is never silently missing. The section renders inline as the
 
 11. **Backward compatibility by fallback**: new tag fields (`runPass`, multi-formation) degrade gracefully for plays/saves that predate them — empty `runPass` falls back to string inference; a single-formation string is just a one-element split. No schema migration needed.
 
-12. **Inherited `color` is literal, not a live `var()`**: the app went light-theme (`--text` dark for the light canvas) while the stats overlays re-scope `--text` to a *light* value. But `.stats-body` set no explicit `color`, so it inherited the already-computed dark color from `<body>` — re-scoping the variable downstream does nothing for inherited values. Stats-table data cells (which had no explicit color) were dark-on-dark and invisible across the whole dashboard. Fix: set `color: var(--text)` directly on the overlay container so descendants inherit the light value. When a container re-scopes theme vars, also set the properties that should consume them, or inheritance silently keeps the old computed color.
+12. **Inherited `color` is literal, not a live `var()`**: *(historical setup — the app was light-themed at the time; see the correction on #13. The mechanism below is theme-independent and still true.)* the app went light-theme (`--text` dark for the light canvas) while the stats overlays re-scope `--text` to a *light* value. But `.stats-body` set no explicit `color`, so it inherited the already-computed dark color from `<body>` — re-scoping the variable downstream does nothing for inherited values. Stats-table data cells (which had no explicit color) were dark-on-dark and invisible across the whole dashboard. Fix: set `color: var(--text)` directly on the overlay container so descendants inherit the light value. When a container re-scopes theme vars, also set the properties that should consume them, or inheritance silently keeps the old computed color.
 
-13. **Theme vars are global; the app is light, the dashboard is dark**: the main UI (top bar, tag form) is a **light** theme (`--text: #0f172a`, white `--surface` chips); only the analytics overlays are dark, which they get by **re-scoping** the dark palette under `.stats-overlay` / `.season-overlay` / etc. (not at `:root`). A "make the dashboard look better" pass that drops a dark palette (`--text: #e6edf3`, dark `--bg-*`) into a global `:root` block leaks into the light tag form and renders chip labels near-white on white — unreadable. **Scope dashboard palette overrides to `.stats-overlay`, never `:root`.** Only truly global identity tokens (brand accent, run/pass chart colors) belong in `:root`, and even those must stay legible on the light theme's white surfaces (gold `#c9a227` is fine as a chip-hover/border accent but is low-contrast as body text on white).
+13. **Theme vars are global — a `:root` palette change is an app-wide change.**
+    **⚠ CORRECTED 2026-07-24 — this lesson previously said "the app is light, the
+    dashboard is dark" with `--text: #0f172a`. THAT IS NO LONGER TRUE and was
+    actively misleading.** The T1 token flip made the app **dark at `:root`**;
+    `css/styles.css` now opens with `--bg-primary: #1b1f27` and `--text:
+    #e2e8f0`. Verify the current palette in `:root` before reasoning about
+    color — do not trust a remembered theme.
+
+    **What still holds (the durable part):** theme custom properties declared at
+    `:root` cascade to *everything*, so a palette edit made "for the dashboard"
+    has whole-app blast radius, and the analytics overlays' own re-scoping
+    (`.stats-overlay` / `.season-overlay`) sits on top of that global base.
+    Anything genuinely surface-specific belongs on that surface's selector, not
+    `:root`. And per #12, re-scoping a variable does **not** repaint descendants
+    that already inherited a computed `color` — set the property explicitly.
+
+    **Why the drift mattered:** the old text prescribed "scope dark values to
+    `.stats-overlay`, never `:root`" and warned that dark-at-`:root` would render
+    "chip labels near-white on white." An agent reading that today would either
+    try to undo the intended dark theme or misdiagnose a real contrast bug. This
+    is the doc-drift class worth spending time on — a stale *fact* inside an
+    otherwise-correct *lesson*.
 
 14. **Tauri asset protocol is `http://`, not `https://`**: `convertFileSrc()` on Windows (WebView2) returns `http://asset.localhost/…` URLs. The CSP must list `http://asset.localhost` (not just `https://`). The mismatch silently blocked every video load with "Media load rejected by URL safety check" — no CORS error, no codec error, just a CSP violation. This was the multi-session desktop video playback bug across v1.7.6–v1.8.1. **Always test the actual URL scheme the runtime produces, not the one the docs imply.**
 

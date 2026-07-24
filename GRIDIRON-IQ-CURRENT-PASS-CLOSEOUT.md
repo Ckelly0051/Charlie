@@ -77,7 +77,17 @@
 > and mutation-verified. Affects the browser build always and any desktop
 > version `beta-config` doesn't pre-seed. (iii) The onboarding W/L assertion,
 > silently downgraded to reading fixture data, is restored as a real UI check.
-> Full canonical gate green; `cargo check` clean. Re-review pending.
+> Full canonical gate green; `cargo check` clean.
+>
+> **PACKAGED `1.12.0-10` as a LOCAL build (coach decision, 2026-07-23).** §7
+> steps 5–6 below are amended: the prerelease/publish step is dropped as
+> unnecessary process, and the milestone proceeds WITHOUT Codex's independent
+> review for now (Codex reviews when usage resets; that review still gates
+> deleting managed C: film and any stable promotion). The smoke artifact is a
+> locally built installer, not a published release — the same mechanism that
+> produced `v1.12.0-7`. Version bumped in all four places, `dist/` staged from
+> the hash-verified gated bundle, full gate **60/60** on the stamped bytes.
+> The §8 installed smoke below is unchanged and is now the operative gate.
 
 ## 1. Goal
 
