@@ -8787,7 +8787,14 @@ body.ws-shell-active .ws-global-tools .more-label{color:var(--ws-muted)}
 @media(max-width:480px){.ws-plan-picker{width:calc(100vw - 20px)}.ws-plan-picker form{padding:20px 16px}.ws-plan-picker-actions .ws-btn{height:44px;flex:1}}
 
 .ws-link-strong{color:#cfe0ff;font-weight:600}
-.ws-section-head .ws-link+.ws-link{margin-left:10px}/* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
+.ws-section-head .ws-link+.ws-link{margin-left:10px}
+/* The classic top bar's breadcrumb (Team > Season > Game, with the legacy game
+   dropdown on the Game segment) is the RETIRED game-entry affordance and is
+   duplicated verbatim by the shell's own context bar. It becomes visible
+   whenever #wsClassicOutlet is revealed for the library overlay or Advanced
+   Reports, which is how the coach re-found the old flow (smoke, 2026-07-24).
+   Hide it whenever the shell owns the product; Home is the sole game entry. */
+body.ws-shell-active #breadcrumb { display: none !important; }/* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
 .ws-breakdown { min-width: 0; min-height: 0; overflow: hidden; }
 .ws-shell, .ws-breakdown, .tag-library-dialog, .undo-toast { font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
 .bd-route { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
@@ -23703,6 +23710,9 @@ class StatsEngine {
 
   hideDashboard() {
     this.dashboardEl.classList.add('hidden');
+    // showAdvancedReports() had to reveal #wsClassicOutlet for this dashboard to
+    // render. Put it back, or the retired classic UI stays exposed underneath.
+    window.app?.workspaceShell?.restoreRouteVisibility?.();
   }
 
   /**
@@ -30115,6 +30125,33 @@ class WorkspaceShell {
     if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
     return result;
   }
+  /** Re-apply the CURRENT route's visibility with NO navigation side effects.
+   *
+   * Why this exists (coach smoke, 2026-07-24): `_openLibrary()` and
+   * `showAdvancedReports()` both reveal `#wsClassicOutlet` because the library
+   * overlay and the stats dashboard live inside the relocated classic `#app` and
+   * cannot render while it is hidden. But closing those overlays only removed
+   * their own `hidden` class — nothing ever re-hid the outlet — so the ENTIRE
+   * classic UI, including its legacy top bar and game dropdown, was left exposed
+   * underneath. The coach found the retired flow this way by clicking `⋯`.
+   * Only `show()` re-hid the outlet, so it self-corrected on the next route
+   * click, which made it look intermittent rather than broken.
+   *
+   * Deliberately NOT `show()`: show() calls `library.hide()`, which now calls
+   * this — routing through show() would recurse. This is visibility only. */
+  restoreRouteVisibility() {
+    if (!this.root) return;
+    const routeId = this.app.workspace.currentRoute() || 'home';
+    const q = id => this.root.querySelector(id);
+    const home = q('#wsHome'), breakdown = q('#wsBreakdown'), study = q('#wsStudy'),
+          plan = q('#wsPlan'), outlet = q('#wsClassicOutlet');
+    if (!home || !breakdown || !study || !plan || !outlet) return;
+    home.hidden = routeId !== 'home';
+    breakdown.hidden = routeId !== 'breakdown';
+    study.hidden = routeId !== 'study';
+    plan.hidden = routeId !== 'plan';
+    outlet.hidden = true;
+  }
   _syncChrome() {
     if (!this.root) return; const c=this.app.workspace.snapshot();
     this._text('wsTeamName',c.team?.name||'Team'); this._text('wsTeamMeta',c.season?.name||'Season workspace'); this._text('wsTopTeamName',c.team?.name||'Team'); this._text('wsTopTeamMeta',c.season?.name||'Season workspace'); this._text('wsContextTeam',c.team?.name||'Team'); this._text('wsContextSeason',c.season?.name||'No season open'); this._text('wsContextGame',c.game?.name||'Team home'); this._text('wsMobileContext',c.game?.name||c.season?.name||'Team home');
@@ -34487,6 +34524,9 @@ class SeasonLibrary {
     if (!this.overlay) return;
     if (!this._storage()?.seasonStore.hasCurrent()) return;
     this.overlay.classList.add('hidden');
+    // _openLibrary() had to reveal #wsClassicOutlet for this overlay to render.
+    // Put it back, or the retired classic UI is left exposed underneath.
+    window.app?.workspaceShell?.restoreRouteVisibility?.();
   }
 
   _showForm(show) {

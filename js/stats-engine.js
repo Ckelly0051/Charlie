@@ -285,6 +285,9 @@ export class StatsEngine {
 
   hideDashboard() {
     this.dashboardEl.classList.add('hidden');
+    // showAdvancedReports() had to reveal #wsClassicOutlet for this dashboard to
+    // render. Put it back, or the retired classic UI stays exposed underneath.
+    window.app?.workspaceShell?.restoreRouteVisibility?.();
   }
 
   /**

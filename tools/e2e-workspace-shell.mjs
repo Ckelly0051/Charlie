@@ -278,6 +278,49 @@ r = await page.evaluate(() => ({
 ok(r.noClassicBtn && r.noUseClassic, 'Classic-layout escape hatch fully retired: no "Use classic" button, no useClassic()', JSON.stringify(r));
 ok(r.newGameBtn, 'Home exposes a direct New Game action (finding 4)', JSON.stringify(r));
 
+// COACH SMOKE REGRESSION (2026-07-24): the `⋯` button (_openLibrary) and
+// Advanced Reports (showAdvancedReports) both REVEAL #wsClassicOutlet, because
+// the library overlay and stats dashboard live inside the relocated classic
+// #app. Closing them only removed their own overlay — nothing re-hid the outlet
+// — so the entire retired classic UI, legacy breadcrumb and game dropdown
+// included, was left exposed underneath. The coach re-found the old flow exactly
+// this way. FAILING-FIRST: remove the restoreRouteVisibility() calls from
+// SeasonLibrary.hide() / StatsEngine.hideDashboard() and these red.
+r = await page.evaluate(async () => {
+  const shell = window.app.workspaceShell;
+  const outlet = () => document.getElementById('wsClassicOutlet').hidden;
+  await shell.show('breakdown');
+  // 1. the `⋯` seasons button reveals the outlet, then the library is closed
+  document.querySelector('[data-ws-action="seasons"]').click();
+  await new Promise(res => setTimeout(res, 400));
+  const outletWhileLibraryOpen = outlet();
+  window.app.library.hide();
+  await new Promise(res => setTimeout(res, 200));
+  const outletAfterLibraryClose = outlet();
+  // 2. Advanced Reports reveals it, then the dashboard is closed
+  shell.showAdvancedReports();
+  await new Promise(res => setTimeout(res, 300));
+  const outletWhileReportsOpen = outlet();
+  window.app.stats.hideDashboard();
+  await new Promise(res => setTimeout(res, 200));
+  return {
+    outletWhileLibraryOpen, outletAfterLibraryClose,
+    outletWhileReportsOpen, outletAfterReportsClose: outlet(),
+    breadcrumbHiddenUnderShell:
+      getComputedStyle(document.getElementById('breadcrumb')).display === 'none',
+  };
+});
+// Liveness: the outlet must genuinely have been revealed, or "it's hidden after"
+// passes vacuously against code that never showed it.
+ok(r.outletWhileLibraryOpen === false && r.outletWhileReportsOpen === false,
+  'liveness: the library and Advanced Reports really do reveal the classic outlet', JSON.stringify(r));
+ok(r.outletAfterLibraryClose === true,
+  'Closing the library re-hides the classic outlet (no retired UI left exposed)', JSON.stringify(r));
+ok(r.outletAfterReportsClose === true,
+  'Closing Advanced Reports re-hides the classic outlet', JSON.stringify(r));
+ok(r.breadcrumbHiddenUnderShell,
+  'The legacy breadcrumb + game dropdown is hidden whenever the shell owns the product', JSON.stringify(r));
+
 // disable() remains as the INTERNAL mount/restore teardown contract (tested
 // lifecycle hygiene — proves the shell returns #app intact). It is not reachable
 // from any product affordance.

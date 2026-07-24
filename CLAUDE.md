@@ -239,6 +239,34 @@ on the stamped bytes; `cargo check` clean. **Keep the `-N` suffix on future
 versions** — `configureBetaDefaults` gates on `/-\d+$/` and is what seeds
 `ffa_sql_catalog` on a fresh profile, so a plain `1.13.0` would silently skip it.
 
+**COACH SMOKE FINDING #1 (2026-07-24) — the classic UI was still reachable;
+my "one product route" claim was OVERSTATED. FIXED.** The coach re-found the
+retired flow within minutes of installing `1.12.0-10`, by clicking `⋯` (top
+right). Root cause: `_openLibrary()` and `showAdvancedReports()` both **reveal**
+`#wsClassicOutlet` — they have to, because the library overlay and the stats
+dashboard live inside the relocated classic `#app` and cannot render while it is
+hidden. But closing either overlay only removed *its own* `hidden` class;
+**nothing ever re-hid the outlet.** The entire classic UI — legacy top bar,
+breadcrumb, and game dropdown — was left exposed underneath. Only a later
+`show()` re-hid it, so it self-corrected on the next route click, which is why
+it looked intermittent instead of broken.
+
+What C1 actually achieved vs. what I claimed: the *game-entry lifecycle* really
+is single-owner (`openGame()`), and `openSchedule()` really does redirect — that
+part holds. But "the classic UI cannot be reached" was false, because retiring a
+route is not the same as retiring the chrome that route lived in. I verified the
+former and asserted the latter.
+
+Fix: new `WorkspaceShell.restoreRouteVisibility()` — a pure visibility re-apply
+with no navigation side effects (deliberately NOT `show()`, which calls
+`library.hide()` and would recurse) — called from `SeasonLibrary.hide()` and
+`StatsEngine.hideDashboard()`. Plus `body.ws-shell-active #breadcrumb {display:
+none}`: the classic breadcrumb is the retired game-entry affordance and is
+duplicated verbatim by the shell's own Team › Season › Game context bar.
+**Mutation-verified:** removing both restore calls reds the two new assertions
+while the liveness assertion stays green (proving the outlet really is revealed,
+so the check can't pass vacuously). `e2e-workspace-shell` 35 → 39.
+
 **Still open (not blockers, do not lose):**
 - Codex's independent review of the combined C1+C2+self-review bytes.
 - `e2e-film-room`'s E4-2 grid-editor section is load-sensitive (see the

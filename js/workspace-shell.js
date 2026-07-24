@@ -111,6 +111,33 @@ export class WorkspaceShell {
     if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
     return result;
   }
+  /** Re-apply the CURRENT route's visibility with NO navigation side effects.
+   *
+   * Why this exists (coach smoke, 2026-07-24): `_openLibrary()` and
+   * `showAdvancedReports()` both reveal `#wsClassicOutlet` because the library
+   * overlay and the stats dashboard live inside the relocated classic `#app` and
+   * cannot render while it is hidden. But closing those overlays only removed
+   * their own `hidden` class — nothing ever re-hid the outlet — so the ENTIRE
+   * classic UI, including its legacy top bar and game dropdown, was left exposed
+   * underneath. The coach found the retired flow this way by clicking `⋯`.
+   * Only `show()` re-hid the outlet, so it self-corrected on the next route
+   * click, which made it look intermittent rather than broken.
+   *
+   * Deliberately NOT `show()`: show() calls `library.hide()`, which now calls
+   * this — routing through show() would recurse. This is visibility only. */
+  restoreRouteVisibility() {
+    if (!this.root) return;
+    const routeId = this.app.workspace.currentRoute() || 'home';
+    const q = id => this.root.querySelector(id);
+    const home = q('#wsHome'), breakdown = q('#wsBreakdown'), study = q('#wsStudy'),
+          plan = q('#wsPlan'), outlet = q('#wsClassicOutlet');
+    if (!home || !breakdown || !study || !plan || !outlet) return;
+    home.hidden = routeId !== 'home';
+    breakdown.hidden = routeId !== 'breakdown';
+    study.hidden = routeId !== 'study';
+    plan.hidden = routeId !== 'plan';
+    outlet.hidden = true;
+  }
   _syncChrome() {
     if (!this.root) return; const c=this.app.workspace.snapshot();
     this._text('wsTeamName',c.team?.name||'Team'); this._text('wsTeamMeta',c.season?.name||'Season workspace'); this._text('wsTopTeamName',c.team?.name||'Team'); this._text('wsTopTeamMeta',c.season?.name||'Season workspace'); this._text('wsContextTeam',c.team?.name||'Team'); this._text('wsContextSeason',c.season?.name||'No season open'); this._text('wsContextGame',c.game?.name||'Team home'); this._text('wsMobileContext',c.game?.name||c.season?.name||'Team home');

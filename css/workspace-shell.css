@@ -66,3 +66,10 @@ body.ws-shell-active .ws-global-tools .more-label{color:var(--ws-muted)}
 
 .ws-link-strong{color:#cfe0ff;font-weight:600}
 .ws-section-head .ws-link+.ws-link{margin-left:10px}
+/* The classic top bar's breadcrumb (Team > Season > Game, with the legacy game
+   dropdown on the Game segment) is the RETIRED game-entry affordance and is
+   duplicated verbatim by the shell's own context bar. It becomes visible
+   whenever #wsClassicOutlet is revealed for the library overlay or Advanced
+   Reports, which is how the coach re-found the old flow (smoke, 2026-07-24).
+   Hide it whenever the shell owns the product; Home is the sole game entry. */
+body.ws-shell-active #breadcrumb { display: none !important; }
