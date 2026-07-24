@@ -5,11 +5,44 @@ let pass = 0, fail = 0;
 const ok = (value, label, extra = '') => value ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ` -- ${extra}` : ''}`));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 
-const classic = await browser.newPage();
-await classic.goto(URL, { waitUntil: 'networkidle0' });
-ok(!(await classic.$eval('#tagForm', form => form.classList.contains('breakdown-form-v2'))), 'Classic tag form is unchanged when the Phase 4C flag is off');
-ok((await classic.$$('#tagForm .bdv-section-label')).length === 0, 'Flag-off mode injects no redesigned form markup');
-await classic.close();
+// FIRST-LAUNCH COMPOSITION (self-review finding S3, 2026-07-23). These two
+// assertions used to pin the flag-OFF classic form. That state no longer exists:
+// the shell is the unconditional product, so they are INVERTED to pin the real
+// contract — a completely fresh profile must get the redesigned form on its
+// FIRST launch, not on the second.
+//
+// The bug they now guard: WorkspaceShell.enable() WRITES ffa_workspace_shell_v2,
+// but BreakdownForm reads it in its CONSTRUCTOR (app.js:73) — which runs long
+// before shell.init() (app.js:207). BreakdownVideo escaped this only because the
+// shell explicitly re-calls breakdownVideo.mount(); BreakdownForm had no such
+// call, so session #1 silently rendered the shell around the CLASSIC form and it
+// "fixed itself" on reload. Hits the browser build always, and any desktop
+// version string beta-config does not pre-seed.
+// FAILING-FIRST: remove `this.app.breakdownForm?.mount()` from
+// WorkspaceShell.enable() and both of these red.
+const firstRun = await browser.newPage();
+await firstRun.goto(URL, { waitUntil: 'networkidle0' });
+await new Promise(r => setTimeout(r, 900));   // let shell.init() settle
+const firstLaunch = await firstRun.evaluate(() => ({
+  composed: document.querySelector('#tagForm')?.classList.contains('breakdown-form-v2'),
+  shellMounted: !!window.app.workspaceShell?.root,
+  seededFormFlag: localStorage.getItem('ffa_breakdown_form_v2'),
+}));
+ok(firstLaunch.shellMounted, 'Fresh profile: the shell mounts unconditionally (one product route)', JSON.stringify(firstLaunch));
+ok(firstLaunch.composed,
+  'Fresh profile: the redesigned form composes on the FIRST launch (not only after a reload)',
+  JSON.stringify(firstLaunch));
+// And it must stay composed across a relaunch — proving the fix is not merely
+// papering over the flag write with a one-shot.
+await firstRun.reload({ waitUntil: 'networkidle0' });
+await new Promise(r => setTimeout(r, 900));
+const secondLaunch = await firstRun.evaluate(() => ({
+  composed: document.querySelector('#tagForm')?.classList.contains('breakdown-form-v2'),
+}));
+ok(secondLaunch.composed === firstLaunch.composed && secondLaunch.composed === true,
+  'Composition is identical on first and subsequent launches',
+  JSON.stringify({ firstLaunch, secondLaunch }));
+await firstRun.close();
 
 const page = await browser.newPage();
 const errors = [];

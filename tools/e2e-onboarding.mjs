@@ -107,10 +107,30 @@ r = await $('#wsHome');
 ok(r && r.visible, 'lands on shell Home (games in the film inbox, not a schedule grid)');
 r = await page.evaluate(() => document.querySelectorAll('#wsFilmList [data-ws-game]').length);
 ok(r === 2, 'Home film inbox shows 2 demo games', String(r));
-r = await page.evaluate(() => (window.app.storage.seasonStore.data?.games || [])
-  .map(g => ({ us: Number(g.gameInfo?.scoreUs), them: Number(g.gameInfo?.scoreThem) })));
-ok(r.length === 2 && r.some(x => x.us > x.them) && r.some(x => x.us < x.them),
-  'demo season has one win and one loss', JSON.stringify(r));
+// Self-review finding S4 (2026-07-23): the retired schedule grid had a `.sch-score`
+// W/L pill and this harness asserted it RENDERED. The shell has no per-game W/L
+// pill, and an earlier rewrite quietly downgraded this to reading gameInfo — which
+// tests the fixture, not the product. Home's game preview does render a real score
+// (#wsScoreValue via _renderGamePreview), so assert THAT: select each demo game
+// through its Home preview button and read the rendered score text.
+r = await page.evaluate(async () => {
+  const out = [];
+  const rows = [...document.querySelectorAll('#wsFilmList [data-ws-preview]')];
+  for (const btn of rows) {
+    btn.click();
+    await new Promise(res => setTimeout(res, 120));
+    out.push(document.getElementById('wsScoreValue')?.textContent || '');
+  }
+  return out;
+});
+const parsed = r.map(t => {
+  const m = /^(\d+)\D+(\d+)$/.exec(String(t).trim());
+  return m ? { us: Number(m[1]), them: Number(m[2]) } : null;
+});
+ok(parsed.length === 2 && parsed.every(Boolean),
+  'Home preview RENDERS a real score for each demo game', JSON.stringify(r));
+ok(parsed.every(Boolean) && parsed.some(x => x.us > x.them) && parsed.some(x => x.us < x.them),
+  'the rendered scores show one win and one loss', JSON.stringify(r));
 
 console.log('\n== 4. Open a demo game + shell context ==');
 await openHomeGame(0);

@@ -20,6 +20,12 @@ export class BreakdownForm {
   enabled() { try { return this.storage?.getItem(BreakdownForm.FLAG) === '1' || this.storage?.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
 
   mount() {
+    // Public + idempotent + self-guarding: WorkspaceShell.enable() calls this
+    // AFTER it writes the shell key, because the constructor's own enabled()
+    // check runs long before that write (app.js:73 vs :207) — without this the
+    // redesigned form silently missed its first session. Mirrors the
+    // BreakdownVideo.mount() contract the shell already relies on.
+    if (!this.form) return;
     if (this.form.classList.contains('breakdown-form-v2')) return;
     this.form.classList.add('breakdown-form-v2');
     this._mountSpecialTeams();

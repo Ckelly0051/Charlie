@@ -58,13 +58,26 @@
 > "covered by e2e-breakdown-a11y" claim — fixed by measuring the REAL shell
 > mobile Break Down route, which **surfaced a genuine 32px touch-target defect**
 > (below the 44px minimum) in the relocated unit toggle, now fixed in CSS. (d) A
-> side-effecting default parameter on `_autoLoadLinkedFilm` made required. Full
-> canonical gate **59/60 green**; `cargo check` clean. **The one non-green
-> harness (`e2e-film-room.mjs`, 2 failures in the E4-2 grid-editor click/Enter
-> section) is a PRE-EXISTING defect** — confirmed via `git stash` to reproduce
-> identically against the clean `36540cc` bytes, before any of this session's
-> fixes. Not caused by this batch; flagged as a separate follow-up rather than
-> silently left for the next reviewer to rediscover. Re-review pending.
+> side-effecting default parameter on `_autoLoadLinkedFilm` made required.
+>
+> **A SECOND self-review then retracted one of those claims and found a real
+> defect (2026-07-23).** (i) **RETRACTION:** the "`e2e-film-room` failure is
+> PRE-EXISTING" claim was wrong on both counts. The proof was circular (it
+> compared against `36540cc` — the same batch's own commit, and the very one
+> that moved that harness onto the shell route); the true baseline `e175af7` was
+> **179/179 green**. And the diagnosis was wrong: it is an intermittent,
+> load-sensitive harness flake (now **5/5 standalone, 4/4 under parallel load,
+> full gate green**), not a reproducible grid-editor defect. Hardening that
+> section's waits remains a genuine follow-up. (ii) **[High] The redesigned tag
+> form missed its FIRST launch** on any fresh profile — `BreakdownForm` reads the
+> shell key in its constructor (`app.js:73`) but `shell.init()` writes it at
+> `app.js:207`, so session #1 rendered the shell around the CLASSIC form and it
+> "fixed itself" on reload. Confirmed empirically, fixed by having `enable()`
+> call `breakdownForm.mount()` next to the existing `breakdownVideo.mount()`,
+> and mutation-verified. Affects the browser build always and any desktop
+> version `beta-config` doesn't pre-seed. (iii) The onboarding W/L assertion,
+> silently downgraded to reading fixture data, is restored as a real UI check.
+> Full canonical gate green; `cargo check` clean. Re-review pending.
 
 ## 1. Goal
 

@@ -29,7 +29,14 @@ export class WorkspaceShell {
     if (!this.root) this._mount();
     // Idempotent: no-ops when already mounted. Required because disable() now
     // genuinely tears the presentation down, so re-enabling must rebuild it.
+    // BOTH must be re-mounted here: each module's own constructor-time
+    // enabled() check runs BEFORE the key written just above exists (app.js
+    // constructs them at :73/:118 but calls shell.init() at :207), so on a
+    // fresh profile the first session would otherwise get the shell wrapped
+    // around the CLASSIC tag form — visible on the browser build and on any
+    // desktop version string that beta-config does not pre-seed.
     this.app.breakdownVideo?.mount();
+    this.app.breakdownForm?.mount();
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }

@@ -30033,7 +30033,14 @@ class WorkspaceShell {
     if (!this.root) this._mount();
     // Idempotent: no-ops when already mounted. Required because disable() now
     // genuinely tears the presentation down, so re-enabling must rebuild it.
+    // BOTH must be re-mounted here: each module's own constructor-time
+    // enabled() check runs BEFORE the key written just above exists (app.js
+    // constructs them at :73/:118 but calls shell.init() at :207), so on a
+    // fresh profile the first session would otherwise get the shell wrapped
+    // around the CLASSIC tag form — visible on the browser build and on any
+    // desktop version string that beta-config does not pre-seed.
     this.app.breakdownVideo?.mount();
+    this.app.breakdownForm?.mount();
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');
   }
@@ -36496,6 +36503,12 @@ class BreakdownForm {
   enabled() { try { return this.storage?.getItem(BreakdownForm.FLAG) === '1' || this.storage?.getItem('ffa_workspace_shell_v2') === '1'; } catch { return false; } }
 
   mount() {
+    // Public + idempotent + self-guarding: WorkspaceShell.enable() calls this
+    // AFTER it writes the shell key, because the constructor's own enabled()
+    // check runs long before that write (app.js:73 vs :207) — without this the
+    // redesigned form silently missed its first session. Mirrors the
+    // BreakdownVideo.mount() contract the shell already relies on.
+    if (!this.form) return;
     if (this.form.classList.contains('breakdown-form-v2')) return;
     this.form.classList.add('breakdown-form-v2');
     this._mountSpecialTeams();

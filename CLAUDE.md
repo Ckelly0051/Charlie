@@ -160,21 +160,67 @@ code already guards via optional chaining and `open()`'s own self-guard. The
 top-level guard was restored anyway as free defense-in-depth, not as a fix for
 a live bug.)
 
-**Verification on committed bytes:** full canonical gate **59/60 green**
-(adds `e2e-film-load-race`); `cargo check` clean; every guard mutation-verified
-individually. **The one non-green harness, `e2e-film-room.mjs` (2 failures in
-the E4-2 grid-editor click/Enter section on the QB Alignment column),
-confirmed PRE-EXISTING** — reproduced identically against the clean, already-
-committed `36540cc` bytes before any of this session's fixes were applied, via
-`git stash` + rebuild. Not caused by and not fixed as part of this batch; it is
-a separate grid-editor timing defect that deserves its own reproduce → root-
-cause pass, flagged here rather than silently left for Codex to rediscover.
+**Verification on committed bytes:** full canonical gate **60/60 green**;
+`cargo check` clean; every guard mutation-verified individually.
+
+**⚠ RETRACTION — the earlier "`e2e-film-room` failure is PRE-EXISTING" claim in
+this file was WRONG and is withdrawn (caught by a second self-review).** Two
+errors, both flattering the batch:
+- **The proof was circular.** It stashed only the `81c6d2a` fixes and compared
+  against `36540cc` — but `36540cc` is the SAME batch's commit, and it is the
+  one that rewrote `e2e-film-room` from the retired classic route to the shell
+  route. The real baseline is the C2 milestone (`e175af7`), whose gate log shows
+  `e2e-film-room` **179/179 green**, and `git log` confirms the only commit
+  touching that file since is this batch's. It was NOT pre-existing.
+- **The diagnosis was wrong.** It is not a reproducible "grid-editor timing
+  defect." Re-tested: **5/5 green standalone, 4/4 green under 4× parallel load,
+  and the full gate green.** It is an INTERMITTENT, load-sensitive flake in the
+  harness — every observed failure happened during or immediately after heavy
+  gate runs, the same signature as [[integrity-fuzzer-load-race]]. Most likely
+  the two-click "open the editor" sequence became timing-fragile once the grid
+  moved into the shell's Film Room route (extra layout/rAF work) versus the
+  classic inline grid. **Still open as a real follow-up:** harden that section's
+  waits (it depends on `raf2()` being enough after a `refresh()`), because a
+  load-sensitive assertion will keep producing false reds in CI.
 **Deliberately deferred (flagged, not silently skipped):** the now-inert
 schedule-view render code (`_renderSchedule`, `#libraryScheduleView`) is left
 in place — unreachable as game entry (the requirement) — rather than risk a
 large deletion mid-
-milestone; it's a clean follow-up. **Next:** Codex re-reviews the combined bytes;
-only after acceptance, publish the versioned beta.
+milestone; it's a clean follow-up.
+
+**SECOND SELF-REVIEW (2026-07-23, still no Codex) — one REAL coach-facing
+defect found and fixed, plus the retraction above.** The first self-review's
+most confident claim was the one that was wrong, and the item it deprioritized
+as "latent" was a live bug:
+- **[High] The redesigned tag form missed its FIRST launch entirely — FIXED.**
+  `WorkspaceShell.enable()` WRITES `ffa_workspace_shell_v2`, but `BreakdownForm`
+  reads that key in its CONSTRUCTOR (`app.js:73`), which runs long before
+  `shell.init()` (`app.js:207`). On a fresh profile the coach therefore got the
+  new shell wrapped around the CLASSIC form composition, which silently
+  "fixed itself" on the next launch. `BreakdownVideo` escaped this only because
+  the shell explicitly re-calls `breakdownVideo.mount()`; `BreakdownForm` had no
+  such call — a pure asymmetry, not a design decision. **Empirically confirmed
+  before fixing** (probe: `FIRST LAUNCH composed:false` → `SECOND LAUNCH
+  composed:true`). Fix: `BreakdownForm.mount()` is now public/idempotent/self-
+  guarding and `enable()` calls it alongside `breakdownVideo.mount()`. Reach:
+  the browser/gh-pages build ALWAYS, plus any desktop version string
+  `beta-config` does not pre-seed (it only fires for versions matching `-N`, so
+  a stable `1.13.0` would hit it too). **Mutation-verified:** removing the new
+  `breakdownForm?.mount()` line reproduces `composed:false` on first launch and
+  reds both new assertions; restored, green. `e2e-breakdown-form` 58 → 60.
+- **[Low] A silently dropped review item — FIXED.** The onboarding W/L check had
+  been quietly downgraded from asserting rendered UI (the retired schedule's
+  `.sch-score` pill) to reading `gameInfo` — i.e. testing the fixture, not the
+  product. Restored as a real UI assertion against Home's rendered score
+  (`#wsScoreValue` via the preview), which IS a live shell surface.
+  `e2e-onboarding` 51 → 52.
+- **Process note worth keeping:** the first self-review was told to "fix them
+  all" (7 findings) and shipped 5, reporting "four issues" without flagging the
+  gap. Both omissions are now closed. Builder self-review reliably under-counts;
+  this is the argument for Codex's independent pass, not a substitute for it.
+
+**Next:** Codex re-reviews the combined bytes; only after acceptance, publish the
+versioned beta.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 
