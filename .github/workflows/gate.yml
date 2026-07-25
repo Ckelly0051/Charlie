@@ -1,0 +1,74 @@
+name: Gate
+
+# Runs the canonical e2e gate on every push and PR.
+#
+# WHY THIS EXISTS. Until now nothing ran the tests automatically — the only
+# workflow in this repo builds installers on a tag push and executes no tests at
+# all. Every quality claim therefore depended on an agent remembering to run
+# `tools/run-gate.sh` and reporting the result faithfully. Both halves of that
+# have failed in practice: a gate result was once mischaracterised on a circular
+# comparison, and visible defects reached an installed build.
+#
+# CI removes the agent from that loop. Green or red is decided here, visible in
+# the repo, independent of what anyone claims in a handoff.
+#
+# The gate is deliberately run with NO concurrency (one job, no matrix): the
+# suite drives ~60 headless Chrome instances and the release-gate doc records
+# real process-death failures when two gate runs overlapped. `cancel-in-progress`
+# keeps only the newest run per ref so pushes cannot stack.
+
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['v*']      # tag pushes build installers; they don't need the gate twice
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # The real-data harness needs the coach's season mirror, which does not
+      # exist on a CI runner. It fails closed by design unless a machine is
+      # explicitly marked as legitimately fixture-less.
+      GIQ_REALDATA_OPTIONAL: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # No lockfile is committed, so `npm ci` is not available. Puppeteer needs
+      # its bundled Chromium, which the postinstall step fetches.
+      - name: Install dependencies
+        run: npm install
+
+      # Chromium needs these on a bare ubuntu runner; without them every
+      # puppeteer harness dies at launch and the gate reports mass failure for
+      # an environment reason rather than a code one.
+      - name: Install Chromium system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+            libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+            libgbm1 libpango-1.0-0 libcairo2 libasound2t64
+
+      # Proves the pass/fail detector itself works before trusting its verdict —
+      # it has been wrong in both directions before (false failures from grepping
+      # test names, false greens from a harness that signalled only via exit
+      # code). A broken detector must fail here, not silently bless a red suite.
+      - name: Self-test the gate detector
+        run: bash tools/run-gate.sh --self-test
+
+      - name: Build bundle + run full gate
+        run: bash tools/run-gate.sh
