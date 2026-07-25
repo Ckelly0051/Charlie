@@ -267,16 +267,11 @@ duplicated verbatim by the shell's own Team › Season › Game context bar.
 while the liveness assertion stays green (proving the outlet really is revealed,
 so the check can't pass vacuously). `e2e-workspace-shell` 35 → 39.
 
-### ▶ CODEX REVIEW QUEUE — NOTHING BELOW HAS HAD AN INDEPENDENT PASS
+### ▶ CODEX INDEPENDENT REVIEW — CHANGES REQUESTED (2026-07-25)
 
-**Reviewer: Codex. Builder: Claude. None of the following is accepted — it is
-built, self-reviewed, and gate-green only.** Claude's self-review found two real
-defects in its OWN already-"verified" work in this batch, on commits that were
-CI-green across 60 harnesses, which is the standing argument for why this queue
-exists. Review order per §7: correctness/data integrity → analytics parity →
-backward compatibility → missing tests → UX → efficiency.
+**Reviewer: Codex. Builder: Claude. Review range: `afb8115..2362bfb`. Verdict: CHANGES REQUESTED.** The film-load race fix, classic game-entry retirement, analytics-DOM reuse, desktop control relocation, version stamp, and retained shared game-row helpers check out. The batch is not accepted because the new Reports route has observed functional/lifecycle failures and normalization has a silent data-discard path. The canonical gate is necessary but did not exercise those states.
 
-Unreviewed commits, oldest first:
+Reviewed commits, oldest first:
 
 | Commit | What | Risk to probe |
 |---|---|---|
@@ -288,7 +283,7 @@ Unreviewed commits, oldest first:
 | `2bd8657` | Entombed capabilities recovered into shell chrome | relocation preserving live listeners |
 | `2e92f83` | `1.12.0-11` version stamp | four-file version consistency |
 | `9833e38` | Breadcrumb + game dropdown DELETED | shared helpers kept vs. deleted by name |
-| *(pending)* | adversarial-review fixes + gate instrumentation | see below |
+| `2362bfb` | adversarial-review fixes + gate instrumentation | see findings below |
 
 **Highest-value things to attack (Claude's own assessment of where it is
 weakest):**
@@ -309,6 +304,22 @@ weakest):**
 
 **Still gated on Codex acceptance:** deleting any managed C: film copy, and any
 promotion past a local smoke build to a published stable release.
+
+**Independent verification:** focused suites green; fresh canonical gate rebuilt the bundle and passed **60/60** with full output retained; `cargo check` clean; local `e2e-realdata` inspected 3 seasons / 13 games and passed 13/13. A read-only mirror audit found 962/962 plays already have array-valued `tags.custom`, so current coach data is not changed by that backfill. The unexplained 57/60 red did not recur and no causal link to this diff was found.
+
+**Required repairs:**
+
+1. **[P1] Reports loses the active report's title/actions.** `.ws-reports .stats-header {display:none}` hides Opponent Scout, Scout Report, Self-Scout, Defensive Report, and empty-state headers, including their Export/Close controls. The route's generic actions delegate only to `btnScoutOpp`/`btnExportStats`, which do not exist in those states. Browser proof confirmed a hidden Scout Report title and dead generic actions. Hide only the canonical dashboard header and test every report state.
+2. **[P1] Reports actions die after shell disable/re-enable.** `_bound` stays true after the first host is destroyed, so `_bind()` skips the replacement host. Browser proof: Export count stayed at 1 after remount although the new button/dashboard were connected. Restore/unbind or use a durable delegated owner; add lifecycle coverage.
+3. **[P1 data policy] `_normalize` silently clears malformed custom tags.** Missing/null may become `[]`, but a recoverable scalar/imported value must be preserved (for example as a one-item array), not deleted without coach confirmation. Add normalize/save/reopen proof.
+4. **[P2] Reports is omitted from shared route management.** `_syncChrome` leaves it enabled with no season; `_openLibrary` and `restoreRouteVisibility` omit `#wsReports`. Use one route-host registry or update every list; test no-season gating and library open/close from Reports.
+5. **[P2] Undo/Redo/Shortcuts are still unreachable on mobile.** At <=900px the only host, `.ws-topbar`, is hidden. Put appropriate actions in mobile Break Down or More and verify at 390px. CV status is correctly in the drawer.
+6. **[P2 release-proof honesty] CI counts skipped real-data as green.** `GIQ_REALDATA_OPTIONAL=1` yields `0 passed, 0 failed (skipped)` but the gate says 60 green. Count skips separately; local review still requires 13/13. Use reproducible `npm ci`; `package-lock.json` is committed despite the workflow comment.
+7. **[P2 proof gap] C2 does not fingerprint every non-target game.** The real Refuge path is correct, but add the closeout-required byte fingerprint of ND Prep/all other games across open/link/save/reopen.
+
+**Advisory:** Home's `+ New game` immediately opens a blank game. A short football-first setup sheet (opponent, date, self/opponent scout, optional film) is the better eventual coach flow.
+
+**Repair order:** Reports correctness/lifecycle/route registry; custom-tag preservation; then proof/CI/mobile hardening. Rebuild and rerun focused tests plus the full gate. No package, tag, stable release, managed-film deletion, or real-data rewrite is authorized.
 
 **CLASSIC TOP BAR, PART 1 — ENTOMBED CAPABILITIES RECOVERED (2026-07-25).**
 Correcting my own framing first: I had recorded the classic top bar as "still
