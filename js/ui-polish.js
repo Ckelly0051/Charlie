@@ -2,11 +2,11 @@
  * UIPolish - Small interactions for the UX pass: More menu dropdown,
  * mobile sidebar drawer, and outside-click handling.
  */
-/** True when the game-switcher dropdown is NOT open (it owns Esc while open). */
-function uiDropdownClosed() {
-  const dd = document.getElementById('gameDropdown');
-  return !dd || dd.classList.contains('hidden');
-}
+/* The classic game-switcher dropdown used to own Escape while open, so the
+   drawer/menu Esc handlers had to defer to it via a `uiDropdownClosed()` guard.
+   That dropdown is deleted (Home is the sole game entry), leaving nothing to
+   defer to — the guard is gone rather than left as a function that can only
+   ever return true. */
 
 export class UIPolish {
   constructor(app = null) {
@@ -305,7 +305,7 @@ export class UIPolish {
     });
     document.addEventListener('keydown', (e) => {
       // The game dropdown owns Escape while open (its own handler closes it).
-      if (e.key === 'Escape' && uiDropdownClosed()) close();
+      if (e.key === 'Escape') close();
     });
   }
 
@@ -347,7 +347,7 @@ export class UIPolish {
     document.addEventListener('keydown', (e) => {
       // Yield Escape to the game dropdown when it's open — registration
       // order means stopImmediatePropagation there can't shield us.
-      if (e.key === 'Escape' && uiDropdownClosed()) close();
+      if (e.key === 'Escape') close();
     });
     // Expose for the bottom tab bar
     this._closeDrawer = close;

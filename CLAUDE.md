@@ -328,12 +328,59 @@ non-zero rect both lie about it. The permanent test measures "the box actually
 lands inside the viewport" and carries a comment saying why. Same shape as the
 `\bundefined\b` guard that didn't guard: the check was weaker than its name.
 
+**CLASSIC TOP BAR, PART 2 — RETIRED GAME-ENTRY CHROME DELETED (2026-07-25).**
+Second scope correction in the same lane: "delete the classic header" is not a
+markup deletion. An audit of all 43 elements inside `<header class="top-bar">`
+found **zero unreferenced** — it is a 43-binding refactor across ~10 modules,
+and 6 of them are genuinely LIVE (`videoFileInput`/`videoFolderInput` etc. are
+clicked by the video empty-state "Add Video / Add Folder" CTA). Chasing all 43
+buys no user-visible benefit and risks the film-input path, so part 2 was scoped
+to what is actually dead. Breakdown: 14 ride along free inside `.more-menu`
+(adopted as one unit), 6 adopted individually in part 1, **13 genuinely dead**,
+6 live-and-required, 3 superseded-but-wired (`btnQuickChart`/`btnShowStats`/
+`btnSave`), 1 decorative (`app-title`).
+
+**Deleted:** `#breadcrumb` + its 8 children and `#gameDropdown` + its 4 — the
+retired game-entry route, duplicated verbatim by the shell's `.ws-context` bar —
+plus ~206 lines of `app.js` (`_bindSeasonChip`, `_openGameDropdown`,
+`_closeGameDropdown`, `_renderGameDropdown`, `_updateSeasonChip` and their 6 call
+sites, which were still recomputing a hidden breadcrumb on every game change),
+and `uiDropdownClosed()` in ui-polish (it existed only so the drawer's Escape
+handler could defer to that dropdown; with nothing to defer to it could only ever
+return true).
+
+**Deliberately KEPT — the trap in this deletion:** `_gameRowInfo`,
+`_scorePillHtml`, `_gameBadgesHtml` and the `.gd-score` class read as dropdown
+code by name, but the LIVE games panel (`_renderGamesPanel`) and
+`season-library._renderSchedule` share them. Deleting by name-association breaks
+the games panel. Verified before cutting, not after.
+
+**Hidden → gone is the point.** Hidden markup is exactly what resurfaced when an
+overlay revealed `#wsClassicOutlet` (twice). The test changed from "breadcrumb is
+hidden under the shell" to "breadcrumb and dropdown are DELETED" — absence cannot
+be un-hidden. Mutation-verified: re-inserting a hidden `#breadcrumb` reds it.
+Also removed a stale `e2e-film-room` field (`breadcrumbHidden`) that was computed
+but never asserted by any `ok()` — dead weight that would now have thrown on a
+null element.
+
+**Verification:** bundle 40234 → 40028 lines; `e2e-workspace-shell` 46/46; full
+canonical gate **60/60 green**; `node --check` clean on both edited modules.
+
+**Near-miss worth recording:** I wrote `.bc-*` + `/` + `.gd-*` inside a CSS
+comment — the embedded `*/` terminates the comment early and silently breaks the
+stylesheet. Caught on the next read and a comment-balance check added to the
+verification step. A build will NOT tell you; CSS fails quietly.
+
 **Still open (not blockers, do not lose):**
-- **Classic top bar, part 2:** with every capability now adopted, the classic
-  `<header class="top-bar">` markup (wrapper, breadcrumb, game dropdown, and the
-  superseded `btnShowStats`/`btnSave`/`videoDropZone` duplicates) can be deleted
-  outright rather than hidden. Deliberately NOT bundled with part 1 so the
-  recovery has a clean rollback point.
+- **Dead CSS sweep:** ~50 now-inert `.bc-*` / `.gd-*` style blocks. Deferred
+  deliberately, not skipped — they interleave with live rules and a careless
+  grouped-selector cut breaks a live surface. **`.gd-score` MUST survive the
+  sweep** (it is `_scorePillHtml`'s default class, used by the live games panel).
+  Dead CSS is inert; the markup was the risk and it is gone.
+- **Classic header wrapper:** still present, hosting the live film-input cluster
+  plus the superseded `btnQuickChart`/`btnShowStats`/`btnSave`. Removing it means
+  rehoming the file inputs, which is real risk for no user-visible gain. Only
+  worth doing if something else forces it.
 - Codex's independent review of the combined C1+C2+self-review bytes.
 - The now-inert schedule-view render code (`_renderSchedule`,
   `#libraryScheduleView`) is unreachable but still present; clean deletion.

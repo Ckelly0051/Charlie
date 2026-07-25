@@ -39,27 +39,12 @@
           <span>Shortcuts</span>
         </button>
         <h1 class="app-title">GridIron <span class="app-iq">IQ</span></h1>
-        <div class="season-chip-wrap">
-          <nav class="breadcrumb" id="breadcrumb" aria-label="Location" hidden>
-            <button class="bc-seg bc-home" id="bcHome" title="Team home">
-              <span id="bcTeamText">Team</span>
-            </button>
-            <span class="bc-sep">▸</span>
-            <button class="bc-seg" id="bcSeason" title="Open the season schedule (all games)"><span id="bcSeasonText">Season</span></button>
-            <span class="bc-sep" id="bcGameSep">▸</span>
-            <button class="bc-seg bc-game" id="bcGame" title="Switch game">
-              <span id="bcGameText">Game</span><span class="bc-score" id="bcScore" hidden></span><span class="season-chip-caret">▾</span>
-            </button>
-          </nav>
-          <div class="game-dropdown hidden" id="gameDropdown">
-            <div class="game-dropdown-head" id="gameDropdownHead"></div>
-            <div class="game-dropdown-list" id="gameDropdownList"></div>
-            <div class="game-dropdown-foot">
-              <button class="btn btn-sm btn-accent" id="btnDropdownNewGame">+ New Game</button>
-              <button class="btn btn-sm" id="btnDropdownSwitchSeason">Switch Season</button>
-            </div>
-          </div>
-        </div>
+        <!-- The breadcrumb (Team ▸ Season ▸ Game) and its game-switcher dropdown
+             were the retired game-entry route (C1). Home is the sole game entry
+             and the shell's own `.ws-context` bar duplicates the breadcrumb
+             verbatim, so both are deleted rather than left hidden — hidden
+             markup is what let the retired flow resurface twice when an overlay
+             revealed the classic outlet. -->
       </div>
       <div class="top-bar-center">
         <label class="file-input-label" id="videoDropZone">

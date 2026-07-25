@@ -203,7 +203,6 @@ class App {
     // next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(async () => {
       await this.storage.initLibrary();
-      this._bindSeasonChip();
       this._bindGamesPanel();
       await this.library.open();
       await this.workspaceShell.init();
@@ -266,85 +265,6 @@ class App {
     });
   }
 
-  /** Wire the top-bar breadcrumb → Team ▸ Season ▸ Game. */
-  _bindSeasonChip() {
-    const bc = document.getElementById('breadcrumb');
-    const bcGame = document.getElementById('bcGame');
-    const dropdown = document.getElementById('gameDropdown');
-    if (!bc || !dropdown) return;
-
-    // Breadcrumb: Team (home) ▸ Season (schedule) ▸ Game (quick switch)
-    document.getElementById('bcHome')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._closeGameDropdown();
-      this.library.open();             // team home (seasons list)
-    });
-    document.getElementById('bcSeason')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._closeGameDropdown();
-      this.library.openSchedule();     // this season's schedule (the spine)
-    });
-    bcGame?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (dropdown.classList.contains('hidden')) this._openGameDropdown();
-      else this._closeGameDropdown();
-    });
-
-    document.getElementById('btnDropdownNewGame')?.addEventListener('click', () => {
-      this._closeGameDropdown();
-      this._openGameModal('create');
-    });
-    document.getElementById('btnDropdownSwitchSeason')?.addEventListener('click', () => {
-      this._closeGameDropdown();
-      this.library.open();
-    });
-
-    document.addEventListener('click', (e) => {
-      const bcGameEl = document.getElementById('bcGame');
-      if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !(bcGameEl && bcGameEl.contains(e.target))) {
-        this._closeGameDropdown();
-      }
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
-        // The dropdown owns Escape while open — don't also close the drawer /
-        // deselect the drawing tool from the other document Esc handlers.
-        e.stopImmediatePropagation();
-        this._closeGameDropdown();
-      }
-    });
-
-    this._updateSeasonChip();
-  }
-
-  _openGameDropdown() {
-    const dropdown = document.getElementById('gameDropdown');
-    if (!dropdown) return;
-    this._renderGameDropdown();
-    dropdown.classList.remove('hidden');
-    document.getElementById('bcGame')?.setAttribute('aria-expanded', 'true');
-    // Arrow-key navigation: focus the first game row; Up/Down move, Enter opens.
-    const rows = [...dropdown.querySelectorAll('.gd-row')];
-    rows.forEach(r => r.setAttribute('tabindex', '-1'));
-    if (!dropdown._navBound) {
-      dropdown._navBound = true;
-      dropdown.addEventListener('keydown', (e) => {
-        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-        e.preventDefault();
-        const rs = [...dropdown.querySelectorAll('.gd-row')];
-        if (!rs.length) return;
-        const i = rs.indexOf(document.activeElement);
-        rs[(i + (e.key === 'ArrowDown' ? 1 : -1) + rs.length) % rs.length].focus();
-      });
-    }
-    if (rows[0]) rows[0].focus();
-  }
-
-  _closeGameDropdown() {
-    document.getElementById('gameDropdown')?.classList.add('hidden');
-    document.getElementById('bcGame')?.setAttribute('aria-expanded', 'false');
-  }
-
   /**
    * The single authoritative "open this game into the workspace" command (C1).
    * Every entry route — Home, the Season Library schedule, the classic top-bar
@@ -371,10 +291,8 @@ class App {
       if (ok === false) return false;
     }
     // Deterministic chrome refresh.
-    this._updateSeasonChip();
     this._renderGamesPanel();
     this.season?._renderAll?.();
-    this._closeGameDropdown();
     // Workspace transition. Break Down is a shell route: its render relocates the
     // canonical Settings/More chrome, so every entry route lands on identical
     // chrome. The redesigned shell is the unconditional product and owns the
@@ -387,68 +305,6 @@ class App {
       this.library?.hide?.();
     }
     return true;
-  }
-
-  _renderGameDropdown() {
-    const head = document.getElementById('gameDropdownHead');
-    const list = document.getElementById('gameDropdownList');
-    const store = this.storage?.seasonStore;
-    if (!head || !list || !store?.hasCurrent()) return;
-
-    head.textContent = store.data.seasonName || 'Season';
-
-    this.storage.commitActive();
-    const games = store.gamesChrono();
-    const activeId = store.data.activeGameId;
-
-    if (!games.length) {
-      list.innerHTML = '<div style="padding:16px;text-align:center;color:rgba(255,255,255,.4)">No games yet</div>';
-      return;
-    }
-
-    list.innerHTML = '';
-    games.forEach((g, idx) => {
-      const r = this._gameRowInfo(g, idx, store, activeId);
-      // Parse YYYY-MM-DD as LOCAL (a bare ISO date parses as UTC midnight and
-      // shows a day early for US coaches).
-      const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(g.gameInfo?.date || '');
-      const shortDate = dm ? new Date(+dm[1], +dm[2] - 1, +dm[3]).toLocaleDateString([], { month: 'short', day: 'numeric' })
-        : (g.gameInfo?.date ? new Date(g.gameInfo.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
-
-      const row = document.createElement('div');
-      row.className = 'gd-row' + (r.isActive ? ' is-active' : '');
-
-      let dotCls = 'dot-idle';
-      if (r.isActive) dotCls = 'dot-active';
-      else if (r.isFinal) dotCls = 'dot-final';
-
-      let actions = '';
-      if (r.isActive && !r.isFinal) actions = '<button class="gd-finish-btn" data-action="finish">Finish Game</button>';
-
-      row.innerHTML = `
-        <div class="gd-dot ${dotCls}"></div>
-        <div class="gd-info" data-action="switch">
-          <div class="gd-name">${this._esc(r.name)}</div>
-          <div class="gd-meta">${r.plays} play${r.plays !== 1 ? 's' : ''}${shortDate ? ' · ' + shortDate : ''}</div>
-        </div>
-        <div class="gd-badges">${this._gameBadgesHtml(r)}</div>
-        <div class="gd-actions">${actions}</div>`;
-
-      row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        // Clicking the game you're already in = dismiss and return to it;
-        // otherwise the one authoritative command owns switch + chrome + close.
-        if (!r.isActive) this.openGame(g.id);
-        else this._closeGameDropdown();
-      });
-
-      row.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this._closeGameDropdown();
-        this._finishGame();
-      });
-
-      list.appendChild(row);
-    });
   }
 
   /**
@@ -480,7 +336,6 @@ class App {
     }
 
     store.setGameStatus(game.id, 'final');
-    this._updateSeasonChip();
     this._renderGamesPanel();   // commits live state (incl. status) into the node
     store.persist();
     this.season._renderAll?.();
@@ -564,51 +419,6 @@ class App {
     });
   }
 
-  /** Refresh the breadcrumb (Team ▸ Season ▸ Game). */
-  _updateSeasonChip() {
-    const bc = document.getElementById('breadcrumb');
-    const teamText = document.getElementById('bcTeamText');
-    const seasonText = document.getElementById('bcSeasonText');
-    const gameText = document.getElementById('bcGameText');
-    const gameSeg = document.getElementById('bcGame');
-    const gameSep = document.getElementById('bcGameSep');
-    if (!bc) return;
-
-    let profile = {};
-    try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) {}
-    if (teamText) teamText.textContent = profile.teamName || 'Team';
-
-    const store = this.storage && this.storage.seasonStore;
-    if (!store || !store.hasCurrent()) { bc.hidden = true; return; }
-    const d = store.data;
-    const game = store.activeGame && store.activeGame();
-    const gameName = game ? store.gameName(game, store.activeIndex()) : '';
-    if (seasonText) seasonText.textContent = d.seasonName || 'Season';
-    const showGame = !!gameName;
-    if (gameText) gameText.textContent = gameName;
-    // Scorebug — a broadcast bug on the game segment (score + FINAL state)
-    // from existing gameInfo. Display-only and a SEPARATE span: #bcGameText's
-    // content is pinned by e2e-onboarding and must stay just the name.
-    const scoreEl = document.getElementById('bcScore');
-    if (scoreEl) {
-      const gi = (game && game.gameInfo) || {};
-      const us = gi.scoreUs, them = gi.scoreThem;
-      const hasScore = us !== '' && us != null && them !== '' && them != null;
-      if (showGame && hasScore) {
-        scoreEl.textContent = `${us}–${them}`;
-        scoreEl.classList.toggle('bc-score-w', Number(us) > Number(them));
-        scoreEl.classList.toggle('bc-score-l', Number(us) < Number(them));
-        scoreEl.classList.toggle('bc-score-final', (game && game.status) === 'final');
-        scoreEl.hidden = false;
-      } else {
-        scoreEl.hidden = true;
-      }
-    }
-    if (gameSeg) gameSeg.style.display = showGame ? '' : 'none';
-    if (gameSep) gameSep.style.display = showGame ? '' : 'none';
-    bc.hidden = false;
-  }
-
   // ---- Games panel (settings drawer) ----------------------------------------
 
   _bindGamesPanel() {
@@ -668,7 +478,6 @@ class App {
         const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season?`, 'Remove');
         if (!ok) return;
         this.storage.removeGame(g.id);
-        this._updateSeasonChip();
         this._renderGamesPanel();
         this.season._renderAll?.();
         // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
@@ -933,7 +742,6 @@ class App {
   }
 
   _afterNewGame() {
-    this._updateSeasonChip();
     this._renderGamesPanel?.();
     this.season?._renderAll?.();
   }
@@ -1945,7 +1753,6 @@ class App {
         jerseyColor: (this.storage.gameInfo.jerseyColor || prev.jerseyColor || ''),
       };
       localStorage.setItem('ffa_team_profile', JSON.stringify(profile));
-      this._updateSeasonChip();
     } catch (e) { /* localStorage unavailable — ignore */ }
   }
 

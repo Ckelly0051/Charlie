@@ -436,8 +436,10 @@ r = await page.evaluate(async () => {
   return {
     outletWhileLibraryOpen, outletAfterLibraryClose,
     outletWhileReportsOpen, outletAfterReportsClose: outlet(),
-    breadcrumbHiddenUnderShell:
-      getComputedStyle(document.getElementById('breadcrumb')).display === 'none',
+    // Was "hidden under the shell". Now DELETED: hidden markup is exactly what
+    // let the retired game-entry flow resurface whenever an overlay revealed the
+    // classic outlet. Absence is the stronger contract — it cannot be un-hidden.
+    breadcrumbGone: !document.getElementById('breadcrumb') && !document.getElementById('gameDropdown'),
   };
 });
 // The library still lives inside the classic #app, so opening it must still
@@ -453,8 +455,8 @@ ok(r.outletAfterLibraryClose === true,
 // — strictly better than revealing-then-restoring.
 ok(r.outletWhileReportsOpen === true && r.outletAfterReportsClose === true,
   'Advanced Reports NEVER reveals the classic outlet (it is a shell route now)', JSON.stringify(r));
-ok(r.breadcrumbHiddenUnderShell,
-  'The legacy breadcrumb + game dropdown is hidden whenever the shell owns the product', JSON.stringify(r));
+ok(r.breadcrumbGone,
+  'The legacy breadcrumb + game dropdown are DELETED, not merely hidden', JSON.stringify(r));
 
 // disable() remains as the INTERNAL mount/restore teardown contract (tested
 // lifecycle hygiene — proves the shell returns #app intact). It is not reachable

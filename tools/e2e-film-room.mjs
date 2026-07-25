@@ -612,8 +612,9 @@ r = await page.evaluate(() => ({
   pills: document.querySelectorAll('.team-pill[data-team]').length,
   seasons: document.querySelectorAll('.season-card').length,
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
-  breadcrumbHidden: document.getElementById('breadcrumb').classList.contains('hidden')
-    || getComputedStyle(document.getElementById('breadcrumb')).display === 'none',
+  // (a `breadcrumbHidden` field lived here, computed but never asserted by any
+  // ok() below — dead weight. The breadcrumb is deleted outright now, so it
+  // would also have thrown on a null element.)
   hasCurrent: window.app.storage.seasonStore.hasCurrent() }));
 // EXACT match — a regex would also match a concatenation bug like
 // 'MavericksJV Squad' (leftover setup-input value).
