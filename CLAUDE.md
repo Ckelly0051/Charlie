@@ -267,9 +267,9 @@ duplicated verbatim by the shell's own Team › Season › Game context bar.
 while the liveness assertion stays green (proving the outlet really is revealed,
 so the check can't pass vacuously). `e2e-workspace-shell` 35 → 39.
 
-### ▶ CODEX INDEPENDENT REVIEW — CHANGES REQUESTED (2026-07-25)
+### ▶ CODEX REPAIR OF CLOSEOUT REVIEW — BUILT, GATE-GREEN, AWAITING CLAUDE REVIEW (2026-07-25)
 
-**Reviewer: Codex. Builder: Claude. Review range: `afb8115..2362bfb`. Verdict: CHANGES REQUESTED.** The film-load race fix, classic game-entry retirement, analytics-DOM reuse, desktop control relocation, version stamp, and retained shared game-row helpers check out. The batch is not accepted because the new Reports route has observed functional/lifecycle failures and normalization has a silent data-discard path. The canonical gate is necessary but did not exercise those states.
+**Original reviewer: Codex. Original builder: Claude. Review range: `afb8115..2362bfb`.** The review below requested seven changes. Codex then implemented the complete repair batch at `d32aa16`; it is built and gate-green but not self-accepted. Claude is the independent reviewer for this baton pass.
 
 Reviewed commits, oldest first:
 
@@ -320,6 +320,17 @@ promotion past a local smoke build to a published stable release.
 **Advisory:** Home's `+ New game` immediately opens a blank game. A short football-first setup sheet (opponent, date, self/opponent scout, optional film) is the better eventual coach flow.
 
 **Repair order:** Reports correctness/lifecycle/route registry; custom-tag preservation; then proof/CI/mobile hardening. Rebuild and rerun focused tests plus the full gate. No package, tag, stable release, managed-film deletion, or real-data rewrite is authorized.
+**Repair implemented at `d32aa16`:**
+- Reports now distinguishes the main dashboard from specialized reports. Main route chrome delegates to canonical actions; opponent/scout/self-scout/defensive/empty reports retain their own truthful title, Export where data supports it, and Close/back. Close, overlay click, and Escape all return to the main Reports dashboard.
+- Reports unbinds/rebinds its host and observer across shell teardown; one route-host registry now owns visibility for Home/Break Down/Study/Reports/Plan and library transitions; Reports capability-gates with Study/Plan.
+- Missing custom tags backfill to `[]`; scalar/object-shaped imports are preserved as string-array values through canonical save/reopen instead of being silently deleted.
+- The live Undo/Redo/Shortcuts nodes move responsively: desktop toolbar in deterministic order, mobile Team & Film Settings drawer as >=44px touch targets. Existing listeners and disabled-state bindings remain the owners.
+- CI uses `npm ci`; the gate reports optional real-data separately as skipped and its self-test pins skip/green/red discrimination.
+- C2 hydrates the complete outgoing game through the production loader and byte-fingerprints multiple complete non-target games across Refuge open/link/save/reopen.
+
+**Verification on final rebuilt bytes:** focused Reports/shell 56/56; tag model/save-reopen 37/37; film storage 31/31; Study 56/56; onboarding 52/52; analytics parity 2/2 including the real six-game golden; integrity 12 seeds x 80 operations with 0 violations; local real data 13/13; catalog persistence 50/50; film-load race 8/8; canonical gate **60 harnesses | 60 green | 0 skipped | 0 failed**; `cargo check` clean. No coach data or film files were written. No package/tag/release.
+
+**Next action:** Claude independently reviews `d32aa16`, with special attention to Reports close/remount state, responsive live-node movement, non-destructive custom coercion, and gate skip classification. Only after acceptance does the coach decide whether to package a milestone.
 
 **CLASSIC TOP BAR, PART 1 — ENTOMBED CAPABILITIES RECOVERED (2026-07-25).**
 Correcting my own framing first: I had recorded the classic top bar as "still

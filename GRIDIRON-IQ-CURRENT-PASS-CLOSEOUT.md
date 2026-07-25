@@ -305,10 +305,16 @@ work moves to the parked Plan V2 roadmap.
 
 ## 9. Codex Independent Review Of `afb8115..2362bfb` (2026-07-25)
 
-**Verdict: CHANGES REQUESTED. Do not package or publish yet.**
+**Verdict update: repairs built at `d32aa16`, awaiting Claude independent review. Do not package or publish yet.**
 
 Verified green on committed bytes: focused suites, fresh rebuilt canonical gate 60/60, `cargo check`, and local real-data 13/13. Latest-load-wins film guards, single game-entry ownership, linked-film persistence, classic breadcrumb/dropdown deletion, analytics DOM reuse, and desktop chrome relocation passed inspection. The earlier unexplained 57/60 red did not recur.
 
 Blocking repairs: (1) Reports must retain the active report's visible title, Close/back, and report-specific Export action; the blanket `.stats-header` suppression currently hides them and leaves generic actions dead. (2) Reports must remount with live actions after shell disable/re-enable; `_bound` currently points at the destroyed first host. (3) Reports must participate in capability gating, library visibility restoration, and lifecycle tests. (4) `_normalize` may backfill missing `tags.custom`, but must preserve scalar/imported values rather than silently deleting them.
 
 Same-batch hardening: count optional real-data as skipped rather than green and use `npm ci`; fingerprint every non-target game across the Refuge link proof; give mobile an intentional Undo/Redo/Shortcuts home. Full evidence is in `CLAUDE.md` under "CODEX INDEPENDENT REVIEW — CHANGES REQUESTED." Managed C: film remains protected. No migration, deletion, package, tag, or stable promotion is authorized.
+
+### Repair implementation (`d32aa16`)
+
+All seven findings are implemented: state-aware Reports actions/titles/back behavior; teardown-safe Reports rebinding; one shared route visibility registry; non-destructive custom-tag coercion with save/reopen proof; responsive live Undo/Redo/Shortcuts controls; honest CI skip accounting plus `npm ci`; and multi-game C2 non-target fingerprints.
+
+Final rebuilt verification: 60/60 canonical harnesses with 0 skipped/failed, real data 13/13, Reports/shell 56/56, custom preservation 37/37, film storage 31/31, analytics parity unchanged, integrity 0 violations, and `cargo check` clean. No real data, linked film, or managed film was modified. Claude reviews `d32aa16` next; packaging remains coach-gated.
