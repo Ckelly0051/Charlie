@@ -33,6 +33,30 @@ let r = await page.evaluate(() => ({
   emptyActionTarget: document.querySelector('#wsResume')?.dataset.wsAction,
 }));
 ok(r.shell && r.active && r.home && r.appInOutlet, 'Feature flag mounts shell and relocates the intact classic app', JSON.stringify(r));
+
+// NO JS VALUES IN THE CHROME (coach smoke, 2026-07-25). Adding the Reports
+// route without adding its nav icon rendered the literal string "undefined"
+// into all three navs. Scan the shell's own chrome — nav buttons, context bar,
+// headers — for values that mean "a variable escaped into the UI". Scoped to
+// chrome deliberately: report BODIES can legitimately contain odd values from
+// real data, but navigation and context never should.
+// NOTE: uses its own variable — `r` is shared by the assertions that follow.
+const chromeScan = await page.evaluate(() => {
+  const bad = /\bundefined\b|\bNaN\b|\[object Object\]|\bnull\b/;
+  const zones = ['.ws-sidebar', '.ws-topbar', '.ws-mobile-head', '.ws-mobile-nav', '.ws-home-head', '.ws-context'];
+  const hits = [];
+  zones.forEach(sel => document.querySelectorAll(sel).forEach(z => {
+    const t = (z.textContent || '').replace(/\s+/g, ' ').trim();
+    if (bad.test(t)) hits.push({ zone: sel, text: t.slice(0, 90) });
+  }));
+  return {
+    hits,
+    navLabels: [...document.querySelectorAll('.ws-sidebar [data-ws-route]')].map(b => (b.textContent || '').trim()),
+  };
+});
+ok(chromeScan.hits.length === 0, 'No JS value (undefined/NaN/null/[object Object]) leaks into shell chrome', JSON.stringify(chromeScan.hits));
+ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/undefined/.test(l)),
+  'Every shell nav button renders a real icon + label', JSON.stringify(chromeScan.navLabels));
 ok(r.flag === '1' && r.breakdownDisabled, 'Classic launch remains opt-in and guarded routes start disabled');
 ok(r.emptyAction === 'Set up team' && r.emptyActionEnabled && r.emptyActionTarget === 'seasons',
   'Empty Home offers an enabled primary setup action instead of appearing dead', JSON.stringify(r));
