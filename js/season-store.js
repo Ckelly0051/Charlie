@@ -289,7 +289,19 @@ export class SeasonStore {
         // custom-tag input). Backfilling here fixes the class at the data
         // boundary instead of patching each sink; the sinks keep their own
         // guards because a render guard alone already proved insufficient.
-        if (p && p.tags && !Array.isArray(p.tags.custom)) p.tags.custom = [];
+        if (p?.tags && !Array.isArray(p.tags.custom)) {
+          const legacy = p.tags.custom;
+          if (legacy == null) {
+            p.tags.custom = [];
+          } else {
+            // Preserve recoverable imported data while restoring the string[]
+            // model. Silent deletion requires coach approval and is forbidden.
+            let value;
+            try { value = typeof legacy === 'string' ? legacy : JSON.stringify(legacy); }
+            catch { value = String(legacy); }
+            p.tags.custom = value == null ? [] : [value];
+          }
+        }
         SeasonStore.migratePlayFormation(p);
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);

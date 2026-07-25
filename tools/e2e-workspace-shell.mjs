@@ -28,6 +28,7 @@ let r = await page.evaluate(() => ({
   appInOutlet: document.querySelector('#wsClassicOutlet > #app')?.id === 'app',
   flag: localStorage.getItem('ffa_workspace_shell_v2'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
+  reportsDisabled: [...document.querySelectorAll('[data-ws-route="reports"]')].every(button => button.disabled),
   emptyAction: document.querySelector('#wsResume')?.textContent,
   emptyActionEnabled: !document.querySelector('#wsResume')?.disabled,
   emptyActionTarget: document.querySelector('#wsResume')?.dataset.wsAction,
@@ -75,7 +76,7 @@ ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/un
   'Every shell nav button renders a label with no leaked value', JSON.stringify(chromeScan.navLabels));
 ok(chromeScan.navIcons.length >= 5 && chromeScan.navIcons.every(i => i && i !== '•'),
   'Every shell route carries its OWN icon, not the missing-icon fallback', JSON.stringify(chromeScan.navIcons));
-ok(r.flag === '1' && r.breakdownDisabled, 'Classic launch remains opt-in and guarded routes start disabled');
+ok(r.flag === '1' && r.breakdownDisabled && r.reportsDisabled, 'Guarded routes, including Reports, start disabled with no season');
 ok(r.emptyAction === 'Set up team' && r.emptyActionEnabled && r.emptyActionTarget === 'seasons',
   'Empty Home offers an enabled primary setup action instead of appearing dead', JSON.stringify(r));
 
@@ -206,8 +207,11 @@ r = {
   shortcuts: await onScreen('#btnShortcuts'),
   inTools: await page.evaluate(() => ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
     .every(id => !!document.getElementById(id)?.closest('.ws-global-tools'))),
+  order: await page.evaluate(() => [...document.querySelector('.ws-global-tools').children]
+    .map(el => el.id || el.querySelector('button')?.id || '')),
 };
-ok(r.undo && r.redo && r.shortcuts && r.inTools,
+ok(r.undo && r.redo && r.shortcuts && r.inTools
+  && r.order.slice(0, 5).join(',') === 'btnUndoAction,btnRedoAction,btnShortcuts,btnSidebarToggle,btnMoreMenu',
   'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar', JSON.stringify(r));
 
 // Relocation must move the LIVE element, so history-manager's existing binding
@@ -391,6 +395,79 @@ ok(r.route === 'study' && r.study && r.statsHidden && r.appHidden, 'Study opens 
 await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !document.querySelector('#wsClassicOutlet')?.hidden }));
 ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
+// REPORTS ROUTE STATE CONTRACT. The main dashboard uses route chrome; every
+// specialized report keeps its own title and exact Export/Close actions.
+r = await page.evaluate(() => ({
+  mainRouteHead: !document.querySelector('#wsReports .rp-head')?.hidden,
+  mainHeaderHidden: getComputedStyle(document.querySelector('#wsReports .stats-header-main')).display === 'none',
+  mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
+}));
+ok(r.mainRouteHead && r.mainHeaderHidden && r.mainActions === 2,
+  'Reports main dashboard uses live route-level title and actions', JSON.stringify(r));
+r = await page.evaluate(() => {
+  let delegated = 0;
+  const canonical = document.getElementById('btnExportStats');
+  canonical.addEventListener('click', event => { delegated++; event.stopImmediatePropagation(); }, { capture: true, once: true });
+  document.querySelector('[data-rp-action="export"]').click();
+  return { delegated };
+});
+ok(r.delegated === 1, 'Reports main Export delegates to the canonical analytics action', JSON.stringify(r));
+await page.evaluate(() => window.app.stats._emptyOverlay('Scout Report', 'No opponent data yet.'));
+await new Promise(resolve => setTimeout(resolve, 0));
+r = await page.evaluate(() => ({
+  routeHeadHidden: document.querySelector('#wsReports .rp-head')?.hidden,
+  title: document.querySelector('#wsReports .stats-header h2')?.textContent,
+  closeVisible: document.getElementById('btnCloseEmptyOv')?.offsetParent !== null,
+}));
+ok(r.routeHeadHidden && r.title === 'Scout Report' && r.closeVisible,
+  'Specialized/empty report keeps its truthful title and canonical Close action', JSON.stringify(r));
+await page.keyboard.press('Escape');
+await new Promise(resolve => setTimeout(resolve, 0));
+r = await page.evaluate(() => ({ main: !!document.getElementById('btnExportStats'), route: window.app.workspace.currentRoute() }));
+ok(r.main && r.route === 'reports', 'Escape from a specialized report returns to the Reports dashboard', JSON.stringify(r));
+const reportStates = await page.evaluate(() => {
+  const stats = window.app.stats;
+  const capture = (render, expectedTitle, exportSelector) => {
+    render();
+    const header = document.querySelector('#wsReports .stats-header');
+    return {
+      expectedTitle,
+      title: header?.querySelector('h2')?.textContent || '',
+      visible: !!header && getComputedStyle(header).display !== 'none',
+      close: !!header?.querySelector('[id^="btnClose"]'),
+      export: exportSelector ? !!header?.querySelector(exportSelector) : true,
+    };
+  };
+  return [
+    capture(() => stats.renderOpponentScout('Knights'), 'Opponent Report', null),
+    capture(() => stats.renderScoutReport(), 'Scout Report', '#btnExportScoutReport'),
+    capture(() => stats.renderSelfScout(), 'Self-Scout', '#btnExportSelfScout'),
+    capture(() => stats.renderDefensiveReport(), 'Defensive Report', null),
+  ];
+});
+ok(reportStates.every(state => state.visible && state.close && state.export && state.title.includes(state.expectedTitle)),
+  'Opponent, scout, self-scout, and defensive report states retain their canonical controls', JSON.stringify(reportStates));
+await page.evaluate(() => window.app.reportsScreen.show());
+const reportsLibrary = await page.evaluate(async () => {
+  const shell = window.app.workspaceShell;
+  await shell._openLibrary();
+  const whileOpen = {
+    reportsHidden: document.getElementById('wsReports').hidden,
+    outletVisible: !document.getElementById('wsClassicOutlet').hidden,
+  };
+  window.app.library.hide();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  return {
+    whileOpen,
+    after: {
+      reportsVisible: !document.getElementById('wsReports').hidden,
+      outletHidden: document.getElementById('wsClassicOutlet').hidden,
+    },
+  };
+});
+ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.outletVisible
+  && reportsLibrary.after.reportsVisible && reportsLibrary.after.outletHidden,
+  'Opening and closing the season library from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));
 await page.click('.ws-sidebar [data-ws-route="study"]');
 
 await page.click('.ws-sidebar [data-ws-route="plan"]');
@@ -486,8 +563,9 @@ await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1');
 // shortcuts, CV badge) re-entombed inside the hidden classic bar after a
 // lifecycle cycle, with every other assertion still green.
 r = await page.evaluate(() => ({
-  reAdopted: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'btnSidebarToggle']
-    .every(id => !!document.getElementById(id)?.closest('.ws-global-tools')),
+  reAdopted: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
+    .every(id => !!document.getElementById(id)?.closest('.ws-mobile-history-actions'))
+    && !!document.getElementById('btnSidebarToggle')?.closest('.ws-global-tools'),
   badgeReHoused: !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head'),
   moreReAdopted: !!document.getElementById('btnMoreMenu')?.closest('.ws-global-tools'),
   // and nothing got duplicated by mounting twice
@@ -496,6 +574,21 @@ r = await page.evaluate(() => ({
 }));
 ok(r.reAdopted && r.badgeReHoused && r.moreReAdopted && r.singletons,
   'Re-enabling after teardown re-adopts every relocated control exactly once', JSON.stringify(r));
+r = await page.evaluate(async () => {
+  await window.app.workspaceShell.show('reports');
+  let delegated = 0;
+  const canonical = document.getElementById('btnExportStats');
+  canonical.addEventListener('click', event => { delegated++; event.stopImmediatePropagation(); }, { capture: true, once: true });
+  const button = document.querySelector('#wsReports [data-rp-action="export"]');
+  button?.click();
+  return {
+    delegated,
+    buttonConnected: !!button?.isConnected,
+    dashInRoute: !!document.querySelector('#wsReports #statsDashboard'),
+  };
+});
+ok(r.delegated === 1 && r.buttonConnected && r.dashInRoute,
+  'Reports actions rebind to the replacement host after shell teardown/re-enable', JSON.stringify(r));
 
 await page.evaluate(() => window.app.workspaceShell.show('home'));
 await capture('home-768x1024');
@@ -519,6 +612,24 @@ r = await page.evaluate(() => ({
 }));
 ok(r.bottomTabs === 'none' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
   'Mobile Break Down uses one Home/Break Down/Study/Reports/Plan navigation system', JSON.stringify(r));
+await page.click('.ws-mobile-head [data-ws-action="settings"]');
+await new Promise(resolve => setTimeout(resolve, 360));
+r = {
+  undo: await onScreen('#btnUndoAction'),
+  redo: await onScreen('#btnRedoAction'),
+  shortcuts: await onScreen('#btnShortcuts'),
+  inMobileTools: await page.evaluate(() => ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
+    .every(id => !!document.getElementById(id)?.closest('.ws-mobile-history-actions'))),
+  minHeight: await page.evaluate(() => Math.min(...['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
+    .map(id => document.getElementById(id).getBoundingClientRect().height))),
+};
+ok(r.undo && r.redo && r.shortcuts && r.inMobileTools && r.minHeight >= 44,
+  'Mobile More exposes the live Undo, Redo, and Shortcuts controls as touch targets', JSON.stringify(r));
+await page.click('#btnShortcuts');
+r = await page.evaluate(() => ({ shortcutsOpen: !document.getElementById('shortcutsModal')?.classList.contains('hidden') }));
+ok(r.shortcutsOpen, 'Mobile Shortcuts action remains wired to the canonical dialog', JSON.stringify(r));
+await page.evaluate(() => document.getElementById('shortcutsClose')?.click());
+await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

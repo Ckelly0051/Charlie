@@ -29,11 +29,16 @@ export class ReportsScreen {
     this._home = this.dash
       ? { parent: this.dash.parentNode, next: this.dash.nextSibling }
       : null;
+    this._clickHandler = null;
+    this._observer = null;
   }
 
   /** Re-parent the canonical dashboard into the shell's Reports route. */
   mount(host) {
     if (!host || !this.dash) return false;
+    // Shell lifecycle tests destroy and rebuild the route host. Detach from the
+    // old host before adopting the replacement or its controls become inert.
+    this._unbindHost();
     this.host = host;
     host.innerHTML = `
       <div class="rp-route">
@@ -52,27 +57,49 @@ export class ReportsScreen {
       </div>`;
     host.querySelector('.rp-body').append(this.dash);
     this._bind();
+    this._syncPresentation();
     return true;
   }
 
   restore() {
     if (!this.dash || !this._home?.parent) return;
+    this._unbindHost();
     const next = this._home.next?.parentNode === this._home.parent ? this._home.next : null;
     this._home.parent.insertBefore(this.dash, next);
     this.host = null;
   }
 
   _bind() {
-    if (!this.host || this._bound) return;
-    this._bound = true;
-    this.host.addEventListener('click', e => {
+    if (!this.host || this._clickHandler) return;
+    this._clickHandler = e => {
       const action = e.target.closest('[data-rp-action]')?.dataset.rpAction;
-      if (!action) return;
-      // Delegate to the canonical buttons the dashboard already owns, so these
-      // shell-level actions can never drift from the real implementations.
-      if (action === 'scout') document.getElementById('btnScoutOpp')?.click();
-      if (action === 'export') document.getElementById('btnExportStats')?.click();
+      if (action) {
+        // Route actions exist only for the main dashboard. Specialized reports
+        // expose their own canonical title and actions below.
+        if (action === 'scout') document.getElementById('btnScoutOpp')?.click();
+        if (action === 'export') document.getElementById('btnExportStats')?.click();
+      }
+    };
+    this.host.addEventListener('click', this._clickHandler);
+    this._observer = new MutationObserver(() => this._syncPresentation());
+    this._observer.observe(this.dash, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['class'],
     });
+  }
+
+  _unbindHost() {
+    if (this.host && this._clickHandler) this.host.removeEventListener('click', this._clickHandler);
+    this._clickHandler = null;
+    this._observer?.disconnect();
+    this._observer = null;
+  }
+
+  _syncPresentation() {
+    if (!this.host || !this.dash) return;
+    const main = !!this.dash.querySelector('#btnExportStats');
+    this.host.classList.toggle('rp-main-report', main);
+    const routeHead = this.host.querySelector('.rp-head');
+    if (routeHead) routeHead.hidden = !main;
   }
 
   /** Render the canonical dashboard for the current context. */
@@ -84,6 +111,7 @@ export class ReportsScreen {
     // The engine owns compute + render; we only ensure it is visible in-route.
     stats.showDashboard();
     this.dash.classList.remove('hidden');
+    this._syncPresentation();
   }
 
   _syncHeader() {

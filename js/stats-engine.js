@@ -295,6 +295,13 @@ export class StatsEngine {
   }
 
   hideDashboard() {
+    const app = window.app;
+    if (app?.workspace?.currentRoute?.() === 'reports' && app.reportsScreen?.host) {
+      // Reports is a destination, not a disposable modal. Close, overlay click,
+      // and Escape all return specialized reports to the main dashboard.
+      app.reportsScreen.show();
+      return;
+    }
     this.dashboardEl.classList.add('hidden');
     // showAdvancedReports() had to reveal #wsClassicOutlet for this dashboard to
     // render. Put it back, or the retired classic UI stays exposed underneath.
@@ -1754,7 +1761,7 @@ export class StatsEngine {
     el.innerHTML = `
       <div class="stats-overlay">
         <div class="stats-container">
-          <div class="stats-header">
+          <div class="stats-header stats-header-main">
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnScoutOpp" title="Auto-scout this opponent from every game you've already tagged against them — no re-tagging">🔍 Scout Opponent</button>

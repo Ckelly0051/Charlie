@@ -8779,6 +8779,16 @@ body.ws-shell-active .ws-global-tools>.btn:disabled{opacity:.38;cursor:default}
    1450px) leaked onto the relocated button, so it would have sprouted a label
    on a wide monitor and silently reflowed the top bar. */
 body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
+.ws-mobile-history-tools{display:none}
+@media(max-width:900px){
+  body.ws-shell-active .ws-mobile-history-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--ws-line);background:#101720}
+  body.ws-shell-active .ws-mobile-history-tools>strong{color:var(--ws-muted);font-size:11px;text-transform:uppercase}
+  body.ws-shell-active .ws-mobile-history-actions{display:flex;gap:8px}
+  body.ws-shell-active .ws-mobile-history-actions>.btn{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-width:44px;height:44px;margin:0;padding:0 11px;border:1px solid var(--ws-line);border-radius:5px;background:#151e29;color:var(--ws-text);box-shadow:none}
+  body.ws-shell-active .ws-mobile-history-actions>.btn:disabled{opacity:.38}
+  body.ws-shell-active .ws-mobile-history-actions #btnShortcuts span{display:inline;font-size:11px;font-weight:750}
+  body.ws-shell-active .ws-mobile-history-actions svg{width:16px;height:16px;stroke:currentColor}
+}
 /* Optional-CV-server status, rehoused in the drawer head next to its own tools.
    `display` is restated because the classic bar hides `.backend-status-badge`
    under max-width 1200px to save top-bar room — a constraint that does not
@@ -9171,10 +9181,12 @@ body.ws-route-reports .ws-reports #statsDashboard,
   margin: 0; border: 0; border-radius: 0; box-shadow: none;
   background: transparent;
 }
-/* The route header replaces the modal's own title bar (which also owns a Close
-   button that makes no sense for a destination you navigate to). Its actions
-   are re-exposed as .rp-btn and delegate to these exact buttons. */
-.ws-reports .stats-header { display: none; }
+/* The route header replaces the MAIN dashboard title bar. Specialized reports
+   keep their canonical title and report-specific Export/Close controls; hiding
+   every .stats-header deleted those capabilities. */
+.ws-reports .stats-header-main { display: none; }
+.ws-reports:not(.rp-main-report) .rp-head { display: none; }
+.ws-reports:not(.rp-main-report) .stats-header { position: sticky; top: 0; z-index: 4; }
 
 /* ---- Tabs: restyled as a route-level segmented bar ---- */
 .ws-reports .stats-tabs {
@@ -17514,7 +17526,19 @@ class SeasonStore {
         // custom-tag input). Backfilling here fixes the class at the data
         // boundary instead of patching each sink; the sinks keep their own
         // guards because a render guard alone already proved insufficient.
-        if (p && p.tags && !Array.isArray(p.tags.custom)) p.tags.custom = [];
+        if (p?.tags && !Array.isArray(p.tags.custom)) {
+          const legacy = p.tags.custom;
+          if (legacy == null) {
+            p.tags.custom = [];
+          } else {
+            // Preserve recoverable imported data while restoring the string[]
+            // model. Silent deletion requires coach approval and is forbidden.
+            let value;
+            try { value = typeof legacy === 'string' ? legacy : JSON.stringify(legacy); }
+            catch { value = String(legacy); }
+            p.tags.custom = value == null ? [] : [value];
+          }
+        }
         SeasonStore.migratePlayFormation(p);
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);
@@ -23851,6 +23875,13 @@ class StatsEngine {
   }
 
   hideDashboard() {
+    const app = window.app;
+    if (app?.workspace?.currentRoute?.() === 'reports' && app.reportsScreen?.host) {
+      // Reports is a destination, not a disposable modal. Close, overlay click,
+      // and Escape all return specialized reports to the main dashboard.
+      app.reportsScreen.show();
+      return;
+    }
     this.dashboardEl.classList.add('hidden');
     // showAdvancedReports() had to reveal #wsClassicOutlet for this dashboard to
     // render. Put it back, or the retired classic UI stays exposed underneath.
@@ -25310,7 +25341,7 @@ class StatsEngine {
     el.innerHTML = `
       <div class="stats-overlay">
         <div class="stats-container">
-          <div class="stats-header">
+          <div class="stats-header stats-header-main">
             <h2>${this._gameTitle()}${stats.filterActive ? ' <span style="color:var(--highlight);font-size:14px">(Filtered)</span>' : ''}</h2>
             <div class="stats-header-actions">
               <button class="btn btn-sm" id="btnScoutOpp" title="Auto-scout this opponent from every game you've already tagged against them — no re-tagging">🔍 Scout Opponent</button>
@@ -30003,11 +30034,16 @@ class ReportsScreen {
     this._home = this.dash
       ? { parent: this.dash.parentNode, next: this.dash.nextSibling }
       : null;
+    this._clickHandler = null;
+    this._observer = null;
   }
 
   /** Re-parent the canonical dashboard into the shell's Reports route. */
   mount(host) {
     if (!host || !this.dash) return false;
+    // Shell lifecycle tests destroy and rebuild the route host. Detach from the
+    // old host before adopting the replacement or its controls become inert.
+    this._unbindHost();
     this.host = host;
     host.innerHTML = `
       <div class="rp-route">
@@ -30026,27 +30062,49 @@ class ReportsScreen {
       </div>`;
     host.querySelector('.rp-body').append(this.dash);
     this._bind();
+    this._syncPresentation();
     return true;
   }
 
   restore() {
     if (!this.dash || !this._home?.parent) return;
+    this._unbindHost();
     const next = this._home.next?.parentNode === this._home.parent ? this._home.next : null;
     this._home.parent.insertBefore(this.dash, next);
     this.host = null;
   }
 
   _bind() {
-    if (!this.host || this._bound) return;
-    this._bound = true;
-    this.host.addEventListener('click', e => {
+    if (!this.host || this._clickHandler) return;
+    this._clickHandler = e => {
       const action = e.target.closest('[data-rp-action]')?.dataset.rpAction;
-      if (!action) return;
-      // Delegate to the canonical buttons the dashboard already owns, so these
-      // shell-level actions can never drift from the real implementations.
-      if (action === 'scout') document.getElementById('btnScoutOpp')?.click();
-      if (action === 'export') document.getElementById('btnExportStats')?.click();
+      if (action) {
+        // Route actions exist only for the main dashboard. Specialized reports
+        // expose their own canonical title and actions below.
+        if (action === 'scout') document.getElementById('btnScoutOpp')?.click();
+        if (action === 'export') document.getElementById('btnExportStats')?.click();
+      }
+    };
+    this.host.addEventListener('click', this._clickHandler);
+    this._observer = new MutationObserver(() => this._syncPresentation());
+    this._observer.observe(this.dash, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['class'],
     });
+  }
+
+  _unbindHost() {
+    if (this.host && this._clickHandler) this.host.removeEventListener('click', this._clickHandler);
+    this._clickHandler = null;
+    this._observer?.disconnect();
+    this._observer = null;
+  }
+
+  _syncPresentation() {
+    if (!this.host || !this.dash) return;
+    const main = !!this.dash.querySelector('#btnExportStats');
+    this.host.classList.toggle('rp-main-report', main);
+    const routeHead = this.host.querySelector('.rp-head');
+    if (routeHead) routeHead.hidden = !main;
   }
 
   /** Render the canonical dashboard for the current context. */
@@ -30058,6 +30116,7 @@ class ReportsScreen {
     // The engine owns compute + render; we only ensure it is visible in-route.
     stats.showDashboard();
     this.dash.classList.remove('hidden');
+    this._syncPresentation();
   }
 
   _syncHeader() {
@@ -30275,6 +30334,7 @@ class WorkspaceShell {
     this._homeToken = 0;
     this._homeSelectedGameId = null;
     this._homeFilmHealth = new Map();
+    this._onViewportChange = () => this._placeHistoryTools();
     // Controls the classic top bar owns that the shell has no replacement for.
     // The bar itself lives inside #app, which lives inside the permanently
     // hidden #wsClassicOutlet — so anything NOT relocated here is not "legacy
@@ -30330,11 +30390,12 @@ class WorkspaceShell {
     // Order matters: breakdownVideo un-mounts its chrome from .video-section
     // BEFORE breakdownWorkspace moves that section back to the classic #app.
     this.app.breakdownVideo?.restore();
+    this.app.reportsScreen?.restore();
     this.app.breakdownWorkspace?.restore();
     this._restoreChrome();
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
-    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
+    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
   }
   _mount() {
     this.classicApp = document.getElementById('app');
@@ -30351,7 +30412,15 @@ class WorkspaceShell {
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
       <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.reportsScreen?.mount(root.querySelector('#wsReports')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
+    document.body.appendChild(root);
+    root.querySelector('#wsClassicOutlet').appendChild(this.classicApp);
+    this.root = root;
+    this._mountChrome();
+    this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown'));
+    this.app.studyScreen?.mount(root.querySelector('#wsStudy'));
+    this.app.reportsScreen?.mount(root.querySelector('#wsReports'));
+    this.app.planScreen?.mount(root.querySelector('#wsPlan'));
+    this._bind();
   }
   // The `|| '•'` is load-bearing, not defensive noise: adding the Reports route
   // without adding its icon rendered the literal string "undefined" in all three
@@ -30383,8 +30452,7 @@ class WorkspaceShell {
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
-    const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), reports=this.root.querySelector('#wsReports'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
-    home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; if(reports)reports.hidden=routeId!=='reports'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
+    this._setRouteVisibility(routeId);
     if (routeId==='home') {
       // A preview belongs only to the current Home visit. Returning from a game
       // must highlight the canonical active game, not the prior Home preview.
@@ -30413,22 +30481,30 @@ class WorkspaceShell {
    * this — routing through show() would recurse. This is visibility only. */
   restoreRouteVisibility() {
     if (!this.root) return;
-    const routeId = this.app.workspace.currentRoute() || 'home';
-    const q = id => this.root.querySelector(id);
-    const home = q('#wsHome'), breakdown = q('#wsBreakdown'), study = q('#wsStudy'),
-          plan = q('#wsPlan'), outlet = q('#wsClassicOutlet');
-    if (!home || !breakdown || !study || !plan || !outlet) return;
-    home.hidden = routeId !== 'home';
-    breakdown.hidden = routeId !== 'breakdown';
-    study.hidden = routeId !== 'study';
-    plan.hidden = routeId !== 'plan';
-    outlet.hidden = true;
+    this._setRouteVisibility(this.app.workspace.currentRoute() || 'home');
+  }
+  _routeHosts() {
+    if (!this.root) return {};
+    return {
+      home: this.root.querySelector('#wsHome'),
+      breakdown: this.root.querySelector('#wsBreakdown'),
+      study: this.root.querySelector('#wsStudy'),
+      reports: this.root.querySelector('#wsReports'),
+      plan: this.root.querySelector('#wsPlan'),
+    };
+  }
+  _setRouteVisibility(routeId, outletVisible = false) {
+    Object.entries(this._routeHosts()).forEach(([id, host]) => {
+      if (host) host.hidden = id !== routeId;
+    });
+    const outlet = this.root?.querySelector('#wsClassicOutlet');
+    if (outlet) outlet.hidden = !outletVisible;
   }
   _syncChrome() {
     if (!this.root) return; const c=this.app.workspace.snapshot();
     this._text('wsTeamName',c.team?.name||'Team'); this._text('wsTeamMeta',c.season?.name||'Season workspace'); this._text('wsTopTeamName',c.team?.name||'Team'); this._text('wsTopTeamMeta',c.season?.name||'Season workspace'); this._text('wsContextTeam',c.team?.name||'Team'); this._text('wsContextSeason',c.season?.name||'No season open'); this._text('wsContextGame',c.game?.name||'Team home'); this._text('wsMobileContext',c.game?.name||c.season?.name||'Team home');
     this.root.querySelectorAll('[data-ws-route="breakdown"]').forEach(b=>b.disabled=!c.capabilities.canBreakDown);
-    this.root.querySelectorAll('[data-ws-route="study"],[data-ws-route="plan"]').forEach(b=>b.disabled=!c.capabilities.canStudy);
+    this.root.querySelectorAll('[data-ws-route="study"],[data-ws-route="reports"],[data-ws-route="plan"]').forEach(b=>b.disabled=!c.capabilities.canStudy);
   }
   async refreshHome() {
     if (!this.root) return; const token=++this._homeToken; this._syncChrome(); const c=this.app.workspace.snapshot(); const store=this.app.storage.seasonStore; const game=store.data ? store.activeGame?.() : null;
@@ -30454,7 +30530,7 @@ class WorkspaceShell {
    *  revealing the classic outlet (which is what used to expose the retired
    *  top bar underneath). Kept as the named entry point Study links to. */
   showAdvancedReports(){ if(!this.root) return; return this.show('reports'); }
-  async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
+  async _openLibrary(){this._setRouteVisibility(null, true);await this.app.library.open();}
   /** Home's direct "New game" action (C1 finding 4): with Home the sole game
    * entry, creating a game belongs on Home, not buried under More. Creates the
    * game in the active season (reusing a still-empty active game rather than
@@ -30468,14 +30544,39 @@ class WorkspaceShell {
    *  order IS the visual order: history first, then help, then settings/more. */
   _mountChrome(){
     const tools=this.root?.querySelector('.ws-global-tools');
-    if(tools)for(const k of ['undo','redo','shortcuts','settings','more'])if(this._chrome[k]?.el)tools.append(this._chrome[k].el);
+    if(tools)for(const k of ['settings','more'])if(this._chrome[k]?.el)tools.append(this._chrome[k].el);
     if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);
+    this._ensureMobileTools();
+    this._placeHistoryTools();
+    window.addEventListener('resize',this._onViewportChange);
     // Drawer head, not the top bar: the badge reports an optional local server
     // most coaches never run, so it must be reachable without taxing prime chrome.
     const head=this._chrome.drawer?.el?.querySelector('.settings-drawer-head');
     if(head&&this._chrome.backend?.el)head.insertBefore(this._chrome.backend.el,head.querySelector('.settings-drawer-close'));
   }
-  _restoreChrome(){this.app.uiPolish?._closeDrawer?.();document.getElementById('moreDropdown')?.classList.add('hidden');for(const k of ['undo','redo','shortcuts','settings','more','backend','drawer'])this._restore(this._chrome[k]);}
+  _ensureMobileTools(){
+    const drawer=this._chrome.drawer?.el;
+    if(!drawer||drawer.querySelector('.ws-mobile-history-tools'))return;
+    const row=document.createElement('div');row.className='ws-mobile-history-tools';
+    row.innerHTML='<strong>History &amp; help</strong><div class="ws-mobile-history-actions"></div>';
+    drawer.querySelector('.settings-drawer-head')?.insertAdjacentElement('afterend',row);
+  }
+  _placeHistoryTools(){
+    if(!this.root)return;
+    const mobile=window.matchMedia('(max-width: 900px)').matches;
+    const target=mobile
+      ? this._chrome.drawer?.el?.querySelector('.ws-mobile-history-actions')
+      : this.root.querySelector('.ws-global-tools');
+    if(!target)return;
+    const anchor=mobile?null:this._chrome.settings?.el;
+    for(const k of ['undo','redo','shortcuts'])if(this._chrome[k]?.el)target.insertBefore(this._chrome[k].el,anchor);
+  }
+  _restoreChrome(){
+    window.removeEventListener('resize',this._onViewportChange);
+    this.app.uiPolish?._closeDrawer?.();
+    document.getElementById('moreDropdown')?.classList.add('hidden');
+    for(const k of ['undo','redo','shortcuts','settings','more','backend','drawer'])this._restore(this._chrome[k]);
+  }
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
   _esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

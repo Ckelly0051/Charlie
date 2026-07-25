@@ -54,10 +54,12 @@ body.ws-route-reports .ws-reports #statsDashboard,
   margin: 0; border: 0; border-radius: 0; box-shadow: none;
   background: transparent;
 }
-/* The route header replaces the modal's own title bar (which also owns a Close
-   button that makes no sense for a destination you navigate to). Its actions
-   are re-exposed as .rp-btn and delegate to these exact buttons. */
-.ws-reports .stats-header { display: none; }
+/* The route header replaces the MAIN dashboard title bar. Specialized reports
+   keep their canonical title and report-specific Export/Close controls; hiding
+   every .stats-header deleted those capabilities. */
+.ws-reports .stats-header-main { display: none; }
+.ws-reports:not(.rp-main-report) .rp-head { display: none; }
+.ws-reports:not(.rp-main-report) .stats-header { position: sticky; top: 0; z-index: 4; }
 
 /* ---- Tabs: restyled as a route-level segmented bar ---- */
 .ws-reports .stats-tabs {

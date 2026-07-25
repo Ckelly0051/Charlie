@@ -44,6 +44,11 @@ result_line() {
   printf '%s\n' "$1" | grep -E '(RESULT:|ALL PASS|TOTALS)' | tail -1
 }
 
+# Optional fixture-less runs are honest skips, never green proof.
+is_skipped() {
+  local line="$1" rc="${2:-0}"
+  [ "$rc" -eq 0 ] && printf '%s\n' "$line" | grep -qi '(skipped)'
+}
 # $1 = result line, $2 = process exit code. BOTH must be clean.
 is_green() {
   local line="$1" rc="${2:-0}"
@@ -58,6 +63,10 @@ if [ "$1" = "--self-test" ]; then
   fails=0
   check() { # want_rc, line, exit_code, label
     is_green "$2" "$3"; local rc=$?
+    if [ "$rc" -eq "$1" ]; then echo "  ok   $4"; else echo "  BAD  $4 (rc=$rc want=$1)"; fails=$((fails+1)); fi
+  }
+  check_skip() { # want_rc, line, exit_code, label
+    is_skipped "$2" "$3"; local rc=$?
     if [ "$rc" -eq "$1" ]; then echo "  ok   $4"; else echo "  BAD  $4 (rc=$rc want=$1)"; fails=$((fails+1)); fi
   }
   echo "=== detector self-test ==="
@@ -81,6 +90,9 @@ if [ "$1" = "--self-test" ]; then
   check 0 "== RESULT: 20 passed ==" 0 "green: no failure count AND exit 0"
   check 1 "== RESULT: 20 passed, 0 failed ==" 1 "RED: clean line but exit 1"
   check 1 "== RESULT: 20 passed, 2 failed ==" 0 "RED: failures printed but exit 0"
+  check_skip 0 "== RESULT: 0 passed, 0 failed (skipped) ==" 0 "skip: optional fixture absent"
+  check_skip 1 "== RESULT: 0 passed, 0 failed (skipped) ==" 1 "RED: skipped-looking line with nonzero exit"
+  check_skip 1 "== RESULT: 20 passed, 0 failed ==" 0 "green result is not a skip"
 
   # Build-guard self-test (review finding #1): a failing build piped to tail
   # must not be swallowed. Without `set -o pipefail` this returns 0.
@@ -119,7 +131,7 @@ echo "=== GATE ==="
 # real defect from a harness that ran out of time, and "intermittent" becomes a
 # guess — the exact unevidenced diagnosis that hid a real e2e-film-room bug for
 # two sessions. A slow-but-green harness is the leading indicator of the next red.
-pass=0; fail=0; count=0; failed_names=""; slow_report=""
+pass=0; skip=0; fail=0; count=0; failed_names=""; slow_report=""
 for f in tools/e2e-*.mjs; do
   base=$(basename "$f")
   count=$((count+1))
@@ -128,7 +140,9 @@ for f in tools/e2e-*.mjs; do
   secs=$(( $(date +%s) - started ))
   line=$(result_line "$out")
   [ "$secs" -ge 25 ] && slow_report="$slow_report  ${secs}s  $base"$'\n'
-  if is_green "$line" "$rc"; then
+  if is_skipped "$line" "$rc"; then
+    skip=$((skip+1)); printf 'skip %-42s %4ss  %s\n' "$base" "$secs" "$line"
+  elif is_green "$line" "$rc"; then
     pass=$((pass+1)); printf 'ok   %-42s %4ss  %s\n' "$base" "$secs" "$line"
   else
     fail=$((fail+1)); failed_names="$failed_names $base"
@@ -145,7 +159,7 @@ if [ -n "$slow_report" ]; then
   printf '%s' "$slow_report"
   echo ""
 fi
-echo "=== $count harnesses | $pass green | $fail failed ==="
+echo "=== $count harnesses | $pass green | $skip skipped | $fail failed ==="
 [ "$fail" -gt 0 ] && echo "failed:$failed_names"
 # Record the ACTUAL count in the handoff. Never hardcode it — the suite grows.
 exit $((fail > 0))

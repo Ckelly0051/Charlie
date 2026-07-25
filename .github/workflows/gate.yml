@@ -64,10 +64,10 @@ jobs:
         with:
           node-version: '22'
 
-      # No lockfile is committed, so `npm ci` is not available. Puppeteer needs
-      # its bundled Chromium, which the postinstall step fetches.
+      # Reproduce the committed dependency graph exactly. Puppeteer downloads
+      # its bundled Chromium through the lockfile-pinned postinstall.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # No system-library step: the Windows runner already has everything
       # puppeteer's bundled Chromium needs (the apt-get dance is Linux-only).

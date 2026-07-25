@@ -366,11 +366,13 @@ const real = await page.evaluate(async () => {
   });
   store.currentSeasonId = 's4';
   store.data = { version: 5, type: 'season', id: 's4', seasonName: 'RealPath', activeGameId: 'other',
-    games: [mkGame('refuge', 'Refuge'), mkGame('other', 'ND Prep')] };
-  // Seed the initially-active game into the live tagger so commitActive is coherent.
-  app.storage._loadedGameId = 'other';
-  app.tagger.plays = store.data.games[1].plays.map(p => JSON.parse(JSON.stringify(p)));
-  app.tagger.currentPlayId = 1; app.tagger.nextId = 2;
+    games: [mkGame('refuge', 'Refuge'), mkGame('other', 'ND Prep'), mkGame('holy', 'Holy Family')] };
+  // Hydrate EVERY live editor surface through the production loader before
+  // openGame commits the outgoing game. Seeding only tagger.plays leaves stale
+  // gameInfo/playlist state from earlier scenarios and creates a fake mutation.
+  app.storage._loadedGameId = null;
+  await app.storage._loadActiveGame();
+  const nonTargetsBefore = JSON.stringify(store.data.games.filter(g => g.id !== 'refuge'));
 
   // C1: open Refuge through the ONE authoritative command (not setActive).
   // switchToGame runs (and commits/persists) before the workspace transition, so
@@ -403,6 +405,7 @@ const real = await page.evaluate(async () => {
     reopenMode: reopenRefuge && reopenRefuge.filmMode || null,
     reopenDir: reopenRefuge && reopenRefuge.filmDir || null,
     managedList, managedUrl, linkedList,
+    nonTargetsUnchanged: JSON.stringify(store.data.games.filter(g => g.id !== 'refuge')) === nonTargetsBefore,
   };
 });
 ok(real.activeAfterOpen === 'refuge',
@@ -411,6 +414,8 @@ ok(real.linkedOk === true && real.savedMode === 'linked' && real.savedDir === 'R
   'C2 real path: linking the opened game persists linked metadata to the saved payload', JSON.stringify(real));
 ok(real.reopenMode === 'linked' && real.reopenDir === 'Refuge 7-13' && real.linkedList >= 1 && real.managedList === 0 && real.managedUrl === 0,
   'C1+C2 real path: reopening from the saved payload resolves Refuge from D: with zero managed-copy calls', JSON.stringify(real));
+ok(real.nonTargetsUnchanged,
+  'C2 isolation: opening, linking, saving, and reopening Refuge leaves every complete non-target game byte-identical', JSON.stringify(real));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
