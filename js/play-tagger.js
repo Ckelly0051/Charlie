@@ -1572,6 +1572,12 @@ export class PlayTagger {
 
   _renderCustomTags(tags) {
     this.tagChips.innerHTML = '';
+    // Every in-app creation site sets `custom: []`, but SeasonStore._normalize
+    // does NOT backfill it, so a play from an imported or pre-field season file
+    // arrives without it. Unguarded, that threw inside _loadTagForm →
+    // selectPlay, taking out the whole tag form for that play — a crash, not a
+    // missing chip. Not reproduced from any in-app path; import is the vector.
+    if (!Array.isArray(tags)) return;
     tags.forEach((tag, i) => {
       const chip = document.createElement('span');
       chip.className = 'tag-chip';

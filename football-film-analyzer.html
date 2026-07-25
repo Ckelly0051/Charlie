@@ -8763,11 +8763,29 @@ body.ws-shell-active.ws-route-breakdown .ws-context{margin-left:auto;flex:1}
    shell. The real controls are re-parented, so existing handlers and actions
    remain the single source of truth across game switches. */
 .ws-global-tools{display:flex;align-items:center;gap:6px}
-body.ws-shell-active .ws-global-tools>.sidebar-toggle,
+/* `>` keeps this off the .btn rows INSIDE the More dropdown. */
+body.ws-shell-active .ws-global-tools>.btn,
 body.ws-shell-active .ws-global-tools #btnMoreMenu{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;margin:0;padding:0 10px;border:1px solid var(--ws-line);border-radius:5px;background:#151e29;color:var(--ws-text);box-shadow:none;font:inherit;font-size:11px;font-weight:750}
-body.ws-shell-active .ws-global-tools>.sidebar-toggle:hover,
+body.ws-shell-active .ws-global-tools>.btn:hover:not(:disabled),
 body.ws-shell-active .ws-global-tools #btnMoreMenu:hover{border-color:#4b6078;background:#1d2937;color:#fff}
-body.ws-shell-active .ws-global-tools>.sidebar-toggle svg{width:15px;height:15px;stroke:currentColor}
+body.ws-shell-active .ws-global-tools>.btn svg{width:15px;height:15px;stroke:currentColor}
+/* Undo/Redo are icon-only: square, and visibly dead when there is nothing to
+   undo (the disabled state is the ONLY signal that history is empty). */
+body.ws-shell-active .ws-global-tools>.btn-icon{padding:0;width:34px}
+body.ws-shell-active .ws-global-tools>.btn:disabled{opacity:.38;cursor:default}
+/* Shortcuts is deliberately icon-only in shell chrome at EVERY width, carrying
+   its name via aria-label. Previously it was icon-only only by accident: an
+   unscoped classic rule (`#btnShortcuts span{display:none}` under max-width
+   1450px) leaked onto the relocated button, so it would have sprouted a label
+   on a wide monitor and silently reflowed the top bar. */
+body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
+/* Optional-CV-server status, rehoused in the drawer head next to its own tools.
+   `display` is restated because the classic bar hides `.backend-status-badge`
+   under max-width 1200px to save top-bar room — a constraint that does not
+   apply inside the drawer, and which would otherwise make the badge vanish on
+   exactly the smaller windows where the drawer matters most. Beats it on
+   specificity (id + two classes) rather than with !important. */
+body.ws-shell-active .settings-drawer-head #backendStatusBadge{display:inline-flex;align-items:center;margin-left:auto;margin-right:8px}
 body.ws-shell-active .ws-global-tools .more-menu{position:relative}
 body.ws-shell-active .ws-global-tools .more-dropdown{top:calc(100% + 7px);right:0;left:auto;width:260px;border:1px solid var(--ws-line);background:#111821;color:var(--ws-text);box-shadow:0 18px 44px rgba(0,0,0,.48)}
 body.ws-shell-active .ws-global-tools .more-dropdown .btn{color:var(--ws-text)}
@@ -9492,6 +9510,21 @@ body.ws-route-reports .ws-reports #statsDashboard,
     <circle cx="18" cy="12" r="2" fill="currentColor"/>
   </symbol>
 
+  <!-- Undo / Redo. Distinct from the clip-transport icons on purpose: in a film
+       app, ◀| and |▶ read as "previous/next clip", so reusing them for history
+       (as the classic bar did) is actively misleading once these sit in the
+       workspace top bar beside the film chip. Stroke-drawn, and fill="none" is
+       set on the paths too so the global `.icon{fill:currentColor}` rule cannot
+       flood them into solid blobs. -->
+  <symbol id="icon-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 7 3 13 9 13" fill="none"/>
+    <path d="M5.6 16a8.5 8.5 0 1 0 1.2-8.4L3 13" fill="none"/>
+  </symbol>
+  <symbol id="icon-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="21 7 21 13 15 13" fill="none"/>
+    <path d="M18.4 16a8.5 8.5 0 1 1-1.2-8.4L21 13" fill="none"/>
+  </symbol>
+
   <!-- Previous clip -->
   <symbol id="icon-prev-clip" viewBox="0 0 24 24" fill="currentColor">
     <rect x="3" y="4" width="3" height="16"/>
@@ -9532,7 +9565,7 @@ body.ws-route-reports .ws-reports #statsDashboard,
           </svg>
           <span class="sidebar-toggle-label">Settings</span>
         </button>
-<button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)">
+<button class="btn" id="btnShortcuts" title="Keyboard shortcuts (press ?)" aria-label="Keyboard shortcuts">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="6" width="20" height="12" rx="2"/>
             <line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/>
@@ -9581,11 +9614,11 @@ body.ws-route-reports .ws-reports #statsDashboard,
                 title="Local CV server not detected — using in-browser heuristics. Click to re-probe.">
           Auto-Detect: Basic
         </button>
-        <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" disabled>
-          <svg class="icon"><use href="#icon-prev-clip"/></svg>
+        <button class="btn btn-icon" id="btnUndoAction" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+          <svg class="icon"><use href="#icon-undo"/></svg>
         </button>
-        <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" disabled>
-          <svg class="icon"><use href="#icon-next-clip"/></svg>
+        <button class="btn btn-icon" id="btnRedoAction" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>
+          <svg class="icon"><use href="#icon-redo"/></svg>
         </button>
         <button class="btn btn-secondary" id="btnQuickChart" title="Toggle Quick Chart Mode">
           <svg class="icon"><use href="#icon-chart"/></svg> <span class="btn-label">Quick Chart</span>
@@ -14436,6 +14469,12 @@ class PlayTagger {
 
   _renderCustomTags(tags) {
     this.tagChips.innerHTML = '';
+    // Every in-app creation site sets `custom: []`, but SeasonStore._normalize
+    // does NOT backfill it, so a play from an imported or pre-field season file
+    // arrives without it. Unguarded, that threw inside _loadTagForm →
+    // selectPlay, taking out the whole tag form for that play — a crash, not a
+    // missing chip. Not reproduced from any in-app path; import is the vector.
+    if (!Array.isArray(tags)) return;
     tags.forEach((tag, i) => {
       const chip = document.createElement('span');
       chip.className = 'tag-chip';
@@ -30238,10 +30277,25 @@ class WorkspaceShell {
     this._homeToken = 0;
     this._homeSelectedGameId = null;
     this._homeFilmHealth = new Map();
+    // Controls the classic top bar owns that the shell has no replacement for.
+    // The bar itself lives inside #app, which lives inside the permanently
+    // hidden #wsClassicOutlet — so anything NOT relocated here is not "legacy
+    // chrome still showing", it is a capability ENTOMBED and unreachable in the
+    // product (measured 2026-07-25: undo, redo, shortcuts, and the CV badge had
+    // no reachable affordance on any route). Relocation moves the live element,
+    // so every listener and disabled-state binding rides along untouched —
+    // history-manager binds undo/redo by id at init() and keeps driving them.
     this._chrome = {
+      undo: this._remember(document.getElementById('btnUndoAction')),
+      redo: this._remember(document.getElementById('btnRedoAction')),
+      shortcuts: this._remember(document.getElementById('btnShortcuts')),
       settings: this._remember(document.getElementById('btnSidebarToggle')),
       more: this._remember(document.getElementById('btnMoreMenu')?.closest('.more-menu')),
       drawer: this._remember(document.getElementById('settingsDrawer')),
+      // Status for the OPTIONAL local CV server. Not prime chrome — it belongs
+      // with the low-frequency setup tools, per the redesign plan's rule that
+      // setup/history/filter tools live in Settings.
+      backend: this._remember(document.getElementById('backendStatusBadge')),
     };
   }
   // The redesigned workspace is THE product — there is no classic-layout escape
@@ -30412,8 +30466,18 @@ class WorkspaceShell {
   async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const g=this.app.storage.newGame();if(g?.id!=null)await this.app.openGame(g.id);}
   _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
   _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
-  _mountChrome(){const tools=this.root?.querySelector('.ws-global-tools');if(tools){if(this._chrome.settings?.el)tools.append(this._chrome.settings.el);if(this._chrome.more?.el)tools.append(this._chrome.more.el);}if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);}
-  _restoreChrome(){this.app.uiPolish?._closeDrawer?.();document.getElementById('moreDropdown')?.classList.add('hidden');this._restore(this._chrome.settings);this._restore(this._chrome.more);this._restore(this._chrome.drawer);}
+  /** Adopt the classic bar's still-needed controls into shell chrome. Append
+   *  order IS the visual order: history first, then help, then settings/more. */
+  _mountChrome(){
+    const tools=this.root?.querySelector('.ws-global-tools');
+    if(tools)for(const k of ['undo','redo','shortcuts','settings','more'])if(this._chrome[k]?.el)tools.append(this._chrome[k].el);
+    if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);
+    // Drawer head, not the top bar: the badge reports an optional local server
+    // most coaches never run, so it must be reachable without taxing prime chrome.
+    const head=this._chrome.drawer?.el?.querySelector('.settings-drawer-head');
+    if(head&&this._chrome.backend?.el)head.insertBefore(this._chrome.backend.el,head.querySelector('.settings-drawer-close'));
+  }
+  _restoreChrome(){this.app.uiPolish?._closeDrawer?.();document.getElementById('moreDropdown')?.classList.add('hidden');for(const k of ['undo','redo','shortcuts','settings','more','backend','drawer'])this._restore(this._chrome[k]);}
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
   _esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

@@ -41,11 +41,29 @@ body.ws-shell-active.ws-route-breakdown .ws-context{margin-left:auto;flex:1}
    shell. The real controls are re-parented, so existing handlers and actions
    remain the single source of truth across game switches. */
 .ws-global-tools{display:flex;align-items:center;gap:6px}
-body.ws-shell-active .ws-global-tools>.sidebar-toggle,
+/* `>` keeps this off the .btn rows INSIDE the More dropdown. */
+body.ws-shell-active .ws-global-tools>.btn,
 body.ws-shell-active .ws-global-tools #btnMoreMenu{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;margin:0;padding:0 10px;border:1px solid var(--ws-line);border-radius:5px;background:#151e29;color:var(--ws-text);box-shadow:none;font:inherit;font-size:11px;font-weight:750}
-body.ws-shell-active .ws-global-tools>.sidebar-toggle:hover,
+body.ws-shell-active .ws-global-tools>.btn:hover:not(:disabled),
 body.ws-shell-active .ws-global-tools #btnMoreMenu:hover{border-color:#4b6078;background:#1d2937;color:#fff}
-body.ws-shell-active .ws-global-tools>.sidebar-toggle svg{width:15px;height:15px;stroke:currentColor}
+body.ws-shell-active .ws-global-tools>.btn svg{width:15px;height:15px;stroke:currentColor}
+/* Undo/Redo are icon-only: square, and visibly dead when there is nothing to
+   undo (the disabled state is the ONLY signal that history is empty). */
+body.ws-shell-active .ws-global-tools>.btn-icon{padding:0;width:34px}
+body.ws-shell-active .ws-global-tools>.btn:disabled{opacity:.38;cursor:default}
+/* Shortcuts is deliberately icon-only in shell chrome at EVERY width, carrying
+   its name via aria-label. Previously it was icon-only only by accident: an
+   unscoped classic rule (`#btnShortcuts span{display:none}` under max-width
+   1450px) leaked onto the relocated button, so it would have sprouted a label
+   on a wide monitor and silently reflowed the top bar. */
+body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
+/* Optional-CV-server status, rehoused in the drawer head next to its own tools.
+   `display` is restated because the classic bar hides `.backend-status-badge`
+   under max-width 1200px to save top-bar room — a constraint that does not
+   apply inside the drawer, and which would otherwise make the badge vanish on
+   exactly the smaller windows where the drawer matters most. Beats it on
+   specificity (id + two classes) rather than with !important. */
+body.ws-shell-active .settings-drawer-head #backendStatusBadge{display:inline-flex;align-items:center;margin-left:auto;margin-right:8px}
 body.ws-shell-active .ws-global-tools .more-menu{position:relative}
 body.ws-shell-active .ws-global-tools .more-dropdown{top:calc(100% + 7px);right:0;left:auto;width:260px;border:1px solid var(--ws-line);background:#111821;color:var(--ws-text);box-shadow:0 18px 44px rgba(0,0,0,.48)}
 body.ws-shell-active .ws-global-tools .more-dropdown .btn{color:var(--ws-text)}

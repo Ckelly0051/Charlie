@@ -9,10 +9,25 @@ export class WorkspaceShell {
     this._homeToken = 0;
     this._homeSelectedGameId = null;
     this._homeFilmHealth = new Map();
+    // Controls the classic top bar owns that the shell has no replacement for.
+    // The bar itself lives inside #app, which lives inside the permanently
+    // hidden #wsClassicOutlet — so anything NOT relocated here is not "legacy
+    // chrome still showing", it is a capability ENTOMBED and unreachable in the
+    // product (measured 2026-07-25: undo, redo, shortcuts, and the CV badge had
+    // no reachable affordance on any route). Relocation moves the live element,
+    // so every listener and disabled-state binding rides along untouched —
+    // history-manager binds undo/redo by id at init() and keeps driving them.
     this._chrome = {
+      undo: this._remember(document.getElementById('btnUndoAction')),
+      redo: this._remember(document.getElementById('btnRedoAction')),
+      shortcuts: this._remember(document.getElementById('btnShortcuts')),
       settings: this._remember(document.getElementById('btnSidebarToggle')),
       more: this._remember(document.getElementById('btnMoreMenu')?.closest('.more-menu')),
       drawer: this._remember(document.getElementById('settingsDrawer')),
+      // Status for the OPTIONAL local CV server. Not prime chrome — it belongs
+      // with the low-frequency setup tools, per the redesign plan's rule that
+      // setup/history/filter tools live in Settings.
+      backend: this._remember(document.getElementById('backendStatusBadge')),
     };
   }
   // The redesigned workspace is THE product — there is no classic-layout escape
@@ -183,8 +198,18 @@ export class WorkspaceShell {
   async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const g=this.app.storage.newGame();if(g?.id!=null)await this.app.openGame(g.id);}
   _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
   _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
-  _mountChrome(){const tools=this.root?.querySelector('.ws-global-tools');if(tools){if(this._chrome.settings?.el)tools.append(this._chrome.settings.el);if(this._chrome.more?.el)tools.append(this._chrome.more.el);}if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);}
-  _restoreChrome(){this.app.uiPolish?._closeDrawer?.();document.getElementById('moreDropdown')?.classList.add('hidden');this._restore(this._chrome.settings);this._restore(this._chrome.more);this._restore(this._chrome.drawer);}
+  /** Adopt the classic bar's still-needed controls into shell chrome. Append
+   *  order IS the visual order: history first, then help, then settings/more. */
+  _mountChrome(){
+    const tools=this.root?.querySelector('.ws-global-tools');
+    if(tools)for(const k of ['undo','redo','shortcuts','settings','more'])if(this._chrome[k]?.el)tools.append(this._chrome[k].el);
+    if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);
+    // Drawer head, not the top bar: the badge reports an optional local server
+    // most coaches never run, so it must be reachable without taxing prime chrome.
+    const head=this._chrome.drawer?.el?.querySelector('.settings-drawer-head');
+    if(head&&this._chrome.backend?.el)head.insertBefore(this._chrome.backend.el,head.querySelector('.settings-drawer-close'));
+  }
+  _restoreChrome(){this.app.uiPolish?._closeDrawer?.();document.getElementById('moreDropdown')?.classList.add('hidden');for(const k of ['undo','redo','shortcuts','settings','more','backend','drawer'])this._restore(this._chrome[k]);}
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}
   _esc(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

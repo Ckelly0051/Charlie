@@ -267,13 +267,90 @@ duplicated verbatim by the shell's own Team › Season › Game context bar.
 while the liveness assertion stays green (proving the outlet really is revealed,
 so the check can't pass vacuously). `e2e-workspace-shell` 35 → 39.
 
+**CLASSIC TOP BAR, PART 1 — ENTOMBED CAPABILITIES RECOVERED (2026-07-25).**
+Correcting my own framing first: I had recorded the classic top bar as "still
+owning ~18 controls," implying legacy chrome was *showing*. **Measured, it was
+the opposite and worse.** `<header class="top-bar">` lives inside `#app`, which
+lives inside `#wsClassicOutlet`, which every route hides. Only 2 of its 17
+controls (Settings toggle, More menu) had ever been relocated. So the rest were
+not visible-but-legacy — they were **entombed: present in the DOM, reachable on
+no route at all.** A probe of the built bundle at the Break Down route found
+four capabilities with zero affordance anywhere in the product: **Undo, Redo,
+Shortcuts, and the CV-server badge.** (Quick Chart, Save, Load film, Reports,
+Season Report, exports, Import, Open file and the drawer all *did* have shell
+affordances — my earlier "Quick Chart is unreachable" claim was wrong; it has
+`[data-bd-context="quick"]` in the Break Down header.)
+
+Fix: extend the existing, already-tested `_chrome` relocation seam rather than
+inventing a mechanism. Undo/Redo/Shortcuts adopt into `.ws-global-tools`; the CV
+badge into `.settings-drawer-head` (it reports an optional local server, so it
+belongs with low-frequency setup tools, not prime chrome). Relocation moves the
+LIVE element, so history-manager's id-bound listeners and disabled-state driving
+ride along untouched — asserted with a real edit, not by asserting the node
+exists (a rebuilt button would look identical and be dead).
+
+**Three further real defects surfaced while verifying, none of them the thing I
+set out to fix:**
+1. **Undo/Redo were drawn with `icon-prev-clip`/`icon-next-clip`** — the *clip
+   transport* icons. Tolerable buried in the classic bar; actively misleading in
+   a film app's top bar beside the film chip, where ◀| |▶ read as "previous/next
+   clip". Added real `icon-undo`/`icon-redo` symbols (stroke-drawn, with
+   `fill="none"` on the paths so the global `.icon{fill:currentColor}` cannot
+   flood them solid) plus `aria-label`s on all three icon-only buttons.
+2. **Two unscoped classic media rules followed the relocated controls.**
+   `.backend-status-badge{display:none}` under 1200px would have hidden the badge
+   *inside the drawer* — worst on exactly the small windows where the drawer
+   matters most — and `#btnShortcuts span{display:none}` under 1450px meant the
+   button was icon-only only by accident, sprouting a label on a wide monitor and
+   reflowing the bar. Both overridden on specificity, both pinned at both ends.
+   **This is a general hazard of the relocation pattern: any unscoped `.top-bar`-
+   era rule travels with the element.** Check for it on every future adoption.
+3. **`_renderCustomTags(tags)` iterated without a guard**, so a play lacking
+   `tags.custom` threw inside `_loadTagForm` → `selectPlay` — a crash that takes
+   out the whole tag form for that play, not a missing chip. All five in-app
+   creation sites set `custom: []`, but `SeasonStore._normalize` does NOT backfill
+   it, so the vector is imported/legacy season files (a supported feature). Fixed
+   with an `Array.isArray` guard. **Not reproduced from any in-app path** — stated
+   as narrow, not sold as a near-miss.
+
+**Verification:** `e2e-workspace-shell` 39 → 46, all green. Five mutations, each
+verified individually to red its own assertion and only its own: (a) un-relocate
+undo/redo/shortcuts → entombment test reds; (b) drop the badge rehousing → badge
+test reds; (c) restore only the original two controls on teardown → teardown test
+reds; (d) remove the `Array.isArray` guard → reproduces the original crash;
+(e) remove both media-rule overrides → width test reds with
+`narrowBadge:false, wideShortcutsLabel:"block"`.
+
+**Method note worth keeping:** my first reachability probe scored the CV badge
+"reachable" with the drawer CLOSED. The drawer slides on `transform`, so a closed
+drawer still reports a laid-out, non-zero box — `offsetParent !== null` and a
+non-zero rect both lie about it. The permanent test measures "the box actually
+lands inside the viewport" and carries a comment saying why. Same shape as the
+`\bundefined\b` guard that didn't guard: the check was weaker than its name.
+
 **Still open (not blockers, do not lose):**
+- **Classic top bar, part 2:** with every capability now adopted, the classic
+  `<header class="top-bar">` markup (wrapper, breadcrumb, game dropdown, and the
+  superseded `btnShowStats`/`btnSave`/`videoDropZone` duplicates) can be deleted
+  outright rather than hidden. Deliberately NOT bundled with part 1 so the
+  recovery has a clean rollback point.
 - Codex's independent review of the combined C1+C2+self-review bytes.
-- `e2e-film-room`'s E4-2 grid-editor section is load-sensitive (see the
-  retraction above) — harden its waits so it stops producing false reds.
 - The now-inert schedule-view render code (`_renderSchedule`,
   `#libraryScheduleView`) is unreachable but still present; clean deletion.
+- Pixel-baseline visual regression (coach asked for it explicitly; CI-on-Windows,
+  the prerequisite, is now in place — build baselines AFTER the top-bar deletion
+  so they capture the finished shell).
 - Managed C: film copies remain protected until the installed smoke passes.
+
+**RESOLVED — `e2e-film-room`'s E4-2 grid-editor section was NOT a
+"load-sensitive flake" (2026-07-25).** The previous entry called it an
+intermittent harness flake and left it open. It was a real test bug: the section
+captured a `<td>` reference and kept using it across a `grid.refresh()`, which
+rebuilds every row — so the retained node was detached and the clicks went
+nowhere. Fixed by re-fetching through `grid._cellEl(...)` on every use. 179/179
+on three consecutive standalone runs. Recording the correction because
+"intermittent" was a diagnosis I asserted without evidence, and it hid a real
+defect for two sessions.
 
 ### Current working state (2026-07-22, v1.12.0-9 linked-film repair RELEASED)
 

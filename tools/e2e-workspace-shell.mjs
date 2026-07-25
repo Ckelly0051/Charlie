@@ -178,6 +178,94 @@ await page.click('#btnMoreMenu');
 r = await page.evaluate(() => ({ moreOpen: !document.getElementById('moreDropdown')?.classList.contains('hidden') }));
 ok(r.moreOpen, 'Shell More opens the canonical action menu', JSON.stringify(r));
 await page.click('#btnMoreMenu');
+
+/* ENTOMBED-CAPABILITY GUARD. The classic top bar lives inside #app, which lives
+   inside the permanently hidden #wsClassicOutlet. So a control the shell does
+   not relocate is not "legacy chrome still showing" — it is a capability with
+   NO reachable affordance anywhere in the product. Measured 2026-07-25: undo,
+   redo, shortcuts and the CV-server badge were all in that state on every route.
+
+   Reachability is measured as "its box actually lands inside the viewport", NOT
+   `offsetParent !== null` or a non-zero rect: the settings drawer slides on a
+   transform, so a CLOSED drawer still reports a laid-out, non-zero box and both
+   weaker checks score its contents as reachable. That exact false positive is
+   what an earlier draft of this test produced. */
+const onScreen = sel => page.evaluate(s => [...document.querySelectorAll(s)].some(el => {
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  if (getComputedStyle(el).visibility === 'hidden') return false;
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    if (n.hidden || getComputedStyle(n).display === 'none') return false;
+  }
+  return rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight;
+}), sel);
+
+r = {
+  undo: await onScreen('#btnUndoAction'),
+  redo: await onScreen('#btnRedoAction'),
+  shortcuts: await onScreen('#btnShortcuts'),
+  inTools: await page.evaluate(() => ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
+    .every(id => !!document.getElementById(id)?.closest('.ws-global-tools'))),
+};
+ok(r.undo && r.redo && r.shortcuts && r.inTools,
+  'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar', JSON.stringify(r));
+
+// Relocation must move the LIVE element, so history-manager's existing binding
+// and its disabled-state driving survive. Proven by a real edit, not by asserting
+// the node exists: a cloned/rebuilt button would look identical here but be dead.
+r = await page.evaluate(() => {
+  const app = window.app, history = app.history;
+  history.reset();                                   // known-empty history baseline
+  const before = document.getElementById('btnUndoAction')?.disabled;
+  // A real product edit through the tagger's own API. NOT createWholeVideoPlay:
+  // it early-returns when the game already has plays, so on a populated fixture
+  // it silently no-ops and the assertion passes for the wrong reason.
+  const play = app.tagger.plays[0] || app.tagger.createWholeVideoPlay(30, 'undo-probe');
+  app.tagger.selectPlay(play.id);
+  app.tagger.setUnit(play.tags?.unit === 'defense' ? 'offense' : 'defense');
+  return {
+    sameNode: history?.btnUndo === document.getElementById('btnUndoAction'),
+    inTools: !!history?.btnUndo?.closest('.ws-global-tools'),
+    before,
+    after: document.getElementById('btnUndoAction')?.disabled,
+    entries: history?.stack?.length,
+  };
+});
+ok(r.sameNode && r.inTools && r.entries === 1 && r.before === true && r.after === false,
+  'Relocated Undo stays wired to history-manager and enables on a real edit', JSON.stringify(r));
+
+// The CV badge is deliberately NOT prime chrome: it reports an optional local
+// server. It belongs with the low-frequency setup tools, so it must be absent
+// from the top bar and present once the drawer is open.
+const badgeClosed = await onScreen('#backendStatusBadge');
+await page.click('#btnSidebarToggle');
+await new Promise(resolve => setTimeout(resolve, 360));
+const badgeOpen = await onScreen('#backendStatusBadge');
+r = { badgeClosed, badgeOpen, inHead: await page.evaluate(() => !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head')) };
+ok(!r.badgeClosed && r.badgeOpen && r.inHead,
+  'CV-server badge is rehoused in the drawer head: hidden with the drawer closed, reachable when open', JSON.stringify(r));
+
+// Classic top-bar media rules are written for the classic bar's cramping but
+// several are UNSCOPED, so they follow a control that gets relocated. Two would
+// have landed silently here: `.backend-status-badge{display:none}` under 1200px
+// (badge vanishes inside the drawer, worst on the small windows where the drawer
+// matters most) and `#btnShortcuts span{display:none}` under 1450px (label
+// reappears on a wide monitor and reflows the top bar). Pin both ends.
+await page.setViewport({ width: 1152, height: 860 });
+await new Promise(resolve => setTimeout(resolve, 260));
+const narrowBadge = await onScreen('#backendStatusBadge');
+await page.setViewport({ width: 1680, height: 900 });
+await new Promise(resolve => setTimeout(resolve, 260));
+const wideShortcutsLabel = await page.evaluate(() =>
+  getComputedStyle(document.querySelector('.ws-global-tools #btnShortcuts span')).display);
+r = { narrowBadge, wideShortcutsLabel };
+ok(r.narrowBadge && r.wideShortcutsLabel === 'none',
+  'Relocated controls ignore the classic bar\'s unscoped width rules (badge survives <1200px, Shortcuts stays icon-only >1450px)', JSON.stringify(r));
+await page.setViewport({ width: 1280, height: 800 });
+await new Promise(resolve => setTimeout(resolve, 260));
+await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
+await new Promise(resolve => setTimeout(resolve, 320));
+
 await capture('breakdown-tools-1280x800');
 // Linked-film reload can be slower under CPU/GPU or disk pressure. The route
 // must wait for switchToGame() instead of racing shell render against it.
@@ -377,12 +465,15 @@ r = await page.evaluate(() => {
     restored: document.querySelector('#app .main-content > .video-section') != null
       && document.querySelector('#app .main-content > #playGridSection') != null
       && document.querySelector('#app .main-content > .tag-section') != null,
-    chromeRestored: !!document.querySelector('#app .top-bar #btnSidebarToggle')
+    // Every adopted control must go home, not just the two the shell started
+    // with — an un-restored one would leak into a detached tree on re-enable.
+    chromeRestored: ['btnSidebarToggle', 'btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
+      .every(id => !!document.querySelector(`#app .top-bar #${id}`))
       && !!document.querySelector('#app .top-bar .more-menu #btnMoreMenu')
       && !!document.querySelector('#app #settingsDrawer'),
   };
 });
-ok(r.restored && r.chromeRestored, 'disable() (internal teardown) restores canonical surfaces and Settings/More chrome', JSON.stringify(r));
+ok(r.restored && r.chromeRestored, 'disable() (internal teardown) restores canonical surfaces and every adopted chrome control', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });

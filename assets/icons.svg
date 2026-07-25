@@ -150,6 +150,21 @@
     <circle cx="18" cy="12" r="2" fill="currentColor"/>
   </symbol>
 
+  <!-- Undo / Redo. Distinct from the clip-transport icons on purpose: in a film
+       app, ◀| and |▶ read as "previous/next clip", so reusing them for history
+       (as the classic bar did) is actively misleading once these sit in the
+       workspace top bar beside the film chip. Stroke-drawn, and fill="none" is
+       set on the paths too so the global `.icon{fill:currentColor}` rule cannot
+       flood them into solid blobs. -->
+  <symbol id="icon-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 7 3 13 9 13" fill="none"/>
+    <path d="M5.6 16a8.5 8.5 0 1 0 1.2-8.4L3 13" fill="none"/>
+  </symbol>
+  <symbol id="icon-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="21 7 21 13 15 13" fill="none"/>
+    <path d="M18.4 16a8.5 8.5 0 1 1-1.2-8.4L21 13" fill="none"/>
+  </symbol>
+
   <!-- Previous clip -->
   <symbol id="icon-prev-clip" viewBox="0 0 24 24" fill="currentColor">
     <rect x="3" y="4" width="3" height="16"/>
