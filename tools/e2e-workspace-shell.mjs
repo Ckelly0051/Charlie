@@ -42,7 +42,15 @@ ok(r.shell && r.active && r.home && r.appInOutlet, 'Feature flag mounts shell an
 // real data, but navigation and context never should.
 // NOTE: uses its own variable — `r` is shared by the assertions that follow.
 const chromeScan = await page.evaluate(() => {
-  const bad = /\bundefined\b|\bNaN\b|\[object Object\]|\bnull\b/;
+  // NO \b AROUND `undefined`. Self-review 2026-07-25 mutation-tested this and
+  // found the guard MISSED the very bug it was written for: the real leak
+  // rendered as "undefinedReports" — the value concatenated straight against the
+  // adjacent label, so there is no word boundary after "undefined" and \b failed
+  // to match. A leaked value is almost always glued to neighbouring text, which
+  // is exactly the case boundaries exclude. NaN/null keep boundaries (they are
+  // short enough to appear inside real words); "undefined" and "[object Object]"
+  // are distinctive enough to match bare.
+  const bad = /undefined|\[object Object\]|\bNaN\b|\bnull\b/;
   const zones = ['.ws-sidebar', '.ws-topbar', '.ws-mobile-head', '.ws-mobile-nav', '.ws-home-head', '.ws-context'];
   const hits = [];
   zones.forEach(sel => document.querySelectorAll(sel).forEach(z => {
@@ -52,11 +60,21 @@ const chromeScan = await page.evaluate(() => {
   return {
     hits,
     navLabels: [...document.querySelectorAll('.ws-sidebar [data-ws-route]')].map(b => (b.textContent || '').trim()),
+    // The icon <span> specifically, so "has a REAL icon" can be checked rather
+    // than merely "has no undefined" — the fallback glyph satisfies the latter.
+    navIcons: [...document.querySelectorAll('.ws-sidebar [data-ws-route] span')].map(s => (s.textContent || '').trim()),
   };
 });
 ok(chromeScan.hits.length === 0, 'No JS value (undefined/NaN/null/[object Object]) leaks into shell chrome', JSON.stringify(chromeScan.hits));
+// Mutation-verified in self-review: removing ONLY the reports icon leaves the
+// '•' fallback, which the old version of this assertion happily accepted while
+// claiming "renders a real icon". Every registered route must carry its own
+// icon; the fallback exists to stop a JS value reaching the UI, not to be a
+// silently acceptable resting state.
 ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/undefined/.test(l)),
-  'Every shell nav button renders a real icon + label', JSON.stringify(chromeScan.navLabels));
+  'Every shell nav button renders a label with no leaked value', JSON.stringify(chromeScan.navLabels));
+ok(chromeScan.navIcons.length >= 5 && chromeScan.navIcons.every(i => i && i !== '•'),
+  'Every shell route carries its OWN icon, not the missing-icon fallback', JSON.stringify(chromeScan.navIcons));
 ok(r.flag === '1' && r.breakdownDisabled, 'Classic launch remains opt-in and guarded routes start disabled');
 ok(r.emptyAction === 'Set up team' && r.emptyActionEnabled && r.emptyActionTarget === 'seasons',
   'Empty Home offers an enabled primary setup action instead of appearing dead', JSON.stringify(r));
