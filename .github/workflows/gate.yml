@@ -16,6 +16,10 @@ name: Gate
 # suite drives ~60 headless Chrome instances and the release-gate doc records
 # real process-death failures when two gate runs overlapped. `cancel-in-progress`
 # keeps only the newest run per ref so pushes cannot stack.
+#
+# It runs on WINDOWS because that is the only platform this app is actually run
+# on. See the note on the job below — testing layout on an OS the product never
+# ships to produces false reds AND false greens.
 
 on:
   push:
@@ -33,8 +37,21 @@ permissions:
 
 jobs:
   gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # WINDOWS, deliberately. The desktop app is Windows-first and that is the
+    # only platform it is actually run on, so the gate must render where the
+    # coach renders. A Linux runner would be cheaper and faster, but it would
+    # assert layout against different font metrics and anti-aliasing than the
+    # shipped product ever sees — several harnesses check exact pixel geometry
+    # (e.g. cardWidth === 174) measured on Windows. Testing on the wrong OS
+    # produces both false reds and, worse, false greens for real Windows-only
+    # layout defects. It also means any future screenshot baselines are valid
+    # for the platform that matters. Revisit only if the app is ever distributed
+    # to coaches on macOS.
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash          # run-gate.sh and build.sh are bash; Git Bash ships on the runner
     env:
       # The real-data harness needs the coach's season mirror, which does not
       # exist on a CI runner. It fails closed by design unless a machine is
@@ -52,16 +69,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Chromium needs these on a bare ubuntu runner; without them every
-      # puppeteer harness dies at launch and the gate reports mass failure for
-      # an environment reason rather than a code one.
-      - name: Install Chromium system libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-            libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-            libgbm1 libpango-1.0-0 libcairo2 libasound2t64
+      # No system-library step: the Windows runner already has everything
+      # puppeteer's bundled Chromium needs (the apt-get dance is Linux-only).
 
       # Proves the pass/fail detector itself works before trusting its verdict —
       # it has been wrong in both directions before (false failures from grepping
