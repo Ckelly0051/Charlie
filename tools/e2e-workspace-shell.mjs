@@ -260,7 +260,7 @@ ok(r.route === 'study' && r.study && r.statsHidden && r.appHidden, 'Study opens 
 
 await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !document.querySelector('#wsClassicOutlet')?.hidden }));
-ok(r.stats && r.appVisible, 'Study keeps Advanced Reports one click away');
+ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
 await page.click('.ws-sidebar [data-ws-route="study"]');
 
 await page.click('.ws-sidebar [data-ws-route="plan"]');
@@ -310,14 +310,19 @@ r = await page.evaluate(async () => {
       getComputedStyle(document.getElementById('breadcrumb')).display === 'none',
   };
 });
-// Liveness: the outlet must genuinely have been revealed, or "it's hidden after"
-// passes vacuously against code that never showed it.
-ok(r.outletWhileLibraryOpen === false && r.outletWhileReportsOpen === false,
-  'liveness: the library and Advanced Reports really do reveal the classic outlet', JSON.stringify(r));
+// The library still lives inside the classic #app, so opening it must still
+// reveal the outlet — and closing it must put the outlet back, or the retired
+// classic top bar is left exposed (the coach found exactly this by clicking ⋯).
+// Liveness: assert the outlet really IS revealed while open, so "hidden after"
+// cannot pass against code that never showed it.
+ok(r.outletWhileLibraryOpen === false,
+  'liveness: opening the library really does reveal the classic outlet', JSON.stringify(r));
 ok(r.outletAfterLibraryClose === true,
   'Closing the library re-hides the classic outlet (no retired UI left exposed)', JSON.stringify(r));
-ok(r.outletAfterReportsClose === true,
-  'Closing Advanced Reports re-hides the classic outlet', JSON.stringify(r));
+// Reports is now a real shell destination, so it never needs the outlet at all
+// — strictly better than revealing-then-restoring.
+ok(r.outletWhileReportsOpen === true && r.outletAfterReportsClose === true,
+  'Advanced Reports NEVER reveals the classic outlet (it is a shell route now)', JSON.stringify(r));
 ok(r.breadcrumbHiddenUnderShell,
   'The legacy breadcrumb + game dropdown is hidden whenever the shell owns the product', JSON.stringify(r));
 
@@ -359,8 +364,8 @@ r = await page.evaluate(() => ({
   active: document.querySelector('.ws-mobile-nav [data-ws-route].active')?.dataset.wsRoute,
   routeSelect: !!document.querySelector('#wsMobileRoute'),
 }));
-ok(r.bottomTabs === 'none' && r.workspaceNav === 'grid' && r.routeButtons === 4 && r.active === 'breakdown' && !r.routeSelect,
-  'Mobile Break Down uses one Home/Break Down/Study/Plan navigation system', JSON.stringify(r));
+ok(r.bottomTabs === 'none' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
+  'Mobile Break Down uses one Home/Break Down/Study/Reports/Plan navigation system', JSON.stringify(r));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

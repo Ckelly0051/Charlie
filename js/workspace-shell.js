@@ -69,8 +69,8 @@ export class WorkspaceShell {
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
+      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.reportsScreen?.mount(root.querySelector('#wsReports')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id]}</span>${r.name}</button>`).join(''); }
   _bind() {
@@ -94,12 +94,12 @@ export class WorkspaceShell {
     const previousRoute = this.app.workspace.currentRoute();
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
     if (routeId !== 'breakdown') this.app.cutupPlayer?.stop();
-    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
+    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
-    const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
-    home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
+    const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), reports=this.root.querySelector('#wsReports'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
+    home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; if(reports)reports.hidden=routeId!=='reports'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
     if (routeId==='home') {
       // A preview belongs only to the current Home visit. Returning from a game
       // must highlight the canonical active game, not the prior Home preview.
@@ -108,6 +108,7 @@ export class WorkspaceShell {
     }
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
     if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
+    if (routeId==='reports') { this.app.library?.hide(); this.app.reportsScreen?.show(); }
     if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
     return result;
   }
@@ -164,7 +165,10 @@ export class WorkspaceShell {
   _gameSummary(game){const plays=game?.plays||[];const tagged=plays.filter(isPlayTagged).length;const units={offense:0,defense:0,special:0};plays.forEach(play=>{const unit=play?.tags?.unit||'offense';if(Object.hasOwn(units,unit))units[unit]++;});const gi=game?.gameInfo||{};const hasUs=gi.scoreUs!==''&&gi.scoreUs!=null&&Number.isFinite(Number(gi.scoreUs));const hasThem=gi.scoreThem!==''&&gi.scoreThem!=null&&Number.isFinite(Number(gi.scoreThem));return{total:plays.length,tagged,pct:plays.length?Math.round(tagged/plays.length*100):0,offense:units.offense,defense:units.defense,special:units.special,score:hasUs&&hasThem?`${Number(gi.scoreUs)}–${Number(gi.scoreThem)}`:'Not entered',date:this._dateLabel(gi.date),status:String(game.status||'not_started').replace(/_/g,' ')};}
   _chartedLabel(game){const s=this._gameSummary(game);return s.total?`${s.tagged} of ${s.total} charted`:'0 plays';}
   _dateLabel(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
-  showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsBreakdown').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
+  /** Reports now has a real shell route, so this navigates there instead of
+   *  revealing the classic outlet (which is what used to expose the retired
+   *  top bar underneath). Kept as the named entry point Study links to. */
+  showAdvancedReports(){ if(!this.root) return; return this.show('reports'); }
   async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
   /** Home's direct "New game" action (C1 finding 4): with Home the sole game
    * entry, creating a game belongs on Home, not buried under More. Creates the

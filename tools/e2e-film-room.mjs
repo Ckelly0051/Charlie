@@ -729,18 +729,28 @@ r = await page.evaluate(async () => {
   const onUpd = () => { updates++; };
   tagger.on('play-updated', onUpd);
 
+  // Make this play current BEFORE the loop. Otherwise the first column's first
+  // click both selects the play AND triggers refresh(), and the row rebuild
+  // detaches the <td> we are holding — so the second click lands on a dead node
+  // and the editor never opens. That is why this section historically passed for
+  // coverageFamily (play already current by then) and failed for qbAlignment,
+  // and why it tipped from flaky to consistent as soon as shell startup got
+  // slightly heavier. Same lesson as the tagger fixtures: never hold a
+  // reference across a re-render — re-fetch it.
+  tagger.selectPlay(play.id); await raf2();
+
   const results = {};
+  const cell = key => grid._cellEl(play.id, key);   // always re-fetch: rows rebuild
   for (const key of ['qbAlignment', 'coverageFamily']) {
     // make sure the column is actually rendered
     if (!grid.cols.includes(key)) { grid.cols = [...grid.cols, key]; grid.refresh(); await raf2(); }
-    const td = grid._cellEl(play.id, key);
-    results[key + 'Rendered'] = !!td;
-    if (!td) continue;
-    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
-    td.dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
+    results[key + 'Rendered'] = !!cell(key);
+    if (!cell(key)) continue;
+    cell(key).dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();
+    cell(key).dispatchEvent(new MouseEvent('click', { bubbles: true })); await raf2();   // 2nd click = open
     results[key + 'EditorFromClick'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
     grid._closeEditor();
-    td.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
+    cell(key).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await raf2();
     results[key + 'EditorFromEnter'] = !!document.querySelector('.pg-pop, .pg-editor, .pg-pop-chips');
     grid._closeEditor();
     grid._openEditor(play.id, key); await raf2();                                  // direct call

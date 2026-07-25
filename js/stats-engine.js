@@ -262,7 +262,18 @@ export class StatsEngine {
   }
 
   _bindEvents() {
-    this.btnShowStats.addEventListener('click', () => this.showDashboard());
+    // "Stats" is the entry point to the full team report. When the shell owns
+    // the product that report is the REPORTS DESTINATION, so route there rather
+    // than popping the legacy full-screen dashboard over whatever route the
+    // coach was on. The shell's reports route calls showDashboard() itself, so
+    // the render path is identical — only the framing changes. Every other
+    // caller (season-library, ui-polish, wizard) clicks this same button, so
+    // they all inherit the routing with no change of their own.
+    this.btnShowStats.addEventListener('click', () => {
+      const shell = window.app?.workspaceShell;
+      if (shell?.root && typeof shell.show === 'function') { shell.show('reports'); return; }
+      this.showDashboard();
+    });
     if (this.btnCloseStats) {
       this.btnCloseStats.addEventListener('click', () => this.hideDashboard());
     }

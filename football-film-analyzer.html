@@ -9095,6 +9095,100 @@ body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-colo
 .ws-plan-toolbar{flex-wrap:wrap}.ws-plan-toolbar .grow{min-width:220px}.ws-plan-present{position:fixed;inset:0;z-index:10020;display:grid;grid-template-rows:64px minmax(0,1fr) 64px;background:#080b10;color:var(--ws-text);text-align:left}.ws-plan-present>header{display:grid;grid-template-columns:minmax(0,1fr) auto 38px;align-items:center;gap:18px;padding:0 24px;border-bottom:1px solid var(--ws-line);background:#0d1219}.ws-plan-present>header>div:first-child{display:grid;gap:2px}.ws-plan-present>header span,.ws-plan-present aside>span{color:#75a7ff;font-size:10px;font-weight:800;text-transform:uppercase}.ws-plan-present>header strong{font-size:17px}.ws-plan-present>header>div:nth-child(2){color:var(--ws-muted);font-size:12px;font-weight:800}.ws-plan-present>main{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:32px;min-height:0;padding:34px clamp(24px,5vw,72px);overflow:auto}.ws-plan-present>main>section{min-width:0}.ws-present-kicker{color:#75a7ff;font-size:11px;font-weight:800;text-transform:uppercase}.ws-plan-present h2{max-width:900px;margin:8px 0 6px;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(30px,4vw,54px);line-height:1}.ws-present-query{margin:0 0 20px;color:var(--ws-muted);font-size:12px;text-transform:uppercase}.ws-present-note{max-width:760px;margin:0 0 20px;padding-left:12px;border-left:2px solid var(--ws-blue);color:#d9e2ed}.ws-present-plays{max-width:900px;border-top:1px solid var(--ws-line)}.ws-present-play{display:grid;width:100%;grid-template-columns:minmax(150px,.7fr) minmax(180px,1fr) minmax(180px,1fr);gap:16px;align-items:center;min-height:58px;padding:9px 10px;border:0;border-bottom:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}.ws-present-play:not(.is-missing):hover,.ws-present-play:not(.is-missing):focus-visible{background:#142238;outline:1px solid #355f98}.ws-present-play span,.ws-present-play small{color:var(--ws-muted);font-size:11px}.ws-present-play.is-missing{opacity:.7}.ws-present-empty{padding:28px 10px;color:var(--ws-muted);border-top:1px solid var(--ws-line)}.ws-plan-present aside{align-self:start;padding:16px 0 0 20px;border-left:1px solid var(--ws-line)}.ws-plan-present aside p{white-space:pre-wrap;color:#d6dee8;line-height:1.6}.ws-plan-present>footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:0 24px;border-top:1px solid var(--ws-line);background:#0d1219}.ws-plan-present>footer .ws-btn:first-child{justify-self:start}.ws-plan-present>footer .ws-btn:last-child{justify-self:end}@media(max-width:800px){.ws-plan-present{grid-template-rows:54px minmax(0,1fr) 62px}.ws-plan-present>header{grid-template-columns:minmax(0,1fr) auto 38px;padding:0 12px}.ws-plan-present>main{display:block;padding:24px 15px}.ws-plan-present h2{font-size:34px}.ws-present-play{grid-template-columns:1fr;gap:3px;padding:11px 8px}.ws-plan-present aside{margin-top:28px;padding:16px 0 0;border-left:0;border-top:1px solid var(--ws-line)}.ws-plan-present>footer{grid-template-columns:1fr 1.25fr 1fr;gap:6px;padding:0 8px}.ws-plan-present>footer .ws-btn{padding:0 8px;font-size:12px}}
 .ws-plan-present h2{font-size:44px}@media(max-width:800px){.ws-plan-present h2{font-size:34px}}
 @media(max-width:800px){.ws-plan-present>footer .ws-btn{height:44px}.ws-plan-present>header .ws-icon-btn{width:40px;height:40px}}
+/* Reports route — presents the canonical StatsEngine dashboard as an in-route
+   page in the shell's visual language, instead of the legacy full-screen modal.
+
+   IMPORTANT: this file changes PRESENTATION ONLY. The dashboard DOM, its tabs,
+   its numbers, and every .cut-row click-to-film binding are the untouched
+   originals re-parented into #wsReports (see js/reports-screen.js). Nothing
+   here may hide or reorder a metric — that would be feature deletion disguised
+   as simplification (redesign plan §1). */
+
+.ws-reports { min-width: 0; min-height: 0; overflow-y: auto; }
+.rp-route { display: flex; flex-direction: column; min-height: 100%; }
+
+/* ---- Route header: matches the shell's broadcast-dark language ---- */
+.rp-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding: 18px 22px 14px;
+  background: linear-gradient(180deg, #141c26 0%, #0f151d 100%);
+  border-bottom: 1px solid #26374a;
+}
+.rp-eyebrow {
+  color: #6f88a3; font-size: 10px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.rp-title {
+  margin: 3px 0 2px; color: #f1f6fb; font-size: 23px; font-weight: 750;
+  letter-spacing: .01em; line-height: 1.15;
+}
+.rp-sub { margin: 0; color: #8ea4bb; font-size: 12px; }
+.rp-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.rp-btn {
+  min-height: 38px; padding: 7px 14px; border-radius: 5px;
+  border: 1px solid #33506f; background: #16222f; color: #cfe0f2;
+  font: inherit; font-size: 12px; font-weight: 650; cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.rp-btn:hover { background: #1d2f42; border-color: #4c78a8; color: #fff; }
+.rp-btn:focus-visible { outline: 2px solid #80b2ff; outline-offset: 2px; }
+
+.rp-body { flex: 1; min-height: 0; }
+
+/* ---- Unwrap the legacy modal chrome while the dashboard lives in-route ----
+   The dashboard renders .stats-overlay as a fixed, full-screen scrim. In-route
+   it must behave like ordinary page content. */
+body.ws-route-reports .ws-reports #statsDashboard,
+.ws-reports #statsDashboard { display: block; }
+.ws-reports #statsDashboard.hidden { display: none; }
+.ws-reports .stats-overlay {
+  position: static; inset: auto; display: block;
+  width: auto; height: auto; padding: 0;
+  background: transparent; backdrop-filter: none;
+}
+.ws-reports .stats-container {
+  width: auto; max-width: none; max-height: none; height: auto;
+  margin: 0; border: 0; border-radius: 0; box-shadow: none;
+  background: transparent;
+}
+/* The route header replaces the modal's own title bar (which also owns a Close
+   button that makes no sense for a destination you navigate to). Its actions
+   are re-exposed as .rp-btn and delegate to these exact buttons. */
+.ws-reports .stats-header { display: none; }
+
+/* ---- Tabs: restyled as a route-level segmented bar ---- */
+.ws-reports .stats-tabs {
+  position: sticky; top: 0; z-index: 3;
+  display: flex; gap: 2px; flex-wrap: wrap;
+  padding: 10px 22px 0;
+  background: #0f151d; border-bottom: 1px solid #26374a;
+}
+.ws-reports .stats-tab {
+  min-height: 40px; padding: 9px 15px;
+  border: 1px solid transparent; border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: transparent; color: #8ea4bb;
+  font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer;
+}
+.ws-reports .stats-tab:hover { color: #dce8f5; background: #16222f; }
+.ws-reports .stats-tab.active {
+  color: #fff; background: #16222f;
+  border-color: #2f4a66;
+  box-shadow: inset 0 2px 0 #4d90d8;
+}
+.ws-reports .stats-tab:focus-visible { outline: 2px solid #80b2ff; outline-offset: -2px; }
+
+.ws-reports .stats-body { padding: 18px 22px 40px; background: transparent; }
+
+/* ---- Mobile ---- */
+@media (max-width: 800px) {
+  .rp-head { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 14px 12px; }
+  .rp-actions { flex-wrap: wrap; }
+  .rp-btn { flex: 1 0 auto; min-height: 44px; }
+  .ws-reports .stats-tabs { padding: 8px 12px 0; overflow-x: auto; flex-wrap: nowrap; }
+  .ws-reports .stats-tab { min-height: 44px; flex: 0 0 auto; }
+  .ws-reports .stats-body { padding: 14px 12px 32px; }
+}
 .tag-library-dialog {
   width: min(680px, calc(100vw - 32px));
   max-height: min(760px, calc(100dvh - 32px));
@@ -23687,7 +23781,18 @@ class StatsEngine {
   }
 
   _bindEvents() {
-    this.btnShowStats.addEventListener('click', () => this.showDashboard());
+    // "Stats" is the entry point to the full team report. When the shell owns
+    // the product that report is the REPORTS DESTINATION, so route there rather
+    // than popping the legacy full-screen dashboard over whatever route the
+    // coach was on. The shell's reports route calls showDashboard() itself, so
+    // the render path is identical — only the framing changes. Every other
+    // caller (season-library, ui-polish, wizard) clicks this same button, so
+    // they all inherit the routing with no change of their own.
+    this.btnShowStats.addEventListener('click', () => {
+      const shell = window.app?.workspaceShell;
+      if (shell?.root && typeof shell.show === 'function') { shell.show('reports'); return; }
+      this.showDashboard();
+    });
     if (this.btnCloseStats) {
       this.btnCloseStats.addEventListener('click', () => this.hideDashboard());
     }
@@ -28580,6 +28685,13 @@ const WORKSPACE_ROUTES = Object.freeze([
   Object.freeze({ id: 'home', name: 'Home', target: 'team-home', requires: null }),
   Object.freeze({ id: 'breakdown', name: 'Break Down', target: 'classic-workspace', requires: 'game' }),
   Object.freeze({ id: 'study', name: 'Study', target: 'study-workspace', requires: 'season' }),
+  // Reports is a distinct job from Study. Study is "ask a question" (pick a
+  // dimension, filter, compare, watch the film). Reports is "show me
+  // everything" — the full team picture. That job never had a redesigned home,
+  // so it fell through to the original dashboard and made the whole redesign
+  // read as unfinished. It hosts the canonical StatsEngine render output; no
+  // metric is reimplemented here (redesign plan §4 parity contract).
+  Object.freeze({ id: 'reports', name: 'Reports', target: 'reports-workspace', requires: 'season' }),
   Object.freeze({ id: 'plan', name: 'Plan', target: 'plan-workspace', requires: 'season' }),
 ]);
 
@@ -29822,6 +29934,107 @@ class PlanScreen {
   _esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 }
 
+// ===== reports-screen.js =====
+/**
+ * ReportsScreen — the "show me everything" destination.
+ *
+ * WHY THIS EXISTS. The redesign gave Home, Break Down, Study, and Plan new
+ * homes, but the full team report had none: Study answers a *question*, while a
+ * coach opening the app wants the whole picture. So reports fell through to the
+ * original dashboard, and the strongest analytics in the product ended up
+ * wearing the oldest UI — which is what made the redesign read as unfinished.
+ *
+ * WHAT IT DOES NOT DO. It does not compute or reimplement a single metric.
+ * `StatsEngine` remains the only analytics owner (redesign plan §4: "Do not
+ * reimplement formulas inside Study UI components"). This screen RE-PARENTS the
+ * canonical `#statsDashboard` element into a shell route — the same proven
+ * pattern `BreakdownWorkspace` uses to host `.video-section` / `.tag-section` —
+ * and lets CSS present it as an in-route page instead of a full-screen modal.
+ *
+ * That means every number, every tab, and critically every `.cut-row`
+ * click-to-film binding keeps working untouched: it is literally the same DOM
+ * and the same listeners, in a different parent.
+ */
+class ReportsScreen {
+  constructor(app) {
+    this.app = app;
+    this.host = null;
+    this.dash = document.getElementById('statsDashboard');
+    // Captured BEFORE any move so restore() can put it back exactly (mirrors
+    // WorkspaceShell._remember; recording it after mounting would record the
+    // already-moved position).
+    this._home = this.dash
+      ? { parent: this.dash.parentNode, next: this.dash.nextSibling }
+      : null;
+  }
+
+  /** Re-parent the canonical dashboard into the shell's Reports route. */
+  mount(host) {
+    if (!host || !this.dash) return false;
+    this.host = host;
+    host.innerHTML = `
+      <div class="rp-route">
+        <header class="rp-head">
+          <div>
+            <div class="rp-eyebrow">Team reports</div>
+            <h1 class="rp-title" id="rpTitle">Reports</h1>
+            <p class="rp-sub" id="rpSub">Every number links to its film.</p>
+          </div>
+          <div class="rp-actions">
+            <button type="button" class="rp-btn" data-rp-action="scout">Scout opponent</button>
+            <button type="button" class="rp-btn" data-rp-action="export">Export</button>
+          </div>
+        </header>
+        <div class="rp-body"></div>
+      </div>`;
+    host.querySelector('.rp-body').append(this.dash);
+    this._bind();
+    return true;
+  }
+
+  restore() {
+    if (!this.dash || !this._home?.parent) return;
+    const next = this._home.next?.parentNode === this._home.parent ? this._home.next : null;
+    this._home.parent.insertBefore(this.dash, next);
+    this.host = null;
+  }
+
+  _bind() {
+    if (!this.host || this._bound) return;
+    this._bound = true;
+    this.host.addEventListener('click', e => {
+      const action = e.target.closest('[data-rp-action]')?.dataset.rpAction;
+      if (!action) return;
+      // Delegate to the canonical buttons the dashboard already owns, so these
+      // shell-level actions can never drift from the real implementations.
+      if (action === 'scout') document.getElementById('btnScoutOpp')?.click();
+      if (action === 'export') document.getElementById('btnExportStats')?.click();
+    });
+  }
+
+  /** Render the canonical dashboard for the current context. */
+  show() {
+    if (!this.dash) return;
+    const stats = this.app.stats;
+    if (!stats) return;
+    this._syncHeader();
+    // The engine owns compute + render; we only ensure it is visible in-route.
+    stats.showDashboard();
+    this.dash.classList.remove('hidden');
+  }
+
+  _syncHeader() {
+    const c = this.app.workspace?.snapshot?.();
+    const title = this.host?.querySelector('#rpTitle');
+    const sub = this.host?.querySelector('#rpSub');
+    if (title) title.textContent = c?.game?.name || c?.season?.name || 'Reports';
+    if (sub) {
+      const season = c?.season?.name ? `${c.season.name} · ` : '';
+      sub.textContent = `${season}every number links to its film`;
+    }
+  }
+}
+
 // ===== breakdown-workspace.js =====
 /** Dedicated Break Down route using the canonical production DOM surfaces. */
 class BreakdownWorkspace {
@@ -29933,8 +30146,10 @@ class BreakdownWorkspace {
   }
 
   _openFilmContextSettings() {
-    this.app._openGameModal?.('edit');
-    setTimeout(() => document.getElementById('gmPerspective')?.focus(), 40);
+    // Film context is a perspective decision, so land the coach on the
+    // perspective field. Passed as the modal's ONE focus target instead of
+    // racing its default focus with a second timer (see _openGameModal).
+    this.app._openGameModal?.('edit', { focus: 'gmPerspective' });
   }
 
   _syncScoutGame() {
@@ -30083,8 +30298,8 @@ class WorkspaceShell {
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
-    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
+      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+    document.body.appendChild(root); root.querySelector('#wsClassicOutlet').appendChild(this.classicApp); this.root = root; this._mountChrome(); this.app.breakdownWorkspace?.mount(root.querySelector('#wsBreakdown')); this.app.studyScreen?.mount(root.querySelector('#wsStudy')); this.app.reportsScreen?.mount(root.querySelector('#wsReports')); this.app.planScreen?.mount(root.querySelector('#wsPlan')); this._bind();
   }
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id]}</span>${r.name}</button>`).join(''); }
   _bind() {
@@ -30108,12 +30323,12 @@ class WorkspaceShell {
     const previousRoute = this.app.workspace.currentRoute();
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
     if (routeId !== 'breakdown') this.app.cutupPlayer?.stop();
-    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-plan');
+    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
-    const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
-    home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
+    const home=this.root.querySelector('#wsHome'), breakdown=this.root.querySelector('#wsBreakdown'), study=this.root.querySelector('#wsStudy'), reports=this.root.querySelector('#wsReports'), plan=this.root.querySelector('#wsPlan'), outlet=this.root.querySelector('#wsClassicOutlet');
+    home.hidden=routeId!=='home'; breakdown.hidden=routeId!=='breakdown'; study.hidden=routeId!=='study'; if(reports)reports.hidden=routeId!=='reports'; plan.hidden=routeId!=='plan'; outlet.hidden=true;
     if (routeId==='home') {
       // A preview belongs only to the current Home visit. Returning from a game
       // must highlight the canonical active game, not the prior Home preview.
@@ -30122,6 +30337,7 @@ class WorkspaceShell {
     }
     if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
     if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
+    if (routeId==='reports') { this.app.library?.hide(); this.app.reportsScreen?.show(); }
     if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
     return result;
   }
@@ -30178,7 +30394,10 @@ class WorkspaceShell {
   _gameSummary(game){const plays=game?.plays||[];const tagged=plays.filter(isPlayTagged).length;const units={offense:0,defense:0,special:0};plays.forEach(play=>{const unit=play?.tags?.unit||'offense';if(Object.hasOwn(units,unit))units[unit]++;});const gi=game?.gameInfo||{};const hasUs=gi.scoreUs!==''&&gi.scoreUs!=null&&Number.isFinite(Number(gi.scoreUs));const hasThem=gi.scoreThem!==''&&gi.scoreThem!=null&&Number.isFinite(Number(gi.scoreThem));return{total:plays.length,tagged,pct:plays.length?Math.round(tagged/plays.length*100):0,offense:units.offense,defense:units.defense,special:units.special,score:hasUs&&hasThem?`${Number(gi.scoreUs)}–${Number(gi.scoreThem)}`:'Not entered',date:this._dateLabel(gi.date),status:String(game.status||'not_started').replace(/_/g,' ')};}
   _chartedLabel(game){const s=this._gameSummary(game);return s.total?`${s.tagged} of ${s.total} charted`:'0 plays';}
   _dateLabel(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
-  showAdvancedReports(){if(!this.root)return;this.root.querySelector('#wsStudy').hidden=true;this.root.querySelector('#wsBreakdown').hidden=true;this.root.querySelector('#wsClassicOutlet').hidden=false;this.app.stats?.showDashboard();}
+  /** Reports now has a real shell route, so this navigates there instead of
+   *  revealing the classic outlet (which is what used to expose the retired
+   *  top bar underneath). Kept as the named entry point Study links to. */
+  showAdvancedReports(){ if(!this.root) return; return this.show('reports'); }
   async _openLibrary(){const home=this.root.querySelector('#wsHome'),breakdown=this.root.querySelector('#wsBreakdown'),study=this.root.querySelector('#wsStudy'),plan=this.root.querySelector('#wsPlan'),outlet=this.root.querySelector('#wsClassicOutlet');home.hidden=true;breakdown.hidden=true;study.hidden=true;plan.hidden=true;outlet.hidden=false;await this.app.library.open();}
   /** Home's direct "New game" action (C1 finding 4): with Home the sole game
    * entry, creating a game belongs on Home, not buried under More. Creates the
@@ -37512,6 +37731,7 @@ class App {
     this.studyPlan = StudyPlan;
     this.planExport = PlanExport;
     this.planScreen = new PlanScreen(this);
+    this.reportsScreen = new ReportsScreen(this);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
@@ -38234,7 +38454,12 @@ class App {
     this._renderGameSummary();
   }
 
-  _openGameModal(mode) {
+  /** `opts.focus` names the field that should receive focus. Callers that want
+   *  a specific field MUST pass it rather than scheduling their own competing
+   *  setTimeout — two racing focus timers meant a ~10ms margin decided where the
+   *  coach's keyboard landed, which is both unpredictable for them and a
+   *  perpetual source of timing-fragile tests. One modal, one focus decision. */
+  _openGameModal(mode, opts = {}) {
     const modal = document.getElementById('gameModal');
     if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
     this._gameModalMode = mode;
@@ -38256,7 +38481,8 @@ class App {
     }
     this._updateTrackedScore();
     modal.classList.remove('hidden');
-    setTimeout(() => document.getElementById(mode === 'create' ? 'gameWeek' : 'gameOpponent')?.focus(), 30);
+    const focusId = opts.focus || (mode === 'create' ? 'gameWeek' : 'gameOpponent');
+    setTimeout(() => document.getElementById(focusId)?.focus(), 30);
   }
 
   _closeGameModal() {

@@ -21,6 +21,7 @@ import { WorkspaceContext } from './workspace-context.js';
 import { StudyQuery } from './study-query.js';
 import { CrossGameCutup } from './cross-game-cutup.js';
 import { StudyScreen } from './study-screen.js';
+import { ReportsScreen } from './reports-screen.js';
 import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
@@ -101,6 +102,7 @@ class App {
     this.studyPlan = StudyPlan;
     this.planExport = PlanExport;
     this.planScreen = new PlanScreen(this);
+    this.reportsScreen = new ReportsScreen(this);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
@@ -823,7 +825,12 @@ class App {
     this._renderGameSummary();
   }
 
-  _openGameModal(mode) {
+  /** `opts.focus` names the field that should receive focus. Callers that want
+   *  a specific field MUST pass it rather than scheduling their own competing
+   *  setTimeout — two racing focus timers meant a ~10ms margin decided where the
+   *  coach's keyboard landed, which is both unpredictable for them and a
+   *  perpetual source of timing-fragile tests. One modal, one focus decision. */
+  _openGameModal(mode, opts = {}) {
     const modal = document.getElementById('gameModal');
     if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
     this._gameModalMode = mode;
@@ -845,7 +852,8 @@ class App {
     }
     this._updateTrackedScore();
     modal.classList.remove('hidden');
-    setTimeout(() => document.getElementById(mode === 'create' ? 'gameWeek' : 'gameOpponent')?.focus(), 30);
+    const focusId = opts.focus || (mode === 'create' ? 'gameWeek' : 'gameOpponent');
+    setTimeout(() => document.getElementById(focusId)?.focus(), 30);
   }
 
   _closeGameModal() {

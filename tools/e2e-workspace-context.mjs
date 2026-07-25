@@ -92,7 +92,11 @@ const result = await page.evaluate(async () => {
 
 ok(!result.missing, 'App exposes the P0-d workspace interface');
 if (!result.missing) {
-  ok(JSON.stringify(result.routes.map(r => r.id)) === JSON.stringify(['home','breakdown','study','plan']), 'Shell routes are stable and ordered');
+  // Reports joined the shell as a first-class destination (2026-07-24). Study
+  // answers a question; Reports shows the whole team picture. That job
+  // previously had no redesigned home, so it fell through to the legacy
+  // dashboard. Order is deliberate: it sits between Study and Plan.
+  ok(JSON.stringify(result.routes.map(r => r.id)) === JSON.stringify(['home','breakdown','study','reports','plan']), 'Shell routes are stable and ordered');
   ok(result.routes.find(r => r.id === 'breakdown').target === 'classic-workspace' && result.routes.find(r => r.id === 'study').target === 'study-workspace', 'Break Down and Study expose their current workspace targets');
   ok(result.routes.find(r => r.id === 'plan').target === 'plan-workspace', 'Plan exposes the live season plan workspace target');
   ok(result.snapshot.team.name === 'Mavericks' && result.snapshot.season.id === 's1' && result.snapshot.game.id === 'g1', 'Workspace snapshot carries team, season, and game identity');

@@ -233,7 +233,13 @@ state = await page.evaluate(() => {
 });
 const metadataBeforeScout = state.gameInfo;
 await page.click('[data-bd-context="scout"]');
-await new Promise(resolve => setTimeout(resolve, 40));
+// Wait for the CONDITION, not a stopwatch. The app focuses the perspective
+// field on a 30ms timer, so a fixed 40ms read had ~10ms of headroom and tipped
+// over the moment shell startup got slightly heavier (adding the Reports
+// route). Verified by probe that behaviour is unchanged — focus lands on
+// gmPerspective between 40-60ms and stays there indefinitely — so only the read
+// was fragile, not the product. The assertion below is otherwise untouched.
+await page.waitForFunction(() => document.activeElement?.id === 'gmPerspective', { timeout: 4000 });
 state = await page.evaluate(() => {
   const result = {
     perspective: document.getElementById('gamePerspective').value,

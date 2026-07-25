@@ -4,6 +4,13 @@ const WORKSPACE_ROUTES = Object.freeze([
   Object.freeze({ id: 'home', name: 'Home', target: 'team-home', requires: null }),
   Object.freeze({ id: 'breakdown', name: 'Break Down', target: 'classic-workspace', requires: 'game' }),
   Object.freeze({ id: 'study', name: 'Study', target: 'study-workspace', requires: 'season' }),
+  // Reports is a distinct job from Study. Study is "ask a question" (pick a
+  // dimension, filter, compare, watch the film). Reports is "show me
+  // everything" — the full team picture. That job never had a redesigned home,
+  // so it fell through to the original dashboard and made the whole redesign
+  // read as unfinished. It hosts the canonical StatsEngine render output; no
+  // metric is reimplemented here (redesign plan §4 parity contract).
+  Object.freeze({ id: 'reports', name: 'Reports', target: 'reports-workspace', requires: 'season' }),
   Object.freeze({ id: 'plan', name: 'Plan', target: 'plan-workspace', requires: 'season' }),
 ]);
 

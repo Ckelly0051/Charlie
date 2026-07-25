@@ -210,8 +210,21 @@ r = await page.evaluate(() => ({ options: document.querySelectorAll('#wsStudySav
 ok(r.options === 1 && r.stored === 0, 'Saved views can be deleted intentionally', JSON.stringify(r));
 
 await page.click('[data-study-action="advanced"]');
-r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), outlet: !document.querySelector('#wsClassicOutlet')?.hidden }));
-ok(r.stats && r.outlet, 'Advanced Reports remains one click away');
+await new Promise(r => setTimeout(r, 400));
+// Advanced Reports is still one click from Study, but it now lands on the
+// REPORTS ROUTE instead of revealing the classic outlet. The dashboard is the
+// same canonical element (same numbers, same click-to-film bindings) — it just
+// lives in a shell destination now, so the retired classic chrome is never
+// exposed to get there.
+r = await page.evaluate(() => ({
+  stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'),
+  outletHidden: document.querySelector('#wsClassicOutlet')?.hidden,
+  route: window.app.workspace.currentRoute(),
+  dashInReportsRoute: !!document.querySelector('#wsReports #statsDashboard'),
+}));
+ok(r.stats && r.route === 'reports' && r.dashInReportsRoute,
+  'Advanced Reports remains one click away, now as the Reports destination', JSON.stringify(r));
+ok(r.outletHidden, 'Reaching Advanced Reports no longer exposes the classic outlet', JSON.stringify(r));
 
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyCompare', '');

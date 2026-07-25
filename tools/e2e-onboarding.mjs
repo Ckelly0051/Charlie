@@ -49,17 +49,12 @@ const openHomeGame = async (i = 0) => {
   await page.evaluate(n => { const b = document.querySelectorAll('#wsFilmList [data-ws-game]')[n]; if (b) b.click(); }, i);
   await sleep(700);
 };
-// Stats (#statsDashboard) live inside the relocated classic #app, which a shell
-// route keeps in a hidden outlet. Reveal that outlet (the shell's own Advanced
-// Reports path does the same) so the dashboard has layout, then fire the real
-// #btnShowStats handler (opens the dashboard AND sets ffa_seen_stats for real
-// data) — a programmatic click works even on the not-visible button.
+// The full team report now has its own shell destination (Reports), and
+// #statsDashboard is re-parented into it. Clicking the canonical #btnShowStats
+// both routes there AND sets ffa_seen_stats for real data, so this drives the
+// real product path — no outlet poking required.
 const showStats = async () => {
-  await page.evaluate(() => {
-    const outlet = document.getElementById('wsClassicOutlet');
-    if (outlet) outlet.hidden = false;
-    document.getElementById('btnShowStats')?.click();
-  });
+  await page.evaluate(() => document.getElementById('btnShowStats')?.click());
   await sleep(800);
 };
 
