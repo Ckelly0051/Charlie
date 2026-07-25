@@ -479,6 +479,24 @@ ok(r.restored && r.chromeRestored, 'disable() (internal teardown) restores canon
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });
+
+// mount -> restore -> mount. disable() is asserted above and enable() right
+// here, but nothing re-checked that the ADOPTED controls come back into shell
+// chrome on the second mount — leaving the newly relocated ones (undo, redo,
+// shortcuts, CV badge) re-entombed inside the hidden classic bar after a
+// lifecycle cycle, with every other assertion still green.
+r = await page.evaluate(() => ({
+  reAdopted: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'btnSidebarToggle']
+    .every(id => !!document.getElementById(id)?.closest('.ws-global-tools')),
+  badgeReHoused: !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head'),
+  moreReAdopted: !!document.getElementById('btnMoreMenu')?.closest('.ws-global-tools'),
+  // and nothing got duplicated by mounting twice
+  singletons: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
+    .every(id => document.querySelectorAll(`#${id}`).length === 1),
+}));
+ok(r.reAdopted && r.badgeReHoused && r.moreReAdopted && r.singletons,
+  'Re-enabling after teardown re-adopts every relocated control exactly once', JSON.stringify(r));
+
 await page.evaluate(() => window.app.workspaceShell.show('home'));
 await capture('home-768x1024');
 await page.setViewport({ width: 390, height: 844 });

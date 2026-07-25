@@ -113,22 +113,38 @@ echo "=== GATE ==="
 # No harness is special-cased. e2e-realdata.mjs was previously a diagnostic that
 # exit(0)'d unconditionally; it now keeps a failure counter and returns nonzero,
 # so it is scored like everything else (review finding #3).
-pass=0; fail=0; count=0; failed_names=""
+# Per-harness wall time is recorded because this suite has twice produced
+# INTERMITTENT reds (2026-07-25: integrity/mark-flow/onboarding failed once and
+# passed on a byte-identical re-run). Without timing there is no way to tell a
+# real defect from a harness that ran out of time, and "intermittent" becomes a
+# guess — the exact unevidenced diagnosis that hid a real e2e-film-room bug for
+# two sessions. A slow-but-green harness is the leading indicator of the next red.
+pass=0; fail=0; count=0; failed_names=""; slow_report=""
 for f in tools/e2e-*.mjs; do
   base=$(basename "$f")
   count=$((count+1))
+  started=$(date +%s)
   out=$(node "$f" 2>&1); rc=$?
+  secs=$(( $(date +%s) - started ))
   line=$(result_line "$out")
+  [ "$secs" -ge 25 ] && slow_report="$slow_report  ${secs}s  $base"$'\n'
   if is_green "$line" "$rc"; then
-    pass=$((pass+1)); printf 'ok   %-42s %s\n' "$base" "$line"
+    pass=$((pass+1)); printf 'ok   %-42s %4ss  %s\n' "$base" "$secs" "$line"
   else
     fail=$((fail+1)); failed_names="$failed_names $base"
-    printf 'FAIL %-42s (exit %s) %s\n' "$base" "$rc" "${line:-<no result line — crashed?>}"
-    printf '%s\n' "$out" | tail -12 | sed 's/^/       /'
+    printf 'FAIL %-42s %4ss  (exit %s) %s\n' "$base" "$secs" "$rc" "${line:-<no result line — crashed?>}"
+    # 40, not 12: a truncated tail on an intermittent failure destroys the only
+    # evidence of why it failed, and the run is not cheap to reproduce.
+    printf '%s\n' "$out" | tail -40 | sed 's/^/       /'
   fi
 done
 
 echo ""
+if [ -n "$slow_report" ]; then
+  echo "=== harnesses over 25s (watch these — slow precedes intermittent red) ==="
+  printf '%s' "$slow_report"
+  echo ""
+fi
 echo "=== $count harnesses | $pass green | $fail failed ==="
 [ "$fail" -gt 0 ] && echo "failed:$failed_names"
 # Record the ACTUAL count in the handoff. Never hardcode it — the suite grows.

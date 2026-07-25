@@ -13265,6 +13265,12 @@ class PlayTagger {
         const tag = this.customTagInput.value.trim();
         if (tag && this.currentPlayId) {
           const play = this.getPlay(this.currentPlayId);
+          // The WRITE sink for the same missing-collection case the render sink
+          // guards. A legacy/imported play has no tags.custom, and this threw
+          // INSIDE the listener — so it never surfaced as a failed call, only as
+          // an uncaught page error, which is why the render-only fix looked
+          // complete. Reproduced before fixing.
+          if (play && !Array.isArray(play.tags.custom)) play.tags.custom = [];
           if (play && !play.tags.custom.includes(tag)) {
             play.tags.custom.push(tag);
             this._renderCustomTags(play.tags.custom);
@@ -17502,6 +17508,13 @@ class SeasonStore {
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
       g.plays.forEach(p => {
+        // Every in-app creation site sets `custom: []`, but an imported or
+        // pre-field season file has no such key — and the tag form both READS
+        // it (_renderCustomTags) and WRITES it (`custom.includes(tag)` on the
+        // custom-tag input). Backfilling here fixes the class at the data
+        // boundary instead of patching each sink; the sinks keep their own
+        // guards because a render guard alone already proved insufficient.
+        if (p && p.tags && !Array.isArray(p.tags.custom)) p.tags.custom = [];
         SeasonStore.migratePlayFormation(p);
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);
@@ -18506,7 +18519,6 @@ class StorageManager {
       // restore the PREVIOUS game's plays into this one. (Cross-game corruption
       // the integrity harness caught: switchToGame never re-init'd history.)
       if (app.history && app.history.reset) app.history.reset();
-      if (app._updateSeasonChip) app._updateSeasonChip();
       if (renderGames && app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
       app.uiPolish?._renderFilmStorageSettings?.();
@@ -19165,7 +19177,6 @@ class StorageManager {
     this._cancelFilmPurgeTimer();   // undo restores the game → its film must NOT be purged
     this._lastDeletedGame = null;
     // Refresh every games view that may be showing (all display-only).
-    try { window.app && window.app._updateSeasonChip && window.app._updateSeasonChip(); } catch (e) {}
     try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
     try { window.app && window.app.library && window.app.library._renderSchedule && window.app.library._renderSchedule(); } catch (e) {}
     return true;
@@ -34300,7 +34311,6 @@ class SeasonLibrary {
     this._setLevel('seasons');   // also refreshes the header subtitle to the new team
     this._renderTeamCard();
     await this._render();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   /** "+ Add Team" → show the setup form in adding mode (with a Cancel). */
@@ -34385,7 +34395,6 @@ class SeasonLibrary {
     }
     this._renderTeamCard();
     await this._render();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _bind() {
@@ -34618,7 +34627,6 @@ class SeasonLibrary {
     this._syncGameInfoFromTeam(profile);
     this._renderTeamCard();
     this._render();   // surface the Get Started checklist now that a team exists
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     // Success moment (UX audit B8): confirm the handoff and point at the
     // checklist, which pulses once so the eye lands on the next step.
     window.app?.history?._toast(`Team saved — next: start a season`);
@@ -34655,7 +34663,6 @@ class SeasonLibrary {
     this._syncGameInfoFromTeam(profile);
     this._showTeamEdit(false);
     this._renderTeamCard();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _syncGameInfoFromTeam(profile) {
@@ -34762,7 +34769,6 @@ class SeasonLibrary {
     if (!ok) return;
     storage.removeGame(id);
     this._renderSchedule();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     // In-situ recovery (UX audit A2): stash-backed one-shot undo.
     window.app?.history?._toast(`Deleted "${name}"`, {
       action: { label: 'Undo', fn: () => {
@@ -34782,7 +34788,6 @@ class SeasonLibrary {
     if (window.app?.openGame) { await window.app.openGame(id); return; }
     // Defensive fallback (openGame is always present under window.app).
     if (storage.seasonStore.data && storage.seasonStore.data.activeGameId !== id) await storage.switchToGame(id);
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     if (window.app?.season?._renderAll) window.app.season._renderAll();
   }
 
@@ -34790,7 +34795,6 @@ class SeasonLibrary {
     const storage = this._storage();
     if (storage) storage.newGame();
     this.overlay.classList.add('hidden');
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   /** Hide the library — only meaningful once a season is open. */
@@ -34990,7 +34994,6 @@ class SeasonLibrary {
       window.app?.updater?._toast?.('Could not load the demo season — browser storage may be full.');
       return;
     }
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     window.app?.updater?._toast?.('Demo season loaded — open a game, then tap Stats to explore. (No film attached.)');
     this.openSchedule();   // land on the populated schedule (two finished games)
   }
@@ -35010,13 +35013,11 @@ class SeasonLibrary {
     await this._storage().createSeason(meta);
     ['newSeasonYear', 'newSeasonTeam', 'newSeasonName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     this._showForm(false);
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     this.openSchedule();
   }
 
   async _open(id) {
     await this._storage().openSeasonById(id);
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     this.openSchedule();
   }
 
@@ -35037,7 +35038,6 @@ class SeasonLibrary {
     if (!ok) return;
     await this._storage().deleteSeason(id);
     await this._render();
-    if (window.app && window.app._updateSeasonChip) window.app._updateSeasonChip();
   }
 }
 

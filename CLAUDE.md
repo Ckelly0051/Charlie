@@ -267,6 +267,49 @@ duplicated verbatim by the shell's own Team › Season › Game context bar.
 while the liveness assertion stays green (proving the outlet really is revealed,
 so the check can't pass vacuously). `e2e-workspace-shell` 35 → 39.
 
+### ▶ CODEX REVIEW QUEUE — NOTHING BELOW HAS HAD AN INDEPENDENT PASS
+
+**Reviewer: Codex. Builder: Claude. None of the following is accepted — it is
+built, self-reviewed, and gate-green only.** Claude's self-review found two real
+defects in its OWN already-"verified" work in this batch, on commits that were
+CI-green across 60 harnesses, which is the standing argument for why this queue
+exists. Review order per §7: correctness/data integrity → analytics parity →
+backward compatibility → missing tests → UX → efficiency.
+
+Unreviewed commits, oldest first:
+
+| Commit | What | Risk to probe |
+|---|---|---|
+| `afb8115` | C1 — retire legacy game-entry route | dual-ownership of game open |
+| `660ccfa` | C2 — durable linked-film regressions (tests only) | proof actually drives the real path |
+| `36540cc` | P0 film-load race + classic retirement + New Game | latest-load-wins token correctness |
+| `81c6d2a`/`07bff8d` | two Claude self-review rounds | builder self-review is structurally weak |
+| `1ba013e` | Reports becomes a real shell route | re-parenting vs. reimplementation; metric parity |
+| `2bd8657` | Entombed capabilities recovered into shell chrome | relocation preserving live listeners |
+| `2e92f83` | `1.12.0-11` version stamp | four-file version consistency |
+| `9833e38` | Breadcrumb + game dropdown DELETED | shared helpers kept vs. deleted by name |
+| *(pending)* | adversarial-review fixes + gate instrumentation | see below |
+
+**Highest-value things to attack (Claude's own assessment of where it is
+weakest):**
+1. **`SeasonStore._normalize` now backfills `tags.custom`.** It runs on EVERY
+   play of every game on every load. Does adding a key alter any golden, parity
+   snapshot, CSV round-trip, or SqlCatalog body_json comparison? Claude asserts
+   no and the gate agrees, but this is the one change touching all real data.
+2. **The classic-header deletion kept `_gameRowInfo`/`_scorePillHtml`/
+   `_gameBadgesHtml`/`.gd-score`** because the LIVE games panel shares them.
+   Verify nothing else was deleted by name-association.
+3. **Chrome relocation moves live DOM elements.** Confirm no listener,
+   disabled-state binding, or CSS rule was silently orphaned — and that no other
+   unscoped `.top-bar`-era media rule followed a relocated control (two did).
+4. **The unexplained gate red above.** Fresh eyes on whether it is attributable.
+5. **`e2e-realdata` runs degraded in CI** (`GIQ_REALDATA_OPTIONAL=1`, no season
+   mirror on a runner), so CI green covers 59 harnesses meaningfully and the
+   60th only partially.
+
+**Still gated on Codex acceptance:** deleting any managed C: film copy, and any
+promotion past a local smoke build to a published stable release.
+
 **CLASSIC TOP BAR, PART 1 — ENTOMBED CAPABILITIES RECOVERED (2026-07-25).**
 Correcting my own framing first: I had recorded the classic top bar as "still
 owning ~18 controls," implying legacy chrome was *showing*. **Measured, it was
@@ -371,7 +414,96 @@ comment — the embedded `*/` terminates the comment early and silently breaks t
 stylesheet. Caught on the next read and a comment-balance check added to the
 verification step. A build will NOT tell you; CSS fails quietly.
 
+**ADVERSARIAL SELF-REVIEW of both top-bar commits (2026-07-25) — THREE findings,
+two of them defects in claims I had already made.** Coach asked for the review
+after the work was CI-green on 60 harnesses; none of the three surfaced there,
+because all three live where the tests were not looking.
+
+1. **[Medium] "Removed its 6 call sites" was WRONG — there were 19.**
+   `_updateSeasonChip` had 13 more callers in `season-library.js` (11) and
+   `storage.js` (2). The verification step inside my own cut script only scanned
+   `app.js` — I checked the file I was editing and called it a codebase check.
+   All 13 are optional-guarded (`if (window.app?._updateSeasonChip)`), so they
+   no-op instead of throwing, which is exactly why the gate stayed green.
+   **The `9833e38` commit message is therefore inaccurate and is corrected here;
+   it is pushed and cannot be cleanly amended.** All 13 removed (0 remain).
+2. **[Medium-High] The `tags.custom` fix was half a fix — and the shipped half
+   is the half a coach does not hit.** `_renderCustomTags` (the READ sink) was
+   guarded; `play-tagger.js`'s custom-tag input (`custom.includes(tag)`, the
+   WRITE sink) was not. On an imported/legacy play, typing a custom tag and
+   pressing Enter throws. **Why it hid:** the throw is inside a keydown listener,
+   so it surfaces only as an uncaught page error, never as a failed call — a
+   probe printed `addCustomTag: "ok"` while the page error fired. Reproduced
+   before fixing. Fixed structurally in `SeasonStore._normalize` (backfills
+   `custom`, and replaces a non-array rather than trusting it) PLUS the write
+   sink, because a render-only guard has now demonstrably proven insufficient
+   once. Checked for generalization: `tags.players`/`tags.grades` share the shape
+   but every access is guarded — one genuinely unguarded site, not a class.
+3. **[Medium] The lifecycle path had no coverage for the newly adopted
+   controls.** `disable()` was asserted and `enable()` was called, but nothing
+   re-checked that undo/redo/shortcuts/badge return to shell chrome on the SECOND
+   mount. A regression there silently re-entombs the exact four capabilities this
+   work existed to recover, with every other assertion green. Coverage gap, not a
+   code defect — the test passes on current code.
+
+**Verification:** each fix mutation-verified individually — remove the write
+guard → reds with the exact original page error; remove the `_normalize`
+backfill → reds `e2e-tag-model` 17c; adopt on first mount only → reds ONLY the
+new lifecycle assertion. `e2e-tagging` 27→28, `e2e-tag-model` 36→37,
+`e2e-workspace-shell` 46→47, full gate green.
+
+**The pattern, worth keeping:** all three lean the same way — I verified the
+thing I changed, not the surface it belongs to. Scanned the edited file instead
+of the codebase; guarded the sink my test exercised instead of the sink a coach
+uses; asserted teardown without asserting the rebuild. Same shape as the
+`\bundefined\b` guard that did not guard: the check was narrower than the claim
+attached to it.
+
+**GATE INCIDENT (2026-07-25) — ONE UNEXPLAINED RED, ROOT CAUSE NOT FOUND.**
+Recorded openly because the honest answer is "I could not reproduce it," and the
+last two times an intermittent was waved off as a flake it turned out to be a
+real bug ([[e2e-film-room]] stale `<td>`; the addFiles cross-game race).
+
+- **What happened:** the first full gate after the adversarial-review fixes came
+  back **57/60**, failing `e2e-integrity`, `e2e-mark-flow`, `e2e-onboarding`.
+- **What I destroyed:** `run-gate.sh` prints `tail -12` of every failure and I
+  piped the run through `Select-Object -Last 6`. **The only artifact that would
+  have explained it was thrown away by my own command.** That is the actual
+  process failure in this episode.
+- **Reproduction attempts, all negative:** 12/12 green running the three
+  harnesses in isolation; green with 12 CPU burners saturating all 12 logical
+  cores; **four consecutive full-gate runs green on byte-identical code**,
+  including one under sustained full-core load.
+- **Hypotheses killed by experiment, not argument:** (a) "parallel harness
+  contention" — `run-gate.sh` is a strictly SERIAL `for` loop, no parallelism
+  exists, so that mechanism was never available and I should have read the runner
+  first; (b) "CPU load" — `e2e-onboarding` takes **28s with and without 12-core
+  saturation**, so its runtime is dominated by fixed sleeps and network-idle
+  waits, not CPU; (c) "my diff" — the changes were an `Array.isArray` check, a
+  guard that only fires on missing data, and 13 removals of calls that were
+  ALREADY no-ops, none of which can fail nondeterministically.
+- **Real defects found while investigating (kept, but NOT sold as the cause):**
+  `e2e-onboarding` is the slowest harness at 28s with **21 fixed sleeps totalling
+  13.3s and ZERO condition waits** — genuinely fragile, same class as the 40ms
+  focus race fixed in `e2e-breakdown-video`. Deliberately NOT rewritten: I cannot
+  attribute the red to it, and speculatively rewriting 21 waits in a 52-assertion
+  harness is how new bugs get created. Also 105 leaked puppeteer profile dirs in
+  `%TEMP%` — traced to gate runs I killed mid-flight with TaskStop, i.e. mostly
+  self-inflicted, not a harness defect. Cleaned; no code change.
+- **The actual fix is instrumentation, because an unreproducible intermittent
+  cannot be fixed blind.** `tools/run-gate.sh` now records per-harness wall time,
+  prints a "harnesses over 25s" report (slow is the leading indicator of the next
+  red), and dumps `tail -40` instead of `tail -12` on failure. Detector
+  `--self-test` still 0 bad. **Next red will explain itself; always capture the
+  full gate output to a file.**
+- **Status: code green.** Four consecutive full gates (one under load) on the
+  committed bytes. If it recurs, the log will name the assertion — do not
+  re-diagnose from memory.
+
 **Still open (not blockers, do not lose):**
+- **`e2e-onboarding` blind-wait fragility:** 21 fixed sleeps / 13.3s / 0 condition
+  waits, measured. Convert to `waitForFunction` — but only with evidence from a
+  captured red, not speculatively.
 - **Dead CSS sweep:** ~50 now-inert `.bc-*` / `.gd-*` style blocks. Deferred
   deliberately, not skipped — they interleave with live rules and a careless
   grouped-selector cut breaks a live surface. **`.gd-score` MUST survive the

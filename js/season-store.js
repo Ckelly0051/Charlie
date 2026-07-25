@@ -283,6 +283,13 @@ export class SeasonStore {
       if (g.nextId == null) g.nextId = (g.plays.length + 1);
       if (!g.status) g.status = 'active';
       g.plays.forEach(p => {
+        // Every in-app creation site sets `custom: []`, but an imported or
+        // pre-field season file has no such key — and the tag form both READS
+        // it (_renderCustomTags) and WRITES it (`custom.includes(tag)` on the
+        // custom-tag input). Backfilling here fixes the class at the data
+        // boundary instead of patching each sink; the sinks keep their own
+        // guards because a render guard alone already proved insufficient.
+        if (p && p.tags && !Array.isArray(p.tags.custom)) p.tags.custom = [];
         SeasonStore.migratePlayFormation(p);
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);

@@ -223,7 +223,6 @@ export class SeasonLibrary {
     this._setLevel('seasons');   // also refreshes the header subtitle to the new team
     this._renderTeamCard();
     await this._render();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   /** "+ Add Team" → show the setup form in adding mode (with a Cancel). */
@@ -308,7 +307,6 @@ export class SeasonLibrary {
     }
     this._renderTeamCard();
     await this._render();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _bind() {
@@ -541,7 +539,6 @@ export class SeasonLibrary {
     this._syncGameInfoFromTeam(profile);
     this._renderTeamCard();
     this._render();   // surface the Get Started checklist now that a team exists
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     // Success moment (UX audit B8): confirm the handoff and point at the
     // checklist, which pulses once so the eye lands on the next step.
     window.app?.history?._toast(`Team saved — next: start a season`);
@@ -578,7 +575,6 @@ export class SeasonLibrary {
     this._syncGameInfoFromTeam(profile);
     this._showTeamEdit(false);
     this._renderTeamCard();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   _syncGameInfoFromTeam(profile) {
@@ -685,7 +681,6 @@ export class SeasonLibrary {
     if (!ok) return;
     storage.removeGame(id);
     this._renderSchedule();
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     // In-situ recovery (UX audit A2): stash-backed one-shot undo.
     window.app?.history?._toast(`Deleted "${name}"`, {
       action: { label: 'Undo', fn: () => {
@@ -705,7 +700,6 @@ export class SeasonLibrary {
     if (window.app?.openGame) { await window.app.openGame(id); return; }
     // Defensive fallback (openGame is always present under window.app).
     if (storage.seasonStore.data && storage.seasonStore.data.activeGameId !== id) await storage.switchToGame(id);
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     if (window.app?.season?._renderAll) window.app.season._renderAll();
   }
 
@@ -713,7 +707,6 @@ export class SeasonLibrary {
     const storage = this._storage();
     if (storage) storage.newGame();
     this.overlay.classList.add('hidden');
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
   }
 
   /** Hide the library — only meaningful once a season is open. */
@@ -913,7 +906,6 @@ export class SeasonLibrary {
       window.app?.updater?._toast?.('Could not load the demo season — browser storage may be full.');
       return;
     }
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     window.app?.updater?._toast?.('Demo season loaded — open a game, then tap Stats to explore. (No film attached.)');
     this.openSchedule();   // land on the populated schedule (two finished games)
   }
@@ -933,13 +925,11 @@ export class SeasonLibrary {
     await this._storage().createSeason(meta);
     ['newSeasonYear', 'newSeasonTeam', 'newSeasonName'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     this._showForm(false);
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     this.openSchedule();
   }
 
   async _open(id) {
     await this._storage().openSeasonById(id);
-    if (window.app?._updateSeasonChip) window.app._updateSeasonChip();
     this.openSchedule();
   }
 
@@ -960,7 +950,6 @@ export class SeasonLibrary {
     if (!ok) return;
     await this._storage().deleteSeason(id);
     await this._render();
-    if (window.app && window.app._updateSeasonChip) window.app._updateSeasonChip();
   }
 }
 

@@ -244,6 +244,22 @@ test('17b · (E1-R6) carry does NOT leak onto a special-teams target', () => {
   assert.equal(next.tags.backfield || '', '');
 });
 
+test('17c · _normalize backfills a missing tags.custom (imported/legacy plays)', () => {
+  // Every in-app creation site sets `custom: []`, so this shape only arrives
+  // from an imported or pre-field season file — which _normalize did NOT
+  // backfill. The tag form reads AND writes that array, and the write threw
+  // inside a keydown listener (uncaught page error, not a failed call), so a
+  // render-only guard looked complete. This pins the structural half.
+  const store = new SeasonStore({});
+  const noCustom = { id: 1, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense' } };
+  const junkCustom = { id: 2, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense', custom: 'not-an-array' } };
+  const realCustom = { id: 3, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense', custom: ['Blitz Alert'] } };
+  store._normalize({ games: [{ id: 'g1', plays: [noCustom, junkCustom, realCustom] }] });
+  assert.deepEqual(noCustom.tags.custom, [], 'missing custom becomes an empty array');
+  assert.deepEqual(junkCustom.tags.custom, [], 'a non-array custom is replaced, not trusted');
+  assert.deepEqual(realCustom.tags.custom, ['Blitz Alert'], 'an existing custom array is preserved verbatim');
+});
+
 /* ---- §7b bounded, coach-approved ST cleanup ---- */
 
 test('18 · (E1-R7b) _normalize clears backfield/strength on ST plays only, nothing else', () => {

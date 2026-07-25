@@ -261,6 +261,34 @@ r = await page.evaluate(() => {
 ok(r.count === 16, 'all 16 result values reachable', JSON.stringify(r));
 ok(r.hasFG, 'rare value (Field Goal) included');
 
+/* LEGACY/IMPORTED PLAY WITH NO tags.custom.
+   SeasonStore._normalize did not backfill `custom`, so a play from an imported
+   or pre-field season file arrives without it. The tag form READS it
+   (_renderCustomTags) and WRITES it (`custom.includes(tag)` on the custom-tag
+   input). A render-only guard was added first and looked complete — because the
+   write throws INSIDE a keydown listener, so it never surfaces as a failed call,
+   only as an uncaught page error. Both sinks are pinned here, and the page-error
+   channel is what actually catches the write case. */
+const beforeErrors = errors.length;
+r = await page.evaluate(() => {
+  const app = window.app, out = {};
+  const play = { id: 9901, timestamp: { start: 0, end: 3 },
+    tags: { unit: 'offense', down: '', players: {}, grades: {} }, notes: '', annotations: [] };
+  app.tagger.plays = [play];
+  app.tagger.currentPlayId = 9901;
+  app.tagger.selectPlay(9901);                       // render sink
+  const input = app.tagger.customTagInput;
+  input.value = 'Blitz Alert';
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));  // write sink
+  out.custom = app.tagger.plays[0].tags.custom;
+  out.chips = document.querySelectorAll('#tagChips .tag-chip').length;
+  return out;
+});
+await new Promise(res => setTimeout(res, 120));
+ok(Array.isArray(r.custom) && r.custom.includes('Blitz Alert') && errors.length === beforeErrors,
+  'A play with no tags.custom survives BOTH the render and the custom-tag write path',
+  JSON.stringify({ ...r, newErrors: errors.slice(beforeErrors) }));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:'); errors.forEach(e => console.log('  ' + e)); }
 else console.log('No console/page errors.');

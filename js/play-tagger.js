@@ -381,6 +381,12 @@ export class PlayTagger {
         const tag = this.customTagInput.value.trim();
         if (tag && this.currentPlayId) {
           const play = this.getPlay(this.currentPlayId);
+          // The WRITE sink for the same missing-collection case the render sink
+          // guards. A legacy/imported play has no tags.custom, and this threw
+          // INSIDE the listener — so it never surfaced as a failed call, only as
+          // an uncaught page error, which is why the render-only fix looked
+          // complete. Reproduced before fixing.
+          if (play && !Array.isArray(play.tags.custom)) play.tags.custom = [];
           if (play && !play.tags.custom.includes(tag)) {
             play.tags.custom.push(tag);
             this._renderCustomTags(play.tags.custom);

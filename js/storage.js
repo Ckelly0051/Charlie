@@ -404,7 +404,6 @@ export class StorageManager {
       // restore the PREVIOUS game's plays into this one. (Cross-game corruption
       // the integrity harness caught: switchToGame never re-init'd history.)
       if (app.history && app.history.reset) app.history.reset();
-      if (app._updateSeasonChip) app._updateSeasonChip();
       if (renderGames && app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
       app.uiPolish?._renderFilmStorageSettings?.();
@@ -1063,7 +1062,6 @@ export class StorageManager {
     this._cancelFilmPurgeTimer();   // undo restores the game → its film must NOT be purged
     this._lastDeletedGame = null;
     // Refresh every games view that may be showing (all display-only).
-    try { window.app && window.app._updateSeasonChip && window.app._updateSeasonChip(); } catch (e) {}
     try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
     try { window.app && window.app.library && window.app.library._renderSchedule && window.app.library._renderSchedule(); } catch (e) {}
     return true;
