@@ -300,3 +300,73 @@ should not be the reviewer. Recorded so the handoff is unambiguous.
 **Where I agree without reservation:** no toggle; capability parity over visual
 parity; Break Down deepest and last; storage/analytics engines untouched; one
 milestone per commit; single smoke build at the end.
+
+---
+
+## 10. Look and feel: bundled with the migration, not deferred
+
+**Codex's position is right, and deferring would contradict this plan's own
+§5 and §7.** Recorded with the distinction that makes it safe.
+
+### Why bundling is forced, not merely convenient
+
+1. **Deferring means writing the markup twice.** A native route is new markup by
+   definition. Writing it to reproduce a look we have already decided to abandon,
+   then rewriting it later, is pure waste.
+2. **DoD §7 says "no legacy CSS governing native screens."** Keeping the legacy
+   look while going native leaves only two options: copy legacy CSS into the new
+   stylesheet (carrying the debt forward under a new name) or keep referencing it
+   (violating DoD). Visual change is therefore *entailed* by the structural goal.
+3. **§5 already commits to it** — "do not preserve weak layouts merely because
+   they already exist," with the prototype as the visual direction. Deferring
+   would contradict a rule the brief already sets.
+4. The coach reviews by using the app. N structural milestones with no visible
+   improvement is a long stretch of unreviewable work.
+
+### The distinction that keeps it bounded
+
+- **BUNDLE:** applying the *already-approved* direction (`ux-prototype-v2`,
+  `design-v1`/`design-v1.1`, coach feedback) to markup being rewritten anyway.
+- **DEFER:** open-ended design exploration and polish passes. Those have no exit
+  criteria and would turn a migration into an unbounded redesign.
+
+A milestone's visual target is written down **before** the milestone starts, as a
+short per-route spec the coach approves. "We'll see how it looks" is not a target.
+
+### Resolving the objection bundling creates
+
+Mixing structural and visual change destroys visual-diff signal: you cannot tell
+an intended redesign from a migration regression. Mechanism, not veto:
+
+- **Capability parity is verified behaviourally, never visually** — data in, data
+  out, film-ref equality, persisted bytes. That is already required by D4, and it
+  is markup- *and* appearance-agnostic.
+- **Pixel baselines are captured AFTER a route migrates, not before.** Baseline
+  the new surface; visual regression then protects subsequent changes to that
+  route. Baselining a surface that is deliberately about to change is worthless.
+- **What must not change in a migration milestone:** data, film references, and
+  the capability set. Those are what the gate pins — not pixels.
+
+### Prerequisite this adds to P0: a shared design-primitives layer
+
+Measured on `2362bfb`, the native route stylesheets are already drifting from the
+`:root` token layer:
+
+| Stylesheet | `var(--token)` uses | hardcoded hex |
+|---|---|---|
+| `workspace-shell.css` | 80 | 53 |
+| `study-screen.css` | 36 | 16 |
+| `plan-screen.css` | 29 | 12 |
+| `reports-screen.css` | **0** | **23** |
+
+Each newly written native surface has drifted further than the last, and the
+worst offender is the most recent one. "Each route owns its stylesheet" without
+enforced token discipline yields five routes that merely resemble each other.
+
+So **P0 gains a deliverable**: a shared primitives layer (tokens, spacing scale,
+typography, elevation, focus ring, control sizing, breakpoints) plus a
+machine-checkable rule that route stylesheets consume tokens rather than raw
+values. Suggested gate: no raw hex in a route stylesheet without an explicit
+justified exception, checked in the suite the way the raw-read audit already
+works for tag projection. Without this, bundling look-and-feel produces
+inconsistency faster than deferring it would.
