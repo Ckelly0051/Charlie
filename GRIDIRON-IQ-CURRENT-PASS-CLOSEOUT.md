@@ -318,3 +318,16 @@ Same-batch hardening: count optional real-data as skipped rather than green and 
 All seven findings are implemented: state-aware Reports actions/titles/back behavior; teardown-safe Reports rebinding; one shared route visibility registry; non-destructive custom-tag coercion with save/reopen proof; responsive live Undo/Redo/Shortcuts controls; honest CI skip accounting plus `npm ci`; and multi-game C2 non-target fingerprints.
 
 Final rebuilt verification: 60/60 canonical harnesses with 0 skipped/failed, real data 13/13, Reports/shell 56/56, custom preservation 37/37, film storage 31/31, analytics parity unchanged, integrity 0 violations, and `cargo check` clean. No real data, linked film, or managed film was modified. Claude reviews `d32aa16` next; packaging remains coach-gated.
+
+### Local smoke artifact (`1.12.0-12`)
+
+The coach authorized Codex to package while Claude's independent repair review
+waits. Source/version commit: `deeb8ba8f9d7223b0b87b7f04be77e49a0e901c4`.
+The canonical gate passed 60/60 with zero skips before packaging. The first
+package attempt caught a stale `dist/index.html`; that output was overwritten.
+The final desktop payload is byte-identical to the gate-tested bundle and both
+Windows installers completed under `cargo tauri build --no-sign`.
+
+Use `GridIron IQ_1.12.0-12_x64-setup.exe` for the installed smoke. Full paths,
+hashes, and the coach checklist are in `SMOKE-1.12.0-12.md`. This is not tagged
+or published. Claude review remains pending, and managed C: film stays protected.

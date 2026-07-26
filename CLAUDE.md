@@ -332,6 +332,25 @@ promotion past a local smoke build to a published stable release.
 
 **Next action:** Claude independently reviews `d32aa16`, with special attention to Reports close/remount state, responsive live-node movement, non-destructive custom coercion, and gate skip classification. Only after acceptance does the coach decide whether to package a milestone.
 
+**Local smoke build `1.12.0-12` — READY (2026-07-25).** At the coach's explicit
+direction, Codex packaged the repaired source before Claude's delayed independent
+review. Version/source commit: `deeb8ba8f9d7223b0b87b7f04be77e49a0e901c4`.
+The exact stamped bundle passed the canonical gate **60 harnesses | 60 green |
+0 skipped | 0 failed**, including real data 13/13 and parity 2/2. A first
+packaging attempt exposed that `dist/index.html` was stale; those installers
+were overwritten and must not be used. The final packaging copied the
+gate-tested `football-film-analyzer.html` to `dist/index.html`, proved identical
+SHA-256 `257707355605C4410598BECDD82E1016965B65CF4E91EEDF38717FF6FF10B415`,
+then completed `cargo tauri build --no-sign`. Final EXE:
+`src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-12_x64-setup.exe`
+(SHA-256 `47C18F3AEB1CF47D6E6F11C3F6CBF0FA4A249FE77C5439E2B3A493C3E1768936`);
+MSI alternative:
+`src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-12_x64_en-US.msi`
+(SHA-256 `ABA32E99991C425935C2BA6CB4CD88DF1A8B61932E57950647E8C1B4B848DF32`).
+This is a local unsigned smoke artifact, not a tag/published release. See
+`SMOKE-1.12.0-12.md`. Claude still independently reviews `d32aa16`; the coach
+owns installed smoke and no managed film may be deleted yet.
+
 **CLASSIC TOP BAR, PART 1 — ENTOMBED CAPABILITIES RECOVERED (2026-07-25).**
 Correcting my own framing first: I had recorded the classic top bar as "still
 owning ~18 controls," implying legacy chrome was *showing*. **Measured, it was
