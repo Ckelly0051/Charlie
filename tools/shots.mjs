@@ -6,15 +6,14 @@
    Usage:
      node tools/shots.mjs <label> [outDir]
    Writes <outDir>/<label>-NN-<surface>.png (default outDir: ./_shots).
-   Requires the bundle at ../football-film-analyzer.html (file://) — no server. */
+   Requires a fresh Vite build; app-entry.mjs serves it over loopback. */
+import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 
 const label = process.argv[2] || 'shots';
 const outDir = process.argv[3] || new URL('../_shots/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 fs.mkdirSync(outDir, { recursive: true });
-const URL_ = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
-
 const b = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await b.newPage();
 await page.setViewport({ width: 1440, height: 900 });
@@ -27,7 +26,7 @@ const shot = async name => {
   console.log(`  ${label}-${String(n).padStart(2, '0')}-${name}.png`);
 };
 
-await page.goto(URL_, { waitUntil: 'networkidle0' });
+await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await sleep(800);
 await shot('lobby-firstrun');
 

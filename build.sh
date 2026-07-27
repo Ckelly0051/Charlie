@@ -78,8 +78,11 @@ cat assets/icons.svg >> "$OUTPUT"
 echo "" >> "$OUTPUT"
 
 # Extract the FULL body content from index.html:
-# Everything between <body> and </body>, excluding those tags and the <script> tag
-sed -n '/<body>/,/<\/body>/{ /<body>/d; /<\/body>/d; /<script.*app\.js/d; p; }' index.html | \
+# Everything between <body> and </body, excluding those tags and every external
+# module entry. The legacy single-file reference bundle inlines app.js below;
+# retaining Vite's module entries would leave CORS-bound imports and raw JSX.
+sed -n '/<body>/,/<\/body>/{ /<body>/d; /<\/body>/d; p; }' index.html | \
+  sed -E '/<script[^>]*type="module"/d' | \
   sed 's|assets/icons.svg#|#|g' >> "$OUTPUT"
 
 # Start inline script

@@ -135,19 +135,19 @@ frozen contracts above are unchanged and proven so.
 
 ### P0 checkpoint status
 
-- **P0-a — ACCEPTED (Claude, independent, 2026-07-27):** pinned Vite/Preact build,
-  runtime assets, shared loopback test entry, all 41 affected harnesses migrated,
-  canonical gate on Vite. Full gate 60/60; Tauri `cargo check` clean. Review
-  independently re-ran parity (incl. the real six-game golden), integrity,
-  film-room, onboarding, realdata and workspace-shell on the committed bytes.
-  **Seven findings; F1 (`build.sh` regenerates a broken bundle — reproduced) and
-  F2 (`tools/shots.mjs` still renders the retired artifact) are required before
-  P0-b.** Full text in the CLAUDE.md handoff.
-- **P0-b — next:** F1/F2 fixes, then the native overlay host + dialog/sheet/toast
-  primitives; one explicit DI/unmount proof route.
+- **P0-a — ACCEPTED; review repair awaiting Claude re-review (2026-07-27):** the
+  Vite/Preact foundation and 41-harness entry migration were accepted. Codex then
+  closed all seven review findings together: self-contained legacy reference
+  build, canonical visual-harness entry, Tauri pre-build, complete freshness
+  inputs, no duplicated SQL resources, accurate package ignores, and documented
+  runtime icon ownership. Mutation proofs, 10-surface visual run, local Tauri
+  no-bundle build, and full gate 60/60 are green. Full text in `CLAUDE.md`.
+- **P0-b — next after repair acceptance:** native overlay host +
+  dialog/sheet/toast primitives; one explicit DI/unmount proof route.
 - **P0-c:** shared film-navigation/cut-up service with exact composite-ref parity.
 - **P0-d:** journey capability inventory, operation-scoped data-diff harness,
   design-token enforcement, and final P0 exit audit.
+
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 
 ### 3.1 P0 exit gate — all required before S1 opens

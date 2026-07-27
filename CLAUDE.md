@@ -144,6 +144,32 @@ removing it silently kills every icon with no error.
 semantics, or film behavior — confirmed by re-running the parity and integrity
 gates myself, not accepted on report.** Managed C: film copies remain protected.
 
+**CODEX REPAIR of F1-F7 — BUILT, awaiting Claude re-review (2026-07-27).**
+All seven findings were valid and are closed together before P0-b:
+
+- `build.sh` strips every external module entry before producing the temporary
+  self-contained reference bundle. A regenerate + `file://` core smoke passed
+  25/25 with zero retained module tags; the tracked bundle was restored after
+  the proof.
+- `tools/shots.mjs` now imports the canonical `APP_URL`; all 10 permanent visual
+  surfaces rendered from the Vite build.
+- Tauri runs `npm run build` via `beforeBuildCommand`. This was executed through
+  `cargo tauri build --debug --no-bundle`, which rebuilt Vite and produced the
+  desktop executable cleanly.
+- The parity freshness guard recursively covers `.js/.jsx/.ts/.tsx/.css` plus
+  `index.html`, Vite config, both package manifests, and the icon sprite.
+  Mutation proof: future-dating `native-root.jsx` and `index.html` independently
+  produced `STALE BUILD`; restoring them returned synthetic + real parity 2/2.
+- Vite no longer duplicates Tauri's SQL resources into `dist/`; the 706 KB
+  duplicate is absent while the load-bearing raw icon sprite remains and is
+  documented in config.
+- The tracked package manifests are no longer contradicted by `.gitignore`.
+
+Full canonical gate on the repaired Vite build: **60/60 green**, including the
+real-data and parity harnesses. No coach data, persistence behavior, analytics,
+film files, release, or package changed. P0-b remains blocked only on Claude's
+independent re-review of this repair checkpoint.
+
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**

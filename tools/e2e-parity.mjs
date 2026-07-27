@@ -124,11 +124,17 @@ const capture = async (page, fixture) => {
 const bundleFile = APP_ENTRY_PATH;
 const newestSourceMtime = () => {
   let newest = 0;
-  for (const rel of ['js', 'css']) {
-    const dir = fileURLToPath(new URL(`../${rel}/`, import.meta.url));
-    for (const f of fs.readdirSync(dir)) { if (!/\.(js|css)$/.test(f)) continue; newest = Math.max(newest, fs.statSync(path.join(dir, f)).mtimeMs); }
+  const visit = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(file);
+      else if (/\.(?:css|js|jsx|ts|tsx)$/.test(entry.name)) newest = Math.max(newest, fs.statSync(file).mtimeMs);
+    }
+  };
+  for (const rel of ['js', 'css']) visit(fileURLToPath(new URL(`../${rel}/`, import.meta.url)));
+  for (const rel of ['../index.html', '../vite.config.js', '../package.json', '../package-lock.json', '../assets/icons.svg']) {
+    try { newest = Math.max(newest, fs.statSync(fileURLToPath(new URL(rel, import.meta.url))).mtimeMs); } catch {}
   }
-  try { newest = Math.max(newest, fs.statSync(fileURLToPath(new URL('../assets/icons.svg', import.meta.url))).mtimeMs); } catch {}
   return newest;
 };
 if (fs.existsSync(bundleFile) && newestSourceMtime() > fs.statSync(bundleFile).mtimeMs) {

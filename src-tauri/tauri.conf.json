@@ -4,6 +4,7 @@
   "version": "1.12.0-12",
   "identifier": "com.gridironiq.app",
   "build": {
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {

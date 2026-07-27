@@ -9,11 +9,11 @@ function preserveRuntimeAssets() {
   return {
     name: 'gridiron-runtime-assets',
     closeBundle() {
-      for (const [sourceDir, outputDir] of [['assets', 'assets'], ['src-tauri/resources', 'resources']]) {
-        const source = resolve(ROOT, sourceDir);
-        if (existsSync(source)) {
-          cpSync(source, resolve(ROOT, 'dist', outputDir), { recursive: true });
-        }
+      // Runtime-generated <use href="assets/icons.svg#..."> references cannot
+      // use Vite's hashed import, so the raw sprite remains load-bearing.
+      const source = resolve(ROOT, 'assets');
+      if (existsSync(source)) {
+        cpSync(source, resolve(ROOT, 'dist', 'assets'), { recursive: true });
       }
     },
   };
