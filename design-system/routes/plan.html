@@ -25,7 +25,8 @@ body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-w
 .opp{margin-left:auto;display:flex;align-items:center;gap:9px;padding:0 15px;border-left:1px solid var(--c6);font-size:12.5px;color:var(--c11)}
 .opp b{color:var(--c12);font-weight:600}
 
-.body{display:grid;grid-template-columns:236px 1fr 328px;min-height:0}
+.body{display:grid;grid-template-columns:236px 1fr;grid-template-rows:1fr auto;min-height:0}
+.rail{grid-row:1/-1}
 /* plans rail */
 .rail{background:var(--c2);border-right:1px solid var(--c6);display:flex;flex-direction:column;min-height:0}
 .rh{padding:13px 15px 10px;border-bottom:1px solid var(--c6);display:flex;align-items:center}
@@ -71,26 +72,34 @@ body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-w
 .pill{height:26px;padding:0 10px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);font:500 11.5px/1 var(--sans);cursor:pointer}
 .pill.p{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
 
-/* right: presentation preview */
-.side{background:var(--c2);border-left:1px solid var(--c6);display:flex;flex-direction:column;min-height:0}
-.sh{padding:13px 15px 10px;border-bottom:1px solid var(--c6)}
-.sh h5{margin:0 0 2px;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c8)}
+/* presentation preview — a BOTTOM STRIP, not a cramped rail (coach, approved).
+   Follows Plan order, scrolls horizontally without page overflow, keeps
+   selection + Watch, reachable by keyboard and touch. */
+.side{grid-column:2;background:var(--c2);border-top:1px solid var(--c6);display:flex;flex-direction:column;min-width:0}
+.sh{display:flex;align-items:baseline;gap:10px;padding:9px 16px 8px;border-bottom:1px solid var(--c6)}
+.sh h5{margin:0;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c8)}
 .sh p{margin:0;font-size:11.5px;color:var(--c11)}
-.prev{flex:1;overflow:auto;padding:14px}
-.slide{background:var(--c1);border:1px solid var(--c6);padding:15px;margin-bottom:10px}
-.slide .k{font:500 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fd);margin-bottom:8px}
-.slide h4{margin:0 0 5px;font:600 15px/1.2 var(--sans)}
-.slide p{margin:0;font-size:12px;color:var(--c11)}
-.slide .film{margin-top:11px;height:78px;background:
-  repeating-linear-gradient(90deg,#ffffff07 0 1px,transparent 1px 34px),
+.sh .sf{margin-left:auto;display:flex;gap:6px}
+.sh .sf button{height:28px;padding:0 11px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);font:500 12px/1 var(--sans);cursor:pointer}
+.sh .sf .a{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
+/* the strip itself: horizontal scroll INSIDE the strip, never the page */
+.prev{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:12px 16px 14px;scroll-snap-type:x proximity}
+.prev::-webkit-scrollbar{height:8px}
+.prev::-webkit-scrollbar-thumb{background:var(--c5)}
+.slide{flex:0 0 232px;scroll-snap-align:start;background:var(--c1);border:1px solid var(--c6);padding:12px;cursor:pointer}
+.slide:hover{border-color:var(--c8)}
+.slide:focus-visible{outline:none;box-shadow:0 0 0 2px var(--c1),0 0 0 4px var(--c9)}
+.slide.sel{border-color:var(--c9);box-shadow:inset 0 0 0 1px var(--c9)}
+.slide .k{font:500 8.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fd);margin-bottom:7px}
+.slide h4{margin:0 0 4px;font:600 13px/1.2 var(--sans)}
+.slide p{margin:0;font-size:11px;color:var(--c11)}
+.slide .film{margin-top:9px;height:56px;background:
+  repeating-linear-gradient(90deg,#ffffff07 0 1px,transparent 1px 30px),
   radial-gradient(120% 90% at 50% 15%,#16283a,#080e15 70%);border:1px solid var(--c6);position:relative}
 .slide .film::after{content:'';position:absolute;left:36%;top:0;bottom:0;width:2px;background:var(--c9)}
 .slide .film::before{content:'';position:absolute;left:60%;top:0;bottom:0;width:2px;background:var(--fd)}
-.slide .cta{display:flex;align-items:center;gap:7px;margin-top:9px;font:500 10.5px/1 var(--mono);color:var(--c9)}
-.sf{border-top:1px solid var(--c6);padding:11px 14px;display:flex;gap:7px}
-.sf button{flex:1;height:36px;border:0;font:600 12.5px/1 var(--sans);cursor:pointer}
-.sf .a{background:var(--c9);color:#fff}
-.sf .b{background:var(--c4);color:var(--c12)}
+.slide .cta{display:flex;align-items:center;gap:6px;margin-top:8px;font:500 10px/1 var(--mono);color:var(--c9)}
+.add-slide{flex:0 0 132px;border:1px dashed var(--c7);background:transparent;color:var(--c8);font-size:11.5px;cursor:pointer}
 </style>
 <div class="app">
   <header class="bar">
@@ -168,20 +177,35 @@ body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-w
     </main>
 
     <aside class="side">
-      <div class="sh"><h5>Presentation</h5><p>What the staff sees Thursday</p></div>
-      <div class="prev">
-        <div class="slide"><div class="k">Deny the explosive · 1 of 3</div>
-          <h4>Trips Rt on 2nd &amp; long</h4>
-          <p>83% pass · 14.2 yards per attempt · 11 reps</p>
-          <div class="film"></div>
-          <div class="cta">▶ 11 plays · plays in order</div></div>
-        <div class="slide"><div class="k">Deny the explosive · 2 of 3</div>
-          <h4>Empty = pass, every time</h4>
-          <p>19 reps, zero runs, all downs</p>
-          <div class="film"></div>
-          <div class="cta">▶ 19 plays</div></div>
+      <div class="sh">
+        <h5>Presentation</h5>
+        <p>Follows plan order · 9 findings · what the staff sees Thursday</p>
+        <div class="sf"><button>Print</button><button class="a">Present full screen</button></div>
       </div>
-      <div class="sf"><button class="a">Present full screen</button><button class="b">Print</button></div>
+      <div class="prev">
+        <div class="slide sel" tabindex="0"><div class="k">Explosive · 1</div>
+          <h4>Trips Rt on 2nd &amp; long</h4><p>83% pass · 14.2 ypa</p>
+          <div class="film"></div><div class="cta">▶ 11 plays</div></div>
+        <div class="slide" tabindex="0"><div class="k">Explosive · 2</div>
+          <h4>Empty = pass, every time</h4><p>19 reps · zero runs</p>
+          <div class="film"></div><div class="cta">▶ 19 plays</div></div>
+        <div class="slide" tabindex="0"><div class="k">Explosive · 3</div>
+          <h4>Jet motion → outside run</h4><p>9 of 11 outside</p>
+          <div class="film"></div><div class="cta">▶ 11 plays</div></div>
+        <div class="slide" tabindex="0"><div class="k">Money downs · 1</div>
+          <h4>3rd &amp; long converts 58%</h4><p>7 of 12</p>
+          <div class="film"></div><div class="cta">▶ 12 plays</div></div>
+        <div class="slide" tabindex="0"><div class="k">Money downs · 2</div>
+          <h4>3-3-5 B-gap stopped it</h4><p>4 reps · 0 conv · 1 sack</p>
+          <div class="film"></div><div class="cta">▶ 4 plays</div></div>
+        <div class="slide" tabindex="0"><div class="k">Money downs · 3</div>
+          <h4>Avoid base 4-3 Cover 3</h4><p>5 reps · 4 conv allowed</p>
+          <div class="film"></div><div class="cta">▶ 5 plays</div></div>
+        <div class="slide" tabindex="0"><div class="k">Red zone · 1</div>
+          <h4>Heavy inside the 10</h4><p>8 of 10 in 21 personnel</p>
+          <div class="film"></div><div class="cta">▶ 10 plays</div></div>
+        <button class="add-slide">+ Add from Study</button>
+      </div>
     </aside>
   </div>
 </div>
