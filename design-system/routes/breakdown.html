@@ -5,237 +5,271 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --film:#06090c;
-  --s1:#0c1014;--s2:#121820;--s3:#1a2330;--s4:#202b3a;--s5:#273545;
-  --s6:#2f4054;--s7:#3a4f66;--s8:#4c657f;--s9:#2b6fff;--s10:#3d7dff;
-  --s11:#8fa8c4;--s12:#eef3f8;
-  --fd:#ffd400;--bad:#fa4d56;--ok:#42be65;
+  --film:#06090c;--c1:#0c1014;--c2:#121820;--c3:#1a2330;--c4:#202b3a;--c5:#273545;
+  --c6:#2f4054;--c7:#3a4f66;--c8:#4c657f;--c9:#2b6fff;--c10:#3d7dff;--c11:#8fa8c4;--c12:#eef3f8;
+  --fd:#ffd400;--to:#fa4d56;--ok:#42be65;--run:#a8842b;--pass:#2f6291;
   --sans:'IBM Plex Sans',system-ui,sans-serif;
   --cond:'IBM Plex Sans Condensed',sans-serif;
   --mono:'IBM Plex Mono',monospace;
-  /* Density is POINTER-DEPENDENT. 44px is a finger requirement, not a law.
-     Break Down on desktop is a mouse+keyboard surface charting 60+ plays. */
-  --hit:30px;
+  --hit:30px;--quick:90ms cubic-bezier(.2,.7,.3,1);--ease:170ms cubic-bezier(.2,.7,.3,1);
 }
-@media (pointer:coarse){ :root{ --hit:44px; } }
+@media (pointer:coarse){:root{--hit:44px}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--s1);color:var(--s12);font:14px/1.5 var(--sans)}
+body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
 .n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.app{display:grid;grid-template-columns:1fr 372px;grid-template-rows:52px 1fr;height:772px}
+button{font-family:inherit}
+:focus-visible{outline:none;box-shadow:0 0 0 2px var(--c1),0 0 0 4px var(--c9)}
+.app{display:grid;grid-template-columns:1fr 366px;grid-template-rows:50px 1fr;height:880px}
 
 /* ═══ SHELL ═══ */
-.bar{grid-column:1/-1;display:flex;align-items:stretch;background:var(--s2);border-bottom:1px solid var(--s6)}
-.mark{display:flex;align-items:center;padding:0 18px;border-right:1px solid var(--s6);font:600 15px/1 var(--sans)}
+.bar{grid-column:1/-1;display:flex;align-items:stretch;background:var(--c2);border-bottom:1px solid var(--c6)}
+.mark{display:flex;align-items:center;padding:0 17px;border-right:1px solid var(--c6);font:600 15px/1 var(--sans);letter-spacing:-.01em}
 .mark i{font-style:normal;color:var(--fd)}
 .nav{display:flex}
-.nav a{display:flex;align-items:center;padding:0 15px;font:500 12.5px/1 var(--sans);color:var(--s11);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
-.nav a.on{color:var(--s12);border-bottom-color:var(--s9);background:var(--s3)}
-.bug{margin-left:auto;display:flex;align-items:stretch}
-.bug .t{display:flex;align-items:center;gap:9px;padding:0 16px;border-left:1px solid var(--s6)}
-.bug .t span{font:500 10px/1 var(--mono);letter-spacing:.1em;color:var(--s11);text-transform:uppercase}
-.bug .t b{font-size:19px;line-height:1}
-.bug .g{display:flex;align-items:center;padding:0 16px;border-left:1px solid var(--s6);gap:8px;color:var(--s11);font-size:12.5px}
-.dot{width:6px;height:6px;background:var(--ok);border-radius:50%}
+.nav a{display:flex;align-items:center;padding:0 14px;font:500 12.5px/1 var(--sans);color:var(--c11);
+  border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;transition:color var(--quick),background var(--quick)}
+.nav a:hover{color:var(--c12);background:var(--c3)}
+.nav a.on{color:var(--c12);border-bottom-color:var(--c9);background:var(--c3)}
+.ctx{margin-left:auto;display:flex;align-items:stretch}
+.ctx .t{display:flex;align-items:center;gap:8px;padding:0 15px;border-left:1px solid var(--c6)}
+.ctx .t span{font:500 9.5px/1 var(--mono);letter-spacing:.1em;color:var(--c11);text-transform:uppercase}
+.ctx .t b{font-size:18px;line-height:1}
+.ctx .save{display:flex;align-items:center;gap:7px;padding:0 15px;border-left:1px solid var(--c6);color:var(--c11);font-size:12px}
+.dot{width:6px;height:6px;background:var(--ok);border-radius:50%;box-shadow:0 0 8px var(--ok)}
 
 /* ═══ THEATER ═══ */
-.theater{background:var(--s1);display:flex;flex-direction:column;min-width:0;padding:12px 12px 0}
-.film{position:relative;flex:1;overflow:hidden;background:var(--film);border:1px solid var(--s6)}
-.turf{position:absolute;inset:0;background:radial-gradient(125% 95% at 50% 12%,#16283a 0%,#0a1119 55%,#06090c 100%)}
-.yl{position:absolute;top:0;bottom:0;width:1px;background:#ffffff14}
-.yl.ten{width:2px;background:#ffffff24}
-.yl.ten b{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-family:var(--cond);font-weight:700;font-size:28px;line-height:1;color:#ffffff1c}
-.hash{position:absolute;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,#ffffff24 0 11px,transparent 11px 58px)}
-.hash.a{top:30%}.hash.b{top:70%}
+.th{background:var(--c1);display:flex;flex-direction:column;min-width:0;padding:12px 12px 0}
+.film{position:relative;flex:1;overflow:hidden;background:var(--film);border:1px solid var(--c6)}
+.turf{position:absolute;inset:0;background:radial-gradient(130% 100% at 50% 10%,#17293b 0%,#0a1119 56%,#06090c 100%)}
+.yl{position:absolute;top:0;bottom:0;width:1px;background:#ffffff12}
+.yl.t{width:2px;background:#ffffff22}
+.yl.t b{position:absolute;bottom:11px;left:50%;transform:translateX(-50%);font-family:var(--cond);font-weight:700;
+  font-size:27px;line-height:1;color:#ffffff1a}
+.hash{position:absolute;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,#ffffff22 0 11px,transparent 11px 58px)}
+.hash.a{top:29%}.hash.b{top:71%}
 .los,.fdl{position:absolute;top:0;bottom:0;width:3px}
-.los{left:34%;background:var(--s9);box-shadow:0 0 20px 2px #2b6fff99}
-.fdl{left:58%;background:var(--fd);box-shadow:0 0 20px 2px #ffd40099}
-.third{position:absolute;left:0;bottom:0;display:flex;clip-path:polygon(0 0,100% 0,calc(100% - 20px) 100%,0 100%)}
-.third .k{background:var(--s9);color:#fff;padding:9px 13px;font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center}
-.third .v{background:#000000d4;padding:9px 36px 9px 15px;display:flex;align-items:center;gap:11px}
+.los{left:33%;background:var(--c9);box-shadow:0 0 22px 2px #2b6fff8c}
+.fdl{left:57%;background:var(--fd);box-shadow:0 0 22px 2px #ffd4008c}
+.hud{position:absolute;top:10px;left:11px;right:11px;display:flex;gap:5px;align-items:flex-start}
+.hud .pill{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;
+  background:#000000b8;border:1px solid #ffffff1c;color:var(--c11);cursor:pointer;transition:var(--quick)}
+.hud .pill:hover{border-color:#ffffff3d;color:var(--c12)}
+.hud .pill.on{background:var(--c9);border-color:transparent;color:#fff}
+.hud .r{margin-left:auto;display:flex;gap:5px}
+/* the one diagonal in the product */
+.third{position:absolute;left:0;bottom:0;display:flex;clip-path:polygon(0 0,100% 0,calc(100% - 20px) 100%,0 100%);
+  animation:rise 320ms cubic-bezier(.16,1,.3,1)}
+@keyframes rise{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
+.third .k{background:var(--c9);color:#fff;padding:9px 13px;font:600 10.5px/1 var(--mono);letter-spacing:.12em;
+  text-transform:uppercase;display:flex;align-items:center}
+.third .v{background:#000000d9;padding:9px 34px 9px 15px;display:flex;align-items:center;gap:11px}
 .third .v strong{font:600 14px/1 var(--sans)}
-.third .v em{font-style:normal;color:var(--s11);font-size:12px}
-.hud{position:absolute;right:12px;top:11px;display:flex;gap:5px}
-.hud span{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;background:#000000b8;border:1px solid #ffffff1c;color:var(--s11)}
-.tr{display:flex;align-items:center;gap:11px;padding:10px 0 9px}
-.tb{width:38px;height:38px;border:1px solid var(--s7);background:var(--s2);color:var(--s12);cursor:pointer;font-size:12px}
-.tb.go{width:44px;height:44px;background:var(--s12);color:var(--s1);border:0;font-size:15px}
-.tc{font:600 12.5px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--s11)}
-.scrub{flex:1;height:6px;background:var(--s4);position:relative}
-.scrub i{position:absolute;inset:0 62% 0 0;background:var(--s9)}
+.third .v em{font-style:normal;color:var(--c11);font-size:12px}
+
+.tr{display:flex;align-items:center;gap:10px;padding:10px 0 9px}
+.tb{width:36px;height:36px;border:1px solid var(--c7);background:var(--c2);color:var(--c12);cursor:pointer;
+  font-size:12px;transition:var(--quick)}
+.tb:hover{background:var(--c4);border-color:var(--c8)}
+.tb.go{width:42px;height:42px;background:var(--c12);color:var(--c1);border:0;font-size:14px}
+.tb.go:hover{background:#fff}
+.tc{font:600 12.5px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--c11)}
+.scrub{flex:1;height:6px;background:var(--c4);position:relative;cursor:pointer}
+.scrub:hover{height:8px;margin:-1px 0}
+.scrub i{position:absolute;inset:0 62% 0 0;background:var(--c9);transition:width var(--quick)}
 .scrub b{position:absolute;left:38%;top:-5px;width:2px;height:16px;background:var(--fd)}
-.strip{margin:0 -12px;padding:0 12px 9px;background:var(--s2);border-top:1px solid var(--s6)}
-.strip .hd{display:flex;align-items:baseline;gap:10px;padding:7px 0 6px}
-.strip .hd h3{margin:0;font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11)}
-.strip .hd span{font-size:11.5px;color:var(--s11);margin-left:auto}
-.strip .hd span b{color:var(--s12)}
-.ticks{display:flex;gap:2px;align-items:flex-end;height:40px}
-.pk{flex:1;position:relative;display:flex;align-items:flex-end;cursor:pointer}
-.pk i{width:100%}
-.pk.run i{background:#a8842b}.pk.pass i{background:#2f6291}
-.pk.td i{background:var(--fd)}.pk.to i{background:var(--bad)}.pk.un i{background:var(--s5)}
-.pk.sel::after{content:'';position:absolute;inset:-3px -2px;border:2px solid var(--s9)}
-.pk.ten::before{content:attr(data-n);position:absolute;top:-12px;left:50%;transform:translateX(-50%);font:500 9px/1 var(--mono);color:var(--s11)}
+
+/* play strip, grouped by drive */
+.strip{margin:0 -12px;padding:0 12px 9px;background:var(--c2);border-top:1px solid var(--c6)}
+.sh{display:flex;align-items:baseline;gap:10px;padding:7px 0 6px}
+.sh h3{margin:0;font:500 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--c11)}
+.sh .lg{display:flex;gap:11px;margin-left:auto;font-size:10.5px;color:var(--c11)}
+.sh .lg i{display:inline-block;width:8px;height:8px;margin-right:5px}
+.dr{display:flex;gap:8px;align-items:flex-end;height:44px}
+.dv{display:flex;gap:2px;align-items:flex-end;flex:1;position:relative;padding-top:11px}
+.dv::before{content:attr(data-d);position:absolute;top:0;left:0;font:500 8.5px/1 var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--c8)}
+.dv+.dv{border-left:1px solid var(--c6);padding-left:8px}
+.pk{flex:1;position:relative;display:flex;align-items:flex-end;cursor:pointer;min-width:5px}
+.pk i{width:100%;transition:filter var(--quick)}
+.pk.run i{background:var(--run)}.pk.pass i{background:var(--pass)}
+.pk.td i{background:var(--fd)}.pk.to i{background:var(--to)}.pk.un i{background:var(--c5)}
+.pk:hover i{filter:brightness(1.45)}
+.pk.sel::after{content:'';position:absolute;inset:-3px -2px;border:2px solid var(--c9)}
 
 /* ═══ DECK ═══ */
-.deck{background:var(--s2);border-left:1px solid var(--s6);display:flex;flex-direction:column;min-height:0}
-.sit{display:flex;align-items:stretch;border-bottom:1px solid var(--s6);background:var(--s1)}
-.sit .dd{display:flex;flex-direction:column;justify-content:center;padding:9px 14px;border-right:1px solid var(--s6);min-width:106px}
-.sit .dd span{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:4px}
-.sit .dd b{font-size:25px;line-height:.95}
-.sit .dd b i{font-style:normal;color:var(--s11);margin:0 2px}
-.sit .sp{display:flex;flex-direction:column;justify-content:center;padding:9px 14px;flex:1}
-.sit .sp span{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:4px}
-.sit .sp b{font-size:18px;line-height:1}
-.sit .pl{display:flex;align-items:center;padding:0 14px;background:var(--s9);color:#fff;font:600 11.5px/1 var(--mono)}
-.unit{display:flex;border-bottom:1px solid var(--s6)}
-.unit button{flex:1;border:0;background:transparent;color:var(--s11);font:600 12px/1 var(--sans);height:36px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.unit button.on{color:var(--s12);border-bottom-color:var(--s9);background:var(--s3)}
-
-.form{flex:1;overflow:auto;padding:8px 12px 4px}
-
-/* RESOLVED groups collapse to one line — this is the scrolling fix.
-   Only the group you are answering is open. */
-.fld{border-bottom:1px solid var(--s6)}
-.fld > summary{list-style:none;display:flex;align-items:center;gap:9px;height:32px;cursor:pointer;padding:0 2px}
-.fld > summary::-webkit-details-marker{display:none}
-.fld .lb{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);min-width:88px}
-.fld .val{font:600 13px/1 var(--sans);color:var(--s12);flex:1}
-.fld .val.empty{color:var(--s8);font-weight:400}
-.fld .car{color:var(--s8);font-size:10px}
-.fld[open] > summary .car{transform:rotate(90deg)}
-.fld[open] > summary{border-bottom:1px solid var(--s6)}
-.chips{display:flex;flex-wrap:wrap;gap:3px;padding:8px 0 9px}
-.c{min-height:var(--hit);display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--sans);
-   padding:0 9px;border:1px solid var(--s7);background:var(--s3);color:var(--s11);cursor:pointer}
-.c:hover{background:var(--s4);border-color:var(--s8);color:var(--s12)}
-.c.on{background:var(--s9);border-color:var(--s9);color:#fff;font-weight:600}
-.c.on.win{background:var(--fd);border-color:var(--fd);color:#141000}
-/* the keyboard hint — charting fast means never touching the mouse */
-.c kbd{font:600 9px/1 var(--mono);color:var(--s8);background:transparent;border:1px solid var(--s6);padding:2px 3px}
-.c.on kbd{color:#ffffffb0;border-color:#ffffff40}
-.c.on.win kbd{color:#14100099;border-color:#14100040}
-.ydg{display:flex;border:1px solid var(--s7);margin:8px 0 9px}
-.ydg button{width:44px;height:44px;border:0;background:var(--s3);color:var(--s12);font-size:18px;cursor:pointer}
-.ydg .v{flex:1;display:flex;align-items:center;justify-content:center;background:var(--s1);font-size:28px}
-.more{display:flex;align-items:center;gap:8px;height:34px;color:var(--s11);font:500 11.5px/1 var(--sans);cursor:pointer;padding:0 2px}
+.deck{background:var(--c2);border-left:1px solid var(--c6);display:flex;flex-direction:column;min-height:0}
+.sit{display:flex;align-items:stretch;border-bottom:1px solid var(--c6);background:var(--c1)}
+.sit .b{display:flex;flex-direction:column;justify-content:center;padding:9px 14px;border-right:1px solid var(--c6)}
+.sit .b span{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--c11);margin-bottom:4px}
+.sit .b b{font-size:24px;line-height:.95}
+.sit .b b i{font-style:normal;color:var(--c11);margin:0 2px}
+.sit .b.g{flex:1;border-right:0}
+.sit .b.g b{font-size:17px}
+.sit .pl{display:flex;align-items:center;padding:0 14px;background:var(--c9);color:#fff;font:600 11.5px/1 var(--mono)}
+/* suggestion engine surface — a real capability that has never had a home */
+.tell{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#ffd4000f;border-bottom:1px solid var(--c6);
+  font-size:11.5px;color:#e8d69b}
+.tell b{font-weight:600;color:var(--fd)}
+.unit{display:flex;border-bottom:1px solid var(--c6)}
+.unit button{flex:1;border:0;background:transparent;color:var(--c11);font:600 12px/1 var(--sans);height:34px;
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:var(--quick)}
+.unit button:hover{background:var(--c3);color:var(--c12)}
+.unit button.on{color:var(--c12);border-bottom-color:var(--c9);background:var(--c3)}
+.form{flex:1;overflow:auto;padding:6px 12px 4px}
+.fld{border-bottom:1px solid var(--c6)}
+.fld>summary{list-style:none;display:flex;align-items:center;gap:9px;height:32px;cursor:pointer;padding:0 2px}
+.fld>summary::-webkit-details-marker{display:none}
+.fld>summary:hover .val{color:#fff}
+.lb{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--c11);min-width:84px}
+.val{font:600 13px/1 var(--sans);color:var(--c12);flex:1;transition:color var(--quick)}
+.val.e{color:var(--c8);font-weight:400}
+.car{color:var(--c8);font-size:9px;transition:transform var(--quick)}
+.fld[open]>summary .car{transform:rotate(90deg)}
+.fld[open]>summary{border-bottom:1px solid var(--c6)}
+.chips{display:flex;flex-wrap:wrap;gap:3px;padding:8px 0 9px;animation:fade 180ms ease}
+@keyframes fade{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.c{min-height:var(--hit);display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--sans);padding:0 9px;
+  border:1px solid var(--c7);background:var(--c3);color:var(--c11);cursor:pointer;transition:var(--quick)}
+.c:hover{background:var(--c4);border-color:var(--c8);color:var(--c12)}
+.c.on{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
+.c.on.w{background:var(--fd);border-color:var(--fd);color:#141000}
+.c kbd{font:600 9px/1 var(--mono);color:var(--c8);border:1px solid var(--c6);padding:2px 3px}
+.c.on kbd{color:#ffffffad;border-color:#ffffff3d}
+.c.on.w kbd{color:#14100096;border-color:#1410003d}
+.ydg{display:flex;border:1px solid var(--c7);margin:8px 0 9px}
+.ydg button{width:44px;height:44px;border:0;background:var(--c3);color:var(--c12);font-size:18px;cursor:pointer}
+.ydg button:hover{background:var(--c4)}
+.ydg .v{flex:1;display:flex;align-items:center;justify-content:center;background:var(--c1);font-size:28px}
+.more{display:flex;align-items:center;gap:8px;height:33px;color:var(--c11);font-size:11.5px;cursor:pointer;
+  padding:0 2px;border-bottom:1px solid var(--c6);transition:var(--quick)}
+.more:hover{color:var(--c12)}
 .more b{font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
-.more span{margin-left:auto;font:500 10px/1 var(--mono);color:var(--s8)}
-
-.commit{border-top:1px solid var(--s6);padding:10px 12px 12px;background:var(--s2)}
+.more span{margin-left:auto;font:500 10px/1 var(--mono);color:var(--c8)}
+.commit{border-top:1px solid var(--c6);padding:10px 12px 12px;background:var(--c2)}
 .btns{display:flex;gap:6px}
-.btns button{height:46px;border:0;font:600 13px/1 var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btns button{height:44px;border:0;font:600 13px/1 var(--sans);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:var(--quick)}
 .btns .p{flex:1;background:var(--fd);color:#141000}
-.btns .s{width:82px;background:var(--s4);color:var(--s12)}
-.btns kbd{font:600 9.5px/1 var(--mono);border:1px solid #14100040;padding:2px 4px}
-.btns .s kbd{border-color:var(--s7);color:var(--s11)}
-.pr{display:flex;justify-content:space-between;align-items:baseline;margin-top:9px;font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11)}
-.pr b{font-family:var(--cond);font-size:13px;color:var(--s12);letter-spacing:0}
-.bar2{height:3px;background:var(--s4);margin-top:6px}
-.bar2 i{display:block;height:100%;width:64%;background:var(--fd)}
+.btns .p:hover{background:#ffdd33}
+.btns .s{width:78px;background:var(--c4);color:var(--c12)}
+.btns .s:hover{background:var(--c5)}
+.btns kbd{font:600 9.5px/1 var(--mono);border:1px solid #1410003d;padding:2px 4px}
+.btns .s kbd{border-color:var(--c7);color:var(--c11)}
+.pr{display:flex;justify-content:space-between;align-items:baseline;margin-top:9px;font:500 9.5px/1 var(--mono);
+  letter-spacing:.12em;text-transform:uppercase;color:var(--c11)}
+.pr b{font-family:var(--cond);font-size:13px;color:var(--c12);letter-spacing:0}
+.bar2{height:3px;background:var(--c4);margin-top:6px}
+.bar2 i{display:block;height:100%;width:64%;background:var(--fd);transition:width var(--ease)}
 </style>
 <div class="app">
   <header class="bar">
     <div class="mark">GridIron <i>IQ</i></div>
     <nav class="nav"><a>Home</a><a class="on">Break Down</a><a>Study</a><a>Reports</a><a>Plan</a></nav>
-    <div class="bug">
+    <div class="ctx">
       <div class="t"><span>MAV</span><b class="n">41</b></div>
       <div class="t"><span>STP</span><b class="n">0</b></div>
-      <div class="g"><span class="dot"></span>Saved</div>
+      <div class="save"><span class="dot"></span>Saved</div>
     </div>
   </header>
 
-  <section class="theater">
+  <section class="th">
     <div class="film">
       <div class="turf"></div>
-      <div class="yl ten" style="left:11%"><b>30</b></div><div class="yl" style="left:22%"></div>
-      <div class="yl ten" style="left:34%"><b>40</b></div><div class="yl" style="left:46%"></div>
-      <div class="yl ten" style="left:58%"><b>50</b></div><div class="yl" style="left:70%"></div>
-      <div class="yl ten" style="left:82%"><b>40</b></div>
+      <div class="yl t" style="left:10%"><b>30</b></div><div class="yl" style="left:21%"></div>
+      <div class="yl t" style="left:33%"><b>40</b></div><div class="yl" style="left:45%"></div>
+      <div class="yl t" style="left:57%"><b>50</b></div><div class="yl" style="left:69%"></div>
+      <div class="yl t" style="left:81%"><b>40</b></div>
       <div class="hash a"></div><div class="hash b"></div>
       <div class="los"></div><div class="fdl"></div>
-      <div class="hud"><span>Endzone</span><span>1.00×</span><span>Loop</span></div>
-      <div class="third"><div class="k">Play 28</div><div class="v"><strong>Trips Rt · Shotgun</strong><em>Short Pass · +12</em></div></div>
+      <div class="hud">
+        <span class="pill on">Endzone</span><span class="pill">Sideline</span><span class="pill">Both</span>
+        <div class="r"><span class="pill">Draw</span><span class="pill">Loop</span><span class="pill">1.00×</span></div>
+      </div>
+      <div class="third"><div class="k">Play 28</div>
+        <div class="v"><strong>Trips Rt · Shotgun · 11</strong><em>Short Pass · +12 · 1st down</em></div></div>
     </div>
+
     <div class="tr">
       <button class="tb">⏮</button><button class="tb go">▶</button><button class="tb">⏭</button>
       <span class="tc">00:07.4</span><div class="scrub"><i></i><b></b></div><span class="tc">00:11.9</span>
       <button class="tb">⤢</button>
     </div>
+
     <div class="strip">
-      <div class="hd"><h3>Drive 4</h3><span>Charted <b>28</b> of <b>44</b></span></div>
-      <div class="ticks">
-        <span class="pk pass ten" data-n="1"><i style="height:20px"></i></span>
-        <span class="pk run"><i style="height:12px"></i></span><span class="pk run"><i style="height:27px"></i></span>
-        <span class="pk to"><i style="height:7px"></i></span><span class="pk pass"><i style="height:23px"></i></span>
-        <span class="pk td"><i style="height:38px"></i></span><span class="pk run"><i style="height:15px"></i></span>
-        <span class="pk pass"><i style="height:18px"></i></span><span class="pk run"><i style="height:25px"></i></span>
-        <span class="pk pass ten" data-n="10"><i style="height:16px"></i></span>
-        <span class="pk sel pass"><i style="height:26px"></i></span><span class="pk run"><i style="height:14px"></i></span>
-        <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
-        <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
-        <span class="pk un ten" data-n="20"><i style="height:8px"></i></span>
-        <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
+      <div class="sh"><h3>Game · 44 plays</h3>
+        <div class="lg"><span><i style="background:var(--run)"></i>Run</span><span><i style="background:var(--pass)"></i>Pass</span>
+        <span><i style="background:var(--fd)"></i>TD</span><span><i style="background:var(--to)"></i>Turnover</span>
+        <span><i style="background:var(--c5)"></i>Untagged</span></div></div>
+      <div class="dr">
+        <div class="dv" data-d="Drive 1">
+          <span class="pk pass"><i style="height:20px"></i></span><span class="pk run"><i style="height:12px"></i></span>
+          <span class="pk run"><i style="height:26px"></i></span><span class="pk to"><i style="height:7px"></i></span>
+        </div>
+        <div class="dv" data-d="Drive 2">
+          <span class="pk pass"><i style="height:23px"></i></span><span class="pk td"><i style="height:33px"></i></span>
+          <span class="pk run"><i style="height:15px"></i></span>
+        </div>
+        <div class="dv" data-d="Drive 3">
+          <span class="pk pass"><i style="height:18px"></i></span><span class="pk run"><i style="height:25px"></i></span>
+          <span class="pk pass"><i style="height:16px"></i></span><span class="pk run"><i style="height:21px"></i></span>
+          <span class="pk pass"><i style="height:14px"></i></span>
+        </div>
+        <div class="dv" data-d="Drive 4 · current">
+          <span class="pk run"><i style="height:19px"></i></span><span class="pk sel pass"><i style="height:26px"></i></span>
+          <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
+          <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
+          <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
+        </div>
       </div>
     </div>
   </section>
 
   <aside class="deck">
     <div class="sit">
-      <div class="dd"><span>Dn &amp; dist</span><b class="n">2<i>&amp;</i>7</b></div>
-      <div class="sp"><span>Ball on</span><b class="n">OPP 34</b></div>
+      <div class="b"><span>Dn &amp; dist</span><b class="n">2<i>&amp;</i>7</b></div>
+      <div class="b g"><span>Ball on</span><b class="n">OPP 34</b></div>
       <div class="pl">28</div>
     </div>
+    <div class="tell">Tell · <b>5 of your last 6</b> from Trips Rt on 2nd &amp; long were <b>pass</b></div>
     <div class="unit"><button class="on">Offense</button><button>Defense</button><button>Special</button></div>
 
     <div class="form">
-      <!-- resolved → one line each -->
       <details class="fld"><summary><span class="lb">Formation</span><span class="val">Trips Rt</span><span class="car">▶</span></summary>
-        <div class="chips">
-          <span class="c on">Trips<kbd>T</kbd></span><span class="c">Ace<kbd>A</kbd></span><span class="c">Empty<kbd>E</kbd></span>
-          <span class="c">Bunch<kbd>B</kbd></span><span class="c">Wing-T<kbd>W</kbd></span><span class="c">Spread</span>
-        </div>
-      </details>
+        <div class="chips"><span class="c on">Trips<kbd>T</kbd></span><span class="c">Ace<kbd>A</kbd></span>
+        <span class="c">Empty<kbd>E</kbd></span><span class="c">Bunch<kbd>B</kbd></span><span class="c">Wing-T<kbd>W</kbd></span>
+        <span class="c">Spread</span></div></details>
       <details class="fld"><summary><span class="lb">QB align</span><span class="val">Shotgun</span><span class="car">▶</span></summary>
-        <div class="chips"><span class="c on">Shotgun<kbd>G</kbd></span><span class="c">Under Center<kbd>U</kbd></span><span class="c">Pistol<kbd>P</kbd></span></div>
-      </details>
-
-      <!-- the one you're answering stays open -->
-      <details class="fld" open><summary><span class="lb">Play type</span><span class="val">Short Pass</span><span class="car">▶</span></summary>
-        <div class="chips">
-          <span class="c">Run In<kbd>R</kbd></span><span class="c">Run Out<kbd>O</kbd></span><span class="c">Screen<kbd>S</kbd></span>
-          <span class="c on">Short Pass<kbd>P</kbd></span><span class="c">Medium<kbd>M</kbd></span><span class="c">Deep<kbd>D</kbd></span>
-          <span class="c">Play Action<kbd>A</kbd></span><span class="c">RPO<kbd>Q</kbd></span><span class="c">Trick<kbd>X</kbd></span>
-        </div>
-      </details>
-      <details class="fld" open><summary><span class="lb">Result</span><span class="val">Gain</span><span class="car">▶</span></summary>
-        <div class="chips">
-          <span class="c on win">Gain<kbd>G</kbd></span><span class="c">Loss<kbd>L</kbd></span><span class="c">No Gain<kbd>N</kbd></span>
-          <span class="c">Incomplete<kbd>I</kbd></span><span class="c">TD<kbd>T</kbd></span><span class="c">Sack<kbd>W</kbd></span>
-          <span class="c">INT<kbd>U</kbd></span><span class="c">Fumble<kbd>F</kbd></span>
-        </div>
-      </details>
-      <details class="fld" open><summary><span class="lb">Yardage</span><span class="val">+12</span><span class="car">▶</span></summary>
-        <div class="ydg"><button>−</button><div class="v n">12</div><button>+</button></div>
-      </details>
-
-      <!-- everything else, one line until needed -->
-      <details class="fld"><summary><span class="lb">Backfield</span><span class="val empty">Not set</span><span class="car">▶</span></summary>
-        <div class="chips"><span class="c">Single</span><span class="c">I</span><span class="c">Split</span><span class="c">Empty</span><span class="c">Pistol</span></div>
-      </details>
+        <div class="chips"><span class="c on">Shotgun<kbd>G</kbd></span><span class="c">Under Center<kbd>U</kbd></span>
+        <span class="c">Pistol<kbd>P</kbd></span></div></details>
       <details class="fld"><summary><span class="lb">Personnel</span><span class="val">11</span><span class="car">▶</span></summary>
-        <div class="chips"><span class="c">10</span><span class="c on">11</span><span class="c">12</span><span class="c">21</span><span class="c">22</span></div>
-      </details>
-      <div class="more"><b>Situation &amp; details</b><span>hash · quarter · drive · field pos</span></div>
+        <div class="chips"><span class="c">10</span><span class="c on">11</span><span class="c">12</span>
+        <span class="c">21</span><span class="c">22</span></div></details>
+
+      <details class="fld" open><summary><span class="lb">Play type</span><span class="val">Short Pass</span><span class="car">▶</span></summary>
+        <div class="chips"><span class="c">Run In<kbd>R</kbd></span><span class="c">Run Out<kbd>O</kbd></span>
+        <span class="c">Screen<kbd>S</kbd></span><span class="c on">Short Pass<kbd>P</kbd></span>
+        <span class="c">Medium<kbd>M</kbd></span><span class="c">Deep<kbd>D</kbd></span>
+        <span class="c">Play Action<kbd>A</kbd></span><span class="c">RPO<kbd>Q</kbd></span></div></details>
+      <details class="fld" open><summary><span class="lb">Result</span><span class="val">Gain</span><span class="car">▶</span></summary>
+        <div class="chips"><span class="c on w">Gain<kbd>G</kbd></span><span class="c">Loss<kbd>L</kbd></span>
+        <span class="c">No Gain<kbd>N</kbd></span><span class="c">Incomplete<kbd>I</kbd></span>
+        <span class="c">TD<kbd>T</kbd></span><span class="c">Sack<kbd>W</kbd></span><span class="c">INT<kbd>U</kbd></span>
+        <span class="c">Fumble<kbd>F</kbd></span></div></details>
+      <details class="fld" open><summary><span class="lb">Yardage</span><span class="val">+12</span><span class="car">▶</span></summary>
+        <div class="ydg"><button>−</button><div class="v n">12</div><button>+</button></div></details>
+
+      <details class="fld"><summary><span class="lb">Backfield</span><span class="val e">Not set</span><span class="car">▶</span></summary>
+        <div class="chips"><span class="c">Single</span><span class="c">I</span><span class="c">Split</span>
+        <span class="c">Empty</span><span class="c">Pistol</span></div></details>
+      <div class="more"><b>Defense faced</b><span>front · coverage · blitz</span></div>
+      <div class="more"><b>Situation &amp; details</b><span>hash · quarter · field pos</span></div>
       <div class="more"><b>Players &amp; grades</b><span>6 roles</span></div>
-      <div class="more"><b>Custom fields</b><span>2</span></div>
+      <div class="more"><b>Notes &amp; custom</b><span>2 fields</span></div>
     </div>
 
     <div class="commit">
-      <div class="btns">
-        <button class="p">Save &amp; next <kbd>↵</kbd></button>
-        <button class="s">Skip <kbd>→</kbd></button>
-      </div>
-      <div class="pr"><span>Progress</span><b class="n">28 / 44</b></div>
+      <div class="btns"><button class="p">Save &amp; next <kbd>↵</kbd></button><button class="s">Skip <kbd>→</kbd></button></div>
+      <div class="pr"><span>Charted</span><b class="n">28 / 44</b></div>
       <div class="bar2"><i></i></div>
     </div>
   </aside>

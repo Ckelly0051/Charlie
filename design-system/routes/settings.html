@@ -1,0 +1,186 @@
+<!-- @dsCard group="Routes" -->
+<meta charset="utf-8">
+<title>Route — Team &amp; Film Settings</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c1:#0c1014;--c2:#121820;--c3:#1a2330;--c4:#202b3a;--c5:#273545;
+  --c6:#2f4054;--c7:#3a4f66;--c8:#4c657f;--c9:#2b6fff;--c11:#8fa8c4;--c12:#eef3f8;
+  --fd:#ffd400;--to:#fa4d56;--ok:#42be65;--warn:#ff9f2e;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--cond:'IBM Plex Sans Condensed',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --quick:90ms cubic-bezier(.2,.7,.3,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app{display:grid;grid-template-rows:50px 1fr;height:880px}
+.bar{display:flex;align-items:stretch;background:var(--c2);border-bottom:1px solid var(--c6)}
+.mark{display:flex;align-items:center;padding:0 17px;border-right:1px solid var(--c6);font:600 15px/1 var(--sans)}
+.mark i{font-style:normal;color:var(--fd)}
+.nav{display:flex}
+.nav a{display:flex;align-items:center;padding:0 14px;font:500 12.5px/1 var(--sans);color:var(--c11);
+  border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.nav a.on{color:var(--c12);border-bottom-color:var(--c9);background:var(--c3)}
+.crumb{margin-left:auto;display:flex;align-items:center;padding:0 15px;border-left:1px solid var(--c6);
+  font-size:12.5px;color:var(--c11)}
+
+.body{display:grid;grid-template-columns:206px 1fr;min-height:0}
+.rail{background:var(--c2);border-right:1px solid var(--c6);padding:14px 0;overflow:auto}
+.rail h5{margin:0;padding:0 16px 8px;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c8)}
+.rail a{display:flex;align-items:center;gap:9px;padding:0 16px;height:34px;color:var(--c11);font-size:13px;
+  cursor:pointer;border-left:2px solid transparent;transition:var(--quick)}
+.rail a:hover{background:var(--c3);color:var(--c12)}
+.rail a.on{background:var(--c3);color:var(--c12);border-left-color:var(--c9);font-weight:600}
+.rail .sep{height:1px;background:var(--c6);margin:12px 16px}
+
+.main{overflow:auto;padding:22px 26px 40px;min-width:0}
+.wrap{max-width:880px}
+h1{margin:0 0 4px;font:600 24px/1.15 var(--sans);letter-spacing:-.015em}
+.sub{margin:0 0 22px;color:var(--c11);font-size:13.5px}
+.sec{border:1px solid var(--c6);background:var(--c2);margin-bottom:16px}
+.sec>header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--c6)}
+.sec>header h2{margin:0;font:600 13.5px/1 var(--sans)}
+.sec>header .st{margin-left:auto;display:flex;align-items:center;gap:7px;font:500 10.5px/1 var(--mono);
+  letter-spacing:.08em;text-transform:uppercase}
+.st.ok{color:var(--ok)}.st.warn{color:var(--warn)}
+.st i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.in{padding:16px}
+
+/* the storage truth panel — the thing that has burned us */
+.path{display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center;padding:12px 14px;
+  background:var(--c1);border:1px solid var(--c6);margin-bottom:10px}
+.path .k{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--c11)}
+.path .v{font:500 12.5px/1.4 var(--mono);color:var(--c12);word-break:break-all}
+.path .v em{font-style:normal;color:var(--c8)}
+.btn{height:32px;padding:0 12px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);
+  font:500 12.5px/1 var(--sans);display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;transition:var(--quick)}
+.btn:hover{background:var(--c4);border-color:var(--c8)}
+.btn.p{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
+.btn.d{border-color:#5c2f36;color:#ff8f98}
+.btn.d:hover{background:#2a1418;border-color:var(--to)}
+.note{display:flex;gap:10px;padding:11px 13px;background:#2b6fff12;border-left:2px solid var(--c9);font-size:12.5px;color:#c6dbff}
+.note.warn{background:#ff9f2e10;border-left-color:var(--warn);color:#f3d6a8}
+
+/* per-game film table */
+.tbl{font-size:12.5px;border:1px solid var(--c6)}
+.tbl .hd,.tbl .r{display:grid;grid-template-columns:1fr 108px 190px 108px}
+.tbl .hd{background:var(--c4);font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--c11)}
+.tbl .hd span{padding:9px 12px}
+.tbl .r{border-top:1px solid var(--c6)}
+.tbl .r:hover{background:var(--c3)}
+.tbl .r span{padding:10px 12px;display:flex;align-items:center;min-width:0}
+.badge{font:500 9.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px}
+.badge.link{background:#2b6fff26;color:#93bcff}
+.badge.man{background:#8f6a1e2e;color:#e6c67a}
+.pth{font-family:var(--mono);font-size:11px;color:var(--c11);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnt{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums}
+.cnt.bad{color:var(--to)}.cnt.warn{color:var(--warn)}
+
+/* team identity */
+.idrow{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin-bottom:12px}
+.idrow label{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--c11)}
+.inp{height:36px;background:var(--c1);border:1px solid var(--c7);color:var(--c12);font:400 13.5px/1 var(--sans);padding:0 11px;width:100%}
+.inp:focus{outline:none;border-color:var(--c9);box-shadow:0 0 0 3px #2b6fff2e}
+.swatches{display:flex;gap:6px}
+.sw{width:34px;height:34px;border:2px solid transparent;cursor:pointer}
+.sw.on{border-color:var(--c12)}
+/* tag library */
+.lib{display:flex;flex-wrap:wrap;gap:4px}
+.lchip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px;border:1px solid var(--c7);
+  background:var(--c3);font-size:12.5px;color:var(--c12)}
+.lchip.off{opacity:.4;text-decoration:line-through}
+.lchip.cust{border-color:var(--c9);background:#2b6fff1c}
+.lchip x{cursor:pointer;color:var(--c8);font-style:normal}
+.add{height:30px;padding:0 10px;border:1px dashed var(--c7);background:transparent;color:var(--c11);font-size:12.5px;cursor:pointer}
+</style>
+<div class="app">
+  <header class="bar">
+    <div class="mark">GridIron <i>IQ</i></div>
+    <nav class="nav"><a>Home</a><a>Break Down</a><a>Study</a><a>Reports</a><a>Plan</a></nav>
+    <div class="crumb">Mavericks › 2026 Varsity › Settings</div>
+  </header>
+
+  <div class="body">
+    <nav class="rail">
+      <h5>Team</h5>
+      <a>Identity &amp; roster</a><a>Tag libraries</a><a>Custom fields</a>
+      <div class="sep"></div>
+      <h5>Film</h5>
+      <a class="on">Storage &amp; library</a><a>Per-game film</a><a>Repair &amp; relink</a>
+      <div class="sep"></div>
+      <h5>Season</h5>
+      <a>Games</a><a>Backups &amp; restore</a><a>Import / export</a>
+    </nav>
+
+    <main class="main"><div class="wrap">
+      <h1>Film storage</h1>
+      <p class="sub">Where your film lives, and exactly which copy each game plays from.</p>
+
+      <section class="sec">
+        <header><h2>Film library root</h2><span class="st ok"><i></i>Linked · no copies made</span></header>
+        <div class="in">
+          <div class="path">
+            <span class="k">Library root</span>
+            <span class="v">D:\Football\Film</span>
+            <span><button class="btn">Change…</button></span>
+          </div>
+          <div class="note">Linked film plays from your own folder. <strong>Nothing is copied into the app.</strong>
+            Changing the root never moves, deletes or re-links existing games — each game keeps its own folder reference.</div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <header><h2>This season's film</h2><span class="st warn"><i></i>1 game needs attention</span></header>
+        <div class="in">
+          <div class="tbl">
+            <div class="hd"><span>Game</span><span>Source</span><span>Folder</span><span>Clips</span></div>
+            <div class="r"><span>Week 7 · vs St Peter</span><span><i class="badge link">Linked</i></span>
+              <span class="pth">…\Film\St Peter 41-0</span><span class="cnt">44 / 44</span></div>
+            <div class="r"><span>Week 6 · at Refuge</span><span><i class="badge link">Linked</i></span>
+              <span class="pth">…\Film\Refuge</span><span class="cnt">61 / 61</span></div>
+            <div class="r"><span>Week 5 · vs OL Lakes</span><span><i class="badge link">Linked</i></span>
+              <span class="pth">…\Film\OL Lakes</span><span class="cnt warn">65 / 82</span></div>
+            <div class="r"><span>Week 4 · at ND Prep</span><span><i class="badge man">Managed copy</i></span>
+              <span class="pth">AppData\…\films\g-04</span><span class="cnt">72 / 72</span></div>
+          </div>
+          <div class="note warn" style="margin-top:12px">Week 5 is missing 17 clips. The linked folder resolved, but 17 files
+            named in the breakdown are not in it — likely renamed or moved. <strong>Repair matches by name and path; it never
+            creates or deletes plays.</strong></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn p">Repair Week 5…</button>
+            <button class="btn">Open folder</button>
+            <button class="btn">Re-link a game…</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <header><h2>Team identity</h2></header>
+        <div class="in">
+          <div class="idrow"><label>Team name</label><input class="inp" value="Mavericks"></div>
+          <div class="idrow"><label>Jersey color</label>
+            <div class="swatches">
+              <span class="sw on" style="background:#ffd400"></span><span class="sw" style="background:#2b6fff"></span>
+              <span class="sw" style="background:#fa4d56"></span><span class="sw" style="background:#42be65"></span>
+              <span class="sw" style="background:#eef3f8"></span><span class="sw" style="background:#0c1014;border-color:var(--c7)"></span>
+            </div></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <header><h2>Formation library</h2><span class="st ok"><i></i>Affects new charting only</span></header>
+        <div class="in">
+          <div class="lib">
+            <span class="lchip">Trips</span><span class="lchip">Ace</span><span class="lchip">Empty</span>
+            <span class="lchip">Bunch</span><span class="lchip">Spread</span><span class="lchip off">Wishbone</span>
+            <span class="lchip off">Wildcat</span><span class="lchip cust">Power-I <x>×</x></span>
+            <span class="lchip cust">Victory <x>×</x></span><button class="add">+ Add</button>
+          </div>
+          <div class="note" style="margin-top:13px">Hiding a value removes it from future charting controls only.
+            <strong>Plays already tagged with it keep it, and it still appears in analytics.</strong></div>
+        </div>
+      </section>
+    </div></main>
+  </div>
+</div>

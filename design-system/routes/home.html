@@ -1,0 +1,173 @@
+<!-- @dsCard group="Routes" -->
+<meta charset="utf-8">
+<title>Route — Home</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --film:#06090c;--c1:#0c1014;--c2:#121820;--c3:#1a2330;--c4:#202b3a;--c5:#273545;
+  --c6:#2f4054;--c7:#3a4f66;--c8:#4c657f;--c9:#2b6fff;--c11:#8fa8c4;--c12:#eef3f8;
+  --fd:#ffd400;--to:#fa4d56;--ok:#42be65;--warn:#ff9f2e;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--cond:'IBM Plex Sans Condensed',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --quick:90ms cubic-bezier(.2,.7,.3,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app{display:grid;grid-template-rows:50px 1fr;height:880px}
+.bar{display:flex;align-items:stretch;background:var(--c2);border-bottom:1px solid var(--c6)}
+.mark{display:flex;align-items:center;padding:0 17px;border-right:1px solid var(--c6);font:600 15px/1 var(--sans)}
+.mark i{font-style:normal;color:var(--fd)}
+.nav{display:flex}
+.nav a{display:flex;align-items:center;padding:0 14px;font:500 12.5px/1 var(--sans);color:var(--c11);
+  border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.nav a.on{color:var(--c12);border-bottom-color:var(--c9);background:var(--c3)}
+.team{margin-left:auto;display:flex;align-items:center;gap:10px;padding:0 15px;border-left:1px solid var(--c6);cursor:pointer}
+.team .sq{width:24px;height:24px;background:var(--fd);color:#141000;display:grid;place-items:center;font:700 12px/1 var(--cond)}
+.team b{font-size:13px}.team span{font-size:11.5px;color:var(--c11)}
+
+.main{overflow:auto;padding:26px 30px 40px}
+.wrap{max-width:1240px;margin:0 auto}
+/* hero: the game you're in the middle of */
+.hero{display:grid;grid-template-columns:1fr 320px;gap:1px;background:var(--c6);border:1px solid var(--c6);margin-bottom:22px}
+.hero>div{background:var(--c2)}
+.cont{padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.cont::after{content:'';position:absolute;right:-40px;top:-30px;width:260px;height:260px;
+  background:repeating-linear-gradient(90deg,#ffffff08 0 2px,transparent 2px 26px);pointer-events:none}
+.eyebrow{font:500 9.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--fd);margin-bottom:10px}
+.cont h1{margin:0 0 6px;font:600 30px/1.1 var(--sans);letter-spacing:-.02em}
+.cont p{margin:0;color:var(--c11);font-size:13.5px}
+.facts{display:flex;gap:26px;margin-top:22px}
+.fact span{display:block;font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--c11);margin-bottom:6px}
+.fact b{font-size:26px;line-height:.9}
+.fact.w b{color:var(--fd)}
+.go{margin-top:24px;display:flex;gap:8px}
+.btn{height:40px;padding:0 16px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);
+  font:500 13px/1 var(--sans);display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:var(--quick)}
+.btn:hover{background:var(--c4);border-color:var(--c8)}
+.btn.p{background:var(--fd);border-color:var(--fd);color:#141000;font-weight:600}
+.btn.p:hover{background:#ffdd33}
+/* progress panel */
+.prog{padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+.prog h4{margin:0;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c11)}
+.ring{display:flex;align-items:center;gap:16px}
+.ring .big{font-size:44px;line-height:.85}
+.ring .sub{font-size:12px;color:var(--c11)}
+.mbar{height:6px;background:var(--c4)}
+.mbar i{display:block;height:100%;background:var(--fd)}
+.units{display:grid;gap:6px}
+.ur{display:grid;grid-template-columns:64px 1fr 34px;gap:9px;align-items:center;font-size:12px;color:var(--c11)}
+.ur .t{height:5px;background:var(--c4)}
+.ur .t i{display:block;height:100%;background:var(--c9)}
+.ur b{font-family:var(--cond);color:var(--c12);text-align:right}
+
+.cols{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+.sec{border:1px solid var(--c6);background:var(--c2)}
+.sec>header{display:flex;align-items:center;gap:10px;padding:11px 15px;border-bottom:1px solid var(--c6)}
+.sec>header h2{margin:0;font:600 13px/1 var(--sans)}
+.sec>header .a{margin-left:auto;font-size:12px;color:var(--c9);cursor:pointer}
+.sec>header .a:hover{text-decoration:underline}
+/* film inbox */
+.row{display:grid;grid-template-columns:4px 1fr 128px 92px;gap:0;align-items:center;border-top:1px solid var(--c6);
+  cursor:pointer;transition:var(--quick)}
+.row:first-of-type{border-top:0}
+.row:hover{background:var(--c3)}
+.row .st{align-self:stretch}
+.row.ready .st{background:var(--ok)}.row.miss .st{background:var(--to)}.row.part .st{background:var(--warn)}
+.row .m{padding:11px 14px;min-width:0}
+.row .m b{display:block;font-size:13.5px;font-weight:500}
+.row .m span{font-size:11.5px;color:var(--c11)}
+.row .f{padding:11px 8px;font:500 11px/1.4 var(--mono);color:var(--c11)}
+.row .act{padding:11px 14px 11px 0;display:flex;justify-content:flex-end}
+.mini{height:28px;padding:0 12px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);font:500 12px/1 var(--sans);cursor:pointer}
+.mini.p{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
+/* seasons */
+.srow{display:flex;align-items:center;gap:12px;padding:12px 15px;border-top:1px solid var(--c6);cursor:pointer}
+.srow:first-of-type{border-top:0}
+.srow:hover{background:var(--c3)}
+.srow .yr{font-family:var(--cond);font-weight:700;font-size:19px;color:var(--c8);min-width:44px}
+.srow.on .yr{color:var(--fd)}
+.srow .m b{display:block;font-size:13px;font-weight:500}
+.srow .m span{font-size:11.5px;color:var(--c11)}
+.srow .tag{margin-left:auto;font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 8px;background:var(--c4);color:var(--c11)}
+.srow.on .tag{background:var(--c9);color:#fff}
+</style>
+<div class="app">
+  <header class="bar">
+    <div class="mark">GridIron <i>IQ</i></div>
+    <nav class="nav"><a class="on">Home</a><a>Break Down</a><a>Study</a><a>Reports</a><a>Plan</a></nav>
+    <div class="team"><span class="sq">M</span><div><b>Mavericks</b> <span>· 2026 Varsity</span></div></div>
+  </header>
+
+  <main class="main"><div class="wrap">
+    <section class="hero">
+      <div class="cont">
+        <div>
+          <div class="eyebrow">Pick up where you left off</div>
+          <h1>Week 7 · vs St Peter</h1>
+          <p>Oct 18 · Home · Final 41–0</p>
+          <div class="facts">
+            <div class="fact"><span>Plays</span><b class="n">44</b></div>
+            <div class="fact w"><span>Charted</span><b class="n">28</b></div>
+            <div class="fact"><span>Offense</span><b class="n">24</b></div>
+            <div class="fact"><span>Defense</span><b class="n">17</b></div>
+            <div class="fact"><span>Special</span><b class="n">3</b></div>
+          </div>
+        </div>
+        <div class="go">
+          <button class="btn p">▶ Continue breakdown</button>
+          <button class="btn">Open Film Room</button>
+          <button class="btn">+ New game</button>
+        </div>
+      </div>
+      <div class="prog">
+        <h4>Breakdown progress</h4>
+        <div class="ring"><b class="n big">64<span style="font-size:20px">%</span></b>
+          <div><div class="sub">28 of 44 plays charted</div><div class="sub" style="color:var(--c8)">16 remaining</div></div></div>
+        <div class="mbar"><i style="width:64%"></i></div>
+        <div class="units">
+          <div class="ur"><span>Offense</span><span class="t"><i style="width:79%"></i></span><b>19/24</b></div>
+          <div class="ur"><span>Defense</span><span class="t"><i style="width:47%"></i></span><b>8/17</b></div>
+          <div class="ur"><span>Special</span><span class="t"><i style="width:33%"></i></span><b>1/3</b></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cols">
+      <section class="sec">
+        <header><h2>Film inbox</h2><span class="a">Manage film storage →</span></header>
+        <div class="row ready"><span class="st"></span>
+          <div class="m"><b>Week 7 · vs St Peter</b><span>28 of 44 charted · linked</span></div>
+          <div class="f">44 of 44 clips<br>D:\Football\Film</div>
+          <div class="act"><button class="mini p">Open</button></div></div>
+        <div class="row ready"><span class="st"></span>
+          <div class="m"><b>Week 6 · at Refuge</b><span>Final · 61 of 61 charted</span></div>
+          <div class="f">61 of 61 clips<br>D:\Football\Film</div>
+          <div class="act"><button class="mini">Open</button></div></div>
+        <div class="row part"><span class="st"></span>
+          <div class="m"><b>Week 5 · vs OL Lakes</b><span>Final · 82 charted</span></div>
+          <div class="f" style="color:var(--warn)">65 of 82 clips<br>17 missing</div>
+          <div class="act"><button class="mini">Repair</button></div></div>
+        <div class="row miss"><span class="st"></span>
+          <div class="m"><b>Week 4 · at ND Prep</b><span>Final · 72 charted</span></div>
+          <div class="f" style="color:var(--to)">Folder not found<br>drive disconnected?</div>
+          <div class="act"><button class="mini">Reconnect</button></div></div>
+        <div class="row ready"><span class="st"></span>
+          <div class="m"><b>Week 3 · vs Northside</b><span>Final · 58 of 58 charted</span></div>
+          <div class="f">58 of 58 clips<br>D:\Football\Film</div>
+          <div class="act"><button class="mini">Open</button></div></div>
+      </section>
+
+      <section class="sec">
+        <header><h2>Seasons</h2><span class="a">Team hub →</span></header>
+        <div class="srow on"><span class="yr n">26</span>
+          <div class="m"><b>2026 Varsity</b><span>6 games · 449 plays</span></div><span class="tag">Current</span></div>
+        <div class="srow"><span class="yr n">25</span>
+          <div class="m"><b>2025 Varsity</b><span>11 games · 812 plays</span></div><span class="tag">Archive</span></div>
+        <div class="srow"><span class="yr n">25</span>
+          <div class="m"><b>2025 JV</b><span>8 games · 511 plays</span></div><span class="tag">Archive</span></div>
+      </section>
+    </div>
+  </div></main>
+</div>

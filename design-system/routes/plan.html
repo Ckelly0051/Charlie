@@ -1,0 +1,187 @@
+<!-- @dsCard group="Routes" -->
+<meta charset="utf-8">
+<title>Route — Plan</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c1:#0c1014;--c2:#121820;--c3:#1a2330;--c4:#202b3a;--c5:#273545;
+  --c6:#2f4054;--c7:#3a4f66;--c8:#4c657f;--c9:#2b6fff;--c11:#8fa8c4;--c12:#eef3f8;
+  --fd:#ffd400;--to:#fa4d56;--ok:#42be65;--run:#a8842b;--pass:#2f6291;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--cond:'IBM Plex Sans Condensed',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --quick:90ms cubic-bezier(.2,.7,.3,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--c1);color:var(--c12);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app{display:grid;grid-template-rows:50px 1fr;height:880px}
+.bar{display:flex;align-items:stretch;background:var(--c2);border-bottom:1px solid var(--c6)}
+.mark{display:flex;align-items:center;padding:0 17px;border-right:1px solid var(--c6);font:600 15px/1 var(--sans)}
+.mark i{font-style:normal;color:var(--fd)}
+.nav{display:flex}
+.nav a{display:flex;align-items:center;padding:0 14px;font:500 12.5px/1 var(--sans);color:var(--c11);
+  border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.nav a.on{color:var(--c12);border-bottom-color:var(--c9);background:var(--c3)}
+.opp{margin-left:auto;display:flex;align-items:center;gap:9px;padding:0 15px;border-left:1px solid var(--c6);font-size:12.5px;color:var(--c11)}
+.opp b{color:var(--c12);font-weight:600}
+
+.body{display:grid;grid-template-columns:236px 1fr 328px;min-height:0}
+/* plans rail */
+.rail{background:var(--c2);border-right:1px solid var(--c6);display:flex;flex-direction:column;min-height:0}
+.rh{padding:13px 15px 10px;border-bottom:1px solid var(--c6);display:flex;align-items:center}
+.rh h5{margin:0;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c8)}
+.rh button{margin-left:auto;height:26px;padding:0 9px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);font:500 11.5px/1 var(--sans);cursor:pointer}
+.plans{flex:1;overflow:auto}
+.pl{padding:11px 15px;border-bottom:1px solid var(--c6);cursor:pointer;border-left:2px solid transparent}
+.pl:hover{background:var(--c3)}
+.pl.on{background:var(--c3);border-left-color:var(--c9)}
+.pl b{display:block;font-size:13px;font-weight:500;margin-bottom:3px}
+.pl span{font:500 10.5px/1 var(--mono);color:var(--c11)}
+.pl .au{display:inline-block;margin-top:6px;font:500 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 6px;background:var(--c4);color:var(--c11)}
+
+/* board */
+.board{overflow:auto;padding:20px 24px 34px;min-width:0}
+.bh{display:flex;align-items:flex-end;gap:14px;margin-bottom:18px}
+.bh h1{margin:0;font:600 24px/1.1 var(--sans);letter-spacing:-.015em}
+.bh p{margin:3px 0 0;color:var(--c11);font-size:13px}
+.bh .act{margin-left:auto;display:flex;gap:7px}
+.btn{height:34px;padding:0 13px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);
+  font:500 12.5px/1 var(--sans);display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:var(--quick)}
+.btn:hover{background:var(--c4);border-color:var(--c8)}
+.btn.p{background:var(--fd);border-color:var(--fd);color:#141000;font-weight:600}
+.grp{margin-bottom:20px}
+.gh{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--c6);margin-bottom:9px}
+.gh h3{margin:0;font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c11)}
+.gh .c{font-family:var(--cond);font-weight:700;color:var(--c8);font-size:13px}
+.gh .w{margin-left:auto;font-size:11.5px;color:var(--c9);cursor:pointer}
+.card{display:grid;grid-template-columns:22px 1fr 108px 96px;gap:0;align-items:center;background:var(--c2);
+  border:1px solid var(--c6);margin-bottom:5px;cursor:grab;transition:var(--quick)}
+.card:hover{border-color:var(--c8);background:var(--c3)}
+.card .gr{display:flex;align-items:center;justify-content:center;align-self:stretch;color:var(--c8);
+  font:600 11px/1 var(--mono);letter-spacing:-1px;border-right:1px solid var(--c6)}
+.card .m{padding:10px 13px;min-width:0}
+.card .m b{display:block;font-size:13.5px;font-weight:500;margin-bottom:3px}
+.card .m span{font-size:11.5px;color:var(--c11)}
+.card .mini{padding:10px 0}
+.card .mini .t{height:14px;background:var(--c4);display:flex}
+.card .mini .t i{display:block}
+.card .mini .t .r{background:var(--run)}.card .mini .t .p{background:var(--pass)}
+.card .act2{padding:10px 12px;display:flex;justify-content:flex-end;gap:6px}
+.pill{height:26px;padding:0 10px;border:1px solid var(--c7);background:var(--c3);color:var(--c12);font:500 11.5px/1 var(--sans);cursor:pointer}
+.pill.p{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
+
+/* right: presentation preview */
+.side{background:var(--c2);border-left:1px solid var(--c6);display:flex;flex-direction:column;min-height:0}
+.sh{padding:13px 15px 10px;border-bottom:1px solid var(--c6)}
+.sh h5{margin:0 0 2px;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c8)}
+.sh p{margin:0;font-size:11.5px;color:var(--c11)}
+.prev{flex:1;overflow:auto;padding:14px}
+.slide{background:var(--c1);border:1px solid var(--c6);padding:15px;margin-bottom:10px}
+.slide .k{font:500 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fd);margin-bottom:8px}
+.slide h4{margin:0 0 5px;font:600 15px/1.2 var(--sans)}
+.slide p{margin:0;font-size:12px;color:var(--c11)}
+.slide .film{margin-top:11px;height:78px;background:
+  repeating-linear-gradient(90deg,#ffffff07 0 1px,transparent 1px 34px),
+  radial-gradient(120% 90% at 50% 15%,#16283a,#080e15 70%);border:1px solid var(--c6);position:relative}
+.slide .film::after{content:'';position:absolute;left:36%;top:0;bottom:0;width:2px;background:var(--c9)}
+.slide .film::before{content:'';position:absolute;left:60%;top:0;bottom:0;width:2px;background:var(--fd)}
+.slide .cta{display:flex;align-items:center;gap:7px;margin-top:9px;font:500 10.5px/1 var(--mono);color:var(--c9)}
+.sf{border-top:1px solid var(--c6);padding:11px 14px;display:flex;gap:7px}
+.sf button{flex:1;height:36px;border:0;font:600 12.5px/1 var(--sans);cursor:pointer}
+.sf .a{background:var(--c9);color:#fff}
+.sf .b{background:var(--c4);color:var(--c12)}
+</style>
+<div class="app">
+  <header class="bar">
+    <div class="mark">GridIron <i>IQ</i></div>
+    <nav class="nav"><a>Home</a><a>Break Down</a><a>Study</a><a>Reports</a><a class="on">Plan</a></nav>
+    <div class="opp">Week 8 opponent <b>Central Catholic</b></div>
+  </header>
+
+  <div class="body">
+    <aside class="rail">
+      <div class="rh"><h5>Game plans</h5><button>+ New</button></div>
+      <div class="plans">
+        <div class="pl on"><b>Central Catholic — Defense</b><span>9 findings · 61 plays</span>
+          <span class="au">Staff</span></div>
+        <div class="pl"><b>Central Catholic — Offense</b><span>6 findings · 44 plays</span><span class="au">Staff</span></div>
+        <div class="pl"><b>Install — Week 8</b><span>4 findings · 28 plays</span><span class="au">Players</span></div>
+        <div class="pl"><b>Third down package</b><span>3 findings · 19 plays</span><span class="au">All</span></div>
+      </div>
+    </aside>
+
+    <main class="board">
+      <div class="bh">
+        <div><h1>Central Catholic — Defense</h1>
+          <p>9 findings · 61 linked plays · updated 2 hours ago</p></div>
+        <div class="act"><button class="btn">Export</button><button class="btn">Present</button>
+          <button class="btn p">▶ Watch plan</button></div>
+      </div>
+
+      <div class="grp">
+        <div class="gh"><h3>Deny the explosive</h3><span class="c">3</span><span class="w">▶ Watch group</span></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>Trips Rt on 2nd &amp; long → deep shot</b>
+            <span>Study · 2nd &amp; Long · 83% pass · 14.2 ypa</span></div>
+          <div class="mini"><span class="t"><i class="r" style="width:12%"></i><i class="p" style="width:88%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 11</button><button class="pill">⋯</button></div></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>Empty backfield = 100% pass, all downs</b>
+            <span>Study · Empty · 19 reps · zero runs</span></div>
+          <div class="mini"><span class="t"><i class="p" style="width:100%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 19</button><button class="pill">⋯</button></div></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>Jet motion precedes outside run</b>
+            <span>Study · Motion: Jet · 9 of 11 outside</span></div>
+          <div class="mini"><span class="t"><i class="r" style="width:82%"></i><i class="p" style="width:18%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 11</button><button class="pill">⋯</button></div></div>
+      </div>
+
+      <div class="grp">
+        <div class="gh"><h3>Money downs</h3><span class="c">3</span><span class="w">▶ Watch group</span></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>3rd &amp; long — they convert 58%</b>
+            <span>Study · 3rd &amp; Long · 12 reps · 7 conversions</span></div>
+          <div class="mini"><span class="t"><i class="p" style="width:92%"></i><i class="r" style="width:8%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 12</button><button class="pill">⋯</button></div></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>3-3-5 with B-gap pressure stopped it</b>
+            <span>Our defense · 4 reps · 0 conversions · 1 sack</span></div>
+          <div class="mini"><span class="t"><i class="r" style="width:22%"></i><i class="p" style="width:24%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 4</button><button class="pill">⋯</button></div></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>Avoid: base 4-3 Cover 3 on 3rd &amp; long</b>
+            <span>Our defense · 5 reps · 4 conversions · 8.2 ypp</span></div>
+          <div class="mini"><span class="t"><i class="p" style="width:88%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 5</button><button class="pill">⋯</button></div></div>
+      </div>
+
+      <div class="grp">
+        <div class="gh"><h3>Red zone</h3><span class="c">2</span><span class="w">▶ Watch group</span></div>
+        <div class="card"><span class="gr">⠿</span>
+          <div class="m"><b>Inside the 10 they go heavy — 21 personnel</b>
+            <span>Study · Red zone · 8 of 10 in 21</span></div>
+          <div class="mini"><span class="t"><i class="r" style="width:76%"></i><i class="p" style="width:24%"></i></span></div>
+          <div class="act2"><button class="pill p">▶ 10</button><button class="pill">⋯</button></div></div>
+      </div>
+    </main>
+
+    <aside class="side">
+      <div class="sh"><h5>Presentation</h5><p>What the staff sees Thursday</p></div>
+      <div class="prev">
+        <div class="slide"><div class="k">Deny the explosive · 1 of 3</div>
+          <h4>Trips Rt on 2nd &amp; long</h4>
+          <p>83% pass · 14.2 yards per attempt · 11 reps</p>
+          <div class="film"></div>
+          <div class="cta">▶ 11 plays · plays in order</div></div>
+        <div class="slide"><div class="k">Deny the explosive · 2 of 3</div>
+          <h4>Empty = pass, every time</h4>
+          <p>19 reps, zero runs, all downs</p>
+          <div class="film"></div>
+          <div class="cta">▶ 19 plays</div></div>
+      </div>
+      <div class="sf"><button class="a">Present full screen</button><button class="b">Print</button></div>
+    </aside>
+  </div>
+</div>
