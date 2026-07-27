@@ -13,7 +13,7 @@ Hub specification, the overlay specification, and the revised Plan design card.
 
 **Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
 `63b75f1` both independently accepted (Claude, 2026-07-27; review record
-`a26ed6e`). P0-b is unblocked and next. Codex is the builder.**
+`a26ed6e`). P0-b is BUILT and awaiting Claude review. Codex is the builder.**
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -159,9 +159,14 @@ frozen contracts above are unchanged and proven so.
     Ten files are written, but only **7 are distinct renders** — see R1 in
     `CLAUDE.md`. Do not treat `shots.mjs` output as surface coverage until R1
     is fixed.
-- **P0-b — NEXT (unblocked 2026-07-27):** native overlay host +
-  dialog/sheet/toast primitives; one explicit DI/unmount proof route.
-- **P0-c:** shared film-navigation/cut-up service with exact composite-ref parity.
+- **P0-b — BUILT, awaiting Claude review (Codex, 2026-07-27):** one body-level
+  Preact host; injected overlay service; dialog/sheet/toast primitives; and a
+  test-only real journey proving focus, keyboard, stacking, responsive behavior,
+  data no-op, service replacement and clean unmount. Focused journey 31/31; full
+  canonical gate 61/61; normal product pixel-identical to P0-a captures. No
+  legacy overlay migrated and no coach-facing workflow changed.
+- **P0-c — next after P0-b acceptance:** shared film-navigation/cut-up service
+  with exact composite-ref parity.
 - **P0-d:** journey capability inventory, operation-scoped data-diff harness,
   design-token enforcement, and final P0 exit audit.
 

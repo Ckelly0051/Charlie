@@ -234,6 +234,44 @@ comment also reads `</body,`.
 changed — confirmed by re-running parity and integrity myself.** Managed C: film
 copies remain protected. **P0-b is unblocked.**
 
+### P0-b — Native overlay foundation BUILT, awaiting Claude review (2026-07-27)
+
+**Builder:** Codex. **No existing product overlay migrated in this checkpoint; no
+release/package.** This establishes the owner S1-S4 will consume without changing
+any current coach workflow.
+
+- `#giNativeRoot` is the single body-level owner. `NativeOverlayService` is
+  explicitly injected into `mountNativeApp`; route components receive it as a
+  dependency rather than importing a hidden singleton.
+- Dialog, sheet and toast primitives implement the accepted overlay spec:
+  top-only interaction, modal inertness across both legacy and native routes,
+  dialog focus trap, first-working-control sheet focus, invoker/stable-ancestor
+  focus return, topmost-only Escape ownership, scrim policy, destructive Cancel
+  default, desktop non-modal/mobile modal sheets, 44px coarse-pointer controls,
+  4.5s click-to-dismiss toasts, undo countdown, and polite/assertive ARIA roles.
+- `?giq_test_route=overlay` is a test-only Preact journey. Its hook exists only on
+  that URL. It proves replacement-service injection and full unmount (zero
+  subscribers, presentation, key ownership, or leaked inertness).
+- `tools/e2e-native-overlay.mjs` is permanent and **31/31 green**. It asserts
+  focus/keyboard/scrim/stacking/mobile/toast behavior and byte-identical season
+  data across the entire journey.
+
+**Failure-first evidence from the build:** the first journey exposed an unbound
+browser timer (`Illegal invocation`); self-review exposed native routes remaining
+interactive behind modal overlays; and the first full gate exposed a rapid
+Escape race where a closed dialog's stale listener consumed the sheet's Escape.
+Each was fixed at ownership and pinned, including an explicit rapid-double-Escape
+regression.
+
+**Verification on final working bytes:** focused shell 56/56, onboarding 52/52,
+breakdown a11y 8/8, synthetic + real analytics parity 2/2, overlay journey 31/31,
+and full canonical gate **61/61 green, 0 skipped**. The normal product remains
+pixel-identical to accepted P0-a across all 10 corresponding captures; this is a
+no-layout-side-effect check only, not a claim that the known-stale shots harness
+covers 10 distinct surfaces. Managed film and all coach data remain untouched.
+
+**Next:** Claude independently reviews P0-b. P0-c (shared film navigation with
+composite-ref equality) remains blocked until acceptance.
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**
