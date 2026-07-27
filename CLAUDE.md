@@ -270,6 +270,85 @@ pixel-identical to accepted P0-a across all 10 corresponding captures; this is a
 no-layout-side-effect check only, not a claim that the known-stale shots harness
 covers 10 distinct surfaces. Managed film and all coach data remain untouched.
 
+#### CLAUDE'S INDEPENDENT REVIEW of `5162e6b` — ACCEPTED, 7 findings; N1–N3 required before S2/S4, none block P0-c (2026-07-27)
+
+The ownership model is right and the failure-first evidence in the build note is
+real. The findings cluster in one place: **rules the spec states are enforced by
+convention rather than by the service**, so the harness proves the probe's own
+choices instead of the contract.
+
+**Verified by running, not by reading the diff.** `e2e-native-overlay` 31/31 and
+full canonical gate **61 harnesses | 61 green | 0 skipped**, real data included.
+
+- **Mutation-verified the central claim myself.** Disabling the inertness apply
+  reds exactly two assertions — the dialog and the narrow-sheet inertness checks —
+  and nothing else. The stacking test stays green because layer inertness comes
+  from the JSX `inert` prop, a *separate* mechanism. Both are independently covered.
+- **I proved the §4 Escape rule against real legacy code; the harness does not.**
+  Registered a document-level Escape listener, confirmed it **is live** (fires with
+  no overlay open — so the negative cannot pass vacuously), then opened the real
+  `#settingsDrawer` and a native dialog over it. Escape closed only the dialog:
+  `legacyFiredWhileOverlayOpen: false`, `drawerSurvivedOverlayEscape: true`. This
+  is the exact defect class that revealed the classic outlet twice. **Make it a
+  permanent assertion** — a change in listener registration order would break it
+  silently and nothing would catch it.
+- **No layout side effect on the normal product**, verified against my own P0-a
+  captures: all ten renders byte-identical. The build note's caveat about the
+  known-stale shots harness is correctly worded.
+- DI is genuinely enforced (`mountNativeApp` throws without a service), unmount
+  leaves 0 subscribers / 0 children / no leaked inertness, and the test hook only
+  exists on `?giq_test_route=overlay`.
+- The stylesheet is imported by `native-root.jsx` rather than linked in
+  `index.html` — correct for Vite, and correctly absent from `build.sh`, since the
+  reference bundle strips module scripts and never runs the overlay code at all.
+
+**N1 [P2] A buried overlay's `result` promise never resolves.** `close()` refuses
+a non-top overlay, and the harness pins that as intended policy — fine. But the
+refusal is *silent*: the handle's `result` stays pending forever and any `await`
+on it hangs. `destroy()` resolves with `'destroyed'`, so unmount is safe; within a
+session, a route awaiting a sheet while a dialog sits over it never proceeds.
+Resolve or throw on refusal — do not return `false` into a dangling promise.
+
+**N2 [P2] The destructive-default rule is convention, not code.** Overlay spec §6
+requires that Cancel, not Confirm, is the default-focused control. The service
+knows `destructive === true` and does not enforce which action is `default`. The
+harness asserts the *probe fixture* chose Cancel — it tests the fixture, not the
+rule, so a future caller marking Confirm as default passes every test. The build
+note lists "destructive Cancel default" among implemented behaviors; that is an
+overstatement. Enforce it in `_open`.
+
+**N3 [P2] Elements appended to `body` while a modal is open never become inert.**
+The effect snapshots `document.body.children` at apply time. Legacy code that
+appends during an open overlay — `PlayTagger._confirmDialog` builds
+`#ffaConfirmModal` exactly this way — stays interactive underneath a modal, and
+cleanup will not touch it either. Not reachable today because no product overlay
+is migrated. **S4 migrates precisely these, and S2 lands Settings on this host.**
+
+**N4 [P2] Two independent focus owners race on rAF ordering.**
+`NativeOverlayService._restoreFocus` uses double-`requestAnimationFrame`;
+`OverlayPanel`'s focus effect uses single-rAF and refires when a stacked dialog
+closes and the parent sheet becomes top again. "Closing stacked dialog returns
+focus inside its parent sheet" passes only because double beats single — an
+ordering nobody wrote down. One owner, or a comment that says why there are two.
+
+**N5 [nit] Toast text is uppercased in the DOM** (`toast.message.toUpperCase()`)
+rather than by `text-transform`. Screen readers spell out short all-caps strings.
+The casing is a design choice; the DOM is the wrong place to apply it.
+
+**N6 [nit] Popover is the fourth type in overlay spec §2 and is not implemented.**
+Consistent with the P0 exit gate, which names dialog/sheet/toast only — but chip
+pickers and Film Room column menus are popovers and **S5b needs them**. Schedule
+it rather than discovering it mid-route.
+
+**N7 [nit] `nextOverlayId` is a module-level counter shared by every service
+instance**, and the generic service hardcodes `#workspaceShell` in its
+focus-fallback selector list. Both are app coupling inside the one module built to
+be injectable.
+
+**No coach data, analytics result, persistence semantics, or film behavior
+changed — confirmed by re-running the full gate myself.** Managed C: film copies
+remain protected. **P0-c is unblocked.**
+
 **Next:** Claude independently reviews P0-b. P0-c (shared film navigation with
 composite-ref equality) remains blocked until acceptance.
 ### Active closeout pass (2026-07-23)

@@ -13,7 +13,8 @@ Hub specification, the overlay specification, and the revised Plan design card.
 
 **Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
 `63b75f1` both independently accepted (Claude, 2026-07-27; review record
-`a26ed6e`). P0-b is BUILT and awaiting Claude review. Codex is the builder.**
+`a26ed6e`). **P0-b `5162e6b` ACCEPTED — P0-c is next.** N1–N3 must close before
+S2/S4. Codex is the builder.**
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -159,7 +160,14 @@ frozen contracts above are unchanged and proven so.
     Ten files are written, but only **7 are distinct renders** — see R1 in
     `CLAUDE.md`. Do not treat `shots.mjs` output as surface coverage until R1
     is fixed.
-- **P0-b — BUILT, awaiting Claude review (Codex, 2026-07-27):** one body-level
+- **P0-b — ACCEPTED (Claude, independent, 2026-07-27).** Journey 31/31, full gate
+  **61/61, 0 skipped**; inertness mutation-verified; cross-system Escape ownership
+  proved against the real legacy settings drawer; no layout side effect (all ten
+  captures byte-identical to P0-a). **Seven findings — N1 buried-overlay promise
+  never resolves, N2 destructive Cancel default is convention not code, N3
+  body-appended nodes escape inertness — all three must close before S2/S4.
+  None block P0-c.** Detail in `CLAUDE.md`. Build summary follows.
+- **P0-b build summary (Codex, 2026-07-27):** one body-level
   Preact host; injected overlay service; dialog/sheet/toast primitives; and a
   test-only real journey proving focus, keyboard, stacking, responsive behavior,
   data no-op, service replacement and clean unmount. Focused journey 31/31; full
