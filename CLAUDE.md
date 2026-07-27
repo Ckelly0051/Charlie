@@ -18,6 +18,49 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ACTIVE — Shell Independence P0 (2026-07-27)
+
+**Planning baseline `457eaa6` is accepted. Codex builds; Claude independently
+reviews each checkpoint. No release/package during P0.**
+
+**P0-a — Vite/Preact foundation + canonical test entry: BUILT, awaiting Claude
+review.** This checkpoint intentionally changes build architecture only; no
+coach-facing workflow, persistence schema, analytics result, film behavior, or
+durable season data changed.
+
+- Pinned Vite `8.1.5`, Preact `10.29.7`, and `@preact/preset-vite` `2.10.6`;
+  `npm run build` now owns `dist/index.html`. Tauri still consumes `../dist`.
+- `vite.config.js` preserves the runtime paths Tauri needs: `assets/` and
+  `resources/sql-wasm.{js,wasm}`. The desktop workflow now runs `npm ci` +
+  `npm run build`; it no longer copies the legacy single-file bundle.
+- `tools/app-entry.mjs` is the single browser-test entry. It serves `dist/` from
+  a loopback-only ephemeral HTTP server because Chromium blocks Vite's split
+  module/CSS/SVG assets over `file://`; `GIQ_APP_URL` remains an override.
+- Baseline re-measurement found **42 executable references across 41 harnesses**
+  (plus one stale-build diagnostic string), correcting the plan's 47/44 count.
+  All 41 harnesses now import the resolver; zero executable references to
+  `football-film-analyzer.html` remain.
+- `js/legacy-global-bridge.js` temporarily exposes only the engine/controller
+  symbols consumed directly by legacy harnesses. `build.sh` globalized these by
+  flattening module scope; Vite correctly does not. This bridge is explicit and
+  scheduled to shrink as P0 journey tests replace direct-global assertions.
+- Vite exposed two stylesheets that `build.sh` injected but modular `index.html`
+  omitted: `breakdown-form.css` and `tag-library-settings.css`. Both are now
+  source-owned links. The first gate run caught the resulting mobile 28px/17px
+  controls; focused reruns prove 44px touch behavior is restored.
+- HTTP changed the four intentional XSS `<img src=x>` failures from
+  `ERR_FILE_NOT_FOUND` to 404. `e2e-season-tab` now permits only `/x` while
+  independently failing every other HTTP 404; no missing application asset is
+  masked.
+
+**Verification on final working bytes:** gate detector self-test green; full
+canonical gate **60/60 green** against the Vite build; analytics parity matches
+synthetic + real six-game goldens; `cargo check --manifest-path
+src-tauri/Cargo.toml` clean. P0-a is ready for Claude's adversarial review.
+
+**Next after acceptance:** P0-b native overlay host/primitives plus the explicit
+DI/unmount probe. P0 remains incomplete until every §3.1 exit gate in
+`GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` passes.
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**

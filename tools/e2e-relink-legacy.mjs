@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* LEGACY RE-ADD RELINK HARNESS (the St. Peter dup bug) ---------------------
    A game tagged BEFORE folder-path identity existed has plays whose only clip
    identity is a BASENAME (clipName="IMG_6251", clipPath undefined). When the
@@ -15,7 +16,7 @@
    Run after build:  node tools/e2e-relink-legacy.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 

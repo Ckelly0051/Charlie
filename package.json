@@ -1,10 +1,18 @@
 {
   "type": "module",
   "dependencies": {
+    "preact": "10.29.7",
     "puppeteer": "^25.1.0"
   },
   "devDependencies": {
+    "@preact/preset-vite": "2.10.6",
     "acorn": "^8.17.0",
-    "sql.js": "^1.14.1"
+    "sql.js": "^1.14.1",
+    "vite": "8.1.5"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview"
   }
 }

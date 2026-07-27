@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* StudyQuery executor contract + PARITY gate (redesign Phase 2 spine).
    Proves the pure query engine (window.app.study) that rides on the accepted
    P0-c AnalyticsRegistry:
@@ -24,7 +25,7 @@ const page = await browser.newPage();
 page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
 const errors = [];
 page.on('pageerror', e => errors.push(e.stack || e.message));
-const APP_URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const APP_URL = TEST_APP_URL;
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
 

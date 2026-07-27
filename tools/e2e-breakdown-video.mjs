@@ -1,7 +1,8 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { mkdir } from 'node:fs/promises';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (value, label, extra = '') => value
   ? (pass++, console.log(`  PASS  ${label}`))

@@ -1,7 +1,8 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* Desktop film-storage setup UX. Runs against the built bundle with a focused
    fake desktop backend so native dialogs/files are deterministic. */
 import puppeteer from 'puppeteer';
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond
   ? (pass++, console.log(`  PASS  ${label}`))

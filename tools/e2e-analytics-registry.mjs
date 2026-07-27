@@ -1,8 +1,9 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* P0-c analytics registry contract. Runs against the built bundle so module
    ordering and App wiring are covered as well as the pure registry surface. */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

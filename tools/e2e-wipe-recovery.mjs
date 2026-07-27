@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 // Regression harness for the update-wipe data-loss bug (field-reported).
 // A desktop app update can wipe WebView localStorage (team registry, profile,
 // roster) while the season files survive on disk. Before the fix, the app
@@ -16,7 +17,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const bundle = 'file://' + path.join(here, '..', 'football-film-analyzer.html');
+const bundle = TEST_APP_URL;
 
 let pass = 0, fail = 0;
 const check = (name, ok, extra = '') => {

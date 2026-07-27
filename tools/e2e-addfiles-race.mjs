@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* REGRESSION: PlaylistManager.addFiles async play-creation must not leak plays
    into another game when the active game changes while duration probes are in
    flight. This is the deterministic form of the cross-game corruption the
@@ -28,7 +29,7 @@ const twoGame = () => ({
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
 const page = await browser.newPage();
 page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
 

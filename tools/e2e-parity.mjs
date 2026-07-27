@@ -1,3 +1,4 @@
+import { APP_ENTRY_PATH, APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* ANALYTICS PARITY HARNESS (redesign Phase 0, P0-a) — the release gate for the
    Study/registry work: "no lost metric, no changed denominator, no lost film link."
    It captures a GOLDEN snapshot of the current production analytics for a fixture
@@ -118,9 +119,9 @@ const capture = async (page, fixture) => {
 
 // ---- run ------------------------------------------------------------------
 // Bundle-freshness guard: this harness runs against the BUILT bundle, so editing
-// modular analytics source and forgetting `bash build.sh` would test a stale
+// modular analytics source and forgetting `npm run build` would test a stale
 // bundle and pass falsely. Fail loudly if any source is newer than the bundle.
-const bundleFile = fileURLToPath(new URL('../football-film-analyzer.html', import.meta.url));
+const bundleFile = APP_ENTRY_PATH;
 const newestSourceMtime = () => {
   let newest = 0;
   for (const rel of ['js', 'css']) {
@@ -131,14 +132,14 @@ const newestSourceMtime = () => {
   return newest;
 };
 if (fs.existsSync(bundleFile) && newestSourceMtime() > fs.statSync(bundleFile).mtimeMs) {
-  console.error('  STALE BUNDLE: js/, css/, or assets/ is newer than football-film-analyzer.html.\n  Run `bash build.sh` before the parity gate.');
+  console.error('  STALE BUILD: source files are newer than dist/index.html.\n  Run `npm run build` before the parity gate.');
   process.exit(1);
 }
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
 const page = await browser.newPage();
 page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-const APP_URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const APP_URL = TEST_APP_URL;
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
 

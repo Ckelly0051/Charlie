@@ -1,12 +1,13 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E tagging-speed harness — drives the built bundle headless through the
    Phase A speed/correctness fixes: form guard when no play is selected,
    Enter-in-yardage advance, auto-Gain from positive yardage, Y hotkey,
    drawing-digit gate, real Skip vs Save & Next, penalty down-replay in
    Auto D&D, markEnd feedback, rare-result expander. Run after build:
-     bash build.sh && node tools/e2e-tagging.mjs */
+     npm run build && node tools/e2e-tagging.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

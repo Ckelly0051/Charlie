@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* CANONICAL SEASON SAVE/REOPEN DURABILITY PROOF — the pre-package item named
    as outstanding since early E3b and never substituted for by anything in
    E4-1/E4-2. Every existing projection test (e2e-tag-projform.mjs,
@@ -45,12 +46,12 @@
    missing mirror is a skip, never a silent false pass, and it is never
    written back to).
 
-   Run after build: bash build.sh && node tools/e2e-projform-durability.mjs */
+   Run after build: npm run build && node tools/e2e-projform-durability.mjs */
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

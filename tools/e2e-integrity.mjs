@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* DATA-INTEGRITY STRESS HARNESS — the test the suite was missing.
    Loads COPIES of the coach's real seasons into the built bundle (headless,
    isolated storage — never touches AppData/Documents) and fuzzes the REAL data
@@ -45,7 +46,7 @@ let pageErrors = [];
 page.on('pageerror', e => pageErrors.push(String(e.message || e)));
 page.on('console', m => { if (m.type() === 'error') pageErrors.push(m.text()); });
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 
 // The whole campaign for one (fixture, seed) runs IN-PAGE and returns a report,
 // so each op's mutations + invariant checks happen against the live app objects.

@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* A3 TauriBackend delegation regression (Codex review, flag-ON failure paths).
    The flag-OFF 33/33 suite never exercises these because BrowserBackend is the
    headless default. Here we construct a TauriBackend in-page with a FAKE
@@ -17,7 +18,7 @@ const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 300));
 

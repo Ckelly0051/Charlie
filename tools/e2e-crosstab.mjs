@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E3a-4 — cross-tabs with the §6.5 eligible-denominator contract. Two dedicated
    single-value × single-value cross-tabs: qbAlignment × strength (new, §8a) and
    coverage-call × coverageFamily. Per §19, each cohort lives in its OWN synthetic
@@ -18,7 +19,7 @@
    Run: node tools/e2e-crosstab.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

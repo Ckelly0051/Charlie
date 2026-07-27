@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E3b — PROJECTED CSV EXPORT/IMPORT (GRIDIRON-IQ-TAG-MODEL.md §20, coach contract).
    Exported data must agree with Film Room, Study, and analytics: Formation carries
    STRUCTURE only, QB Alignment is its own column, Backfield/Strength/Coverage Call
@@ -19,7 +20,7 @@ const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${l
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
 const page = await browser.newPage();
 page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
 

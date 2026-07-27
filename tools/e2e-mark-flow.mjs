@@ -1,12 +1,13 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E mark-flow harness — the only test that drives the REAL coach flow
    end-to-end: generate an actual video in-page, load it through
    VideoController.loadFile, click the real Mark Start / Mark End buttons,
    and assert the play is created, auto-selected, the form guard lifts, and
    a chip click saves. (The other harnesses select plays via the API, which
    skips exactly the path a "form stays grayed out" field report exercises.)
-   Run after build:  bash build.sh && node tools/e2e-mark-flow.mjs */
+   Run after build:  npm run build && node tools/e2e-mark-flow.mjs */
 import puppeteer from 'puppeteer';
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const browser = await puppeteer.launch({ args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage();

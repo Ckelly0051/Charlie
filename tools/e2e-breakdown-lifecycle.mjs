@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* Lane A — Break Down presentation lifecycle (mount / restore / remount).
  *
  * WHY THIS EXISTS. BreakdownVideo._mount() moves real production chrome:
@@ -20,7 +21,7 @@
  */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond
   ? (pass++, console.log(`  PASS  ${label}`))

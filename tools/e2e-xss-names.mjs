@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* REGRESSION: coach-definable / importable NAMES (formation, defFront, coverage,
    blitz, hash, playDir, motion) and per-play custom tags must render INERT in the
    stats dashboard/reports and the tag form. They arrive via season/CSV import, so
@@ -19,7 +20,7 @@ page.on('console', m => {
   // The payload's failed <img src=x> fetch is the test working, not an app error.
   if (/Failed to load resource|net::ERR/i.test(m.text())) return;
 });
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
 

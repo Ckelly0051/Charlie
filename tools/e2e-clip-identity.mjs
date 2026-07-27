@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* CLIP-IDENTITY HARNESS (P1a — basename collision) ------------------------
    Two clips named "0001.mp4" that live in different subfolders (endzone/ vs
    sideline/) must stay DISTINCT through import → save → reopen. The old code
@@ -15,7 +16,7 @@
    Run after build:  node tools/e2e-clip-identity.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

@@ -11,7 +11,7 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status:** approved for application. **P0 is next; Codex is the builder.**
+**Status:** P0 IN PROGRESS. **P0-a built; awaiting Claude review. Codex is the builder.**
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -90,9 +90,9 @@ Carbon is inspiration, not application architecture.
 ### 2.2 Build and test cutover (P0)
 
 - Vite produces **`dist/index.html`**; Tauri keeps `frontendDist: "../dist"` (unchanged).
-- **Measured coupling: 47 references across 44 of 60 harnesses** hardcode the
+- **Measured coupling (corrected at P0-a): 42 executable references across 41 of 60 harnesses** hardcode the
   single-file bundle — 36× `new globalThis.URL('../football-film-analyzer.html',
-  import.meta.url).href` and 3× a `path.join(...)` variant. All are replaced by a
+  import.meta.url).href`, 2× `path.join(...)`, 1× `path.resolve(...)`, and the parity guard. All are replaced by a
   **shared test-entry resolver** so the entrypoint moves in exactly one place.
 - **The canonical gate targets the Vite build by P0 exit.**
 - `build.sh` and the single-file bundle survive **temporarily as baseline/reference
@@ -133,12 +133,22 @@ frozen contracts above are unchanged and proven so.
 - Operation-scoped data-diff harness (§6.2).
 - Team Hub + overlay interaction specs (already written; see companion docs).
 
+### P0 checkpoint status
+
+- **P0-a — BUILT, review pending:** pinned Vite/Preact build, runtime assets,
+  shared loopback test entry, all 41 affected harnesses migrated, canonical gate
+  on Vite. Full gate 60/60; Tauri `cargo check` clean.
+- **P0-b — next after acceptance:** native overlay host + dialog/sheet/toast
+  primitives; one explicit DI/unmount proof route.
+- **P0-c:** shared film-navigation/cut-up service with exact composite-ref parity.
+- **P0-d:** journey capability inventory, operation-scoped data-diff harness,
+  design-token enforcement, and final P0 exit audit.
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 
 ### 3.1 P0 exit gate — all required before S1 opens
 
 1. Vite + Preact **browser build and Tauri build both work**.
-2. **All 47 harness references (44 files) migrated** to the shared test-entry resolver.
+2. **All 42 executable references (41 files) migrated** to the shared test-entry resolver.
 3. Canonical gate **targets the Vite build**; lockfile committed, toolchain pinned.
 4. One test route proves **explicit service injection and clean unmounting**.
 5. **Native overlay host** + dialog/sheet/toast primitives exist.

@@ -18,10 +18,10 @@
 #
 # Usage:
 #   bash tools/run-gate.sh            # build + full gate
-#   bash tools/run-gate.sh --no-build # gate only (bundle already fresh)
+#   bash tools/run-gate.sh --no-build # gate only (Vite build already fresh)
 #   bash tools/run-gate.sh --self-test # prove the detector catches a real failure
 
-set -o pipefail   # REQUIRED: `build.sh | tail` returns tail's status, so without
+set -o pipefail   # REQUIRED: `npm run build | tail` returns tail's status, so without
                   # this a FAILED BUILD passes and the gate runs the stale bundle.
 cd "$(dirname "$0")/.." || exit 1
 
@@ -111,9 +111,9 @@ fi
 if [ "$1" != "--no-build" ]; then
   echo "=== BUILD ==="
   # Status checked explicitly as well as via pipefail — belt and braces, because
-  # a swallowed build failure means the whole gate runs the STALE bundle and
+  # a swallowed build failure means the whole gate runs a STALE build and
   # reports green. That is the exact false-green class this gate exists to stop.
-  build_out=$(bash build.sh 2>&1); build_rc=$?
+  build_out=$(npm run build 2>&1); build_rc=$?
   printf '%s\n' "$build_out" | tail -2
   if [ "$build_rc" -ne 0 ]; then
     echo "BUILD FAILED (exit $build_rc) — refusing to gate a stale bundle."

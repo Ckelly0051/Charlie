@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* FILM-INDEX PRESERVATION HARNESS (the shrinking-film root cause) -----------
    The game-level film index (clipNames/clipPaths/clipRefs/isMultiClip) was
    rebuilt in _serialize() from the LIVE playlist only. So opening a multi-clip
@@ -12,7 +13,7 @@
    Run after build:  node tools/e2e-film-index.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 

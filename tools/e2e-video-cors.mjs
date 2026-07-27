@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E harness — VideoController cross-origin retry logic. Covers the desktop
    asset-protocol playback path that the other harnesses (blob URLs / API play
    selection) never exercise. Drives the error/promote handlers directly with
@@ -8,10 +9,10 @@
    would taint the canvas for every later good clip), while a genuine CORS
    failure (retry succeeds) MUST latch it so a 69-clip game retries once.
 
-   Run after build:  bash build.sh && node tools/e2e-video-cors.mjs */
+   Run after build:  npm run build && node tools/e2e-video-cors.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E onboarding harness — drives the built bundle headless through the ONE
    product route (the redesigned workspace shell; the classic layout was retired
    2026-07-23). Flow: first-run shell Home -> Set up team (library overlay) ->
@@ -11,7 +12,7 @@
    grid is retired. Stats open as a body-level overlay via app.stats. */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

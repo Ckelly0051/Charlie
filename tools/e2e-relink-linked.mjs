@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* REGRESSION (P1-5): PlaylistManager.rehydrateFromDisk must relink a game's
    saved plays to a linked folder's clips even when the folder ROOT differs from
    the saved clipPath root (managed import saved 'Game7/endzone/0001'; the linked
@@ -13,7 +14,7 @@ const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${l
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
 const page = await browser.newPage();
 page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
 

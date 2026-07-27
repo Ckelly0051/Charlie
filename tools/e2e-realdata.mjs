@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* REAL-DATA E2E — drives the built app against the coach's actual saved seasons
    (the Documents mirror). Fresh page per game (no state accumulation); each view
    driven under its own timeout so a hang/slow render is localized to an exact
@@ -34,7 +35,7 @@ if (!files.length) {
   process.exit(1);
 }
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 const OUR = ['Maverick', 'Eagle', 'Falcon', 'Jumbo Shift'];
 const VIEW_MS = 20000;
 

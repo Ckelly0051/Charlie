@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E3a-6a — BEHAVIORAL projection tests: the PRIMARY (syntax-proof) guarantee that
    every analytics surface reads the PROJECTED four/six-dimension view, not raw
    legacy tags (§19 item 6a). For each surface class we feed a legacy-shaped play
@@ -11,7 +12,7 @@
    Run: node tools/e2e-analytics-projection.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

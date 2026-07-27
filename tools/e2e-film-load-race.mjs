@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* P0 regression: latest-film-load-wins. Two overlapping game opens run two
    overlapping _autoLoadFilm calls. If the FIRST (slow) game's film resolves
    LAST, it must NOT stamp its video onto the now-active SECOND game — the coach
@@ -20,7 +21,7 @@
    before fast supersedes it. This matches the real-world shape of the bug: two
    game-opens separated by actual time, not two calls issued in the same tick. */
 import puppeteer from 'puppeteer';
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond
   ? (pass++, console.log(`  PASS  ${label}`))

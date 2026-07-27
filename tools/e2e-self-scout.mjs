@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E harness — defensive self-scout in the stats dashboard. Covers the paths
    the other harnesses never open:
      1. The Self-Scout TAB renders the defensive section (the reported "self
@@ -8,10 +9,10 @@
      3. The Defense TAB also shows the scheme-tells section.
      4. generateDefensiveSelfScout runs once per dashboard render, not twice.
 
-   Run after build:  bash build.sh && node tools/e2e-self-scout.mjs */
+   Run after build:  npm run build && node tools/e2e-self-scout.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

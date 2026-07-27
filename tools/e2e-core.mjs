@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* Unit tests for the PURE core logic — the static helpers that drive every
    stat, split, and classification. The integration harnesses exercise these
    indirectly through full renders; this suite pins them in isolation so an edge
@@ -5,10 +6,10 @@
    fails loudly and specifically. Loads the built bundle only to reach the
    classes — no app/team/season setup needed.
 
-   Run after build:  bash build.sh && node tools/e2e-core.mjs */
+   Run after build:  npm run build && node tools/e2e-core.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

@@ -1,9 +1,10 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* Phase 1 shell/Home contract. The flag is opt-in; classic launch remains the
    default. This test drives the built bundle through real route adapters. */
 import puppeteer from 'puppeteer';
 import { mkdir } from 'node:fs/promises';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });

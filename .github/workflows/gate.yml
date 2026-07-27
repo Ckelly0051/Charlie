@@ -51,7 +51,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        shell: bash          # run-gate.sh and build.sh are bash; Git Bash ships on the runner
+        shell: bash          # run-gate.sh is bash; Git Bash ships on the runner
     env:
       # The real-data harness needs the coach's season mirror, which does not
       # exist on a CI runner. It fails closed by design unless a machine is
@@ -79,5 +79,5 @@ jobs:
       - name: Self-test the gate detector
         run: bash tools/run-gate.sh --self-test
 
-      - name: Build bundle + run full gate
+      - name: Build Vite app + run full gate
         run: bash tools/run-gate.sh

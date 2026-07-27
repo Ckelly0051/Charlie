@@ -1,11 +1,12 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E Film Room harness — drives the built bundle headless through the
    Phase 2 play grid: render on demo data, row click-to-select, chip filters,
    bulk selection + Watch fallback, collapse persistence, narrow-screen
    default, switch-team back-out. Run after build:
-     bash build.sh && node tools/e2e-film-room.mjs */
+     npm run build && node tools/e2e-film-room.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

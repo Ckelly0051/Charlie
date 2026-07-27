@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E4 (D-projform) — GRIDIRON-IQ-TAG-MODEL.md §18. The tag FORM (not Film
    Room's grid, covered separately by e2e-film-room.mjs's E3b-P1 proofs) shows
    the PROJECTED view and writes only on the coach's explicit save. Proves the
@@ -23,10 +24,10 @@
    same id. Every section below re-fetches its play via t.getPlay(id) FRESH,
    inside the SAME evaluate call it acts on it.
 
-   Run after build: bash build.sh && node tools/e2e-tag-projform.mjs */
+   Run after build: npm run build && node tools/e2e-tag-projform.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }

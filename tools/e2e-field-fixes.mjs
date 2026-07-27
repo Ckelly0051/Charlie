@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 // Targeted verification for the field-report fixes:
 //  1. Folder re-upload re-links clips to saved plays (no duplicates).
 //  2. Quarter carries across possession changes; defense field position advances.
@@ -8,7 +9,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const bundle = 'file://' + path.join(here, '..', 'football-film-analyzer.html');
+const bundle = TEST_APP_URL;
 
 let pass = 0, fail = 0;
 const check = (name, ok, extra = '') => {

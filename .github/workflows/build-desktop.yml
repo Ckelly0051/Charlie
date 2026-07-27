@@ -46,11 +46,17 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
             librsvg2-dev patchelf libgtk-3-dev
 
-      - name: Prepare frontend bundle
-        shell: bash
-        run: |
-          mkdir -p dist
-          cp football-film-analyzer.html dist/index.html
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install frontend dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: npm ci
+
+      - name: Build Vite frontend
+        run: npm run build
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

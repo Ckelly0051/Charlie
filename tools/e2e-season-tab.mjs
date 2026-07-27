@@ -1,3 +1,4 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* E2E harness — the Season tab in the stats dashboard (added v1.9.4, polished
    v1.9.5). Covers the paths no other harness opens:
      1. Sortable leaderboards (v1.9.5): clicking an individual-stat column header
@@ -58,10 +59,10 @@
         to SKIP (import only what's new) or RE-LINK (repoint the existing tagged
         play at the new file); covers the dialog render + skip/relink/cancel.
 
-   Run after build:  bash build.sh && node tools/e2e-season-tab.mjs */
+   Run after build:  npm run build && node tools/e2e-season-tab.mjs */
 import puppeteer from 'puppeteer';
 
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
@@ -74,13 +75,18 @@ const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
+page.on('response', response => {
+  if (response.status() !== 404) return;
+  const path = new globalThis.URL(response.url()).pathname;
+  if (path !== '/x') errors.push(`HTTP 404: ${response.url()}`);
+});
 page.on('console', m => {
   if (m.type() !== 'error') return;
   const text = m.text();
   // The stored-XSS fixtures intentionally render inert <img src=x> payloads.
   // Chromium logs their failed image fetches; that is the test payload working,
   // not an app error.
-  if (/^Failed to load resource: net::ERR_FILE_NOT_FOUND$/.test(text)) return;
+  if (/^Failed to load resource: (?:net::ERR_FILE_NOT_FOUND|the server responded with a status of 404 \(Not Found\))$/.test(text)) return;
   errors.push(text);
 });
 const click = (sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);

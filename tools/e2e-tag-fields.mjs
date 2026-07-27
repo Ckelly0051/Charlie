@@ -1,14 +1,15 @@
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const file = path.resolve(__dirname, '..', 'football-film-analyzer.html');
+const file = TEST_APP_URL;
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-await page.goto(`file://${file}`, { waitUntil: 'domcontentloaded' });
+await page.goto(file, { waitUntil: 'domcontentloaded' });
 await new Promise(r => setTimeout(r, 1500));
 
 const result = await page.evaluate(() => {
