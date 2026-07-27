@@ -399,7 +399,76 @@ integrity, catalog, storage, Study, Plan and overlay gates are green. No analyti
 formula, persistence schema, coach data, film file, package, tag or release was
 changed. Managed C: copies remain protected.
 
-**Next:** Claude independently reviews `4d72dd0`. P0-d is blocked on that verdict.
+#### CLAUDE'S INDEPENDENT REVIEW of `4d72dd0` — ACCEPTED, 3 findings, none blocking (2026-07-27)
+
+This is the strongest checkpoint of P0 so far. The self-review found the two
+defects that mattered before handoff, and the exact-ref guarantee is real.
+
+**Verified by running and by mutating, not by reading.** Full canonical gate
+**62 harnesses | 62 green | 0 skipped**, real data included. Focused:
+`e2e-film-navigation` 21/21, `e2e-study-screen` 56/56, `e2e-native-overlay` 31/31.
+
+- **Mutation-verified the central guarantee myself.** Replacing the exact-ref
+  filter with `true` reds two assertions with concrete evidence — both games
+  return `ids:["1","2","3"]` instead of the sparse requested set. The fixture's
+  repeated bare play ids across two games mean this cannot pass by coincidence.
+- **The one place a silent wrong-film bug could have hidden is structurally
+  safe.** `StatsEngine._watchPlays` rebuilds its pool from `this.tagger.plays` —
+  the live active game only — so `refsForGame(matches, activeGameId())` can never
+  stamp a cross-game play with the wrong game id. I traced all three
+  `_watchPlays` call sites and `_currentPlays`; none can supply season-scope
+  plays. This is a property of the code, not of the test.
+- **N4 is genuinely closed, and the fix is better than what I asked for.** There
+  is now one focus owner (the panel effect no longer depends on `top`), and
+  `_restoreFocus` waits until the target is connected, visible and non-inert
+  rather than counting frames — condition-waiting, which is the discipline I have
+  been asking for elsewhere.
+- Supersession holds: a second `watch()` bumps the token, the first's `finally`
+  no-ops in `_restoreSession`, and `_sessionLaunchGameId` survives so a
+  replacement Watch cannot adopt a transient game as its origin.
+- Route-change stop (`workspace-shell.js:125`) still settles the awaited
+  `start()`, so `finally` restores the launch game. Read, not run.
+
+**A hypothesis of mine that was WRONG, recorded because the method is the point.**
+I read the diff and concluded Reports had lost its "no video → select the first
+one" fallback for plays with no marked region, since the service now decides on
+*game film health* rather than *per-play timestamps*. I probed it instead of
+filing it: the fallback fires correctly (`reason:'selected'`, play 1 selected,
+right toast, no cut-up started). `CrossGameCutup.plan()` already rejects any ref
+whose play lacks `end > start` (`cross-game-cutup.js:56`), so those refs never
+reach the health check. **Reading the diff produced a confident wrong finding;
+one probe settled it.**
+
+**P1 [P2] The two select-first paths disagree about session restore.** The early
+path (`!plan.total`) runs before the launch game is captured, so the selection
+stands. The later path (`playable.length === 0`) runs after, and its
+`_restoreSession` switches straight back — undoing the navigation it just
+performed. Unreachable from Reports, because `refsForGame` stamps the active game
+so the fallback never switches games. It is a live trap for the first cross-game
+caller that asks for `select-first`.
+
+**P2 [P2] `StatsEngine._watchPlays` fails silently when `filmNavigation` is
+unset.** `if (!this.filmNavigation) return;` turns every Reports stat row into a
+dead click — no error, no toast, nothing in the console. The code it replaced had
+a real fallback. This is the hardest failure mode to notice and the cheapest to
+make loud.
+
+**P3 [nit] `_restoreFocus` gives up silently after 8 frames**, leaving focus on
+`body` — which overlay spec §3 explicitly forbids. Fall back to the `stable`
+element unconditionally on the last attempt.
+
+**Scope note, not a defect:** "one playback owner" is exact for Study, Reports
+and Plan, which is what the P0 exit gate requires and what the service's own
+header comment says. `PlayGrid` still calls `cutupPlayer.start` directly for Film
+Room's ▶ Watch — correctly out of scope, since Film Room is game-local and has no
+composite-ref exposure. Worth stating so it is not later mistaken for a miss.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag
+or release changed — confirmed by re-running the full gate myself.** Managed C:
+film copies remain protected. **P0-d is unblocked.**
+
+**Next:** P0-d — journey capability inventory, operation-scoped data-diff
+harness, design-token enforcement, and the final P0 exit audit.
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**

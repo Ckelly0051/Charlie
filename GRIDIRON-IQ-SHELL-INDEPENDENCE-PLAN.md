@@ -13,9 +13,9 @@ Hub specification, the overlay specification, and the revised Plan design card.
 
 **Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
 `63b75f1` both independently accepted (Claude, 2026-07-27; review record
-`a26ed6e`). P0-b `5162e6b` ACCEPTED. P0-c implementation `4d72dd0` BUILT —
-awaiting Claude's independent review.** P0-b N4 closed at the P0-c checkpoint;
-N1–N3 remain mandatory before S2/S4. Codex is the builder.
+`a26ed6e`). P0-b `5162e6b` ACCEPTED. P0-c `4d72dd0` ACCEPTED — **P0-d is
+next.** P0-b N4 closed at the P0-c checkpoint; N1–N3 remain mandatory before
+S2/S4. Codex is the builder.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -174,7 +174,12 @@ frozen contracts above are unchanged and proven so.
   data no-op, service replacement and clean unmount. Focused journey 31/31; full
   canonical gate 61/61; normal product pixel-identical to P0-a captures. No
   legacy overlay migrated and no coach-facing workflow changed.
-- **P0-c — BUILT, awaiting independent review (`4d72dd0`, Codex, 2026-07-27).**
+- **P0-c — ACCEPTED (Claude, independent, 2026-07-27).** Exact composite-ref
+  equality mutation-verified; `StatsEngine._watchPlays` proved structurally
+  game-local so it cannot mis-stamp a cross-game play; N4 confirmed closed. Full
+  gate **62/62, 0 skipped**. Three findings, none blocking: divergent
+  select-first session restore, silent no-op when `filmNavigation` is unset, and
+  `_restoreFocus` giving up to `body`. Detail in `CLAUDE.md`. Build summary:
   `FilmNavigationService` is now the one playback owner for Study, Reports and
   Plan. Callers submit exact `gameId::playId` refs; translation to bare ids
   happens only after the owning game loads. The service owns film-health
