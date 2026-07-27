@@ -758,6 +758,13 @@ real bug ([[e2e-film-room]] stale `<td>`; the addFiles cross-game race).
   re-diagnose from memory.
 
 **Still open (not blockers, do not lose):**
+- **`tools/shots.mjs` navigation is stale (P0-a review R1/R2, 2026-07-27).**
+  5 of 10 captures are byte-identical duplicates — `01≡02` and `04≡05≡06` — and
+  `06-filmroom-grid.png` actually renders **Home**, so Break Down and Film Room
+  are not captured at all. It also shoots one viewport (1440×900) where
+  release-gate row 4 requires four. **Fix both before shots.mjs backs any
+  coach-facing visual review**, and before pixel baselines are built on it —
+  a baseline of the wrong surface is worse than none.
 - **`e2e-onboarding` blind-wait fragility:** 21 fixed sleeps / 13.3s / 0 condition
   waits, measured. Convert to `waitForFunction` — but only with evidence from a
   captured red, not speculatively.

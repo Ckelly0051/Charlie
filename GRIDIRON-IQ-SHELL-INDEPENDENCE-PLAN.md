@@ -11,7 +11,9 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status:** P0 IN PROGRESS. **P0-a built; awaiting Claude review. Codex is the builder.**
+**Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
+`63b75f1` both independently accepted (Claude, 2026-07-27; review record
+`a26ed6e`). P0-b is unblocked and next. Codex is the builder.**
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -145,14 +147,19 @@ frozen contracts above are unchanged and proven so.
   duplicate an earlier surface; Break Down and Film Room both capture Home) and
   it shoots one viewport where release-gate row 4 requires four. **P0-b is
   unblocked.** Detail below and in `CLAUDE.md`.
-- *(superseded)* the
-  Vite/Preact foundation and 41-harness entry migration were accepted. Codex then
-  closed all seven review findings together: self-contained legacy reference
-  build, canonical visual-harness entry, Tauri pre-build, complete freshness
-  inputs, no duplicated SQL resources, accurate package ignores, and documented
-  runtime icon ownership. Mutation proofs, 10-surface visual run, local Tauri
-  no-bundle build, and full gate 60/60 are green. Full text in `CLAUDE.md`.
-- **P0-b — next after repair acceptance:** native overlay host +
+  - Scope delivered: pinned Vite/Preact build (`8.1.5` / `10.29.7` /
+    `2.10.6`), runtime asset preservation, the shared loopback test entry, all
+    41 affected harnesses migrated to it, the canonical gate targeting the Vite
+    build, and a committed lockfile. Repair `63b75f1` then closed a
+    self-contained legacy reference build, the canonical visual-harness entry,
+    the Tauri pre-build hook, complete freshness inputs, removal of the
+    duplicated SQL resources, corrected package ignores, and documented runtime
+    icon ownership.
+  - **Correction to the repair note:** it records a "10-surface visual run."
+    Ten files are written, but only **7 are distinct renders** — see R1 in
+    `CLAUDE.md`. Do not treat `shots.mjs` output as surface coverage until R1
+    is fixed.
+- **P0-b — NEXT (unblocked 2026-07-27):** native overlay host +
   dialog/sheet/toast primitives; one explicit DI/unmount proof route.
 - **P0-c:** shared film-navigation/cut-up service with exact composite-ref parity.
 - **P0-d:** journey capability inventory, operation-scoped data-diff harness,
