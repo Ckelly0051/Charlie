@@ -4,6 +4,7 @@
 import { readFile } from 'node:fs/promises';
 import { CrossGameCutup } from '../js/cross-game-cutup.js';
 import { FilmNavigationService } from '../js/film-navigation-service.js';
+import { StatsEngine } from '../js/stats-engine.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond
@@ -122,6 +123,21 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
   ok(state.active === 'g1', 'replacement restores the original session launch game, not the transient game');
 }
 
+// 5b. Even an unresolved replacement request owns cancellation. Without this,
+// the prior reel remains pending on a transient game forever.
+{
+  const { state, service } = fixture();
+  state.hold = true;
+  const first = service.watch(['g2::2'], { label: 'Held reel' });
+  while (!state.starts.length) await new Promise(resolve => setTimeout(resolve, 0));
+  const second = service.watch(['g2::99'], { label: 'Unresolved replacement' });
+  const [firstResult, secondResult] = await Promise.all([first, second]);
+  ok(firstResult.reason === 'replaced' && secondResult.reason === 'unavailable'
+    && state.active === 'g1' && state.stopCalls.at(-1) === 'replaced',
+    'an unresolved Watch request replaces the active reel and restores its launch game',
+    JSON.stringify({ firstResult, secondResult, active: state.active, stopCalls: state.stopCalls }));
+}
+
 // 6. Failed game loads are unavailable, never a false completed reel.
 {
   const { state, service } = fixture();
@@ -138,6 +154,31 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
   const result = await service.watch(['g1::99', 'g2::3'], { label: 'Report row', fallback: 'select-first' });
   ok(result.reason === 'selected' && eq(state.selected, ['g2::3']),
     'no-video report fallback selects the first resolvable composite ref', JSON.stringify({ result, selected: state.selected }));
+}
+
+// 7b. A health-checked but unavailable cross-game reel still leaves the coach
+// on the explicitly selected fallback play. It is navigation, not a transient
+// playback session to restore.
+{
+  const { state, service } = fixture();
+  state.missing = new Set(['g2']);
+  const result = await service.watch(['g2::2'], { label: 'Missing film', fallback: 'select-first' });
+  ok(result.reason === 'selected' && state.active === 'g2' && eq(state.selected, ['g2::2']),
+    'late no-video fallback keeps the selected cross-game play active', JSON.stringify({ result, active: state.active, selected: state.selected }));
+}
+
+// 7c. A wiring regression must be loud. Silently closing Reports and doing
+// nothing is indistinguishable from a broken stat row to a coach.
+{
+  const engine = Object.create(StatsEngine.prototype);
+  engine.tagger = { plays: [play(1, 0, 4)] };
+  engine.filter = null;
+  engine.filmNavigation = null;
+  engine.hideDashboard = () => {};
+  let message = '';
+  try { engine._watchPlays(() => true, 'Missing service'); } catch (error) { message = error.message; }
+  ok(/requires FilmNavigationService/.test(message),
+    'Reports fail closed when shared film navigation is not injected', message);
 }
 
 // 8. Consumer ownership: no UI reaches through another UI or starts the player directly.

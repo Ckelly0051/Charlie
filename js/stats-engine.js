@@ -2039,9 +2039,11 @@ export class StatsEngine {
       .filter(p => filter(p))
       .sort((a, b) => (a.timestamp?.start || 0) - (b.timestamp?.start || 0));
     if (matches.length === 0) return;
+    if (!this.filmNavigation) {
+      throw new Error('StatsEngine requires FilmNavigationService for report film');
+    }
     const playable = matches.filter(p => p.timestamp && p.timestamp.end > p.timestamp.start);
     this.hideDashboard();
-    if (!this.filmNavigation) return;
     const refs = this.filmNavigation.refsForGame(playable.length ? playable : matches);
     this.filmNavigation.watch(refs, {
       label: label || `${refs.length} plays`,

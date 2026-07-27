@@ -60,6 +60,41 @@ await sleep(50);
 ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-dialog')), 'dismissible dialog scrim is Cancel and restores focus');
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'dialog journeys do not mutate season data');
 
+console.log('\n== 2b. Focus fallback after an unavailable invoker ==');
+await page.evaluate(() => {
+  const stable = document.createElement('button');
+  stable.id = 'focus-stable-probe';
+  stable.setAttribute('data-focus-return-root', '');
+  stable.textContent = 'Stable route focus';
+  document.body.prepend(stable);
+  const invoker = document.createElement('button');
+  invoker.id = 'focus-dead-probe';
+  invoker.textContent = 'Temporary invoker';
+  document.body.append(invoker);
+  invoker.focus();
+  const handle = window.__GIQ_NATIVE_TEST__.service.dialog({
+    title: 'Focus fallback', returnFocus: invoker,
+    actions: [{ key: 'done', label: 'Done', default: true }],
+  });
+  window.__focusFallbackHandle = handle;
+});
+await page.waitForSelector('.gi-overlay-dialog');
+await page.evaluate(() => {
+  document.getElementById('focus-dead-probe').hidden = true;
+  window.__focusFallbackHandle.close('done');
+});
+const stableFocusRestored = await page.waitForFunction(
+  () => document.activeElement?.id === 'focus-stable-probe',
+  { timeout: 2000 },
+).then(() => true).catch(() => false);
+const stableFocusState = await page.evaluate(() => { const stable=document.getElementById('focus-stable-probe'); const dead=document.getElementById('focus-dead-probe'); return { activeId:document.activeElement?.id, stableConnected:stable?.isConnected, stableRects:stable?.getClientRects().length, stableInert:!!stable?.closest('[inert]'), deadHidden:dead?.hidden, overlays:window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length }; });
+ok(stableFocusRestored, 'focus falls back to a stable route landmark when the invoker remains hidden', JSON.stringify(stableFocusState));
+await page.evaluate(() => {
+  document.getElementById('focus-stable-probe')?.remove();
+  document.getElementById('focus-dead-probe')?.remove();
+  delete window.__focusFallbackHandle;
+});
+
 console.log('\n== 3. Sheet desktop/mobile behavior ==');
 await page.click('[data-probe-sheet]');
 await page.waitForSelector('.gi-overlay-sheet.is-top');

@@ -149,7 +149,12 @@ export class NativeOverlayService {
       const preferred = connectedElement(overlay.returnFocus)
         ? overlay.returnFocus
         : connectedElement(overlay.focusFallback) ? overlay.focusFallback : null;
-      const target = preferred || stable;
+      // Prefer the exact invoker while Preact settles. On the final attempt,
+      // use a stable route landmark instead of silently abandoning focus.
+      const preferredReady = preferred
+        && !preferred.closest?.('[inert]')
+        && preferred.getClientRects().length;
+      const target = preferredReady ? preferred : (attempts >= 8 ? stable : null);
       if (target && !target.closest?.('[inert]') && target.getClientRects().length) {
         if (!target.matches?.('button, a, input, select, textarea, [tabindex]')) target.setAttribute('tabindex', '-1');
         target.focus({ preventScroll: true });

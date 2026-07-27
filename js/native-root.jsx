@@ -1,6 +1,8 @@
 import { render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { NativeOverlayService } from './native-overlay-service.js';
+import '../design-system/plex.css';
+import '../design-system/tokens.css';
 import '../css/native-overlay.css';
 
 const focusableSelector = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';

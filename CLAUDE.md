@@ -23,6 +23,70 @@ storage again.
 **Planning baseline `457eaa6` is accepted. Codex builds; Claude independently
 reviews each checkpoint. No release/package during P0.**
 
+#### ▶ CODEX HANDOFF — P0-d built, independent Claude review required
+
+**Review range:** `81e8934..HEAD` (P0-d implementation checkpoint).
+**Verdict requested:** accept P0-d and open S1, or return concrete findings.
+**Do not package or release this checkpoint. Managed C: film copies remain protected.**
+
+P0-d delivers the four remaining foundation gates:
+
+1. **Executable capability inventory:** `tools/p0-capability-inventory.mjs` owns 54
+   coach-facing capabilities across Home, shell, Break Down, Film Room, Study,
+   Reports, Plan, Team & Film Settings, shared film navigation, and overlays.
+   Every item names an exact assertion in a canonical journey. The audit rejects
+   geometry-only evidence and stale/missing assertion ownership. Human summary:
+   `GRIDIRON-IQ-P0-CAPABILITY-INVENTORY.md`.
+2. **Operation-scoped season diff:** `tools/operation-diff.mjs` canonicalizes
+   identity-bearing game/play arrays into stable paths. The real browser journey
+   proves route navigation changes no season path; `openGame` changes only
+   `activeGameId`; Formation editing changes only that target play field; Game
+   Info editing changes only opponent/projectName/game name; every non-target
+   play/game remains byte-identical. Its restrictive mutation catches the
+   undeclared projectName sibling.
+3. **Production design foundation:** the native Preact entry now imports bundled
+   Plex plus `design-system/tokens.css`. `css/native-overlay.css` consumes only
+   semantic `--gi-*` roles. Enforcement auto-scans every `css/native-*.css` and
+   rejects raw colors, `--ws-*` fallbacks, undefined tokens, or local font stacks.
+4. **Final exit audit:** `tools/e2e-p0-exit.mjs` composes all nine §3.1 exit
+   requirements: pinned toolchain/lockfile, Vite and Tauri wiring, shared browser
+   entry, DI/unmount, overlay primitives, composite film ownership, capability
+   inventory, operation diff, interaction specs, and design-system wiring.
+
+**P0-c follow-ups closed in this checkpoint:**
+
+- Both no-video `select-first` paths now leave the coach on the selected play;
+  the later cross-game path no longer restores away from its own selection.
+- Reports throws loudly if `FilmNavigationService` was not injected instead of
+  turning a stat-film click into a silent dead control.
+- Overlay focus retries now fall back to a visible stable route landmark on the
+  final attempt when the exact invoker remains connected but unavailable.
+
+**Additional self-review finding fixed before handoff:** every non-empty Watch
+request now owns the replacement token, including unresolved refs. Previously an
+unresolved request could leave the prior reel pending on a transient game. The
+service now stops the prior owner, suppresses stale async select-first completion,
+and restores the original launch game when the replacement has no playable film.
+
+**Mutation proof:** nonexistent capability assertion RED; geometry evidence RED;
+raw native color RED; undeclared operation path RED; old select-first restore RED;
+silent Reports wiring RED; old focus target RED; broken request-token ownership
+RED. Every source was restored and rerun green after each mutation.
+
+**Verification on final working bytes:** `e2e-p0-capabilities` 8/8;
+`e2e-operation-diff` 9/9; `e2e-design-system` 7/7; `e2e-p0-exit` 13/13;
+`e2e-film-navigation` 24/24; `e2e-native-overlay` 32/32; full canonical gate
+**66/66 green, 0 skipped**, including synthetic + real six-game parity and
+integrity; `cargo check --manifest-path src-tauri/Cargo.toml` clean.
+
+**Review these risks first:** (1) Watch token/session ownership around unresolved
+and select-first requests; (2) whether operation allow-lists are exact enough and
+normalization cannot hide a mutation; (3) whether tokenizing the native overlay
+preserved semantics; (4) whether any user capability is missing from the 54-item
+inventory. P0-d changes no analytics formula, persistence schema, durable season
+data, film file, package, or release. N1-N3 from P0-b remain mandatory before
+S2/S4 and are not claimed closed here.
+
 **P0-a — Vite/Preact foundation + canonical test entry: BUILT, awaiting Claude
 review.** This checkpoint intentionally changes build architecture only; no
 coach-facing workflow, persistence schema, analytics result, film behavior, or
@@ -56,7 +120,7 @@ durable season data changed.
 **Verification on final working bytes:** gate detector self-test green; full
 canonical gate **60/60 green** against the Vite build; analytics parity matches
 synthetic + real six-game goldens; `cargo check --manifest-path
-src-tauri/Cargo.toml` clean. P0-a is ready for Claude's adversarial review.
+src-tauri/Cargo.toml` clean. P0-a was independently accepted after its repair checkpoint.
 
 **Next after acceptance:** P0-b native overlay host/primitives plus the explicit
 DI/unmount probe. P0 remains incomplete until every §3.1 exit gate in

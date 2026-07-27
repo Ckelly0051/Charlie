@@ -38,6 +38,20 @@
   --gi-run:#a8842b;            /* categorical: run                            */
   --gi-pass:#2f6291;           /* categorical: pass                           */
 
+  /* Overlays and notices use named roles, never route-local color literals. */
+  --gi-scrim:rgba(3,7,12,.76);
+  --gi-shadow-overlay:0 24px 72px rgba(0,0,0,.62);
+  --gi-shadow-toast:0 14px 34px rgba(0,0,0,.44);
+  --gi-on-solid:#f5fbff;
+  --gi-info-surface:#10293a;
+  --gi-info-control:#183d52;
+  --gi-info-border:#3f6f91;
+  --gi-info-accent:#57a5cf;
+  --gi-info-control-border:#79badb;
+  --gi-danger-surface:#3b171d;
+  --gi-danger-solid:#b93442;
+  --gi-danger-border:#d24c57;
+
   /* ── TYPE ── */
   --gi-sans:'IBM Plex Sans',system-ui,sans-serif;
   --gi-cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;

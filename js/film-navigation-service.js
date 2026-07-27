@@ -40,20 +40,30 @@ export class FilmNavigationService {
     const unique = [...new Set((refs || []).map(ref => String(ref)))];
     if (!unique.length) return { completed: false, reason: 'empty', played: 0, skipped: 0 };
 
+    // Every non-empty Watch request owns replacement, including an unresolved
+    // request. Otherwise a bad/empty cut can leave the prior reel running on a
+    // transient game because it never advances the cancellation token.
+    const token = ++this._watchToken;
+    this.deps.cutupPlayer.stop('replaced');
     const games = this.deps.games() || [];
     const plan = this.deps.planner.plan(unique, games);
     if (!plan.total) {
       if (options.fallback === 'select-first') {
-        const selected = await this._selectFirstResolved(unique, games);
-        if (selected) return { completed: false, reason: 'selected', played: 0, skipped: plan.skipped.length };
+        const selected = await this._selectFirstResolved(unique, games, token);
+        if (token !== this._watchToken) return { completed: false, reason: 'replaced', played: 0, skipped: plan.skipped.length };
+        if (selected) {
+          this._finishSelectedFallback(token);
+          return { completed: false, reason: 'selected', played: 0, skipped: plan.skipped.length };
+        }
       }
-      this.deps.toast(`No playable film found${plan.skipped.length ? ` · ${plan.skipped.length} skipped` : ''}`);
+      if (token === this._watchToken) {
+        this.deps.toast(`No playable film found${plan.skipped.length ? ` · ${plan.skipped.length} skipped` : ''}`);
+      }
+      await this._restoreSession(token);
       return { completed: false, reason: 'unavailable', played: 0, skipped: plan.skipped.length };
     }
 
-    const token = ++this._watchToken;
     if (this._sessionLaunchGameId == null) this._sessionLaunchGameId = this.deps.activeGameId();
-    this.deps.cutupPlayer.stop('replaced');
     const playable = [];
     const unresolved = plan.skipped.length;
     let unavailable = 0;
@@ -72,9 +82,11 @@ export class FilmNavigationService {
     if (!playable.length) {
       const skipped = unresolved + unavailable;
       if (options.fallback === 'select-first') {
-        const selected = await this._selectFirstResolved(unique, games);
+        const selected = await this._selectFirstResolved(unique, games, token);
         if (selected) {
-          await this._restoreSession(token);
+          // Select-first is explicit navigation, not a temporary reel hop.
+          // Leave the coach on that play and only clear session bookkeeping.
+          this._finishSelectedFallback(token);
           return { completed: false, reason: 'selected', played: 0, skipped };
         }
       }
@@ -146,8 +158,13 @@ export class FilmNavigationService {
     }
   }
 
-  async _selectFirstResolved(refs, games) {
+  _finishSelectedFallback(token) {
+    if (token === this._watchToken) this._sessionLaunchGameId = null;
+  }
+
+  async _selectFirstResolved(refs, games, token = this._watchToken) {
     for (const ref of refs) {
+      if (token !== this._watchToken) return false;
       const sep = ref.indexOf('::');
       if (sep < 0) continue;
       const gameId = ref.slice(0, sep);
@@ -160,7 +177,9 @@ export class FilmNavigationService {
         });
         if (!loaded) continue;
       }
+      if (token !== this._watchToken) return false;
       await this.deps.showBreakdown();
+      if (token !== this._watchToken) return false;
       this.deps.syncChrome();
       this.deps.tagger.selectPlay(playId);
       this.deps.toast('No video on these plays · selected the first one instead');

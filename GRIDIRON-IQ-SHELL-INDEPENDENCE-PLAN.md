@@ -13,8 +13,8 @@ Hub specification, the overlay specification, and the revised Plan design card.
 
 **Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
 `63b75f1` both independently accepted (Claude, 2026-07-27; review record
-`a26ed6e`). P0-b `5162e6b` ACCEPTED. P0-c `4d72dd0` ACCEPTED — **P0-d is
-next.** P0-b N4 closed at the P0-c checkpoint; N1–N3 remain mandatory before
+`a26ed6e`). P0-b `5162e6b` ACCEPTED. P0-c `4d72dd0` ACCEPTED. **P0-d is built
+and awaiting independent Claude review; S1 remains blocked on that verdict.** P0-b N4 closed at the P0-c checkpoint; N1–N3 remain mandatory before
 S2/S4. Codex is the builder.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
@@ -193,7 +193,19 @@ frozen contracts above are unchanged and proven so.
   Escape focus raced Preact inert cleanup. Fixed with one close-focus owner and
   readiness-based restoration; overlay journey is **31/31 three consecutive
   runs**. N1–N3 remain required before S2/S4; N5–N7 stay scheduled.
-- **P0-d — next after P0-c acceptance:** journey capability inventory, operation-scoped data-diff harness,
+- **P0-d — BUILT, awaiting independent review (Codex, 2026-07-27).** A 54-item executable
+  capability inventory covers ten migration surfaces and binds every coach outcome to an exact
+  live journey assertion. A canonical operation-diff harness proves route navigation is a season
+  no-op, game selection changes only `activeGameId`, and tag/Game Info edits change only their
+  declared target paths while non-target plays/games remain byte-identical. Bundled Plex and
+  semantic tokens are now imported by the native root; enforcement rejects raw route colors,
+  legacy `--ws-*` fallbacks, undefined tokens, and local font stacks. The final P0 audit is 13/13.
+  P0-c advisories are closed, and self-review also fixed unresolved Watch requests failing to
+  replace an active cross-game reel. Full canonical gate **66/66 green, 0 skipped**; Tauri
+  `cargo check` clean. Four new permanent harnesses: `e2e-p0-capabilities`,
+  `e2e-operation-diff`, `e2e-design-system`, `e2e-p0-exit`. No schema, durable season data,
+  analytics formula, film file, package, or release changed. N1-N3 remain required before S2/S4.
+- **Historical P0-d scope:** journey capability inventory, operation-scoped data-diff harness,
   design-token enforcement, and final P0 exit audit.
 
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
