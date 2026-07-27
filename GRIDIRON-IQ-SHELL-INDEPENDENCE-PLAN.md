@@ -1,33 +1,39 @@
-# GridIron IQ — Shell Independence Plan (DRAFT for Codex review)
+# GridIron IQ — Shell Independence & Redesign Plan
 
-**Author:** Claude (drafting) · **Reviewer:** Codex (aggressive) · **Builder:** Codex
-**Status:** DRAFT — not approved, no code authorized
-**Baseline:** `2362bfb`, gate 60/60 green, CI green
+**Status:** COMPLETE DRAFT — awaiting Codex review and sign-off. No code authorized.
+**Builder:** Codex · **Reviewer:** Claude · **Baseline:** `2362bfb` (gate 60/60, CI green)
+**Design system:** live at claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`
 
-**Goal:** the finished application no longer depends on hidden legacy `#app`
-markup, `#wsClassicOutlet`, DOM reparenting, or restore/remount lifecycle.
-
----
-
-## 0. What this plan corrects about its own premise
-
-The brief lists six routes: Home, Break Down, Study, Reports, Plan, Team & Film
-Settings. **Measured against the running build, that list is incomplete, and the
-omissions are what actually pin `#wsClassicOutlet` in place.** See §1.
-
-Everything below is measured at runtime on `2362bfb` with the shell mounted and
-a game open — not read from prior handoffs. Prior handoffs in this project have
-twice described the DOM incorrectly (the top bar was recorded as "still owning
-18 controls / still showing" when it was hidden and entombing four capabilities).
-**Re-run the audit rather than trusting this table after any milestone.**
+**Goal:** the finished application no longer depends on hidden legacy `#app` markup,
+`#wsClassicOutlet`, DOM reparenting, or restore/remount lifecycle — and each route
+lands in its intended product-quality form rather than being migrated now and
+redesigned later.
 
 ---
 
-## 1. Current dependency inventory (MEASURED, `2362bfb`)
+## 0. Scope corrections this plan makes to its own brief
+
+1. **The six-route list is incomplete**, and the omissions are what actually pin
+   `#wsClassicOutlet` in place. See §1.3.
+2. **Look-and-feel is bundled with the migration, not deferred.** Deferring would
+   contradict §5 and §7 of the brief itself. See §10.
+3. **The vanilla-JS / single-file / browser-compatibility constraint is retired.**
+   It was carried into three design passes before the coach challenged it. The
+   web `gh-pages` deploy was intentionally stopped at v1.10.7 (recorded in
+   `CLAUDE.md`), and the product is a Windows-only desktop app. A bundler and a
+   framework are available; so are webfonts, real charting, and motion.
+
+Everything in §1 is **measured at runtime on `2362bfb`**, not recalled. Prior
+handoffs described this DOM incorrectly twice. Re-run `tools/audit-shell-deps.mjs`
+after every milestone rather than trusting this table.
+
+---
+
+## 1. Current dependency inventory (MEASURED)
 
 ### 1.1 Route hosts — native vs. relocating
 
-| Route | Host | Native markup? | Relocated legacy nodes |
+| Route | Host | Native? | Relocated legacy nodes |
 |---|---|---|---|
 | Home | `#wsHome` | **Yes** | none |
 | Study | `#wsStudy` | **Yes** | none |
@@ -35,168 +41,120 @@ twice described the DOM incorrectly (the top bar was recorded as "still owning
 | **Reports** | `#wsReports` | No | `#statsDashboard` |
 | **Break Down** | `#wsBreakdown` | No | `.video-section`, `.tag-section`, `#playGridSection` |
 
-Home, Study and Plan are genuinely native screens: they build their own markup
-and own their lifecycle. Reports and Break Down only *appear* native — they are
-hosts wrapped around relocated legacy elements.
+Home, Study and Plan are genuinely native. Reports and Break Down only *appear*
+native — they are hosts wrapped around relocated legacy elements.
 
-### 1.2 The legacy residue: 99 element ids still inside `#app`
+### 1.2 Legacy residue: 99 element ids still inside `#app`
 
-`#app` (inside `#wsClassicOutlet`, hidden on every route) still contains:
+`.top-bar` (film-input cluster is LIVE; `btnQuickChart`/`btnShowStats`/`btnSave`
+superseded) · `.main-content` (**empty husk**) · `.wizard-bar` (dormant) ·
+**`#libraryOverlay`** (LIVE, load-bearing) · **`#seasonOverlay`** (LIVE) ·
+`#shortcutsModal` · `#playImportModal` · `#quickChartPanel` · `#undoToast` ·
+`#drawerScrim` · `#btnCloseStats`.
 
-| Node | Status | Notes |
-|---|---|---|
-| `.top-bar` | partly live | film-input cluster (`videoFileInput`, `videoFolderInput`, `videoDropZone`, `fileLabel`, `btnLoadFolder`, `folderLoadBadge`) is LIVE — the video empty-state CTA clicks it. Plus superseded `btnQuickChart`/`btnShowStats`/`btnSave`, decorative `app-title` |
-| `.main-content` | **empty husk** | 0 children — Break Down took them all |
-| `.wizard-bar` | dormant | default-dismissed onboarding wizard |
-| **`#libraryOverlay`** | **LIVE, load-bearing** | Team Hub / Season Library — team → season → game front door |
-| **`#seasonOverlay`** | **LIVE** | Season Stats modal |
-| `#shortcutsModal` | LIVE | keyboard legend (`?`) |
-| `#playImportModal` | LIVE | CSV / Hudl import |
-| `#quickChartPanel` | LIVE | full-screen rapid charting mode |
-| `#undoToast` | LIVE | history feedback |
-| `#drawerScrim` | LIVE | drawer backdrop |
-| `#btnCloseStats` | vestigial | legacy dashboard close |
+Already on `body`: `#settingsDrawer`, `#gameModal`.
 
-**Not in `#app` (already relocated to `body`):** `#settingsDrawer` (which hosts
-Team & Film Settings), `#gameModal`.
+### 1.3 The omission that blocks the goal
 
-### 1.3 The omission that blocks S5
-
-**`#libraryOverlay` is the reason the outlet still exists.** `WorkspaceShell._openLibrary()`
-must reveal `#wsClassicOutlet` because the library renders inside the relocated
-`#app` and cannot paint while it is hidden. This produced the coach-facing defect
-found twice by clicking `⋯` (retired classic UI left exposed), patched with
-`restoreRouteVisibility()`.
-
-So: **`#wsClassicOutlet` cannot be deleted until Team Hub / Season Library is
-native.** The brief's route list does not contain it. Neither does it contain the
-modal/overlay layer (`#seasonOverlay`, `#shortcutsModal`, `#playImportModal`,
-`#quickChartPanel`, `#undoToast`, `#drawerScrim`).
-
-This is the single largest scope correction in this draft.
+`WorkspaceShell._openLibrary()` **must** reveal `#wsClassicOutlet` because the
+Team Hub / Season Library renders inside the relocated `#app`. This produced the
+coach-facing defect found twice by clicking `⋯`. **The outlet cannot be deleted
+until Team Hub is native** — and Team Hub is not in the brief's route list, nor
+is the modal/overlay layer. Both become milestones (S3, S4).
 
 ### 1.4 Per-route dependency detail
 
-**Home** — native. Depends on: `WorkspaceContext` (routes/capabilities),
-`storage.seasonStore`, `workspace.filmHealth()`, `app.openGame()`, `library.open()`
-for the seasons action. *Legacy DOM: none.* Reaches legacy only by invoking the
-library overlay.
-
-**Break Down** — the deepest. Relocates three legacy sections and depends on:
-`VideoController`, `CanvasOverlay`, `PlaylistManager`, `MultiAngle`, `PlayTagger`
-(+ `ChipField`), `PlayGrid`, `RosterManager`, `HistoryManager`, `SuggestionEngine`,
-`NotesManager`, `CustomFieldsManager`, `PlayDiagram`, `ScoreboardOCR`,
-`QuickChart`, `BreakdownVideo`, `BreakdownForm`. Global-id coupling is pervasive
-(`#videoPlayer`, `#tagForm` and every `#tag*` chip group, `#playGridSection`,
-`#videoFileInput`…). CSS: the two-column/single-column/mobile grid blocks plus the
-Film Room block in `styles.css`.
-
-**Study** — native markup; depends on `StudyQuery`, `AnalyticsRegistry`,
-`StatsEngine` predicates, `CrossGameCutup`, and `studyScreen._watch` → which
-routes through `storage.switchToGame()` + `CutupPlayer` → **the Break Down video
-stack**. *Cross-route coupling, not DOM coupling.*
-
-**Reports** — host + relocated `#statsDashboard`. Depends on the whole
-`StatsEngine` render surface (dashboard tabs, scout/self-scout/defensive reports,
-exports) and its `.cut-row[data-cut-type]` film drilldowns → `_watchPlays` →
-`CutupPlayer`. CSS: `reports-screen.css` unwraps legacy `.stats-overlay` /
-`.stats-container` modal chrome — **compatibility scaffolding by construction.**
-
-**Plan** — native markup; depends on `SeasonStore` plan seam, `StudyPlan`,
-`PlanExport`, and `studyScreen._watch` for playback (same cross-route coupling).
-
-**Team & Film Settings** — lives in `#settingsDrawer` (already on `body`, not in
-`#app`). Depends on `TauriBackend` film/library APIs, `TagLibrary`,
-`RosterManager`, `CustomChips`, `VersionManager`, `PlayFilter`, and the games
-panel (`_renderGamesPanel`, which shares `_gameRowInfo`/`_scorePillHtml`/
-`_gameBadgesHtml` with `season-library._renderSchedule`). **It is a drawer, not a
-route** — see §3 disagreement D2.
+- **Home** — native. `WorkspaceContext`, `seasonStore`, `workspace.filmHealth()`,
+  `app.openGame()`. Reaches legacy only by invoking the library overlay.
+- **Break Down** — deepest. `VideoController`, `CanvasOverlay`, `PlaylistManager`,
+  `MultiAngle`, `PlayTagger`/`ChipField`, `PlayGrid`, `RosterManager`,
+  `HistoryManager`, `SuggestionEngine`, `NotesManager`, `CustomFieldsManager`,
+  `PlayDiagram`, `ScoreboardOCR`, `QuickChart`, `BreakdownVideo`, `BreakdownForm`.
+  Global-id coupling is pervasive. **53 tag fields, 151 chips** — see §11.5.
+- **Study** — native markup; `StudyQuery`, `AnalyticsRegistry`, `StatsEngine`
+  predicates, `CrossGameCutup`, and `_watch` → `switchToGame` + `CutupPlayer`,
+  i.e. **the Break Down video stack**. Cross-route controller coupling.
+- **Reports** — host + relocated `#statsDashboard`; the whole `StatsEngine` render
+  surface and its `.cut-row[data-cut-type]` film drilldowns. `reports-screen.css`
+  unwraps legacy modal chrome — compatibility scaffolding by construction.
+- **Plan** — native; `SeasonStore` plan seam, `StudyPlan`, `PlanExport`, `_watch`.
+- **Team & Film Settings** — in `#settingsDrawer` (already on `body`). Depends on
+  `TauriBackend` film APIs, `TagLibrary`, `RosterManager`, `CustomChips`,
+  `VersionManager`, `PlayFilter`, and the games panel (which shares
+  `_gameRowInfo`/`_scorePillHtml`/`_gameBadgesHtml` with `season-library`).
+  **It is a drawer, not a route** — see D2.
 
 ---
 
 ## 2. Target architecture
 
-**Unchanged and off-limits during this work:** `storage.js`, `season-store.js`,
-`storage-backend.js`, `sql-catalog.js`, `catalog-persistence.js`,
-`stats-engine.js` computation, `advanced-metrics.js`, `analytics-registry.js`,
-`study-query.js`, `tag-projection.js`, `special-teams.js`, `penalty-model.js`,
-`history-manager.js` semantics. Shell work must be **provably data-inert** (§6).
+**Unchanged and off-limits:** `storage.js`, `season-store.js`, `storage-backend.js`,
+`sql-catalog.js`, `catalog-persistence.js`, `stats-engine.js` computation,
+`advanced-metrics.js`, `analytics-registry.js`, `study-query.js`,
+`tag-projection.js`, `special-teams.js`, `penalty-model.js`, `history-manager.js`
+semantics. Shell work must be **provably data-inert** (§6.2).
 
-**Each route owns:** its markup, its mount/unmount lifecycle, its own event
-binding and teardown, its responsive layout, and its own stylesheet.
-
-**Shared controllers receive explicit elements and state.** Today
-`VideoController`, `PlayTagger`, `HistoryManager` and friends locate DOM by global
-id in their constructors. Target: a controller is constructed with the elements
-(or an element-map) it operates on. This is the load-bearing refactor — it is what
-makes "no reparenting" possible, because reparenting exists precisely so that
-id-bound controllers keep working.
-
-**One authoritative route and one owner per visible control**, enforced by a
-machine-checkable capability probe (§7), not by assertion.
+- **Each route owns** its markup, mount/unmount lifecycle, event binding and
+  teardown, responsive layout, and stylesheet.
+- **Shared controllers receive explicit elements/state.** Today `VideoController`,
+  `PlayTagger`, `HistoryManager` locate DOM by global id in their constructors.
+  This is the load-bearing refactor: reparenting exists *precisely because*
+  id-bound controllers must keep working.
+- **One authoritative route and one owner per visible control**, enforced by a
+  machine-checkable capability probe (§7), not by assertion.
+- **A framework and bundler are permitted** for the view layer only. Engines stay
+  vanilla ES modules. Component encapsulation IS the shell-independence goal —
+  doing it by hand means rebuilding what a framework already provides.
 
 ---
 
-## 3. Migration sequence (revised from the brief)
+## 3. Migration sequence
 
-**P0 — dependency map, capability inventory, regression baseline.**
-- Re-run the measured audit in §1 as a committed tool (`tools/audit-shell-deps.mjs`)
-  so every milestone can prove residue is shrinking.
-- **Capability inventory:** every coach-visible capability, its owning route, and
-  its reachable affordance. Seeded by the entombment probe pattern already proven
-  (it found undo/redo/shortcuts/CV-badge reachable on no route).
-- **Markup-agnostic regression baseline** — see D4; this is the highest-risk item
-  in the entire plan.
+**P0 — foundations, inventory, baseline.**
+- Commit `tools/audit-shell-deps.mjs` output as the shrinking-residue metric.
+- **Capability inventory:** every coach-visible capability, its owning route, its
+  reachable affordance.
+- **Markup-agnostic regression baseline** — see D4. Highest risk in the plan.
+- **Design primitives** (`design-system/tokens.css`) + embedded Plex via
+  `tools/bundle-plex.mjs`, plus a machine-checkable rule that route stylesheets
+  consume tokens rather than raw values.
 
-**S1 — native Reports.** *(swapped with the brief's S1; see D2)*
-Smallest true route, exactly one relocated node, no film-input risk. Establishes
-the route-ownership pattern: native markup, own stylesheet, explicit element
-wiring, no `.stats-overlay` unwrapping.
+**S1 — native Reports** *(swapped with the brief's S1; see D2)*. Smallest true
+route, one relocated node. Establishes the ownership pattern and the deck world.
 
-**S2 — native Team & Film Settings.**
-Higher data risk (film storage, library root, linked-film). Gets the paranoid
-gate: linked-vs-managed, root/game-folder scope separation, fail-closed paths.
+**S2 — native Team & Film Settings.** Higher data risk; paranoid gate.
 
-**S3 — native Team Hub / Season Library.** *(NEW — not in the brief)*
-The front door, and the last thing pinning the outlet. Team card, team pills,
-seasons list, schedule, demo, Get Started checklist.
+**S3 — native Team Hub / Season Library** *(NEW)*. The front door, and the last
+thing pinning the outlet.
 
-**S4 — native modal/overlay layer.** *(NEW — not in the brief)*
-`#seasonOverlay`, `#shortcutsModal`, `#playImportModal`, `#quickChartPanel`,
-`#undoToast`, `#drawerScrim`. Establishes one owned overlay host on `body`.
+**S4 — native modal/overlay layer** *(NEW)*. `#seasonOverlay`, `#shortcutsModal`,
+`#playImportModal`, `#quickChartPanel`, `#undoToast`, `#drawerScrim`.
 
-**S5 — native Break Down**, deepest and last, internal increments:
-- S5a video + play strip + canvas overlay + multi-angle
-- S5b Film Room grid
-- S5c tag form + roster + penalties + Special Teams + custom fields
-- S5d **single ownership flip** — see D3: increments build alongside; the route
-  does not switch owner until the whole checklist passes.
+**S5 — native Break Down**, deepest and last:
+S5a video + play strip + canvas + multi-angle · S5b Film Room grid ·
+S5c tag form + roster + penalties + ST + custom fields · **S5d single ownership flip** (D3).
 
-**S6 — audit Home, Study, Plan** for residual legacy coupling (expected:
-controller coupling via `_watch`/`CutupPlayer`, not DOM).
+**S6 — audit Home, Study, Plan** for residual coupling (expect controller, not DOM).
 
-**S7 — delete `#wsClassicOutlet`, `#app`, restore/remount paths, obsolete markup,
-dead CSS.**
+**S7 — delete** `#wsClassicOutlet`, `#app`, restore/remount paths, obsolete markup, dead CSS.
 
 ---
 
 ## 4. Atomic route replacement
 
-- **No user-facing classic/new toggle.** Agreed without reservation.
-- A route flips to native ownership only when its full capability checklist
-  passes, in one commit.
-- **No silent legacy fallback after a route is declared migrated.** A migrated
-  route that still calls a legacy path must fail loudly, not degrade.
-- Internal build-alongside during a milestone is permitted; a *user-reachable*
-  half-migrated route is not (D3).
+- **No user-facing classic/new toggle.**
+- A route flips to native ownership only when its full capability checklist passes,
+  in one commit.
+- **No silent legacy fallback after a route is declared migrated** — a migrated
+  route that still calls a legacy path must fail loudly.
+- Internal build-alongside is permitted; a *user-reachable* half-migrated route is not.
 
 ---
 
 ## 5. Capability parity, not visual parity
 
 - Preserve every useful football workflow and data field.
-- Do **not** preserve weak layouts because they exist. `GRIDIRON-IQ-REDESIGN-PLAN.md`
-  + `ux-prototype-v2/` + coach feedback are the visual direction.
+- Do **not** preserve weak layouts because they exist.
 - Any intentionally removed or materially changed capability goes on an explicit
   list for coach approval **before** the milestone commits.
 
@@ -204,18 +162,14 @@ dead CSS.**
 
 ## 6. Non-negotiable integrity contracts
 
-1. **No season / play / tag / film / catalog / backup / analytics-schema
-   migration** without an impact report and explicit coach confirmation.
-2. **Shell work is data-inert, and this is checked, not promised.** Every
-   milestone must show a byte-identical season fingerprint across
-   open → exercise → save → reopen. Files in §2's off-limits list should not
-   appear in a shell-milestone diff; if one must, it is called out and reviewed
-   as a data change.
-3. **Analytics-to-film reference equality stays exact** — a Study/Reports row
-   plays precisely the plays it counts (composite `gameId::playId`).
+1. **No season / play / tag / film / catalog / backup / analytics-schema migration**
+   without an impact report and explicit coach confirmation.
+2. **Shell work is data-inert, and this is checked.** Every milestone shows a
+   byte-identical season fingerprint across open → exercise → save → reopen.
+   Off-limits files (§2) should not appear in a shell-milestone diff.
+3. **Analytics-to-film reference equality stays exact** (composite `gameId::playId`).
 4. **Linked film never silently falls back to managed copies.**
-5. **Undo, save/reopen, cross-game isolation, failure rollback stay pinned** —
-   `e2e-integrity`, `e2e-projform-durability`, `e2e-catalog-persistence`.
+5. **Undo, save/reopen, cross-game isolation, failure rollback stay pinned.**
 6. Managed C: film copies remain protected throughout.
 
 ---
@@ -223,15 +177,14 @@ dead CSS.**
 ## 7. Definition of done
 
 - No production dependency on `#app` or `#wsClassicOutlet`; both deleted.
-- No production DOM reparent/restore lifecycle (`_remember`/`_restore`/
-  `_mountChrome`/`_restoreChrome`/`breakdownWorkspace.restore` gone).
-- **No entombed capability** — permanent gate: every capability in the P0
-  inventory has an affordance whose box lands inside the viewport on some route.
-  (Not `offsetParent`, not a non-zero rect: a `transform`-hidden drawer defeats
-  both. This exact false positive was already produced once.)
+- No production DOM reparent/restore lifecycle.
+- **No entombed capability** — permanent gate: every capability in the P0 inventory
+  has an affordance whose box lands **inside the viewport** on some route. Not
+  `offsetParent`, not a non-zero rect: a `transform`-hidden drawer defeats both,
+  and that exact false positive has already been produced once.
 - No hidden duplicate navigation or controls.
-- No legacy CSS governing native screens.
-- Full capability, integrity, responsive, a11y and real-data gates pass.
+- No legacy CSS governing native screens; **no raw hex in route stylesheets**.
+- All capability, integrity, responsive, a11y and real-data gates pass.
 - Four-viewport visual review (1440×900 / 1280×800 / 768×1024 / 390×844) and
   installed real-film smoke pass.
 
@@ -244,129 +197,157 @@ dead CSS.**
 - `CLAUDE.md` + this plan updated at every baton pass.
 - **No installer per increment.** One clean versioned smoke build after the
   complete migration is independently accepted.
-- Full gate output captured to a file every run (the runner records per-harness
-  timings and prints `tail -40` on failure).
+- Capture full gate output to a file every run (timings + `tail -40` on failure).
 
 ---
 
-## 9. Where I disagree with the brief
+## 9. Disagreements with the brief
 
-**D1 — The route list is incomplete, and the omissions block the goal.**
-Team Hub / Season Library, plus the modal/overlay layer, live in `#app` and are
-LIVE. `#wsClassicOutlet` cannot be removed until they are native. They need to be
-milestones (S3/S4), not S5 cleanup. *Highest-confidence disagreement — measured.*
+**D1 — The route list is incomplete, and the omissions block the goal.** Team Hub /
+Season Library and the modal layer are LIVE inside `#app`. Milestones, not cleanup.
+*Measured; highest confidence.*
 
-**D2 — Team & Film Settings is the wrong pattern-setter for S1.**
-It is a drawer panel, not a route: different lifecycle (open/close, focus trap,
-scrim) from what routes need (mount/show/hide, responsive layout, capability
-gating). Reports is a true route with exactly one relocated node. Recommend
-Reports first, Settings second — Settings carries the higher *data* risk and
-deserves the more paranoid gate, not the first-pattern slot.
+**D2 — Team & Film Settings is the wrong pattern-setter for S1.** It is a drawer,
+not a route: different lifecycle entirely. Reports is a true route with one
+relocated node. Settings carries the higher *data* risk and deserves a stricter
+gate, not the first slot.
 
 **D3 — "Atomic replacement" and "S3 split into increments" conflict as written.**
-A route that is half-native mid-milestone *is* a hidden fallback. Resolution:
-increments build alongside and the ownership flip is a single step (S5d). Without
-this, the rule is satisfied on paper and violated in practice.
+A half-native route *is* a hidden fallback. Increments build alongside; the
+ownership flip is a single step (S5d).
 
-**D4 — The regression baseline is compromised before it starts, and this is the
-plan's biggest risk.** Many harnesses assert against legacy ids (`.tag-section`,
-`#playGridSection`, `#statsDashboard`, `#tag*`). Migrating markup reds them, and
-the natural move — "update the test to the new markup" — silently discards the
-assertion. P0 must produce a **capability/behaviour-level** baseline (data in,
-data out, film refs, persisted bytes) that survives a markup rewrite. Every test
+**D4 — The regression baseline is compromised before it starts. Biggest risk here.**
+Many harnesses assert against legacy ids. Migrating markup reds them, and the
+natural repair — "update the test to the new markup" — silently discards the
+assertion. P0 must produce a **capability/behaviour-level** baseline. Every test
 edited during a milestone must be justified as *"the capability changed"* or
-*"only the selector changed"*, reviewed as such. I have watched the weaker version
-of this failure at small scale in this codebase repeatedly.
+*"only the selector changed"*, and reviewed as such.
 
-**D5 — CSS is under-scoped.** `styles.css` is ~7.5k lines governing legacy and
-native together. "No legacy CSS governing native screens" is a workstream needing
-its own strategy (per-route stylesheets + scoping audit), started at S1, not an
-S7 sweep. Two unscoped `.top-bar`-era media rules already followed relocated
-controls into shell chrome — that hazard scales with every migration.
+**D5 — CSS is under-scoped.** ~7.5k lines governing legacy and native together.
+Needs per-route stylesheets + a scoping audit from S1, not an S7 sweep. Two
+unscoped `.top-bar`-era media rules already followed relocated controls.
 
-**D6 — Break Down is not isolatable.** The video/canvas/playlist/history/cutup
-stack is shared with Study Watch and Plan Watch. "Break Down native" changes
-playback for three routes; the plan must state that contract or S5 will break
+**D6 — Break Down is not isolatable.** Its video stack also serves Study Watch and
+Plan Watch. S5 changes playback for three routes; state that contract or it breaks
 Study/Plan silently.
 
-**D7 — Strengthen the data contract from a promise into a check.** §6.2 above:
-off-limits files should not appear in shell-milestone diffs, and season bytes
-must fingerprint identical across a milestone.
+**D7 — Harden the data contract from a promise into a check** (§6.2).
 
-**D8 — Note, not objection:** this reverses the current pass's roles (Claude
-built, Codex reviewed). Fine — and structurally healthier, since the builder
-should not be the reviewer. Recorded so the handoff is unambiguous.
-
-**Where I agree without reservation:** no toggle; capability parity over visual
-parity; Break Down deepest and last; storage/analytics engines untouched; one
-milestone per commit; single smoke build at the end.
+**D8 — Note:** this reverses the current pass's roles. Structurally healthier —
+the builder should not be the reviewer.
 
 ---
 
-## 10. Look and feel: bundled with the migration, not deferred
+## 10. Look and feel: bundled, not deferred
 
-**Codex's position is right, and deferring would contradict this plan's own
-§5 and §7.** Recorded with the distinction that makes it safe.
+**Why bundling is forced:** a native route is new markup by definition, so writing
+it to reproduce a look we have decided to abandon means writing it twice; and DoD
+"no legacy CSS governing native screens" leaves only two options if the legacy look
+is kept — copy the old CSS forward under a new name, or keep referencing it.
 
-### Why bundling is forced, not merely convenient
+**BUNDLE:** applying the approved direction to markup being rewritten anyway, with
+a short per-route visual target approved **before** the milestone starts.
+**DEFER:** open-ended design exploration, which has no exit criteria.
 
-1. **Deferring means writing the markup twice.** A native route is new markup by
-   definition. Writing it to reproduce a look we have already decided to abandon,
-   then rewriting it later, is pure waste.
-2. **DoD §7 says "no legacy CSS governing native screens."** Keeping the legacy
-   look while going native leaves only two options: copy legacy CSS into the new
-   stylesheet (carrying the debt forward under a new name) or keep referencing it
-   (violating DoD). Visual change is therefore *entailed* by the structural goal.
-3. **§5 already commits to it** — "do not preserve weak layouts merely because
-   they already exist," with the prototype as the visual direction. Deferring
-   would contradict a rule the brief already sets.
-4. The coach reviews by using the app. N structural milestones with no visible
-   improvement is a long stretch of unreviewable work.
+**Resolving the objection bundling creates** (structural + visual change destroys
+visual-diff signal):
+- Capability parity is verified **behaviourally** — data, film-ref equality,
+  persisted bytes. Never visually.
+- **Pixel baselines are captured AFTER a route migrates**, never before.
+- What a milestone holds constant: data, film references, capability set. Not pixels.
 
-### The distinction that keeps it bounded
+**Consistency is a per-route exit criterion, not a final phase.** Codex proposed a
+closing "application-wide polish" pass for consistency, a11y and empty/error
+states. Rejected: the measured token drift (`reports-screen.css` 0 tokens / 23 raw
+hex, the newest file being the worst) happened *precisely because* consistency was
+not gated per route. Only cross-route motion and the final viewport review belong
+at the end.
 
-- **BUNDLE:** applying the *already-approved* direction (`ux-prototype-v2`,
-  `design-v1`/`design-v1.1`, coach feedback) to markup being rewritten anyway.
-- **DEFER:** open-ended design exploration and polish passes. Those have no exit
-  criteria and would turn a migration into an unbounded redesign.
+---
 
-A milestone's visual target is written down **before** the milestone starts, as a
-short per-route spec the coach approves. "We'll see how it looks" is not a target.
+## 11. The design system (DECIDED)
 
-### Resolving the objection bundling creates
+Source of truth: `design-system/tokens.css`. Cards: claude.ai/design.
 
-Mixing structural and visual change destroys visual-diff signal: you cannot tell
-an intended redesign from a migration regression. Mechanism, not veto:
+**11.1 Thesis — broadcast control room, not dashboard.** Two worlds: **THEATER**
+(film surfaces, below the app floor, chrome recedes so video is the brightest
+object on screen) and **DECK** (data surfaces, denser and brighter). The contrast
+between them is the design. Today every surface is the same mid-grey at the same
+elevation, which is why nothing dominates.
 
-- **Capability parity is verified behaviourally, never visually** — data in, data
-  out, film-ref equality, persisted bytes. That is already required by D4, and it
-  is markup- *and* appearance-agnostic.
-- **Pixel baselines are captured AFTER a route migrates, not before.** Baseline
-  the new surface; visual regression then protects subsequent changes to that
-  route. Baselining a surface that is deliberately about to change is worthless.
-- **What must not change in a migration milestone:** data, film references, and
-  the capability set. Those are what the gate pins — not pixels.
+**11.2 Type — IBM Plex.** Sans for interface, **Condensed for every football
+number**, Mono for data/labels. Embedded via `tools/bundle-plex.mjs` exactly as
+Barlow is embedded today — production has never fetched a font and will not start.
+*Football numbers are atomic: condensed, tabular, `nowrap`, column sized for the
+worst real case (`4 & 26`). A football number that reflows is a bug.*
 
-### Prerequisite this adds to P0: a shared design-primitives layer
+**11.3 Color — Radix-style 12-step role scale, tuned cool.** 1–2 surfaces, 3–5
+interactive, 6–8 borders, 9–10 solid, 11–12 text, plus `--gi-film` below step 1.
+Roles are assigned so an accent cannot drift into meaning everything — the failure
+mode of the current single cyan. **Broadcast semantics:** line-of-scrimmage blue =
+CURRENT (selection, active route), first-down yellow = TARGET ACHIEVED (conversion,
+commit action, progress), red = turnover and destructive actions, green = system
+health only.
 
-Measured on `2362bfb`, the native route stylesheets are already drifting from the
-`:root` token layer:
+**11.4 Density — pointer-dependent.** `--gi-hit` 30px on desktop, 44px under
+`@media (pointer:coarse)`. 44px is a finger requirement, not a law, and Break Down
+on a desktop is a mouse-and-keyboard surface.
 
-| Stylesheet | `var(--token)` uses | hardcoded hex |
+**11.5 The tagging form is the density problem.** Measured: **53 fields, 151 chips.**
+At 44px with wrapping that is ~2,500–3,000px of scroll on a form opened 60+ times a
+game. Three fixes: pointer-dependent density; **resolved fields collapse to one
+line** showing label + chosen value, with only the field being answered open;
+**keyboard hints on every chip**, since the app already ships single-letter
+shortcuts and a coach charting a game should barely touch the mouse — which is what
+justifies compact chips, because chips become confirmation rather than primary input.
+
+**11.6 Geometry and motion.** Square (0 radius). **Exactly one diagonal in the
+product** — the broadcast lower-third. Motion tokens for quick/ease/enter, with a
+`prefers-reduced-motion` override.
+
+**11.7 Carbon and other systems — take the structure, refuse the brand.** Take
+Carbon's layer model, data-table anatomy and 8px rhythm; Radix's color architecture;
+Spectrum's content-is-hero principle. **Refuse** Carbon's neutral grey ramp (the
+exact quality that makes every Carbon product look like the same admin console),
+IBM Blue as primary, and Carbon's 32/40px control sizes. **Carbon governs data
+surfaces; it must never govern the theater.** Nothing in Carbon knows what a first
+down is — identity comes from the film, the field, and the numerals.
+
+---
+
+## 12. Per-route design direction, and open coach feedback
+
+Each milestone starts from its design-system card. Coach feedback already recorded
+against those cards, to be resolved **before** the corresponding milestone:
+
+| Route | Direction | Open items |
 |---|---|---|
-| `workspace-shell.css` | 80 | 53 |
-| `study-screen.css` | 36 | 16 |
-| `plan-screen.css` | 29 | 12 |
-| `reports-screen.css` | **0** | **23** |
+| **Reports** (S1) | Film-linked analytics deck: KPI strip with deltas, run/pass composition, ranked formation effectiveness, formation × situation predictability heat grid, D&D with inline tendency bars. **Every mark is a cut-up.** | Evaluate Carbon Charts on ONE chart with a real film drilldown + measured bundle delta before taking the dependency (§13.5) |
+| **Settings** (S2) | Storage truth: library root and per-game folder as visibly separate scopes; Linked vs Managed copy per game with resolved path and clip count; copy states that linking never copies, root changes never re-link, repair never creates/deletes plays. | — |
+| **Team Hub** (S3) | Not yet designed. The identity moment — first screen a coach sees. | **Card still to build** |
+| **Overlay layer** (S4) | One owned overlay host on `body`; consistent dialog/sheet/toast. | **Card still to build** |
+| **Break Down** (S5) | Theater + deck. Drive-grouped play strip, yard grid inside the film, transport, collapsed-field form, pinned commit bar. **Ease of use, speed and accuracy are paramount — nothing may compete with charting.** | **(a)** Chip fill is too close to the panel background — raise contrast. **(b)** Chips may still be slightly large. **(c)** Suggestion/"tell" banner REMOVED from Break Down — it does not belong there; consider Study. **(d)** Drive-grouped strip may need scroll/zoom at 14 drives. |
+| **Study** (S6) | Pivot: any dimension × any dimension, measure switcher, min-sample control, row/column totals, every cell a cut-up. Under-sample cells dimmed and labelled, never hidden. | Candidate home for the suggestion/tell surface |
+| **Plan** (S6) | Findings grouped into a real game plan with linked play counts and watch actions. | **Presentation preview moves OUT of the cramped right rail to a bottom horizontal strip that fills as items are added**, leaving full width for the working board |
+| **Home** | Continue-where-you-left-off hero with progress by unit; film inbox as honest health surface (ready/partial/missing) with resolved path and clip counts. | — |
 
-Each newly written native surface has drifted further than the last, and the
-worst offender is the most recent one. "Each route owns its stylesheet" without
-enforced token discipline yields five routes that merely resemble each other.
+---
 
-So **P0 gains a deliverable**: a shared primitives layer (tokens, spacing scale,
-typography, elevation, focus ring, control sizing, breakpoints) plus a
-machine-checkable rule that route stylesheets consume tokens rather than raw
-values. Suggested gate: no raw hex in a route stylesheet without an explicit
-justified exception, checked in the suite the way the raw-read audit already
-works for tag projection. Without this, bundling look-and-feel produces
-inconsistency faster than deferring it would.
+## 13. What Codex should attack
+
+1. **§1 is measured, but re-measure it.** Two prior handoffs described this DOM wrongly.
+2. **D4 — the regression baseline.** Is a capability-level baseline actually
+   achievable for 60 harnesses, or does this plan under-cost the biggest risk in it?
+3. **D3 — is the S5 split honest**, or does "build alongside" become a permanent
+   parallel implementation?
+4. **Framework choice and blast radius.** View layer only is the stated boundary —
+   is it enforceable, and what stops engines being "just slightly" refactored?
+5. **Carbon Charts.** Our charts are film navigation, not decoration. Any library
+   must preserve exact composite-ref equality. Prove it on one chart, measure the
+   bundle, then decide.
+6. **§11.5 density claims.** 53 fields / 151 chips is measured; the collapse-on-
+   resolve pattern is not yet validated with a coach charting a real game.
+7. **Is the theater/deck split real**, or does Carbon-influenced density quietly
+   make Break Down an admin console with a video in it?
+8. **What in §12 is still undesigned** (Team Hub, overlay layer) and does that
+   sequence safely?

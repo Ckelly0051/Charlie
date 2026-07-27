@@ -11,7 +11,7 @@
   --sans:'IBM Plex Sans',system-ui,sans-serif;
   --cond:'IBM Plex Sans Condensed',sans-serif;
   --mono:'IBM Plex Mono',monospace;
-  --hit:30px;--quick:90ms cubic-bezier(.2,.7,.3,1);--ease:170ms cubic-bezier(.2,.7,.3,1);
+  --hit:28px;--quick:90ms cubic-bezier(.2,.7,.3,1);--ease:170ms cubic-bezier(.2,.7,.3,1);
 }
 @media (pointer:coarse){:root{--hit:44px}}
 *{box-sizing:border-box}
@@ -106,10 +106,6 @@ button{font-family:inherit}
 .sit .b.g{flex:1;border-right:0}
 .sit .b.g b{font-size:17px}
 .sit .pl{display:flex;align-items:center;padding:0 14px;background:var(--c9);color:#fff;font:600 11.5px/1 var(--mono)}
-/* suggestion engine surface — a real capability that has never had a home */
-.tell{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#ffd4000f;border-bottom:1px solid var(--c6);
-  font-size:11.5px;color:#e8d69b}
-.tell b{font-weight:600;color:var(--fd)}
 .unit{display:flex;border-bottom:1px solid var(--c6)}
 .unit button{flex:1;border:0;background:transparent;color:var(--c11);font:600 12px/1 var(--sans);height:34px;
   cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:var(--quick)}
@@ -128,9 +124,9 @@ button{font-family:inherit}
 .fld[open]>summary{border-bottom:1px solid var(--c6)}
 .chips{display:flex;flex-wrap:wrap;gap:3px;padding:8px 0 9px;animation:fade 180ms ease}
 @keyframes fade{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
-.c{min-height:var(--hit);display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--sans);padding:0 9px;
-  border:1px solid var(--c7);background:var(--c3);color:var(--c11);cursor:pointer;transition:var(--quick)}
-.c:hover{background:var(--c4);border-color:var(--c8);color:var(--c12)}
+.c{min-height:var(--hit);display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--sans);padding:0 8px;
+  border:1px solid var(--c8);background:var(--c5);color:var(--c12);cursor:pointer;transition:var(--quick)}
+.c:hover{background:#31425a;border-color:#5f7893;color:#fff}
 .c.on{background:var(--c9);border-color:var(--c9);color:#fff;font-weight:600}
 .c.on.w{background:var(--fd);border-color:var(--fd);color:#141000}
 .c kbd{font:600 9px/1 var(--mono);color:var(--c8);border:1px solid var(--c6);padding:2px 3px}
@@ -230,7 +226,6 @@ button{font-family:inherit}
       <div class="b g"><span>Ball on</span><b class="n">OPP 34</b></div>
       <div class="pl">28</div>
     </div>
-    <div class="tell">Tell · <b>5 of your last 6</b> from Trips Rt on 2nd &amp; long were <b>pass</b></div>
     <div class="unit"><button class="on">Offense</button><button>Defense</button><button>Special</button></div>
 
     <div class="form">
