@@ -5,40 +5,30 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Radix-role scale, tuned cool. Every step has a job. */
-  --film:#06090c;                    /* below the app floor — film only */
-  --s1:#0c1014;  /* app background */
-  --s2:#121820;  /* panel        */
-  --s3:#1a2330;  /* interactive rest */
-  --s4:#202b3a;  /* hover        */
-  --s5:#273545;  /* active       */
-  --s6:#2f4054;  /* border subtle*/
-  --s7:#3a4f66;  /* border default */
-  --s8:#4c657f;  /* border strong */
-  --s9:#2b6fff;  /* solid accent — line of scrimmage / current */
-  --s10:#3d7dff; /* accent hover */
-  --s11:#8fa8c4; /* text secondary */
-  --s12:#eef3f8; /* text primary */
-  --fd:#ffd400;  /* first down — target achieved */
-  --bad:#fa4d56; --ok:#42be65;
+  --film:#06090c;
+  --s1:#0c1014;--s2:#121820;--s3:#1a2330;--s4:#202b3a;--s5:#273545;
+  --s6:#2f4054;--s7:#3a4f66;--s8:#4c657f;--s9:#2b6fff;--s10:#3d7dff;
+  --s11:#8fa8c4;--s12:#eef3f8;
+  --fd:#ffd400;--bad:#fa4d56;--ok:#42be65;
   --sans:'IBM Plex Sans',system-ui,sans-serif;
   --cond:'IBM Plex Sans Condensed',sans-serif;
   --mono:'IBM Plex Mono',monospace;
-  --touch:44px;
+  /* Density is POINTER-DEPENDENT. 44px is a finger requirement, not a law.
+     Break Down on desktop is a mouse+keyboard surface charting 60+ plays. */
+  --hit:30px;
 }
+@media (pointer:coarse){ :root{ --hit:44px; } }
 *{box-sizing:border-box}
 body{margin:0;background:var(--s1);color:var(--s12);font:14px/1.5 var(--sans)}
-/* Football numbers are atomic: condensed, tabular, and they never reflow. */
 .n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .app{display:grid;grid-template-columns:1fr 372px;grid-template-rows:52px 1fr;height:772px}
 
-/* ═══ SHELL BAR ═══ */
+/* ═══ SHELL ═══ */
 .bar{grid-column:1/-1;display:flex;align-items:stretch;background:var(--s2);border-bottom:1px solid var(--s6)}
-.mark{display:flex;align-items:center;padding:0 18px;border-right:1px solid var(--s6);font:600 15px/1 var(--sans);letter-spacing:-.01em}
+.mark{display:flex;align-items:center;padding:0 18px;border-right:1px solid var(--s6);font:600 15px/1 var(--sans)}
 .mark i{font-style:normal;color:var(--fd)}
 .nav{display:flex}
 .nav a{display:flex;align-items:center;padding:0 15px;font:500 12.5px/1 var(--sans);color:var(--s11);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
-.nav a:hover{background:var(--s3);color:var(--s12)}
 .nav a.on{color:var(--s12);border-bottom-color:var(--s9);background:var(--s3)}
 .bug{margin-left:auto;display:flex;align-items:stretch}
 .bug .t{display:flex;align-items:center;gap:9px;padding:0 16px;border-left:1px solid var(--s6)}
@@ -50,93 +40,97 @@ body{margin:0;background:var(--s1);color:var(--s12);font:14px/1.5 var(--sans)}
 /* ═══ THEATER ═══ */
 .theater{background:var(--s1);display:flex;flex-direction:column;min-width:0;padding:12px 12px 0}
 .film{position:relative;flex:1;overflow:hidden;background:var(--film);border:1px solid var(--s6)}
-.turf{position:absolute;inset:0;background:
-  radial-gradient(125% 95% at 50% 12%,#16283a 0%,#0a1119 55%,#06090c 100%)}
-.grid{position:absolute;inset:0}
+.turf{position:absolute;inset:0;background:radial-gradient(125% 95% at 50% 12%,#16283a 0%,#0a1119 55%,#06090c 100%)}
 .yl{position:absolute;top:0;bottom:0;width:1px;background:#ffffff14}
 .yl.ten{width:2px;background:#ffffff24}
-.yl.ten b{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-family:var(--cond);font-weight:700;font-size:30px;line-height:1;color:#ffffff1c}
+.yl.ten b{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-family:var(--cond);font-weight:700;font-size:28px;line-height:1;color:#ffffff1c}
 .hash{position:absolute;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,#ffffff24 0 11px,transparent 11px 58px)}
 .hash.a{top:30%}.hash.b{top:70%}
 .los,.fdl{position:absolute;top:0;bottom:0;width:3px}
 .los{left:34%;background:var(--s9);box-shadow:0 0 20px 2px #2b6fff99}
 .fdl{left:58%;background:var(--fd);box-shadow:0 0 20px 2px #ffd40099}
-/* one diagonal in the whole product */
 .third{position:absolute;left:0;bottom:0;display:flex;clip-path:polygon(0 0,100% 0,calc(100% - 20px) 100%,0 100%)}
-.third .k{background:var(--s9);color:#fff;padding:10px 14px;font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center}
-.third .v{background:#000000d4;padding:10px 38px 10px 16px;display:flex;align-items:center;gap:12px}
-.third .v strong{font:600 15px/1 var(--sans)}
-.third .v em{font-style:normal;color:var(--s11);font-size:12.5px}
+.third .k{background:var(--s9);color:#fff;padding:9px 13px;font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center}
+.third .v{background:#000000d4;padding:9px 36px 9px 15px;display:flex;align-items:center;gap:11px}
+.third .v strong{font:600 14px/1 var(--sans)}
+.third .v em{font-style:normal;color:var(--s11);font-size:12px}
 .hud{position:absolute;right:12px;top:11px;display:flex;gap:5px}
-.hud span{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;background:#000000b8;border:1px solid #ffffff1c;color:var(--s11)}
-
-/* transport — Carbon density, our touch minimum */
-.tr{display:flex;align-items:center;gap:12px;padding:11px 0 10px}
-.tb{width:var(--touch);height:var(--touch);border:1px solid var(--s7);background:var(--s2);color:var(--s12);cursor:pointer;font-size:13px}
-.tb:hover{background:var(--s4);border-color:var(--s8)}
-.tb.go{background:var(--s12);color:var(--s1);border:0;font-size:15px}
-.tc{font:600 13px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--s11)}
-.scrub{flex:1;height:6px;background:var(--s4);position:relative;cursor:pointer}
+.hud span{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;background:#000000b8;border:1px solid #ffffff1c;color:var(--s11)}
+.tr{display:flex;align-items:center;gap:11px;padding:10px 0 9px}
+.tb{width:38px;height:38px;border:1px solid var(--s7);background:var(--s2);color:var(--s12);cursor:pointer;font-size:12px}
+.tb.go{width:44px;height:44px;background:var(--s12);color:var(--s1);border:0;font-size:15px}
+.tc{font:600 12.5px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--s11)}
+.scrub{flex:1;height:6px;background:var(--s4);position:relative}
 .scrub i{position:absolute;inset:0 62% 0 0;background:var(--s9)}
 .scrub b{position:absolute;left:38%;top:-5px;width:2px;height:16px;background:var(--fd)}
-
-/* play strip — plays as yard ticks, every 10th labelled */
-.strip{margin:0 -12px;padding:0 12px 10px;background:var(--s2);border-top:1px solid var(--s6)}
-.strip .hd{display:flex;align-items:baseline;gap:10px;padding:8px 0 7px}
-.strip .hd h3{margin:0;font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11)}
+.strip{margin:0 -12px;padding:0 12px 9px;background:var(--s2);border-top:1px solid var(--s6)}
+.strip .hd{display:flex;align-items:baseline;gap:10px;padding:7px 0 6px}
+.strip .hd h3{margin:0;font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11)}
 .strip .hd span{font-size:11.5px;color:var(--s11);margin-left:auto}
 .strip .hd span b{color:var(--s12)}
-.ticks{display:flex;gap:2px;align-items:flex-end;height:46px}
+.ticks{display:flex;gap:2px;align-items:flex-end;height:40px}
 .pk{flex:1;position:relative;display:flex;align-items:flex-end;cursor:pointer}
 .pk i{width:100%}
 .pk.run i{background:#a8842b}.pk.pass i{background:#2f6291}
 .pk.td i{background:var(--fd)}.pk.to i{background:var(--bad)}.pk.un i{background:var(--s5)}
-.pk:hover i{filter:brightness(1.4)}
 .pk.sel::after{content:'';position:absolute;inset:-3px -2px;border:2px solid var(--s9)}
-.pk.ten::before{content:attr(data-n);position:absolute;top:-13px;left:50%;transform:translateX(-50%);font:500 9px/1 var(--mono);color:var(--s11)}
+.pk.ten::before{content:attr(data-n);position:absolute;top:-12px;left:50%;transform:translateX(-50%);font:500 9px/1 var(--mono);color:var(--s11)}
 
 /* ═══ DECK ═══ */
 .deck{background:var(--s2);border-left:1px solid var(--s6);display:flex;flex-direction:column;min-height:0}
-/* situation readout — the football identity moment */
 .sit{display:flex;align-items:stretch;border-bottom:1px solid var(--s6);background:var(--s1)}
-.sit .dd{display:flex;flex-direction:column;justify-content:center;padding:12px 16px;border-right:1px solid var(--s6);min-width:118px}
-.sit .dd span{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:5px}
-.sit .dd b{font-size:29px;line-height:.95}
+.sit .dd{display:flex;flex-direction:column;justify-content:center;padding:9px 14px;border-right:1px solid var(--s6);min-width:106px}
+.sit .dd span{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:4px}
+.sit .dd b{font-size:25px;line-height:.95}
 .sit .dd b i{font-style:normal;color:var(--s11);margin:0 2px}
-.sit .sp{display:flex;flex-direction:column;justify-content:center;padding:12px 16px;flex:1}
-.sit .sp span{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:5px}
-.sit .sp b{font-size:20px;line-height:1}
-.sit .pl{display:flex;align-items:center;padding:0 16px;background:var(--s9);color:#fff;font:600 12px/1 var(--mono);letter-spacing:.1em}
-
+.sit .sp{display:flex;flex-direction:column;justify-content:center;padding:9px 14px;flex:1}
+.sit .sp span{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:4px}
+.sit .sp b{font-size:18px;line-height:1}
+.sit .pl{display:flex;align-items:center;padding:0 14px;background:var(--s9);color:#fff;font:600 11.5px/1 var(--mono)}
 .unit{display:flex;border-bottom:1px solid var(--s6)}
-.unit button{flex:1;border:0;background:transparent;color:var(--s11);font:600 12px/1 var(--sans);padding:0;height:var(--touch);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.unit button:hover{background:var(--s3);color:var(--s12)}
+.unit button{flex:1;border:0;background:transparent;color:var(--s11);font:600 12px/1 var(--sans);height:36px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .unit button.on{color:var(--s12);border-bottom-color:var(--s9);background:var(--s3)}
 
-.form{flex:1;overflow:auto;padding:14px 14px 4px}
-.g{margin-bottom:15px}
-.g h4{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--s11);margin:0 0 8px}
-.chips{display:flex;flex-wrap:wrap;gap:4px}
-.c{min-height:var(--touch);display:inline-flex;align-items:center;font:500 13px/1 var(--sans);padding:0 13px;
-   border:1px solid var(--s7);background:var(--s3);color:var(--s11);cursor:pointer}
+.form{flex:1;overflow:auto;padding:8px 12px 4px}
+
+/* RESOLVED groups collapse to one line — this is the scrolling fix.
+   Only the group you are answering is open. */
+.fld{border-bottom:1px solid var(--s6)}
+.fld > summary{list-style:none;display:flex;align-items:center;gap:9px;height:32px;cursor:pointer;padding:0 2px}
+.fld > summary::-webkit-details-marker{display:none}
+.fld .lb{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);min-width:88px}
+.fld .val{font:600 13px/1 var(--sans);color:var(--s12);flex:1}
+.fld .val.empty{color:var(--s8);font-weight:400}
+.fld .car{color:var(--s8);font-size:10px}
+.fld[open] > summary .car{transform:rotate(90deg)}
+.fld[open] > summary{border-bottom:1px solid var(--s6)}
+.chips{display:flex;flex-wrap:wrap;gap:3px;padding:8px 0 9px}
+.c{min-height:var(--hit);display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--sans);
+   padding:0 9px;border:1px solid var(--s7);background:var(--s3);color:var(--s11);cursor:pointer}
 .c:hover{background:var(--s4);border-color:var(--s8);color:var(--s12)}
 .c.on{background:var(--s9);border-color:var(--s9);color:#fff;font-weight:600}
 .c.on.win{background:var(--fd);border-color:var(--fd);color:#141000}
-.ydg{display:flex;border:1px solid var(--s7)}
-.ydg button{width:52px;height:60px;border:0;background:var(--s3);color:var(--s12);font-size:20px;cursor:pointer}
-.ydg button:hover{background:var(--s4)}
-.ydg .v{flex:1;display:flex;align-items:center;justify-content:center;background:var(--s1);font-size:34px}
+/* the keyboard hint — charting fast means never touching the mouse */
+.c kbd{font:600 9px/1 var(--mono);color:var(--s8);background:transparent;border:1px solid var(--s6);padding:2px 3px}
+.c.on kbd{color:#ffffffb0;border-color:#ffffff40}
+.c.on.win kbd{color:#14100099;border-color:#14100040}
+.ydg{display:flex;border:1px solid var(--s7);margin:8px 0 9px}
+.ydg button{width:44px;height:44px;border:0;background:var(--s3);color:var(--s12);font-size:18px;cursor:pointer}
+.ydg .v{flex:1;display:flex;align-items:center;justify-content:center;background:var(--s1);font-size:28px}
+.more{display:flex;align-items:center;gap:8px;height:34px;color:var(--s11);font:500 11.5px/1 var(--sans);cursor:pointer;padding:0 2px}
+.more b{font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.more span{margin-left:auto;font:500 10px/1 var(--mono);color:var(--s8)}
 
-.commit{border-top:1px solid var(--s6);padding:12px 14px 14px;background:var(--s2)}
+.commit{border-top:1px solid var(--s6);padding:10px 12px 12px;background:var(--s2)}
 .btns{display:flex;gap:6px}
-.btns button{height:52px;border:0;font:600 13px/1 var(--sans);cursor:pointer}
+.btns button{height:46px;border:0;font:600 13px/1 var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
 .btns .p{flex:1;background:var(--fd);color:#141000}
-.btns .p:hover{background:#ffdd33}
-.btns .s{width:88px;background:var(--s4);color:var(--s12)}
-.btns .s:hover{background:var(--s5)}
-.pr{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;font:500 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11)}
-.pr b{font-family:var(--cond);font-size:14px;color:var(--s12);letter-spacing:0}
-.bar2{height:3px;background:var(--s4);margin-top:7px}
+.btns .s{width:82px;background:var(--s4);color:var(--s12)}
+.btns kbd{font:600 9.5px/1 var(--mono);border:1px solid #14100040;padding:2px 4px}
+.btns .s kbd{border-color:var(--s7);color:var(--s11)}
+.pr{display:flex;justify-content:space-between;align-items:baseline;margin-top:9px;font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11)}
+.pr b{font-family:var(--cond);font-size:13px;color:var(--s12);letter-spacing:0}
+.bar2{height:3px;background:var(--s4);margin-top:6px}
 .bar2 i{display:block;height:100%;width:64%;background:var(--fd)}
 </style>
 <div class="app">
@@ -153,82 +147,94 @@ body{margin:0;background:var(--s1);color:var(--s12);font:14px/1.5 var(--sans)}
   <section class="theater">
     <div class="film">
       <div class="turf"></div>
-      <div class="grid">
-        <div class="yl ten" style="left:11%"><b>30</b></div>
-        <div class="yl" style="left:22%"></div>
-        <div class="yl ten" style="left:34%"><b>40</b></div>
-        <div class="yl" style="left:46%"></div>
-        <div class="yl ten" style="left:58%"><b>50</b></div>
-        <div class="yl" style="left:70%"></div>
-        <div class="yl ten" style="left:82%"><b>40</b></div>
-        <div class="hash a"></div><div class="hash b"></div>
-        <div class="los"></div><div class="fdl"></div>
-      </div>
+      <div class="yl ten" style="left:11%"><b>30</b></div><div class="yl" style="left:22%"></div>
+      <div class="yl ten" style="left:34%"><b>40</b></div><div class="yl" style="left:46%"></div>
+      <div class="yl ten" style="left:58%"><b>50</b></div><div class="yl" style="left:70%"></div>
+      <div class="yl ten" style="left:82%"><b>40</b></div>
+      <div class="hash a"></div><div class="hash b"></div>
+      <div class="los"></div><div class="fdl"></div>
       <div class="hud"><span>Endzone</span><span>1.00×</span><span>Loop</span></div>
-      <div class="third">
-        <div class="k">Play 28</div>
-        <div class="v"><strong>Trips Rt · Shotgun</strong><em>Short Pass · +12</em></div>
-      </div>
+      <div class="third"><div class="k">Play 28</div><div class="v"><strong>Trips Rt · Shotgun</strong><em>Short Pass · +12</em></div></div>
     </div>
-
     <div class="tr">
       <button class="tb">⏮</button><button class="tb go">▶</button><button class="tb">⏭</button>
-      <span class="tc">00:07.4</span>
-      <div class="scrub"><i></i><b></b></div>
-      <span class="tc">00:11.9</span>
+      <span class="tc">00:07.4</span><div class="scrub"><i></i><b></b></div><span class="tc">00:11.9</span>
       <button class="tb">⤢</button>
     </div>
-
     <div class="strip">
       <div class="hd"><h3>Drive 4</h3><span>Charted <b>28</b> of <b>44</b></span></div>
       <div class="ticks">
-        <span class="pk pass ten" data-n="1"><i style="height:22px"></i></span>
-        <span class="pk run"><i style="height:13px"></i></span>
-        <span class="pk run"><i style="height:30px"></i></span>
-        <span class="pk to"><i style="height:7px"></i></span>
-        <span class="pk pass"><i style="height:25px"></i></span>
-        <span class="pk td"><i style="height:42px"></i></span>
-        <span class="pk run"><i style="height:16px"></i></span>
-        <span class="pk pass"><i style="height:20px"></i></span>
-        <span class="pk run"><i style="height:27px"></i></span>
-        <span class="pk pass ten" data-n="10"><i style="height:18px"></i></span>
-        <span class="pk sel pass"><i style="height:29px"></i></span>
-        <span class="pk run"><i style="height:15px"></i></span>
-        <span class="pk un"><i style="height:9px"></i></span>
-        <span class="pk un"><i style="height:9px"></i></span>
-        <span class="pk un"><i style="height:9px"></i></span>
-        <span class="pk un"><i style="height:9px"></i></span>
-        <span class="pk un ten" data-n="20"><i style="height:9px"></i></span>
-        <span class="pk un"><i style="height:9px"></i></span>
-        <span class="pk un"><i style="height:9px"></i></span>
+        <span class="pk pass ten" data-n="1"><i style="height:20px"></i></span>
+        <span class="pk run"><i style="height:12px"></i></span><span class="pk run"><i style="height:27px"></i></span>
+        <span class="pk to"><i style="height:7px"></i></span><span class="pk pass"><i style="height:23px"></i></span>
+        <span class="pk td"><i style="height:38px"></i></span><span class="pk run"><i style="height:15px"></i></span>
+        <span class="pk pass"><i style="height:18px"></i></span><span class="pk run"><i style="height:25px"></i></span>
+        <span class="pk pass ten" data-n="10"><i style="height:16px"></i></span>
+        <span class="pk sel pass"><i style="height:26px"></i></span><span class="pk run"><i style="height:14px"></i></span>
+        <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
+        <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
+        <span class="pk un ten" data-n="20"><i style="height:8px"></i></span>
+        <span class="pk un"><i style="height:8px"></i></span><span class="pk un"><i style="height:8px"></i></span>
       </div>
     </div>
   </section>
 
   <aside class="deck">
     <div class="sit">
-      <div class="dd"><span>Down &amp; dist</span><b class="n">2<i>&amp;</i>7</b></div>
+      <div class="dd"><span>Dn &amp; dist</span><b class="n">2<i>&amp;</i>7</b></div>
       <div class="sp"><span>Ball on</span><b class="n">OPP 34</b></div>
       <div class="pl">28</div>
     </div>
-
     <div class="unit"><button class="on">Offense</button><button>Defense</button><button>Special</button></div>
 
     <div class="form">
-      <div class="g"><h4>Formation</h4><div class="chips">
-        <span class="c on">Trips</span><span class="c">Ace</span><span class="c">Empty</span><span class="c">Bunch</span><span class="c">Wing-T</span></div></div>
-      <div class="g"><h4>QB alignment</h4><div class="chips">
-        <span class="c on">Shotgun</span><span class="c">Under Center</span><span class="c">Pistol</span></div></div>
-      <div class="g"><h4>Play type</h4><div class="chips">
-        <span class="c">Run Inside</span><span class="c">Run Outside</span><span class="c on">Short Pass</span><span class="c">RPO</span><span class="c">Screen</span></div></div>
-      <div class="g"><h4>Result</h4><div class="chips">
-        <span class="c on win">Gain</span><span class="c">Loss</span><span class="c">Incomplete</span><span class="c">Touchdown</span><span class="c">Sack</span></div></div>
-      <div class="g"><h4>Yardage</h4>
-        <div class="ydg"><button>−</button><div class="v n">12</div><button>+</button></div></div>
+      <!-- resolved → one line each -->
+      <details class="fld"><summary><span class="lb">Formation</span><span class="val">Trips Rt</span><span class="car">▶</span></summary>
+        <div class="chips">
+          <span class="c on">Trips<kbd>T</kbd></span><span class="c">Ace<kbd>A</kbd></span><span class="c">Empty<kbd>E</kbd></span>
+          <span class="c">Bunch<kbd>B</kbd></span><span class="c">Wing-T<kbd>W</kbd></span><span class="c">Spread</span>
+        </div>
+      </details>
+      <details class="fld"><summary><span class="lb">QB align</span><span class="val">Shotgun</span><span class="car">▶</span></summary>
+        <div class="chips"><span class="c on">Shotgun<kbd>G</kbd></span><span class="c">Under Center<kbd>U</kbd></span><span class="c">Pistol<kbd>P</kbd></span></div>
+      </details>
+
+      <!-- the one you're answering stays open -->
+      <details class="fld" open><summary><span class="lb">Play type</span><span class="val">Short Pass</span><span class="car">▶</span></summary>
+        <div class="chips">
+          <span class="c">Run In<kbd>R</kbd></span><span class="c">Run Out<kbd>O</kbd></span><span class="c">Screen<kbd>S</kbd></span>
+          <span class="c on">Short Pass<kbd>P</kbd></span><span class="c">Medium<kbd>M</kbd></span><span class="c">Deep<kbd>D</kbd></span>
+          <span class="c">Play Action<kbd>A</kbd></span><span class="c">RPO<kbd>Q</kbd></span><span class="c">Trick<kbd>X</kbd></span>
+        </div>
+      </details>
+      <details class="fld" open><summary><span class="lb">Result</span><span class="val">Gain</span><span class="car">▶</span></summary>
+        <div class="chips">
+          <span class="c on win">Gain<kbd>G</kbd></span><span class="c">Loss<kbd>L</kbd></span><span class="c">No Gain<kbd>N</kbd></span>
+          <span class="c">Incomplete<kbd>I</kbd></span><span class="c">TD<kbd>T</kbd></span><span class="c">Sack<kbd>W</kbd></span>
+          <span class="c">INT<kbd>U</kbd></span><span class="c">Fumble<kbd>F</kbd></span>
+        </div>
+      </details>
+      <details class="fld" open><summary><span class="lb">Yardage</span><span class="val">+12</span><span class="car">▶</span></summary>
+        <div class="ydg"><button>−</button><div class="v n">12</div><button>+</button></div>
+      </details>
+
+      <!-- everything else, one line until needed -->
+      <details class="fld"><summary><span class="lb">Backfield</span><span class="val empty">Not set</span><span class="car">▶</span></summary>
+        <div class="chips"><span class="c">Single</span><span class="c">I</span><span class="c">Split</span><span class="c">Empty</span><span class="c">Pistol</span></div>
+      </details>
+      <details class="fld"><summary><span class="lb">Personnel</span><span class="val">11</span><span class="car">▶</span></summary>
+        <div class="chips"><span class="c">10</span><span class="c on">11</span><span class="c">12</span><span class="c">21</span><span class="c">22</span></div>
+      </details>
+      <div class="more"><b>Situation &amp; details</b><span>hash · quarter · drive · field pos</span></div>
+      <div class="more"><b>Players &amp; grades</b><span>6 roles</span></div>
+      <div class="more"><b>Custom fields</b><span>2</span></div>
     </div>
 
     <div class="commit">
-      <div class="btns"><button class="p">Save &amp; next</button><button class="s">Skip</button></div>
+      <div class="btns">
+        <button class="p">Save &amp; next <kbd>↵</kbd></button>
+        <button class="s">Skip <kbd>→</kbd></button>
+      </div>
       <div class="pr"><span>Progress</span><b class="n">28 / 44</b></div>
       <div class="bar2"><i></i></div>
     </div>
