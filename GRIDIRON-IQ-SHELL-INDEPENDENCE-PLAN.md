@@ -11,11 +11,19 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
-`63b75f1` both independently accepted (Claude, 2026-07-27; review record
-`a26ed6e`). P0-b `5162e6b` ACCEPTED. P0-c `4d72dd0` ACCEPTED. **P0-d is built
-and awaiting independent Claude review; S1 remains blocked on that verdict.** P0-b N4 closed at the P0-c checkpoint; N1–N3 remain mandatory before
-S2/S4. Codex is the builder.
+**Status: P0 IS COMPLETE. S1 — native Reports — is OPEN.** All four checkpoints
+independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1`
+(P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), `290cd0f` (P0-d). Final gate
+**66/66, 0 skipped**. Codex is the builder.
+
+**Carried into the S-milestones — not optional:**
+- **N1–N3** (overlay: buried-overlay promise, destructive Cancel default not
+  enforced, body-appended nodes escape inertness) — **before S2/S4.**
+- **D1–D2** (capability inventory omits Undo/Redo/Shortcuts, drawing tools,
+  Quick Chart, CSV/import, Call Sheet, version history, roster; multi-angle has
+  no harness coverage at all) — **before S5**, which migrates those surfaces.
+- **R1–R2** (`tools/shots.mjs` captures 7 distinct surfaces of 10 and shoots one
+  viewport) — before it backs any coach-facing visual review.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -193,7 +201,16 @@ frozen contracts above are unchanged and proven so.
   Escape focus raced Preact inert cleanup. Fixed with one close-focus owner and
   readiness-based restoration; overlay journey is **31/31 three consecutive
   runs**. N1–N3 remain required before S2/S4; N5–N7 stay scheduled.
-- **P0-d — BUILT, awaiting independent review (Codex, 2026-07-27).** A 54-item executable
+- **P0-d — ACCEPTED (Claude, independent, 2026-07-27). P0 COMPLETE; S1 OPENS.**
+  Capability-audit drift and both design-token rules mutation-verified; Plex
+  bundled as 6 base64 WOFF2 faces; tokens namespaced `--gi-*` only, and all ten
+  visual captures byte-identical to P0-b so nothing shifted. Gate **66/66, 0
+  skipped**. Four findings; **D1 (the inventory omits Undo/Redo/Shortcuts —
+  three of the four capabilities previously found entombed — plus drawing tools,
+  Quick Chart, CSV/import, Call Sheet, version history and roster) and D2
+  (multi-angle has zero harness coverage) must close before S5.** Neither blocks
+  S1. Detail in `CLAUDE.md`. Build summary:
+- **P0-d build summary (Codex, 2026-07-27).** A 54-item executable
   capability inventory covers ten migration surfaces and binds every coach outcome to an exact
   live journey assertion. A canonical operation-diff harness proves route navigation is a season
   no-op, game selection changes only `activeGameId`, and tag/Game Info edits change only their

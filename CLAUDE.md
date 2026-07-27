@@ -87,6 +87,94 @@ inventory. P0-d changes no analytics formula, persistence schema, durable season
 data, film file, package, or release. N1-N3 from P0-b remain mandatory before
 S2/S4 and are not claimed closed here.
 
+#### CLAUDE'S INDEPENDENT REVIEW of `290cd0f` — ACCEPTED. **P0 IS COMPLETE; S1 OPENS.** 4 findings; D1/D2 required before S5 (2026-07-27)
+
+P0-d does what the exit gate asked. The foundations are real, and three of the
+four risks Codex flagged for review hold up. **The fourth — risk (4), "whether
+any user capability is missing from the 54-item inventory" — is the one that does
+not, and it is the finding of this review.**
+
+**Verified by running and mutating, not by reading.** Full canonical gate
+**66 harnesses | 66 green | 0 skipped**, real data included.
+
+- **Capability audit mutation-verified.** Pointing one entry at an assertion
+  string that exists nowhere reds `every capability points to an exact live
+  journey assertion` and names the offender. The anti-drift property — a
+  migration cannot silently delete or rename its own proof — is real.
+- **Design-token enforcement mutation-verified twice.** Appending
+  `color:#ff0000` reds the raw-color rule; `var(--gi-does-not-exist)` reds the
+  resolution rule. Both name the file and the offending token.
+- **Plex is genuinely bundled** — 6 base64 WOFF2 faces in the built CSS, imported
+  by the Preact entry, no network fetch.
+- **Tokens cannot disturb the app palette.** `tokens.css` declares `:root` only
+  and every custom property is namespaced `--gi-*`, so there is no collision with
+  the existing palette — the lesson-#13 hazard. Confirmed empirically: all ten
+  `shots.mjs` captures are **byte-identical to my P0-b baseline**, so Plex,
+  tokens and the overlay stylesheet change nothing visually in the product.
+- **Operation-diff is soundly built.** It canonicalizes games and plays into
+  id-keyed maps so order changes cannot masquerade as mutations, walks the
+  **union** of keys on both sides (so an *added* key is caught, not just a
+  changed one), and its `*` wildcard expands to `[^.\[\]]+` — a single path
+  segment, so an allow-list entry cannot leak into a deeper path. It drives real
+  browser journeys and carries its own restrictive-mutation self-check.
+- **All three P0-c advisories are correctly closed**, and the new Watch race fix
+  is sound: the token is bumped at the top of every non-empty request,
+  `_selectFirstResolved` re-checks it at each await boundary, and
+  `_finishSelectedFallback` clears bookkeeping without navigating the coach away
+  from the play it just selected. An empty request correctly does *not* cancel a
+  running reel.
+
+**D1 [P2] The inventory omits the exact capabilities already proven losable.**
+Measured against the 54 entries: **`undo`, `redo`, `shortcut`, `canvas`/drawing
+tools, `quick chart`, `multi-angle`, `csv`, `import`, `call sheet`,
+`version`/restore points, and `roster` are all absent.** Undo, Redo and Shortcuts
+are three of the **four capabilities the top-bar work found ENTOMBED** — present
+in the DOM, reachable on no route at all. An inventory built to prevent capability
+loss omits the ones this project has already lost once.
+
+Drawing tools deserve their own mention: this file carries an explicit TODO that
+the redesign "must preserve the production video-annotation capability," and
+**S5a migrates the video surface**. Nothing in the inventory guards it.
+
+**This is cheap to fix, which is why it should be fixed.** The journey assertions
+already exist — `undo` appears in 119 harness lines, `redo` 68, `Shortcuts` 26,
+`canvas` 23, `roster` 47, `CSV` 34. The manifest simply does not claim proof that
+is already there.
+
+**D2 [P2] Multi-angle has zero harness coverage anywhere** — 0 mentions across
+every `e2e-*.mjs`. Unlike D1 this is not a manifest gap; there is no assertion to
+claim. Dual-camera sync (toggle / side-by-side / PiP, drift correction, the `V`
+swap) is a real Break Down capability that **S5a would migrate blind**.
+
+**D3 [nit] `P0_CAPABILITIES.length >= 45` certifies nothing about completeness.**
+The audit's valuable property is internal consistency — every claim resolves to a
+live assertion — and that is genuinely enforced. But a count cannot support the
+label "inventory is broad enough to guard the migration surface," and D1 is the
+proof: 54 entries passed that check while eleven coach capabilities were missing.
+
+**D4 [nit] The exit audit certifies that the machinery exists, not that it
+works.** Several assertions are source greps (`nativeRoot.includes('render(null')`,
+`filmNav.includes('refsForGame')`, `existsSync('GRIDIRON-IQ-TEAM-HUB-SPEC.md')`).
+That is fine as *composition* — the behavior is proven by the harnesses the gate
+runs — but "final exit audit 13/13" should not be read as behavioral verification
+of the nine gate items, and gate item 8 ("specs complete") is checked by file
+existence alone.
+
+**Method note worth keeping.** My first raw-color mutation reported the guard as
+broken. It was not: the `-replace` never matched, so I had tested nothing and was
+one step from filing a false P1 against a working guard. **Verify the mutation
+landed before believing what it tells you** — a mutation that does not apply looks
+exactly like a guard that does not fire.
+
+**Verdict: P0 is complete and S1 (native Reports) opens.** D1/D2 do not block S1 —
+Reports capabilities are covered by six inventory entries, and the omissions are
+Break Down and shell surfaces. **Both must close before S5**, which is the
+milestone that migrates them. N1–N3 from P0-b remain mandatory before S2/S4.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed — confirmed by re-running the full gate myself.** Managed C: film
+copies remain protected.
+
 **P0-a — Vite/Preact foundation + canonical test entry: BUILT, awaiting Claude
 review.** This checkpoint intentionally changes build architecture only; no
 coach-facing workflow, persistence schema, analytics result, film behavior, or
