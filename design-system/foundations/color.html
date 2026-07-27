@@ -1,0 +1,94 @@
+<!-- @dsCard group="Colors" -->
+<meta charset="utf-8">
+<title>Color — two worlds + broadcast semantics</title>
+<style>
+:root{
+  --t0:#070a0e;--t1:#0b1016;--t2:#111823;--d0:#151c26;--d1:#1c2531;--d2:#26313f;
+  --los:#2f7fff;--fd:#ffd400;--good:#35d07f;--warn:#ff9f2e;--bad:#ff4d5e;
+  --ink:#eef3f9;--dim:#93a3b8;--faint:#5d6b7e;--line:#35435440;
+  --ui:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  --bd:'Bahnschrift SemiCondensed','Bahnschrift','Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--t0);color:var(--ink);font:15px/1.55 var(--ui);padding:40px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font:700 34px/1.05 var(--bd);text-transform:uppercase;margin:0 0 6px}
+.lede{color:var(--dim);margin:0 0 32px;max-width:66ch}
+h2{font:600 11px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:34px 0 14px}
+.ramp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.sw{border-radius:9px;border:1px solid var(--line);overflow:hidden}
+.sw .box{height:74px}
+.sw .m{padding:10px 12px;background:var(--d0)}
+.sw b{display:block;font:600 12.5px/1.3 var(--ui)}
+.sw code{font:500 11px/1.4 'Cascadia Mono',monospace;color:var(--faint)}
+.sem{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.s{background:var(--d0);border:1px solid var(--line);border-left:3px solid;border-radius:9px;padding:16px}
+.s h3{margin:0 0 4px;font:700 14px/1.3 var(--ui)}
+.s p{margin:0 0 10px;color:var(--dim);font-size:13px}
+.s .use{font:500 11.5px/1.5 'Cascadia Mono',monospace;color:var(--faint)}
+.demo{background:var(--d0);border:1px solid var(--line);border-radius:10px;padding:20px;margin-top:10px}
+.row{display:grid;grid-template-columns:56px 1fr 66px 74px;gap:12px;align-items:center;padding:9px 12px;border-radius:5px;background:var(--d1);margin-bottom:6px}
+.row.cur{background:#2f7fff1f;box-shadow:inset 3px 0 0 var(--los)}
+.row .dd{font:700 13px/1 var(--bd);font-variant-numeric:tabular-nums;color:var(--dim)}
+.row .lk{font-size:13px}
+.row .yd{font:700 15px/1 var(--bd);font-variant-numeric:tabular-nums;text-align:right}
+.tag{justify-self:end;font:700 9.5px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;padding:5px 8px;border-radius:3px}
+.tag.f{background:var(--fd);color:#191400}
+.tag.t{background:var(--bad);color:#fff}
+.tag.n{background:#ffffff12;color:var(--faint)}
+.warnbox{margin-top:28px;padding:15px 18px;border-radius:8px;background:#ff4d5e12;border:1px solid #ff4d5e33;color:#ffc2c8;font-size:13.5px;max-width:82ch}
+</style>
+<div class="wrap">
+  <h1>Color</h1>
+  <p class="lede">Two surface worlds, and two accents that already mean something to anyone who watches football.
+  The current palette uses one cyan for every interactive thing, so it signals nothing.</p>
+
+  <h2>Theater — film surfaces recede</h2>
+  <div class="ramp">
+    <div class="sw"><div class="box" style="background:#070a0e"></div><div class="m"><b>theater-0</b><code>#070a0e</code></div></div>
+    <div class="sw"><div class="box" style="background:#0b1016"></div><div class="m"><b>theater-1</b><code>#0b1016</code></div></div>
+    <div class="sw"><div class="box" style="background:#111823"></div><div class="m"><b>theater-2</b><code>#111823</code></div></div>
+  </div>
+
+  <h2>Deck — data surfaces lift</h2>
+  <div class="ramp">
+    <div class="sw"><div class="box" style="background:#151c26"></div><div class="m"><b>deck-0</b><code>#151c26</code></div></div>
+    <div class="sw"><div class="box" style="background:#1c2531"></div><div class="m"><b>deck-1</b><code>#1c2531</code></div></div>
+    <div class="sw"><div class="box" style="background:#26313f"></div><div class="m"><b>deck-2</b><code>#26313f</code></div></div>
+  </div>
+
+  <h2>Broadcast semantics</h2>
+  <div class="sem">
+    <div class="s" style="border-left-color:#2f7fff">
+      <h3>Line of scrimmage — <code style="color:#2f7fff">#2f7fff</code></h3>
+      <p>Where you are. Selected play, active route, current game, focus ring.</p>
+      <div class="use">selection · active nav · focus · live badge</div>
+    </div>
+    <div class="s" style="border-left-color:#ffd400">
+      <h3>First down — <code style="color:#ffd400">#ffd400</code></h3>
+      <p>What you were trying to do, achieved. Conversions, TDs, primary commit action.</p>
+      <div class="use">success · conversion · Save &amp; next · progress fill</div>
+    </div>
+    <div class="s" style="border-left-color:#ff4d5e">
+      <h3>Turnover — <code style="color:#ff4d5e">#ff4d5e</code></h3>
+      <p>Possession lost, and destructive actions. Never decorative.</p>
+      <div class="use">INT / fumble · delete · failure state</div>
+    </div>
+    <div class="s" style="border-left-color:#35d07f">
+      <h3>Positive — <code style="color:#35d07f">#35d07f</code></h3>
+      <p>System health only: saved, film linked, server online.</p>
+      <div class="use">autosave ok · film resolved</div>
+    </div>
+  </div>
+
+  <h2>Applied — a play list reads at a glance</h2>
+  <div class="demo">
+    <div class="row"><span class="dd">1&amp;10</span><span class="lk">Trips · Shotgun · Short Pass</span><span class="yd">+12</span><span class="tag f">1st</span></div>
+    <div class="row cur"><span class="dd">2&amp;7</span><span class="lk">Ace · Under Center · Run In</span><span class="yd">+3</span><span class="tag n">—</span></div>
+    <div class="row"><span class="dd">3&amp;4</span><span class="lk">Empty · Shotgun · RPO</span><span class="yd">−2</span><span class="tag t">INT</span></div>
+  </div>
+
+  <div class="warnbox"><strong>Discipline this replaces:</strong> today a single cyan is used for buttons, links, active tabs,
+  selection, highlights and headings simultaneously. An accent that marks everything marks nothing — and it is why the
+  interface reads as a generic dark dashboard rather than a football tool.</div>
+</div>

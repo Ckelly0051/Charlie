@@ -1,0 +1,73 @@
+/* GridIron IQ — design primitives.
+ *
+ * THE SOURCE OF TRUTH for every native route stylesheet. Route CSS consumes
+ * these; it does not restate raw values. Measured drift that motivated this:
+ * reports-screen.css used 0 tokens and 23 hardcoded hex values, and each newly
+ * written native surface had drifted further than the last.
+ *
+ * Thesis: BROADCAST CONTROL ROOM, not dashboard. Two deliberate worlds —
+ * THEATER (film surfaces, near-black, chrome recedes so the film is the
+ * brightest object on screen) and DECK (data surfaces, denser and brighter).
+ * The contrast between them is the design.
+ */
+:root {
+  /* ---- THEATER: film-forward surfaces. Cool cast = night game under lights. */
+  --gi-theater-0:      #070a0e;   /* deepest — behind film */
+  --gi-theater-1:      #0b1016;   /* film chrome */
+  --gi-theater-2:      #111823;   /* raised film chrome */
+
+  /* ---- DECK: data surfaces. Brighter and denser than theater ON PURPOSE. */
+  --gi-deck-0:         #151c26;
+  --gi-deck-1:         #1c2531;
+  --gi-deck-2:         #26313f;
+  --gi-deck-line:      #35435427;
+
+  /* ---- BROADCAST SEMANTICS. Football's own visual language, not generic
+   * dashboard colors. On any televised game these two mean one thing each,
+   * and the app inherits that meaning instead of inventing one. */
+  --gi-los:            #2f7fff;   /* line of scrimmage — CURRENT / selected */
+  --gi-los-soft:       #2f7fff28;
+  --gi-first-down:     #ffd400;   /* first-down line — TARGET / achieved */
+  --gi-first-down-soft:#ffd40022;
+
+  /* ---- STATUS. Used sparingly; never decorative. */
+  --gi-good:           #35d07f;
+  --gi-warn:           #ff9f2e;
+  --gi-danger:         #ff4d5e;   /* turnover / destructive */
+
+  /* ---- INK */
+  --gi-ink:            #eef3f9;
+  --gi-ink-dim:        #93a3b8;
+  --gi-ink-faint:      #5d6b7e;
+
+  /* ---- TYPE. Windows-only product, so Bahnschrift is a free win: it ships
+   * with Windows 10+ and gives a true condensed scoreboard voice with no
+   * webfont, no bundle weight, and no offline penalty. */
+  --gi-font-ui:      'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --gi-font-board:   'Bahnschrift SemiCondensed', 'Bahnschrift', 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  --gi-font-mono:    'Cascadia Mono', ui-monospace, 'Consolas', monospace;
+
+  /* Scoreboard numerics are ALWAYS tabular — numbers must not shimmy as they
+   * tick. This is the single highest-leverage typographic decision here. */
+  --gi-num: 'tnum' 1, 'lnum' 1;
+
+  /* ---- SCALE (4px base) */
+  --gi-1: 4px;  --gi-2: 8px;  --gi-3: 12px; --gi-4: 16px;
+  --gi-5: 24px; --gi-6: 32px; --gi-7: 48px; --gi-8: 64px;
+
+  --gi-r-sm: 3px; --gi-r-md: 5px; --gi-r-lg: 10px;
+
+  /* ---- ELEVATION. Theater surfaces do not glow; deck surfaces lift. */
+  --gi-lift-1: 0 1px 0 #ffffff0a inset, 0 2px 8px #00000059;
+  --gi-lift-2: 0 1px 0 #ffffff0f inset, 0 12px 32px #00000073;
+
+  /* ---- FOCUS. One ring, everywhere, never removed. */
+  --gi-focus: 0 0 0 2px var(--gi-theater-0), 0 0 0 4px var(--gi-los);
+
+  /* ---- MOTION. Fast enough to feel direct while charting 60+ plays. */
+  --gi-quick: 90ms cubic-bezier(.2,.7,.3,1);
+  --gi-ease:  180ms cubic-bezier(.2,.7,.3,1);
+
+  /* ---- TOUCH. 44px minimum on every control a coach uses on a sideline. */
+  --gi-touch: 44px;
+}

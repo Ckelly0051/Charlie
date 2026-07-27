@@ -1,0 +1,86 @@
+<!-- @dsCard group="Type" -->
+<meta charset="utf-8">
+<title>Type — the scoreboard voice</title>
+<style>
+:root{
+  --gi-theater-0:#070a0e;--gi-deck-0:#151c26;--gi-deck-1:#1c2531;
+  --gi-los:#2f7fff;--gi-first-down:#ffd400;--gi-danger:#ff4d5e;
+  --gi-ink:#eef3f9;--gi-ink-dim:#93a3b8;--gi-ink-faint:#5d6b7e;
+  --gi-font-ui:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  --gi-font-board:'Bahnschrift SemiCondensed','Bahnschrift','Segoe UI',sans-serif;
+  --gi-font-mono:'Cascadia Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--gi-theater-0);color:var(--gi-ink);font:15px/1.55 var(--gi-font-ui);padding:40px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font:700 34px/1.05 var(--gi-font-board);text-transform:uppercase;margin:0 0 6px}
+.lede{color:var(--gi-ink-dim);margin:0 0 34px;max-width:64ch}
+h2{font:600 11px/1 var(--gi-font-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--gi-ink-faint);margin:36px 0 14px}
+.spec{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:baseline;border-bottom:1px solid #35435433;padding:14px 0}
+.spec .meta{font:500 11.5px/1.4 var(--gi-font-mono);color:var(--gi-ink-faint);text-align:right;white-space:nowrap}
+.board{font-family:var(--gi-font-board);font-variant-numeric:tabular-nums lining-nums;text-transform:uppercase}
+.d1{font-size:44px;font-weight:700;line-height:1;letter-spacing:.005em}
+.d2{font-size:30px;font-weight:700;line-height:1.05}
+.d3{font-size:21px;font-weight:600;line-height:1.1}
+.ui-l{font-size:16px;line-height:1.5}
+.ui-m{font-size:14px;line-height:1.5}
+.ui-s{font-size:12.5px;line-height:1.45;color:var(--gi-ink-dim)}
+.ui-xs{font:600 10.5px/1 var(--gi-font-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--gi-ink-faint)}
+.demo{background:var(--gi-deck-0);border:1px solid #35435433;border-radius:10px;padding:22px;margin-top:8px}
+.bug{display:flex;align-items:stretch;gap:0;border-radius:8px;overflow:hidden;border:1px solid #ffffff14;max-width:520px}
+.bug>div{padding:12px 16px;background:#0e151e}
+.bug .team{min-width:118px}
+.bug .team span{display:block;font:600 10.5px/1 var(--gi-font-ui);letter-spacing:.14em;color:var(--gi-ink-faint);margin-bottom:6px}
+.bug .team strong{font:700 24px/1 var(--gi-font-board);font-variant-numeric:tabular-nums}
+.bug .sit{margin-left:auto;background:var(--gi-los);color:#fff;display:flex;align-items:center}
+.bug .sit strong{font:700 22px/1 var(--gi-font-board);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cmp>div{background:var(--gi-deck-0);border:1px solid #35435433;border-radius:10px;padding:18px}
+.cmp .lbl{font:600 10.5px/1 var(--gi-font-ui);letter-spacing:.16em;text-transform:uppercase;margin-bottom:12px}
+.cmp .bad{color:var(--gi-danger)}.cmp .good{color:var(--gi-first-down)}
+.num-row{display:flex;gap:22px;font-size:26px;font-weight:700;line-height:1.2}
+.sys{font-family:'Segoe UI',system-ui,sans-serif}
+.tab{font-family:var(--gi-font-board);font-variant-numeric:tabular-nums}
+.note{margin-top:30px;padding:15px 18px;border-radius:8px;background:#2f7fff12;border:1px solid #2f7fff33;color:#c3d9ff;font-size:13.5px;max-width:80ch}
+</style>
+<div class="wrap">
+  <h1>Type — the scoreboard voice</h1>
+  <p class="lede">Two families, one rule. <strong>Bahnschrift</strong> (condensed, Windows-native) carries every football
+  number and every screen title. <strong>Segoe UI</strong> carries prose and controls. Football numerals are always tabular.</p>
+
+  <h2>Scale</h2>
+  <div class="spec"><div class="board d1">HOME · 4TH &amp; 2</div><div class="meta">display/1 · Bahnschrift 700 · 44/1.0<br>uppercase · tabular</div></div>
+  <div class="spec"><div class="board d2">ST PETER 41–0</div><div class="meta">display/2 · 700 · 30/1.05</div></div>
+  <div class="spec"><div class="board d3">FILM ROOM</div><div class="meta">display/3 · 600 · 21/1.1 · route titles</div></div>
+  <div class="spec"><div class="ui-l">Body large — a coach reads this while charting.</div><div class="meta">ui/lg · Segoe 400 · 16/1.5</div></div>
+  <div class="spec"><div class="ui-m">Body — default control and table text.</div><div class="meta">ui/md · 400 · 14/1.5</div></div>
+  <div class="spec"><div class="ui-s">Secondary — meta, hints, timestamps.</div><div class="meta">ui/sm · 400 · 12.5/1.45 · dim</div></div>
+  <div class="spec"><div class="ui-xs">Section label</div><div class="meta">ui/xs · 600 · 10.5 · .16em · caps</div></div>
+
+  <h2>Why tabular numerics are non-negotiable</h2>
+  <div class="cmp">
+    <div>
+      <div class="lbl bad">✕ Proportional — today</div>
+      <div class="num-row sys"><span>11</span><span>18</span><span>41</span><span>07</span></div>
+      <div class="ui-s" style="margin-top:10px">Column edges shift as the clock and score tick. Numbers shimmy in a table.</div>
+    </div>
+    <div>
+      <div class="lbl good">✓ Tabular condensed</div>
+      <div class="num-row tab"><span>11</span><span>18</span><span>41</span><span>07</span></div>
+      <div class="ui-s" style="margin-top:10px">Fixed advance width. Scores, yardage and down &amp; distance stay locked in place.</div>
+    </div>
+  </div>
+
+  <h2>Applied — the scorebug</h2>
+  <div class="demo">
+    <div class="bug">
+      <div class="team"><span>MAVERICKS</span><strong>41</strong></div>
+      <div class="team"><span>ST PETER</span><strong>0</strong></div>
+      <div class="sit"><strong>4TH &amp; 2 · OPP 34</strong></div>
+    </div>
+  </div>
+
+  <div class="note"><strong>Why Bahnschrift:</strong> the product is Windows-only and ships offline as a single file, so
+  webfonts are out. Bahnschrift ships with Windows 10+, is genuinely condensed, and has real tabular figures — a
+  distinctive broadcast voice at zero bundle cost. Fallback chain degrades to Segoe UI on any non-Windows build.</div>
+</div>
