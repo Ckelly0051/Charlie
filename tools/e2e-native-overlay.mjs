@@ -47,8 +47,11 @@ await page.keyboard.press('Tab');
 ok(await page.evaluate(() => document.activeElement?.dataset.overlayAction === 'cancel'), 'Tab wraps inside the topmost dialog');
 await page.keyboard.press('Escape');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-dialog'));
-await sleep(50);
-ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-dialog')), 'Escape closes only the dialog and restores its invoker');
+const escapeFocusRestored = await page.waitForFunction(
+  () => document.activeElement?.hasAttribute('data-probe-dialog'),
+  { timeout: 2000 },
+).then(() => true).catch(() => false);
+ok(escapeFocusRestored, 'Escape closes only the dialog and restores its invoker');
 await page.click('[data-probe-dialog]');
 await page.waitForSelector('[data-overlay-scrim]');
 await page.evaluate(() => document.querySelector('[data-overlay-scrim]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })));

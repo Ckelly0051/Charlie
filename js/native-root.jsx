@@ -37,7 +37,9 @@ function OverlayPanel({ overlay, service, top, effectiveModal }) {
       (requested || first || panel)?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
-  }, [overlay.id, overlay.initialAction, top]);
+  // A buried panel is restored by NativeOverlayService to the exact child
+  // invoker. Re-running initial focus when top flips creates a second owner.
+  }, [overlay.id, overlay.initialAction]);
 
   const choose = async action => {
     if (action.onSelect) {

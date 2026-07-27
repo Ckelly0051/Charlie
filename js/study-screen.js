@@ -27,7 +27,6 @@ export class StudyScreen {
     this.rows = [];
     this.filters = [];
     this._bound = false;
-    this._watchToken = 0;
     this._pendingPlanItems = [];
     this._saveCohorts = [];
   }
@@ -87,7 +86,7 @@ export class StudyScreen {
       if (action === 'plan-picker-cancel') this._closePlanPicker();
       if (action === 'plan-picker-save') this._confirmPlanPicker();
       if (action === 'delete-view') this._deleteView();
-      if (action === 'watch-all') this._watch(this.rows.flatMap(r => r.refs), 'Study results');
+      if (action === 'watch-all') this.app.filmNavigation.watch(this.rows.flatMap(r => r.refs), { label: 'Study results' });
       if (action === 'add-filter') { this.filters.push({ dimension: 'down', values: [] }); this._renderFilters(); }
       if (action === 'clear-filters') { this.filters = []; this._renderFilters(); this.render(); }
       const removeFilter = e.target.closest('[data-study-filter-remove]')?.dataset.studyFilterRemove;
@@ -100,7 +99,7 @@ export class StudyScreen {
       const index = e.target.closest('[data-study-row]')?.dataset.studyRow;
       if (index != null) {
         const row = this.rows[Number(index)];
-        if (row) this._watch(row.refs, row.label);
+        if (row) this.app.filmNavigation.watch(row.refs, { label: row.label });
       }
     });
   }
@@ -318,81 +317,8 @@ export class StudyScreen {
   }
 
   async _watch(refs, label) {
-    const unique = [...new Set(refs || [])];
-    if (!unique.length) return;
-    const games = this.app.storage.seasonStore.data?.games || [];
-    const plan = this.app.crossGameCutup.plan(unique, games);
-    if (!plan.total) {
-      this.app.tagger.toast?.(`No playable film found${plan.skipped.length ? ` · ${plan.skipped.length} skipped` : ''}`);
-      return;
-    }
-    const token = ++this._watchToken;
-    this.app.cutupPlayer?.stop('replaced');
-    const playable = [];
-    const unresolved = plan.skipped.length;
-    let unavailable = 0;
-    const activeId = String(this.app.storage.seasonStore.data?.activeGameId || '');
-    const hasActiveVideo = !!this.app.vc?.video?.src;
-    for (const game of plan.games) {
-      const node = games.find(item => String(item.id) === String(game.gameId));
-      let health = null;
-      try { health = await this.app.workspace.filmHealth(node); } catch {}
-      if (token !== this._watchToken) return;
-      if (health?.ready || (String(game.gameId) === activeId && hasActiveVideo)) playable.push(game);
-      else unavailable += game.count;
-    }
-    if (!playable.length) {
-      const skipped = unresolved + unavailable;
-      this.app.tagger.toast?.(`No matching film is available${skipped ? ` · ${skipped} play${skipped === 1 ? '' : 's'} skipped` : ''}`);
-      return;
-    }
-    const launchGameId = this.app.storage.seasonStore.data?.activeGameId;
-    // Save live charting once. Intermediate reel hops are read-only and remain
-    // transient; the persisted active game therefore stays at the launch scope.
-    this.app.storage.commitActive();
-    this.app.storage.seasonStore.persist();
-    await this.app.workspaceShell.show('breakdown');
-    let gamesPlayed = 0;
-    try {
-      for (let index = 0; index < playable.length; index++) {
-        if (token !== this._watchToken) return;
-        const game = playable[index];
-        const loaded = await this.app.storage.switchToGame(game.gameId, {
-          commit: false, persist: false, reloadActiveFilm: true,
-        });
-        if (token !== this._watchToken) return;
-        if (!loaded) { unavailable += game.count; continue; }
-        this.app.workspaceShell._syncChrome?.();
-        const wanted = new Set(plan.segments
-          .filter(segment => segment.gameId === game.gameId)
-          .map(segment => String(segment.playId)));
-        const ids = (this.app.tagger.plays || [])
-          .filter(play => wanted.has(String(play.id)))
-          .map(play => play.id);
-        unavailable += Math.max(0, wanted.size - ids.length);
-        if (!ids.length) continue;
-        const skipped = unresolved + unavailable;
-        const context = `${label} · ${game.gameName} · Game ${index + 1} of ${playable.length}${skipped ? ` · ${skipped} skipped` : ''}`;
-        const result = await this.app.cutupPlayer.start(ids, context);
-        if (!result?.completed) return;
-        gamesPlayed++;
-      }
-      if (token === this._watchToken) {
-        const played = plan.total - unavailable;
-        const skipped = unresolved + unavailable;
-        this.app.tagger.toast?.(`Finished ${played} play${played === 1 ? '' : 's'} across ${gamesPlayed} game${gamesPlayed === 1 ? '' : 's'}${skipped ? ` · ${skipped} skipped` : ''}`);
-      }
-    } finally {
-      if (token === this._watchToken && launchGameId != null
-        && this.app.storage.seasonStore.data?.activeGameId !== launchGameId) {
-        await this.app.storage.switchToGame(launchGameId, {
-          commit: false, persist: false, reloadActiveFilm: true,
-        });
-        this.app.workspaceShell._syncChrome?.();
-      }
-    }
+    return this.app.filmNavigation.watch(refs, { label });
   }
-
   _views() { try { const views = JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]'); return Array.isArray(views) ? views : []; } catch { return []; } }
   _loadViews(selected = '') {
     const select = this._control('wsStudySaved');

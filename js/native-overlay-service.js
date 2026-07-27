@@ -139,19 +139,25 @@ export class NativeOverlayService {
   }
 
   _restoreFocus(overlay) {
-    // Preact restores route inertness in an effect cleanup after the close render.
-    // A second frame prevents focus from targeting a control while its route is
-    // still inert, which browsers correctly reject.
-    globalThis.requestAnimationFrame?.(() => globalThis.requestAnimationFrame?.(() => {
+    // Native key listeners and Preact event handlers commit on different
+    // schedules. Restore only after the chosen target is connected, visible,
+    // and no longer inert; a fixed frame count races Preact's cleanup.
+    let attempts = 0;
+    const restore = () => {
       const stable = [...(globalThis.document?.querySelectorAll('[data-focus-return-root], main, nav, header, #workspaceShell') || [])]
         .find(element => connectedElement(element) && !element.closest('[inert]') && element.getClientRects().length);
-      const target = connectedElement(overlay.returnFocus)
+      const preferred = connectedElement(overlay.returnFocus)
         ? overlay.returnFocus
-        : connectedElement(overlay.focusFallback) ? overlay.focusFallback : stable;
-      if (!target) return;
-      if (!target.matches?.('button, a, input, select, textarea, [tabindex]')) target.setAttribute('tabindex', '-1');
-      target.focus({ preventScroll: true });
-    }));
+        : connectedElement(overlay.focusFallback) ? overlay.focusFallback : null;
+      const target = preferred || stable;
+      if (target && !target.closest?.('[inert]') && target.getClientRects().length) {
+        if (!target.matches?.('button, a, input, select, textarea, [tabindex]')) target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+        return;
+      }
+      if (attempts++ < 8) globalThis.requestAnimationFrame?.(restore);
+    };
+    globalThis.requestAnimationFrame?.(restore);
   }
 }
 

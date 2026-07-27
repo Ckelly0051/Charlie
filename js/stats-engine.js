@@ -2041,13 +2041,12 @@ export class StatsEngine {
     if (matches.length === 0) return;
     const playable = matches.filter(p => p.timestamp && p.timestamp.end > p.timestamp.start);
     this.hideDashboard();
-    const ids = (playable.length ? playable : matches).map(p => p.id);
-    if (playable.length && window.app && window.app.cutupPlayer) {
-      window.app.cutupPlayer.start(ids, label || `${ids.length} plays`);
-    } else {
-      this.tagger.selectPlay(ids[0]);
-      this.tagger.toast?.('No video on these plays — selected the first one instead');
-    }
+    if (!this.filmNavigation) return;
+    const refs = this.filmNavigation.refsForGame(playable.length ? playable : matches);
+    this.filmNavigation.watch(refs, {
+      label: label || `${refs.length} plays`,
+      fallback: playable.length ? undefined : 'select-first',
+    });
   }
 
   /**

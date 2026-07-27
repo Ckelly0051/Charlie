@@ -20,6 +20,7 @@ import { AnalyticsRegistry } from './analytics-registry.js';
 import { WorkspaceContext } from './workspace-context.js';
 import { StudyQuery } from './study-query.js';
 import { CrossGameCutup } from './cross-game-cutup.js';
+import { FilmNavigationService } from './film-navigation-service.js';
 import { StudyScreen } from './study-screen.js';
 import { ReportsScreen } from './reports-screen.js';
 import { StudyPlan } from './study-plan.js';
@@ -117,6 +118,22 @@ class App {
     this.workspace = new WorkspaceContext(this);
     this.breakdownWorkspace = new BreakdownWorkspace(this);
     this.workspaceShell = new WorkspaceShell(this);
+    this.filmNavigation = new FilmNavigationService({
+      games: () => this.storage.seasonStore.data?.games || [],
+      activeGameId: () => this.storage.seasonStore.data?.activeGameId,
+      commitActive: () => this.storage.commitActive(),
+      persist: () => this.storage.seasonStore.persist(),
+      switchToGame: (gameId, options) => this.storage.switchToGame(gameId, options),
+      filmHealth: game => this.workspace.filmHealth(game),
+      showBreakdown: () => this.workspaceShell.show('breakdown'),
+      syncChrome: () => this.workspaceShell._syncChrome?.(),
+      cutupPlayer: this.cutupPlayer,
+      tagger: this.tagger,
+      videoController: this.vc,
+      planner: this.crossGameCutup,
+      toast: message => this.tagger.toast?.(message),
+    });
+    this.stats.filmNavigation = this.filmNavigation;
     this.breakdownVideo = new BreakdownVideo(this.tagger);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish(this);

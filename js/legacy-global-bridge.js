@@ -4,6 +4,7 @@ import { BreakdownVideo } from './breakdown-video.js';
 import { Charts } from './charts.js';
 import { CatalogPersistence } from './catalog-persistence.js';
 import { CrossGameCutup } from './cross-game-cutup.js';
+import { FilmNavigationService } from './film-navigation-service.js';
 import { CutupPlayer } from './cutup-player.js';
 import { isPlayTagged } from './football-rules.js';
 import { HistoryManager } from './history-manager.js';
@@ -39,6 +40,7 @@ Object.assign(globalThis, {
   CatalogPersistence,
   Charts,
   CrossGameCutup,
+  FilmNavigationService,
   CutupPlayer,
   HistoryManager,
   isPlayTagged,

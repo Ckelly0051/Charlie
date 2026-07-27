@@ -59,17 +59,17 @@ export class PlanScreen {
       const presentAction=e.target.closest('[data-plan-present-action]')?.dataset.planPresentAction;
       if(presentAction){if(presentAction==='close')this._closePresentation();if(presentAction==='prev')this._stepPresentation(-1);if(presentAction==='next')this._stepPresentation(1);return;}
       const presentRef=e.target.closest('[data-plan-present-ref]')?.dataset.planPresentRef;
-      if(presentRef){const item=this._presentationItem();this._closePresentation();this.app.studyScreen._watch([presentRef],item?.label||'Plan film');return;}
-      if(e.target.closest('[data-plan-present-watch]')){const item=this._presentationItem(),refs=(item?.plays||[]).filter(play=>!play.missing).map(play=>play.ref);this._closePresentation();if(refs.length)this.app.studyScreen._watch(refs,item.label);return;}
+      if(presentRef){const item=this._presentationItem();this._closePresentation();this.app.filmNavigation.watch([presentRef],{label:item?.label||'Plan film'});return;}
+      if(e.target.closest('[data-plan-present-watch]')){const item=this._presentationItem(),refs=(item?.plays||[]).filter(play=>!play.missing).map(play=>play.ref);this._closePresentation();if(refs.length)this.app.filmNavigation.watch(refs,{label:item.label});return;}
       const action=e.target.closest('[data-plan-action]')?.dataset.planAction;
       if(action==='create'){const p=this._store().createPlan(`Game Plan ${this._store().plans().length+1}`);this.activeId=p.id;this.presentationIndex=-1;this._persist();}
       if(action==='delete'&&this._active()){const plan=this._active();const ok=await this.app.tagger._confirmDialog(`Delete "${plan.name}" and its ${plan.items.length} saved item${plan.items.length===1?'':'s'}?`, 'Delete Plan');if(ok){this._store().deletePlan(plan.id);this.activeId='';this.presentationIndex=-1;this._persist();}}
-      if(action==='watch'&&this._active())this.app.studyScreen._watch(this.app.studyPlan.planRefs(this._active()),this._active().name);
+      if(action==='watch'&&this._active())this.app.filmNavigation.watch(this.app.studyPlan.planRefs(this._active()),{label:this._active().name});
       if(action==='present'&&this._active()?.items.length){this.presentationIndex=0;this.render();}
       if(action==='export')this._exportPlan();
       const move=e.target.closest('[data-plan-move]');if(move&&this._store().movePlanItem(this.activeId,move.dataset.planId,Number(move.dataset.planMove)))this._persist();
       const remove=e.target.closest('[data-plan-remove]')?.dataset.planRemove;if(remove){this._store().removePlanItem(this.activeId,remove);this._persist();}
-      const watch=e.target.closest('[data-plan-watch]')?.dataset.planWatch;if(watch){const item=this._active()?.items.find(i=>i.id===watch);if(item)this.app.studyScreen._watch(item.refs,item.label);}
+      const watch=e.target.closest('[data-plan-watch]')?.dataset.planWatch;if(watch){const item=this._active()?.items.find(i=>i.id===watch);if(item)this.app.filmNavigation.watch(item.refs,{label:item.label});}
     });
     this.host.addEventListener('dragstart',e=>{const handle=e.target.closest('[data-plan-drag]');if(!handle)return;this._dragId=handle.dataset.planDrag;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',this._dragId);handle.closest('[data-plan-item]')?.classList.add('is-dragging');});
     this.host.addEventListener('dragover',e=>{const row=e.target.closest('[data-plan-item]');if(!row||!this._dragId)return;e.preventDefault();e.dataTransfer.dropEffect='move';this.host.querySelectorAll('.is-drop-target').forEach(el=>el.classList.remove('is-drop-target'));row.classList.add('is-drop-target');});
