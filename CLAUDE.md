@@ -61,6 +61,89 @@ src-tauri/Cargo.toml` clean. P0-a is ready for Claude's adversarial review.
 **Next after acceptance:** P0-b native overlay host/primitives plus the explicit
 DI/unmount probe. P0 remains incomplete until every §3.1 exit gate in
 `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` passes.
+
+#### CLAUDE'S INDEPENDENT REVIEW of `cf9955a` — ACCEPTED, 7 findings; F1/F2 required before P0-b (2026-07-27)
+
+The architecture is right and the migration is genuinely clean. Two defects were
+introduced by this commit — one reproduced, one silently wrong — and both are the
+same shape: **tooling left pointed at the artifact that stopped being the
+product.**
+
+**Verified independently, not taken on report.** Re-ran on the committed bytes:
+`e2e-parity` 2/2 **including the real six-game golden (625 drilldowns)**,
+`e2e-film-room` 179, `e2e-breakdown-form` 60, `e2e-workspace-shell` 56,
+`e2e-onboarding` 52, `e2e-integrity` 12 seeds × 80 ops / 0 violations,
+`e2e-realdata` 13/13 local, `e2e-video-cors` 14, `e2e-catalog-backend` 6.
+Analytics parity holding on the REAL fixture against a completely new build path
+is the strongest single piece of evidence in this checkpoint.
+
+Independently confirmed:
+- **The resolver migration is lossless.** Zero executable bundle references remain
+  in any `e2e-*.mjs`. I checked all **32 globals `build.sh` exposed that the bridge
+  does NOT** — for both `window.X` and bare-identifier use — across every harness.
+  None are consumed. The bridge list is measured, not guessed.
+- **The 404 change is a strengthening, not a loosening.** `e2e-season-tab`
+  whitelists only `/x` and now fails every other HTTP 404; under `file://` any
+  missing asset was silently ignored.
+- **CSS parity is exact** (10 files, same order). The two added links were a real
+  pre-existing modular-path defect the bundle-only gate structurally could not see.
+- **Preact genuinely renders** — the host carries `__k`, Preact's minified vdom
+  pointer. (My first check grepped the built JS for the string `preact`, got a
+  false negative from minification, and would have been a wrong finding. The
+  weak check was narrower than its name; the same trap as `\bundefined\b`.)
+- The count correction 47/44 → **42/41 is right and mine was wrong**; the file
+  count reconciles exactly (41 harnesses + 3 non-gate tools = 44).
+- `app-entry.mjs` guards path traversal, binds loopback-only, and `unref`s.
+- The SVG sprite resolves on both paths: hashed for HTML, raw copy for
+  runtime-injected `<use href>`.
+
+**F1 [P1, tooling] `build.sh` now regenerates a BROKEN bundle — reproduced.** The
+body-extraction sed strips only `/<script.*app\.js/d`, so the two new module
+scripts survive into the single-file output. Rebuilt and probed: **4 CORS console
+errors** under `file://`, and `native-root.jsx` is raw JSX no browser can parse.
+The bundle stops being self-contained. The committed bundle is fine because it
+predates the `index.html` change — so this is **latent, and fires on the first
+regeneration**. Strip every `<script type="module" src=...>`, not just `app.js`.
+
+**F2 [P1, tooling] `tools/shots.mjs` still renders the retired artifact.** It is
+the permanent visual harness and the natural instrument for release-gate row 4
+(four-viewport screenshots, coach-approved *before* packaging). It loads
+`football-film-analyzer.html`, which is no longer the product. This fails
+**silently and plausibly** — the screenshots render fine, they are just of the
+wrong build. **The CSS finding is the proof it matters:** shots.mjs would have
+shown correct 44px chips while the product shipped 28px. With F1 unfixed it also
+throws. Point it at `app-entry.mjs`.
+
+**F3 [P2] No `beforeBuildCommand` in `tauri.conf.json`.** `dist/` is gitignored
+and now *generated*, and `cargo tauri build` consumes it without building it.
+This is the exact stale-dist trap that already burned the `1.12.0-12` packaging
+attempt. The old mitigation was the manual copy + SHA-256 verification ritual;
+that ritual is gone and nothing replaced it. CI is covered; local packaging is
+not. Add `"beforeBuildCommand": "npm run build"`.
+
+**F4 [P2] The parity stale-build guard no longer covers the Vite inputs.** It
+scans `js/` and `css/` filtered on `\.(js|css)$` — `native-root.jsx` is invisible
+to it, as is every `.jsx` P0-b adds. It also never covered `index.html`, which is
+now the **direct Vite entry** and the main thing S1–S7 edits. A markup or
+route-component edit without a rebuild gates a stale build and reports green:
+precisely the false-green class this guard exists to stop.
+
+**F5 [P2] `dist/resources` is dead weight.** `_loadSqlEngine` resolves the wasm
+via `T.path.resolveResource('resources/…')` — the Tauri resource dir — and
+`bundle.resources` already ships it. The plugin's copy duplicates **706 KB into
+every installer** and nothing reads it. It also implies a load path that does not
+exist, and that path fails silently (`catch → warn → fall back to JSON`).
+
+**F6/F7 [nits]** `.gitignore` still lists `package.json` and `package-lock.json`
+— inert because both are tracked, but the file now contradicts a build
+dependency. And the SVG sprite ships twice; the raw copy is **load-bearing** for
+runtime-injected icons, so `preserveRuntimeAssets` needs a comment saying that
+removing it silently kills every icon with no error.
+
+**Nothing in this checkpoint touches coach data, analytics results, persistence
+semantics, or film behavior — confirmed by re-running the parity and integrity
+gates myself, not accepted on report.** Managed C: film copies remain protected.
+
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**

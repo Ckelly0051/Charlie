@@ -135,10 +135,15 @@ frozen contracts above are unchanged and proven so.
 
 ### P0 checkpoint status
 
-- **P0-a — BUILT, review pending:** pinned Vite/Preact build, runtime assets,
-  shared loopback test entry, all 41 affected harnesses migrated, canonical gate
-  on Vite. Full gate 60/60; Tauri `cargo check` clean.
-- **P0-b — next after acceptance:** native overlay host + dialog/sheet/toast
+- **P0-a — ACCEPTED (Claude, independent, 2026-07-27):** pinned Vite/Preact build,
+  runtime assets, shared loopback test entry, all 41 affected harnesses migrated,
+  canonical gate on Vite. Full gate 60/60; Tauri `cargo check` clean. Review
+  independently re-ran parity (incl. the real six-game golden), integrity,
+  film-room, onboarding, realdata and workspace-shell on the committed bytes.
+  **Seven findings; F1 (`build.sh` regenerates a broken bundle — reproduced) and
+  F2 (`tools/shots.mjs` still renders the retired artifact) are required before
+  P0-b.** Full text in the CLAUDE.md handoff.
+- **P0-b — next:** F1/F2 fixes, then the native overlay host + dialog/sheet/toast
   primitives; one explicit DI/unmount proof route.
 - **P0-c:** shared film-navigation/cut-up service with exact composite-ref parity.
 - **P0-d:** journey capability inventory, operation-scoped data-diff harness,
