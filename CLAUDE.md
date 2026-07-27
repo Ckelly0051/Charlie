@@ -170,6 +170,70 @@ real-data and parity harnesses. No coach data, persistence behavior, analytics,
 film files, release, or package changed. P0-b remains blocked only on Claude's
 independent re-review of this repair checkpoint.
 
+**CLAUDE'S INDEPENDENT RE-REVIEW of `63b75f1` — ACCEPTED. All seven findings are
+genuinely closed. Two follow-ups, both pre-existing, neither blocking P0-b
+(2026-07-27).**
+
+Verified by re-running, not by reading the diff:
+
+- **F1 confirmed fixed by re-reproducing the original failure.** Regenerated the
+  bundle with `build.sh` and re-ran the exact probe that produced 4 CORS errors
+  before: now **0 errors, 0 external scripts, app boots, `#libraryOverlay`
+  present**. Restored the tracked bundle afterward; it differs from a fresh
+  rebuild by exactly 1 line (`#giNativeRoot`), so the reference artifact is only
+  trivially stale.
+- **F4 mutation-proved myself.** Future-dated `index.html` → `STALE BUILD`;
+  future-dated `js/native-root.jsx` → `STALE BUILD`. **Both were invisible to the
+  guard before this repair.** Rebuilt; parity returns 2/2.
+- **F5 verified structurally, not just by absence.** `dist/resources` is gone and
+  `emptyOutDir` cleared the stale copy. The load path is unaffected because
+  `_loadSqlEngine` resolves through `T.path.resolveResource` and `bundle.resources`
+  still ships it — catalog persistence 50/50, sql-catalog 17/17 incl. the real
+  6-game/442-play round trip, catalog-backend 6/6.
+- **Full canonical gate re-run on the committed bytes: 60 harnesses | 60 green |
+  0 skipped | 0 failed**, real data included (not the CI-skipped path). Slowest:
+  `e2e-onboarding` 29s, `e2e-integrity` 27s — the known watch-list, unchanged.
+- **Not independently re-run:** the `cargo tauri build --debug --no-bundle`
+  proof. I confirmed `beforeBuildCommand` is the correct Tauri v2 key in the
+  correct object and took the build result on report.
+
+**A better piece of evidence than anything asserted in the commit message.** To
+establish whether R1 below was caused by the repair, I reconstructed the
+pre-repair `shots.mjs` and ran it against the legacy bundle over `file://`. All
+ten captures came back **byte-identical to the Vite run**. So the **Vite build and
+the legacy single-file bundle render pixel-identically across all ten surfaces** —
+the migration is visually lossless, proven rather than claimed.
+
+**R1 [P2, PRE-EXISTING — not caused by this repair] `tools/shots.mjs` navigation
+is stale: 5 of 10 captures are byte-identical duplicates.** `01 ≡ 02`, and
+`04 ≡ 05 ≡ 06`. I opened `06-filmroom-grid.png`: **it renders Home.** So
+`workspace-main`, `workspace-rail-bottom` and `filmroom-grid` — Break Down and
+Film Room, the routes S5 redesigns and the ones the coach most needs to review —
+all capture Home. The harness walks a path the classic route retirement (`9833e38`)
+removed. The byte-identical baseline above proves the repair did not cause this;
+**F2's fix is correct and complete for what it claimed.**
+
+But the repair note says *"all 10 permanent visual surfaces rendered from the Vite
+build."* That is true about file count and wrong about surfaces: **7 distinct
+renders, 3 mislabeled.** A reviewer opening `filmroom-grid.png` sees Home and
+concludes the Film Room is fine. That is a wrong-evidence gate — the same failure
+class as F2 itself, one layer in. Fix before anyone relies on shots.mjs for
+release-gate row 4.
+
+**R2 [P2, pre-existing] shots.mjs captures one viewport (1440×900); release-gate
+row 4 requires four** (1440×900, 1280×720, 768×1024, 390×844). The instrument
+cannot currently satisfy the gate it backs.
+
+**R3 [nit] `build.sh`'s module strip is line-based.** `sed -E
+'/<script[^>]*type="module"/d'` deletes the matching line only, so a multi-line or
+inline module script would leave an orphaned body and `</script>`. Correct for
+today's markup and the bundle dies in S7 — worth a comment, not a change. The new
+comment also reads `</body,`.
+
+**No coach data, analytics result, persistence semantics, or film behavior
+changed — confirmed by re-running parity and integrity myself.** Managed C: film
+copies remain protected. **P0-b is unblocked.**
+
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**

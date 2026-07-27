@@ -135,7 +135,17 @@ frozen contracts above are unchanged and proven so.
 
 ### P0 checkpoint status
 
-- **P0-a — ACCEPTED; review repair awaiting Claude re-review (2026-07-27):** the
+- **P0-a — COMPLETE. Foundation and repair both ACCEPTED (Claude, independent,
+  2026-07-27).** F1–F7 are genuinely closed: F1 confirmed by re-reproducing the
+  original CORS failure (0 errors after), F4 mutation-proved on both newly
+  covered inputs, full canonical gate re-run **60/60, 0 skipped**. A pre-repair
+  baseline run proved the **Vite build renders pixel-identically to the legacy
+  bundle across all ten visual surfaces**. Two pre-existing follow-ups recorded,
+  neither blocking: `tools/shots.mjs` navigation is stale (5 of 10 captures
+  duplicate an earlier surface; Break Down and Film Room both capture Home) and
+  it shoots one viewport where release-gate row 4 requires four. **P0-b is
+  unblocked.** Detail below and in `CLAUDE.md`.
+- *(superseded)* the
   Vite/Preact foundation and 41-harness entry migration were accepted. Codex then
   closed all seven review findings together: self-contained legacy reference
   build, canonical visual-harness entry, Tauri pre-build, complete freshness
