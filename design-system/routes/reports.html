@@ -1,0 +1,260 @@
+<!-- @dsCard group="Routes" -->
+<meta charset="utf-8">
+<title>Route — Reports</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --s1:#0c1014;--s2:#121820;--s3:#1a2330;--s4:#202b3a;--s5:#273545;
+  --s6:#2f4054;--s7:#3a4f66;--s8:#4c657f;--s9:#2b6fff;--s10:#3d7dff;
+  --s11:#8fa8c4;--s12:#eef3f8;
+  --fd:#ffd400;--bad:#fa4d56;--ok:#42be65;--warn:#ff9f2e;
+  --run:#a8842b;--pass:#2f6291;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --cond:'IBM Plex Sans Condensed',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--s1);color:var(--s12);font:14px/1.5 var(--sans)}
+.n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app{display:grid;grid-template-columns:1fr;grid-template-rows:52px 1fr;height:900px}
+/* shell */
+.bar{display:flex;align-items:stretch;background:var(--s2);border-bottom:1px solid var(--s6)}
+.mark{display:flex;align-items:center;padding:0 18px;border-right:1px solid var(--s6);font:600 15px/1 var(--sans)}
+.mark i{font-style:normal;color:var(--fd)}
+.nav{display:flex}
+.nav a{display:flex;align-items:center;padding:0 15px;font:500 12.5px/1 var(--sans);color:var(--s11);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.nav a.on{color:var(--s12);border-bottom-color:var(--s9);background:var(--s3)}
+.bug{margin-left:auto;display:flex;align-items:center;gap:10px;padding:0 16px;border-left:1px solid var(--s6);font-size:12.5px;color:var(--s11)}
+.bug b{font-family:var(--cond);font-size:17px;color:var(--s12)}
+
+.body{display:grid;grid-template-columns:196px 1fr;min-height:0}
+/* report rail */
+.rail{background:var(--s2);border-right:1px solid var(--s6);padding:14px 0;overflow:auto}
+.rail h5{margin:0;padding:0 16px 8px;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--s8)}
+.rail a{display:flex;align-items:center;gap:9px;padding:0 16px;height:34px;color:var(--s11);font-size:13px;cursor:pointer;border-left:2px solid transparent}
+.rail a:hover{background:var(--s3);color:var(--s12)}
+.rail a.on{background:var(--s3);color:var(--s12);border-left-color:var(--s9);font-weight:600}
+.rail .sep{height:1px;background:var(--s6);margin:12px 16px}
+
+.main{overflow:auto;padding:18px 22px 30px;min-width:0}
+.head{display:flex;align-items:flex-end;gap:16px;margin-bottom:18px}
+.head h1{margin:0;font:600 26px/1.1 var(--sans);letter-spacing:-.015em}
+.head p{margin:3px 0 0;color:var(--s11);font-size:13px}
+.head .act{margin-left:auto;display:flex;gap:6px}
+.btn{height:34px;padding:0 13px;border:1px solid var(--s7);background:var(--s3);color:var(--s12);font:500 12.5px/1 var(--sans);display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.btn:hover{background:var(--s4);border-color:var(--s8)}
+.btn.pri{background:var(--s9);border-color:var(--s9);color:#fff;font-weight:600}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--s6);border:1px solid var(--s6);margin-bottom:18px}
+.k{background:var(--s2);padding:13px 14px}
+.k span{display:block;font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--s11);margin-bottom:9px}
+.k b{font-size:31px;line-height:.9;display:block}
+.k .d{display:flex;align-items:center;gap:5px;margin-top:8px;font:500 11px/1 var(--mono)}
+.k .up{color:var(--ok)}.k .dn{color:var(--bad)}.k .fl{color:var(--s8)}
+.spark{height:16px;margin-top:9px;display:flex;align-items:flex-end;gap:2px}
+.spark i{flex:1;background:var(--s5)}
+.spark i.hi{background:var(--s9)}
+
+/* grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:var(--s2);border:1px solid var(--s6);min-width:0}
+.card.wide{grid-column:1/-1}
+.card > header{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--s6)}
+.card > header h3{margin:0;font:600 13px/1 var(--sans)}
+.card > header .hint{margin-left:auto;font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--s8);display:flex;align-items:center;gap:5px}
+.card .in{padding:14px}
+
+/* every mark is a film link — say so */
+.film-mark{cursor:pointer;position:relative}
+.film-mark:hover{outline:1px solid var(--s9);outline-offset:1px}
+.film-mark:hover::after{content:'▶ ' attr(data-plays);position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  font:600 10px/1 var(--mono);background:var(--s9);color:#fff;padding:4px 6px;white-space:nowrap;z-index:3}
+
+/* composition bar */
+.comp{display:flex;height:38px;border:1px solid var(--s6)}
+.comp div{display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--sans);color:#fff}
+.comp .r{background:var(--run)}.comp .p{background:var(--pass)}
+.legend{display:flex;gap:16px;margin-top:11px;font-size:12px;color:var(--s11)}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:6px}
+
+/* ranked bars */
+.rank{display:grid;gap:5px}
+.rw{display:grid;grid-template-columns:118px 1fr 52px 44px;gap:10px;align-items:center;padding:5px 6px;font-size:12.5px}
+.rw:hover{background:var(--s3)}
+.rw .nm{color:var(--s12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .track{height:16px;background:var(--s4);position:relative;display:flex}
+.rw .track i{display:block}
+.rw .track .r{background:var(--run)}.rw .track .p{background:var(--pass)}
+.rw .avg{font-family:var(--mono);font-size:11.5px;color:var(--s11);text-align:right}
+.rw .cnt{font-family:var(--mono);font-size:11px;color:var(--s8);text-align:right}
+
+/* tendency heat grid — the signature */
+.heat{display:grid;grid-template-columns:112px repeat(6,1fr);gap:2px;font-size:11.5px}
+.heat .hh{font:500 9.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--s11);display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;text-align:center}
+.heat .rh{display:flex;align-items:center;color:var(--s11);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+.cell{height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--s3);color:var(--s12)}
+.cell b{font-family:var(--cond);font-weight:700;font-size:14px;line-height:1}
+.cell span{font:500 9px/1 var(--mono);color:#ffffff8c}
+.cell.e{background:var(--s2);color:var(--s8)}
+.h1{background:#2a3a2e}.h2{background:#3c4a2c}.h3{background:#5c5228}
+.h4{background:#7d4f22}.h5{background:#9b3f2c}.h6{background:#b8323f}
+.hkey{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px;color:var(--s11)}
+.hkey .ramp{display:flex;flex:0 0 150px;height:8px}
+.hkey .ramp i{flex:1}
+
+/* data table */
+.tbl{font-size:12.5px}
+.tbl .hd,.tbl .r{display:grid;grid-template-columns:96px 1fr 92px 68px 62px 74px}
+.tbl .hd{background:var(--s4);font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--s11)}
+.tbl .hd span{padding:9px 12px}
+.tbl .r{border-top:1px solid var(--s6)}
+.tbl .r:hover{background:var(--s3)}
+.tbl .r span{padding:9px 12px;display:flex;align-items:center}
+.dd{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px}
+.dd i{font-style:normal;color:var(--s11);margin:0 2px}
+.mini{height:12px;background:var(--s4);display:flex;min-width:70px}
+.mini i{display:block}
+.pct{font-family:var(--mono);font-size:11.5px;justify-content:flex-end}
+.pct.g{color:var(--ok)}.pct.b{color:var(--bad)}
+</style>
+<div class="app">
+  <header class="bar">
+    <div class="mark">GridIron <i>IQ</i></div>
+    <nav class="nav"><a>Home</a><a>Break Down</a><a>Study</a><a class="on">Reports</a><a>Plan</a></nav>
+    <div class="bug">Week 7 · vs St Peter<b class="n">41–0</b></div>
+  </header>
+
+  <div class="body">
+    <nav class="rail">
+      <h5>This game</h5>
+      <a class="on">Overview</a><a>Offense</a><a>Defense</a><a>Special teams</a><a>Drives</a><a>Players</a>
+      <div class="sep"></div>
+      <h5>Scouting</h5>
+      <a>Self-scout</a><a>Opponent scout</a><a>Tendency matrix</a><a>Big 12 calls</a>
+      <div class="sep"></div>
+      <h5>Season</h5>
+      <a>Season totals</a><a>Progression</a>
+    </nav>
+
+    <main class="main">
+      <div class="head">
+        <div>
+          <h1>Offense — Week 7</h1>
+          <p>44 charted plays · 8 drives · every number below opens the film</p>
+        </div>
+        <div class="act"><button class="btn">Export</button><button class="btn pri">▶ Watch all</button></div>
+      </div>
+
+      <div class="kpis">
+        <div class="k film-mark" data-plays="44 plays"><span>Plays</span><b class="n">44</b>
+          <div class="spark"><i style="height:40%"></i><i style="height:65%"></i><i style="height:50%"></i><i class="hi" style="height:90%"></i><i style="height:70%"></i></div></div>
+        <div class="k film-mark" data-plays="44 plays"><span>Yards / play</span><b class="n">7.4</b>
+          <div class="d up">▲ 1.9 vs season</div></div>
+        <div class="k film-mark" data-plays="26 plays"><span>Success rate</span><b class="n">59%</b>
+          <div class="d up">▲ 6 pts</div></div>
+        <div class="k film-mark" data-plays="9 plays"><span>Explosive</span><b class="n">9</b>
+          <div class="d up">▲ 4</div></div>
+        <div class="k film-mark" data-plays="1 play"><span>Turnovers</span><b class="n">1</b>
+          <div class="d dn">▼ better by 1</div></div>
+        <div class="k film-mark" data-plays="12 plays"><span>3rd down</span><b class="n">67%</b>
+          <div class="d up">8 of 12</div></div>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <header><h3>Run / pass composition</h3><span class="hint">click to watch</span></header>
+          <div class="in">
+            <div class="comp">
+              <div class="r film-mark" data-plays="19 plays" style="flex:19">43%</div>
+              <div class="p film-mark" data-plays="25 plays" style="flex:25">57%</div>
+            </div>
+            <div class="legend">
+              <span><i style="background:var(--run)"></i>Run · 19 · 5.8 ypc</span>
+              <span><i style="background:var(--pass)"></i>Pass · 25 · 8.6 ypa</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <header><h3>Formation effectiveness</h3><span class="hint">run / pass split</span></header>
+          <div class="in">
+            <div class="rank">
+              <div class="rw film-mark" data-plays="14 plays"><span class="nm">Trips Rt</span>
+                <span class="track"><i class="r" style="width:26%"></i><i class="p" style="width:52%"></i></span>
+                <span class="avg">8.9</span><span class="cnt">14</span></div>
+              <div class="rw film-mark" data-plays="11 plays"><span class="nm">Ace</span>
+                <span class="track"><i class="r" style="width:58%"></i><i class="p" style="width:14%"></i></span>
+                <span class="avg">6.1</span><span class="cnt">11</span></div>
+              <div class="rw film-mark" data-plays="9 plays"><span class="nm">Empty</span>
+                <span class="track"><i class="r" style="width:6%"></i><i class="p" style="width:61%"></i></span>
+                <span class="avg">7.8</span><span class="cnt">9</span></div>
+              <div class="rw film-mark" data-plays="6 plays"><span class="nm">Bunch Lt</span>
+                <span class="track"><i class="r" style="width:30%"></i><i class="p" style="width:22%"></i></span>
+                <span class="avg">4.2</span><span class="cnt">6</span></div>
+              <div class="rw film-mark" data-plays="4 plays"><span class="nm">Wing-T</span>
+                <span class="track"><i class="r" style="width:44%"></i><i class="p" style="width:0%"></i></span>
+                <span class="avg">3.5</span><span class="cnt">4</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card wide">
+          <header><h3>Predictability — formation × situation</h3><span class="hint">red = a defense can call it</span></header>
+          <div class="in">
+            <div class="heat">
+              <span></span>
+              <span class="hh">1st &amp; 10</span><span class="hh">2nd short</span><span class="hh">2nd long</span>
+              <span class="hh">3rd short</span><span class="hh">3rd long</span><span class="hh">Red zone</span>
+              <span class="rh">Trips Rt</span>
+              <span class="cell h2 film-mark" data-plays="5 plays"><b>62%</b><span>PASS · 5</span></span>
+              <span class="cell h1 film-mark" data-plays="3 plays"><b>55%</b><span>PASS · 3</span></span>
+              <span class="cell h4 film-mark" data-plays="4 plays"><b>83%</b><span>PASS · 4</span></span>
+              <span class="cell e">—</span>
+              <span class="cell h6 film-mark" data-plays="6 plays"><b>100%</b><span>PASS · 6</span></span>
+              <span class="cell h3 film-mark" data-plays="3 plays"><b>71%</b><span>PASS · 3</span></span>
+              <span class="rh">Ace</span>
+              <span class="cell h5 film-mark" data-plays="7 plays"><b>88%</b><span>RUN · 7</span></span>
+              <span class="cell h6 film-mark" data-plays="4 plays"><b>100%</b><span>RUN · 4</span></span>
+              <span class="cell e">—</span>
+              <span class="cell h4 film-mark" data-plays="3 plays"><b>80%</b><span>RUN · 3</span></span>
+              <span class="cell e">—</span>
+              <span class="cell h3 film-mark" data-plays="3 plays"><b>70%</b><span>RUN · 3</span></span>
+              <span class="rh">Empty</span>
+              <span class="cell h2 film-mark" data-plays="3 plays"><b>60%</b><span>PASS · 3</span></span>
+              <span class="cell e">—</span>
+              <span class="cell h6 film-mark" data-plays="4 plays"><b>100%</b><span>PASS · 4</span></span>
+              <span class="cell e">—</span>
+              <span class="cell h6 film-mark" data-plays="2 plays"><b>100%</b><span>PASS · 2</span></span>
+              <span class="cell e">—</span>
+            </div>
+            <div class="hkey">Balanced
+              <span class="ramp"><i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i><i class="h5"></i><i class="h6"></i></span>
+              Fully predictable · <span style="color:var(--s8)">grey = fewer than 3 reps, not enough to call a tendency</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card wide">
+          <header><h3>Down &amp; distance</h3><span class="hint">click any row to watch</span></header>
+          <div class="tbl">
+            <div class="hd"><span>Dn &amp; dist</span><span>Tendency</span><span>Plays</span><span>Yds/play</span><span>Success</span><span>Conv</span></div>
+            <div class="r film-mark" data-plays="16 plays"><span class="dd">1<i>&amp;</i>10</span>
+              <span><span class="mini"><i class="r" style="width:44%"></i><i class="p" style="width:56%"></i></span></span>
+              <span class="pct">16</span><span class="pct">7.1</span><span class="pct g">62%</span><span class="pct">—</span></div>
+            <div class="r film-mark" data-plays="9 plays"><span class="dd">2<i>&amp;</i>Short</span>
+              <span><span class="mini"><i class="r" style="width:78%"></i><i class="p" style="width:22%"></i></span></span>
+              <span class="pct">9</span><span class="pct">6.2</span><span class="pct g">78%</span><span class="pct">—</span></div>
+            <div class="r film-mark" data-plays="7 plays"><span class="dd">2<i>&amp;</i>Long</span>
+              <span><span class="mini"><i class="r" style="width:14%"></i><i class="p" style="width:86%"></i></span></span>
+              <span class="pct">7</span><span class="pct">9.4</span><span class="pct g">57%</span><span class="pct">—</span></div>
+            <div class="r film-mark" data-plays="12 plays"><span class="dd">3<i>&amp;</i>Long</span>
+              <span><span class="mini"><i class="r" style="width:8%"></i><i class="p" style="width:92%"></i></span></span>
+              <span class="pct">12</span><span class="pct">8.8</span><span class="pct b">42%</span><span class="pct g">67%</span></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>

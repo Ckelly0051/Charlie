@@ -1,0 +1,244 @@
+<!-- @dsCard group="Routes" -->
+<meta charset="utf-8">
+<title>Route — Study (pivot)</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --s1:#0c1014;--s2:#121820;--s3:#1a2330;--s4:#202b3a;--s5:#273545;
+  --s6:#2f4054;--s7:#3a4f66;--s8:#4c657f;--s9:#2b6fff;--s10:#3d7dff;
+  --s11:#8fa8c4;--s12:#eef3f8;
+  --fd:#ffd400;--bad:#fa4d56;--ok:#42be65;--run:#a8842b;--pass:#2f6291;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --cond:'IBM Plex Sans Condensed',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--s1);color:var(--s12);font:14px/1.5 var(--sans)}
+.n{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app{display:grid;grid-template-rows:52px 1fr;height:900px}
+.bar{display:flex;align-items:stretch;background:var(--s2);border-bottom:1px solid var(--s6)}
+.mark{display:flex;align-items:center;padding:0 18px;border-right:1px solid var(--s6);font:600 15px/1 var(--sans)}
+.mark i{font-style:normal;color:var(--fd)}
+.nav{display:flex}
+.nav a{display:flex;align-items:center;padding:0 15px;font:500 12.5px/1 var(--sans);color:var(--s11);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.nav a.on{color:var(--s12);border-bottom-color:var(--s9);background:var(--s3)}
+.scope{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 16px;border-left:1px solid var(--s6);font-size:12.5px;color:var(--s11)}
+.scope b{color:var(--s12);font-weight:600}
+
+.body{display:grid;grid-template-columns:212px 1fr;min-height:0}
+
+/* ── dimension palette ── */
+.pal{background:var(--s2);border-right:1px solid var(--s6);display:flex;flex-direction:column;min-height:0}
+.pal .ph{padding:12px 14px 9px;border-bottom:1px solid var(--s6)}
+.pal .ph h5{margin:0 0 3px;font:500 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--s8)}
+.pal .ph p{margin:0;font-size:11.5px;color:var(--s11)}
+.dims{flex:1;overflow:auto;padding:8px}
+.dgrp{font:500 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--s8);padding:10px 6px 6px}
+.dim{display:flex;align-items:center;gap:8px;padding:0 8px;height:29px;background:var(--s3);border:1px solid var(--s6);
+     margin-bottom:3px;font-size:12.5px;color:var(--s12);cursor:grab}
+.dim:hover{border-color:var(--s8);background:var(--s4)}
+.dim .gr{color:var(--s8);font:600 10px/1 var(--mono);letter-spacing:-1px}
+.dim .ct{margin-left:auto;font:500 10px/1 var(--mono);color:var(--s8)}
+.dim.used{opacity:.42;cursor:default}
+
+/* ── canvas ── */
+.canvas{display:flex;flex-direction:column;min-width:0;min-height:0}
+.shelf{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--s6);border-bottom:1px solid var(--s6)}
+.slot{background:var(--s2);padding:9px 12px;min-height:62px}
+.slot h6{margin:0 0 7px;font:500 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--s8)}
+.tok{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 8px;background:var(--s9);color:#fff;
+     font:600 12px/1 var(--sans);margin:0 4px 4px 0}
+.tok.m{background:var(--fd);color:#141000}
+.tok.f{background:var(--s5);color:var(--s12)}
+.tok x{cursor:pointer;opacity:.7;font-style:normal;font-size:13px}
+.drop{border:1px dashed var(--s7);height:26px;display:flex;align-items:center;padding:0 9px;color:var(--s8);font-size:11.5px}
+
+.tools{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--s6);background:var(--s2)}
+.btn{height:30px;padding:0 11px;border:1px solid var(--s7);background:var(--s3);color:var(--s12);font:500 12px/1 var(--sans);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.btn:hover{background:var(--s4)}
+.btn.pri{background:var(--s9);border-color:var(--s9);color:#fff;font-weight:600}
+.seg{display:flex;border:1px solid var(--s7)}
+.seg button{height:30px;padding:0 11px;border:0;background:var(--s3);color:var(--s11);font:500 12px/1 var(--sans);cursor:pointer}
+.seg button.on{background:var(--s5);color:var(--s12);font-weight:600}
+.tools .sp{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--s11)}
+.tools .sp input{width:44px;background:var(--s1);border:1px solid var(--s7);color:var(--s12);font:600 12px/1 var(--mono);padding:6px;text-align:center}
+
+/* ── the pivot ── */
+.wrap{flex:1;overflow:auto;padding:14px}
+table{border-collapse:separate;border-spacing:2px;width:100%}
+th,td{padding:0}
+thead th{font:500 9.5px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--s11);
+  vertical-align:bottom;padding:0 4px 7px;text-align:center;white-space:nowrap}
+thead th.corner{text-align:left;color:var(--s8);padding-left:2px}
+thead th.tot{color:var(--fd)}
+tbody th{font:500 12.5px/1 var(--sans);color:var(--s12);text-align:left;padding:0 10px 0 4px;white-space:nowrap;
+  max-width:150px;overflow:hidden;text-overflow:ellipsis}
+tbody tr.total th{color:var(--fd);font-weight:600}
+td .cell{height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:var(--s3);cursor:pointer;position:relative}
+td .cell b{font-family:var(--cond);font-weight:700;font-variant-numeric:tabular-nums;font-size:16px;line-height:1}
+td .cell span{font:500 9px/1 var(--mono);color:#ffffff8f}
+td .cell:hover{outline:2px solid var(--s9);outline-offset:-1px;z-index:2}
+td .cell:hover::after{content:'▶ watch';position:absolute;bottom:-1px;left:0;right:0;background:var(--s9);color:#fff;
+  font:600 8.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 0;text-align:center}
+td .cell.thin{background:var(--s2);color:var(--s8)}
+td .cell.thin b{font-size:13px;color:var(--s8)}
+td .cell.empty{background:#0f151d}
+/* value ramp — low to high on the chosen measure */
+.v1{background:#1b2a24}.v2{background:#22402f}.v3{background:#2c563a}
+.v4{background:#3c6b3f}.v5{background:#5a7d3a}.v6{background:#87892f}
+.v7{background:#b28c25}.v8{background:#d68a1c}
+td .cell.tot{background:var(--s5)}
+td .cell.tot b{color:var(--fd)}
+.foot{display:flex;align-items:center;gap:16px;padding:10px 14px;border-top:1px solid var(--s6);background:var(--s2);font-size:11.5px;color:var(--s11)}
+.foot .key{display:flex;align-items:center;gap:7px}
+.foot .ramp{display:flex;width:132px;height:8px}
+.foot .ramp i{flex:1}
+.foot b{color:var(--s12)}
+</style>
+<div class="app">
+  <header class="bar">
+    <div class="mark">GridIron <i>IQ</i></div>
+    <nav class="nav"><a>Home</a><a>Break Down</a><a class="on">Study</a><a>Reports</a><a>Plan</a></nav>
+    <div class="scope">Scope<b>2026 season · 6 games · 449 plays</b></div>
+  </header>
+
+  <div class="body">
+    <aside class="pal">
+      <div class="ph"><h5>Dimensions</h5><p>Drag onto rows, columns or filters</p></div>
+      <div class="dims">
+        <div class="dgrp">Offensive look</div>
+        <div class="dim used"><span class="gr">⠿</span>Formation<span class="ct">12</span></div>
+        <div class="dim"><span class="gr">⠿</span>QB alignment<span class="ct">3</span></div>
+        <div class="dim"><span class="gr">⠿</span>Backfield<span class="ct">9</span></div>
+        <div class="dim"><span class="gr">⠿</span>Strength<span class="ct">3</span></div>
+        <div class="dim"><span class="gr">⠿</span>Personnel<span class="ct">11</span></div>
+        <div class="dim"><span class="gr">⠿</span>Motion<span class="ct">5</span></div>
+        <div class="dgrp">Situation</div>
+        <div class="dim used"><span class="gr">⠿</span>Down &amp; distance<span class="ct">8</span></div>
+        <div class="dim"><span class="gr">⠿</span>Field zone<span class="ct">5</span></div>
+        <div class="dim"><span class="gr">⠿</span>Hash<span class="ct">3</span></div>
+        <div class="dim"><span class="gr">⠿</span>Quarter<span class="ct">5</span></div>
+        <div class="dim"><span class="gr">⠿</span>Drive number<span class="ct">14</span></div>
+        <div class="dgrp">Play</div>
+        <div class="dim"><span class="gr">⠿</span>Play type<span class="ct">9</span></div>
+        <div class="dim used"><span class="gr">⠿</span>Run / pass<span class="ct">2</span></div>
+        <div class="dim"><span class="gr">⠿</span>Play direction<span class="ct">3</span></div>
+        <div class="dim"><span class="gr">⠿</span>Result<span class="ct">16</span></div>
+        <div class="dgrp">Defense faced</div>
+        <div class="dim"><span class="gr">⠿</span>Front<span class="ct">13</span></div>
+        <div class="dim"><span class="gr">⠿</span>Coverage<span class="ct">7</span></div>
+        <div class="dim"><span class="gr">⠿</span>Blitz<span class="ct">6</span></div>
+      </div>
+    </aside>
+
+    <main class="canvas">
+      <div class="shelf">
+        <div class="slot"><h6>Rows</h6>
+          <span class="tok">Formation <x>×</x></span></div>
+        <div class="slot"><h6>Columns</h6>
+          <span class="tok">Down &amp; distance <x>×</x></span></div>
+        <div class="slot"><h6>Measure</h6>
+          <span class="tok m">Yards / play <x>×</x></span></div>
+        <div class="slot"><h6>Filters</h6>
+          <span class="tok f">Unit: Offense <x>×</x></span><span class="tok f">Run / pass: Pass <x>×</x></span>
+          <div class="drop">drop a dimension to filter</div></div>
+      </div>
+
+      <div class="tools">
+        <div class="seg"><button class="on">Yds / play</button><button>Success %</button><button>Plays</button><button>EPA</button></div>
+        <button class="btn">Swap axes ⇄</button>
+        <button class="btn">Save view</button>
+        <button class="btn pri">▶ Watch selection</button>
+        <div class="sp">Min sample <input value="3"> · <b style="color:var(--s12)">312</b> plays match</div>
+      </div>
+
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="corner">Formation ╲ Dn &amp; dist</th>
+              <th>1 &amp; 10</th><th>2 &amp; Short</th><th>2 &amp; Long</th>
+              <th>3 &amp; Short</th><th>3 &amp; Med</th><th>3 &amp; Long</th><th>4th</th>
+              <th class="tot">All</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th>Trips Rt</th>
+              <td><div class="cell v5"><b>8.1</b><span>24</span></div></td>
+              <td><div class="cell v3"><b>5.2</b><span>9</span></div></td>
+              <td><div class="cell v7"><b>10.4</b><span>17</span></div></td>
+              <td><div class="cell thin"><b>4.0</b><span>2</span></div></td>
+              <td><div class="cell v6"><b>9.1</b><span>11</span></div></td>
+              <td><div class="cell v8"><b>12.6</b><span>14</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell tot"><b>9.3</b><span>77</span></div></td></tr>
+            <tr><th>Empty</th>
+              <td><div class="cell v4"><b>6.9</b><span>12</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell v6"><b>9.4</b><span>14</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell v5"><b>8.2</b><span>8</span></div></td>
+              <td><div class="cell v7"><b>11.1</b><span>13</span></div></td>
+              <td><div class="cell thin"><b>7.5</b><span>2</span></div></td>
+              <td><div class="cell tot"><b>9.1</b><span>49</span></div></td></tr>
+            <tr><th>Ace</th>
+              <td><div class="cell v3"><b>5.4</b><span>19</span></div></td>
+              <td><div class="cell v4"><b>6.6</b><span>13</span></div></td>
+              <td><div class="cell v2"><b>4.1</b><span>7</span></div></td>
+              <td><div class="cell v3"><b>5.0</b><span>6</span></div></td>
+              <td><div class="cell v2"><b>3.8</b><span>5</span></div></td>
+              <td><div class="cell thin"><b>6.0</b><span>2</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell tot"><b>5.3</b><span>52</span></div></td></tr>
+            <tr><th>Bunch Lt</th>
+              <td><div class="cell v4"><b>6.2</b><span>11</span></div></td>
+              <td><div class="cell v5"><b>7.9</b><span>6</span></div></td>
+              <td><div class="cell v3"><b>5.1</b><span>8</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell v4"><b>6.8</b><span>4</span></div></td>
+              <td><div class="cell v6"><b>9.8</b><span>7</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell tot"><b>6.9</b><span>36</span></div></td></tr>
+            <tr><th>Wing-T</th>
+              <td><div class="cell v2"><b>4.3</b><span>14</span></div></td>
+              <td><div class="cell v5"><b>7.7</b><span>9</span></div></td>
+              <td><div class="cell v1"><b>2.9</b><span>5</span></div></td>
+              <td><div class="cell v6"><b>9.2</b><span>7</span></div></td>
+              <td><div class="cell thin"><b>3.5</b><span>2</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell tot"><b>5.6</b><span>37</span></div></td></tr>
+            <tr><th>Spread</th>
+              <td><div class="cell v4"><b>6.4</b><span>16</span></div></td>
+              <td><div class="cell v3"><b>5.6</b><span>7</span></div></td>
+              <td><div class="cell v5"><b>8.0</b><span>10</span></div></td>
+              <td><div class="cell thin"><b>4.5</b><span>2</span></div></td>
+              <td><div class="cell v4"><b>7.2</b><span>9</span></div></td>
+              <td><div class="cell v6"><b>9.5</b><span>11</span></div></td>
+              <td><div class="cell empty"><b>—</b></div></td>
+              <td><div class="cell tot"><b>7.2</b><span>55</span></div></td></tr>
+            <tr class="total"><th>All formations</th>
+              <td><div class="cell tot"><b>6.4</b><span>96</span></div></td>
+              <td><div class="cell tot"><b>6.5</b><span>44</span></div></td>
+              <td><div class="cell tot"><b>7.4</b><span>61</span></div></td>
+              <td><div class="cell tot"><b>6.6</b><span>19</span></div></td>
+              <td><div class="cell tot"><b>7.5</b><span>39</span></div></td>
+              <td><div class="cell tot"><b>11.2</b><span>47</span></div></td>
+              <td><div class="cell tot"><b>7.5</b><span>6</span></div></td>
+              <td><div class="cell tot"><b>7.4</b><span>312</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="foot">
+        <div class="key">Low
+          <span class="ramp"><i class="v1"></i><i class="v2"></i><i class="v3"></i><i class="v4"></i><i class="v5"></i><i class="v6"></i><i class="v7"></i><i class="v8"></i></span>
+          High</div>
+        <span>Dimmed cells fall under the <b>min sample</b> of 3 — shown, never hidden, never counted as a tendency.</span>
+        <span style="margin-left:auto">Every cell is a cut-up · <b>312</b> plays in view</span>
+      </div>
+    </main>
+  </div>
+</div>
