@@ -13,8 +13,9 @@ Hub specification, the overlay specification, and the revised Plan design card.
 
 **Status:** P0 IN PROGRESS. **P0-a COMPLETE — foundation `cf9955a` and repair
 `63b75f1` both independently accepted (Claude, 2026-07-27; review record
-`a26ed6e`). **P0-b `5162e6b` ACCEPTED — P0-c is next.** N1–N3 must close before
-S2/S4. Codex is the builder.**
+`a26ed6e`). P0-b `5162e6b` ACCEPTED. P0-c implementation `4d72dd0` BUILT —
+awaiting Claude's independent review.** P0-b N4 closed at the P0-c checkpoint;
+N1–N3 remain mandatory before S2/S4. Codex is the builder.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -173,9 +174,21 @@ frozen contracts above are unchanged and proven so.
   data no-op, service replacement and clean unmount. Focused journey 31/31; full
   canonical gate 61/61; normal product pixel-identical to P0-a captures. No
   legacy overlay migrated and no coach-facing workflow changed.
-- **P0-c — next after P0-b acceptance:** shared film-navigation/cut-up service
-  with exact composite-ref parity.
-- **P0-d:** journey capability inventory, operation-scoped data-diff harness,
+- **P0-c — BUILT, awaiting independent review (`4d72dd0`, Codex, 2026-07-27).**
+  `FilmNavigationService` is now the one playback owner for Study, Reports and
+  Plan. Callers submit exact `gameId::playId` refs; translation to bare ids
+  happens only after the owning game loads. The service owns film-health
+  preflight, one launch save, transient game hops, cancellation/replacement,
+  honest unavailable accounting, and launch-game restoration. Reports retains
+  its explicit no-video select-first fallback. Focused contract **21/21**;
+  Study/Plan **56/56**; three critical mutations red independently (neighbor
+  leak, transient-origin overwrite, false completed load failure). The full
+  canonical gate is **62/62 green, 0 skipped**, including synthetic + real-data
+  parity and integrity. The first full run exposed P0-b N4 as deterministic:
+  Escape focus raced Preact inert cleanup. Fixed with one close-focus owner and
+  readiness-based restoration; overlay journey is **31/31 three consecutive
+  runs**. N1–N3 remain required before S2/S4; N5–N7 stay scheduled.
+- **P0-d — next after P0-c acceptance:** journey capability inventory, operation-scoped data-diff harness,
   design-token enforcement, and final P0 exit audit.
 
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.

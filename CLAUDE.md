@@ -349,8 +349,57 @@ be injectable.
 changed — confirmed by re-running the full gate myself.** Managed C: film copies
 remain protected. **P0-c is unblocked.**
 
-**Next:** Claude independently reviews P0-b. P0-c (shared film navigation with
-composite-ref equality) remains blocked until acceptance.
+### P0-c — Shared film navigation BUILT, awaiting Claude review (`4d72dd0`, Codex, 2026-07-27)
+
+`FilmNavigationService` replaces UI-to-UI playback coupling. Study and all four
+Plan watch actions now submit their exact stored composite refs directly to the
+service. Reports stamps the active game onto its filtered play set before handoff;
+it no longer reaches through `window.app.cutupPlayer`. The service is explicitly
+injected with storage, workspace, player and planner dependencies and owns:
+
+- exact `gameId::playId` identity until the owning game is loaded;
+- film-health preflight and honest unavailable/skipped counts;
+- one launch commit/persist, then non-persisting read-only game hops;
+- cancellation, supersession and filtered queue ownership;
+- return to the coach's original launch game; and
+- Reports' deliberate no-video "select first" fallback.
+
+`StudyScreen._watch` remains only as a one-line compatibility adapter during P0;
+no orchestration remains there. `PlanScreen` no longer calls that private method.
+`StatsEngine._watchPlays` no longer starts `CutupPlayer` or passes ambiguous bare
+ids.
+
+**Self-review found two real defects before handoff.** A replacement Watch begun
+after the first reel had hopped games could capture the transient game as its
+origin; a shared reel-session launch id now preserves the true origin. Also, a
+reel where every `switchToGame` failed reported `completed:true`; it now returns
+`reason:'unavailable'`. The focused harness uses repeated bare play ids in two
+games and a sparse requested set (`::2` only) so chronological neighbors cannot
+hide in the queue.
+
+**Mutation proof:** independently replacing the exact-ref filter with `true` reds
+"Next/Save & Next queue contains only exact requested examples"; overwriting the
+session launch on every request reds the replacement-after-hop restoration; and
+disabling the zero-games-played guard reds the all-load-failed honesty assertion.
+Focused film-navigation contract **21/21**; Study/Plan journey **56/56**.
+
+**The first full gate was 61/62 and exposed P0-b N4 as deterministic, not flaky.**
+Escape removed the dialog while the native route was still inert; the service's
+fixed double-rAF focus attempt was rejected and focus remained on `body`. Scrim
+passed only because Preact event timing differed. Closing focus now has one owner:
+a buried panel does not rerun initial focus when uncovered, and the service waits
+until the exact return target is connected, visible and non-inert. The assertion
+now waits for the behavior rather than sleeping 50 ms. Overlay journey is **31/31
+on three consecutive runs**. N4 is CLOSED at `4d72dd0`; N1–N3 remain required
+before S2/S4, and N5–N7 remain scheduled with their first relevant consumer.
+
+**Final exact-byte verification:** `bash tools/run-gate.sh` → **62 harnesses | 62
+green | 0 skipped | 0 failed**. Parity 2/2 includes synthetic and the real season;
+integrity, catalog, storage, Study, Plan and overlay gates are green. No analytics
+formula, persistence schema, coach data, film file, package, tag or release was
+changed. Managed C: copies remain protected.
+
+**Next:** Claude independently reviews `4d72dd0`. P0-d is blocked on that verdict.
 ### Active closeout pass (2026-07-23)
 
 **Claude builds; Codex independently reviews; the coach owns installed smoke.**
