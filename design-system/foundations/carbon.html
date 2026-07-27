@@ -1,0 +1,173 @@
+<!-- @dsCard group="Foundations" -->
+<meta charset="utf-8">
+<title>Carbon — what we take, what we refuse</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Carbon Gray 100 layer model — the thing worth stealing outright */
+  --bg:#161616;--l1:#262626;--l2:#393939;--l3:#525252;
+  --field:#0b0e0f;              /* our addition: BELOW background, for film */
+  --bd:#393939;--bd-str:#6f6f6f;
+  --ibm:#0f62fe;                /* IBM Blue — shown, then refused */
+  --los:#2b6fff;--fd:#ffd400;--bad:#fa4d56;
+  --tx:#f4f4f4;--tx2:#c6c6c6;--tx3:#8d8d8d;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --wide:'Archivo',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 var(--sans);padding:40px}
+.wrap{max-width:1080px;margin:0 auto}
+.kick{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fd)}
+h1{font:600 40px/1.1 var(--sans);letter-spacing:-.02em;margin:12px 0 10px}
+.lede{color:var(--tx2);max-width:66ch;margin:0 0 38px;font-size:16px}
+h2{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin:40px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+/* layer model */
+.layers{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--bd);border:1px solid var(--bd)}
+.ly{padding:20px 16px;min-height:132px;display:flex;flex-direction:column;justify-content:flex-end}
+.ly b{display:block;font:600 12px/1.3 var(--sans)}
+.ly code{font:400 11px/1.6 var(--mono);color:var(--tx3)}
+.ly em{font-style:normal;font-size:11.5px;color:var(--tx2);margin-top:6px;display:block}
+/* take / refuse */
+.tr{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd);border:1px solid var(--bd)}
+.tr>div{background:var(--l1);padding:20px}
+.tr h3{margin:0 0 14px;font:600 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.take h3{color:#42be65}.ref h3{color:var(--bad)}
+.tr ul{margin:0;padding:0;list-style:none}
+.tr li{padding:11px 0;border-bottom:1px solid var(--bd);font-size:13.5px}
+.tr li:last-child{border-bottom:0}
+.tr li b{display:block;margin-bottom:3px;font-weight:600}
+.tr li span{color:var(--tx3);font-size:12.5px}
+/* type fork */
+.fork{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd);border:1px solid var(--bd)}
+.fork>div{background:var(--l1);padding:22px}
+.fork .tag{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-bottom:14px}
+.plexnum{font-family:'IBM Plex Sans Condensed';font-weight:700;font-size:66px;line-height:.9;font-variant-numeric:tabular-nums}
+.widenum{font-family:var(--wide);font-variation-settings:'wdth' 125,'wght' 800;font-size:66px;line-height:.9;font-variant-numeric:tabular-nums}
+.fork p{color:var(--tx2);font-size:13px;margin:14px 0 0}
+.fork .rec{display:inline-block;margin-top:12px;background:var(--fd);color:#150f00;font:600 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px}
+/* blue compare */
+.blues{display:flex;gap:1px;background:var(--bd);border:1px solid var(--bd)}
+.blues div{flex:1;padding:18px}
+.blues .sw{height:52px;margin-bottom:12px}
+.blues b{font:600 12.5px/1.3 var(--sans);display:block}
+.blues code{font:400 11px/1.6 var(--mono);color:var(--tx3)}
+/* table demo */
+.tbl{border:1px solid var(--bd);font-size:13px}
+.tbl .hd{display:grid;grid-template-columns:64px 1fr 88px 84px 70px;background:var(--l2);font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.tbl .hd span{padding:12px 14px}
+.tbl .rw{display:grid;grid-template-columns:64px 1fr 88px 84px 70px;border-top:1px solid var(--bd);background:var(--l1)}
+.tbl .rw:hover{background:var(--l2)}
+.tbl .rw.sel{box-shadow:inset 3px 0 0 var(--los);background:#2b6fff14}
+.tbl .rw span{padding:11px 14px;display:flex;align-items:center}
+.tbl .n{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--tx2)}
+.tbl .y{font-family:var(--wide);font-variation-settings:'wdth' 118,'wght' 700;font-variant-numeric:tabular-nums;justify-content:flex-end}
+.note{margin-top:32px;border-left:3px solid var(--los);background:#2b6fff12;padding:16px 18px;color:#cadcff;font-size:13.5px;max-width:84ch}
+</style>
+<div class="wrap">
+  <div class="kick">Foundations · Influence</div>
+  <h1>Carbon gives us the system.<br>It must not give us the brand.</h1>
+  <p class="lede">Carbon is the best-considered open system for dense, complex data products, and it has a genuinely
+  well-tuned dark theme. It is also unmistakably IBM. Taken wholesale it produces exactly the enterprise-corporate look
+  we are trying to avoid — so we take its structure and refuse its identity.</p>
+
+  <h2>What we take first: the layer model</h2>
+  <div class="layers">
+    <div class="ly" style="background:#0b0e0f"><b>field</b><code>#0b0e0f</code><em>Ours. Below Carbon's floor — film only.</em></div>
+    <div class="ly" style="background:#161616"><b>background</b><code>$background</code><em>App shell</em></div>
+    <div class="ly" style="background:#262626"><b>layer-01</b><code>$layer-01</code><em>Panels, cards</em></div>
+    <div class="ly" style="background:#393939"><b>layer-02</b><code>$layer-02</code><em>Nested, table header</em></div>
+    <div class="ly" style="background:#525252"><b>layer-03</b><code>$layer-03</code><em>Controls on nested</em></div>
+  </div>
+  <p style="color:var(--tx2);max-width:78ch;margin-top:14px">This is a systematic answer to the exact problem in our build today —
+  every surface sits at the same mid-grey, so nothing recedes and nothing leads. Carbon solves it with tested tokens instead of
+  hand-picked hexes. We extend it downward with one surface Carbon has no need for: <strong>film</strong>, darker than the app
+  shell, so video is always the brightest object on screen.</p>
+
+  <h2>Where I push back: take the model, not the greys</h2>
+  <div class="fork">
+    <div>
+      <div class="tag">Carbon's ramp — pure neutral</div>
+      <div style="display:flex;height:64px;border:1px solid var(--bd)">
+        <div style="flex:1;background:#161616"></div><div style="flex:1;background:#262626"></div>
+        <div style="flex:1;background:#393939"></div><div style="flex:1;background:#525252"></div>
+      </div>
+      <p>Zero cast, zero warmth, zero temperature. It is <em>tested</em>, and it is also the exact quality that makes every
+      Carbon product look like the same admin console. Adopting these values verbatim would make us more generic, not less.</p>
+    </div>
+    <div>
+      <div class="tag">Same steps, cool cast</div>
+      <div style="display:flex;height:64px;border:1px solid var(--bd)">
+        <div style="flex:1;background:#12171d"></div><div style="flex:1;background:#1e2630"></div>
+        <div style="flex:1;background:#303c4a"></div><div style="flex:1;background:#4a5a6d"></div>
+      </div>
+      <p>Identical step rhythm and contrast ratios, tuned blue-cool — a night game under lights. We keep everything Carbon
+      proved about <strong>structure</strong> and discard the part that is only IBM's taste.</p>
+      <span class="rec">Recommended</span>
+    </div>
+  </div>
+
+  <h2>Take / refuse</h2>
+  <div class="tr">
+    <div class="take"><h3>✓ Take</h3><ul>
+      <li><b>Layer tokens</b><span>background → layer-01/02/03. Hierarchy without shadow soup.</span></li>
+      <li><b>0px radius</b><span>Carbon is square. Matches the broadcast-graphic direction already chosen.</span></li>
+      <li><b>Data table anatomy</b><span>Row density scale, sticky header, zebra-off default, batch selection. Directly upgrades Film Room and Reports.</span></li>
+      <li><b>Semantic token naming</b><span>$text-primary / $support-error, never raw hex at the call site.</span></li>
+      <li><b>8px grid + type scale</b><span>Proven spacing rhythm; stops per-route drift.</span></li>
+      <li><b>IBM Plex Sans + Mono</b><span>Open, characterful, engineered for dense UI. Not neutral like Inter.</span></li>
+    </ul></div>
+    <div class="ref"><h3>✕ Refuse</h3><ul>
+      <li><b>IBM Blue as primary</b><span>#0f62fe is a brand signature. Using it makes us look like IBM software.</span></li>
+      <li><b>Enterprise density</b><span>Carbon's 32/40px controls fail our 44px sideline touch target.</span></li>
+      <li><b>Carbon's component chrome</b><span>Notifications, tiles, accordions carry IBM's visual voice.</span></li>
+      <li><b>Its silence on media</b><span>Carbon has no film-hero precedent. Break Down's theater is ours to invent.</span></li>
+      <li><b>Plex as the numeral voice</b><span>Plex has no expanded width — see the fork below.</span></li>
+    </ul></div>
+  </div>
+
+  <h2>The blue matters more than it looks</h2>
+  <div class="blues">
+    <div><div class="sw" style="background:#0f62fe"></div><b>IBM Blue $interactive</b><code>#0f62fe — reads as IBM</code></div>
+    <div><div class="sw" style="background:#2b6fff"></div><b>Line of scrimmage</b><code>#2b6fff — same job, our meaning</code></div>
+    <div><div class="sw" style="background:#ffd400"></div><b>First down</b><code>#ffd400 — Carbon has no equivalent</code></div>
+  </div>
+  <p style="color:var(--tx2);max-width:78ch;margin-top:14px">Nearly the same hue, deliberately not the same value. We keep Carbon's
+  <em>role</em> for interactive blue and attach football's meaning to it, then add a first-down yellow Carbon has no concept of.
+  That single addition is most of what stops this reading as an IBM product.</p>
+
+  <h2>The type fork — your call</h2>
+  <div class="fork">
+    <div>
+      <div class="tag">A · All-Plex, Carbon-faithful</div>
+      <div class="plexnum">4TH &amp; 2</div>
+      <p>Plex Sans Condensed for numerals, Plex Sans for UI, Plex Mono for data. One family, maximum coherence, and it inherits
+      Carbon's craft. Cost: condensed is the category default, and it is closer to IBM's own look.</p>
+    </div>
+    <div>
+      <div class="tag">B · Plex for interface, wide for the field</div>
+      <div class="widenum">4TH &amp; 2</div>
+      <p>Plex Sans + Mono carry the interface; a wide face carries football numerals only. Keeps Carbon's craft where the density
+      lives and keeps a distinct voice where the identity lives — the numbers.</p>
+      <span class="rec">Recommended</span>
+    </div>
+  </div>
+
+  <h2>What Carbon's table does for Film Room</h2>
+  <div class="tbl">
+    <div class="hd"><span>D&amp;D</span><span>Look</span><span>Type</span><span>Result</span><span>Yds</span></div>
+    <div class="rw"><span class="n">1 &amp; 10</span><span>Trips Rt · Shotgun</span><span>Short Pass</span><span>Gain</span><span class="y">+12</span></div>
+    <div class="rw sel"><span class="n">2 &amp; 7</span><span>Ace · Under Center</span><span>Run In</span><span>Gain</span><span class="y">+3</span></div>
+    <div class="rw"><span class="n">3 &amp; 4</span><span>Empty · Shotgun</span><span>RPO</span><span>INT</span><span class="y">−2</span></div>
+  </div>
+
+  <div class="note" style="border-left-color:var(--bad);background:#fa4d5612;color:#ffc9cd"><strong>The objection worth taking
+  seriously:</strong> Carbon is an <em>enterprise admin</em> design system. The complaint about this app is that it feels like a
+  re-skinned utility — and leaning hard on Carbon is a plausible way to make that <strong>worse</strong>, not better. Carbon can
+  make Reports genuinely excellent, because a scout report IS a dense data product. It cannot make the app feel like football.
+  Nothing in Carbon knows what a first down is.<br><br>So the split has to be deliberate: Carbon governs the data surfaces —
+  Reports, Study, Plan, Settings, the Film Room grid — where its craft is a direct upgrade over what we have. Identity comes from
+  the three things Carbon has no opinion about: <strong>the film, the field, and the numerals</strong>. If we let Carbon govern
+  those too, we will have built a very well-organised admin console for football.</div>
+</div>
