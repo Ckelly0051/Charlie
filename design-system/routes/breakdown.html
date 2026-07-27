@@ -1,155 +1,188 @@
 <!-- @dsCard group="Routes" -->
 <meta charset="utf-8">
-<title>Route — Break Down (theater)</title>
+<title>Route — Break Down</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --t0:#070a0e;--t1:#0b1016;--t2:#111823;
-  --d0:#151c26;--d1:#1c2531;--d2:#26313f;--line:#35435440;
-  --los:#2f7fff;--fd:#ffd400;--good:#35d07f;--bad:#ff4d5e;
-  --ink:#eef3f9;--dim:#93a3b8;--faint:#5d6b7e;
-  --ui:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
-  --bd:'Bahnschrift SemiCondensed','Bahnschrift','Segoe UI',sans-serif;
+  --t0:#04070a;--t1:#080d13;--t2:#0e151d;
+  --d0:#131a23;--d1:#1a232f;--d2:#25313f;
+  --line:#26333f;--line-hi:#3b4c5e;
+  --los:#1f6fff;--fd:#ffd400;--bad:#ff3b4e;--good:#2ed47f;
+  --ink:#f2f6fa;--dim:#8ea0b5;--faint:#546477;
+  --ui:'Archivo',system-ui,sans-serif;
+  --chamfer:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--t0);color:var(--ink);font:14px/1.5 var(--ui)}
-.app{display:grid;grid-template-columns:1fr 400px;grid-template-rows:auto 1fr;height:760px}
-/* ---- top bar: chrome recedes, context is scoreboard-voiced ---- */
-.top{grid-column:1/-1;display:flex;align-items:center;gap:18px;padding:0 18px;height:56px;background:var(--t1);border-bottom:1px solid var(--line)}
-.brand{font:700 17px/1 var(--bd);letter-spacing:.02em;text-transform:uppercase}
-.brand b{color:var(--fd)}
-.nav{display:flex;gap:2px;margin-left:10px}
-.nav button{border:0;background:transparent;color:var(--faint);font:600 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;border-radius:4px;cursor:pointer}
-.nav button.on{color:var(--ink);background:#ffffff0d;box-shadow:inset 0 -2px 0 var(--los)}
-.ctx{margin-left:auto;display:flex;align-items:center;gap:14px}
-.bug{display:flex;border:1px solid #ffffff14;border-radius:6px;overflow:hidden}
-.bug div{padding:6px 12px;background:#0e151e;display:flex;flex-direction:column;gap:3px}
-.bug span{font:600 9px/1 var(--ui);letter-spacing:.14em;color:var(--faint)}
-.bug strong{font:700 16px/1 var(--bd);font-variant-numeric:tabular-nums}
-.bug .sit{background:var(--los);color:#fff;justify-content:center}
-.bug .sit strong{font-size:15px}
-/* ---- theater: the film is the brightest thing on screen ---- */
-.theater{background:var(--t0);padding:16px 16px 0;display:flex;flex-direction:column;min-width:0}
-.film{position:relative;flex:1;border-radius:10px;overflow:hidden;background:
-  repeating-linear-gradient(90deg,#ffffff07 0 1px,transparent 1px 52px),
-  radial-gradient(120% 90% at 50% 20%,#1d2b3a,#0a1119 70%);border:1px solid #ffffff14;box-shadow:0 24px 60px #000000a6}
-.film::after{content:'';position:absolute;left:34%;top:0;bottom:0;width:2px;background:var(--los);box-shadow:0 0 16px var(--los)}
-.film::before{content:'';position:absolute;left:57%;top:0;bottom:0;width:2px;background:var(--fd);box-shadow:0 0 16px var(--fd)}
-.hash{position:absolute;left:0;right:0;height:1px;background:repeating-linear-gradient(90deg,#ffffff26 0 10px,transparent 10px 52px)}
-.hash.a{top:33%}.hash.b{top:67%}
-.overlay{position:absolute;left:14px;top:12px;display:flex;gap:8px;align-items:center}
-.pill{font:700 10px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px;border-radius:3px;background:#000000a6;border:1px solid #ffffff1f;color:var(--dim)}
-.pill.live{background:var(--los);border-color:transparent;color:#fff}
-/* ---- transport ---- */
-.transport{display:flex;align-items:center;gap:12px;padding:12px 2px 10px}
-.tbtn{width:38px;height:38px;border-radius:6px;border:1px solid var(--line);background:var(--t2);color:var(--ink);display:grid;place-items:center;cursor:pointer;font-size:14px}
-.tbtn.play{width:46px;height:46px;background:var(--ink);color:#0a0f16;border:0;font-size:16px}
-.scrub{flex:1;height:5px;border-radius:3px;background:#ffffff14;position:relative}
-.scrub i{position:absolute;inset:0 62% 0 0;background:var(--los);border-radius:3px}
-.time{font:600 12px/1 var(--bd);font-variant-numeric:tabular-nums;color:var(--dim)}
-/* ---- field strip: THE signature. plays as yard-line ticks ---- */
-.strip{height:58px;margin:0 -16px;padding:8px 16px 0;background:var(--t1);border-top:1px solid var(--line);display:flex;gap:3px;align-items:flex-end}
-.p{flex:1;border-radius:2px 2px 0 0;position:relative;cursor:pointer;transition:.09s}
-.p i{display:block;border-radius:2px 2px 0 0}
-.p .run i{background:var(--fd)}
-.p:hover{transform:translateY(-2px)}
-.p.sel{outline:2px solid var(--los);outline-offset:1px}
-.p.untag i{background:#ffffff17}
-.p.run i{background:#c9a227}
-.p.pass i{background:#3f6ea8}
-.p.td i{background:var(--fd);box-shadow:0 0 10px var(--fd)}
-.p.to i{background:var(--bad)}
-/* ---- deck: tagging. denser, brighter, distinctly not-film ---- */
-.deck{background:var(--d0);border-left:1px solid var(--line);padding:16px;overflow:auto}
-.unit{display:flex;gap:2px;background:var(--d1);border:1px solid var(--line);border-radius:7px;padding:3px;margin-bottom:16px}
-.unit button{flex:1;border:0;background:transparent;color:var(--dim);font:700 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;padding:10px;border-radius:5px;cursor:pointer}
-.unit button.on{background:var(--los);color:#fff}
-.grp{margin-bottom:18px}
-.grp h4{font:600 10px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 8px;display:flex;gap:8px;align-items:center}
-.grp h4::after{content:'';flex:1;height:1px;background:var(--line)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font:600 12.5px/1 var(--ui);padding:9px 12px;border-radius:5px;border:1px solid var(--line);background:var(--d1);color:var(--dim);cursor:pointer;transition:.09s}
-.chip:hover{border-color:#4a5b70;color:var(--ink)}
-.chip.on{background:var(--los);border-color:var(--los);color:#fff}
-.chip.on.gain{background:var(--fd);border-color:var(--fd);color:#191400}
-.yards{display:flex;gap:8px;align-items:center;margin-top:4px}
-.yards input{flex:1;background:var(--t1);border:1px solid var(--line);border-radius:5px;color:var(--ink);font:700 20px/1 var(--bd);font-variant-numeric:tabular-nums;padding:11px 12px;text-align:center}
-.step{width:40px;height:44px;border-radius:5px;border:1px solid var(--line);background:var(--d1);color:var(--ink);font-size:16px;cursor:pointer}
-.save{display:flex;gap:8px;margin-top:20px}
-.save button{flex:1;height:46px;border-radius:6px;border:0;font:700 12px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-.save .prim{background:var(--fd);color:#191400}
-.save .sec{background:var(--d2);color:var(--ink);flex:0 0 96px}
-.prog{margin-top:14px;font:600 10.5px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between}
-.bar{height:3px;border-radius:2px;background:#ffffff12;margin-top:7px;overflow:hidden}
+.num{font-variant-numeric:tabular-nums;font-variation-settings:'wdth' 125,'wght' 800}
+.app{display:grid;grid-template-columns:1fr 384px;grid-template-rows:auto 1fr;height:768px}
+
+/* ═══ TOP — rules, not boxes ═══ */
+.top{grid-column:1/-1;display:flex;align-items:stretch;height:60px;background:var(--t1);border-bottom:2px solid var(--line)}
+.mark{display:flex;align-items:center;padding:0 20px;border-right:2px solid var(--line)}
+.mark b{font-variation-settings:'wdth' 125,'wght' 900;font-size:19px;line-height:1;letter-spacing:-.01em;text-transform:uppercase}
+.mark b i{font-style:normal;color:var(--fd)}
+.nav{display:flex}
+.nav a{display:flex;align-items:center;padding:0 17px;font:700 10.5px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-2px}
+.nav a.on{color:var(--ink);border-bottom-color:var(--fd)}
+.bug{margin-left:auto;display:flex;align-items:stretch}
+.bug .t{display:flex;flex-direction:column;justify-content:center;padding:0 18px;border-left:1px solid var(--line);min-width:104px}
+.bug .t span{font:700 9px/1 var(--ui);letter-spacing:.2em;color:var(--faint);margin-bottom:5px}
+.bug .t strong{font-size:26px;line-height:.85}
+.bug .sit{display:flex;align-items:center;padding:0 22px;background:var(--fd);color:#150f00;font-size:22px;line-height:1}
+
+/* ═══ THEATER ═══ */
+.theater{background:var(--t0);display:flex;flex-direction:column;min-width:0;padding:14px 14px 0}
+.film{position:relative;flex:1;overflow:hidden;background:radial-gradient(130% 100% at 50% 15%,#1a2a3a,#050a10 72%);
+  border:1px solid #ffffff1a;
+  background-image:repeating-linear-gradient(0deg,#ffffff06 0 1px,transparent 1px 3px),radial-gradient(130% 100% at 50% 15%,#1a2a3a,#050a10 72%)}
+.yard{position:absolute;top:0;bottom:0;width:1px;background:#ffffff1c}
+.yard.ten{background:#ffffff30;width:2px}
+.yard b{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-variation-settings:'wdth' 125,'wght' 800;font-size:34px;line-height:1;color:#ffffff1f;letter-spacing:-.02em}
+.los,.fdl{position:absolute;top:0;bottom:0;width:3px}
+.los{left:33%;background:var(--los);box-shadow:0 0 22px 2px #1f6fffa6}
+.fdl{left:59%;background:var(--fd);box-shadow:0 0 22px 2px #ffd400a6}
+.hash{position:absolute;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,#ffffff2b 0 12px,transparent 12px 60px)}
+.hash.a{top:31%}.hash.b{top:69%}
+/* broadcast lower-third — the one diagonal, used once */
+.third{position:absolute;left:0;bottom:0;display:flex;align-items:stretch;clip-path:polygon(0 0,100% 0,calc(100% - 22px) 100%,0 100%)}
+.third .a{background:var(--los);color:#fff;padding:11px 16px;font:700 11px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;display:flex;align-items:center}
+.third .b{background:#000000d9;padding:11px 40px 11px 18px;display:flex;align-items:center;gap:14px}
+.third .b strong{font-size:17px;line-height:1;font-variation-settings:'wdth' 118,'wght' 700;text-transform:uppercase}
+.third .b em{font-style:normal;color:var(--dim);font-size:12.5px}
+.hud{position:absolute;right:14px;top:12px;display:flex;gap:6px}
+.hud span{font:700 9.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;padding:6px 9px;background:#000000b3;border:1px solid #ffffff1f;color:var(--dim)}
+
+/* transport */
+.tr{display:flex;align-items:center;gap:14px;padding:13px 2px 12px}
+.tb{width:36px;height:36px;border:1px solid var(--line-hi);background:transparent;color:var(--ink);cursor:pointer;font-size:13px;clip-path:var(--chamfer)}
+.tb.go{width:48px;height:48px;background:var(--ink);color:#04070a;border:0;font-size:16px}
+.scrub{flex:1;height:6px;background:#ffffff12;position:relative}
+.scrub i{position:absolute;inset:0 62% 0 0;background:var(--los)}
+.scrub b{position:absolute;left:38%;top:-4px;width:2px;height:14px;background:var(--fd)}
+.tc{font-size:15px;line-height:1;color:var(--dim);font-variant-numeric:tabular-nums;font-variation-settings:'wdth' 112,'wght' 700}
+
+/* ═══ FIELD STRIP — plays as yard ticks, 10s are landmarks ═══ */
+.strip{margin:0 -14px;padding:10px 14px 12px;background:var(--t1);border-top:2px solid var(--line);position:relative}
+.strip .lbl{position:absolute;left:14px;top:-9px;font:700 8.5px/1 var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--faint);background:var(--t1);padding:0 6px}
+.ticks{display:flex;gap:2px;align-items:flex-end;height:52px}
+.pk{flex:1;position:relative;cursor:pointer;display:flex;align-items:flex-end}
+.pk i{width:100%;display:block}
+.pk.run i{background:#b8912a}
+.pk.pass i{background:#31628f}
+.pk.td i{background:var(--fd)}
+.pk.to i{background:var(--bad)}
+.pk.un i{background:#ffffff14}
+.pk.sel::after{content:'';position:absolute;inset:-3px;border:2px solid var(--los)}
+.pk.ten::before{content:attr(data-n);position:absolute;top:-1px;left:50%;transform:translateX(-50%);font:700 9px/1 var(--ui);color:var(--faint)}
+
+/* ═══ DECK — sharper, denser, not film ═══ */
+.deck{background:var(--d0);border-left:2px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.unit{display:flex;border-bottom:2px solid var(--line)}
+.unit button{flex:1;border:0;background:transparent;color:var(--faint);font:700 10.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;padding:15px 0;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.unit button.on{color:var(--ink);border-bottom-color:var(--los);background:#1f6fff14}
+.form{flex:1;overflow:auto;padding:16px 16px 0}
+.g{margin-bottom:17px}
+.g h4{font:700 9.5px/1 var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin:0 0 9px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.c{font:600 12.5px/1 var(--ui);padding:10px 12px;border:1px solid var(--line-hi);background:var(--d1);color:var(--dim);cursor:pointer;border-left:3px solid transparent}
+.c:hover{color:var(--ink);border-color:#4d6178}
+.c.on{background:#1f6fff1f;border-color:var(--los);border-left-color:var(--los);color:#fff}
+.c.on.win{background:#ffd4001c;border-color:var(--fd);border-left-color:var(--fd);color:var(--fd)}
+.yd{display:flex;align-items:stretch;gap:0;border:1px solid var(--line-hi)}
+.yd button{width:46px;border:0;background:var(--d1);color:var(--ink);font-size:19px;cursor:pointer}
+.yd .v{flex:1;display:flex;align-items:center;justify-content:center;background:var(--t1);font-size:38px;line-height:1;padding:10px 0}
+/* commit bar pinned — charting is the job */
+.commit{border-top:2px solid var(--line);background:var(--d0);padding:13px 16px 15px}
+.commit .btns{display:flex;gap:8px}
+.commit button{height:50px;border:0;font:700 11px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.commit .p{flex:1;background:var(--fd);color:#150f00;clip-path:var(--chamfer)}
+.commit .s{width:92px;background:var(--d2);color:var(--ink)}
+.meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:11px;font:700 9.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.meta b{font-size:15px;color:var(--ink);letter-spacing:0;font-variant-numeric:tabular-nums;font-variation-settings:'wdth' 118,'wght' 700}
+.bar{height:4px;background:#ffffff12;margin-top:8px}
 .bar i{display:block;height:100%;width:64%;background:var(--fd)}
 </style>
 <div class="app">
   <header class="top">
-    <div class="brand">GRIDIRON <b>IQ</b></div>
-    <nav class="nav">
-      <button>Home</button><button class="on">Break Down</button><button>Study</button><button>Reports</button><button>Plan</button>
-    </nav>
-    <div class="ctx">
-      <div class="bug">
-        <div><span>MAVERICKS</span><strong>41</strong></div>
-        <div><span>ST PETER</span><strong>0</strong></div>
-        <div class="sit"><span style="color:#ffffffb3">SITUATION</span><strong>4TH &amp; 2</strong></div>
-      </div>
+    <div class="mark"><b>GRIDIRON <i>IQ</i></b></div>
+    <nav class="nav"><a>Home</a><a class="on">Break Down</a><a>Study</a><a>Reports</a><a>Plan</a></nav>
+    <div class="bug">
+      <div class="t"><span>MAVERICKS</span><strong class="num">41</strong></div>
+      <div class="t"><span>ST PETER</span><strong class="num">0</strong></div>
+      <div class="sit num">4TH &amp; 2</div>
     </div>
   </header>
 
   <section class="theater">
     <div class="film">
+      <div class="yard ten" style="left:12%"><b>30</b></div>
+      <div class="yard" style="left:22%"></div>
+      <div class="yard ten" style="left:33%"><b>40</b></div>
+      <div class="yard" style="left:45%"></div>
+      <div class="yard ten" style="left:56%"><b>50</b></div>
+      <div class="yard" style="left:68%"></div>
+      <div class="yard ten" style="left:79%"><b>40</b></div>
       <div class="hash a"></div><div class="hash b"></div>
-      <div class="overlay"><span class="pill live">● Play 28</span><span class="pill">Endzone</span><span class="pill">1.00×</span></div>
+      <div class="los"></div><div class="fdl"></div>
+      <div class="hud"><span>Endzone</span><span>1.00×</span><span>Loop</span></div>
+      <div class="third">
+        <div class="a">Play 28</div>
+        <div class="b"><strong>Trips Rt · Shotgun</strong><em>Short Pass · +12</em></div>
+      </div>
     </div>
-    <div class="transport">
-      <button class="tbtn">⏮</button>
-      <button class="tbtn play">▶</button>
-      <button class="tbtn">⏭</button>
-      <span class="time">00:07.4</span>
-      <div class="scrub"><i></i></div>
-      <span class="time">00:11.9</span>
-      <button class="tbtn">⤢</button>
+
+    <div class="tr">
+      <button class="tb">⏮</button><button class="tb go">▶</button><button class="tb">⏭</button>
+      <span class="tc">00:07.4</span>
+      <div class="scrub"><i></i><b></b></div>
+      <span class="tc">00:11.9</span>
+      <button class="tb">⤢</button>
     </div>
+
     <div class="strip">
-      <span class="p pass"><i style="height:22px"></i></span>
-      <span class="p run"><i style="height:15px"></i></span>
-      <span class="p run"><i style="height:31px"></i></span>
-      <span class="p to"><i style="height:9px"></i></span>
-      <span class="p pass"><i style="height:26px"></i></span>
-      <span class="p td"><i style="height:40px"></i></span>
-      <span class="p run"><i style="height:18px"></i></span>
-      <span class="p sel pass"><i style="height:29px"></i></span>
-      <span class="p untag"><i style="height:12px"></i></span>
-      <span class="p untag"><i style="height:12px"></i></span>
-      <span class="p untag"><i style="height:12px"></i></span>
-      <span class="p untag"><i style="height:12px"></i></span>
+      <span class="lbl">Drive · 44 plays</span>
+      <div class="ticks">
+        <span class="pk pass ten" data-n="1"><i style="height:24px"></i></span>
+        <span class="pk run"><i style="height:14px"></i></span>
+        <span class="pk run"><i style="height:33px"></i></span>
+        <span class="pk to"><i style="height:8px"></i></span>
+        <span class="pk pass"><i style="height:27px"></i></span>
+        <span class="pk td"><i style="height:46px"></i></span>
+        <span class="pk run"><i style="height:17px"></i></span>
+        <span class="pk pass"><i style="height:21px"></i></span>
+        <span class="pk run ten" data-n="10"><i style="height:29px"></i></span>
+        <span class="pk pass"><i style="height:19px"></i></span>
+        <span class="pk sel pass"><i style="height:31px"></i></span>
+        <span class="pk un"><i style="height:10px"></i></span>
+        <span class="pk un"><i style="height:10px"></i></span>
+        <span class="pk un"><i style="height:10px"></i></span>
+        <span class="pk un ten" data-n="20"><i style="height:10px"></i></span>
+        <span class="pk un"><i style="height:10px"></i></span>
+        <span class="pk un"><i style="height:10px"></i></span>
+      </div>
     </div>
   </section>
 
   <aside class="deck">
-    <div class="unit">
-      <button class="on">Offense</button><button>Defense</button><button>Special</button>
+    <div class="unit"><button class="on">Offense</button><button>Defense</button><button>Special</button></div>
+    <div class="form">
+      <div class="g"><h4>Formation</h4><div class="chips">
+        <span class="c on">Trips</span><span class="c">Ace</span><span class="c">Empty</span><span class="c">Bunch</span><span class="c">Wing-T</span></div></div>
+      <div class="g"><h4>QB alignment</h4><div class="chips">
+        <span class="c on">Shotgun</span><span class="c">Under Center</span><span class="c">Pistol</span></div></div>
+      <div class="g"><h4>Play type</h4><div class="chips">
+        <span class="c">Run In</span><span class="c">Run Out</span><span class="c on">Short Pass</span><span class="c">RPO</span><span class="c">Screen</span></div></div>
+      <div class="g"><h4>Result</h4><div class="chips">
+        <span class="c on win">Gain</span><span class="c">Loss</span><span class="c">Incomplete</span><span class="c">TD</span><span class="c">Sack</span></div></div>
+      <div class="g"><h4>Yardage</h4>
+        <div class="yd"><button>−</button><div class="v num">12</div><button>+</button></div></div>
     </div>
-
-    <div class="grp"><h4>Formation</h4>
-      <div class="chips"><span class="chip on">Trips</span><span class="chip">Ace</span><span class="chip">Empty</span><span class="chip">Bunch</span><span class="chip">Wing-T</span></div>
+    <div class="commit">
+      <div class="btns"><button class="p">Save &amp; next</button><button class="s">Skip</button></div>
+      <div class="meta"><span>Charted</span><b>28 / 44</b></div>
+      <div class="bar"><i></i></div>
     </div>
-    <div class="grp"><h4>QB alignment</h4>
-      <div class="chips"><span class="chip on">Shotgun</span><span class="chip">Under Center</span><span class="chip">Pistol</span></div>
-    </div>
-    <div class="grp"><h4>Play type</h4>
-      <div class="chips"><span class="chip">Run In</span><span class="chip">Run Out</span><span class="chip on">Short Pass</span><span class="chip">RPO</span><span class="chip">Screen</span></div>
-    </div>
-    <div class="grp"><h4>Result</h4>
-      <div class="chips"><span class="chip on gain">Gain</span><span class="chip">Loss</span><span class="chip">Incomplete</span><span class="chip">TD</span><span class="chip">Sack</span></div>
-    </div>
-    <div class="grp"><h4>Yardage</h4>
-      <div class="yards"><button class="step">−</button><input value="12"><button class="step">+</button></div>
-    </div>
-
-    <div class="save"><button class="prim">Save &amp; next</button><button class="sec">Skip</button></div>
-    <div class="prog"><span>Charted</span><span>28 / 44</span></div>
-    <div class="bar"><i></i></div>
   </aside>
 </div>
