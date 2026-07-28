@@ -18,12 +18,69 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### ▶ CODEX HANDOFF — S2 native Team & Film Settings built; independent review required (2026-07-28)
+### ▶ CODEX HANDOFF — S3 native Team Hub built; independent review required (2026-07-28)
 
-**Builder: Codex. Review range: `459b352..HEAD` on the canonical
-`claude/football-film-analyzer-GRiCW` branch. S2 is built but NOT accepted.
-Do not package, tag, or release. S3 stays closed until Claude accepts this
+**Builder: Codex. Implementation checkpoint: `f78d9e4` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S3 is built but NOT accepted.
+Do not package, tag, or release. S4 stays closed until Claude accepts this
 checkpoint. Managed C: film copies remain protected.**
+
+S3 replaces the legacy Season Library overlay with one Preact-owned **Team
+Hub** route. Team Hub now owns team and season selection; Home remains the sole
+game-entry route. Startup, the shell Seasons actions, and return navigation all
+open the native route without revealing `#wsClassicOutlet` or mounting the
+legacy library. Closing Team Hub restores the exact invoking route, subject to
+the existing workspace guard.
+
+The native route covers first-team setup, multi-team switching, team-scoped
+rosters and season lists, season create/open/delete, sample-season entry,
+pre-game Team & Film Settings, and roster access. Team switches commit and
+durably persist the outgoing season before changing identity and fail closed if
+that save fails. Team removal is unavailable while that team owns seasons.
+Season deletion names game/play impact, distinguishes managed copies from linked
+originals, and defaults focus to Cancel.
+
+**Two production correctness defects were found while building S3.** New seasons
+now persist the owning `teamId` in the canonical season payload, and sample
+seasons stamp that same ownership before normalize/persist. Workspace context
+resolves the owning registry team by `teamId` before using season display data,
+so a sample season owned by Mavericks cannot relabel the shell as GridIron Demo.
+These are additive ownership fields on new/create flows; S3 performs no bulk
+migration, deletion, analytics change, film move, or film relink.
+
+The accepted S2 follow-ups are also closed: pre-game Settings proof again clicks
+through and asserts the native sheet opened; the capability audit rejects bare
+DOM-existence evidence for behavior/a11y claims and confines native-overlay
+singleton access to the composition root.
+
+**Permanent proof:** new `tools/e2e-native-team-hub.mjs` is 15/15. Native
+onboarding was rewritten around Team Hub and is 27/27; workspace shell 57/57;
+Film Room 179/179; wipe recovery 12/12; native Settings 13/13; Breakdown video
+50/50. The final canonical gate on committed production/test bytes is **70/70
+green, 0 skipped, 0 failed**. A load-dependent Breakdown assertion exposed a
+queued animation-frame render; the test now waits for the exact `18 / 18 tagged`
+state rather than sleeping or weakening the assertion.
+
+`tools/shots.mjs` now captures Team Hub as the eleventh surface. The automated
+visual run produced **44 byte-distinct captures** at 1440x900, 1280x720,
+768x1024, and 390x844 with no page-level horizontal overflow and no page errors.
+The local captures are in untracked `_shots-s3/`. Codex's direct image-view
+helper was blocked by the Windows ACL sandbox, so Claude must visually inspect
+those captures rather than treating the automated geometry checks as aesthetic
+approval.
+
+**Review these first:** (1) outgoing-team persist failure and context isolation;
+(2) canonical `teamId` ownership for normal and sample seasons across reload;
+(3) owner-name resolution in `WorkspaceContext`; (4) no legacy outlet/library
+visibility on startup, open, close, or guarded return; (5) delete impact and
+linked-original safety language; (6) onboarding and wipe-recovery coverage after
+retiring legacy selectors; (7) all four release viewports in `_shots-s3/`.
+
+### HISTORICAL — S2 native Team & Film Settings build handoff (2026-07-28)
+
+**Builder: Codex. S2 was independently accepted by Claude at `8fd15db`.
+This block is retained as the historical build handoff. Managed C: film copies
+remain protected.**
 
 S2 replaces the customer-facing film-storage modal and Settings entry path with
 one Preact-owned **Team & Film Settings** sheet. It is reachable before a game

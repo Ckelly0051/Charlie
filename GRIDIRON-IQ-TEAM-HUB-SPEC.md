@@ -1,10 +1,10 @@
 # GridIron IQ — Team Hub interaction specification
 
-**Status:** required P0 exit artifact (Shell Independence §3.1 item 8).
+**Status:** implemented by Codex at `f78d9e4`; awaiting independent Claude review.
 **Owner route:** S3 — native Team Hub / Season Library.
-**Why it exists:** Team Hub is the app's front door *and* the last surface pinning
-`#wsClassicOutlet` — `_openLibrary()` must reveal the outlet because the library
-renders inside the relocated `#app`. It is also the identity moment: the first
+**Why it exists:** Team Hub is the app's front door *and* was the last surface pinning
+`#wsClassicOutlet` — before S3, `_openLibrary()` had to reveal the outlet because
+the library rendered inside the relocated `#app`. It is also the identity moment: the first
 screen a coach sees. A design card alone is insufficient; this is the behavior
 contract the implementation is reviewed against.
 

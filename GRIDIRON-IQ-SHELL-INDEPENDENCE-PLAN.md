@@ -11,7 +11,7 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0 IS COMPLETE. S1 — native Reports — is COMPLETE AND ACCEPTED (`d33dd58`, Claude, 2026-07-28). S2 — native Team & Film Settings — is BUILT BY CODEX AND AWAITING CLAUDE REVIEW (review range `459b352..HEAD`; final builder gate 69/69, 0 skipped; Tauri compile clean). S3 remains closed.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). Codex built S1 after `9421eaf`; no package, tag, or release is permitted until independent acceptance. S2 remains closed.
+**Status: P0 IS COMPLETE. S1 — native Reports — and S2 — native Team & Film Settings — are COMPLETE AND ACCEPTED. S3 — native Team Hub / Season Library — is BUILT BY CODEX at `f78d9e4` AND AWAITING CLAUDE REVIEW (final builder gate 70/70, 0 skipped). S4 remains closed.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). No package, tag, or release is permitted until independent acceptance.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
@@ -25,8 +25,9 @@ mutation-verified.
   **N6 (popover) remains open and S5b needs it.**
 - **R1–R2 CLOSED** at `8fd15db`: 40 byte-distinct captures across 4 viewports,
   and Film Room now genuinely renders Film Room.
-- **S2-1** (`settings.pre-game-entry` proof degraded to a DOM-existence check) —
-  restore a click-and-assert-opened assertion; product verified working.
+- **S2-1 CLOSED at `f78d9e4`:** pre-game Settings proof again clicks and asserts
+  the native sheet opened; the capability audit now rejects bare DOM-existence
+  evidence for behavior/a11y claims.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`
@@ -252,8 +253,9 @@ Football semantics are explicit: self scout provides Overview, Offense, Defense,
 
 Permanent proof includes `tools/e2e-native-reports.mjs` (15/15), all eight views, exact self/opponent film refs including duplicate bare play ids, scout-only ST, four exports, 44px mobile controls, internal tab scrolling, and zero page overflow. The capability inventory is 73 entries with 18 named critical ids. Import Plays is now a named critical journey, and specification checks require real Markdown section headings rather than loose substrings.
 
-Three critical mutations were run and restored: removing opponent `__gid` stamping reds exact film identity, admitting head-to-head ST reds the ST cohort and Watch cuts, and retaining the old dashboard id reds native single ownership. The first full gate exposed two stale test contracts rather than production defects: timer-based overlay waits and onboarding assumptions about the removed modal/player-on-Overview layout. Both were replaced with state-based assertions. Final canonical gate on the completed checkpoint: **68/68 green, 0 skipped, 0 failed**; desktop `cargo check` is clean. No analytics formula, season/play/tag data, persistence schema, film metadata, film file, package, tag, or release changed. S2 remains closed pending independent review.
-### S2 checkpoint — native Team & Film Settings (awaiting independent review)
+Three critical mutations were run and restored: removing opponent `__gid` stamping reds exact film identity, admitting head-to-head ST reds the ST cohort and Watch cuts, and retaining the old dashboard id reds native single ownership. The first full gate exposed two stale test contracts rather than production defects: timer-based overlay waits and onboarding assumptions about the removed modal/player-on-Overview layout. Both were replaced with state-based assertions. Final canonical gate on the completed checkpoint: **68/68 green, 0 skipped, 0 failed**; desktop `cargo check` is clean. No analytics formula, season/play/tag data, persistence schema, film metadata, film file, package, tag, or release changed. S2 was subsequently accepted at `8fd15db`.
+
+### S2 checkpoint — native Team & Film Settings (accepted)
 
 One Preact-owned sheet now owns first-use film-storage choice, library-root
 selection, per-game source/path/clip-health truth, Team identity, and the bridge
@@ -270,7 +272,37 @@ live panel is now adopted into Break Down and restored on internal teardown.
 Permanent S2 proof is `e2e-native-settings.mjs` (13/13), with storage setup
 30/30, shell 58/58, overlay 34/34, Breakdown video 50/50, and full gate 69/69.
 No analytics/schema/data migration, film deletion, package, tag, or release is
-part of S2. S3 opens only after independent acceptance.
+part of S2. Independently accepted by Claude at `8fd15db`; S3 opened.
+
+### S3 checkpoint — native Team Hub / Season Library (awaiting independent review)
+
+Checkpoint `f78d9e4` replaces the legacy Season Library overlay with a native
+Preact Team Hub route. Team Hub owns team and season selection while Home remains
+the sole game-entry route. Startup and every Seasons action enter the native
+route without revealing `#wsClassicOutlet`; closing returns to the exact guarded
+invoking route.
+
+The route implements first-team setup, multi-team switching, scoped rosters and
+season lists, season create/open/delete, sample season, pre-game Settings, and
+honest current-season film health. Team switches persist the outgoing season
+before identity changes and fail closed. Delete messaging names game/play impact
+and distinguishes managed copies from linked originals.
+
+S3 also fixes two ownership defects exposed by the route: created seasons and
+sample seasons now persist their registry `teamId`, and workspace context prefers
+that registry owner over sample/display metadata. This is additive create-flow
+ownership, not a bulk data migration. No existing coach tags, analytics,
+film paths, or film files are rewritten or deleted.
+
+Permanent proof: Team Hub 15/15, onboarding 27/27, workspace shell 57/57, Film
+Room 179/179, wipe recovery 12/12, native Settings 13/13, Breakdown video 50/50,
+and full canonical gate **70/70 green, 0 skipped, 0 failed**. The visual harness
+now covers eleven surfaces at four release viewports: **44 byte-distinct
+captures**, no page overflow, no page errors. Captures remain local in
+`_shots-s3/`; independent visual inspection is required because Codex's image
+helper was blocked by the Windows ACL sandbox. S4 opens only after independent
+acceptance.
+
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 
 ### 3.1 P0 exit gate — all required before S1 opens
