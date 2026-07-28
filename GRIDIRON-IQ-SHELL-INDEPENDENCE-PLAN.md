@@ -16,6 +16,13 @@ independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1`
 (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), `290cd0f` (P0-d). Final gate
 **66/66, 0 skipped**. Codex is the builder.
 
+**D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
+inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
+6-assertion journey, the arbitrary length floor is gone, and the exit audit now
+declares itself a composition audit. Gate **67/67, 0 skipped**; the capability
+floor, multi-angle drift correction and destroy-time focus cancellation were each
+mutation-verified.
+
 **Carried into the S-milestones — not optional:**
 - **N1–N3** (overlay: buried-overlay promise, destructive Cancel default not
   enforced, body-appended nodes escape inertness) — **before S2/S4.**

@@ -65,6 +65,63 @@ code is 32/32. Final canonical gate on exact final bytes: **67/67 green, 0 skipp
 0 failed**, including real data, parity, and integrity. No analytics, schema,
 persistence, durable season data, film file, package, tag, or release changed.
 
+#### CLAUDE'S INDEPENDENT REVIEW of `38ef2c9` — ACCEPTED. D1–D4 are closed. **P0 remains complete; S1 stays open.** (2026-07-28)
+
+All four findings are genuinely repaired, and three of them are repaired in the
+right *shape* rather than papered over. Verified by running and by mutating.
+
+**Full canonical gate on the committed bytes: 67 harnesses | 67 green | 0 skipped
+| 0 failed**, real data included.
+
+- **D1 closed and measured.** The inventory grew 54 → **68**, and the new
+  `P0_CRITICAL_CAPABILITY_IDS` names exactly the omissions I had measured: undo,
+  redo, shortcuts, drawing tools, drawing playback, Quick Chart, multi-angle
+  (load/sync/view/remove), CSV round-trip, Call Sheet, restore points, roster.
+  **Mutation-verified:** renaming `shell.undo` reds `every historically
+  vulnerable coach capability has explicit journey ownership` and names the id.
+- **D2 closed with a harness that cannot pass vacuously.** `e2e-multi-angle.mjs`
+  drives real DOM — the offset input, the view-mode select, a click on
+  `#angleWrapper2`, a `KeyV` keydown — and asserts drift correction *and* jitter
+  tolerance as a pair. **Mutation-verified:** raising the drift threshold to 999
+  reds 2 assertions with concrete evidence (`corrected:0` instead of `31.5`,
+  `synced:0` instead of `12`). A broken correction fails the first assertion; an
+  over-eager one fails the second, so neither direction can slip through.
+- **D3 closed in the right shape.** The arbitrary `P0_CAPABILITIES.length >= 45`
+  is **gone**, replaced by a named list that must all be present. That converts
+  "is the list long enough" into "are these specific things claimed" — which is
+  the only completeness statement a manifest can honestly make.
+- **D4 closed honestly.** `e2e-p0-exit.mjs` now declares itself a *composition
+  audit* in its own header and says plainly that coach-visible behavior is proven
+  by the focused journeys the gate runs separately. Spec checking moved from
+  `existsSync` to required-clause presence, so gutting the overlay spec's Focus
+  or Escape section now reds.
+- **The two focus races are genuinely fixed.** Production focus is now
+  synchronous (`app.js` drops its 30 ms deferral) and the a11y journey drops the
+  matching 60 ms sleep — the right pairing: production became deterministic, so
+  the test stopped guessing. Service-owned cancellation tokens kill stale
+  `requestAnimationFrame` restoration loops. **Mutation-verified:** removing
+  destroy-time cancellation reds exactly `toast announces politely without
+  stealing focus` with `focusStayed:false` — 31/32, matching the build note.
+  Focus-sensitive harnesses were stable across three consecutive repeat runs
+  (`e2e-breakdown-a11y` 8/8, `e2e-film-storage-setup` 31/31 each time).
+
+**Two nits, neither worth a checkpoint.** The spec-clause check matches a
+substring anywhere in the document, so a gutted section whose heading text
+survives elsewhere would still pass — acceptable, since prose completeness cannot
+be automated further, but worth a comment saying so. And Import Plays is not
+named among the critical ids; `reports.csv-roundtrip` covers the round trip, not
+the distinct import workflow.
+
+**Still carried, unchanged by this commit:** **N1–N3** (overlay: buried-overlay
+promise never resolves, destructive Cancel default not enforced in code,
+body-appended nodes escape inertness) before **S2/S4**; **R1–R2**
+(`tools/shots.mjs` captures 7 distinct surfaces of 10 and shoots one viewport)
+before it backs any coach-facing visual review.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag
+or release changed — confirmed by re-running the full gate myself.** Managed C:
+film copies remain protected.
+
 #### HISTORICAL — P0-d build handoff (reviewed and accepted at `e9c4166`)
 
 **Review range:** `81e8934..HEAD` (P0-d implementation checkpoint).
