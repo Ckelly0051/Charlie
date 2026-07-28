@@ -10,6 +10,9 @@ export class BreakdownWorkspace {
     this.unitParent = this.unitControl?.parentNode || null;
     this.unitNext = this.unitControl?.nextSibling || null;
     this.perspective = document.getElementById('gamePerspective');
+    this.quickChartPanel = document.getElementById('quickChartPanel');
+    this.quickChartParent = this.quickChartPanel?.parentNode || null;
+    this.quickChartNext = this.quickChartPanel?.nextSibling || null;
     this.host = null;
     this.saveState = 'saved';
     this.view = 'chart';
@@ -53,6 +56,10 @@ export class BreakdownWorkspace {
     host.querySelector('.bd-media-column').append(this.video, this.grid);
     host.querySelector('.bd-coder-column').append(this.tags);
     this.grid.hidden = true;
+    // Quick Chart is a fixed production panel. Its legacy parent sits under the
+    // hidden classic tree, so Break Down must adopt the LIVE node or the mode
+    // toggles internally while showing the coach nothing.
+    if (this.quickChartPanel) document.body.append(this.quickChartPanel);
     this._bind();
     this.render();
     return true;
@@ -182,6 +189,7 @@ export class BreakdownWorkspace {
   restore() {
     if (!this.source || !this.video || !this.grid || !this.tags) return;
     if (this.unitControl && this.unitParent) this.unitParent.insertBefore(this.unitControl, this.unitNext);
+    if (this.quickChartPanel && this.quickChartParent) this.quickChartParent.insertBefore(this.quickChartPanel, this.quickChartNext);
     this.grid.hidden = false;
     this.source.append(this.video, this.grid, this.tags);
     if (this.host) this.host.innerHTML = '';

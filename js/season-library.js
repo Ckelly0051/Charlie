@@ -591,11 +591,26 @@ export class SeasonLibrary {
   }
 
   _openTeamFilmSettings() {
-    window.app?.uiPolish?.initFilmStorageSetup?.();
-    window.app?.uiPolish?._renderFilmStorageSettings?.();
-    this._openSettingsPanel('gameInfoPanel');
+    const invoker = document.getElementById('btnTeamFilmSettings');
+    window.app?.settingsScreen?.open?.({ returnFocus: invoker });
   }
 
+  saveTeamIdentity(name, jerseyColor = '') {
+    const clean = String(name || '').trim();
+    if (!clean) return false;
+    const profile = { ...this._teamProfile(), teamName: clean, jerseyColor: String(jerseyColor || '') };
+    this._saveTeamProfile(profile);
+    const teams = this._teams();
+    const active = teams.find(team => team.id === this._activeTeamId());
+    if (active) {
+      active.teamName = clean;
+      active.jerseyColor = profile.jerseyColor;
+      this._saveTeams(teams);
+    }
+    this._syncGameInfoFromTeam(profile);
+    this._renderTeamCard();
+    return true;
+  }
   _openSettingsPanel(panelId) {
     const drawer = document.getElementById('settingsDrawer');
     const scrim = document.querySelector('.drawer-scrim');

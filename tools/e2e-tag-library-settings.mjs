@@ -17,6 +17,9 @@ await page.goto(URL, { waitUntil: 'networkidle0' });
 await page.evaluate(() => { window.app.tagger._confirmDialog = async () => true; });
 
 await page.click('#btnSidebarToggle');
+await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
+await page.click('[data-overlay-id="team-film-settings"] .gi-settings-tabs button:last-child');
+await page.waitForFunction(() => document.getElementById('settingsDrawer')?.classList.contains('open'));
 await page.evaluate(() => {
   document.querySelector('[data-toggle="tagLibrariesPanel"]').click();
   document.querySelector('#btnTagLibraries').click();

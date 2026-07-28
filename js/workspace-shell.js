@@ -109,7 +109,7 @@ export class WorkspaceShell {
       const action = e.target.closest('[data-ws-action]')?.dataset.wsAction;
       if (action === 'seasons') await this._openLibrary();
       if (action === 'new-game') { await this._newGame(); return; }
-      if (action === 'settings') this.app.uiPolish?._openDrawer?.();
+      if (action === 'settings') this.app.settingsScreen?.open?.({ returnFocus: e.target.closest('[data-ws-action]') });
       const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
       if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
       const previewId = e.target.closest('[data-ws-preview]')?.dataset.wsPreview;

@@ -18,7 +18,72 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### ACTIVE — Shell Independence S1 (2026-07-28)
+### ▶ CODEX HANDOFF — S2 native Team & Film Settings built; independent review required (2026-07-28)
+
+**Builder: Codex. Review range: `459b352..HEAD` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S2 is built but NOT accepted.
+Do not package, tag, or release. S3 stays closed until Claude accepts this
+checkpoint. Managed C: film copies remain protected.**
+
+S2 replaces the customer-facing film-storage modal and Settings entry path with
+one Preact-owned **Team & Film Settings** sheet. It is reachable before a game
+from Team Hub, from desktop shell Settings, from mobile Settings, and from the
+existing film-setup action. Desktop is a non-modal working sheet; narrow screens
+become modal with route inertness, internal table scrolling, zero page overflow,
+and >=44px controls.
+
+**Storage truth:** library root and per-game folder are separate visible scopes.
+Every game row shows its actual Linked / Managed copy / Not linked source,
+resolved path, expected/found clip count, and Missing/Reconnect state. Linking
+continues through the existing transactional `StorageManager.linkFilmFolder`
+path. Changing the import default to Managed does not rewrite an existing linked
+game; changing the root does not rewrite game links, move film, create plays, or
+delete tags. Exact D:-drive no-copy confirmation remains required. Managed film
+gets an honest resolved app-data path via `managedGameDir()`.
+
+**Team and advanced settings:** Team identity is now native and delegates to the
+canonical team profile/registry owner. As before, saving team name/jersey also
+writes those two identity fields through the active game's canonical metadata
+autosave; review that declared scope rather than assuming localStorage-only.
+Unmigrated roster, restore points, filters, drawing/CV and history/help tools stay
+reachable through the explicit **More settings** bridge until S4. The bridge is
+pinned on desktop and mobile.
+
+**Overlay prerequisites N1-N3 are closed before S2:** a buried parent close
+settles every stacked result promise; destructive decisions require an explicit
+Cancel and force it as the default; body nodes appended after a modal opens are
+made inert and restored exactly. Toast DOM now preserves sentence case for
+screen readers while CSS retains the all-caps visual treatment. Each N1-N3 fix
+was mutation-proven against its named assertion, restored, and rerun clean
+(`e2e-native-overlay` 34/34).
+
+**Visual-gate finding fixed:** replacing `tools/shots.mjs` exposed that Quick
+Chart's state toggled while its live panel remained under hidden `#app`.
+`BreakdownWorkspace` now adopts and restores the live fixed panel; the focused
+journey proves it is active outside the hidden legacy tree. The repaired visual
+harness captures **10 genuinely distinct surfaces at 4 viewports = 40 images**
+(1440x900, 1280x720, 768x1024, 390x844), fails on duplicate screenshot bytes,
+and fails on page overflow. This closes S1 nits S1-1/S1-2 and R1/R2: the legacy
+mobile stats observer is explicitly documented for S4/S7 deletion, and native
+Reports/Settings now have real multi-viewport baselines.
+
+**Permanent proof:** new `tools/e2e-native-settings.mjs` is 13/13. Storage setup
+is 30/30; Breakdown video 50/50; workspace shell 58/58; overlay 34/34; Tag
+Library Settings 15/15; capability inventory 8/8. The first full gate correctly
+redded two stale test contracts (the renamed Quick Chart assertion and a Tag
+Library test bypassing native Settings); both were repaired through the real
+coach path, not waived. Final canonical gate on fresh built bytes: **69/69 green,
+0 skipped, 0 failed**. Real-data harness ran (13/13), parity is green, and desktop
+`cargo check` is clean. No analytics formula, persistence schema, durable season
+migration, film file, package, tag, or release changed.
+
+**Review these first:** (1) required first-launch close/reopen lifecycle and
+settings-service race handling; (2) root-change rollback and game-link
+transaction boundaries; (3) mode-default changes leaving per-game film metadata
+byte-identical; (4) Team identity's declared active-game metadata write; (5)
+mobile modal/inertness and More-settings capability bridge; (6) Quick Chart
+mount/restore symmetry; (7) verify all three N1-N3 mutations independently.
+### HISTORICAL — Shell Independence S1 (2026-07-28)
 
 **Builder: Codex. Independent reviewer: Claude. Review HEAD after `9421eaf`.
 S1 is built but NOT accepted. Do not package, tag, or release. S2 stays closed

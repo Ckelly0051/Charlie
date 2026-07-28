@@ -108,8 +108,8 @@ function ToastStack({ service, toasts }) {
         data-expires-at={toast.expiresAt}
         onClick={event => { if (!event.target.closest('button')) service.dismissToast(toast.id); }}
       >
-        <span>{toast.message.toUpperCase()}</span>
-        {toast.action && <button type="button" onClick={() => { toast.action.fn?.(); service.dismissToast(toast.id); }}>{String(toast.action.label).toUpperCase()} · {seconds}s</button>}
+        <span>{toast.message}</span>
+        {toast.action && <button type="button" onClick={() => { toast.action.fn?.(); service.dismissToast(toast.id); }}>{String(toast.action.label)} · {seconds}s</button>}
       </div>;
     })}
   </div>;
@@ -125,15 +125,29 @@ function NativeOverlayHost({ service }) {
     if (!state.overlays.some(isModal)) return undefined;
     const root = document.getElementById('giNativeRoot');
     const routes = root?.querySelector('.gi-native-routes');
-    const targets = [...document.body.children].filter(element => element !== root);
-    if (routes) targets.push(routes);
-    const prior = targets.map(element => ({ element, inert: element.inert, ariaHidden: element.getAttribute('aria-hidden') }));
-    for (const { element } of prior) { element.inert = true; element.setAttribute('aria-hidden', 'true'); }
+    const prior = new Map();
+    const makeInert = element => {
+      if (!element || element === root || prior.has(element)) return;
+      prior.set(element, { inert: element.inert, ariaHidden: element.getAttribute('aria-hidden') });
+      element.inert = true;
+      element.setAttribute('aria-hidden', 'true');
+    };
+    [...document.body.children].forEach(makeInert);
+    makeInert(routes);
+    // Legacy code can append dialogs and menus directly to body after a native
+    // modal opens. Observe the host boundary so late siblings are inert too.
+    const observer = new MutationObserver(records => {
+      for (const record of records) {
+        for (const node of record.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) makeInert(node);
+      }
+    });
+    observer.observe(document.body, { childList: true });
     return () => {
-      for (const item of prior) {
-        item.element.inert = item.inert;
-        if (item.ariaHidden == null) item.element.removeAttribute('aria-hidden');
-        else item.element.setAttribute('aria-hidden', item.ariaHidden);
+      observer.disconnect();
+      for (const [element, item] of prior) {
+        element.inert = item.inert;
+        if (item.ariaHidden == null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', item.ariaHidden);
       }
     };
   }, [state.overlays, narrow]);
@@ -238,10 +252,14 @@ export function mountNativeApp({ host, overlays, testRoute = false }) {
   };
 }
 
+let activeOverlayService = null;
+export function getNativeOverlayService() { return activeOverlayService; }
+
 const host = document.getElementById('giNativeRoot');
 if (host) {
   const testRoute = new URLSearchParams(location.search).get('giq_test_route') === 'overlay';
   let service = new NativeOverlayService();
+  activeOverlayService = service;
   let mounted = mountNativeApp({ host, overlays: service, testRoute });
   if (testRoute) {
     globalThis.__GIQ_NATIVE_TEST__ = {
@@ -250,6 +268,7 @@ if (host) {
       mount(nextService) {
         mounted.unmount();
         service = nextService;
+        activeOverlayService = service;
         mounted = mountNativeApp({ host, overlays: service, testRoute: true });
       },
       unmount() { mounted.unmount(); },

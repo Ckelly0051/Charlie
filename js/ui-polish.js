@@ -41,8 +41,8 @@ export class UIPolish {
   }
 
   _bindFilmStorageSettings() {
-    document.getElementById('btnFilmStorageSetup')?.addEventListener('click', () => {
-      this.ensureFilmStorageMode({ force: true });
+    document.getElementById('btnFilmStorageSetup')?.addEventListener('click', event => {
+      this.app?.settingsScreen?.open?.({ returnFocus: event.currentTarget });
     });
     document.getElementById('btnLinkGameFolder')?.addEventListener('click', async () => {
       await this.app?.storage?.linkFilmFolder?.();
@@ -116,130 +116,22 @@ export class UIPolish {
     this._renderEmptyFilmActions();
   }
 
-  ensureFilmStorageMode({ force = false } = {}) {
+  ensureFilmStorageMode({ force = false, returnFocus = null } = {}) {
     const backend = this._filmBackend();
     if (!this._isDesktopFilm()) return Promise.resolve('managed');
     const current = backend.getFilmStorageMode?.() || '';
     if (current && !force) return Promise.resolve(current);
+    if (this._filmStoragePromise && !this.app?.settingsScreen?.handle) this._filmStoragePromise = null;
     if (this._filmStoragePromise) return this._filmStoragePromise;
-
-    this._filmStoragePromise = new Promise(resolve => {
-      document.getElementById('filmStorageSetupModal')?.remove();
-      const overlay = document.createElement('div');
-      overlay.className = 'film-storage-modal';
-      overlay.id = 'filmStorageSetupModal';
-      overlay.innerHTML = `
-        <div class="film-storage-backdrop"></div>
-        <section class="film-storage-card" role="dialog" aria-modal="true" aria-labelledby="filmStorageTitle">
-          <div class="film-storage-head">
-            <div>
-              <div class="film-storage-kicker">DESKTOP SETUP</div>
-              <h2 id="filmStorageTitle">Where should your film live?</h2>
-            </div>
-            <button class="film-storage-close" type="button" data-storage-action="cancel" aria-label="Close">×</button>
-          </div>
-          <p class="film-storage-intro">Choose once now. You can change this later in Settings. GridIron IQ will never move or delete existing film during setup.</p>
-          <div class="film-storage-options">
-            <button class="film-storage-option is-recommended" type="button" data-storage-action="linked">
-              <span class="film-storage-option-top"><strong>Use my existing film library</strong><em>RECOMMENDED</em></span>
-              <span>Choose the folder you already keep on this computer or external drive. GridIron IQ plays files in place and makes no copy.</span>
-              <b>Choose library folder</b>
-            </button>
-            <button class="film-storage-option" type="button" data-storage-action="managed">
-              <span class="film-storage-option-top"><strong>Let GridIron IQ manage film</strong></span>
-              <span>Simple setup for new users. Imported video is copied into GridIron IQ's private app storage.</span>
-              <b>Use managed storage</b>
-            </button>
-          </div>
-          <p class="film-storage-footnote">This choice affects video only. Seasons, tags, reports, and backups keep using GridIron IQ's protected app data.</p>
-        </section>`;
-      document.body.appendChild(overlay);
-      let selectedMode = current;
-      const finish = value => {
-        document.removeEventListener('keydown', onKey, true);
-        overlay.remove();
+    const required = !current;
+    this._filmStoragePromise = Promise.resolve(this.app?.settingsScreen?.open?.({ required, returnFocus }))
+      .then(value => required ? value : (backend.getFilmStorageMode?.() || current))
+      .finally(() => {
         this._filmStoragePromise = null;
         this._renderFilmStorageSettings();
-        resolve(value);
-      };
-      const showLinkedConfirmation = picked => {
-        const card = overlay.querySelector('.film-storage-card');
-        if (!card) return;
-        card.innerHTML = `
-          <div class="film-storage-head">
-            <div><div class="film-storage-kicker">FILM LIBRARY READY</div><h2 id="filmStorageTitle">Existing library connected</h2></div>
-            <button class="film-storage-close" type="button" data-storage-action="done" aria-label="Done">×</button>
-          </div>
-          <div class="film-storage-confirmation" data-storage-confirmation>
-            <span class="film-storage-confirm-icon">✓</span>
-            <div><strong>Film Library Root</strong><span id="filmStorageConfirmedPath"></span></div>
-          </div>
-          <p class="film-storage-confirm-copy"><strong>No video will be copied.</strong> For each game, choose its folder inside this library. GridIron IQ will play those original files in place.</p>
-          <div class="film-storage-confirm-actions">
-            <button class="btn" type="button" data-storage-action="change-root">Choose a different root</button>
-            <button class="btn btn-accent" type="button" data-storage-action="done">Done</button>
-          </div>`;
-        card.querySelector('#filmStorageConfirmedPath').textContent = picked;
-        card.setAttribute('data-storage-confirmation', '');
-        card.querySelector('.film-storage-confirm-actions [data-storage-action="done"]')?.focus();
-      };
-      const choose = async action => {
-        if (action === 'cancel' || action === 'done') { finish(selectedMode || ''); return; }
-        if (action === 'change-root') action = 'linked';
-        if (action === 'managed') {
-          if (backend.setFilmStorageMode?.('managed') === false) {
-            this.app?.tagger?.toast?.('FILM STORAGE SETTING COULD NOT BE SAVED');
-            return;
-          }
-          selectedMode = 'managed';
-          this.app?.tagger?.toast?.('FILM STORAGE SET: GRIDIRON IQ MANAGED');
-          finish('managed');
-          return;
-        }
-        if (action === 'linked') {
-          const picked = await backend.pickFolder?.(backend.getLibraryRoot?.() || undefined);
-          if (!picked) return;
-          const oldRoot = backend.getLibraryRoot?.() || '';
-          const norm = value => String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
-          if (oldRoot && norm(oldRoot) !== norm(picked)) {
-            const confirmed = await this.app?.tagger?._choiceDialog?.(
-              'Change the film library folder? Existing linked games under the old folder may need to be linked again. No film or tags will be deleted.',
-              [{ key: 'change', label: 'Change folder', variant: 'btn-accent' }, { key: 'cancel', label: 'Cancel' }]
-            );
-            if (confirmed !== 'change') return;
-          }
-          const allowed = await backend.setLibraryRoot?.(picked);
-          if (!allowed) { this.app?.tagger?.toast?.('COULD NOT ACCESS THAT FOLDER. TRY ANOTHER LOCATION.'); return; }
-          if (backend.setFilmStorageMode?.('linked') === false) {
-            await backend.setLibraryRoot?.(oldRoot);
-            this.app?.tagger?.toast?.('FILM STORAGE SETTING COULD NOT BE SAVED');
-            return;
-          }
-          selectedMode = 'linked';
-          this._renderFilmStorageSettings();
-          this.app?.tagger?.toast?.('FILM LIBRARY LINKED - NO VIDEO WILL BE COPIED', 6000);
-          showLinkedConfirmation(picked);
-        }
-      };
-      overlay.addEventListener('click', e => {
-        const action = e.target.closest('[data-storage-action]')?.dataset.storageAction;
-        if (action) choose(action);
       });
-      const onKey = e => {
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); finish(selectedMode || ''); }
-        if (e.key !== 'Tab') return;
-        const focusable = [...overlay.querySelectorAll('button')];
-        if (!focusable.length) return;
-        const i = focusable.indexOf(document.activeElement);
-        if (e.shiftKey && i <= 0) { e.preventDefault(); focusable[focusable.length - 1].focus(); }
-        else if (!e.shiftKey && i === focusable.length - 1) { e.preventDefault(); focusable[0].focus(); }
-      };
-      document.addEventListener('keydown', onKey, true);
-      overlay.querySelector('.film-storage-option')?.focus();
-    });
     return this._filmStoragePromise;
   }
-
   /** Resolve desktop import intent before VideoController loads any files. */
   async prepareFilmFiles(_files) {
     if (!this._isDesktopFilm()) return true;
@@ -339,8 +231,8 @@ export class UIPolish {
       drawer.classList.add('open');
       scrim.classList.add('active');
     };
-    btn.addEventListener('click', () => {
-      drawer.classList.contains('open') ? close() : open();
+    btn.addEventListener('click', event => {
+      this.app?.settingsScreen?.open?.({ returnFocus: event.currentTarget });
     });
     scrim.addEventListener('click', close);
     document.getElementById('settingsDrawerClose')?.addEventListener('click', close);
@@ -440,6 +332,10 @@ export class UIPolish {
     // The stats overlay and the drawer both close via their own ✕/backdrop,
     // which this tab bar can't see — watch them so the highlight never lies
     // about where the user is.
+    // During S1 the public #statsDashboard id transfers to native Reports.
+    // This legacy mobile observer therefore watches the native node, but the
+    // entire bottom bar is hidden under the workspace shell. Delete it with the
+    // rest of the legacy mobile bar in S4/S7; it must not become route ownership.
     const statsEl = document.getElementById('statsDashboard');
     if (statsEl) {
       new MutationObserver(() => {

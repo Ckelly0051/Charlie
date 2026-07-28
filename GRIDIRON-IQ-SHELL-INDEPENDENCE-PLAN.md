@@ -11,7 +11,7 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0 IS COMPLETE. S1 — native Reports — is COMPLETE AND ACCEPTED (`d33dd58`, Claude, 2026-07-28; gate 68/68, 0 skipped). S2 — native Team & Film Settings — is OPEN.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). Codex built S1 after `9421eaf`; no package, tag, or release is permitted until independent acceptance. S2 remains closed.
+**Status: P0 IS COMPLETE. S1 — native Reports — is COMPLETE AND ACCEPTED (`d33dd58`, Claude, 2026-07-28). S2 — native Team & Film Settings — is BUILT BY CODEX AND AWAITING CLAUDE REVIEW (review range `459b352..HEAD`; final builder gate 69/69, 0 skipped; Tauri compile clean). S3 remains closed.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). Codex built S1 after `9421eaf`; no package, tag, or release is permitted until independent acceptance. S2 remains closed.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
@@ -251,6 +251,24 @@ Football semantics are explicit: self scout provides Overview, Offense, Defense,
 Permanent proof includes `tools/e2e-native-reports.mjs` (15/15), all eight views, exact self/opponent film refs including duplicate bare play ids, scout-only ST, four exports, 44px mobile controls, internal tab scrolling, and zero page overflow. The capability inventory is 73 entries with 18 named critical ids. Import Plays is now a named critical journey, and specification checks require real Markdown section headings rather than loose substrings.
 
 Three critical mutations were run and restored: removing opponent `__gid` stamping reds exact film identity, admitting head-to-head ST reds the ST cohort and Watch cuts, and retaining the old dashboard id reds native single ownership. The first full gate exposed two stale test contracts rather than production defects: timer-based overlay waits and onboarding assumptions about the removed modal/player-on-Overview layout. Both were replaced with state-based assertions. Final canonical gate on the completed checkpoint: **68/68 green, 0 skipped, 0 failed**; desktop `cargo check` is clean. No analytics formula, season/play/tag data, persistence schema, film metadata, film file, package, tag, or release changed. S2 remains closed pending independent review.
+### S2 checkpoint — native Team & Film Settings (awaiting independent review)
+
+One Preact-owned sheet now owns first-use film-storage choice, library-root
+selection, per-game source/path/clip-health truth, Team identity, and the bridge
+to not-yet-migrated advanced settings. Desktop remains a non-modal workspace;
+narrow screens become modal and inert the route. Root changes and per-game links
+remain separate transactions. Linked means play in place/no copy; Managed is an
+import default and cannot rewrite an existing linked game. No film is moved or
+deleted by Settings.
+
+N1-N3 are closed and mutation-proven. S1's visual nits R1/R2 are closed by a
+failing 40-capture harness covering ten distinct surfaces at all four release
+viewports. That harness found a real hidden-Quick-Chart ownership defect; the
+live panel is now adopted into Break Down and restored on internal teardown.
+Permanent S2 proof is `e2e-native-settings.mjs` (13/13), with storage setup
+30/30, shell 58/58, overlay 34/34, Breakdown video 50/50, and full gate 69/69.
+No analytics/schema/data migration, film deletion, package, tag, or release is
+part of S2. S3 opens only after independent acceptance.
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 
 ### 3.1 P0 exit gate — all required before S1 opens

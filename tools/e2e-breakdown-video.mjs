@@ -468,8 +468,11 @@ await page.click('[data-bd-context="quick"]');
 state = await page.evaluate(() => ({
   active: window.app.quickChart.isActive,
   context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+  panelVisible: (() => { const panel=document.getElementById('quickChartPanel'); const rect=panel?.getBoundingClientRect(); return !!panel && !panel.classList.contains('hidden') && getComputedStyle(panel).display !== 'none' && rect.width > 0 && rect.height > 0; })(),
+  outsideLegacy: !document.getElementById('quickChartPanel')?.closest('#app'),
 }));
-ok(state.active && state.context === 'quick', 'Quick Chart selector invokes the existing production mode', JSON.stringify(state));
+ok(state.active && state.context === 'quick' && state.panelVisible && state.outsideLegacy,
+  'Quick Chart selector opens the active production panel outside the hidden legacy tree', JSON.stringify(state));
 await page.click('[data-bd-context="self"]');
 
 await page.evaluate(() => window.app._renderSaveState('pending'));

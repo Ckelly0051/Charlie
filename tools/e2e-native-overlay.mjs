@@ -42,6 +42,15 @@ state = await page.evaluate(() => ({
 }));
 ok(state.active === 'Keep working', 'dialog focuses its declared default action', JSON.stringify(state));
 ok(state.appInert && state.nativeRouteInert && state.modal === 'true', 'modal dialog makes legacy and native route content inert', JSON.stringify(state));
+state = await page.evaluate(async () => {
+  const late = document.createElement('button');
+  late.id = 'late-body-control';
+  late.textContent = 'Late legacy control';
+  document.body.appendChild(late);
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  return { inert: late.inert, hidden: late.getAttribute('aria-hidden') };
+});
+ok(state.inert && state.hidden === 'true', 'body controls appended after modal open become inert immediately', JSON.stringify(state));
 await page.focus('[data-overlay-action="continue"]');
 await page.keyboard.press('Tab');
 ok(await page.evaluate(() => document.activeElement?.dataset.overlayAction === 'cancel'), 'Tab wraps inside the topmost dialog');
@@ -58,6 +67,7 @@ await page.evaluate(() => document.querySelector('[data-overlay-scrim]').dispatc
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-dialog'));
 await page.waitForFunction(() => document.activeElement?.hasAttribute('data-probe-dialog'));
 ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-dialog')), 'dismissible dialog scrim is Cancel and restores focus');
+await page.evaluate(() => document.getElementById('late-body-control')?.remove());
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'dialog journeys do not mutate season data');
 
 console.log('\n== 2b. Focus fallback after an unavailable invoker ==');
@@ -144,12 +154,6 @@ state = await page.evaluate(() => ({
 }));
 ok(state.count === 2 && state.lowerInert, 'dialog may sit over a sheet and makes the sheet inert', JSON.stringify(state));
 ok(state.active === 'Keep editing', 'destructive confirmation defaults focus to Cancel', JSON.stringify(state));
-state = await page.evaluate(() => {
-  const service = window.__GIQ_NATIVE_TEST__.service;
-  const lower = service.snapshot().overlays[0];
-  return { refused: service.close(lower.id, 'done') === false, count: service.snapshot().overlays.length, active: document.activeElement?.textContent?.trim() };
-});
-ok(state.refused && state.count === 2 && state.active === 'Keep editing', 'a buried overlay cannot close or steal focus from the top decision', JSON.stringify(state));
 await page.evaluate(() => [...document.querySelectorAll('[data-overlay-scrim]')].at(-1).dispatchEvent(new MouseEvent('mousedown', { bubbles: true })));
 await sleep(50);
 ok(await page.evaluate(() => window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length === 2), 'destructive confirmation ignores scrim clicks');
@@ -159,6 +163,22 @@ const parentFocusRestored = await page.waitForFunction(() => document.activeElem
 ok(parentFocusRestored, 'closing stacked dialog returns focus inside its parent sheet');
 await page.keyboard.press('Escape');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
+
+state = await page.evaluate(async () => {
+  const isolated = window.__GIQ_NATIVE_TEST__.createService();
+  const sheet = isolated.sheet({ title: 'Parent' });
+  const dialog = isolated.dialog({ title: 'Child', destructive: true, parentId: sheet.id,
+    actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'delete', label: 'Delete', tone: 'destructive', default: true }] });
+  const closed = sheet.close('route-closed');
+  const [sheetResult, dialogResult] = await Promise.race([
+    Promise.all([sheet.result, dialog.result]),
+    new Promise(resolve => setTimeout(() => resolve(['timeout', 'timeout']), 120)),
+  ]);
+  isolated.destroy();
+  return { closed, sheetResult, dialogResult };
+});
+ok(state.closed && state.sheetResult === 'route-closed' && state.dialogResult === 'parent-closed',
+  'programmatically closing a buried parent settles it and every stacked child', JSON.stringify(state));
 await page.click('[data-probe-stack]');
 await page.waitForSelector('[data-probe-open-confirm]');
 await page.click('[data-probe-open-confirm]');
@@ -180,7 +200,23 @@ state = await page.evaluate(() => {
   return { rejected, defaultAction };
 });
 ok(state.rejected, 'service rejects unrelated dialog-on-dialog stacking');
-ok(state.defaultAction?.key === 'ok' && state.defaultAction?.default, 'dialog without supplied actions receives a focusable acknowledgement default', JSON.stringify(state));
+const acknowledgmentDefault = state.defaultAction;
+state = await page.evaluate(() => {
+  const isolated = window.__GIQ_NATIVE_TEST__.createService();
+  let missingCancelRejected = false, unsafe = null;
+  try { unsafe = isolated.dialog({ title: 'Unsafe', destructive: true, actions: [{ key: 'delete', label: 'Delete', tone: 'destructive', default: true }] }); }
+  catch { missingCancelRejected = true; }
+  unsafe?.close('cancel');
+  const safe = isolated.dialog({ title: 'Safe', destructive: true,
+    actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'delete', label: 'Delete', tone: 'destructive', default: true }] });
+  const active = isolated.snapshot().overlays[0];
+  safe.close('cancel');
+  isolated.destroy();
+  return { missingCancelRejected, initial: active.initialAction, cancelDefault: active.actions.find(action => action.key === 'cancel')?.default, deleteDefault: active.actions.find(action => action.key === 'delete')?.default };
+});
+ok(state.missingCancelRejected && state.initial === 'cancel' && state.cancelDefault && !state.deleteDefault,
+  'service enforces an explicit Cancel default for every destructive decision', JSON.stringify(state));
+ok(acknowledgmentDefault?.key === 'ok' && acknowledgmentDefault?.default, 'dialog without supplied actions receives a focusable acknowledgement default', JSON.stringify(acknowledgmentDefault));
 
 console.log('\n== 5. Toast semantics ==');
 // A destroyed service used to leave its requestAnimationFrame focus retries
@@ -195,8 +231,9 @@ await page.evaluate(() => {
   stale.destroy();
   unavailable.remove();
 });
+await page.waitForFunction(() => !document.querySelector('.gi-native-routes')?.closest('[inert]') && window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length === 0);
 await page.focus('[data-probe-toast]');
-await page.click('[data-probe-toast]');
+await page.evaluate(() => window.__GIQ_NATIVE_TEST__.service.toast({ message: 'Test save complete', action: { label: 'Undo', fn: () => { document.querySelector('[data-probe-outcome]').textContent = 'undo'; } } }));
 await page.waitForSelector('.gi-native-toast');
 await page.evaluate(() => new Promise(resolve => {
   let frames = 10;
@@ -214,14 +251,14 @@ state = await page.evaluate(() => {
   };
 });
 ok(state.focusStayed && state.role === 'status' && state.live === 'polite', 'toast announces politely without stealing focus', JSON.stringify(state));
-ok(state.duration >= 4500 && /UNDO/.test(state.text), 'undo toast keeps at least the 4.5s action window visible', JSON.stringify(state));
+ok(state.duration >= 4500 && /Undo/.test(state.text), 'undo toast keeps at least the 4.5s action window visible', JSON.stringify(state));
 await page.click('.gi-native-toast button');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
 ok(await page.evaluate(() => document.querySelector('[data-probe-outcome]')?.textContent === 'undo'), 'toast action executes once and dismisses');
 await page.evaluate(() => window.__GIQ_NATIVE_TEST__.service.toast({ message: 'Save failed', tone: 'error' }));
 await page.waitForSelector('.gi-native-toast.is-error');
 state = await page.evaluate(() => { const toast=document.querySelector('.gi-native-toast'); return { role:toast.getAttribute('role'), live:toast.getAttribute('aria-live'), text:toast.textContent }; });
-ok(state.role === 'alert' && state.live === 'assertive' && state.text.includes('SAVE FAILED'), 'failure toast uses an assertive semantic announcement', JSON.stringify(state));
+ok(state.role === 'alert' && state.live === 'assertive' && state.text.includes('Save failed'), 'failure toast uses an assertive semantic announcement', JSON.stringify(state));
 await page.click('.gi-native-toast');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
 ok(true, 'toast surface itself remains click-to-dismiss');

@@ -23,6 +23,8 @@ import { CrossGameCutup } from './cross-game-cutup.js';
 import { FilmNavigationService } from './film-navigation-service.js';
 import { StudyScreen } from './study-screen.js';
 import { ReportsScreen } from './reports-screen.js';
+import { SettingsScreen } from './settings-screen.js';
+import { getNativeOverlayService } from './native-root.jsx';
 import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
@@ -104,6 +106,9 @@ class App {
     this.planExport = PlanExport;
     this.planScreen = new PlanScreen(this);
     this.reportsScreen = new ReportsScreen(this);
+    this.overlays = getNativeOverlayService();
+    if (!this.overlays) throw new Error('GridIron IQ native overlay service is unavailable.');
+    this.settingsScreen = new SettingsScreen(this, this.overlays);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);

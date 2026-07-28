@@ -1,5 +1,4 @@
 const DEFAULT_TOAST_MS = 4500;
-let nextOverlayId = 1;
 
 const connectedElement = value => value && typeof value.focus === 'function' && value.isConnected;
 
@@ -13,6 +12,7 @@ export class NativeOverlayService {
     this._toasts = [];
     this._toastTimers = new Map();
     this._focusRestoreToken = 0;
+    this._nextOverlayId = 1;
   }
 
   snapshot() {
@@ -39,7 +39,7 @@ export class NativeOverlayService {
       if (!allowed) throw new Error('A dialog may only stack for a destructive confirmation of the active dialog.');
     }
 
-    const id = options.id || `gi-overlay-${nextOverlayId++}`;
+    const id = options.id || `gi-overlay-${this._nextOverlayId++}`;
     let resolveResult;
     const result = new Promise(resolve => { resolveResult = resolve; });
     const requestedActions = options.actions?.length
@@ -52,6 +52,11 @@ export class NativeOverlayService {
       default: action.default === true,
       onSelect: action.onSelect,
     }));
+    if (options.destructive === true) {
+      const cancel = actions.find(action => action.key === 'cancel');
+      if (!cancel) throw new Error('A destructive overlay requires an explicit Cancel action.');
+      for (const action of actions) action.default = action === cancel;
+    }
     const invoker = options.returnFocus || globalThis.document?.activeElement || null;
     const fallback = connectedElement(invoker)
       ? invoker.closest?.('[data-focus-return-root], main, section, nav, header')
@@ -67,7 +72,9 @@ export class NativeOverlayService {
       modal: type === 'dialog' || options.modal === true,
       dismissOnEscape: options.dismissOnEscape !== false,
       dismissOnScrim: options.dismissOnScrim ?? (options.destructive !== true && options.unsaved !== true),
-      initialAction: options.initialAction || (type === 'dialog' ? actions.find(action => action.default)?.key || actions[0]?.key || '' : ''),
+      initialAction: options.destructive === true
+        ? 'cancel'
+        : options.initialAction || (type === 'dialog' ? actions.find(action => action.default)?.key || actions[0]?.key || '' : ''),
       returnFocus: invoker,
       focusFallback: fallback,
       resolveResult,
@@ -78,10 +85,16 @@ export class NativeOverlayService {
   }
 
   close(id, value = 'cancel') {
-    const overlay = this._overlays.find(item => item.id === id);
-    if (!overlay || this._overlays.at(-1)?.id !== id) return false;
-    this._overlays = this._overlays.filter(item => item.id !== id);
-    overlay.resolveResult(value);
+    const index = this._overlays.findIndex(item => item.id === id);
+    if (index < 0) return false;
+    const closing = this._overlays.slice(index);
+    const overlay = closing[0];
+    this._overlays = this._overlays.slice(0, index);
+    // A route may close its parent sheet while a confirmation is stacked over it.
+    // Settle the entire suffix so no buried handle can leave an await pending.
+    for (let i = closing.length - 1; i >= 0; i--) {
+      closing[i].resolveResult(i === 0 ? value : 'parent-closed');
+    }
     this._emit();
     this._restoreFocus(overlay);
     return true;
@@ -95,7 +108,7 @@ export class NativeOverlayService {
 
   toast(options = {}) {
     const config = typeof options === 'string' ? { message: options } : options;
-    const id = config.id || `gi-toast-${nextOverlayId++}`;
+    const id = config.id || `gi-toast-${this._nextOverlayId++}`;
     const createdAt = this._now();
     const duration = Math.max(DEFAULT_TOAST_MS, Number(config.duration) || DEFAULT_TOAST_MS);
     const toast = {
@@ -151,7 +164,7 @@ export class NativeOverlayService {
     let attempts = 0;
     const restore = () => {
       if (token !== this._focusRestoreToken) return;
-      const stable = [...(globalThis.document?.querySelectorAll('[data-focus-return-root], main, nav, header, #workspaceShell') || [])]
+      const stable = [...(globalThis.document?.querySelectorAll('[data-focus-return-root], main, nav, header') || [])]
         .find(element => connectedElement(element) && !element.closest('[inert]') && element.getClientRects().length);
       const preferred = connectedElement(overlay.returnFocus)
         ? overlay.returnFocus

@@ -171,11 +171,14 @@ ok(r.settingsInShell && r.moreInShell && r.settingsVisible && r.moreVisible && r
   'Compact shell keeps canonical Settings and More controls visible and the drawer renderable', JSON.stringify(r));
 
 await page.click('#btnSidebarToggle');
-await new Promise(resolve => setTimeout(resolve, 320));
-r = await page.evaluate(() => ({ drawerOpen: document.getElementById('settingsDrawer')?.classList.contains('open') }));
-ok(r.drawerOpen, 'Shell Settings opens the canonical settings drawer', JSON.stringify(r));
-await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
-await new Promise(resolve => setTimeout(resolve, 320));
+await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
+r = await page.evaluate(() => ({
+  nativeSettings: document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length,
+  drawerOpen: document.getElementById('settingsDrawer')?.classList.contains('open'),
+}));
+ok(r.nativeSettings === 1 && !r.drawerOpen, 'Shell Settings opens the single native Team & Film Settings owner', JSON.stringify(r));
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await page.click('#btnMoreMenu');
 r = await page.evaluate(() => ({ moreOpen: !document.getElementById('moreDropdown')?.classList.contains('hidden') }));
 ok(r.moreOpen, 'Shell More opens the canonical action menu', JSON.stringify(r));
@@ -262,11 +265,15 @@ ok(r.sameNode && r.inTools && r.entries === 1 && r.before === true && r.after ==
 // from the top bar and present once the drawer is open.
 const badgeClosed = await onScreen('#backendStatusBadge');
 await page.click('#btnSidebarToggle');
-await new Promise(resolve => setTimeout(resolve, 360));
+await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
+await page.click('[data-overlay-id="team-film-settings"] .gi-settings-tabs button:last-child');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]')
+  && document.getElementById('settingsDrawer')?.classList.contains('open'));
+await new Promise(resolve => setTimeout(resolve, 320));
 const badgeOpen = await onScreen('#backendStatusBadge');
 r = { badgeClosed, badgeOpen, inHead: await page.evaluate(() => !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head')) };
 ok(!r.badgeClosed && r.badgeOpen && r.inHead,
-  'CV-server badge is rehoused in the drawer head: hidden with the drawer closed, reachable when open', JSON.stringify(r));
+  'Native More settings preserves the unmigrated drawer tools and CV-server status', JSON.stringify(r));
 
 // Classic top-bar media rules are written for the classic bar's cramping but
 // several are UNSCOPED, so they follow a control that gets relocated. Two would
@@ -641,7 +648,19 @@ r = await page.evaluate(() => ({
 ok(r.bottomTabs === 'none' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
   'Mobile Break Down uses one Home/Break Down/Study/Reports/Plan navigation system', JSON.stringify(r));
 await page.click('.ws-mobile-head [data-ws-action="settings"]');
-await new Promise(resolve => setTimeout(resolve, 360));
+await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
+await page.waitForFunction(() => !!document.getElementById('workspaceShell')?.closest('[inert]'));
+r = await page.evaluate(() => ({
+  modal: document.querySelector('[data-overlay-id="team-film-settings"] .gi-overlay-panel')?.getAttribute('aria-modal'),
+  routeInert: !!document.getElementById('workspaceShell')?.closest('[inert]'),
+  overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+}));
+ok(r.modal === 'true' && r.routeInert && !r.overflow,
+  'Mobile Settings is a focused modal sheet with no page overflow', JSON.stringify(r));
+await page.click('[data-overlay-id="team-film-settings"] .gi-settings-tabs button:last-child');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]')
+  && document.getElementById('settingsDrawer')?.classList.contains('open'));
+await new Promise(resolve => setTimeout(resolve, 320));
 r = {
   undo: await onScreen('#btnUndoAction'),
   redo: await onScreen('#btnRedoAction'),
@@ -652,7 +671,7 @@ r = {
     .map(id => document.getElementById(id).getBoundingClientRect().height))),
 };
 ok(r.undo && r.redo && r.shortcuts && r.inMobileTools && r.minHeight >= 44,
-  'Mobile More exposes the live Undo, Redo, and Shortcuts controls as touch targets', JSON.stringify(r));
+  'Mobile More settings preserves live Undo, Redo, and Shortcuts as touch targets', JSON.stringify(r));
 await page.click('#btnShortcuts');
 r = await page.evaluate(() => ({ shortcutsOpen: !document.getElementById('shortcutsModal')?.classList.contains('hidden') }));
 ok(r.shortcutsOpen, 'Mobile Shortcuts action remains wired to the canonical dialog', JSON.stringify(r));

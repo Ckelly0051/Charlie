@@ -48,32 +48,28 @@ await page.evaluate(() => {
   window.app.uiPolish._initEmptyStateCTA();
   window.app.uiPolish.initFilmStorageSetup();
 });
-await page.waitForSelector('#filmStorageSetupModal');
+await page.waitForSelector('[data-overlay-id="team-film-settings"]');
 let r = await page.evaluate(() => ({
-  panelVisible: !document.querySelector('#filmStoragePanel')?.hidden,
-  choices: [...document.querySelectorAll('.film-storage-option')].map(x => x.textContent.trim()),
-  title: document.querySelector('#filmStorageTitle')?.textContent,
+  native: !!document.querySelector('[data-native-settings]'),
+  choices: [...document.querySelectorAll('.gi-settings-mode-actions button')].map(x => x.textContent.trim()),
+  title: document.querySelector('[data-overlay-id="team-film-settings"] h2')?.textContent,
+  legacyModal: !!document.querySelector('#filmStorageSetupModal'),
 }));
-ok(r.panelVisible && /Where should your film live/.test(r.title), 'First desktop launch opens intentional storage setup', JSON.stringify(r));
-ok(r.choices.some(x => /existing film library/i.test(x) && /no copy/i.test(x))
-  && r.choices.some(x => /manage film/i.test(x) && /copied/i.test(x)),
+ok(r.native && /Team & Film Settings/.test(r.title) && !r.legacyModal, 'First desktop launch opens the one native Team & Film Settings owner', JSON.stringify(r));
+ok(r.choices.some(x => /existing library/i.test(x) && /nothing is copied/i.test(x))
+  && r.choices.some(x => /managed storage/i.test(x) && /copied/i.test(x)),
   'Choice copy clearly distinguishes link-in-place from managed copies', JSON.stringify(r.choices));
 r = await page.evaluate(() => ({
-  nested: !!document.querySelector('#gameInfoPanel #filmStoragePanel'),
+  native: document.querySelectorAll('[data-native-settings]').length,
   hubButton: !!document.getElementById('btnTeamFilmSettings'),
 }));
-ok(r.nested, 'Film Storage lives inside Team & Film Settings instead of a competing panel', JSON.stringify(r));
+ok(r.native === 1, 'Team & Film Settings has one native presentation owner', JSON.stringify(r));
 ok(r.hubButton, 'Team Hub exposes Team & Film Settings before a game is opened', JSON.stringify(r));
-if (r.hubButton) {
-  await page.evaluate(() => document.getElementById('btnTeamFilmSettings').click());
-  r = await page.evaluate(() => ({ drawer: document.getElementById('settingsDrawer')?.classList.contains('open'), panel: !document.getElementById('gameInfoPanel')?.classList.contains('collapsed') }));
-  ok(r.drawer && r.panel, 'Team Hub settings action opens the consolidated panel', JSON.stringify(r));
-  await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
-}
 
-
-await page.click('[data-storage-action="managed"]');
-await page.waitForFunction(() => !document.querySelector('#filmStorageSetupModal'));
+await page.click('.gi-settings-mode-actions button:nth-child(2)');
+await page.waitForSelector('.gi-settings-callout.is-success .gi-settings-primary');
+await page.click('.gi-settings-callout.is-success .gi-settings-primary');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 r = await page.evaluate(() => ({
   mode: window.__filmSetupState.mode,
   label: document.querySelector('#filmStorageModeLabel')?.textContent,
@@ -89,19 +85,19 @@ await page.evaluate(() => {
   window.__filmSetupState.root = '';
   window.app.uiPolish.ensureFilmStorageMode({ force: true });
 });
-await page.waitForSelector('#filmStorageSetupModal');
-await page.click('[data-storage-action="linked"]');
-await new Promise(resolve => setTimeout(resolve, 50));
+await page.waitForSelector('[data-overlay-id="team-film-settings"]');
+await page.waitForSelector('.gi-settings-mode-actions button:first-child');
+await page.click('.gi-settings-mode-actions button:first-child');
+await page.waitForFunction(() => !!document.querySelector('.gi-settings-callout.is-success .gi-settings-primary'));
 r = await page.evaluate(() => ({
-  modal: !!document.querySelector('#filmStorageSetupModal'),
-  confirmed: document.querySelector('[data-storage-confirmation]')?.textContent || '',
-  done: !!document.querySelector('[data-storage-action="done"]'),
+  sheet: !!document.querySelector('[data-overlay-id="team-film-settings"]'),
+  confirmed: document.querySelector('.gi-settings-callout.is-success')?.textContent || '',
+  done: !!document.querySelector('.gi-settings-callout.is-success .gi-settings-primary'),
 }));
-ok(r.modal && r.done && /D:\/Football\/Film/.test(r.confirmed) && /no video will be copied/i.test(r.confirmed),
+ok(r.sheet && r.done && /D:\/Football\/Film/.test(r.confirmed) && /no video was copied/i.test(r.confirmed),
   'Linked root selection stays on an exact-path no-copy confirmation', JSON.stringify(r));
-if (r.done) await page.click('[data-storage-action="done"]');
-await page.waitForFunction(() => !document.querySelector('#filmStorageSetupModal'));
-r = await page.evaluate(() => ({
+if (r.done) await page.click('.gi-settings-callout.is-success .gi-settings-primary');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));r = await page.evaluate(() => ({
   ...window.__filmSetupState,
   label: document.querySelector('#filmStorageModeLabel')?.textContent,
   path: document.querySelector('#filmStoragePathLabel')?.textContent,

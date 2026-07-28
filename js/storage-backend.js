@@ -70,6 +70,7 @@ export class StorageBackend {
   async filmUrl(_gameId, _filename) { return null; }
   async deleteFilm(_gameId) {}
   async listFilmFiles(_gameId) { return []; }
+  async managedGameDir(_gameId) { return ''; }
 
   // ---- linked film library (desktop only): coach-owned folder, referenced
   //      in place (no copy). Managed film (importFilm) is untouched by these. ----
@@ -879,6 +880,13 @@ export class TauriBackend extends StorageBackend {
     } catch (e) {}
   }
 
+  async managedGameDir(gameId) {
+    if (!this._ok() || !this.currentId || !gameId) return '';
+    const pathApi = window.__TAURI__?.path;
+    if (!pathApi?.appDataDir || !pathApi?.join) return this._filmsDir(gameId);
+    try { return await pathApi.join(await pathApi.appDataDir(), 'seasons', String(this.currentId), 'films', String(gameId)); }
+    catch { return this._filmsDir(gameId); }
+  }
   async listFilmFiles(gameId) {
     if (!this._ok() || !this.currentId) return [];
     const dir = this._filmsDir(gameId);
