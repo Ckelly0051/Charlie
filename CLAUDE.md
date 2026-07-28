@@ -84,6 +84,71 @@ restoring the legacy dashboard id/target exactly; (5) export ownership and playe
 label survival; (6) mobile tab/command containment. Use the three named mutations
 rather than accepting the green harness on report.
 
+#### CLAUDE'S INDEPENDENT REVIEW of `d33dd58` — ACCEPTED. **S1 is complete; S2 opens.** 2 nits, neither blocking (2026-07-28)
+
+The first real route migration, and it holds. **Full canonical gate 68 harnesses |
+68 green | 0 skipped**, real data included; `e2e-native-reports` 15/15.
+
+- **Mutation-verified the central guarantee, and the failure signature is the
+  point.** Removing the `__gid` stamp reds exactly the three opponent
+  film-identity assertions — and the counts stay *correct* (2 offense, 2 defense,
+  1 ST) while every Watch ref array collapses to `[]`. The report still looks
+  right and plays nothing. **A count-based check would never have caught it**;
+  this harness asserts the refs.
+- **No assertion was lost in the harness adaptations** — the trap I was watching
+  for. Counted before/after: workspace-shell 56→**57**, onboarding 52→52,
+  season-tab 161→161, self-scout 28→28, study-screen 56→56, native-overlay 32→32,
+  p0-exit 13→13. The one replaced probe (`pane.dataset.seasonLoaded` → native-pane
+  match) sits in the same `evaluate` as the KPI-count, trend-chart and
+  leaderboard assertions, all unchanged — so the lazy-render *contract* is still
+  proven by its siblings; only the implementation-specific flag moved.
+- **Analytics outputs are unchanged, structurally not just by test.** The new ST
+  branch in `generateOpponentScout` is additive: an ST play matched *neither*
+  off/def branch before and still matches neither, so `offPlays`/`defPlays` are
+  identical; `stPlays`/`stStats`/`stCount` are new keys. The parity goldens are
+  **not in the diff** and parity is green — the strongest evidence available.
+- **`setDashboardTarget` is the right seam** — validates its input, returns the
+  prior target so lifecycle owners restore exactly. Additive DI, computation
+  untouched, exactly what §2.4 permits.
+- **Single ownership holds, probed rather than assumed.** Exactly **one**
+  `#statsDashboard` at every point — boot, on Reports, after `disable`, after
+  re-`enable`. Disable renames the legacy node back and re-points the engine;
+  re-enable restores the native content host. Zero page errors throughout.
+- **The Special Teams exclusion is disclosed, not silent.** The coach reads
+  "Special Teams includes opponent-film scout games only. Head-to-head self-scout
+  film is not silently perspective-flipped," with empty states that say how to
+  chart to unlock it. The football reasoning is right: a stored head-to-head ST
+  play does not record whose unit the event belonged to, so flipping it would
+  invent data.
+
+**A wrong reading of mine, corrected by probing — the third time this project.**
+My first probe reported the engine's render target as broken after
+disable→re-enable (`targetId:""`, not the native section). Re-probing with
+condition waits instead of sleeps showed that is the *designed* state at boot
+too: the engine renders into the inner `.gi-reports-content` host, not the outer
+section, and content renders correctly after re-enable. No defect. I was one step
+from filing a P1 off a probe that measured the wrong element.
+
+**S1-1 [nit] The id transfer quietly re-points two legacy consumers at the native
+node.** `ui-polish.js:421` (mobile Video tab adds `.hidden` to `#statsDashboard`)
+and `:443` (a `MutationObserver` on its class list driving the mobile tab
+highlight) now operate on the Preact-rendered section. The click handler is
+unreachable — `body.ws-shell-active .bottom-tabs{display:none}` — and the observer
+only drives a hidden bar, so both are inert. But the observer is live and attached
+to native route DOM, and anyone reading `ui-polish.js` sees `statsDashboard` and
+reasonably assumes legacy. Comment now, delete in S4/S7.
+
+**S1-2 [nit, but it makes R1 concrete] The Reports visual baseline has moved** —
+correctly, since §10 bundles look-and-feel with migration: square geometry, DECK
+surface, IBM Plex Sans Condensed numbers. My byte-identical P0-b/P0-d baseline no
+longer applies to `09-stats-game.png`. Combined with R1 (three `shots.mjs`
+captures render Home), **there is now no usable visual baseline for the first
+route the coach will actually see redesigned.** Close R1 before S2.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed — confirmed by re-running the full gate myself.** Managed C: film
+copies remain protected. **N1–N3 remain mandatory before S2/S4.**
+
 ### HISTORICAL — Shell Independence P0 (2026-07-27)
 **Planning baseline `457eaa6` is accepted. Codex builds; Claude independently
 reviews each checkpoint. No release/package during P0.**
