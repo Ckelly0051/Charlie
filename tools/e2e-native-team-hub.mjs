@@ -32,13 +32,19 @@ r = await page.evaluate(() => ({
   active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
   empty: document.querySelector('.gi-hub-empty')?.textContent || '',
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
+  setup: document.querySelector('.gi-hub-setup')?.textContent || '',
+  steps: document.querySelectorAll('.gi-hub-setup-steps li').length,
 }));
 ok(r.active === 'Mavericks' && /No seasons yet/.test(r.empty) && r.profile.teamName === 'Mavericks',
   'First setup creates one active team and a clear empty-season state', JSON.stringify(r));
+ok(r.steps === 5 && /1 of 5/.test(r.setup) && /Add your roster/.test(r.setup) && /Start a season/.test(r.setup),
+  'Native Team Hub preserves the five-step setup progress with real completion state', JSON.stringify(r));
 
 await page.click('.gi-hub-section-head .gi-hub-primary');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
-await page.type('[data-overlay-id="team-hub-create-season"] input[placeholder*="2026"]', '2026 Mavericks');
+await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
+const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
+ok(seasonNameAtSubmit === '2026 Mavericks', 'rapid season-name entry reaches the submit boundary intact', JSON.stringify(seasonNameAtSubmit));
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
@@ -65,6 +71,8 @@ ok(r.rows === 1 && /Current/.test(r.current) && /No film linked/.test(r.film) &&
 await page.click('.gi-hub-add-team');
 await page.waitForSelector('[data-overlay-id="team-hub-add-team"]');
 await page.type('[data-overlay-id="team-hub-add-team"] input[placeholder="St. Joseph Mavericks"]', 'Mavericks JV');
+ok(await page.$eval('[data-overlay-id="team-hub-add-team"] input[name="teamName"]', input => input.value === 'Mavericks JV'),
+  'Rapid team-name entry reaches the submit boundary intact');
 await page.click('[data-overlay-id="team-hub-add-team"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active')?.textContent.includes('JV'));
 r = await page.evaluate(() => ({

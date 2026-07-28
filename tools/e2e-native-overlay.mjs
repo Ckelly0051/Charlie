@@ -70,6 +70,21 @@ ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-di
 await page.evaluate(() => document.getElementById('late-body-control')?.remove());
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'dialog journeys do not mutate season data');
 
+console.log('\n== 2a. Explicit form-owned actions ==');
+await page.evaluate(() => {
+  window.__emptyActionsHandle = window.__GIQ_NATIVE_TEST__.service.dialog({
+    id: 'empty-actions-probe', title: 'Form owns submission', actions: [],
+  });
+});
+await page.waitForSelector('[data-overlay-id="empty-actions-probe"]');
+state = await page.evaluate(() => ({
+  modelActions: window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.at(-1)?.actions.length,
+  actionButtons: document.querySelectorAll('[data-overlay-id="empty-actions-probe"] [data-overlay-action]').length,
+}));
+ok(state.modelActions === 0 && state.actionButtons === 0, 'an explicit empty action list stays empty for a form-owned dialog', JSON.stringify(state));
+await page.evaluate(() => window.__emptyActionsHandle.close('done'));
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="empty-actions-probe"]'));
+
 console.log('\n== 2b. Focus fallback after an unavailable invoker ==');
 await page.evaluate(() => {
   const stable = document.createElement('button');

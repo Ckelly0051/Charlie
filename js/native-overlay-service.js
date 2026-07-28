@@ -42,7 +42,7 @@ export class NativeOverlayService {
     const id = options.id || `gi-overlay-${this._nextOverlayId++}`;
     let resolveResult;
     const result = new Promise(resolve => { resolveResult = resolve; });
-    const requestedActions = options.actions?.length
+    const requestedActions = Array.isArray(options.actions)
       ? options.actions
       : type === 'dialog' ? [{ key: 'ok', label: 'OK', default: true }] : [];
     const actions = requestedActions.map((action, index) => ({

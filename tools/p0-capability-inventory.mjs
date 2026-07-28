@@ -71,13 +71,14 @@ export const P0_CAPABILITIES = [
 
   // Team Hub / season library
   { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup has one native Team Hub owner and never reveals the classic outlet' },
+  { id:'team-hub.onboarding-progress', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Native Team Hub preserves the five-step setup progress with real completion state' },
   { id:'team-hub.create-season', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Create season stores active-team ownership and hands off to Home' },
   { id:'team-hub.team-switch', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Team switch fails closed when the outgoing canonical season save fails' },
   { id:'team-hub.delete-impact', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Season delete names game/play impact and managed-versus-linked film consequences' },
   { id:'team-hub.mobile', surface:'team-hub', evidence:'a11y', harness:'e2e-native-team-hub.mjs', assertion:'Mobile Team Hub preserves complete touch access without page-level scrolling traps' },
   // Team + film storage truth
   { id:'settings.first-run-storage', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'First desktop launch opens the one native Team & Film Settings owner' },
-  { id:'settings.pre-game-entry', surface:'settings', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Team Hub opens the one native Team & Film Settings owner before a game is opened' },
+  { id:'settings.pre-game-entry', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'Team Hub settings action opens the consolidated panel before a game is opened' },
   { id:'settings.managed-disclosure', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Managed choice persists and discloses copying' },
   { id:'settings.link-root', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Existing-library choice saves the selected root once' },
   { id:'settings.failed-link-rollback', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Failed canonical save rolls the entire game link back and reports failure' },
@@ -127,6 +128,7 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   'reports.call-sheet',
   'team-hub.native-owner',
   'team-hub.team-switch',
+  'team-hub.onboarding-progress',
   'settings.native-owner',
   'settings.source-truth',
   'settings.mode-isolation',

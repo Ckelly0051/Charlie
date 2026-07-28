@@ -71,6 +71,17 @@ await page.waitForSelector('.gi-settings-callout.is-success .gi-settings-primary
 await page.click('.gi-settings-callout.is-success .gi-settings-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
+await page.type('.gi-hub-first input[name="teamName"]', 'Storage Test Team');
+await page.click('.gi-hub-first .gi-hub-primary');
+await page.waitForSelector('#btnNativeTeamFilmSettings');
+await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
+await page.click('#btnNativeTeamFilmSettings');
+await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
+ok(await page.evaluate(() => document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length === 1),
+  'Team Hub settings action opens the consolidated panel before a game is opened');
+await page.evaluate(() => window.app.settingsScreen.close('pre-game-proof-complete'));
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+
 r = await page.evaluate(() => ({
   mode: window.__filmSetupState.mode,
   label: document.querySelector('#filmStorageModeLabel')?.textContent,

@@ -12,7 +12,7 @@ export class TeamHubScreen {
     this.host = null;
     this._native = null;
     this._listeners = new Set();
-    this._state = { status: 'idle', teams: [], seasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, error: '' };
+    this._state = { status: 'idle', teams: [], seasons: [], activeTeamId: '', currentSeasonId: '', profile: {}, checklist: { visible: false, items: [], doneCount: 0 }, error: '' };
     this._loadToken = 0;
   }
 
@@ -68,8 +68,11 @@ export class TeamHubScreen {
       const seasons = teams.length ? library._teamSeasons(allSeasons, activeTeamId) : [];
       const currentSeasonId = this._store()?.currentSeasonId || '';
       const rows = await Promise.all(seasons.map(season => this._seasonRow(season, currentSeasonId)));
+      const items = teams.length ? library._checklistItems(seasons) : [];
+      const doneCount = items.filter(item => item.done).length;
+      const checklist = { items, doneCount, visible: !!teams.length && !!items.length && doneCount < items.length && !library._checklistDismissed() };
       if (token !== this._loadToken) return false;
-      this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, error: '' });
+      this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, checklist, error: '' });
       return true;
     } catch (error) {
       if (token !== this._loadToken) return false;
@@ -110,6 +113,33 @@ export class TeamHubScreen {
 
   openSettings(invoker) { return this.app.settingsScreen?.open?.({ returnFocus: invoker }); }
   openRoster() { this._library()?._openSettingsPanel?.('rosterPanel'); }
+
+  dismissChecklist() {
+    try { localStorage.setItem('ffa_checklist_dismissed', '1'); } catch {}
+    this._set({ checklist: { ...this._state.checklist, visible: false } });
+  }
+
+  async runChecklistAction(step, invoker) {
+    if (step === 'roster') { this.openRoster(); return true; }
+    if (step === 'season') { this.openCreateSeason(invoker); return true; }
+    const real = this._state.seasons.find(season => !season.isDemo && (step !== 'stats' || season.playCount > 0));
+    if (step === 'play') {
+      if (real) return this.openSeason(real.id);
+      this.openCreateSeason(invoker);
+      return true;
+    }
+    if (step === 'stats') {
+      if (real) {
+        if (!real.current) await this.openSeason(real.id);
+        await this.app.workspaceShell.show('reports');
+        return true;
+      }
+      const loaded = await this.exploreSample();
+      if (loaded) await this.app.workspaceShell.show('reports');
+      return loaded;
+    }
+    return false;
+  }
 
   async switchTeam(id) {
     id = String(id || '');

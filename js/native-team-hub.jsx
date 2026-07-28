@@ -26,26 +26,26 @@ function arrowFocus(event, selector) {
   items[(index + delta + items.length) % items.length].focus();
 }
 
-function TeamFormFields({ name, setName, color, setColor }) {
+function TeamFormFields() {
   return <>
-    <label class="gi-hub-field"><span>Team name</span><input value={name} onInput={event => setName(event.currentTarget.value)} autoFocus required placeholder="St. Joseph Mavericks" /></label>
-    <label class="gi-hub-field"><span>Jersey color</span><select value={color} onChange={event => setColor(event.currentTarget.value)}>{COLORS.map(value => <option value={value}>{value ? value[0].toUpperCase() + value.slice(1) : 'Not set'}</option>)}</select></label>
+    <label class="gi-hub-field"><span>Team name</span><input name="teamName" autoFocus required placeholder="St. Joseph Mavericks" /></label>
+    <label class="gi-hub-field"><span>Jersey color</span><select name="jerseyColor" defaultValue="">{COLORS.map(value => <option value={value}>{value ? value[0].toUpperCase() + value.slice(1) : 'Not set'}</option>)}</select></label>
   </>;
 }
 
 export function AddTeamForm({ onSubmit, onCancel }) {
-  const [name, setName] = useState('');
-  const [color, setColor] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async event => {
-    event.preventDefault(); setBusy(true); setError('');
-    const result = await onSubmit({ name, jerseyColor: color });
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    setBusy(true); setError('');
+    const result = await onSubmit({ name: values.get('teamName'), jerseyColor: values.get('jerseyColor') });
     if (!result?.ok) { setError(result?.message || 'The team could not be added.'); setBusy(false); }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
     <p>Teams keep seasons, roster, and custom football vocabulary separate.</p>
-    <TeamFormFields name={name} setName={setName} color={color} setColor={setColor} />
+    <TeamFormFields />
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Adding…' : 'Add team'}</button></div>
   </form>;
@@ -53,22 +53,21 @@ export function AddTeamForm({ onSubmit, onCancel }) {
 
 export function CreateSeasonForm({ teamName, onSubmit, onCancel }) {
   const yearNow = String(new Date().getFullYear());
-  const [name, setName] = useState('');
-  const [year, setYear] = useState(yearNow);
-  const [level, setLevel] = useState('Varsity');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async event => {
-    event.preventDefault(); setBusy(true); setError('');
-    const result = await onSubmit({ name, year, level });
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    setBusy(true); setError('');
+    const result = await onSubmit({ name: values.get('seasonName'), year: values.get('year'), level: values.get('level') });
     if (!result?.ok) { setError(result?.message || 'The season could not be created.'); setBusy(false); }
   };
   return <form class="gi-hub-dialog-form" onSubmit={submit}>
     <p>For <strong>{teamName || 'this team'}</strong>. Games are added from Home after the season opens.</p>
-    <label class="gi-hub-field"><span>Season name</span><input value={name} onInput={event => setName(event.currentTarget.value)} autoFocus required placeholder={`${yearNow} ${teamName || 'Season'}`} /></label>
+    <label class="gi-hub-field"><span>Season name</span><input name="seasonName" autoFocus required placeholder={`${yearNow} ${teamName || 'Season'}`} /></label>
     <div class="gi-hub-field-row">
-      <label class="gi-hub-field"><span>Year</span><input value={year} onInput={event => setYear(event.currentTarget.value)} inputMode="numeric" /></label>
-      <label class="gi-hub-field"><span>Level</span><input value={level} onInput={event => setLevel(event.currentTarget.value)} placeholder="Varsity" /></label>
+      <label class="gi-hub-field"><span>Year</span><input name="year" defaultValue={yearNow} inputMode="numeric" /></label>
+      <label class="gi-hub-field"><span>Level</span><input name="level" defaultValue="Varsity" placeholder="Varsity" /></label>
     </div>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : 'Create season'}</button></div>
@@ -76,19 +75,19 @@ export function CreateSeasonForm({ teamName, onSubmit, onCancel }) {
 }
 
 function FirstTeam({ screen }) {
-  const [name, setName] = useState('');
-  const [color, setColor] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async event => {
-    event.preventDefault(); setBusy(true); setError('');
-    const result = await screen.addTeam({ name, jerseyColor: color });
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    setBusy(true); setError('');
+    const result = await screen.addTeam({ name: values.get('teamName'), jerseyColor: values.get('jerseyColor') });
     if (!result?.ok) { setError(result?.message || 'The team could not be saved.'); setBusy(false); }
   };
   return <section class="gi-hub-first" aria-labelledby="giHubFirstTitle">
     <span class="gi-hub-kicker">First setup</span><h2 id="giHubFirstTitle">Set up your team</h2>
     <p>Your team owns its seasons, roster, and custom charting library. Film storage can be chosen before any game is opened.</p>
-    <form onSubmit={submit}><TeamFormFields name={name} setName={setName} color={color} setColor={setColor} />
+    <form onSubmit={submit}><TeamFormFields />
       {error && <p class="gi-hub-error" role="alert">{error}</p>}
       <button class="gi-hub-primary" disabled={busy}>{busy ? 'Saving…' : 'Create team'}</button>
     </form>
@@ -112,6 +111,24 @@ function SeasonRow({ season, screen }) {
     </button>
     <button class="gi-hub-delete" aria-label={`${season.isDemo ? 'Remove sample season' : 'Delete season'} ${season.name}`} onClick={event => screen.deleteSeason(season.id, event.currentTarget)}>×</button>
   </article>;
+}
+
+function SetupProgress({ checklist, screen }) {
+  if (!checklist?.visible) return null;
+  return <section class="gi-hub-setup" aria-labelledby="giHubSetupTitle">
+    <div class="gi-hub-setup-head">
+      <div><span class="gi-hub-kicker">Setup progress</span><h2 id="giHubSetupTitle">Get started</h2></div>
+      <div><strong>{checklist.doneCount} of {checklist.items.length}</strong><button class="gi-hub-setup-dismiss" aria-label="Hide setup progress" title="Hide setup progress" onClick={() => screen.dismissChecklist()}>×</button></div>
+    </div>
+    <div class="gi-hub-setup-bar" aria-hidden="true"><i style={{ width: `${Math.round(checklist.doneCount / checklist.items.length * 100)}%` }} /></div>
+    <ol class="gi-hub-setup-steps">
+      {checklist.items.map(item => <li class={item.done ? 'is-done' : ''}>
+        <button disabled={item.done} onClick={event => screen.runChecklistAction(item.step, event.currentTarget)}>
+          <span>{item.done ? '✓' : '→'}</span>{item.label}
+        </button>
+      </li>)}
+    </ol>
+  </section>;
 }
 
 function NativeTeamHub({ screen }) {
@@ -140,6 +157,7 @@ function NativeTeamHub({ screen }) {
     </div>
 
     <main class="gi-hub-body">
+      <SetupProgress checklist={state.checklist} screen={screen} />
       <div class="gi-hub-section-head"><div><span class="gi-hub-kicker">Season library</span><h2>Seasons</h2></div><div><button onClick={() => screen.exploreSample()}>{demoExists ? 'Open sample season' : 'Explore sample season'}</button><button class="gi-hub-primary" onClick={event => screen.openCreateSeason(event.currentTarget)}>+ New season</button></div></div>
       {state.seasons.length ? <div class="gi-hub-seasons" role="list" onKeyDown={event => arrowFocus(event, '[data-hub-open-season]')}>{state.seasons.map(season => <SeasonRow key={season.id} season={season} screen={screen} />)}</div> : <div class="gi-hub-empty"><span class="gi-hub-kicker">No seasons yet</span><h3>Start the football year here</h3><p>Create a season for {active?.teamName || 'this team'}, then add games from Home. The sample season is available without touching your roster.</p><button class="gi-hub-primary" onClick={event => screen.openCreateSeason(event.currentTarget)}>Create first season</button></div>}
     </main>

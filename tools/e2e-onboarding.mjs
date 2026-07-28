@@ -2,8 +2,8 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 
 /* Native onboarding journey after S3. Team Hub owns team/season management;
-   Home is the sole game-entry surface. This journey intentionally has no
-   selectors for the retired SeasonLibrary overlay or checklist. */
+   Home is the sole game-entry surface. The progressive setup checklist is
+   native too; no assertion depends on the retired SeasonLibrary overlay. */
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log(`  PASS  ${label}`))
@@ -61,9 +61,14 @@ r = await page.evaluate(() => ({
   active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
   empty: document.querySelector('.gi-hub-empty')?.textContent || '',
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
+  setup: document.querySelector('.gi-hub-setup')?.textContent || '',
+  done: document.querySelectorAll('.gi-hub-setup-steps .is-done').length,
+  steps: document.querySelectorAll('.gi-hub-setup-steps li').length,
 }));
 ok(r.active === 'Mavericks' && /No seasons yet/.test(r.empty) && r.profile.teamName === 'Mavericks',
   'First setup creates one active team and a clear season empty state', JSON.stringify(r));
+ok(r.steps === 5, 'native onboarding keeps all five setup milestones', JSON.stringify(r));
+ok(r.done === 1 && /1 of 5/.test(r.setup), 'team setup completes only the team milestone', JSON.stringify(r));
 
 console.log('\n== 2. Sample season ==');
 r = await clickButtonText('.gi-hub-section-head button', /Explore sample season/);
@@ -124,6 +129,8 @@ r = await page.evaluate(() => ({
 }));
 ok(r.rows === 1 && r.sample === 'Current' && /Open sample season/.test(r.action || ''),
   'Team Hub persists the current sample without misbadging another season', JSON.stringify(r));
+ok(await page.evaluate(() => document.querySelectorAll('.gi-hub-setup-steps .is-done').length === 1),
+  'sample data does not complete real-season, real-tag, roster, or stats milestones');
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => document.querySelector('[data-native-team-hub] [data-season-id]'));
 r = await page.evaluate(() => ({
@@ -156,7 +163,9 @@ ok(!r.pointer && /Explore sample season/.test(r.action || ''), 'removing the sam
 console.log('\n== 5. Real season and Home game entry ==');
 await page.click('.gi-hub-section-head .gi-hub-primary');
 await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
-await page.type('[data-overlay-id="team-hub-create-season"] input[placeholder*="2026"]', '2026 Mavericks');
+await page.type('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', '2026 Mavericks');
+const seasonNameAtSubmit = await page.$eval('[data-overlay-id="team-hub-create-season"] input[name="seasonName"]', input => input.value);
+ok(seasonNameAtSubmit === '2026 Mavericks', 'rapid season-name entry reaches the submit boundary intact', JSON.stringify(seasonNameAtSubmit));
 await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 r = await page.evaluate(() => ({
@@ -184,8 +193,12 @@ await openHub();
 r = await page.evaluate(() => ({
   rows: document.querySelectorAll('[data-season-id]').length,
   state: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+  done: document.querySelectorAll('.gi-hub-setup-steps .is-done').length,
+  setup: document.querySelector('.gi-hub-setup')?.textContent || '',
 }));
 ok(r.rows === 1 && r.state !== 'Sample', 'real season is never labeled as sample', JSON.stringify(r));
+ok(r.done === 4 && /4 of 5/.test(r.setup) && /Add your roster/.test(r.setup),
+  'native setup progress reflects real season, tag, and stats while leaving roster actionable', JSON.stringify(r));
 
 console.log('\n== 6. Demo-pointer sanitation ==');
 await page.evaluate(() => {
