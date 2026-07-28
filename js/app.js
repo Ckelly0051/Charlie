@@ -679,7 +679,7 @@ class App {
     this._updateTrackedScore();
     modal.classList.remove('hidden');
     const focusId = opts.focus || (mode === 'create' ? 'gameWeek' : 'gameOpponent');
-    setTimeout(() => document.getElementById(focusId)?.focus(), 30);
+    document.getElementById(focusId)?.focus();
   }
 
   _closeGameModal() {

@@ -2,7 +2,7 @@
    This does not replace the referenced journeys. It makes their ownership
    explicit and fails if a migration deletes or renames its behavioral proof. */
 import { readFile } from 'node:fs/promises';
-import { P0_CAPABILITIES } from './p0-capability-inventory.mjs';
+import { P0_CAPABILITIES, P0_CRITICAL_CAPABILITY_IDS } from './p0-capability-inventory.mjs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
@@ -11,8 +11,11 @@ const ok = (condition, label, detail = '') => condition
 
 const requiredSurfaces = ['home','shell','breakdown','film-room','study','reports','plan','settings','film-navigation','overlays'];
 const ids = P0_CAPABILITIES.map(item => item.id);
-ok(P0_CAPABILITIES.length >= 45, 'inventory is broad enough to guard the migration surface', String(P0_CAPABILITIES.length));
 ok(new Set(ids).size === ids.length, 'every capability id is unique');
+const missingCritical = P0_CRITICAL_CAPABILITY_IDS.filter(id => !ids.includes(id));
+ok(!missingCritical.length,
+  'every historically vulnerable coach capability has explicit journey ownership',
+  missingCritical.join(', '));
 ok(requiredSurfaces.every(surface => P0_CAPABILITIES.some(item => item.surface === surface)),
   'every migration surface has at least one owned capability');
 ok(P0_CAPABILITIES.every(item => ['behavior','data','a11y'].includes(item.evidence)),

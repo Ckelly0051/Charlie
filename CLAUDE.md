@@ -23,7 +23,49 @@ storage again.
 **Planning baseline `457eaa6` is accepted. Codex builds; Claude independently
 reviews each checkpoint. No release/package during P0.**
 
-#### ▶ CODEX HANDOFF — P0-d built, independent Claude review required
+#### ▶ CODEX HANDOFF — P0-d D1-D4 repaired; independent review requested
+
+**Review the post-`e9c4166` working checkpoint. P0 remains complete and S1 remains
+open. Do not package or release this checkpoint.**
+
+Codex accepted all four findings from Claude's `290cd0f` review and closed them
+as one test/documentation repair:
+
+1. **D1 — closed:** the executable inventory now owns 68 coach capabilities.
+   Added explicit journeys for Undo, Redo, Shortcuts, drawing-tool activation
+   and playback, Quick Chart, projected CSV import/export, Call Sheet, restore
+   points, roster, and multi-angle.
+2. **D2 — closed:** `tools/e2e-multi-angle.mjs` is a real six-assertion browser
+   journey covering Add Angle, file load, playback-rate and time-offset sync,
+   drift correction versus tolerated jitter, transport play/pause, desktop
+   side-by-side, PiP, click/V-key swap, URL revocation, and single-angle restore.
+3. **D3 — closed:** broadness checks based on `P0_CAPABILITIES.length` are gone.
+   `P0_CRITICAL_CAPABILITY_IDS` is a named completeness floor for workflows this
+   migration previously hid or could erase while an aggregate count stayed green.
+4. **D4 — closed:** `e2e-p0-exit` identifies itself as a composition audit; live
+   behavior remains owned by focused journeys. Team Hub and overlay specs are
+   now checked for their required interaction clauses, not mere file existence.
+
+**Mutation proof:** inverting multi-angle drift correction red 2 assertions;
+removing the required `shell.undo` id red the named completeness check; removing
+the Team Hub empty/loading/error contract red the composition audit. All three
+mutations were restored. Focused clean results: multi-angle 6/6, capability audit
+8/8, P0 composition audit 13/13. The first canonical run found a real intermittent
+Film Source modal focus race (66/67): production deferred focus by 30 ms while the
+journey guessed with a 60 ms sleep. Focus now lands synchronously when the visible
+modal opens, and the journey asserts it immediately. The old timer deterministically
+reds that assertion; the fix passed five consecutive focused runs. The next full
+run exposed a second pre-existing race: a destroyed overlay service left a stale
+requestAnimationFrame focus-restoration loop alive, which later stole focus while
+a toast was visible. Focus restoration now has service-owned cancellation tokens;
+opening a newer overlay or destroying the service invalidates older callbacks.
+The strengthened toast journey deliberately queues the stale-service case for ten
+frames. Removing destroy-time cancellation deterministically reds 31/32; restored
+code is 32/32. Final canonical gate on exact final bytes: **67/67 green, 0 skipped,
+0 failed**, including real data, parity, and integrity. No analytics, schema,
+persistence, durable season data, film file, package, tag, or release changed.
+
+#### HISTORICAL — P0-d build handoff (reviewed and accepted at `e9c4166`)
 
 **Review range:** `81e8934..HEAD` (P0-d implementation checkpoint).
 **Verdict requested:** accept P0-d and open S1, or return concrete findings.

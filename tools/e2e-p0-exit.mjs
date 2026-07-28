@@ -1,7 +1,11 @@
+/* P0 composition audit.
+   This verifies that the accepted foundation pieces are wired and specified.
+   Coach-visible behavior is proven by the focused e2e journeys that the
+   canonical gate discovers and runs separately. */
 import { existsSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { P0_CAPABILITIES } from './p0-capability-inventory.mjs';
+import { P0_CAPABILITIES, P0_CRITICAL_CAPABILITY_IDS } from './p0-capability-inventory.mjs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
@@ -10,11 +14,12 @@ const ok = (condition, label, detail = '') => condition
 const root = resolve(import.meta.dirname, '..');
 const read = path => readFile(resolve(root, path), 'utf8');
 
-const [pkgText, lockText, vite, appEntry, gate, tauri, nativeRoot, overlay, filmNav, stats, study, reports, plan] = await Promise.all([
+const [pkgText, lockText, vite, appEntry, gate, tauri, nativeRoot, overlay, filmNav, stats, study, reports, plan, teamHubSpec, overlaySpec] = await Promise.all([
   read('package.json'), read('package-lock.json'), read('vite.config.js'), read('tools/app-entry.mjs'),
   read('tools/run-gate.sh'), read('src-tauri/tauri.conf.json'), read('js/native-root.jsx'),
   read('js/native-overlay-service.js'), read('js/film-navigation-service.js'), read('js/stats-engine.js'),
   read('js/study-screen.js'), read('js/reports-screen.js'), read('js/plan-screen.js'),
+  read('GRIDIRON-IQ-TEAM-HUB-SPEC.md'), read('GRIDIRON-IQ-OVERLAY-SPEC.md'),
 ]);
 const pkg = JSON.parse(pkgText);
 const tauriConfig = JSON.parse(tauri);
@@ -55,16 +60,34 @@ ok(filmNav.includes('refsForGame') && filmNav.includes('gameId}::${play.id}')
   && plan.includes('filmNavigation.watch') && stats.includes('filmNavigation.refsForGame'),
   'Study, Reports, and Plan share composite-ref film navigation');
 
-ok(P0_CAPABILITIES.length >= 54
+const capabilityIds = new Set(P0_CAPABILITIES.map(item => item.id));
+ok(P0_CRITICAL_CAPABILITY_IDS.every(id => capabilityIds.has(id))
   && new Set(P0_CAPABILITIES.map(item => item.surface)).size === 10
   && existsSync(resolve(root, 'GRIDIRON-IQ-P0-CAPABILITY-INVENTORY.md')),
-  'journey capability inventory covers all ten migration surfaces');
+  'composition: named critical journeys and all ten migration surfaces are inventoried');
 ok(existsSync(resolve(root, 'tools/e2e-operation-diff.mjs'))
   && existsSync(resolve(root, 'tools/operation-diff.mjs')),
   'operation-scoped canonical season diff is part of the permanent gate');
-ok(existsSync(resolve(root, 'GRIDIRON-IQ-TEAM-HUB-SPEC.md'))
-  && existsSync(resolve(root, 'GRIDIRON-IQ-OVERLAY-SPEC.md')),
-  'Team Hub and overlay interaction specifications are complete');
+const teamHubClauses = [
+  'Settings access before a game is open',
+  'Film-health states',
+  'Empty, loading, error states',
+  'Create / delete flows',
+  'Keyboard',
+  'Mobile / narrow',
+];
+const overlayClauses = [
+  'Dialog vs sheet',
+  'Focus',
+  'Escape and scrim',
+  'Destructive confirmation',
+  'Toasts',
+  'Mobile / narrow presentation',
+  'Verification',
+];
+ok(teamHubClauses.every(clause => teamHubSpec.includes(clause))
+  && overlayClauses.every(clause => overlaySpec.includes(clause)),
+  'composition: Team Hub and overlay specs contain every required interaction contract');
 ok(nativeRoot.includes("../design-system/plex.css") && nativeRoot.includes("../design-system/tokens.css")
   && existsSync(resolve(root, 'tools/e2e-design-system.mjs')),
   'bundled Plex and route token enforcement are wired into production');

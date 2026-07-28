@@ -38,7 +38,6 @@ ok(state.names && state.summaries, 'Header commands and collapsible groups expos
 
 await page.focus('[data-bd-context="scout"]');
 await page.keyboard.press('Enter');
-await new Promise(resolve=>setTimeout(resolve,60));
 state = await page.evaluate(() => {
   const focused = document.activeElement;
   return {

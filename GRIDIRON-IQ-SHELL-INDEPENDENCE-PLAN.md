@@ -19,9 +19,6 @@ independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1`
 **Carried into the S-milestones — not optional:**
 - **N1–N3** (overlay: buried-overlay promise, destructive Cancel default not
   enforced, body-appended nodes escape inertness) — **before S2/S4.**
-- **D1–D2** (capability inventory omits Undo/Redo/Shortcuts, drawing tools,
-  Quick Chart, CSV/import, Call Sheet, version history, roster; multi-angle has
-  no harness coverage at all) — **before S5**, which migrates those surfaces.
 - **R1–R2** (`tools/shots.mjs` captures 7 distinct surfaces of 10 and shoots one
   viewport) — before it backs any coach-facing visual review.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
@@ -210,6 +207,22 @@ frozen contracts above are unchanged and proven so.
   Quick Chart, CSV/import, Call Sheet, version history and roster) and D2
   (multi-angle has zero harness coverage) must close before S5.** Neither blocks
   S1. Detail in `CLAUDE.md`. Build summary:
+- **P0-d post-acceptance D1-D4 repair (Codex, 2026-07-28; independent review
+  requested).** The executable inventory now owns 68 capabilities, including
+  Undo, Redo, Shortcuts, drawing, Quick Chart, projected CSV import/export,
+  Call Sheet, restore points, roster, and four multi-angle outcomes. A new real
+  browser journey proves second-angle load, transport/drift sync, side-by-side,
+  PiP, V-key/click swapping, and teardown. Count-based completeness claims were
+  replaced by named critical capability ids. The final P0 audit is explicitly a
+  **composition audit** and now checks required Team Hub/overlay contract clauses
+  rather than file existence. Drift, missing-id, and missing-spec mutations each
+  turned their owning guard red before restoration. **D1-D4 are closed; none
+  remain carried into S1-S7.** The first full gate also exposed and closed an
+  existing timer-based Game Settings focus race; keyboard focus now lands
+  synchronously and is mutation-proven. A second gate run exposed stale focus
+  restoration surviving overlay-service destruction; service-owned cancellation
+  tokens and a ten-frame regression now close that race too. Final canonical gate
+  on exact final bytes: **67/67 green, 0 skipped, 0 failed**.
 - **P0-d build summary (Codex, 2026-07-27).** A 54-item executable
   capability inventory covers ten migration surfaces and binds every coach outcome to an exact
   live journey assertion. A canonical operation-diff harness proves route navigation is a season

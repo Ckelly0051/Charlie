@@ -12,6 +12,7 @@ export class NativeOverlayService {
     this._overlays = [];
     this._toasts = [];
     this._toastTimers = new Map();
+    this._focusRestoreToken = 0;
   }
 
   snapshot() {
@@ -30,6 +31,8 @@ export class NativeOverlayService {
   sheet(options = {}) { return this._open('sheet', options); }
 
   _open(type, options) {
+    // A newly opened decision owns focus; cancel any stale close restoration.
+    this._focusRestoreToken++;
     const top = this._overlays.at(-1);
     if (type === 'dialog' && top?.type === 'dialog') {
       const allowed = options.destructive === true && options.parentId === top.id;
@@ -119,6 +122,8 @@ export class NativeOverlayService {
   }
 
   destroy() {
+    // Scheduled requestAnimationFrame retries must not outlive this service.
+    this._focusRestoreToken++;
     for (const overlay of this._overlays) overlay.resolveResult('destroyed');
     for (const id of this._toastTimers.keys()) this._clearToastTimer(id);
     this._overlays = [];
@@ -139,11 +144,13 @@ export class NativeOverlayService {
   }
 
   _restoreFocus(overlay) {
+    const token = ++this._focusRestoreToken;
     // Native key listeners and Preact event handlers commit on different
     // schedules. Restore only after the chosen target is connected, visible,
     // and no longer inert; a fixed frame count races Preact's cleanup.
     let attempts = 0;
     const restore = () => {
+      if (token !== this._focusRestoreToken) return;
       const stable = [...(globalThis.document?.querySelectorAll('[data-focus-return-root], main, nav, header, #workspaceShell') || [])]
         .find(element => connectedElement(element) && !element.closest('[inert]') && element.getClientRects().length);
       const preferred = connectedElement(overlay.returnFocus)

@@ -181,9 +181,26 @@ ok(state.rejected, 'service rejects unrelated dialog-on-dialog stacking');
 ok(state.defaultAction?.key === 'ok' && state.defaultAction?.default, 'dialog without supplied actions receives a focusable acknowledgement default', JSON.stringify(state));
 
 console.log('\n== 5. Toast semantics ==');
+// A destroyed service used to leave its requestAnimationFrame focus retries
+// alive. Under load they could wake during this toast and steal focus even
+// though ToastStack itself never focuses anything.
+await page.evaluate(() => {
+  const stale = window.__GIQ_NATIVE_TEST__.createService();
+  const unavailable = document.createElement('button');
+  unavailable.hidden = true;
+  document.body.append(unavailable);
+  stale.dialog({ title: 'Stale focus owner', returnFocus: unavailable }).close('cancel');
+  stale.destroy();
+  unavailable.remove();
+});
 await page.focus('[data-probe-toast]');
 await page.click('[data-probe-toast]');
 await page.waitForSelector('.gi-native-toast');
+await page.evaluate(() => new Promise(resolve => {
+  let frames = 10;
+  const next = () => --frames ? requestAnimationFrame(next) : resolve();
+  requestAnimationFrame(next);
+}));
 state = await page.evaluate(() => {
   const toast = document.querySelector('.gi-native-toast');
   return {

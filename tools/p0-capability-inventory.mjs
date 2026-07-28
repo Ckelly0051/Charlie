@@ -12,6 +12,9 @@ export const P0_CAPABILITIES = [
   { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More opens the canonical action menu' },
   { id:'shell.study-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Study opens the query workspace inside the persistent shell' },
   { id:'shell.plan-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Plan opens the live season plan workspace' },
+  { id:'shell.undo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Relocated Undo stays wired to history-manager and enables on a real edit' },
+  { id:'shell.redo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar' },
+  { id:'shell.shortcuts', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Mobile Shortcuts action remains wired to the canonical dialog' },
 
   // Break Down: film, charting, and football detail
   { id:'breakdown.video-controls', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Real playback controls are contained inside the video surface' },
@@ -23,6 +26,13 @@ export const P0_CAPABILITIES = [
   { id:'breakdown.special-teams', surface:'breakdown', evidence:'data', harness:'e2e-breakdown-form.mjs', assertion:'Redesigned Special Teams exposes dedicated kick, return, field-goal, and try units while hiding the legacy Scored-by control' },
   { id:'breakdown.penalties', surface:'breakdown', evidence:'data', harness:'e2e-breakdown-form.mjs', assertion:'Penalty editor stores multiple independent fouls and actual enforcement' },
   { id:'breakdown.save-next', surface:'breakdown', evidence:'data', harness:'e2e-breakdown-form.mjs', assertion:'Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback' },
+  { id:'breakdown.drawing-tools', surface:'breakdown', evidence:'behavior', harness:'e2e-tagging.mjs', assertion:'digit with NO play selected still arms the tool' },
+  { id:'breakdown.drawing-playback', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Playback canvas paints only when entering or leaving an annotated frame' },
+  { id:'breakdown.quick-chart', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Quick Chart selector invokes the existing production mode' },
+  { id:'breakdown.multi-angle-load', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Loading a second angle syncs playback and opens the desktop side-by-side view' },
+  { id:'breakdown.multi-angle-sync', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Second-angle sync corrects real drift, tolerates sub-threshold jitter, and follows transport state' },
+  { id:'breakdown.multi-angle-view', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'PiP click and V-key swap the active camera through the production controls' },
+  { id:'breakdown.multi-angle-remove', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Removing the second angle revokes its media and restores the single-camera workspace' },
 
   // Film Room spreadsheet
   { id:'film-room.filters', surface:'film-room', evidence:'data', harness:'e2e-film-room.mjs', assertion:'down filter narrows to 3rd downs' },
@@ -45,6 +55,8 @@ export const P0_CAPABILITIES = [
   { id:'reports.special-teams', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Special Teams section renders' },
   { id:'reports.self-scout', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Self-Scout surfaces a strength / Formation×Strength tell' },
   { id:'reports.opponent-scout', surface:'reports', evidence:'behavior', harness:'e2e-season-tab.mjs', assertion:'Scout-Opponent button sits in the dashboard header' },
+  { id:'reports.csv-roundtrip', surface:'reports', evidence:'data', harness:'e2e-csv-roundtrip.mjs', assertion:'export→import preserves multiple structured penalties' },
+  { id:'reports.call-sheet', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'a modern split play composes qbAlignment + formation the same way' },
 
   // Plan
   { id:'plan.reorder', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan items reorder through accessible buttons and desktop drag without losing items' },
@@ -59,6 +71,8 @@ export const P0_CAPABILITIES = [
   { id:'settings.link-root', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Existing-library choice saves the selected root once' },
   { id:'settings.failed-link-rollback', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Failed canonical save rolls the entire game link back and reports failure' },
   { id:'settings.no-managed-fallback', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'C2 no silent fallback: a persisted linked game auto-loads from the D: folder and never calls the managed-copy backend' },
+  { id:'settings.restore-points', surface:'settings', evidence:'data', harness:'e2e-catalog-persistence.mjs', assertion:'restore points survive a reopen from the on-disk db' },
+  { id:'settings.roster', surface:'settings', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'roster drawer actually reachable from checklist' },
 
   // Shared film navigation
   { id:'film-nav.exact-queue', surface:'film-navigation', evidence:'data', harness:'e2e-film-navigation.mjs', assertion:'Next/Save & Next queue contains only exact requested examples' },
@@ -74,4 +88,22 @@ export const P0_CAPABILITIES = [
   { id:'overlay.stack', surface:'overlays', evidence:'behavior', harness:'e2e-native-overlay.mjs', assertion:'closing stacked dialog returns focus inside its parent sheet' },
   { id:'overlay.toast', surface:'overlays', evidence:'a11y', harness:'e2e-native-overlay.mjs', assertion:'toast announces politely without stealing focus' },
   { id:'overlay.unmount', surface:'overlays', evidence:'behavior', harness:'e2e-native-overlay.mjs', assertion:'unmount removes presentation, subscription, key/focus ownership, and route inertness' },
+];
+// Named completeness floor for capabilities this migration has previously
+// hidden or could otherwise erase while leaving a broad item count green.
+export const P0_CRITICAL_CAPABILITY_IDS = [
+  'shell.undo',
+  'shell.redo',
+  'shell.shortcuts',
+  'breakdown.drawing-tools',
+  'breakdown.drawing-playback',
+  'breakdown.quick-chart',
+  'breakdown.multi-angle-load',
+  'breakdown.multi-angle-sync',
+  'breakdown.multi-angle-view',
+  'breakdown.multi-angle-remove',
+  'reports.csv-roundtrip',
+  'reports.call-sheet',
+  'settings.restore-points',
+  'settings.roster',
 ];
