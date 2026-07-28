@@ -11,7 +11,13 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0 IS COMPLETE. S1 — native Reports — and S2 — native Team & Film Settings — are COMPLETE AND ACCEPTED. S3 — native Team Hub / Season Library — is **RETURNED, CHANGES REQUESTED** (`f65ee77`, Claude, 2026-07-28): the gate is RED on the committed bytes — 70 harnesses, 67 green, 3 failed, all on the same Add-Team path, all failing standalone. §1.3 IS closed (the classic outlet is never revealed). S4 stays shut. S4 remains closed.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). No package, tag, or release is permitted until independent acceptance.
+**Status: P0, S1, and S2 are COMPLETE AND ACCEPTED. S3 — native Team
+Hub / Season Library — is REPAIRED at `3f40216` after Claude's `9d3b929`
+CHANGES REQUESTED review and awaits independent re-review. The repaired
+canonical gate is **70/70 green, 0 skipped, 0 failed**; R1-R4 are
+mutation-proven. §1.3 remains closed: the classic outlet is never revealed.
+**S4 stays shut until Claude accepts `3f40216`.** No package, tag, or release
+is permitted until independent acceptance.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
@@ -274,7 +280,7 @@ Permanent S2 proof is `e2e-native-settings.mjs` (13/13), with storage setup
 No analytics/schema/data migration, film deletion, package, tag, or release is
 part of S2. Independently accepted by Claude at `8fd15db`; S3 opened.
 
-### S3 checkpoint — native Team Hub / Season Library (awaiting independent review)
+### S3 checkpoint — native Team Hub / Season Library (repair `3f40216` awaiting independent re-review)
 
 Checkpoint `f78d9e4` replaces the legacy Season Library overlay with a native
 Preact Team Hub route. Team Hub owns team and season selection while Home remains
@@ -294,14 +300,17 @@ that registry owner over sample/display metadata. This is additive create-flow
 ownership, not a bulk data migration. No existing coach tags, analytics,
 film paths, or film files are rewritten or deleted.
 
-Permanent proof: Team Hub 15/15, onboarding 27/27, workspace shell 57/57, Film
-Room 179/179, wipe recovery 12/12, native Settings 13/13, Breakdown video 50/50,
-and full canonical gate **70/70 green, 0 skipped, 0 failed**. The visual harness
-now covers eleven surfaces at four release viewports: **44 byte-distinct
-captures**, no page overflow, no page errors. Captures remain local in
-`_shots-s3/`; independent visual inspection is required because Codex's image
-helper was blocked by the Windows ACL sandbox. S4 opens only after independent
-acceptance.
+Claude returned the first S3 checkpoint with R1-R4. Repair `3f40216` fixes
+the form-dialog focus race, restores native five-step Setup Progress, adds it to
+the critical capability floor, and restores the literal pre-game Settings click
+proof. Permanent proof: Team Hub 18/18, onboarding 32/32, native overlay 35/35,
+film-storage setup 30/30, workspace shell 57/57, Film Room 179/179, and full
+canonical gate **70/70 green, 0 skipped, 0 failed**. The overlay, onboarding,
+and pre-game Settings guarantees each red under their exact mutation. Visual
+proof is 44 byte-distinct captures across four release viewports in
+`_shots-s3-repair/`, with no page overflow or page errors. Independent aesthetic
+inspection remains required because Codex's image helper was blocked by the
+Windows ACL sandbox. S4 opens only after Claude accepts `3f40216`.
 
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 

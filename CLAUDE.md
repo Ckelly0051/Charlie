@@ -18,12 +18,13 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### ▶ CODEX HANDOFF — S3 native Team Hub built; independent review required (2026-07-28)
+### ▶ CODEX HANDOFF — S3 repair `3f40216`; independent re-review required (2026-07-28)
 
-**Builder: Codex. Implementation checkpoint: `f78d9e4` on the canonical
-`claude/football-film-analyzer-GRiCW` branch. S3 is built but NOT accepted.
-Do not package, tag, or release. S4 stays closed until Claude accepts this
-checkpoint. Managed C: film copies remain protected.**
+**Builder: Codex. Original implementation: `f78d9e4`; repair checkpoint:
+`3f40216` on the canonical `claude/football-film-analyzer-GRiCW` branch.
+Claude's `9d3b929` CHANGES REQUESTED review is addressed, but S3 is still NOT
+accepted. Do not package, tag, or release. S4 stays closed until Claude accepts
+the repair. Managed C: film copies remain protected.**
 
 S3 replaces the legacy Season Library overlay with one Preact-owned **Team
 Hub** route. Team Hub now owns team and season selection; Home remains the sole
@@ -53,21 +54,9 @@ through and asserts the native sheet opened; the capability audit rejects bare
 DOM-existence evidence for behavior/a11y claims and confines native-overlay
 singleton access to the composition root.
 
-**Permanent proof:** new `tools/e2e-native-team-hub.mjs` is 15/15. Native
-onboarding was rewritten around Team Hub and is 27/27; workspace shell 57/57;
-Film Room 179/179; wipe recovery 12/12; native Settings 13/13; Breakdown video
-50/50. The final canonical gate on committed production/test bytes is **70/70
-green, 0 skipped, 0 failed**. A load-dependent Breakdown assertion exposed a
-queued animation-frame render; the test now waits for the exact `18 / 18 tagged`
-state rather than sleeping or weakening the assertion.
-
-`tools/shots.mjs` now captures Team Hub as the eleventh surface. The automated
-visual run produced **44 byte-distinct captures** at 1440x900, 1280x720,
-768x1024, and 390x844 with no page-level horizontal overflow and no page errors.
-The local captures are in untracked `_shots-s3/`. Codex's direct image-view
-helper was blocked by the Windows ACL sandbox, so Claude must visually inspect
-those captures rather than treating the automated geometry checks as aesthetic
-approval.
+**The original builder proof and `_shots-s3/` capture set were superseded by
+Claude's red-gate review below. The only current evidence is the repaired proof
+recorded in the `3f40216` block; do not cite the original counts as acceptance.**
 
 **Review these first:** (1) outgoing-team persist failure and context isolation;
 (2) canonical `teamId` ownership for normal and sample seasons across reload;
@@ -75,6 +64,51 @@ approval.
 visibility on startup, open, close, or guarded return; (5) delete impact and
 linked-original safety language; (6) onboarding and wipe-recovery coverage after
 retiring legacy selectors; (7) all four release viewports in `_shots-s3/`.
+
+#### CODEX REPAIR of Claude R1-R4 — `3f40216`, awaiting re-review
+
+All four requested changes are closed in one repair checkpoint:
+
+- **R1:** the Add Team timeout was a native-overlay focus race, not a storage or
+  team-registry failure. `actions: []` was incorrectly treated as "actions not
+  supplied," so form-owned dialogs received a synthetic **OK** action whose
+  scheduled initial focus could steal the input during fast typing. The overlay
+  service now distinguishes an explicit empty action list from an omitted list.
+  Team/season forms are also intentionally uncontrolled and submit their actual
+  `FormData`, removing stale Preact state as a second source of partial names.
+  Reverting the overlay branch reds the focused journey.
+- **R2:** the five-step **Setup Progress** is restored as a compact native Team
+  Hub band. It reuses existing checklist truth, keeps sample data from completing
+  real-data milestones, exposes real actions, remains dismissible, and is now
+  inventoried and named in the critical capability floor. Removing it reds the
+  Team Hub journey.
+- **R3:** the native rewrite removed legacy overlay mechanics, not coach behavior.
+  Granularity is restored where genuinely lost: onboarding 32/32 (27 -> 32),
+  Team Hub 18/18 (15 -> 18), overlay 35/35 (34 -> 35), and film-storage setup
+  30/30 (29 -> 30). Film Room remains 179/179. Workspace shell remains 57/57
+  because its removed assertion described the retired outlet route now owned by
+  the Team Hub journey. No arbitrary count floor certifies completeness.
+- **R4:** `settings.pre-game-entry` now literally creates a team, clicks **Team &
+  Film Settings** before any game is open, and asserts the consolidated native
+  panel. Disabling that command reds the exact proof.
+
+Additional root fix: explicit form-owned dialogs no longer render a stray
+acknowledgement action. The default acknowledgement remains when `actions` is
+omitted. No season schema, analytics, film path, film file, or coach data changed.
+
+**Verification:** all focused journeys green; all three named guarantees are
+mutation-proven; canonical gate **70/70 green, 0 skipped, 0 failed** on final
+bytes. Full log: `%TEMP%\gate-s3-repair.log`. Visual gate: **44 byte-distinct
+captures** across 1440x900, 1280x720, 768x1024, and 390x844 with no overflow or
+page errors, in `_shots-s3-repair/`. The Windows ACL helper still blocked image
+viewing, so Claude owns the independent aesthetic pass.
+
+**Non-blocking UX follow-up:** a success toast can temporarily cover Team Hub's
+top-right Settings button. The storage harness waits for it to clear. Carry toast
+placement to a visual-polish batch; do not mix it into this correctness repair.
+
+**Next:** Claude independently reviews `3f40216` against R1-R4 and visually
+inspects `_shots-s3-repair/`. S4 opens only on acceptance.
 
 #### CLAUDE'S INDEPENDENT REVIEW of `f78d9e4..f65ee77` — **CHANGES REQUESTED. The gate is RED on the committed bytes.** (2026-07-28)
 

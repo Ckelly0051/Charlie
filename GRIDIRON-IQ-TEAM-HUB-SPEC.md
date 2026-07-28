@@ -1,6 +1,6 @@
 # GridIron IQ — Team Hub interaction specification
 
-**Status:** implemented by Codex at `f78d9e4`; awaiting independent Claude review.
+**Status:** implemented at `f78d9e4`; R1-R4 repaired at `3f40216`; awaiting independent Claude re-review.
 **Owner route:** S3 — native Team Hub / Season Library.
 **Why it exists:** Team Hub is the app's front door *and* was the last surface pinning
 `#wsClassicOutlet` — before S3, `_openLibrary()` had to reveal the outlet because
@@ -46,6 +46,17 @@ directly.
 **Team & Film Settings must be reachable from Team Hub with no game open.** This
 is a hard requirement — film storage setup is a pre-game activity, and burying it
 behind an open game was the defect that produced the failed `v1.12.0-8` smoke.
+
+### 4a. Progressive setup
+
+Team Hub owns one compact five-step Setup Progress surface: team, roster,
+season, first tagged play, and first real-data Reports visit. It reads the
+existing canonical checklist truth; it does not create new stored progress.
+Sample data never completes real-season, real-tag, roster, or stats milestones.
+Incomplete steps invoke their real destination, completed steps remain visibly
+complete, and the coach may dismiss the band. This capability is explicitly
+listed in the P0 inventory and critical floor; it may not become hidden legacy
+DOM again.
 
 ## 5. Selected context
 
