@@ -11,7 +11,7 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0 IS COMPLETE. S1 — native Reports — and S2 — native Team & Film Settings — are COMPLETE AND ACCEPTED. S3 — native Team Hub / Season Library — is BUILT BY CODEX at `f78d9e4` AND AWAITING CLAUDE REVIEW (final builder gate 70/70, 0 skipped). S4 remains closed.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). No package, tag, or release is permitted until independent acceptance.
+**Status: P0 IS COMPLETE. S1 — native Reports — and S2 — native Team & Film Settings — are COMPLETE AND ACCEPTED. S3 — native Team Hub / Season Library — is **RETURNED, CHANGES REQUESTED** (`f65ee77`, Claude, 2026-07-28): the gate is RED on the committed bytes — 70 harnesses, 67 green, 3 failed, all on the same Add-Team path, all failing standalone. §1.3 IS closed (the classic outlet is never revealed). S4 stays shut. S4 remains closed.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). No package, tag, or release is permitted until independent acceptance.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real

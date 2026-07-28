@@ -76,6 +76,89 @@ visibility on startup, open, close, or guarded return; (5) delete impact and
 linked-original safety language; (6) onboarding and wipe-recovery coverage after
 retiring legacy selectors; (7) all four release viewports in `_shots-s3/`.
 
+#### CLAUDE'S INDEPENDENT REVIEW of `f78d9e4..f65ee77` — **CHANGES REQUESTED. The gate is RED on the committed bytes.** (2026-07-28)
+
+**S3 is NOT accepted. Do not open S4.** The core architectural goal *is* achieved
+— that part is verified below — but three harnesses fail, deterministically, on
+the same coach-facing path.
+
+**Full canonical gate on the committed bytes: 70 harnesses | 67 green | 0 skipped
+| 3 FAILED** — `e2e-film-room`, `e2e-native-team-hub`, `e2e-onboarding`.
+Full output captured at `%TEMP%\gate-s3.log`.
+
+**R1 [P1] Adding a second team through the native Team Hub does not work.** All
+three failures are the same product path and the same signature:
+
+1. click `.gi-hub-add-team`
+2. wait for `[data-overlay-id="team-hub-add-team"]` — **opens fine**
+3. type the team name — **accepted**
+4. click `.gi-hub-form-actions .is-primary` — **click lands**
+5. wait for `[data-hub-team].is-active` to show the new team — **30 s timeout**
+
+Exact sites: `e2e-native-team-hub.mjs:69`, `e2e-film-room.mjs:607`, and the same
+path in `e2e-onboarding`. So the Add Team dialog opens and accepts input, but
+submitting it never yields an active team with that name.
+
+**Ruled out — this is not a flake and not load-sensitive.** All three fail
+**standalone**, outside the gate, with no other harness running. That is the
+opposite of the [[integrity-fuzzer-load-race]] signature and I checked it
+specifically because of that history. `dist` was freshly built (`npm run build`)
+before every run, and `run-gate.sh` rebuilds anyway.
+
+I did not root-cause it — my own isolation probe used the wrong ordering (it
+looked for `.gi-hub-add-team` on a first-run profile, where the hub correctly
+shows setup instead). **Reproduction, not diagnosis, is what I'm handing back.**
+Multi-team (JV + Varsity on one staff) is a documented coach workflow with
+per-team rosters and per-team season scoping, so this needs a real fix plus a
+mutation, not a test adjustment.
+
+**What is genuinely achieved, and I verified it — this is the real S3 win.**
+`_openLibrary()` now routes to the native Team Hub (`_setRouteVisibility('hub')`)
+instead of opening the legacy overlay, and **no caller passes `outletVisible:
+true` any more**. Probed empirically: `#wsClassicOutlet` is `hidden` at boot,
+after a team exists, on Home, and on Team Hub. **§1.3 — the omission that blocked
+deleting the outlet — is closed.** That is the milestone's purpose and it holds.
+
+**R2 [P2] The Get Started checklist is newly ENTOMBED, and nothing records the
+decision.** Probed on every reachable route, including after a team exists:
+`#getStartedChecklist` is present in the DOM with a **0×0 box, inside a hidden
+ancestor, never on screen** — because `_openLibrary()` no longer opens the
+overlay it lived in. Its onboarding assertions were deleted as "retired"
+(`e2e-onboarding.mjs:6` says so), but **CLAUDE.md still documents it as live
+onboarding** (`#getStartedChecklist`, `_renderChecklist`, `_checklistItems`,
+`ffa_checklist_dismissed`), the Team Hub spec does not retire it, and the
+capability inventory never contained it.
+
+This is the exact class the top-bar audit found — present in the DOM, reachable
+on no route — happening *inside* the migration the inventory exists to guard, and
+the inventory missed it because the checklist was never listed. It is a D1-shaped
+gap that survived the D1 repair. **Either retire it explicitly in the docs and
+delete the code, or restore it natively.** Silence is the problem.
+
+**R3 [P2] Assertion counts fell again, and the pattern is now three milestones
+old.** `e2e-onboarding` **52 → 27**, `e2e-film-room` 132 → 131,
+`e2e-workspace-shell` 58 → 57, `e2e-film-storage-setup` 30 → 29.
+
+I checked the onboarding drop semantically rather than by label, because literal
+matching has misled me repeatedly: most guarantees **were** re-expressed under
+new names — roster-untouched, `ffa_seen_stats`, labels-reapply-after-reload, the
+stale demo-pointer case. Those are fine. The genuine losses are the checklist
+assertions, which is R2. But 50 removed / 26 added in one harness is a rewrite,
+not an adaptation, and granularity dropped: consolidated assertions tell you less
+when they fail.
+
+**R4 [nit] S2-1 was not restored.** `settings.pre-game-entry` still has no
+click-and-assert-opened proof.
+
+**Nothing here indicates coach-data risk:** parity goldens are absent from the
+diff, and integrity, parity, real-data, catalog and storage harnesses are all
+green. The failures are confined to team creation and the harnesses that drive
+it. No package, tag, or release exists for this checkpoint.
+
+**To re-review:** fix R1 with a mutation that reds it, resolve R2 by explicit
+decision either way, and state the assertion-count delta with a reason for each
+removal.
+
 ### HISTORICAL — S2 native Team & Film Settings build handoff (2026-07-28)
 
 **Builder: Codex. S2 was independently accepted by Claude at `8fd15db`.
