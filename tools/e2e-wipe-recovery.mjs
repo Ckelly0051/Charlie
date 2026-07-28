@@ -32,14 +32,12 @@ page.on('pageerror', e => errors.push(String(e)));
 await page.goto(bundle, { waitUntil: 'load' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'load' });
-await new Promise(r => setTimeout(r, 600));
+await page.waitForSelector('.gi-hub-first');
 
 // ---- Seed: team + roster + season + tagged plays ----
-await page.evaluate(() => {
-  document.getElementById('teamSetupName').value = 'Mavericks';
-  document.getElementById('btnTeamSetupSave').click();
-});
-await new Promise(r => setTimeout(r, 300));
+await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+await page.click('.gi-hub-first .gi-hub-primary');
+await page.waitForSelector('[data-hub-team].is-active');
 await page.evaluate(async () => {
   window.app.roster.players = [
     { num: '22', name: 'Marcus Carter', pos: 'RB', side: 'O' },
@@ -80,31 +78,29 @@ await new Promise(r => setTimeout(r, 1000));
 
 // ---- Assert auto-recovery ----
 const rec = await page.evaluate(() => {
-  const setup = document.getElementById('teamSetup');
-  const card = document.getElementById('teamCard');
   const teams = JSON.parse(localStorage.getItem('ffa_teams') || '[]');
   const profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}');
   const roster = JSON.parse(localStorage.getItem('ffa_roster') || '[]');
-  const listEl = document.getElementById('seasonsList') || document.querySelector('.library-list');
+  const hub = document.querySelector('[data-native-team-hub]');
   return {
-    setupHidden: !setup || setup.classList.contains('hidden'),
-    cardShown: !!card && !card.classList.contains('hidden'),
-    cardText: card ? card.textContent : '',
+    setupHidden: !document.querySelector('.gi-hub-first'),
+    teamShown: !!document.querySelector('[data-hub-team].is-active'),
+    teamText: document.querySelector('[data-hub-team].is-active')?.textContent || '',
     teamCount: teams.length,
     teamName: (teams[0] || {}).teamName,
     profileName: profile.teamName,
     rosterCount: roster.length,
     rosterInMemory: window.app.roster.players.length,
-    listText: listEl ? listEl.textContent : document.body.textContent,
+    listText: hub?.textContent || '',
   };
 });
 check('NO first-run setup screen over existing data', rec.setupHidden, JSON.stringify(rec));
-check('team card restored + visible', rec.cardShown && rec.cardText.includes('Mavericks'));
+check('native Team Hub restores the original team', rec.teamShown && rec.teamText.includes('Mavericks'));
 check('registry rebuilt with original team', rec.teamCount === 1 && rec.teamName === 'Mavericks', JSON.stringify(rec));
 check('profile restored', rec.profileName === 'Mavericks');
 check('roster restored from season file', rec.rosterCount === 2, 'got ' + rec.rosterCount);
 check('roster manager in-memory copy refreshed', rec.rosterInMemory === 2, 'got ' + rec.rosterInMemory);
-check('season visible in the list', rec.listText.includes('Fall 2026'), rec.listText.slice(0, 200));
+check('recovered season is visible in Team Hub', rec.listText.includes('Fall 2026'), rec.listText.slice(0, 200));
 
 // ---- Open the recovered season: plays intact ----
 const opened = await page.evaluate(async () => {
@@ -131,10 +127,9 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: 'load' });
 await new Promise(r => setTimeout(r, 1000));
-const orphan = await page.evaluate(() => {
-  const listEl = document.getElementById('seasonsList') || document.querySelector('.library-list');
-  return { listText: listEl ? listEl.textContent : document.body.textContent };
-});
+const orphan = await page.evaluate(() => ({
+  listText: document.querySelector('[data-native-team-hub]')?.textContent || '',
+}));
 check('orphaned season still visible under rebuilt team', orphan.listText.includes('Fall 2026'), orphan.listText.slice(0, 200));
 
 const benign = errors.filter(e => !/Failed to load because no supported source|The element has no supported sources/.test(e));

@@ -4,8 +4,8 @@
  */
 export const P0_CAPABILITIES = [
   // Home / shell ownership
-  { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'empty Home offers Set up team' },
-  { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home exposes a direct New Game action' },
+  { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'First-run Team Hub offers team setup before any season' },
+  { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home New Game action opens a chartable game in Break Down' },
   { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
   { id:'shell.breakdown-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Break Down opens its dedicated production route' },
   { id:'shell.settings', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell Settings opens the single native Team & Film Settings owner' },
@@ -69,9 +69,15 @@ export const P0_CAPABILITIES = [
   { id:'plan.presentation', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Presentation advances by keyboard and keeps resolved film links' },
   { id:'plan.exact-film', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan item and whole-plan Watch use the same composite film refs' },
 
+  // Team Hub / season library
+  { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup has one native Team Hub owner and never reveals the classic outlet' },
+  { id:'team-hub.create-season', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Create season stores active-team ownership and hands off to Home' },
+  { id:'team-hub.team-switch', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Team switch fails closed when the outgoing canonical season save fails' },
+  { id:'team-hub.delete-impact', surface:'team-hub', evidence:'data', harness:'e2e-native-team-hub.mjs', assertion:'Season delete names game/play impact and managed-versus-linked film consequences' },
+  { id:'team-hub.mobile', surface:'team-hub', evidence:'a11y', harness:'e2e-native-team-hub.mjs', assertion:'Mobile Team Hub preserves complete touch access without page-level scrolling traps' },
   // Team + film storage truth
   { id:'settings.first-run-storage', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'First desktop launch opens the one native Team & Film Settings owner' },
-  { id:'settings.pre-game-entry', surface:'settings', evidence:'behavior', harness:'e2e-film-storage-setup.mjs', assertion:'Team Hub exposes Team & Film Settings before a game is opened' },
+  { id:'settings.pre-game-entry', surface:'settings', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Team Hub opens the one native Team & Film Settings owner before a game is opened' },
   { id:'settings.managed-disclosure', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Managed choice persists and discloses copying' },
   { id:'settings.link-root', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Existing-library choice saves the selected root once' },
   { id:'settings.failed-link-rollback', surface:'settings', evidence:'data', harness:'e2e-film-storage-setup.mjs', assertion:'Failed canonical save rolls the entire game link back and reports failure' },
@@ -83,7 +89,7 @@ export const P0_CAPABILITIES = [
   { id:'settings.mobile-modal', surface:'settings', evidence:'a11y', harness:'e2e-native-settings.mjs', assertion:'Narrow Settings becomes modal and makes the workspace inert' },
   { id:'settings.advanced-bridge', surface:'settings', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Native More settings preserves the unmigrated drawer tools and CV-server status' },
   { id:'settings.restore-points', surface:'settings', evidence:'data', harness:'e2e-catalog-persistence.mjs', assertion:'restore points survive a reopen from the on-disk db' },
-  { id:'settings.roster', surface:'settings', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'roster drawer actually reachable from checklist' },
+  { id:'settings.roster', surface:'settings', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Team Hub Roster action opens the canonical roster workspace' },
 
   // Shared film navigation
   { id:'film-nav.exact-queue', surface:'film-navigation', evidence:'data', harness:'e2e-film-navigation.mjs', assertion:'Next/Save & Next queue contains only exact requested examples' },
@@ -119,6 +125,8 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   'reports.opponent-special-teams',
   'reports.csv-roundtrip',
   'reports.call-sheet',
+  'team-hub.native-owner',
+  'team-hub.team-switch',
   'settings.native-owner',
   'settings.source-truth',
   'settings.mode-isolation',

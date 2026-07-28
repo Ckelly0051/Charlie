@@ -729,9 +729,6 @@ export class SeasonLibrary {
     if (!this.overlay) return;
     if (!this._storage()?.seasonStore.hasCurrent()) return;
     this.overlay.classList.add('hidden');
-    // _openLibrary() had to reveal #wsClassicOutlet for this overlay to render.
-    // Put it back, or the retired classic UI is left exposed underneath.
-    window.app?.workspaceShell?.restoreRouteVisibility?.();
   }
 
   _showForm(show) {

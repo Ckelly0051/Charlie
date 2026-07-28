@@ -26,34 +26,31 @@ const click = (sel) => page.evaluate(s => { const el = document.querySelector(s)
 // open game 1 from the film inbox, then switch to the Film Room view so the grid
 // surface is visible (the sole game-entry route; the schedule grid is retired).
 const reopenFilmRoom = async () => {
-  await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-  await sleep(400);
-  await page.evaluate(() => document.querySelector('.season-card')?.click());
-  await sleep(700);
-  await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());
-  await sleep(700);
-  await page.evaluate(() => document.querySelector('[data-bd-view="film-room"]')?.click());
-  await sleep(400);
+  await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
+    && !!document.querySelector('[data-hub-open-season]'));
+  await page.click('[data-hub-open-season]');
+  await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+  await page.click('#wsFilmList [data-ws-game]');
+  await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
+  await page.click('[data-bd-view="film-room"]');
+  await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
 };
 
 console.log('\n== 1. Setup: team + demo season + open game ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
-await sleep(600);
-// Team/season setup lives in the library overlay, opened from the shell Home.
-await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-await sleep(400);
-await page.type('#teamSetupName', 'Mavericks');
-await click('#btnTeamSetupSave');
-await sleep(300);
-await click('#btnExploreDemo');
-await sleep(900);
-// Open game 1 from the shell Home film inbox (the sole game-entry route).
-await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());
-await sleep(700);
-// Break Down opens in Chart view (grid hidden); switch to the Film Room view so
-// the co-equal grid surface is visible (classic showed it inline under the video).
-await page.evaluate(() => document.querySelector('[data-bd-view="film-room"]')?.click());
-await sleep(400);
+await page.waitForSelector('.gi-hub-first');
+await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+await page.click('.gi-hub-first .gi-hub-primary');
+await page.waitForSelector('[data-hub-team].is-active');
+await page.evaluate(() => {
+  [...document.querySelectorAll('.gi-hub-section-head button')]
+    .find(button => /Explore sample season/i.test(button.textContent || ''))?.click();
+});
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+await page.click('#wsFilmList [data-ws-game]');
+await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
+await page.click('[data-bd-view="film-room"]');
+await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
 
 console.log('\n== 2. Grid renders on demo data ==');
 let r = await page.evaluate(() => {
@@ -589,95 +586,75 @@ ok(r.menuVisible && r.reapplied === r.filteredCount && r.reapplied < r.clearedCo
 ok(r.after.length === 0, 'saved filter deletable');
 
 console.log('\n== 9. Multi-team: add a JV team, switch between hubs ==');
-// Open the library Team Home (team pills live there) from the shell.
-await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-await sleep(500);
+await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.waitForSelector('[data-native-team-hub] [data-hub-team]');
 r = await page.evaluate(() => ({
-  pills: [...document.querySelectorAll('.team-pill[data-team]')].map(p => p.textContent.trim()),
-  add: !!document.getElementById('btnAddTeam') }));
-ok(r.pills.length === 1 && /Mavericks/.test(r.pills[0]), 'one team pill for Mavericks', JSON.stringify(r));
-ok(r.add, '+ Add Team pill present');
+  teams: [...document.querySelectorAll('[data-hub-team]')].map(button => button.textContent.trim()),
+  add: !!document.querySelector('.gi-hub-add-team'),
+}));
+ok(r.teams.length === 1 && r.teams[0] === 'Mavericks', 'one native team selector for Mavericks', JSON.stringify(r));
+ok(r.add, '+ Add team action present');
 
-await click('#btnAddTeam');
-await sleep(200);
+await page.click('.gi-hub-add-team');
+await page.waitForSelector('[data-overlay-id="team-hub-add-team"]');
 r = await page.evaluate(() => ({
-  setup: !document.getElementById('teamSetup').classList.contains('hidden'),
-  cancel: !document.getElementById('btnTeamSetupCancel').classList.contains('hidden') }));
-ok(r.setup && r.cancel, 'add-team form shows with Cancel', JSON.stringify(r));
-await page.type('#teamSetupName', 'JV Squad');
-await click('#btnTeamSetupSave');
-await sleep(600);
+  form: !!document.querySelector('[data-overlay-id="team-hub-add-team"] .gi-hub-dialog-form'),
+  cancel: [...document.querySelectorAll('[data-overlay-id="team-hub-add-team"] button')].some(button => button.textContent.trim() === 'Cancel'),
+}));
+ok(r.form && r.cancel, 'native add-team dialog shows with Cancel', JSON.stringify(r));
+await page.type('[data-overlay-id="team-hub-add-team"] input[placeholder="St. Joseph Mavericks"]', 'JV Squad');
+await page.click('[data-overlay-id="team-hub-add-team"] .gi-hub-form-actions .is-primary');
+await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active')?.textContent.trim() === 'JV Squad');
 r = await page.evaluate(() => ({
-  name: document.getElementById('teamCardName').textContent,
-  active: document.querySelector('.team-pill.active')?.textContent.trim(),
-  pills: document.querySelectorAll('.team-pill[data-team]').length,
-  seasons: document.querySelectorAll('.season-card').length,
+  name: document.getElementById('giHubTitle')?.textContent,
+  active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
+  teams: document.querySelectorAll('[data-hub-team]').length,
+  seasons: document.querySelectorAll('[data-season-id]').length,
   profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
-  // (a `breadcrumbHidden` field lived here, computed but never asserted by any
-  // ok() below — dead weight. The breadcrumb is deleted outright now, so it
-  // would also have thrown on a null element.)
-  hasCurrent: window.app.storage.seasonStore.hasCurrent() }));
-// EXACT match — a regex would also match a concatenation bug like
-// 'MavericksJV Squad' (leftover setup-input value).
-ok(r.pills === 2 && (r.active || '').trim() === 'JV Squad', 'JV team added + active', JSON.stringify(r));
-ok(r.name === 'JV Squad' && r.profile === 'JV Squad', 'card + profile show JV', JSON.stringify(r));
-ok(r.seasons === 0, "JV hub shows NO seasons (demo belongs to Mavericks)", String(r.seasons));
+  hasCurrent: window.app.storage.seasonStore.hasCurrent(),
+}));
+ok(r.teams === 2 && r.active === 'JV Squad', 'JV team added and active', JSON.stringify(r));
+ok(r.name === 'JV Squad' && r.profile === 'JV Squad', 'native Hub and profile show JV', JSON.stringify(r));
+ok(r.seasons === 0, 'JV hub shows no seasons because the sample belongs to Mavericks', String(r.seasons));
 ok(!r.hasCurrent, 'open season was closed on team switch');
 
 console.log('\n== 10. Per-team rosters ==');
-r = await page.evaluate(async () => {
-  // Give JV a player, then flip to Mavericks and back.
-  window.app.roster.loadFrom([{ num: '7', name: 'JV Kid', pos: 'QB', side: 'O' }]);
-  const mavPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /Mavericks/.test(p.textContent));
-  mavPill.click();
-  await new Promise(r => setTimeout(r, 400));
-  const mavCount = window.app.roster.players.length;
-  const jvPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /JV Squad/.test(p.textContent));
-  jvPill.click();
-  await new Promise(r => setTimeout(r, 400));
-  const jvCount = window.app.roster.players.length;
-  const jvName = (window.app.roster.players[0] || {}).name || '';
-  return { mavCount, jvCount, jvName };
-});
-ok(r.mavCount === 0, 'Mavericks roster untouched by JV player', JSON.stringify(r));
-ok(r.jvCount === 1 && r.jvName === 'JV Kid', 'JV roster restored on switch back', JSON.stringify(r));
+await page.evaluate(() => window.app.roster.loadFrom([{ num: '7', name: 'JV Kid', pos: 'QB', side: 'O' }]));
+await page.click('[data-hub-team="mavericks"]');
+await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
+const mavCount = await page.evaluate(() => window.app.roster.players.length);
+await page.click('[data-hub-team="jv-squad"]');
+await page.waitForFunction(() => document.querySelector('[data-hub-team="jv-squad"]')?.classList.contains('is-active'));
+r = await page.evaluate(() => ({ count:window.app.roster.players.length, name:window.app.roster.players[0]?.name || '' }));
+ok(mavCount === 0, 'Mavericks roster untouched by JV player', String(mavCount));
+ok(r.count === 1 && r.name === 'JV Kid', 'JV roster restored on switch back', JSON.stringify(r));
 
-console.log('\n== 11. Mavericks hub still owns the demo; remove-team guard ==');
-r = await page.evaluate(async () => {
-  const mavPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /Mavericks/.test(p.textContent));
-  mavPill.click();
-  await new Promise(r => setTimeout(r, 400));
-  return { seasons: document.querySelectorAll('.season-card').length };
-});
-ok(r.seasons === 1, "Mavericks hub still lists the demo season", String(r.seasons));
-await click('#btnEditTeam');
-await sleep(200);
-await click('#btnTeamRemove');
-await sleep(300);
-r = await page.evaluate(() => document.querySelector('.ffa-confirm-msg')?.textContent || '');
-ok(/still has 1 season/i.test(r), 'team with seasons cannot be removed (guard)', r);
-await page.evaluate(() => document.querySelector('[data-act="ok"]')?.click());
-await sleep(300);
+console.log('\n== 11. Mavericks hub still owns the sample; remove-team guard ==');
+await page.click('[data-hub-team="mavericks"]');
+await page.waitForFunction(() => document.querySelector('[data-hub-team="mavericks"]')?.classList.contains('is-active'));
+r = await page.evaluate(() => ({ seasons:document.querySelectorAll('[data-season-id]').length }));
+ok(r.seasons === 1, 'Mavericks hub still lists the sample season', String(r.seasons));
+await page.click('.gi-hub-team-actions .is-danger');
+await page.waitForSelector('.gi-overlay-panel');
+r = await page.evaluate(() => document.querySelector('.gi-overlay-panel')?.textContent || '');
+ok(/owns 1 season/i.test(r), 'team with seasons cannot be removed', r);
+await page.click('[data-overlay-action="ok"]');
+await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
 
-// JV has no seasons → removable; active falls back to Mavericks.
-r = await page.evaluate(async () => {
-  const jvPill = [...document.querySelectorAll('.team-pill[data-team]')].find(p => /JV Squad/.test(p.textContent));
-  jvPill.click();
-  await new Promise(r => setTimeout(r, 400));
-  document.getElementById('btnEditTeam').click();
-  await new Promise(r => setTimeout(r, 150));
-  document.getElementById('btnTeamRemove').click();
-  await new Promise(r => setTimeout(r, 250));
-  const msg = document.querySelector('.ffa-confirm-msg')?.textContent || '';
-  document.querySelector('[data-act="ok"]').click();
-  await new Promise(r => setTimeout(r, 400));
-  return { msg,
-    pills: document.querySelectorAll('.team-pill[data-team]').length,
-    active: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
-    jvRosterKey: localStorage.getItem('ffa_roster_jv-squad') };
-});
-ok(/Remove "JV Squad"/.test(r.msg), 'empty team gets the remove confirm', r.msg);
-ok(r.pills === 1 && r.active === 'Mavericks', 'JV removed, Mavericks active again', JSON.stringify(r));
+await page.click('[data-hub-team="jv-squad"]');
+await page.waitForFunction(() => document.querySelector('[data-hub-team="jv-squad"]')?.classList.contains('is-active'));
+await page.click('.gi-hub-team-actions .is-danger');
+await page.waitForSelector('.gi-overlay-panel.is-destructive');
+r = await page.evaluate(() => document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '');
+ok(/Remove JV Squad/i.test(r), 'empty team gets the remove confirmation', r);
+await page.click('[data-overlay-action="delete"]');
+await page.waitForFunction(() => document.querySelectorAll('[data-hub-team]').length === 1);
+r = await page.evaluate(() => ({
+  teams:document.querySelectorAll('[data-hub-team]').length,
+  active:JSON.parse(localStorage.getItem('ffa_team_profile') || '{}').teamName,
+  jvRosterKey:localStorage.getItem('ffa_roster_jv-squad'),
+}));
+ok(r.teams === 1 && r.active === 'Mavericks', 'JV removed and Mavericks active again', JSON.stringify(r));
 ok(!r.jvRosterKey, 'JV roster snapshot deleted');
 
 // Grid inline editor must match the tag form's semantics exactly (v1.9.30):

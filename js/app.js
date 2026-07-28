@@ -24,6 +24,7 @@ import { FilmNavigationService } from './film-navigation-service.js';
 import { StudyScreen } from './study-screen.js';
 import { ReportsScreen } from './reports-screen.js';
 import { SettingsScreen } from './settings-screen.js';
+import { TeamHubScreen } from './team-hub-screen.js';
 import { getNativeOverlayService } from './native-root.jsx';
 import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
@@ -120,6 +121,7 @@ class App {
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer);
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
+    this.teamHubScreen = new TeamHubScreen(this, this.overlays);
     this.workspace = new WorkspaceContext(this);
     this.breakdownWorkspace = new BreakdownWorkspace(this);
     this.workspaceShell = new WorkspaceShell(this);
@@ -226,8 +228,8 @@ class App {
     setTimeout(async () => {
       await this.storage.initLibrary();
       this._bindGamesPanel();
-      await this.library.open();
       await this.workspaceShell.init();
+      await this.workspaceShell._openLibrary();
       this.uiPolish.initFilmStorageSetup();
     }, 0);
 

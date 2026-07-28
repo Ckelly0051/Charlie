@@ -14,6 +14,8 @@ page.on('pageerror', error => errors.push(error.message));
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 await page.goto(URL, { waitUntil: 'networkidle0' });
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
+  && !!document.querySelector('[data-native-team-hub]'));
 
 const fixture = await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Varsity', team: 'Mavericks', year: '2026' });
@@ -51,6 +53,7 @@ const fixture = await page.evaluate(async () => {
   await window.app.workspaceShell.show('breakdown');
   return { seasonId: store.currentSeasonId, firstGameId, secondGameId: second.id };
 });
+await page.waitForFunction(() => document.getElementById('bdTagProgress')?.textContent === '18 / 18 tagged');
 
 let state = await page.evaluate(() => {
   const video = document.getElementById('videoContainer');

@@ -36,11 +36,13 @@ export class WorkspaceContext {
     const data = store?.data || null;
     const game = data && store?.activeGame ? store.activeGame() : null;
     const profile = data?.teamProfile || {};
-    const teamName = profile.teamName || data?.team || '';
     let teamId = data?.teamId || '';
     if (!teamId) {
       try { teamId = this.app.library?._activeTeamId?.() || ''; } catch (e) {}
     }
+    let ownerName = '';
+    try { ownerName = this.app.library?._teams?.().find(team => String(team.id) === String(teamId))?.teamName || ''; } catch (e) {}
+    const teamName = ownerName || profile.teamName || data?.team || '';
     const games = data?.games || [];
     const seasonId = store?.currentSeasonId || '';
     const gameInfo = game?.gameInfo || {};

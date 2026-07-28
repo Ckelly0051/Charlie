@@ -25,7 +25,7 @@ await new Promise(r => setTimeout(r, 700));
 let r = await page.evaluate(() => ({
   shell: !!document.querySelector('#workspaceShell'),
   active: document.body.classList.contains('ws-shell-active'),
-  home: !document.querySelector('#wsHome')?.hidden,
+  hub: !document.querySelector('#wsTeamHub')?.hidden && !!document.querySelector('[data-native-team-hub]'),
   appInOutlet: document.querySelector('#wsClassicOutlet > #app')?.id === 'app',
   flag: localStorage.getItem('ffa_workspace_shell_v2'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
@@ -34,7 +34,7 @@ let r = await page.evaluate(() => ({
   emptyActionEnabled: !document.querySelector('#wsResume')?.disabled,
   emptyActionTarget: document.querySelector('#wsResume')?.dataset.wsAction,
 }));
-ok(r.shell && r.active && r.home && r.appInOutlet, 'Feature flag mounts shell and relocates the intact classic app', JSON.stringify(r));
+ok(r.shell && r.active && r.hub && r.appInOutlet, 'Shell mounts with the native Team Hub as its single front door', JSON.stringify(r));
 
 // NO JS VALUES IN THE CHROME (coach smoke, 2026-07-25). Adding the Reports
 // route without adding its nav icon rendered the literal string "undefined"
@@ -485,9 +485,10 @@ const reportsLibrary = await page.evaluate(async () => {
   await shell._openLibrary();
   const whileOpen = {
     reportsHidden: document.getElementById('wsReports').hidden,
+    hubVisible: !document.getElementById('wsTeamHub').hidden,
     outletVisible: !document.getElementById('wsClassicOutlet').hidden,
   };
-  window.app.library.hide();
+  await shell.closeTeamHub();
   await new Promise(resolve => setTimeout(resolve, 0));
   return {
     whileOpen,
@@ -497,10 +498,9 @@ const reportsLibrary = await page.evaluate(async () => {
     },
   };
 });
-ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.outletVisible
+ok(reportsLibrary.whileOpen.reportsHidden && reportsLibrary.whileOpen.hubVisible && !reportsLibrary.whileOpen.outletVisible
   && reportsLibrary.after.reportsVisible && reportsLibrary.after.outletHidden,
-  'Opening and closing the season library from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));
-await page.click('.ws-sidebar [data-ws-route="study"]');
+  'Opening and backing out of native Team Hub from Reports restores exactly the Reports route', JSON.stringify(reportsLibrary));await page.click('.ws-sidebar [data-ws-route="study"]');
 
 await page.click('.ws-sidebar [data-ws-route="plan"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden, text: document.querySelector('#wsPlan')?.textContent || '' }));
@@ -517,56 +517,36 @@ r = await page.evaluate(() => ({
 ok(r.noClassicBtn && r.noUseClassic, 'Classic-layout escape hatch fully retired: no "Use classic" button, no useClassic()', JSON.stringify(r));
 ok(r.newGameBtn, 'Home exposes a direct New Game action (finding 4)', JSON.stringify(r));
 
-// COACH SMOKE REGRESSION (2026-07-24): the `⋯` button (_openLibrary) and
-// Advanced Reports (showAdvancedReports) both REVEAL #wsClassicOutlet, because
-// the library overlay and stats dashboard live inside the relocated classic
-// #app. Closing them only removed their own overlay — nothing re-hid the outlet
-// — so the entire retired classic UI, legacy breadcrumb and game dropdown
-// included, was left exposed underneath. The coach re-found the old flow exactly
-// this way. FAILING-FIRST: remove the restoreRouteVisibility() calls from
-// SeasonLibrary.hide() / StatsEngine.hideDashboard() and these red.
+// S3 ownership regression: Teams and seasons are a native route. Opening the
+// Hub from another workspace route must never reveal #wsClassicOutlet, and Back
+// must restore the exact invoking route. Reports remains native too.
 r = await page.evaluate(async () => {
   const shell = window.app.workspaceShell;
-  const outlet = () => document.getElementById('wsClassicOutlet').hidden;
+  const outletHidden = () => document.getElementById('wsClassicOutlet').hidden;
   await shell.show('breakdown');
-  // 1. the `⋯` seasons button reveals the outlet, then the library is closed
-  document.querySelector('[data-ws-action="seasons"]').click();
-  await new Promise(res => setTimeout(res, 400));
-  const outletWhileLibraryOpen = outlet();
-  window.app.library.hide();
-  await new Promise(res => setTimeout(res, 200));
-  const outletAfterLibraryClose = outlet();
-  // 2. Advanced Reports reveals it, then the dashboard is closed
+  await shell._openLibrary();
+  const hubVisible = !document.getElementById('wsTeamHub').hidden;
+  const outletWhileHubOpen = outletHidden();
+  await shell.closeTeamHub();
+  const breakdownRestored = !document.getElementById('wsBreakdown').hidden;
+  const outletAfterHubClose = outletHidden();
   shell.showAdvancedReports();
-  await new Promise(res => setTimeout(res, 300));
-  const outletWhileReportsOpen = outlet();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const outletWhileReportsOpen = outletHidden();
   window.app.stats.hideDashboard();
-  await new Promise(res => setTimeout(res, 200));
+  await new Promise(resolve => setTimeout(resolve, 0));
   return {
-    outletWhileLibraryOpen, outletAfterLibraryClose,
-    outletWhileReportsOpen, outletAfterReportsClose: outlet(),
-    // Was "hidden under the shell". Now DELETED: hidden markup is exactly what
-    // let the retired game-entry flow resurface whenever an overlay revealed the
-    // classic outlet. Absence is the stronger contract — it cannot be un-hidden.
+    hubVisible, outletWhileHubOpen, breakdownRestored, outletAfterHubClose,
+    outletWhileReportsOpen, outletAfterReportsClose: outletHidden(),
     breadcrumbGone: !document.getElementById('breadcrumb') && !document.getElementById('gameDropdown'),
   };
 });
-// The library still lives inside the classic #app, so opening it must still
-// reveal the outlet — and closing it must put the outlet back, or the retired
-// classic top bar is left exposed (the coach found exactly this by clicking ⋯).
-// Liveness: assert the outlet really IS revealed while open, so "hidden after"
-// cannot pass against code that never showed it.
-ok(r.outletWhileLibraryOpen === false,
-  'liveness: opening the library really does reveal the classic outlet', JSON.stringify(r));
-ok(r.outletAfterLibraryClose === true,
-  'Closing the library re-hides the classic outlet (no retired UI left exposed)', JSON.stringify(r));
-// Reports is now a real shell destination, so it never needs the outlet at all
-// — strictly better than revealing-then-restoring.
-ok(r.outletWhileReportsOpen === true && r.outletAfterReportsClose === true,
+ok(r.hubVisible && r.outletWhileHubOpen && r.breakdownRestored && r.outletAfterHubClose,
+  'Native Team Hub never reveals the classic outlet and Back restores Break Down', JSON.stringify(r));
+ok(r.outletWhileReportsOpen && r.outletAfterReportsClose,
   'Advanced Reports NEVER reveals the classic outlet (it is a shell route now)', JSON.stringify(r));
 ok(r.breadcrumbGone,
   'The legacy breadcrumb + game dropdown are DELETED, not merely hidden', JSON.stringify(r));
-
 // disable() remains as the INTERNAL mount/restore teardown contract (tested
 // lifecycle hygiene — proves the shell returns #app intact). It is not reachable
 // from any product affordance.

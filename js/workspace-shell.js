@@ -66,11 +66,12 @@ export class WorkspaceShell {
     // BEFORE breakdownWorkspace moves that section back to the classic #app.
     this.app.breakdownVideo?.restore();
     this.app.reportsScreen?.restore();
+    this.app.teamHubScreen?.restore();
     this.app.breakdownWorkspace?.restore();
     this._restoreChrome();
     if (this.classicApp) document.body.insertBefore(this.classicApp, this.root);
     this.root.remove(); this.root = null;
-    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
+    document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
   }
   _mount() {
     this.classicApp = document.getElementById('app');
@@ -86,7 +87,7 @@ export class WorkspaceShell {
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
-      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+      <section class="ws-team-hub" id="wsTeamHub" hidden></section><section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section><div class="ws-classic-outlet" id="wsClassicOutlet" hidden></div></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
     document.body.appendChild(root);
     root.querySelector('#wsClassicOutlet').appendChild(this.classicApp);
     this.root = root;
@@ -95,6 +96,7 @@ export class WorkspaceShell {
     this.app.studyScreen?.mount(root.querySelector('#wsStudy'));
     this.app.reportsScreen?.mount(root.querySelector('#wsReports'));
     this.app.planScreen?.mount(root.querySelector('#wsPlan'));
+    this.app.teamHubScreen?.mount(root.querySelector('#wsTeamHub'));
     this._bind();
   }
   // The `|| '•'` is load-bearing, not defensive noise: adding the Reports route
@@ -123,7 +125,8 @@ export class WorkspaceShell {
     const previousRoute = this.app.workspace.currentRoute();
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
     if (routeId !== 'breakdown') this.app.cutupPlayer?.stop();
-    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
+    this.app.teamHubScreen?.hide();
+    document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
     document.body.classList.add(`ws-route-${routeId}`);
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
@@ -161,6 +164,7 @@ export class WorkspaceShell {
   _routeHosts() {
     if (!this.root) return {};
     return {
+      hub: this.root.querySelector('#wsTeamHub'),
       home: this.root.querySelector('#wsHome'),
       breakdown: this.root.querySelector('#wsBreakdown'),
       study: this.root.querySelector('#wsStudy'),
@@ -205,7 +209,25 @@ export class WorkspaceShell {
    *  revealing the classic outlet (which is what used to expose the retired
    *  top bar underneath). Kept as the named entry point Study links to. */
   showAdvancedReports(){ if(!this.root) return; return this.show('reports'); }
-  async _openLibrary(){this._setRouteVisibility(null, true);await this.app.library.open();}
+  async _openLibrary(){
+    if(!this.root)return false;
+    if(this.root.dataset.route!=='team-hub')this._teamHubReturnRoute=this.app.workspace.currentRoute()||'home';
+    this.app.cutupPlayer?.stop();
+    document.body.classList.remove('ws-route-home','ws-route-breakdown','ws-route-study','ws-route-reports','ws-route-plan');
+    document.body.classList.add('ws-route-team-hub');
+    this.root.dataset.route='team-hub';
+    this.root.querySelectorAll('[data-ws-route]').forEach(button=>button.classList.remove('active'));
+    this._setRouteVisibility('hub');
+    this._syncChrome();
+    await this.app.teamHubScreen?.show?.();
+    return true;
+  }
+  async closeTeamHub(){
+    const target=this._teamHubReturnRoute||'home';
+    this._teamHubReturnRoute='home';
+    const guarded=this.app.workspace.guard?.(target);
+    return this.show(guarded?.ok?target:'home');
+  }
   /** Home's direct "New game" action (C1 finding 4): with Home the sole game
    * entry, creating a game belongs on Home, not buried under More. Creates the
    * game in the active season (reusing a still-empty active game rather than

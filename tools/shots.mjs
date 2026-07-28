@@ -1,4 +1,4 @@
-/* VISUAL GATE — captures ten distinct coach surfaces at every release viewport.
+/* VISUAL GATE — captures eleven distinct coach surfaces at every release viewport.
    This is intentionally a failing harness: route readiness, page overflow, and
    duplicate screenshot bytes all fail the run. The coach still owns visual
    approval; this script makes the evidence complete and auditable.
@@ -28,14 +28,18 @@ page.on('console', message => { if (message.type() === 'error') errors.push(mess
 await page.goto(APP_URL, { waitUntil:'networkidle0' });
 await page.waitForFunction(() => window.app?.workspaceShell && window.app?.library);
 
-// Deterministic sample state, reached through the real onboarding controls.
+// Deterministic sample state, reached through the native Team Hub controls.
+await page.waitForSelector('.gi-hub-first');
+await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'St. Joseph Mavericks');
+await page.select('.gi-hub-first select', 'navy');
+await page.click('.gi-hub-first .gi-hub-primary');
+await page.waitForSelector('[data-hub-team].is-active');
 await page.evaluate(() => {
-  const input=document.getElementById('teamSetupName');
-  if(input){ input.value='St. Joseph Mavericks'; input.dispatchEvent(new Event('input',{bubbles:true})); document.getElementById('btnTeamSetupSave')?.click(); }
+  [...document.querySelectorAll('.gi-hub-section-head button')]
+    .find(button => /Explore sample season/i.test(button.textContent || ''))?.click();
 });
-await page.waitForSelector('#btnExploreDemo');
-await page.evaluate(() => document.getElementById('btnExploreDemo')?.click());
-await page.waitForFunction(() => (window.app.storage?.seasonStore?.data?.games?.length || 0) > 0);
+await page.waitForFunction(() => (window.app.storage?.seasonStore?.data?.games?.length || 0) > 0
+  && document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.evaluate(async () => {
   const app=window.app, game=app.storage.seasonStore.data.games[0];
   await app.openGame(game.id);
@@ -72,37 +76,40 @@ const capture = async (viewport, name, selector) => {
 for(const viewport of viewports){
   await page.setViewport({ width:viewport.width, height:viewport.height });
 
+  await page.evaluate(() => window.app.workspaceShell._openLibrary());
+  await capture(viewport,'01-team-hub','#wsTeamHub:not([hidden]) [data-native-team-hub]');
+
   await route('home');
-  await capture(viewport,'01-home','#wsHome:not([hidden])');
+  await capture(viewport,'02-home','#wsHome:not([hidden])');
 
   await page.evaluate(async () => { const s=window.app.storage.seasonStore.data; await window.app.openGame(s.activeGameId || s.games[0].id); window.app.breakdownWorkspace._setView('chart'); });
-  await capture(viewport,'02-breakdown-chart','#wsBreakdown:not([hidden]) .bd-route');
+  await capture(viewport,'03-breakdown-chart','#wsBreakdown:not([hidden]) .bd-route');
 
   await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room'));
-  await capture(viewport,'03-film-room','#wsBreakdown.bd-film-room-mode #playGridSection:not([hidden])');
+  await capture(viewport,'04-film-room','#wsBreakdown.bd-film-room-mode #playGridSection:not([hidden])');
 
   await page.evaluate(() => { window.app.breakdownWorkspace._setView('chart'); if(!window.app.quickChart.isActive) window.app.quickChart.toggle(); });
-  await capture(viewport,'04-quick-chart','#quickChartPanel:not(.hidden)');
+  await capture(viewport,'05-quick-chart','#quickChartPanel:not(.hidden)');
   await page.evaluate(() => { if(window.app.quickChart.isActive) window.app.quickChart.toggle(); });
 
   await route('study');
-  await capture(viewport,'05-study','#wsStudy:not([hidden]) .ws-study-head');
+  await capture(viewport,'06-study','#wsStudy:not([hidden]) .ws-study-head');
 
   await route('reports');
   await page.click('[data-report-tab="overview"]');
-  await capture(viewport,'06-reports-overview','#wsReports:not([hidden]) [data-native-reports]');
+  await capture(viewport,'07-reports-overview','#wsReports:not([hidden]) [data-native-reports]');
 
   await page.click('[data-report-tab="offense"]');
-  await capture(viewport,'07-reports-offense','#wsReports:not([hidden]) [data-report-tab="offense"].active');
+  await capture(viewport,'08-reports-offense','#wsReports:not([hidden]) [data-report-tab="offense"].active');
 
   await route('plan');
-  await capture(viewport,'08-plan','#wsPlan:not([hidden]) .ws-plan-head');
+  await capture(viewport,'09-plan','#wsPlan:not([hidden]) .ws-plan-head');
 
   await page.evaluate(() => { window.app.settingsScreen._desktop=()=>true; window.app.settingsScreen.open(); });
-  await capture(viewport,'09-settings-film','[data-overlay-id="team-film-settings"] [data-settings-panel="film"]');
+  await capture(viewport,'10-settings-film','[data-overlay-id="team-film-settings"] [data-settings-panel="film"]');
 
   await page.click('[data-overlay-id="team-film-settings"] .gi-settings-tabs button:nth-child(2)');
-  await capture(viewport,'10-settings-team','[data-overlay-id="team-film-settings"] [data-settings-panel="team"]');
+  await capture(viewport,'11-settings-team','[data-overlay-id="team-film-settings"] [data-settings-panel="team"]');
   await page.evaluate(() => window.app.settingsScreen.close('done'));
   await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 }

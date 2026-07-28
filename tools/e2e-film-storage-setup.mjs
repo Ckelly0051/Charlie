@@ -42,6 +42,7 @@ await page.evaluate(() => {
     diskStatus: () => ({ bound: false }),
     saveSeason: async data => { state.saveAttempts++; if (!state.saveOk) return false; state.saved = structuredClone(data); return true; },
     createBackup: async () => true,
+    listSeasons: async () => [],
   };
   window.__filmSetupState = state;
   window.app.storage.seasonStore.backend = backend;
@@ -49,6 +50,7 @@ await page.evaluate(() => {
   window.app.uiPolish.initFilmStorageSetup();
 });
 await page.waitForSelector('[data-overlay-id="team-film-settings"]');
+await page.waitForSelector('.gi-settings-mode-actions button:nth-child(2)');
 let r = await page.evaluate(() => ({
   native: !!document.querySelector('[data-native-settings]'),
   choices: [...document.querySelectorAll('.gi-settings-mode-actions button')].map(x => x.textContent.trim()),
@@ -61,15 +63,14 @@ ok(r.choices.some(x => /existing library/i.test(x) && /nothing is copied/i.test(
   'Choice copy clearly distinguishes link-in-place from managed copies', JSON.stringify(r.choices));
 r = await page.evaluate(() => ({
   native: document.querySelectorAll('[data-native-settings]').length,
-  hubButton: !!document.getElementById('btnTeamFilmSettings'),
 }));
 ok(r.native === 1, 'Team & Film Settings has one native presentation owner', JSON.stringify(r));
-ok(r.hubButton, 'Team Hub exposes Team & Film Settings before a game is opened', JSON.stringify(r));
 
 await page.click('.gi-settings-mode-actions button:nth-child(2)');
 await page.waitForSelector('.gi-settings-callout.is-success .gi-settings-primary');
 await page.click('.gi-settings-callout.is-success .gi-settings-primary');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+
 r = await page.evaluate(() => ({
   mode: window.__filmSetupState.mode,
   label: document.querySelector('#filmStorageModeLabel')?.textContent,

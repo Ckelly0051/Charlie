@@ -331,6 +331,7 @@ export class StorageManager {
     });
     if (!rec) return null;
     data.id = rec.id;
+    data.teamId = demoTeamId;
     this.seasonStore.data = this.seasonStore._normalize(data);
     this.seasonStore.data.id = rec.id;
     this.seasonStore.persist();

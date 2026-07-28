@@ -343,7 +343,7 @@ export class SeasonStore {
     this.data = this._empty();
     this.data.id = rec.id;
     this.data.seasonName = rec.name;
-    this.data.team = rec.team; this.data.year = rec.year; this.data.level = rec.level;
+    this.data.team = rec.team; this.data.teamId = rec.teamId || meta?.teamId || ''; this.data.year = rec.year; this.data.level = rec.level;
     if (rec.team) this.data.teamProfile = { ...(this.data.teamProfile || {}), teamName: rec.team };
     this.persist();
     return rec;

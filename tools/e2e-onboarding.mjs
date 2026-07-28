@@ -1,323 +1,232 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* E2E onboarding harness — drives the built bundle headless through the ONE
-   product route (the redesigned workspace shell; the classic layout was retired
-   2026-07-23). Flow: first-run shell Home -> Set up team (library overlay) ->
-   checklist -> demo season -> shell Home games -> open game -> stats -> label
-   survival -> reload persistence -> delete demo -> real season + New Game on
-   Home -> upgrade path (existing season, no team profile). Run: node _e2e.mjs
-
-   NOTE ON SELECTORS. Team/season MANAGEMENT still lives in the library overlay
-   (#libraryOverlay), reached from Home via [data-ws-action="seasons"]. GAME entry
-   is the shell Home film inbox (#wsFilmList [data-ws-game]); the old schedule
-   grid is retired. Stats open as a body-level overlay via app.stats. */
+import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 
-const URL = TEST_APP_URL;
+/* Native onboarding journey after S3. Team Hub owns team/season management;
+   Home is the sole game-entry surface. This journey intentionally has no
+   selectors for the retired SeasonLibrary overlay or checklist. */
 let pass = 0, fail = 0;
-const ok = (cond, label, extra = '') => {
-  if (cond) { pass++; console.log(`  PASS  ${label}`); }
-  else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
-};
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
+const ok = (condition, label, detail = '') => condition
+  ? (pass++, console.log(`  PASS  ${label}`))
+  : (fail++, console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];
-page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
-page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+page.on('pageerror', error => errors.push(error.stack || error.message));
+page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 
-const $ = (sel) => page.evaluate(s => {
-  const el = document.querySelector(s);
-  if (!el) return null;
-  const cs = getComputedStyle(el);
-  const r = el.getBoundingClientRect();
-  return { exists: true, visible: cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0,
-           text: (el.textContent || '').trim().slice(0, 120), hidden: el.hidden || el.classList.contains('hidden') };
-}, sel);
-const click = (sel) => page.evaluate(s => { const el = document.querySelector(s); if (el) el.click(); return !!el; }, sel);
-// Team/season management lives in the library overlay, opened from Home.
-const openLibrary = async () => {
-  const v = await $('#libraryOverlay');
-  if (!(v && v.visible)) {
-    await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-    await sleep(500);
-  }
+const openHub = async () => {
+  await page.evaluate(() => window.app.workspaceShell._openLibrary());
+  await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
+    && !!document.querySelector('[data-native-team-hub]'));
 };
-const backHome = async () => { await page.evaluate(() => window.app.workspaceShell.show('home')); await sleep(400); };
-// Open the Nth game from the shell Home film inbox (the sole game-entry route).
-const openHomeGame = async (i = 0) => {
-  await page.evaluate(n => { const b = document.querySelectorAll('#wsFilmList [data-ws-game]')[n]; if (b) b.click(); }, i);
-  await sleep(700);
+const backHome = async () => {
+  await page.evaluate(() => window.app.workspaceShell.show('home'));
+  await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 };
-// The full team report is a native shell destination. Clicking the canonical
-// #btnShowStats routes there and sets ffa_seen_stats for real data; wait for the
-// actual report pane rather than guessing how long composition will take.
+const openHomeGame = async (index = 0) => {
+  await page.evaluate(i => document.querySelectorAll('#wsFilmList [data-ws-game]')[i]?.click(), index);
+  await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
+};
 const showStats = async () => {
   await page.evaluate(() => document.getElementById('btnShowStats')?.click());
   await page.waitForFunction(() => !document.getElementById('wsReports')?.hidden
     && !!document.querySelector('#wsReports [data-native-main-report]'));
 };
+const clickButtonText = async (selector, pattern) => page.evaluate((sel, source) => {
+  const re = new RegExp(source, 'i');
+  const button = [...document.querySelectorAll(sel)].find(item => re.test(item.textContent || ''));
+  button?.click();
+  return !!button;
+}, selector, pattern.source);
 
-console.log('\n== 1. Fresh first run ==');
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await sleep(700);
-let r = await $('#wsHome');
-ok(r && r.visible, 'shell Home shown on launch (one product route)');
-r = await $('#wsResume');
-ok(/Set up team/i.test(r?.text || ''), 'empty Home offers Set up team', r && r.text);
-await openLibrary();
-r = await $('#libraryOverlay');
-ok(r && r.visible, 'library overlay opens from Home');
-r = await $('#teamSetup');
-ok(r && r.visible, 'team setup prompt shown (no team yet)');
-r = await $('#teamCard');
-ok(r && r.hidden, 'team card hidden before setup');
-r = await $('#getStartedChecklist');
-ok(r && r.hidden, 'checklist hidden before team exists');
+console.log('\n== 1. First-run Team Hub ==');
+await page.goto(APP_URL, { waitUntil: 'networkidle0' });
+await page.waitForFunction(() => document.querySelector('.gi-hub-first'));
+let r = await page.evaluate(() => ({
+  route: document.getElementById('workspaceShell')?.dataset.route,
+  first: document.querySelector('.gi-hub-first')?.textContent || '',
+  legacy: !document.getElementById('libraryOverlay')?.classList.contains('hidden'),
+  outlet: !document.getElementById('wsClassicOutlet')?.hidden,
+}));
+ok(r.route === 'team-hub' && /Set up your team/.test(r.first) && !r.legacy && !r.outlet,
+  'First-run Team Hub offers team setup before any season', JSON.stringify(r));
 
-console.log('\n== 2. Team setup ==');
-await page.type('#teamSetupName', 'Mavericks');
-await page.select('#teamSetupColor', 'navy');
-await click('#btnTeamSetupSave');
-await sleep(400);
-r = await $('#teamCard');
-ok(r && r.visible, 'team card appears after setup');
-r = await $('#teamCardName');
-ok(r && r.text === 'Mavericks', 'team card shows name', r && r.text);
-r = await $('#teamSetup');
-ok(r && r.hidden, 'setup prompt hidden after setup');
-r = await $('#getStartedChecklist');
-ok(r && r.visible, 'Get Started checklist appears');
-r = await page.evaluate(() => [...document.querySelectorAll('.gs-item.done .gs-label')].map(e => e.textContent));
-ok(r.length === 1 && /team/i.test(r[0]), 'exactly the team step is checked', JSON.stringify(r));
-
-console.log('\n== 3. Explore demo season ==');
-r = await $('#btnExploreDemo');
-ok(/Explore sample season/i.test(r?.text || ''), 'sample CTA starts as Explore sample season', r && r.text);
-await click('#btnExploreDemo');
-await sleep(900);
-r = await $('#libraryOverlay');
-ok(r && (r.hidden || !r.visible), 'exploring demo closes the library overlay');
-r = await $('#wsHome');
-ok(r && r.visible, 'lands on shell Home (games in the film inbox, not a schedule grid)');
-r = await page.evaluate(() => document.querySelectorAll('#wsFilmList [data-ws-game]').length);
-ok(r === 2, 'Home film inbox shows 2 demo games', String(r));
-// Self-review finding S4 (2026-07-23): the retired schedule grid had a `.sch-score`
-// W/L pill and this harness asserted it RENDERED. The shell has no per-game W/L
-// pill, and an earlier rewrite quietly downgraded this to reading gameInfo — which
-// tests the fixture, not the product. Home's game preview does render a real score
-// (#wsScoreValue via _renderGamePreview), so assert THAT: select each demo game
-// through its Home preview button and read the rendered score text.
-r = await page.evaluate(async () => {
-  const out = [];
-  const rows = [...document.querySelectorAll('#wsFilmList [data-ws-preview]')];
-  for (const btn of rows) {
-    btn.click();
-    await new Promise(res => setTimeout(res, 120));
-    out.push(document.getElementById('wsScoreValue')?.textContent || '');
-  }
-  return out;
-});
-const parsed = r.map(t => {
-  const m = /^(\d+)\D+(\d+)$/.exec(String(t).trim());
-  return m ? { us: Number(m[1]), them: Number(m[2]) } : null;
-});
-ok(parsed.length === 2 && parsed.every(Boolean),
-  'Home preview RENDERS a real score for each demo game', JSON.stringify(r));
-ok(parsed.every(Boolean) && parsed.some(x => x.us > x.them) && parsed.some(x => x.us < x.them),
-  'the rendered scores show one win and one loss', JSON.stringify(r));
-
-console.log('\n== 4. Open a demo game + shell context ==');
-await openHomeGame(0);
-r = await $('#libraryOverlay');
-ok(r && (r.hidden || !r.visible), 'overlay stays closed after opening a game from Home');
-r = await page.evaluate(() => window.app.workspace.currentRoute());
-ok(r === 'breakdown', 'opening a game lands in Break Down', r);
+await page.type('.gi-hub-first input[placeholder="St. Joseph Mavericks"]', 'Mavericks');
+await page.select('.gi-hub-first select', 'navy');
+await page.click('.gi-hub-first .gi-hub-primary');
+await page.waitForFunction(() => document.querySelector('[data-hub-team].is-active'));
 r = await page.evaluate(() => ({
+  active: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
+  empty: document.querySelector('.gi-hub-empty')?.textContent || '',
+  profile: JSON.parse(localStorage.getItem('ffa_team_profile') || '{}'),
+}));
+ok(r.active === 'Mavericks' && /No seasons yet/.test(r.empty) && r.profile.teamName === 'Mavericks',
+  'First setup creates one active team and a clear season empty state', JSON.stringify(r));
+
+console.log('\n== 2. Sample season ==');
+r = await clickButtonText('.gi-hub-section-head button', /Explore sample season/);
+ok(r, 'sample action begins as Explore sample season');
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+r = await page.evaluate(() => ({
+  games: document.querySelectorAll('#wsFilmList [data-ws-game]').length,
+  roster: JSON.parse(localStorage.getItem('ffa_roster') || '[]').length,
+}));
+ok(r.games === 2, 'Home film inbox shows both sample games', JSON.stringify(r));
+ok(r.roster === 0, 'sample season leaves the active team roster untouched', JSON.stringify(r));
+r = await page.evaluate(async () => {
+  const scores = [];
+  for (const button of document.querySelectorAll('#wsFilmList [data-ws-preview]')) {
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 80));
+    scores.push(document.getElementById('wsScoreValue')?.textContent || '');
+  }
+  return scores;
+});
+const parsed = r.map(value => { const match = /^(\d+)\D+(\d+)$/.exec(value.trim()); return match ? [Number(match[1]), Number(match[2])] : null; });
+ok(parsed.length === 2 && parsed.every(Boolean), 'Home preview renders a score for each sample game', JSON.stringify(r));
+ok(parsed.some(score => score[0] > score[1]) && parsed.some(score => score[0] < score[1]),
+  'sample scores include a win and a loss', JSON.stringify(r));
+
+console.log('\n== 3. Sample game and reports ==');
+await openHomeGame(0);
+r = await page.evaluate(() => ({
+  route: window.app.workspace.currentRoute(),
   team: document.getElementById('wsContextTeam')?.textContent,
   season: document.getElementById('wsContextSeason')?.textContent,
-  game: document.getElementById('wsContextGame')?.textContent }));
-ok(r.team === 'Mavericks', 'shell context team = Mavericks', r.team);
-ok(/Demo/.test(r.season || ''), 'shell context season = demo name', r.season);
-ok(/Riverside|Hawks/.test(r.game || ''), 'shell context game = vs Riverside Hawks', r.game);
-
-console.log('\n== 5. Stats dashboard on demo data ==');
-await showStats();
-r = await $('#wsReports [data-native-main-report]');
-ok(r && r.visible, 'native Reports destination opens');
-await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
-r = await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'));
-ok(r, 'player names from label overlay (#22 Marcus Carter)');
-r = await page.evaluate(() => !localStorage.getItem('ffa_seen_stats'));
-ok(r, 'demo stats view does NOT set ffa_seen_stats');
-r = await page.evaluate(() => (JSON.parse(localStorage.getItem('ffa_roster') || '[]')).length === 0);
-ok(r, 'global roster untouched by demo');
-
-console.log('\n== 6. Labels survive Season Stats render (the _fixedLabels fix) ==');
-await page.evaluate(() => { window.app.season._renderAll(); });   // the path that nulls _seasonLabels
+  game: document.getElementById('wsContextGame')?.textContent,
+}));
+ok(r.route === 'breakdown', 'opening a game lands in Break Down', JSON.stringify(r));
+ok(r.team === 'Mavericks', 'sample workspace retains the owning team identity', JSON.stringify(r));
+ok(/Demo/.test(r.season || '') && /Riverside|Hawks/.test(r.game || ''),
+  'sample season and opponent remain explicit in shell context', JSON.stringify(r));
 await showStats();
 await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
-r = await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'));
-ok(r, 'names still present after season view render');
+r = await page.evaluate(() => ({
+  player: document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'),
+  seen: localStorage.getItem('ffa_seen_stats'),
+  roster: JSON.parse(localStorage.getItem('ffa_roster') || '[]').length,
+}));
+ok(r.player, 'sample player labels render in native Reports', JSON.stringify(r));
+ok(!r.seen && r.roster === 0, 'sample Reports neither completes real-data progress nor changes the roster', JSON.stringify(r));
+await page.evaluate(() => window.app.season._renderAll());
+await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
+ok(await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter')),
+  'sample player labels survive season-report rendering');
 
-console.log('\n== 7. Back to Team Home: demo badge + checklist state ==');
-await backHome();
-await openLibrary();
-r = await page.evaluate(() => [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent));
-ok(r.some(t => /Demo/.test(t)), 'demo card carries Demo badge', JSON.stringify(r));
-r = await page.evaluate(() => [...document.querySelectorAll('.gs-item.done .gs-label')].map(e => e.textContent));
-ok(r.length === 1, 'demo does NOT complete season/play/stats steps', JSON.stringify(r));
-
-console.log('\n== 8. Reload persistence + demo reopen ==');
+console.log('\n== 4. Sample persistence and removal ==');
+await openHub();
+r = await page.evaluate(() => ({
+  rows: document.querySelectorAll('[data-season-id]').length,
+  sample: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+  action: [...document.querySelectorAll('.gi-hub-section-head button')].find(button => /sample season/i.test(button.textContent))?.textContent,
+}));
+ok(r.rows === 1 && r.sample === 'Current' && /Open sample season/.test(r.action || ''),
+  'Team Hub persists the current sample without misbadging another season', JSON.stringify(r));
 await page.reload({ waitUntil: 'networkidle0' });
-await sleep(800);
-await openLibrary();
-r = await $('#teamCard');
-ok(r && r.visible, 'team card persists after reload');
-r = await page.evaluate(() => [...document.querySelectorAll('.season-card')].length);
-ok(r === 1, 'demo season persists in library', String(r));
-await page.evaluate(() => document.querySelector('.season-card').click());
-await sleep(800);
-r = await $('#wsHome');
-ok(r && r.visible, 'reopening demo lands on shell Home');
+await page.waitForFunction(() => document.querySelector('[data-native-team-hub] [data-season-id]'));
+r = await page.evaluate(() => ({
+  team: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
+  rows: document.querySelectorAll('[data-season-id]').length,
+  sample: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+}));
+ok(r.team === 'Mavericks' && r.rows === 1 && /Current|Sample/.test(r.sample || ''),
+  'team and sample season persist across reload', JSON.stringify(r));
+await page.click('[data-hub-open-season]');
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 await openHomeGame(1);
 await showStats();
 await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
-r = await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'));
-ok(r, 'label overlay re-applied after reload (game 2)');
+ok(await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter')),
+  'sample labels reapply after reload and a different game open');
+await openHub();
+await page.click('.gi-hub-delete');
+await page.waitForSelector('.gi-overlay-panel.is-destructive');
+r = await page.evaluate(() => document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '');
+ok(/sample/i.test(r) && /untouched/i.test(r), 'sample removal explains that real team data stays untouched', r);
+await page.click('[data-overlay-action="delete"]');
+await page.waitForFunction(() => !document.querySelector('[data-season-id]'));
+r = await page.evaluate(() => ({
+  pointer: localStorage.getItem('ffa_demo_season_id'),
+  action: [...document.querySelectorAll('.gi-hub-section-head button')].find(button => /sample season/i.test(button.textContent))?.textContent,
+}));
+ok(!r.pointer && /Explore sample season/.test(r.action || ''), 'removing the sample clears its pointer and restores Explore', JSON.stringify(r));
 
-console.log('\n== 9. Delete demo via UI confirm ==');
-await backHome();
-await openLibrary();
-await page.evaluate(() => document.querySelector('.season-card-del').click());
-await sleep(300);
-r = await page.evaluate(() => document.querySelector('.ffa-confirm-msg')?.textContent || '');
-ok(/demo/i.test(r) && /untouched/i.test(r), 'demo-specific confirm copy', r);
-await page.evaluate(() => document.querySelector('[data-act="ok"]').click());
-await sleep(500);
-r = await page.evaluate(() => document.querySelectorAll('.season-card').length);
-ok(r === 0, 'demo removed from library', String(r));
-r = await page.evaluate(() => !localStorage.getItem('ffa_demo_season_id'));
-ok(r, 'demo flag cleared');
-r = await $('#btnExploreDemo');
-ok(/Explore sample season/i.test(r?.text || ''), 'after deleting sample, CTA returns to Explore sample season', r && r.text);
-
-console.log('\n== 10. Real season flow + New Game on Home + checklist completion ==');
-await click('#btnNewSeasonToggle');
-await sleep(200);
-await page.type('#newSeasonYear', '2026');
-await page.type('#newSeasonTeam', 'Mavericks');
-await click('#btnNewSeasonCreate');
-await sleep(800);
-r = await $('#wsHome');
-ok(r && r.visible, 'new season lands on shell Home');
-// New Game is a first-class Home action now (finding 4), not buried under More.
-r = await $('[data-ws-action="new-game"]');
-ok(r && r.visible, 'Home exposes a direct New Game action', JSON.stringify(r));
-await click('[data-ws-action="new-game"]');
-await sleep(700);
-r = await page.evaluate(() => window.app.workspace.currentRoute());
-ok(r === 'breakdown', 'New Game opens straight into Break Down', r);
-// tag one play directly through the tagger (no video needed for the data model)
-await page.evaluate(() => {
-  const t = window.app.tagger;
-  t.plays.push({ id: 1, timestamp: { start: 0, end: 5 }, clipId: null,
-    tags: { down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '7',
-            unit: 'offense', players: {}, grades: {}, custom: [] }, notes: '', analysis: null });
-  t.nextId = 2;
-  window.app.storage._commitAndPersist();
+console.log('\n== 5. Real season and Home game entry ==');
+await page.click('.gi-hub-section-head .gi-hub-primary');
+await page.waitForSelector('[data-overlay-id="team-hub-create-season"]');
+await page.type('[data-overlay-id="team-hub-create-season"] input[placeholder*="2026"]', '2026 Mavericks');
+await page.click('[data-overlay-id="team-hub-create-season"] .gi-hub-form-actions .is-primary');
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+r = await page.evaluate(() => ({
+  name: window.app.storage.seasonStore.data?.seasonName,
+  teamId: window.app.storage.seasonStore.data?.teamId,
+  action: !!document.querySelector('[data-ws-action="new-game"]'),
+}));
+ok(r.name === '2026 Mavericks' && r.teamId === 'mavericks', 'real season is durably owned by the active team', JSON.stringify(r));
+await page.click('[data-ws-action="new-game"]');
+await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
+ok(await page.evaluate(() => window.app.workspace.currentRoute() === 'breakdown' && !!window.app.storage.seasonStore.activeGame()),
+  'Home New Game action opens a chartable game in Break Down');
+await page.evaluate(async () => {
+  const tagger = window.app.tagger;
+  tagger.plays.push({ id: 1, timestamp: { start: 0, end: 5 }, clipId: null,
+    tags: { down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '7', unit: 'offense', players: {}, grades: {}, custom: [] },
+    notes: '', analysis: null });
+  tagger.nextId = 2;
+  await window.app.storage._commitAndPersist();
 });
 await showStats();
-r = await page.evaluate(() => localStorage.getItem('ffa_seen_stats') === '1');
-ok(r, 'real-data stats view sets ffa_seen_stats');
-await page.evaluate(() => document.getElementById('statsDashboard').classList.add('hidden'));
-await backHome();
-await openLibrary();
-r = await page.evaluate(() => [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent));
-ok(!r.some(t => /Demo/.test(t)), 'real season is not badged Demo after sample deletion', JSON.stringify(r));
-r = await page.evaluate(() => {
-  const items = [...document.querySelectorAll('.gs-item')];
-  return { total: items.length, done: items.filter(i => i.classList.contains('done')).length,
-           hidden: document.getElementById('getStartedChecklist').classList.contains('hidden') };
-});
-ok(r.hidden || r.done >= 4, 'checklist near/at completion with real data', JSON.stringify(r));
+ok(await page.evaluate(() => localStorage.getItem('ffa_seen_stats') === '1'),
+  'real-data Reports records that analytics were reached');
+await openHub();
+r = await page.evaluate(() => ({
+  rows: document.querySelectorAll('[data-season-id]').length,
+  state: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
+}));
+ok(r.rows === 1 && r.state !== 'Sample', 'real season is never labeled as sample', JSON.stringify(r));
 
-console.log('\n== 10b. Corrupt demo pointer cannot mark a real season as demo ==');
+console.log('\n== 6. Demo-pointer sanitation ==');
 await page.evaluate(() => {
-  const realId = document.querySelector('.season-card')?.dataset.id;
-  if (realId) localStorage.setItem('ffa_demo_season_id', realId);
+  const id = document.querySelector('[data-season-id]')?.dataset.seasonId;
+  localStorage.setItem('ffa_demo_season_id', id || '');
 });
 await page.reload({ waitUntil: 'networkidle0' });
-await sleep(800);
-await openLibrary();
+await page.waitForFunction(() => document.querySelector('[data-native-team-hub] [data-season-id]'));
 r = await page.evaluate(() => ({
   pointer: localStorage.getItem('ffa_demo_season_id'),
-  badges: [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent),
-  cards: [...document.querySelectorAll('.season-card')].map(c => ({ id: c.dataset.id, text: c.textContent }))
+  state: document.querySelector('[data-season-id] .gi-hub-season-state')?.textContent,
 }));
-ok(!r.pointer, 'stale demo pointer to real season is cleared', JSON.stringify(r));
-ok(!r.badges.some(t => /Demo/.test(t)), 'corrupt pointer does not badge real season as Demo', JSON.stringify(r));
-
-console.log('\n== 10c. Missing demo pointer resets to sample CTA ==');
-await page.evaluate(() => { localStorage.setItem('ffa_demo_season_id', 'missing-demo-season'); });
+ok(!r.pointer && r.state !== 'Sample', 'stale demo pointer cannot relabel a real season', JSON.stringify(r));
+await page.evaluate(() => localStorage.setItem('ffa_demo_season_id', 'missing-demo-season'));
 await page.reload({ waitUntil: 'networkidle0' });
-await sleep(800);
-await openLibrary();
+await page.waitForFunction(() => document.querySelector('[data-native-team-hub] [data-season-id]'));
 r = await page.evaluate(() => ({
   pointer: localStorage.getItem('ffa_demo_season_id'),
-  cta: document.getElementById('btnExploreDemo')?.textContent || '',
-  badges: [...document.querySelectorAll('.season-card-badge')].map(e => e.textContent),
+  action: [...document.querySelectorAll('.gi-hub-section-head button')].find(button => /sample season/i.test(button.textContent))?.textContent,
 }));
-ok(!r.pointer, 'missing demo pointer is cleared', JSON.stringify(r));
-ok(/Explore sample season/i.test(r.cta), 'missing demo pointer leaves CTA as Explore sample season', JSON.stringify(r));
-ok(!r.badges.some(t => /Demo/.test(t)), 'missing demo pointer leaves no Demo badge', JSON.stringify(r));
+ok(!r.pointer && /Explore sample season/.test(r.action || ''), 'missing demo pointer returns the sample action to Explore', JSON.stringify(r));
 
-console.log('\n== 11. Upgrade path: existing season, NO team profile ==');
-// Simulate a genuine pre-team-hub install: no profile AND no team registry.
-// Since the wipe-recovery fix, the library REBUILDS team identity from the
-// season files instead of showing first-run setup over existing data.
+console.log('\n== 7. Existing-season upgrade recovery ==');
 await page.evaluate(() => {
   localStorage.removeItem('ffa_team_profile');
   localStorage.removeItem('ffa_teams');
   localStorage.removeItem('ffa_active_team_id');
 });
 await page.reload({ waitUntil: 'networkidle0' });
-await sleep(900);
-await openLibrary();
-r = await $('#teamSetup');
-ok(r && (r.hidden || !r.visible), 'upgrade user does NOT see setup over existing data (auto-recovery)', JSON.stringify(r));
-// open their existing season straight from the card
-await page.evaluate(() => document.querySelector('.season-card').click());
-await sleep(800);
-r = await $('#wsHome');
-ok(r && r.visible, 'existing season opens to shell Home');
-r = await $('#teamSetup');
-ok(r && (r.hidden || !r.visible), 'team setup NOT stacked on the workspace', JSON.stringify(r));
+await page.waitForFunction(() => document.querySelector('[data-native-team-hub]'));
+r = await page.evaluate(() => ({
+  first: !!document.querySelector('.gi-hub-first'),
+  team: document.querySelector('[data-hub-team].is-active')?.textContent.trim(),
+  seasons: document.querySelectorAll('[data-season-id]').length,
+}));
+ok(!r.first && !!r.team && r.seasons === 1, 'existing season rebuilds team identity instead of showing destructive first-run setup', JSON.stringify(r));
+await page.click('[data-hub-open-season]');
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
+ok(await page.evaluate(() => !!window.app.storage.seasonStore.currentSeasonId), 'recovered existing season opens to Home');
 
-console.log('\n== 12. Checklist roster action with no season open ==');
-await page.evaluate(() => { localStorage.clear(); });
-await page.reload({ waitUntil: 'networkidle0' });
-await sleep(700);
-await openLibrary();
-await page.type('#teamSetupName', 'TestTeam');
-await click('#btnTeamSetupSave');
-await sleep(400);
-await page.evaluate(() => { [...document.querySelectorAll('.gs-item')].find(i => i.dataset.step === 'roster')?.click(); });
-await sleep(400);
-r = await page.evaluate(() => {
-  const overlay = document.getElementById('libraryOverlay');
-  const drawer = document.getElementById('settingsDrawer');
-  const oVis = !overlay.classList.contains('hidden');
-  const dOpen = drawer.classList.contains('open');
-  const oZ = parseInt(getComputedStyle(overlay).zIndex || '0', 10);
-  const dZ = parseInt(getComputedStyle(drawer).zIndex || '0', 10);
-  return { oVis, dOpen, oZ, dZ, usable: dOpen && (!oVis || dZ > oZ) };
-});
-ok(r.usable, 'roster drawer actually reachable from checklist', JSON.stringify(r));
-
+ok(errors.length === 0, 'No console or page errors', errors.slice(0, 8).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }
-else console.log('No console/page errors.');
 await browser.close();
 process.exit(fail ? 1 : 0);

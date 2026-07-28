@@ -14,6 +14,8 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 await page.goto(APP_URL, { waitUntil: 'networkidle0' });
+await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'team-hub'
+  && !!document.querySelector('[data-native-team-hub]'));
 await page.waitForFunction(() => window.app?.settingsScreen && window.app?.workspaceShell);
 
 await page.evaluate(() => {
@@ -47,6 +49,7 @@ await page.evaluate(() => {
   window.app.settingsScreen.open({ returnFocus: invoker });
 });
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
+await page.waitForFunction(() => document.querySelectorAll('[data-settings-game]').length === 2);
 
 let r = await page.evaluate(() => ({
   owners: document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length,
@@ -60,7 +63,7 @@ ok(r.owners === 1 && !r.drawerOpen, 'Team & Film Settings has one native present
 ok(r.modal == null && !r.routeInert, 'Desktop Settings is a non-modal working sheet', JSON.stringify(r));
 ok(r.rows.length === 2 && r.rows[0].title === 'D:/Football/Film/OL Lakes 13-13' && /Linked.*17 missing.*65 \/ 82/.test(r.rows[0].text),
   'Linked game shows its resolved D: path and honest missing-clip count', JSON.stringify(r.rows[0]));
-ok(r.rows[1].title.includes('/g-managed') && /Managed copy.*Ready.*12 \/ 12/.test(r.rows[1].text),
+ok(r.rows[1]?.title?.includes('/g-managed') && /Managed copy.*Ready.*12 \/ 12/.test(r.rows[1].text),
   'Managed game shows its separate app-data path and complete clip count', JSON.stringify(r.rows[1]));
 ok(r.seasonSame, 'Opening Settings is a canonical-season no-op');
 

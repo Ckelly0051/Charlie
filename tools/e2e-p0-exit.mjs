@@ -67,9 +67,9 @@ ok(filmNav.includes('refsForGame') && filmNav.includes('gameId}::${play.id}')
 
 const capabilityIds = new Set(P0_CAPABILITIES.map(item => item.id));
 ok(P0_CRITICAL_CAPABILITY_IDS.every(id => capabilityIds.has(id))
-  && new Set(P0_CAPABILITIES.map(item => item.surface)).size === 10
+  && new Set(P0_CAPABILITIES.map(item => item.surface)).size === 11
   && existsSync(resolve(root, 'GRIDIRON-IQ-P0-CAPABILITY-INVENTORY.md')),
-  'composition: named critical journeys and all ten migration surfaces are inventoried');
+  'composition: named critical journeys and all eleven migration surfaces are inventoried');
 ok(existsSync(resolve(root, 'tools/e2e-operation-diff.mjs'))
   && existsSync(resolve(root, 'tools/operation-diff.mjs')),
   'operation-scoped canonical season diff is part of the permanent gate');
