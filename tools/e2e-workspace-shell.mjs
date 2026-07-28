@@ -179,7 +179,25 @@ await new Promise(resolve => setTimeout(resolve, 320));
 await page.click('#btnMoreMenu');
 r = await page.evaluate(() => ({ moreOpen: !document.getElementById('moreDropdown')?.classList.contains('hidden') }));
 ok(r.moreOpen, 'Shell More opens the canonical action menu', JSON.stringify(r));
-await page.click('#btnMoreMenu');
+
+// Import Plays is a distinct workflow from export/import data parity. Prove the
+// live shell affordance opens the canonical importer and that cancelling it is
+// a canonical-season no-op; a storage-only CSV round trip cannot cover either.
+const importJourney = await page.evaluate(() => {
+  const before = JSON.stringify(window.app.storage.seasonStore.data);
+  document.getElementById('btnImportPlays')?.click();
+  const modal = document.getElementById('playImportModal');
+  const opened = !!modal && !modal.classList.contains('hidden');
+  document.getElementById('playImportCancel')?.click();
+  return {
+    opened,
+    closed: !!modal?.classList.contains('hidden'),
+    unchanged: before === JSON.stringify(window.app.storage.seasonStore.data),
+  };
+});
+ok(importJourney.opened && importJourney.closed && importJourney.unchanged,
+  'Shell Import Plays opens the canonical importer and Cancel preserves the season',
+  JSON.stringify(importJourney));
 
 /* ENTOMBED-CAPABILITY GUARD. The classic top bar lives inside #app, which lives
    inside the permanently hidden #wsClassicOutlet. So a control the shell does
@@ -390,33 +408,39 @@ ok(r.route === 'breakdown' && r.active === 'preview-game' && r.breakdownVisible,
   'Stale Home async from a prior game cannot pull the workspace off the game just opened', JSON.stringify(r));
 
 await page.click('.ws-top-nav [data-ws-route="study"]');
-r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), study: !document.querySelector('#wsStudy')?.hidden, statsHidden: document.querySelector('#statsDashboard')?.classList.contains('hidden'), appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));
-ok(r.route === 'study' && r.study && r.statsHidden && r.appHidden, 'Study opens the query workspace inside the persistent shell');
+r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), study: !document.querySelector('#wsStudy')?.hidden, reportsHidden: document.querySelector('#wsReports')?.hidden, appHidden: document.querySelector('#wsClassicOutlet')?.hidden }));
+ok(r.route === 'study' && r.study && r.reportsHidden && r.appHidden, 'Study opens the query workspace inside the persistent shell');
 
 await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !document.querySelector('#wsClassicOutlet')?.hidden }));
 ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
-// REPORTS ROUTE STATE CONTRACT. The main dashboard uses route chrome; every
-// specialized report keeps its own title and exact Export/Close actions.
+// S1 REPORTS OWNERSHIP CONTRACT. The visible dashboard is created inside the
+// Preact route; the hidden legacy node stays home and relinquishes its public id.
 r = await page.evaluate(() => ({
-  mainRouteHead: !document.querySelector('#wsReports .rp-head')?.hidden,
-  mainHeaderHidden: getComputedStyle(document.querySelector('#wsReports .stats-header-main')).display === 'none',
+  nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
+  nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
+  legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
+  legacyStillHome: !!document.querySelector('#app #legacyStatsDashboard'),
   mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
+  tabs: document.querySelectorAll('#wsReports [data-report-tab]').length,
 }));
-ok(r.mainRouteHead && r.mainHeaderHidden && r.mainActions === 2,
-  'Reports main dashboard uses live route-level title and actions', JSON.stringify(r));
+ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.legacyStillHome && r.mainActions === 2 && r.tabs === 8,
+  'Native Reports owns its route, actions, and football section navigation without moving the legacy dashboard', JSON.stringify(r));
 r = await page.evaluate(() => {
-  let delegated = 0;
-  const canonical = document.getElementById('btnExportStats');
-  canonical.addEventListener('click', event => { delegated++; event.stopImmediatePropagation(); }, { capture: true, once: true });
-  document.querySelector('[data-rp-action="export"]').click();
-  return { delegated };
+  const screen = window.app.reportsScreen, calls = [];
+  const original = screen.export;
+  screen.export = kind => { calls.push(kind); return true; };
+  document.getElementById('btnExportStats').click();
+  document.querySelector('.gi-reports-menu [role="menuitem"]')?.click();
+  screen.export = original;
+  return { calls };
 });
-ok(r.delegated === 1, 'Reports main Export delegates to the canonical analytics action', JSON.stringify(r));
+ok(r.calls.length === 1 && r.calls[0] === 'pdf',
+  'Native Reports Export menu invokes the canonical game-report action', JSON.stringify(r));
 await page.evaluate(() => window.app.stats._emptyOverlay('Scout Report', 'No opponent data yet.'));
 await new Promise(resolve => setTimeout(resolve, 0));
 r = await page.evaluate(() => ({
-  routeHeadHidden: document.querySelector('#wsReports .rp-head')?.hidden,
+  routeHeadHidden: [...document.querySelectorAll('#wsReports [data-reports-main-chrome]')].every(node => node.hidden),
   title: document.querySelector('#wsReports .stats-header h2')?.textContent,
   closeVisible: document.getElementById('btnCloseEmptyOv')?.offsetParent !== null,
 }));
@@ -577,19 +601,22 @@ ok(r.reAdopted && r.badgeReHoused && r.moreReAdopted && r.singletons,
   'Re-enabling after teardown re-adopts every relocated control exactly once', JSON.stringify(r));
 r = await page.evaluate(async () => {
   await window.app.workspaceShell.show('reports');
-  let delegated = 0;
-  const canonical = document.getElementById('btnExportStats');
-  canonical.addEventListener('click', event => { delegated++; event.stopImmediatePropagation(); }, { capture: true, once: true });
+  const screen = window.app.reportsScreen, calls = [];
+  const original = screen.export;
+  screen.export = kind => { calls.push(kind); return true; };
   const button = document.querySelector('#wsReports [data-rp-action="export"]');
   button?.click();
+  document.querySelector('#wsReports .gi-reports-menu [role="menuitem"]')?.click();
+  screen.export = original;
   return {
-    delegated,
+    calls,
     buttonConnected: !!button?.isConnected,
-    dashInRoute: !!document.querySelector('#wsReports #statsDashboard'),
+    nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
+    legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
   };
 });
-ok(r.delegated === 1 && r.buttonConnected && r.dashInRoute,
-  'Reports actions rebind to the replacement host after shell teardown/re-enable', JSON.stringify(r));
+ok(r.calls.length === 1 && r.calls[0] === 'pdf' && r.buttonConnected && r.nativeRoute && r.legacyNotMoved,
+  'Native Reports actions rebind to the replacement host after shell teardown/re-enable', JSON.stringify(r));
 
 await page.evaluate(() => window.app.workspaceShell.show('home'));
 await capture('home-768x1024');

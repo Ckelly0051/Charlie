@@ -133,8 +133,8 @@ let r = await page.evaluate(() => {
   window.app.tagger.plays = plays;
   window.app.stats.filter.active = false;
   window.app.stats.showDashboard();
-  document.querySelector('#statsDashboard .stats-tab[data-tab="offense"]').click();
-  const pane = document.querySelector('#statsDashboard [data-pane="offense"]');
+  document.querySelector('#statsDashboard .stats-tab[data-tab="players"]').click();
+  const pane = document.querySelector('#statsDashboard [data-pane="players"]');
   const table = Array.from(pane.querySelectorAll('table.stats-table-full')).find(t => t.querySelector('tr.player-row'));
   if (!table) return { noTable: true };
   const heads = Array.from(table.querySelectorAll('thead th'));
@@ -177,7 +177,7 @@ r = await page.evaluate(() => {
   const ssNum = pane.querySelector('.season-summary .ss-num');
   const leaderboard = Array.from(pane.querySelectorAll('table.stats-table-full')).find(t => t.querySelector('tr.player-row'));
   return {
-    seasonLoaded: pane.dataset.seasonLoaded,
+    nativePane: pane.matches('[data-native-main-report]'),
     kpiCount: pane.querySelectorAll('.season-summary .ss-stat').length,
     hasKpi: !!ssNum,
     trendCount: pane.querySelectorAll('.gi-trend').length,
@@ -186,7 +186,7 @@ r = await page.evaluate(() => {
   };
 });
 ok(!r.noTab, 'the Season tab button exists in the dashboard', JSON.stringify(r));
-ok(r.seasonLoaded === '1', 'Season pane lazy-rendered on first open', JSON.stringify(r));
+ok(r.nativePane, 'Season pane renders through the native route on first selection', JSON.stringify(r));
 ok(r.hasKpi && r.kpiCount >= 4, 'season header shows KPI cards (games/plays/yards/success…)', JSON.stringify(r));
 ok(r.trendCount >= 1, 'game-by-game trend line charts render (>=2 games)', JSON.stringify(r));
 ok(r.hasLeaderboard, 'season player roll-up leaderboard renders', JSON.stringify(r));
@@ -195,19 +195,20 @@ ok(r.leaderboardSortable >= 1, 'season leaderboard headers are wired sortable to
 console.log('\n== 3. Header hero (v1.9.5): .season-summary wears the .gi-hero card look ==');
 r = await page.evaluate(() => {
   const pane = document.querySelector('#statsDashboard [data-pane="season"]');
-  const stat = pane.querySelector('.season-summary .ss-stat');
+  const summary = pane.querySelector('.season-summary');
   const num = pane.querySelector('.season-summary .ss-num');
-  const cs = stat ? getComputedStyle(stat) : null;
+  const cs = summary ? getComputedStyle(summary) : null;
   const csNum = num ? getComputedStyle(num) : null;
   return {
     radius: cs?.borderTopLeftRadius,
     bg: cs?.backgroundColor,
+    border: cs?.borderLeftWidth,
     numFont: csNum?.fontFamily || '',
   };
 });
-ok(r.radius === '10px', 'KPI cards use the 10px hero radius (header CSS applied)', JSON.stringify(r));
-ok(r.bg === 'rgb(20, 26, 34)', 'KPI cards use the --gi-card surface (Theater booth slate #141A22)', JSON.stringify(r));
-ok(/Barlow Condensed/i.test(r.numFont), 'KPI numbers use the broadcast display font', JSON.stringify(r));
+ok(r.radius === '0px', 'Native season KPI band uses the square broadcast geometry', JSON.stringify(r));
+ok(r.bg === 'rgb(18, 24, 32)' && r.border === '3px', 'Native season KPI band uses the DECK surface and current-context rule', JSON.stringify(r));
+ok(/IBM Plex Sans Condensed/i.test(r.numFont), 'KPI numbers use the native condensed football-number face', JSON.stringify(r));
 
 console.log('\n== 3b. Season analytics blocks (v1.10.2) + trend un-clip ==');
 r = await page.evaluate(() => {
@@ -680,8 +681,8 @@ r = await page.evaluate(() => {
   window.app.tagger.plays = [mk({ unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', players: { ballCarrier: '99' } })];
   window.app.stats.filter.active = false;
   window.app.stats.showDashboard();
-  document.querySelector('#statsDashboard .stats-tab[data-tab="offense"]').click();
-  const pane = document.querySelector('#statsDashboard [data-pane="offense"]');
+  document.querySelector('#statsDashboard .stats-tab[data-tab="players"]').click();
+  const pane = document.querySelector('#statsDashboard [data-pane="players"]');
   const cell = Array.from(pane.querySelectorAll('tr.player-row td')).find(td => td.textContent.includes('99'));
   return {
     found: !!cell,

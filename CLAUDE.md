@@ -18,8 +18,73 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### ACTIVE — Shell Independence P0 (2026-07-27)
+### ACTIVE — Shell Independence S1 (2026-07-28)
 
+**Builder: Codex. Independent reviewer: Claude. Review HEAD after `9421eaf`.
+S1 is built but NOT accepted. Do not package, tag, or release. S2 stays closed
+until this checkpoint is independently accepted.**
+
+#### ▶ CLAUDE REVIEW QUEUE — S1 native Reports
+
+S1 replaces the Reports relocation wrapper with a Preact-owned route. The hidden
+legacy `#statsDashboard` remains under `#app` only as an unmounted compatibility
+node (`#legacyStatsDashboard` while the shell is active); it is never moved into
+`#wsReports`. `StatsEngine.setDashboardTarget()` is the explicit presentation
+seam. StatsEngine remains the only formula owner.
+
+**Football model:** Reports is now organized by perspective first, then unit.
+Self scout exposes Overview, Offense, Defense, Special Teams, Players,
+Self-Scout, Season, and Matchup. Opponent scout exposes Overview, their Offense,
+their Defense, and their Special Teams. Opponent offense/defense aggregate both
+head-to-head self-scout film and opponent-film scout games while preserving
+`gameId::playId` identity. Opponent Special Teams includes only games explicitly
+charted with `gameInfo.perspective === 'scout'`; head-to-head ST is disclosed and
+excluded because the stored play does not yet identify which team's ST event it
+represents. No silent perspective flip is allowed.
+
+**Capability parity:** existing analytics fragments remain the render source for
+scoreboard, team stats, KPIs, penalties, offense, defense, conversions, structured
+Special Teams, player tables, self-scout, season, matchup, heat maps, visualizations,
+and advanced metrics. Native route composition owns tabs, responsive layout,
+keyboard film controls, opponent composite-ref Watch actions, and the export menu.
+PDF, HTML, projected CSV, and Call Sheet still delegate to their canonical owners.
+No analytics formula, persistence schema, season/play/tag data, film metadata, or
+film file changed.
+
+**Permanent proof:** new `tools/e2e-native-reports.mjs` is 15/15. It proves one
+native owner; all eight self views; report navigation as a canonical season no-op;
+keyboard self-film equality; opponent unit cohorts with duplicate bare play ids
+across two games; scout-only opponent ST; exact Watch refs; all four exports; no
+mobile page overflow; 44px mobile controls; and zero page errors. The executable
+capability inventory is now 73 entries with 18 named critical ids. It also closes
+the two accepted P0 nits: Import Plays is a named critical journey, and spec
+clauses are matched as Markdown section headings rather than loose substrings.
+
+**Mutation proof:** removing `__gid` stamps reds the three opponent film-identity
+assertions; admitting head-to-head ST reds the ST cohort and Watch assertions;
+leaving the legacy dashboard id in place reds the single-owner assertion. All
+mutations were restored and the clean build rerun.
+
+**Gate findings repaired, not waived:** the first canonical S1 run was 66/68.
+`e2e-native-overlay` used fixed 50ms sleeps for requestAnimationFrame focus, and
+`e2e-onboarding` still expected a modal `.stats-overlay` plus player tables on
+Overview. The overlay probe passed 32/32 with a diagnostic 500ms wait, proving a
+timing guess rather than wrong focus; fixed tests now wait for the exact focus,
+modal, and inert states. Onboarding now waits for the native route and checks
+roster labels in the dedicated Players view. Focused results after repair:
+Native Reports 15/15, overlay 32/32, onboarding 52/52, season 161/161,
+self-scout 28/28, Study 56/56, workspace shell 57/57, P0 capability 8/8,
+P0 exit 13/13, design system 7/7. Final canonical gate on the completed checkpoint: **68/68 green, 0 skipped, 0 failed**; desktop `cargo check` is clean.
+
+**Review these risks first:** (1) opponent perspective and scout/self game
+classification, especially the deliberate ST exclusion; (2) exact composite refs
+and duplicate play ids; (3) specialized legacy report renderers targeting the
+native content host and returning to main Reports; (4) shell disable/re-enable
+restoring the legacy dashboard id/target exactly; (5) export ownership and player
+label survival; (6) mobile tab/command containment. Use the three named mutations
+rather than accepting the green harness on report.
+
+### HISTORICAL — Shell Independence P0 (2026-07-27)
 **Planning baseline `457eaa6` is accepted. Codex builds; Claude independently
 reviews each checkpoint. No release/package during P0.**
 

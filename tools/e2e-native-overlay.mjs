@@ -33,7 +33,7 @@ const seasonBefore = state.season;
 console.log('\n== 2. Dialog focus, trap, Escape, scrim, and data no-op ==');
 await page.click('[data-probe-dialog]');
 await page.waitForSelector('.gi-overlay-dialog.is-top');
-await sleep(50);
+await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Keep working');
 state = await page.evaluate(() => ({
   active: document.activeElement?.textContent?.trim(),
   appInert: !!document.getElementById('app')?.closest('[inert]'),
@@ -56,7 +56,7 @@ await page.click('[data-probe-dialog]');
 await page.waitForSelector('[data-overlay-scrim]');
 await page.evaluate(() => document.querySelector('[data-overlay-scrim]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })));
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-dialog'));
-await sleep(50);
+await page.waitForFunction(() => document.activeElement?.hasAttribute('data-probe-dialog'));
 ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-dialog')), 'dismissible dialog scrim is Cancel and restores focus');
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'dialog journeys do not mutate season data');
 
@@ -98,19 +98,21 @@ await page.evaluate(() => {
 console.log('\n== 3. Sheet desktop/mobile behavior ==');
 await page.click('[data-probe-sheet]');
 await page.waitForSelector('.gi-overlay-sheet.is-top');
-await sleep(50);
+await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Practice note');
 state = await page.evaluate(() => ({ active: document.activeElement?.getAttribute('aria-label'), appInert: !!document.getElementById('app')?.closest('[inert]'), modal: document.querySelector('.gi-overlay-sheet .gi-overlay-panel')?.getAttribute('aria-modal') }));
 ok(state.active === 'Practice note', 'sheet focuses the first working control, never its close button', JSON.stringify(state));
 ok(!state.appInert && state.modal == null, 'desktop non-modal sheet leaves the route available', JSON.stringify(state));
 await page.keyboard.press('Escape');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-sheet'));
-await sleep(50);
+await page.waitForFunction(() => document.activeElement?.hasAttribute('data-probe-sheet'));
 ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-sheet')), 'sheet Escape restores its invoking control');
 
 await page.setViewport({ width: 390, height: 844 });
 await page.click('[data-probe-sheet]');
 await page.waitForSelector('.gi-overlay-sheet.is-top');
-await sleep(50);
+await page.waitForFunction(() => document.querySelector('.gi-overlay-sheet .gi-overlay-panel')?.getAttribute('aria-modal') === 'true'
+  && !!document.getElementById('app')?.closest('[inert]')
+  && !!document.querySelector('.gi-native-routes')?.closest('[inert]'));
 state = await page.evaluate(() => {
   const panel = document.querySelector('.gi-overlay-sheet .gi-overlay-panel');
   const controls = [...panel.querySelectorAll('button,input')];
@@ -134,7 +136,7 @@ await page.waitForSelector('[data-probe-open-confirm]');
 await sleep(50);
 await page.click('[data-probe-open-confirm]');
 await page.waitForFunction(() => document.querySelectorAll('.gi-overlay-layer').length === 2);
-await sleep(50);
+await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Keep editing');
 state = await page.evaluate(() => ({
   lowerInert: document.querySelectorAll('.gi-overlay-layer')[0].inert,
   active: document.activeElement?.textContent?.trim(),

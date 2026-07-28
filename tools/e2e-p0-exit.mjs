@@ -23,6 +23,11 @@ const [pkgText, lockText, vite, appEntry, gate, tauri, nativeRoot, overlay, film
 ]);
 const pkg = JSON.parse(pkgText);
 const tauriConfig = JSON.parse(tauri);
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const hasSectionHeading = (text, title) => {
+  const escaped = escapeRegExp(title);
+  return new RegExp(`^#{1,6}\\s+(?:\\d+\\.\\s+)?${escaped}(?:\\s*(?:—|$))`, 'mi').test(text);
+};
 
 ok(pkg.dependencies?.preact === '10.29.7' && pkg.devDependencies?.vite === '8.1.5'
   && pkg.devDependencies?.['@preact/preset-vite'] === '2.10.6',
@@ -56,8 +61,8 @@ ok(nativeRoot.includes('service.subscribe') && nativeRoot.includes('render(null'
   && existsSync(resolve(root, 'tools/e2e-native-overlay.mjs')),
   'native test route has explicit service injection and clean unmount coverage');
 ok(filmNav.includes('refsForGame') && filmNav.includes('gameId}::${play.id}')
-  && study.includes('filmNavigation.watch') && reports.includes('stats.showDashboard')
-  && plan.includes('filmNavigation.watch') && stats.includes('filmNavigation.refsForGame'),
+  && study.includes('filmNavigation.watch') && reports.includes('filmNavigation?.watch')
+  && reports.includes('setDashboardTarget') && plan.includes('filmNavigation.watch') && stats.includes('filmNavigation.refsForGame'),
   'Study, Reports, and Plan share composite-ref film navigation');
 
 const capabilityIds = new Set(P0_CAPABILITIES.map(item => item.id));
@@ -85,9 +90,12 @@ const overlayClauses = [
   'Mobile / narrow presentation',
   'Verification',
 ];
-ok(teamHubClauses.every(clause => teamHubSpec.includes(clause))
-  && overlayClauses.every(clause => overlaySpec.includes(clause)),
-  'composition: Team Hub and overlay specs contain every required interaction contract');
+const missingTeamHubHeadings = teamHubClauses.filter(clause => !hasSectionHeading(teamHubSpec, clause));
+const missingOverlayHeadings = overlayClauses.filter(clause => !hasSectionHeading(overlaySpec, clause));
+ok(!missingTeamHubHeadings.length && !missingOverlayHeadings.length,
+  'composition: Team Hub and overlay specs contain every required interaction section',
+  [...missingTeamHubHeadings.map(item => `Team Hub: ${item}`),
+    ...missingOverlayHeadings.map(item => `Overlay: ${item}`)].join(', '));
 ok(nativeRoot.includes("../design-system/plex.css") && nativeRoot.includes("../design-system/tokens.css")
   && existsSync(resolve(root, 'tools/e2e-design-system.mjs')),
   'bundled Plex and route token enforcement are wired into production');

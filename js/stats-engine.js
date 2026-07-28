@@ -261,6 +261,18 @@ export class StatsEngine {
     this._bindEvents();
   }
 
+  /** Inject the active report presentation target. Analytics formulas remain in
+   *  this engine; native route ownership no longer requires moving a legacy DOM
+   *  node. Returns the prior target so lifecycle owners can restore it exactly. */
+  setDashboardTarget(element) {
+    if (!element || typeof element.querySelector !== 'function') {
+      throw new TypeError('StatsEngine dashboard target must be a DOM element.');
+    }
+    const prior = this.dashboardEl;
+    this.dashboardEl = element;
+    return prior;
+  }
+
   _bindEvents() {
     // "Stats" is the entry point to the full team report. When the shell owns
     // the product that report is the REPORTS DESTINATION, so route there rather
@@ -289,6 +301,11 @@ export class StatsEngine {
   }
 
   showDashboard() {
+    const reports = window.app?.reportsScreen;
+    if (reports?.content && reports.content === this.dashboardEl) {
+      reports.show();
+      return;
+    }
     const stats = this.compute();
     this._renderDashboard(stats);
     this.dashboardEl.classList.remove('hidden');
@@ -3407,13 +3424,21 @@ export class StatsEngine {
     if (!target) return null;
     const matched = this._allSeasonGames().filter(g =>
       String((g.gameInfo && g.gameInfo.opponent) || '').trim().toLowerCase() === target);
-    const offPlays = [], defPlays = [];
+    const offPlays = [], defPlays = [], stPlays = [];
     matched.forEach(g => {
       const scout = String((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
       (g.plays || []).forEach(p => {
+        const play = { ...p, __gid: g.id };
         const unit = (p.tags && p.tags.unit) || 'offense';
-        if (scout ? unit === 'offense' : unit === 'defense') offPlays.push(p);
-        else if (scout ? unit === 'defense' : unit === 'offense') defPlays.push(p);
+        // In opponent-film scout games the charted subject IS the opponent, so
+        // their Special Teams is unambiguous. A head-to-head self-scout game
+        // stores our subject perspective; do not silently flip its ST events.
+        if (unit === 'special') {
+          if (scout) stPlays.push(play);
+          return;
+        }
+        if (scout ? unit === 'offense' : unit === 'defense') offPlays.push(play);
+        else if (scout ? unit === 'defense' : unit === 'offense') defPlays.push(play);
       });
     });
     // Their offense is read from snaps we tagged as DEFENSE, but compute()
@@ -3440,9 +3465,13 @@ export class StatsEngine {
       offReport: asOffense.length ? this.generateScoutReport(asOffense) : null,
       offPlays: asOffense,
       offCount: offPlays.length,
+      defPlays,
       defFronts: sortDesc(frontCounts),
       defCoverages: sortDesc(covCounts),
-      defCount: defPlays.length
+      defCount: defPlays.length,
+      stPlays,
+      stStats: stPlays.length ? this.compute(stPlays) : null,
+      stCount: stPlays.length,
     };
   }
 

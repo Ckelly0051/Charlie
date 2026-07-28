@@ -79,6 +79,7 @@ ok(r.totalPlays === 6, 'all 6 scheme plays counted', JSON.stringify(r));
 console.log('\n== 2. Self-Scout TAB renders the defensive section ==');
 r = await page.evaluate(() => {
   window.app.stats.showDashboard();
+  window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
     hasDefSection: !!pane?.querySelector('.ss-def-section'),
@@ -107,10 +108,12 @@ r = await page.evaluate(() => {
   }
   window.app.tagger.plays = plays;
   window.app.stats.showDashboard();
-  const ss = document.querySelector('#statsDashboard [data-pane="selfscout"]');
+  window.app.reportsScreen.selectTab('selfscout');
+  const selfScoutHasDef = !!document.querySelector('#statsDashboard [data-pane="selfscout"] .ss-def-section');
+  window.app.reportsScreen.selectTab('defense');
   const def = document.querySelector('#statsDashboard [data-pane="defense"]');
   return {
-    selfScoutHasDef: !!ss?.querySelector('.ss-def-section'),
+    selfScoutHasDef,
     defenseHasScheme: !!def?.querySelector('.ss-def-section'),
     defenseHasHavoc: /Havoc/.test(def?.innerHTML || '')
   };
@@ -125,7 +128,9 @@ r = await page.evaluate(() => {
   const orig = eng.generateDefensiveSelfScout.bind(eng);
   let count = 0;
   eng.generateDefensiveSelfScout = function (...a) { count++; return orig(...a); };
+  eng._lastTab = 'overview';
   eng.showDashboard();
+  window.app.reportsScreen.selectTab('selfscout');
   eng.generateDefensiveSelfScout = orig;   // restore
   return { count };
 });
@@ -157,6 +162,7 @@ r = await page.evaluate(() => {
     return !f || window.app.tagger.plays.filter(p => f(p)).length === 0;
   }).length;
   window.app.stats.showDashboard();
+  window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
     comboVal: combo?.cutVal || null,
@@ -192,6 +198,7 @@ r = await page.evaluate(() => {
   const iformFirst = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'I-Form__1')).length;
   const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Trips__3|Long')).length;
   window.app.stats.showDashboard();
+  window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   return {
     rows: m.rows, cols: m.cols.map(c => c.key),
@@ -233,6 +240,7 @@ r = await page.evaluate(() => {
   const p21 = pd.find(p => p.personnel === '21');
   // Render and check DOM
   window.app.stats.showDashboard();
+  window.app.reportsScreen.selectTab('selfscout');
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   const section = pane?.querySelector('.ss-personnel-diversity');
   const cutRows = section ? section.querySelectorAll('tr.cut-row') : [];

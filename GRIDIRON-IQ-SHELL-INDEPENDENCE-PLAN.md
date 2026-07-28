@@ -11,10 +11,7 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0 IS COMPLETE. S1 — native Reports — is OPEN.** All four checkpoints
-independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1`
-(P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), `290cd0f` (P0-d). Final gate
-**66/66, 0 skipped**. Codex is the builder.
+**Status: P0 IS COMPLETE. S1 — native Reports — is BUILT AND AWAITING CLAUDE REVIEW.** All four P0 checkpoints were independently accepted by Claude on 2026-07-27: `cf9955a` + repair `63b75f1` (P0-a), `5162e6b` (P0-b), `4d72dd0` (P0-c), and `290cd0f` (P0-d). Codex built S1 after `9421eaf`; no package, tag, or release is permitted until independent acceptance. S2 remains closed.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
@@ -245,6 +242,15 @@ frozen contracts above are unchanged and proven so.
 - **Historical P0-d scope:** journey capability inventory, operation-scoped data-diff harness,
   design-token enforcement, and final P0 exit audit.
 
+### S1 checkpoint — BUILT by Codex; awaiting Claude review (2026-07-28)
+
+Reports is now a Preact-owned route instead of a relocated legacy dashboard. `StatsEngine.setDashboardTarget()` is the explicit presentation seam; StatsEngine remains the sole formula owner. The native route owns eight coach-facing views, perspective-first navigation, keyboard-accessible film actions, responsive containment, and canonical export commands. The old dashboard stays inert under `#app` as `#legacyStatsDashboard` only for compatibility and is restored exactly when the shell is disabled.
+
+Football semantics are explicit: self scout provides Overview, Offense, Defense, Special Teams, Players, Self-Scout, Season, and Matchup. Opponent offense and defense combine head-to-head and opponent-film scout games while preserving `gameId::playId` identity. Opponent Special Teams uses only games explicitly marked `gameInfo.perspective === 'scout'`; head-to-head ST is disclosed and excluded because the stored record cannot honestly identify whose ST event it was. No data is inferred or rewritten.
+
+Permanent proof includes `tools/e2e-native-reports.mjs` (15/15), all eight views, exact self/opponent film refs including duplicate bare play ids, scout-only ST, four exports, 44px mobile controls, internal tab scrolling, and zero page overflow. The capability inventory is 73 entries with 18 named critical ids. Import Plays is now a named critical journey, and specification checks require real Markdown section headings rather than loose substrings.
+
+Three critical mutations were run and restored: removing opponent `__gid` stamping reds exact film identity, admitting head-to-head ST reds the ST cohort and Watch cuts, and retaining the old dashboard id reds native single ownership. The first full gate exposed two stale test contracts rather than production defects: timer-based overlay waits and onboarding assumptions about the removed modal/player-on-Overview layout. Both were replaced with state-based assertions. Final canonical gate on the completed checkpoint: **68/68 green, 0 skipped, 0 failed**; desktop `cargo check` is clean. No analytics formula, season/play/tag data, persistence schema, film metadata, film file, package, tag, or release changed. S2 remains closed pending independent review.
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 
 ### 3.1 P0 exit gate — all required before S1 opens

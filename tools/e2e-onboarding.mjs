@@ -50,13 +50,13 @@ const openHomeGame = async (i = 0) => {
   await page.evaluate(n => { const b = document.querySelectorAll('#wsFilmList [data-ws-game]')[n]; if (b) b.click(); }, i);
   await sleep(700);
 };
-// The full team report now has its own shell destination (Reports), and
-// #statsDashboard is re-parented into it. Clicking the canonical #btnShowStats
-// both routes there AND sets ffa_seen_stats for real data, so this drives the
-// real product path — no outlet poking required.
+// The full team report is a native shell destination. Clicking the canonical
+// #btnShowStats routes there and sets ffa_seen_stats for real data; wait for the
+// actual report pane rather than guessing how long composition will take.
 const showStats = async () => {
   await page.evaluate(() => document.getElementById('btnShowStats')?.click());
-  await sleep(800);
+  await page.waitForFunction(() => !document.getElementById('wsReports')?.hidden
+    && !!document.querySelector('#wsReports [data-native-main-report]'));
 };
 
 console.log('\n== 1. Fresh first run ==');
@@ -144,9 +144,10 @@ ok(/Riverside|Hawks/.test(r.game || ''), 'shell context game = vs Riverside Hawk
 
 console.log('\n== 5. Stats dashboard on demo data ==');
 await showStats();
-r = await $('#statsDashboard .stats-overlay');   // parent has zero rect (fixed child)
-ok(r && r.visible, 'stats dashboard opens');
-r = await page.evaluate(() => document.getElementById('statsDashboard').textContent.includes('Marcus Carter'));
+r = await $('#wsReports [data-native-main-report]');
+ok(r && r.visible, 'native Reports destination opens');
+await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
+r = await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'));
 ok(r, 'player names from label overlay (#22 Marcus Carter)');
 r = await page.evaluate(() => !localStorage.getItem('ffa_seen_stats'));
 ok(r, 'demo stats view does NOT set ffa_seen_stats');
@@ -156,9 +157,9 @@ ok(r, 'global roster untouched by demo');
 console.log('\n== 6. Labels survive Season Stats render (the _fixedLabels fix) ==');
 await page.evaluate(() => { window.app.season._renderAll(); });   // the path that nulls _seasonLabels
 await showStats();
-r = await page.evaluate(() => document.getElementById('statsDashboard').textContent.includes('Marcus Carter'));
+await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
+r = await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'));
 ok(r, 'names still present after season view render');
-await page.evaluate(() => document.getElementById('statsDashboard').classList.add('hidden'));
 
 console.log('\n== 7. Back to Team Home: demo badge + checklist state ==');
 await backHome();
@@ -182,9 +183,9 @@ r = await $('#wsHome');
 ok(r && r.visible, 'reopening demo lands on shell Home');
 await openHomeGame(1);
 await showStats();
-r = await page.evaluate(() => document.getElementById('statsDashboard').textContent.includes('Marcus Carter'));
+await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
+r = await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter'));
 ok(r, 'label overlay re-applied after reload (game 2)');
-await page.evaluate(() => document.getElementById('statsDashboard').classList.add('hidden'));
 
 console.log('\n== 9. Delete demo via UI confirm ==');
 await backHome();

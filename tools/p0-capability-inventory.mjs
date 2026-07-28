@@ -15,6 +15,7 @@ export const P0_CAPABILITIES = [
   { id:'shell.undo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Relocated Undo stays wired to history-manager and enables on a real edit' },
   { id:'shell.redo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar' },
   { id:'shell.shortcuts', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Mobile Shortcuts action remains wired to the canonical dialog' },
+  { id:'shell.import-plays', surface:'shell', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Shell Import Plays opens the canonical importer and Cancel preserves the season' },
 
   // Break Down: film, charting, and football detail
   { id:'breakdown.video-controls', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Real playback controls are contained inside the video surface' },
@@ -49,7 +50,11 @@ export const P0_CAPABILITIES = [
   { id:'study.advanced-reports', surface:'study', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Reaching Advanced Reports no longer exposes the classic outlet' },
 
   // Reports: preserve football analysis breadth and canonical actions
-  { id:'reports.export', surface:'reports', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Reports main Export delegates to the canonical analytics action' },
+  { id:'reports.native-owner', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Reports has one native owner while the legacy dashboard stays in the classic tree' },
+  { id:'reports.eight-views', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'All eight report views render a real pane' },
+  { id:'reports.export', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Native Reports routes PDF, HTML, CSV, and Call Sheet to their canonical owners' },
+  { id:'reports.opponent-cohorts', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Watch controls launch the exact displayed unit cohorts' },
+  { id:'reports.opponent-special-teams', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST' },
   { id:'reports.season', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'the Season tab button exists in the dashboard' },
   { id:'reports.players', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'a rushing leaderboard with player rows rendered' },
   { id:'reports.special-teams', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Special Teams section renders' },
@@ -95,6 +100,7 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   'shell.undo',
   'shell.redo',
   'shell.shortcuts',
+  'shell.import-plays',
   'breakdown.drawing-tools',
   'breakdown.drawing-playback',
   'breakdown.quick-chart',
@@ -102,6 +108,9 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   'breakdown.multi-angle-sync',
   'breakdown.multi-angle-view',
   'breakdown.multi-angle-remove',
+  'reports.native-owner',
+  'reports.opponent-cohorts',
+  'reports.opponent-special-teams',
   'reports.csv-roundtrip',
   'reports.call-sheet',
   'settings.restore-points',
