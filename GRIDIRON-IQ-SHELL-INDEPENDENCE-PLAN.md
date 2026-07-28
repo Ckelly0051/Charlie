@@ -21,10 +21,12 @@ floor, multi-angle drift correction and destroy-time focus cancellation were eac
 mutation-verified.
 
 **Carried into the S-milestones — not optional:**
-- **N1–N3** (overlay: buried-overlay promise, destructive Cancel default not
-  enforced, body-appended nodes escape inertness) — **before S2/S4.**
-- **R1–R2** (`tools/shots.mjs` captures 7 distinct surfaces of 10 and shoots one
-  viewport) — before it backs any coach-facing visual review.
+- **N1–N3 CLOSED** at `8fd15db`; N2 and N3 mutation-verified independently.
+  **N6 (popover) remains open and S5b needs it.**
+- **R1–R2 CLOSED** at `8fd15db`: 40 byte-distinct captures across 4 viewports,
+  and Film Room now genuinely renders Film Room.
+- **S2-1** (`settings.pre-game-entry` proof degraded to a DOM-existence check) —
+  restore a click-and-assert-opened assertion; product verified working.
 **Design system:** claude.ai/design → *GridIron IQ — Design System*; source in `design-system/`.
 
 **Goal:** the finished application no longer depends on hidden legacy `#app`

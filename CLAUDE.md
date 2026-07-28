@@ -83,6 +83,74 @@ transaction boundaries; (3) mode-default changes leaving per-game film metadata
 byte-identical; (4) Team identity's declared active-game metadata write; (5)
 mobile modal/inertness and More-settings capability bridge; (6) Quick Chart
 mount/restore symmetry; (7) verify all three N1-N3 mutations independently.
+
+#### CLAUDE'S INDEPENDENT REVIEW of `8fd15db` — ACCEPTED. **S2 is complete; S3 opens.** 1 finding, 1 nit (2026-07-28)
+
+**Full canonical gate 69 harnesses | 69 green | 0 skipped**, real data included;
+`e2e-native-settings` 13/13; capability audit 8/8.
+
+**N1–N3 are genuinely closed, and two are mutation-verified by me.**
+- **N1** — `close()` now settles the whole suffix, so a route closing its parent
+  sheet under a stacked confirmation leaves no `await` pending. Note this
+  *reverses* the policy P0-b pinned, and the old assertion was **inverted rather
+  than deleted**: it now asserts `'route-closed'` / `'parent-closed'` explicitly.
+  That is the honest way to change a pinned behavior.
+- **N2** — enforced in `_open`: a destructive overlay without an explicit
+  `cancel` action **throws**, and Cancel is forced as both `default` and
+  `initialAction`. **Mutation-verified:** removing the forced default reds
+  `service enforces an explicit Cancel default for every destructive decision`
+  with `cancelDefault:false, deleteDefault:true`.
+- **N3** — a `MutationObserver` on `document.body` makes late siblings inert and
+  disconnects on cleanup. **Mutation-verified:** removing the observer reds
+  `body controls appended after modal open become inert immediately`
+  (`inert:false`). N5 and N7 are closed too; N6 (popover) stays correctly
+  deferred to S5b.
+
+**R1/R2 are closed, and I checked the thing that failed last time.**
+`shots.mjs` now writes **40 captures across 4 viewports**, all byte-distinct
+within a viewport — no duplicates at all, where the old harness had 5 of 10
+duplicated. I opened `03-film-room.png`: it genuinely renders Break Down with the
+Film Room expanded (70 plays, filter chips, `Watch (70)`), not Home. The
+instrument can now back release-gate row 4.
+
+**S2-1 [P2, test strength] `settings.pre-game-entry` degraded from behavior to
+existence.** The removed assertion was `ok(r.drawer && r.panel, 'Team Hub
+settings action opens the consolidated panel')` — it clicked and proved the panel
+opened. What survives under that capability id is
+`ok(r.hubButton, 'Team Hub exposes Team & Film Settings before a game is
+opened')`, where `hubButton = !!document.getElementById('btnTeamFilmSettings')` —
+**DOM existence only.** `e2e-film-storage-setup` is the one harness whose
+assertion count fell (31 → 30).
+
+This is the evidence class this project has already been burned by: the
+entombment audit found **15 of 17 top-bar controls present in the DOM and
+reachable on no route**. The capability audit rejects geometry-only evidence
+precisely because "a rebuilt button would look identical and be dead" — and
+existence is *weaker* than geometry. The inventory still labels the entry
+`evidence:'behavior'`.
+
+**The product is fine — I probed it rather than assuming.** With no game open,
+clicking `#btnTeamFilmSettings` opens exactly one native settings owner with real
+content and zero page errors. So this is a test regression, not a defect. But it
+sits on the surface that requirement #1 of the `v1.12.0-9` blocking repair was
+written about. Restore a click-and-assert-opened assertion.
+
+**Worth acting on beyond this commit:** the audit passed because it checks that
+the assertion *string* exists, not that it is strong — the limit I recorded as
+D3/D4 at P0-d. This is the first time that limit has let a real proof degrade.
+Consider rejecting assertions whose probe is a bare `!!getElementById(...)`.
+
+**Nit — `getNativeOverlayService()` reintroduces a module-level singleton
+accessor**, the exact pattern P0-b's exit gate was written against ("route
+components receive it as a dependency rather than importing a hidden singleton").
+Mitigated today: only `app.js`, the composition root, imports it — which is where
+concrete instances legitimately live. Keep it that way; if a route module ever
+imports it directly, the DI proof becomes decorative.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag
+or release changed — parity goldens are absent from the diff and the full gate is
+green, re-run by me.** Managed C: film copies remain protected.
+
 ### HISTORICAL — Shell Independence S1 (2026-07-28)
 
 **Builder: Codex. Independent reviewer: Claude. Review HEAD after `9421eaf`.
