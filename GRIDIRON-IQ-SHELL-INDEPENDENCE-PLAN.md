@@ -1,5 +1,44 @@
 # GridIron IQ — Shell Independence & Redesign Plan
 
+## ⚠ REVISION LOG — read this before acting on anything below
+
+*This plan is edited between checkpoints. You read its current state, not a diff,
+so every change that alters what the plan **requires** is logged here with a date,
+a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
+names before building.*
+
+**`f86c7e6` · 2026-07-28 · Claude · CHANGES WHAT IS REQUIRED — affects S4 and S5d**
+
+- **S4 is BLOCKED.** It may not start until a local installer is built from HEAD
+  and the coach has smoked it. See the ⛔ block in **Status** below.
+- **§8's milestone installers were upgraded from a bullet to an ACCEPTANCE
+  CONDITION.** A milestone that §8 names is not accepted until its installer
+  exists and has been smoked. This is now part of the review checklist, next to
+  the gate.
+- **§8 gained a second required installer BEFORE S5d**, not only after. S5a–c
+  back out cheaply; the ownership flip does not.
+- **The Status line's release rule was corrected.** It read *"No package, tag, or
+  release is permitted during the S-milestones,"* which scans as a blanket ban.
+  Published releases are still barred; **local unpublished milestone installers
+  are REQUIRED.**
+
+**Why:** §8 has required milestone installers since the original revision — it was
+Codex's own finding #12, *"one installer at the very end is too late."* Claude
+wrote it in, then reviewed **S2 — the exact milestone §8 names — and accepted it
+without enforcing it. Then did the same at S3.** Meanwhile HEAD reached **37
+commits past `deeb8ba`**, the source of `1.12.0-12` and the newest installer that
+exists. The build system was replaced and Reports, Team & Film Settings and Team
+Hub were rebuilt as native routes — **none of which has ever run on the coach's
+machine.** `v1.12.0-8` passed a green gate, looked plausible, and failed in ten
+minutes of real use; that is why C1/C2 exist. Nothing about the S-milestone code
+is in doubt — the gate is 70/70 — but the one defect class that has actually hurt
+this project is the class the gate cannot see.
+
+**Nothing else changed.** No milestone scope, sequence, exit gate, frozen
+contract, or technology decision was altered by this revision.
+
+---
+
 **Plan roles:** Claude authored · Codex reviewed (3 rounds) — *these are not the
 implementation roles.*
 **Implementation roles:** **Codex builds · Claude independently reviews** each

@@ -18,6 +18,34 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ⛔ CODEX — STOP: THE PLAN CHANGED AND S4 IS BLOCKED (`f86c7e6`, 2026-07-28)
+
+**Do not start S4.** `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` was revised after
+your S3 repair was accepted. It now carries a **REVISION LOG at the very top** —
+read that first; it names exactly what changed and why. Summary:
+
+- **S4 cannot open until a local installer is built from HEAD and the coach has
+  smoked it.**
+- **§8's milestone installers are now an ACCEPTANCE CONDITION**, not a bullet: a
+  milestone §8 names is not accepted until its installer exists. This joins the
+  review checklist alongside the gate.
+- **A second required installer was added BEFORE S5d**, not only after.
+- The Status line's release rule was corrected: published releases stay barred,
+  **local unpublished milestone installers are REQUIRED.**
+
+**Why it changed — this was Claude's miss, not yours.** §8 has required milestone
+installers since the original revision (your finding #12, *"one installer at the
+very end is too late"*). Claude wrote it in, then accepted **S2 — the milestone
+§8 names — without enforcing it**, and repeated that at S3. HEAD is now **37
+commits past `deeb8ba`**, the source of `1.12.0-12` and the newest installer that
+exists: the build system was replaced and Reports, Team & Film Settings and Team
+Hub were rebuilt natively, **none of it ever run on the coach's machine.**
+
+**No milestone scope, sequence, exit gate, frozen contract, or technology decision
+changed.** S3 remains accepted; the gate remains 70/70. The next action is a
+version bump to `1.12.0-13` (keep the `-N` suffix — `configureBetaDefaults` gates
+on it), `cargo tauri build`, and coach smoke. **S4 opens after that.**
+
 ### ▶ CODEX HANDOFF — S3 repair `3f40216`; independent re-review required (2026-07-28)
 
 **Builder: Codex. Original implementation: `f78d9e4`; repair checkpoint:
