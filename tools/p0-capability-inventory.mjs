@@ -29,7 +29,7 @@ export const P0_CAPABILITIES = [
   { id:'breakdown.save-next', surface:'breakdown', evidence:'data', harness:'e2e-breakdown-form.mjs', assertion:'Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback' },
   { id:'breakdown.drawing-tools', surface:'breakdown', evidence:'behavior', harness:'e2e-tagging.mjs', assertion:'digit with NO play selected still arms the tool' },
   { id:'breakdown.drawing-playback', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Playback canvas paints only when entering or leaving an annotated frame' },
-  { id:'breakdown.quick-chart', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Quick Chart selector opens the active production panel outside the hidden legacy tree' },
+  { id:'breakdown.quick-chart', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Quick Chart selector opens one native owner with no legacy panel' },
   { id:'breakdown.multi-angle-load', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Loading a second angle syncs playback and opens the desktop side-by-side view' },
   { id:'breakdown.multi-angle-sync', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'Second-angle sync corrects real drift, tolerates sub-threshold jitter, and follows transport state' },
   { id:'breakdown.multi-angle-view', surface:'breakdown', evidence:'behavior', harness:'e2e-multi-angle.mjs', assertion:'PiP click and V-key swap the active camera through the production controls' },

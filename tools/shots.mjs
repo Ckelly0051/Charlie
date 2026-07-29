@@ -89,7 +89,7 @@ for(const viewport of viewports){
   await capture(viewport,'04-film-room','#wsBreakdown.bd-film-room-mode #playGridSection:not([hidden])');
 
   await page.evaluate(() => { window.app.breakdownWorkspace._setView('chart'); if(!window.app.quickChart.isActive) window.app.quickChart.toggle(); });
-  await capture(viewport,'05-quick-chart','#quickChartPanel:not(.hidden)');
+  await capture(viewport,'05-quick-chart','[data-native-quick-chart]');
   await page.evaluate(() => { if(window.app.quickChart.isActive) window.app.quickChart.toggle(); });
 
   await route('study');

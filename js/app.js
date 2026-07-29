@@ -99,7 +99,6 @@ class App {
     // Let the tagger coordinate with the playlist (e.g. delete a play => also
     // drop its clip and advance, instead of unloading the whole player).
     this.tagger.playlist = this.playlist;
-    this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist);
     this.stats = new StatsEngine(this.tagger, this.filter);
     this.stats.roster = this.roster;
     this.analyticsRegistry = new AnalyticsRegistry(this.stats);
@@ -112,6 +111,7 @@ class App {
     this.reportsScreen = new ReportsScreen(this);
     this.overlays = getNativeOverlayService();
     if (!this.overlays) throw new Error('GridIron IQ native overlay service is unavailable.');
+    this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist, this.overlays);
     this.settingsScreen = new SettingsScreen(this, this.overlays);
     this.playImport = new PlayImportScreen(this, this.overlays);
     this.shortcutsScreen = new ShortcutsScreen(this.overlays);
@@ -187,10 +187,6 @@ class App {
     this.storage.onSaveState = (s) => this._renderSaveState(s);
     this.storage.enableAutoSave();
 
-    // Quick-chart save triggers auto-save via play-updated event
-    this.quickChart.on('play-charted', () => {
-      this.tagger._emit('play-updated', this.tagger.getCurrentPlay());
-    });
 
     // Tag navigation & chip shortcuts
     this._bindTagNav();

@@ -1,3 +1,6 @@
+import { h } from 'preact';
+import { NativeQuickChart } from './native-quick-chart.jsx';
+
 /**
  * QuickChart - Rapid keyboard-driven play charting mode.
  *
@@ -13,27 +16,33 @@
  *               W = Sack, E = Penalty
  *   Yardage:    0-9 keys set yards, prefix with minus (-) for negative
  *   Down:       Shift+1..4 = set down
- *   First down: ! (Shift+1 after result) toggles first down
  *   Confirm:    Enter = save play & advance to next clip
  *   Replay:     Backspace = replay current clip
  *   Skip:       Tab = skip this play (no tag, advance)
  *   Undo:       Ctrl+Z = go back to previous clip
  */
 export class QuickChart {
-  constructor(videoController, playTagger, playlistManager) {
+  constructor(videoController, playTagger, playlistManager, overlays) {
     this.vc = videoController;
     this.tagger = playTagger;
     this.playlist = playlistManager;
+    this.overlays = overlays;
     this.listeners = {};
+    this.handle = null;
 
     this.isActive = false;
+    this.status = 'Quick Chart active. Use the keyboard to tag plays.';
     this.currentEntry = this._emptyEntry();
     this.yardageStr = '';
     this.yardageNegative = false;
 
-    // DOM
-    this.panel = document.getElementById('quickChartPanel');
     this.btnToggle = document.getElementById('btnQuickChart');
+    this._clearPanelRefs();
+    this._bindEvents();
+  }
+
+  _bindPanel() {
+    this.panel = document.querySelector('[data-native-quick-chart]');
     this.displayType = document.getElementById('qcPlayType');
     this.displayResult = document.getElementById('qcResult');
     this.displayYardage = document.getElementById('qcYardage');
@@ -41,14 +50,37 @@ export class QuickChart {
     this.displayExtra = document.getElementById('qcExtra');
     this.displayStatus = document.getElementById('qcStatus');
     this.displayKeys = document.getElementById('qcKeyHints');
-
-    // Player input elements
     this.inputBallCarrier = document.getElementById('qcBallCarrier');
     this.inputPasser = document.getElementById('qcPasser');
     this.inputReceiver = document.getElementById('qcReceiver');
     this.inputTackler = document.getElementById('qcTackler');
+    this._updateDisplay();
+    this._updateStatus(this.status);
+  }
 
-    this._bindEvents();
+  _clearPanelRefs() {
+    this.panel = null;
+    this.displayType = null;
+    this.displayResult = null;
+    this.displayYardage = null;
+    this.displayDown = null;
+    this.displayExtra = null;
+    this.displayStatus = null;
+    this.displayKeys = null;
+    this.inputBallCarrier = null;
+    this.inputPasser = null;
+    this.inputReceiver = null;
+    this.inputTackler = null;
+  }
+
+  _deactivate({ close = true } = {}) {
+    const handle = this.handle;
+    this.handle = null;
+    this.isActive = false;
+    this.btnToggle?.classList.remove('active');
+    this._clearPanelRefs();
+    if (close) handle?.close('toggle');
+    this._emit('mode-changed', false);
   }
 
   _emptyEntry() {
@@ -87,17 +119,36 @@ export class QuickChart {
   }
 
   toggle() {
-    this.isActive = !this.isActive;
-    this.panel.classList.toggle('hidden', !this.isActive);
-    this.btnToggle.classList.toggle('active', this.isActive);
-
     if (this.isActive) {
-      this.currentEntry = this._emptyEntry();
-      this.yardageStr = '';
-      this.yardageNegative = false;
-      this._updateDisplay();
-      this._updateStatus('QUICK CHART ACTIVE — use keyboard to tag plays');
+      this._deactivate();
+      return false;
     }
+    if (!this.overlays?.sheet) throw new Error('Quick Chart requires the native overlay service.');
+
+    this.isActive = true;
+    this.currentEntry = this._emptyEntry();
+    this.yardageStr = '';
+    this.yardageNegative = false;
+    this.status = 'Quick Chart active. Use the keyboard to tag plays.';
+    this.btnToggle?.classList.add('active');
+    const handle = this.overlays.sheet({
+      id: 'quick-chart',
+      title: 'Quick Chart',
+      modal: false,
+      actions: [],
+      initialFocus: '[data-native-quick-chart]',
+      returnFocus: document.activeElement && document.activeElement !== document.body ? document.activeElement : this.btnToggle,
+      content: h(NativeQuickChart),
+    });
+    this.handle = handle;
+    requestAnimationFrame(() => {
+      if (this.isActive && this.handle === handle) this._bindPanel();
+    });
+    handle.result.finally(() => {
+      if (this.handle === handle) this._deactivate({ close: false });
+    });
+    this._emit('mode-changed', true);
+    return true;
   }
 
   _handleKey(e) {
@@ -313,20 +364,20 @@ export class QuickChart {
   _updateDisplay() {
     if (this.displayType) {
       this.displayType.textContent = this.currentEntry.playType || '—';
-      this.displayType.className = 'qc-value' + (this.currentEntry.playType ? ' qc-set' : '');
+      this.displayType.className = 'gi-qc-value' + (this.currentEntry.playType ? ' is-set' : '');
     }
     if (this.displayResult) {
       this.displayResult.textContent = this.currentEntry.result || '—';
-      this.displayResult.className = 'qc-value' + (this.currentEntry.result ? ' qc-set' : '');
+      this.displayResult.className = 'gi-qc-value' + (this.currentEntry.result ? ' is-set' : '');
     }
     if (this.displayYardage) {
       this.displayYardage.textContent = this.currentEntry.yardage || '—';
-      this.displayYardage.className = 'qc-value' + (this.currentEntry.yardage ? ' qc-set' : '');
+      this.displayYardage.className = 'gi-qc-value' + (this.currentEntry.yardage ? ' is-set' : '');
     }
     if (this.displayDown) {
       const downLabels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
       this.displayDown.textContent = downLabels[this.currentEntry.down] || '—';
-      this.displayDown.className = 'qc-value' + (this.currentEntry.down ? ' qc-set' : '');
+      this.displayDown.className = 'gi-qc-value' + (this.currentEntry.down ? ' is-set' : '');
     }
     if (this.displayExtra) {
       const extras = [];
@@ -337,6 +388,7 @@ export class QuickChart {
   }
 
   _updateStatus(msg) {
+    this.status = msg;
     if (this.displayStatus) this.displayStatus.textContent = msg;
   }
 

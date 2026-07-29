@@ -124,7 +124,10 @@ export class WorkspaceShell {
     if (!this.root) return { ok:false, reason:'shell-disabled' };
     const previousRoute = this.app.workspace.currentRoute();
     const result = this.app.workspace.navigate(routeId); this._syncChrome(); if (!result.ok) return result;
-    if (routeId !== 'breakdown') this.app.cutupPlayer?.stop();
+    if (routeId !== 'breakdown') {
+      this.app.cutupPlayer?.stop();
+      if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
+    }
     this.app.teamHubScreen?.hide();
     document.body.classList.remove('ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan', 'ws-route-team-hub');
     document.body.classList.add(`ws-route-${routeId}`);

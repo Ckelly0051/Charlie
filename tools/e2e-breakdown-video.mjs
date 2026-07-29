@@ -468,15 +468,21 @@ ok(state.perspective === 'offense' && state.context === 'self' &&
   state.subject === 'Our Special Teams' && !state.scoutClass,
   'Reload derives self-scout from the reopened game’s stored identity', JSON.stringify(state));
 await page.click('[data-bd-context="quick"]');
-state = await page.evaluate(() => ({
-  active: window.app.quickChart.isActive,
-  context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
-  panelVisible: (() => { const panel=document.getElementById('quickChartPanel'); const rect=panel?.getBoundingClientRect(); return !!panel && !panel.classList.contains('hidden') && getComputedStyle(panel).display !== 'none' && rect.width > 0 && rect.height > 0; })(),
-  outsideLegacy: !document.getElementById('quickChartPanel')?.closest('#app'),
-}));
-ok(state.active && state.context === 'quick' && state.panelVisible && state.outsideLegacy,
-  'Quick Chart selector opens the active production panel outside the hidden legacy tree', JSON.stringify(state));
+state = await page.evaluate(() => {
+  const panel = document.querySelector('[data-native-quick-chart]');
+  const rect = panel?.getBoundingClientRect();
+  return {
+    active: window.app.quickChart.isActive,
+    context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
+    nativeVisible: !!panel && getComputedStyle(panel).display !== 'none' && rect.width > 0 && rect.height > 0,
+    nativeOwned: !!panel?.closest('#giNativeRoot') && window.app.overlays.snapshot().overlays.at(-1)?.id === 'quick-chart',
+    legacyAbsent: !document.getElementById('quickChartPanel'),
+  };
+});
+ok(state.active && state.context === 'quick' && state.nativeVisible && state.nativeOwned && state.legacyAbsent,
+  'Quick Chart selector opens one native owner with no legacy panel', JSON.stringify(state));
 await page.click('[data-bd-context="self"]');
+await page.waitForFunction(() => !window.app.quickChart.isActive && !document.querySelector('[data-native-quick-chart]'));
 
 await page.evaluate(() => window.app._renderSaveState('pending'));
 state = await page.evaluate(() => ({

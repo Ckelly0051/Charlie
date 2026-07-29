@@ -1183,58 +1183,6 @@
     <!-- Settings drawer scrim -->
     <div class="drawer-scrim" id="drawerScrim"></div>
 
-    <!-- Quick Chart Panel (overlay on bottom when active) -->
-    <div class="quick-chart-panel hidden" id="quickChartPanel">
-      <div class="qc-main">
-        <div class="qc-fields">
-          <div class="qc-field">
-            <span class="qc-label">TYPE</span>
-            <span class="qc-value" id="qcPlayType">—</span>
-          </div>
-          <div class="qc-field">
-            <span class="qc-label">RESULT</span>
-            <span class="qc-value" id="qcResult">—</span>
-          </div>
-          <div class="qc-field">
-            <span class="qc-label">YARDS</span>
-            <span class="qc-value" id="qcYardage">—</span>
-          </div>
-          <div class="qc-field">
-            <span class="qc-label">DOWN</span>
-            <span class="qc-value" id="qcDown">—</span>
-          </div>
-          <div class="qc-field">
-            <span class="qc-label">FLAGS</span>
-            <span class="qc-value" id="qcExtra"></span>
-          </div>
-        </div>
-        <div class="qc-players">
-          <div class="qc-player-field">
-            <label>Carrier #</label>
-            <input type="text" id="qcBallCarrier" placeholder="#" maxlength="3">
-          </div>
-          <div class="qc-player-field">
-            <label>Passer #</label>
-            <input type="text" id="qcPasser" placeholder="#" maxlength="3">
-          </div>
-          <div class="qc-player-field">
-            <label>Receiver #</label>
-            <input type="text" id="qcReceiver" placeholder="#" maxlength="3">
-          </div>
-          <div class="qc-player-field">
-            <label>Tackler #</label>
-            <input type="text" id="qcTackler" placeholder="# #" maxlength="12" title="Multiple allowed for shared tackles (e.g. 55 22)">
-          </div>
-        </div>
-        <div class="qc-status" id="qcStatus">Press keys to tag — Enter to save &amp; advance</div>
-      </div>
-      <div class="qc-key-hints" id="qcKeyHints">
-        <span><b>Type:</b> R=Run O=Outside P=Pass M=Med D=Deep S=Screen A=PA Q=RPO K=Kick X=Trick</span>
-        <span><b>Result:</b> G=Gain L=Loss N=None I=Inc T=TD U=INT F=Fum W=Sack E=Pen</span>
-        <span><b>Nav:</b> 0-9=Yards &minus;=Neg Shift+1-4=Down Enter=Save+Next Tab=Skip Bksp=Replay C=Clear</span>
-      </div>
-    </div>
-
     <!-- Stats Dashboard (full-screen overlay) -->
     <div class="hidden" id="statsDashboard"></div>
     <button class="hidden" id="btnCloseStats"></button>

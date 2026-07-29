@@ -1263,127 +1263,6 @@ body {
   box-shadow: 0 0 0 2px var(--text-bright);
 }
 
-/* ===== Quick Chart Panel ===== */
-.quick-chart-panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: var(--bg-secondary);
-  border-top: 2px solid var(--highlight);
-  padding: 8px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.qc-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.qc-fields {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.qc-field {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 70px;
-}
-
-.qc-label {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
-}
-
-.qc-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-dim);
-  padding: 2px 10px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  border: 2px solid transparent;
-  min-width: 60px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.qc-value.qc-set {
-  color: var(--text-bright);
-  border-color: var(--highlight);
-  background: var(--bg-surface);
-}
-
-.qc-players {
-  display: flex;
-  gap: 6px;
-  border-left: 1px solid var(--border);
-  padding-left: 16px;
-}
-
-.qc-player-field {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.qc-player-field label {
-  font-size: 9px;
-  color: var(--text-dim);
-  margin-bottom: 2px;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.qc-player-field input {
-  width: 42px;
-  background: var(--bg-tertiary);
-  color: var(--text-bright);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.qc-player-field input:focus {
-  outline: none;
-  border-color: var(--highlight);
-}
-
-.qc-status {
-  font-size: 11px;
-  color: var(--highlight);
-  font-weight: 600;
-  white-space: nowrap;
-  min-width: 200px;
-  text-align: right;
-}
-
-.qc-key-hints {
-  display: flex;
-  gap: 16px;
-  font-size: 10px;
-  color: var(--text-dim);
-  flex-wrap: wrap;
-}
-
-.qc-key-hints b {
-  color: var(--text);
-}
-
 /* ===== Stats Dashboard ===== */
 .stats-overlay {
   position: fixed;
@@ -3093,10 +2972,6 @@ input:focus, select:focus, textarea:focus {
   }
   .notes-area { min-height: 60px; }
 
-  /* Quick chart panel stacks */
-  .qc-fields, .qc-players { flex-wrap: wrap; }
-  .qc-key-hints { display: none; }
-
   /* Stats overlay full screen */
   .stats-container { width: 100vw !important; height: 100vh !important; max-width: none; max-height: none; border-radius: 0; }
   .stats-tab { padding: 8px 12px; font-size: 12px; }
@@ -3618,10 +3493,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   border-radius: var(--radius-lg);
 }
 
-/* Hide the wizard bar while in Quick Chart mode */
-body.qc-active .wizard-bar,
-body.qc-active .wizard-action { display: none; }
-
 /* --- Elevated sidebar panels --- */
 .sidebar-panel { border-bottom: 1px solid rgba(255,255,255,0.04); }
 .panel-title {
@@ -4029,10 +3900,6 @@ body.qc-active .wizard-action { display: none; }
 }
 .wiz-reopen.hidden { display: none; }
 .wiz-reopen:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-
-/* Make sure wizard action card hides when dismissed */
-body.qc-active .tw,
-body.qc-active .tw-reopen { display: none; }
 
 /* Hide legacy floating reopen (replaced by top-bar button) */
 .wiz-reopen { display: none !important; }
@@ -4613,7 +4480,6 @@ input:focus, select:focus, textarea:focus {
    styling renders correctly over the light app. Blue accent carries
    through from :root. --- */
 .stats-overlay,
-.quick-chart-panel,
 .season-overlay,
 .cs-overlay,
 .epa-overlay {
@@ -4632,9 +4498,6 @@ input:focus, select:focus, textarea:focus {
      color (inherited colors are literal, not live var() references). */
   color: var(--text);
 }
-/* Quick chart sits at the bottom as a dark command bar */
-.quick-chart-panel { background: #0b1020; border-top: 2px solid var(--accent); }
-
 /* --- Final light-theme contrast polish --- */
 .swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16,24,40,0.30); }
 /* On-video text annotation input: light field, dark text */
@@ -5337,7 +5200,7 @@ body {
 
 /* Keep overlay-scoped vars dark so var(--surface)/(--canvas) resolve
    correctly over the dark analytics modals. */
-.stats-overlay, .quick-chart-panel, .season-overlay,
+.stats-overlay, .season-overlay,
 .cs-overlay, .epa-overlay {
   --surface: #161d2e;
   --canvas:  #0b1020;
