@@ -92,7 +92,6 @@ export class GameScreen {
       await storage._loadActiveGame({ renderGames: false });
       if (context.defaultUnit) this.app.tagger.defaultUnit = context.defaultUnit;
       this.app._renderGamesPanel?.();
-      this.app.season?._renderAll?.();
       this.app.workspaceShell?._syncChrome?.();
       return { ok: false, message: `${error?.message || 'The game could not be saved.'} Your prior season is unchanged.` };
     }

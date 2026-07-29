@@ -74,7 +74,7 @@ state = await page.evaluate(otherId => {
 }, fixture.otherId);
 ok(state.tags.playType === 'Run Inside' && state.tags.runPass === 'Run' && state.tags.result === 'Gain'
   && state.tags.yardage === '7' && state.tags.down === '2' && state.tags.players.ballCarrier === '22',
-  'Save applies type, classifier, result, yardage, down, and player through the canonical play', JSON.stringify(state.tags));
+  'Save mutates the selected play with type, classifier, result, yardage, down, and player', JSON.stringify(state.tags));
 ok(state.updates === 1 && state.other === fixture.otherBefore, 'Quick Chart emits one update and leaves every other game byte-identical', JSON.stringify(state));
 ok(/All clips charted|Saved/.test(state.status || ''), 'Save reports an affirmative charting outcome', state.status);
 

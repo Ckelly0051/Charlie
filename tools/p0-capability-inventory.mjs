@@ -55,7 +55,7 @@ export const P0_CAPABILITIES = [
   { id:'reports.export', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Native Reports routes PDF, HTML, CSV, and Call Sheet to their canonical owners' },
   { id:'reports.opponent-cohorts', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Watch controls launch the exact displayed unit cohorts' },
   { id:'reports.opponent-special-teams', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST' },
-  { id:'reports.season', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'the Season tab button exists in the dashboard' },
+  { id:'reports.season', surface:'reports', evidence:'data', harness:'e2e-native-season.mjs', assertion:'Native Season report aggregates both games and includes an uncommitted live edit without writing it' },
   { id:'reports.players', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'a rushing leaderboard with player rows rendered' },
   { id:'reports.special-teams', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Special Teams section renders' },
   { id:'reports.self-scout', surface:'reports', evidence:'data', harness:'e2e-season-tab.mjs', assertion:'Self-Scout surfaces a strength / Formation×Strength tell' },

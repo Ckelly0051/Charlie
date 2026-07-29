@@ -34,20 +34,8 @@ export class CallSheetBuilder {
   constructor(playTagger) {
     this.tagger = playTagger;
     this.advanced = new AdvancedMetrics();
-    this._injectButton();
     this._injectModal();
     this._bind();
-  }
-
-  _injectButton() {
-    const bar = document.querySelector('#btnSeason')?.parentElement;
-    if (!bar || document.getElementById('btnCallSheet')) return;
-    const btn = document.createElement('button');
-    btn.className = 'btn';
-    btn.id = 'btnCallSheet';
-    btn.title = 'Generate printable call sheet / wristband';
-    btn.innerHTML = '<svg class="icon"><use href="#icon-notes"/></svg> Call Sheet';
-    bar.insertBefore(btn, document.getElementById('btnSeason'));
   }
 
   _injectModal() {

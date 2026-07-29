@@ -437,14 +437,3 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 @media (max-width: 640px) {
   .stats-overlay .gi-ts-grid, .stats-overlay .gi-id-grid { grid-template-columns: 1fr; }
 }
-
-/* The Season MODAL injects statsHtml into a .stats-overlay container so it
-   gets the full harmonized system (tokens + every rule), same as the dashboard
-   Season tab. It is NOT the full-screen overlay, so drop the backdrop bg/border
-   — the .season-modal chrome around it owns those. */
-.season-stats-body.stats-overlay {
-  /* neutralize the full-screen-overlay layout — this is a style scope only,
-     not the fixed/flex backdrop. */
-  position: static; inset: auto; display: block; z-index: auto;
-  background: transparent; border: none; box-shadow: none; padding: 0;
-}

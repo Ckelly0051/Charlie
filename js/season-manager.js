@@ -1,192 +1,43 @@
 /**
- * SeasonManager - the season-as-project view.
+ * SeasonManager - season-wide analytics composition.
  *
- * The project IS the season (see season-store.js): one named container of many
- * games, autosaved in the browser. This modal is the season's home — name it up
- * front, add games one at a time, switch between them, and watch aggregate stats
- * + week-over-week progression build over the year.
- *
- * It is a *view* over `app.storage.seasonStore`; it owns no game data of its
- * own. Every read goes through `_store()` so the live active game (whatever the
- * coach is tagging right now) is always reflected.
+ * The project IS the season (see season-store.js). Native Reports consumes this
+ * renderer for aggregate stats and progression; Team Hub and Home own season and
+ * game management. It owns no game data of its own.
  */
 import { Charts } from './charts.js';
 
 export class SeasonManager {
   constructor(statsEngine) {
     this.statsEngine = statsEngine;
-
-    this.btn = document.getElementById('btnSeason');
-    this.overlayEl = document.getElementById('seasonOverlay');
-    this.fileInput = document.getElementById('seasonFileInput');
-    this.nameInput = document.getElementById('seasonNameInput');
-
-    this._bindEvents();
   }
 
   /** The canonical season store (lives on StorageManager). */
   _store() { return window.app && window.app.storage && window.app.storage.seasonStore; }
   _storage() { return window.app && window.app.storage; }
 
-  _bindEvents() {
-    if (this.btn) this.btn.addEventListener('click', () => this.show());
-
-    if (this.fileInput) {
-      this.fileInput.addEventListener('change', (e) => {
-        if (e.target.files?.length) this.addFiles(e.target.files);
-        e.target.value = '';
-      });
-    }
-
-    if (this.nameInput) {
-      this.nameInput.addEventListener('input', () => {
-        const s = this._storage(); if (s) s.setSeasonName(this.nameInput.value);
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      const id = e.target?.id;
-      if (id === 'btnCloseSeason') this.hide();
-      if (id === 'btnAddSeasonGames') this.fileInput?.click();
-      if (id === 'btnNewGame') this.newGame();
-      if (id === 'btnSaveSeasonFile') this.saveSeasonFile();
-      if (id === 'btnOpenSeasonFile') this.openSeasonFile();
-      if (id === 'btnBackupFolder') this.backupFolder();
-      if (id === 'btnRestore') this.toggleRestore();
-      if (id === 'btnCloseRestore') this.toggleRestore(false);
-      if (id === 'btnExportSeason') this.exportSeasonReport();
-      if (id === 'seasonOverlay') this.hide();   // click outside modal closes
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.overlayEl && !this.overlayEl.classList.contains('hidden')) {
-        this.hide();
-      }
-    });
-  }
-
-  /** Import saved game file(s) into the current season as new games. */
-  async addFiles(files) {
-    const storage = this._storage();
-    if (!storage) return;
-    let added = 0;
-    for (const f of files) {
-      try {
-        const data = JSON.parse(await f.text());
-        if (Array.isArray(data.games)) {
-          // A whole season file — merge its games in.
-          data.games.forEach(g => storage.seasonStore.addGame(storage.seasonStore.gameFromLegacy(g)));
-          storage.seasonStore.persist();
-          added += data.games.length;
-        } else if (Array.isArray(data.plays)) {
-          if (storage.addGameFromData(data)) added++;
-        } else {
-          throw new Error('Not a valid project file');
-        }
-      } catch (e) {
-        alert(`Failed to load ${f.name}: ${e.message}`);
-      }
-    }
-    if (added) this._renderAll();
-  }
-
-  async newGame() {
-    const storage = this._storage();
-    if (!storage || !window.app?.gameScreen) return;
-    const id = await window.app.gameScreen.open({ mode: 'create' });
-    if (!id || id === 'cancel') return;
-    this._renderAll();
-    this.hide?.();
-    await window.app.openGame?.(id);
-  }
-
-  removeGame(id) {
-    const storage = this._storage();
-    if (!storage) return;
-    storage.removeGame(id);
-    this._renderAll();
-  }
-
-  switchGame(id) {
-    const storage = this._storage();
-    if (!storage) return;
-    // Route through the ONE authoritative open command (C1) so the season-stats
-    // modal opens a game with the same lifecycle/chrome as every other surface.
-    if (window.app?.openGame) { window.app.openGame(id); return; }
-    storage.switchToGame(id);
-    this._renderAll();
-  }
-
-  async saveSeasonFile() {
-    const storage = this._storage();
-    if (storage) await storage.saveProject();
-    this._renderBackupStatus();
-  }
-
-  /** Open a season or game file (universal <input type=file> path). */
-  openSeasonFile() {
-    this.fileInput?.click();
-  }
-
-  /** Bind (or re-bind) the durable backup folder. */
-  async backupFolder() {
-    const storage = this._storage();
-    if (!storage) return;
-    await storage.bindBackupFolder();
-    this._renderBackupStatus();
-  }
-
-  /** Toggle the restore panel; (re)render its list when opening. */
-  async toggleRestore(force) {
-    const panel = document.getElementById('seasonRestorePanel');
-    if (!panel) return;
-    const open = force == null ? panel.classList.contains('hidden') : force;
-    panel.classList.toggle('hidden', !open);
-    if (open) await this._renderRestoreList();
-  }
-
-  async restore(id) {
-    const storage = this._storage();
-    if (!storage) return;
-    const ok = await this._confirm('Restore this save? Your current state is backed up first, so this is reversible.');
-    if (!ok) return;
-    await storage.restoreBackup(id);
-    await this.toggleRestore(false);
-    if (this.nameInput) {
-      const st = this._store();
-      this.nameInput.value = (st && st.data && st.data.seasonName) || '';
-    }
-    this._renderAll();
-  }
-
-  show() {
-    if (!this.overlayEl) return;
-    // Flush the live game into the season before we read it.
-    const storage = this._storage();
-    if (storage) storage.commitActive();
-    if (this.nameInput) {
-      const st = this._store();
-      this.nameInput.value = (st && st.data && st.data.seasonName) || '';
-    }
-    this.overlayEl.classList.remove('hidden');
-    this._renderAll();
-  }
-
-  hide() {
-    if (this.overlayEl) this.overlayEl.classList.add('hidden');
-  }
-
-  /** All games in the season, chronological, with the live state committed. */
+  /** All games in chronological order with a read-only projection of live edits. */
   _effectiveGames() {
     const storage = this._storage();
-    if (storage) storage.commitActive();
     const st = this._store();
-    return st ? st.gamesChrono() : [];
-  }
+    if (!st) return [];
+    const games = st.gamesChrono();
+    const active = st.activeGame();
+    if (!active || storage?._loadedGameId !== st.data.activeGameId || typeof storage?._serialize !== 'function') return games;
 
-  _activeId() {
-    const st = this._store();
-    return st && st.data ? st.data.activeGameId : null;
+    // Reports must include edits still living in the active tagger without
+    // calling commitActive(): opening a view is not permission to rewrite the
+    // canonical game node. Mirror SeasonStore.updateActiveGame's presentation
+    // fields on an ephemeral object only.
+    const live = storage._serialize();
+    live.id = active.id;
+    live.name = st.gameName(live, st.activeIndex());
+    live.status = live.status || active.status || 'active';
+    if (active.filmMode && !live.filmMode) {
+      live.filmMode = active.filmMode;
+      live.filmDir = active.filmDir;
+    }
+    return games.map(game => String(game.id) === String(active.id) ? live : game);
   }
 
   _allPlays() {
@@ -213,136 +64,7 @@ export class SeasonManager {
     return map;
   }
 
-  _renderAll() {
-    this._renderBackupStatus();
-    this._renderGameList();
-    this._renderStats();
-  }
-
-  /** A one-line "where is my data backed up" indicator in the header. */
-  _renderBackupStatus() {
-    const el = document.getElementById('seasonBackupStatus');
-    if (!el) return;
-    const st = this._store();
-    const folderBtn = document.getElementById('btnBackupFolder');
-    if (!st) { el.textContent = ''; return; }
-    const d = st.diskStatus();
-    if (!d.supported) {
-      el.innerHTML = '<span class="bk-warn">⚠ Browser can\'t auto-save to disk — use Save Season to download a backup.</span>';
-      if (folderBtn) folderBtn.style.display = 'none';
-      return;
-    }
-    if (folderBtn) folderBtn.style.display = '';
-    if (d.bound) {
-      const when = d.lastWrite ? new Date(d.lastWrite).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-      const target = (d.name && d.name.trim()) ? this._escape(d.name) : 'a linked folder';
-      el.innerHTML = `<span class="bk-ok">✓ Backing up to <b>${target}</b></span> <span class="bk-dim">· last ${when}</span>`
-        + `<br><span class="bk-dim">This copy survives uninstall. ⚠ Choosing “Delete application data” when uninstalling still erases the app-data copy — use <b>Save Season</b> to export a file first.</span>`;
-      if (folderBtn) folderBtn.textContent = 'Change Folder';
-    } else {
-      el.innerHTML = '<span class="bk-warn">⚠ No backup folder linked — your data lives only in this browser.</span>';
-      if (folderBtn) folderBtn.textContent = 'Back up to Folder';
-    }
-  }
-
-  async _renderRestoreList() {
-    const body = document.getElementById('seasonRestoreList');
-    if (!body) return;
-    const st = this._store();
-    const list = st ? await st.listBackups() : [];
-    if (!list.length) {
-      body.innerHTML = '<div class="season-empty">No restore points yet. They\'re created automatically as you work and on every Save Season.</div>';
-      return;
-    }
-    body.innerHTML = list.map(b => {
-      const when = new Date(b.t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const name = b.seasonName ? this._escape(b.seasonName) + ' · ' : '';
-      return `
-        <div class="restore-row">
-          <div class="restore-info">
-            <div class="restore-when">${when} <span class="restore-label">${this._escape(b.label || 'Save')}</span></div>
-            <div class="restore-meta">${name}${b.games} game${b.games === 1 ? '' : 's'} · ${b.plays} plays</div>
-          </div>
-          <button class="btn btn-sm" data-restore="${b.id}">Restore</button>
-        </div>`;
-    }).join('');
-    body.querySelectorAll('[data-restore]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-restore');
-        // ids are numeric (browser) or filename strings (tauri)
-        this.restore(/^\d+$/.test(id) ? Number(id) : id);
-      });
-    });
-  }
-
-  _renderGameList() {
-    const list = document.getElementById('seasonGameList');
-    if (!list) return;
-
-    const games = this._effectiveGames();
-    const activeId = this._activeId();
-    if (!games.length) {
-      list.innerHTML = '<div class="season-empty">No games yet. Click "+ New Game" to start tagging, or "Import Game" to bring in a saved file.</div>';
-      return;
-    }
-
-    list.innerHTML = '';
-    const st = this._store();
-    const app = window.app;
-    games.forEach((g, idx) => {
-      const r = app ? app._gameRowInfo(g, idx, st, activeId) : {
-        isActive: g.id === activeId, isFinal: false,
-        name: g.name || st.gameName(g, idx), plays: (g.plays || []).length,
-        date: g.gameInfo?.date || '', hasScore: false, u: '', t: ''
-      };
-      const row = document.createElement('div');
-      row.className = 'season-game-row' + (r.isActive ? ' season-game-current' : '');
-      let scoreLabel = '';
-      if (r.hasScore && app) scoreLabel = app._scorePillHtml(r.u, r.t, 'score-pill');
-      else if (r.hasScore) scoreLabel = `<span class="score-pill">${this._escape(r.u)}-${this._escape(r.t)}</span>`;
-      const statusBadge = r.isFinal ? '<span class="season-final-tag" title="Game completed">✓ Final</span>' : '';
-      const activeTag = r.isActive ? '<span class="season-current-tag" title="The game you have open">active</span>' : '';
-      row.innerHTML = `
-        <div class="season-game-info" data-action="switch">
-          <div class="season-game-name">Game ${idx + 1}: ${this._escape(r.name)} ${scoreLabel} ${statusBadge} ${activeTag}</div>
-          <div class="season-game-meta">${r.plays} plays${r.date ? ' · ' + this._escape(r.date) : ''}${r.isActive ? '' : ' · click to open'}</div>
-        </div>
-        <button class="btn btn-sm btn-danger" data-action="remove" title="Remove this game from the season">×</button>
-      `;
-      row.querySelector('[data-action=switch]')?.addEventListener('click', () => {
-        if (!r.isActive) this.switchGame(g.id);
-      });
-      row.querySelector('[data-action=remove]')?.addEventListener('click', async (ev) => {
-        ev.stopPropagation();
-        const ok = await this._confirm(`Remove "Game ${idx + 1}: ${r.name}" from the season?`);
-        if (ok) this.removeGame(g.id);
-      });
-      list.appendChild(row);
-    });
-  }
-
-  /** Lightweight confirm that reuses the tagger's in-app modal when available. */
-  async _confirm(msg) {
-    const t = window.app && window.app.tagger;
-    if (t && t._confirmDialog) return t._confirmDialog(msg, 'Remove');
-    return confirm(msg);
-  }
-
-  _renderStats() {
-    const body = document.getElementById('seasonStatsBody');
-    if (!body) return;
-    body.innerHTML = this.statsHtml();
-    this.statsEngine.heatMaps.bind(body);
-    this.statsEngine._makeSortable(body);
-    this.statsEngine._wireSubtabs(body);
-  }
-
-  /**
-   * Season stats as an HTML string. Extracted from _renderStats so the per-game
-   * dashboard's "Season" tab and this modal share ONE season render — drop it
-   * inside the dashboard's .stats-overlay and it inherits the broadcast-dark
-   * redesign for free. Caller binds heat maps to the container afterward.
-   */
+  /** Season stats composed for the native Reports Season tab. */
   statsHtml() {
     const games = this._effectiveGames();
     if (!games.length) {
@@ -734,121 +456,6 @@ export class SeasonManager {
         ${defBlock}
       </div>
     `;
-  }
-
-  exportSeasonReport() {
-    const games = this._effectiveGames();
-    if (!games.length) return;
-    const allPlays = this._allPlays();
-    const stats = this.statsEngine.compute(allPlays);
-    const st = this._store();
-    const seasonName = (st && st.data && st.data.seasonName) || '';
-    const title = seasonName ? `${this._escape(seasonName)} — Season Report` : `Season Report — ${games.length} games`;
-
-    this.statsEngine._seasonLabels = this._mergeRoster();
-    const indTables = this.statsEngine._renderIndividualStats(stats);
-    const individual = indTables ? `<div class="stats-section"><h3>Season Player Roll-Up</h3></div>${indTables}` : '';
-    const body = [
-      this._renderHeader(stats),
-      this._renderProgression(),
-      this._renderTrends(),
-      this.statsEngine._renderTeamStats(stats),
-      this.statsEngine._renderEfficiency(stats),
-      this.statsEngine._renderDownAnalysis(stats),
-      this.statsEngine._renderSituational(stats),
-      this.statsEngine._renderTendencies(stats),
-      this.statsEngine._renderPersonnel(stats),
-      individual,
-      this._renderPerGameTable(),
-      this._renderSelfScout()
-    ].join('\n');
-    this.statsEngine._seasonLabels = null;
-
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>
-body{font-family:-apple-system,sans-serif;background:#fff;color:#222;max-width:1200px;margin:24px auto;padding:0 20px}
-h1{border-bottom:3px solid #06b6d4;padding-bottom:8px}
-h3{color:#06b6d4;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}
-table{width:100%;border-collapse:collapse;margin:8px 0}
-th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}
-th{background:#06b6d4;color:#fff}
-tr:nth-child(even){background:#f4f4f8}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
-.stat-card{border:1px solid #ddd;padding:12px;border-radius:6px;background:#f9f9fb}
-.stat-card-title{font-size:11px;text-transform:uppercase;color:#666}
-.stat-card-value{font-size:22px;font-weight:bold;color:#06b6d4}
-.season-summary{display:flex;flex-wrap:wrap;gap:18px;background:#06b6d4;color:#fff;padding:14px;border-radius:6px;justify-content:space-around}
-.ss-num{font-size:24px;font-weight:bold}
-.ss-lbl{font-size:11px;opacity:.8;text-transform:uppercase}
-.trend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
-.trend-row{display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0}
-.trend-label{width:120px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
-.trend-bar{flex:1;height:14px;background:#eee;border-radius:3px;overflow:hidden}
-.trend-bar div{height:100%}
-.trend-val{width:80px;text-align:right;color:#666}
-.self-scout li{margin:6px 0;line-height:1.4}
-.self-scout li b{color:#06b6d4}
-.ss-verdict-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:.3px}
-.ss-verdict-tag.dominant{background:rgba(34,197,94,.15);color:#1f9d4d}
-.ss-verdict-tag.effective{background:rgba(245,158,11,.15);color:#d97706}
-.ss-verdict-tag.exploitable{background:rgba(239,68,68,.15);color:#dc2626}
-.ss-v-dominant{opacity:.8}
-.prog-headline{font-size:13px;margin:4px 0 10px}
-.prog-headline .prog-up{color:#1f9d4d}.prog-headline .prog-down{color:#d23b3b}
-.prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.prog-card{border:1px solid #ddd;border-left:4px solid #999;border-radius:6px;padding:10px 12px;background:#f9f9fb}
-.prog-card.prog-better{border-left-color:#1f9d4d}.prog-card.prog-worse{border-left-color:#d23b3b}.prog-card.prog-flat{border-left-color:#999}
-.prog-metric{font-size:11px;text-transform:uppercase;color:#666}
-.prog-vals{font-size:18px;font-weight:bold;margin:3px 0}
-.prog-arrow{margin:0 2px}
-.prog-tag{font-size:11px;font-weight:bold}
-.prog-card.prog-better .prog-tag{color:#1f9d4d}.prog-card.prog-worse .prog-tag{color:#d23b3b}.prog-card.prog-flat .prog-tag{color:#888}
-/* The embedded dashboard renderers (gauges, donuts, tendency bars, eff rows,
-   stack bars) reference app CSS vars and chart classes — define them here so
-   the standalone report isn't half-blank. */
-body{--text:#222;--text-dim:#666;--text-bright:#111;--run-color:#f97316;--pass-color:#38bdf8;--accent:#0e7490;--highlight:#0e7490;--surface:#fff;--border:#ddd;--gauge-track:#e5e7eb}
-.stats-section{margin:18px 0}
-.tendency-bar{display:flex;height:26px;border-radius:5px;overflow:hidden;margin-bottom:10px;font-size:11px;font-weight:600;border:1px solid #ddd}
-.tendency-run{background:#f97316;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
-.tendency-pass{background:#38bdf8;color:#111;display:flex;align-items:center;justify-content:center;min-width:40px}
-.chart-gauge{display:inline-block;vertical-align:top;margin:6px 12px 6px 0;text-align:center}
-.chart-gauge-label{font-size:11px;color:#666;margin-top:2px}
-.chart-donut{vertical-align:top}
-.chart-donut-wrap{display:inline-flex;align-items:center;gap:10px;margin:6px 14px 6px 0}
-.chart-legend{font-size:12px}
-.chart-leg-item{display:flex;align-items:center;gap:6px;margin:2px 0}
-.chart-leg-item i{width:10px;height:10px;border-radius:2px;display:inline-block}
-.eff-gauges-row,.sit-gauges-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
-.eff-side-cards{display:flex;gap:10px}
-.stat-card-sm{border:1px solid #ddd;border-radius:6px;padding:8px 12px;background:#f9f9fb;text-align:center}
-.stat-card-title{font-size:10px;text-transform:uppercase;color:#666}
-.chart-eff{font-size:12px}
-.chart-eff-head{display:flex;justify-content:space-between;font-size:10px;color:#666;margin-bottom:4px}
-.chart-eff-head .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 3px 0 8px}
-.dot.run{background:#f97316}.dot.pass{background:#38bdf8}
-.chart-eff-row{display:flex;align-items:center;gap:8px;margin:4px 0}
-.chart-eff-label{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
-.chart-eff-bar-wrap{flex:1}
-.chart-eff-track{height:16px;background:#eee;border-radius:3px;overflow:hidden}
-.chart-eff-fill{height:100%;background:#38bdf8;border-radius:3px;overflow:hidden}
-.chart-eff-run{height:100%;background:#f97316}
-.chart-eff-meta,.chart-eff-meta-head{display:flex;gap:4px;font-variant-numeric:tabular-nums}
-.chart-eff-meta span{display:inline-block;width:50px;text-align:right}
-.chart-stack{display:flex;min-width:90px;border-radius:3px;overflow:hidden;background:#eee}
-.chart-stack-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#111}
-.stats-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.cut-row{cursor:default}
-.stats-cut-hint{display:none}
-svg text{fill:#222}
-</style></head><body>
-<h1>${title}</h1>
-<p style="color:#666">Generated ${new Date().toLocaleString()}</p>
-${body}
-</body></html>`;
-
-    const blob = new Blob([html], { type: 'text/html' });
-    const fname = `season_report_${new Date().toISOString().slice(0, 10)}.html`;
-    window.ffaSaveBlob(blob, fname);
   }
 
   _escape(s) {

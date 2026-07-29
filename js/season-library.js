@@ -716,7 +716,6 @@ export class SeasonLibrary {
     if (window.app?.openGame) { await window.app.openGame(id); return; }
     // Defensive fallback (openGame is always present under window.app).
     if (storage.seasonStore.data && storage.seasonStore.data.activeGameId !== id) await storage.switchToGame(id);
-    if (window.app?.season?._renderAll) window.app.season._renderAll();
   }
 
   async _newGameFromSchedule() {

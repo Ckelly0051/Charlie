@@ -290,7 +290,6 @@ class App {
     }
     // Deterministic chrome refresh.
     this._renderGamesPanel();
-    this.season?._renderAll?.();
     // Workspace transition. Break Down is a shell route: its render relocates the
     // canonical Settings/More chrome, so every entry route lands on identical
     // chrome. The redesigned shell is the unconditional product and owns the
@@ -332,7 +331,6 @@ class App {
     store.setGameStatus(game.id, 'final');
     this._renderGamesPanel();   // commits live state (incl. status) into the node
     store.persist();
-    this.season._renderAll?.();
 
     const name = store.gameName(game, store.activeIndex());
     this.updater._toast(`"${name}" marked as Final`);
@@ -473,7 +471,6 @@ class App {
         if (!ok) return;
         this.storage.removeGame(g.id);
         this._renderGamesPanel();
-        this.season._renderAll?.();
         // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
         this.history?._toast(`Removed "${r.name}"`, {
           duration: this.storage.undoGameWindowMs(),
@@ -605,7 +602,6 @@ class App {
 
   _afterNewGame() {
     this._renderGamesPanel?.();
-    this.season?._renderAll?.();
   }
 
   /** Set an input/select value by id (no-op when the element is absent). */

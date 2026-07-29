@@ -1278,9 +1278,6 @@ export class StorageManager {
         alert('Invalid project file.');
         return;
       }
-      if (window.app && window.app.season && window.app.season._renderAll) {
-        window.app.season._renderAll();
-      }
       // If the library overlay is up (first-run import), re-open it: the
       // recovery pass rebuilds team identity from the imported season's
       // teamProfile, so the coach lands on a populated Team Home, not setup.

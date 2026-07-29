@@ -115,10 +115,10 @@ r = await page.evaluate(() => ({
 }));
 ok(r.player, 'sample player labels render in native Reports', JSON.stringify(r));
 ok(!r.seen && r.roster === 0, 'sample Reports neither completes real-data progress nor changes the roster', JSON.stringify(r));
-await page.evaluate(() => window.app.season._renderAll());
+await page.evaluate(() => window.app.reportsScreen.selectTab('season'));
 await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
 ok(await page.evaluate(() => document.querySelector('[data-pane="players"]')?.textContent.includes('Marcus Carter')),
-  'sample player labels survive season-report rendering');
+  'sample player labels survive native Season report rendering');
 
 console.log('\n== 4. Sample persistence and removal ==');
 await openHub();

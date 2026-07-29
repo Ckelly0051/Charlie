@@ -2344,133 +2344,7 @@ body {
 .hm-scroll { overflow-x: auto; }
 
 
-/* ===== Season Stats Modal ===== */
-.season-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  z-index: 9500;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  overflow-y: auto;
-  padding: 20px;
-}
-.season-modal {
-  background: #2c323c;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 1300px;
-  border: 1px solid #2d3454;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-}
-.season-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #2d3454;
-  flex-wrap: wrap;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  background: #2c323c;
-  z-index: 10;
-}
-.season-header h2 {
-  margin: 0;
-  color: #06b6d4;
-  font-size: 22px;
-}
-.season-header-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.season-game-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid #2d3454;
-  max-height: 180px;
-  overflow-y: auto;
-}
-.season-empty {
-  color: #888;
-  font-size: 13px;
-  width: 100%;
-  text-align: center;
-  padding: 16px;
-}
-.season-game-row {
-  background: #232830;
-  border: 1px solid #2d3454;
-  border-radius: 4px;
-  padding: 8px 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 220px;
-  flex: 0 1 auto;
-}
-.season-game-info { flex: 1; min-width: 0; }
-.season-game-name {
-  font-size: 13px;
-  color: #fff;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.season-game-meta {
-  font-size: 11px;
-  color: #888;
-  margin-top: 2px;
-}
-.score-pill {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  background: #2d3454;
-  color: #fff;
-  margin-left: 4px;
-}
-.score-pill.win { background: #1f5e1f; }
-.score-pill.loss { background: #5e1f1f; }
-
-/* The currently-loaded in-app game, auto-included in the season. */
-.season-game-row.season-game-current {
-  border-color: var(--run-color);
-  box-shadow: inset 0 0 0 1px rgba(240,180,41,0.35);
-}
-.season-current-tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  background: var(--run-color);
-  color: #1a1205;
-}
-.season-final-tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  background: rgba(34,197,94,.2);
-  color: #22c55e;
-}
-
-.season-stats-body {
-  padding: 16px 20px 20px;
-}
+/* Season analytics content is rendered by native Reports. */
 .season-empty-stats {
   text-align: center;
   color: #888;
@@ -2636,20 +2510,7 @@ body {
   margin: 4px 0;
 }
 
-/* Mobile responsiveness for season modal */
 @media (max-width: 700px) {
-  .season-overlay { padding: 8px; }
-  .season-modal { border-radius: 4px; }
-  .season-header {
-    padding: 12px;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .season-header h2 { font-size: 18px; }
-  .season-header-actions { justify-content: flex-end; }
-  .season-game-list { padding: 8px 12px; }
-  .season-game-row { min-width: 0; flex: 1 1 100%; }
-  .season-stats-body { padding: 10px 12px 16px; }
   .ss-num { font-size: 20px; }
   .trend-label { width: 70px; }
   .trend-val { width: 56px; }
@@ -4610,10 +4471,6 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .chart-eff-row.cut-row:hover .chart-eff-label::before { opacity: 1; }
 /* Season overlay reuses the same renderers but never binds the click —
    neutralize the affordance there so rows don't look clickable. */
-#seasonOverlay .cut-row { cursor: default; }
-#seasonOverlay .cut-row:hover { background: transparent; }
-#seasonOverlay .cut-row td:first-child::before,
-#seasonOverlay .chart-eff-row.cut-row .chart-eff-label::before { content: none; }
 .stats-cut-hint {
   font-size: 12px;
   color: var(--text-dim);
@@ -4679,8 +4536,6 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-s
 .cutup-exit:hover { background: var(--danger); }
 
 /* Season modal: player rows aren't clickable (no film loaded) */
-#seasonOverlay .player-row { cursor: default; }
-#seasonOverlay .player-row:hover { background: transparent; }
 
 /* ================================================================== */
 /* =====================  TOUCH RESPONSIVENESS  ==================== */

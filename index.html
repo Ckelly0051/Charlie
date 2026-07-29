@@ -1187,40 +1187,6 @@
     <div class="hidden" id="statsDashboard"></div>
     <button class="hidden" id="btnCloseStats"></button>
 
-    <!-- Season Stats Modal -->
-    <div class="season-overlay hidden" id="seasonOverlay">
-      <div class="season-modal">
-        <div class="season-header">
-          <div class="season-title-wrap">
-            <label class="season-name-label" for="seasonNameInput">Season</label>
-            <input type="text" id="seasonNameInput" class="season-name-input" placeholder="Name your season (e.g. Eagles 2026)" maxlength="60">
-          </div>
-          <div class="season-header-actions">
-            <button class="btn btn-sm btn-accent" id="btnNewGame" title="Start a new game in this season">+ New Game</button>
-            <button class="btn btn-sm" id="btnAddSeasonGames" title="Import a saved game file into this season">Import Game</button>
-            <button class="btn btn-sm" id="btnSaveSeasonFile" title="Save the season + make a disk backup restore point">Save Season</button>
-            <button class="btn btn-sm" id="btnBackupFolder" title="Pick a folder to automatically back up to (recommended)">Back up to Folder</button>
-            <button class="btn btn-sm" id="btnRestore" title="Restore a previous save (undo a mistake)">Restore</button>
-            <button class="btn btn-sm" id="btnOpenSeasonFile" title="Open a season or game file">Open File</button>
-            <button class="btn btn-sm" id="btnExportSeason" title="Export a printable season report">Export Report</button>
-            <button class="btn btn-sm btn-danger" id="btnCloseSeason">Close</button>
-          </div>
-          <input type="file" id="seasonFileInput" accept=".json" multiple hidden>
-        </div>
-        <div class="season-backup-status" id="seasonBackupStatus"></div>
-        <div class="season-restore-panel hidden" id="seasonRestorePanel">
-          <div class="restore-head">
-            <h3>Restore a previous save</h3>
-            <button class="btn btn-sm btn-danger" id="btnCloseRestore">Close</button>
-          </div>
-          <p class="restore-intro">Pick a point to roll back to. Your current state is backed up first, so restoring is always reversible.</p>
-          <div class="season-restore-list" id="seasonRestoreList"></div>
-        </div>
-        <div class="season-game-list" id="seasonGameList"></div>
-        <div class="season-stats-body stats-overlay" id="seasonStatsBody"></div>
-      </div>
-    </div>
-
     <!-- Season Library (the app's front door — team home) -->
     <div class="library-overlay hidden" id="libraryOverlay">
       <div class="library-modal">
