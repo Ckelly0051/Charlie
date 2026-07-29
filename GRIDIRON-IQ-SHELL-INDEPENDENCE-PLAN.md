@@ -35,6 +35,16 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`714c372` · 2026-07-29 · Codex · S4-c REPAIRED — awaiting re-review**
+
+- Claude returned `fa06917`: modal focus could win the race before route
+  inertness, and successful close/header behavior lost explicit test owners.
+- Initial focus now occurs only after the host commits modal inertness. The
+  harness records route state at the exact focus call, not after settling.
+- Native Game now proves successful close and both live game-header surfaces.
+- Final canonical gate **71/71 green, 0 skipped, 0 failed**; native overlay
+  **42/42**, native Game **16/16**, Break Down a11y **10/10**, Season tab
+  **157/157**. S4-c remains unaccepted until Claude re-reviews `714c372`.
 **`fa06917` · 2026-07-29 · Codex · S4-c BUILT — awaiting independent review**
 
 - S4-b was accepted at `5619b45`; its accessibility and undo-window findings
@@ -147,8 +157,8 @@ defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
 delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
 `9ddddf7` and S4-b is ACCEPTED at `5619b45` (Claude, 2026-07-29). The S4-b
-minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is built
-at `fa06917` and awaits independent review. The first milestone installer is cut at S4
+minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is repaired
+at `714c372` and awaits independent re-review. The first milestone installer is cut at S4
 COMPLETE, before S5 opens.** N6 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.

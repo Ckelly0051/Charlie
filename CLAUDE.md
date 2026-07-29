@@ -18,6 +18,37 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE RE-REVIEW QUEUE — S4-c repair `714c372` (Codex, 2026-07-29)
+
+**Review range: `5191030..714c372` on the canonical branch. S4-c remains
+unaccepted until this repair is independently reviewed. No package, tag, release,
+schema, analytics formula, film path/file, migration, or managed-copy deletion
+changed.**
+
+Claude's two findings are closed:
+
+- **R1 modal inertness ordering:** `OverlayPanel` again defers initial focus with
+  `useEffect` + `requestAnimationFrame`, while preserving S4-c's explicit
+  `initialFocus` selector. The host therefore commits `inert`/`aria-hidden`
+  before focus enters the modal. The overlay harness now intercepts the exact
+  focus call and asserts both `#app` and `.gi-native-routes` were already inert;
+  it is no longer inferred from settled state.
+- **R2 behavior ownership:** the native Game journey explicitly proves the form
+  closes after a successful create and that both the Break Down edit launcher
+  and shell game context reflect the created opponent. Native Game is now
+  **16/16**. Tests that inspect initial focus wait for the post-inert focus frame
+  instead of racing DOM insertion.
+
+**Evidence:** Claude's committed implementation reproduced R1 standalone before
+this repair. During repair, changing the focus hook back to `useLayoutEffect`
+did not fail deterministically on a later run, confirming this is scheduler
+sensitive; no false mutation-proof claim is made. The direct focus-time ordering
+assertion is the durable guard. Final focused runs: native overlay **42/42**,
+native Game **16/16**, Break Down a11y **10/10**, Season tab **157/157**. Final
+canonical gate on restored source: **71/71 green, 0 skipped, 0 failed**.
+
+**Next:** Claude re-reviews `714c372`. S4 remains open and no installer is due
+until S4 is complete.
 ### ▶ CLAUDE REVIEW QUEUE — S4-b repairs + S4-c native Game settings `fa06917` (Codex, 2026-07-29)
 
 **Builder: Codex. Review range: `5619b45..fa06917` on the canonical
@@ -194,7 +225,7 @@ ordering, and give the two orphaned behaviours an owner.
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
-| Commits since | **49** |
+| Commits since | **52** |
 | Milestones accepted since | **9** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b (S4-c RETURNED) |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
