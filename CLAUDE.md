@@ -69,6 +69,66 @@ aesthetic inspection rather than accepting that claim on report.
 with the remaining legacy overlays. No milestone package or release is cut from
 this checkpoint.
 
+#### CLAUDE'S INDEPENDENT REVIEW of `9ddddf7` — ACCEPTED. 1 finding, no capability loss (2026-07-29)
+
+**Full canonical gate 70 harnesses | 70 green | 0 skipped**, real data included.
+**Assertion counts went UP**: `e2e-native-overlay` 35 → **41**,
+`e2e-workspace-shell` 57 → **62**.
+
+- **N6 (popover) is implemented correctly against overlay spec §2** — anchored
+  with real collision handling, `ResizeObserver` on the anchor, dismiss on
+  outside `pointerdown` (capture) and Escape, and **explicitly NOT focus-trapped**:
+  it uses `role="menu"` with roving arrow keys, which is the right ARIA pattern.
+  It fails loud on a missing/disconnected anchor and on an empty item list. Two
+  touches nobody asked for and both correct: an overlay whose anchor detaches
+  self-closes (`anchor-lost`), and popover-replaces-popover happens in **one
+  emission** rather than close-then-open, with a comment explaining the focus
+  race that would otherwise occur. This is the primitive S5b needs.
+- **`_restoreFocus` now yields to a newer focus decision** — if focus has already
+  landed on a live control elsewhere, the delayed restore no longer steals it
+  back. That is a real improvement to a primitive I filed against twice (N4, P3).
+- **Import Plays is wired at the right seam.** `play-import-screen.js` is a thin
+  adapter: `parse()` → `storage.importPlaysFromText()`, `apply()` →
+  `storage.applyPlayImport()`. **The CSV parsing and play-creation engine — the
+  dangerous part — is untouched**; the JSX owns presentation and column mapping
+  only. `#playImportModal`, `#shortcutsModal` and `#btnImportPlays` are genuinely
+  **deleted**, not hidden.
+
+**S4a-1 [P2] The legacy More menu was NOT deleted, and the handoff says it was.**
+The handoff states *"the retired import/shortcuts nodes and binding code are
+deleted, not hidden."* True for Import Plays and Shortcuts. **Not true for the
+More menu:** `.more-menu`, `#btnMoreMenu` and `#moreDropdown` with all ten items
+remain in `index.html`, and **`_initMoreMenu()` is still called at
+`ui-polish.js:14`** and still toggles `.hidden` on that panel.
+
+Probed: the legacy button is `insideHiddenOutlet: true`, `onScreen: false` — so it
+is **entombed**, and clicking it removes `.hidden` from a panel nobody can see.
+The native owner is a *different* control, `#btnNativeMore`. This is live code
+binding live listeners to dead DOM on every boot, and it is exactly the residue
+S7 must delete — so leaving it while reporting it deleted will make the S7
+inventory wrong. The standing rule from the breadcrumb deletion applies: hidden
+markup is what resurfaced when an overlay revealed the outlet, twice. **Absence
+cannot be un-hidden.**
+
+**No capability loss — verified, and my first measurement was wrong.** A naive
+label diff said six legacy actions were missing from the native menu. Four are
+renames (`Open Season / Game` → `Open season file`, `Save now + restore point` →
+`Save season`, `Export CSV` → `Export plays CSV`, `Screenshot` → `Export current
+frame`). The other two — **Open data folder** and **Check for updates** — are
+`workspace-shell.js:301-302`, pushed only when `seasonStore.canOpenDataDir()` and
+`app.updater?.available`, i.e. **desktop-only**, correctly absent from the browser
+build my probe ran. Native carries 9 actions + a version label; legacy carried 10.
+Parity holds. *(Fifth time this session that guessy matching would have produced a
+false finding, and the fifth time checking caught it.)*
+
+**Those two desktop-only items are the sharpest argument for the smoke build:**
+they were just rewired from legacy buttons to native popover `onSelect` handlers,
+`_openDataFolder` calls into Tauri, and **no headless harness can execute either
+one.** They are untested code in this very checkpoint.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected.
+
 ### HISTORICAL — superseded S4 installer hold (`f86c7e6`, 2026-07-28)
 
 **Do not start S4.** `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` was revised after

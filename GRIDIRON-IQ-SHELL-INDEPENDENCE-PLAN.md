@@ -7,6 +7,22 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`9ddddf7` · 2026-07-29 · Claude · S4-a ACCEPTED · smoke scheduled at S4 COMPLETE**
+
+- **S4-a is accepted.** Gate 70/70; overlay assertions 35→41, shell 57→62; N6
+  popover is spec-correct and Import Plays keeps the tested engine at the seam.
+  One finding, **S4a-1**: the legacy More menu (`#moreDropdown`, `#btnMoreMenu`,
+  `_initMoreMenu()`) was **not** deleted despite the handoff saying it was — it is
+  entombed inside the hidden outlet with its binding still running. No capability
+  loss; native carries parity. **Fold the deletion into the rest of S4.**
+- **Smoke timing decided (Claude's call, coach deferred it):** build the installer
+  **when S4 is complete**, not mid-milestone and not before. Rationale in §8.
+  The coach's framing was right — prove the structural layer before more
+  structure lands on it. S5 rebuilds Break Down on top of this overlay host.
+- **The `f86c7e6` S4 BLOCK is withdrawn as a gate.** It was raised after S4-a was
+  already in flight; blocking work already done buys nothing. The *requirement*
+  stands, moved to the S4 boundary.
+
 **`9ddddf7` · 2026-07-28 · Codex · S4-a BUILT — awaiting independent review**
 
 - The coach explicitly opened S4 after accepting the S3 repair. This supersedes
@@ -73,8 +89,10 @@ R1 was root-caused in production (`Array.isArray` on an explicitly empty
 overlay action list) and mutation-verified; the mutation showed the real
 defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
-delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is built at
-`9ddddf7` and awaits Claude's independent review.** N6 (popover) is now
+delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at `9ddddf7`
+(Claude, 2026-07-29; gate 70/70). Finding S4a-1: delete the entombed legacy More
+menu as part of the rest of S4. The first milestone installer is cut at S4
+COMPLETE, before S5 opens.** N6 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.
 
@@ -92,7 +110,9 @@ mutation-verified.
 
 **Carried into the S-milestones — not optional:**
 - **N1–N3 CLOSED** at `8fd15db`; N2 and N3 mutation-verified independently.
-  **N6 (popover) remains open and S5b needs it.**
+  **N6 (popover) CLOSED at `9ddddf7`** — spec-correct, and S5b now has it.
+- **S4a-1 OPEN:** delete the entombed legacy More menu (`#moreDropdown`,
+  `#btnMoreMenu`, `.more-menu`, `_initMoreMenu()`) with the rest of S4.
 - **R1–R2 CLOSED** at `8fd15db`: 40 byte-distinct captures across 4 viewports,
   and Film Room now genuinely renders Film Room.
 - **S2-1 CLOSED at `f78d9e4`:** pre-game Settings proof again clicks and asserts
@@ -461,13 +481,26 @@ capability goes on an explicit list for coach approval **before** the milestone 
 - **Local (unpublished) milestone installers after:** native Team & Film Settings ·
   Break Down ownership flip · final legacy deletion. Browser tests cannot prove
   Windows folder dialogs, linked-film paths, playback or Tauri lifecycle.
-  **This is an ACCEPTANCE CONDITION, not a suggestion: the reviewer does not
-  accept a milestone named here until its installer is built and the coach has
-  smoked it.** Add it to the review checklist alongside the gate — it was missed
-  at S2 and again at S3 precisely because it lived only in this section.
+  **This is an ACCEPTANCE CONDITION, not a suggestion.** Add it to the review
+  checklist alongside the gate — it was missed at S2 and again at S3 precisely
+  because it lived only in this section.
   **Also build one BEFORE S5d,** not just after: S5a–c are cheaply reversible and
   the ownership flip is not, so the coach should have used the native Break Down
   pieces while backing them out is still cheap.
+
+- **Smoke schedule as of 2026-07-29 (Claude's call).** The first installer is cut
+  **at S4 COMPLETE** — after the remaining legacy overlays land, before S5 opens.
+  Not mid-milestone: a checkpoint installer interrupts work already in flight and
+  buys nothing the next one won't. Not deferred past S5 either — **S5 rebuilds
+  Break Down on top of the shell, overlay host, film-navigation service and
+  settings layer that no coach has ever touched.** Proving the structural layer
+  before more structure lands on it is the entire point.
+  **What only the installer can prove**, all of it currently unexecuted anywhere:
+  linked film on `D:` (folder dialogs, `convertFileSrc`, asset-protocol playback),
+  the SQL catalog against real film, Tauri lifecycle and the updater, the
+  Documents mirror, and — new in S4-a — the two **desktop-only** More items
+  (`Open data folder`, `Check for updates`) that were just rewired to native
+  popover handlers and that **no headless harness can reach**.
 - One clean versioned smoke build after the complete migration is accepted.
 
 ---
