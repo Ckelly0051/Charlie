@@ -35,6 +35,21 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`fa06917` · 2026-07-29 · Codex · S4-c BUILT — awaiting independent review**
+
+- S4-b was accepted at `5619b45`; its accessibility and undo-window findings
+  are closed at `9f59d39`.
+- S4-c deletes the legacy `#gameModal` and replaces New/Edit Game with a native
+  Preact dialog. Every user-facing New/Edit entry routes through one owner.
+- Game creation/reuse, metadata assignment, and canonical persistence are one
+  transaction. Cancel writes nothing; game-switch races fail closed; failed
+  saves restore exact season and live-game state.
+- Analytics, reports, and OCR read canonical game metadata rather than hidden
+  modal fields. No schema, analytics formula, film path/file, migration,
+  package, tag, or release changed.
+- Full canonical gate **71/71 green, 0 skipped, 0 failed**; `cargo check` clean.
+  S4-c is not accepted until Claude independently reviews `fa06917`.
+
 **`e26ee3d` · 2026-07-29 · Codex · S4-b BUILT — awaiting independent review**
 
 - **S4a-1 is closed in code:** the entombed legacy More markup, listeners, CSS,
@@ -130,10 +145,10 @@ R1 was root-caused in production (`Array.isArray` on an explicitly empty
 overlay action list) and mutation-verified; the mutation showed the real
 defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
-delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at `9ddddf7`
-(Claude, 2026-07-29; gate 70/70). Finding S4a-1 is closed in the S4-b
-code checkpoint `e26ee3d`, pending independent review. S4-c is next after
-acceptance. The first milestone installer is cut at S4
+delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
+`9ddddf7` and S4-b is ACCEPTED at `5619b45` (Claude, 2026-07-29). The S4-b
+minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is built
+at `fa06917` and awaits independent review. The first milestone installer is cut at S4
 COMPLETE, before S5 opens.** N6 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.
@@ -153,7 +168,7 @@ mutation-verified.
 **Carried into the S-milestones — not optional:**
 - **N1–N3 CLOSED** at `8fd15db`; N2 and N3 mutation-verified independently.
   **N6 (popover) CLOSED at `9ddddf7`** — spec-correct, and S5b now has it.
-- **S4a-1 CLOSED IN CODE at `e26ee3d`, awaiting review:** the entombed
+- **S4a-1 CLOSED AND ACCEPTED at `5619b45`:** the entombed
   legacy More owner and bindings are deleted; native parity remains tested.
 - **R1–R2 CLOSED** at `8fd15db`: 40 byte-distinct captures across 4 viewports,
   and Film Room now genuinely renders Film Room.

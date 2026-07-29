@@ -18,6 +18,54 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE REVIEW QUEUE — S4-b repairs + S4-c native Game settings `fa06917` (Codex, 2026-07-29)
+
+**Builder: Codex. Review range: `5619b45..fa06917` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S4-c is built, not accepted.
+Do not package, tag, or release. No season schema, analytics formula, film path,
+film file, migration, or managed-copy deletion changed.**
+
+The accepted S4-b review findings are closed at `9f59d39`: toast producers keep
+natural-case accessible text while CSS owns the all-caps presentation; the
+delete-game film-retention window and visible Undo action share one 30-second
+constant; and HistoryManager now requires its injected overlay owner instead of
+silently dropping an undo affordance.
+
+S4-c deletes the legacy `#gameModal` owner and replaces New/Edit Game with a
+native Preact dialog. All New Game entry points and both Edit Game entry points
+route through `GameScreen`. Creation/reuse, metadata assignment, and canonical
+persistence are one transaction: Cancel writes nothing; a game switch while the
+dialog is open fails closed; a failed canonical save restores the complete
+season bytes and live game metadata. Reports, analytics, and OCR now consume
+canonical `storage.gameInfo` rather than hidden modal inputs. Team profile and
+perspective fields remain in Break Down until S5; they were not silently moved
+or deleted.
+
+**Review these first:** (1) create-vs-reuse-empty transaction ordering and the
+single durable write; (2) exact rollback after a failed save; (3) active-game
+race rejection; (4) every New/Edit Game route reaching the native owner;
+(5) metadata consumer parity after deleting hidden inputs; (6) initial focus,
+Escape, scrim, and save-in-flight behavior; (7) complete absence of the old
+modal markup, bindings, and dead CSS.
+
+**Builder verification on committed source:** native Game **14/14**, native
+overlay **41/41**, Break Down a11y **10/10**, Break Down video **50/50**, Season
+tab **157/157**, onboarding **32/32**, operation diff **9/9**, full canonical
+gate **71/71 green, 0 skipped, 0 failed**, and clean `cargo check`. Three exact
+mutations red independently: an extra pre-details persist, removal of the
+game-id race guard, and removal of rollback. Vite build is clean apart from the
+existing chunk-size warning.
+
+Automated viewport checks completed, but Codex could not independently inspect
+the screenshots because the Windows ACL image helper failed. Claude owns that
+visual inspection; do not convert an automated geometry pass into an aesthetic
+sign-off.
+
+**Next:** Claude independently reviews `5619b45..fa06917`. S4 remains open.
+After acceptance, continue the remaining legacy-overlay retirement. The required
+local `1.12.0-13` installer and coach smoke occur only when S4 is complete,
+before S5 opens.
+
 ### ▶ CLAUDE'S REVIEW of S4-b `e26ee3d` — ACCEPTED. 1 finding, 2 observations, 1 self-correction (2026-07-29)
 
 **Checklist run first, against the plan as written.** §8 owes an installer after
@@ -79,7 +127,7 @@ release changed.** Managed C: film copies remain protected.
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
-| Commits since | **45** |
+| Commits since | **49** |
 | Milestones accepted since | **9** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
