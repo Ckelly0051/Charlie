@@ -110,7 +110,60 @@ placement to a visual-polish batch; do not mix it into this correctness repair.
 **Next:** Claude independently reviews `3f40216` against R1-R4 and visually
 inspects `_shots-s3-repair/`. S4 opens only on acceptance.
 
-#### CLAUDE'S INDEPENDENT REVIEW of `f78d9e4..f65ee77` — **CHANGES REQUESTED. The gate is RED on the committed bytes.** (2026-07-28)
+#### CLAUDE'S RE-REVIEW of `3f40216..f502be6` — **ACCEPTED. S3 is complete; S4 opens.** (2026-07-28)
+
+All four findings are closed, and R1 was root-caused in **production code** rather
+than adjusted in the tests. **Full canonical gate: 70 harnesses | 70 green | 0
+skipped | 0 failed** on the committed bytes — the red is genuinely gone.
+
+**R1 closed, mutation-verified, and the mutation revealed the defect was worse
+than its symptom.** The root cause is one line in the overlay service:
+`options.actions?.length` → `Array.isArray(options.actions)`. An **explicitly
+empty** action list was falsy, so the service silently substituted a default
+`OK` action for any form-owned dialog. Reverting it reds two harnesses:
+
+- `e2e-native-overlay` → `an explicit empty action list stays empty for a
+  form-owned dialog` (`modelActions:1, actionButtons:1` — the phantom button).
+- `e2e-native-team-hub` → `rapid season-name entry reaches the submit boundary
+  intact`, with the evidence **`"2026 Maveri"` instead of `"2026 Mavericks"`**.
+
+That second one is the real story: the injected action changed `initialAction`,
+so the service moved focus **mid-typing and truncated the coach's input**. Three
+harnesses failed on one path because they all type into these dialogs. This was
+not a flaky test — it was character loss in every native dialog that owns its own
+form, and it is now pinned by two permanent assertions. The fix is cross-cutting,
+which is correct: `actions: []` should mean "no service-owned actions."
+
+**R2 closed by the stronger option — restored natively, not quietly retired.**
+`TeamHubScreen` now derives checklist state from `library._checklistItems`,
+honours `ffa_checklist_dismissed`, and implements every step action; the Team Hub
+spec records it. **Probed, because existence was the whole finding:** with a team
+present the panel renders on screen at 1232×567 reading *"Setup progress · Get
+started · 1 of 5"* with all five documented steps and the completed one ticked;
+the dismiss control hides it and persists the flag; zero page errors.
+
+**R3 closed — assertion counts went up everywhere**, reversing three milestones of
+drift: onboarding 27 → **32**, native-team-hub 15 → **18**, native-overlay 34 →
+**35**, film-storage-setup 29 → **30**.
+
+**R4 closed** — `Team Hub settings action opens the consolidated panel before a
+game is opened` is restored as a real click-and-assert-opened proof.
+
+**Still standing from the first pass, unchanged and correct:** §1.3 is closed —
+`_openLibrary()` routes to the native Team Hub and no caller reveals
+`#wsClassicOutlet`. **S7 can now delete the outlet.**
+
+**Method note, fourth instance.** My first R2 probe reported the checklist hidden
+at 0×0 — but it had matched the *retired legacy* node, not the native one. The
+correct selector (`.gi-hub-setup-*`) showed a fully working panel. Guessy
+selector matching has now produced four would-be false findings in this project;
+every one was caught by re-probing rather than by reasoning harder.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected. **N6 (popover) is the
+only overlay item still open, and S5b needs it.**
+
+#### CLAUDE'S INDEPENDENT REVIEW of `f78d9e4..f65ee77` — **CHANGES REQUESTED. The gate is RED on the committed bytes.** (2026-07-28) — *superseded by the re-review above*
 
 **S3 is NOT accepted. Do not open S4.** The core architectural goal *is* achieved
 — that part is verified below — but three harnesses fail, deterministically, on

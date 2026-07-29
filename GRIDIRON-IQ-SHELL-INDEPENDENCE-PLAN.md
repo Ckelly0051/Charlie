@@ -12,12 +12,16 @@ against this commit.
 Hub specification, the overlay specification, and the revised Plan design card.
 
 **Status: P0, S1, and S2 are COMPLETE AND ACCEPTED. S3 — native Team
-Hub / Season Library — is REPAIRED at `3f40216` after Claude's `9d3b929`
-CHANGES REQUESTED review and awaits independent re-review. The repaired
-canonical gate is **70/70 green, 0 skipped, 0 failed**; R1-R4 are
-mutation-proven. §1.3 remains closed: the classic outlet is never revealed.
-**S4 stays shut until Claude accepts `3f40216`.** No package, tag, or release
-is permitted until independent acceptance.
+Hub / Season Library — is **COMPLETE AND ACCEPTED** at repair `f502be6`
+(Claude, 2026-07-28), after a CHANGES REQUESTED first pass at `9d3b929`.
+Canonical gate re-run independently: **70/70 green, 0 skipped, 0 failed**.
+R1 was root-caused in production (`Array.isArray` on an explicitly empty
+overlay action list) and mutation-verified; the mutation showed the real
+defect was **input truncation in every form-owned native dialog**, not a
+flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
+delete it**. **S4 — remaining legacy overlays — is OPEN.** N6 (popover) is the
+only overlay item still outstanding and S5b needs it. No package, tag, or
+release is permitted during the S-milestones.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
