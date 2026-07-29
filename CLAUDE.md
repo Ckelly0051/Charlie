@@ -18,13 +18,69 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE'S REVIEW of S4-b `e26ee3d` — ACCEPTED. 1 finding, 2 observations, 1 self-correction (2026-07-29)
+
+**Checklist run first, against the plan as written.** §8 owes an installer after
+Team & Film Settings, the ownership flip, and final deletion — **S4-b is none of
+those, and S4 is not complete**: `#seasonOverlay`, `#quickChartPanel`,
+`#drawerScrim`, `#gameModal` and `#settingsDrawer` are still in `index.html`. No
+installer due at this checkpoint; it remains due at S4 COMPLETE.
+
+**Full canonical gate 70/70, 0 skipped.** `e2e-workspace-shell` 62 → **63**.
+
+- **S4a-1 is fully closed.** `#moreDropdown`, `#btnMoreMenu`, `.more-menu` and
+  `_initMoreMenu()` are all gone from `index.html` and `ui-polish.js`. Absence,
+  not hiding — correct.
+- **The undo migration preserves what matters.** `HistoryManager` now takes the
+  overlay service by injection (`app.js:117`), and the durations carry over
+  exactly: `opts.duration || (action ? 6000 : 4500)`, same as the legacy owner.
+  The action callback is passed straight through.
+
+**S4b-1 [P2] N5 was closed in the component and reopened at the producers.**
+`css/native-overlay.css` sets `text-transform:uppercase` on `.gi-native-toast`,
+and `native-root.jsx` correctly renders `{toast.message}` raw — that was the N5
+fix. But **the producers now uppercase the string itself**:
+`history-manager.js:178` (action label), `:183` (message), and `updater.js:151`.
+`tag-library-settings.js:114/132/140` does it too, which predates S4-b.
+
+Visually identical because CSS is already doing the work; the cost is that the
+**accessible name is literal all-caps again** — and it is now the *undo* toast,
+the one that matters most, that screen readers may spell out. Delete
+`.toUpperCase()` at all four producers and let the stylesheet own the casing.
+The S4-b comment says "all copy stays semantic all-caps," which is exactly what
+`text-transform` provides and `.toUpperCase()` does not.
+
+**Observation, not a finding — the undo *window* is 5× shorter in the UI than in
+the data layer.** `storage.js:1018` keeps deleted film recoverable for
+`UNDO_FILM_WINDOW_MS || 30000`; the undo toast lives **6 s**. For the remaining
+24 s the film is still restorable and the coach has no affordance to restore it.
+**Pre-existing — the legacy action toast was also 6 s — so not an S4-b
+regression**, but the two numbers should agree or the mismatch should be a
+deliberate, written decision.
+
+**Observation — `HistoryManager._toast` returns `null` when `overlays` is
+absent.** Not reachable today (`app.js:117` always injects). Noting it because a
+silently-dropped **undo** affordance is worse than the silently-dropped stat row
+I filed at P0-c: the coach would simply never see the recovery offer.
+
+**Self-correction: my S4-a observation about the version string was WRONG.** I
+reported in chat that `GridIron IQ v… · Web` sits in the popover's roving
+arrow-key rotation and is announced as actionable. It does not.
+`workspace-shell.js:303` marks it `disabled:true`, and `native-popover.jsx:41,74`
+filter focus and roving with `[role="menuitem"]:not([disabled])`. My probe pulled
+it because **I queried without the `:not([disabled])` filter** — the imprecise
+selector was mine. Nothing to fix; the observation is withdrawn.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected.
+
 ### 📟 DRIFT COUNTER — update at every baton pass
 
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
 | Commits since | **45** |
-| Milestones accepted since | **8** — P0-a/b/c/d, S1, S2, S3, S4-a |
+| Milestones accepted since | **9** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
