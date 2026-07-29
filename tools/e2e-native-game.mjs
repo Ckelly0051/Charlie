@@ -29,6 +29,7 @@ const fixture = await page.evaluate(async () => {
 const beforeCancel = await page.evaluate(() => { window.app.storage.commitActive(); return JSON.stringify(window.app.storage.seasonStore.data); });
 await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'create' }); });
 await page.waitForSelector('[data-overlay-id="game-details"] [data-native-game-form]');
+await page.waitForFunction(() => document.activeElement?.name === 'week');
 let r = await page.evaluate(() => ({
   native: document.querySelectorAll('[data-overlay-id="game-details"] [data-native-game-form]').length,
   legacy: !!document.getElementById('gameModal'), focused: document.activeElement?.name,
@@ -58,22 +59,29 @@ await page.select('[data-native-game-form] [name="homeAway"]', 'away');
 await page.select('[data-native-game-form] [name="gameType"]', 'game');
 await page.select('[data-native-game-form] [name="perspective"]', 'scout');
 await page.click('[data-native-game-form] .gi-game-actions .is-primary');
-await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]'));
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]') && !window.app.gameScreen.handle);
 r = await page.evaluate(async firstId => {
   const store = window.app.storage.seasonStore, active = store.activeGame();
   const durable = await store.backend.loadSeason();
   return { calls: window.__nativeGamePersistCalls, games: store.data.games.length,
     activeId: active.id, firstIntact: JSON.stringify(store.data.games.find(g => g.id === firstId).plays),
     info: active.gameInfo, durableInfo: durable.games.find(g => g.id === active.id)?.gameInfo,
-    perspective: document.getElementById('gamePerspective')?.value, defaultUnit: window.app.tagger.defaultUnit };
+    perspective: document.getElementById('gamePerspective')?.value, defaultUnit: window.app.tagger.defaultUnit,
+    dialogClosed: !document.querySelector('[data-overlay-id="game-details"]') && !window.app.gameScreen.handle,
+    headerButton: document.getElementById('btnEditGame')?.tagName === 'BUTTON',
+    headerSummary: document.getElementById('gameHeaderSummary')?.textContent || '',
+    shellContext: document.getElementById('wsContextGame')?.textContent || '' };
 }, fixture.firstId);
 ok(r.calls === 1 && r.games === 2, 'Create game performs one durable write and adds exactly one game', JSON.stringify(r));
+ok(r.dialogClosed, 'Game settings closes after a successful create', JSON.stringify(r));
 ok(r.info.opponent === 'Bravo Bears' && r.info.date === '2026-08-27' && r.info.homeAway === 'away' && r.info.perspective === 'scout', 'Create stores the complete football context', JSON.stringify(r.info));
 ok(JSON.stringify(r.info) === JSON.stringify(r.durableInfo), 'Created game context survives canonical backend reload', JSON.stringify(r));
 ok(r.perspective === 'scout' && r.defaultUnit === 'offense' && /Ace/.test(r.firstIntact), 'Create syncs scout context without mutating prior-game film tags', JSON.stringify(r));
+ok(r.headerButton && /Bravo Bears/.test(r.headerSummary) && /Bravo Bears/.test(r.shellContext), 'Game header remains an edit launcher and reflects the created game', JSON.stringify(r));
 
 await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'edit' }); });
 await page.waitForSelector('[data-native-game-form]');
+await page.waitForFunction(() => document.activeElement?.name === 'opponent');
 r = await page.evaluate(() => ({ opponent: document.querySelector('[name="opponent"]')?.value, focused: document.activeElement?.name }));
 ok(r.opponent === 'Bravo Bears' && r.focused === 'opponent', 'Edit Game opens pre-filled with the active game and opponent focus', JSON.stringify(r));
 const beforeEditCancel = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));

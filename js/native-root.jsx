@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { NativeOverlayService } from './native-overlay-service.js';
 import { NativePopover } from './native-popover.jsx';
 import '../design-system/plex.css';
@@ -27,17 +27,20 @@ function useNarrow() {
 
 function OverlayPanel({ overlay, service, top, effectiveModal }) {
   const panelRef = useRef(null);
-  useLayoutEffect(() => {
-    if (!top) return;
-    const panel = panelRef.current;
-    const requested = overlay.initialAction
-      ? panel?.querySelector(`[data-overlay-action="${CSS.escape(overlay.initialAction)}"]`)
-      : null;
-    const requestedField = !requested && overlay.initialFocus ? panel?.querySelector(overlay.initialFocus) : null;
-    const first = overlay.type === 'sheet'
-      ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
-      : panel?.querySelector(focusableSelector);
-    (requested || requestedField || first || panel)?.focus({ preventScroll: true });
+  useEffect(() => {
+    if (!top) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      const requested = overlay.initialAction
+        ? panel?.querySelector(`[data-overlay-action="${CSS.escape(overlay.initialAction)}"]`)
+        : null;
+      const requestedField = !requested && overlay.initialFocus ? panel?.querySelector(overlay.initialFocus) : null;
+      const first = overlay.type === 'sheet'
+        ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
+        : panel?.querySelector(focusableSelector);
+      (requested || requestedField || first || panel)?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
     // A buried panel is restored by NativeOverlayService to the exact child
     // invoker. Re-running initial focus when top flips creates a second owner.
   }, [overlay.id, overlay.initialAction, overlay.initialFocus]);

@@ -291,6 +291,7 @@ ok(seq(r.trailingUndated) === seq(['A', 'B', 'C']), 'a trailing undated game sta
 console.log('\n== 6. Native Game settings: create + edit, week-aware name ==');
 await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'create' }); });
 await page.waitForSelector('[data-overlay-id="game-details"] [data-native-game-form]');
+await page.waitForFunction(() => document.activeElement?.name === 'week');
 r = await page.evaluate(() => ({
   native: document.querySelectorAll('[data-overlay-id="game-details"] [data-native-game-form]').length,
   legacyAbsent: !document.getElementById('gameModal'),

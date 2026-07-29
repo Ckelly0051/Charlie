@@ -31,6 +31,19 @@ ok(state.subscribers === 1, 'Preact root subscribes to its explicitly injected o
 const seasonBefore = state.season;
 
 console.log('\n== 2. Dialog focus, trap, Escape, scrim, and data no-op ==');
+await page.evaluate(() => {
+  const nativeFocus = HTMLElement.prototype.focus;
+  window.__modalFocusOrder = null;
+  HTMLElement.prototype.focus = function (...args) {
+    if (this.closest?.('.gi-overlay-panel') && !window.__modalFocusOrder) {
+      window.__modalFocusOrder = {
+        appInert: !!document.getElementById('app')?.closest('[inert]'),
+        nativeRouteInert: !!document.querySelector('.gi-native-routes')?.closest('[inert]'),
+      };
+    }
+    return nativeFocus.apply(this, args);
+  };
+});
 await page.click('[data-probe-dialog]');
 await page.waitForSelector('.gi-overlay-dialog.is-top');
 await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Keep working');
@@ -39,8 +52,10 @@ state = await page.evaluate(() => ({
   appInert: !!document.getElementById('app')?.closest('[inert]'),
   nativeRouteInert: !!document.querySelector('.gi-native-routes')?.closest('[inert]'),
   modal: document.querySelector('.gi-overlay-dialog .gi-overlay-panel')?.getAttribute('aria-modal'),
+  focusOrder: window.__modalFocusOrder,
 }));
 ok(state.active === 'Keep working', 'dialog focuses its declared default action', JSON.stringify(state));
+ok(state.focusOrder?.appInert && state.focusOrder?.nativeRouteInert, 'modal route is inert before initial focus enters the dialog', JSON.stringify(state));
 ok(state.appInert && state.nativeRouteInert && state.modal === 'true', 'modal dialog makes legacy and native route content inert', JSON.stringify(state));
 state = await page.evaluate(async () => {
   const late = document.createElement('button');
