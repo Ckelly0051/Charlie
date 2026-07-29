@@ -120,6 +120,70 @@ await page.evaluate(() => {
   delete window.__focusFallbackHandle;
 });
 
+console.log('\n== 2c. Native popover behavior ==');
+await page.evaluate(() => {
+  const anchor = document.createElement('button');
+  anchor.id = 'popover-anchor';
+  anchor.textContent = 'More';
+  anchor.style.cssText = 'position:fixed;right:12px;top:12px;width:60px;height:40px;z-index:99';
+  document.body.append(anchor);
+  anchor.focus();
+  window.__popoverSelections = [];
+  window.__popoverHandle = window.__GIQ_NATIVE_TEST__.service.popover({
+    title: 'Test menu', anchor,
+    items: [
+      { key: 'first', label: 'First action', onSelect: () => window.__popoverSelections.push('first') },
+      { key: 'second', label: 'Second action', detail: 'Has detail', onSelect: () => window.__popoverSelections.push('second') },
+      { key: 'disabled', label: 'Unavailable', disabled: true },
+    ],
+  });
+});
+await page.waitForSelector('[role="menu"][aria-label="Test menu"]');
+await page.waitForFunction(() => document.activeElement?.dataset?.popoverItem === 'first');
+state = await page.evaluate(() => {
+  const anchor = document.getElementById('popover-anchor').getBoundingClientRect();
+  const panel = document.querySelector('[role="menu"][aria-label="Test menu"]').getBoundingClientRect();
+  return {
+    firstFocused: document.activeElement?.dataset?.popoverItem === 'first',
+    contained: panel.left >= 0 && panel.top >= 0 && panel.right <= innerWidth && panel.bottom <= innerHeight,
+    anchored: Math.abs(panel.right - anchor.right) <= 10,
+    disabled: document.querySelector('[data-popover-item="disabled"]')?.disabled,
+    routeInert: !!document.getElementById('workspaceShell')?.closest('[inert]'),
+  };
+});
+ok(state.firstFocused && state.contained && state.anchored && state.disabled && !state.routeInert,
+  'popover anchors in the viewport, focuses its first command, and never makes the route inert', JSON.stringify(state));
+await page.keyboard.press('ArrowDown');
+ok(await page.evaluate(() => document.activeElement?.dataset?.popoverItem === 'second'), 'Arrow Down moves through enabled popover commands');
+await page.keyboard.press('Enter');
+await page.waitForFunction(() => !document.querySelector('[role="menu"][aria-label="Test menu"]'));
+await page.waitForFunction(() => document.activeElement?.id === 'popover-anchor');
+state = await page.evaluate(() => ({ selected: window.__popoverSelections, focus: document.activeElement?.id }));
+ok(state.selected.join(',') === 'second' && state.focus === 'popover-anchor', 'popover command executes once, closes, and returns focus', JSON.stringify(state));
+await page.evaluate(() => {
+  const anchor = document.getElementById('popover-anchor');
+  window.__firstPopover = window.__GIQ_NATIVE_TEST__.service.popover({ title:'Old menu', anchor, items:[{key:'old',label:'Old'}] });
+  window.__secondPopover = window.__GIQ_NATIVE_TEST__.service.popover({ title:'New menu', anchor, items:[{key:'new',label:'New'}] });
+  window.__firstPopover.result.then(value => { window.__replacedPopoverResult = value; });
+});
+await page.waitForSelector('[role="menu"][aria-label="New menu"]');
+await page.waitForFunction(() => window.__replacedPopoverResult === 'replaced');
+await page.waitForFunction(() => document.activeElement?.dataset?.popoverItem === 'new');
+state = await page.evaluate(() => ({ count: window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length, result: window.__replacedPopoverResult, focus: document.activeElement?.dataset?.popoverItem }));
+ok(state.count === 1 && state.result === 'replaced' && state.focus === 'new', 'opening a second popover replaces and settles the first without stealing the new menu focus', JSON.stringify(state));
+await page.mouse.click(400, 400);
+await page.waitForFunction(() => !document.querySelector('[role="menu"][aria-label="New menu"]'));
+await page.waitForFunction(() => document.activeElement?.id === 'popover-anchor');
+ok(await page.evaluate(() => document.activeElement?.id === 'popover-anchor'), 'outside click dismisses the popover and returns focus');
+state = await page.evaluate(() => {
+  const detached = document.createElement('button');
+  try {
+    window.__GIQ_NATIVE_TEST__.service.popover({ anchor:detached, items:[{key:'x',label:'X'}] });
+    return { threw:false };
+  } catch (error) { return { threw:/connected anchor/.test(error.message), message:error.message }; }
+});
+ok(state.threw, 'service rejects a popover whose anchor is not connected', JSON.stringify(state));
+await page.evaluate(() => document.getElementById('popover-anchor')?.remove());
 console.log('\n== 3. Sheet desktop/mobile behavior ==');
 await page.click('[data-probe-sheet]');
 await page.waitForSelector('.gi-overlay-sheet.is-top');
@@ -247,8 +311,16 @@ await page.evaluate(() => {
   unavailable.remove();
 });
 await page.waitForFunction(() => !document.querySelector('.gi-native-routes')?.closest('[inert]') && window.__GIQ_NATIVE_TEST__.service.snapshot().overlays.length === 0);
-await page.focus('[data-probe-toast]');
-await page.evaluate(() => window.__GIQ_NATIVE_TEST__.service.toast({ message: 'Test save complete', action: { label: 'Undo', fn: () => { document.querySelector('[data-probe-outcome]').textContent = 'undo'; } } }));
+await page.evaluate(() => {
+  const service = window.__GIQ_NATIVE_TEST__.service;
+  const oldInvoker = document.createElement('button');
+  oldInvoker.id = 'toast-old-invoker';
+  document.body.append(oldInvoker);
+  oldInvoker.focus();
+  service.dialog({ title: 'Closing workflow', returnFocus: oldInvoker }).close('done');
+  document.querySelector('[data-probe-toast]').focus();
+  service.toast({ message: 'Test save complete', action: { label: 'Undo', fn: () => { document.querySelector('[data-probe-outcome]').textContent = 'undo'; } } });
+});
 await page.waitForSelector('.gi-native-toast');
 await page.evaluate(() => new Promise(resolve => {
   let frames = 10;
@@ -259,13 +331,15 @@ state = await page.evaluate(() => {
   const toast = document.querySelector('.gi-native-toast');
   return {
     focusStayed: document.activeElement?.hasAttribute('data-probe-toast'),
+    activeId: document.activeElement?.id || '',
     role: toast.getAttribute('role'),
     live: toast.getAttribute('aria-live'),
     duration: Number(toast.dataset.expiresAt) - Number(toast.dataset.createdAt),
     text: toast.textContent,
   };
 });
-ok(state.focusStayed && state.role === 'status' && state.live === 'polite', 'toast announces politely without stealing focus', JSON.stringify(state));
+ok(state.focusStayed && state.role === 'status' && state.live === 'polite', 'toast and delayed overlay cleanup never steal newer focus', JSON.stringify(state));
+await page.evaluate(() => document.getElementById('toast-old-invoker')?.remove());
 ok(state.duration >= 4500 && /Undo/.test(state.text), 'undo toast keeps at least the 4.5s action window visible', JSON.stringify(state));
 await page.click('.gi-native-toast button');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));

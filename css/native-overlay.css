@@ -1,5 +1,5 @@
 #giNativeRoot,.gi-native-root{position:relative}
-.gi-overlay-stack{position:fixed;inset:0;z-index:700;pointer-events:none}
+.gi-overlay-stack{position:fixed;inset:0;z-index:950;pointer-events:none}
 .gi-overlay-layer{position:fixed;inset:0;display:grid;pointer-events:none}
 .gi-overlay-layer[inert]{visibility:visible}
 .gi-overlay-scrim{position:absolute;inset:0;background:var(--gi-scrim);backdrop-filter:blur(2px);pointer-events:auto}
@@ -20,6 +20,14 @@
 .gi-overlay-action.is-primary{border-color:var(--gi-10);background:var(--gi-9)}
 .gi-overlay-action.is-destructive{border-color:var(--gi-danger-border);background:var(--gi-danger-solid)}
 .gi-overlay-action:focus-visible,.gi-overlay-close:focus-visible,.gi-overlay-probe button:focus-visible{outline:2px solid var(--gi-10);outline-offset:2px}
+.gi-overlay-popover{z-index:920}
+.gi-popover-panel{position:fixed;visibility:hidden;display:grid;width:min(290px,calc(100vw - 16px));max-height:calc(100vh - 16px);padding:6px;border:1px solid var(--gi-7);border-radius:5px;background:var(--gi-2);box-shadow:var(--gi-shadow-overlay);pointer-events:auto;overflow:auto}
+.gi-popover-item{display:grid;gap:2px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:3px;background:transparent;color:var(--gi-12);font:600 13px var(--gi-sans);text-align:left}
+.gi-popover-item:hover,.gi-popover-item:focus-visible{background:var(--gi-4);outline:none}
+.gi-popover-item:focus-visible{box-shadow:inset 3px 0 0 var(--gi-10)}
+.gi-popover-item:disabled{color:var(--gi-9);cursor:not-allowed}
+.gi-popover-item.has-separator{margin-top:5px;border-top:1px solid var(--gi-7);border-radius:0 0 3px 3px;padding-top:10px}
+.gi-popover-item small{color:var(--gi-10);font-size:10px;font-weight:500}
 .gi-toast-stack{position:fixed;z-index:900;top:70px;right:16px;display:grid;width:min(390px,calc(100vw - 32px));gap:8px;pointer-events:none}
 .gi-native-toast{display:flex;align-items:center;gap:14px;min-height:52px;padding:12px 14px;border:1px solid var(--gi-info-border);border-left:4px solid var(--gi-info-accent);border-radius:4px;background:var(--gi-info-surface);color:var(--gi-on-solid);box-shadow:var(--gi-shadow-toast);font:700 12px var(--gi-sans);text-transform:uppercase;pointer-events:auto;cursor:pointer}
 .gi-native-toast>span{min-width:0;flex:1}
@@ -40,9 +48,9 @@
   .gi-overlay-sheet .gi-overlay-panel{width:100%;height:auto;max-height:calc(100vh - 20px);border:1px solid var(--gi-7);border-radius:6px 6px 0 0}
   .gi-overlay-actions{flex-direction:column-reverse}
   .gi-overlay-action{width:100%;min-height:44px}
-  .gi-toast-stack{top:58px;right:10px;width:calc(100vw - 20px)}
+  .gi-toast-stack{top:auto;right:10px;bottom:72px;width:calc(100vw - 20px)}
   .gi-overlay-probe{left:8px;right:8px;bottom:8px;overflow:auto}
   .gi-overlay-probe strong,.gi-overlay-probe output{display:none}
   .gi-overlay-probe button{min-width:44px;min-height:44px;white-space:nowrap}
 }
-@media(pointer:coarse){.gi-overlay-action,.gi-overlay-close,.gi-native-toast button{min-height:44px}}
+@media(pointer:coarse){.gi-overlay-action,.gi-overlay-close,.gi-native-toast button,.gi-popover-item{min-height:44px}}

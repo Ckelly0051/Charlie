@@ -162,9 +162,9 @@ ok(r.sidebarDisplay === 'none' && r.topNavDisplay === 'flex' && r.mediaWidth >= 
 
 r = await page.evaluate(() => ({
   settingsInShell: !!document.querySelector('.ws-global-tools #btnSidebarToggle'),
-  moreInShell: !!document.querySelector('.ws-global-tools #btnMoreMenu'),
+  moreInShell: !!document.querySelector('.ws-top-actions #btnNativeMore'),
   settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
-  moreVisible: document.getElementById('btnMoreMenu')?.offsetParent !== null,
+  moreVisible: document.getElementById('btnNativeMore')?.offsetParent !== null,
   drawerOutsideHiddenApp: document.getElementById('settingsDrawer')?.parentElement === document.body,
 }));
 ok(r.settingsInShell && r.moreInShell && r.settingsVisible && r.moreVisible && r.drawerOutsideHiddenApp,
@@ -179,28 +179,109 @@ r = await page.evaluate(() => ({
 ok(r.nativeSettings === 1 && !r.drawerOpen, 'Shell Settings opens the single native Team & Film Settings owner', JSON.stringify(r));
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
-await page.click('#btnMoreMenu');
-r = await page.evaluate(() => ({ moreOpen: !document.getElementById('moreDropdown')?.classList.contains('hidden') }));
-ok(r.moreOpen, 'Shell More opens the canonical action menu', JSON.stringify(r));
+await page.click('#btnNativeMore');
+await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="open"]');
+await capture('more-1280x800');
+r = await page.evaluate(() => ({
+  moreOpen: !!document.querySelector('[role="menu"][aria-label="More actions"]'),
+  nativeOwner: !!document.querySelector('#giNativeRoot [data-popover-item="import"]'),
+  legacyClosed: document.getElementById('moreDropdown')?.classList.contains('hidden'),
+  expanded: document.getElementById('btnNativeMore')?.getAttribute('aria-expanded'),
+}));
+ok(r.moreOpen && r.nativeOwner && r.legacyClosed && r.expanded === 'true',
+  'Shell More opens the native action menu without revealing the legacy dropdown', JSON.stringify(r));
 
 // Import Plays is a distinct workflow from export/import data parity. Prove the
 // live shell affordance opens the canonical importer and that cancelling it is
 // a canonical-season no-op; a storage-only CSV round trip cannot cover either.
-const importJourney = await page.evaluate(() => {
-  const before = JSON.stringify(window.app.storage.seasonStore.data);
-  document.getElementById('btnImportPlays')?.click();
-  const modal = document.getElementById('playImportModal');
-  const opened = !!modal && !modal.classList.contains('hidden');
-  document.getElementById('playImportCancel')?.click();
+const beforeImport = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
+await page.click('[data-popover-item="import"]');
+await page.waitForSelector('[data-overlay-id="play-import"] [data-native-play-import]');
+await page.type('#playImportText', 'Unit,QB Alignment,Backfield,Strength,Coverage Call,Coverage Family,Play Type,Result,Yards\nOffense,Shotgun,Empty,Right,Cover 3,Zone,Run Inside,Gain,5');
+await page.click('[data-overlay-id="play-import"] .gi-play-import-parse button');
+await page.waitForSelector('[data-overlay-id="play-import"] .gi-play-import-preview tbody tr');
+await capture('import-1280x800');
+const importJourney = await page.evaluate(before => {
+  const sheet = document.querySelector('[data-overlay-id="play-import"]');
+  const count = sheet?.querySelector('.gi-play-import-section:last-of-type header strong')?.textContent;
+  const selects = [...(sheet?.querySelectorAll('.gi-play-import-mapping select') || [])];
+  const mapped = selects.length;
+  const mappingValues = selects.map(select => select.value);
+  const legacyGone = !document.getElementById('playImportModal') && !document.getElementById('btnImportPlays');
+  sheet?.querySelector('.gi-play-import-actions button')?.click();
   return {
-    opened,
-    closed: !!modal?.classList.contains('hidden'),
+    native: !!sheet,
+    count,
+    mapped,
+    mappingValues,
+    legacyGone,
+    popoverClosed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
     unchanged: before === JSON.stringify(window.app.storage.seasonStore.data),
   };
-});
-ok(importJourney.opened && importJourney.closed && importJourney.unchanged,
-  'Shell Import Plays opens the canonical importer and Cancel preserves the season',
+}, beforeImport);
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="play-import"]'));
+await page.waitForFunction(() => document.activeElement?.id === 'btnNativeMore');
+importJourney.focusReturned = true;
+ok(importJourney.native && importJourney.count === '1 play' && importJourney.mapped === 9
+    && ['unit','qbAlignment','backfield','strength','coverage','coverageFamily'].every(field => importJourney.mappingValues.includes(field))
+    && importJourney.legacyGone && importJourney.popoverClosed && importJourney.unchanged && importJourney.focusReturned,
+  'Native Import Plays parses and previews CSV; Cancel preserves the season and no legacy modal remains',
   JSON.stringify(importJourney));
+
+const beforeNativeApply = await page.evaluate(() => window.app.tagger.plays.length);
+await page.click('#btnNativeMore');
+await page.waitForSelector('[data-popover-item="import"]');
+await page.click('[data-popover-item="import"]');
+await page.waitForSelector('[data-overlay-id="play-import"] [data-native-play-import]');
+await page.type('#playImportText', 'Play Type,Result,Yards\nRun Outside,Gain,9');
+await page.click('[data-overlay-id="play-import"] .gi-play-import-parse button');
+await page.waitForSelector('[data-overlay-id="play-import"] .gi-play-import-preview tbody tr');
+await page.click('[data-overlay-id="play-import"] .gi-play-import-actions .is-primary');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="play-import"]')
+  || !!document.querySelector('[data-overlay-id="play-import"] .gi-play-import-error'));
+r = await page.evaluate(before => {
+  const sheet = document.querySelector('[data-overlay-id="play-import"]');
+  const plays = window.app.tagger.plays;
+  const imported = plays.at(-1);
+  return {
+    before,
+    after: plays.length,
+    playType: imported?.tags?.playType,
+    result: imported?.tags?.result,
+    yardage: imported?.tags?.yardage,
+    applyError: sheet?.querySelector('.gi-play-import-error')?.textContent || '',
+    successToast: [...document.querySelectorAll('.gi-native-toast')].some(node => /Imported 1 play/i.test(node.textContent || '')),
+  };
+}, beforeNativeApply);
+if (r.applyError) await page.evaluate(() => window.app.playImport.close('test-cleanup'));
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="play-import"]'));
+ok(!r.applyError && r.after === r.before + 1 && r.playType === 'Run Outside' && r.result === 'Gain'
+    && String(r.yardage) === '9' && r.successToast,
+  'Native Import confirms one mapped football play and reports success', JSON.stringify(r));
+
+await page.evaluate(() => {
+  const storage = window.app.storage;
+  window.__nativeMoreSaveCalls = 0;
+  window.__nativeMoreOriginalSave = storage.saveProject;
+  storage.saveProject = () => { window.__nativeMoreSaveCalls++; };
+});
+await page.click('#btnNativeMore');
+await page.waitForSelector('[data-popover-item="save"]');
+await page.click('[data-popover-item="save"]');
+await page.waitForFunction(() => window.__nativeMoreSaveCalls === 1);
+await page.waitForFunction(() => document.activeElement?.id === 'btnNativeMore');
+r = await page.evaluate(() => {
+  window.app.storage.saveProject = window.__nativeMoreOriginalSave;
+  delete window.__nativeMoreOriginalSave;
+  return {
+    calls: window.__nativeMoreSaveCalls,
+    closed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+    focus: document.activeElement?.id,
+    legacyClosed: document.getElementById('moreDropdown')?.classList.contains('hidden'),
+  };
+});
+ok(r.calls === 1 && r.closed && r.focus === 'btnNativeMore' && r.legacyClosed,
+  'Native More invokes the storage Save command exactly once and restores its launcher', JSON.stringify(r));
 
 /* ENTOMBED-CAPABILITY GUARD. The classic top bar lives inside #app, which lives
    inside the permanently hidden #wsClassicOutlet. So a control the shell does
@@ -233,7 +314,7 @@ r = {
     .map(el => el.id || el.querySelector('button')?.id || '')),
 };
 ok(r.undo && r.redo && r.shortcuts && r.inTools
-  && r.order.slice(0, 5).join(',') === 'btnUndoAction,btnRedoAction,btnShortcuts,btnSidebarToggle,btnMoreMenu',
+  && r.order.slice(0, 4).join(',') === 'btnUndoAction,btnRedoAction,btnShortcuts,btnSidebarToggle',
   'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar', JSON.stringify(r));
 
 // Relocation must move the LIVE element, so history-manager's existing binding
@@ -327,7 +408,7 @@ r = await page.evaluate(async () => {
     route: app.workspace.currentRoute(),
     breakdownVisible: !document.getElementById('wsBreakdown')?.hidden,
     settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
-    moreVisible: document.getElementById('btnMoreMenu')?.offsetParent !== null,
+    moreVisible: document.getElementById('btnNativeMore')?.offsetParent !== null,
   };
 });
 ok(r.loadCompleted && !r.breakdownBeforeLoad && r.activeGameId === 'preview-game'
@@ -579,13 +660,13 @@ r = await page.evaluate(() => ({
     .every(id => !!document.getElementById(id)?.closest('.ws-mobile-history-actions'))
     && !!document.getElementById('btnSidebarToggle')?.closest('.ws-global-tools'),
   badgeReHoused: !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head'),
-  moreReAdopted: !!document.getElementById('btnMoreMenu')?.closest('.ws-global-tools'),
+  nativeMoreRebuilt: !!document.querySelector('.ws-top-actions #btnNativeMore'),
   // and nothing got duplicated by mounting twice
   singletons: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
     .every(id => document.querySelectorAll(`#${id}`).length === 1),
 }));
-ok(r.reAdopted && r.badgeReHoused && r.moreReAdopted && r.singletons,
-  'Re-enabling after teardown re-adopts every relocated control exactly once', JSON.stringify(r));
+ok(r.reAdopted && r.badgeReHoused && r.nativeMoreRebuilt && r.singletons,
+  'Re-enabling after teardown re-adopts relocated controls and rebuilds native More exactly once', JSON.stringify(r));
 r = await page.evaluate(async () => {
   await window.app.workspaceShell.show('reports');
   const screen = window.app.reportsScreen, calls = [];
@@ -627,7 +708,17 @@ r = await page.evaluate(() => ({
 }));
 ok(r.bottomTabs === 'none' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
   'Mobile Break Down uses one Home/Break Down/Study/Reports/Plan navigation system', JSON.stringify(r));
-await page.click('.ws-mobile-head [data-ws-action="settings"]');
+await page.click('#btnNativeMoreMobile');
+await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="settings"]');
+await capture('more-390x844');
+const mobileMore = await page.evaluate(() => ({
+  items: document.querySelectorAll('[role="menu"][aria-label="More actions"] [role="menuitem"]:not([disabled])').length,
+  minHeight: Math.min(...[...document.querySelectorAll('[role="menu"][aria-label="More actions"] [role="menuitem"]:not([disabled])')].map(item => item.getBoundingClientRect().height)),
+  overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+}));
+ok(mobileMore.items >= 10 && mobileMore.minHeight >= 44 && !mobileMore.overflow,
+  'Mobile More exposes settings and file/report commands as touch targets without page overflow', JSON.stringify(mobileMore));
+await page.click('[data-popover-item="settings"]');
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 await page.waitForFunction(() => !!document.getElementById('workspaceShell')?.closest('[inert]'));
 r = await page.evaluate(() => ({
@@ -652,10 +743,37 @@ r = {
 };
 ok(r.undo && r.redo && r.shortcuts && r.inMobileTools && r.minHeight >= 44,
   'Mobile More settings preserves live Undo, Redo, and Shortcuts as touch targets', JSON.stringify(r));
+r = await page.evaluate(() => {
+  const button = document.getElementById('btnShortcuts');
+  const rect = button?.getBoundingClientRect();
+  const hit = rect ? document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) : null;
+  return {
+    connected: !!button?.isConnected,
+    disabled: !!button?.disabled,
+    inertAncestor: !!button?.closest('[inert]'),
+    drawerOpen: document.getElementById('settingsDrawer')?.classList.contains('open'),
+    hitButton: hit?.closest('button')?.id || '',
+  };
+});
+ok(r.connected && !r.disabled && !r.inertAncestor && r.drawerOpen && r.hitButton === 'btnShortcuts',
+  'Mobile notifications do not cover the live Shortcuts launcher', JSON.stringify(r));
 await page.click('#btnShortcuts');
-r = await page.evaluate(() => ({ shortcutsOpen: !document.getElementById('shortcutsModal')?.classList.contains('hidden') }));
-ok(r.shortcutsOpen, 'Mobile Shortcuts action remains wired to the canonical dialog', JSON.stringify(r));
-await page.evaluate(() => document.getElementById('shortcutsClose')?.click());
+await page.waitForSelector('[data-overlay-id="keyboard-shortcuts"] [data-native-shortcuts]', { timeout: 10000 });
+await capture('shortcuts-390x844');
+r = await page.evaluate(() => ({
+  shortcutsOpen: !!document.querySelector('[data-overlay-id="keyboard-shortcuts"] [data-native-shortcuts]'),
+  legacyGone: !document.getElementById('shortcutsModal'),
+  groups: document.querySelectorAll('[data-overlay-id="keyboard-shortcuts"] .gi-shortcuts section').length,
+  modal: document.querySelector('[data-overlay-id="keyboard-shortcuts"] .gi-overlay-panel')?.getAttribute('aria-modal'),
+  overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+}));
+ok(r.shortcutsOpen && r.legacyGone && r.groups === 4 && r.modal === 'true' && !r.overflow,
+  'Mobile Shortcuts opens the native focused dialog without legacy markup or overflow', JSON.stringify(r));
+await page.click('[data-overlay-id="keyboard-shortcuts"] [data-overlay-action="done"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="keyboard-shortcuts"]'));
+await page.waitForFunction(() => document.activeElement?.id === 'btnShortcuts');
+r = await page.evaluate(() => ({ focusReturned: document.activeElement?.id === 'btnShortcuts' }));
+ok(r.focusReturned, 'Closing native Shortcuts restores focus to its live launcher', JSON.stringify(r));
 await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));

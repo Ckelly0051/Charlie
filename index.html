@@ -92,9 +92,6 @@
               <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Open Season / Game
               <input type="file" id="projectFileInput" accept=".json" hidden>
             </button>
-            <button class="btn" id="btnImportPlays" title="Import plays from CSV (Hudl, etc.)">
-              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg> Import Plays
-            </button>
             <button class="btn" id="btnSaveMenu" title="Everything autosaves — this also creates a restore point (and writes/downloads a season file)">
               <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> Save now + restore point
             </button>
@@ -1449,92 +1446,7 @@
       </div>
     </div>
 
-    <!-- Play Import Modal -->
-    <div class="play-import-modal hidden" id="playImportModal">
-      <div class="play-import-backdrop"></div>
-      <div class="play-import-card">
-        <div class="play-import-head">
-          <h3>Import Plays from CSV</h3>
-          <button class="play-import-close" id="playImportClose" type="button">×</button>
-        </div>
-        <div class="play-import-body">
-          <p class="play-import-hint">Upload a CSV from Hudl, QwikCut, or any spreadsheet. We'll auto-detect columns.</p>
-          <div class="play-import-upload">
-            <label class="btn btn-sm btn-accent play-import-file-label">
-              Choose CSV File
-              <input type="file" id="playImportFile" accept=".csv,.tsv,.txt" hidden>
-            </label>
-            <span class="play-import-filename" id="playImportFilename">No file chosen</span>
-          </div>
-          <textarea id="playImportText" class="play-import-text" rows="6" placeholder="Or paste CSV data here..."></textarea>
-          <div class="play-import-mapping hidden" id="playImportMapping">
-            <h4>Column Mapping</h4>
-            <div class="play-import-map-grid" id="playImportMapGrid"></div>
-          </div>
-          <div class="play-import-preview hidden" id="playImportPreview">
-            <h4>Preview (<span id="playImportCount">0</span> plays)</h4>
-            <div class="play-import-preview-table" id="playImportPreviewTable"></div>
-          </div>
-        </div>
-        <div class="play-import-foot">
-          <button class="btn btn-sm" id="playImportCancel" type="button">Cancel</button>
-          <button class="btn btn-sm" id="playImportParse" type="button">Parse</button>
-          <button class="btn btn-sm btn-accent hidden" id="playImportApply" type="button">Import Plays</button>
-        </div>
-      </div>
-    </div>
 
-    <!-- Keyboard Shortcuts Legend -->
-    <div class="shortcuts-modal hidden" id="shortcutsModal">
-      <div class="shortcuts-backdrop"></div>
-      <div class="shortcuts-card">
-        <div class="shortcuts-head">
-          <h3>Keyboard Shortcuts</h3>
-          <button class="shortcuts-close" id="shortcutsClose" type="button" title="Close (Esc)">×</button>
-        </div>
-        <div class="shortcuts-grid">
-          <div class="shortcuts-group">
-            <h4>Playback</h4>
-            <dl>
-              <dt><kbd>Space</kbd></dt><dd>Play / Pause</dd>
-              <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Step one frame (also <kbd>,</kbd> <kbd>.</kbd>)</dd>
-              <dt><kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd></dt><dd>Previous / Next clip</dd>
-              <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Mark play start / end</dd>
-            </dl>
-          </div>
-          <div class="shortcuts-group">
-            <h4>Tagging <span class="shortcuts-note">(play selected)</span></h4>
-            <dl>
-              <dt><kbd>R</kbd><kbd>O</kbd><kbd>S</kbd><kbd>P</kbd><kbd>M</kbd><kbd>D</kbd><kbd>A</kbd><kbd>Q</kbd><kbd>X</kbd></dt><dd>Play type (Run In/Out, Screen, Short, Med, Deep, PA, RPO, Trick)</dd>
-              <dt><kbd>G</kbd><kbd>L</kbd><kbd>N</kbd><kbd>I</kbd><kbd>T</kbd><kbd>W</kbd><kbd>U</kbd><kbd>F</kbd><kbd>E</kbd><kbd>K</kbd></dt><dd>Result (Gain, Loss, No Gain, Inc, TD, Sack, INT, Fum, Pen, Punt)</dd>
-              <dt><kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd></dt><dd>Down number</dd>
-              <dt><kbd>Y</kbd></dt><dd>Jump to yardage (type the number, Enter advances)</dd>
-              <dt><kbd>C</kbd></dt><dd>Cycle unit (Offense → Defense → Special Teams)</dd>
-              <dt><kbd>1</kbd>–<kbd>9</kbd></dt><dd>ST play type (in Special Teams mode)</dd>
-              <dt><kbd>Enter</kbd></dt><dd>Save &amp; next play (works inside yardage/distance too)</dd>
-              <dt><kbd>Shift</kbd>+<kbd>Enter</kbd></dt><dd>Back to previous play</dd>
-            </dl>
-          </div>
-          <div class="shortcuts-group">
-            <h4>Drawing <span class="shortcuts-note">(Drawing Tools panel open)</span></h4>
-            <dl>
-              <dt><kbd>1</kbd>–<kbd>6</kbd></dt><dd>Line, Arrow, Circle, Rect, Draw, Text</dd>
-              <dt><kbd>Esc</kbd></dt><dd>Deselect tool</dd>
-            </dl>
-          </div>
-          <div class="shortcuts-group">
-            <h4>General</h4>
-            <dl>
-              <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd></dt><dd>Undo</dd>
-              <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></dt><dd>Redo</dd>
-              <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd></dt><dd>Save project</dd>
-              <dt><kbd>V</kbd></dt><dd>Swap camera angle (multi-angle)</dd>
-              <dt><kbd>?</kbd></dt><dd>Show / hide this help</dd>
-            </dl>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Game menu — the single place to create AND edit a game. Opened by

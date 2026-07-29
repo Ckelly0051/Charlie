@@ -24,6 +24,8 @@ import { FilmNavigationService } from './film-navigation-service.js';
 import { StudyScreen } from './study-screen.js';
 import { ReportsScreen } from './reports-screen.js';
 import { SettingsScreen } from './settings-screen.js';
+import { PlayImportScreen } from './play-import-screen.js';
+import { ShortcutsScreen } from './shortcuts-screen.js';
 import { TeamHubScreen } from './team-hub-screen.js';
 import { getNativeOverlayService } from './native-root.jsx';
 import { StudyPlan } from './study-plan.js';
@@ -110,6 +112,8 @@ class App {
     this.overlays = getNativeOverlayService();
     if (!this.overlays) throw new Error('GridIron IQ native overlay service is unavailable.');
     this.settingsScreen = new SettingsScreen(this, this.overlays);
+    this.playImport = new PlayImportScreen(this, this.overlays);
+    this.shortcutsScreen = new ShortcutsScreen(this.overlays);
     this.history = new HistoryManager(this.tagger);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
@@ -162,9 +166,6 @@ class App {
 
     // Wire report export
     this._bindReportExport();
-
-    // Wire play import
-    this._bindPlayImport();
 
     // Keyboard shortcuts
     this._bindKeyboard();
@@ -272,6 +273,11 @@ class App {
         }
       } catch (_) { /* fall back to APP_VERSION already shown */ }
     }
+  }
+
+  versionLabel() {
+    const live = document.getElementById('appVersionLabel')?.textContent?.trim();
+    return live || `GridIron IQ v${APP_VERSION} · ${window.__TAURI__ ? 'Desktop' : 'Web'}`;
   }
 
   /** Wire the "Check for Updates" menu item (desktop build only). */
@@ -906,8 +912,7 @@ class App {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
       // "?" toggles the shortcuts legend; Esc closes it (handle before others).
-      const shortcutsModal = document.getElementById('shortcutsModal');
-      const shortcutsOpen = shortcutsModal && !shortcutsModal.classList.contains('hidden');
+      const shortcutsOpen = this.shortcutsScreen?.isOpen();
       if (e.key === '?') { e.preventDefault(); this.toggleShortcuts?.(); return; }
       if (shortcutsOpen && e.code === 'Escape') { e.preventDefault(); this.toggleShortcuts?.(false); return; }
       if (shortcutsOpen) return; // swallow other keys while the legend is open
@@ -1850,17 +1855,13 @@ class App {
   }
 
   _bindShortcuts() {
-    const modal = document.getElementById('shortcutsModal');
     const btn = document.getElementById('btnShortcuts');
-    if (!modal) return;
     this.toggleShortcuts = (show) => {
-      const hidden = modal.classList.contains('hidden');
-      const willShow = show != null ? show : hidden;
-      modal.classList.toggle('hidden', !willShow);
+      if (show === false) return this.shortcutsScreen.close('cancel');
+      if (show === true) return this.shortcutsScreen.open(btn);
+      return this.shortcutsScreen.toggle(btn);
     };
     btn?.addEventListener('click', () => this.toggleShortcuts());
-    modal.querySelector('#shortcutsClose')?.addEventListener('click', () => this.toggleShortcuts(false));
-    modal.querySelector('.shortcuts-backdrop')?.addEventListener('click', () => this.toggleShortcuts(false));
   }
 
   _bindScoutMode() {
@@ -2183,120 +2184,6 @@ class App {
     const tagged = this.tagger.plays.filter(isPlayTagged).length;
     label.textContent = `${tagged} / ${total} tagged`;
     fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
-  }
-
-  _bindPlayImport() {
-    const btn = document.getElementById('btnImportPlays');
-    const modal = document.getElementById('playImportModal');
-    if (!btn || !modal) return;
-
-    const fileInput = modal.querySelector('#playImportFile');
-    const textArea = modal.querySelector('#playImportText');
-    const filename = modal.querySelector('#playImportFilename');
-    const parseBtn = modal.querySelector('#playImportParse');
-    const applyBtn = modal.querySelector('#playImportApply');
-    const cancelBtn = modal.querySelector('#playImportCancel');
-    const closeBtn = modal.querySelector('#playImportClose');
-    const backdrop = modal.querySelector('.play-import-backdrop');
-    const mappingDiv = modal.querySelector('#playImportMapping');
-    const mapGrid = modal.querySelector('#playImportMapGrid');
-    const previewDiv = modal.querySelector('#playImportPreview');
-    const previewTable = modal.querySelector('#playImportPreviewTable');
-    const countSpan = modal.querySelector('#playImportCount');
-
-    let lastParsed = null;
-
-    const open = () => { modal.classList.remove('hidden'); lastParsed = null; applyBtn.classList.add('hidden'); mappingDiv.classList.add('hidden'); previewDiv.classList.add('hidden'); };
-    const close = () => { modal.classList.add('hidden'); textArea.value = ''; filename.textContent = 'No file chosen'; lastParsed = null; };
-
-    btn.addEventListener('click', open);
-    closeBtn.addEventListener('click', close);
-    cancelBtn.addEventListener('click', close);
-    backdrop.addEventListener('click', close);
-    // Esc closes (the one modal that lacked it — UX audit A4), and while the
-    // modal is open, swallow key events in capture phase so the app's global
-    // single-letter tag shortcuts can't fire underneath. stopPropagation
-    // doesn't block typing in the textarea — only other listeners.
-    document.addEventListener('keydown', (e) => {
-      if (modal.classList.contains('hidden')) return;
-      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
-      e.stopPropagation();
-    }, true);
-
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      filename.textContent = file.name;
-      const reader = new FileReader();
-      reader.onload = (ev) => { textArea.value = ev.target.result; };
-      reader.readAsText(file);
-    });
-
-    const ourFields = ['playType','runPass','result','yardage','down','distance','formation','personnel',
-      'motion','playDir','hash','defFront','coverage','blitz','quarter','yardLine','fieldSide','driveNumber',
-      'ballCarrier','passer','receiver','tackler','notes'];
-
-    parseBtn.addEventListener('click', () => {
-      const text = textArea.value;
-      if (!text.trim()) { this.history?._toast('Paste or upload CSV data first'); return; }
-      const parsed = this.storage.importPlaysFromText(text);
-      if (parsed.error) { this.history?._toast(parsed.error); return; }
-      lastParsed = parsed;
-
-      // Show column mapping
-      mapGrid.innerHTML = '';
-      parsed.headers.forEach((h, i) => {
-        const row = document.createElement('div');
-        row.className = 'play-import-map-row';
-        const mapped = parsed.colMap[i] || '';
-        row.innerHTML = `<span class="play-import-col-name">${h}</span>
-          <select class="play-import-col-select" data-col="${i}">
-            <option value="">(skip)</option>
-            ${ourFields.map(f => `<option value="${f}" ${f === mapped ? 'selected' : ''}>${f}</option>`).join('')}
-          </select>`;
-        row.querySelector('select').addEventListener('change', (e) => {
-          if (e.target.value) parsed.colMap[i] = e.target.value;
-          else delete parsed.colMap[i];
-          renderPreview();
-        });
-        mapGrid.appendChild(row);
-      });
-      mappingDiv.classList.remove('hidden');
-      renderPreview();
-    });
-
-    const renderPreview = () => {
-      if (!lastParsed) return;
-      const preview = lastParsed.lines.slice(0, 5);
-      const mapped = Object.values(lastParsed.colMap);
-      let html = '<table class="stats-table stats-table-full"><thead><tr>';
-      // Header labels + cell values come straight from the imported file — escape
-      // both (a crafted CSV is stored-XSS the moment the preview hits innerHTML).
-      mapped.forEach(f => { html += `<th>${this._esc(f)}</th>`; });
-      html += '</tr></thead><tbody>';
-      preview.forEach(cells => {
-        html += '<tr>';
-        Object.entries(lastParsed.colMap).forEach(([idx]) => {
-          html += `<td>${this._esc(cells[parseInt(idx, 10)] || '')}</td>`;
-        });
-        html += '</tr>';
-      });
-      html += '</tbody></table>';
-      previewTable.innerHTML = html;
-      countSpan.textContent = lastParsed.lines.filter(cells => !cells.every(c => !c)).length;
-      previewDiv.classList.remove('hidden');
-      applyBtn.classList.remove('hidden');
-    };
-
-    applyBtn.addEventListener('click', () => {
-      if (!lastParsed) return;
-      const count = this.storage.applyPlayImport(lastParsed);
-      // Toast, not alert(): browsers suppress repeated native dialogs
-      // (lesson #8), and success feedback shouldn't block anyway.
-      if (count > 0) this.history?._toast(`Imported ${count} play${count !== 1 ? 's' : ''}`);
-      else this.history?._toast('No plays found in that file — check the column mapping');
-      close();
-    });
   }
 
   _drawMotionGraph(canvas, motionData, detectedPlays, threshold) {

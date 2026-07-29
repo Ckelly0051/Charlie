@@ -23,7 +23,6 @@ export class WorkspaceShell {
       redo: this._remember(document.getElementById('btnRedoAction')),
       shortcuts: this._remember(document.getElementById('btnShortcuts')),
       settings: this._remember(document.getElementById('btnSidebarToggle')),
-      more: this._remember(document.getElementById('btnMoreMenu')?.closest('.more-menu')),
       drawer: this._remember(document.getElementById('settingsDrawer')),
       // Status for the OPTIONAL local CV server. Not prime chrome — it belongs
       // with the low-frequency setup tools, per the redesign plan's rule that
@@ -82,8 +81,8 @@ export class WorkspaceShell {
       <button class="ws-team" data-ws-action="seasons"><strong id="wsTeamName">Team</strong><span id="wsTeamMeta">Season workspace</span></button>
       <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
       <div class="ws-side-foot"><div class="ws-save-state"><i></i>Season ready</div></div></aside>
-      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
-      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" data-ws-action="settings" aria-label="Settings and more">⚙</button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></header>
+      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn ws-more-btn" id="btnNativeMore" data-ws-action="more" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">▾</span></button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
+      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" id="btnNativeMoreMobile" data-ws-action="more" aria-label="Settings and more" aria-haspopup="menu" aria-expanded="false">⋯</button></header>
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div></div></section>
       <div class="ws-home-grid"><section class="ws-band"><div class="ws-section-head"><h2>FILM INBOX</h2><button class="ws-link ws-link-strong" data-ws-action="new-game">+ New game</button><button class="ws-link" data-ws-action="seasons">Seasons</button></div><div class="ws-list" id="wsFilmList"></div></section><section class="ws-band"><div class="ws-section-head"><h2>SEASONS</h2><button class="ws-link" data-ws-action="seasons">Manage</button></div><div class="ws-list" id="wsSeasonList"></div></section></div></section>
@@ -112,6 +111,7 @@ export class WorkspaceShell {
       if (action === 'seasons') await this._openLibrary();
       if (action === 'new-game') { await this._newGame(); return; }
       if (action === 'settings') this.app.settingsScreen?.open?.({ returnFocus: e.target.closest('[data-ws-action]') });
+      if (action === 'more') { this._openMore(e.target.closest('[data-ws-action]')); return; }
       const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
       if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
       const previewId = e.target.closest('[data-ws-preview]')?.dataset.wsPreview;
@@ -241,7 +241,7 @@ export class WorkspaceShell {
    *  order IS the visual order: history first, then help, then settings/more. */
   _mountChrome(){
     const tools=this.root?.querySelector('.ws-global-tools');
-    if(tools)for(const k of ['settings','more'])if(this._chrome[k]?.el)tools.append(this._chrome[k].el);
+    if(tools&&this._chrome.settings?.el)tools.append(this._chrome.settings.el);
     if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);
     this._ensureMobileTools();
     this._placeHistoryTools();
@@ -271,8 +271,42 @@ export class WorkspaceShell {
   _restoreChrome(){
     window.removeEventListener('resize',this._onViewportChange);
     this.app.uiPolish?._closeDrawer?.();
-    document.getElementById('moreDropdown')?.classList.add('hidden');
-    for(const k of ['undo','redo','shortcuts','settings','more','backend','drawer'])this._restore(this._chrome[k]);
+    for(const k of ['undo','redo','shortcuts','settings','backend','drawer'])this._restore(this._chrome[k]);
+  }
+  _openMore(anchor){
+    if(!anchor||!this.app.overlays)return;
+    anchor.setAttribute('aria-expanded','true');
+    const handle=this.app.overlays.popover({title:'More actions',anchor,returnFocus:anchor,items:this._moreItems(anchor.id==='btnNativeMoreMobile',anchor)});
+    handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
+  }
+  _moreItems(compact=false,anchor=null){
+    const storage=this.app.storage;
+    const items=compact?[
+      {key:'settings',label:'Team & Film Settings',onSelect:()=>this.app.settingsScreen?.open?.({returnFocus:anchor})},
+      {key:'teams',label:'Teams & seasons',onSelect:()=>this._openLibrary()},
+      {key:'new-game',label:'New game',onSelect:()=>this._newGame()},
+    ]:[];
+    items.push(
+      {key:'open',label:'Open season file',separator:compact,onSelect:()=>storage.projectFileInput?.click()},
+      {key:'import',label:'Import plays',detail:'CSV or pasted breakdown',onSelect:()=>this.app.playImport.open({returnFocus:anchor})},
+      {key:'save',label:'Save season',detail:'Create a restore point',onSelect:()=>storage.saveProject()},
+      {key:'season',label:'Season report',separator:true,onSelect:()=>this.show('reports')},
+      {key:'html',label:'Export HTML report',onSelect:()=>storage.exportHtmlReport(this.app.stats)},
+      {key:'csv',label:'Export plays CSV',onSelect:()=>storage.exportCsv()},
+      {key:'cutup',label:'Export cut-up video',onSelect:()=>this.app.cutup.export()},
+      {key:'frame',label:'Export current frame',onSelect:()=>storage.exportPng()},
+      {key:'call-sheet',label:'Build call sheet',onSelect:()=>this.app.callSheet.show()},
+    );
+    const seasonStore=storage.seasonStore;
+    if(seasonStore?.canOpenDataDir?.())items.push({key:'data-folder',label:'Open data folder',separator:true,onSelect:()=>this._openDataFolder()});
+    if(this.app.updater?.available)items.push({key:'updates',label:'Check for updates',onSelect:()=>this.app.updater.check(true)});
+    items.push({key:'version',label:this.app.versionLabel?.()||'GridIron IQ',separator:!seasonStore?.canOpenDataDir?.()&&!this.app.updater?.available,disabled:true});
+    return items;
+  }
+  async _openDataFolder(){
+    let dir='';
+    try{dir=await this.app.storage.seasonStore.openDataDir();}catch{}
+    if(dir)this.app.updater?._toast(`Your seasons are saved in:\n${dir}`);
   }
   _gameName(g){return g.name||g.gameInfo?.projectName||g.gameInfo?.opponent||'Untitled Game';}
   _text(id,v){const el=this.root?.querySelector(`#${id}`);if(el)el.textContent=v;}

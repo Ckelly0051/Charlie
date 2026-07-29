@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { NativeOverlayService } from './native-overlay-service.js';
+import { NativePopover } from './native-popover.jsx';
 import '../design-system/plex.css';
 import '../design-system/tokens.css';
 import '../css/native-overlay.css';
@@ -178,13 +179,15 @@ function NativeOverlayHost({ service }) {
 
   return <>
     <div class="gi-overlay-stack" data-overlay-count={state.overlays.length}>
-      {state.overlays.map(overlay => <OverlayPanel
-        key={overlay.id}
-        overlay={overlay}
-        service={service}
-        top={overlay === top}
-        effectiveModal={isModal(overlay)}
-      />)}
+      {state.overlays.map(overlay => overlay.type === 'popover'
+        ? <NativePopover key={overlay.id} overlay={overlay} service={service} top={overlay === top} />
+        : <OverlayPanel
+          key={overlay.id}
+          overlay={overlay}
+          service={service}
+          top={overlay === top}
+          effectiveModal={isModal(overlay)}
+        />)}
     </div>
     <ToastStack service={service} toasts={state.toasts} />
   </>;

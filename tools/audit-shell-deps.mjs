@@ -2,8 +2,9 @@
    With the shell mounted and a game open, enumerate what still lives inside the
    legacy #app subtree, which route hosts hold RELOCATED legacy nodes vs native
    markup, and what the outlet is still load-bearing for. */
+import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
-const URL = new globalThis.URL('../football-film-analyzer.html', import.meta.url).href;
+const URL = TEST_APP_URL;
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
@@ -18,6 +19,8 @@ await page.evaluate(async () => {
   await app.openGame('g1');
 });
 await new Promise(r => setTimeout(r, 800));
+await page.evaluate(() => { window.app.toggleShortcuts(true); });
+await page.waitForSelector('[data-overlay-id="keyboard-shortcuts"]');
 
 const out = await page.evaluate(() => {
   const res = {};
@@ -59,7 +62,7 @@ const out = await page.evaluate(() => {
     libraryOverlay: where('libraryOverlay'),
     statsDashboard: where('statsDashboard'),
     seasonOverlay: where('seasonOverlay'),
-    shortcutsModal: where('shortcutsModal'),
+    nativeShortcuts: document.querySelector('[data-overlay-id="keyboard-shortcuts"]')?.closest('#giNativeRoot') ? 'native root' : 'absent',
     settingsDrawer: where('settingsDrawer'),
     gameModal: where('gameModal'),
     importModal: where('importModal'),

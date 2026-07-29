@@ -29,11 +29,21 @@ export class NativeOverlayService {
 
   dialog(options = {}) { return this._open('dialog', options); }
   sheet(options = {}) { return this._open('sheet', options); }
+  popover(options = {}) {
+    if (!connectedElement(options.anchor)) throw new Error('A popover requires a connected anchor element.');
+    return this._open('popover', options);
+  }
 
   _open(type, options) {
     // A newly opened decision owns focus; cancel any stale close restoration.
     this._focusRestoreToken++;
     const top = this._overlays.at(-1);
+    if (type === 'popover' && top?.type === 'popover') {
+      // Replace in one emission. Calling close() here would schedule focus return
+      // from the old menu and race the new menu's initial focus.
+      this._overlays = this._overlays.slice(0, -1);
+      top.resolveResult('replaced');
+    }
     if (type === 'dialog' && top?.type === 'dialog') {
       const allowed = options.destructive === true && options.parentId === top.id;
       if (!allowed) throw new Error('A dialog may only stack for a destructive confirmation of the active dialog.');
@@ -52,6 +62,16 @@ export class NativeOverlayService {
       default: action.default === true,
       onSelect: action.onSelect,
     }));
+    const items = (Array.isArray(options.items) ? options.items : []).map((item, index) => ({
+      key: item.key || `item-${index + 1}`,
+      label: String(item.label || item.key || `Item ${index + 1}`),
+      detail: item.detail == null ? '' : String(item.detail),
+      tone: item.tone || 'neutral',
+      disabled: item.disabled === true,
+      separator: item.separator === true,
+      onSelect: item.onSelect,
+    }));
+    if (type === 'popover' && !items.length) throw new Error('A popover requires at least one menu item.');
     if (options.destructive === true) {
       const cancel = actions.find(action => action.key === 'cancel');
       if (!cancel) throw new Error('A destructive overlay requires an explicit Cancel action.');
@@ -68,6 +88,9 @@ export class NativeOverlayService {
       message: options.message == null ? '' : String(options.message),
       content: options.content || null,
       actions,
+      items,
+      anchor: type === 'popover' ? options.anchor : null,
+      placement: options.placement || 'bottom-end',
       destructive: options.destructive === true,
       modal: type === 'dialog' || options.modal === true,
       dismissOnEscape: options.dismissOnEscape !== false,
@@ -164,6 +187,14 @@ export class NativeOverlayService {
     let attempts = 0;
     const restore = () => {
       if (token !== this._focusRestoreToken) return;
+      const active = globalThis.document?.activeElement;
+      const activeOverlay = connectedElement(active) ? active.closest?.('[data-overlay-id]') : null;
+      // Closing is asynchronous relative to Preact. If focus has already landed
+      // on a live control outside the closing overlay, that is a newer user or
+      // workflow decision and must win. Otherwise a delayed restore can steal
+      // focus back after the coach has already moved on.
+      if (connectedElement(active) && active !== globalThis.document?.body
+          && active !== overlay.returnFocus && activeOverlay?.dataset?.overlayId !== overlay.id) return;
       const stable = [...(globalThis.document?.querySelectorAll('[data-focus-return-root], main, nav, header') || [])]
         .find(element => connectedElement(element) && !element.closest('[inert]') && element.getClientRects().length);
       const preferred = connectedElement(overlay.returnFocus)

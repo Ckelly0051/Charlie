@@ -9,13 +9,13 @@ export const P0_CAPABILITIES = [
   { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
   { id:'shell.breakdown-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Break Down opens its dedicated production route' },
   { id:'shell.settings', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell Settings opens the single native Team & Film Settings owner' },
-  { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More opens the canonical action menu' },
+  { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More opens the native action menu without revealing the legacy dropdown' },
   { id:'shell.study-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Study opens the query workspace inside the persistent shell' },
   { id:'shell.plan-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Plan opens the live season plan workspace' },
   { id:'shell.undo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Relocated Undo stays wired to history-manager and enables on a real edit' },
   { id:'shell.redo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Undo, Redo and Shortcuts are reachable in shell chrome, not entombed in the hidden classic bar' },
-  { id:'shell.shortcuts', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Mobile Shortcuts action remains wired to the canonical dialog' },
-  { id:'shell.import-plays', surface:'shell', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Shell Import Plays opens the canonical importer and Cancel preserves the season' },
+  { id:'shell.shortcuts', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Closing native Shortcuts restores focus to its live launcher' },
+  { id:'shell.import-plays', surface:'shell', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Native Import confirms one mapped football play and reports success' },
 
   // Break Down: film, charting, and football detail
   { id:'breakdown.video-controls', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Real playback controls are contained inside the video surface' },
@@ -104,7 +104,7 @@ export const P0_CAPABILITIES = [
   { id:'overlay.sheet', surface:'overlays', evidence:'behavior', harness:'e2e-native-overlay.mjs', assertion:'desktop non-modal sheet leaves the route available' },
   { id:'overlay.destructive-default', surface:'overlays', evidence:'a11y', harness:'e2e-native-overlay.mjs', assertion:'destructive confirmation defaults focus to Cancel' },
   { id:'overlay.stack', surface:'overlays', evidence:'behavior', harness:'e2e-native-overlay.mjs', assertion:'closing stacked dialog returns focus inside its parent sheet' },
-  { id:'overlay.toast', surface:'overlays', evidence:'a11y', harness:'e2e-native-overlay.mjs', assertion:'toast announces politely without stealing focus' },
+  { id:'overlay.toast', surface:'overlays', evidence:'a11y', harness:'e2e-native-overlay.mjs', assertion:'toast and delayed overlay cleanup never steal newer focus' },
   { id:'overlay.unmount', surface:'overlays', evidence:'behavior', harness:'e2e-native-overlay.mjs', assertion:'unmount removes presentation, subscription, key/focus ownership, and route inertness' },
 ];
 // Named completeness floor for capabilities this migration has previously
