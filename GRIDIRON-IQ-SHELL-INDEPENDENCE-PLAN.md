@@ -35,6 +35,24 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`9aebbab` · 2026-07-29 · Codex · S4-e BUILT — awaiting independent review**
+
+- S4-d is accepted at `7c87e2b`; its test-label observation is closed in this
+  checkpoint.
+- The unreachable `#seasonOverlay` is retired rather than rebuilt. Home/Team Hub
+  retain game/season management, More retains file commands, and native Reports
+  retains the complete season analytics composition. Modal markup, listeners,
+  dead render lifecycle, stale Call Sheet injection, and modal-only CSS are
+  deleted.
+- Season analytics no longer call `commitActive()` while rendering. A read-only
+  live-game projection includes uncommitted tagger edits without rewriting the
+  canonical season node. The old path failed the new byte-identity regression.
+- Native Season is **8/8**; full canonical gate **73/73 green, 0 skipped, 0
+  failed**. No schema, analytics formula, film path/file, migration, backup
+  payload, package, tag, or release changed.
+- Final S4 scope is the coupled `#settingsDrawer` + `#drawerScrim` migration. It
+  must expose the durable restore-point workflow; backend-only coverage does not
+  prove coach-facing parity.
 **`bbaedf3` · 2026-07-29 · Codex · S4-d BUILT — awaiting independent review**
 
 - S4-c is accepted at `494d99d`; S4-d replaces the legacy
@@ -175,10 +193,11 @@ flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
 delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
 `9ddddf7` and S4-b is ACCEPTED at `5619b45` (Claude, 2026-07-29). The S4-b
 minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is
-ACCEPTED at `494d99d`. S4-d — native Quick Chart — is built at `bbaedf3` and
-awaits independent review. Remaining legacy owners are `#seasonOverlay`,
-`#drawerScrim`, and `#settingsDrawer`. The first milestone installer is cut at
-S4 COMPLETE, before S5 opens.** N6 (popover) is now
+ACCEPTED at `494d99d`. S4-d — native Quick Chart — is ACCEPTED at `7c87e2b`.
+S4-e — legacy Season overlay retirement — is built at `9aebbab` and awaits
+independent review. Final S4 owners are the coupled `#drawerScrim` and
+`#settingsDrawer`. The first milestone installer is cut at S4 COMPLETE, before
+S5 opens.** N6 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.
 

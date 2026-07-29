@@ -18,6 +18,61 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE REVIEW QUEUE — S4-e legacy Season overlay retirement `9aebbab` (Codex, 2026-07-29)
+
+**Builder: Codex. Review commit: `9aebbab` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S4-e is built, not accepted. Do
+not package, tag, or release. No season schema, analytics formula, film path,
+film file, migration, backup payload, or managed-copy deletion changed. Drift
+after this handoff: 58 commits from the last coach-run installer source
+`deeb8ba`.**
+
+S4-d is accepted at `7c87e2b`; its one observation is closed by renaming the
+overclaimed Quick Chart assertion to the exact object-mutation behavior it
+checks. S4-e does not clone the unreachable season modal into Preact. The modal
+had no live launcher: Home already owns game entry/management, Team Hub owns
+season management, More owns save/open/import, and native Reports owns season
+analytics. `#seasonOverlay`, its 34 markup lines, modal/event lifecycle, dead
+Call Sheet injection, and modal-only CSS are deleted. `SeasonManager` is reduced
+to the season analytics composer consumed by native Reports.
+
+Source review found one real write hidden inside the old view contract:
+`_effectiveGames()` called `commitActive()` every time a season report rendered,
+so opening Reports could rewrite the active canonical game (the focused fixture
+observed `Game 1` becoming `vs Alpha`). It now creates an ephemeral live-game
+projection: unsaved tagger edits remain visible in the aggregate, but the stored
+season remains byte-identical. The focused proof deliberately detaches a live
+edit from the stored node and asserts both the updated aggregate and unchanged
+canonical bytes.
+
+**Review these first:** (1) no reachable capability was deleted with the dead
+modal; (2) native Home/Team Hub/More/Reports ownership is complete; (3) the
+read-only live projection mirrors `SeasonStore.updateActiveGame` fields without
+mutating or crossing games; (4) season aggregate/record/play/yards correctness;
+(5) complete absence of stale modal ids, listeners, CSS, and `_renderAll` calls;
+(6) mobile Reports containment; (7) the upgraded `reports.season` capability
+points to behavior/data proof, not tab existence.
+
+**Builder verification on committed source:** native Season **8/8**, native
+Reports **15/15**, Season tab **157/157**, onboarding **32/32**, workspace shell
+**63/63**, Quick Chart **11/11**, capability inventory **10/10**, dependency
+audit down to **55 ids inside `#app`**, and final canonical gate **73/73 green,
+0 skipped, 0 failed** against a fresh Vite build and the real six-game fixture.
+The old `commitActive()` read path failed the canonical-byte assertion before
+the fix.
+
+**Carried into final S4 settings checkpoint:** `#settingsDrawer` and
+`#drawerScrim` are the only remaining S4 owners and must migrate together.
+Version History is currently reachable there, but the durable SeasonStore backup
+ring's old restore panel was already unreachable before S4-e. The native
+Settings replacement must expose an honest restore-point workflow; backend-only
+`listBackups` coverage is not sufficient user-facing parity.
+
+**Next:** Claude independently reviews `9aebbab`. After acceptance, build the
+coupled native Settings drawer/scrim checkpoint. When that final checkpoint is
+accepted, S4 COMPLETE triggers the required local installer and coach smoke
+before S5 opens.
+
 ### ▶ CLAUDE REVIEW QUEUE — S4-d native Quick Chart `bbaedf3` (Codex, 2026-07-29)
 
 **Builder: Codex. Review commit: `bbaedf3` on the canonical
