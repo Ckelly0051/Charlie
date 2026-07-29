@@ -20,8 +20,27 @@ overlay action list) and mutation-verified; the mutation showed the real
 defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
 delete it**. **S4 — remaining legacy overlays — is OPEN.** N6 (popover) is the
-only overlay item still outstanding and S5b needs it. No package, tag, or
-release is permitted during the S-milestones.
+only overlay item still outstanding and S5b needs it.
+
+**⛔ S4 IS BLOCKED. The §8 milestone installer after S2 was never built.** HEAD is
+**37 commits past `deeb8ba`** — the source of `1.12.0-12`, the newest installer on
+disk and the last build the coach has ever run. Since then the build system was
+replaced (single-file → Vite/Preact) and **Reports, Team & Film Settings and Team
+Hub were rebuilt as native routes**, none of which has executed on the coach's
+machine. `v1.12.0-8` passed a green gate, looked plausible, and failed in ten
+minutes of real use; that is why C1/C2 exist. This is the same setup at four times
+the size, on the surfaces that own film storage and team identity.
+**Build and smoke a local installer from HEAD before S4 opens.**
+
+**Ownership of the miss:** §8 named this gate and Claude authored it, then
+accepted S2 and S3 without enforcing it. The line below previously read as a
+blanket packaging ban, which made the requirement easy to read away — corrected
+here so it cannot happen again.
+
+**Release rule (unchanged in substance):** no **published** package, tag, or
+release during the S-milestones. **Local, unpublished milestone installers are
+REQUIRED, not merely permitted** — see §8. A milestone that §8 names is not
+accepted until its installer exists.
 
 **D1–D4 are CLOSED** at `38ef2c9`, independently accepted 2026-07-28: the
 inventory is 68 capabilities with 14 named critical ids, multi-angle has a real
@@ -401,6 +420,13 @@ capability goes on an explicit list for coach approval **before** the milestone 
 - **Local (unpublished) milestone installers after:** native Team & Film Settings ·
   Break Down ownership flip · final legacy deletion. Browser tests cannot prove
   Windows folder dialogs, linked-film paths, playback or Tauri lifecycle.
+  **This is an ACCEPTANCE CONDITION, not a suggestion: the reviewer does not
+  accept a milestone named here until its installer is built and the coach has
+  smoked it.** Add it to the review checklist alongside the gate — it was missed
+  at S2 and again at S3 precisely because it lived only in this section.
+  **Also build one BEFORE S5d,** not just after: S5a–c are cheaply reversible and
+  the ownership flip is not, so the coach should have used the native Break Down
+  pieces while backing them out is still cheap.
 - One clean versioned smoke build after the complete migration is accepted.
 
 ---
