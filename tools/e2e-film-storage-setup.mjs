@@ -57,7 +57,7 @@ let r = await page.evaluate(() => ({
   title: document.querySelector('[data-overlay-id="team-film-settings"] h2')?.textContent,
   legacyModal: !!document.querySelector('#filmStorageSetupModal'),
 }));
-ok(r.native && /Team & Film Settings/.test(r.title) && !r.legacyModal, 'First desktop launch opens the one native Team & Film Settings owner', JSON.stringify(r));
+ok(r.native && /Set Up Film Storage/.test(r.title) && !r.legacyModal, 'First desktop launch opens the one native film-storage setup owner', JSON.stringify(r));
 ok(r.choices.some(x => /existing library/i.test(x) && /nothing is copied/i.test(x))
   && r.choices.some(x => /managed storage/i.test(x) && /copied/i.test(x)),
   'Choice copy clearly distinguishes link-in-place from managed copies', JSON.stringify(r.choices));
@@ -79,6 +79,14 @@ await page.click('#btnNativeTeamFilmSettings');
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 ok(await page.evaluate(() => document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length === 1),
   'Team Hub settings action opens the consolidated panel before a game is opened');
+await page.click('[data-settings-tab="film"]');
+await page.waitForSelector('[data-settings-panel="film"]');
+r = await page.evaluate(() => ({
+  status: document.querySelector('[data-settings-panel="film"] .gi-settings-status')?.textContent || '',
+  selected: document.querySelector('.gi-settings-mode-actions .is-selected')?.textContent || '',
+}));
+ok(/Managed copies/i.test(r.status) && /managed storage/i.test(r.selected) && /copied/i.test(r.selected),
+  'Native Film settings persists managed mode and discloses copying', JSON.stringify(r));
 await page.evaluate(() => window.app.settingsScreen.close('pre-game-proof-complete'));
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
@@ -89,7 +97,7 @@ r = await page.evaluate(() => ({
   file: document.querySelector('#videoPlaceholder [data-action="file"]')?.textContent,
   link: document.querySelector('#videoPlaceholder [data-action="link"]')?.textContent,
 }));
-ok(r.mode === 'managed' && /Managed/.test(r.label) && /copied/.test(r.path), 'Managed choice persists and discloses copying', JSON.stringify(r));
+ok(r.mode === 'managed', 'Managed choice remains persisted after setup', JSON.stringify(r));
 ok(r.file === 'Add Video' && r.link === 'Link Game Folder', 'Managed mode keeps import primary and link available', JSON.stringify(r));
 
 await page.evaluate(() => {
@@ -109,20 +117,25 @@ r = await page.evaluate(() => ({
 ok(r.sheet && r.done && /D:\/Football\/Film/.test(r.confirmed) && /no video was copied/i.test(r.confirmed),
   'Linked root selection stays on an exact-path no-copy confirmation', JSON.stringify(r));
 if (r.done) await page.click('.gi-settings-callout.is-success .gi-settings-primary');
-await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));r = await page.evaluate(() => ({
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+await page.evaluate(() => { window.app.settingsScreen.open({ initialTab:'film' }); });
+await page.waitForSelector('[data-settings-panel="film"]');
+r = await page.evaluate(() => ({
   ...window.__filmSetupState,
-  label: document.querySelector('#filmStorageModeLabel')?.textContent,
-  path: document.querySelector('#filmStoragePathLabel')?.textContent,
+  label: document.querySelector('[data-settings-panel="film"] .gi-settings-status')?.textContent,
+  path: document.querySelector('.gi-settings-path strong')?.textContent,
   file: document.querySelector('#videoPlaceholder [data-action="file"]')?.textContent,
   folder: document.querySelector('#videoPlaceholder [data-action="folder"]')?.textContent,
   link: document.querySelector('#videoPlaceholder [data-action="link"]')?.textContent,
   top: document.querySelector('#fileLabel')?.textContent,
 }));
 ok(r.mode === 'linked' && r.root === 'D:/Football/Film' && r.setRootCalls === 1, 'Existing-library choice saves the selected root once', JSON.stringify(r));
-ok(/linked/i.test(r.label) && r.path === 'D:/Football/Film', 'Settings always shows linked mode and exact library path', JSON.stringify(r));
+ok(/linked/i.test(r.label) && r.path === 'D:/Football/Film', 'Native Film settings shows linked mode and exact library path', JSON.stringify(r));
 ok(r.file === 'Copy Video' && r.folder === 'Copy Folder' && r.link === 'Link Game Folder',
   'Linked mode makes no-copy action primary and labels copy overrides honestly', JSON.stringify(r));
 ok(/Link from the game/.test(r.top), 'Linked mode removes the top-bar implication that dropping files is the default', r.top);
+await page.evaluate(() => window.app.settingsScreen.close('linked-proof-complete'));
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
 r = await page.evaluate(async () => {
   const app = window.app;
@@ -194,10 +207,10 @@ r = await page.evaluate(async () => {
   const linked = await app.storage.linkFilmFolder();
   await new Promise(resolve => setTimeout(resolve, 0));
   const savedGame = state.saved?.games?.[0] || null;
-  app.uiPolish._renderFilmStorageSettings();
-  await new Promise(resolve => setTimeout(resolve, 0));
-  const source = document.getElementById('gameFilmSourcePath')?.textContent || '';
-  const sourceMode = document.getElementById('gameFilmSourceMode')?.textContent || '';
+  const nativeSettings = await app.settingsScreen.snapshot();
+  const activeSource = nativeSettings.games.find(row => row.game.id === store.data.activeGameId);
+  const source = activeSource?.path || '';
+  const sourceMode = activeSource?.game?.filmMode || '';
 
   // A canonical failure must restore the pre-link game instead of returning a
   // success toast over unsaved metadata.
@@ -241,7 +254,7 @@ ok(r.savedMode === 'linked' && r.savedDir === 'St Peter 41-0',
   'Game link persists canonical linked mode plus child-folder reference', JSON.stringify(r));
 ok(r.imported === 0 && r.savedPlay?.id === 10 && r.savedPlay?.tags?.formation === 'Ace' && r.savedPlay?.notes === 'keep me',
   'Linked flow makes no managed copy and preserves play identity/tags/notes', JSON.stringify(r));
-ok(/Linked/i.test(r.sourceMode) && /D:\/Football\/Film\/St Peter 41-0/.test(r.source),
+ok(r.sourceMode === 'linked' && /D:\/Football\/Film\/St Peter 41-0/.test(r.source),
   'Settings shows the active game actual linked source path', JSON.stringify(r));
 ok(r.failed === false && r.failedRolledBack, 'Failed canonical save rolls the entire game link back and reports failure', JSON.stringify(r));
 ok(r.outside === false && r.finalRoot === 'D:/Football/Film', 'Outside-root game folder is rejected without changing the library root', JSON.stringify(r));
@@ -381,6 +394,8 @@ const real = await page.evaluate(async () => {
   // gameInfo/playlist state from earlier scenarios and creates a fake mutation.
   app.storage._loadedGameId = null;
   await app.storage._loadActiveGame();
+  app.storage.commitActive();
+  await store.persist();
   const nonTargetsBefore = JSON.stringify(store.data.games.filter(g => g.id !== 'refuge'));
 
   // C1: open Refuge through the ONE authoritative command (not setActive).

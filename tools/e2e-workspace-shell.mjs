@@ -165,18 +165,19 @@ r = await page.evaluate(() => ({
   moreInShell: !!document.querySelector('.ws-top-actions #btnNativeMore'),
   settingsVisible: document.getElementById('btnSidebarToggle')?.offsetParent !== null,
   moreVisible: document.getElementById('btnNativeMore')?.offsetParent !== null,
-  drawerOutsideHiddenApp: document.getElementById('settingsDrawer')?.parentElement === document.body,
+  retiredOwnersAbsent: !document.getElementById('settingsDrawer') && !document.getElementById('drawerScrim'),
+  filmPickersOutsideLegacy: ['projectFileInput','clipFileInput','repairFilmInput'].every(id => document.getElementById(id)?.parentElement === document.body),
 }));
-ok(r.settingsInShell && r.moreInShell && r.settingsVisible && r.moreVisible && r.drawerOutsideHiddenApp,
-  'Compact shell keeps canonical Settings and More controls visible and the drawer renderable', JSON.stringify(r));
+ok(r.settingsInShell && r.moreInShell && r.settingsVisible && r.moreVisible && r.retiredOwnersAbsent && r.filmPickersOutsideLegacy,
+  'Compact shell keeps Settings and More visible while retired overlays stay absent and film pickers survive outside #app', JSON.stringify(r));
 
 await page.click('#btnSidebarToggle');
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
 r = await page.evaluate(() => ({
   nativeSettings: document.querySelectorAll('[data-overlay-id="team-film-settings"] [data-native-settings]').length,
-  drawerOpen: document.getElementById('settingsDrawer')?.classList.contains('open'),
+  retiredOwnersAbsent: !document.getElementById('settingsDrawer') && !document.getElementById('drawerScrim'),
 }));
-ok(r.nativeSettings === 1 && !r.drawerOpen, 'Shell Settings opens the single native Team & Film Settings owner', JSON.stringify(r));
+ok(r.nativeSettings === 1 && r.retiredOwnersAbsent, 'Shell Settings opens the single native Settings owner with no drawer or scrim', JSON.stringify(r));
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await page.click('#btnNativeMore');
@@ -363,42 +364,21 @@ r = await page.evaluate(() => {
 ok(r.sameNode && r.inTools && r.entries === 1 && r.before === true && r.after === false,
   'Relocated Undo stays wired to history-manager and enables on a real edit', JSON.stringify(r));
 
-// The CV badge is deliberately NOT prime chrome: it reports an optional local
-// server. It belongs with the low-frequency setup tools, so it must be absent
-// from the top bar and present once the drawer is open.
+// Optional analysis status belongs inside native Analysis, never in prime shell chrome.
 const badgeClosed = await onScreen('#backendStatusBadge');
 await page.click('#btnSidebarToggle');
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');
-await page.click('[data-overlay-id="team-film-settings"] .gi-settings-tabs button:last-child');
-await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]')
-  && document.getElementById('settingsDrawer')?.classList.contains('open'));
-await new Promise(resolve => setTimeout(resolve, 320));
-const badgeOpen = await onScreen('#backendStatusBadge');
-r = { badgeClosed, badgeOpen, inHead: await page.evaluate(() => !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head')) };
-ok(!r.badgeClosed && r.badgeOpen && r.inHead,
-  'Native More settings preserves the unmigrated drawer tools and CV-server status', JSON.stringify(r));
-
-// Classic top-bar media rules are written for the classic bar's cramping but
-// several are UNSCOPED, so they follow a control that gets relocated. Two would
-// have landed silently here: `.backend-status-badge{display:none}` under 1200px
-// (badge vanishes inside the drawer, worst on the small windows where the drawer
-// matters most) and `#btnShortcuts span{display:none}` under 1450px (label
-// reappears on a wide monitor and reflows the top bar). Pin both ends.
-await page.setViewport({ width: 1152, height: 860 });
-await new Promise(resolve => setTimeout(resolve, 260));
-const narrowBadge = await onScreen('#backendStatusBadge');
-await page.setViewport({ width: 1680, height: 900 });
-await new Promise(resolve => setTimeout(resolve, 260));
-const wideShortcutsLabel = await page.evaluate(() =>
-  getComputedStyle(document.querySelector('.ws-global-tools #btnShortcuts span')).display);
-r = { narrowBadge, wideShortcutsLabel };
-ok(r.narrowBadge && r.wideShortcutsLabel === 'none',
-  'Relocated controls ignore the classic bar\'s unscoped width rules (badge survives <1200px, Shortcuts stays icon-only >1450px)', JSON.stringify(r));
-await page.setViewport({ width: 1280, height: 800 });
-await new Promise(resolve => setTimeout(resolve, 260));
-await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
-await new Promise(resolve => setTimeout(resolve, 320));
-
+await page.click('[data-settings-tab="analysis"]');
+await page.waitForSelector('[data-settings-panel="analysis"]');
+r = await page.evaluate(() => ({
+  badgeClosed: document.getElementById('backendStatusBadge')?.offsetParent !== null,
+  analysisStatus: document.querySelector('[data-settings-panel="analysis"] .gi-settings-status')?.textContent?.trim(),
+  shortcutsLabel: getComputedStyle(document.querySelector('.ws-global-tools #btnShortcuts span')).display,
+}));
+ok(!badgeClosed && !r.badgeClosed && r.analysisStatus && r.shortcutsLabel === 'none',
+  'Optional analysis status lives in Settings while prime chrome stays quiet and Shortcuts remains icon-only', JSON.stringify(r));
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await capture('breakdown-tools-1280x800');
 // Linked-film reload can be slower under CPU/GPU or disk pressure. The route
 // must wait for switchToGame() instead of racing shell render against it.
@@ -664,7 +644,8 @@ r = await page.evaluate(() => {
     chromeRestored: ['btnSidebarToggle', 'btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
       .every(id => !!document.querySelector(`#app .top-bar #${id}`))
       && !document.querySelector('#app .top-bar .more-menu')
-      && !!document.querySelector('#app #settingsDrawer'),
+      && !document.getElementById('settingsDrawer')
+      && !document.getElementById('drawerScrim'),
   };
 });
 ok(r.restored && r.chromeRestored, 'disable() (internal teardown) restores canonical surfaces and every adopted chrome control', JSON.stringify(r));
@@ -678,17 +659,15 @@ await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1');
 // shortcuts, CV badge) re-entombed inside the hidden classic bar after a
 // lifecycle cycle, with every other assertion still green.
 r = await page.evaluate(() => ({
-  reAdopted: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
-    .every(id => !!document.getElementById(id)?.closest('.ws-mobile-history-actions'))
-    && !!document.getElementById('btnSidebarToggle')?.closest('.ws-global-tools'),
-  badgeReHoused: !!document.getElementById('backendStatusBadge')?.closest('.settings-drawer-head'),
+  reAdopted: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'btnSidebarToggle']
+    .every(id => !!document.getElementById(id)?.closest('.ws-global-tools')),
+  optionalStatusNotPrime: !document.getElementById('backendStatusBadge')?.closest('.ws-global-tools'),
   nativeMoreRebuilt: !!document.querySelector('.ws-top-actions #btnNativeMore'),
-  // and nothing got duplicated by mounting twice
   singletons: ['btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
     .every(id => document.querySelectorAll(`#${id}`).length === 1),
 }));
-ok(r.reAdopted && r.badgeReHoused && r.nativeMoreRebuilt && r.singletons,
-  'Re-enabling after teardown re-adopts relocated controls and rebuilds native More exactly once', JSON.stringify(r));
+ok(r.reAdopted && r.optionalStatusNotPrime && r.nativeMoreRebuilt && r.singletons,
+  'Re-enabling re-adopts live global commands and rebuilds native More exactly once', JSON.stringify(r));
 r = await page.evaluate(async () => {
   await window.app.workspaceShell.show('reports');
   const screen = window.app.reportsScreen, calls = [];
@@ -715,20 +694,20 @@ r = await page.evaluate(() => ({
   overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   mobileHeader: getComputedStyle(document.querySelector('.ws-mobile-head')).display !== 'none',
   sidebar: getComputedStyle(document.querySelector('.ws-sidebar')).display,
-  bottomTabs: getComputedStyle(document.querySelector('.bottom-tabs')).display,
+  bottomTabs: document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent',
 }));
-ok(!r.overflow && r.mobileHeader && r.sidebar === 'none' && r.bottomTabs === 'none', 'Mobile Home has no overflow and hides classic navigation', JSON.stringify(r));
+ok(!r.overflow && r.mobileHeader && r.sidebar === 'none' && r.bottomTabs === 'absent', 'Mobile Home has no overflow and hides classic navigation', JSON.stringify(r));
 await capture('home-390x844');
 
 await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
 r = await page.evaluate(() => ({
-  bottomTabs: getComputedStyle(document.querySelector('.bottom-tabs')).display,
+  bottomTabs: document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent',
   workspaceNav: getComputedStyle(document.querySelector('.ws-mobile-nav')).display,
   routeButtons: document.querySelectorAll('.ws-mobile-nav [data-ws-route]').length,
   active: document.querySelector('.ws-mobile-nav [data-ws-route].active')?.dataset.wsRoute,
   routeSelect: !!document.querySelector('#wsMobileRoute'),
 }));
-ok(r.bottomTabs === 'none' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
+ok(r.bottomTabs === 'absent' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
   'Mobile Break Down uses one Home/Break Down/Study/Reports/Plan navigation system', JSON.stringify(r));
 await page.click('#btnNativeMoreMobile');
 await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="settings"]');
@@ -750,36 +729,21 @@ r = await page.evaluate(() => ({
 }));
 ok(r.modal === 'true' && r.routeInert && !r.overflow,
   'Mobile Settings is a focused modal sheet with no page overflow', JSON.stringify(r));
-await page.click('[data-overlay-id="team-film-settings"] .gi-settings-tabs button:last-child');
-await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]')
-  && document.getElementById('settingsDrawer')?.classList.contains('open'));
-await new Promise(resolve => setTimeout(resolve, 320));
-r = {
-  undo: await onScreen('#btnUndoAction'),
-  redo: await onScreen('#btnRedoAction'),
-  shortcuts: await onScreen('#btnShortcuts'),
-  inMobileTools: await page.evaluate(() => ['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
-    .every(id => !!document.getElementById(id)?.closest('.ws-mobile-history-actions'))),
-  minHeight: await page.evaluate(() => Math.min(...['btnUndoAction', 'btnRedoAction', 'btnShortcuts']
-    .map(id => document.getElementById(id).getBoundingClientRect().height))),
-};
-ok(r.undo && r.redo && r.shortcuts && r.inMobileTools && r.minHeight >= 44,
-  'Mobile More settings preserves live Undo, Redo, and Shortcuts as touch targets', JSON.stringify(r));
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+await page.click('#btnNativeMoreMobile');
+await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="shortcuts"]');
 r = await page.evaluate(() => {
-  const button = document.getElementById('btnShortcuts');
-  const rect = button?.getBoundingClientRect();
-  const hit = rect ? document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) : null;
+  const items = ['undo','redo','shortcuts'].map(key => document.querySelector(`[role="menu"][aria-label="More actions"] [data-popover-item="${key}"]`));
   return {
-    connected: !!button?.isConnected,
-    disabled: !!button?.disabled,
-    inertAncestor: !!button?.closest('[inert]'),
-    drawerOpen: document.getElementById('settingsDrawer')?.classList.contains('open'),
-    hitButton: hit?.closest('button')?.id || '',
+    allPresent: items.every(Boolean),
+    minHeight: Math.min(...items.map(item => item.getBoundingClientRect().height)),
+    retiredOwnersAbsent: !document.getElementById('settingsDrawer') && !document.getElementById('drawerScrim'),
   };
 });
-ok(r.connected && !r.disabled && !r.inertAncestor && r.drawerOpen && r.hitButton === 'btnShortcuts',
-  'Mobile notifications do not cover the live Shortcuts launcher', JSON.stringify(r));
-await page.click('#btnShortcuts');
+ok(r.allPresent && r.minHeight >= 44 && r.retiredOwnersAbsent,
+  'Mobile More keeps Undo, Redo, and Shortcuts touch-reachable without reviving the drawer', JSON.stringify(r));
+await page.click('[data-popover-item="shortcuts"]');
 await page.waitForSelector('[data-overlay-id="keyboard-shortcuts"] [data-native-shortcuts]', { timeout: 10000 });
 await capture('shortcuts-390x844');
 r = await page.evaluate(() => ({
@@ -793,10 +757,9 @@ ok(r.shortcutsOpen && r.legacyGone && r.groups === 4 && r.modal === 'true' && !r
   'Mobile Shortcuts opens the native focused dialog without legacy markup or overflow', JSON.stringify(r));
 await page.click('[data-overlay-id="keyboard-shortcuts"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="keyboard-shortcuts"]'));
-await page.waitForFunction(() => document.activeElement?.id === 'btnShortcuts');
-r = await page.evaluate(() => ({ focusReturned: document.activeElement?.id === 'btnShortcuts' }));
-ok(r.focusReturned, 'Closing native Shortcuts restores focus to its live launcher', JSON.stringify(r));
-await page.evaluate(() => document.getElementById('settingsDrawerClose')?.click());
+await page.waitForFunction(() => document.activeElement?.id === 'btnNativeMoreMobile');
+r = await page.evaluate(() => ({ focusReturned: document.activeElement?.id === 'btnNativeMoreMobile' }));
+ok(r.focusReturned, 'Closing native Shortcuts restores focus to the mobile More launcher', JSON.stringify(r));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

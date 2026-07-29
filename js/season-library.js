@@ -587,7 +587,7 @@ export class SeasonLibrary {
 
   _openRoster() {
     this.hide();   // no-ops when no season is open (overlay must stay)
-    this._openSettingsPanel('rosterPanel');
+    window.app?.settingsScreen?.open?.({ initialTab: 'roster', returnFocus: document.activeElement });
   }
 
   _openTeamFilmSettings() {
@@ -612,21 +612,8 @@ export class SeasonLibrary {
     return true;
   }
   _openSettingsPanel(panelId) {
-    const drawer = document.getElementById('settingsDrawer');
-    const scrim = document.querySelector('.drawer-scrim');
-    const panel = document.getElementById(panelId);
-    // If the library overlay is still up (no season open), the drawer's normal
-    // z-index (600) would put it BEHIND the overlay (4000) — the click would
-    // look dead. Raise it above; ui-polish strips the class on drawer close.
-    if (this._isOpen()) {
-      drawer?.classList.add('drawer-above-library');
-      scrim?.classList.add('drawer-above-library');
-    }
-    if (drawer && !drawer.classList.contains('open')) {
-      drawer.classList.add('open');
-      if (scrim) scrim.classList.add('active');
-    }
-    if (panel && panel.classList.contains('collapsed')) panel.classList.remove('collapsed');
+    const tab = panelId === 'rosterPanel' ? 'roster' : 'film';
+    return window.app?.settingsScreen?.open?.({ initialTab: tab, returnFocus: document.activeElement });
   }
 
   // ---- Schedule ----

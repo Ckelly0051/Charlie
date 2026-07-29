@@ -394,7 +394,6 @@ export class StorageManager {
       if (app.history && app.history.reset) app.history.reset();
       if (renderGames && app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
-      app.uiPolish?._renderFilmStorageSettings?.();
     }
     const filmReady = g
       ? this._autoLoadFilm(g).then(() => true).catch(() => false)
@@ -663,7 +662,6 @@ export class StorageManager {
       backend.rememberLinkedDir?.(folder);
       backend.setFilmStorageMode?.('linked');
       this._signalSave?.('saved');
-      window.app?.uiPolish?._renderFilmStorageSettings?.();
       this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from ${folder} - no copy made.`, 7000);
       return true;
     } catch (e) {

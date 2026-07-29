@@ -93,6 +93,55 @@ ok(r.mode === 'managed' && r.links[0].mode === 'linked' && r.links[0].dir === 'O
 ok(r.seasonSame && /Existing linked games were not changed/i.test(r.notice),
   'Storage-default change leaves the canonical season byte-identical and says so', JSON.stringify(r));
 
+// Roster is a real native job, not a bridge back into the retired drawer.
+await page.click('[data-settings-tab="roster"]');
+await page.type('[aria-label="Jersey number"]', '12');
+await page.type('[aria-label="Player name"]', 'Jordan Smith');
+await page.type('[aria-label="Position"]', 'QB');
+await page.select('[aria-label="Side of ball"]', 'O');
+await page.click('[data-settings-panel="roster"] .gi-settings-primary');
+r = await page.evaluate(() => ({ player:window.app.roster.players.find(p => p.num === '12'), row:document.querySelector('.gi-roster-row')?.textContent || '', legacy:!!document.getElementById('rosterPanel') }));
+ok(r.player?.name === 'Jordan Smith' && r.player?.pos === 'QB' && r.player?.side === 'O' && /Jordan Smith/.test(r.row) && !r.legacy,
+  'Native Roster adds a chartable player without reviving the legacy panel', JSON.stringify(r));
+await page.click('[data-settings-panel="roster"] details summary');
+await page.type('[data-settings-panel="roster"] textarea', '#,Name,Position,Side\n55,Alex Reed,LB,D');
+await page.click('[data-settings-panel="roster"] details .gi-settings-primary');
+r = await page.evaluate(() => ({ imported:window.app.roster.players.find(p => p.num === '55'), notice:document.querySelector('[data-settings-panel="roster"] [role="status"]')?.textContent }));
+ok(r.imported?.name === 'Alex Reed' && r.imported?.side === 'D' && /Imported 1 player/.test(r.notice),
+  'Native Roster imports spreadsheet data through the canonical parser', JSON.stringify(r));
+
+// Cut-up filters must select the exact film set the exporter receives.
+await page.evaluate(() => {
+  const mk=(id,down,formation)=>({id,timestamp:{start:id,end:id+1},tags:{unit:'offense',down,formation,playType:'Run Inside',result:'Gain',custom:[]}});
+  window.app.tagger.plays=[mk(1,'3','Wing-T'),mk(2,'1','Wing-T'),mk(3,'3','Trips')];
+});
+await page.click('[data-settings-tab="cutup"]');
+await page.evaluate(() => [...document.querySelectorAll('[data-settings-panel="cutup"] .gi-filter-group')].find(g => g.querySelector('legend')?.textContent === 'Down')?.querySelector('button:nth-child(3)')?.click());
+await page.select('[data-settings-panel="cutup"] .gi-filter-selects select', 'Wing-T');
+r = await page.evaluate(() => ({ criteria:window.app.filter.snapshot(), ids:window.app.filter.filter(window.app.tagger.plays).map(p=>p.id), active:document.querySelector('[data-settings-panel="cutup"] .gi-settings-status')?.textContent }));
+ok(JSON.stringify(r.ids) === '[1]' && r.criteria.downs[0] === '3' && r.criteria.formations[0] === 'Wing-T' && /2 active/.test(r.active),
+  'Native Cut-ups passes the exact selected film set to the canonical filter', JSON.stringify(r));
+
+// Drawing configuration persists to the real canvas, then the sheet gets out of the film's way.
+await page.click('[data-settings-tab="drawing"]');
+await page.click('[data-drawing-color="#ff4444"]');
+await page.$eval('[data-settings-panel="drawing"] input[type="range"]', el => { el.value='7'; el.dispatchEvent(new Event('input',{bubbles:true})); });
+await page.click('[data-drawing-tool="arrow"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+r = await page.evaluate(() => ({ tool:window.app.canvas.currentTool, color:window.app.canvas.color, width:window.app.canvas.lineWidth }));
+ok(r.tool === 'arrow' && r.color === '#ff4444' && r.width === 7,
+  'Native Drawing configures the live canvas and closes so film remains unobstructed', JSON.stringify(r));
+
+// Analysis is optional and contained in Settings rather than prime shell chrome.
+await page.evaluate(() => { window.app.settingsScreen.open({ initialTab:'analysis', returnFocus:document.getElementById('settings-test-invoker') }); });
+await page.waitForSelector('[data-settings-panel="analysis"]');
+await page.type('[data-settings-panel="analysis"] input[type="password"]', 'test-key');
+await page.select('[data-settings-panel="analysis"] select', 'claude-sonnet-4-6');
+await page.click('[data-settings-panel="analysis"] .gi-settings-primary');
+r = await page.evaluate(() => ({ key:localStorage.getItem('ffa_claude_api_key'), model:localStorage.getItem('ffa_claude_model'), saved:document.querySelector('[data-settings-panel="analysis"] [role="status"]')?.textContent }));
+ok(r.key === 'test-key' && r.model === 'claude-sonnet-4-6' && /saved/i.test(r.saved),
+  'Native Analysis saves optional preferences without entering prime chrome', JSON.stringify(r));
+
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await page.waitForFunction(() => document.activeElement?.id === 'settings-test-invoker');

@@ -108,6 +108,7 @@ export class ReportsScreen {
     if (!stats) return false;
     if (kind === 'pdf') stats._exportStats(stats.compute());
     else if (kind === 'html') this.app.storage?.exportHtmlReport?.(stats);
+    else if (kind === 'season-html') return this.app.season?.exportHtml?.() === true;
     else if (kind === 'csv') this.app.storage?.exportCsv?.();
     else if (kind === 'call-sheet') this.app.callSheet?.show?.();
     else return false;

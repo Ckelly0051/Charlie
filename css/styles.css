@@ -2937,42 +2937,6 @@ select:focus-visible {
 /* ==========  MOBILE-FIRST: bottom tabs, empty CTA, hint  ========== */
 /* ================================================================== */
 
-/* --- Bottom tab bar (mobile only) --- */
-.bottom-tabs {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: rgba(15, 21, 39, 0.95);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-top: 1px solid var(--border);
-  z-index: 200;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.bt-tab {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  padding: 8px 4px;
-  transition: color 150ms;
-}
-.bt-tab svg { width: 22px; height: 22px; }
-.bt-tab.active { color: var(--highlight); }
-.bt-tab:active { background: rgba(255,255,255,0.03); }
-
 /* --- Giant empty-state CTA --- */
 .video-placeholder {
   position: absolute;
@@ -3063,24 +3027,6 @@ select:focus-visible {
   cursor: pointer;
   font-weight: 600;
   font-size: 12px;
-}
-
-/* --- Show bottom tabs on mobile, reserve space --- */
-@media (max-width: 800px) {
-  .bottom-tabs { display: flex; }
-  #app { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .sidebar { top: 52px; bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .bottom-panel { display: none; }
-  /* Hide the top hamburger since bottom tabs replace it */
-  .sidebar-toggle { display: none !important; }
-  /* Trim top bar to essentials on mobile — Stats/Save move to tabs/menus */
-  .top-bar-right .btn-highlight,
-  .top-bar-right #btnSave { display: none; }
-}
-
-/* Larger phones get a slightly shorter tab bar */
-@media (max-width: 800px) and (min-height: 750px) {
-  .bottom-tabs { height: 60px; }
 }
 
 /* --- Empty CTA sizing on small phones --- */
@@ -4864,64 +4810,6 @@ body {
   .tag-section .player-roles { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* Settings / tools drawer (replaces the old right sidebar) */
-.settings-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 340px;
-  max-width: 88vw;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  box-shadow: -10px 0 36px rgba(15, 23, 42, 0.18);
-  transform: translateX(100%);
-  transition: transform 260ms ease;
-  z-index: 600;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-.settings-drawer.open { transform: translateX(0); }
-.settings-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--bg-secondary);
-  z-index: 2;
-}
-.settings-drawer-head h2 { margin: 0; font-size: 15px; color: var(--text); }
-.settings-drawer-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-dim);
-  padding: 0 6px;
-}
-.settings-drawer-close:hover { color: var(--text); }
-.settings-drawer .sidebar-panel { border-bottom: 1px solid var(--border); }
-
-/* Scrim behind the drawer */
-.drawer-scrim {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  z-index: 599;
-}
-.drawer-scrim.active { display: block; }
-/* When the roster drawer is opened FROM the library overlay (z 4000), raise it
-   above the overlay so the action visibly works even with no season open.
-   Removed on drawer close (ui-polish). */
-.settings-drawer.drawer-above-library { z-index: 4500; }
-.drawer-scrim.drawer-above-library { z-index: 4499; }
-
 /* Old containers no longer rendered — make sure they never reserve space */
 .bottom-panel { display: none !important; }
 .sidebar { display: none !important; }
@@ -5321,7 +5209,6 @@ select, textarea, .compact-input, .yards-input, .play-select {
 
 /* ---- Depth on key surfaces ---- */
 .video-section { box-shadow: var(--shadow-xs); }
-.settings-drawer { box-shadow: var(--shadow-lg); border-left: 1px solid var(--border); }
 .more-dropdown { border-radius: var(--radius); box-shadow: var(--shadow-lg); }
 
 /* ---- Custom thin scrollbar for the tag column ---- */
@@ -7594,7 +7481,7 @@ body { font-size: 13px; }
 .dd-badge { font-family: var(--display); font-size: 12.5px; letter-spacing: .06em; }
 
 /* Panel titles, drawer header, Film Room title. */
-.panel-title, .settings-drawer-head h2 {
+.panel-title {
   font-family: var(--display); text-transform: uppercase; letter-spacing: .05em;
 }
 .pg-title { font-family: var(--display); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }

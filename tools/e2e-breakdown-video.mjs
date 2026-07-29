@@ -170,12 +170,20 @@ ok(!state.crossSeasonFlushed && state.afterCrossSeason.snapshots === 2 && state.
   'A deferred restore point can never cross a season boundary', JSON.stringify(state.afterCrossSeason));
 
 await page.$eval('[data-edit-library="formation"]', button => { button.scrollIntoView({ block: 'center' }); button.click(); });
-state = await page.evaluate(() => ({ open: document.getElementById('tagLibraryDialog').open, tab: document.querySelector('#tagLibraryDialog [role="tab"][aria-selected="true"]')?.dataset.group }));
-ok(state.open && state.tab === 'formation', 'Field-level Edit library opens the shared editor at the correct vocabulary', JSON.stringify(state));
-await page.keyboard.press('Escape');
+await page.waitForSelector('[data-settings-panel="charting"]');
+state = await page.evaluate(() => ({
+  owners: document.querySelectorAll('[data-settings-panel="charting"]').length,
+  tab: document.querySelector('[data-chart-group][aria-selected="true"]')?.dataset.chartGroup,
+  legacy: !!document.getElementById('tagLibraryDialog') || !!document.getElementById('settingsDrawer'),
+}));
+ok(state.owners === 1 && state.tab === 'formation' && !state.legacy, 'Field-level Edit library opens native Charting at the correct vocabulary', JSON.stringify(state));
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await page.click('[data-bd-customize]');
-ok(await page.$eval('#tagLibraryDialog', el => el.open), 'Header Customize fields opens the same team-scoped library editor');
-await page.keyboard.press('Escape');
+await page.waitForSelector('[data-settings-panel="charting"]');
+ok(await page.evaluate(() => document.querySelectorAll('[data-settings-panel="charting"]').length === 1), 'Header Customize fields opens the same team-scoped native editor');
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 
 await page.click('.breakdown-play-card[data-play-id="9"]');
 state = await page.evaluate(() => ({
@@ -537,14 +545,14 @@ state = await page.evaluate(() => ({
   stripScrolls: document.querySelector('.breakdown-play-track').scrollWidth > document.querySelector('.breakdown-play-track').clientWidth,
   touchHeight: Math.round(document.querySelector('.breakdown-play-card').getBoundingClientRect().height),
   mobileNav: getComputedStyle(document.querySelector('.ws-mobile-nav')).display,
-  legacyNav: getComputedStyle(document.querySelector('.bottom-tabs')).display,
+  legacyNav: document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent',
   routeSelect: !!document.querySelector('#wsMobileRoute'),
   situationY: Math.round(document.querySelector('[data-bdv-group="situation"]').getBoundingClientRect().top),
   templateY: Math.round(document.querySelector('.bdv-template-tools').getBoundingClientRect().top),
 }));
 ok(!state.overflow && state.stripScrolls, 'Mobile uses contained horizontal play scrolling without page overflow', JSON.stringify(state));
 ok(state.cardWidth === 174 && state.touchHeight >= 61, 'Mobile cards retain readable, touchable geometry', JSON.stringify(state));
-ok(state.mobileNav === 'grid' && state.legacyNav === 'none' && !state.routeSelect,
+ok(state.mobileNav === 'grid' && state.legacyNav === 'absent' && !state.routeSelect,
   'Mobile exposes one workspace navigation model', JSON.stringify(state));
 ok(state.situationY < state.templateY, 'Mobile charting reaches Situation before secondary template tools', JSON.stringify(state));
 if (out) await page.screenshot({ path: `${out}/breakdown-390x844.png`, fullPage: false });

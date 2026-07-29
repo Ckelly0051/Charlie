@@ -11,12 +11,10 @@
 export class UIPolish {
   constructor(app = null) {
     this.app = app;
-    this._initSidebarDrawer();
+    this._initSettingsLauncher();
     this._initPanelCollapse();
-    this._initBottomTabs();
     this._initEmptyStateCTA();
     this._initVideoLoadedHint();
-    this._bindFilmStorageSettings();
   }
   _activeFilmGame() {
     const store = this.app?.storage?.seasonStore;
@@ -33,86 +31,8 @@ export class UIPolish {
 
   initFilmStorageSetup() {
     if (!this._isDesktopFilm()) return;
-    document.getElementById('filmStoragePanel')?.removeAttribute('hidden');
-    this._renderFilmStorageSettings();
     const backend = this._filmBackend();
     if (!backend.getFilmStorageMode?.()) setTimeout(() => this.ensureFilmStorageMode(), 120);
-  }
-
-  _bindFilmStorageSettings() {
-    document.getElementById('btnFilmStorageSetup')?.addEventListener('click', event => {
-      this.app?.settingsScreen?.open?.({ returnFocus: event.currentTarget });
-    });
-    document.getElementById('btnLinkGameFolder')?.addEventListener('click', async () => {
-      await this.app?.storage?.linkFilmFolder?.();
-      this._renderFilmStorageSettings();
-    });
-    document.getElementById('btnOpenGameFilmFolder')?.addEventListener('click', async () => {
-      const backend = this._filmBackend();
-      const game = this._activeFilmGame();
-      if (!game || game.filmMode !== 'linked') return;
-      const opened = await backend?.openLinkedDir?.(game.filmDir);
-      if (!opened) this.app?.tagger?.toast?.('COULD NOT OPEN THAT FILM FOLDER');
-    });
-  }
-
-  _renderFilmStorageSettings() {
-    const panel = document.getElementById('filmStoragePanel');
-    if (!panel || !this._isDesktopFilm()) return;
-    panel.hidden = false;
-    const backend = this._filmBackend();
-    const game = this._activeFilmGame();
-    const mode = backend.getFilmStorageMode?.() || '';
-    const root = backend.getLibraryRoot?.() || '';
-    const modeEl = document.getElementById('filmStorageModeLabel');
-    const pathEl = document.getElementById('filmStoragePathLabel');
-    const btn = document.getElementById('btnFilmStorageSetup');
-    if (modeEl) modeEl.textContent = mode === 'linked' ? 'Linked existing library' : mode === 'managed' ? 'Managed storage - copies film' : 'Not set up';
-    if (pathEl) pathEl.textContent = mode === 'linked'
-      ? (root || 'Choose a film library folder')
-      : mode === 'managed'
-        ? 'Film added through import is copied into GridIron IQ app storage.'
-        : 'Choose how GridIron IQ should store game film.';
-    if (btn) btn.textContent = mode === 'linked' ? 'Change library root' : mode ? 'Change storage mode' : 'Set up film storage';
-
-    const source = document.getElementById('gameFilmSource');
-    const sourceMode = document.getElementById('gameFilmSourceMode');
-    const sourcePath = document.getElementById('gameFilmSourcePath');
-    const linkBtn = document.getElementById('btnLinkGameFolder');
-    const openBtn = document.getElementById('btnOpenGameFilmFolder');
-    if (source) source.hidden = false;
-    if (!game) {
-      if (sourceMode) sourceMode.textContent = 'No game open';
-      if (sourcePath) sourcePath.textContent = 'Open a season and select a game to link its film.';
-      if (linkBtn) linkBtn.disabled = true;
-      if (openBtn) openBtn.hidden = true;
-    } else if (game.filmMode === 'linked' && game.filmDir) {
-      if (sourceMode) sourceMode.textContent = 'Linked - plays from your library';
-      if (sourcePath) sourcePath.textContent = 'Resolving linked folder...';
-      if (linkBtn) { linkBtn.disabled = false; linkBtn.textContent = 'Change game folder'; }
-      if (openBtn) openBtn.hidden = false;
-      const token = `${game.id}:${game.filmDir}:${root}`;
-      this._filmSourceRenderToken = token;
-      Promise.resolve(backend.linkedGameDir?.(game.filmDir)).then(absDir => {
-        if (this._filmSourceRenderToken !== token) return;
-        if (sourcePath) sourcePath.textContent = absDir || 'Linked folder unavailable - choose Change game folder.';
-      }).catch(() => {
-        if (this._filmSourceRenderToken === token && sourcePath) sourcePath.textContent = 'Linked folder unavailable - choose Change game folder.';
-      });
-    } else if (game.filmMode === 'managed') {
-      if (sourceMode) sourceMode.textContent = 'Managed copy';
-      if (sourcePath) sourcePath.textContent = 'This game uses a copy in GridIron IQ app storage.';
-      if (linkBtn) { linkBtn.disabled = false; linkBtn.textContent = 'Link existing folder instead'; }
-      if (openBtn) openBtn.hidden = true;
-    } else {
-      if (sourceMode) sourceMode.textContent = 'No folder linked for this game';
-      if (sourcePath) sourcePath.textContent = mode === 'linked'
-        ? 'Choose this game\'s folder inside the Film Library Root.'
-        : 'Set up film storage, then choose this game\'s folder.';
-      if (linkBtn) { linkBtn.disabled = false; linkBtn.textContent = 'Link game folder'; }
-      if (openBtn) openBtn.hidden = true;
-    }
-    this._renderEmptyFilmActions();
   }
 
   ensureFilmStorageMode({ force = false, returnFocus = null } = {}) {
@@ -127,7 +47,6 @@ export class UIPolish {
       .then(value => required ? value : (backend.getFilmStorageMode?.() || current))
       .finally(() => {
         this._filmStoragePromise = null;
-        this._renderFilmStorageSettings();
       });
     return this._filmStoragePromise;
   }
@@ -159,49 +78,10 @@ export class UIPolish {
     return false;
   }
 
-  _initSidebarDrawer() {
-    const btn = document.getElementById('btnSidebarToggle');
-    const drawer = document.querySelector('.settings-drawer');
-    if (!btn || !drawer) return;
-
-    // Inject a scrim
-    let scrim = document.querySelector('.drawer-scrim');
-    if (!scrim) {
-      scrim = document.createElement('div');
-      scrim.className = 'drawer-scrim';
-      document.body.appendChild(scrim);
-    }
-    const close = () => {
-      const wasAboveLibrary = drawer.classList.contains('drawer-above-library');
-      drawer.classList.remove('open');
-      scrim.classList.remove('active');
-      // Drop the raised z-index used when opened from the library overlay.
-      drawer.classList.remove('drawer-above-library');
-      scrim.classList.remove('drawer-above-library');
-      // The library underneath shows roster count + checklist state — refresh
-      // them so adding players is acknowledged the moment the drawer closes.
-      if (wasAboveLibrary && window.app?.library) {
-        window.app.library._renderTeamCard?.();
-        window.app.library._render?.();
-      }
-    };
-    const open = () => {
-      drawer.classList.add('open');
-      scrim.classList.add('active');
-    };
-    btn.addEventListener('click', event => {
+  _initSettingsLauncher() {
+    document.getElementById('btnSidebarToggle')?.addEventListener('click', event => {
       this.app?.settingsScreen?.open?.({ returnFocus: event.currentTarget });
     });
-    scrim.addEventListener('click', close);
-    document.getElementById('settingsDrawerClose')?.addEventListener('click', close);
-    document.addEventListener('keydown', (e) => {
-      // Yield Escape to the game dropdown when it's open — registration
-      // order means stopImmediatePropagation there can't shield us.
-      if (e.key === 'Escape') close();
-    });
-    // Expose for the bottom tab bar
-    this._closeDrawer = close;
-    this._openDrawer = open;
   }
 
   _initPanelCollapse() {
@@ -218,96 +98,6 @@ export class UIPolish {
    * Bottom tab bar (mobile only). Routes taps to existing UI rather than
    * restructuring the DOM. Four tabs: Video / Tag / Stats / More.
    */
-  _initBottomTabs() {
-    const nav = document.createElement('nav');
-    nav.className = 'bottom-tabs';
-    nav.innerHTML = `
-      <button class="bt-tab active" data-tab="video" aria-label="Video">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span>Video</span>
-      </button>
-      <button class="bt-tab" data-tab="stats" aria-label="Stats">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-        <span>Stats</span>
-      </button>
-      <button class="bt-tab" data-tab="selfscout" aria-label="Self-Scout">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
-        <span>Self-Scout</span>
-      </button>
-      <button class="bt-tab" data-tab="more" aria-label="More">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>Menu</span>
-      </button>
-    `;
-    document.body.appendChild(nav);
-
-    const drawer = document.querySelector('.settings-drawer');
-    const scrim = document.querySelector('.drawer-scrim');
-
-    const setActive = (name) => {
-      nav.querySelectorAll('.bt-tab').forEach(b =>
-        b.classList.toggle('active', b.dataset.tab === name));
-    };
-
-    const closeDrawer = () => {
-      drawer?.classList.remove('open');
-      scrim?.classList.remove('active');
-    };
-    const openDrawer = () => {
-      drawer?.classList.add('open');
-      scrim?.classList.add('active');
-    };
-    nav.addEventListener('click', (e) => {
-      const btn = e.target.closest('.bt-tab');
-      if (!btn) return;
-      const tab = btn.dataset.tab;
-      setActive(tab);
-
-      if (tab === 'video') {
-        closeDrawer();
-        document.getElementById('statsDashboard')?.classList.add('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (tab === 'stats') {
-        closeDrawer();
-        document.getElementById('btnShowStats')?.click();
-      } else if (tab === 'selfscout') {
-        closeDrawer();
-        window.app?.stats?.renderSelfScout();
-      } else if (tab === 'more') {
-        openDrawer();
-      }
-    });
-
-    // Keep Video tab active by default when closing drawers elsewhere
-    this._setBottomTab = setActive;
-
-    // The stats overlay and the drawer both close via their own ✕/backdrop,
-    // which this tab bar can't see — watch them so the highlight never lies
-    // about where the user is.
-    // During S1 the public #statsDashboard id transfers to native Reports.
-    // This legacy mobile observer therefore watches the native node, but the
-    // entire bottom bar is hidden under the workspace shell. Delete it with the
-    // rest of the legacy mobile bar in S4/S7; it must not become route ownership.
-    const statsEl = document.getElementById('statsDashboard');
-    if (statsEl) {
-      new MutationObserver(() => {
-        if (statsEl.classList.contains('hidden') &&
-            nav.querySelector('.bt-tab.active')?.dataset.tab !== 'more' &&
-            !drawer?.classList.contains('open')) {
-          setActive('video');
-        }
-      }).observe(statsEl, { attributes: true, attributeFilter: ['class'] });
-    }
-    if (drawer) {
-      new MutationObserver(() => {
-        if (!drawer.classList.contains('open') &&
-            nav.querySelector('.bt-tab.active')?.dataset.tab === 'more') {
-          setActive('video');
-        }
-      }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
-    }
-  }
-
   /**
    * Turn the empty video area into a giant tap target that loads a video.
    */

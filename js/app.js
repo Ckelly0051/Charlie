@@ -666,18 +666,14 @@ class App {
       }
     });
 
-    const btnRepairFilm = document.getElementById('btnRepairFilm');
     const repairInput = document.getElementById('repairFilmInput');
-    if (btnRepairFilm && repairInput) {
-      btnRepairFilm.addEventListener('click', () => repairInput.click());
-      repairInput.addEventListener('change', async (e) => {
-        const files = this.vc._filterVideoFiles(Array.from(e.target.files || []))
-          .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
-            b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
-        e.target.value = '';
-        await this.storage.repairFilm(files);
-      });
-    }
+    repairInput?.addEventListener('change', async (e) => {
+      const files = this.vc._filterVideoFiles(Array.from(e.target.files || []))
+        .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
+          b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      e.target.value = '';
+      await this.storage.repairFilm(files);
+    });
 
     // Marking start/end is optional: a single video loaded into an empty game
     // auto-creates a play spanning the whole file (film usually arrives as one
@@ -891,8 +887,7 @@ class App {
 
   /** Digits switch drawing tools only when drawing is plausibly intended. */
   _drawingArmed() {
-    return !this.tagger.currentPlayId ||
-      document.querySelector('.settings-drawer')?.classList.contains('open');
+    return !this.tagger.currentPlayId || this.settingsScreen?.activeTab === 'drawing';
   }
 
   _selectTool(toolName) {

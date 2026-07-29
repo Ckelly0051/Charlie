@@ -19,72 +19,8 @@ export class PlayFilter {
       situation: ''
     };
 
-    this.filterCountEl = document.getElementById('filterCount');
-    this.btnClear = document.getElementById('btnClearFilters');
-
-    this._bindEvents();
   }
 
-  _bindEvents() {
-    // Quarter checkboxes
-    document.querySelectorAll('#filterQuarter input').forEach(cb => {
-      cb.addEventListener('change', () => this._updateFromUI());
-    });
-    // Down checkboxes
-    document.querySelectorAll('#filterDown input').forEach(cb => {
-      cb.addEventListener('change', () => this._updateFromUI());
-    });
-    // Multi-selects
-    ['filterPlayType', 'filterResult'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', () => this._updateFromUI());
-    });
-    // Single selects
-    ['filterFormation', 'filterPersonnel', 'filterSituation'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', () => this._updateFromUI());
-    });
-    // Clear
-    if (this.btnClear) {
-      this.btnClear.addEventListener('click', () => this.clearAll());
-    }
-  }
-
-  _updateFromUI() {
-    this.criteria.quarters = this._getChecked('filterQuarter');
-    this.criteria.downs = this._getChecked('filterDown');
-    this.criteria.playTypes = this._getMultiSelect('filterPlayType');
-    this.criteria.results = this._getMultiSelect('filterResult');
-    this.criteria.formations = this._getSingleSelect('filterFormation');
-    this.criteria.personnel = this._getSingleSelect('filterPersonnel');
-    this.criteria.situation = document.getElementById('filterSituation')?.value || '';
-
-    this.active = this.criteria.situation !== '' ||
-      [this.criteria.quarters, this.criteria.downs, this.criteria.playTypes,
-       this.criteria.formations, this.criteria.personnel, this.criteria.results]
-        .some(arr => arr.length > 0);
-
-    this._updateBadge();
-    this._emit('filter-changed');
-  }
-
-  _getChecked(containerId) {
-    const checks = document.querySelectorAll(`#${containerId} input:checked`);
-    return Array.from(checks).map(cb => cb.value);
-  }
-
-  _getMultiSelect(id) {
-    const el = document.getElementById(id);
-    if (!el) return [];
-    return Array.from(el.selectedOptions).map(o => o.value);
-  }
-
-  _getSingleSelect(id) {
-    const el = document.getElementById(id);
-    if (!el) return [];
-    const val = el.value;
-    return val ? [val] : [];
-  }
 
   filter(plays) {
     if (!this.active) return plays;
@@ -153,23 +89,40 @@ export class PlayFilter {
     return side === 'opp' ? (100 - yl) : yl;
   }
 
-  clearAll() {
-    document.querySelectorAll('#filterPanel input[type="checkbox"]').forEach(cb => cb.checked = false);
-    document.querySelectorAll('#filterPanel select').forEach(sel => sel.value = '');
-    this.criteria = { quarters: [], downs: [], playTypes: [], formations: [], personnel: [], results: [], situation: '' };
-    this.active = false;
-    this._updateBadge();
-    this._emit('filter-changed');
+  clearAll() { this.setCriteria({}); }
+
+  /** DOM-independent state seam used by native Cut-up settings. */
+  snapshot() {
+    return {
+      ...this.criteria,
+      quarters: [...this.criteria.quarters],
+      downs: [...this.criteria.downs],
+      playTypes: [...this.criteria.playTypes],
+      formations: [...this.criteria.formations],
+      personnel: [...this.criteria.personnel],
+      results: [...this.criteria.results],
+    };
   }
 
-  _updateBadge() {
-    if (!this.filterCountEl) return;
-    const count = [this.criteria.quarters, this.criteria.downs, this.criteria.playTypes,
-      this.criteria.formations, this.criteria.personnel, this.criteria.results]
-        .reduce((s, a) => s + a.length, 0) + (this.criteria.situation ? 1 : 0);
-    this.filterCountEl.textContent = count > 0 ? `${count} active` : 'Off';
-    this.filterCountEl.style.color = count > 0 ? 'var(--highlight)' : '';
+  setCriteria(next = {}) {
+    const list = key => Array.isArray(next[key]) ? [...new Set(next[key].map(String).filter(Boolean))] : [];
+    this.criteria = {
+      quarters: list('quarters'),
+      downs: list('downs'),
+      playTypes: list('playTypes'),
+      formations: list('formations'),
+      personnel: list('personnel'),
+      results: list('results'),
+      situation: String(next.situation || ''),
+    };
+    this.active = this.criteria.situation !== '' ||
+      [this.criteria.quarters, this.criteria.downs, this.criteria.playTypes,
+       this.criteria.formations, this.criteria.personnel, this.criteria.results]
+        .some(values => values.length > 0);
+    this._emit('filter-changed');
+    return this.snapshot();
   }
+
 
   on(event, callback) {
     if (!this.listeners[event]) this.listeners[event] = [];

@@ -9,7 +9,6 @@ export class WorkspaceShell {
     this._homeToken = 0;
     this._homeSelectedGameId = null;
     this._homeFilmHealth = new Map();
-    this._onViewportChange = () => this._placeHistoryTools();
     // Controls the classic top bar owns that the shell has no replacement for.
     // The bar itself lives inside #app, which lives inside the permanently
     // hidden #wsClassicOutlet — so anything NOT relocated here is not "legacy
@@ -23,7 +22,6 @@ export class WorkspaceShell {
       redo: this._remember(document.getElementById('btnRedoAction')),
       shortcuts: this._remember(document.getElementById('btnShortcuts')),
       settings: this._remember(document.getElementById('btnSidebarToggle')),
-      drawer: this._remember(document.getElementById('settingsDrawer')),
       // Status for the OPTIONAL local CV server. Not prime chrome — it belongs
       // with the low-frequency setup tools, per the redesign plan's rule that
       // setup/history/filter tools live in Settings.
@@ -244,37 +242,13 @@ export class WorkspaceShell {
    *  order IS the visual order: history first, then help, then settings/more. */
   _mountChrome(){
     const tools=this.root?.querySelector('.ws-global-tools');
-    if(tools&&this._chrome.settings?.el)tools.append(this._chrome.settings.el);
-    if(this._chrome.drawer?.el)document.body.append(this._chrome.drawer.el);
-    this._ensureMobileTools();
-    this._placeHistoryTools();
-    window.addEventListener('resize',this._onViewportChange);
-    // Drawer head, not the top bar: the badge reports an optional local server
-    // most coaches never run, so it must be reachable without taxing prime chrome.
-    const head=this._chrome.drawer?.el?.querySelector('.settings-drawer-head');
-    if(head&&this._chrome.backend?.el)head.insertBefore(this._chrome.backend.el,head.querySelector('.settings-drawer-close'));
-  }
-  _ensureMobileTools(){
-    const drawer=this._chrome.drawer?.el;
-    if(!drawer||drawer.querySelector('.ws-mobile-history-tools'))return;
-    const row=document.createElement('div');row.className='ws-mobile-history-tools';
-    row.innerHTML='<strong>History &amp; help</strong><div class="ws-mobile-history-actions"></div>';
-    drawer.querySelector('.settings-drawer-head')?.insertAdjacentElement('afterend',row);
-  }
-  _placeHistoryTools(){
-    if(!this.root)return;
-    const mobile=window.matchMedia('(max-width: 900px)').matches;
-    const target=mobile
-      ? this._chrome.drawer?.el?.querySelector('.ws-mobile-history-actions')
-      : this.root.querySelector('.ws-global-tools');
-    if(!target)return;
-    const anchor=mobile?null:this._chrome.settings?.el;
-    for(const k of ['undo','redo','shortcuts'])if(this._chrome[k]?.el)target.insertBefore(this._chrome[k].el,anchor);
+    if(!tools)return;
+    for(const key of ['undo','redo','shortcuts','settings']) {
+      if(this._chrome[key]?.el)tools.append(this._chrome[key].el);
+    }
   }
   _restoreChrome(){
-    window.removeEventListener('resize',this._onViewportChange);
-    this.app.uiPolish?._closeDrawer?.();
-    for(const k of ['undo','redo','shortcuts','settings','backend','drawer'])this._restore(this._chrome[k]);
+    for(const key of ['undo','redo','shortcuts','settings','backend'])this._restore(this._chrome[key]);
   }
   _openMore(anchor){
     if(!anchor||!this.app.overlays)return;
@@ -288,13 +262,20 @@ export class WorkspaceShell {
       {key:'settings',label:'Team & Film Settings',onSelect:()=>this.app.settingsScreen?.open?.({returnFocus:anchor})},
       {key:'teams',label:'Teams & seasons',onSelect:()=>this._openLibrary()},
       {key:'new-game',label:'New game',onSelect:()=>this._newGame()},
+      {key:'undo',label:'Undo',disabled:!!this._chrome.undo?.el?.disabled,onSelect:()=>this._chrome.undo?.el?.click()},
+      {key:'redo',label:'Redo',disabled:!!this._chrome.redo?.el?.disabled,onSelect:()=>this._chrome.redo?.el?.click()},
+      {key:'shortcuts',label:'Keyboard shortcuts',onSelect:()=>this.app.shortcutsScreen?.open?.(anchor)},
     ]:[];
     items.push(
       {key:'open',label:'Open season file',separator:compact,onSelect:()=>storage.projectFileInput?.click()},
       {key:'import',label:'Import plays',detail:'CSV or pasted breakdown',onSelect:()=>this.app.playImport.open({returnFocus:anchor})},
       {key:'save',label:'Save season',detail:'Create a restore point',onSelect:()=>storage.saveProject()},
+      {key:'recovery',label:'Restore points & versions',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'recovery',returnFocus:anchor})},
+      {key:'charting',label:'Charting libraries',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'charting',returnFocus:anchor})},
+      {key:'drawing',label:'Drawing tools',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'drawing',returnFocus:anchor})},
+      {key:'cutup-filter',label:'Cut-up filters',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'cutup',returnFocus:anchor})},
       {key:'season',label:'Season report',separator:true,onSelect:()=>this.show('reports')},
-      {key:'html',label:'Export HTML report',onSelect:()=>storage.exportHtmlReport(this.app.stats)},
+      {key:'html',label:'Current game HTML report',onSelect:()=>storage.exportHtmlReport(this.app.stats)},
       {key:'csv',label:'Export plays CSV',onSelect:()=>storage.exportCsv()},
       {key:'cutup',label:'Export cut-up video',onSelect:()=>this.app.cutup.export()},
       {key:'frame',label:'Export current frame',onSelect:()=>storage.exportPng()},

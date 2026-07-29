@@ -531,9 +531,8 @@ export class StatsEngine {
   // defense (from games whose "Film shows" is Opponent Scout, defensive snaps).
   _matchupData() {
     const app = window.app;
-    try { if (app && app.storage && app.storage.commitActive) app.storage.commitActive(); } catch (e) {}
     const store = app && app.storage && app.storage.seasonStore;
-    const games = (store && store.gamesChrono) ? store.gamesChrono() : [];
+    const games = app?.season?._effectiveGames?.() || ((store && store.gamesChrono) ? store.gamesChrono() : []);
     const yourOff = [];
     const oppMap = {};
     games.forEach(g => {
@@ -3391,9 +3390,9 @@ export class StatsEngine {
     const store = window.app && window.app.storage && window.app.storage.seasonStore;
     let curId = null;
     if (store) {
-      try { window.app.storage.commitActive(); } catch (e) {}
       curId = store.currentSeasonId;
-      if (store.data && Array.isArray(store.data.games)) store.data.games.forEach(g => games.push(g));
+      const currentGames = window.app?.season?._effectiveGames?.() || (store.data && Array.isArray(store.data.games) ? store.data.games : []);
+      currentGames.forEach(g => games.push(g));
     }
     let lib = [];
     try { lib = JSON.parse(localStorage.getItem('ffa_library') || '[]') || []; } catch (e) {}

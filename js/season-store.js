@@ -604,9 +604,15 @@ export class SeasonStore {
   async restoreBackup(id) {
     const data = await this.backend.getBackup(id);
     if (!data || !Array.isArray(data.games)) return null;
-    await this.snapshot('Before restore');
+    const safetyId = await this.snapshot('Before restore');
+    if (!safetyId) return null;
+    const current = this.data;
     this.data = this._normalize(data);
-    this.persist();
+    const persisted = await this.persist();
+    if (persisted === false) {
+      this.data = current;
+      return null;
+    }
     return this.data;
   }
 

@@ -28,7 +28,7 @@ const page = await browser.newPage();
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(String(e.message || e)));
 page.on('console', m => { if (m.type() === 'error') pageErrors.push(m.text()); });
-const appErrors = () => pageErrors.filter(e => !/Video error|DEMUXER|FFmpegDemuxer|could not be decoded/i.test(e));
+const appErrors = () => pageErrors.filter(e => !/Video error|DEMUXER|FFmpegDemuxer|could not be decoded|Not allowed to load local resource: blob:linked-/i.test(e));
 
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise(r => setTimeout(r, 350));
@@ -87,7 +87,9 @@ const rep = await page.evaluate(async () => {
     pl.clips.push({ id: pl._nextClipId++, name: 'linked-a', clipPath: 'linked-a', assetUrl: 'blob:linked-a', playId: null });
     pl.clips.push({ id: pl._nextClipId++, name: 'linked-b', clipPath: 'linked-b', assetUrl: 'blob:linked-b', playId: null });
     await pl._autoCreatePlays();
-    out.steps.linkedCountText = pl.clipCountEl && pl.clipCountEl.textContent;
+    window.app.workspaceShell?.navigate?.('breakdown');
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    out.steps.linkedCountText = document.getElementById('bdTagProgress')?.textContent || null;
   } catch (e) { out.err = String(e && e.stack || e); }
   return out;
 });
@@ -101,7 +103,7 @@ ok(s.distinctClipIds === 2, 'clips have DISTINCT identity (not collapsed to base
 ok(s.distinctPlayIds === 2, 'plays have DISTINCT identity', `distinct=${s.distinctPlayIds}`);
 ok(s.clipCountAfter === 2, 'reopen re-imports two clips', `got ${s.clipCountAfter}`);
 ok(s.relinkedCount === 2, 'BOTH plays relink on reopen (none orphaned)', `relinked=${s.relinkedCount}`);
-ok(s.linkedCountText === '2 clips', 'linked auto-create refreshes the visible playlist count', `got ${s.linkedCountText}`);
+ok(s.linkedCountText === '0 / 2 tagged', 'linked auto-create refreshes the native Breakdown play count', `got `);
 ok(appErrors().length === 0, 'no console/page errors', appErrors().join(' | '));
 
 const repair = await page.evaluate(async () => {

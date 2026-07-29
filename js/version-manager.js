@@ -64,6 +64,9 @@ export class VersionManager {
     catch { return []; }
   }
 
+  /** DOM-independent list seam used by native Recovery settings. */
+  list() { return this._list().map(version => ({ ...version, data: undefined })); }
+
   _save(versions) {
     try { localStorage.setItem(this._key(), JSON.stringify(versions)); }
     catch (e) { /* quota — silently drop */ }
@@ -100,11 +103,12 @@ export class VersionManager {
 
     this._save(versions);
     this.renderList();
+    return id;
   }
 
   async restore(id) {
     const v = this._list().find(x => x.id === id);
-    if (!v) return;
+    if (!v) return false;
     // Never restore across a season/game boundary: v.data is a whole-tagger
     // snapshot, and deserializing another game's snapshot here would hand the
     // next commit that game's plays as THIS game's content.
@@ -113,12 +117,13 @@ export class VersionManager {
     const gid = (s && s.data && s.data.activeGameId) || 'na';
     if ((v.seasonId && v.seasonId !== sid) || (v.gameId && v.gameId !== gid)) {
       this.tagger.toast?.('That version belongs to a different game — open that game to restore it.');
-      return;
+      return false;
     }
     const ok = await this.tagger._confirmDialog(
       `Restore version "${v.label}" (${v.playCount} plays)? A backup of your current state is saved first.`,
       'Restore Version');
-    if (!ok) return;
+    if (!ok) return false;
+    const prior = this.storage._serialize();
     this.snapshot('Backup before restore', false);
     this.storage._deserialize(v.data);
     // Undo history is per-game state; re-baseline it the same way a game load does.
@@ -127,7 +132,15 @@ export class VersionManager {
     // store and disk reflect what's on screen (a crash before the next edit
     // would otherwise resurrect the pre-restore data).
     this.storage.commitActive();
-    if (s) s.persist();
+    const persisted = s ? await s.persist() : true;
+    if (persisted === false) {
+      this.storage._deserialize(prior);
+      this.storage.commitActive();
+      if (window.app?.history?.reset) window.app.history.reset();
+      this.tagger.toast?.('Version restore failed. Your current game was kept.');
+      return false;
+    }
+    return true;
   }
 
   async delete(id) {

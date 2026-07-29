@@ -22,7 +22,6 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-film-row.state-empty .ws-film-select>i{background:var(--ws-muted)}
 .ws-shell-active #statsDashboard .stats-overlay{left:var(--ws-side);top:var(--ws-top)}
 @media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
-body.ws-shell-active .bottom-tabs{display:none}
 
 /* Break Down uses the approved compact top navigation so film receives the
    width that the permanent workspace sidebar previously consumed. */
@@ -53,23 +52,6 @@ body.ws-shell-active .ws-global-tools>.btn:disabled{opacity:.38;cursor:default}
    1450px) leaked onto the relocated button, so it would have sprouted a label
    on a wide monitor and silently reflowed the top bar. */
 body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
-.ws-mobile-history-tools{display:none}
-@media(max-width:900px){
-  body.ws-shell-active .ws-mobile-history-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--ws-line);background:#101720}
-  body.ws-shell-active .ws-mobile-history-tools>strong{color:var(--ws-muted);font-size:11px;text-transform:uppercase}
-  body.ws-shell-active .ws-mobile-history-actions{display:flex;gap:8px}
-  body.ws-shell-active .ws-mobile-history-actions>.btn{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-width:44px;height:44px;margin:0;padding:0 11px;border:1px solid var(--ws-line);border-radius:5px;background:#151e29;color:var(--ws-text);box-shadow:none}
-  body.ws-shell-active .ws-mobile-history-actions>.btn:disabled{opacity:.38}
-  body.ws-shell-active .ws-mobile-history-actions #btnShortcuts span{display:inline;font-size:11px;font-weight:750}
-  body.ws-shell-active .ws-mobile-history-actions svg{width:16px;height:16px;stroke:currentColor}
-}
-/* Optional-CV-server status, rehoused in the drawer head next to its own tools.
-   `display` is restated because the classic bar hides `.backend-status-badge`
-   under max-width 1200px to save top-bar room — a constraint that does not
-   apply inside the drawer, and which would otherwise make the badge vanish on
-   exactly the smaller windows where the drawer matters most. Beats it on
-   specificity (id + two classes) rather than with !important. */
-body.ws-shell-active .settings-drawer-head #backendStatusBadge{display:inline-flex;align-items:center;margin-left:auto;margin-right:8px}
 @media(max-width:1150px) and (min-width:901px){body.ws-shell-active.ws-route-breakdown .ws-top-team{display:none}.ws-top-nav button{min-width:66px;padding:0 7px}.ws-top-nav button span{display:none}body.ws-shell-active.ws-route-breakdown .ws-context span,body.ws-shell-active.ws-route-breakdown .ws-context b{display:none}}
 
 @media(max-width:900px){

@@ -36,11 +36,11 @@ export class PlaylistManager {
 
   _bindEvents() {
     // Add clips button
-    this.btnAddClips.addEventListener('click', () => {
+    this.btnAddClips?.addEventListener('click', () => {
       this.clipFileInput.click();
     });
 
-    this.clipFileInput.addEventListener('change', (e) => {
+    this.clipFileInput?.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
         this.addFiles(Array.from(e.target.files));
         // Reset so the same files can be re-selected if needed
@@ -49,8 +49,8 @@ export class PlaylistManager {
     });
 
     // Prev/next clip
-    this.btnPrevClip.addEventListener('click', () => this.prevClip());
-    this.btnNextClip.addEventListener('click', () => this.nextClip());
+    this.btnPrevClip?.addEventListener('click', () => this.prevClip());
+    this.btnNextClip?.addEventListener('click', () => this.nextClip());
 
     // Drop handling is centralized in VideoController → files-selected → App.
     // No duplicate handler here — that caused double-adds.

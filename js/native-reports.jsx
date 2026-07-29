@@ -25,7 +25,8 @@ function ExportMenu({ screen }) {
     <summary class="gi-reports-command" id="btnExportStats" data-rp-action="export"><Icon name="download" />Export</summary>
     <div class="gi-reports-menu" role="menu" aria-label="Report exports">
       <button type="button" role="menuitem" onClick={event => run(event, 'pdf')}>Game report (PDF)</button>
-      <button type="button" role="menuitem" onClick={event => run(event, 'html')}>HTML report</button>
+      <button type="button" role="menuitem" onClick={event => run(event, 'html')}>Current game (HTML)</button>
+      <button type="button" role="menuitem" onClick={event => run(event, 'season-html')}>Full season (HTML)</button>
       <button type="button" role="menuitem" onClick={event => run(event, 'csv')}>Breakdown data (CSV)</button>
       <button type="button" role="menuitem" onClick={event => run(event, 'call-sheet')}>Call sheet</button>
     </div>

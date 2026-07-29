@@ -112,7 +112,7 @@ export class TeamHubScreen {
   close() { return this.app.workspaceShell?.closeTeamHub?.(); }
 
   openSettings(invoker) { return this.app.settingsScreen?.open?.({ returnFocus: invoker }); }
-  openRoster() { this._library()?._openSettingsPanel?.('rosterPanel'); }
+  openRoster(invoker = null) { return this.app.settingsScreen?.open?.({ initialTab:'roster', returnFocus:invoker || document.activeElement }); }
 
   dismissChecklist() {
     try { localStorage.setItem('ffa_checklist_dismissed', '1'); } catch {}

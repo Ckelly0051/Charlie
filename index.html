@@ -16,7 +16,6 @@
   <link rel="stylesheet" href="css/study-screen.css">
   <link rel="stylesheet" href="css/plan-screen.css">
 
-  <link rel="stylesheet" href="css/tag-library-settings.css">
   <link rel="stylesheet" href="css/breakdown-form.css">
 </head>
 <body>
@@ -24,11 +23,15 @@
   <!-- Native More owns the visible Open command; this nonvisual picker lives
        outside the legacy app so file loading survives final outlet deletion. -->
   <input type="file" id="projectFileInput" accept=".json" hidden>
+  <!-- Native Film settings owns these nonvisual pickers. Keep them outside
+       #app so linked/imported film survives final legacy-outlet deletion. -->
+  <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
+  <input type="file" id="repairFilmInput" webkitdirectory directory multiple hidden>
   <div id="app">
     <!-- Top Bar -->
     <header class="top-bar">
       <div class="top-bar-left">
-        <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Toggle settings drawer" aria-label="Toggle settings drawer">
+        <button class="btn sidebar-toggle" id="btnSidebarToggle" title="Open settings" aria-label="Open settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="4" y1="7" x2="20" y2="7"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
@@ -823,365 +826,21 @@
       </section>
     </div>
 
-    <!-- Settings Drawer (slides in from right — replaces old sidebar) -->
-    <aside class="settings-drawer" id="settingsDrawer">
-      <div class="settings-drawer-head">
-        <h2>Tools</h2>
-        <button class="settings-drawer-close" id="settingsDrawerClose" type="button" title="Close">×</button>
-      </div>
-      <!-- Game Info -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="gameInfoPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-          Team &amp; Film Settings
-        </h3>
-        <div class="panel-body collapsed" id="gameInfoPanel">
-          <p class="settings-note">Per-game details — opponent, date, score, week, home/away, type — live in the <strong>game header</strong> above the tag form. Click it to add or edit a game.</p>
-          <div class="tag-row">
-            <label>Team Name</label>
-            <input type="text" id="gameTeamName" placeholder="Our Team">
-          </div>
-          <div class="tag-row">
-            <label>Our Jersey</label>
-            <select id="gameJerseyColor">
-              <option value="">-- select --</option>
-              <option value="white">White</option>
-              <option value="black">Black</option>
-              <option value="red">Red</option>
-              <option value="blue">Blue</option>
-              <option value="navy">Navy</option>
-              <option value="green">Green</option>
-              <option value="yellow">Yellow / Gold</option>
-              <option value="orange">Orange</option>
-              <option value="purple">Purple</option>
-              <option value="maroon">Maroon</option>
-              <option value="gray">Gray / Silver</option>
-              <option value="teal">Teal</option>
-            </select>
-          </div>
-          <div class="tag-row">
-            <label>Film shows</label>
-            <select id="gamePerspective">
-              <option value="offense">Our Offense</option>
-              <option value="defense">Our Defense</option>
-              <option value="special">Special Teams</option>
-              <option value="scout">Scouting film (their game)</option>
-            </select>
-          </div>
-          <div class="tag-row">
-            <label>We go →</label>
-            <select id="gameDirection">
-              <option value="">Auto (guess)</option>
-              <option value="right">Left → Right</option>
-              <option value="left">Right → Left</option>
-            </select>
-          </div>
-          <section class="team-film-storage" id="filmStoragePanel" hidden aria-labelledby="filmStorageHeading">
-            <div class="settings-subhead" id="filmStorageHeading">
-              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
-              <span>Film storage</span>
-            </div>
-            <div class="film-storage-status">
-              <span class="film-storage-label">FILM LIBRARY ROOT</span>
-              <strong id="filmStorageModeLabel">Not set up</strong>
-              <span id="filmStoragePathLabel">Choose where GridIron IQ should find game film.</span>
-            </div>
-            <button class="btn btn-sm btn-accent" id="btnFilmStorageSetup" type="button">Set up film storage</button>
-            <div class="game-film-source" id="gameFilmSource">
-              <span class="film-storage-label">THIS GAME'S FOLDER</span>
-              <strong id="gameFilmSourceMode">No game open</strong>
-              <span id="gameFilmSourcePath">Open a season and select a game to link its film.</span>
-              <div class="game-film-source-actions">
-                <button class="btn btn-sm" id="btnLinkGameFolder" type="button">Link game folder</button>
-                <button class="btn btn-sm" id="btnOpenGameFilmFolder" type="button" hidden>Open folder</button>
-              </div>
-            </div>
-          </section>
-          <div class="tag-row">
-            <label>Claude API Key</label>
-            <input type="password" id="gameApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" style="font-family:monospace;font-size:12px">
-          </div>
-          <div class="tag-row">
-            <label>AI Model</label>
-            <select id="gameAiModel">
-              <option value="claude-opus-4-6">Opus (most accurate)</option>
-              <option value="claude-sonnet-4-6">Sonnet (faster / cheaper)</option>
-            </select>
-          </div>
-          <div class="scout-section hidden" id="scoutSection">
-            <label class="game-info-label">Scouting Notes</label>
-            <textarea id="scoutNotes" class="scout-notes" rows="3" placeholder="Key tendencies, notes about this opponent..."></textarea>
-            <button class="btn btn-sm btn-accent" id="btnScoutReport" type="button">Generate Scout Report</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Charting vocabulary -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="tagLibrariesPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-          Tag Libraries
-        </h3>
-        <div class="panel-body collapsed" id="tagLibrariesPanel">
-          <p class="settings-note">Choose the formations, backfields, and fronts your staff uses.</p>
-          <button class="btn btn-sm" id="btnTagLibraries" type="button">Manage tag libraries</button>
-        </div>
-      </div>
-
-      <!-- Games -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="gamesPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
-          Games
-          <span class="panel-badge" id="gamesBadge">0</span>
-        </h3>
-        <div class="panel-body collapsed" id="gamesPanel">
-          <div class="games-panel-list" id="gamesPanelList"></div>
-          <div class="games-panel-foot">
-            <button class="btn btn-sm btn-accent" id="btnPanelNewGame" type="button">+ New Game</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Play Filters -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="filterPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-scan"/></svg>
-          Filter &amp; Export Plays
-          <span class="panel-badge" id="filterCount"></span>
-        </h3>
-        <div class="panel-body collapsed" id="filterPanel">
-          <p class="settings-note">These filters pick the plays for the <strong>Cut-Up Video</strong> export (More menu). The Film Room table has its own quick filters for browsing.</p>
-          <div class="filter-grid">
-            <div class="filter-group">
-              <label>Down</label>
-              <div class="filter-checks" id="filterDown">
-                <label class="filter-chip"><input type="checkbox" value="1"> 1st</label>
-                <label class="filter-chip"><input type="checkbox" value="2"> 2nd</label>
-                <label class="filter-chip"><input type="checkbox" value="3"> 3rd</label>
-                <label class="filter-chip"><input type="checkbox" value="4"> 4th</label>
-              </div>
-            </div>
-            <div class="filter-group">
-              <label>Quarter</label>
-              <div class="filter-checks" id="filterQuarter">
-                <label class="filter-chip"><input type="checkbox" value="Q1"> Q1</label>
-                <label class="filter-chip"><input type="checkbox" value="Q2"> Q2</label>
-                <label class="filter-chip"><input type="checkbox" value="Q3"> Q3</label>
-                <label class="filter-chip"><input type="checkbox" value="Q4"> Q4</label>
-                <label class="filter-chip"><input type="checkbox" value="OT"> OT</label>
-              </div>
-            </div>
-            <div class="filter-group">
-              <label>Play Type</label>
-              <select id="filterPlayType" multiple size="3" class="filter-multi">
-                <option value="Run Inside">Run Inside</option>
-                <option value="Run Outside">Run Outside</option>
-                <option value="Screen">Screen</option>
-                <option value="Short Pass">Short Pass</option>
-                <option value="Medium Pass">Med Pass</option>
-                <option value="Deep Pass">Deep Pass</option>
-                <option value="Play Action">Play Action</option>
-                <option value="RPO">RPO</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Result</label>
-              <select id="filterResult" multiple size="3" class="filter-multi">
-                <option value="Gain">Gain</option>
-                <option value="Loss">Loss</option>
-                <option value="No Gain">No Gain</option>
-                <option value="Incomplete">Incomplete</option>
-                <option value="Touchdown">TD</option>
-                <option value="Interception">INT</option>
-                <option value="Fumble">Fumble</option>
-                <option value="Sack">Sack</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Formation</label>
-              <select id="filterFormation" class="filter-select">
-                <option value="">All</option>
-                <option>Shotgun</option>
-                <option>Under Center</option>
-                <option>Pistol</option>
-                <option>I-Form</option>
-                <option>Singleback</option>
-                <option>Trips</option>
-                <option>Spread</option>
-                <option>Split Back</option>
-                <option>Single Wing</option>
-                <option>Empty</option>
-                <option>Wildcat</option>
-                <option>Goal Line</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Personnel</label>
-              <select id="filterPersonnel" class="filter-select">
-                <option value="">All</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-                <option value="21">21</option>
-                <option value="22">22</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Situation</label>
-              <select id="filterSituation" class="filter-select">
-                <option value="">All</option>
-                <option value="redzone">Red Zone</option>
-                <option value="goalline">Goal Line</option>
-                <option value="backed-up">Backed Up (Own 10)</option>
-                <option value="3rd-long">3rd &amp; Long (7+)</option>
-                <option value="3rd-short">3rd &amp; Short (1-3)</option>
-              </select>
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn btn-sm btn-danger" id="btnClearFilters">Clear Filters</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Roster -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="rosterPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-tag"/></svg>
-          Roster
-        </h3>
-        <div class="panel-body collapsed" id="rosterPanel">
-          <div class="roster-add">
-            <input type="number" id="rosterNum" placeholder="#" min="0" max="99" class="roster-add-num">
-            <input type="text" id="rosterName" placeholder="Name" class="roster-add-name">
-            <input type="text" id="rosterPos" placeholder="Pos" class="roster-add-pos">
-            <select id="rosterSide" class="roster-add-side" title="Side of ball">
-              <option value="O">Off</option>
-              <option value="D">Def</option>
-              <option value="B">Both</option>
-            </select>
-            <button class="btn btn-sm btn-accent" id="btnAddPlayer" type="button">Add</button>
-          </div>
-          <div class="roster-import-bar">
-            <button class="btn btn-sm" id="btnRosterImport" type="button" title="Import roster from CSV or paste from spreadsheet">Import</button>
-            <button class="btn btn-sm" id="btnDepthChart" type="button" title="Open a printable depth chart grouped by position">Depth Chart</button>
-          </div>
-          <div class="roster-import-area hidden" id="rosterImportArea">
-            <textarea id="rosterImportText" class="roster-import-text" rows="5" placeholder="Paste from spreadsheet or CSV:&#10;#, Name, Position, Side&#10;12, Tom Brady, QB, O&#10;55, Junior Seau, LB, D"></textarea>
-            <div class="roster-import-actions">
-              <label class="btn btn-sm roster-import-file-label">
-                Choose CSV
-                <input type="file" id="rosterImportFile" accept=".csv,.tsv,.txt" hidden>
-              </label>
-              <button class="btn btn-sm btn-accent" id="btnRosterImportApply" type="button">Import</button>
-            </div>
-            <div class="roster-import-msg hidden" id="rosterImportMsg"></div>
-          </div>
-          <div class="roster-list" id="rosterList"></div>
-        </div>
-      </div>
-
-      <!-- Playlist -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="playlistPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg>
-          Playlist
-          <span class="panel-badge" id="clipCount">0 clips</span>
-        </h3>
-        <div class="panel-body collapsed" id="playlistPanel">
-          <div class="playlist-controls">
-            <button class="btn btn-sm btn-accent" id="btnAddClips">
-              <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
-              Add Clips
-            </button>
-            <button class="btn btn-sm" id="btnRepairFilm" title="Repair this game's film links without changing tags">
-              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
-              Repair Film
-            </button>
-            <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
-            <input type="file" id="repairFilmInput" webkitdirectory directory multiple hidden>
-          </div>
-          <div class="playlist-list" id="playlistItems">
-            <div class="playlist-empty">No clips loaded. Drop video files or click Add Clips.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Version History -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="versionPanel">
-          <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg>
-          Version History
-          <span class="panel-badge" id="versionCount">0</span>
-        </h3>
-        <div class="panel-body collapsed" id="versionPanel">
-          <div class="version-controls">
-            <input type="text" id="versionLabelInput" placeholder="Label (optional)" maxlength="40">
-            <button class="btn btn-sm btn-accent" id="btnSaveVersion">Save Version</button>
-          </div>
-          <div class="version-list" id="versionList">
-            <div class="version-empty">No saved versions yet.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Drawing Tools -->
-      <div class="sidebar-panel">
-        <h3 class="panel-title" data-toggle="drawingTools">
-          <svg class="icon"><use href="assets/icons.svg#icon-pencil"/></svg>
-          Drawing Tools
-        </h3>
-        <div class="panel-body collapsed" id="drawingTools">
-          <div class="tool-grid">
-            <button class="tool-btn" data-tool="line" title="Line (1)">
-              <svg class="icon"><use href="assets/icons.svg#icon-line"/></svg>
-              <span>Line</span>
-            </button>
-            <button class="tool-btn" data-tool="arrow" title="Arrow (2)">
-              <svg class="icon"><use href="assets/icons.svg#icon-arrow"/></svg>
-              <span>Arrow</span>
-            </button>
-            <button class="tool-btn" data-tool="circle" title="Circle (3)">
-              <svg class="icon"><use href="assets/icons.svg#icon-circle"/></svg>
-              <span>Circle</span>
-            </button>
-            <button class="tool-btn" data-tool="rect" title="Rectangle (4)">
-              <svg class="icon"><use href="assets/icons.svg#icon-rect"/></svg>
-              <span>Rect</span>
-            </button>
-            <button class="tool-btn" data-tool="freehand" title="Freehand (5)">
-              <svg class="icon"><use href="assets/icons.svg#icon-freehand"/></svg>
-              <span>Draw</span>
-            </button>
-            <button class="tool-btn" data-tool="text" title="Text (6)">
-              <svg class="icon"><use href="assets/icons.svg#icon-text"/></svg>
-              <span>Text</span>
-            </button>
-          </div>
-          <div class="tool-options">
-            <div class="color-swatches">
-              <button class="swatch active" data-color="#ffffff" style="background:#ffffff" title="White"></button>
-              <button class="swatch" data-color="#ffff00" style="background:#ffff00" title="Yellow"></button>
-              <button class="swatch" data-color="#ff4444" style="background:#ff4444" title="Red"></button>
-              <button class="swatch" data-color="#4488ff" style="background:#4488ff" title="Blue"></button>
-              <button class="swatch" data-color="#44ff44" style="background:#44ff44" title="Green"></button>
-              <button class="swatch" data-color="#ff8800" style="background:#ff8800" title="Orange"></button>
-            </div>
-            <div class="line-width-control">
-              <label>Width:</label>
-              <input type="range" id="lineWidthSlider" min="2" max="10" value="3">
-            </div>
-            <div class="tool-actions">
-              <button class="btn btn-sm btn-danger" id="btnClearAnnotations" title="Clear All Annotations">Clear Drawings</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
-    <!-- Settings drawer scrim -->
-    <div class="drawer-scrim" id="drawerScrim"></div>
+    <!-- Temporary controller state until S5 removes the last global game-context
+         lookups. These are not a presentation owner and leave with #app in S7. -->
+    <div id="legacyGameContextState" hidden aria-hidden="true">
+      <input type="text" id="gameTeamName">
+      <select id="gameJerseyColor">
+        <option value=""></option><option value="white">White</option><option value="black">Black</option>
+        <option value="red">Red</option><option value="blue">Blue</option><option value="navy">Navy</option>
+        <option value="green">Green</option><option value="yellow">Yellow</option><option value="orange">Orange</option>
+        <option value="purple">Purple</option><option value="maroon">Maroon</option><option value="gray">Gray</option><option value="teal">Teal</option>
+      </select>
+      <select id="gamePerspective"><option value="offense">Our Offense</option><option value="defense">Our Defense</option><option value="special">Special Teams</option><option value="scout">Scouting film</option></select>
+      <select id="gameDirection"><option value=""></option><option value="right">Left to Right</option><option value="left">Right to Left</option></select>
+      <input type="password" id="gameApiKey" autocomplete="off">
+      <select id="gameAiModel"><option value="claude-opus-4-6">Opus</option><option value="claude-sonnet-4-6">Sonnet</option></select>
+    </div>
 
     <!-- Stats Dashboard (full-screen overlay) -->
     <div class="hidden" id="statsDashboard"></div>

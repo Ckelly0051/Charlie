@@ -137,14 +137,15 @@ ok(await page.evaluate(() => document.querySelectorAll('[data-overlay-id="team-f
 await page.evaluate(() => window.app.settingsScreen.close('test-complete'));
 
 await page.click('.gi-hub-team-actions button:first-child');
-await page.waitForFunction(() => document.getElementById('settingsDrawer')?.classList.contains('open'));
+await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-settings-panel="roster"]');
 r = await page.evaluate(() => ({
-  drawer: document.getElementById('settingsDrawer')?.classList.contains('open'),
-  roster: !document.getElementById('rosterPanel')?.classList.contains('collapsed'),
+  owners: document.querySelectorAll('[data-settings-panel="roster"]').length,
+  legacy: !!document.getElementById('settingsDrawer') || !!document.getElementById('rosterPanel'),
+  selected: document.querySelector('[data-settings-tab="roster"]')?.getAttribute('aria-current'),
 }));
-ok(r.drawer && r.roster,
-  'Team Hub Roster action opens the canonical roster workspace', JSON.stringify(r));
-await page.evaluate(() => window.app.uiPolish?._closeDrawer?.());
+ok(r.owners === 1 && !r.legacy && r.selected === 'page',
+  'Team Hub Roster action opens the canonical native roster workspace', JSON.stringify(r));
+await page.evaluate(() => window.app.settingsScreen.close('test-complete'));
 
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 await new Promise(resolve => setTimeout(resolve, 80));

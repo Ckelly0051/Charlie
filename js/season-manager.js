@@ -458,6 +458,21 @@ export class SeasonManager {
     `;
   }
 
+  /** Standalone season-wide HTML report owned by native Reports. */
+  exportHtml() {
+    const games = this._effectiveGames();
+    if (!games.length) return false;
+    const store = this._store();
+    const name = store?.data?.seasonName || 'Season';
+    const title = this._escape(name + ' — Season Report');
+    const body = this.statsHtml();
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#222;max-width:1200px;margin:24px auto;padding:0 20px}h1{border-bottom:3px solid #1677d2;padding-bottom:8px}h3{color:#0e7490;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:24px}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:13px}th{background:#0e7490;color:#fff}tr:nth-child(even){background:#f4f4f8}.stats-grid,.prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}.stat-card,.prog-card{border:1px solid #ddd;padding:12px;background:#f9f9fb}.stat-card-title,.ss-lbl{font-size:11px;text-transform:uppercase;color:#666}.stat-card-value,.ss-num{font-size:22px;font-weight:bold;color:#0e7490}.stats-two-col,.trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.stats-section{margin:18px 0}.season-summary{display:flex;flex-wrap:wrap;gap:18px;background:#0e7490;color:#fff;padding:14px;justify-content:space-around}.season-subtabs{display:none}.season-subpane{display:block!important}.tendency-bar{display:flex;height:24px;overflow:hidden;margin:8px 0}.tendency-run{background:#f97316}.tendency-pass{background:#38bdf8}.tendency-run,.tendency-pass{display:flex;align-items:center;justify-content:center;color:#111;font-size:11px}.cut-row{cursor:default}.stats-cut-hint{display:none}@media(max-width:700px){.stats-two-col,.trend-grid{grid-template-columns:1fr}}@media print{body{max-width:none}}
+</style></head><body><h1>${title}</h1><p style="color:#666">Generated ${new Date().toLocaleString()} · ${games.length} games</p>${body}</body></html>`;
+    window.ffaSaveBlob(new Blob([html], { type:'text/html' }), 'season_report_' + new Date().toISOString().slice(0, 10) + '.html');
+    return true;
+  }
   _escape(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }

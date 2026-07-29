@@ -92,13 +92,14 @@ result = await page.evaluate(() => {
     const text = (pane?.textContent || '').replace(/\s+/g, ' ').trim();
     evidence[tab] = { exists: !!pane, marker: needles[tab].some(needle => text.includes(needle)), length: text.length };
   }
-  return { evidence, unchanged: before === JSON.stringify(app.storage.seasonStore.data) };
+  const after=JSON.stringify(app.storage.seasonStore.data);let at=0;while(at<before.length&&before[at]===after[at])at++;
+  return { evidence, unchanged: before === after, diff:{at,before:before.slice(at,at+180),after:after.slice(at,at+180)} };
 });
 ok(Object.values(result.evidence).every(item => item.exists && item.length > 0),
   'All eight report views render a real pane', JSON.stringify(result.evidence));
 ok(result.evidence.special.marker && result.evidence.selfscout.marker && result.evidence.season.marker,
   'Special Teams, Self-Scout, and Season retain their football-specific surfaces', JSON.stringify(result.evidence));
-ok(result.unchanged, 'Report navigation is read-only against canonical season data');
+ok(result.unchanged, 'Report navigation is read-only against canonical season data', JSON.stringify(result.diff));
 
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
 result = await page.evaluate(() => {
@@ -171,20 +172,32 @@ result = await page.evaluate(() => {
     html: app.storage.exportHtmlReport,
     csv: app.storage.exportCsv,
     callSheet: app.callSheet.show,
+    seasonHtml: app.season.exportHtml,
   };
   app.stats._exportStats = () => calls.push('pdf');
   app.storage.exportHtmlReport = () => calls.push('html');
   app.storage.exportCsv = () => calls.push('csv');
   app.callSheet.show = () => calls.push('call-sheet');
-  for (const kind of ['pdf', 'html', 'csv', 'call-sheet']) app.reportsScreen.export(kind);
+  app.season.exportHtml = () => { calls.push('season-html'); return true; };
+  for (const kind of ['pdf', 'html', 'season-html', 'csv', 'call-sheet']) app.reportsScreen.export(kind);
   app.stats._exportStats = originals.pdf;
   app.storage.exportHtmlReport = originals.html;
   app.storage.exportCsv = originals.csv;
   app.callSheet.show = originals.callSheet;
+  app.season.exportHtml = originals.seasonHtml;
   return calls;
 });
-ok(result.join(',') === 'pdf,html,csv,call-sheet',
-  'Native Reports routes PDF, HTML, CSV, and Call Sheet to their canonical owners', JSON.stringify(result));
+ok(result.join(',') === 'pdf,html,season-html,csv,call-sheet',
+  'Native Reports routes game HTML, full-season HTML, PDF, CSV, and Call Sheet to their canonical owners', JSON.stringify(result));
+
+result = await page.evaluate(async () => {
+  const app=window.app,before=JSON.stringify(app.storage.seasonStore.data),original=window.ffaSaveBlob;
+  let capture=null,pending=null;window.ffaSaveBlob=(blob,name)=>{pending=blob.text().then(html=>{capture={html,name};});};
+  const ok=app.season.exportHtml();await pending;window.ffaSaveBlob=original;
+  return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
+});
+ok(result.ok && /season_report_/.test(result.name) && /Season Report/.test(result.html) && /Generated .* 2 games/.test(result.html) && result.unchanged,
+  'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data', JSON.stringify({ok:result.ok,name:result.name,unchanged:result.unchanged}));
 
 console.log('\n== 6. Mobile Reports contains overflow and preserves touch targets ==');
 await page.setViewport({ width: 390, height: 844 });
