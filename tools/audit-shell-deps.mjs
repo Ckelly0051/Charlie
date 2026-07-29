@@ -64,7 +64,7 @@ const out = await page.evaluate(() => {
     seasonOverlay: where('seasonOverlay'),
     nativeShortcuts: document.querySelector('[data-overlay-id="keyboard-shortcuts"]')?.closest('#giNativeRoot') ? 'native root' : 'absent',
     settingsDrawer: where('settingsDrawer'),
-    gameModal: where('gameModal'),
+    legacyGameModal: where('gameModal'),
     importModal: where('importModal'),
     legacyMore: where('moreDropdown'),
     legacyUndoToast: where('undoToast'),

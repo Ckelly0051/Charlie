@@ -98,6 +98,7 @@ export class NativeOverlayService {
       initialAction: options.destructive === true
         ? 'cancel'
         : options.initialAction || (type === 'dialog' ? actions.find(action => action.default)?.key || actions[0]?.key || '' : ''),
+      initialFocus: typeof options.initialFocus === 'string' ? options.initialFocus : '',
       returnFocus: invoker,
       focusFallback: fallback,
       resolveResult,

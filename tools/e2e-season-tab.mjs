@@ -288,59 +288,43 @@ ok(seq(r.allUndated) === seq(['A', 'B', 'C']), 'all-undated falls back to creati
 ok(seq(r.middleUndated) === seq(['A', 'B', 'C']), 'a mid-list undated game keeps its slot', JSON.stringify(r.middleUndated));
 ok(seq(r.trailingUndated) === seq(['A', 'B', 'C']), 'a trailing undated game stays last', JSON.stringify(r.trailingUndated));
 
-console.log('\n== 6. Single Game menu: create + edit, fields in the menu, week-aware name ==');
+console.log('\n== 6. Native Game settings: create + edit, week-aware name ==');
+await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'create' }); });
+await page.waitForSelector('[data-overlay-id="game-details"] [data-native-game-form]');
+r = await page.evaluate(() => ({
+  native: document.querySelectorAll('[data-overlay-id="game-details"] [data-native-game-form]').length,
+  legacyAbsent: !document.getElementById('gameModal'),
+  dateDefaultLen: document.querySelector('[data-native-game-form] [name="date"]')?.value.length || 0,
+  focused: document.activeElement?.name,
+}));
+ok(r.native === 1 && r.legacyAbsent, 'one native Game settings owner replaces the legacy modal', JSON.stringify(r));
+ok(r.dateDefaultLen === 10 && r.focused === 'week', 'create mode defaults the date and focuses Week', JSON.stringify(r));
+await page.type('[data-native-game-form] [name="week"]', '5');
+await page.type('[data-native-game-form] [name="opponent"]', 'Probe Rivals');
+await page.$eval('[data-native-game-form] [name="date"]', el => { el.value = '2025-10-01'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+await page.select('[data-native-game-form] [name="homeAway"]', 'home');
+await page.select('[data-native-game-form] [name="gameType"]', 'playoff');
+await page.click('[data-native-game-form] .gi-game-actions .is-primary');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]'));
 r = await page.evaluate(() => {
-  const inMenu = (id) => { const el = document.getElementById(id); return !!el && !!el.closest('#gameModal'); };
-  const dup = (id) => document.querySelectorAll('#' + id).length;
-  const modal = document.getElementById('gameModal');
-  const store = window.app.storage.seasonStore;
-
-  // --- CREATE via the single menu ---
-  window.app._openGameModal('create');
-  const shownCreate = modal && !modal.classList.contains('hidden');
-  const dateDefault = document.getElementById('gameDate').value;
-  document.getElementById('gameWeek').value = '5';
-  document.getElementById('gameOpponent').value = 'Probe Rivals';
-  document.getElementById('gameDate').value = '2025-10-01';
-  document.getElementById('gameHomeAway').value = 'home';
-  document.getElementById('gameType').value = 'playoff';
-  window.app._confirmGameModal();
-  window.app.storage.commitActive();   // flush debounced autosave into the node
-  const active = store.activeGame();
-  const createdName = store.gameName(active, 0);
-  const closedAfterCreate = modal.classList.contains('hidden');
-
-  // --- EDIT the same game via the SAME menu ---
-  window.app._openGameModal('edit');
-  const titleEdit = document.getElementById('gmTitle').textContent;
-  const prefillOpp = document.getElementById('gameOpponent').value;
-  document.getElementById('gameOpponent').value = 'Probe Rivals B';
-  window.app._confirmGameModal();
-  window.app.storage.commitActive();
-  const editedOpp = store.activeGame()?.gameInfo?.opponent;
-  const summaryText = document.getElementById('gameHeaderSummary')?.textContent || '';
-
-  return {
-    inMenu: inMenu('gameWeek') && inMenu('gameOpponent') && inMenu('gameDate') && inMenu('gameHomeAway') && inMenu('gameType') && inMenu('gameScoreUs'),
-    oppDup: dup('gameOpponent'), weekDup: dup('gameWeek'), typeDup: dup('gameType'),
-    shownCreate, dateDefaultLen: (dateDefault || '').length,
-    newDate: active?.gameInfo?.date, newOpp: active?.gameInfo?.opponent,
-    newHome: active?.gameInfo?.homeAway, newType: active?.gameInfo?.gameType,
-    createdName, closedAfterCreate, titleEdit, prefillOpp, editedOpp, summaryText,
-    headerIsButton: !!document.getElementById('btnEditGame'),
-    headerHasSummary: !!document.getElementById('gameHeaderSummary'),
-  };
+  const store = window.app.storage.seasonStore, active = store.activeGame();
+  return { date: active?.gameInfo?.date, opponent: active?.gameInfo?.opponent,
+    home: active?.gameInfo?.homeAway, type: active?.gameInfo?.gameType,
+    name: store.gameName(active, store.activeIndex()) };
 });
-ok(r.inMenu, 'all game-detail inputs live inside the single Game menu (#gameModal)', JSON.stringify(r));
-ok(r.oppDup === 1 && r.weekDup === 1 && r.typeDup === 1, 'no duplicate game-field IDs', JSON.stringify(r));
-ok(r.shownCreate && r.dateDefaultLen === 10, 'create mode opens with the date defaulted to today', JSON.stringify(r));
-ok(r.newDate === '2025-10-01' && r.newOpp === 'Probe Rivals', 'create saves opponent + date', JSON.stringify(r));
-ok(r.newHome === 'home' && r.newType === 'playoff', 'create saves Home/Away + Game type', JSON.stringify(r));
-ok(r.createdName === 'Week 5 vs Probe Rivals', 'game name is week-aware ("Week 5 vs …")', JSON.stringify(r));
-ok(r.closedAfterCreate, 'menu closes after create', JSON.stringify(r));
-ok(r.titleEdit === 'Game settings' && r.prefillOpp === 'Probe Rivals', 'edit reopens the SAME menu, pre-filled', JSON.stringify(r));
-ok(r.editedOpp === 'Probe Rivals B', 'editing in the menu updates the active game', JSON.stringify(r));
-ok(r.headerIsButton && r.headerHasSummary && /Rivals/.test(r.summaryText), 'header is a summary launcher reflecting the game', JSON.stringify(r));
+ok(r.date === '2025-10-01' && r.opponent === 'Probe Rivals', 'native create saves opponent + date', JSON.stringify(r));
+ok(r.home === 'home' && r.type === 'playoff' && r.name === 'Week 5 vs Probe Rivals', 'native create saves complete game context', JSON.stringify(r));
+await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'edit' }); });
+await page.waitForSelector('[data-overlay-id="game-details"] [name="opponent"]');
+r = await page.evaluate(() => ({ title: document.querySelector('[data-overlay-id="game-details"] h2')?.textContent,
+  opponent: document.querySelector('[data-native-game-form] [name="opponent"]')?.value }));
+ok(r.title === 'Game settings' && r.opponent === 'Probe Rivals', 'edit reopens the native form pre-filled', JSON.stringify(r));
+await page.$eval('[data-native-game-form] [name="opponent"]', el => { el.value = 'Probe Rivals B'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+await page.click('[data-native-game-form] .gi-game-actions .is-primary');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]'));
+r = await page.evaluate(() => ({ opponent: window.app.storage.seasonStore.activeGame()?.gameInfo?.opponent,
+  summary: document.getElementById('gameHeaderSummary')?.textContent || '' }));
+ok(r.opponent === 'Probe Rivals B' && /Rivals B/.test(r.summary), 'native edit updates the active game and summary', JSON.stringify(r));
 
 console.log('\n== 7. Expand-video toggle wires to the Fullscreen API ==');
 r = await page.evaluate(() => {
@@ -994,7 +978,6 @@ r = await page.evaluate(async () => {
   window.app.roster.players = window.app.roster.players.filter(p => !/onerror/i.test(p.name || ''));
   const payload = `<img src=x onerror="window.__xss30=(window.__xss30||0)+1">`;
   const teamInput = document.getElementById('gameTeamName');
-  const oppInput = document.getElementById('gameOpponent');
   const out = {};
   // Defensive report header interpolates ${team} (raw before the fix).
   teamInput.value = payload;
@@ -1003,7 +986,7 @@ r = await page.evaluate(async () => {
   out.defImg = !!document.querySelector('.stats-overlay h2 img');
   if (eng.hideDashboard) eng.hideDashboard();
   // Scout report header interpolates ${opponent}.
-  oppInput.value = payload;
+  window.app.storage.gameInfo.opponent = payload;
   // seed a scout-eligible defensive play so the report renders
   window.app.tagger.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, clipName: payload, notes: '',
     tags: { unit: 'defense', playType: 'Run Inside', result: 'Gain', runPass: 'Run', down: '1', distance: '10',

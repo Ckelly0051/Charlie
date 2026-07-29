@@ -293,12 +293,8 @@ export class ScoreboardOCR {
       this.tagger._loadTagForm(play);
       this.tagger._emit('play-updated', play);
     }
-    if (parsed.scoreUs && parsed.scoreThem) {
-      const us = document.getElementById('gameScoreUs');
-      const them = document.getElementById('gameScoreThem');
-      if (us) us.value = parsed.scoreUs;
-      if (them) them.value = parsed.scoreThem;
-      if (window.app && window.app._saveGameInfo) window.app._saveGameInfo();
+    if (parsed.scoreUs !== '' && parsed.scoreUs != null && parsed.scoreThem !== '' && parsed.scoreThem != null) {
+      window.app?._setGameScore?.(parsed.scoreUs, parsed.scoreThem);
     }
   }
 

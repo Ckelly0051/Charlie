@@ -241,9 +241,9 @@ await page.click('[data-bd-context="scout"]');
 // field on a 30ms timer, so a fixed 40ms read had ~10ms of headroom and tipped
 // over the moment shell startup got slightly heavier (adding the Reports
 // route). Verified by probe that behaviour is unchanged — focus lands on
-// gmPerspective between 40-60ms and stays there indefinitely — so only the read
+// the native perspective field immediately and stays there — so only the read
 // was fragile, not the product. The assertion below is otherwise untouched.
-await page.waitForFunction(() => document.activeElement?.id === 'gmPerspective', { timeout: 4000 });
+await page.waitForFunction(() => document.activeElement?.name === 'perspective', { timeout: 4000 });
 state = await page.evaluate(() => {
   const result = {
     perspective: document.getElementById('gamePerspective').value,
@@ -252,28 +252,28 @@ state = await page.evaluate(() => {
     scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
     subject: document.getElementById('bdChartSubject').textContent,
     context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
-    modalOpen: !document.getElementById('gameModal').classList.contains('hidden'),
-    focused: document.activeElement?.id,
+    modalOpen: !!document.querySelector('[data-overlay-id="game-details"]'),
+    focused: document.activeElement?.name,
   };
   window.app.storage._autoSave = window.__laneCOriginalAutoSave;
   return result;
 });
 ok(state.perspective === 'offense' && state.autoSaves === 0 && state.gameInfo === metadataBeforeScout && !state.scoutClass &&
   state.context === 'self' && state.subject === 'Our offense' && state.modalOpen &&
-  state.focused === 'gmPerspective',
+  state.focused === 'perspective',
   'Film-context choice opens the canonical setting without relabeling or autosaving the game', JSON.stringify(state));
 
-await page.click('#gmCancel');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions button[type="button"]');
 state = await page.evaluate(() => ({
   perspective: document.getElementById('gamePerspective').value,
   defaultUnit: window.app.tagger.defaultUnit,
-  modalOpen: !document.getElementById('gameModal').classList.contains('hidden'),
+  modalOpen: !!document.querySelector('[data-overlay-id="game-details"]'),
 }));
 ok(state.perspective === 'offense' && state.defaultUnit === 'defense' && !state.modalOpen,
   'Cancelling Film Source preserves the sticky next-play unit and metadata', JSON.stringify(state));
 
 await page.click('[data-bd-game]');
-await page.click('#gmSave');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-primary');
 state = await page.evaluate(() => ({
   perspective: document.getElementById('gamePerspective').value,
   defaultUnit: window.app.tagger.defaultUnit,
@@ -283,8 +283,8 @@ ok(state.perspective === 'offense' && state.defaultUnit === 'defense',
 
 await page.click('[data-bd-context="scout"]');
 await new Promise(resolve => setTimeout(resolve, 50));
-await page.select('#gmPerspective', 'scout');
-await page.click('#gmSave');
+await page.select('[data-overlay-id="game-details"] [name="perspective"]', 'scout');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-primary');
 await new Promise(resolve => setTimeout(resolve, 60));
 state = await page.evaluate(() => ({
   perspective: document.getElementById('gamePerspective').value,
@@ -362,14 +362,14 @@ state = await page.evaluate(() => ({
   scoutClass: document.getElementById('tagForm').classList.contains('is-scout'),
   subject: document.getElementById('bdChartSubject').textContent,
   context: document.querySelector('[data-bd-context].active')?.dataset.bdContext,
-  modalOpen: !document.getElementById('gameModal').classList.contains('hidden'),
+  modalOpen: !!document.querySelector('[data-overlay-id="game-details"]'),
 }));
 ok(state.perspective === 'scout' && state.scoutClass && state.context === 'scout' &&
   state.subject === 'Opponent Special Teams' && state.modalOpen,
   'Self-scout choice cannot silently relabel declared opponent film', JSON.stringify(state));
 
-await page.select('#gmPerspective', 'offense');
-await page.click('#gmSave');
+await page.select('[data-overlay-id="game-details"] [name="perspective"]', 'offense');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-primary');
 await new Promise(resolve => setTimeout(resolve, 60));
 state = await page.evaluate(() => ({
   perspective: document.getElementById('gamePerspective').value,

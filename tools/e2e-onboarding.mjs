@@ -175,6 +175,9 @@ r = await page.evaluate(() => ({
 }));
 ok(r.name === '2026 Mavericks' && r.teamId === 'mavericks', 'real season is durably owned by the active team', JSON.stringify(r));
 await page.click('[data-ws-action="new-game"]');
+await page.waitForSelector('[data-overlay-id="game-details"] [data-native-game-form]');
+await page.type('[data-native-game-form] [name="opponent"]', 'Opening Night');
+await page.click('[data-native-game-form] .gi-game-actions .is-primary');
 await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
 ok(await page.evaluate(() => window.app.workspace.currentRoute() === 'breakdown' && !!window.app.storage.seasonStore.activeGame()),
   'Home New Game action opens a chartable game in Break Down');

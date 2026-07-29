@@ -27,6 +27,7 @@ import { SettingsScreen } from './settings-screen.js';
 import { PlayImportScreen } from './play-import-screen.js';
 import { ShortcutsScreen } from './shortcuts-screen.js';
 import { TeamHubScreen } from './team-hub-screen.js';
+import { GameScreen } from './game-screen.js';
 import { getNativeOverlayService } from './native-root.jsx';
 import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
@@ -126,6 +127,7 @@ class App {
     this.season = new SeasonManager(this.stats);
     this.library = new SeasonLibrary();
     this.teamHubScreen = new TeamHubScreen(this, this.overlays);
+    this.gameScreen = new GameScreen(this, this.overlays);
     this.workspace = new WorkspaceContext(this);
     this.breakdownWorkspace = new BreakdownWorkspace(this);
     this.workspaceShell = new WorkspaceShell(this);
@@ -161,7 +163,6 @@ class App {
 
     // Wire game info form
     this._bindGameInfo();
-    this._bindGameModal();
     this._bindExpandVideo();
 
     // Keyboard shortcuts
@@ -329,11 +330,7 @@ class App {
     if (store.activeGame()?.id !== game.id) return;
 
     if (result.scoreUs !== undefined) {
-      const usEl = document.getElementById('gameScoreUs');
-      const themEl = document.getElementById('gameScoreThem');
-      if (usEl) usEl.value = result.scoreUs;
-      if (themEl) themEl.value = result.scoreThem;
-      this._saveGameInfo();
+      this._setGameScore(result.scoreUs, result.scoreThem);
     }
 
     store.setGameStatus(game.id, 'final');
@@ -423,8 +420,8 @@ class App {
   // ---- Games panel (settings drawer) ----------------------------------------
 
   _bindGamesPanel() {
-    document.getElementById('btnPanelNewGame')?.addEventListener('click', () => {
-      this._openGameModal('create');
+    document.getElementById('btnPanelNewGame')?.addEventListener('click', event => {
+      this.gameScreen.open({ mode: 'create', returnFocus: event.currentTarget });
     });
   }
 
@@ -570,137 +567,22 @@ class App {
   }
 
   _clearGameInfoForm() {
-    ['gameWeek', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
-     'gameHomeAway', 'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = 'game';
-    const perspectiveEl = document.getElementById('gamePerspective');
-    if (perspectiveEl) perspectiveEl.value = 'offense';
-    // Team identity (team name, jersey color) carries forward across games, so
-    // it's intentionally left in place here.
+    const carried = this.storage.gameInfo || {};
     this.storage.gameInfo = {
-      ...this.storage.gameInfo,
+      teamName: carried.teamName || '', jerseyColor: carried.jerseyColor || '',
       projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
-      homeAway: '', gameType: '', direction: '', perspective: 'offense',
+      homeAway: '', gameType: 'game', direction: '', perspective: 'offense',
     };
-    // Perspective owns both scout styling and the default unit for the next
-    // play. A fresh game must not inherit either from the previous film. Suppress
-    // the normal save listener: this form is between games and has no owner yet.
-    if (perspectiveEl) {
-      const wasLoading = this._loadingGameInfo;
-      this._loadingGameInfo = true;
-      perspectiveEl.dispatchEvent(new Event('change'));
-      this._loadingGameInfo = wasLoading;
-    }
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const directionEl = document.getElementById('gameDirection');
+    const wasLoading = this._loadingGameInfo;
+    this._loadingGameInfo = true;
+    if (perspectiveEl) { perspectiveEl.value = 'offense'; perspectiveEl.dispatchEvent(new Event('change')); }
+    if (directionEl) directionEl.value = '';
+    this._loadingGameInfo = wasLoading;
     this._trackedScore = null;
     this._renderGameSummary();
   }
-
-  // ---- Game menu — single create/edit surface ------------------------------
-  // A game used to be created blank, with its details (date/opponent/score) only
-  // reachable in the collapsed Game Info panel inside Settings — skipped, so the
-  // season had no chronological anchor. This one menu is the canonical home for
-  // game details: + New Game opens it to CREATE, the header opens it to EDIT.
-  // Date defaults to today, so games are always dated. While the menu is open,
-  // _saveGameInfo is suppressed (_gameModalOpen) so a draft/in-progress edit
-  // doesn't auto-write until Save; Cancel restores the inputs from the active
-  // game. Games are ordered by date (Hudl model); Week is a label only.
-  _bindGameModal() {
-    document.getElementById('gmSave')?.addEventListener('click', () => this._confirmGameModal());
-    document.getElementById('gmCancel')?.addEventListener('click', () => this._cancelGameModal());
-    document.getElementById('gmClose')?.addEventListener('click', () => this._cancelGameModal());
-    document.getElementById('btnEditGame')?.addEventListener('click', () => this._openGameModal('edit'));
-    const modal = document.getElementById('gameModal');
-    modal?.addEventListener('click', (e) => { if (e.target === modal) this._cancelGameModal(); });
-    modal?.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this._cancelGameModal();
-      else if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); this._confirmGameModal(); }
-    });
-    this._renderGameSummary();
-  }
-
-  /** `opts.focus` names the field that should receive focus. Callers that want
-   *  a specific field MUST pass it rather than scheduling their own competing
-   *  setTimeout — two racing focus timers meant a ~10ms margin decided where the
-   *  coach's keyboard landed, which is both unpredictable for them and a
-   *  perpetual source of timing-fragile tests. One modal, one focus decision. */
-  _openGameModal(mode, opts = {}) {
-    const modal = document.getElementById('gameModal');
-    if (!modal) { this.storage.newGame(); this._afterNewGame(); return; }  // graceful fallback
-    this._gameModalMode = mode;
-    this._gameModalOpen = true;   // suppress auto-save while the menu is open
-    const title = document.getElementById('gmTitle');
-    const saveBtn = document.getElementById('gmSave');
-    if (mode === 'create') {
-      ['gameWeek', 'gameOpponent', 'gameScoreUs', 'gameScoreThem', 'gameHomeAway'].forEach(id => this._setVal(id, ''));
-      this._setVal('gameType', 'game');
-      this._setVal('gmPerspective', 'offense');
-      this._setVal('gameDate', new Date().toISOString().slice(0, 10));   // default today → always dated
-      if (title) title.textContent = 'New game';
-      if (saveBtn) saveBtn.textContent = 'Create game';
-    } else {
-      // Edit: inputs already reflect the active game (kept by _loadGameInfo).
-      this._setVal('gmPerspective', document.getElementById('gamePerspective')?.value || 'offense');
-      if (title) title.textContent = 'Game settings';
-      if (saveBtn) saveBtn.textContent = 'Save';
-    }
-    this._updateTrackedScore();
-    modal.classList.remove('hidden');
-    const focusId = opts.focus || (mode === 'create' ? 'gameWeek' : 'gameOpponent');
-    document.getElementById(focusId)?.focus();
-  }
-
-  _closeGameModal() {
-    this._gameModalOpen = false;
-    document.getElementById('gameModal')?.classList.add('hidden');
-  }
-
-  _cancelGameModal() {
-    // Discard: restore inputs from the (unchanged) active game. A create draft
-    // committed nothing, so this just clears the draft back to the current game.
-    // Loading metadata normally seeds the next-play unit; Cancel must preserve
-    // the coach's current sticky charting choice because no intent changed.
-    const defaultUnit = this.tagger?.defaultUnit;
-    this._gameModalOpen = false;
-    this._loadGameInfo(this.storage.gameInfo || {});
-    if (defaultUnit) this.tagger.defaultUnit = defaultUnit;
-    this._closeGameModal();
-  }
-
-  _confirmGameModal() {
-    const val = (id) => (document.getElementById(id)?.value || '').trim();
-    const draft = {
-      week: val('gameWeek'), opponent: val('gameOpponent'), date: val('gameDate'),
-      homeAway: val('gameHomeAway'), gameType: val('gameType') || 'game',
-      scoreUs: val('gameScoreUs'), scoreThem: val('gameScoreThem'),
-      perspective: val('gmPerspective') || 'offense',
-    };
-    this._gameModalOpen = false;
-    if (this._gameModalMode === 'create') {
-      this.storage.newGame();   // commits current game, creates/reuses a blank, loads it (clears inputs)
-      this._setVal('gameWeek', draft.week); this._setVal('gameOpponent', draft.opponent); this._setVal('gameDate', draft.date);
-      this._setVal('gameHomeAway', draft.homeAway); this._setVal('gameType', draft.gameType);
-      this._setVal('gameScoreUs', draft.scoreUs); this._setVal('gameScoreThem', draft.scoreThem);
-    }
-    const perspectiveEl = document.getElementById('gamePerspective');
-    const perspectiveChanged = this._gameModalMode === 'create' || perspectiveEl?.value !== draft.perspective;
-    if (perspectiveEl && perspectiveChanged) {
-      perspectiveEl.value = draft.perspective;
-      perspectiveEl.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      this._saveGameInfo();
-    }
-    this._renderGameSummary();
-    this._closeGameModal();
-    this._afterNewGame();
-    // Hand the novice the next step: the empty video area now says why it's
-    // empty and what to do (UX audit B3).
-    if (this._gameModalMode === 'create') {
-      const dt = document.getElementById('dropzoneTitle');
-      if (dt) dt.textContent = 'Game created — now add the film';
-      this.history?._toast('Game created — add film to start tagging');
-    }
-  }
-
   /** Build the always-visible header summary from the active game's info. */
   _renderGameSummary(giOverride) {
     const el = document.getElementById('gameHeaderSummary');
@@ -1618,7 +1500,10 @@ class App {
   }
 
   _bindGameInfo() {
-    const fields = ['gameWeek', 'gameTeamName', 'gameOpponent', 'gameDate', 'gameHomeAway', 'gameType', 'gameScoreUs', 'gameScoreThem', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
+    document.getElementById('btnEditGame')?.addEventListener('click', event => {
+      this.gameScreen.open({ mode: 'edit', returnFocus: event.currentTarget });
+    });
+    const fields = ['gameTeamName', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
     fields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -1646,10 +1531,6 @@ class App {
 
     // Live "tracked" score: recompute from scoring plays whenever they change,
     // and let the coach copy it into the Final Score with one click.
-    const applyBtn = document.getElementById('btnApplyTrackedScore');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => this._applyTrackedScore());
-    }
     this.tagger.on('play-created', () => this._updateTrackedScore());
     this.tagger.on('play-updated', () => this._updateTrackedScore());
     this.tagger.on('play-deleted', () => this._updateTrackedScore());
@@ -1659,24 +1540,16 @@ class App {
     this._applyTeamProfile();
   }
 
-  /** Recompute the running scoreboard from tagged plays and show it. */
+  /** Recompute the running scoreboard from tagged plays. */
   _updateTrackedScore() {
-    const el = document.getElementById('trackedScore');
-    if (!el || !this.stats) return;
-    const sb = this.stats.computeScoreboard();
-    el.textContent = `${sb.us} – ${sb.them}`;
-    el.classList.toggle('has-score', sb.hasData);
-    this._trackedScore = sb;
+    if (!this.stats) return;
+    this._trackedScore = this.stats.computeScoreboard();
   }
 
-  /** Copy the tracked score into the editable Final Score fields. */
+  /** Copy the tagged score into the active game's final score. */
   _applyTrackedScore() {
     const sb = this._trackedScore || this.stats.computeScoreboard();
-    const usEl = document.getElementById('gameScoreUs');
-    const themEl = document.getElementById('gameScoreThem');
-    if (usEl) usEl.value = sb.us;
-    if (themEl) themEl.value = sb.them;
-    this._saveGameInfo();
+    this._setGameScore(sb.us, sb.them);
   }
 
   _saveApiKey() {
@@ -1686,41 +1559,64 @@ class App {
     this._updateAnalysisBadge?.();
   }
 
-  _saveGameInfo() {
-    // Programmatic form population (loading a game) must not trigger a save —
-    // otherwise a loaded game's team name (e.g. the demo's 'GridIron Demo')
-    // cascades through _saveTeamProfile and clobbers the coach's real identity.
-    // While the Game menu is open, a draft/in-progress edit must not auto-write
-    // until Save (see _openGameModal / _confirmGameModal).
-    if (this._loadingGameInfo || this._gameModalOpen) return;
-    const week = document.getElementById('gameWeek')?.value || '';
-    const opponent = document.getElementById('gameOpponent')?.value || '';
-    // projectName (file names / report titles) mirrors the game's display name —
-    // derive it from the single source (SeasonStore.gameName) rather than
-    // re-implementing the week/opponent composition here.
-    const projectName = (week.trim() || opponent)
+  /** Apply game-owned metadata without reading a retired DOM form or writing
+   * durable storage. The caller owns the transaction and persist decision. */
+  _applyGameInfoDraft(draft = {}) {
+    const current = this.storage.gameInfo || {};
+    const priorPerspective = current.perspective || 'offense';
+    const week = String(draft.week ?? current.week ?? '').trim();
+    const opponent = String(draft.opponent ?? current.opponent ?? '').trim();
+    const projectName = (week || opponent)
       ? this.storage.seasonStore.gameName({ gameInfo: { week, opponent } })
       : '';
     this.storage.gameInfo = {
-      projectName,
-      week,
-      teamName: document.getElementById('gameTeamName')?.value || '',
-      opponent,
-      date: document.getElementById('gameDate')?.value || '',
-      homeAway: document.getElementById('gameHomeAway')?.value || '',
-      gameType: document.getElementById('gameType')?.value || 'game',
-      scoreUs: document.getElementById('gameScoreUs')?.value || '',
-      scoreThem: document.getElementById('gameScoreThem')?.value || '',
-      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
-      perspective: document.getElementById('gamePerspective')?.value || 'offense',
-      direction: document.getElementById('gameDirection')?.value || '',
+      ...current, ...draft, projectName, week, opponent,
+      teamName: document.getElementById('gameTeamName')?.value || current.teamName || '',
+      jerseyColor: document.getElementById('gameJerseyColor')?.value || current.jerseyColor || '',
+      direction: draft.direction ?? document.getElementById('gameDirection')?.value ?? current.direction ?? '',
+      perspective: draft.perspective || current.perspective || 'offense',
+      gameType: draft.gameType || current.gameType || 'game',
     };
-    this.storage._autoSave();
-    this._saveTeamProfile();
-    this._checkFinishHint();
+
+    // Keep the still-live Break Down context control in sync until S5 moves
+    // that owner. Dispatch under the load guard so its context listeners run
+    // without recursively saving the game.
+    const perspectiveEl = document.getElementById('gamePerspective');
+    const wasLoading = this._loadingGameInfo;
+    this._loadingGameInfo = true;
+    if (perspectiveEl) {
+      perspectiveEl.value = this.storage.gameInfo.perspective;
+      if (this.storage.gameInfo.perspective !== priorPerspective) {
+        perspectiveEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+    this._loadingGameInfo = wasLoading;
     this._renderGameSummary();
+    this._checkFinishHint();
+    return this.storage.gameInfo;
   }
 
+  _setGameScore(scoreUs, scoreThem) {
+    this._applyGameInfoDraft({ scoreUs: String(scoreUs ?? ''), scoreThem: String(scoreThem ?? '') });
+    this.storage.commitActive();
+    this.storage._autoSave();
+  }
+
+  _saveGameInfo() {
+    // The remaining legacy settings fields are team/profile context only. Game
+    // identity, date, opponent and score are owned by GameScreen.
+    if (this._loadingGameInfo) return;
+    const current = this.storage.gameInfo || {};
+    this._applyGameInfoDraft({
+      ...current,
+      teamName: document.getElementById('gameTeamName')?.value || '',
+      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
+      perspective: document.getElementById('gamePerspective')?.value || current.perspective || 'offense',
+      direction: document.getElementById('gameDirection')?.value || '',
+    });
+    this.storage._autoSave();
+    this._saveTeamProfile();
+  }
   /**
    * Persist team-identity fields (team name + jersey color) globally so they
    * carry forward to every new game. Only the last *non-empty* value is kept,
@@ -1761,30 +1657,19 @@ class App {
 
   _loadGameInfo(info) {
     if (!info) return;
-    this._loadingGameInfo = true;   // suppress save-on-load cascade (see _saveGameInfo)
-    const map = {
-      gameTeamName: info.teamName,
-      gameOpponent: info.opponent,
-      gameDate: info.date,
-      gameScoreUs: info.scoreUs,
-      gameScoreThem: info.scoreThem,
-      gameJerseyColor: info.jerseyColor,
-      gamePerspective: info.perspective,
-      gameDirection: info.direction,
-    };
-    for (const [id, val] of Object.entries(map)) {
-      const el = document.getElementById(id);
-      if (el && val) el.value = val;
-    }
-    // Week + the selects are set explicitly (even when empty) so a value never
-    // carries over from the previously loaded game.
-    const weekEl = document.getElementById('gameWeek'); if (weekEl) weekEl.value = info.week || '';
-    const haEl = document.getElementById('gameHomeAway'); if (haEl) haEl.value = info.homeAway || '';
-    const typeEl = document.getElementById('gameType'); if (typeEl) typeEl.value = info.gameType || 'game';
-    this._renderGameSummary(info);
-    // Loading sets the perspective programmatically (no native change event),
-    // so fire one to re-sync the scout UI and the new-play unit default.
+    this._loadingGameInfo = true;
+    const nameEl = document.getElementById('gameTeamName');
+    const colorEl = document.getElementById('gameJerseyColor');
     const perspectiveEl = document.getElementById('gamePerspective');
+    const directionEl = document.getElementById('gameDirection');
+    // Team identity carries across games when an older game omitted it. The
+    // game-owned fields are rendered by the native form and have no hidden DOM
+    // mirror to become stale.
+    if (nameEl && info.teamName) nameEl.value = info.teamName;
+    if (colorEl && info.jerseyColor) colorEl.value = info.jerseyColor;
+    if (perspectiveEl) perspectiveEl.value = info.perspective || 'offense';
+    if (directionEl) directionEl.value = info.direction || '';
+    this._renderGameSummary(info);
     if (perspectiveEl) perspectiveEl.dispatchEvent(new Event('change'));
     const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
     if (savedKey) {
@@ -1794,13 +1679,12 @@ class App {
     }
     const savedModel = localStorage.getItem('ffa_claude_model') || '';
     if (savedModel) {
-      const mEl = document.getElementById('gameAiModel');
-      if (mEl) mEl.value = savedModel;
+      const modelEl = document.getElementById('gameAiModel');
+      if (modelEl) modelEl.value = savedModel;
       this.vision.model = savedModel;
     }
     this._loadingGameInfo = false;
   }
-
   _bindShortcuts() {
     const btn = document.getElementById('btnShortcuts');
     this.toggleShortcuts = (show) => {

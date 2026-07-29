@@ -7429,7 +7429,7 @@ td.pg-cell-focus {
 
 /* ============================================================================
    GAME HEADER BAR — an always-visible summary of the current game that opens the
-   single Game menu (#gameModal). Light theme (matches the main UI), explicit
+   native Game settings dialog. Light theme (matches the main UI), explicit
    colors to avoid theme-var pitfalls.
    ============================================================================ */
 .game-header-bar {
@@ -7508,46 +7508,6 @@ td.pg-cell-focus {
   .film-storage-options { grid-template-columns: 1fr; }
   .film-storage-option { min-height: 0; }
 }
-
-/* ---- Game menu modal — single create/edit surface ---- */
-.ng-modal-backdrop {
-  position: fixed; inset: 0; z-index: 9000;
-  background: rgba(0, 0, 0, .62);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-.ng-modal-backdrop.hidden { display: none; }
-.ng-modal {
-  width: min(420px, 100%); box-sizing: border-box;
-  background: var(--bg-elevated); color: var(--text);
-  border: 1px solid var(--border-bright); border-radius: 14px;
-  padding: 22px 22px 18px; box-shadow: var(--shadow-lg);
-}
-.ng-modal.ng-modal-wide { width: min(470px, 100%); }
-.ng-modal-title { margin: 0 0 4px; font-size: 19px; }
-.ng-modal-sub { margin: 0 0 14px; font-size: 13px; color: var(--text-dim); }
-.ng-modal .ng-lbl {
-  display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); margin: 12px 0 4px;
-}
-.ng-modal .ng-opt { font-weight: 400; color: var(--text-hint); }
-.ng-modal .ng-input {
-  width: 100%; box-sizing: border-box; font: inherit; padding: 9px 11px;
-  border: 1px solid var(--border-bright); border-radius: 8px;
-  background: var(--bg-primary); color: var(--text);
-}
-.ng-modal select.ng-input { height: 38px; cursor: pointer; }
-.ng-modal .ng-input:focus {
-  outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);
-}
-.ng-modal .ng-row-2 { display: flex; gap: 12px; }
-.ng-modal .ng-row-2 .ng-col { display: flex; flex-direction: column; }
-.ng-modal .ng-col-grow { flex: 1; min-width: 0; }
-.ng-modal .ng-col-week { width: 96px; flex: none; }
-.ng-modal .ng-score-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.ng-modal .ng-score { width: 72px; text-align: center; }
-.ng-modal .ng-dash { color: #94a3b8; font-weight: 700; }
-.ng-modal .ng-tracked-wrap { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
-.ng-modal .ng-tracked-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; }
-.ng-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
 /* ---- Expand video to full screen — the "watch the play bigger" toggle.
    Keeps the default size as-is; fullscreen only applies while toggled on. ---- */

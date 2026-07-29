@@ -43,14 +43,14 @@ state = await page.evaluate(() => {
   return {
     scout: document.getElementById('tagForm').classList.contains('is-scout'),
     perspective: document.getElementById('gamePerspective').value,
-    modal: !document.getElementById('gameModal').classList.contains('hidden'),
-    focused: focused?.id,
+    modal: !!document.querySelector('[data-overlay-id="game-details"]'),
+    focused: focused?.name,
     focusRing: getComputedStyle(focused).boxShadow,
   };
 });
-ok(!state.scout && state.perspective === 'offense' && state.modal && state.focused === 'gmPerspective' && state.focusRing !== 'none',
+ok(!state.scout && state.perspective === 'offense' && state.modal && state.focused === 'perspective' && state.focusRing !== 'none',
   'Keyboard activation opens canonical Film Source settings with visible focus and no silent relabel', JSON.stringify(state));
-await page.click('#gmCancel');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions button[type="button"]');
 
 await page.evaluate(() => {
   window.__historyToastUndo = 0;

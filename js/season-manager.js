@@ -90,15 +90,14 @@ export class SeasonManager {
     if (added) this._renderAll();
   }
 
-  newGame() {
+  async newGame() {
     const storage = this._storage();
-    if (!storage) return;
-    const g = storage.newGame();
+    if (!storage || !window.app?.gameScreen) return;
+    const id = await window.app.gameScreen.open({ mode: 'create' });
+    if (!id || id === 'cancel') return;
     this._renderAll();
-    // Land the fresh game in the one canonical workspace (C1) so "New Game"
-    // from the Season Report modal enters Break Down the same way every other
-    // open does, instead of leaving the coach on a modal over a blank game.
-    if (window.app?.openGame && g?.id != null) { this.hide?.(); window.app.openGame(g.id); }
+    this.hide?.();
+    await window.app.openGame?.(id);
   }
 
   removeGame(id) {

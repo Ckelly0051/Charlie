@@ -719,10 +719,12 @@ export class SeasonLibrary {
     if (window.app?.season?._renderAll) window.app.season._renderAll();
   }
 
-  _newGameFromSchedule() {
-    const storage = this._storage();
-    if (storage) storage.newGame();
+  async _newGameFromSchedule() {
+    if (!this._storage() || !window.app?.gameScreen) return;
+    const id = await window.app.gameScreen.open({ mode: 'create' });
+    if (!id || id === 'cancel') return;
     this.overlay.classList.add('hidden');
+    await window.app.openGame?.(id);
   }
 
   /** Hide the library — only meaningful once a season is open. */

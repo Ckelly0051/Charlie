@@ -91,7 +91,7 @@ export class ReportsScreen {
 
   scoutOpponent() {
     if (!this.content) return false;
-    const opponent = this.app.stats._activeOpponent?.() || document.getElementById('gameOpponent')?.value || 'Opponent';
+    const opponent = this.app.stats._activeOpponent?.() || this.app.storage?.gameInfo?.opponent || 'Opponent';
     this._opponentData = this.app.stats.generateOpponentScout(opponent);
     this.perspective = 'opponent';
     this.activeTab = 'overview';

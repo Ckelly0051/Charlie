@@ -2218,12 +2218,13 @@ export class StatsEngine {
     const esc = Charts._esc;
     // projectName is derived (week + opponent) and lives on gameInfo now — there
     // is no #gameProjectName input.
-    const name = esc((window.app && window.app.storage && window.app.storage.gameInfo && window.app.storage.gameInfo.projectName) || '');
-    const t = esc(document.getElementById('gameTeamName')?.value || '');
-    const o = esc(document.getElementById('gameOpponent')?.value || '');
-    const u = document.getElementById('gameScoreUs')?.value;
-    const th = document.getElementById('gameScoreThem')?.value;
-    const d = esc(document.getElementById('gameDate')?.value || '');
+    const gi = window.app?.storage?.gameInfo || {};
+    const name = esc(gi.projectName || '');
+    const t = esc(gi.teamName || document.getElementById('gameTeamName')?.value || '');
+    const o = esc(gi.opponent || '');
+    const u = gi.scoreUs;
+    const th = gi.scoreThem;
+    const d = esc(gi.date || '');
     let title = 'Game Stats';
     if (name) title = name;
     else if (t || o) title = `${t || 'Us'} vs ${o || 'Opponent'}`;
@@ -2347,7 +2348,7 @@ export class StatsEngine {
     const sb = stats.scoreboard;
     if (!sb || !sb.hasData) return '';
     const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Us');
-    const opp = Charts._esc(document.getElementById('gameOpponent')?.value || 'Opponent');
+    const opp = Charts._esc(window.app?.storage?.gameInfo?.opponent || 'Opponent');
     const winColor = '#22c55e', loseColor = '#ef4444', tieColor = 'var(--text)';
     const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
     const themColor = sb.them > sb.us ? winColor : sb.them < sb.us ? loseColor : tieColor;
@@ -3415,8 +3416,7 @@ export class StatsEngine {
         if (o && String(o).trim()) return String(o).trim();
       }
     } catch (e) {}
-    const dom = document.getElementById('gameOpponent');
-    return dom && dom.value ? dom.value.trim() : '';
+    return String(window.app?.storage?.gameInfo?.opponent || '').trim();
   }
 
   generateOpponentScout(opponentName) {
@@ -3563,7 +3563,7 @@ export class StatsEngine {
     const report = this.generateScoutReport();
     if (!report) { this._emptyOverlay('Scout Report', 'No opponent plays tagged yet. Tag the opponent’s formations, play types, and results, then generate the report.'); return; }
     const notes = document.getElementById('scoutNotes')?.value || '';
-    const opponent = document.getElementById('gameOpponent')?.value || 'Opponent';
+    const opponent = window.app?.storage?.gameInfo?.opponent || 'Opponent';
     const t = report.stats.tendencies;
 
     let html = `

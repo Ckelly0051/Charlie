@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { NativeOverlayService } from './native-overlay-service.js';
 import { NativePopover } from './native-popover.jsx';
 import '../design-system/plex.css';
@@ -27,22 +27,20 @@ function useNarrow() {
 
 function OverlayPanel({ overlay, service, top, effectiveModal }) {
   const panelRef = useRef(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!top) return;
-    const frame = requestAnimationFrame(() => {
-      const panel = panelRef.current;
-      const requested = overlay.initialAction
-        ? panel?.querySelector(`[data-overlay-action="${CSS.escape(overlay.initialAction)}"]`)
-        : null;
-      const first = overlay.type === 'sheet'
-        ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
-        : panel?.querySelector(focusableSelector);
-      (requested || first || panel)?.focus({ preventScroll: true });
-    });
-    return () => cancelAnimationFrame(frame);
-  // A buried panel is restored by NativeOverlayService to the exact child
-  // invoker. Re-running initial focus when top flips creates a second owner.
-  }, [overlay.id, overlay.initialAction]);
+    const panel = panelRef.current;
+    const requested = overlay.initialAction
+      ? panel?.querySelector(`[data-overlay-action="${CSS.escape(overlay.initialAction)}"]`)
+      : null;
+    const requestedField = !requested && overlay.initialFocus ? panel?.querySelector(overlay.initialFocus) : null;
+    const first = overlay.type === 'sheet'
+      ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
+      : panel?.querySelector(focusableSelector);
+    (requested || requestedField || first || panel)?.focus({ preventScroll: true });
+    // A buried panel is restored by NativeOverlayService to the exact child
+    // invoker. Re-running initial focus when top flips creates a second owner.
+  }, [overlay.id, overlay.initialAction, overlay.initialFocus]);
 
   const choose = async action => {
     if (action.onSelect) {
@@ -171,7 +169,7 @@ function NativeOverlayHost({ service }) {
       const panel = document.querySelector(`[data-overlay-id="${CSS.escape(current.id)}"] .gi-overlay-panel`);
       const controls = [...(panel?.querySelectorAll(focusableSelector) || [])].filter(element => element.getClientRects().length);
       if (!controls.length) return;
-      const first = controls[0], last = controls.at(-1);
+    const first = controls[0], last = controls.at(-1);
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };

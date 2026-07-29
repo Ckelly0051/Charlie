@@ -231,10 +231,10 @@ export class WorkspaceShell {
   /** Home's direct "New game" action (C1 finding 4): with Home the sole game
    * entry, creating a game belongs on Home, not buried under More. Creates the
    * game in the active season (reusing a still-empty active game rather than
-   * stacking husks — storage.newGame owns that) and opens it into Break Down
+   * stacking husks — GameScreen owns that transaction) and opens it into Break Down
    * through the one authoritative open command. No season open → send the coach
    * to the library to pick or create one first. */
-  async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const g=this.app.storage.newGame();if(g?.id!=null)await this.app.openGame(g.id);}
+  async _newGame(){const store=this.app.storage?.seasonStore;if(!store?.hasCurrent?.()){await this._openLibrary();return;}const id=await this.app.gameScreen.open({mode:'create'});if(id&&id!=='cancel')await this.app.openGame(id);}
   _remember(el){return el?{el,parent:el.parentNode,next:el.nextSibling}:null;}
   _restore(slot){if(!slot?.el||!slot.parent)return;const next=slot.next?.parentNode===slot.parent?slot.next:null;slot.parent.insertBefore(slot.el,next);}
   /** Adopt the classic bar's still-needed controls into shell chrome. Append

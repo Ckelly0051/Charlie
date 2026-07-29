@@ -116,9 +116,7 @@ ok(JSON.stringify(before.games.find(game => game.id === 'diff-g2').plays.find(pl
 
 before = await snapshot();
 await page.evaluate(() => {
-  const opponent = document.getElementById('gameOpponent');
-  opponent.value = 'Charlie';
-  window.app._saveGameInfo();
+  window.app._applyGameInfoDraft({ ...window.app.storage.gameInfo, opponent: 'Charlie' });
   window.app.storage.commitActive();
 });
 after = await snapshot();

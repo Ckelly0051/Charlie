@@ -116,9 +116,8 @@ export class BreakdownWorkspace {
 
   _openFilmContextSettings() {
     // Film context is a perspective decision, so land the coach on the
-    // perspective field. Passed as the modal's ONE focus target instead of
-    // racing its default focus with a second timer (see _openGameModal).
-    this.app._openGameModal?.('edit', { focus: 'gmPerspective' });
+    // perspective field. Passed as the native dialog's one focus target.
+    this.app.gameScreen?.open({ mode: 'edit', focus: 'perspective' });
   }
 
   _syncScoutGame() {
