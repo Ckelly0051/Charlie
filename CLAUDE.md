@@ -18,7 +18,58 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### ⛔ CODEX — STOP: THE PLAN CHANGED AND S4 IS BLOCKED (`f86c7e6`, 2026-07-28)
+### ▶ CLAUDE REVIEW QUEUE — S4-a `9ddddf7` (Codex, 2026-07-28)
+
+**Builder: Codex. Review range: `f502be6..9ddddf7` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S4-a is built, not accepted.
+Do not package, tag, or release. No season schema, analytics, film path, film
+file, migration, or managed-copy deletion changed.**
+
+S4-a implements the native popover primitive and migrates three global command
+surfaces into native ownership:
+
+- desktop/mobile **More** menus are anchored native popovers;
+- **Import Plays** is a native sheet over the existing canonical CSV parser and
+  apply path, with visible mappings for projected look fields and structured
+  penalties;
+- **Keyboard Shortcuts** is a native dialog opened by its command or `?`.
+
+The old `#playImportModal` and `#shortcutsModal` markup and their legacy binding
+code are deleted, not hidden. Mobile toasts were moved below command chrome so a
+success message cannot intercept the next tap. Overlay focus restoration now
+defers to any newer connected focus target, preventing delayed Preact teardown
+from stealing focus after the coach has moved on.
+
+**Review these first:**
+
+1. `NativePopover` anchoring, replacement, outside/Escape dismissal, viewport
+   clamping, and focus return.
+2. Import's no-write-before-Apply boundary, complete mapping vocabulary,
+   canonical positive apply path, and CSV round-trip.
+3. Shortcut dialog ownership, `?`/Escape keyboard behavior, and swallowed
+   charting keys while open.
+4. The generalized delayed-focus guard in `NativeOverlayService.close()`.
+5. Mobile More → Import → Shortcuts reachability with a live toast present.
+6. `audit-shell-deps.mjs` now audits the canonical Vite entry instead of the
+   retired bundle.
+
+**Builder verification:** native overlay **41/41**, workspace shell **62/62**,
+CSV round-trip **9/9**, onboarding **32/32**, capability inventory **10/10**,
+full canonical gate **70/70 green, 0 skipped, 0 failed**, and clean
+`cargo check`. Five exact mutations red independently: offscreen popover,
+top-positioned mobile toast, missing QB Alignment import mapping, suppressed
+canonical import apply, and disabled newer-focus protection.
+
+Four-viewport screenshots are in local `_shots-s4a/`; automated checks found no
+page overflow, sub-44px touch targets, or out-of-viewport popovers. Codex's image
+viewer was blocked by the Windows ACL sandbox, so Claude owns the independent
+aesthetic inspection rather than accepting that claim on report.
+
+**Next:** Claude independently reviews `9ddddf7`. On acceptance, S4 continues
+with the remaining legacy overlays. No milestone package or release is cut from
+this checkpoint.
+
+### HISTORICAL — superseded S4 installer hold (`f86c7e6`, 2026-07-28)
 
 **Do not start S4.** `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` was revised after
 your S3 repair was accepted. It now carries a **REVISION LOG at the very top** —
@@ -5033,11 +5084,12 @@ protocol/scope issues early. All diagnostic output uses `console.warn` (not
 `console.error`) so the e2e harness doesn't flag it.
 
 ### Shortcuts Legend
-A **Shortcuts** button in the top bar (always visible, even on the first screen
-before a video loads) and the **`?`** key open a keyboard-shortcuts legend
-modal (`#shortcutsModal`, wired by `App._bindShortcuts`). It groups shortcuts by
-Playback / Tagging / Drawing / General. While open it swallows other keys; Esc,
-the × button, or a backdrop click closes it.
+A **Shortcuts** command in shell chrome (available before a video loads) and the
+**`?`** key open the native keyboard-shortcuts dialog
+(`ShortcutsScreen` → `NativeOverlayService`). It groups shortcuts by Playback /
+Tagging / Drawing / General. While open it swallows other keys; Esc, the close
+button, or a scrim click closes it and restores focus without overriding a newer
+coach action.
 
 ### Keyboard Shortcuts (active when a play is selected)
 | Key | Action |

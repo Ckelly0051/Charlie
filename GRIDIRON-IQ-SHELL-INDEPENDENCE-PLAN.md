@@ -7,6 +7,21 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`9ddddf7` · 2026-07-28 · Codex · S4-a BUILT — awaiting independent review**
+
+- The coach explicitly opened S4 after accepting the S3 repair. This supersedes
+  the stale active **S4 BLOCKED** warning below; the older `f86c7e6` entry remains
+  as history explaining why milestone smoke builds matter.
+- S4-a adds the native popover primitive and replaces the legacy More menu,
+  Import Plays modal, and Keyboard Shortcuts modal with native-owned surfaces.
+  The retired import/shortcuts nodes and binding code are deleted, not hidden.
+- Full canonical gate: **70/70 green, 0 skipped, 0 failed**; `cargo check` clean.
+  No season schema, analytics formula, film path, film file, migration, package,
+  tag, or release changed.
+- S4 remains open pending Claude's independent review and migration of the
+  remaining legacy overlays. A published build is still prohibited until the
+  milestone release protocol says otherwise.
+
 **`f86c7e6` · 2026-07-28 · Claude · CHANGES WHAT IS REQUIRED — affects S4 and S5d**
 
 - **S4 is BLOCKED.** It may not start until a local installer is built from HEAD
@@ -50,31 +65,18 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0, S1, and S2 are COMPLETE AND ACCEPTED. S3 — native Team
-Hub / Season Library — is **COMPLETE AND ACCEPTED** at repair `f502be6`
+**Status: P0, S1, S2, and S3 are COMPLETE AND ACCEPTED. S3 — native Team
+Hub / Season Library — was accepted at repair `f502be6`
 (Claude, 2026-07-28), after a CHANGES REQUESTED first pass at `9d3b929`.
 Canonical gate re-run independently: **70/70 green, 0 skipped, 0 failed**.
 R1 was root-caused in production (`Array.isArray` on an explicitly empty
 overlay action list) and mutation-verified; the mutation showed the real
 defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
-delete it**. **S4 — remaining legacy overlays — is OPEN.** N6 (popover) is the
-only overlay item still outstanding and S5b needs it.
-
-**⛔ S4 IS BLOCKED. The §8 milestone installer after S2 was never built.** HEAD is
-**37 commits past `deeb8ba`** — the source of `1.12.0-12`, the newest installer on
-disk and the last build the coach has ever run. Since then the build system was
-replaced (single-file → Vite/Preact) and **Reports, Team & Film Settings and Team
-Hub were rebuilt as native routes**, none of which has executed on the coach's
-machine. `v1.12.0-8` passed a green gate, looked plausible, and failed in ten
-minutes of real use; that is why C1/C2 exist. This is the same setup at four times
-the size, on the surfaces that own film storage and team identity.
-**Build and smoke a local installer from HEAD before S4 opens.**
-
-**Ownership of the miss:** §8 named this gate and Claude authored it, then
-accepted S2 and S3 without enforcing it. The line below previously read as a
-blanket packaging ban, which made the requirement easy to read away — corrected
-here so it cannot happen again.
+delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is built at
+`9ddddf7` and awaits Claude's independent review.** N6 (popover) is now
+implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
+dialog have replaced their legacy owners.
 
 **Release rule (unchanged in substance):** no **published** package, tag, or
 release during the S-milestones. **Local, unpublished milestone installers are

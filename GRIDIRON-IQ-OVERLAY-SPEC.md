@@ -1,6 +1,6 @@
 # GridIron IQ — Overlay interaction specification
 
-**Status:** required P0 exit artifact (Shell Independence §3.1 items 5 and 8).
+**Status:** P0 primitives complete; S4-a native popover + More / Import Plays / Keyboard Shortcuts migration built at `9ddddf7`, awaiting independent review.
 **Owner:** P0 builds the native overlay host and primitives; S4 migrates the
 remaining legacy overlays onto it.
 **Why P0 and not later:** Team & Film Settings (S2) is a *drawer*. If the native
@@ -108,3 +108,27 @@ Each primitive is proven by a **journey**, not by geometry: open via the real
 affordance, assert focus landed correctly, operate by keyboard only, dismiss via
 Escape and via scrim, assert focus returned, and assert the underlying data
 changed **only** along the paths that journey declares (integrity contract §6.2).
+
+## 11. S4-a implementation record
+
+- `NativeOverlayService.popover()` owns contextual menus. Popovers require a
+  connected anchor and at least one item, replace another open popover atomically,
+  remain inside the viewport, dismiss on outside click/Escape, and return focus
+  without stealing it from a newer user action.
+- Workspace desktop and mobile **More** controls use that popover. The old
+  reparented `.more-menu` owner is retired from shell chrome.
+- **Import Plays** is a native sheet using the existing
+  `StorageManager.importPlaysFromText()` / `applyPlayImport()` data contract. It
+  does not mutate play data until the explicit Apply action, and exposes the full
+  parser vocabulary including projected look fields and structured penalties.
+- **Keyboard Shortcuts** is a native dialog opened by the shell control or `?`.
+  The legacy `#playImportModal` and `#shortcutsModal` markup and bindings are
+  deleted.
+- Mobile toasts sit below command chrome so a completed action cannot block the
+  next control. Delayed overlay teardown respects newer focus rather than
+  returning focus over the coach's subsequent action.
+- Proof: native overlay **41/41**, workspace shell **62/62**, CSV round-trip
+  **9/9**, onboarding **32/32**, capability inventory **10/10**, full canonical
+  gate **70/70**, and clean `cargo check`. Anchoring, mobile hit-testing, import
+  field coverage, positive import application, and focus handoff were each
+  mutation-proven.
