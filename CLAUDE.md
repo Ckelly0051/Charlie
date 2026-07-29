@@ -254,6 +254,58 @@ selector was mine. Nothing to fix; the observation is withdrawn.
 **No analytics formula, persistence schema, coach data, film file, package, tag or
 release changed.** Managed C: film copies remain protected.
 
+### ▶ CLAUDE'S REVIEW of `9aebbab` (S4-e) — **ACCEPTED.** 1 finding, correctly attributed to S3 (2026-07-29)
+
+**Checklist first.** `#seasonOverlay` is now gone. Remaining in `index.html`:
+`#drawerScrim`, `#settingsDrawer`. **S4 is two overlays from complete**, and the
+§8 installer is due the moment those land.
+
+**Full canonical gate: 73 harnesses | 73 green | 0 skipped | 0 failed.**
+
+**"Dead" is accurate, and I checked rather than took it.** The 441 lines removed
+from `season-manager.js` are **overlay chrome and lifecycle only** — `show`,
+`hide`, `_bindEvents`, `_renderAll`, `_renderGameList`, `_renderBackupStatus`,
+`switchGame`, `removeGame`, `openSeasonFile`, `_activeId`. Every
+**analytics-bearing** method survives: `_renderProgression`, `_mergeRoster`,
+`_allPlays`, `_effectiveGames`, `_renderTrends`, `_renderPerGameTable`,
+`_renderSituationalScorecard`, `_renderTurnoverScoring`, `_renderOffensiveIdentity`,
+`_renderWinLossSplits`, `_renderSelfScout`, and `statsHtml()` — which
+`stats-engine.js:1871` consumes to render the native Reports Season pane. Season
+progression and the merged roster labels are on screen exactly as before.
+
+`call-sheet-builder._injectButton()` was deleted correctly: it inserted a button
+next to `#btnSeason`, which no longer exists, and Call Sheet is in the native More
+popover.
+
+**The inventory entry got stronger, which is the S2-1 lesson landing.**
+`reports.season` moved from *"the Season tab button exists in the dashboard"* —
+a bare existence check — to *"Native Season report aggregates both games…"* in the
+new `e2e-native-season.mjs` (8 assertions). No harness lost assertions.
+
+**S4e-1 [P2] The season-scoped HTML export has no owner — and it has been gone
+since S3, not since this commit.** The deleted `exportSeasonReport()` produced a
+**downloadable season-wide report**: `compute(_allPlays())` across every game,
+titled by `seasonName`, with the Season Player Roll-Up, `_renderHeader` and
+`_renderProgression`. What survives is on-screen only (`statsHtml()` in the
+Season pane) plus `storage.exportHtmlReport(stats)`, which
+`reports-screen.js:110` calls with the Reports screen's own `stats` — **game
+scope**.
+
+Its trigger, `#btnExportSeason`, lived inside `#seasonOverlay`
+(`index.html:1205` at `7c87e2b`), and **nothing has called `season.show()` since
+S3 made `_openLibrary()` route to the native Team Hub.** So the capability went
+unreachable at S3, this commit deletes the implementation, and no document
+records the decision. **This is my miss, not Codex's** — I caught the Get Started
+checklist in the same S3 review and did not catch this one beside it.
+
+Not urgent and not a regression from `9aebbab`: nothing a coach can currently do
+got worse. But it must be an explicit decision — restore a season-scope export
+from the native Reports Season tab, or retire it in writing. Silence is what
+turned it into a discovery.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected.
+
 ### ▶ CLAUDE'S REVIEW of `bbaedf3` — **ACCEPTED.** 1 observation (2026-07-29)
 
 **Checklist first.** `#quickChartPanel` is gone; `#seasonOverlay`, `#drawerScrim`
@@ -410,8 +462,8 @@ ordering, and give the two orphaned behaviours an owner.
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
 | Commits since | **52** |
-| Milestones accepted since | **11** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c, Quick Chart |
-| Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
+| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e |
+| Next installer due | **S4 COMPLETE — 2 overlays away** (`#drawerScrim`, `#settingsDrawer`) — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
 *Why this table exists: every other check in this project fails loudly. An
