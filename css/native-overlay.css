@@ -28,7 +28,8 @@
 .gi-popover-item:disabled{color:var(--gi-9);cursor:not-allowed}
 .gi-popover-item.has-separator{margin-top:5px;border-top:1px solid var(--gi-7);border-radius:0 0 3px 3px;padding-top:10px}
 .gi-popover-item small{color:var(--gi-10);font-size:10px;font-weight:500}
-.gi-toast-stack{position:fixed;z-index:900;top:70px;right:16px;display:grid;width:min(390px,calc(100vw - 32px));gap:8px;pointer-events:none}
+.gi-toast-stack{position:fixed;z-index:900;right:16px;bottom:16px;display:grid;width:min(390px,calc(100vw - 32px));gap:8px;pointer-events:none}
+body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .gi-native-toast{display:flex;align-items:center;gap:14px;min-height:52px;padding:12px 14px;border:1px solid var(--gi-info-border);border-left:4px solid var(--gi-info-accent);border-radius:4px;background:var(--gi-info-surface);color:var(--gi-on-solid);box-shadow:var(--gi-shadow-toast);font:700 12px var(--gi-sans);text-transform:uppercase;pointer-events:auto;cursor:pointer}
 .gi-native-toast>span{min-width:0;flex:1}
 .gi-native-toast button{min-height:36px;border:1px solid var(--gi-info-control-border);border-radius:3px;background:var(--gi-info-control);color:var(--gi-on-solid);font:inherit;font-size:11px;font-weight:700;text-transform:uppercase}

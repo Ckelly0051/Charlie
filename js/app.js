@@ -114,7 +114,7 @@ class App {
     this.settingsScreen = new SettingsScreen(this, this.overlays);
     this.playImport = new PlayImportScreen(this, this.overlays);
     this.shortcutsScreen = new ShortcutsScreen(this.overlays);
-    this.history = new HistoryManager(this.tagger);
+    this.history = new HistoryManager(this.tagger, this.overlays);
     this.versions = new VersionManager(this.storage, this.tagger);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.suggestions = new SuggestionEngine(this.tagger);
@@ -163,9 +163,6 @@ class App {
     this._bindGameInfo();
     this._bindGameModal();
     this._bindExpandVideo();
-
-    // Wire report export
-    this._bindReportExport();
 
     // Keyboard shortcuts
     this._bindKeyboard();
@@ -246,53 +243,27 @@ class App {
     });
 
     // Desktop auto-update (no-op on the web build).
-    this.updater = new Updater();
+    this.updater = new Updater(this.overlays);
     this.updater.init();
-    this._bindUpdateCheck();
-    this._bindOpenDataFolder();
   }
 
-  /**
-   * Render the version footer in the More menu. Web and desktop ship on
-   * independent cadences, so each must show its OWN running version: the web
-   * bundle shows the APP_VERSION compiled into it; the desktop build overrides
-   * it with the actual installed version from the Tauri runtime (which can
-   * legitimately differ from this bundle's constant). The build type is shown
-   * too so a bug report identifies both number and platform.
-   */
+  /** Cache the running version for the native More menu without a legacy DOM owner. */
   _initVersionLabel() {
-    const el = document.getElementById('appVersionLabel');
-    if (!el) return;
     const isDesktop = !!(typeof window !== 'undefined' && window.__TAURI__);
-    el.textContent = `GridIron IQ v${APP_VERSION} · ${isDesktop ? 'Desktop' : 'Web'}`;
-    if (isDesktop) {
-      try {
-        const p = window.__TAURI__?.app?.getVersion?.();
-        if (p && typeof p.then === 'function') {
-          p.then(v => { if (v) el.textContent = `GridIron IQ v${v} · Desktop`; }).catch(() => {});
-        }
-      } catch (_) { /* fall back to APP_VERSION already shown */ }
-    }
+    this._versionLabel = `GridIron IQ v${APP_VERSION} · ${isDesktop ? 'Desktop' : 'Web'}`;
+    if (!isDesktop) return;
+    try {
+      const pending = window.__TAURI__?.app?.getVersion?.();
+      if (pending && typeof pending.then === 'function') {
+        pending.then(version => {
+          if (version) this._versionLabel = `GridIron IQ v${version} · Desktop`;
+        }).catch(() => {});
+      }
+    } catch (_) { /* keep the compiled version */ }
   }
 
   versionLabel() {
-    const live = document.getElementById('appVersionLabel')?.textContent?.trim();
-    return live || `GridIron IQ v${APP_VERSION} · ${window.__TAURI__ ? 'Desktop' : 'Web'}`;
-  }
-
-  /** Wire the "Check for Updates" menu item (desktop build only). */
-  _bindUpdateCheck() {
-    const btn = document.getElementById('btnCheckUpdate');
-    const divider = document.getElementById('updateDivider');
-    if (!btn) return;
-    // Only meaningful on the Tauri desktop build; stays hidden on the web.
-    if (!this.updater.available) return;
-    btn.hidden = false;
-    if (divider) divider.hidden = false;
-    btn.addEventListener('click', () => {
-      document.getElementById('moreDropdown')?.classList.add('hidden');
-      this.updater.check(true);
-    });
+    return this._versionLabel || `GridIron IQ v${APP_VERSION} · ${window.__TAURI__ ? 'Desktop' : 'Web'}`;
   }
 
   /**
@@ -588,7 +559,7 @@ class App {
     return { isActive, isFinal, name, plays, date, hasScore, u, t };
   }
 
-  /** Standard badge HTML (score pill + Final + open) used by dropdown & panel. */
+  /** Standard badge HTML (score pill + Final + open) shared by live game lists. */
   _gameBadgesHtml(r) {
     let h = '';
     if (r.hasScore) h += this._scorePillHtml(r.u, r.t);
@@ -597,24 +568,6 @@ class App {
     return h;
   }
 
-  /** Wire the "Open Data Folder" menu item (desktop build only). */
-  _bindOpenDataFolder() {
-    const btn = document.getElementById('btnOpenDataFolder');
-    const divider = document.getElementById('updateDivider');
-    const store = this.storage && this.storage.seasonStore;
-    if (!btn || !store || !store.canOpenDataDir || !store.canOpenDataDir()) return;
-    btn.hidden = false;
-    if (divider) divider.hidden = false;
-    btn.addEventListener('click', async () => {
-      document.getElementById('moreDropdown')?.classList.add('hidden');
-      let dir = '';
-      try { dir = await store.openDataDir(); } catch (e) {}
-      // Always surface the location (the OS file manager may also have opened).
-      if (dir) this.updater._toast(`Your seasons are saved in:\n${dir}`);
-    });
-  }
-
-  /** Blank every Game Info input — used when switching to a different game. */
   _clearGameInfoForm() {
     ['gameWeek', 'gameOpponent', 'gameDate', 'gameScoreUs', 'gameScoreThem',
      'gameHomeAway', 'gameDirection'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -1845,13 +1798,6 @@ class App {
       this.vision.model = savedModel;
     }
     this._loadingGameInfo = false;
-  }
-
-  _bindReportExport() {
-    const btn = document.getElementById('btnExportReport');
-    if (btn) {
-      btn.addEventListener('click', () => this.storage.exportHtmlReport(this.stats));
-    }
   }
 
   _bindShortcuts() {

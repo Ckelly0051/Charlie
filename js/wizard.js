@@ -236,7 +236,7 @@ export class Wizard {
         title: 'Export & share',
         sub: 'Pick what you need: call sheet, cut-up video, CSV, or HTML report.',
         primary: { label: '📋 Call Sheet / Wristband', onClick: () => document.getElementById('btnCallSheet')?.click() },
-        secondary: { label: '🎞 Cut-Up Video', onClick: () => document.getElementById('btnExportCutup')?.click() }
+        secondary: { label: '🎞 Cut-Up Video', onClick: () => window.app?.cutup?.export?.() }
       };
     }
 
@@ -245,7 +245,6 @@ export class Wizard {
 
   _runStepSideEffects() {
     document.getElementById('statsDashboard')?.classList.add('hidden');
-    document.getElementById('moreDropdown')?.classList.add('hidden');
   }
 
   _runStepAction(step) {

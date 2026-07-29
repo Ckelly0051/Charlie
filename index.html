@@ -21,6 +21,9 @@
 </head>
 <body>
   <div id="giNativeRoot" data-gi-overlay-host></div>
+  <!-- Native More owns the visible Open command; this nonvisual picker lives
+       outside the legacy app so file loading survives final outlet deletion. -->
+  <input type="file" id="projectFileInput" accept=".json" hidden>
   <div id="app">
     <!-- Top Bar -->
     <header class="top-bar">
@@ -82,46 +85,6 @@
         <button class="btn btn-accent" id="btnSave" title="Save the whole season to its file (Ctrl+S)">
           <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> <span class="btn-label">Save Season</span>
         </button>
-        <div class="more-menu">
-          <button class="btn" id="btnMoreMenu" title="More actions" aria-haspopup="true" aria-expanded="false">
-            More <span class="more-caret">▾</span>
-          </button>
-          <div class="more-dropdown hidden" id="moreDropdown" role="menu">
-            <div class="more-label">File</div>
-            <button class="btn" id="btnLoad" title="Open a season or game file">
-              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Open Season / Game
-              <input type="file" id="projectFileInput" accept=".json" hidden>
-            </button>
-            <button class="btn" id="btnSaveMenu" title="Everything autosaves — this also creates a restore point (and writes/downloads a season file)">
-              <svg class="icon"><use href="assets/icons.svg#icon-save"/></svg> Save now + restore point
-            </button>
-            <div class="more-divider"></div>
-            <div class="more-label">Reports &amp; Export</div>
-            <button class="btn btn-highlight" id="btnSeason" title="Season report — aggregate stats across every game">
-              <svg class="icon"><use href="assets/icons.svg#icon-stats"/></svg> Season Report
-            </button>
-            <button class="btn" id="btnExportReport" title="Export HTML Report">
-              <svg class="icon"><use href="assets/icons.svg#icon-notes"/></svg> HTML Report
-            </button>
-            <button class="btn" id="btnExportCsv" title="Export Plays as CSV">
-              <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> Export CSV
-            </button>
-            <button class="btn" id="btnExportCutup" title="Stitch the drawer-filtered plays into a cut-up video (WebM)">
-              <svg class="icon"><use href="assets/icons.svg#icon-film"/></svg> Cut-Up Video
-            </button>
-            <button class="btn" id="btnExportPng" title="Export Frame as PNG">
-              <svg class="icon"><use href="assets/icons.svg#icon-image"/></svg> Screenshot
-            </button>
-            <div class="more-divider" id="updateDivider" hidden></div>
-            <button class="btn" id="btnOpenDataFolder" title="Open the folder where your seasons are saved" hidden>
-              <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg> Open Data Folder
-            </button>
-            <button class="btn" id="btnCheckUpdate" title="Check for app updates" hidden>
-              <svg class="icon"><use href="assets/icons.svg#icon-download"/></svg> Check for Updates
-            </button>
-            <div class="more-version" id="appVersionLabel" title="App version"></div>
-          </div>
-        </div>
       </div>
     </header>
 
@@ -1276,9 +1239,6 @@
     <!-- Stats Dashboard (full-screen overlay) -->
     <div class="hidden" id="statsDashboard"></div>
     <button class="hidden" id="btnCloseStats"></button>
-
-    <!-- Undo/Redo toast -->
-    <div class="undo-toast" id="undoToast"></div>
 
     <!-- Season Stats Modal -->
     <div class="season-overlay hidden" id="seasonOverlay">

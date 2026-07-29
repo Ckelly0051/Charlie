@@ -19,7 +19,8 @@
  *   - window.__TAURI__.process.relaunch()
  */
 export class Updater {
-  constructor() {
+  constructor(overlays = null) {
+    this.overlays = overlays;
     this.tauri = (typeof window !== 'undefined') ? window.__TAURI__ : null;
     this.available = !!(this.tauri && this.tauri.updater);
     this._busy = false;
@@ -147,13 +148,7 @@ export class Updater {
   }
 
   _toast(msg) {
-    const t = document.createElement('div');
-    t.className = 'gi-update-toast';
-    t.textContent = msg;
-    this._injectStyle();
-    document.body.appendChild(t);
-    setTimeout(() => { t.classList.add('gi-show'); }, 10);
-    setTimeout(() => { t.classList.remove('gi-show'); setTimeout(() => t.remove(), 300); }, 3200);
+    return this.overlays?.toast({ message: String(msg || '').toUpperCase() });
   }
 
   // Styles live in css/styles.css (.gi-update-*). They must NOT be injected

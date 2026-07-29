@@ -1,6 +1,6 @@
 /**
- * UIPolish - Small interactions for the UX pass: More menu dropdown,
- * mobile sidebar drawer, and outside-click handling.
+ * UIPolish - Small interactions for the UX pass: mobile tool drawer,
+ * panel behavior, and responsive navigation.
  */
 /* The classic game-switcher dropdown used to own Escape while open, so the
    drawer/menu Esc handlers had to defer to it via a `uiDropdownClosed()` guard.
@@ -11,7 +11,6 @@
 export class UIPolish {
   constructor(app = null) {
     this.app = app;
-    this._initMoreMenu();
     this._initSidebarDrawer();
     this._initPanelCollapse();
     this._initBottomTabs();
@@ -160,47 +159,6 @@ export class UIPolish {
     return false;
   }
 
-  _initMoreMenu() {
-    const btn = document.getElementById('btnMoreMenu');
-    const menu = document.getElementById('moreDropdown');
-    if (!btn || !menu) return;
-    const close = () => {
-      menu.classList.add('hidden');
-      btn.setAttribute('aria-expanded', 'false');
-    };
-    const open = () => {
-      menu.classList.remove('hidden');
-      btn.setAttribute('aria-expanded', 'true');
-      // Focus the first item so arrow keys walk the menu immediately.
-      const first = menu.querySelector('button');
-      if (first) setTimeout(() => first.focus(), 0);
-    };
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.classList.contains('hidden') ? open() : close();
-    });
-    // Close when clicking inside a menu item button (let its handler run)
-    menu.addEventListener('click', (e) => {
-      if (e.target.closest('button')) setTimeout(close, 0);
-    });
-    // Arrow-key navigation inside the open menu (menus are keyboard-walkable).
-    menu.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-      e.preventDefault();
-      const items = [...menu.querySelectorAll('button')].filter(el => el.offsetParent !== null);
-      if (!items.length) return;
-      const i = items.indexOf(document.activeElement);
-      items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
-    });
-    document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && e.target !== btn) close();
-    });
-    document.addEventListener('keydown', (e) => {
-      // The game dropdown owns Escape while open (its own handler closes it).
-      if (e.key === 'Escape') close();
-    });
-  }
-
   _initSidebarDrawer() {
     const btn = document.getElementById('btnSidebarToggle');
     const drawer = document.querySelector('.settings-drawer');
@@ -299,8 +257,6 @@ export class UIPolish {
       drawer?.classList.add('open');
       scrim?.classList.add('active');
     };
-    const closeMore = () => document.getElementById('moreDropdown')?.classList.add('hidden');
-
     nav.addEventListener('click', (e) => {
       const btn = e.target.closest('.bt-tab');
       if (!btn) return;
@@ -309,19 +265,15 @@ export class UIPolish {
 
       if (tab === 'video') {
         closeDrawer();
-        closeMore();
         document.getElementById('statsDashboard')?.classList.add('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (tab === 'stats') {
         closeDrawer();
-        closeMore();
         document.getElementById('btnShowStats')?.click();
       } else if (tab === 'selfscout') {
         closeDrawer();
-        closeMore();
         window.app?.stats?.renderSelfScout();
       } else if (tab === 'more') {
-        closeMore();
         openDrawer();
       }
     });

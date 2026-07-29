@@ -185,11 +185,33 @@ await capture('more-1280x800');
 r = await page.evaluate(() => ({
   moreOpen: !!document.querySelector('[role="menu"][aria-label="More actions"]'),
   nativeOwner: !!document.querySelector('#giNativeRoot [data-popover-item="import"]'),
-  legacyClosed: document.getElementById('moreDropdown')?.classList.contains('hidden'),
+  legacyAbsent: !document.getElementById('moreDropdown') && !document.getElementById('btnMoreMenu') && !document.querySelector('.more-menu'),
+  projectInputOutsideLegacy: document.getElementById('projectFileInput')?.parentElement === document.body,
   expanded: document.getElementById('btnNativeMore')?.getAttribute('aria-expanded'),
 }));
-ok(r.moreOpen && r.nativeOwner && r.legacyClosed && r.expanded === 'true',
-  'Shell More opens the native action menu without revealing the legacy dropdown', JSON.stringify(r));
+ok(r.moreOpen && r.nativeOwner && r.legacyAbsent && r.projectInputOutsideLegacy && r.expanded === 'true',
+  'Shell More is the single action-menu owner and the season-file picker survives outside the legacy tree', JSON.stringify(r));
+
+await page.evaluate(() => {
+  const input = document.getElementById('projectFileInput');
+  window.__nativeOpenCalls = 0;
+  window.__nativeOpenOriginal = input.click;
+  input.click = () => { window.__nativeOpenCalls++; };
+});
+await page.click('[data-popover-item="open"]');
+await page.waitForFunction(() => window.__nativeOpenCalls === 1);
+r = await page.evaluate(() => {
+  const input = document.getElementById('projectFileInput');
+  input.click = window.__nativeOpenOriginal;
+  delete window.__nativeOpenOriginal;
+  return {
+    calls: window.__nativeOpenCalls,
+    closed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+  };
+});
+ok(r.calls === 1 && r.closed, 'Native Open season file reaches the canonical picker exactly once', JSON.stringify(r));
+await page.click('#btnNativeMore');
+await page.waitForSelector('[data-popover-item="import"]');
 
 // Import Plays is a distinct workflow from export/import data parity. Prove the
 // live shell affordance opens the canonical importer and that cancelling it is
@@ -277,11 +299,11 @@ r = await page.evaluate(() => {
     calls: window.__nativeMoreSaveCalls,
     closed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
     focus: document.activeElement?.id,
-    legacyClosed: document.getElementById('moreDropdown')?.classList.contains('hidden'),
+    legacyAbsent: !document.getElementById('moreDropdown') && !document.getElementById('btnMoreMenu'),
   };
 });
-ok(r.calls === 1 && r.closed && r.focus === 'btnNativeMore' && r.legacyClosed,
-  'Native More invokes the storage Save command exactly once and restores its launcher', JSON.stringify(r));
+ok(r.calls === 1 && r.closed && r.focus === 'btnNativeMore' && r.legacyAbsent,
+  'Native More invokes the storage Save command exactly once, restores its launcher, and has no legacy owner', JSON.stringify(r));
 
 /* ENTOMBED-CAPABILITY GUARD. The classic top bar lives inside #app, which lives
    inside the permanently hidden #wsClassicOutlet. So a control the shell does
@@ -641,7 +663,7 @@ r = await page.evaluate(() => {
     // with — an un-restored one would leak into a detached tree on re-enable.
     chromeRestored: ['btnSidebarToggle', 'btnUndoAction', 'btnRedoAction', 'btnShortcuts', 'backendStatusBadge']
       .every(id => !!document.querySelector(`#app .top-bar #${id}`))
-      && !!document.querySelector('#app .top-bar .more-menu #btnMoreMenu')
+      && !document.querySelector('#app .top-bar .more-menu')
       && !!document.querySelector('#app #settingsDrawer'),
   };
 });

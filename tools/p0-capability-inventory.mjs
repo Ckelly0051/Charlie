@@ -9,7 +9,7 @@ export const P0_CAPABILITIES = [
   { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
   { id:'shell.breakdown-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Break Down opens its dedicated production route' },
   { id:'shell.settings', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell Settings opens the single native Team & Film Settings owner' },
-  { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More opens the native action menu without revealing the legacy dropdown' },
+  { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More is the single action-menu owner and the season-file picker survives outside the legacy tree' },
   { id:'shell.study-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Study opens the query workspace inside the persistent shell' },
   { id:'shell.plan-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Plan opens the live season plan workspace' },
   { id:'shell.undo', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Relocated Undo stays wired to history-manager and enables on a real edit' },

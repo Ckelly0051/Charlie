@@ -44,10 +44,7 @@ export class StorageManager {
     };
 
     this.btnSave = document.getElementById('btnSave');
-    this.btnLoad = document.getElementById('btnLoad');
     this.projectFileInput = document.getElementById('projectFileInput');
-    this.btnExportPng = document.getElementById('btnExportPng');
-    this.btnExportCsv = document.getElementById('btnExportCsv');
 
     this._bindEvents();
 
@@ -69,21 +66,11 @@ export class StorageManager {
   }
 
   _bindEvents() {
-    this.btnSave.addEventListener('click', () => this.saveProject());
-    // Mobile hides the top-bar Save; the More menu keeps a first-class one.
-    document.getElementById('btnSaveMenu')?.addEventListener('click', () => this.saveProject());
-
-    this.btnLoad.addEventListener('click', () => {
-      this.projectFileInput.click();
+    this.btnSave?.addEventListener('click', () => this.saveProject());
+    this.projectFileInput?.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (file) this.loadProject(file);
     });
-
-    this.projectFileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) this.loadProject(e.target.files[0]);
-    });
-
-    this.btnExportPng.addEventListener('click', () => this.exportPng());
-    this.btnExportCsv.addEventListener('click', () => this.exportCsv());
-
     // Track the video file name so the active game records which film it used.
     this.vc.on('file-loaded', (data) => {
       this.videoFileName = data.name;

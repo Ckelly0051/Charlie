@@ -1,6 +1,6 @@
 /* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
 .ws-breakdown { min-width: 0; min-height: 0; overflow: hidden; }
-.ws-shell, .ws-breakdown, .tag-library-dialog, .undo-toast { font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
+.ws-shell, .ws-breakdown, .tag-library-dialog { font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
 .bd-route { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .bd-context-bar {
   min-width: 0; min-height: 58px; padding: 8px 12px;
@@ -193,7 +193,6 @@ body.ws-shell-active.ws-route-breakdown .video-play-controls .autoplay-next-togg
   border-left: 1px solid #26384b;
 }
 body.ws-shell-active.ws-route-breakdown .video-play-controls .play-select { min-width: 120px; }
-body.ws-shell-active .undo-toast { color: #fff; background: #154b82; border-color: #63a6ef; text-transform: uppercase; font-weight: 750; letter-spacing: 0; }
 
 @media (min-width: 801px) and (max-width: 1050px) {
   .bd-context-bar { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 12px; }

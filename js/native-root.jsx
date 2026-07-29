@@ -110,7 +110,9 @@ function ToastStack({ service, toasts }) {
         onClick={event => { if (!event.target.closest('button')) service.dismissToast(toast.id); }}
       >
         <span>{toast.message}</span>
-        {toast.action && <button type="button" onClick={() => { toast.action.fn?.(); service.dismissToast(toast.id); }}>{String(toast.action.label)} · {seconds}s</button>}
+        {toast.action && <button type="button" onClick={() => {
+          try { toast.action.fn?.(); } finally { service.dismissToast(toast.id); }
+        }}>{String(toast.action.label)} · {seconds}s</button>}
       </div>;
     })}
   </div>;

@@ -7,14 +7,14 @@
  * if nothing to undo, falls through to canvas).
  */
 export class HistoryManager {
-  constructor(tagger) {
+  constructor(tagger, overlays = null) {
     this.tagger = tagger;
+    this.overlays = overlays;
     this.stack = [];          // [{label, before, after}]
     this.index = -1;          // index of last applied entry
     this.recording = true;
     this.maxSize = 100;
     this.lastSnap = null;
-    this.toastEl = null;
     this.btnUndo = null;
     this.btnRedo = null;
     // Optional fallbacks so the single top-bar undo/redo can also drive
@@ -31,7 +31,6 @@ export class HistoryManager {
 
   init() {
     this.lastSnap = this._snapshot();
-    this.toastEl = document.getElementById('undoToast');
     this.btnUndo = document.getElementById('btnUndoAction');
     this.btnRedo = document.getElementById('btnRedoAction');
     if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undoAll());
@@ -169,47 +168,22 @@ export class HistoryManager {
   }
 
   /**
-   * Show a toast. opts.action = { label, fn } renders an inline action button
-   * (e.g. "Deleted Play 12 — Undo"); opts.duration overrides the default.
-   * Built via DOM (textContent), never innerHTML — msg carries coach text
-   * (play/game names) and must stay inert (lesson #18).
+   * Show feedback through the single native overlay host. Action toasts keep
+   * their undo callback and longer window; all copy stays semantic all-caps.
    */
   _toast(msg, opts = {}) {
-    // Lazy-fetch: init() may not have run yet (e.g. toasts from the library
-    // screen before any game is loaded) — the element exists from page load.
-    if (!this.toastEl) this.toastEl = document.getElementById('undoToast');
-    if (!this.toastEl) return;
-    this.toastEl.textContent = '';
-    this.toastEl.appendChild(document.createTextNode(String(msg ?? '').toUpperCase()));
-    if (opts.action && typeof opts.action.fn === 'function') {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'toast-action';
-      btn.textContent = String(opts.action.label || 'Undo').toUpperCase();
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        clearTimeout(this._toastTimer);
-        this.toastEl.classList.remove('show');
-        try { opts.action.fn(); } catch (err) {}
-      });
-      this.toastEl.appendChild(btn);
-    }
-    // Click to dismiss early — a longer default means the user can actually read
-    // it, but they can also clear it on demand (except while an action button is
-    // present, where the click belongs to the action).
-    if (!opts.action) {
-      this.toastEl.style.cursor = 'pointer';
-      this.toastEl.onclick = () => { clearTimeout(this._toastTimer); this.toastEl.classList.remove('show'); };
-    } else {
-      this.toastEl.style.cursor = '';
-      this.toastEl.onclick = null;
-    }
-    this.toastEl.classList.add('show');
-    clearTimeout(this._toastTimer);
-    // 1.8s was too short to read — default to a comfortable 4.5s; action toasts
-    // stay 6s; callers can still pass an explicit duration (e.g. 12s warnings).
-    this._toastTimer = setTimeout(() => {
-      this.toastEl.classList.remove('show');
-    }, opts.duration || (opts.action ? 6000 : 4500));
+    if (!this.overlays?.toast) return null;
+    const action = opts.action && typeof opts.action.fn === 'function'
+      ? {
+          label: String(opts.action.label || 'Undo').toUpperCase(),
+          fn: opts.action.fn,
+        }
+      : null;
+    return this.overlays.toast({
+      message: String(msg ?? '').toUpperCase(),
+      tone: opts.tone || 'info',
+      action,
+      duration: opts.duration || (action ? 6000 : 4500),
+    });
   }
 }

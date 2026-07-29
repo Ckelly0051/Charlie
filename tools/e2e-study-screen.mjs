@@ -128,6 +128,12 @@ await page.$eval('#wsStudyPlanName', el => { el.value='Rival Week'; });
 await page.click('[data-study-action="plan-picker-save"]');
 r = await page.evaluate(() => { const p=window.app.storage.seasonStore.plans()[0],item=p?.items[0],expected=window.app.studyScreen._saveCohorts.find(cohort=>cohort.id==='against')?.refs; return { plans:window.app.storage.seasonStore.plans().length, name:p?.name, items:p?.items.length, refs:item?.refs.length, exact:JSON.stringify(item?.refs)===JSON.stringify(expected), kind:item?.kind, compare:item?.query?.compare,cohort:item?.query?.cohort,active:window.app.planScreen.activeId }; });
 ok(r.plans === 1 && r.name === 'Rival Week' && r.items === 1 && r.refs > 0 && r.exact && r.kind === 'finding' && r.compare === 'rangePrior' && r.cohort === 'against' && r.active, 'Study creates the named plan with the explicitly selected comparison cohort', JSON.stringify(r));
+r = await page.evaluate(() => {
+  const button=document.querySelector('[data-study-action="save-plan"]'),rect=button.getBoundingClientRect();
+  const hit=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);
+  return { reachable:hit===button || button.contains(hit), hit:hit?.className || hit?.tagName };
+});
+ok(r.reachable, 'Save confirmation never blocks the next Study command', JSON.stringify(r));
 await page.click('[data-study-action="save-plan"]');
 r = await page.evaluate(() => ({ target:document.querySelector('#wsStudyPlanTarget')?.value, active:window.app.planScreen.activeId, nameHidden:document.querySelector('.ws-plan-picker-name')?.hidden,cohort:document.querySelector('#wsStudyPlanCohort')?.value }));
 ok(r.target === r.active && r.nameHidden && r.cohort === 'base', 'The picker defaults visibly to the primary cohort and active existing plan', JSON.stringify(r));

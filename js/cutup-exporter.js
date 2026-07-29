@@ -32,8 +32,6 @@ export class CutupExporter {
     this.recorder = null;
     this.showTitleCards = true;
 
-    this.btn = document.getElementById('btnExportCutup');
-    if (this.btn) this.btn.addEventListener('click', () => this.export());
   }
 
   async export() {

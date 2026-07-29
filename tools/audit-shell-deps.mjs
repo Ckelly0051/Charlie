@@ -66,6 +66,9 @@ const out = await page.evaluate(() => {
     settingsDrawer: where('settingsDrawer'),
     gameModal: where('gameModal'),
     importModal: where('importModal'),
+    legacyMore: where('moreDropdown'),
+    legacyUndoToast: where('undoToast'),
+    projectFileInput: where('projectFileInput'),
   };
 
   // Does anything still REVEAL the outlet?

@@ -52,12 +52,36 @@ ok(!state.scout && state.perspective === 'offense' && state.modal && state.focus
   'Keyboard activation opens canonical Film Source settings with visible focus and no silent relabel', JSON.stringify(state));
 await page.click('#gmCancel');
 
-state = await page.evaluate(() => {
-  window.app.history._toast('Saved next play', { action:{label:'Undo',fn:()=>{}} });
-  const toast=document.getElementById('undoToast'), style=getComputedStyle(toast);
-  return { text:toast.childNodes[0]?.textContent, action:toast.querySelector('button')?.textContent, background:style.backgroundColor, page:getComputedStyle(document.body).backgroundColor };
+await page.evaluate(() => {
+  window.__historyToastUndo = 0;
+  window.app.history._toast('Saved next play', { action:{label:'Undo',fn:()=>{ window.__historyToastUndo++; }} });
 });
-ok(state.text==='SAVED NEXT PLAY' && state.action==='UNDO' && state.background!==state.page, 'Toast content is semantic all-caps with a distinct restrained blue surface', JSON.stringify(state));
+await page.waitForSelector('.gi-native-toast button');
+state = await page.evaluate(() => {
+  const toast=document.querySelector('.gi-native-toast'), style=getComputedStyle(toast);
+  return {
+    text:toast.querySelector('span')?.textContent,
+    action:toast.querySelector('button')?.textContent,
+    background:style.backgroundColor,
+    page:getComputedStyle(document.body).backgroundColor,
+    legacyAbsent:!document.getElementById('undoToast'),
+  };
+});
+ok(state.text==='SAVED NEXT PLAY' && state.action.startsWith('UNDO') && state.background!==state.page && state.legacyAbsent,
+  'History feedback is semantic all-caps in the single native toast owner', JSON.stringify(state));
+await page.click('.gi-native-toast button');
+await page.waitForFunction(() => window.__historyToastUndo === 1 && !document.querySelector('.gi-native-toast'));
+ok(true, 'Native history toast invokes its Undo action once and dismisses');
+await page.evaluate(() => window.app.updater._toast('Update check complete'));
+await page.waitForSelector('.gi-native-toast');
+state = await page.evaluate(() => ({
+  text:document.querySelector('.gi-native-toast span')?.textContent,
+  duplicate:!!document.querySelector('.gi-update-toast'),
+}));
+ok(state.text==='UPDATE CHECK COMPLETE' && !state.duplicate,
+  'Updater feedback uses the native toast host with no duplicate notification owner', JSON.stringify(state));
+await page.click('.gi-native-toast');
+await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));
 
 for (const [label,width,height] of [['125%',1152,720],['150%',960,600]]) {
   await page.setViewport({ width,height });
