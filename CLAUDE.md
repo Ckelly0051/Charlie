@@ -122,13 +122,80 @@ selector was mine. Nothing to fix; the observation is withdrawn.
 **No analytics formula, persistence schema, coach data, film file, package, tag or
 release changed.** Managed C: film copies remain protected.
 
+### ▶ CLAUDE'S REVIEW of `5619b45..fa06917` — **CHANGES REQUESTED. The gate is RED.** (2026-07-29)
+
+**S4-c is NOT accepted.** `9f59d39` (the S4-b repair) is good and is accepted;
+`fa06917` regresses a previously-closed, mutation-proven guarantee.
+
+**Checklist first.** §8 owes installers after Team & Film Settings, the ownership
+flip, and final deletion — S4-c is none of those, and **S4 is still incomplete**
+(`#seasonOverlay`, `#quickChartPanel`, `#drawerScrim`, `#settingsDrawer` remain in
+`index.html`; `#gameModal` is now gone). No installer due here.
+
+**Canonical gate: 71 harnesses | 70 green | 0 skipped | 1 FAILED** —
+`e2e-native-overlay`. Log at `%TEMP%\gate-s4c.log`.
+
+**R1 [P1] N3 is regressed — modal overlays no longer make the route inert.**
+```
+FAIL  modal dialog makes legacy and native route content inert
+      {"active":"Keep working","appInert":false,"nativeRouteInert":false,"modal":"true"}
+```
+**Reproduces standalone**, so it is not load-sensitive. With a modal dialog open,
+`#app` and `.gi-native-routes` stay interactive and exposed to assistive tech —
+the exact guarantee I mutation-verified as closed at S2 (`8fd15db`).
+
+**Root-caused to one line, confirmed in both directions.** `native-root.jsx`
+changed `OverlayPanel`'s focus effect from `useEffect` + `requestAnimationFrame`
+to **`useLayoutEffect`**. Preact flushes layout effects synchronously and
+child-before-parent, so the panel now takes focus *before*
+`NativeOverlayHost`'s `useEffect` applies inertness. Reverting **only** that one
+word restores the assertion — and three sibling inertness assertions pass with
+it (`body controls appended after modal open`, `popover never makes the route
+inert`, `dialog over a sheet`). Restored afterwards; tree clean.
+
+The *goal* was right: `useLayoutEffect` was introduced to support the new
+`overlay.initialFocus` so the game form can focus its Week field before paint.
+That need is legitimate; the mechanism is what broke ordering. Fix it so
+inertness is applied in a layout effect too, or focus after the host has
+committed inertness — and **pin the ordering with an assertion**, because nothing
+currently fails when focus wins the race.
+
+**R2 [P2] `e2e-season-tab` lost four assertions, and two behaviours now have no
+owner anywhere.** 161 → **157**. Most removals are correct — the legacy-modal
+probes (`all game-detail inputs live inside #gameModal`, `no duplicate
+game-field IDs`) describe a thing that no longer exists, and `create mode opens
+with the date defaulted` was replaced by a *stronger* assertion that also checks
+focus. But two are simply gone:
+- **`menu closes after create`**
+- **`header is a summary launcher reflecting the game`** — not found in any harness.
+
+**Both behaviours still work** — I traced them rather than assuming:
+`game-screen.js:43` closes on `result.ok`, and `:79`/`:96` call `_syncChrome()`,
+which is what writes `wsContextGame` (`workspace-shell.js:184`). So this is a
+**coverage regression, not a behaviour regression** — but the game header is a
+visible surface with no test left on it.
+
+**What is genuinely good here, and it is the part that matters most.**
+`e2e-native-game.mjs` tests the transactional claim properly: *Canceling New Game
+preserves the complete season byte-for-byte*, *Create game performs one durable
+write and adds exactly one game*, *Canceling Edit Game writes nothing*, and
+*Failed canonical save restores the complete season and live game context*. That
+is the right set for a data path, and **the parity goldens are absent from the
+diff** — so moving analytics, reports and OCR off hidden modal fields onto
+canonical metadata changed no output. `9f59d39` closes S4b-1 cleanly: no
+`.toUpperCase()` remains in `history-manager.js`, `updater.js` or
+`tag-library-settings.js`.
+
+**To re-review:** fix R1 with an assertion that reds on the focus/inertness
+ordering, and give the two orphaned behaviours an owner.
+
 ### 📟 DRIFT COUNTER — update at every baton pass
 
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
 | Commits since | **49** |
-| Milestones accepted since | **9** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b |
+| Milestones accepted since | **9** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b (S4-c RETURNED) |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
