@@ -68,7 +68,9 @@ const timers = await page.evaluate(async () => {
   const deleted = [];
   backend.supportsFilm = () => true;
   backend.deleteFilm = async (id) => { deleted.push(id); };
-  sm.UNDO_FILM_WINDOW_MS = 60;   // shrink the window for the test
+  const defaultWindow = sm.undoGameWindowMs();
+  sm.UNDO_FILM_WINDOW_MS = 60;   // shrink the shared UI + film-recovery window for the test
+  const overrideWindow = sm.undoGameWindowMs();
 
   const g = (n) => ({ id: n, name: n, gameInfo: {}, status: 'active', plays: [{ id: 1, timestamp: { start: 0, end: 5 }, clipName: n + '_a', tags: { unit: 'offense', custom: [] } }], annotations: [], nextId: 2, currentPlayId: null, clipNames: [n + '_a'], isMultiClip: true });
   const fresh = () => { store.data = store._normalize({ version: 5, type: 'season', id: 'tm', seasonName: 'TM', activeGameId: 'a', games: [g('a'), g('b'), g('c')] }); store.currentSeasonId = 'tm'; sm._loadActiveGame(); };
@@ -89,8 +91,9 @@ const timers = await page.evaluate(async () => {
   const afterUndoTimer = deleted.slice();
 
   backend.supportsFilm = realSupports; backend.deleteFilm = realDelete;
-  return { beforeTimer, afterTimer, afterUndoTimer };
+  return { defaultWindow, overrideWindow, beforeTimer, afterTimer, afterUndoTimer };
 });
+ok(timers.defaultWindow === 30000 && timers.overrideWindow === 60, 'one duration seam owns both the visible Undo and deferred film purge window', JSON.stringify(timers));
 ok(timers.beforeTimer.length === 0, 'film is not purged immediately on delete (undo window open)', JSON.stringify(timers));
 ok(JSON.stringify(timers.afterTimer) === JSON.stringify(['b']), 'the undo-window timer purges the film on its own (delete + walk away)', JSON.stringify(timers));
 ok(timers.afterUndoTimer.length === 0, 'undo within the window cancels the purge timer — film kept', JSON.stringify(timers));

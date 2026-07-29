@@ -698,6 +698,7 @@ export class SeasonLibrary {
     this._renderSchedule();
     // In-situ recovery (UX audit A2): stash-backed one-shot undo.
     window.app?.history?._toast(`Deleted "${name}"`, {
+      duration: storage.undoGameWindowMs(),
       action: { label: 'Undo', fn: () => {
         if (storage.undoRemoveGame()) { this._renderSchedule(); window.app?.history?._toast('Game restored'); }
       } },

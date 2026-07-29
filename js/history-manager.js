@@ -7,7 +7,8 @@
  * if nothing to undo, falls through to canvas).
  */
 export class HistoryManager {
-  constructor(tagger, overlays = null) {
+  constructor(tagger, overlays) {
+    if (!overlays?.toast) throw new Error('HistoryManager requires the native overlay service.');
     this.tagger = tagger;
     this.overlays = overlays;
     this.stack = [];          // [{label, before, after}]
@@ -169,18 +170,17 @@ export class HistoryManager {
 
   /**
    * Show feedback through the single native overlay host. Action toasts keep
-   * their undo callback and longer window; all copy stays semantic all-caps.
+   * their undo callback and longer window; CSS owns visual text casing.
    */
   _toast(msg, opts = {}) {
-    if (!this.overlays?.toast) return null;
     const action = opts.action && typeof opts.action.fn === 'function'
       ? {
-          label: String(opts.action.label || 'Undo').toUpperCase(),
+          label: String(opts.action.label || 'Undo'),
           fn: opts.action.fn,
         }
       : null;
     return this.overlays.toast({
-      message: String(msg ?? '').toUpperCase(),
+      message: String(msg ?? ''),
       tone: opts.tone || 'info',
       action,
       duration: opts.duration || (action ? 6000 : 4500),

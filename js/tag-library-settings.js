@@ -100,7 +100,7 @@ export class TagLibrarySettings {
     if (event.target.closest('[data-action="close"]')) { this.dialog.close(); return; }
     if (event.target.closest('[data-action="restore"]')) {
       const ok = await this.tagger._confirmDialog('Restore the default tag libraries? Custom choices will be removed, but existing plays stay unchanged.', 'Restore');
-      if (ok) { this.customChips.restoreDefaults(); this.render(); this._toast('TAG LIBRARIES RESTORED'); }
+      if (ok) { this.customChips.restoreDefaults(); this.render(); this._toast('Tag libraries restored'); }
       return;
     }
     const remove = event.target.closest('[data-remove]');
@@ -111,7 +111,7 @@ export class TagLibrarySettings {
     this.customChips.library.remove(this.activeKey, value);
     this.customChips.reload();
     this.render();
-    this._toast(`${value.toUpperCase()} REMOVED`);
+    this._toast(`${value} removed`);
   }
 
   _change(event) {
@@ -129,7 +129,7 @@ export class TagLibrarySettings {
     if (!value) { input.focus(); return; }
     const group = this.customChips.library.group(this.activeKey);
     if (group.values.some(item => item.toLowerCase() === value.toLowerCase())) {
-      this._toast(`${value.toUpperCase()} ALREADY EXISTS`);
+      this._toast(`${value} already exists`);
       input.select();
       return;
     }
@@ -137,7 +137,7 @@ export class TagLibrarySettings {
     this.customChips.reload();
     this.render();
     this.dialog.querySelector('#tagLibraryAdd')?.focus();
-    this._toast(`${value.toUpperCase()} ADDED`);
+    this._toast(`${value} added`);
   }
 
   _toast(message) { if (this.tagger.toast) this.tagger.toast(message); }

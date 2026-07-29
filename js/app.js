@@ -483,6 +483,7 @@ class App {
         this.season._renderAll?.();
         // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
         this.history?._toast(`Removed "${r.name}"`, {
+          duration: this.storage.undoGameWindowMs(),
           action: { label: 'Undo', fn: () => {
             if (this.storage.undoRemoveGame()) this.history?._toast('Game restored');
           } },

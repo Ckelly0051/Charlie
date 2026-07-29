@@ -63,12 +63,13 @@ state = await page.evaluate(() => {
     text:toast.querySelector('span')?.textContent,
     action:toast.querySelector('button')?.textContent,
     background:style.backgroundColor,
+    textTransform:style.textTransform,
     page:getComputedStyle(document.body).backgroundColor,
     legacyAbsent:!document.getElementById('undoToast'),
   };
 });
-ok(state.text==='SAVED NEXT PLAY' && state.action.startsWith('UNDO') && state.background!==state.page && state.legacyAbsent,
-  'History feedback is semantic all-caps in the single native toast owner', JSON.stringify(state));
+ok(state.text==='Saved next play' && state.action.startsWith('Undo') && state.textTransform==='uppercase' && state.background!==state.page && state.legacyAbsent,
+  'History feedback keeps natural accessible text while CSS owns visual all-caps', JSON.stringify(state));
 await page.click('.gi-native-toast button');
 await page.waitForFunction(() => window.__historyToastUndo === 1 && !document.querySelector('.gi-native-toast'));
 ok(true, 'Native history toast invokes its Undo action once and dismisses');
@@ -78,7 +79,7 @@ state = await page.evaluate(() => ({
   text:document.querySelector('.gi-native-toast span')?.textContent,
   duplicate:!!document.querySelector('.gi-update-toast'),
 }));
-ok(state.text==='UPDATE CHECK COMPLETE' && !state.duplicate,
+ok(state.text==='Update check complete' && !state.duplicate,
   'Updater feedback uses the native toast host with no duplicate notification owner', JSON.stringify(state));
 await page.click('.gi-native-toast');
 await page.waitForFunction(() => !document.querySelector('.gi-native-toast'));

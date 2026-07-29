@@ -148,7 +148,7 @@ export class Updater {
   }
 
   _toast(msg) {
-    return this.overlays?.toast({ message: String(msg || '').toUpperCase() });
+    return this.overlays?.toast({ message: String(msg || '') });
   }
 
   // Styles live in css/styles.css (.gi-update-*). They must NOT be injected

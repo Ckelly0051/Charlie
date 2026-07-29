@@ -1015,12 +1015,14 @@ export class StorageManager {
     // leaves it for the storage epic's load-time GC — a belt-and-braces sweep.)
     this._cancelFilmPurgeTimer();
     if (this._lastDeletedGame && this._lastDeletedGame.filmGameId) {
-      this._filmPurgeTimer = setTimeout(() => this._purgeStaleDeletedFilm(), this.UNDO_FILM_WINDOW_MS || 30000);
+      this._filmPurgeTimer = setTimeout(() => this._purgeStaleDeletedFilm(), this.undoGameWindowMs());
     }
     this.seasonStore.removeGame(id);
     this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
   }
+
+  undoGameWindowMs() { return Number(this.UNDO_FILM_WINDOW_MS) || 30000; }
 
   _cancelFilmPurgeTimer() { if (this._filmPurgeTimer) { clearTimeout(this._filmPurgeTimer); this._filmPurgeTimer = null; } }
 
