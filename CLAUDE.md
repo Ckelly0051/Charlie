@@ -199,6 +199,43 @@ selector was mine. Nothing to fix; the observation is withdrawn.
 **No analytics formula, persistence schema, coach data, film file, package, tag or
 release changed.** Managed C: film copies remain protected.
 
+### ▶ CLAUDE'S REVIEW of `bbaedf3` — **ACCEPTED.** 1 observation (2026-07-29)
+
+**Checklist first.** `#quickChartPanel` is gone; `#seasonOverlay`, `#drawerScrim`
+and `#settingsDrawer` remain in `index.html`. **S4 is still incomplete**, so §8
+owes no installer here — still due at **S4 COMPLETE**, now three overlays away.
+*(Note for anyone repeating my check: `#wsClassicOutlet` is built by
+`workspace-shell.js`, not `index.html` — grepping the markup makes it look
+deleted when it is not.)*
+
+**Full canonical gate: 72 harnesses | 72 green | 0 skipped | 0 failed.**
+
+- **The tagging engine is untouched.** The diff is a presentation/lifecycle
+  change: panel refs move from `#quickChartPanel` to `[data-native-quick-chart]`
+  with `_bindPanel`/`_clearPanelRefs`/`_deactivate`. Writes still go through
+  `tagger.getCurrentPlay()` and `tagger._emit('play-updated', …)` — the same seam
+  that carries the E2-R3 live ST-alignment strip, history, and autosave.
+- **The document-level key handler is correctly gated** (`quick-chart.js:108`,
+  `if (!this.isActive) return;`), so the nulled panel refs after `_deactivate`
+  cannot be dereferenced by a stray keypress.
+- **The harness covers the leak case that matters:** *Leaving Break Down closes
+  Quick Chart instead of leaking it onto another route*, plus route inertness,
+  no mobile overflow, and every other game byte-identical.
+
+**Observation — one assertion's name claims more than its check.** Removing
+`tagger._emit('play-updated', play)` reds *Quick Chart emits one update and
+leaves every other game byte-identical* — good, the publish is pinned. But
+*"Save applies type, classifier, result, yardage, down, and player **through the
+canonical play**"* **still passes** with the emit gone, because it reads the tags
+off the mutated play object rather than observing the publication. Between the
+two assertions the behaviour is covered, so this is not a gap in coverage — it is
+a gap in naming, and the same shape as the `\bundefined\b` guard that did not
+guard. Either rename it to describe what it checks, or have it observe the
+emitted event.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected.
+
 ### ▶ CLAUDE'S RE-REVIEW of `714c372` — **ACCEPTED. S4-c is complete.** (2026-07-29)
 
 **Checklist first.** S4 is still incomplete — `#seasonOverlay`,
@@ -318,7 +355,7 @@ ordering, and give the two orphaned behaviours an owner.
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
 | Commits since | **52** |
-| Milestones accepted since | **10** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b, S4-c |
+| Milestones accepted since | **11** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c, Quick Chart |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
