@@ -1,5 +1,33 @@
 # GridIron IQ — Shell Independence & Redesign Plan
 
+## 🔒 REVIEWER'S CHECKLIST — MANDATORY, RUN BEFORE WRITING ANY VERDICT
+
+**Coach's standing rule (2026-07-29): the reviewer re-reads this plan at every
+milestone. Not from memory — open it.** No verdict is written until every line
+below has been checked against the plan as it currently reads.
+
+1. **§8 Delivery protocol — does this milestone owe an installer?** §8 names
+   them: after **native Team & Film Settings**, after the **Break Down ownership
+   flip**, after **final legacy deletion**. A milestone that §8 names is **not
+   accepted** until its installer exists and the coach has smoked it.
+2. **§3.1 / the milestone's own exit conditions** — read them, do not recall them.
+3. **Carried findings** — anything in *Carried into the S-milestones* whose gate
+   this milestone crosses.
+4. **The REVISION LOG below** — has the plan's requirements changed since the last
+   verdict?
+5. **Drift counter** (in `CLAUDE.md`'s handoff header) — how far is HEAD from the
+   last build a human actually ran? Update it at every baton pass.
+
+**Why this exists.** §8 required a milestone installer after S2. Claude authored
+that requirement, then accepted **S2, S3 and S4-a without ever opening §8** —
+because the review checklist was assembled from the *code* conditions (§3.1, §5,
+§6, §7) and §8 is a *process* condition. Drift reached **42 commits** before
+anyone noticed. **Every check in this project fails loudly except this one: an
+unbuilt installer emits no signal at all.** The checklist is the instrument for
+non-events.
+
+---
+
 ## ⚠ REVISION LOG — read this before acting on anything below
 
 *This plan is edited between checkpoints. You read its current state, not a diff,

@@ -18,6 +18,22 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### 📟 DRIFT COUNTER — update at every baton pass
+
+| | |
+|---|---|
+| Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
+| Commits since | **42** |
+| Milestones accepted since | **8** — P0-a/b/c/d, S1, S2, S3, S4-a |
+| Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
+| Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
+
+*Why this table exists: every other check in this project fails loudly. An
+unbuilt installer emits no signal at all, so the drift has to be carried as a
+number that grows. It reached 42 before anyone looked. **Reviewer: re-read
+`GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` §8 and its 🔒 checklist at every
+milestone — coach's standing rule, 2026-07-29.***
+
 ### ▶ CLAUDE REVIEW QUEUE — S4-a `9ddddf7` (Codex, 2026-07-28)
 
 **Builder: Codex. Review range: `f502be6..9ddddf7` on the canonical
