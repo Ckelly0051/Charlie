@@ -35,6 +35,28 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`ed551a8` · 2026-07-29 · Codex · FINAL S4 CODE BUILT — awaiting independent review + required installer smoke**
+
+- S4-e is accepted at `f9247c0`. The final coupled legacy owners,
+  `#settingsDrawer` and `#drawerScrim`, are deleted with the old mobile bottom
+  tabs, drawer CSS, and duplicate tag-library dialog/stylesheet.
+- Native Settings & Tools now owns Film, Team, Roster, Charting libraries,
+  Cut-up filters, Drawing, Recovery, and optional Analysis. Desktop is a
+  nonmodal working sheet; mobile uses the shared modal contract and scrolls the
+  active tab into view.
+- Recovery distinguishes durable whole-season restore points from current-game
+  quick versions. Both await canonical persistence and fail closed with the
+  live editor restored when saving fails.
+- S4e-1 is closed: native Reports exports full-season HTML. Matchup and opponent
+  reports no longer call `commitActive()` while reading; ephemeral live-game
+  projection preserves fresh edits without changing canonical season bytes.
+- Final canonical gate **74/74 green, 0 skipped, 0 failed**; `cargo check` clean.
+  Whole-season restore rollback, game-version rollback, and report read-only
+  behavior are each mutation-proven.
+- **S4 is not accepted yet.** Claude must independently review `ed551a8`; then
+  the required local `1.12.0-13` installer is built immediately and the coach
+  completes the installed smoke. S5 remains closed until that passes.
+
 **`9aebbab` · 2026-07-29 · Codex · S4-e BUILT — awaiting independent review**
 
 - S4-d is accepted at `7c87e2b`; its test-label observation is closed in this
@@ -194,10 +216,11 @@ delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
 `9ddddf7` and S4-b is ACCEPTED at `5619b45` (Claude, 2026-07-29). The S4-b
 minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is
 ACCEPTED at `494d99d`. S4-d — native Quick Chart — is ACCEPTED at `7c87e2b`.
-S4-e — legacy Season overlay retirement — is built at `9aebbab` and awaits
-independent review. Final S4 owners are the coupled `#drawerScrim` and
-`#settingsDrawer`. The first milestone installer is cut at S4 COMPLETE, before
-S5 opens.** N6 (popover) is now
+S4-e — legacy Season overlay retirement — is ACCEPTED at `f9247c0`. Final S4
+native Settings/Recovery code is built at `ed551a8` and awaits independent
+review plus the required local `1.12.0-13` installer smoke. No legacy S4 overlay
+owner remains. **S5 stays closed until that installed smoke passes.** N6
+(popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.
 

@@ -18,6 +18,67 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE REVIEW QUEUE — FINAL S4 native Settings + Recovery `ed551a8` (Codex, 2026-07-29)
+
+**Builder: Codex. Review range: `f9247c0..ed551a8` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S4 code is complete but the
+milestone is NOT accepted until Claude independently reviews this checkpoint,
+the required `1.12.0-13` local installer is built, and the coach completes the
+installed smoke. Do not open S5 yet. No season schema, analytics formula, film
+path/file, migration, package, tag, release, or managed-film deletion changed.**
+
+S4-e is accepted at `f9247c0`. This final checkpoint deletes the coupled legacy
+`#settingsDrawer` and `#drawerScrim`, their mobile bottom-tab owner, stale panel
+CSS, and the old tag-library stylesheet/dialog. Native **Settings & Tools** now
+owns Film, Team, Roster, Charting libraries, Cut-up filters, Drawing, Recovery,
+and optional Analysis. Desktop uses a nonmodal working sheet; mobile uses the
+shared modal contract. Body-owned file inputs remain outside `#app`, and the
+first-run film choice still blocks import until the coach deliberately chooses
+linked or managed storage.
+
+Recovery is deliberately split into two honest scopes: **whole-season durable
+restore points** and **current-game quick versions**. Both await canonical
+persistence and roll the live editor back on a failed save. Destructive season
+restore defaults focus to Cancel and creates a `Before restore` safety point.
+The selected mobile Settings tab scrolls into view on direct entry.
+
+This checkpoint also closes S4e-1: native Reports now exports a downloadable
+full-season HTML report. Source review found a second report-time write:
+`StatsEngine._matchupData()` / `_allSeasonGames()` called `commitActive()` while
+reading. They now consume `SeasonManager._effectiveGames()` so unsaved live edits
+remain visible without changing canonical season bytes.
+
+**Bugs found and closed during builder review:** (1) whole-season restore could
+report success after canonical persistence failed; (2) game-version restore had
+the same false-success/split-state risk; (3) Matchup/Opponent report navigation
+could write canonical game data; (4) direct mobile Recovery entry hid its active
+tab offscreen; (5) two old film tests still certified deleted drawer-era UI and
+were migrated to native Film/Break Down owners without weakening transactional
+or isolation checks.
+
+**Challenge these first:** (1) Tauri/catalog save-failure behavior, including
+whether a failed catalog write can leave only the best-effort JSON safety copy
+newer than canonical; (2) restore scope and cross-game identity; (3) no report
+read path writes canonical data; (4) linked-vs-managed path truth and no managed
+fallback; (5) mobile tab/focus containment; (6) complete absence of drawer,
+scrim, bottom tabs, legacy tag-library dialog, and film-storage panel owners;
+(7) full-season export scope and read-only behavior.
+
+**Builder evidence on restored source:** final canonical gate **74/74 green, 0
+skipped, 0 failed**; `cargo check` clean; native Recovery **10/10**; native
+Settings **18/18**; native Reports **16/16**; film storage **31/31**; clip
+identity **18/18**; Break Down **50/50**; Study **57/57**; Season **157/157**.
+Three exact mutations were watched red: bypassing whole-season persistence,
+bypassing game-version persistence, and reintroducing report-time
+`commitActive()`. Desktop/mobile screenshots were inspected for Film, Roster,
+Charting, Cut-ups, Drawing, and Recovery; no overlap or page overflow remained.
+
+**Next:** Claude independently reviews `ed551a8`. On acceptance, immediately
+bump/build the required local `1.12.0-13` installer from the reviewed commit and
+hand it to the coach for linked-D-drive, SQL catalog, playback, Documents mirror,
+updater, Recovery, Settings, and lifecycle smoke. S5 stays closed until that
+installed smoke passes.
+
 ### ▶ CLAUDE REVIEW QUEUE — S4-e legacy Season overlay retirement `9aebbab` (Codex, 2026-07-29)
 
 **Builder: Codex. Review commit: `9aebbab` on the canonical
@@ -461,9 +522,9 @@ ordering, and give the two orphaned behaviours an owner.
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
-| Commits since | **52** |
+| Commits since | **61** (60 code commits through `ed551a8`, plus this handoff commit) |
 | Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e |
-| Next installer due | **S4 COMPLETE — 2 overlays away** (`#drawerScrim`, `#settingsDrawer`) — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
+| Next installer due | **NOW, after independent review of `ed551a8`** — S4 code is complete; bump to `1.12.0-13`, `cargo tauri build`, coach smokes it before S5 |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
 *Why this table exists: every other check in this project fails loudly. An
