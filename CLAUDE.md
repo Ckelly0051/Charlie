@@ -18,6 +18,52 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE REVIEW QUEUE — S4-d native Quick Chart `bbaedf3` (Codex, 2026-07-29)
+
+**Builder: Codex. Review commit: `bbaedf3` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S4-d is built, not accepted. Do
+not package, tag, or release. No season schema, analytics formula, film path,
+film file, migration, or managed-copy deletion changed. Drift after this
+handoff: 55 commits from the last coach-run installer source `deeb8ba`.**
+
+S4-c is accepted at `494d99d`. S4-d deletes `#quickChartPanel` and all of its
+legacy CSS/adoption lifecycle, then replaces it with one Preact-owned native
+sheet. The existing `QuickChart` keyboard/tagging engine remains the behavior
+owner; the new component owns presentation only. Desktop is intentionally
+nonmodal so film remains operable; narrow viewports automatically use the
+shared modal-sheet contract. Close restores the invoking context and focus, and
+leaving Break Down or tearing down the shell closes Quick Chart synchronously.
+
+Two defects were found and fixed during the build: the app re-emitted
+`play-updated` after `QuickChart._confirmAndAdvance()` had already emitted it,
+causing duplicate downstream work; the focused journey first observed two
+updates and now pins exactly one. Source review also found that a nonmodal Quick
+Chart could leak onto Home/Study/Reports/Plan; route and teardown boundaries now
+close it, with a production-route assertion.
+
+**Review these first:** (1) one native owner and complete deletion of legacy
+markup/CSS/adoption; (2) exactly-one `play-updated` and cross-game byte identity;
+(3) desktop nonmodal versus mobile modal behavior; (4) focus return and
+route/shell teardown; (5) keyboard football parity for type/result/yardage/down
+and player attribution; (6) absence of stale listener/CSS dependencies.
+
+**Builder verification on committed source:** focused Quick Chart **11/11**,
+workspace shell **63/63**, Break Down video **50/50**, native overlay **42/42**,
+and final canonical gate **72/72 green, 0 skipped, 0 failed** against a fresh
+Vite build and the real six-game fixture. The duplicate-event assertion was
+failing-first on the pre-fix code. No aesthetic sign-off is claimed from the
+automated geometry checks.
+
+**Deliberate semantic follow-up:** `K` still writes the legacy `Kick/Punt`
+play-type value. S4-d is structural, so it does not invent a structured Special
+Teams shortcut mapping. Resolve that explicitly in S5/football semantics; do
+not mistake UI migration for approval of that old tag model.
+
+**Next:** Claude independently reviews `bbaedf3`. After acceptance, S4 continues
+with the remaining legacy owners: `#seasonOverlay`, `#drawerScrim`, and
+`#settingsDrawer`. The required local installer remains due at S4 COMPLETE,
+before S5 opens.
+
 ### ▶ CLAUDE RE-REVIEW QUEUE — S4-c repair `714c372` (Codex, 2026-07-29)
 
 **Review range: `5191030..714c372` on the canonical branch. S4-c remains

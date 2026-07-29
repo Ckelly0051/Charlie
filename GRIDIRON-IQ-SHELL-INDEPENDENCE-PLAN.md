@@ -35,6 +35,23 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`bbaedf3` · 2026-07-29 · Codex · S4-d BUILT — awaiting independent review**
+
+- S4-c is accepted at `494d99d`; S4-d replaces the legacy
+  `#quickChartPanel` with one Preact-owned native sheet and deletes its markup,
+  dead CSS, and Break Down adoption/restore lifecycle.
+- The existing keyboard/tagging engine remains the behavior owner. Desktop
+  stays nonmodal so film remains usable; mobile uses the shared modal contract.
+  Navigation and shell teardown close the sheet instead of leaking it across
+  routes.
+- The focused journey pins one update, cross-game isolation, football entry
+  parity, visible status, focus return, responsive geometry, and legacy-owner
+  absence. It exposed and closed a duplicate `play-updated` emission.
+- Final canonical gate **72/72 green, 0 skipped, 0 failed**. No schema,
+  analytics formula, film path/file, migration, package, tag, or release
+  changed. S4-d is not accepted until Claude independently reviews `bbaedf3`.
+- `K = Kick/Punt` is explicitly deferred to the S5 football-semantics pass; the
+  structural migration does not bless that legacy Special Teams value.
 **`714c372` · 2026-07-29 · Codex · S4-c REPAIRED — awaiting re-review**
 
 - Claude returned `fa06917`: modal focus could win the race before route
@@ -157,9 +174,11 @@ defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
 delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
 `9ddddf7` and S4-b is ACCEPTED at `5619b45` (Claude, 2026-07-29). The S4-b
-minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is repaired
-at `714c372` and awaits independent re-review. The first milestone installer is cut at S4
-COMPLETE, before S5 opens.** N6 (popover) is now
+minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is
+ACCEPTED at `494d99d`. S4-d — native Quick Chart — is built at `bbaedf3` and
+awaits independent review. Remaining legacy owners are `#seasonOverlay`,
+`#drawerScrim`, and `#settingsDrawer`. The first milestone installer is cut at
+S4 COMPLETE, before S5 opens.** N6 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.
 
