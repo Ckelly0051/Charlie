@@ -153,7 +153,53 @@ selector was mine. Nothing to fix; the observation is withdrawn.
 **No analytics formula, persistence schema, coach data, film file, package, tag or
 release changed.** Managed C: film copies remain protected.
 
-### ▶ CLAUDE'S REVIEW of `5619b45..fa06917` — **CHANGES REQUESTED. The gate is RED.** (2026-07-29)
+### ▶ CLAUDE'S RE-REVIEW of `714c372` — **ACCEPTED. S4-c is complete.** (2026-07-29)
+
+**Checklist first.** S4 is still incomplete — `#seasonOverlay`,
+`#quickChartPanel`, `#drawerScrim`, `#settingsDrawer` remain in `index.html`. §8
+owes no installer at this checkpoint; it is still due at **S4 COMPLETE**.
+
+**Full canonical gate: 71 harnesses | 71 green | 0 skipped | 0 failed.**
+
+**R1 closed at the root, and the new assertion is better than the one I asked
+for.** The production fix reverts `OverlayPanel` to `useEffect` +
+`requestAnimationFrame` while keeping `overlay.initialFocus` inside the rAF
+callback — so the game form still focuses its Week field and the ordering is
+restored. `top` stays out of the dependency array, so the N4 single-focus-owner
+fix from P0-c is preserved.
+
+I asked for an assertion that reds on the ordering. What landed pins the
+**invariant** instead of the symptom: the harness patches
+`HTMLElement.prototype.focus` and records whether `#app` and `.gi-native-routes`
+were inert **at the moment focus first entered a `.gi-overlay-panel`**. The old
+assertion only caught this regression because inertness ended up never applied at
+all; the new one catches focus winning the race even if inertness lands a tick
+later.
+
+**Mutation-verified by me.** Reintroducing synchronous layout-effect focus reds
+**both** `modal route is inert before initial focus enters the dialog` and
+`modal dialog makes legacy and native route content inert`, with
+`focusOrder.appInert:false`. Restored; tree clean.
+
+**R2 closed, and the replacement is stronger.** Both orphaned behaviours now have
+named owners in `e2e-native-game`: `Game settings closes after a successful
+create`, and `Game header remains an edit launcher and reflects the created game`
+— which checks the header is a button, that the summary carries the opponent,
+**and** that `wsContextGame` does too. The old assertion checked one thing.
+Counts: `e2e-native-game` 14 → **16**, `e2e-native-overlay` 41 → **42**.
+
+**Everything I accepted in the first pass still stands:** the transactional game
+path (cancel preserves the season byte-for-byte, one durable write per create,
+failed save restores complete season and live game context), and parity goldens
+absent from the diff so the move onto canonical metadata changed no analytics
+output.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected. **S4 continues with
+`#seasonOverlay`, `#quickChartPanel`, `#drawerScrim` and `#settingsDrawer`; the
+installer is due when those land.**
+
+### ▶ CLAUDE'S REVIEW of `5619b45..fa06917` — CHANGES REQUESTED, gate RED (2026-07-29) — *superseded by the re-review above*
 
 **S4-c is NOT accepted.** `9f59d39` (the S4-b repair) is good and is accepted;
 `fa06917` regresses a previously-closed, mutation-proven guarantee.
@@ -226,7 +272,7 @@ ordering, and give the two orphaned behaviours an owner.
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
 | Commits since | **52** |
-| Milestones accepted since | **9** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b (S4-c RETURNED) |
+| Milestones accepted since | **10** — P0-a/b/c/d, S1, S2, S3, S4-a, S4-b, S4-c |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
