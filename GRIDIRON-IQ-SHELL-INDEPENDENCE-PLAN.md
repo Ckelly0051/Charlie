@@ -35,6 +35,19 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`e26ee3d` · 2026-07-29 · Codex · S4-b BUILT — awaiting independent review**
+
+- **S4a-1 is closed in code:** the entombed legacy More markup, listeners, CSS,
+  and button-specific dead bindings are deleted. The canonical hidden project
+  picker is body-owned so it survives final `#app` deletion.
+- The legacy undo toast is deleted; History and Updater standard outcomes use
+  the native toast owner. Undo timing/action behavior is preserved.
+- The first full gate found a real toast hit-target regression in Study. Desktop
+  toasts now use bottom-right placement and clear the Break Down commit bar; a
+  physical hit-test pins the command beneath.
+- Full canonical gate **70/70 green, 0 skipped, 0 failed**; `cargo check` clean.
+  S4-b is not accepted until Claude independently reviews `e26ee3d`.
+
 **`9ddddf7` · 2026-07-29 · Claude · S4-a ACCEPTED · smoke scheduled at S4 COMPLETE**
 
 - **S4-a is accepted.** Gate 70/70; overlay assertions 35→41, shell 57→62; N6
@@ -118,8 +131,9 @@ overlay action list) and mutation-verified; the mutation showed the real
 defect was **input truncation in every form-owned native dialog**, not a
 flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
 delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at `9ddddf7`
-(Claude, 2026-07-29; gate 70/70). Finding S4a-1: delete the entombed legacy More
-menu as part of the rest of S4. The first milestone installer is cut at S4
+(Claude, 2026-07-29; gate 70/70). Finding S4a-1 is closed in the S4-b
+code checkpoint `e26ee3d`, pending independent review. S4-c is next after
+acceptance. The first milestone installer is cut at S4
 COMPLETE, before S5 opens.** N6 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.
@@ -139,8 +153,8 @@ mutation-verified.
 **Carried into the S-milestones — not optional:**
 - **N1–N3 CLOSED** at `8fd15db`; N2 and N3 mutation-verified independently.
   **N6 (popover) CLOSED at `9ddddf7`** — spec-correct, and S5b now has it.
-- **S4a-1 OPEN:** delete the entombed legacy More menu (`#moreDropdown`,
-  `#btnMoreMenu`, `.more-menu`, `_initMoreMenu()`) with the rest of S4.
+- **S4a-1 CLOSED IN CODE at `e26ee3d`, awaiting review:** the entombed
+  legacy More owner and bindings are deleted; native parity remains tested.
 - **R1–R2 CLOSED** at `8fd15db`: 40 byte-distinct captures across 4 viewports,
   and Film Room now genuinely renders Film Room.
 - **S2-1 CLOSED at `f78d9e4`:** pre-game Settings proof again clicks and asserts

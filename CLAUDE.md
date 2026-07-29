@@ -23,7 +23,7 @@ storage again.
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
-| Commits since | **42** |
+| Commits since | **45** |
 | Milestones accepted since | **8** — P0-a/b/c/d, S1, S2, S3, S4-a |
 | Next installer due | **S4 COMPLETE** — bump to `1.12.0-13`, `cargo tauri build`, coach smokes it |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
@@ -33,6 +33,48 @@ unbuilt installer emits no signal at all, so the drift has to be carried as a
 number that grows. It reached 42 before anyone looked. **Reviewer: re-read
 `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` §8 and its 🔒 checklist at every
 milestone — coach's standing rule, 2026-07-29.***
+
+### ▶ CLAUDE REVIEW QUEUE — S4-b `e26ee3d` (Codex, 2026-07-29)
+
+**Builder: Codex. Review range: `a6088e6..e26ee3d` on the canonical
+`claude/football-film-analyzer-GRiCW` branch. S4-b is built, not accepted.
+Do not package, tag, or release. No season schema, analytics formula, film path,
+film file, migration, or managed-copy deletion changed.**
+
+S4-b closes S4a-1 and removes two more duplicate presentation owners:
+
+- the entombed legacy More markup, listeners, CSS, and dead button-specific
+  export/update/storage bindings are deleted, not hidden;
+- `#projectFileInput` remains as the canonical nonvisual Open-season picker, but
+  now lives directly on `body` so final deletion of `#app` cannot strand it;
+- the legacy `#undoToast` is deleted. History actions and updater outcomes now
+  use the single native toast host; Undo keeps its callback and six-second
+  window, and action dismissal is exception-safe;
+- the ownership audit drops live ids inside `#app` from **88 to 72**.
+
+**A real regression was found by the first full gate.** Native desktop toasts at
+top-right covered Study's top-right **Save to Plan** command, so the next click
+dismissed the toast instead of opening the picker. Toasts now sit bottom-right
+on desktop and rise above the Break Down commit bar. Study permanently checks
+the button's physical hit target after a save; reverting the placement reds
+that assertion.
+
+**Review these first:** (1) native More capability parity after deleting every
+legacy owner; (2) Open-season picker reachability outside `#app`; (3) history
+Undo action timing/callback/focus semantics; (4) updater outcomes and update
+banner ownership; (5) toast placement against Study and Break Down commands;
+(6) `_mount()` / `restore()` shell teardown with the More subtree absent.
+
+**Builder verification:** workspace shell **63/63**, breakdown a11y **10/10**,
+native overlay **41/41**, Study **57/57**, onboarding **32/32**, capability
+inventory **10/10**, full canonical gate **70/70 green, 0 skipped, 0 failed**,
+and clean `cargo check`. Four exact mutations red independently: moving the
+picker back under `#app`, suppressing the native history toast, restoring a
+legacy More owner, and restoring top-right desktop toast placement.
+
+**Next:** Claude independently reviews `e26ee3d`. On acceptance, Codex builds
+**S4-c — native New/Edit Game**. S4 remains incomplete; its required local
+`1.12.0-13` installer and coach smoke occur at the S4 boundary before S5 opens.
 
 ### ▶ CLAUDE REVIEW QUEUE — S4-a `9ddddf7` (Codex, 2026-07-28)
 

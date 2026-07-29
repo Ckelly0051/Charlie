@@ -1,6 +1,6 @@
 # GridIron IQ — Overlay interaction specification
 
-**Status:** P0 primitives complete; S4-a native popover + More / Import Plays / Keyboard Shortcuts migration built at `9ddddf7`, awaiting independent review.
+**Status:** P0 primitives and S4-a accepted; S4-b legacy More / undo-toast retirement built at `e26ee3d`, awaiting independent review.
 **Owner:** P0 builds the native overlay host and primitives; S4 migrates the
 remaining legacy overlays onto it.
 **Why P0 and not later:** Team & Film Settings (S2) is a *drawer*. If the native
@@ -132,3 +132,22 @@ changed **only** along the paths that journey declares (integrity contract §6.2
   gate **70/70**, and clean `cargo check`. Anchoring, mobile hit-testing, import
   field coverage, positive import application, and focus handoff were each
   mutation-proven.
+
+## 12. S4-b implementation record
+
+- The entombed `.more-menu`, `#btnMoreMenu`, `#moreDropdown`, their listener
+  owner, and their CSS are deleted. Native More remains the only visible and
+  behavioral owner.
+- The canonical `#projectFileInput` is intentionally retained as a nonvisual
+  browser file picker and moved directly under `body`; Native More reaches it
+  exactly once without depending on the legacy tree.
+- `#undoToast` and its CSS are deleted. `HistoryManager` and standard
+  `Updater` outcomes use the native toast service; action toasts retain their
+  callback and longer undo window and dismiss even when the callback throws.
+- Desktop toasts are bottom-right and rise above the Break Down commit bar.
+  This is functional geometry: top-right placement intercepted Study's next
+  Save-to-Plan click and failed the canonical gate.
+- Proof: workspace shell **63/63**, breakdown a11y **10/10**, native overlay
+  **41/41**, Study **57/57**, full canonical gate **70/70**, and clean
+  `cargo check`. Picker ownership, legacy-owner absence, history notification,
+  and Study hit-testing were mutation-proven.
