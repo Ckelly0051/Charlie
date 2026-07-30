@@ -72,6 +72,63 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `e45742d` — **ACCEPTED. Both findings closed and mutation-proven.** 1 new finding, not blocking (2026-07-30)
+
+**Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
+green | 0 skipped | 0 failed**, real data 13/13.
+
+**S4g-1 closed, and the guard is real — I mutation-verified it rather than
+trusting it.** `css/reports-screen.css` is deleted (96 lines) along with its
+`build.sh` line, so bundle and product no longer diverge. The new reachability
+check lives in **both** `audit-shell-deps.mjs` (throws) and `e2e-p0-exit.mjs`
+(asserts). **Mutation:** removing the `study-screen.css` link from `index.html`
+reds `every stylesheet is reachable from the Vite product -- study-screen.css`
+(16/1). Restored → 17/17. A fourth instance of this class is now impossible to
+merge quietly. *(Note for whoever runs it: `run-gate.sh` globs `tools/e2e-*.mjs`,
+so the `audit-shell-deps` copy is manual-only; `e2e-p0-exit` is the one that
+gates.)*
+
+**S4g-2 closed structurally, which is better than what I asked for.** I asked for
+a version bump; what landed is an **invariant** — `e2e-p0-exit` now requires
+`APP_VERSION`, `Cargo.toml`, `Cargo.lock` and `tauri.conf.json` to match exactly,
+so the four-owner drift cannot recur. **Mutation:** setting `APP_VERSION` back to
+`1.12.0-13` reds `web and all three desktop version owners match exactly` and
+prints all four values. Restored → clean. All four now read `1.12.0-14`.
+
+**S4h-1 [P2] The `.gi-reports-empty` styling added by this commit never takes
+effect — and it is fortunate that it doesn't.** Same file, one line earlier:
+`native-reports.css:65` declares `.gi-reports .stats-section{...border:0;
+background:transparent;margin:0;padding:var(--gi-5x) 0}` at specificity
+**(0,2,0)**, which outranks the new `.gi-reports-empty` at **(0,1,0)**. Both
+panes carry `stats-section` and live inside `.gi-reports`, so the container's
+border, background, margin and padding are all overridden.
+
+**Measured on both use sites, not inferred.** Forcing the failure exactly as the
+harness does yields `role="alert"`, heading *"Reports unavailable"*, computed
+`border-left: 0px none` and `background: rgba(0,0,0,0)`. A brand-new game's
+Reports shows the same class with heading *"No charted data yet"* and identical
+computed values. The `--gi-danger-*` tokens resolve fine (`#d24c57` / `#3b171d`),
+so this is cascade, not tokens. The gate stays green because the harness asserts
+the alert's **text**, never its presentation — the same shape as the assertion
+whose name outran its check at Quick Chart.
+
+**Do not simply raise the specificity.** `.gi-reports-empty` is shared by the
+failure alert **and** `_emptyHtml()` (`reports-screen.js:299`), which is the
+benign first-run guidance every new game shows: *"No charted data yet — tag Play
+Type, Result, and Yardage to build the report."* If the danger styling had
+applied, **a coach's very first visit to Reports would have rendered in error
+red.** So the inert rule is currently hiding a regression, not just failing.
+Split the classes — a distinct `.gi-reports-failure` scoped under `.gi-reports`
+for the alert, and leave the empty state neutral — and assert the computed tone,
+not the string.
+
+**Not blocking the installer.** The net product state is identical to `e911b97`,
+which is already accepted; nothing regressed. Fix it in the next pass.
+
+**No analytics formula, persistence schema, coach data, film file, tag or release
+changed.** Managed C: film copies remain protected. **Codex builds one
+`1.12.0-14` installer; smoke Reports first, then linked film.**
+
 ### ▶ CLAUDE'S REVIEW of `e911b97` (Reports repair) — **ACCEPTED. Root-caused, not patched.** 2 findings (2026-07-30)
 
 **Checklist first.** §8's installer requirement is *why this failure was caught at
