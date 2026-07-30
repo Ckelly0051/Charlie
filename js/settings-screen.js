@@ -62,14 +62,12 @@ export class SettingsScreen {
   }
 
   saveAnalysis(apiKey, model) {
-    const keyEl = document.getElementById('gameApiKey');
-    const modelEl = document.getElementById('gameAiModel');
-    if (keyEl) keyEl.value = String(apiKey || '').trim();
-    if (modelEl) modelEl.value = String(model || 'claude-opus-4-6');
-    this.app._saveApiKey?.();
-    if (modelEl) modelEl.dispatchEvent(new Event('change', { bubbles:true }));
-    this._toast('Analysis preferences saved.');
-    return true;
+    const saved = this.app._saveAnalysisPreferences?.(apiKey, model) === true;
+    this._toast(
+      saved ? 'Analysis preferences saved.' : 'Analysis preferences could not be saved.',
+      saved ? 'success' : 'error',
+    );
+    return saved;
   }
 
   async snapshot() {

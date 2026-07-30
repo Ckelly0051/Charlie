@@ -113,11 +113,41 @@ result = await page.evaluate(() => {
   screen._renderActiveTab = original;
   const alert = document.querySelector('#wsReports [role="alert"]');
   const visibleFailure = /Reports unavailable/.test(alert?.textContent || '') && /film and tags are safe/i.test(alert?.textContent || '');
+  const failureStyle = alert ? getComputedStyle(alert) : null;
+  const failureTone = failureStyle ? { background:failureStyle.backgroundColor, border:failureStyle.borderLeftColor, width:failureStyle.borderLeftWidth } : null;
+  screen.content.innerHTML = screen._emptyHtml();
+  const empty = screen.content.querySelector('.gi-reports-empty');
+  const emptyStyle = empty ? getComputedStyle(empty) : null;
+  const emptyTone = emptyStyle ? { background:emptyStyle.backgroundColor, border:emptyStyle.borderLeftColor } : null;
   const recovered = screen.show();
-  return { rendered, visibleFailure, recovered, pane: !!document.querySelector('#wsReports [data-native-main-report]') };
+  return { rendered, visibleFailure, failureTone, emptyTone, recovered, pane: !!document.querySelector('#wsReports [data-native-main-report]') };
 });
 ok(result.rendered === false && result.visibleFailure && result.recovered && result.pane,
   'Reports fails visibly without stranding the route and recovers on retry', JSON.stringify(result));
+ok(result.failureTone?.width !== '0px' && result.failureTone?.background !== result.emptyTone?.background && result.failureTone?.border !== result.emptyTone?.border,
+  'Report failure uses a distinct danger surface while no-data guidance remains neutral', JSON.stringify(result));
+
+result = await page.evaluate(async () => {
+  const app = window.app;
+  await app.workspaceShell.show('home');
+  app.wizard.currentStep = 1;
+  app.vc._emit('video-loaded', { duration: 600 });
+  const native = document.querySelector('#wsReports [data-native-reports]');
+  const hiddenAfterLoad = native?.classList.contains('hidden');
+  const nav = await app.workspaceShell.show('reports');
+  const rect = native?.getBoundingClientRect();
+  return {
+    nav: nav.ok,
+    hiddenAfterLoad,
+    hiddenAfterReports: native?.classList.contains('hidden'),
+    width: Math.round(rect?.width || 0),
+    height: Math.round(rect?.height || 0),
+    textLength: document.querySelector('[data-native-report-content]')?.textContent.trim().length || 0,
+  };
+});
+ok(result.nav && !result.hiddenAfterLoad && !result.hiddenAfterReports
+  && result.width > 0 && result.height > 0 && result.textLength > 0,
+  'Home linked-film auto-load cannot hide the native Reports owner', JSON.stringify(result));
 await capture('desktop-overview');
 
 console.log('\n== 2. Every self report is reachable without changing season data ==');

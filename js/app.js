@@ -1539,11 +1539,27 @@ class App {
     this._setGameScore(sb.us, sb.them);
   }
 
-  _saveApiKey() {
-    const apiKey = document.getElementById('gameApiKey')?.value || '';
+  _saveApiKey(value) {
+    const apiKey = value === undefined
+      ? document.getElementById('gameApiKey')?.value || ''
+      : String(value || '').trim();
     localStorage.setItem('ffa_claude_api_key', apiKey);
     this.vision.apiKey = apiKey;
     this._updateAnalysisBadge?.();
+  }
+
+  /** Persist native Analysis settings without depending on retired form DOM. */
+  _saveAnalysisPreferences(apiKey, model) {
+    const nextModel = String(model || 'claude-opus-4-6');
+    try {
+      this._saveApiKey(apiKey);
+      localStorage.setItem('ffa_claude_model', nextModel);
+      this.vision.model = nextModel;
+      return true;
+    } catch (error) {
+      console.error('Could not save analysis preferences:', error);
+      return false;
+    }
   }
 
   /** Apply game-owned metadata without reading a retired DOM form or writing

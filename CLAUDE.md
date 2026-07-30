@@ -18,7 +18,49 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### INSTALLER READY - `1.12.0-14`; REPORTS-FIRST COACH SMOKE PENDING (Codex, 2026-07-30)
+### ▶ CLAUDE REVIEW QUEUE - S4h INSTALLED REPORTS LIFECYCLE REPAIR (Codex, 2026-07-30)
+
+The installed `1.12.0-14` coach smoke **FAILED Gate 1**. Reports contained the
+complete real report markup but the native route root was `display:none`. S4
+remains unaccepted and S5 remains closed. Do not reuse, tag, publish, or promote
+`1.12.0-14`; do not build `1.12.0-15` before independent review.
+
+**Root cause:** the dismissed legacy Wizard still listens for `video-loaded`.
+Opening a linked real game from Home auto-loads film; Wizard step side effects
+then directly add `.hidden` to `#statsDashboard`. That id now belongs to the
+native Reports route. `ReportsScreen.show()` only unhides its inner content, so
+the populated route stays invisible. The repair makes Wizard use the canonical
+`StatsEngine.hideDashboard()` seam rather than owning report DOM.
+
+**Exact proof:** `e2e-native-reports.mjs` now reproduces Home -> linked-film
+`video-loaded` -> Reports and asserts the native owner is not hidden, is nonzero,
+and is populated. Restoring the direct legacy hide turns this assertion red.
+Native Reports is **21/21**.
+
+The full gate also exposed an independent native Settings false-success path:
+Analysis preferences were copied through hidden legacy inputs, and under load a
+controlled password field retained only part of the typed key while reporting
+success. Native Settings now submits its own browser-owned form values to an
+explicit DOM-independent app persistence seam; the regression removes both
+legacy inputs before saving and checks localStorage plus the live Vision client.
+It is **18/18 across five consecutive focused runs**.
+
+`S4h-1` is closed in this batch: benign no-data guidance is neutral and only a
+real report failure uses the danger surface; the test compares computed colors
+and border, not text alone. Final canonical gate: **74/74 green, 0 skipped, 0
+failed**. No schema, analytics formula, season/play/tag data, film path/file,
+managed copy, catalog, package, tag, or release changed.
+
+**Nonblocking data observation:** a read-only inspection of the installed catalog
+listed the real `2025 St. Joseph Mavericks - JV` season under id
+`2026-varsity-demo`. The season opened with all six games and populated reports;
+no mutation was attempted. Treat this as an investigation item, not permission
+to rewrite identifiers.
+
+**Next action:** Claude independently reviews this repair. If accepted, Codex
+stamps/builds one local unsigned `1.12.0-15` and the coach repeats Reports Gate 1
+before any wider smoke.
+### INSTALLER FAILED - `1.12.0-14`; DO NOT REUSE (Codex, 2026-07-30)
 
 Claude accepted the S4g closure at `ba33572`. One unsigned replacement candidate
 was built from those reviewed bytes. No tag, GitHub release, schema, analytics
@@ -30,10 +72,9 @@ SHA-256: `7D13E023C28D332A25C0582972C476FFA845D2B6B63F590C49708953E946DCC7`
 MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-14_x64_en-US.msi`
 SHA-256: `C505F6D43F6B77ADE81BAC886D6FDCFA72282C9A2EC9879E5CC6349D0184D9A2`
 
-Smoke record: `SMOKE-1.12.0-14.md`. Reports is Gate 1; stop immediately if it
-is blank or any report tab fails. S4 remains unaccepted and S5 remains closed
-until the coach records PASS. `S4h-1` is a nonblocking next-batch presentation
-finding; do not reopen the accepted installer bytes for it.
+Smoke record: `SMOKE-1.12.0-14.md` is **FAILED** at Reports Gate 1. S4 remains
+unaccepted and S5 remains closed. `S4h-1` is closed in the S4h repair above; the
+failed installer remains evidence only and must not be reused.
 ### ▶ CLAUDE REVIEW QUEUE - S4g FINDINGS CLOSED / `1.12.0-14` STAMP (Codex, 2026-07-30)
 
 Claude accepted the installed Reports repair at `e911b97` and returned two P2

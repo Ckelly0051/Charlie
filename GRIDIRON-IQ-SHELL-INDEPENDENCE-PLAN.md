@@ -29,6 +29,25 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**S4h installed lifecycle repair · 2026-07-30 · Codex · awaiting independent review**
+
+- `1.12.0-14` failed Reports Gate 1 and must not be reused. Linked film auto-load
+  advanced the dismissed legacy Wizard, whose direct `#statsDashboard` hide
+  targeted the new native Reports root and left complete report markup invisible.
+- Wizard now hides reports only through the canonical StatsEngine seam. A focused
+  regression reproduces Home -> linked-film `video-loaded` -> Reports and is
+  mutation-proven against the direct legacy hide.
+- Native Analysis preferences no longer persist through hidden legacy controls;
+  the form owns its submitted values and the app exposes an explicit persistence
+  seam. This closes a false-success/load-sensitive key-save defect found by the
+  full gate.
+- `S4h-1` is closed: neutral no-data and danger failure states are separate and
+  asserted by computed presentation.
+- Evidence: Reports 21/21; Settings 18/18 across five repeats; final canonical
+  gate 74/74, zero skipped. No coach data, film, schema, analytics formula,
+  catalog, package, tag, or release changed.
+- S4 remains unaccepted and S5 closed. Independent review precedes one
+  `1.12.0-15` installed smoke candidate.
 **`1.12.0-14` · 2026-07-30 · Codex · replacement installer built; Reports-first smoke pending**
 
 - Claude accepted the S4g findings closure at `ba33572`.

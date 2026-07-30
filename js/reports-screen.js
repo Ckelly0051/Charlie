@@ -91,7 +91,7 @@ export class ReportsScreen {
   _renderFailure(message) {
     const target = this.content || this.host;
     if (!target) return;
-    target.innerHTML = `<section class="gi-report-pane stats-section gi-reports-empty" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
+    target.innerHTML = `<section class="gi-report-pane stats-section gi-reports-empty gi-reports-failure" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
   }
 
   selectTab(tab) {

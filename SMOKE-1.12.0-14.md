@@ -8,11 +8,11 @@ Built from: `ba33572` on `claude/football-film-analyzer-GRiCW`
 Date: 2026-07-30
 Tester: Coach
 
-## Status: READY FOR COACH SMOKE
+## Status: FAILED - DO NOT REUSE
 
-This is a local unsigned milestone build, not a tagged or published release.
-S4 remains unaccepted and S5 remains closed until this installed smoke passes.
-Do not delete managed film copies based on this build.
+This local unsigned milestone build failed Reports Gate 1. It is not tagged or
+published and must not be reused or promoted. S4 remains unaccepted and S5
+remains closed. Do not delete managed film copies based on this build.
 
 ## Automated Evidence
 
@@ -75,14 +75,23 @@ smoking.
 | Recovery distinguishes current-game quick versions from whole-season restore points |  |  |
 | Drawing tools draw, erase, clear, and do not interfere with playback |  |  |
 
-### Known nonblocking follow-up
+### Finding Closed In Repair
 
-- `S4h-1`: Reports failure and benign empty states share an inert style rule.
-  Behavior/text are intact. Split neutral empty styling from danger failure styling
-  in the next batched pass; do not reopen this reviewed installer for that P2.
+- `S4h-1` is closed in the unbuilt S4h repair: benign no-data guidance remains
+  neutral and only a real report failure uses the danger surface. The failed
+  `1.12.0-14` artifact itself is unchanged.
 
-## Result: PENDING
+## Failure Record
 
-The coach alone changes this result to PASS or FAIL. PASS accepts S4 and opens
-S5. FAIL returns a batched finding list; it does not authorize a published
-release or deletion of any managed film.
+**Result: FAIL.** Reports remained blank after opening the real season/game in
+the installed WebView2 app. The coach stopped at Gate 1 as required.
+
+Read-only installed-app diagnosis found that report markup and real analytics
+were fully populated, but the native `#statsDashboard` root had `display:none`.
+Opening linked film emitted `video-loaded`; the dismissed legacy Wizard handled
+that event and directly hid the id now owned by native Reports. Browser tests had
+opened fixture data before this lifecycle and therefore missed it.
+
+Repair is documented in `CLAUDE.md` and the shell-independence plan as S4h. This
+failed artifact remains evidence only. It does not authorize a published release,
+S5 work, data migration, or deletion of any managed film.

@@ -244,7 +244,11 @@ export class Wizard {
   }
 
   _runStepSideEffects() {
-    document.getElementById('statsDashboard')?.classList.add('hidden');
+    // The dashboard id belongs to the native Reports root once the shell mounts.
+    // Hiding that element directly leaves a fully rendered report at 0x0 after
+    // linked-film auto-load advances this dismissed legacy wizard. StatsEngine
+    // owns presentation targeting and restores the route content on show().
+    this.stats?.hideDashboard();
   }
 
   _runStepAction(step) {
