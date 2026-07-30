@@ -29,6 +29,16 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+
+**S5 readiness audit · 2026-07-30 · Claude · CHANGES REQUESTED — adds §3.2, amends §8 and §11**
+
+S5 is open, but the audit found six items that S5 would otherwise discover
+mid-build. None require code now; all are contract gaps. **New §3.2 "S5
+structural preflight" is a blocking checklist**, §8 gains an explicit S5d
+rollback rule, and §11's Break Down row names the ownership S5c inherits.
+Nothing about milestone scope, sequence, exit gates, frozen contracts, the
+technology decision, or the design audit's UX/AX split changed.
+
 **S4 installed smoke PASS · 2026-07-30 · Coach/Codex · S5 open**
 
 - The coach completed `SMOKE-1.12.0-15.md` with no functional blocker. Reports
@@ -609,6 +619,64 @@ Windows ACL sandbox. S4 opens only after Claude accepts `3f40216`.
 
 ### S1 — native Reports · S2 — native Team & Film Settings · S3 — native Team Hub / Season Library · S4 — remaining legacy overlays · S5 — native Break Down (a video/strip · b Film Room · c tag form · **d single ownership flip**) · S6 — audit Home/Study/Plan · S7 — delete `#wsClassicOutlet`, `#app`, restore paths, `build.sh`, dead CSS.
 
+### 3.2 S5 structural preflight — blocking, resolve before the sub-milestone named
+
+Added by Claude's S5 readiness audit (2026-07-30). S5 relocates **three whole
+legacy subtrees** — `.video-section`, `.tag-section`, `#playGridSection` — which
+is more legacy surface than S1–S4 combined (audit: 62 ids still inside `#app`).
+Each item below is a contract or coverage gap, not an implementation task.
+
+1. **[before S5c] Two coach capabilities on the S5 surface have zero harness
+   coverage AND zero inventory entries.** Measured: `scoreboard-ocr` → **0**
+   harness hits, **0** inventory ids; `play-diagram` → **0** and **0**. The
+   diagram is the more dangerous of the two: it is a **persisted play field**
+   (`play.diagram`, saved with the season) with a live downstream consumer
+   (`call-sheet-builder.js:180`). If S5c rebuilds the tag form without it, the
+   data orphans silently and Call Sheet thumbnails disappear with nothing red.
+   `applyTemplate`/`saveTemplate` (1 hit) and `copyFromPrevious` (2) are
+   exercised but unclaimed by the inventory. **This is D1/D2 recurring on the
+   next surface** — D2 (multi-angle) was required to close before S5 and did;
+   these were never measured. Add journeys + inventory ids first.
+
+2. **[before S5c] `gamePerspective` and `gameDirection` have no named S5 owner.**
+   They still live in `#legacyGameContextState` inside `#app`. S4-c's handoff
+   deferred them "to S5"; **this plan never recorded that**, so S5 would meet
+   them as a surprise. Both are football-semantic, not cosmetic:
+   `gamePerspective` carries the documented scout-mode / charting-unit / game-
+   metadata conflation (closeout P1-3), and `gameDirection` is the offense-
+   perspective side convention every Left/Right analytic depends on
+   (`strength`, `playDir`, `hash`). Contract their ownership and lifecycle
+   before building, the way Team Hub and overlays were contracted.
+
+3. **[before S5a] The retired wizard still fires on the S5a surface.**
+   `wizard.js` remains live in `#app` (`.wizard-bar`) and `goTo()` runs
+   `_runStepSideEffects()` unconditionally while `_render()` returns early when
+   dismissed. Probed on a default profile: `dismissed:true`, and one
+   `video-loaded` advanced it **1 → 3** and ran the side effect **twice**. S5a
+   owns `video-loaded`. Guard (`if (this.dismissed) return;`) or delete it in
+   S5a — not S7, because S5a is what re-emits the event.
+
+4. **[before S5c] The multi-select collapse rule is still unvalidated.** §12
+   finding 9 requires validating it "on a realistic 20-play charting session
+   before S5c." Unstarted and unassigned. Break Down's own direction says
+   nothing may compete with charting speed; this is that check.
+
+5. **[S5 needs a football-semantics home] `K = Kick/Punt` has no owner.** It is
+   recorded as deferred "to the S5 football-semantics pass", but S5's definition
+   is a/b/c/d with no such pass. Either name it (S5c is the natural home, since
+   it owns the tag form) or move it to S6 explicitly. A deferral with no
+   sub-milestone is how the season-export capability went unreachable at S3.
+
+6. **[before S5a implementation decisions] UX-1 needs a falsifiable output.**
+   The design audit correctly requires measuring before restyling. Make the
+   deliverable a recorded comparison — source codec/resolution/bitrate,
+   `videoWidth`/`videoHeight`, rendered CSS box, `devicePixelRatio`, WebView
+   zoom, asset URL and path truth — with an explicit **pass/fail** statement on
+   whether a managed-copy fallback or transcode is involved. Headless Chromium
+   cannot reproduce WebView2 softness, so this belongs to the installed build;
+   `object-fit: contain` is already correct in source, so CSS is not the
+   presumed cause.
+
 ### 3.1 P0 exit gate — all required before S1 opens
 
 1. Vite + Preact **browser build and Tauri build both work**.
@@ -713,6 +781,16 @@ capability goes on an explicit list for coach approval **before** the milestone 
   (`Open data folder`, `Check for updates`) that were just rewired to native
   popover handlers and that **no headless harness can reach**.
 - One clean versioned smoke build after the complete migration is accepted.
+- **S5d rollback rule (added 2026-07-30, Claude's S5 readiness audit).** §4 bars
+  a user-reachable half-migrated route, and §8 already requires an installer
+  *before* S5d — but nothing said what happens when that smoke **fails**. S4
+  needed three attempts (`1.12.0-13`, `-14`, `-15`), so this is the normal case,
+  not the exception. **A failed S5 smoke is repaired forward on the branch and
+  re-smoked; the ownership flip is not landed until a smoke passes.** The failed
+  artifact is recorded FAILED in its own `SMOKE-*.md` and must not be reused.
+  Because S5a–c are cheaply reversible and S5d is not, **S5d stays a separate
+  commit from S5a–c** so a revert of the flip cannot take the film, strip, grid
+  and tag-form work with it.
 
 ---
 
@@ -783,7 +861,7 @@ cross-route motion and the final viewport review belong at the end.
 | **Settings** (S2) | Storage truth: library root and per-game folder as visibly separate scopes; Linked vs Managed copy per game with resolved path and clip count; copy states that linking never copies, root changes never re-link, repair never creates/deletes plays. |
 | **Team Hub** (S3) | See `GRIDIRON-IQ-TEAM-HUB-SPEC.md`. |
 | **Overlays** (P0/S4) | See `GRIDIRON-IQ-OVERLAY-SPEC.md`. |
-| **Break Down** (S5) | Theater + deck. Drive-grouped play strip, yard grid inside the film, collapsed-field form, pinned commit bar. **Ease of use, speed and accuracy are paramount — nothing may compete with charting.** No suggestion/"tell" surface here (moved out; Study is the candidate home). Open: drive strip may need scroll/zoom at 14 drives. |
+| **Break Down** (S5) | Theater + deck. Drive-grouped play strip, yard grid inside the film, collapsed-field form, pinned commit bar. **Ease of use, speed and accuracy are paramount — nothing may compete with charting.** No suggestion/"tell" surface here (moved out; Study is the candidate home). Open: drive strip may need scroll/zoom at 14 drives. **Inherited ownership (added 2026-07-30, see §3.2): S5c takes `gamePerspective` and `gameDirection` out of `#legacyGameContextState`, and must keep or explicitly retire scoreboard OCR, the play diagram (`play.diagram` is persisted and read by the Call Sheet), templates and Same-as-Last.** Relocated subtrees to replace: `.video-section` (S5a), `#playGridSection` (S5b), `.tag-section` (S5c). |
 | **Study** (S6) | Pivot: any dimension × any dimension, measure switcher, min-sample control, totals, every cell a cut-up. Under-sample cells dimmed and labelled, never hidden. Candidate home for the tell surface. |
 | **Plan** (S6) | Findings grouped into a real game plan with linked play counts and watch actions. **Presentation preview moves to a bottom horizontal strip** (decided): follows Plan order, scrolls horizontally **without page overflow**, preserves selection and Watch actions, works by **keyboard and touch**. |
 | **Home** | Continue-where-you-left-off hero with progress by unit; film inbox as honest health surface (ready/partial/missing) with resolved path and clip counts. |

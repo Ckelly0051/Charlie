@@ -33,11 +33,22 @@ choose one representative, high-signal assertion per page.
 | Route | Minimum spot check alongside visual review |
 |---|---|
 | Home / Team Hub | One game's displayed play count, score, and film-health state match canonical/backend data. |
-| Break Down | Selected play shows the stored tags and resolves the intended linked source/clip; no managed fallback. |
+| Break Down | Selected play shows the stored tags and resolves the intended linked source/clip; no managed fallback. **Plus, once S5c lands: a play carrying a saved `play.diagram` still renders its editor and still produces its Call Sheet thumbnail** — the one persisted field on this surface with no harness or inventory owner (plan §3.2 item 1). |
 | Study | One matching count or grouped metric equals the analytics registry, and its Watch action emits the exact composite refs. |
 | Reports | One displayed KPI/table value equals `StatsEngine.compute()` and one highlighted row opens the exact film cohort. |
 | Plan | Visible item count/order/notes equal the canonical plan model; one Watch action preserves its refs. |
 | Settings | Displayed root, game path, storage mode, and one clip-health count equal the backend snapshot. |
+
+**Who captures what (added 2026-07-30, Claude's S5 readiness audit).**
+`tools/shots.mjs` produces the four browser viewports and already fails on
+duplicate bytes and page-level horizontal overflow. It **cannot** produce "the
+installed Windows window size" — it is headless Chromium, and the two failures
+this rule exists to catch (`1.12.0-13` blank Reports, `1.12.0-14` hidden Reports)
+were both invisible to it. So that fifth capture is **not a screenshot chore, it
+is the installed smoke**: it belongs to whoever runs the milestone installer, is
+recorded in that milestone's `SMOKE-*.md`, and its pass criterion is the same
+containment/overflow/reachability list below. A route review that omits it is
+incomplete and must say so rather than implying four viewports covered it.
 
 For every route also check: whole-window containment, zero page-level horizontal
 overflow, keyboard/touch reachability, focus visibility, empty/loading/error
@@ -45,6 +56,16 @@ states, US-English copy, and real-season density. Numbers may never be accepted
 because they merely look plausible.
 
 ## Structural Findings - Resolve Before Or During S5
+
+### UX-0 - Preflight gaps found by the S5 readiness audit (blocking)
+
+Six contract/coverage gaps are recorded in `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md`
+**§3.2 S5 structural preflight** and are blocking at the sub-milestone each names.
+They are design-relevant because two of them decide what Break Down must still
+contain: **scoreboard OCR and the play diagram have zero harness coverage and
+zero inventory entries**, and `gamePerspective`/`gameDirection` have no named S5
+owner. Do not treat an absent control as a design simplification until §3.2 item
+1 or 2 has explicitly retired it in writing.
 
 ### UX-1 - Video fidelity / softness (P1)
 
@@ -137,6 +158,8 @@ football-correct, and consistent across routes.
 ## Sequence
 
 1. S4 accepted from installed `1.12.0-15` functional smoke.
+1b. **Clear plan §3.2 (UX-0) at the sub-milestone each item names — coverage and
+   ownership before markup.**
 2. Before S5 implementation decisions: investigate UX-1; contract UX-2; inventory
    UX-3/UX-4 ownership so S5 is built on the right shell and visual primitives.
 3. S5 builds native Break Down with theater-first film fidelity, shared context,
