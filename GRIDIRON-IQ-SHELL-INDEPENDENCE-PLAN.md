@@ -29,6 +29,18 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**S4 installed smoke PASS · 2026-07-30 · Coach/Codex · S5 open**
+
+- The coach completed `SMOKE-1.12.0-15.md` with no functional blocker. Reports
+  open/populate after linked-film game changes and the S4 checklist clears.
+- S4 is accepted; S5 opens. No publication, migration, identifier rewrite, or
+  managed-film deletion is authorized.
+- Installed design/UX findings and reviewer ownership are now canonical in
+  `GRIDIRON-IQ-DESIGN-AUDIT.md`. Structural UX-1-UX-4 feed S5; shared analytics
+  presentation AX-1-AX-6 resolves in S6 rather than through one-off CSS patches.
+- Every visual route review now includes one source-backed displayed-value check
+  and, when applicable, exact composite film-ref equality. Screenshots cannot
+  certify numerically wrong output.
 **`1.12.0-15` · 2026-07-30 · Codex · replacement installer built; Reports-first smoke pending**
 
 - Claude independently accepted the installed lifecycle repair at `524b00b`.
@@ -285,28 +297,15 @@ against this commit.
 **Planning baseline:** the atomic commit containing this revised plan, the Team
 Hub specification, the overlay specification, and the revised Plan design card.
 
-**Status: P0, S1, S2, and S3 are COMPLETE AND ACCEPTED. S3 — native Team
-Hub / Season Library — was accepted at repair `f502be6`
-(Claude, 2026-07-28), after a CHANGES REQUESTED first pass at `9d3b929`.
-Canonical gate re-run independently: **70/70 green, 0 skipped, 0 failed**.
-R1 was root-caused in production (`Array.isArray` on an explicitly empty
-overlay action list) and mutation-verified; the mutation showed the real
-defect was **input truncation in every form-owned native dialog**, not a
-flaky test. §1.3 is closed: the classic outlet is never revealed, so **S7 can
-delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
-`9ddddf7` and S4-b is ACCEPTED at `5619b45` (Claude, 2026-07-29). The S4-b
-minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is
-ACCEPTED at `494d99d`. S4-d — native Quick Chart — is ACCEPTED at `7c87e2b`.
-S4-e — legacy Season overlay retirement — is ACCEPTED at `f9247c0`. Final S4
-native Settings/Recovery code at `ed551a8` is independently CODE ACCEPTED at
-`acdcf2b`. Local installer `1.12.0-13` **FAILED** installed Reports smoke and
-must not be reused. The Reports repair `e911b97` is accepted; its two P2 findings
-are closed in the `1.12.0-14` checkpoint awaiting independent review. No legacy
-S4 overlay owner remains. **S4 remains unaccepted and S5 stays closed until the
-replacement installed smoke passes.** N6
-(popover) is now
-implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
-dialog have replaced their legacy owners.
+**Status: P0 through S4 are COMPLETE AND ACCEPTED.** Final S4 native code was
+independently accepted at `acdcf2b`; the installed Reports lifecycle repair
+`f8c5989` was independently accepted at `524b00b`. Local installer
+`1.12.0-15`, built from versioned source `32e05a6`, passed the coach's installed
+functional checklist on 2026-07-30. `1.12.0-13` and `1.12.0-14` remain failed
+evidence and must not be reused. No legacy S4 overlay owner remains. **S5 is
+OPEN.** The active installed design findings and screenshot-plus-truth review
+protocol live in `GRIDIRON-IQ-DESIGN-AUDIT.md`; UX-1-UX-4 are structural inputs to
+S5 and AX-1-AX-6 are the shared S6 analytics-experience pass.
 
 **Release rule (unchanged in substance):** no **published** package, tag, or
 release during the S-milestones. **Local, unpublished milestone installers are

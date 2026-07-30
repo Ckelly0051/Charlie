@@ -18,6 +18,32 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### COACH SMOKE PASS - S4 ACCEPTED; S5 OPEN (2026-07-30)
+
+The coach completed the installed `1.12.0-15` checklist and reported no
+functional blocker. Reports open and populate after linked-film game changes;
+linked-film and S4 essentials clear for now. `SMOKE-1.12.0-15.md` is PASS. This
+accepts S4 and opens S5. It does not authorize a tag/published release, data
+migration, identifier rewrite, or deletion of any managed film copy.
+
+The installed pass exposed substantial design/UX debt, now consolidated in
+`GRIDIRON-IQ-DESIGN-AUDIT.md`: real-film softness; universal game switching;
+responsive clipping; incomplete design-system ownership; Reports formatting,
+scoreboard, chart, and whitespace defects; Predictability Map legibility;
+recommendation density; and US-English copy. Do not patch these one screenshot
+at a time.
+
+**New visual-review gate:** every route screenshot matrix includes at least one
+source-backed functionality spot check. Verify one representative displayed
+number against its canonical engine/backend source and, where clickable, verify
+the exact composite film refs. Codex leads UX/design and implementation; Claude
+independently checks code, parity, football semantics, and whether presentation
+misstates data; coach owns workflow/product acceptance.
+
+**Next action before S5 code:** investigate video fidelity (UX-1), contract the
+shared shell game-context selector (UX-2), and inventory responsive/design-system
+ownership (UX-3/UX-4). These are structural inputs to S5, not a detour into isolated
+Reports polish. Analytics presentation findings A1-A6 resolve together in S6.
 ### INSTALLER READY - `1.12.0-15`; REPORTS-FIRST COACH SMOKE PENDING (Codex, 2026-07-30)
 
 Claude independently accepted the S4h installed Reports lifecycle repair at

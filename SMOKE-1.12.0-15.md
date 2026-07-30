@@ -8,7 +8,7 @@ Versioned source: `32e05a6`
 Date: 2026-07-30
 Tester: Coach
 
-## Status: READY FOR COACH SMOKE
+## Status: PASS - S4 ACCEPTED; S5 OPEN
 
 This is a local unsigned milestone build, not a tagged or published release.
 It replaces failed `1.12.0-14`. S4 remains unaccepted and S5 remains closed
@@ -48,13 +48,13 @@ Batch later findings; do not ship one-off releases while smoking.
 
 | Check | Result | Notes |
 |---|---|---|
-| Launch; More reports `GridIron IQ v1.12.0-15 · Desktop` |  |  |
-| From Home, open Reports: header, perspective selector, tabs, and content are visible |  |  |
-| Open a real linked-film game, wait for film to load, then open Reports; Overview is populated |  |  |
-| Open Offense, Defense, Special Teams, Players, Self-Scout, Season, and Matchup |  |  |
-| Return Home, switch to another linked game, wait for film, then reopen Reports |  |  |
-| Reports remains visible and populated after both linked-film auto-loads |  |  |
-| A game with no eligible charted data shows neutral guidance, not a red failure |  |  |
+| Launch; More reports `GridIron IQ v1.12.0-15 · Desktop` | PASS |  |
+| From Home, open Reports: header, perspective selector, tabs, and content are visible | PASS |  |
+| Open a real linked-film game, wait for film to load, then open Reports; Overview is populated | PASS |  |
+| Open Offense, Defense, Special Teams, Players, Self-Scout, Season, and Matchup | PASS |  |
+| Return Home, switch to another linked game, wait for film, then reopen Reports | PASS |  |
+| Reports remains visible and populated after both linked-film auto-loads | PASS |  |
+| A game with no eligible charted data shows neutral guidance, not a red failure | PASS |  |
 
 **If any Gate 1 row fails, stop. Record FAIL and a screenshot. Do not continue.**
 
@@ -62,27 +62,36 @@ Batch later findings; do not ship one-off releases while smoking.
 
 | Check | Result | Notes |
 |---|---|---|
-| Settings -> Film shows the intended D: library root and exact per-game linked path |  |  |
-| Open St Peter; first, middle, and last clips play |  |  |
-| DevTools linked-film log resolves `D:\Football\Film\St Peter 41-0` with no managed-C: fallback |  |  |
-| Open two more linked games; each reports Linked and plays without Repair |  |  |
-| Restart; the same linked clips still play |  |  |
-| Known partial game reports its missing count and does not fall back to C: |  |  |
+| Settings -> Film shows the intended D: library root and exact per-game linked path | PASS |  |
+| Open St Peter; first, middle, and last clips play | PASS |  |
+| DevTools linked-film log resolves `D:\Football\Film\St Peter 41-0` with no managed-C: fallback | PASS |  |
+| Open two more linked games; each reports Linked and plays without Repair | PASS |  |
+| Restart; the same linked clips still play | PASS |  |
+| Known partial game reports its missing count and does not fall back to C: | PASS |  |
 
 ### Gate 3 - S4 milestone essentials
 
 | Check | Result | Notes |
 |---|---|---|
-| Existing teams, seasons, games, tags, notes, plans, and roster are present |  |  |
-| Home is the sole game-entry surface and highlights the actual active game |  |  |
-| Settings and More work before opening a game and after switching games |  |  |
-| Edit one disposable play, Save & Next, restart; edit survives; Undo/Redo remains coherent |  |  |
-| Study result opens exact matching film; Next remains within the cut-up |  |  |
-| Save a Study finding to Plan; reorder/add notes; restart; Plan survives |  |  |
-| Current-game and full-season HTML exports contain the correct scope |  |  |
-| Recovery distinguishes current-game quick versions from whole-season restore points |  |  |
-| Drawing tools draw, erase, clear, and do not interfere with playback |  |  |
+| Existing teams, seasons, games, tags, notes, plans, and roster are present | PASS |  |
+| Home is the sole game-entry surface and highlights the actual active game | PASS |  |
+| Settings and More work before opening a game and after switching games | PASS |  |
+| Edit one disposable play, Save & Next, restart; edit survives; Undo/Redo remains coherent | PASS |  |
+| Study result opens exact matching film; Next remains within the cut-up | PASS |  |
+| Save a Study finding to Plan; reorder/add notes; restart; Plan survives | PASS |  |
+| Current-game and full-season HTML exports contain the correct scope | PASS |  |
+| Recovery distinguishes current-game quick versions from whole-season restore points | PASS |  |
+| Drawing tools draw, erase, clear, and do not interfere with playback | PASS |  |
 
+## Batched Design Findings
+
+The coach found substantial visual/UX debt while the functional checklist passed:
+video softness; incomplete analytics design-system adoption; Reports formatting,
+overflow, hierarchy, scoreboard and chart defects; confusing Predictability Map;
+overlong recommendations; responsive clipping; US-English copy issues; and no
+universal in-route game switcher. These are consolidated with ownership, timing,
+and acceptance rules in `GRIDIRON-IQ-DESIGN-AUDIT.md`. They are not waived by
+this functional pass and must not be addressed through one-off releases.
 ## Carried Nonblocking Finding
 
 - `F1`: the dismissed legacy Wizard still receives live events and runs a now-safe
@@ -90,8 +99,10 @@ Batch later findings; do not ship one-off releases while smoking.
   next reviewed code batch or Wizard deletion in S7. It was intentionally not
   slipped into this accepted installer candidate.
 
-## Result: PENDING
+## Result: PASS
 
-The coach alone changes this result to PASS or FAIL. PASS accepts S4 and opens
-S5. FAIL returns a batched finding list; it does not authorize publication, data
-migration, or deletion of any managed film.
+The coach completed the installed checklist and reported no functional blocker.
+Reports open and populate after linked-film game changes; the broader S4 checklist
+clears for now. S4 is accepted and S5 opens. Design findings remain required work
+under `GRIDIRON-IQ-DESIGN-AUDIT.md`; this pass does not authorize publication,
+data migration, or deletion of any managed film.
