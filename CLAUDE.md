@@ -129,6 +129,87 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `f8c5989` — **ACCEPTED. Reproduced the outage myself.** 1 finding; **the miss that caused it was mine** (2026-07-30)
+
+**Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
+green | 0 skipped | 0 failed**; native Reports **21/21**, native Settings
+**18/18** — the counts Codex reported.
+
+**I reproduced the coach's outage by mutation, and the evidence is exactly his
+symptom.** Reverting `wizard.js` to `document.getElementById('statsDashboard')
+?.classList.add('hidden')` reds the new assertion with
+`{"hiddenAfterLoad":true,"hiddenAfterReports":true,"width":0,"height":0,
+"textLength":2391}` — **a fully populated report, 2391 characters of content, at
+0×0.** "Content populated, then hidden" is not a paraphrase; it is the measurement.
+Restored → 21/21.
+
+**The regression test pins the cause, not the symptom.** It sets
+`wizard.currentStep = 1`, emits `video-loaded` — the actual trigger — then
+navigates to Reports and asserts non-zero geometry *and* non-empty content. That
+is the first harness in this project able to reach this failure at all: the path
+was previously desktop-only, because only linked-film auto-load fired it.
+
+**The repair is at the right seam.** `stats.hideDashboard()` short-circuits when
+the current route is `reports` (`app.reportsScreen.show()` instead of hiding), and
+otherwise hides `dashboardEl` — which since S1 is the **inner** native content
+host, which `show()` un-hides on route entry. So the native Reports root is never
+hidden at all; the harness asserts `hiddenAfterLoad === false`.
+
+**S4h-1 is closed properly.** `.gi-reports .gi-reports-empty` now matches the
+competing `.gi-reports .stats-section` at (0,2,0) and wins on source order, with a
+separate `.gi-reports-failure` for the alert. The empty state is neutral
+(`--gi-7`/`--gi-2`), the failure is danger-toned, and the harness asserts the
+**computed** tones differ and the border width is non-zero — presentation is
+pinned, not just the string.
+
+**My S4-final observation is closed at the root.** `saveAnalysis` no longer writes
+through `#gameApiKey`/`#gameAiModel`; `_saveAnalysisPreferences()` writes
+localStorage directly and returns a boolean, the form is uncontrolled and submits
+real `FormData`, and failure now surfaces as an error toast plus a `role="alert"`
+line instead of a success message over a silent no-op. That also removes the S7
+landmine I flagged.
+
+**F1 [P2] A retired, dismissed wizard still executes step side-effects — and this
+is the finding, because the repair changed *what* the side effect does, not *that
+it runs*.** `goTo()` calls `_render()` — which returns early when dismissed — and
+then calls `_runStepSideEffects()` **unconditionally**. `video-loaded` triggers
+`goTo(2)` (`wizard.js:84`).
+
+**Probed on a default profile, not inferred:** `dismissed: true`, and a single
+`video-loaded` advanced the wizard **1 → 3** and ran the side effect **twice**
+(the second from the `play-created` that whole-video play creation emits). A
+subsystem this file documents as *"dormant; default-dismissed"* is subscribed to
+live charting events and firing side effects on every coach's machine.
+
+No residual harm **today** — `_runStepSideEffects()` now contains exactly one
+call and that call is safe on every route. The risk is the next line anyone adds
+to it. Severity is bounded because `_runStepAction` (which clicks
+`btnAutoDetect`, `btnQuickChart`, `btnCallSheet`) is reachable only from wizard
+card buttons, and those are hidden while dismissed — I checked, because a
+dismissed wizard silently starting a CV scan would have been a different
+conversation. Fix is one line (`if (this.dismissed) return;`) or deletion; the
+wizard's markup lives in `#app`, which S7 removes anyway.
+
+**The miss that caused this outage was mine, and it is the same shape as my S3
+one.** At S1 I filed the `#statsDashboard` id transfer as a nit, named **two**
+legacy consumers in `ui-polish.js`, and wrote "comment now, delete in S4/S7" — I
+declared the set. **`wizard.js` was a third consumer I never looked for**, and it
+is the one that shipped. I audited the file I happened to be reading instead of
+the **id across the codebase**. Swept properly now: `reports-screen.js` (the
+id-transfer owner), `stats-engine.js:257` (initial target lookup) and
+`native-reports.jsx:37` (the native root that carries the id) — all three are
+legitimate owners, and nothing else touches it.
+
+**Two installer failures, both invisible to a 74/74 gate, both on the desktop-only
+path.** That is not an argument against the gate; it is the §8 argument stated in
+data, and the reason S5 must not open before a smoke passes. Worth noting that
+both classes have now moved from unreachable to covered: route geometry
+(`e2e-p0-exit` + Reports viewport assertion) and this wizard path.
+
+**No analytics formula, persistence schema, coach data, film file, tag or release
+changed.** Managed C: film copies remain protected. **Codex builds `1.12.0-15`;
+`1.12.0-14` stays FAILED and must not be reused.**
+
 ### ▶ CLAUDE'S REVIEW of `e45742d` — **ACCEPTED. Both findings closed and mutation-proven.** 1 new finding, not blocking (2026-07-30)
 
 **Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
