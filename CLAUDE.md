@@ -46,6 +46,112 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `e911b97` (Reports repair) — **ACCEPTED. Root-caused, not patched.** 2 findings (2026-07-30)
+
+**Checklist first.** §8's installer requirement is *why this failure was caught at
+all* — `1.12.0-13` is correctly recorded FAILED and must not be reused. S4 stays
+unaccepted, S5 stays closed, and the replacement installer is the only thing that
+can accept it. **The coach's linked-film confirmation is the other half of that
+argument: 69 clips loading from `D:\Football\Film\St Peter 41-0` with no managed-C:
+fallback is a guarantee no headless harness has ever been able to execute.**
+
+**Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
+green | 0 skipped | 0 failed**, real data 13/13.
+
+**The root cause is real, and I confirmed it against the pre-fix tree rather than
+taking the commit message.** `.ws-reports { min-width:0; min-height:0;
+overflow-y:auto }` existed at `6d134a9` — **but only inside
+`css/reports-screen.css`, a file consumed only by `build.sh`.** It is not linked
+in `index.html` and not imported by any module, so **none of its 18 `.ws-reports`
+rules have ever reached the Vite product.** `.ws-reports` is a grid item of
+`.ws-main` (`grid-template-rows: var(--ws-top) minmax(0,1fr)`) under
+`body.ws-shell-active{overflow:hidden}`; with no `min-height:0` it cannot shrink,
+and WebView2 collapsed it. **Blank route, no exception — exactly what the coach
+saw.** Chromium happened to lay it out, which is why 74/74 stayed green.
+
+**This is the third instance of one defect class**, and this file records the
+first two: P0-a found `breakdown-form.css` and `tag-library-settings.css`
+*"injected by `build.sh` but omitted from modular `index.html`."* This one shipped.
+
+**The fix is placed better than a re-link would have been.** Putting
+`min-width:0;min-height:0` (+ `overflow-y:auto` for the scrolling routes) on
+`.ws-home,.ws-team-hub,.ws-breakdown,.ws-study,.ws-reports,.ws-plan-state` in
+`workspace-shell.css` makes viewport ownership a **shell invariant** instead of
+each route stylesheet's private business, and the code comment says so. It also
+covers a second latent case: **`.ws-team-hub` had zero CSS rules anywhere before
+this commit** (verified at `6d134a9`) — Team Hub was one WebView2 layout away from
+the same blank screen, and the coach never got that far because Reports failed
+first.
+
+**The CSP changes are correct and were observed in DevTools, but they are
+independent of the blank route — say so, or a recurrence gets misattributed.**
+`font-src 'self' data:` is required because Plex ships as base64 `data:` faces
+under `default-src 'self'`; `connect-src ipc: http://ipc.localhost` is Tauri v2's
+IPC transport. Neither can blank a mounted route, and the console showed no
+report exception. **One of the three changes explains the failure; the other two
+are real hardening.**
+
+**The false-green is genuinely closed, and better than I would have asked for.**
+`e2e-realdata` now enters the shell route and throws `NATIVE REPORTS BLANK` on
+empty content instead of calling `StatsEngine.showDashboard()` behind it. But the
+durable guard is the new geometry assertion — *"Reports owns a non-collapsed
+scroll viewport in the shell grid"* — asserting non-zero host **and** native boxes
+**and** `overflowY === 'auto'`. That is the one check that reds on this class, and
+it is the kind of evidence the capability audit deliberately down-ranks; here it
+is exactly right, because the defect is layout. `e2e-p0-exit` additionally pins
+both the CSS rule and the three CSP strings as source invariants — the correct
+home for a WebView2-only contract no Chromium harness can execute.
+
+**The failure pane cannot silently swallow a regression.** The new `try/catch` in
+`show()` worried me — a caught render error now paints "Reports unavailable"
+instead of throwing. But the harness forces `_renderActiveTab` to throw and
+asserts `show()` returns **false**, the alert names both strings, **and a retry
+recovers the real pane**. Combined with the detach/remount assertion, the
+recovery path is pinned in both directions. `Charts._esc` escapes the message and
+`Charts` is imported at `reports-screen.js:3`.
+
+**S4g-1 [P2] The stylesheet that caused this outage is still in `build.sh` and
+still unreachable from the product.** I audited every `css/*.css` against
+`index.html`, all modules and `build.sh`: **`reports-screen.css` is the only file
+dead in the product** — so the class is a single bounded instance, and it is this
+one. Two consequences: the reference bundle and the Vite product now **differ in
+styling**, which is what P0-a's F1/F4 guards exist to prevent; and the next person
+who edits that file to fix Reports styling will see no effect.
+
+**Nothing functional is still missing — I probed rather than assumed.** Inside the
+live route: `.rp-route`/`.rp-head`/`.rp-body`/`.rp-btn` **0**, `.stats-overlay`
+**0**, `.stats-container` **0**, `.stats-body` **0**, `.stats-header-main` **0**
+(all dead pre-native-Reports selectors), while `#statsDashboard` **1**,
+`.stats-tabs` **1** and `.stats-tab` **8** are live — and those are styled by
+`styles.css` and `redesign-stats.css`, both loaded. So only the three route rules
+ever mattered and they are now restored. **Delete `css/reports-screen.css` and its
+`build.sh` line** — exactly what happened to `tag-library-settings.css` one commit
+ago — and add the dead-stylesheet check to `audit-shell-deps.mjs` so a fourth
+instance is impossible. **I deliberately did not do this inside the packaging
+commit:** deleting a stylesheet belongs in a reviewed change, not slipped into a
+version bump.
+
+**S4g-2 [P2] `APP_VERSION` was never bumped, so the failed build reported itself
+as the previous one.** `js/app.js:65` still reads `'1.12.0-12'` while
+`tauri.conf.json` and `Cargo.toml` say `1.12.0-13`; this file's own release recipe
+requires all four. Normally masked — `app.js:253` overrides the label from
+`window.__TAURI__.app.getVersion()` — **but that call goes over the very IPC
+transport `1.12.0-13`'s CSP blocked**, so the override failed and the coach's
+More menu showed `GridIron IQ v1.12.0-12 · Desktop` on a `-13` build. On a smoke
+artifact, "which build am I running" is not cosmetic. `configureBetaDefaults` is
+unaffected (`1.12.0-12` still matches `/-\d+$/`). **I own this one — it is fixed
+as part of the `1.12.0-14` stamp.**
+
+**Observation — the failure surface a coach only sees when things are broken is
+itself unstyled.** `_renderFailure()` uses `.gi-reports-empty`, which **appears in
+no loaded stylesheet** (0 hits across `css/`); `reports-screen.js:299` uses it too,
+so this predates the commit. It also carries `gi-report-pane stats-section`, which
+*are* styled, so it will read acceptably — but the alert that explains a failure
+should not be the least-styled thing in the app.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed by this commit.** Managed C: film copies remain protected.
+
 ### ▶ CLAUDE'S REVIEW of `ed551a8` (FINAL S4) — **CODE ACCEPTED. S4 acceptance is BLOCKED on the §8 installer.** 2 findings (2026-07-29)
 
 **Checklist first, and this time it is the whole story.** `#settingsDrawer` and
