@@ -18,24 +18,34 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### INSTALLER READY - `1.12.0-13`; S4 COACH SMOKE PENDING (Codex, 2026-07-29)
+### ▶ CODEX REVIEW QUEUE - S4 INSTALLED REPORTS REPAIR (Codex, 2026-07-29)
 
-Claude accepted the final S4 code at `acdcf2b`. The required local, unsigned
-milestone installer was built from reviewed application source `ed551a8` after
-synchronizing Cargo/Tauri metadata to `1.12.0-13`. Tauri invoked the Vite
-production build through `beforeBuildCommand`; both Windows bundles completed.
-No app source, schema, analytics formula, coach data, film path/file, tag, or
-published release changed.
+The `1.12.0-13` coach smoke **FAILED**: the installed WebView2 app opened Reports
+as a completely blank route. S4 remains unaccepted; S5 remains closed. Do not
+reuse, tag, publish, or promote that installer. No coach data, tag, analytics
+formula, film path/file, or managed C: film copy was changed.
 
-NSIS EXE: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-13_x64-setup.exe`
-SHA-256: `D1C83B5AE689649E84F146C73738544D9B81FF516DA9B66B0FE30C7BB181F1DC`
+**Repair checkpoint awaiting independent review:**
 
-MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-13_x64_en-US.msi`
-SHA-256: `3655D6449630D0F14B230C46EB19E88A98EA229A74F8263A78BFC14E406F8E6E`
+- Every native shell destination now owns an explicit non-collapsing grid
+  viewport; Reports owns route scrolling in `workspace-shell.css`.
+- `ReportsScreen.show()` remounts a detached native owner and catches render
+  failures into a visible `Reports unavailable` state that explicitly says film
+  and tags are safe. A silent `false` can no longer leave an empty destination.
+- Tauri CSP now permits the documented `ipc:` and `http://ipc.localhost`
+  transports plus bundled `data:` fonts, closing the exact console violations
+  captured during the installed smoke.
+- The permanent real-data harness now navigates through
+  `workspaceShell.show('reports')` and asserts visible nonblank native content;
+  it no longer bypasses the product route through `stats.showDashboard()`.
 
-Smoke checklist: `SMOKE-1.12.0-13.md`. **S4 remains unaccepted and S5 remains
-closed until the coach records PASS.** Managed film copies remain protected.
+**Evidence on repaired bytes:** native Reports 19/19, P0 composition 15/15,
+real mirror 13/13 games across all report views, `cargo check` clean, full
+canonical gate **74/74 green, 0 skipped, 0 failed**. The repair still requires
+independent review and a replacement installed WebView2 smoke before S4 can be
+accepted. The browser gate cannot substitute for that final installed proof.
 
+The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
 ### ▶ CLAUDE'S REVIEW of `ed551a8` (FINAL S4) — **CODE ACCEPTED. S4 acceptance is BLOCKED on the §8 installer.** 2 findings (2026-07-29)
 
 **Checklist first, and this time it is the whole story.** `#settingsDrawer` and

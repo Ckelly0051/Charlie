@@ -73,7 +73,7 @@ const seedFn = (season, OUR) => {
 };
 
 const VIEWS = [
-  ['dashboard', () => window.app.stats.showDashboard()],
+  ['reports route', async () => { await window.app.workspaceShell.show('reports'); const host=document.getElementById('wsReports'); const content=host?.querySelector('[data-native-report-content]'); if (host?.hidden || !content || !content.textContent.trim()) throw new Error('NATIVE REPORTS BLANK'); }],
   ['tab:offense', () => document.querySelector('#statsDashboard .stats-tab[data-tab="offense"]')?.click()],
   ['tab:defense', () => document.querySelector('#statsDashboard .stats-tab[data-tab="defense"]')?.click()],
   ['tab:selfscout', () => document.querySelector('#statsDashboard .stats-tab[data-tab="selfscout"]')?.click()],

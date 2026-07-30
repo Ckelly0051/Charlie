@@ -8,10 +8,10 @@ Built from: `claude/football-film-analyzer-GRiCW`
 Date: 2026-07-29
 Tester: Coach
 
-## Status: READY FOR COACH SMOKE
+## Status: FAILED - REPORTS ROUTE BLANK
 
 This is a local unsigned milestone build, not a tagged or published release.
-S4 remains unaccepted and S5 remains closed until the installed smoke passes.
+The installed smoke failed immediately: Reports rendered as a blank route. S4 remains unaccepted and S5 remains closed. This artifact must not be reused.
 Do not delete managed film copies based on this build.
 
 ## Automated Evidence
@@ -33,6 +33,14 @@ Do not delete managed film copies based on this build.
   `3655D6449630D0F14B230C46EB19E88A98EA229A74F8263A78BFC14E406F8E6E`
 - Application EXE SHA-256:
   `17841EEAAEF4E36656A8A3AD2A89C3BCD534F31B3C748842C853981702412ADE`
+
+## Blocking Failure
+
+- `Home -> Reports` opened an empty route in the installed WebView2 app.
+- Opening a real linked game first did not repair Reports; the console showed only the successful D: linked-film auto-load and no report exception.
+- Desktop CSP also blocked Tauri `ipc:` / `http://ipc.localhost` and bundled data-font loading.
+- Root test gap: `e2e-realdata.mjs` called `StatsEngine.showDashboard()` directly, bypassing the shell Reports route used by the coach.
+- Repair is not part of this artifact. A replacement installer requires independent review and a fresh installed smoke.
 
 ## Coach Smoke
 
@@ -93,8 +101,6 @@ record; do not request or ship one-off releases while smoking.
 | Analysis clearly exposes a usable local CV-server opt-in, or record this as a known P2 |  |  |
 | Analysis preferences save and remain truthful after restart |  |  |
 
-## Result: PENDING
+## Result: FAIL
 
-The coach alone changes this result to PASS or FAIL. A PASS accepts S4 and opens
-S5. A FAIL returns a batched finding list to repair; it does not authorize a
-published release or deletion of any managed film.
+Coach recorded FAIL on 2026-07-29. S4 is not accepted; S5 remains closed. No published release or managed-film deletion is authorized.

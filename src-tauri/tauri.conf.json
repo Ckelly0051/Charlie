@@ -19,7 +19,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net asset: http://asset.localhost https://asset.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: asset: http://asset.localhost https://asset.localhost; media-src 'self' blob: asset: http://asset.localhost https://asset.localhost; connect-src 'self' https://api.anthropic.com https://cdn.jsdelivr.net asset: http://asset.localhost https://asset.localhost http://127.0.0.1:* http://localhost:*",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net asset: http://asset.localhost https://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' blob: data: asset: http://asset.localhost https://asset.localhost; media-src 'self' blob: asset: http://asset.localhost https://asset.localhost; connect-src 'self' ipc: http://ipc.localhost https://api.anthropic.com https://cdn.jsdelivr.net asset: http://asset.localhost https://asset.localhost http://127.0.0.1:* http://localhost:*",
       "assetProtocol": {
         "enable": true,
         "scope": {

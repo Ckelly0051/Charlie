@@ -100,5 +100,15 @@ ok(nativeRoot.includes("../design-system/plex.css") && nativeRoot.includes("../d
   && existsSync(resolve(root, 'tools/e2e-design-system.mjs')),
   'bundled Plex and route token enforcement are wired into production');
 
+const shellCss = await read('css/workspace-shell.css');
+const csp = tauriConfig.app?.security?.csp || '';
+ok(/\.ws-reports[^}]*min-width:0[^}]*min-height:0/.test(shellCss)
+  && /\.ws-reports[^}]*overflow-y:auto/.test(shellCss),
+  'native Reports route has an explicit non-collapsing scroll viewport');
+ok(/font-src[^;]*'self'[^;]*data:/.test(csp)
+  && /connect-src[^;]*ipc:/.test(csp)
+  && /connect-src[^;]*http:\/\/ipc\.localhost/.test(csp),
+  'desktop CSP permits bundled fonts and both Tauri IPC transports');
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

@@ -64,18 +64,34 @@ export class ReportsScreen {
   }
 
   show() {
-    if (!this.content) return false;
-    this._mode = 'main';
-    this.perspective = 'self';
-    this._opponentData = null;
-    this.activeTab = REPORT_TABS.has(this.app.stats._lastTab) ? this.app.stats._lastTab : this.activeTab;
-    if (!REPORT_TABS.has(this.activeTab)) this.activeTab = 'overview';
-    this._syncHeader();
-    this._syncTabState();
-    this._setChrome(true);
-    this._renderActiveTab();
-    this.content.classList.remove('hidden');
-    return true;
+    if (!this.host) return false;
+    if (!this.content?.isConnected && !this.mount(this.host)) {
+      this._renderFailure('Reports could not start. Return Home and try again.');
+      return false;
+    }
+    try {
+      this._mode = 'main';
+      this.perspective = 'self';
+      this._opponentData = null;
+      this.activeTab = REPORT_TABS.has(this.app.stats._lastTab) ? this.app.stats._lastTab : this.activeTab;
+      if (!REPORT_TABS.has(this.activeTab)) this.activeTab = 'overview';
+      this._syncHeader();
+      this._syncTabState();
+      this._setChrome(true);
+      this._renderActiveTab();
+      this.content.classList.remove('hidden');
+      return true;
+    } catch (error) {
+      console.error('Reports failed to render', error);
+      this._renderFailure('Reports could not be generated for this game. Your film and tags are safe.');
+      return false;
+    }
+  }
+
+  _renderFailure(message) {
+    const target = this.content || this.host;
+    if (!target) return;
+    target.innerHTML = `<section class="gi-report-pane stats-section gi-reports-empty" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
   }
 
   selectTab(tab) {

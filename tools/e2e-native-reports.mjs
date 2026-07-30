@@ -74,6 +74,50 @@ ok(result.tabs.join(',') === 'overview,offense,defense,special,players,selfscout
   'Native Reports exposes all eight football report views', JSON.stringify(result.tabs));
 ok(result.actions.includes('scout') && result.actions.includes('export'),
   'Native Reports exposes scout and export commands', JSON.stringify(result.actions));
+result = await page.evaluate(() => {
+  const host = document.getElementById('wsReports');
+  const native = host?.querySelector('[data-native-reports]');
+  const hostRect = host?.getBoundingClientRect();
+  const nativeRect = native?.getBoundingClientRect();
+  const style = host ? getComputedStyle(host) : null;
+  return {
+    hostWidth: Math.round(hostRect?.width || 0), hostHeight: Math.round(hostRect?.height || 0),
+    nativeWidth: Math.round(nativeRect?.width || 0), nativeHeight: Math.round(nativeRect?.height || 0),
+    overflowY: style?.overflowY || '',
+  };
+});
+ok(result.hostWidth > 0 && result.hostHeight > 0 && result.nativeWidth > 0 && result.nativeHeight > 0 && result.overflowY === 'auto',
+  'Reports owns a non-collapsed scroll viewport in the shell grid', JSON.stringify(result));
+
+result = await page.evaluate(() => {
+  const app = window.app;
+  app.reportsScreen.content.remove();
+  const recovered = app.reportsScreen.show();
+  return {
+    recovered,
+    contentConnected: !!app.reportsScreen.content?.isConnected,
+    pane: !!document.querySelector('#wsReports [data-native-main-report]'),
+  };
+});
+ok(result.recovered && result.contentConnected && result.pane,
+  'Reports remounts when its native content owner is detached', JSON.stringify(result));
+
+result = await page.evaluate(() => {
+  const screen = window.app.reportsScreen;
+  const original = screen._renderActiveTab;
+  const originalConsoleError = console.error;
+  screen._renderActiveTab = () => { throw new Error('forced report failure'); };
+  console.error = () => {};
+  const rendered = screen.show();
+  console.error = originalConsoleError;
+  screen._renderActiveTab = original;
+  const alert = document.querySelector('#wsReports [role="alert"]');
+  const visibleFailure = /Reports unavailable/.test(alert?.textContent || '') && /film and tags are safe/i.test(alert?.textContent || '');
+  const recovered = screen.show();
+  return { rendered, visibleFailure, recovered, pane: !!document.querySelector('#wsReports [data-native-main-report]') };
+});
+ok(result.rendered === false && result.visibleFailure && result.recovered && result.pane,
+  'Reports fails visibly without stranding the route and recovers on retry', JSON.stringify(result));
 await capture('desktop-overview');
 
 console.log('\n== 2. Every self report is reachable without changing season data ==');

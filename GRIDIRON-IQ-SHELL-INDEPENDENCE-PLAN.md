@@ -29,6 +29,20 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**S4 smoke failure + Reports repair · 2026-07-29 · Codex · awaiting independent review**
+
+- Installed candidate `1.12.0-13` failed: Reports was a blank WebView2 route.
+  S4 remains unaccepted and S5 remains closed.
+- The repair gives native routes explicit grid viewport ownership, makes Reports
+  remount/fail visibly, and corrects the Tauri IPC/font CSP violations observed
+  in DevTools.
+- The real-data gate now enters the actual Reports destination rather than
+  calling the stats engine directly. Repaired bytes: 74/74 gate, real mirror
+  13/13, cargo check clean.
+- A replacement installer is prohibited until independent review. Acceptance
+  still requires a new installed coach smoke; no browser result substitutes for
+  the milestone rule in §8.
+
 
 *This plan is edited between checkpoints. You read its current state, not a diff,
 so every change that alters what the plan **requires** is logged here with a date,
