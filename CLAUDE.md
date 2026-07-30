@@ -18,6 +18,32 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE REVIEW QUEUE - S4g FINDINGS CLOSED / `1.12.0-14` STAMP (Codex, 2026-07-30)
+
+Claude accepted the installed Reports repair at `e911b97` and returned two P2
+findings. Both are closed in this checkpoint; **no installer has been built yet**.
+S4 remains unaccepted and S5 remains closed pending independent review followed
+by one replacement installed smoke.
+
+- **S4g-1:** deleted dead `css/reports-screen.css` and removed its `build.sh`
+  entry. `audit-shell-deps.mjs` and the canonical P0 gate now scan every CSS file
+  and fail if any stylesheet is unreachable from the Vite/Tauri product. Current
+  ownership is 16/16. A temporary dead stylesheet turns the gate red.
+- **S4g-2:** synchronized `APP_VERSION`, Cargo.toml, Cargo.lock, and
+  tauri.conf.json to `1.12.0-14`. The P0 gate now requires exact equality across
+  all four owners. A temporary `APP_VERSION` mismatch turns it red.
+- **Review observation closed:** native Reports empty/failure states now use an
+  intentional semantic danger surface rather than being the least-styled part of
+  the route.
+
+Focused evidence: P0 composition 17/17, native Reports 19/19, shell dependency
+audit 16/16 styles reachable, `cargo check` clean. Full canonical gate **74/74
+green, 0 skipped, 0 failed**. No schema, analytics formula, coach data, film
+path/file, managed film copy, package, tag, or published release changed.
+
+**Next action:** Claude independently reviews this closure. If accepted, Codex
+builds exactly one unsigned `1.12.0-14` installer and the coach smokes Reports
+first. Do not build before review and do not reopen S5.
 ### ▶ CODEX REVIEW QUEUE - S4 INSTALLED REPORTS REPAIR (Codex, 2026-07-29)
 
 The `1.12.0-13` coach smoke **FAILED**: the installed WebView2 app opened Reports
@@ -760,10 +786,10 @@ ordering, and give the two orphaned behaviours an owner.
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-13`** · reviewed app source `ed551a8` · installer built **2026-07-29** |
-| Commits since | **0 application-code commits**; only version metadata and smoke documentation are pending in this packaging checkpoint |
+| Commits since | **2 application-code checkpoints** after the last human build: accepted Reports repair `e911b97` plus this S4g closure awaiting review |
 | Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. **Final S4 code is reviewed and accepted; the S4 MILESTONE remains pending coach smoke.** |
-| Next installer due | **None now.** `1.12.0-13` exists; the coach must smoke it. **S5 stays closed until that smoke passes.** |
-| Newly proven | **The Vite pipeline produced a Tauri installer successfully.** Tauri ran `npm run build`, embedded product/file version `1.12.0-13`, and completed NSIS + MSI bundles. |
+| Next installer due | **`1.12.0-14`, immediately after this S4g closure is independently accepted.** The failed `1.12.0-13` must not be reused. S5 stays closed. |
+| Newly proven | **`1.12.0-13` failed installed Reports smoke.** Root cause and false-green are repaired at `e911b97`; dead-CSS and four-owner version guards are mutation-proven in this closure. |
 
 *Why this table exists: every other check in this project fails loudly. An
 unbuilt installer emits no signal at all, so the drift has to be carried as a

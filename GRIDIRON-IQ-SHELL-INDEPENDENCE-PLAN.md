@@ -29,6 +29,19 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**S4g findings closure / `1.12.0-14` stamp · 2026-07-30 · Codex · awaiting independent review**
+
+- Claude accepted `e911b97`; S4g-1 and S4g-2 are closed before packaging.
+- Dead `reports-screen.css` is deleted. Both the measured shell audit and
+  canonical P0 gate reject any CSS file unreachable from Vite; the failure is
+  mutation-proven.
+- All four version owners now match `1.12.0-14`; exact consistency is a
+  mutation-proven canonical gate.
+- Reports empty/failure presentation is explicitly styled. Full gate 74/74,
+  cargo check clean. No installer exists yet.
+- After independent acceptance, build one `1.12.0-14` replacement and smoke
+  Reports first. S4 remains unaccepted and S5 remains closed until that passes.
+
 **S4 smoke failure + Reports repair · 2026-07-29 · Codex · awaiting independent review**
 
 - Installed candidate `1.12.0-13` failed: Reports was a blank WebView2 route.
@@ -242,9 +255,11 @@ minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is
 ACCEPTED at `494d99d`. S4-d — native Quick Chart — is ACCEPTED at `7c87e2b`.
 S4-e — legacy Season overlay retirement — is ACCEPTED at `f9247c0`. Final S4
 native Settings/Recovery code at `ed551a8` is independently CODE ACCEPTED at
-`acdcf2b`. The required local `1.12.0-13` installer now exists; coach smoke is
-pending. No legacy S4 overlay owner remains. **S4 remains unaccepted and S5 stays
-closed until that installed smoke passes.** N6
+`acdcf2b`. Local installer `1.12.0-13` **FAILED** installed Reports smoke and
+must not be reused. The Reports repair `e911b97` is accepted; its two P2 findings
+are closed in the `1.12.0-14` checkpoint awaiting independent review. No legacy
+S4 overlay owner remains. **S4 remains unaccepted and S5 stays closed until the
+replacement installed smoke passes.** N6
 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.

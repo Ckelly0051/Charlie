@@ -39,6 +39,15 @@ ok(/emptyOutDir:\s*true/.test(vite) && /target:\s*'es2022'/.test(vite)
   'browser build and shared test entry target Vite dist');
 ok(tauriConfig.build?.beforeBuildCommand === 'npm run build' && tauriConfig.build?.frontendDist === '../dist',
   'Tauri build consumes the same Vite output');
+const [appSource, cargoToml, cargoLock] = await Promise.all([
+  read('js/app.js'), read('src-tauri/Cargo.toml'), read('src-tauri/Cargo.lock'),
+]);
+const appVersion = appSource.match(/const APP_VERSION = '([^']+)'/)?.[1];
+const cargoVersion = cargoToml.match(/^version = "([^"]+)"/m)?.[1];
+const lockVersion = cargoLock.match(/name = "gridiron-iq"\s+version = "([^"]+)"/)?.[1];
+ok(Boolean(appVersion) && appVersion === cargoVersion && appVersion === lockVersion && appVersion === tauriConfig.version,
+  'web and all three desktop version owners match exactly',
+  JSON.stringify({ appVersion, cargoVersion, lockVersion, tauri: tauriConfig.version }));
 ok(/npm run build/.test(gate) && /for f in tools\/e2e-\*\.mjs/.test(gate),
   'canonical gate builds Vite and discovers every e2e harness');
 
@@ -53,6 +62,16 @@ for (const name of toolFiles) {
 }
 ok(browserHarnesses.length >= 41 && staleBrowserEntries.length === 0,
   'every browser journey uses the shared Vite test-entry resolver', staleBrowserEntries.join(', '));
+
+const cssFiles = (await readdir(resolve(root, 'css'))).filter(name => name.endsWith('.css'));
+const jsFiles = (await readdir(resolve(root, 'js'))).filter(name => /\.(?:js|jsx)$/.test(name));
+const viteSources = [
+  await read('index.html'),
+  ...await Promise.all(jsFiles.map(name => read(`js/${name}`))),
+].join('\n');
+const deadStylesheets = cssFiles.filter(name => !viteSources.includes(`css/${name}`));
+ok(deadStylesheets.length === 0,
+  'every stylesheet is reachable from the Vite product', deadStylesheets.join(', '));
 
 ok(nativeRoot.includes('NativeOverlayService') && nativeRoot.includes('giNativeRoot')
   && overlay.includes('dialog(options') && overlay.includes('sheet(options') && overlay.includes('toast(options'),

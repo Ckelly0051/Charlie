@@ -3,8 +3,25 @@
    legacy #app subtree, which route hosts hold RELOCATED legacy nodes vs native
    markup, and what the outlet is still load-bearing for. */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { readFile, readdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import puppeteer from 'puppeteer';
 const URL = TEST_APP_URL;
+
+// A stylesheet that is reachable only from build.sh is dead in the Vite/Tauri
+// product. This exact drift blanked Reports in the 1.12.0-13 installed smoke.
+const root = resolve(import.meta.dirname, '..');
+const cssFiles = (await readdir(resolve(root, 'css'))).filter(name => name.endsWith('.css'));
+const jsFiles = (await readdir(resolve(root, 'js'))).filter(name => /\.(?:js|jsx)$/.test(name));
+const viteSources = [
+  await readFile(resolve(root, 'index.html'), 'utf8'),
+  ...await Promise.all(jsFiles.map(name => readFile(resolve(root, 'js', name), 'utf8'))),
+].join('\n');
+const deadStylesheets = cssFiles.filter(name => !viteSources.includes(`css/${name}`));
+if (deadStylesheets.length) {
+  throw new Error(`CSS unreachable from the Vite product: ${deadStylesheets.join(', ')}`);
+}
+console.log(`Vite stylesheet ownership: ${cssFiles.length}/${cssFiles.length} reachable`);
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });

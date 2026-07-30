@@ -62,7 +62,6 @@ cat css/workspace-shell.css >> "$OUTPUT"
 cat css/breakdown-video.css >> "$OUTPUT"
 cat css/study-screen.css >> "$OUTPUT"
 cat css/plan-screen.css >> "$OUTPUT"
-cat css/reports-screen.css >> "$OUTPUT"
 cat css/breakdown-form.css >> "$OUTPUT"
 
 cat >> "$OUTPUT" << 'STYLEEND'
