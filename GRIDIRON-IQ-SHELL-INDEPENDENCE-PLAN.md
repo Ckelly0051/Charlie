@@ -35,6 +35,16 @@ so every change that alters what the plan **requires** is logged here with a dat
 a commit, and a reason. If the newest entry is unfamiliar, re-read the sections it
 names before building.*
 
+**`1.12.0-13` · 2026-07-29 · Codex · S4 INSTALLER BUILT — coach smoke pending**
+
+- Claude independently accepted final S4 application code at `acdcf2b`.
+- Required local unsigned NSIS and MSI installers were built from reviewed source
+  `ed551a8`; Tauri invoked the Vite production build successfully.
+- Artifact hashes and the installed-app checklist are recorded in
+  `SMOKE-1.12.0-13.md`.
+- **S4 remains unaccepted and S5 remains closed until the coach records PASS.**
+  No published package, tag, release, or managed-film deletion is authorized.
+
 **`ed551a8` · 2026-07-29 · Codex · FINAL S4 CODE BUILT — awaiting independent review + required installer smoke**
 
 - S4-e is accepted at `f9247c0`. The final coupled legacy owners,
@@ -217,9 +227,10 @@ delete it**. **S4 — remaining legacy overlays — is OPEN. S4-a is ACCEPTED at
 minor findings are closed at `9f59d39`. S4-c — native New/Edit Game — is
 ACCEPTED at `494d99d`. S4-d — native Quick Chart — is ACCEPTED at `7c87e2b`.
 S4-e — legacy Season overlay retirement — is ACCEPTED at `f9247c0`. Final S4
-native Settings/Recovery code is built at `ed551a8` and awaits independent
-review plus the required local `1.12.0-13` installer smoke. No legacy S4 overlay
-owner remains. **S5 stays closed until that installed smoke passes.** N6
+native Settings/Recovery code at `ed551a8` is independently CODE ACCEPTED at
+`acdcf2b`. The required local `1.12.0-13` installer now exists; coach smoke is
+pending. No legacy S4 overlay owner remains. **S4 remains unaccepted and S5 stays
+closed until that installed smoke passes.** N6
 (popover) is now
 implemented; the native More menu, Import Plays sheet, and Keyboard Shortcuts
 dialog have replaced their legacy owners.

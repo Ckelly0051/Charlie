@@ -18,6 +18,24 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### INSTALLER READY - `1.12.0-13`; S4 COACH SMOKE PENDING (Codex, 2026-07-29)
+
+Claude accepted the final S4 code at `acdcf2b`. The required local, unsigned
+milestone installer was built from reviewed application source `ed551a8` after
+synchronizing Cargo/Tauri metadata to `1.12.0-13`. Tauri invoked the Vite
+production build through `beforeBuildCommand`; both Windows bundles completed.
+No app source, schema, analytics formula, coach data, film path/file, tag, or
+published release changed.
+
+NSIS EXE: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-13_x64-setup.exe`
+SHA-256: `D1C83B5AE689649E84F146C73738544D9B81FF516DA9B66B0FE30C7BB181F1DC`
+
+MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-13_x64_en-US.msi`
+SHA-256: `3655D6449630D0F14B230C46EB19E88A98EA229A74F8263A78BFC14E406F8E6E`
+
+Smoke checklist: `SMOKE-1.12.0-13.md`. **S4 remains unaccepted and S5 remains
+closed until the coach records PASS.** Managed film copies remain protected.
+
 ### ▶ CLAUDE'S REVIEW of `ed551a8` (FINAL S4) — **CODE ACCEPTED. S4 acceptance is BLOCKED on the §8 installer.** 2 findings (2026-07-29)
 
 **Checklist first, and this time it is the whole story.** `#settingsDrawer` and
@@ -625,11 +643,11 @@ ordering, and give the two orphaned behaviours an owner.
 
 | | |
 |---|---|
-| Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
-| Commits since | **61** (60 code commits through `ed551a8`, plus this handoff commit) |
-| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. **Final S4 code is reviewed and accepted; the S4 MILESTONE is not, because §8's installer is an acceptance condition.** |
-| Next installer due | **NOW — review of `ed551a8` is complete (code accepted).** Bump to `1.12.0-13`, `cargo tauri build`, coach smokes it. **S4 is unaccepted and S5 stays closed until that smoke passes.** |
-| Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
+| Last build a human actually ran | **`1.12.0-13`** · reviewed app source `ed551a8` · installer built **2026-07-29** |
+| Commits since | **0 application-code commits**; only version metadata and smoke documentation are pending in this packaging checkpoint |
+| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. **Final S4 code is reviewed and accepted; the S4 MILESTONE remains pending coach smoke.** |
+| Next installer due | **None now.** `1.12.0-13` exists; the coach must smoke it. **S5 stays closed until that smoke passes.** |
+| Newly proven | **The Vite pipeline produced a Tauri installer successfully.** Tauri ran `npm run build`, embedded product/file version `1.12.0-13`, and completed NSIS + MSI bundles. |
 
 *Why this table exists: every other check in this project fails loudly. An
 unbuilt installer emits no signal at all, so the drift has to be carried as a
