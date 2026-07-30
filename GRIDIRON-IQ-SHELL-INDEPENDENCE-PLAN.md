@@ -29,6 +29,17 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**`1.12.0-14` · 2026-07-30 · Codex · replacement installer built; Reports-first smoke pending**
+
+- Claude accepted the S4g findings closure at `ba33572`.
+- One unsigned NSIS/MSI replacement was built from reviewed bytes; hashes and the
+  stop-on-failure checklist are in `SMOKE-1.12.0-14.md`.
+- Reports is Gate 1, followed by linked-film truth and S4 essentials. S4 remains
+  unaccepted and S5 closed until the coach records PASS.
+- No tag, publication, managed-film deletion, or data migration occurred.
+- `S4h-1` is carried as a nonblocking next-batch presentation fix: split neutral
+  no-data styling from danger failure styling and assert computed tone.
+
 **S4g findings closure / `1.12.0-14` stamp · 2026-07-30 · Codex · awaiting independent review**
 
 - Claude accepted `e911b97`; S4g-1 and S4g-2 are closed before packaging.

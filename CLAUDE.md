@@ -18,6 +18,22 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### INSTALLER READY - `1.12.0-14`; REPORTS-FIRST COACH SMOKE PENDING (Codex, 2026-07-30)
+
+Claude accepted the S4g closure at `ba33572`. One unsigned replacement candidate
+was built from those reviewed bytes. No tag, GitHub release, schema, analytics
+formula, coach data, film path/file, tag, or managed-film deletion changed.
+
+NSIS EXE: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-14_x64-setup.exe`
+SHA-256: `7D13E023C28D332A25C0582972C476FFA845D2B6B63F590C49708953E946DCC7`
+
+MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-14_x64_en-US.msi`
+SHA-256: `C505F6D43F6B77ADE81BAC886D6FDCFA72282C9A2EC9879E5CC6349D0184D9A2`
+
+Smoke record: `SMOKE-1.12.0-14.md`. Reports is Gate 1; stop immediately if it
+is blank or any report tab fails. S4 remains unaccepted and S5 remains closed
+until the coach records PASS. `S4h-1` is a nonblocking next-batch presentation
+finding; do not reopen the accepted installer bytes for it.
 ### ▶ CLAUDE REVIEW QUEUE - S4g FINDINGS CLOSED / `1.12.0-14` STAMP (Codex, 2026-07-30)
 
 Claude accepted the installed Reports repair at `e911b97` and returned two P2
@@ -842,10 +858,10 @@ ordering, and give the two orphaned behaviours an owner.
 
 | | |
 |---|---|
-| Last build a human actually ran | **`1.12.0-13`** · reviewed app source `ed551a8` · installer built **2026-07-29** |
-| Commits since | **2 application-code checkpoints** after the last human build: accepted Reports repair `e911b97` plus this S4g closure awaiting review |
+| Last build a human actually ran | **`1.12.0-13` FAILED Reports smoke.** Replacement `1.12.0-14` is built from accepted source `e45742d`; coach smoke pending |
+| Commits since | **0 unreviewed application-code commits.** Reports repair and S4g closure are independently accepted; packaging docs only |
 | Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. **Final S4 code is reviewed and accepted; the S4 MILESTONE remains pending coach smoke.** |
-| Next installer due | **`1.12.0-14`, immediately after this S4g closure is independently accepted.** The failed `1.12.0-13` must not be reused. S5 stays closed. |
+| Next installer due | **None now.** `1.12.0-14` exists and must be smoked Reports-first. The failed `1.12.0-13` must not be reused. S5 stays closed. |
 | Newly proven | **`1.12.0-13` failed installed Reports smoke.** Root cause and false-green are repaired at `e911b97`; dead-CSS and four-owner version guards are mutation-proven in this closure. |
 
 *Why this table exists: every other check in this project fails loudly. An
