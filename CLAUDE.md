@@ -18,6 +18,29 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### INSTALLER READY - `1.12.0-15`; REPORTS-FIRST COACH SMOKE PENDING (Codex, 2026-07-30)
+
+Claude independently accepted the S4h installed Reports lifecycle repair at
+`524b00b`. Version owners were stamped and validated at `32e05a6`, then one
+unsigned NSIS/MSI candidate was built from that exact commit. No tag, GitHub
+release, schema, analytics formula, coach data, film path/file, catalog, or
+managed-film deletion changed.
+
+NSIS EXE: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-15_x64-setup.exe`
+SHA-256: `57C8A9222AFE35E166F7B129ED93BEDFF585AC4EDAFBC12F6016DC2EC669E566`
+
+MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-15_x64_en-US.msi`
+SHA-256: `101465828EA7D723DDD366757C223380549D6BE79BC845130B60A872A9A6B16D`
+
+Smoke record: `SMOKE-1.12.0-15.md`. Reports is Gate 1: Home -> Reports, then
+linked game -> film auto-load -> Reports, then another linked game -> Reports.
+Stop immediately on any blank or hidden report. S4 remains unaccepted and S5
+closed until the coach records PASS. `1.12.0-14` remains failed and must not be
+reused.
+
+Claude's accepted P2 `F1` (dismissed Wizard still runs a now-safe side effect) is
+carried to the next reviewed code batch/S7 deletion. It was intentionally not
+added after review to these installer bytes.
 ### ▶ CLAUDE REVIEW QUEUE - S4h INSTALLED REPORTS LIFECYCLE REPAIR (Codex, 2026-07-30)
 
 The installed `1.12.0-14` coach smoke **FAILED Gate 1**. Reports contained the

@@ -29,6 +29,20 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**`1.12.0-15` · 2026-07-30 · Codex · replacement installer built; Reports-first smoke pending**
+
+- Claude independently accepted the installed lifecycle repair at `524b00b`.
+- Four version owners were stamped at `32e05a6`; P0 exit 17/17, beta config 3/3,
+  native Reports 21/21, and `cargo check` are green.
+- One unsigned NSIS/MSI candidate was built from `32e05a6`; hashes and the
+  stop-first checklist are in `SMOKE-1.12.0-15.md`.
+- S4 remains unaccepted and S5 closed until the coach passes Reports after linked
+  film auto-load, then completes the wider milestone smoke.
+- Accepted P2 `F1` remains carried: the dismissed Wizard receives events and runs
+  a now-safe side effect. Fix it in the next reviewed code batch or delete the
+  Wizard in S7; do not alter accepted installer bytes.
+- No tag, publication, data migration, catalog rewrite, film move/copy/delete, or
+  managed-film deletion occurred. `1.12.0-14` remains failed evidence only.
 **S4h installed lifecycle repair · 2026-07-30 · Codex · awaiting independent review**
 
 - `1.12.0-14` failed Reports Gate 1 and must not be reused. Linked film auto-load
