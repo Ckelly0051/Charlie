@@ -18,6 +18,110 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ▶ CLAUDE'S REVIEW of `ed551a8` (FINAL S4) — **CODE ACCEPTED. S4 acceptance is BLOCKED on the §8 installer.** 2 findings (2026-07-29)
+
+**Checklist first, and this time it is the whole story.** `#settingsDrawer` and
+`#drawerScrim` are gone; `audit-shell-deps` reports `settingsDrawer absent`. So
+**S4 is code-complete — which is exactly the milestone §8 names.** Per the plan's
+own words, *"a milestone that §8 names is not accepted until its installer exists
+and the coach has smoked it."* The code is good; **S4 is not accepted yet.** Next
+action is mine: bump to `1.12.0-13`, `cargo tauri build`, coach smoke. S5 stays
+closed. Drift: **61 commits** past `deeb8ba`.
+
+**Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
+green | 0 skipped | 0 failed** — real data included (`e2e-realdata` 13/13, not
+the CI-skipped path).
+
+**Deletion is real, not hiding.** `settingsDrawer`, `drawerScrim`, `bottom-tabs`,
+`tagLibraryDialog`: **0 occurrences across `index.html`, `js/` and `css/`.**
+`css/tag-library-settings.css` is deleted outright and dropped from `build.sh`,
+with no dangling `<link>`. 381 lines out of the markup.
+
+**A nit I filed at S1 is finally closed, and correctly.** `ui-polish.js`'s mobile
+`MutationObserver` on `#statsDashboard` — which after S1's id transfer was
+watching *native route DOM* — is gone with the whole legacy bottom bar. That was
+"comment now, delete in S4/S7." It got deleted.
+
+**S4e-1 is closed the better way — restored, not retired.**
+`SeasonManager.exportHtml()` is genuine season scope: `_effectiveGames()` +
+`statsHtml()`, escaped title, game count in the header. It is now a **critical**
+inventory id (`reports.season-html`), not an existence check.
+
+**The read-only sweep went past the one defect I found.** S4-e fixed
+`_effectiveGames()`; this commit also drops `commitActive()` from
+`_matchupData()` and `_allSeasonGames()` — the same hidden write on two more read
+paths. That is the container sweep done right on that defect.
+
+**Recovery's fail-closed claim is real; I traced the ordering rather than taking
+it.** `SeasonStore.restoreBackup` now refuses to proceed without a safety
+snapshot id, `await`s `persist()`, and restores the prior `this.data` on failure;
+`StorageManager.restoreBackup` only calls `_clearForNewGame()`/`_loadActiveGame()`
+**after** a truthy result, so a failed save leaves the live editor untouched.
+`VersionManager.restore` captures `prior = _serialize()` and re-deserializes +
+re-commits + resets history on a failed persist. Both directions are right.
+
+**`PlayFilter` got better, not just moved.** `snapshot()`/`setCriteria()` make it
+DOM-independent; the class no longer reads `#filterQuarter` et al. at all.
+
+**S4f-1 [P2] The local CV server can no longer be turned on — and the inventory
+entry that named it was deleted rather than re-homed.** `app.js:1212`, inside the
+`#backendStatusBadge` click handler, is the **only** `backend.setEnabled(true)`
+call site in the app ("Clicking the badge opts into the local CV server. Until
+then we never touch the network"). `_mountChrome()` no longer relocates that
+badge anywhere. **Probed, not reasoned:** with a season open and Break Down
+loaded, `#backendStatusBadge` is `0×0`, `offsetParent:null`, inside a hidden
+ancestor, inside `#wsClassicOutlet` — while `#btnAutoDetect` is genuinely **live
+(439×28, no hidden ancestor)**. So auto-detect still runs and is now permanently
+pinned to in-browser heuristics for any coach who installs the companion server.
+`backend.enabled` is `false` with no reachable way to change it.
+
+The demotion of the badge is **deliberate and encoded** — the new assertion
+asserts `!badgeClosed` and `optionalStatusNotPrime`, and the native Analysis tab
+surfaces `profile.status` read from that hidden node. Status was preserved. **The
+action was not**, and the entry that covered it —
+`settings.advanced-bridge`: *"preserves the unmigrated drawer tools **and
+CV-server status**"* — is gone, replaced by `settings.analysis`, which is the
+API-key half only. The badge's own offline tooltip still reads *"requires the
+companion server. See Settings → Setup."* — pointing at a place that no longer
+offers it.
+
+Optional feature, separate manual Python install, so P2 not P1. But it had a
+reachable owner at `9aebbab` (drawer head, with a permanent assertion checking
+its box landed in the viewport) and has none now. Put a "Use local CV server"
+control in the Analysis tab — it already reads that status — or retire the
+local-server integration in writing. **This is the same container-sweep shape as
+my own S3 miss:** the drawer's other tools (Undo/Redo/Shortcuts) were correctly
+re-homed into the mobile More popover; the badge is the one item in that
+container that wasn't.
+
+**S4f-2 [P2, coverage only] `e2e-workspace-shell` 63 → 61, and one removal is the
+S4-b mobile toast guard.** The two lost assertions:
+- *"Relocated controls ignore the classic bar's unscoped width rules"* — the
+  Shortcuts half survives in the replacement; the badge half is moot now.
+  Correct removal.
+- *"Mobile notifications do not cover the live Shortcuts launcher"* — **gone with
+  no owner.** The replacement (*"Mobile More keeps Undo, Redo, and Shortcuts
+  touch-reachable"*) checks presence, 44px and drawer-absence, with **no toast on
+  screen and no hit test.** `elementFromPoint` now survives only at
+  `e2e-study-screen.mjs:133` — the desktop Save-to-Plan case.
+
+**The behaviour is intact and I checked before filing:** `native-overlay.css:52`
+puts the mobile stack at `bottom:72px`, clearing the 62px `.ws-mobile-nav`. So
+this is a **coverage regression, not a behaviour regression** — same shape as R2
+in my S4-c review. That guarantee was found by a real gate failure at S4-b (a
+toast ate the next tap); it should not lose its last mobile assertion silently.
+
+**Observation — the native Analysis save path writes through hidden legacy inputs
+that S7 deletes, and it will fail silently.** `settings-screen.saveAnalysis()`
+sets `#gameApiKey`.value, calls `app._saveApiKey()`, and dispatches `change` on
+`#gameAiModel`. Both inputs live inside `#app`. Guarded by `if (keyEl)` and `?.`,
+so after S7 it becomes a **no-op that still toasts "Analysis preferences
+saved."** Not reachable today — a dated landmine, same silent-drop class as
+P0-c and S4b's `_toast` returning `null`. Give S7 the note now.
+
+**No analytics formula, persistence schema, coach data, film file, package, tag or
+release changed.** Managed C: film copies remain protected.
+
 ### ▶ CLAUDE REVIEW QUEUE — FINAL S4 native Settings + Recovery `ed551a8` (Codex, 2026-07-29)
 
 **Builder: Codex. Review range: `f9247c0..ed551a8` on the canonical
@@ -523,8 +627,8 @@ ordering, and give the two orphaned behaviours an owner.
 |---|---|
 | Last build a human actually ran | **`1.12.0-12`** · source `deeb8ba` · installer built **2026-07-25** |
 | Commits since | **61** (60 code commits through `ed551a8`, plus this handoff commit) |
-| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e |
-| Next installer due | **NOW, after independent review of `ed551a8`** — S4 code is complete; bump to `1.12.0-13`, `cargo tauri build`, coach smokes it before S5 |
+| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. **Final S4 code is reviewed and accepted; the S4 MILESTONE is not, because §8's installer is an acceptance condition.** |
+| Next installer due | **NOW — review of `ed551a8` is complete (code accepted).** Bump to `1.12.0-13`, `cargo tauri build`, coach smokes it. **S4 is unaccepted and S5 stays closed until that smoke passes.** |
 | Never yet proven | **No Tauri installer has ever been produced from the Vite pipeline.** Every installer on disk predates it (Vite landed `cf9955a`, 07-27; newest bundle 07-25). |
 
 *Why this table exists: every other check in this project fails loudly. An
