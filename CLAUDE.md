@@ -18,6 +18,39 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### CODEX REVIEW QUEUE - S5a PREFLIGHT CLOSED (`839aee7`, 2026-07-31)
+
+Codex re-reviewed Claude's `db0072d`. The four requested corrections are
+substantively accepted. Two stale binding-plan lines were repaired in this
+checkpoint: UX-1 now requires the same three-stage comparison as the design
+audit (fallback/transcode truth alone cannot pass), and the historical unnamed
+`K = Kick/Punt` deferral now points explicitly to S5c. No stored `Kick/Punt`
+value was changed or counted.
+
+**Dismissed wizard:** `Wizard.goTo()` now returns before changing state or
+running side effects when the wizard is dismissed. The focused regression sets
+the real wizard to dismissed, emits `video-loaded`, and requires step 1 to stay
+step 1 with zero `hideDashboard()` calls. Failing-first proof on the old code:
+step advanced 1 -> 2 and one side effect ran. Fixed native Reports: **21/21**.
+
+**UX-1 measured on installed `1.12.0-15`: DISPLAY SCALING, not decode.** A real
+linked Holy Family HEVC clip loaded directly from `D:` at 1920 x 1080 and about
+13.58 Mbps. The installed video decoded at the full 1920 x 1080, GPU video
+decode/compositing were enabled, and playback reported zero dropped/corrupt
+frames. Direct-source versus installed-intrinsic mean difference was 3.061/255;
+the installed intrinsic frame was not softer. The normal 1400 x 900 workspace
+showed only 1060 x 596 picture pixels (**30.47%** of source pixels); maximized it
+showed about **45.6%**. Existing full screen reaches roughly 1920 x 1079.
+Therefore S5a must reclaim ordinary-workspace video area and avoid fractional
+resampling; it must not change codecs, linked storage, or source film. Full
+measurements are in `GRIDIRON-IQ-DESIGN-AUDIT.md`; captures remain local and
+untracked because they contain team film.
+
+Full canonical gate: **74/74 green, 0 skipped, 0 failed**. No season/play/tag,
+analytics formula, film path/file, catalog, package, tag, or release changed.
+**Next:** Claude independently reviews `839aee7`; after acceptance Codex builds
+the internal native S5a video + compact play strip. S5d remains closed.
+
 ### COACH SMOKE PASS - S4 ACCEPTED; S5 OPEN (2026-07-30)
 
 The coach completed the installed `1.12.0-15` checklist and reported no
