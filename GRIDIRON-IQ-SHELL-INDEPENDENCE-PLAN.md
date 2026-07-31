@@ -645,8 +645,12 @@ Each item below is a contract or coverage gap, not an implementation task.
    `gamePerspective` carries the documented scout-mode / charting-unit / game-
    metadata conflation (closeout P1-3), and `gameDirection` is the offense-
    perspective side convention every Left/Right analytic depends on
-   (`strength`, `playDir`, `hash`). Contract their ownership and lifecycle
-   before building, the way Team Hub and overlays were contracted.
+   (`strength`, `playDir`, `hash`). **Owners are now assigned in the table
+   below**; what remains is contracting their *lifecycle* — initial value on
+   game open, behavior on game switch and reload, per-game vs per-session, and
+   the rule that a context control never writes game metadata as a side effect
+   (closeout Lane C). Contract that before building, the way Team Hub and
+   overlays were contracted.
 
 3. **[before S5a] The retired wizard still fires on the S5a surface.**
    `wizard.js` remains live in `#app` (`.wizard-bar`) and `goTo()` runs
@@ -658,14 +662,28 @@ Each item below is a contract or coverage gap, not an implementation task.
 
 4. **[before S5c] The multi-select collapse rule is still unvalidated.** §12
    finding 9 requires validating it "on a realistic 20-play charting session
-   before S5c." Unstarted and unassigned. Break Down's own direction says
-   nothing may compete with charting speed; this is that check.
+   before S5c." Break Down's own direction says nothing may compete with
+   charting speed; this is that check. **Now assigned (see table): Codex
+   performs and records the session before the S5c handoff, Claude reviews the
+   record, and the coach spot-checks it in the S5d installer** — the only one of
+   the three who charts for real.
 
-5. **[S5 needs a football-semantics home] `K = Kick/Punt` has no owner.** It is
-   recorded as deferred "to the S5 football-semantics pass", but S5's definition
-   is a/b/c/d with no such pass. Either name it (S5c is the natural home, since
-   it owns the tag form) or move it to S6 explicitly. A deferral with no
-   sub-milestone is how the season-export capability went unreachable at S3.
+5. **[S5c owns this] `K = Kick/Punt` is a live data bug, not a pending semantics
+   decision.** Verified in source: `quick-chart.js:235` maps `'K': 'Kick/Punt'`
+   and writes it to `tags.playType`, and the string **`Kick/Punt` appears in no
+   chip list, no `TagLibrary` definition, and no analytics-registry vocabulary**
+   (`index.html`, `play-tagger.js`, `tag-library.js`, `analytics-registry.js`:
+   0 occurrences each). It is a write-only orphan: neither a valid structured
+   Special Teams type nor a usable offensive play type, and every Quick Chart
+   `K` press has been minting it. **S5c must:**
+   - **stop writing `Kick/Punt`**;
+   - **not migrate or clear existing stored values without the coach's explicit
+     confirmation immediately beforehand** (standing known-bad-data rule) —
+     exposure is unmeasured on the review machine, which has no season mirror,
+     so the affected-play count must come from the coach's real data first;
+   - **either design structured Special Teams input for Quick Chart, or remove
+     the `K` shortcut until that exists.** Leaving a shortcut that produces a
+     value nothing consumes is the worse of the two.
 
 6. **[before S5a implementation decisions] UX-1 needs a falsifiable output.**
    The design audit correctly requires measuring before restyling. Make the
@@ -676,6 +694,21 @@ Each item below is a contract or coverage gap, not an implementation task.
    cannot reproduce WebView2 softness, so this belongs to the installed build;
    `object-fit: contain` is already correct in source, so CSS is not the
    presumed cause.
+
+**Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
+
+| Item | Owner in S5 |
+|---|---|
+| `gamePerspective` | **Shared Break Down context header** |
+| `gameDirection` | **Game-level settings/context control, visible from Break Down** |
+| Play diagram | **Preserved in advanced tagging**; persistence and the Call Sheet thumbnail are pinned by assertion |
+| Scoreboard OCR | **Preserved** unless the coach explicitly approves retirement |
+| Templates + Same-as-Last | **Native tagging action row** |
+| 20-play multi-select validation | **Codex performs and records it before the S5c handoff; Claude reviews; the coach spot-checks it in the S5d installer** |
+
+Preserve means preserve: none of these may be dropped as a design
+simplification. Retiring any of them requires the coach's explicit approval in
+writing, recorded here — silence is not a decision (S3's season export).
 
 ### 3.1 P0 exit gate — all required before S1 opens
 
@@ -781,16 +814,25 @@ capability goes on an explicit list for coach approval **before** the milestone 
   (`Open data folder`, `Check for updates`) that were just rewired to native
   popover handlers and that **no headless harness can reach**.
 - One clean versioned smoke build after the complete migration is accepted.
-- **S5d rollback rule (added 2026-07-30, Claude's S5 readiness audit).** §4 bars
-  a user-reachable half-migrated route, and §8 already requires an installer
-  *before* S5d — but nothing said what happens when that smoke **fails**. S4
-  needed three attempts (`1.12.0-13`, `-14`, `-15`), so this is the normal case,
-  not the exception. **A failed S5 smoke is repaired forward on the branch and
-  re-smoked; the ownership flip is not landed until a smoke passes.** The failed
-  artifact is recorded FAILED in its own `SMOKE-*.md` and must not be reused.
-  Because S5a–c are cheaply reversible and S5d is not, **S5d stays a separate
-  commit from S5a–c** so a revert of the flip cannot take the film, strip, grid
-  and tag-form work with it.
+- **S5d landing sequence and rollback (added 2026-07-30; corrected by the coach
+  the same day — the first draft was self-contradictory, saying S5d could not
+  land until a smoke passed when the flip must exist before it can be smoked).**
+  §4 bars a user-reachable half-migrated route, and §8 requires an installer
+  before S5d. S4 needed three attempts (`1.12.0-13`, `-14`, `-15`), so a failed
+  smoke is the normal case. **Exact sequence:**
+  1. **S5a–c stay internal and reviewed** — built alongside, not user-reachable.
+  2. **S5d is one isolated candidate commit** containing only the ownership flip,
+     so reverting it cannot take the film, strip, grid and tag-form work with it.
+  3. **Claude reviews that commit.**
+  4. **Build and smoke immediately** — no gap in which other work lands on top.
+  5. **No downstream work begins** until the smoke is recorded.
+  6. **If film, data, or route usability fails → revert S5d to the accepted S5c
+     baseline.** Not repair-forward: an unusable charting route is not a state to
+     iterate on top of.
+  7. **Minor non-destructive issues may be repaired forward** — only while the
+     route remains usable.
+  8. **S5d is accepted only after the installed smoke passes.** The failed
+     artifact is recorded FAILED in its own `SMOKE-*.md` and must not be reused.
 
 ---
 

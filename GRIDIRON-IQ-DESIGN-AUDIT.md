@@ -61,21 +61,42 @@ because they merely look plausible.
 
 Six contract/coverage gaps are recorded in `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md`
 **§3.2 S5 structural preflight** and are blocking at the sub-milestone each names.
-They are design-relevant because two of them decide what Break Down must still
-contain: **scoreboard OCR and the play diagram have zero harness coverage and
-zero inventory entries**, and `gamePerspective`/`gameDirection` have no named S5
-owner. Do not treat an absent control as a design simplification until §3.2 item
-1 or 2 has explicitly retired it in writing.
+They are design-relevant because they decide what Break Down must still contain:
+**scoreboard OCR and the play diagram have zero harness coverage and zero
+inventory entries**, and `Kick/Punt` is a live data bug rather than a pending
+decision. **Ownership is now assigned in plan §3.2** — perspective to the shared
+Break Down context header, direction to a game-level context control, diagram to
+advanced tagging, templates and Same-as-Last to the native tagging action row,
+OCR preserved. **Preserve means preserve: do not treat an absent control as a
+design simplification.** Retiring any of them takes the coach's explicit written
+approval, recorded in the plan.
 
 ### UX-1 - Video fidelity / softness (P1)
 
 Real linked 1080p/4K phone film looks noticeably soft in the installed player.
 Aspect ratio appears correct; detail fidelity does not. Before changing CSS,
-compare the same frame from the original D: file and WebView2 playback. Record
-source codec/resolution/bitrate, `videoWidth`/`videoHeight`, rendered dimensions,
-device pixel ratio, WebView zoom, GPU state, asset URL, and hashes/path truth.
-Prove there is no managed fallback or transcode. This investigation is a direct
-input to S5-a's native video/strip implementation.
+compare the same frame from the original D: file and WebView2 playback.
+
+**Corrected 2026-07-30 (coach): proving "no transcode, no managed fallback" does
+not prove the picture is sharp.** Path truth is necessary and not sufficient —
+it rules out one cause and leaves decode and rendering untested. The test is a
+**three-stage comparison of one exact paused frame**:
+
+1. the frame **decoded directly from the D: source file**;
+2. the frame **captured from the `<video>` element at `videoWidth × videoHeight`**
+   (intrinsic, before any layout scaling);
+3. a **lossless installed-app screenshot at rendered size**.
+
+Record alongside it: source dimensions, bitrate and codec; asset path; intrinsic
+video dimensions; CSS **and** device-pixel dimensions; WebView zoom; and GPU
+state. **The result must state explicitly where degradation occurs — decode,
+WebView rendering, or display scaling.** "Looks softer" is not an outcome; a
+named stage is. 1 vs 2 isolates decode; 2 vs 3 isolates rendering and scaling.
+
+Note that `object-fit: contain` is already correct in source and headless
+Chromium cannot reproduce WebView2 behavior, so this belongs to the installed
+build. This investigation is a direct input to S5-a's native video/strip
+implementation.
 
 ### UX-2 - Universal game context control (P1)
 
