@@ -96,6 +96,7 @@ export class Wizard {
 
   // ---------- Public API ----------
   goTo(step) {
+    if (this.dismissed) return;
     this.currentStep = Math.max(1, Math.min(5, step));
     this._render();
     this._runStepSideEffects();

@@ -98,6 +98,39 @@ Chromium cannot reproduce WebView2 behavior, so this belongs to the installed
 build. This investigation is a direct input to S5-a's native video/strip
 implementation.
 
+**Measured 2026-07-31 - installed `1.12.0-15`, result: DISPLAY SCALING.**
+No coach data or film bytes were changed. The test used Holy Family clip
+`D:\Football\Film\Holy Family\20251011_140212.mp4` at exactly 2.000 seconds.
+Temporary frame captures remain local and untracked because they contain team
+film.
+
+- Source: HEVC `hvc1`, 1920 x 1080, 22,733,339 bytes, 13.397125 seconds,
+  approximately 13.58 Mbps total container bitrate.
+- Path truth: the installed player loaded
+  `http://asset.localhost/D%3A%5CFootball%5CFilm%5CHoly%20Family%5C20251011_140212.mp4`.
+  The game is `filmMode: linked`, `filmDir: Holy Family`. No managed C: fallback
+  and no transcode participated.
+- Decode: installed `videoWidth x videoHeight` was exactly 1920 x 1080. The
+  direct-source and installed intrinsic PNGs differed by mean 3.061/255
+  (RMS 3.530), while intrinsic edge variance was slightly higher than direct
+  source (1254 vs 1217). Playback reported 0 dropped and 0 corrupted frames.
+  **Decode is not the softness source.**
+- Default 1400 x 900 app window: the element was 1059.625 x 620.359 CSS px;
+  contained picture was 1060 x 596 device px at DPR 1 / zoom 1. Only **30.47%**
+  of source pixels reached the working view.
+- Maximized 1920 x 1009 app viewport: the element was 1338 x 729.359; contained
+  picture is approximately 1297 x 729, or **45.6%** of source pixels.
+- GPU: AMD Radeon RX 7600, D3D11/ANGLE; GPU compositing, rasterization and video
+  decode all enabled. This is not a software-rendering fallback.
+- Existing full-screen mode reaches approximately 1920 x 1079, close to 1:1,
+  proving the installed pipeline can present the source sharply when layout
+  gives it the pixels.
+
+**S5a implication:** increase the ordinary theater's video pixel budget, keep
+controls and the play strip compact, preserve an obvious full-screen mode, and
+avoid fractional or one-pixel full-screen resampling. Do not alter codecs,
+linked-film storage, or source files; the primary defect is workspace geometry.
+
 ### UX-2 - Universal game context control (P1)
 
 The left rail is universal navigation, so game context must be switchable from

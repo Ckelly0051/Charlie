@@ -193,8 +193,10 @@ names before building.*
 - Final canonical gate **72/72 green, 0 skipped, 0 failed**. No schema,
   analytics formula, film path/file, migration, package, tag, or release
   changed. S4-d is not accepted until Claude independently reviews `bbaedf3`.
-- `K = Kick/Punt` is explicitly deferred to the S5 football-semantics pass; the
-  structural migration does not bless that legacy Special Teams value.
+- At this checkpoint, `K = Kick/Punt` was deferred to a then-unnamed S5
+  football-semantics pass. **Superseded by section 3.2 item 5:** S5c now owns
+  stopping that invalid future write; existing stored values remain untouched
+  without the coach's explicit confirmation.
 **`714c372` · 2026-07-29 · Codex · S4-c REPAIRED — awaiting re-review**
 
 - Claude returned `fa06917`: modal focus could win the race before route
@@ -686,14 +688,17 @@ Each item below is a contract or coverage gap, not an implementation task.
      value nothing consumes is the worse of the two.
 
 6. **[before S5a implementation decisions] UX-1 needs a falsifiable output.**
-   The design audit correctly requires measuring before restyling. Make the
-   deliverable a recorded comparison — source codec/resolution/bitrate,
-   `videoWidth`/`videoHeight`, rendered CSS box, `devicePixelRatio`, WebView
-   zoom, asset URL and path truth — with an explicit **pass/fail** statement on
-   whether a managed-copy fallback or transcode is involved. Headless Chromium
-   cannot reproduce WebView2 softness, so this belongs to the installed build;
-   `object-fit: contain` is already correct in source, so CSS is not the
-   presumed cause.
+   The design audit correctly requires measuring before restyling.
+   The binding deliverable compares the same exact paused frame at three stages:
+   1. decoded directly from the D: source file;
+   2. captured from the installed app video at intrinsic dimensions;
+   3. captured losslessly from the installed window at rendered size.
+   Record codec, bitrate, asset path, intrinsic/CSS/device-pixel dimensions,
+   device pixel ratio, WebView zoom, and GPU state. Name the degradation stage:
+   source/decode, WebView rendering, or display scaling. Also rule in or out a
+   managed-copy fallback or transcode, but those checks alone cannot pass UX-1.
+   Headless Chromium cannot reproduce WebView2 softness; this belongs to the
+   installed build. Existing `object-fit: contain` is not the presumed cause.
 
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 

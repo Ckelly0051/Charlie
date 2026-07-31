@@ -130,14 +130,24 @@ ok(result.failureTone?.width !== '0px' && result.failureTone?.background !== res
 result = await page.evaluate(async () => {
   const app = window.app;
   await app.workspaceShell.show('home');
+  app.wizard.setDismissed(true);
   app.wizard.currentStep = 1;
+  let sideEffects = 0;
+  const originalHideDashboard = app.stats.hideDashboard;
+  app.stats.hideDashboard = (...args) => {
+    sideEffects += 1;
+    return originalHideDashboard.apply(app.stats, args);
+  };
   app.vc._emit('video-loaded', { duration: 600 });
+  app.stats.hideDashboard = originalHideDashboard;
   const native = document.querySelector('#wsReports [data-native-reports]');
   const hiddenAfterLoad = native?.classList.contains('hidden');
   const nav = await app.workspaceShell.show('reports');
   const rect = native?.getBoundingClientRect();
   return {
     nav: nav.ok,
+    wizardStep: app.wizard.currentStep,
+    sideEffects,
     hiddenAfterLoad,
     hiddenAfterReports: native?.classList.contains('hidden'),
     width: Math.round(rect?.width || 0),
@@ -145,9 +155,10 @@ result = await page.evaluate(async () => {
     textLength: document.querySelector('[data-native-report-content]')?.textContent.trim().length || 0,
   };
 });
-ok(result.nav && !result.hiddenAfterLoad && !result.hiddenAfterReports
+ok(result.nav && result.wizardStep === 1 && result.sideEffects === 0
+  && !result.hiddenAfterLoad && !result.hiddenAfterReports
   && result.width > 0 && result.height > 0 && result.textLength > 0,
-  'Home linked-film auto-load cannot hide the native Reports owner', JSON.stringify(result));
+  'Dismissed wizard ignores linked-film video-load events and cannot hide native Reports', JSON.stringify(result));
 await capture('desktop-overview');
 
 console.log('\n== 2. Every self report is reachable without changing season data ==');
