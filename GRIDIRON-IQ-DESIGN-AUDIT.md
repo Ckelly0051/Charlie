@@ -126,6 +126,20 @@ film.
   proving the installed pipeline can present the source sharply when layout
   gives it the pixels.
 
+**Reviewer additions (Claude, 2026-07-31 — measurement accepted, numbers
+independently re-derived).** Two constraints the record implies but does not
+state:
+
+- **Size the pixel budget against 4K, not the measured 1080p clip.** The
+  complaint named 4K film too. At the same 1060 x 596 working viewport a
+  3840 x 2160 source presents **7.62%** of its pixels versus 30.47% for 1080p.
+  A fix tuned to the Holy Family clip can pass here and still look soft on 4K.
+- **The full-screen reference is 1920 x 1079, not 1:1.** That one-pixel
+  shortfall is a non-integer resample, so the sharpness proof rests on a
+  slightly rescaled frame. Keep the phrasing "close to 1:1"; do not let later
+  handoffs harden it into "1:1 verified". Exact-integer full-screen is an S5a
+  requirement, already listed below.
+
 **S5a implication:** increase the ordinary theater's video pixel budget, keep
 controls and the play strip compact, preserve an obvious full-screen mode, and
 avoid fractional or one-pixel full-screen resampling. Do not alter codecs,

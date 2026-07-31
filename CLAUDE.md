@@ -211,6 +211,69 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `839aee7` (S5a preflight) — **ACCEPTED.** 0 findings; 2 additions to UX-1 (2026-07-31)
+
+**Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
+green | 0 skipped | 0 failed.**
+
+**The wizard guard is placed better than I asked for.** I proposed
+`if (this.dismissed) return;` inside `_runStepSideEffects()`. It landed at the
+top of `goTo()` instead, which also stops `currentStep` from advancing — so a
+dismissed wizard no longer drifts its own state, and a later un-dismiss cannot
+resume at a phantom step. Strictly stronger, same one line.
+
+**Mutation-verified, and the test pins the cause rather than the symptom.**
+Removing the guard reds `Dismissed wizard ignores linked-film video-load events
+and cannot hide native Reports` with `{"wizardStep":2,"sideEffects":1}` — while
+`hiddenAfterLoad:false`, `width:1232`, `height:2117`, `textLength:2391`, i.e.
+**the symptom is now harmless and the assertion still fails.** That is the right
+construction: it holds even though today's side effect is safe, so the next line
+added to `_runStepSideEffects()` cannot quietly re-open the defect. Restored →
+21/21.
+
+**Both stale plan lines are correctly repaired, and one of them was mine.** The
+S4-d revision-log entry now points at §3.2 item 5 instead of contradicting it.
+And §3.2 item 6 still carried my *original* weaker UX-1 text — pass/fail on
+transcode only. I updated the design audit after the coach's correction and left
+the plan's copy behind. Codex replaced it with the three-stage version, so the
+two documents now agree.
+
+**UX-1: the measurement is sound, and I re-derived every number rather than
+reading them.** `1060 × 596 / (1920 × 1080)` = **30.47%** ✓. `1297 × 729` =
+**45.6%** ✓. `22,733,339 bytes × 8 / 13.397125 s` = **13.575 Mbps** ✓. Displayed
+aspect `1060/596` = 1.7785 against source 1.7778 ✓ — consistent with
+`object-fit: contain` letterboxing, not a stretch.
+
+**The strongest line in the record is the edge-variance comparison, and it is
+the right instrument.** Intrinsic edge variance came back *higher* than the
+direct-source frame (1254 vs 1217). That **rules decode out** rather than merely
+failing to detect a problem — a blurred decode cannot gain edge energy. The
+3.061/255 mean difference is consistent with YUV→RGB conversion differing
+between decoders and does not indicate blur; leaning on the mean alone would
+have been inconclusive, and the record does not do that. Combined with
+`videoWidth × videoHeight` at exactly 1920 × 1080, 0 dropped/corrupt frames, GPU
+decode and compositing enabled, and a linked `asset.localhost` D: URL with no
+managed fallback, the isolation is clean. **The full-screen A/B is what closes
+it:** same decode path, same GPU, different geometry, sharp.
+
+**Addition 1 — 4K is unmeasured and is the binding constraint.** The coach's
+complaint named 1080p *and* 4K; the measurement is 1080p only. At the same
+1060 × 596 working viewport a 3840 × 2160 source presents **7.62%** of its
+pixels. The conclusion holds a fortiori, but **S5a's pixel budget must be sized
+against 4K, not against the clip that was measured** — otherwise the fix reads
+as sufficient on Holy Family film and still looks soft on the coach's 4K clips.
+
+**Addition 2 — the "1:1" evidence is 1920 × 1079, a one-pixel shortfall.** That
+is a non-integer resample, so the sharpness proof rests on a frame that is itself
+very slightly rescaled. The record already lists avoiding one-pixel full-screen
+resampling as an S5a requirement, which is the correct response; the phrasing
+should stay "close to 1:1" and must not harden into "1:1 verified" in later
+handoffs.
+
+**Scope is respected:** no codec, linked-film storage, film path, film byte,
+season, tag, package, tag or release changed, and the stated S5a implication is
+workspace geometry only. Managed C: film copies remain protected.
+
 ### ▶ CLAUDE'S REVIEW of `f8c5989` — **ACCEPTED. Reproduced the outage myself.** 1 finding; **the miss that caused it was mine** (2026-07-30)
 
 **Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74
