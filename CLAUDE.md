@@ -259,6 +259,92 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `a0d3f2b` (S5a native theater) — **ACCEPTED.** 1 finding (instrumentation), 2 observations, and the UX-1 numbers re-measured in the real route (2026-08-01)
+
+**Gate: my first run came back RED — 75 harnesses | 74 green | 1 FAILED
+(`e2e-native-overlay`). It did not reproduce.** Standalone 3/3 green; 3/3 green
+under six parallel CPU burners; and a second complete serial run of all 75
+harnesses with full per-harness capture finished **0 failed**. Seven clean
+overlay runs after one red. Recorded, not waved off — the last two times an
+intermittent was called a flake here it was a real bug.
+
+**F1 [P2, instrumentation] I could not identify the failing assertion, and that
+is a defect in my own tooling.** `run-gate.sh:152` prints `tail -40` of a failed
+harness's output. `e2e-native-overlay` emits **42 PASS lines**, so the FAIL line
+scrolls out of the window — the log shows five PASS lines and `41 passed, 1
+failed` with no indication of *what* failed. This is the same evidence-destroying
+mistake I made on 2026-07-25 (`Select-Object -Last 6`), now one layer in, in the
+fix I wrote for it. **Print the matching `FAIL` lines as well as the tail** —
+`grep -E '^\s+FAIL' ` alongside `tail -40`. Until that lands, any red in a
+high-assertion harness is unattributable, which is worse than no red at all.
+
+**The ownership seam is right, and I verified the round trip rather than reading
+it.** `mount()` restores `BreakdownVideo` first, adopts the one canonical
+`#videoContainer`, and on failure returns the media home, unmounts the native
+tree, restores the legacy presentation, then rethrows. I mounted it into the real
+`#wsBreakdown` and restored: the media node came back to `.video-section`,
+still inside the route, `restore()` returned true. `_home` is captured in the
+constructor, which worried me — but `#videoContainer`'s parent is
+`.video-section`, and the workspace relocates that whole subtree as a unit, so
+the captured parent stays valid wherever the section lives. **One `<video>` for
+the film plus the pre-existing unloaded multi-angle second element; one canvas,
+inside the adopted node** — so drawing alignment is preserved by construction
+rather than by re-derivation. The diff is **+804 lines, 0 deletions**, touching
+no domain controller, so S5a is cleanly revertible per §8.
+
+**UX-1 re-measured by me in the real route — the gain is real, and smaller than
+a headline would suggest.** Codex measured with the theater in a body-appended
+host; I measured with it mounted in `#wsBreakdown`, against the legacy path in
+the same window:
+
+| Window | Legacy picture | Native picture | 1080p coverage | 4K coverage |
+|---|---|---|---|---|
+| 1440x900 | 963x542 (**25.2%**) | 1159x652 (**36.4%**) | 60.4% linear | **9.1%** |
+| 1920x1080 | 1338x753 (**48.6%**) | 1479x832 (**59.3%**) | 77.0% linear | **14.8%** |
+
+**That is 1.45x the picture pixels at 1440x900** — substantial, and it meets the
+S5a goal. But state it precisely in the smoke record: at an ordinary window a
+1080p source still renders at **60% linear scale**, and a 4K source at **30%**.
+**UX-1 is improved, not resolved, at ordinary window sizes**, and full screen
+remains the only near-1:1 path. This is exactly the constraint accepted into the
+design audit last checkpoint, now with numbers.
+
+**Where the remaining headroom is.** At 1440x900 a full-bleed 16:9 picture is
+1440x810 = 56.2% of 1080p; the theater delivers 36.4%, i.e. **65% of the
+theoretical maximum**, with the rest spent on transport and the drive strip.
+Both are required S5a deliverables, so that split is defensible — the point is
+that further UX-1 gains must come from **full-screen fidelity and a temporary
+strip collapse**, not from shaving the transport. There is a full-screen command
+but no strip-collapse affordance; consider one before S5d.
+
+**The deliberate deviation is the right call and I want it on the record.**
+Declining to paint synthetic yard lines, hashes, LOS or first-down markers over
+source film is correct: without calibrated field coordinates those overlays would
+sit at invented positions on real evidence and imply precision the app does not
+have. Video is sacred; real drawing tools remain. A reviewer should not let a
+static design reference override that.
+
+**Observation — the theater subscribes to 14 domain events plus two document
+listeners in its constructor and never unsubscribes.** Same shape as the wizard
+defect that produced the `1.12.0-14` outage. It is **safe today**: `_publish()`
+early-returns when unmounted, the screen is constructed once at boot, and
+`_bindDomainEvents` is not re-run by mount/restore, so nothing accumulates. Worth
+naming because **no emitter in this codebase exposes `off()`** — so if S5d ever
+needs true teardown, the missing primitive is a scoped `off()` alongside `on()`,
+which Lane A already scoped as the ceiling for that work. Keep relying on the
+`_mounted` guard deliberately, or add the primitive; do not leave it implicit.
+
+**Observation — the theater harness measures geometry in a body-appended host**,
+which is why its numbers differ from mine (1424x681 vs my 1424x652 media box,
+and 1211x681 vs 1159x652 picture). Not wrong for a component test, but the
+figures that belong in the design audit are the ones measured inside
+`#wsBreakdown`, because that is what the coach sees.
+
+**Scope respected:** no season data, tag, analytics formula, storage path, film
+file, catalog row, package, tag or release changed; zero page errors in my
+probes; no page-level horizontal overflow at either width. Managed C: film copies
+remain protected. **S5b may open.**
+
 ### ▶ CLAUDE'S REVIEW of `839aee7` (S5a preflight) — **ACCEPTED.** 0 findings; 2 additions to UX-1 (2026-07-31)
 
 **Full canonical gate, re-run by me on the committed bytes: 74 harnesses | 74

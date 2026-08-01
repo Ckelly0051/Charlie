@@ -126,6 +126,24 @@ film.
   proving the installed pipeline can present the source sharply when layout
   gives it the pixels.
 
+**S5a result, measured in the real route (Claude, 2026-08-01, `a0d3f2b`).**
+Measured with the theater mounted in `#wsBreakdown`, against the legacy path in
+the same window — not in a body-appended test host:
+
+| Window | Legacy picture | Native picture | 1080p coverage | 4K coverage |
+|---|---|---|---|---|
+| 1440x900 | 963 x 542 (25.2%) | 1159 x 652 (**36.4%**) | 60.4% linear | **9.1%** |
+| 1920x1080 | 1338 x 753 (48.6%) | 1479 x 832 (**59.3%**) | 77.0% linear | **14.8%** |
+
+**1.45x the picture pixels at 1440x900.** The S5a goal is met. **UX-1 is
+improved, not resolved:** at an ordinary window a 1080p source still renders at
+60% linear and a 4K source at 30%, so full screen remains the only near-1:1
+path. Do not record UX-1 as closed on these numbers. Remaining headroom is
+bounded — a full-bleed 16:9 picture at 1440x900 would be 56.2% of 1080p, so the
+theater already delivers 65% of the theoretical maximum, with the balance spent
+on the transport and drive strip. Further gains must come from full-screen
+fidelity and an optional temporary strip collapse, not from shrinking controls.
+
 **Reviewer additions (Claude, 2026-07-31 — measurement accepted, numbers
 independently re-derived).** Two constraints the record implies but does not
 state:
