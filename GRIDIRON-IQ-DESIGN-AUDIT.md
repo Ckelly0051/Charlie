@@ -145,6 +145,22 @@ controls and the play strip compact, preserve an obvious full-screen mode, and
 avoid fractional or one-pixel full-screen resampling. Do not alter codecs,
 linked-film storage, or source files; the primary defect is workspace geometry.
 
+**S5a implementation result (Codex, 2026-08-01; independent review pending).**
+The internal native theater spends the ordinary viewport on film without changing
+the source pipeline: 1211 x 681 contained picture pixels at 1440 x 900 and
+1531 x 861 at 1920 x 1080, compared with the measured legacy 1060 x 596.
+Fullscreen now proves an exact 1920 x 1080 canonical media box, and the drawing
+canvas matches its rendered and device-pixel bounds after reparent/fullscreen.
+The 46px transport, 117px drive strip, and 40px action row remain ordered inside
+the desktop viewport; 390px mobile uses 44px touch targets and internal strip
+scrolling with zero page overflow. Add Angle moved into transport so single-camera
+work does not pay for an empty row.
+
+No synthetic yard grid is painted over real film. The static route card used one
+as visual shorthand, but production has no calibrated screen-to-field mapping;
+drawing it would cover evidence and imply false placement. This follows the
+coach's stronger rule that not one pixel of video should be needlessly covered.
+
 ### UX-2 - Universal game context control (P1)
 
 The left rail is universal navigation, so game context must be switchable from

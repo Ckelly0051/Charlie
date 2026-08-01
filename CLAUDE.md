@@ -18,6 +18,54 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### CODEX BUILD - NATIVE S5a THEATER + STRIP AWAITING CLAUDE REVIEW (2026-08-01)
+
+Codex built the internal native Break Down theater alongside the accepted route.
+It is deliberately not user-reachable yet; S5d remains the isolated ownership
+flip. No installer, tag, release, schema, season/play/tag payload, analytics
+formula, film path/file, catalog row, or managed C: film copy changed.
+
+**Ownership seam:** `BreakdownTheaterScreen` owns native presentation and
+commands while adopting the one canonical `#videoContainer`. Before adoption it
+transactionally restores `BreakdownVideo`, so no legacy controls or strip enter
+the native surface. On exit it returns the media node to its exact home and
+remounts the accepted presentation. A mount failure fails closed by doing the
+same rollback. Playback/decode, clip identity, drawing and multi-angle remain
+owned by their proven domain controllers; there is no second video element or
+decode state.
+
+**Coach workflow:** native transport, seek/speed/loop/drawing/fullscreen, a
+drive-grouped horizontal play strip, stable 220px cards with complete football
+copy, Mark Start/End, Copy Last, Autoplay Next, and separated Clear/Delete.
+Add Angle lives in the transport and the sync/layout row appears only after a
+second angle exists, preserving film height in the normal one-camera case.
+Mobile keeps 44px touch targets and internal strip scrolling with no page-level
+horizontal overflow.
+
+**UX-1 result:** at 1440x900 the native media box is 1424x681 and a 16:9
+picture is 1211x681, materially above the measured legacy 1060x596. At
+1920x1080 it is 1904x861 with a 1531x861 picture. Full screen targets the
+canonical media node at an exact 1920x1080; the drawing canvas remains
+device-pixel aligned. No codec, source, linked-storage, or asset URL change.
+
+**Deliberate deviation from the static reference:** no synthetic yard lines,
+hashes, LOS, or first-down line are painted over source film. The coach's
+recorded rule is that video is sacred; without calibrated field coordinates, a
+fake overlay would cover real evidence and imply false precision. Real drawing
+tools remain available.
+
+**Verification:** focused native theater **21/21**; existing playback/lifecycle/
+a11y/multi-angle/CORS/mark-flow regressions **121 assertions green**; optional
+390 mobile capture inspected; desktop row geometry measured at 1440 and 1920;
+full canonical gate **75/75 green, 0 skipped**.
+The first full run was 74/75 because the pre-existing Native Settings Puppeteer
+typing step saved `tes` instead of `test-key`; that harness passed 18/18
+standalone and the second isolated full gate passed 75/75. No S5a file touches
+Settings; the non-reproducing load-sensitive red is recorded, not hidden.
+
+**Next:** Claude independently reviews this checkpoint. S5b stays closed until
+that verdict. S5d, packaging, and coach smoke remain later milestone gates.
+
 ### CODEX REVIEW QUEUE - S5a PREFLIGHT CLOSED (`839aee7`, 2026-07-31)
 
 Codex re-reviewed Claude's `db0072d`. The four requested corrections are

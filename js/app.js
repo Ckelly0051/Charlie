@@ -34,6 +34,7 @@ import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
 import { WorkspaceShell } from './workspace-shell.js';
 import { BreakdownVideo } from './breakdown-video.js';
+import { BreakdownTheaterScreen } from './breakdown-theater-screen.js';
 import { BreakdownWorkspace } from './breakdown-workspace.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
@@ -148,6 +149,7 @@ class App {
     });
     this.stats.filmNavigation = this.filmNavigation;
     this.breakdownVideo = new BreakdownVideo(this.tagger);
+    this.breakdownTheater = new BreakdownTheaterScreen(this);
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish(this);
     this.vc.beforeFilesSelected = files => this.uiPolish.prepareFilmFiles(files);

@@ -700,6 +700,30 @@ Each item below is a contract or coverage gap, not an implementation task.
    Headless Chromium cannot reproduce WebView2 softness; this belongs to the
    installed build. Existing `object-fit: contain` is not the presumed cause.
 
+### S5a implementation checkpoint - built, awaiting independent review (2026-08-01)
+
+- The internal native theater and drive-grouped play strip are complete alongside
+  the accepted route. They do not become coach-facing until the isolated S5d flip.
+- The native screen adopts the canonical media node and delegates to the existing
+  playback, playlist, drawing, multi-angle, and tagging domain controllers. It
+  creates no parallel video/decode/film identity state.
+- Lifecycle is transactional: legacy presentation is removed before adoption,
+  exact media home and accepted presentation are restored on exit, and a failed
+  mount rolls back closed.
+- Ordinary pixel budgets are now 1211x681 at 1440x900 and 1531x861 at
+  1920x1080, versus the measured 1060x596 legacy working picture. Exact
+  1920x1080 fullscreen and drawing-canvas pixel alignment are pinned.
+- One-camera use does not reserve an empty multi-angle row; Add Angle stays in
+  transport, and angle layout/sync controls expand only after angle two exists.
+- The static reference's synthetic yard grid is not implemented over source
+  film. Without calibrated screen-to-field coordinates it would obscure evidence
+  and violate the coach's recorded 'video is sacred' rule. This is an intentional
+  product correction, not deferred missing functionality.
+- Focused journey: 21/21. Full canonical gate: 75/75, 0 skipped. S5a changes
+  no season data, analytics, storage, source film, package, tag, or release.
+- **Gate:** Claude independent review is next. S5b cannot start until acceptance;
+  S5d remains closed.
+
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
 | Item | Owner in S5 |
