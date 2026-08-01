@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### CODEX BUILD - NATIVE S5a THEATER + STRIP AWAITING CLAUDE REVIEW (2026-08-01)
+### S5a ACCEPTED; GATE EVIDENCE REPAIR AWAITING CLAUDE REVIEW (2026-08-01)
 
 Codex built the internal native Break Down theater alongside the accepted route.
 It is deliberately not user-reachable yet; S5d remains the isolated ownership
@@ -42,9 +42,9 @@ second angle exists, preserving film height in the normal one-camera case.
 Mobile keeps 44px touch targets and internal strip scrolling with no page-level
 horizontal overflow.
 
-**UX-1 result:** at 1440x900 the native media box is 1424x681 and a 16:9
-picture is 1211x681, materially above the measured legacy 1060x596. At
-1920x1080 it is 1904x861 with a 1531x861 picture. Full screen targets the
+**UX-1 result, re-measured by Claude in the real route:** the native 16:9 picture
+is 1159x652 at 1440x900 and 1479x832 at 1920x1080, versus legacy 963x542 and
+1338x753. That is 1.45x the picture pixels at 1440x900. Full screen targets the
 canonical media node at an exact 1920x1080; the drawing canvas remains
 device-pixel aligned. No codec, source, linked-storage, or asset URL change.
 
@@ -54,17 +54,18 @@ recorded rule is that video is sacred; without calibrated field coordinates, a
 fake overlay would cover real evidence and imply false precision. Real drawing
 tools remain available.
 
-**Verification:** focused native theater **21/21**; existing playback/lifecycle/
-a11y/multi-angle/CORS/mark-flow regressions **121 assertions green**; optional
-390 mobile capture inspected; desktop row geometry measured at 1440 and 1920;
-full canonical gate **75/75 green, 0 skipped**.
-The first full run was 74/75 because the pre-existing Native Settings Puppeteer
-typing step saved `tes` instead of `test-key`; that harness passed 18/18
-standalone and the second isolated full gate passed 75/75. No S5a file touches
-Settings; the non-reproducing load-sensitive red is recorded, not hidden.
+**Claude review:** `a0d3f2b` accepted at `34f1fca`; S5b is open. Claude's
+first review gate had one non-reproducing Native Overlay red whose failed
+assertion was hidden above the runner's 40-line tail. Codex repaired the evidence
+printer to emit every matching FAIL line before the tail and added a permanent
+self-test with one failure buried above 42 later PASS lines. Detector self-test
+is green; the complete canonical gate through the repaired runner is **75/75
+green, 0 skipped**. Full output: `%TEMP%/gate-s5a-f1.log`.
 
-**Next:** Claude independently reviews this checkpoint. S5b stays closed until
-that verdict. S5d, packaging, and coach smoke remain later milestone gates.
+**Next:** Claude reviews the small gate-instrumentation repair while Codex begins
+the internal native Film Room S5b checkpoint. S5d, packaging and coach smoke
+remain later gates. No emitter teardown refactor is justified while the theater
+is a boot-lifetime singleton; temporary strip collapse is due before S5d.
 
 ### CODEX REVIEW QUEUE - S5a PREFLIGHT CLOSED (`839aee7`, 2026-07-31)
 

@@ -59,6 +59,12 @@ is_green() {
   return 0
 }
 
+failure_lines() {
+  # Assertion failures must remain visible even when a long harness pushes them
+  # outside the diagnostic tail. Keep this separate from result-line scoring.
+  printf '%s\n' "$1" | grep -E '^[[:space:]]*FAIL([[:space:]]|$)' || true
+}
+
 if [ "$1" = "--self-test" ]; then
   fails=0
   check() { # want_rc, line, exit_code, label
@@ -93,6 +99,23 @@ if [ "$1" = "--self-test" ]; then
   check_skip 0 "== RESULT: 0 passed, 0 failed (skipped) ==" 0 "skip: optional fixture absent"
   check_skip 1 "== RESULT: 0 passed, 0 failed (skipped) ==" 1 "RED: skipped-looking line with nonzero exit"
   check_skip 1 "== RESULT: 20 passed, 0 failed ==" 0 "green result is not a skip"
+
+  # Failure-evidence regression: e2e-native-overlay emitted enough PASS lines to
+  # push its only FAIL above tail -40. The extractor must still name it.
+  buried=$(printf '%s\n' "  FAIL  buried assertion"
+    i=0
+    while [ "$i" -lt 42 ]; do
+      printf '%s\n' "  PASS  later assertion $i"
+      i=$((i+1))
+    done
+  )
+  evidence=$(failure_lines "$buried")
+  if printf '%s\n' "$evidence" | grep -q 'buried assertion'; then
+    echo "  ok   failure evidence survives a long harness tail"
+  else
+    echo "  BAD  failure evidence was truncated"
+    fails=$((fails+1))
+  fi
 
   # Build-guard self-test (review finding #1): a failing build piped to tail
   # must not be swallowed. Without `set -o pipefail` this returns 0.
@@ -147,6 +170,11 @@ for f in tools/e2e-*.mjs; do
   else
     fail=$((fail+1)); failed_names="$failed_names $base"
     printf 'FAIL %-42s %4ss  (exit %s) %s\n' "$base" "$secs" "$rc" "${line:-<no result line — crashed?>}"
+    assertion_failures=$(failure_lines "$out")
+    if [ -n "$assertion_failures" ]; then
+      echo "       assertion failure(s):"
+      printf '%s\n' "$assertion_failures" | sed 's/^/       /'
+    fi
     # 40, not 12: a truncated tail on an intermittent failure destroys the only
     # evidence of why it failed, and the run is not cheap to reproduce.
     printf '%s\n' "$out" | tail -40 | sed 's/^/       /'

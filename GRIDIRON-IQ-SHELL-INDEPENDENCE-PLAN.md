@@ -700,7 +700,7 @@ Each item below is a contract or coverage gap, not an implementation task.
    Headless Chromium cannot reproduce WebView2 softness; this belongs to the
    installed build. Existing `object-fit: contain` is not the presumed cause.
 
-### S5a implementation checkpoint - built, awaiting independent review (2026-08-01)
+### S5a implementation checkpoint - ACCEPTED (2026-08-01, a0d3f2b; review 34f1fca)
 
 - The internal native theater and drive-grouped play strip are complete alongside
   the accepted route. They do not become coach-facing until the isolated S5d flip.
@@ -721,8 +721,14 @@ Each item below is a contract or coverage gap, not an implementation task.
   product correction, not deferred missing functionality.
 - Focused journey: 21/21. Full canonical gate: 75/75, 0 skipped. S5a changes
   no season data, analytics, storage, source film, package, tag, or release.
-- **Gate:** Claude independent review is next. S5b cannot start until acceptance;
-  S5d remains closed.
+- Claude independently accepted S5a. His route-integrated UX-1 measurements,
+  rather than the component host's geometry, are canonical in the design audit.
+- The boot-lifetime singleton's guarded domain subscriptions are deliberate; add
+  scoped emitter teardown only if ownership changes make true destruction real.
+- Temporary strip collapse is required before S5d so the coach can trade
+  navigation for film pixels without shrinking high-frequency controls.
+- F1 now prints assertion FAIL lines before the diagnostic tail; its buried-
+  failure self-test and a complete 75/75 run are green. **S5b is open.**
 
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
