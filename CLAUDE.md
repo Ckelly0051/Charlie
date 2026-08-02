@@ -309,6 +309,56 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `b94f39e` — **ACCEPTED. F1 closed and mutation-proven in the inverse direction.** 0 findings (2026-08-01)
+
+**Full canonical gate, re-run by me: 77 harnesses | 77 green | 0 skipped.**
+Preflight 10/10, Quick Chart 12/12, capability audit 10/10, tree clean.
+
+**The decisive check: the reload is now load-bearing.** Last checkpoint I removed
+`page.reload()` and all ten assertions still passed. I ran the same mutation
+against these bytes: **8 passed, 2 failed**, and the two that fail are exactly the
+two I filed —
+- `Canonical relaunch rehydrates the explicitly saved per-game context` →
+  `{"fresh":false,...}`
+- `A relaunched saved play diagram remains byte-stable and produces its Call
+  Sheet thumbnail` → `{"relaunched":false,...}`
+
+Baseline restored → 10/10. That is the inverse mutation, which is the only thing
+that could have shown the fix was real rather than cosmetic.
+
+**Both mechanisms are the right ones.** A `window.__s5cReloadSentinel` is set
+before the reload and each assertion requires it to be **absent**, so the proof
+now depends on a genuine fresh context rather than on statement ordering. And the
+diagram is read from `seasonStore.activeGame().plays` — the **rehydrated store
+object** — instead of `tagger.getCurrentPlay()`, so it can no longer pass by
+reading the same in-memory object the fixture created. The assertion names gained
+"relaunch"/"relaunched", and the inventory strings were updated to match, which is
+why the capability audit still resolves.
+
+**The template round-trip is now real, and it is a genuine strengthening.** It
+clears `ffa_play_templates`, sets Formation, clicks Save Template, types the name
+into the **actual confirm modal**, waits for `_templateStore()['Goal Line']` to
+exist, then **clears Formation** and applies through the production change
+handler, asserting stored `Power-I` *and* re-applied `Power-I`. No injected
+`<option>` remains. This is what a coach actually does.
+
+**The `K` gap is closed with the cheap fix rather than a smoke note.** Quick Chart
+consumes `K` and shows `Special Teams: use the full tag form.`, returning `true`
+so the key cannot fall through. `K` is bound to nothing else in this mode, so
+consuming it is safe. The entry stays byte-identical and the assertion checks the
+status text, not just the absence of a write. It is registered as a **new critical
+capability id** (`breakdown.quick-chart-special-teams`) rather than folded into
+the existing one — correct, because "does not write a bad value" and "tells the
+coach where to go" are different guarantees.
+
+**Carried into S5c unchanged:** the preflight still locks behavior at the legacy
+`#legacyGameContextState` seam, so all four section-1 assertions must be ported to
+the native owner during S5c with **counts diffed, not eyeballed**.
+
+**Scope respected:** no stored tag value, season byte, film file, storage path,
+analytics formula, schema, package, tag or release changed. **Good to go — build
+the native tag form.**
+
 ### ▶ CLAUDE'S REVIEW of `1786afb` (S5c preflight) — **ACCEPTED with 1 finding: two durability proofs do not prove durability** (2026-08-01)
 
 **Full canonical gate, re-run by me: 77 harnesses | 77 green | 0 skipped.**
