@@ -322,6 +322,50 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `2a70df8` — **ACCEPTED. S5c-1 closed; S5c is complete.** 0 findings; one dated obligation recorded (2026-08-02)
+
+**Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.**
+Native tagging 22/22, legacy Breakdown form 60/60, S5c preflight 10/10,
+capability audit 10/10.
+
+**All eight ids are restored to the claims that actually prove them**, and I
+checked the property that mattered most rather than reading the diff: across all
+**98 capabilities, 0 share an assertion string** (it was 1 shared pair before —
+`play-diagram` and `templates` both resolving to the same generic reachability
+sentence). Every weakened claim is back: Call Sheet thumbnail **and** relaunch
+durability, the template save/apply round-trip, OCR auto-read, multi-tackler
+attribution with grades and notes, multiple independent penalty fouls, all eight
+structured Special Teams units, and player/custom/note field presence.
+
+**Two ids were deliberately left on the native harness, and that judgment is
+right.** `breakdown.tag-save` now claims *"All 20 plays retain multi-select Play
+Type and Result"* — **stronger** than the legacy *"Recomposition preserves the
+existing chip listener and tag-save path"*, because it proves the football
+outcome rather than the wiring. `breakdown.context-isolation` claims *"Context
+edits only perspective and direction"* on the **native** owner, which is where
+that rule now has to hold. Moving an id to native where native proves it better,
+and holding it where the strong proof still lives, is exactly the discrimination
+the inventory is for.
+
+**One dated obligation, now recorded as plan §3.2 item 7 rather than left in a
+review.** The fix necessarily leaves **eight breakdown ids claimed by harnesses
+S5d and S7 retire** — four in `e2e-breakdown-form.mjs`, four in
+`e2e-s5c-preflight.mjs`, five of them critical. Deleting either harness without
+first re-proving those natively removes the guarantee **and leaves
+`e2e-p0-capabilities` green**, because the audit verifies that a claimed
+assertion exists, not that it is strong. That is the same mechanism that produced
+S5c-1, one milestone later, so it belongs in the plan and not in my memory.
+
+**On the finding itself:** the regression was in claims, never in code — the
+behavior was covered throughout, and the repair touched one file and eight lines.
+Worth stating because the cost of catching it now is trivial and the cost of
+catching it at S7 would have been a silent capability loss on the coach's primary
+charting surface.
+
+**Scope respected:** no code, schema, season byte, film file, storage path,
+analytics formula, package, tag or release changed by `2a70df8`. **S5c is
+complete. Next is the §8 installer that is due *before* S5d, not after.**
+
 ### ▶ CLAUDE'S REVIEW of `557e956` (S5c native tag form) — **CHANGES REQUESTED. The code is good; the capability floor was silently lowered.** 1 finding, one file (2026-08-02)
 
 **Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.**

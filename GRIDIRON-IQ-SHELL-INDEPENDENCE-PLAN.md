@@ -30,6 +30,16 @@ non-events.
 
 ## ⚠ REVISION LOG — read this before acting on anything below
 
+**S5c capability floor · 2026-08-02 · Claude · adds §3.2 item 7 — a dated S5d/S7 obligation**
+
+`557e956` re-pointed ten capability ids onto the new native tagging harness and
+eight of them silently claimed less; `2a70df8` restored them. Nothing about
+milestone scope, sequence or exit gates changed. **What is new: §3.2 gains item 7**,
+recording that eight breakdown ids are now claimed by `e2e-breakdown-form.mjs` and
+`e2e-s5c-preflight.mjs` — harnesses S5d/S7 retire. They must be re-proven natively
+at equal-or-greater strength *before* either harness goes, or the guarantees
+disappear behind a green audit.
+
 **S5 readiness audit · 2026-07-30 · Claude · CHANGES REQUESTED — adds §3.2, amends §8 and §11**
 
 S5 is open, but the audit found six items that S5 would otherwise discover
@@ -795,6 +805,31 @@ Each item below is a contract or coverage gap, not an implementation task.
 - Focused journey 22/22, including a coach-controlled section-expansion regression. Three exact mutations (Formation collapse, dropped try turnover, undersized mobile targets) each turn the intended assertion red. Full canonical gate: **78/78 green, 0 skipped**.
 - Isolated 1440/390 visual QA is clean. It proves component hierarchy, clipping, overflow and touch layout only; S5d owns route-level video/form geometry.
 - No user-reachable route, schema, migration, durable data, analytics, film, storage, package, tag, or release changed. **S5c awaits independent review; S5d remains closed.**
+7. **[S5d and S7 — dated, measured] Eight breakdown capability ids are claimed by
+   harnesses those milestones retire.** Added 2026-08-02 after the S5c capability-
+   floor regression (`557e956`) and its fix (`2a70df8`). The fix correctly kept
+   these ids pointed at the assertions that genuinely prove them, rather than at
+   weaker native strings — but four now resolve into `e2e-breakdown-form.mjs` and
+   four into `e2e-s5c-preflight.mjs`:
+
+   | id | claimed by |
+   |---|---|
+   | `breakdown.all-fields` · `special-teams` · `penalties` · `save-next` | `e2e-breakdown-form.mjs` |
+   | `breakdown.game-context` · `play-diagram` · `scoreboard-ocr` · `templates` | `e2e-s5c-preflight.mjs` |
+
+   **Deleting or retiring either harness without first re-proving these natively
+   removes the guarantee and leaves `e2e-p0-capabilities` green**, because the
+   audit checks that a claimed assertion *exists*, not that it is strong. Five of
+   the eight are in `P0_CRITICAL_CAPABILITY_IDS`.
+
+   **Obligation:** before either harness is retired, each id must resolve to a
+   native assertion of **equal or greater** strength — specifically preserving the
+   Call Sheet thumbnail, relaunch durability, the template save/apply round-trip,
+   OCR auto-read, multi-tackler attribution with grades and notes, multiple
+   independent penalty fouls, all eight structured Special Teams units, and
+   player/custom/note field presence. **No two capability ids may share one
+   assertion string** — currently 0 of 98 do, and that is the check to re-run.
+
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
 | Item | Owner in S5 |
