@@ -786,6 +786,15 @@ Each item below is a contract or coverage gap, not an implementation task.
   gives retired Quick Chart `K` users explicit Special Teams guidance without
   writing data. Removing reload reds both durability assertions. Gate 77/77.
 
+### S5c implementation checkpoint - BUILT; INDEPENDENT REVIEW REQUIRED (2026-08-02)
+
+- Preact owns all coach-visible tag-form markup. The legacy form remains off-screen only as a temporary behavior adapter and supplies no visible HTML; S7 may delete it after the ownership flip without a presentation rewrite.
+- Every canonical football field and workflow is preserved, including structured penalties, all structured Special Teams phases, compound tries, resulting-snap confirmation, roster quick-picks, templates, diagram, OCR, detection, custom libraries/fields, notes, New Drive, context, and navigation.
+- The required 20-play native multi-select session is complete: every play keeps two Formation and two Play Type selections through Save & Next, canonical persist, and relaunch; the other game is isolated.
+- Capability ownership for all-fields, save, Special Teams, penalties, context, diagram, OCR, and templates now resolves to `e2e-native-tagging.mjs`. Legacy preflight and form suites remain in the gate as independent regression evidence.
+- Focused journey 22/22, including a coach-controlled section-expansion regression. Three exact mutations (Formation collapse, dropped try turnover, undersized mobile targets) each turn the intended assertion red. Full canonical gate: **78/78 green, 0 skipped**.
+- Isolated 1440/390 visual QA is clean. It proves component hierarchy, clipping, overflow and touch layout only; S5d owns route-level video/form geometry.
+- No user-reachable route, schema, migration, durable data, analytics, film, storage, package, tag, or release changed. **S5c awaits independent review; S5d remains closed.**
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
 | Item | Owner in S5 |

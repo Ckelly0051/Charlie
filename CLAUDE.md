@@ -13,6 +13,19 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX BUILD - S5c NATIVE TAG FORM COMPLETE; REVIEW REQUIRED (2026-08-02)
+
+Codex completed the internal Preact-owned native tag form. It remains **unreachable to coaches until the isolated S5d ownership flip**. The visible form is rendered from model state; it does not clone, serialize, or restyle the legacy `.tag-section`. PlayTagger, BreakdownForm, NotesManager, RosterManager, PenaltyModel, SpecialTeamsModel, OCR, Play Diagram, templates, custom fields/libraries, and play detection remain the canonical behavior/data owners through explicit adapters.
+
+The native form preserves the full football surface: offense and defense looks, multi-select Formation/Front/Play Type/Result/Blitz, game perspective and direction, players/grades and roster quick-picks, structured penalties with confirmed resulting situation, all eight structured Special Teams units, compound try events and official return rulings, field-position/return details, notes/timestamps, New Drive, custom fields/tags, Auto D&D, carry scheme, templates/Same as Last, Play Diagram, Scoreboard OCR, and play detection. Suggestions are intentionally absent under the signed S5 direction that moves tell/suggestion surfaces to Study; no suggestion data or engine was deleted.
+
+`e2e-native-tagging.mjs` is the native capability owner and passes **22/22**. It records a realistic 20-play session through visible native controls, retaining two Formation selections and two Play Type selections on every play, persists and relaunches the season, and proves the other game remains isolated. It also pins coach-controlled section expansion, structured punt data, compound two-point try data, penalty enforcement and the confirmed next snap, roster attribution, notes, diagram/OCR delegation, desktop/mobile overflow, 44px mobile targets, and exact mount/restore state. The capability inventory now points migrated charting outcomes at this native journey instead of the legacy form/preflight.
+
+Sensitivity proof: removing Formation from the multi-select set fails on Play 1; removing the try-turnover adapter fails the compound-event assertion; removing mobile target sizing fails with the exact undersized controls. All mutations were restored and the production journey reconfirmed.
+
+Focused regression: native tagging 22/22, legacy Breakdown form 60/60, projection form 54/54, penalty contract 7/7, Special Teams contract 20/20, S5c preflight 10/10, native Quick Chart 12/12, design system 7/7. Full canonical gate: **78/78 green, 0 skipped**, including the real six-game fixture. Isolated visual QA at 1440 and 390 is clean; route composition is explicitly deferred to S5d. No schema, migration, season/play data, analytics, film path/file, storage behavior, package, tag, or release changed.
+
+**Next:** Claude independently reviews S5c. If accepted, S5d performs the single Break Down ownership flip, route-integrated visual/geometry audit, and milestone installer smoke. No S5d work should begin before review acceptance.
 ### CODEX REPAIR - S5c PREFLIGHT REVIEW FINDING CLOSED (2026-08-01)
 
 Claude accepted `1786afb` at `1c88ce5` with one test-strength finding. Fixed:
