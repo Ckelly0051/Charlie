@@ -32,7 +32,7 @@ const reopenFilmRoom = async () => {
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
   await page.click('#wsFilmList [data-ws-game]');
   await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
-  await page.click('[data-bd-view="film-room"]');
+  await page.evaluate(() => window.app.workspaceShell.disable());
   await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
 };
 
@@ -49,8 +49,8 @@ await page.evaluate(() => {
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.click('#wsFilmList [data-ws-game]');
 await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
-await page.click('[data-bd-view="film-room"]');
-await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
+  await page.evaluate(() => window.app.workspaceShell.disable());
+  await page.waitForFunction(() => !document.getElementById('playGridSection')?.hidden);
 
 console.log('\n== 2. Grid renders on demo data ==');
 let r = await page.evaluate(() => {
@@ -586,7 +586,7 @@ ok(r.menuVisible && r.reapplied === r.filteredCount && r.reapplied < r.clearedCo
 ok(r.after.length === 0, 'saved filter deletable');
 
 console.log('\n== 9. Multi-team: add a JV team, switch between hubs ==');
-await page.evaluate(() => window.app.workspaceShell._openLibrary());
+await page.evaluate(async () => { await window.app.workspaceShell.enable(); window.app.workspaceShell._openLibrary(); });
 await page.waitForSelector('[data-native-team-hub] [data-hub-team]');
 r = await page.evaluate(() => ({
   teams: [...document.querySelectorAll('[data-hub-team]')].map(button => button.textContent.trim()),
@@ -687,6 +687,8 @@ ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so 
 // a refresh that clears focus, so its "second click opens the editor" never
 // fires). Keeping these at the end means they cannot perturb anything upstream.
 // ===================================================================
+await page.evaluate(() => window.app.workspaceShell.disable());
+await sleep(100);
 // BEHAVIORAL editable proof (E4-2) — the type check above is a DECLARATION
 // and would stay green even if _openEditor still refused these columns.
 // Drive the real interactions: E4-2 made qbAlignment/coverageFamily

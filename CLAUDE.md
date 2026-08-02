@@ -13,6 +13,17 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX BUILD - S5d NATIVE BREAK DOWN OWNERSHIP FLIP; REVIEW REQUIRED (2026-08-02)
+
+Codex completed the isolated S5d ownership flip in this commit (play-strip collapse prerequisite `3c251ac`). Break Down now has one coach-facing native composition: the canonical video/theater stays mounted while Chart swaps between the native tag deck and native Film Room. The legacy `.video-section`, `.tag-section`, and `#playGridSection` remain hidden compatibility behavior adapters until S7; they are never a second visible owner.
+
+The route owns one film-context toolbar, direct Game and Charting Settings commands, save state, one canonical `#videoContainer`, one native play strip, one native tag form, and one native Film Room. Chart/Film Room switching preserves media DOM identity, current play, row identities, exact filter/Watch cohorts, and season bytes. Teardown/remount restores adopted sources and returns with exactly one owner. Mobile was corrected so the film, transport, strip, and primary play actions remain in the first 390x844 viewport; desktop/tablet/mobile captures at 1440x900, 1280x720, 768x1024, and 390x844 are overflow-free with 44px mobile route controls.
+
+The first full gate exposed two real capability regressions: native yardage lacked Enter-to-save-and-advance, and the global `Y` shortcut focused the hidden compatibility input. Both now target the visible native field while retaining the legacy fallback. It also exposed a 4.17:1 active-toolbar contrast defect; the selected treatment now uses the approved active surface and passes WCAG AA. Legacy behavior harnesses now cross the native/compatibility boundary explicitly instead of sampling hidden DOM. `e2e-breakdown-video` was rewritten as the native capability journey while preserving every assertion named by the P0 inventory.
+
+Sensitivity proof: suppressing the native Film Room mount makes the S5d lifecycle fail on zero Film Room owners and an unreachable exact-filter journey. Focused proofs: lifecycle 16/16, native Breakdown 13/13, a11y 10/10, native tagging 30/30, tagging speed 28/28, native Film Room 24/24, compatibility Film Room 179/179, projection durability 53/53. Final canonical gate: **78/78 green, 0 skipped, 0 failed**, including real data.
+
+No schema, migration, season/play payload, analytics formula, clip identity/path, managed-film copy, storage behavior, package, tag, or release changed. **Next:** Claude independently reviews this commit; if accepted, build the immediate S5d installer and the coach performs the rollback-contract smoke. S5 remains open until that installed smoke passes; S6/S7 do not open early.
 ### CODEX BUILD - PRE-S5d UX-5 CHARTING DENSITY BATCH; REVIEW REQUIRED (2026-08-02)
 
 Codex completed the coach-approved UX-5 batch before the isolated S5d ownership flip. `I-Form` and `Split Back` are now standard structural Formation values. Backfield remains canonical `I` and `Split`; the coach may chart either dimension or both without analytics/persistence collapsing them. Existing v1 team libraries receive the two new Formation defaults once, then retain the coach's hide/show choices under TagLibrary v2. No play data is migrated or rewritten.

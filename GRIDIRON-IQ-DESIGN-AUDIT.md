@@ -319,3 +319,5 @@ football-correct, and consistent across routes.
 5. Each milestone gets coach workflow review, Codex design/implementation review,
    Claude independent correctness review, and an installed smoke where required.
 6. Final cross-route visual audit remains required after S7 legacy deletion.
+## S5d Native Break Down Route Evidence (2026-08-02, this commit)
+The ownership flip was inspected at 1440x900, 1280x720, 768x1024, and 390x844. The video remains the dominant surface; Chart and Film Room share one fixed theater; the tag deck is dense but readable; mobile keeps film, transport, play strip, and primary actions in the first viewport with no page-level horizontal overflow. The selected toolbar treatment passes WCAG AA after the gate caught a 4.17:1 contrast defect. This is candidate evidence, not milestone acceptance: Claude review and the installed real-film smoke are still required.

@@ -129,6 +129,8 @@ await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptySav
 await click('#btnTagSaveNext');
 await frame();
 await sleep(150);
+await page.evaluate(() => window.app.workspaceShell.disable());
+await sleep(100);
 
 // 2e. Film Room grid edit on Backfield (one of the four newly-editable columns).
 // Real DOM shape (js/play-grid.js): row = tr.pg-row[data-id], cell =

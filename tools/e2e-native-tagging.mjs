@@ -25,9 +25,8 @@ const fixture=await page.evaluate(async()=>{
   second.gameInfo={...(second.gameInfo||{}),opponent:'Beta',week:'2',gameType:'game',perspective:'defense',direction:'right'};
   second.plays=[{id:101,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',defFront:'4-2-5',coverage:'Cover 3',players:{},grades:{},custom:[]}}];
   store.setActive(first.id);await store.persist();await app.storage._loadActiveGame({renderGames:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
-  const source=app.nativeTagging.source,before={style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source'),data:JSON.stringify(store.data)};
-  const host=document.createElement('div');host.id='nativeTaggingTestHost';host.style.cssText='width:min(560px,100%);min-height:800px';document.body.append(host);
-  const mounted=app.nativeTagging.mount(host);await new Promise(r=>setTimeout(r,0));
+  const source=app.nativeTagging.source,before={data:JSON.stringify(store.data)};
+  const mounted=!!document.querySelector('#wsBreakdown [data-native-tagging]');
   return{seasonId:store.data.id,firstId:first.id,secondId:second.id,mounted,before};
 });
 let state=await page.evaluate(()=>{
@@ -35,7 +34,7 @@ let state=await page.evaluate(()=>{
   const fields=[...root.querySelectorAll('[data-native-field]')].map(n=>n.dataset.nativeField).sort();
   const controls=[...root.querySelectorAll('button,select,input,textarea,summary')].filter(n=>n.getClientRects().length);
   const text=root.textContent;
-  return{roots:document.querySelectorAll('[data-native-tagging]').length,sourceMoved:source.dataset.nativeTagSource===''&&source.getBoundingClientRect().right<0,
+  return{roots:document.querySelectorAll('[data-native-tagging]').length,sourceMoved:source.dataset.nativeTagSource===''&&source.style.position==='fixed'&&source.style.left==='-100000px',
     ids:[...root.querySelectorAll('[id]')].map(n=>n.id),proxy:root.querySelectorAll('[data-native-tag-proxy]').length,fields,controls:controls.length,
     context:[...root.querySelectorAll('[data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
     capabilities:['Same as Last','Templates','Save Template','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','New Drive','Edit custom fields'].filter(label=>text.includes(label))};
@@ -106,8 +105,7 @@ ok(state.other?.defFront==='4-2-5'&&state.other?.coverage==='Cover 3','Charting 
 
 console.log('\n== 4. Structured football workflows ==');
 state=await page.evaluate(async fixture=>{
-  await app.storage.switchToGame(fixture.firstId,{persist:false});app.tagger.selectPlay(1);
-  const source=app.nativeTagging.source;window.__nativeRestoreBefore={style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')};const host=document.createElement('div');host.id='nativeTaggingTestHost';document.body.append(host);app.nativeTagging.mount(host);await new Promise(r=>setTimeout(r,0));
+  await app.storage.switchToGame(fixture.firstId,{persist:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
   const root=()=>document.querySelector('[data-native-tagging]');
   const button=label=>{const found=[...root().querySelectorAll('button')].find(b=>b.textContent.trim()===label);if(!found)throw new Error('Missing native button '+label+' among '+[...root().querySelectorAll('button')].map(b=>b.textContent.trim()).join('|'));return found};
   app.nativeTagging.setUnit('special');await new Promise(r=>setTimeout(r,30));
@@ -134,8 +132,16 @@ ok(state.overflow<=1&&state.width>0,'Desktop native form has no page-level horiz
 await page.setViewport({width:390,height:844});
 state=await page.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');const targets=[...root.querySelectorAll('button,select,input:not([type="checkbox"]),textarea,.gi-tag-check')].filter(n=>n.getClientRects().length);return{overflow:document.documentElement.scrollWidth-innerWidth,min:Math.min(...targets.map(n=>n.getBoundingClientRect().height)),small:targets.filter(n=>n.getBoundingClientRect().height<44).map(n=>({tag:n.tagName,text:n.textContent.trim().slice(0,30),h:n.getBoundingClientRect().height,cls:n.className})).slice(0,12),count:targets.length}});
 ok(state.overflow<=1&&state.min>=44,'Mobile native form has no page overflow and keeps 44px action targets',JSON.stringify(state));
-state=await page.evaluate(before=>{const source=app.nativeTagging.source,host=document.getElementById('nativeTaggingTestHost');const restored=app.nativeTagging.restore();return{restored,empty:!host.childElementCount,actual:{style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')},before,exact:(source.getAttribute('style')||null)===(before.style||null)&&source.getAttribute('aria-hidden')===before.aria&&source.getAttribute('data-native-tag-source')===before.marker}},await page.evaluate(()=>window.__nativeRestoreBefore));
-ok(state.restored&&state.empty&&state.exact,'Unmount restores compatibility source attributes exactly',JSON.stringify(state));
+state=await page.evaluate(async()=>{
+  app.workspaceShell.disable();
+  const source=app.nativeTagging.source;
+  const before={style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')};
+  const host=document.createElement('div');host.id='nativeTaggingTestHost';document.body.append(host);
+  const mounted=app.nativeTagging.mount(host);
+  const restored=app.nativeTagging.restore();
+  return{mounted,restored,empty:!host.childElementCount,actual:{style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')},before,exact:(source.getAttribute('style')||null)===(before.style||null)&&source.getAttribute('aria-hidden')===before.aria&&source.getAttribute('data-native-tag-source')===before.marker};
+});
+ok(state.mounted&&state.restored&&state.empty&&state.exact,'Unmount restores compatibility source attributes exactly',JSON.stringify(state));
 ok(!errors.length,'No page errors',errors.join(' | '));
 console.log('\n== RESULT: '+pass+' passed, '+fail+' failed ==');
 await browser.close();

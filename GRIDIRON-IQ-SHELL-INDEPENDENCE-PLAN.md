@@ -1077,3 +1077,11 @@ playback audited too late; unvalidated multi-select tagging collapse; visual rul
 treated as gates; two undesigned foundational surfaces; a single end-of-project
 installer; rectangle-based capability checks; the build/test cutover left
 unspecified; and P0's inaccurate "no production behavior changes" wording.
+
+### S5d ownership-flip checkpoint - BUILT; INDEPENDENT REVIEW + INSTALLED SMOKE REQUIRED (this commit, 2026-08-02)
+- The native theater, tagging deck, and Film Room are the single visible Break Down owners. Chart/Film Room swaps only the right deck; the canonical media element and selected play do not remount.
+- The strip-collapse prerequisite landed separately at `3c251ac`. Route evidence covers 1440x900, 1280x720, 768x1024, and 390x844; no horizontal overflow, mobile controls are at least 44px, and the corrected mobile first viewport includes film, transport, strip, and primary actions.
+- Exact parity proof pins three source plays, native row ids `[1,2,3]`, offense filter/Watch refs `[1,3]`, and `2 of 3 plays`. Mount/restore/remount is a season-byte no-op with one owner throughout.
+- Gate-discovered production fixes preserve Enter-to-advance and the `Y` yardage shortcut on the visible native field; selected toolbar contrast now passes WCAG AA. Compatibility behavior harnesses unwrap the shell explicitly and cannot be mistaken for coach-facing ownership.
+- Mutation proof suppressing native Film Room mount reds the zero-owner and filter journey. Final canonical gate: **78/78 green, 0 skipped, 0 failed**.
+- No data model, migration, analytics, film/storage, package, tag, or release changed. Per the rollback contract, Claude reviews next; then one immediate installed smoke decides accept vs revert. S6/S7 remain closed.

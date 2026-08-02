@@ -48,7 +48,7 @@ export class WorkspaceShell {
     // fresh profile the first session would otherwise get the shell wrapped
     // around the CLASSIC tag form — visible on the browser build and on any
     // desktop version string that beta-config does not pre-seed.
-    this.app.breakdownVideo?.mount();
+    if (!this.app.breakdownTheater?._mounted) this.app.breakdownVideo?.mount();
     this.app.breakdownForm?.mount();
     document.body.classList.add('ws-shell-active');
     await this.show(this.app.workspace.currentRoute() || 'home');

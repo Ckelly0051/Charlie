@@ -20,6 +20,7 @@ await page.goto(APP_URL, { waitUntil: 'networkidle0' });
 console.log('\n== 1. Native ownership, drive grouping, and data no-op ==');
 const mounted = await page.evaluate(async () => {
   const app = window.app;
+  app.workspaceShell.disable();
   await app.storage.createSeason({ name: 'S5a Theater', team: 'Mavericks', year: '2026' });
   const game = app.storage.seasonStore.activeGame();
   game.plays = Array.from({ length: 12 }, (_, index) => ({
@@ -188,8 +189,8 @@ state = await page.evaluate(() => {
     legacyRemounted: window.app.breakdownVideo._mounted
       && !!document.querySelector('.breakdown-player-controls, .breakdown-play-strip') };
 });
-ok(state.restored && state.mediaHome && state.nativeGone && state.legacyRemounted,
-  'Restore returns media and remounts the accepted route presentation exactly', JSON.stringify(state));
+ok(state.restored && state.mediaHome && state.nativeGone && !state.legacyRemounted,
+  'Restore returns media without reviving the retired legacy presentation', JSON.stringify(state));
 ok(state.dataSame, 'The complete native theater journey does not rewrite season payloads');
 ok(errors.length === 0, 'Native S5a journey has zero page errors', errors.join(' | '));
 

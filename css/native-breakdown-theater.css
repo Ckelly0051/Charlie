@@ -142,7 +142,7 @@
 @media (max-width: 800px) {
   .gi-breakdown-theater {
     --gi-hit: 44px; --gi-control: 44px;
-    height: auto; min-height: 100%; grid-template-rows: minmax(220px, 52vh) auto auto auto auto;
+    height: auto; min-height: 0; grid-template-rows: clamp(220px, 34vh, 300px) auto auto auto auto;
   }
   .gi-theater-stage { padding: 0; }
   .gi-drive-strip > header { height: 44px; }

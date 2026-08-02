@@ -1,420 +1,163 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* Lane A — Break Down presentation lifecycle (mount / restore / remount).
- *
- * WHY THIS EXISTS. BreakdownVideo._mount() moves real production chrome:
- * .playback-controls goes INSIDE #videoContainer, a drag handle is prepended, a
- * play strip is inserted, and #btnCopyPrev is relocated. WorkspaceShell.disable()
- * restored breakdownWorkspace but never breakdownVideo, so the no-reload classic
- * transition left beta chrome behind. Empirically confirmed before this test was
- * written: after a disable() (teardown), the strip was still mounted and
- * .playback-controls was still parented to #videoContainer.
- *
- * SCOPE / SEVERITY. WorkspaceShell.disable() is the INTERNAL mount/restore
- * teardown contract — there is no longer a user-facing "Use classic layout"
- * button (the classic escape hatch was retired, C1 2026-07-23). This harness
- * pins that disable()/enable() rebuilds cleanly with no leaked listeners or
- * tagger subscriptions, which matters for the shell's own lifecycle hygiene.
- *
- * WHAT THIS ASSERTS (and why not "byte-identical DOM"): a DOM snapshot compare
- * passes while retained listeners and tagger subscriptions leak. Handler
- * duplication is asserted by COUNTING EMISSIONS, not by reading markup.
- */
+import fs from 'node:fs';
+import path from 'node:path';
 import puppeteer from 'puppeteer';
+import { APP_URL } from './app-entry.mjs';
 
-const URL = TEST_APP_URL;
+/* S5d Break Down ownership lifecycle.
+ * The route owns one native theater and one native deck. Legacy presentation
+ * remains only as an off-screen behavior adapter until S7.
+ */
 let pass = 0, fail = 0;
-const ok = (cond, label, extra = '') => cond
-  ? (pass++, console.log(`  PASS  ${label}`))
-  : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
+const ok = (condition, label, detail = '') => condition
+  ? (pass++, console.log('  PASS  ' + label))
+  : (fail++, console.log('  FAIL  ' + label + (detail ? ' -- ' + detail : '')));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
-await page.setViewport({ width: 1280, height: 800 });
-await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
-page.on('pageerror', e => errors.push(e.stack || e.message));
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 700));
+page.on('pageerror', error => errors.push(error.stack || error.message));
+page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+await page.setViewport({ width: 1440, height: 900 });
+await page.goto(APP_URL, { waitUntil: 'networkidle0' });
+await new Promise(resolve => setTimeout(resolve, 500));
 
-// ---- 1. Element identity across the cycle -------------------------------
-// Decides the implementation: bind-once is only valid if these elements are
-// re-parented rather than re-created. If identity ever changes, the fix must
-// track bound element references and unbind/rebind when they change.
-const identity = await page.evaluate(async () => {
-  const vc = document.getElementById('videoContainer');
-  const pc = document.querySelector('.playback-controls');
-  vc.__laneA = 'vc'; pc.__laneA = 'pc';
-  const shell = window.app.workspaceShell;
-  shell.disable();
-  await new Promise(r => setTimeout(r, 250));
-  await shell.enable();
-  await new Promise(r => setTimeout(r, 400));
+console.log('\n== 1. One native route owns the accepted S5 surfaces ==');
+let state = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: 'S5d Route', team: 'Mavericks', year: '2026' });
+  const game = app.storage.seasonStore.activeGame();
+  game.plays = [
+    { id: 1, timestamp: { start: 0, end: 6 }, tags: { unit: 'offense', down: '1', distance: '10', formation: 'I-Form', backfield: 'I', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
+    { id: 2, timestamp: { start: 8, end: 14 }, tags: { unit: 'defense', down: '2', distance: '4', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
+    { id: 3, timestamp: { start: 16, end: 22 }, tags: { unit: 'offense', down: '3', distance: '2', formation: 'Split Back', backfield: 'Split', runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '12', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
+  ];
+  app.tagger.plays = game.plays;
+  app.tagger.nextId = 4;
+  app.tagger._updatePlaySelect();
+  app.tagger._updateTimeline();
+  app.tagger._emit('plays-loaded');
+  app.tagger.selectPlay(1);
+  const before = JSON.stringify(app.storage.seasonStore.data);
+  const media = document.getElementById('videoContainer');
+  media.__s5dIdentity = true;
+  await app.workspaceShell.show('breakdown');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   return {
-    vcSame: document.getElementById('videoContainer')?.__laneA === 'vc',
-    pcSame: document.querySelector('.playback-controls')?.__laneA === 'pc',
+    before,
+    nativeRoute: document.querySelectorAll('[data-native-breakdown-route]').length,
+    theater: document.querySelectorAll('[data-native-breakdown-theater]').length,
+    tagging: document.querySelectorAll('[data-native-tagging]').length,
+    filmRoom: document.querySelectorAll('[data-native-film-room]').length,
+    mediaOwner: document.querySelectorAll('[data-breakdown-theater-host] #videoContainer').length,
+    legacyVideo: document.querySelectorAll('.breakdown-player-controls, .breakdown-play-strip').length,
+    legacyTagVisible: app.nativeTagging.source.offsetParent !== null,
+    classicVisible: document.getElementById('wsClassicOutlet').hidden === false,
+    dataSame: before === JSON.stringify(app.storage.seasonStore.data),
   };
 });
-ok(identity.vcSame && identity.pcSame,
-  'DOM identity: #videoContainer and .playback-controls survive restore+enable as the SAME objects',
-  JSON.stringify(identity));
+ok(state.nativeRoute === 1 && state.theater === 1 && state.tagging === 1 && state.filmRoom === 1,
+  'Route composes exactly one theater, tag form, and Film Room owner', JSON.stringify(state));
+ok(state.mediaOwner === 1 && state.legacyVideo === 0 && !state.legacyTagVisible && !state.classicVisible,
+  'Canonical media is native and legacy presentation is not coach-visible', JSON.stringify(state));
+ok(state.dataSame, 'Ownership flip is a season-data no-op');
 
-// ---- 2. restore() returns chrome to its EXACT original position -----------
-// The true original position is the UNMOUNTED chrome. There is no flag-off boot
-// anymore (the shell is the unconditional product), so disable() is how we reach
-// that clean baseline: tear the shell down, snapshot, then prove enable() ->
-// disable() returns every moved element to the identical parent/index/text/cls.
-const page2 = await browser.newPage();
-await page2.setViewport({ width: 1280, height: 800 });
-const errors2 = [];
-page2.on('pageerror', e => errors2.push(e.stack || e.message));
-await page2.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 700));
+console.log('\n== 2. Chart and Film Room share one play identity ==');
+state = await page.evaluate(() => ({
+  chartVisible: !document.querySelector('[data-breakdown-tagging-host]').hidden,
+  filmHidden: document.querySelector('[data-breakdown-film-room-host]').hidden,
+  play: window.app.tagger.currentPlayId,
+  tagPlay: window.app.nativeTagging.snapshot().currentPlayId,
+}));
+ok(state.chartVisible && state.filmHidden && state.play === 1 && state.tagPlay === 1,
+  'Chart mode shows native tagging for the canonical selected play', JSON.stringify(state));
+await page.click('[data-bd-view="film-room"]');
+state = await page.evaluate(() => {
+  const snap = window.app.nativeFilmRoom.snapshot();
+  return {
+    chartHidden: document.querySelector('[data-breakdown-tagging-host]').hidden,
+    filmVisible: !document.querySelector('[data-breakdown-film-room-host]').hidden,
+    rowIds: snap.rows.map(row => row.id),
+    displayed: document.querySelector('.gi-film-room-head p')?.textContent,
+    mediaSame: document.getElementById('videoContainer').__s5dIdentity === true,
+  };
+});
+ok(state.chartHidden && state.filmVisible && state.mediaSame,
+  'Film Room replaces only the deck; the canonical video never remounts', JSON.stringify(state));
+ok(JSON.stringify(state.rowIds) === '[1,2,3]' && state.displayed === '3 plays',
+  'Displayed play total and row identities equal the source game', JSON.stringify(state));
+await page.click('[data-filter="unit:offense"]');
+await page.waitForFunction(() => document.querySelector('.gi-film-room-head p')?.textContent === '2 of 3 plays');
+state = await page.evaluate(() => {
+  const snap = window.app.nativeFilmRoom.snapshot();
+  return { rowIds: snap.rows.map(row => row.id), count: snap.watchCount, displayed: document.querySelector('.gi-film-room-head p')?.textContent };
+});
+ok(JSON.stringify(state.rowIds) === '[1,3]' && state.count === 2 && state.displayed === '2 of 3 plays',
+  'Film Room filter, displayed count, and Watch cohort resolve the exact same plays', JSON.stringify(state));
 
-const exact = await page2.evaluate(async () => {
-  const shell = window.app.workspaceShell;
-  // Reach the clean (unmounted) baseline by tearing the shell down.
-  shell.disable();
-  await new Promise(r => setTimeout(r, 350));
-  const snap = el => el && ({
-    parent: el.parentElement,
-    index: [...el.parentElement.children].indexOf(el),
-    text: el.textContent,
-    cls: el.className,
+console.log('\n== 3. Shell teardown and remount keep one owner ==');
+state = await page.evaluate(async () => {
+  const app = window.app;
+  const media = document.getElementById('videoContainer');
+  const selected = app.tagger.currentPlayId;
+  app.workspaceShell.disable();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const disabled = {
+    native: document.querySelectorAll('[data-native-breakdown-route]').length,
+    mediaHome: media.parentElement === app.breakdownTheater._home.parent,
+    tagRestored: !app.nativeTagging.source.hasAttribute('data-native-tag-source'),
+  };
+  await app.workspaceShell.enable();
+  await app.workspaceShell.show('breakdown');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  return {
+    disabled,
+    route: document.querySelectorAll('[data-native-breakdown-route]').length,
+    theater: document.querySelectorAll('[data-native-breakdown-theater]').length,
+    tagging: document.querySelectorAll('[data-native-tagging]').length,
+    filmRoom: document.querySelectorAll('[data-native-film-room]').length,
+    legacyVideo: document.querySelectorAll('.breakdown-player-controls, .breakdown-play-strip').length,
+    mediaSame: document.getElementById('videoContainer') === media,
+    selectedSame: app.tagger.currentPlayId === selected,
+  };
+});
+ok(state.disabled.native === 0 && state.disabled.mediaHome && state.disabled.tagRestored,
+  'Internal teardown restores every adopted source before removing the shell', JSON.stringify(state));
+ok(state.route === 1 && state.theater === 1 && state.tagging === 1 && state.filmRoom === 1 && state.legacyVideo === 0,
+  'Remount rebuilds exactly one native composition with no legacy duplicate', JSON.stringify(state));
+ok(state.mediaSame && state.selectedSame, 'Remount preserves media DOM identity and selected play');
+
+console.log('\n== 4. Route-integrated release viewports ==');
+const shotDir = process.env.GIQ_S5D_SHOTS_DIR || '';
+if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
+const sizes = [[1440,900],[1280,720],[768,1024],[390,844]];
+for (const [width,height] of sizes) {
+  await page.setViewport({ width, height });
+  await page.evaluate(() => window.app.breakdownWorkspace._setView('chart'));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const geometry = await page.evaluate(() => {
+    const route = document.querySelector('[data-native-breakdown-route]').getBoundingClientRect();
+    const theater = document.querySelector('[data-breakdown-theater-host]').getBoundingClientRect();
+    const media = document.getElementById('videoContainer').getBoundingClientRect();
+    const deck = document.querySelector('[data-breakdown-tagging-host]').getBoundingClientRect();
+    const toolbarButtons = [...document.querySelectorAll('.gi-breakdown-toolbar button')].map(button => button.getBoundingClientRect().height);
+    return {
+      route: [route.left, route.right, route.top, route.bottom],
+      theater: [theater.left, theater.right, theater.top, theater.bottom],
+      media: [media.left, media.right, media.top, media.bottom],
+      deck: [deck.left, deck.right, deck.top, deck.bottom],
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      mediaContained: media.left >= theater.left - 1 && media.right <= theater.right + 1 && media.top >= theater.top - 1 && media.bottom <= theater.bottom + 1,
+      minToolbarHit: Math.min(...toolbarButtons),
+    };
   });
-  const pcBefore = snap(document.querySelector('.playback-controls'));
-  const copyBefore = snap(document.getElementById('btnCopyPrev'));
-  const cleanAfterDisable = !document.querySelector('.breakdown-play-strip');
+  ok(!geometry.overflow && geometry.mediaContained && geometry.media[1] > geometry.media[0],
+    width + 'x' + height + ' keeps video visible, contained, and free of page overflow', JSON.stringify(geometry));
+  if (width <= 620) ok(geometry.minToolbarHit >= 44,
+    width + 'x' + height + ' keeps route controls touch-sized', JSON.stringify(geometry));
+  if (shotDir) await page.screenshot({ path: path.join(shotDir, 'breakdown-' + width + 'x' + height + '.png'), fullPage: true });
+}
 
-  await shell.enable();
-  await new Promise(r => setTimeout(r, 450));
-  const mountedAfterEnable = !!document.querySelector('.breakdown-play-strip');
-
-  shell.disable();
-  await new Promise(r => setTimeout(r, 350));
-  const pcAfter = snap(document.querySelector('.playback-controls'));
-  const copyAfter = snap(document.getElementById('btnCopyPrev'));
-  const same = (a, b) => !!a && !!b && a.parent === b.parent && a.index === b.index
-    && a.text === b.text && a.cls === b.cls;
-  return {
-    cleanAfterDisable,
-    enableMounts: mountedAfterEnable,
-    pcExact: same(pcBefore, pcAfter),
-    copyExact: same(copyBefore, copyAfter),
-    detail: { pcBefore: pcBefore && { i: pcBefore.index, c: pcBefore.cls }, pcAfter: pcAfter && { i: pcAfter.index, c: pcAfter.cls },
-              copyBefore: copyBefore && { i: copyBefore.index, t: copyBefore.text }, copyAfter: copyAfter && { i: copyAfter.index, t: copyAfter.text } },
-  };
-});
-ok(exact.cleanAfterDisable, 'disable() reaches a clean unmounted state (no beta presentation)');
-ok(exact.enableMounts, 'enable() after disable() re-mounts the presentation');
-ok(exact.pcExact, '.playback-controls returns to its EXACT original parent, sibling index, text and classes',
-  JSON.stringify(exact.detail));
-ok(exact.copyExact, '#btnCopyPrev returns to its EXACT original parent, sibling index, text and classes',
-  JSON.stringify(exact.detail));
-
-// ---- 2b. Deferred callbacks must not outlive their mount ------------------
-// render() queues an rAF that re-reads this.track; restore() nulls it.
-// _bindPlayer queues place(stored), which writes controls.style.top; restore()
-// has just cleared it. Both fire AFTER teardown unless they check ownership.
-const races = await page2.evaluate(async () => {
-  const thrown = [];
-  const onErr = e => thrown.push(String(e.message || e));
-  window.addEventListener('error', onErr);
-
-  // Race A: render() then immediate teardown, before the frame runs.
-  await window.app.workspaceShell.enable();
-  await new Promise(r => setTimeout(r, 400));
-  try { localStorage.setItem('ffa_video_controls_y', '0.5'); } catch {}
-  window.app.breakdownVideo.render();
-  window.app.workspaceShell.disable();          // same tick — rAF still queued
-  await new Promise(r => setTimeout(r, 250));
-  const renderRace = thrown.slice();
-
-  // Race B: mount reads the stored ratio and queues place(); tear down first.
-  thrown.length = 0;
-  await window.app.workspaceShell.enable();
-  window.app.workspaceShell.disable();          // before the queued frame
-  await new Promise(r => setTimeout(r, 250));
-  const topAfter = document.querySelector('.playback-controls')?.style.top || '';
-
-  window.removeEventListener('error', onErr);
-  return { renderRace, placeRaceTop: topAfter, placeThrown: thrown.slice() };
-});
-ok(races.renderRace.length === 0,
-  'race: render() rAF after restore() does not throw on a null track',
-  races.renderRace.join(' | '));
-ok(races.placeRaceTop === '',
-  'race: queued place() does not re-apply beta positioning after restore()',
-  `style.top="${races.placeRaceTop}"`);
-
-// ---- 2d. An ACTIVE DRAG must not survive teardown ------------------------
-// pointerdown installs move/up on WINDOW and only removes them on pointerup.
-// If restore() runs mid-drag that pointerup may never come, so the listeners
-// outlive the handle: move -> place() repositions the CLASSIC controls and
-// persists a ratio, up -> show() re-arms the auto-hide. None of the assertions
-// above exercise this because none of them drag.
-const drag = await page2.evaluate(async () => {
-  const shell = window.app.workspaceShell;
-  await shell.enable();
-  await new Promise(r => setTimeout(r, 400));
-  try { localStorage.removeItem('ffa_video_controls_y'); } catch {}
-
-  const handle = document.querySelector('.breakdown-player-drag');
-  if (!handle) return { error: 'no drag handle' };
-  handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 300, pointerId: 1 }));
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 320, pointerId: 1 }));
-
-  shell.disable();                 // teardown mid-drag: no pointerup yet
-  await new Promise(r => setTimeout(r, 120));
-  // Baseline AFTER teardown: the move above was LIVE and legitimately persisted
-  // a ratio. The bug is a dead mount CHANGING it, not the live drag saving it.
-  let storedAtTeardown = null;
-  try { storedAtTeardown = localStorage.getItem('ffa_video_controls_y'); } catch {}
-
-  // The drag "continues" against a torn-down mount. clientY is far from the
-  // pre-teardown position so a leaked handler would write a different ratio.
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 700, pointerId: 1 }));
-  window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 700, pointerId: 1 }));
-  await new Promise(r => setTimeout(r, 2000));   // outlast show()'s 1600ms auto-hide
-
-  const pc = document.querySelector('.playback-controls');
-  let storedAfter = null;
-  try { storedAfter = localStorage.getItem('ffa_video_controls_y'); } catch {}
-  return {
-    top: pc?.style.top || '',
-    bottom: pc?.style.bottom || '',
-    hiddenClass: document.getElementById('videoContainer')?.classList.contains('breakdown-controls-hidden'),
-    storedAtTeardown,
-    storedAfter,
-    storedUnchanged: storedAtTeardown === storedAfter,
-  };
-});
-ok(drag.top === '' && drag.bottom === '',
-  'active drag + restore(): later pointermove does not reposition the classic controls',
-  `top="${drag.top}" bottom="${drag.bottom}"`);
-ok(drag.hiddenClass === false,
-  'active drag + restore(): later pointerup does not re-arm auto-hide on the classic layout',
-  `hiddenClass=${drag.hiddenClass}`);
-ok(drag.storedUnchanged,
-  'active drag + restore(): a dead mount cannot overwrite the stored ratio',
-  `atTeardown=${drag.storedAtTeardown} after=${drag.storedAfter}`);
-
-// ---- 2e. A gesture must end when it is cancelled or replaced -------------
-// The teardown fix above only covers restore(). Ordinary drag CANCELLATION is
-// separate: pointerdown registers global move/up but nothing listens for
-// pointercancel, nothing filters by the owning pointerId, and a replacement
-// pointerdown overwrites _endDrag — orphaning the first gesture's listeners
-// with no way to remove them. Reachable on touch interruption, browser gesture
-// takeover, device cancellation, or a second finger.
-const gestures = await page2.evaluate(async () => {
-  const shell = window.app.workspaceShell;
-  const bv = window.app.breakdownVideo;
-  // Measure whether the stale HANDLER RUNS, not whether pixels move. With no
-  // film loaded #videoContainer has no layout, so place() clamps every position
-  // to 12px and every ratio to 0 — comparing pixel values cannot distinguish
-  // "correctly stopped" from "never started". Every drag move writes this key,
-  // so counting writes detects a live listener regardless of geometry.
-  let writes = 0;
-  const realSet = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = (k, v) => { if (k === 'ffa_video_controls_y') writes++; return realSet(k, v); };
-  const resetWrites = () => { writes = 0; };
-
-  // --- Case 1: pointercancel ---
-  await shell.enable();
-  // MUST show the breakdown route. enable() lands on Home, leaving #wsBreakdown
-  // hidden, so the video's getBoundingClientRect().height is 0 and place()
-  // clamps every position to 12px — the drag mechanism cannot be exercised.
-  await shell.show('breakdown');
-  await new Promise(r => setTimeout(r, 400));
-  const handle = document.querySelector('.breakdown-player-drag');
-  if (!handle) return { error: 'no handle' };
-  // Neutralize pointer capture. Synthetic PointerEvents create no active
-  // pointer, so setPointerCapture THROWS and kills the pointerdown handler
-  // before it registers move/up — every assertion below would then pass
-  // vacuously against a handler that never armed.
-  const neutralize = el => { el.setPointerCapture = () => {}; el.releasePointerCapture = () => {}; };
-  neutralize(handle);
-  handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 200, pointerId: 1 }));
-  resetWrites();
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 520, pointerId: 1 }));
-  // PRECONDITION: the live drag must actually drive the handler. Without this,
-  // "no writes after cancel" cannot distinguish "correctly stopped" from
-  // "never started" — the trap that made an earlier version of these
-  // assertions pass against the unfixed code.
-  const liveDragWrites = writes;
-
-  window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, clientY: 520, pointerId: 1 }));
-  await new Promise(r => setTimeout(r, 60));
-  const endDragArmedAfterCancel = !!bv._endDrag;
-
-  // The gesture is over. A later move must not reach the handler at all.
-  resetWrites();
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 60, pointerId: 1 }));
-  await new Promise(r => setTimeout(r, 60));
-  const cancel = {
-    liveDragWrites,
-    writesAfterCancel: writes,
-    endDragArmedAfterCancel,
-  };
-
-  // --- Case 2: overlapping pointers / replacement pointerdown ---
-  window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 760, pointerId: 1 }));
-  await new Promise(r => setTimeout(r, 60));
-  const h2 = document.querySelector('.breakdown-player-drag');
-  neutralize(h2);
-  h2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 200, pointerId: 11 }));
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 240, pointerId: 11 }));
-  // A second finger starts a new gesture; it replaces _endDrag, orphaning
-  // pointer 11's listeners with no reference left to remove them.
-  h2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 300, pointerId: 22 }));
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 310, pointerId: 22 }));
-  window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 310, pointerId: 22 }));
-  await new Promise(r => setTimeout(r, 60));
-
-  // Pointer 11's gesture was superseded and pointer 22's is finished. Nothing
-  // should be listening: a move from EITHER pointer must not reach the handler.
-  resetWrites();
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 580, pointerId: 11 }));
-  window.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientY: 590, pointerId: 22 }));
-  await new Promise(r => setTimeout(r, 60));
-  const overlap = { writesAfterBothEnded: writes, endDragArmed: !!bv._endDrag };
-
-  localStorage.setItem = realSet;
-  return { cancel, overlap };
-});
-ok(gestures.cancel?.liveDragWrites > 0,
-  'precondition: a live drag drives the handler (guards the assertions below against passing because nothing ran)',
-  JSON.stringify(gestures.cancel));
-ok(gestures.cancel?.writesAfterCancel === 0,
-  'pointercancel: a cancelled drag stops driving the handler',
-  JSON.stringify(gestures.cancel));
-ok(gestures.cancel?.endDragArmedAfterCancel === false,
-  'pointercancel: the gesture cleanup is disarmed, not left pending',
-  `armed=${gestures.cancel?.endDragArmedAfterCancel}`);
-ok(gestures.overlap?.writesAfterBothEnded === 0 && gestures.overlap?.endDragArmed === false,
-  'overlapping pointers: a superseded gesture leaves no stale listener',
-  JSON.stringify(gestures.overlap));
-
-await page2.close();
-
-// ---- 2c. restore() un-mounts the beta presentation -----------------------
-await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); });
-await page.reload({ waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 700));
-const restored = await page.evaluate(async () => {
-  window.app.workspaceShell.disable();
-  await new Promise(r => setTimeout(r, 300));
-  return {
-    strips: document.querySelectorAll('.breakdown-play-strip').length,
-    handles: document.querySelectorAll('.breakdown-player-drag').length,
-    pcInsideVideo: !!document.querySelector('#videoContainer .playback-controls'),
-    videoHasBetaClass: document.getElementById('videoContainer')?.classList.contains('breakdown-video-v2'),
-    inlineTop: document.querySelector('.playback-controls')?.style.top || '',
-  };
-});
-ok(restored.strips === 0, 'restore(): play strip is removed', `strips=${restored.strips}`);
-ok(restored.handles === 0, 'restore(): drag handle is removed', `handles=${restored.handles}`);
-ok(!restored.pcInsideVideo, 'restore(): .playback-controls leaves #videoContainer');
-ok(!restored.videoHasBetaClass, 'restore(): beta presentation class is removed from #videoContainer');
-ok(restored.inlineTop === '', 'restore(): inline positioning written by place() is cleared');
-
-// ---- 3. Remount rebuilds exactly once ------------------------------------
-const remount = await page.evaluate(async () => {
-  await window.app.workspaceShell.enable();
-  await new Promise(r => setTimeout(r, 400));
-  return {
-    strips: document.querySelectorAll('.breakdown-play-strip').length,
-    handles: document.querySelectorAll('.breakdown-player-drag').length,
-    pcInsideVideo: !!document.querySelector('#videoContainer .playback-controls'),
-  };
-});
-ok(remount.strips === 1 && remount.handles === 1 && remount.pcInsideVideo,
-  'remount: enable() rebuilds the presentation exactly once', JSON.stringify(remount));
-
-// ---- 4. Repeated cycles do not duplicate handling ------------------------
-// Counted by EMISSION, not markup: a duplicated subscription re-renders N times
-// per event while the DOM still looks correct.
-const cycles = await page.evaluate(async () => {
-  const shell = window.app.workspaceShell;
-  for (let i = 0; i < 3; i++) {
-    shell.disable();
-    await new Promise(r => setTimeout(r, 150));
-    await shell.enable();
-    await new Promise(r => setTimeout(r, 250));
-  }
-  const bv = window.app.breakdownVideo;
-  let renders = 0;
-  const realRender = bv.render.bind(bv);
-  bv.render = (...a) => { renders++; return realRender(...a); };
-
-  window.app.tagger._emit('plays-loaded', window.app.tagger.plays);
-  await new Promise(r => setTimeout(r, 120));
-  const rendersPerEvent = renders;
-
-  // Count _renderPlay, NOT _updateCard, and use a synthetic play. An earlier
-  // draft did `cardUpdatesPerEvent: play ? cardUpdates : 1` — this harness has
-  // no season, so plays[0] was undefined and it returned a hardcoded 1 without
-  // ever emitting. It passed on ANY code, including code with the subscribe
-  // guard deliberately removed. A mutation run caught it.
-  let playHandled = 0;
-  const realRenderPlay = bv._renderPlay.bind(bv);
-  bv._renderPlay = (...a) => { playHandled++; return realRenderPlay(...a); };
-  window.app.tagger._emit('play-updated', { id: 999999, tags: {} });
-  await new Promise(r => setTimeout(r, 120));
-
-  return {
-    strips: document.querySelectorAll('.breakdown-play-strip').length,
-    handles: document.querySelectorAll('.breakdown-player-drag').length,
-    copyPrev: document.querySelectorAll('#btnCopyPrev').length,
-    rendersPerEvent,
-    playHandledPerEvent: playHandled,
-  };
-});
-ok(cycles.strips === 1, 'after 3 cycles: exactly one play strip', `strips=${cycles.strips}`);
-ok(cycles.handles === 1, 'after 3 cycles: exactly one drag handle', `handles=${cycles.handles}`);
-ok(cycles.copyPrev === 1, 'after 3 cycles: exactly one #btnCopyPrev', `n=${cycles.copyPrev}`);
-ok(cycles.rendersPerEvent === 1,
-  'after 3 cycles: one plays-loaded event triggers exactly ONE render (no duplicate subscriptions)',
-  `renders=${cycles.rendersPerEvent}`);
-ok(cycles.playHandledPerEvent === 1,
-  'after 3 cycles: one play-updated event is handled exactly ONCE',
-  `handled=${cycles.playHandledPerEvent}`);
-
-// ---- 5. State survives the cycle -----------------------------------------
-const state = await page.evaluate(async () => {
-  const shell = window.app.workspaceShell;
-  const v = document.getElementById('videoPlayer');
-  v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=';
-  const before = { src: v.src, time: v.currentTime, play: window.app.tagger.currentPlayId };
-  shell.disable();
-  await new Promise(r => setTimeout(r, 200));
-  await shell.enable();
-  await new Promise(r => setTimeout(r, 350));
-  const after = document.getElementById('videoPlayer');
-  return {
-    srcSame: after.src === before.src,
-    timeSame: after.currentTime === before.time,
-    playSame: window.app.tagger.currentPlayId === before.play,
-    controlsPresent: !!document.getElementById('btnPlayPause'),
-    controlsClickable: (() => {
-      const b = document.getElementById('btnPlayPause');
-      if (!b) return false;
-      b.click();               // must not throw; wiring must survive the cycle
-      return true;
-    })(),
-  };
-});
-ok(state.srcSame, 'cycle: video source survives');
-ok(state.timeSame, 'cycle: currentTime survives');
-ok(state.playSame, 'cycle: selected play survives');
-ok(state.controlsPresent && state.controlsClickable,
-  'cycle: playback controls are present and still respond after remount', JSON.stringify(state));
-
-// Both pages count. The classic-boot page drives the teardown races, so leaving
-// it unmonitored would hide exactly the throw this lane is fixing.
-const allErrors = [...errors, ...errors2];
-ok(allErrors.length === 0, 'No page errors (both flag-on and classic-boot pages)',
-  allErrors.slice(0, 2).join(' | '));
-
-console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
+ok(errors.length === 0, 'Native Break Down ownership journey has zero page errors', errors.join(' | '));
 await browser.close();
+console.log('\n== RESULT: ' + pass + ' passed, ' + fail + ' failed ==');
 process.exit(fail ? 1 : 0);

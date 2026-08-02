@@ -36,7 +36,8 @@ function Field({screen, field, label, value, type='number', min, max, step, plac
   return <label class={`gi-tag-input gi-tag-input-${field}`} data-native-field={field}>
     <span>{label}</span>
     <input type={type} value={value ?? ''} min={min} max={max} step={step} placeholder={placeholder}
-      onChange={event => screen.setField(field, event.currentTarget.value)}/>
+      onChange={event => screen.setField(field, event.currentTarget.value)}
+      onKeyDown={event => { if ((field === 'yardage' || field === 'distance') && event.key === 'Enter') { event.preventDefault(); screen.setField(field, event.currentTarget.value); screen.saveNext(); }}}/>
   </label>;
 }
 

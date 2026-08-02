@@ -125,7 +125,12 @@ state = await page.evaluate(() => ({
 }));
 ok(/^Opponent Defensive Call/.test(state.defense), 'Opponent scout labels the opponent as the analytics subject');
 
-await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
+await page.evaluate(() => {
+  const tagger=window.app.tagger;
+  tagger.plays=[{id:1,timestamp:{start:0,end:4},tags:{unit:'offense',players:{},grades:{},custom:[]},notes:'',analysis:null}];
+  tagger.nextId=2;tagger._updatePlaySelect();tagger._emit('plays-loaded');tagger.selectPlay(1);
+  window.app.nativeTagging.setUnit('special');
+});
 await page.waitForFunction(() => document.querySelector('#tagForm').classList.contains('mode-special'));
 state = await page.evaluate(() => ({
   primary: document.querySelector('.group-special .tag-group-head').textContent.trim(),
@@ -457,15 +462,20 @@ await page.evaluate(async () => {
   }
   await window.app.workspaceShell.show('breakdown');
 });
-await page.evaluate(() => document.querySelector('#tagUnit .pick[data-value="special"]').click());
+await page.evaluate(() => {
+  const tagger=window.app.tagger;
+  tagger.plays=[{id:1,timestamp:{start:0,end:4},tags:{unit:'offense',players:{},grades:{},custom:[]},notes:'',analysis:null}];
+  tagger.nextId=2;tagger._updatePlaySelect();tagger._emit('plays-loaded');tagger.selectPlay(1);
+  window.app.nativeTagging.setUnit('special');
+});
 await page.setViewport({ width: 390, height: 844 });
 await new Promise(r => setTimeout(r, 300));
 state = await page.evaluate(() => ({
   route: window.app.workspace.currentRoute(),
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  formOverflow: document.querySelector('#tagForm').scrollWidth > document.querySelector('#tagForm').clientWidth,
-  unitHeight: Math.min(...[...document.querySelectorAll('#tagUnit .pick')].map(el => el.getBoundingClientRect().height)),
-  stHeight: Math.min(...[...document.querySelectorAll('.bdv-st-editor .pick')].map(el => el.getBoundingClientRect().height)),
+  formOverflow: document.querySelector('[data-native-tagging]').scrollWidth > document.querySelector('[data-native-tagging]').clientWidth,
+  unitHeight: document.querySelector('[data-native-context="unit"]').getBoundingClientRect().height,
+  stHeight: Math.min(...[...document.querySelectorAll('[data-native-choice="Unit"] button')].map(el => el.getBoundingClientRect().height)),
 }));
 ok(state.route === 'breakdown', 'Mobile composition is measured on the real shell Break Down route, not an unwrap', JSON.stringify(state));
 ok(!state.pageOverflow && !state.formOverflow && state.unitHeight >= 44 && state.stHeight >= 44, 'Mobile composition is overflow-free with touch-sized unit and phase controls', JSON.stringify(state));

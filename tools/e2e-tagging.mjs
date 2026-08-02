@@ -61,9 +61,9 @@ r = await page.evaluate(() => {
   t.selectPlay(a.id);
   return { aId: a.id, bId: b.id, aResult: a.tags.result };
 });
-await page.focus('#tagYardage');
-await page.evaluate(() => { document.getElementById('tagYardage').value = ''; });
-await page.type('#tagYardage', '8');
+await page.focus('[data-native-field="yardage"] input');
+await page.evaluate(() => { document.querySelector('[data-native-field="yardage"] input').value = ''; });
+await page.type('[data-native-field="yardage"] input', '8');
 await page.keyboard.press('Enter');
 await sleep(150);
 r = await page.evaluate((prev) => {
@@ -72,7 +72,7 @@ r = await page.evaluate((prev) => {
   return {
     cur: t.currentPlayId, expected: prev.bId,
     savedMag: Math.abs(parseInt(a.tags.yardage, 10)),
-    blurred: document.activeElement !== document.getElementById('tagYardage'),
+    blurred: document.activeElement !== document.querySelector('[data-native-field="yardage"] input'),
   };
 }, r);
 ok(r.cur === r.expected, 'Enter in yardage advanced to the next play', JSON.stringify(r));
@@ -108,8 +108,8 @@ await page.evaluate(() => {
   document.activeElement && document.activeElement.blur();
 });
 await page.keyboard.press('y');
-r = await page.evaluate(() => ({ focused: document.activeElement?.id }));
-ok(r.focused === 'tagYardage', 'Y focuses the yardage input', JSON.stringify(r));
+r = await page.evaluate(() => ({ focused: document.activeElement === document.querySelector('[data-native-field="yardage"] input') }));
+ok(r.focused, 'Y focuses the yardage input', JSON.stringify(r));
 await page.keyboard.press('Escape');
 await page.evaluate(() => document.activeElement && document.activeElement.blur());
 

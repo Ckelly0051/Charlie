@@ -150,11 +150,11 @@ r = await page.evaluate(() => ({
   homeHidden: document.querySelector('#wsHome')?.hidden,
   route: window.app.workspace.currentRoute(),
   videoOwners: document.querySelectorAll('#wsBreakdown #videoContainer').length,
-  tagOwners: document.querySelectorAll('#wsBreakdown #tagForm').length,
+  tagOwners: document.querySelectorAll('#wsBreakdown [data-native-tagging]').length,
   legacyChrome: document.querySelectorAll('#wsBreakdown .top-bar, #wsBreakdown .settings-drawer, #wsBreakdown #statsDashboard').length,
   sidebarDisplay: getComputedStyle(document.querySelector('.ws-sidebar')).display,
   topNavDisplay: getComputedStyle(document.querySelector('.ws-top-nav')).display,
-  mediaWidth: Math.round(document.querySelector('.bd-media-column').getBoundingClientRect().width),
+  mediaWidth: Math.round(document.querySelector('.gi-breakdown-theater-host').getBoundingClientRect().width),
 }));
 ok(r.dedicatedVisible && r.classicHidden && r.homeHidden && r.route === 'breakdown', 'Break Down opens its dedicated production route', JSON.stringify(r));
 ok(r.videoOwners === 1 && r.tagOwners === 1 && r.legacyChrome === 0, 'Dedicated route has one canonical video/tag owner and no legacy app chrome', JSON.stringify(r));

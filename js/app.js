@@ -1971,7 +1971,8 @@ class App {
     // closing the only step that still forced a mouse trip every play.
     if (e.code === 'KeyY' && !e.shiftKey) {
       e.preventDefault();
-      const yd = document.getElementById('tagYardage');
+      const nativeYd = document.querySelector('[data-native-tagging] [data-native-field="yardage"] input');
+      const yd = nativeYd?.getClientRects().length ? nativeYd : document.getElementById('tagYardage');
       if (yd) { yd.focus(); yd.select(); }
       return true;
     }

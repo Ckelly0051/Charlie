@@ -89,7 +89,7 @@ const rep = await page.evaluate(async () => {
     await pl._autoCreatePlays();
     window.app.workspaceShell?.navigate?.('breakdown');
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    out.steps.linkedCountText = document.getElementById('bdTagProgress')?.textContent || null;
+    out.steps.linkedCountText = document.querySelector('.gi-drive-strip > header')?.textContent || null;
   } catch (e) { out.err = String(e && e.stack || e); }
   return out;
 });
@@ -103,7 +103,7 @@ ok(s.distinctClipIds === 2, 'clips have DISTINCT identity (not collapsed to base
 ok(s.distinctPlayIds === 2, 'plays have DISTINCT identity', `distinct=${s.distinctPlayIds}`);
 ok(s.clipCountAfter === 2, 'reopen re-imports two clips', `got ${s.clipCountAfter}`);
 ok(s.relinkedCount === 2, 'BOTH plays relink on reopen (none orphaned)', `relinked=${s.relinkedCount}`);
-ok(s.linkedCountText === '0 / 2 tagged', 'linked auto-create refreshes the native Breakdown play count', `got `);
+ok(/2 plays/.test(s.linkedCountText || ''), 'linked auto-create refreshes the native Breakdown play count', `got ${s.linkedCountText}`);
 ok(appErrors().length === 0, 'no console/page errors', appErrors().join(' | '));
 
 const repair = await page.evaluate(async () => {
