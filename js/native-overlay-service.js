@@ -71,7 +71,7 @@ export class NativeOverlayService {
       separator: item.separator === true,
       onSelect: item.onSelect,
     }));
-    if (type === 'popover' && !items.length) throw new Error('A popover requires at least one menu item.');
+    if (type === 'popover' && !items.length && !options.content) throw new Error('A popover requires menu items or content.');
     if (options.destructive === true) {
       const cancel = actions.find(action => action.key === 'cancel');
       if (!cancel) throw new Error('A destructive overlay requires an explicit Cancel action.');

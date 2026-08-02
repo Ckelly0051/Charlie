@@ -179,6 +179,18 @@ as visual shorthand, but production has no calibrated screen-to-field mapping;
 drawing it would cover evidence and imply false placement. This follows the
 coach's stronger rule that not one pixel of video should be needlessly covered.
 
+**S5b component visual check (Codex, 2026-08-01; independent review pending).**
+The internal Film Room presentation uses the native token palette and bundled
+fonts, keeps the high-frequency filters and Watch action visible, uses stable
+sticky Play/selection columns, and contains horizontal overflow inside the
+table. At 390px the toolbar wraps without page overflow and coarse-pointer CSS
+raises controls/rows to 44px. Optional captures are local in `.tmp-s5b-shots/`
+and are not committed because this checkpoint is an isolated component host.
+They validate component hierarchy only; they do not replace route-integrated
+screenshots, film-pixel measurements, or the source-backed number/film-ref spot
+check required at S5d. The design-system harness is 7/7 after rejecting and
+removing one undefined legacy current-row token.
+
 ### UX-2 - Universal game context control (P1)
 
 The left rail is universal navigation, so game context must be switchable from

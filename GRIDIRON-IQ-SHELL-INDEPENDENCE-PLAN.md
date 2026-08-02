@@ -730,6 +730,37 @@ Each item below is a contract or coverage gap, not an implementation task.
 - F1 now prints assertion FAIL lines before the diagnostic tail; its buried-
   failure self-test and a complete 75/75 run are green. **S5b is open.**
 
+### S5b implementation checkpoint - AWAITING INDEPENDENT REVIEW (2026-08-01)
+
+- The internal native Film Room deck is complete alongside the accepted route;
+  it remains unreachable until S5d.
+- `PlayGrid` is still the one behavior owner. The native adapter consumes its
+  visible-play pool, filters, tendencies, selections, Watch pool, columns, saved
+  filters and edit path rather than recreating football or persistence logic.
+- Mount/restore is transactional: the legacy grid is hidden, hidden-row rerender
+  work is suppressed, native subscriptions and route-owned overlays are removed,
+  and the prior hidden state is restored. Season data is byte-identical across
+  view-only mount/restore.
+- The native deck preserves spreadsheet editing, projected tag semantics,
+  HistoryManager behavior, click-to-follow film on read-only cells, custom/saved
+  preferences, and exact selected-and-visible Watch cohorts.
+- Keyboard ownership has one initial Tab stop, arrow navigation follows film,
+  and filter/column changes cannot strand roving focus. A focus-before-click
+  race found in self-review was removed so first click selects and second click
+  edits.
+- Visual QA at 1440 and 390 confirms the dense tokenized deck, internal table
+  overflow and readable hierarchy. Isolated-host screenshots do not establish
+  route geometry; S5d must capture that evidence after composition.
+- Focused native Film Room 24/24; legacy Film Room 179/179; overlay 42/42;
+  theater 21/21; design-system 7/7. Canonical gate 76/76, 0 skipped. The first
+  run's undefined legacy CSS token was caught at 75/76 and fixed before handoff.
+- An independent Settings journey focus race exposed by the final-byte gate is
+  hardened at the test boundary: wait for reopened-sheet focus, then assert the
+  complete input before save. Settings is 19/19 across 8 isolated repeats and the
+  final gate; no Settings production behavior changed.
+- No schema, season/play/tag data, analytics, storage, film, package, tag or
+  release changed. **S5c stays closed pending Claude acceptance.**
+
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
 | Item | Owner in S5 |

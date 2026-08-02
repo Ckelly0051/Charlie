@@ -1,0 +1,54 @@
+.gi-film-room{display:grid;grid-template-rows:auto auto minmax(0,1fr);min-width:0;min-height:0;height:100%;background:var(--gi-1);color:var(--gi-12);font-family:var(--gi-sans)}
+.gi-film-room-head{display:flex;align-items:center;gap:18px;min-width:0;padding:10px 12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-film-room-head>div:first-child{display:flex;align-items:baseline;gap:10px;min-width:0}
+.gi-film-room-head h2{margin:0;font:700 18px/1 var(--gi-cond);white-space:nowrap}
+.gi-film-room-head p{margin:0;color:var(--gi-10);font:600 11px/1 var(--gi-mono);white-space:nowrap}
+.gi-film-room-head .gi-eyebrow{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.gi-film-room-actions{display:flex;gap:6px;margin-left:auto}
+.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:var(--gi-control);border:1px solid var(--gi-7);border-radius:3px;background:var(--gi-3);color:var(--gi-12);font:600 11px var(--gi-sans)}
+.gi-film-room button:hover,.gi-film-columns button:hover,.gi-film-cell-editor button:hover{border-color:var(--gi-9);background:var(--gi-4)}
+.gi-film-room button:focus-visible,.gi-film-columns button:focus-visible,.gi-film-cell-editor button:focus-visible,.gi-film-cell-editor input:focus-visible{outline:2px solid var(--gi-10);outline-offset:1px}
+.gi-film-room button.is-primary,.gi-film-cell-editor button.is-primary{border-color:var(--gi-9);background:var(--gi-9);color:var(--gi-on-solid)}
+.gi-film-room button:disabled{cursor:default;opacity:.55}
+.gi-film-room-actions button{padding:0 10px;white-space:nowrap}
+.gi-film-filters{display:flex;gap:4px;min-width:0;padding:7px 12px;border-bottom:1px solid var(--gi-7);overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--gi-7) transparent}
+.gi-film-filters button{flex:0 0 auto;min-height:28px;padding:0 9px;background:transparent;color:var(--gi-10)}
+.gi-film-filters button.is-active{border-color:var(--gi-9);background:var(--gi-5);color:var(--gi-12)}
+.gi-film-table-wrap{position:relative;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--gi-7) var(--gi-2)}
+.gi-film-table-wrap table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+.gi-film-table-wrap thead{position:sticky;top:0;z-index:2;background:var(--gi-3)}
+.gi-film-table-wrap th,.gi-film-table-wrap td{height:34px;padding:0;border-right:1px solid var(--gi-6);border-bottom:1px solid var(--gi-6);text-align:left}
+.gi-film-table-wrap thead th{min-width:118px;padding:6px 9px;color:var(--gi-11);font:700 10px/1.1 var(--gi-mono);text-transform:uppercase;white-space:nowrap}
+.gi-film-table-wrap thead th small{display:block;max-width:150px;margin-top:4px;overflow:hidden;color:var(--gi-9);font:500 9px/1 var(--gi-sans);text-overflow:ellipsis;text-transform:none}
+.gi-film-table-wrap .is-check{position:sticky;left:0;z-index:3;width:38px;min-width:38px;text-align:center;background:var(--gi-2)}
+.gi-film-table-wrap .is-play{position:sticky;left:38px;z-index:3;width:64px;min-width:64px;background:var(--gi-2)}
+.gi-film-table-wrap tbody tr.is-current td,.gi-film-table-wrap tbody tr.is-current th{background:var(--gi-info-surface)}
+.gi-film-table-wrap tbody tr.is-untagged{opacity:.7}
+.gi-film-table-wrap tbody tr.is-current .is-play{box-shadow:inset 3px 0 0 var(--gi-9)}
+.gi-film-table-wrap input[type="checkbox"]{width:16px;height:16px;accent-color:var(--gi-9)}
+.gi-film-table-wrap .is-play button{display:flex;align-items:center;gap:7px;width:100%;height:100%;padding:0 8px;border:0;background:transparent;font:700 12px var(--gi-cond);text-align:left}
+.gi-film-table-wrap .is-play button span{display:grid;width:18px;height:18px;place-items:center;border-radius:2px;background:var(--gi-5);color:var(--gi-11);font:700 9px var(--gi-mono)}
+.gi-film-table-wrap td>button{display:block;width:100%;height:100%;min-height:34px;padding:0 9px;border:0;border-radius:0;background:transparent;overflow:hidden;color:var(--gi-12);text-align:left;text-overflow:ellipsis;white-space:nowrap}
+.gi-film-table-wrap td>button:hover{background:var(--gi-4)}
+.gi-film-table-wrap td>button.is-focus{box-shadow:inset 0 0 0 2px var(--gi-9)}
+.gi-film-table-wrap .is-empty{color:var(--gi-8)}
+.gi-film-empty{display:grid;min-height:180px;place-items:center;color:var(--gi-10)}
+.gi-film-columns{display:grid;gap:14px}
+.gi-film-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.gi-film-presets button{text-transform:capitalize}
+.gi-film-column-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}
+.gi-film-column-list label{display:flex;align-items:center;gap:8px;min-height:32px;color:var(--gi-11);font-size:12px}
+.gi-film-column-list input{accent-color:var(--gi-9)}
+.gi-film-cell-editor{display:grid;gap:10px;min-width:250px;padding:5px}
+.gi-film-cell-editor>strong{font:700 12px var(--gi-sans)}
+.gi-film-cell-editor>label{display:grid;gap:5px;color:var(--gi-10);font:700 10px var(--gi-mono);text-transform:uppercase}
+.gi-film-cell-editor input,.gi-film-save-filter input{width:100%;min-height:40px;padding:0 9px;border:1px solid var(--gi-7);border-radius:3px;background:var(--gi-1);color:var(--gi-12);font:600 13px var(--gi-sans)}
+.gi-film-option-chips{display:flex;flex-wrap:wrap;gap:4px;max-height:260px;overflow:auto}
+.gi-film-option-chips button{min-height:32px;padding:0 8px}
+.gi-film-option-chips button.is-active{border-color:var(--gi-9);background:var(--gi-9);color:var(--gi-on-solid)}
+.gi-film-cell-editor footer{display:flex;justify-content:flex-end;gap:6px;padding-top:5px;border-top:1px solid var(--gi-6)}
+.gi-film-cell-editor footer button{padding:0 12px}
+.gi-film-save-filter{display:grid;gap:7px;color:var(--gi-11);font:700 11px var(--gi-sans)}
+@media(max-width:900px){.gi-film-room-head{align-items:flex-start;flex-wrap:wrap}.gi-film-room-actions{width:100%;margin-left:0;overflow-x:auto}.gi-film-column-list{grid-template-columns:1fr}.gi-film-table-wrap thead th{min-width:110px}}
+@media(pointer:coarse){.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:44px}.gi-film-filters button{min-height:44px}.gi-film-table-wrap th,.gi-film-table-wrap td{height:44px}.gi-film-table-wrap td>button{min-height:44px}.gi-film-table-wrap input[type="checkbox"]{width:20px;height:20px}}
+@media(max-width:600px){.gi-film-room-head{padding:8px}.gi-film-filters{padding:6px 8px}.gi-film-room-actions button{padding:0 9px}.gi-film-room-head h2{font-size:16px}.gi-film-room-head p{font-size:10px}}

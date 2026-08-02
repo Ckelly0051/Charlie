@@ -126,7 +126,10 @@ export class PlayGrid {
     this._focus = null;           // { playId, colKey } — roving cell focus
     this._editor = null;          // open editor popover { close() }
     this._optionCache = {};
+    this._nativeListeners = new Set();
 
+    this._nativePresentation = false;
+    this._nativeTextTemplate = document.createElement('template');
     const saved = localStorage.getItem('ffa_film_room_collapsed');
     this.collapsed = saved === null ? window.innerWidth < 1100 : saved === '1';
     this.cols = this._loadCols();
@@ -340,7 +343,10 @@ export class PlayGrid {
     });
     // Only an explicit selection auto-scrolls; re-renders must never yank the
     // grid (or, on narrow layouts, the page) while the coach is tagging.
-    this.tagger.on('play-selected', (play) => this._highlight(play && play.id, true));
+    this.tagger.on('play-selected', (play) => {
+      if (!this._nativePresentation) this._highlight(play && play.id, true);
+      this._notifyNative();
+    });
   }
 
   _toggleCollapsed() {
@@ -505,7 +511,11 @@ export class PlayGrid {
   /** Re-render on the next frame (coalesces bursts of play-updated events). */
   refresh() {
     if (this._raf) return;
-    this._raf = requestAnimationFrame(() => { this._raf = null; this._render(); });
+    this._raf = requestAnimationFrame(() => {
+      this._raf = null;
+      if (!this._nativePresentation) this._render();
+      this._notifyNative();
+    });
   }
 
   _render() {
@@ -1059,6 +1069,156 @@ export class PlayGrid {
     } else {
       this.tagger.selectPlay(pool[0].id);
     }
+  }
+
+  // ---------- Native Film Room adapter ----------
+
+  subscribeNative(listener) {
+    this._nativeListeners.add(listener);
+    listener(this.nativeSnapshot());
+    return () => this._nativeListeners.delete(listener);
+  }
+
+  _notifyNative() {
+    if (!this._nativeListeners?.size) return;
+    const snapshot = this.nativeSnapshot();
+    for (const listener of this._nativeListeners) listener(snapshot);
+  }
+
+  _plainCell(play, col) {
+    const template = this._nativeTextTemplate;
+    template.innerHTML = this._cellHtml(play, col);
+    return (template.content.textContent || '').trim();
+  }
+
+  _plainTendency(col, visible) {
+    const template = this._nativeTextTemplate;
+    template.innerHTML = this._tendency(col, visible);
+    return (template.content.textContent || '').trim();
+  }
+
+  nativeSnapshot() {
+    const plays = this.tagger.plays || [];
+    const visible = this._visiblePlays();
+    const columns = this._visibleCols().map(col => ({
+      key: col.key, label: col.label, type: col.type, multi: !!col.multi,
+      tendency: visible.length >= 5 ? this._plainTendency(col, visible) : '',
+      editable: col.type !== 'st-readonly' && col.type !== 'pen-readonly',
+    }));
+    const selected = new Set(this.selected);
+    const rows = visible.map(play => ({
+      id: play.id,
+      unit: play.tags?.unit === 'defense' || play.tags?.unit === 'special' ? play.tags.unit : 'offense',
+      current: play.id === this.tagger.currentPlayId,
+      selected: selected.has(play.id),
+      untagged: PlayGrid.isUntagged(play),
+      cells: Object.fromEntries(columns.map(col => [col.key, this._plainCell(play, col)])),
+    }));
+    return {
+      total: plays.length,
+      visible: visible.length,
+      rows,
+      columns,
+      selected: [...selected],
+      filters: this._serializeFilter(),
+      filterActive: this._filterActive(),
+      savedFilters: this.savedFilters.map((item, index) => ({ index, name: item.name })),
+      watchCount: this._watchPool(visible).length,
+      presets: Object.keys(PlayGrid.PRESETS),
+      allColumns: PlayGrid.COLUMNS.map(col => ({ key: col.key, label: col.label })),
+      activeColumns: [...this.cols],
+    };
+  }
+  nativePresentation(active) {
+    this._nativePresentation = !!active;
+    if (!active) this.refresh();
+    else this._notifyNative();
+  }
+
+
+  nativeToggleFilter(group, value) { this._toggleFilter(group, value); }
+  nativeClearFilters() {
+    this.f = { unit: '', downs: new Set(), rp: '', flags: new Set() };
+    this.refresh();
+  }
+  nativeSetSelected(playId, checked) {
+    if (checked) this.selected.add(Number(playId));
+    else this.selected.delete(Number(playId));
+    this.refresh();
+  }
+  nativeSetAllVisible(checked) {
+    for (const play of this._visiblePlays()) {
+      if (checked) this.selected.add(play.id);
+      else this.selected.delete(play.id);
+    }
+    this.refresh();
+  }
+  nativeSelectPlay(playId) { this.tagger.selectPlay(Number(playId)); }
+  nativeWatch() { this._watch(); }
+  nativeApplyPreset(name) {
+    if (!PlayGrid.PRESETS[name]) return false;
+    this.cols = PlayGrid.PRESETS[name].slice();
+    this._saveCols();
+    this.refresh();
+    return true;
+  }
+  nativeSetColumn(key, enabled) {
+    if (!PlayGrid.COLUMNS.some(col => col.key === key)) return false;
+    if (enabled) {
+      const order = PlayGrid.COLUMNS.map(col => col.key);
+      this.cols = order.filter(item => item === key || this.cols.includes(item));
+    } else {
+      if (this.cols.length === 1) return false;
+      this.cols = this.cols.filter(item => item !== key);
+    }
+    this._saveCols();
+    this.refresh();
+    return true;
+  }
+  nativeApplySavedFilter(index) {
+    const item = this.savedFilters[Number(index)];
+    if (!item) return false;
+    this._applySavedFilter(item.f);
+    return true;
+  }
+  nativeDeleteSavedFilter(index) {
+    if (!this.savedFilters[Number(index)]) return false;
+    this.savedFilters.splice(Number(index), 1);
+    this._saveSavedFilters();
+    this.refresh();
+    return true;
+  }
+  nativeSaveFilter(name) {
+    name = String(name || '').trim();
+    if (!name || !this._filterActive()) return false;
+    this.savedFilters = this.savedFilters.filter(item => item.name !== name);
+    this.savedFilters.push({ name, f: this._serializeFilter() });
+    this._saveSavedFilters();
+    this.refresh();
+    return true;
+  }
+  nativeEditor(playId, colKey) {
+    const play = this.tagger.getPlay(Number(playId));
+    const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
+    if (!play || !col || col.type === 'st-readonly' || col.type === 'pen-readonly') return null;
+    const projected = StatsEngine.projField(play, col.key);
+    const value = col.type === 'sit'
+      ? { down: play.tags.down || '', distance: play.tags.distance || '' }
+      : col.key === 'notes' ? play.notes || '' : projected == null ? '' : String(projected);
+    return {
+      playId: play.id,
+      col: { key: col.key, label: col.label, type: col.type, multi: !!col.multi },
+      value,
+      options: col.type === 'enum' ? this._options(col, String(projected || '').split(/\s*\+\s*/)) : [],
+    };
+  }
+  nativeCommitEdit(playId, colKey, value) {
+    const play = this.tagger.getPlay(Number(playId));
+    const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
+    if (!play || !col) return false;
+    this._applyEdit(play, col, value);
+    this.refresh();
+    return true;
   }
 
   // ---------- Utils ----------

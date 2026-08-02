@@ -135,13 +135,16 @@ ok(r.tool === 'arrow' && r.color === '#ff4444' && r.width === 7,
 // Analysis is optional and contained in Settings rather than prime shell chrome.
 await page.evaluate(() => { window.app.settingsScreen.open({ initialTab:'analysis', returnFocus:document.getElementById('settings-test-invoker') }); });
 await page.waitForSelector('[data-settings-panel="analysis"]');
+await page.waitForFunction(() => document.activeElement?.closest('[data-overlay-id="team-film-settings"]'));
 await page.evaluate(() => {
   // Native Settings must own this save. Retired form controls may not be used
   // as an invisible persistence bridge.
   document.getElementById('gameApiKey')?.remove();
   document.getElementById('gameAiModel')?.remove();
 });
-await page.type('[data-settings-panel="analysis"] input[type="password"]', 'test-key');
+await page.type('[data-settings-panel="analysis"] input[type="password"]', 'test-key', { delay:25 });
+r = await page.$eval('[data-settings-panel="analysis"] input[type="password"]', input => input.value);
+ok(r === 'test-key', 'Native Analysis receives the complete coach-entered key before save', JSON.stringify(r));
 await page.select('[data-settings-panel="analysis"] select', 'claude-sonnet-4-6');
 await page.click('[data-settings-panel="analysis"] .gi-settings-primary');
 r = await page.evaluate(() => ({ key:localStorage.getItem('ffa_claude_api_key'), model:localStorage.getItem('ffa_claude_model'), liveKey:window.app.vision.apiKey, liveModel:window.app.vision.model, saved:document.querySelector('[data-settings-panel="analysis"] [role="status"]')?.textContent }));

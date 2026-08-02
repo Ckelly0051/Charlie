@@ -38,7 +38,7 @@ export function NativePopover({ overlay, service, top }) {
     observer.observe(anchor);
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
-    const frame = requestAnimationFrame(() => panel.querySelector('[role="menuitem"]:not([disabled])')?.focus({ preventScroll: true }));
+    const frame = requestAnimationFrame(() => panel.querySelector('[role="menuitem"]:not([disabled]), button:not([disabled]), input:not([disabled]), select:not([disabled])')?.focus({ preventScroll: true }));
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
@@ -88,7 +88,7 @@ export function NativePopover({ overlay, service, top }) {
     <section
       ref={panelRef}
       class="gi-popover-panel"
-      role="menu"
+      role={overlay.content ? 'dialog' : 'menu'}
       aria-label={overlay.title}
       onKeyDown={event => {
         if (event.key === 'ArrowDown') move(event, 1);
@@ -97,6 +97,7 @@ export function NativePopover({ overlay, service, top }) {
         else if (event.key === 'End') move(event, 'last');
       }}
     >
+      {overlay.content}
       {overlay.items.map(item => <button
         key={item.key}
         type="button"
