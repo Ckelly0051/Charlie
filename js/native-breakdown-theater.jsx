@@ -48,9 +48,11 @@ function AngleBar({ screen, state }) {
 }
 
 function PlayStrip({ screen, state }) {
-  return <section class="gi-drive-strip" aria-label="Game plays">
-    <header><strong>Plays</strong><span>{state.plays.length} play{state.plays.length === 1 ? '' : 's'} · grouped by drive</span></header>
-    <div class="gi-drive-scroll" data-drive-scroll>
+  return <section class={`gi-drive-strip${state.stripCollapsed ? ' is-collapsed' : ''}`} aria-label="Game plays">
+    <header><strong>Plays</strong><span>{state.plays.length} play{state.plays.length === 1 ? '' : 's'} · grouped by drive</span>
+      <button type="button" aria-expanded={!state.stripCollapsed} aria-label={state.stripCollapsed ? 'Show play strip' : 'Hide play strip'} onClick={() => screen.toggleStrip()}>{state.stripCollapsed ? 'Show' : 'Hide'}</button>
+    </header>
+    <div class="gi-drive-scroll" data-drive-scroll hidden={state.stripCollapsed}>
       {state.groups.length ? state.groups.map(group => <section class="gi-drive-group" key={`${group.key}-${group.plays[0]?.id}`} aria-label={group.label}>
         <h3>{group.label}</h3>
         <div>{group.plays.map(play => <button

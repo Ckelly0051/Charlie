@@ -17,6 +17,7 @@ export class BreakdownTheaterScreen {
     this._native = null;
     this._listeners = new Set();
     this._mounted = false;
+    this.stripCollapsed = false;
     this._legacyVideoWasMounted = false;
     this._home = this.media
       ? { parent: this.media.parentNode, next: this.media.nextSibling }
@@ -63,6 +64,7 @@ export class BreakdownTheaterScreen {
   restore() {
     if (!this._mounted) return false;
     this._mounted = false;
+    this.stripCollapsed = false;
     this.media.classList.remove('gi-native-video');
     this._returnMediaHome();
     this._native?.unmount?.();
@@ -119,6 +121,7 @@ export class BreakdownTheaterScreen {
       currentLabel: current ? this._cardLabel(current) : 'No play selected',
       plays: (tagger?.plays || []).map(play => this._playView(play)),
       groups: this._driveGroups(tagger?.plays || []),
+      stripCollapsed: this.stripCollapsed,
       pendingStart: tagger?.pendingStart,
       autoplay: this.app.autoPlayNext !== false,
       fullscreen,
@@ -190,6 +193,7 @@ export class BreakdownTheaterScreen {
   }
 
   selectPlay(id) { this.app.tagger?.selectPlay?.(Number(id)); }
+  toggleStrip() { this.stripCollapsed = !this.stripCollapsed; this._publish(); }
   togglePlay() { this.app.vc?.togglePlay?.(); this._publish(); }
   stepBack() { this.app.vc?.stepBack?.(); this._publish(); }
   stepForward() { this.app.vc?.stepForward?.(); this._publish(); }

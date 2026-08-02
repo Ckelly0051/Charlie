@@ -65,6 +65,16 @@ ok(state.widths.length === 1 && state.widths[0] === 220, 'Play cards use one sta
 ok(state.fits && /Interception \+ Touchdown: -12/.test(state.text || ''), 'Long football copy is complete and not clipped', JSON.stringify(state));
 ok(state.internal && !state.pageOverflow, 'High play counts scroll inside the strip without page overflow', JSON.stringify(state));
 
+await page.click('[aria-label="Hide play strip"]');
+state = await page.evaluate(() => ({
+  collapsed: document.querySelector('.gi-drive-strip').classList.contains('is-collapsed'),
+  hidden: document.querySelector('[data-drive-scroll]').hidden,
+  expanded: document.querySelector('[aria-label="Show play strip"]')?.getAttribute('aria-expanded'),
+}));
+ok(state.collapsed && state.hidden && state.expanded === 'false',
+  'Coach can collapse the play strip to trade navigation for film pixels', JSON.stringify(state));
+await page.click('[aria-label="Show play strip"]');
+
 console.log('\n== 2. Native commands drive canonical controllers ==');
 await page.click('[data-native-play-id="7"]');
 state = await page.evaluate(() => ({ current: window.app.tagger.currentPlayId,
