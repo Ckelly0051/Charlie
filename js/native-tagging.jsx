@@ -8,7 +8,6 @@ const OPTIONS = {
   motion:['Jet','Orbit','Shift','Trade'], runPass:['Run','Pass'],
   playType:['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Trick Play'],
   playDir:['Left','Middle','Right'],
-  result:['Gain','Loss','No Gain','Incomplete','Touchdown','Sack','Interception','Fumble','Penalty','Punt','Field Goal','Good','No Good','Kneel','Spike','Safety'],
   coverage:['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
   coverageFamily:['Man','Zone','Match'], blitz:['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   hash:['Left','Middle','Right'], quarter:['Q1','Q2','Q3','Q4','OT'],
@@ -17,27 +16,52 @@ const MULTI = new Set(['formation','playType','result','defFront','blitz']);
 const selected = (value, option) => String(value || '').split(' + ').includes(option);
 
 function Chips({screen, field, label, options, value, hint, library}) {
+  const choices = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
   return <div class="gi-tag-field" data-native-field={field}>
     <div class="gi-tag-field-label">
       <span>{label}</span>{hint && <small>{hint}</small>}
       {library && <button type="button" onClick={() => screen.openLibrary(library)}>Edit library</button>}
     </div>
-    <div class="gi-tag-chips">{options.map(option =>
-      <button type="button" key={option} class={selected(value, option) ? 'is-active' : ''}
-        aria-pressed={selected(value, option)}
-        onClick={() => MULTI.has(field) ? screen.toggleField(field, option) : screen.setField(field, selected(value, option) ? '' : option)}>
-        {option}
+    <div class="gi-tag-chips">{choices.map(option =>
+      <button type="button" key={option.value} class={selected(value, option.value) ? 'is-active' : ''}
+        aria-pressed={selected(value, option.value)}
+        onClick={() => MULTI.has(field) ? screen.toggleField(field, option.value) : screen.setField(field, selected(value, option.value) ? '' : option.value)}>
+        {option.label}
       </button>)}
     </div>
   </div>;
 }
 
 function Field({screen, field, label, value, type='number', min, max, step, placeholder}) {
-  return <label class="gi-tag-input" data-native-field={field}>
+  return <label class={`gi-tag-input gi-tag-input-${field}`} data-native-field={field}>
     <span>{label}</span>
     <input type={type} value={value ?? ''} min={min} max={max} step={step} placeholder={placeholder}
       onChange={event => screen.setField(field, event.currentTarget.value)}/>
   </label>;
+}
+
+const RESULT_PRIMARY = [
+  {value:'Gain',label:'Gain'}, {value:'Loss',label:'Loss'}, {value:'No Gain',label:'No Gain'},
+  {value:'Incomplete',label:'Incomplete'}, {value:'Touchdown',label:'TD'}, {value:'Sack',label:'Sack'},
+  {value:'Interception',label:'INT'}, {value:'Fumble',label:'Fumble'},
+];
+const RESULT_MORE = ['Punt','Penalty','Field Goal','Good','No Good','Kneel','Spike','Safety'];
+
+function ResultField({screen, value}) {
+  const hiddenCount = RESULT_MORE.filter(option => selected(value, option)).length;
+  return <div class="gi-tag-field gi-tag-result" data-native-field="result">
+    <div class="gi-tag-field-label"><span>Result</span></div>
+    <div class="gi-tag-result-row">
+      <div class="gi-tag-chips">{RESULT_PRIMARY.map(option =>
+        <button type="button" key={option.value} class={selected(value, option.value) ? 'is-active' : ''}
+          aria-pressed={selected(value, option.value)} onClick={() => screen.toggleField('result', option.value)}>{option.label}</button>)}</div>
+      <select class="gi-tag-more-select" aria-label="More results" value=""
+        onChange={event => { const option=event.currentTarget.value; if (option) screen.toggleField('result', option); }}>
+        <option value="">{hiddenCount ? `More (${hiddenCount})` : 'More'}</option>
+        {RESULT_MORE.map(option => <option key={option} value={option}>{selected(value, option) ? `Selected: ${option}` : option}</option>)}
+      </select>
+    </div>
+  </div>;
 }
 
 function Group({title, detail, open=false, children}) {
@@ -238,7 +262,17 @@ function NativeTagging({screen}) {
     </div>
     {!state.enabled ? <div class="gi-tag-empty">Select or mark a play to begin charting.</div> : <main class="gi-native-form">
       <datalist id="giPenaltyFouls">{['False Start','Holding','Illegal Formation','Illegal Motion','Delay of Game','Offside','Encroachment','Defensive Pass Interference','Facemask','Personal Foul','Unsportsmanlike','Block in the Back','Roughing the Kicker'].map(v => <option key={v}>{v}</option>)}</datalist>
-      <Group title="Situation" detail="down and distance" open><div class="gi-tag-grid">{chips('down','Down',OPTIONS.down)}<Field screen={screen} field="distance" label="Distance" value={state.values.distance} min="1" max="99"/></div></Group>
+      <Group title="Situation" detail="quarter, down, distance, field position" open>
+        <div class="gi-tag-situation-row is-primary" data-situation-row="primary">
+          {chips('quarter','Quarter',OPTIONS.quarter)}{chips('down','Down',OPTIONS.down)}
+          <Field screen={screen} field="distance" label="Distance" value={state.values.distance} min="1" max="99"/>
+        </div>
+        <div class="gi-tag-situation-row is-field" data-situation-row="field">
+          {chips('hash','Hash',OPTIONS.hash)}
+          {chips('fieldSide','Field position',[{value:'own',label:'Own'},{value:'opp',label:'Opp'}])}
+          <Field screen={screen} field="yardLine" label="Yard line" value={state.values.yardLine} min="1" max="50"/>
+        </div>
+      </Group>
       {state.unit === 'special' ? <SpecialTeams screen={screen} state={state}/> : <>
         <Group title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open>
           {chips('formation','Formation',state.libraries.formation,'select all','formation')}
@@ -252,7 +286,7 @@ function NativeTagging({screen}) {
         </Group>
         <Group title="Play & Result" detail="call, direction, outcome" open>
           {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',OPTIONS.playType)}
-          {chips('playDir','Direction',OPTIONS.playDir)}{chips('result','Result',OPTIONS.result)}
+          {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} value={state.values.result}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
         </Group>
       </>}
@@ -261,9 +295,7 @@ function NativeTagging({screen}) {
       <Group title="Notes & Details" detail="staff notes and situation">
         <label class="gi-tag-input"><span>Play notes</span><textarea value={state.notes} onInput={e => screen.setNotes(e.currentTarget.value)}/></label>
         <button type="button" onClick={() => screen.addNoteTimestamp()}>Add video time</button>
-        {chips('hash','Hash',OPTIONS.hash)}{chips('quarter','Quarter',OPTIONS.quarter)}
-        <div class="gi-tag-grid">{chips('fieldSide','Field side',[['own','Own'],['opp','Opp']].map(v => v[0]))}
-          <Field screen={screen} field="yardLine" label="Yard line" value={state.values.yardLine} min="1" max="50"/>
+        <div class="gi-tag-grid gi-tag-drive-row">
           <Field screen={screen} field="driveNumber" label="Drive" value={state.values.driveNumber} min="1" max="30"/>
           <button type="button" onClick={() => screen.newDrive()}>New Drive</button>
         </div>

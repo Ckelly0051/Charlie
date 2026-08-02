@@ -22,9 +22,11 @@ let state=await page.evaluate(()=>({
  legacy:!!document.getElementById('settingsDrawer')||!!document.getElementById('drawerScrim')||!!document.getElementById('tagLibraryDialog'),
  tabs:document.querySelectorAll('[data-settings-panel="charting"] [role="tab"]').length,
  rows:document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]').length,
+ expectedRows:window.app.customChips.library.group('formation').values.length,
+ values:[...document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]')].map(row=>row.dataset.tagValue),
  promise:document.querySelector('[data-settings-panel="charting"] .gi-settings-truth')?.textContent||'',
 }));
-ok(state.owners===1&&!state.legacy&&state.tabs===3&&state.rows===16,'Native Charting is the one owner of all three staff libraries',JSON.stringify(state));
+ok(state.owners===1&&!state.legacy&&state.tabs===3&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting is the one owner of the complete active Formation library',JSON.stringify(state));
 ok(/Hiding is not deleting/.test(state.promise)&&/analytics stay unchanged/.test(state.promise),'Charting states the non-destructive visibility contract');
 
 await page.evaluate(()=>{window.app.tagger.plays=[{id:1,tags:{unit:'offense',formation:'Wing-T',backfield:'',custom:[]}}];});

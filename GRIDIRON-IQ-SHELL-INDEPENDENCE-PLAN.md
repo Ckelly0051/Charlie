@@ -816,6 +816,15 @@ Each item below is a contract or coverage gap, not an implementation task.
 - Focused journey 22/22, including a coach-controlled section-expansion regression. Three exact mutations (Formation collapse, dropped try turnover, undersized mobile targets) each turn the intended assertion red. Full canonical gate: **78/78 green, 0 skipped**.
 - Isolated 1440/390 visual QA is clean. It proves component hierarchy, clipping, overflow and touch layout only; S5d owns route-level video/form geometry.
 - No user-reachable route, schema, migration, durable data, analytics, film, storage, package, tag, or release changed. **S5c was accepted at `9f8f065`; the `1.12.0-16` coach smoke passed and S5d is open.**
+### Pre-S5d UX-5 charting-density checkpoint - BUILT; INDEPENDENT REVIEW REQUIRED (2026-08-02)
+
+- Standard Formation now includes `I-Form` and `Split Back`; canonical Backfield remains `I` and `Split`. Either or both may be charted and survive canonical save/reload as independent dimensions. TagLibrary v2 enables the new defaults once for existing team libraries without rewriting plays or resurrecting a value after the coach hides it.
+- Situation is compacted to Quarter + Down/Distance and Hash + Field Position. Punt moved behind More so common Results fit the representative 560px charting column without horizontal scrolling. Yardage reserves 88px for signed three-digit values and spinner controls.
+- Native tagging is 30/30, Charting Settings 15/15, tag library 14/14, tag fields 15/15, tag model 37/37, projection form 54/54, and design system 7/7. Controlled mutations prove missing vocabulary, wrong Situation order, missing Punt, and undersized yardage each red the intended assertion.
+- The first gate's stale 16-row Settings expectation now checks the complete active Formation library and the two new standards. The intermittent overlay assertion now waits two pending frames and verifies the stable focus destination; five isolated repeats and the final gate are clean. No overlay production behavior changed.
+- Final canonical gate: **78/78 green, 0 skipped, 0 failed**, including real data. No route flip, schema/data migration, analytics formula, film/storage behavior, package, tag, or release changed.
+- **Next:** Claude independently reviews this checkpoint. S5d remains one separate candidate commit containing only the ownership flip; route-integrated four-viewport visual QA and an immediate installed smoke remain mandatory.
+
 7. **[S5d and S7 — dated, measured] Eight breakdown capability ids are claimed by
    harnesses those milestones retire.** Added 2026-08-02 after the S5c capability-
    floor regression (`557e956`) and its fix (`2a70df8`). The fix correctly kept

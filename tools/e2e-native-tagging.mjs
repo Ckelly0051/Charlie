@@ -6,6 +6,7 @@ const ok=(value,label,detail='')=>value?(pass++,console.log('  PASS  '+label)):(
 const browser=await puppeteer.launch({args:['--no-sandbox']});
 const page=await browser.newPage();
 const errors=[];
+const screenshotPath=process.env.GIQ_NATIVE_TAGGING_SCREENSHOT||'';
 page.on('pageerror',error=>errors.push(error.stack||error.message));
 page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
 await page.setViewport({width:1440,height:900});
@@ -25,7 +26,7 @@ const fixture=await page.evaluate(async()=>{
   second.plays=[{id:101,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',defFront:'4-2-5',coverage:'Cover 3',players:{},grades:{},custom:[]}}];
   store.setActive(first.id);await store.persist();await app.storage._loadActiveGame({renderGames:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
   const source=app.nativeTagging.source,before={style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source'),data:JSON.stringify(store.data)};
-  const host=document.createElement('div');host.id='nativeTaggingTestHost';host.style.cssText='width:100%;min-height:800px';document.body.append(host);
+  const host=document.createElement('div');host.id='nativeTaggingTestHost';host.style.cssText='width:min(560px,100%);min-height:800px';document.body.append(host);
   const mounted=app.nativeTagging.mount(host);await new Promise(r=>setTimeout(r,0));
   return{seasonId:store.data.id,firstId:first.id,secondId:second.id,mounted,before};
 });
@@ -45,6 +46,22 @@ const expectedFields=['backfield','blitz','coverage','coverageFamily','defFront'
 ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard offense/defense/situation field has a native owner',JSON.stringify(state.fields));
 ok(state.context.join(',')==='direction,perspective,unit','Unit, perspective, and direction are explicit native context controls',JSON.stringify(state.context));
 ok(state.capabilities.length===12,'Templates, diagram, OCR, detection, commit, drive, and customization remain reachable',JSON.stringify(state.capabilities));
+state=await page.evaluate(()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  const values=field=>[...root.querySelectorAll(`[data-native-field="${field}"] button`)].map(button=>button.textContent.trim());
+  const rows=[...root.querySelectorAll('[data-situation-row]')].map(row=>({name:row.dataset.situationRow,fields:[...row.querySelectorAll('[data-native-field]')].map(field=>field.dataset.nativeField)}));
+  const primary=[...root.querySelectorAll('[data-native-field="result"] .gi-tag-chips button')].map(button=>button.textContent.trim());
+  const more=[...root.querySelectorAll('[aria-label="More results"] option')].map(option=>option.value).filter(Boolean);
+  const yards=root.querySelector('[data-native-field="yardage"] input');
+  const resultRow=root.querySelector('.gi-tag-result-row');
+  return{formations:values('formation'),backfields:values('backfield'),rows,primary,more,yardWidth:yards.getBoundingClientRect().width,resultOverflow:resultRow.scrollWidth-resultRow.clientWidth};
+});
+ok(['I-Form','Split Back'].every(value=>state.formations.includes(value))&&['I','Split'].every(value=>state.backfields.includes(value))&&!state.backfields.includes('I-Form')&&!state.backfields.includes('Split Back'),'Formation and Backfield expose distinct football-correct I/Split vocabularies',JSON.stringify({formations:state.formations,backfields:state.backfields}));
+ok(JSON.stringify(state.rows)===JSON.stringify([{name:'primary',fields:['quarter','down','distance']},{name:'field',fields:['hash','fieldSide','yardLine']}]),'Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position',JSON.stringify(state.rows));
+ok(state.primary.at(-1)==='Fumble'&&!state.primary.includes('Punt')&&state.more[0]==='Punt','Punt moves behind More while common results remain one row',JSON.stringify({primary:state.primary,more:state.more}));
+ok(state.resultOverflow<=1,'Common results and More fit the production-width tag column without horizontal scrolling',JSON.stringify(state.resultOverflow));
+ok(state.yardWidth>=80,'Yardage input reserves enough width for three digits and spinner controls',JSON.stringify(state.yardWidth));
+if(screenshotPath) await (await page.$('[data-native-tagging]')).screenshot({path:screenshotPath});
 state=await page.evaluate(async()=>{const group=[...document.querySelectorAll('.gi-tag-group')].find(node=>node.querySelector('summary strong')?.textContent==='Notes & Details');group.querySelector('summary').click();await new Promise(r=>setTimeout(r,0));const opened=group.open;app.nativeTagging._publish();await new Promise(r=>setTimeout(r,0));return{opened,stayedOpen:group.open}});
 ok(state.opened&&state.stayedOpen,'Coach section expansion survives native state updates',JSON.stringify(state));
 
@@ -68,16 +85,23 @@ state=await page.evaluate(async()=>{
     if(active!==2)throw new Error('Formation collapsed on play '+(i+1)+': '+active);
     if(i<19){command('Save & Next');await new Promise(r=>setTimeout(r,0))}
   }
+  const advancedTo=app.tagger.currentPlayId;
+  app.tagger.selectPlay(1);click('formation','I-Form');click('backfield','I');
+  app.tagger.selectPlay(2);click('formation','Split Back');click('backfield','Split');
+  app.tagger.selectPlay(3);const yards=root().querySelector('[data-native-field="yardage"] input');yards.value='100';yards.dispatchEvent(new Event('change',{bubbles:true}));
   app.storage.commitActive();await app.storage.seasonStore.persist();
-  return{current:app.tagger.currentPlayId,plays:app.tagger.plays.map(p=>({id:p.id,formation:p.tags.formation,qb:p.tags.qbAlignment,playType:p.tags.playType,result:p.tags.result}))};
+  return{current:advancedTo,plays:app.tagger.plays.map(p=>({id:p.id,formation:p.tags.formation,qb:p.tags.qbAlignment,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage}))};
 });
 ok(state.plays.length===20&&state.plays.every(p=>p.formation.includes('Unbalanced')&&(p.formation.includes('Power-I')||p.formation.includes('Trips'))),'All 20 plays retain both Formation selections',JSON.stringify(state.plays.slice(0,3)));
 ok(state.plays.every(p=>p.playType.includes('RPO')&&(p.playType.includes('Run Inside')||p.playType.includes('Run Outside'))&&p.result==='Gain'),'All 20 plays retain multi-select Play Type and Result',JSON.stringify(state.plays.slice(0,3)));
 ok(state.current===20,'Save & Next advances chronologically without collapse',JSON.stringify(state.current));
+ok(state.plays[0].formation.includes('I-Form')&&state.plays[0].backfield==='I'&&state.plays[1].formation.includes('Split Back')&&state.plays[1].backfield==='Split','I-Form/I and Split Back/Split can be charted together without collapsing dimensions',JSON.stringify(state.plays.slice(0,2)));
+ok(String(state.plays[2].yardage)==='100','Three-digit yardage is accepted without truncation',JSON.stringify(state.plays[2]));
 await page.evaluate(()=>{window.__s5cReload='must disappear'});
 await page.reload({waitUntil:'networkidle0'});await page.waitForFunction(()=>window.app?.nativeTagging);
-state=await page.evaluate(async fixture=>{await app.storage.openSeasonById(fixture.seasonId);const game=app.storage.seasonStore.data.games.find(g=>g.id===fixture.firstId);return{fresh:!('__s5cReload'in window),plays:game.plays.map(p=>({formation:p.tags.formation,playType:p.tags.playType,result:p.tags.result})),other:app.storage.seasonStore.data.games.find(g=>g.id===fixture.secondId)?.plays?.[0]?.tags}},fixture);
+state=await page.evaluate(async fixture=>{await app.storage.openSeasonById(fixture.seasonId);const game=app.storage.seasonStore.data.games.find(g=>g.id===fixture.firstId);return{fresh:!('__s5cReload'in window),plays:game.plays.map(p=>({formation:p.tags.formation,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage})),other:app.storage.seasonStore.data.games.find(g=>g.id===fixture.secondId)?.plays?.[0]?.tags}},fixture);
 ok(state.fresh&&state.plays.length===20&&state.plays.every(p=>p.formation.includes('Unbalanced')&&p.playType.includes('RPO')&&p.result==='Gain'),'Canonical persist and relaunch preserve the 20-play session',JSON.stringify(state.plays.slice(0,2)));
+ok(state.plays[0].formation.includes('I-Form')&&state.plays[0].backfield==='I'&&state.plays[1].formation.includes('Split Back')&&state.plays[1].backfield==='Split'&&String(state.plays[2].yardage)==='100','Canonical reload preserves dual-dimension formations and three-digit yardage',JSON.stringify(state.plays.slice(0,3)));
 ok(state.other?.defFront==='4-2-5'&&state.other?.coverage==='Cover 3','Charting session leaves the other game byte-semantically isolated',JSON.stringify(state.other));
 
 console.log('\n== 4. Structured football workflows ==');

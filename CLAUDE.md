@@ -13,6 +13,18 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX BUILD - PRE-S5d UX-5 CHARTING DENSITY BATCH; REVIEW REQUIRED (2026-08-02)
+
+Codex completed the coach-approved UX-5 batch before the isolated S5d ownership flip. `I-Form` and `Split Back` are now standard structural Formation values. Backfield remains canonical `I` and `Split`; the coach may chart either dimension or both without analytics/persistence collapsing them. Existing v1 team libraries receive the two new Formation defaults once, then retain the coach's hide/show choices under TagLibrary v2. No play data is migrated or rewritten.
+
+Native Situation now uses two intentional rows: Quarter + Down/Distance, then Hash + Field Position. Common Results fit one production-width row; Punt moved into More. The yardage control reserves enough width for signed three-digit values and spinner chrome. Notes & Details no longer duplicates the Situation fields.
+
+Proof: native tagging **30/30** at a realistic 560px charting-column width and 390px mobile; Charting Settings **15/15**; tag library **14/14**; tag fields **15/15**; tag model **37/37**; projection form **54/54**; design system **7/7**. A canonical save/reload preserves `I-Form + I`, `Split Back + Split`, and 100-yard input while the other game remains isolated. Controlled mutations removing a new Formation, moving Punt out of More, shrinking yardage to 50px, or putting Down before Quarter each red the named assertion.
+
+The first full gate exposed a stale fixed Formation-row count and an intermittent overlay assertion that sampled focus between pending frames. The library check now compares the rendered active library against its actual vocabulary and explicitly requires both new values. The overlay test now checks the stable focus state after pending frames settle; no overlay production behavior changed. Final canonical gate: **78/78 green, 0 skipped, 0 failed**, including real data.
+
+No user-reachable route, S5d ownership, schema, play/season data, analytics formula, film path/file, storage behavior, package, tag, or release changed. **Next:** Claude independently reviews this batch. After acceptance, Codex lands S5d as the one isolated ownership-flip commit required by the rollback contract, then immediately builds the installed smoke candidate.
+
 ### INSTALLER PASS - `1.12.0-16`; S5d OPEN (Coach/Codex, 2026-08-02)
 
 S5c is independently accepted at `9f8f065`. The four version owners were stamped

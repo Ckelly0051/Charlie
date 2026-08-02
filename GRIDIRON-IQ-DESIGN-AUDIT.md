@@ -219,24 +219,19 @@ route-specific substitutes before adding more S5 markup. Establish a documented,
 accessible categorical chart palette distinct from semantic status colors.
 Apply the system route by route; do not repaint isolated screenshots.
 
-### UX-5 - S5d coach charting-density and vocabulary batch (P1)
+### UX-5 - S5d coach charting-density and vocabulary batch (P1) - BUILT; REVIEW REQUIRED
 
-Installed `1.12.0-16` tagging passed functionally, but the coach identified four
-required native-composition corrections. Treat them as one S5d density pass, not
-one-off patches:
+Installed `1.12.0-16` tagging passed functionally, but the coach identified one vocabulary correction and three density corrections. They were built together before S5d, not released as one-off patches:
 
-- Add **I-Form** to both the standard Formation library and Backfield alignment
-  library. It is intentionally valid in both dimensions; projection, editing,
-  persistence, CSV, analytics and filters must not collapse one into the other.
-- Compress Situation into two rows: **Quarter first + Down & Distance**, then
-  **Hash + Field Position**. Use the available width to reduce scrolling.
-- Keep common Results on one row by moving **Punt** into `More` and placing
-  `More` in Punt's former position.
-- Give the yardage value enough protected width for a visible signed three-digit
-  value; native number spinners may not cover the digits.
+- **I-Form** and **Split Back** are standard structural Formation values. Backfield retains canonical **I** and **Split**. Coaches may chart the formation, the backfield alignment, or both; the two dimensions remain independently editable, stored, filtered, and analyzed. Do not add duplicate `I-Form`/`Split Back` Backfield labels.
+- Situation is two rows: **Quarter first + Down & Distance**, then **Hash + Field Position**.
+- Common Results stay on one production-width row; **Punt** is the first item in `More`.
+- Yardage reserves enough width for a visible signed three-digit value and native number-spinner chrome.
 
-Verify the complete route at the four standard viewports. Density may improve,
-but labels, touch targets, keyboard access and football meaning may not regress.
+Implementation proof: native tagging 30/30 at a representative 560px charting column and 390px mobile; native Charting Settings 15/15; final canonical gate 78/78. Save/reload preserves `I-Form + I`, `Split Back + Split`, and three-digit yardage without touching another game. Exact controlled mutations prove all four guarantees can turn red. Existing v1 team libraries receive the two new standard Formations once and may hide them permanently afterward; no play data migrates.
+
+This component-level batch does not satisfy the S5d route audit. After the isolated ownership flip, verify the complete route at 1440x900, 1280x720, 768x1024, and 390x844. Density may improve, but labels, touch targets, keyboard access, video area, and football meaning may not regress.
+
 ## Analytics Experience Findings - Resolve As A Shared S6 Pass
 
 ### AX-1 - Reports formatting and hierarchy (P1)

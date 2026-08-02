@@ -1,6 +1,6 @@
 /** Per-team charting vocabulary. Visibility changes controls, never stored tags. */
 export class TagLibrary {
-  static VERSION = 1;
+  static VERSION = 2;
   static DEFINITIONS = {
     // E4: Under Center/Pistol/Shotgun removed — they are QB Alignment, not
     // Formation structure (E1 decision; #tagQbAlignment is their new home, not a
@@ -14,7 +14,7 @@ export class TagLibrary {
     // QB alignment, not a back alignment; QB Alignment already has its own
     // 'Pistol' chip, and PROJECTED_PAIRS now also registers Backfield ->
     // QB Alignment for the same reason.
-    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch'],
+    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','I-Form','Split Back','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
   };
@@ -43,7 +43,11 @@ export class TagLibrary {
       const custom = [...new Set((Array.isArray(source.custom) ? source.custom : []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
       const values = [...defaults, ...custom];
       const enabledSource = Array.isArray(source.enabled) ? source.enabled : values;
-      next.groups[key] = { custom, enabled: [...new Set(enabledSource.map(String).filter(value => values.includes(value)))] };
+      const enabled = [...new Set(enabledSource.map(String).filter(value => values.includes(value)))];
+      if ((Number(raw?.version) || 1) < 2 && key === 'formation') {
+        for (const added of ['I-Form','Split Back']) if (!enabled.includes(added)) enabled.push(added);
+      }
+      next.groups[key] = { custom, enabled };
     }
     return next;
   }

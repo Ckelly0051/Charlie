@@ -81,7 +81,9 @@ await page.waitForSelector('[data-overlay-scrim]');
 await page.evaluate(() => document.querySelector('[data-overlay-scrim]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })));
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-dialog'));
 await page.waitForFunction(() => document.activeElement?.hasAttribute('data-probe-dialog'));
-ok(await page.evaluate(() => document.activeElement?.hasAttribute('data-probe-dialog')), 'dismissible dialog scrim is Cancel and restores focus');
+await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+state=await page.evaluate(() => ({restored:document.activeElement?.hasAttribute('data-probe-dialog'),active:document.activeElement?.outerHTML?.slice(0,180)}));
+ok(state.restored, 'dismissible dialog scrim is Cancel and keeps focus restored after pending frames settle', JSON.stringify(state));
 await page.evaluate(() => document.getElementById('late-body-control')?.remove());
 ok(await page.evaluate(expected => JSON.stringify(window.app?.storage?.seasonStore?.data || null) === expected, seasonBefore), 'dialog journeys do not mutate season data');
 

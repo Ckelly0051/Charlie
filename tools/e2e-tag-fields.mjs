@@ -84,7 +84,7 @@ const checks = [
   ['Front group is multi-select', result.frontIsMulti],
   // Coach-approved structural looks are standard Formation chips. Legacy plays
   // lacking a backfield property may still use the historical migration seam.
-  ['Power-I/Ace/Victory and core structural looks are standard formation chips', ['Power-I','Ace','Victory','Wing-T','Flexbone','Double Wing','Bunch','Unbalanced'].every(f => result.formChips.includes(f))],
+  ['I-Form/Split Back and core structural looks are standard formation chips', ['I-Form','Split Back','Power-I','Ace','Victory','Wing-T','Flexbone','Double Wing','Bunch','Unbalanced'].every(f => result.formChips.includes(f))],
   ['Motion chips Jet/Orbit/Shift/Trade', ['Jet','Orbit','Shift','Trade'].every(m => result.motionChips.includes(m))],
   ['Direction chips L/M/R', ['Left','Middle','Right'].every(d => result.dirChips.includes(d))],
   ['Form shows both front chips active for multi play', JSON.stringify([...result.activeFronts].sort()) === JSON.stringify(['Jumbo Shift','Maverick'])],
