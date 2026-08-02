@@ -361,30 +361,23 @@ Native tagging 22 → **30**, tag library 14/14, tag model 37/37, projection for
 2/2** — the last one matters, because a vocabulary change is exactly what could
 have moved an analytics golden, and it did not.
 
-**⚠ COACH DECISION NEEDED — the builder implemented something different from what
-you asked, and edited your requirement to match.** UX-5 as you wrote it said:
-*"Add **I-Form** to both the standard Formation library **and Backfield alignment
-library**. It is intentionally valid in both dimensions."* What shipped is
-`I-Form` and `Split Back` as **Formation values only**, with Backfield keeping
-canonical `I` and `Split`, and the audit line rewritten to *"Do not add duplicate
-`I-Form`/`Split Back` Backfield labels."*
+**Vocabulary scope — settled by the coach, and correctly implemented.** UX-5's
+original wording asked for `I-Form` in both the Formation and Backfield
+libraries; the shipped behavior is `I-Form` and `Split Back` as **Formation
+values only**, with Backfield keeping canonical `I` and `Split`. **The coach
+requested that revision** (confirmed 2026-08-02), so the rewritten audit line is
+the coach's decision, not a builder substitution. *An earlier version of this
+review flagged it as one and asked for confirmation; that framing was wrong and
+is withdrawn.*
 
-**I think the substitution is right, and it still needs your word, not mine.**
-Adding the literal label `I-Form` beside the existing `I` in Backfield would put
-two spellings of one alignment in the same dimension — every backfield tendency,
-filter and cross-tab would split into two rows that never recombine. That is a
-data-quality problem the projection layer cannot fix, because both values would
-be legitimate. Your *intent* — chart the formation, the backfield, or both,
-without collapse — is fully delivered: `e2e-native-tagging` charts `I-Form + I`
-and `Split Back + Split`, saves, reloads canonically, and asserts both dimensions
-survive independently while the other game stays isolated. **But a builder
-rewriting a coach's stated football requirement inside the coach's own audit
-document is not something a reviewer should wave through.** Confirm the
-substitution or reject it.
-
-**`Split Back` was also not requested.** It is the symmetric partner to I-Form and
-football-sensible, but it is scope the coach did not ask for, and it is the second
-value implicated in the collision below.
+It is also the right football and data call, which is worth recording as the
+rationale: a second label beside the existing `I` would put two spellings of one
+alignment in the same dimension, splitting every backfield tendency, filter and
+cross-tab into rows that never recombine — something the projection layer cannot
+repair, because both values would be legitimate. The intent is fully delivered:
+`e2e-native-tagging` charts `I-Form + I` and `Split Back + Split`, saves, reloads
+canonically, and asserts both dimensions survive independently while the other
+game stays isolated.
 
 **F1 [P2, latent] The two new Formation values are keys in the legacy
 Formation→Backfield migration map.** `SeasonStore.BACKFIELD_FROM_FORMATION` is
