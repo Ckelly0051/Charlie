@@ -13,6 +13,24 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### INSTALLER READY - `1.12.0-16`; PRE-S5d COACH SMOKE PENDING (Codex, 2026-08-02)
+
+S5c is independently accepted at `9f8f065`. The four version owners were stamped
+at `06c3576`, and one local unsigned NSIS/MSI candidate was built from those
+committed bytes. This is the §8 baseline installer due before S5d; it is not a
+published release and does not make the native Breakdown composition
+coach-facing.
+
+NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-16_x64-setup.exe`
+
+MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-16_x64_en-US.msi`
+
+Automated evidence: accepted S5c gate 78/78; P0 exit 17/17; beta config 3/3;
+`cargo check` clean; unsigned native build complete. Hashes and the stop-first
+checklist are recorded in `SMOKE-1.12.0-16.md`. **S5d remains blocked until the
+coach records PASS.** No tag, GitHub release, managed-film deletion, schema,
+season data, analytics, or storage behavior changed.
+
 ### CODEX BUILD - S5c NATIVE TAG FORM COMPLETE; REVIEW REQUIRED (2026-08-02)
 
 Codex completed the internal Preact-owned native tag form. It remains **unreachable to coaches until the isolated S5d ownership flip**. The visible form is rendered from model state; it does not clone, serialize, or restyle the legacy `.tag-section`. PlayTagger, BreakdownForm, NotesManager, RosterManager, PenaltyModel, SpecialTeamsModel, OCR, Play Diagram, templates, custom fields/libraries, and play detection remain the canonical behavior/data owners through explicit adapters.
@@ -25,7 +43,7 @@ Sensitivity proof: removing Formation from the multi-select set fails on Play 1;
 
 Focused regression: native tagging 22/22, legacy Breakdown form 60/60, projection form 54/54, penalty contract 7/7, Special Teams contract 20/20, S5c preflight 10/10, native Quick Chart 12/12, design system 7/7. Full canonical gate: **78/78 green, 0 skipped**, including the real six-game fixture. Isolated visual QA at 1440 and 390 is clean; route composition is explicitly deferred to S5d. No schema, migration, season/play data, analytics, film path/file, storage behavior, package, tag, or release changed.
 
-**Next:** Claude independently reviews S5c. If accepted, S5d performs the single Break Down ownership flip, route-integrated visual/geometry audit, and milestone installer smoke. No S5d work should begin before review acceptance.
+**Status:** S5c was accepted at `9f8f065`. The pre-S5d installer handoff above supersedes this build-time next action.
 ### CODEX REPAIR - S5c PREFLIGHT REVIEW FINDING CLOSED (2026-08-01)
 
 Claude accepted `1786afb` at `1c88ce5` with one test-strength finding. Fixed:

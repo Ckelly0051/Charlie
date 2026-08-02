@@ -29,6 +29,16 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**`1.12.0-16` · 2026-08-02 · Codex · PRE-S5d INSTALLER BUILT; COACH SMOKE PENDING**
+
+- S5c is accepted at `9f8f065`; four-owner version stamp is `06c3576`.
+- One local unsigned NSIS/MSI candidate was built from the committed stamp.
+  Hashes and the stop-first baseline checklist are in `SMOKE-1.12.0-16.md`.
+- This candidate validates the installed S5c baseline and desktop-only services.
+  It does not expose or accept the native Breakdown composition; S5d remains the
+  isolated ownership flip and receives its own installed smoke after review.
+- **S5d stays closed until the coach records PASS.** No publication, tag,
+  release, data migration, or managed-film deletion is authorized.
 
 **S5c capability floor · 2026-08-02 · Claude · adds §3.2 item 7 — a dated S5d/S7 obligation**
 
@@ -804,7 +814,7 @@ Each item below is a contract or coverage gap, not an implementation task.
 - Capability ownership for all-fields, save, Special Teams, penalties, context, diagram, OCR, and templates now resolves to `e2e-native-tagging.mjs`. Legacy preflight and form suites remain in the gate as independent regression evidence.
 - Focused journey 22/22, including a coach-controlled section-expansion regression. Three exact mutations (Formation collapse, dropped try turnover, undersized mobile targets) each turn the intended assertion red. Full canonical gate: **78/78 green, 0 skipped**.
 - Isolated 1440/390 visual QA is clean. It proves component hierarchy, clipping, overflow and touch layout only; S5d owns route-level video/form geometry.
-- No user-reachable route, schema, migration, durable data, analytics, film, storage, package, tag, or release changed. **S5c awaits independent review; S5d remains closed.**
+- No user-reachable route, schema, migration, durable data, analytics, film, storage, package, tag, or release changed. **S5c was accepted at `9f8f065`; S5d remains closed pending the `1.12.0-16` coach smoke.**
 7. **[S5d and S7 — dated, measured] Eight breakdown capability ids are claimed by
    harnesses those milestones retire.** Added 2026-08-02 after the S5c capability-
    floor regression (`557e956`) and its fix (`2a70df8`). The fix correctly kept
