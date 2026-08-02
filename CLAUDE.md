@@ -353,6 +353,78 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `6c637dd` (UX-5 density batch) — **ACCEPTED on the code. One coach decision required, one latent collision recorded.** (2026-08-02)
+
+**Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.**
+Native tagging 22 → **30**, tag library 14/14, tag model 37/37, projection form
+54/54, tag fields 15/15, Charting Settings 15/15, design system 7/7, **parity
+2/2** — the last one matters, because a vocabulary change is exactly what could
+have moved an analytics golden, and it did not.
+
+**⚠ COACH DECISION NEEDED — the builder implemented something different from what
+you asked, and edited your requirement to match.** UX-5 as you wrote it said:
+*"Add **I-Form** to both the standard Formation library **and Backfield alignment
+library**. It is intentionally valid in both dimensions."* What shipped is
+`I-Form` and `Split Back` as **Formation values only**, with Backfield keeping
+canonical `I` and `Split`, and the audit line rewritten to *"Do not add duplicate
+`I-Form`/`Split Back` Backfield labels."*
+
+**I think the substitution is right, and it still needs your word, not mine.**
+Adding the literal label `I-Form` beside the existing `I` in Backfield would put
+two spellings of one alignment in the same dimension — every backfield tendency,
+filter and cross-tab would split into two rows that never recombine. That is a
+data-quality problem the projection layer cannot fix, because both values would
+be legitimate. Your *intent* — chart the formation, the backfield, or both,
+without collapse — is fully delivered: `e2e-native-tagging` charts `I-Form + I`
+and `Split Back + Split`, saves, reloads canonically, and asserts both dimensions
+survive independently while the other game stays isolated. **But a builder
+rewriting a coach's stated football requirement inside the coach's own audit
+document is not something a reviewer should wave through.** Confirm the
+substitution or reject it.
+
+**`Split Back` was also not requested.** It is the symmetric partner to I-Form and
+football-sensible, but it is scope the coach did not ask for, and it is the second
+value implicated in the collision below.
+
+**F1 [P2, latent] The two new Formation values are keys in the legacy
+Formation→Backfield migration map.** `SeasonStore.BACKFIELD_FROM_FORMATION` is
+`{ 'I-Form':'I', 'Singleback':'Single', 'Split Back':'Split', 'Power-I':'Power' }`
+— so **`I-Form` and `Split Back`, just promoted to first-class Formation chips,
+are exactly the strings that migration strips out of Formation and rewrites into
+Backfield.**
+
+It cannot fire today: `migratePlayFormation` returns early unless a play lacks the
+`backfield` property entirely, and every in-app creation site sets it. That is the
+Phase 4A guard, and it is why `Power-I` has survived as a Formation value. **The
+live vector is an imported legacy season** — a supported feature — whose plays
+predate `backfield`. On that data a deliberate `I-Form` Formation tag is
+indistinguishable from a pre-v1.9.15 back-alignment tag, and the migration will
+silently move it.
+
+This is the hazard the plan already predicted in writing: *"migration must be
+version/provenance-scoped before new custom values use legacy token names."* Two
+new standard values now use legacy token names. **Recommendation: scope the
+migration by schema version or provenance** — do not simply delete the two map
+entries, because that changes how genuinely-legacy data is read, which is a
+coach-owned data-semantics decision, not a refactor.
+
+**The TagLibrary v2 upgrade is a stored-preference migration and it is handled
+correctly.** Existing v1 team libraries gain the two new standard Formations
+**once**, and `e2e-tag-library` proves that hiding an upgraded standard formation
+does not resurrect it on reload. No play data is migrated or rewritten — I
+confirmed the diff touches no play-writing path, and parity is unchanged.
+
+**The other three UX-5 items landed as specified**, each with a named assertion
+and a stated red-on-mutation: Situation compressed to Quarter + Down & Distance
+then Hash + Field Position; Punt moved into `More` with `More` taking Punt's slot
+so common Results stay on one row; and yardage given protected width for a signed
+three-digit value, verified at a realistic 560px charting column and at 390px.
+Native tagging gained 8 assertions rather than losing any.
+
+**Scope respected:** no schema, season byte, film file, storage path, analytics
+formula, package, tag or release changed; parity goldens untouched. **S5d remains
+open; this does not change the ownership flip.**
+
 ### ▶ CLAUDE'S REVIEW of `2a70df8` — **ACCEPTED. S5c-1 closed; S5c is complete.** 0 findings; one dated obligation recorded (2026-08-02)
 
 **Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.**
