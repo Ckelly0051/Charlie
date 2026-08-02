@@ -286,6 +286,82 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `1786afb` (S5c preflight) — **ACCEPTED with 1 finding: two durability proofs do not prove durability** (2026-08-01)
+
+**Full canonical gate, re-run by me: 77 harnesses | 77 green | 0 skipped.**
+`e2e-s5c-preflight` 10/10, native Quick Chart 11 → **12**, capability audit 10/10.
+
+**The `K = Kick/Punt` removal is exactly right, and I proved the regression
+myself.** The mapping is gone from `typeMap`, the header comment is corrected,
+and — the part that matters most — **the `K` hint is removed from the native
+Quick Chart key legend**, so it is no longer advertised. `K` is deliberately
+**not remapped** to Punt or Kickoff; guessing a structured value would have been
+worse than removing it. **Mutation:** restoring `'K': 'Kick/Punt'` reds `Quick
+Chart neither advertises nor writes the invalid Kick/Punt value` with
+`{"unchanged":false,"type":"Kick/Punt"}` — the evidence literally shows the bad
+value landing on the play. Restored → 12/12. No stored value was migrated or
+cleared, and no data-path code was touched.
+
+**The five new inventory ids all went into `P0_CRITICAL_CAPABILITY_IDS`**, not
+just the list — so they are a completeness floor S5c cannot silently drop.
+
+**F1 [P2, test strength] Two assertions named for durability pass without the
+thing that makes them durable.** I removed the `page.reload()` from section 1 and
+re-ran: **all ten assertions still passed, 10/10** — including *"Canonical reopen
+preserves the explicitly saved per-game context"* and *"A saved play diagram
+remains byte-stable and produces its Call Sheet thumbnail."*
+
+Without the reload, `openSeasonById()` re-opens the season **in the same page
+context** and `getCurrentPlay().diagram` reads the **same in-memory object** that
+the fixture created. So what those two assertions actually prove is
+"survives an in-memory re-open", not "survives a relaunch". The committed harness
+*does* reload, so today's run is genuine — but the proof is a property of
+statement ordering, not of the assertions. Reorder the sections, or move the
+reload, and both silently degrade from durability proofs to identity checks with
+their names unchanged.
+
+This is the "check narrower than its name" class this project keeps hitting —
+the `\bundefined\b` guard, the Quick Chart save-assertion naming, the S2-1
+existence check. It matters more than usual here because **these are now critical
+capability ids**: they are the floor S5c is measured against. Make the reload
+load-bearing — assert something only true after a real rehydrate (a sentinel set
+on `window` before reload must be gone), and read the diagram back off the
+**store** rather than the live tagger object.
+
+**Section 1 is otherwise the contract I asked for, and it is real behavior.**
+Open restores perspective + direction + `.is-scout` together; switch restores the
+destination game without inheriting the prior one (including `defaultUnit`); and
+**context edits change only perspective and direction, never opponent, week or
+gameType** — that is the closeout Lane C rule (a context control must not write
+game metadata as a side effect) finally pinned by a test.
+
+**Observation — the preflight locks behavior at the *legacy* seam.** All four
+section-1 assertions drive `gamePerspective`/`gameDirection`, the hidden inputs
+in `#legacyGameContextState`. Correct for a preflight, whose job is to freeze
+current truth before the rewrite. But it means **every one of these assertions
+must be rewritten during S5c**, which is the migration-drift pattern that cost
+assertions at S3 and S4-c. At S5c review: these five ids must resolve to new
+assertion strings in the native harness with equal-or-greater granularity, and
+the counts must be diffed, not eyeballed.
+
+**Observation — Quick Chart now has no way to chart a special-teams play, and
+says nothing.** Pressing `K` is a silent no-op. Data-wise this is strictly better
+than minting a value nothing consumes. But Quick Chart is a keyboard-only mode
+used without looking at the screen, so a coach with muscle memory gets no signal.
+One status line ("Special teams: use the tag form") closes it; otherwise put it
+in the S5d smoke checklist so the coach learns it from us rather than from a
+missing play.
+
+**Observation — the template assertion injects its own `<option>`** rather than
+saving a template and selecting it, so it proves the change handler reaches
+`applyTemplate(name)`, not that a saved template round-trips. The label says
+"actions", which is accurate, so this is not overclaiming — a real round-trip
+would just be stronger.
+
+**Scope respected:** no stored tag value, season byte, film file, storage path,
+analytics formula, schema, package, tag or release changed. Both S5b observations
+are recorded as required S5d checks. **S5c may build.**
+
 ### ▶ CLAUDE'S REVIEW of `b841b0d` + `d39dcdb` (gate repair + S5b native Film Room) — **BOTH ACCEPTED.** 0 findings, 2 observations (2026-08-01)
 
 **Full canonical gate, re-run by me on the committed bytes: 76 harnesses | 76
