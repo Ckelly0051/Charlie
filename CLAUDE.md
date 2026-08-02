@@ -306,6 +306,79 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `b841b0d` + `d39dcdb` (gate repair + S5b native Film Room) — **BOTH ACCEPTED.** 0 findings, 2 observations (2026-08-01)
+
+**Full canonical gate, re-run by me on the committed bytes: 76 harnesses | 76
+green | 0 skipped | 0 failed.** Native Film Room 24/24, legacy Film Room
+**179/179 unchanged**, native overlay 42/42 (no recurrence of the S5a red),
+native Settings 18 → **19**, design system 7/7.
+
+**F1 is closed, and I proved it end-to-end rather than reading the patch.** I
+broke *every* assertion in `e2e-native-overlay` and compared what each mechanism
+surfaces: the new `failure_lines()` extractor emits **all 42 FAIL lines,
+including the first** — `one native overlay owner is mounted directly on body`
+— while `tail -40` still shows only **29**, dropping the earliest 13. The first
+assertion is exactly the case that defeated me at S5a. The permanent self-test
+buries a FAIL above 42 PASS lines and is green (`0 bad`), and the extractor is
+deliberately kept out of green/red scoring, so the detector self-test still
+governs the verdict. Harness restored afterward.
+
+**S5b's ownership claim is true by construction, which is the strongest form it
+could take.** I traced the seam rather than trusting the 24/24:
+- `_plainCell(play, col)` renders **`this._cellHtml(play, col)`** and strips
+  markup. The native cell *is* the legacy cell. Projected Formation / QB
+  Alignment / Coverage Family display cannot diverge, because there is no second
+  implementation to diverge from.
+- `_plainTendency(col, visible)` is **`this._tendency(col, visible)`** detagged,
+  behind the same `visible.length >= 5` gate — so the eligible-denominator
+  tendency math is the proven one.
+- Rows come from `this._visiblePlays()`, Watch from `this._watchPool(visible)`,
+  presets and columns from `PlayGrid.PRESETS` / `PlayGrid.COLUMNS`.
+- **`nativeCommitEdit()` calls `this._applyEdit(play, col, value)`** — the
+  canonical edit path carrying result exclusivity, auto Run/Pass from playType,
+  the Loss/Sack yardage sign, `reconcileSiblings` promote/strip and `_autoSit`
+  clearing. This was the single highest-risk line in the commit and it delegates.
+
+Every `native*` method is a command or query on the existing owner. This is the
+S1 shape (StatsEngine keeps the formulas; the native layer owns composition),
+applied correctly a second time.
+
+**The Settings hardening is a real strengthening, not a sleep.** It waits for
+focus to land inside the sheet, types with a delay, and **adds an assertion that
+the field received the complete key** before saving. That is the same defect
+class as the S3 `"2026 Maveri"` truncation — a focus race that silently drops
+coach input. Converting a flake into a guarantee is the right response; 18 → 19.
+
+**The overlay contract change is sound, and I checked the thing that would have
+made it unsound.** Popovers may now carry `content` (columns panel, save-filter
+name, cell editor), report `role="dialog"` instead of `menu` when they do, and
+widen initial focus to `button/input/select`. My concern was the roving handler
+swallowing caret keys inside a text editor — **it does not**: `move()` returns on
+`if (!items.length)` *before* `event.preventDefault()`, so with no menuitems the
+arrow keys pass through untouched. A non-modal, non-trapped `dialog` is
+legitimate ARIA (modality is `aria-modal`, which is not set), focus enters,
+Escape closes, focus returns.
+
+**Observation — `_plainCell` strips markup, so any meaning carried *only* by
+markup is invisible to the native deck.** State that matters is passed
+structurally instead (`untagged`, `unit`, `current`, `selected` are explicit row
+flags), so nothing is lost today. Worth a deliberate look during the S5d visual
+review: if a future `_cellHtml` encodes a state as a colored chip or icon with no
+text, the native cell will render blank where the legacy grid showed a signal.
+
+**Observation — the boot-time subscription pattern is now on two screens.**
+`nativeFilmRoom` joins `breakdownTheater` in being constructed at boot and
+subscribing without an unsubscribe path. Still safe for the same reasons
+(guarded publish, constructed once, `_bindDomainEvents` not re-run by
+mount/restore), and still worth one deliberate decision at S5d rather than
+drifting into it — no emitter here exposes `off()`.
+
+**Scope respected:** no storage path, film file, analytics formula, schema,
+season byte, package, tag or release changed; mount and restore are data no-ops;
+`play-grid.js` gains only additive `native*` API plus a `_nativePresentation`
+render guard that `refresh()`es on deactivate. **S5c may open — and its four
+§3.2 preflight items are still open.**
+
 ### ▶ CLAUDE'S REVIEW of `a0d3f2b` (S5a native theater) — **ACCEPTED.** 1 finding (instrumentation), 2 observations, and the UX-1 numbers re-measured in the real route (2026-08-01)
 
 **Gate: my first run came back RED — 75 harnesses | 74 green | 1 FAILED
