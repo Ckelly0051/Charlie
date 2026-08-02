@@ -730,7 +730,7 @@ Each item below is a contract or coverage gap, not an implementation task.
 - F1 now prints assertion FAIL lines before the diagnostic tail; its buried-
   failure self-test and a complete 75/75 run are green. **S5b is open.**
 
-### S5b implementation checkpoint - AWAITING INDEPENDENT REVIEW (2026-08-01)
+### S5b implementation checkpoint - AWAITING INDEPENDENT REVIEW (`d39dcdb`, 2026-08-01)
 
 - The internal native Film Room deck is complete alongside the accepted route;
   it remains unreachable until S5d.

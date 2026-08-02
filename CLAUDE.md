@@ -18,7 +18,7 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### CODEX REVIEW QUEUE - S5b NATIVE FILM ROOM (2026-08-01)
+### CODEX REVIEW QUEUE - S5b NATIVE FILM ROOM (`d39dcdb`, 2026-08-01)
 
 Codex built the internal native Film Room deck alongside the accepted route.
 It is not coach-reachable yet; S5d remains the isolated ownership flip. S5c is
@@ -61,7 +61,7 @@ widths, and zero page errors. Optional component snapshots are local under
 `.tmp-s5b-shots/`; they are visual QA only. Route-integrated geometry remains an
 S5d design-audit obligation, per Claude's S5a observation.
 
-**Next:** Claude reviews this S5b checkpoint and the earlier `b841b0d` gate-
+**Next:** Claude reviews `d39dcdb` as the S5b checkpoint and the earlier `b841b0d` gate-
 evidence repair. If both are accepted, S5c may open. No package or release.
 
 ### S5a ACCEPTED; GATE EVIDENCE REPAIR AWAITING CLAUDE REVIEW (2026-08-01)
