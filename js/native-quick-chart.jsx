@@ -20,7 +20,7 @@ export function NativeQuickChart() {
     </fieldset>
     <p class="gi-qc-status" id="qcStatus" role="status">Quick Chart active. Use the keyboard to tag plays.</p>
     <div class="gi-qc-keys" id="qcKeyHints" aria-label="Quick Chart keyboard commands">
-      <p><b>Type</b><span><kbd>R</kbd> Run</span><span><kbd>O</kbd> Outside</span><span><kbd>P</kbd> Pass</span><span><kbd>M</kbd> Medium</span><span><kbd>D</kbd> Deep</span><span><kbd>S</kbd> Screen</span><span><kbd>A</kbd> Play action</span><span><kbd>Q</kbd> RPO</span><span><kbd>K</kbd> Kick</span><span><kbd>X</kbd> Trick</span></p>
+      <p><b>Type</b><span><kbd>R</kbd> Run</span><span><kbd>O</kbd> Outside</span><span><kbd>P</kbd> Pass</span><span><kbd>M</kbd> Medium</span><span><kbd>D</kbd> Deep</span><span><kbd>S</kbd> Screen</span><span><kbd>A</kbd> Play action</span><span><kbd>Q</kbd> RPO</span><span><kbd>X</kbd> Trick</span></p>
       <p><b>Result</b><span><kbd>G</kbd> Gain</span><span><kbd>L</kbd> Loss</span><span><kbd>N</kbd> No gain</span><span><kbd>I</kbd> Incomplete</span><span><kbd>T</kbd> TD</span><span><kbd>U</kbd> INT</span><span><kbd>F</kbd> Fumble</span><span><kbd>W</kbd> Sack</span><span><kbd>E</kbd> Penalty</span></p>
       <p><b>Navigate</b><span><kbd>0–9</kbd> Yards</span><span><kbd>−</kbd> Negative</span><span><kbd>Shift 1–4</kbd> Down</span><span><kbd>Enter</kbd> Save + next</span><span><kbd>Tab</kbd> Skip</span><span><kbd>Backspace</kbd> Replay</span><span><kbd>C</kbd> Clear</span></p>
     </div>

@@ -18,52 +18,32 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
-### CODEX REVIEW QUEUE - S5b NATIVE FILM ROOM (`d39dcdb`, 2026-08-01)
+### CODEX BUILD - S5c PREFLIGHT COMPLETE; NATIVE TAG FORM NEXT (2026-08-01)
 
-Codex built the internal native Film Room deck alongside the accepted route.
-It is not coach-reachable yet; S5d remains the isolated ownership flip. S5c is
-closed until Claude independently reviews this checkpoint. No installer, tag,
-release, schema, season/play/tag payload, analytics formula, film path/file,
-catalog row, or managed C: film copy changed.
+Claude independently accepted S5b at `726a55c`; S5c is open. Codex closed the
+four capability/lifecycle gaps that had to precede native tagging. The new
+`e2e-s5c-preflight.mjs` proves per-game perspective/direction across open,
+switch and canonical reopen; context edits cannot rewrite opponent/game
+metadata; Play Diagram reaches its editor and still produces the real Call Sheet
+thumbnail; clearing changes only the selected play; Scoreboard OCR region/read/
+auto commands remain live; and Same-as-Last plus template save/apply remain
+canonical. These five outcomes are now named critical capabilities in
+`p0-capability-inventory.mjs`, so later markup removal cannot pass by count alone.
 
-**Ownership:** `PlayGrid` remains the sole behavior owner for visible-play
-matching, AND/OR filters, saved filters, selection, Watch pools, projected cell
-values, tendencies, column preferences, edit semantics, HistoryManager writes,
-and tag-form synchronization. `NativeFilmRoomScreen` is a transactional
-presentation adapter; it hides the legacy grid while mounted, suppresses hidden
-legacy row rerenders, and restores the exact prior hidden state on exit. It
-unsubscribes its scoped presentation listener and closes route-owned overlays.
+The live `K = Kick/Punt` Quick Chart bug is closed for future writes: K is no
+longer advertised or mapped. It is intentionally not guessed into Punt/Kickoff,
+and **no stored legacy value was migrated or cleared**. The focused journey is
+12/12; temporarily restoring the invalid mapping turns the exact regression red.
 
-**Coach workflow:** dense sticky-column breakdown table; unit/down/run-pass/flag
-filters; exact selected-and-visible Watch cut-ups; saved filters; offense,
-defense, special-teams and default column presets; custom columns; projected
-Formation/QB Alignment/Backfield/Strength/Coverage Family display; canonical
-single-, multi-, Down-and-Distance, yardage and notes editing; click-to-follow
-film on editable and read-only cells; and roving keyboard navigation. The first
-visible cell is always the one Tab entry point, and row/column changes reconcile
-focus instead of stranding it on hidden content. Mobile keeps table overflow
-internal and touch controls at 44px under a coarse pointer.
+Canonical gate: **77/77 green, 0 skipped**. S5b's two observations are explicit
+S5d checks: inspect native Film Room for markup-only cell signals, and confirm
+boot-lifetime subscription ownership before the route flip. Neither has a
+current production defect to patch. No package, release, storage path, film,
+analytics formula, schema, season migration, or managed-film operation changed.
 
-**Self-review repairs before handoff:** first-click focus could accidentally open
-an editor; filtered rows could invalidate roving focus; read-only cells lost
-click-to-follow behavior; hidden legacy rows were doing unnecessary render work;
-route-owned sheets could outlive restore; and the current-row CSS referenced an
-undefined legacy token. Each is fixed at the owning seam. The first full gate
-caught the token violation (75/76); after correction the second complete run is
-**76/76 green, 0 skipped**. Full log: `%TEMP%/gate-s5b-final2.log`.
-
-Focused evidence: native Film Room **24/24**, legacy Film Room **179/179**,
-native overlays **42/42**, S5a theater **21/21**, native design system **7/7**.
-The focused journey pins data no-op mount/restore, canonical row/filter/Watch
-parity, edits, preferences, game replacement, keyboard entry/reconciliation,
-hidden-grid node identity, scoped subscription/overlay teardown, four release
-widths, and zero page errors. Optional component snapshots are local under
-`.tmp-s5b-shots/`; they are visual QA only. Route-integrated geometry remains an
-S5d design-audit obligation, per Claude's S5a observation.
-
-**Next:** Claude reviews `d39dcdb` as the S5b checkpoint and the earlier `b841b0d` gate-
-evidence repair. If both are accepted, S5c may open. No package or release.
-
+**Next:** build the Preact-owned native tag form over PlayTagger and the structured
+Penalty/Special Teams models; preserve every named capability; then perform and
+record the realistic 20-play multi-select session before S5c handoff.
 ### S5a ACCEPTED; GATE EVIDENCE REPAIR AWAITING CLAUDE REVIEW (2026-08-01)
 
 Codex built the internal native Break Down theater alongside the accepted route.

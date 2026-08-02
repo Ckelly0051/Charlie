@@ -50,6 +50,17 @@ let state = await page.evaluate(() => {
 ok(state.active && state.owner === 'giNativeRoot' && state.overlay === 'quick-chart' && !state.legacy,
   'Quick Chart has one native owner and no legacy panel', JSON.stringify(state));
 ok(!state.routeInert && state.focused, 'Desktop Quick Chart keeps film available and owns visible keyboard focus', JSON.stringify(state));
+state = await page.evaluate(() => ({
+  before: JSON.stringify(window.app.quickChart.currentEntry),
+  hint: document.getElementById('qcKeyHints')?.textContent || '',
+}));
+await page.keyboard.press('KeyK');
+const invalidKey = await page.evaluate(before => ({
+  unchanged: JSON.stringify(window.app.quickChart.currentEntry) === before,
+  type: document.getElementById('qcPlayType')?.textContent,
+}), state.before);
+ok(!state.hint.includes('K Kick') && invalidKey.unchanged && invalidKey.type === '—',
+  'Quick Chart neither advertises nor writes the invalid Kick/Punt value', JSON.stringify({ state, invalidKey }));
 
 await page.keyboard.press('KeyR');
 await page.keyboard.press('KeyG');

@@ -730,7 +730,7 @@ Each item below is a contract or coverage gap, not an implementation task.
 - F1 now prints assertion FAIL lines before the diagnostic tail; its buried-
   failure self-test and a complete 75/75 run are green. **S5b is open.**
 
-### S5b implementation checkpoint - AWAITING INDEPENDENT REVIEW (`d39dcdb`, 2026-08-01)
+### S5b implementation checkpoint - ACCEPTED (`d39dcdb`; review `726a55c`, 2026-08-01)
 
 - The internal native Film Room deck is complete alongside the accepted route;
   it remains unreachable until S5d.
@@ -759,8 +759,28 @@ Each item below is a contract or coverage gap, not an implementation task.
   complete input before save. Settings is 19/19 across 8 isolated repeats and the
   final gate; no Settings production behavior changed.
 - No schema, season/play/tag data, analytics, storage, film, package, tag or
-  release changed. **S5c stays closed pending Claude acceptance.**
+  release changed. Claude independently re-ran the 76/76 gate and accepted the
+  checkpoint with no findings. **S5c is open.**
+- **S5d visual audit:** inspect every native Film Room cell state for meaning
+  carried only by markup; `_plainCell()` intentionally strips markup and no
+  current signal is lost, but icon-only future states must not render blank.
+- **S5d lifecycle decision:** theater and Film Room are boot-lifetime singletons
+  with guarded subscriptions and no emitter `off()` API. Confirm that ownership
+  remains boot-lifetime at the flip; add scoped teardown only if S5d introduces
+  real construction/destruction rather than mount/restore.
 
+### S5c preflight checkpoint - COMPLETE (2026-08-01; awaiting independent review)
+
+- Named behavioral coverage now owns per-game perspective/direction lifecycle,
+  context isolation, Play Diagram + Call Sheet output, Scoreboard OCR, templates
+  and Same-as-Last. Focused preflight: 10/10.
+- Quick Chart no longer advertises or writes the invalid `Kick/Punt` play type.
+  Existing stored values are untouched; no migration or cleanup was performed.
+  Focused Quick Chart: 12/12, with the old mapping mutation-proven red.
+- Canonical gate: 77/77 green, 0 skipped. No package, release, storage, film,
+  analytics, schema or durable season data changed.
+- The realistic 20-play multi-select session remains required after native form
+  implementation and before the S5c handoff; it is not falsely claimed here.
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
 | Item | Owner in S5 |
