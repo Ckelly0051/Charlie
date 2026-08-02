@@ -222,6 +222,13 @@ export class QuickChart {
       return true;
     }
 
+    // Structured Special Teams cannot be represented by one generic type.
+    // Consume the retired shortcut with an explicit instruction so a coach's
+    // existing muscle memory never fails silently or mints ambiguous data.
+    if (key === 'K' && !e.shiftKey && !e.ctrlKey) {
+      this._updateStatus('Special Teams: use the full tag form.');
+      return true;
+    }
     // Play type keys
     const typeMap = {
       'R': 'Run Inside',

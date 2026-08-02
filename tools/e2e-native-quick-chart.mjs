@@ -58,9 +58,11 @@ await page.keyboard.press('KeyK');
 const invalidKey = await page.evaluate(before => ({
   unchanged: JSON.stringify(window.app.quickChart.currentEntry) === before,
   type: document.getElementById('qcPlayType')?.textContent,
+  status: document.getElementById('qcStatus')?.textContent,
 }), state.before);
-ok(!state.hint.includes('K Kick') && invalidKey.unchanged && invalidKey.type === '—',
-  'Quick Chart neither advertises nor writes the invalid Kick/Punt value', JSON.stringify({ state, invalidKey }));
+ok(!state.hint.includes('K Kick') && invalidKey.unchanged && invalidKey.type === '—'
+  && invalidKey.status === 'Special Teams: use the full tag form.',
+  'Quick Chart rejects ambiguous K with explicit Special Teams guidance and no data write', JSON.stringify({ state, invalidKey }));
 
 await page.keyboard.press('KeyR');
 await page.keyboard.press('KeyG');

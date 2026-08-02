@@ -13,6 +13,29 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REPAIR - S5c PREFLIGHT REVIEW FINDING CLOSED (2026-08-01)
+
+Claude accepted `1786afb` at `1c88ce5` with one test-strength finding. Fixed:
+
+- Relaunch is now an explicit part of both durability assertions. A sentinel set
+  on `window` before `page.reload()` must be absent afterward; context is checked
+  after canonical reopen, and the diagram is read from the rehydrated active
+  game's season-store play rather than from the live tagger object.
+- Mutation proof: deleting `page.reload()` independently reds both `Canonical
+  relaunch rehydrates...` and `A relaunched saved play diagram...` (8/10).
+- The template proof now performs the actual async Save Template dialog, verifies
+  the persisted template store/selector, clears Formation, and reapplies the
+  template through the production change handler. No injected option or stubbed
+  save/apply path remains.
+- Quick Chart now consumes `K` with `Special Teams: use the full tag form.` while
+  leaving the entry byte-identical. The existing one-owner capability remains;
+  this football-semantics behavior is a second named critical capability rather
+  than a replacement.
+
+Focused proofs: S5c preflight 10/10, native Quick Chart 12/12, capability audit
+10/10. Full canonical gate: **77/77 green, 0 skipped**. No stored `Kick/Punt`
+value, season data, schema, storage path, film file, analytics formula, package,
+tag or release changed. Native S5c tagging remains the next build checkpoint.
 
 Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film

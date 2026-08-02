@@ -769,7 +769,7 @@ Each item below is a contract or coverage gap, not an implementation task.
   remains boot-lifetime at the flip; add scoped teardown only if S5d introduces
   real construction/destruction rather than mount/restore.
 
-### S5c preflight checkpoint - COMPLETE (2026-08-01; awaiting independent review)
+### S5c preflight checkpoint - ACCEPTED (`1786afb`; review `1c88ce5`; repair awaiting review, 2026-08-01)
 
 - Named behavioral coverage now owns per-game perspective/direction lifecycle,
   context isolation, Play Diagram + Call Sheet output, Scoreboard OCR, templates
@@ -781,6 +781,11 @@ Each item below is a contract or coverage gap, not an implementation task.
   analytics, schema or durable season data changed.
 - The realistic 20-play multi-select session remains required after native form
   implementation and before the S5c handoff; it is not falsely claimed here.
+- Review repair makes relaunch load-bearing for both context and diagram proofs,
+  replaces the injected template option with a real save/apply round trip, and
+  gives retired Quick Chart `K` users explicit Special Teams guidance without
+  writing data. Removing reload reds both durability assertions. Gate 77/77.
+
 **Assigned owners (coach's decision, 2026-07-30 — these are decided, not open):**
 
 | Item | Owner in S5 |
