@@ -322,6 +322,78 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `557e956` (S5c native tag form) — **CHANGES REQUESTED. The code is good; the capability floor was silently lowered.** 1 finding, one file (2026-08-02)
+
+**Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.**
+Native tagging **22/22**, legacy Breakdown form **60/60**, S5c preflight
+**10/10**, capability audit 10/10. The required 20-play multi-select session is
+performed and recorded. Nothing here is a product defect.
+
+**S5c-1 [P1, capability floor] Ten inventory ids were re-pointed onto the new
+harness, and eight of them now claim materially less than they did — while the
+proofs they used to name are still alive, still green, and now claimed by
+nothing.** Re-pointing ids at the native harness is correct; that is the
+migration. Re-pointing them at *weaker* strings is the drift I flagged at the
+last two checkpoints and said I would diff rather than eyeball.
+
+| id | claimed before | claims now |
+|---|---|---|
+| `breakdown.play-diagram` | *relaunched diagram is byte-stable **and produces its Call Sheet thumbnail*** | *"…remain **reachable**"* |
+| `breakdown.templates` | *Same-as-Last and a **saved template round-trip*** | **the same** *"…remain reachable"* string |
+| `breakdown.scoreboard-ocr` | region, read-now **and auto-read** | *"reach canonical owners exactly once"* |
+| `breakdown.game-context` | ***relaunch* rehydrates saved per-game context** | *follows game switch without inheritance* |
+| `breakdown.save-next` | preserves **multi-tackler attribution, grade, notes** | *advances chronologically without collapse* |
+| `breakdown.penalties` | **multiple independent fouls** and enforcement | enforcement + confirmed resulting snap |
+| `breakdown.special-teams` | **kick, return, field-goal and try units** | *native **try** editor* only |
+| `breakdown.all-fields` | offense, defense, **player, custom, note**, situation | *offense/defense/situation* |
+
+**Five of these are in `P0_CRITICAL_CAPABILITY_IDS`** — the completeness floor
+S5c is measured against.
+
+**Three specific problems, measured:**
+
+1. **`play-diagram` and `templates` now point at the same generic sentence** —
+   *"Templates, diagram, OCR, detection, commit, drive, and customization remain
+   reachable."* One string covering seven capabilities cannot fail for the right
+   reason, and two critical ids resolving to it means at least one is
+   unclaimed today.
+2. **Reachability replaced durability on the one capability that owns a persisted
+   play field.** `play.diagram` is saved with the season and read by
+   `call-sheet-builder.js:180`. The Call Sheet thumbnail assertion — which I
+   verified renders a real `data:image/png` — is no longer claimed by any id.
+3. **The relaunch guarantee I just made load-bearing is unclaimed.** Two commits
+   ago Codex added the `__s5cReloadSentinel` so that assertion would red without
+   a real rehydrate, and I mutation-proved it. The id that named it now names the
+   *switch* case instead, which was always a separate assertion.
+
+**Verified, so this is not theoretical:** all eight retired strings still exist,
+one occurrence each, in `e2e-breakdown-form.mjs` and `e2e-s5c-preflight.mjs`, and
+both harnesses are green in this gate. **So the behavior is covered today and the
+claims are not.** The moment S5d/S7 retires the legacy form and the preflight —
+which is the explicit plan — those guarantees disappear and
+`e2e-p0-capabilities` stays green, because it checks that a claimed assertion
+*exists*, not that it is strong. That is the exact failure mode the inventory was
+built to prevent, and the reason D1 was required to close before S5.
+
+**The ask is narrow and touches one file.** Either keep the ids pointed at the
+assertions that still prove them until the native harness genuinely replaces
+them, or add equivalent assertions to `e2e-native-tagging.mjs` and point there.
+Specifically restore claims for: Call Sheet thumbnail **and** relaunch
+durability; the template save/apply round-trip; OCR auto-read; multi-tackler
+attribution, grades and notes on Save & Next; multiple independent penalty fouls;
+all eight structured Special Teams units; and player/custom/note field presence.
+**No two critical ids may resolve to the same string.**
+
+**What is genuinely strong here, and I checked it rather than assuming.** The
+native harness is a real coach journey, not a smoke test: 22 assertions, a
+20-play session retaining **two Formation and two Play Type selections on every
+play** (the multi-select collapse rule from §12 finding 9), compound try events,
+penalty enforcement with the confirmed next snap, punt structure, coach section
+expansion surviving state updates, desktop and mobile overflow, 44px targets, and
+**exact mount/restore attribute restoration**. Legacy form 60/60 and preflight
+10/10 are untouched, so no existing proof was weakened in code. Re-review is a
+capability-inventory diff, not a rebuild.
+
 ### ▶ CLAUDE'S REVIEW of `b94f39e` — **ACCEPTED. F1 closed and mutation-proven in the inverse direction.** 0 findings (2026-08-01)
 
 **Full canonical gate, re-run by me: 77 harnesses | 77 green | 0 skipped.**
