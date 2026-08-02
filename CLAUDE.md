@@ -364,6 +364,89 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `3c251ac` + `1e8bc48` (S5d ownership flip) — **DO NOT BUILD THE INSTALLER YET.** 1 P1 (measured), 1 coverage finding (2026-08-02)
+
+**Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.** The
+flip is correctly isolated: `1e8bc48` is the ownership change, `3c251ac` the strip
+collapse, so §8's revert path is intact.
+
+**The flip itself works, and I probed it rather than trusting the harness.** In
+the live route: native theater, Film Room and tagging all present; `.tag-section`,
+`.video-section` and `#playGridSection` all **0x0 inside `#wsClassicOutlet`**; the
+one canonical `#videoContainer` is adopted into the native theater
+(`mediaInNative: true`) with its single canvas still inside it; no page overflow;
+zero page errors. Single ownership is real.
+
+**S5d-1 [P1] The composed route gives the coach LESS film than before S5 started,
+and the strip-collapse control buys none of it back.** Measured by me in the
+flipped route:
+
+| Viewport | Legacy (pre-S5) | S5a theater alone | **Flipped route** | 4K |
+|---|---|---|---|---|
+| 1440x900 | 963x542 = **25.17%** | 1159x652 = **36.44%** | **933x525 = 23.62%** | **5.91%** |
+| 1920x1080 | 1338x753 = **48.59%** | 1479x832 = **59.34%** | **1323x744 = 47.47%** | **11.87%** |
+
+At an ordinary window the picture is now **23.62% of a 1080p source — below the
+25.17% legacy baseline this whole milestone set out to improve**, and about
+two-thirds of the 36.44% that justified S5a. At 4K it is **5.91%**.
+
+**Cause: the film column is width-constrained at ~933px** because the native tag
+form now sits beside the theater. S5a measured the theater occupying the route;
+nobody measured the *composed* route because the tag form had not been flipped
+yet. That is not dishonesty by anyone — this commit is the first time the real
+composition exists — but it does mean **the S5a result recorded in the design
+audit no longer describes what the coach will see.**
+
+**The strip collapse does not help.** Hiding the strip grows the media box
+609 -> 675 (and 789 -> 855) but the picture stays exactly 933x525 / 1323x744,
+because width binds, not height. So the control I recommended at S5a, and which
+`3c251ac` adds, currently returns **zero picture pixels** — it only adds
+letterbox. Worth knowing before it is presented as a UX-1 lever.
+
+**Why this blocks the installer rather than the code.** UX-1 is the coach's
+top structural complaint; he will see "the film got smaller" within a minute and
+we would be letting him discover it instead of telling him. The lever is width,
+not height — a film-focus mode, a collapsible/overlay tag column, or letting the
+strip collapse also widen the film column. That is Codex's design call, but it
+should be decided and measured **before** `1.12.0-17`, not after a wasted smoke.
+
+**S5d-2 [P2, coverage] 57 assertion sites were removed in the flip commit, and
+four guarantee-classes lost their only owner.** `e2e-breakdown-video` 50 -> 11,
+`e2e-breakdown-lifecycle` 30 -> 12; every other Break Down harness is flat or +1.
+
+Most of the removal is legitimate — those assertions described legacy
+presentation that no longer exists. **And my first read of the diff overstated
+it:** all five inventory-claimed assertions (`play-selection`,
+`live-card-update`, `autoplay-choice`, `drawing-playback`, `quick-chart`) still
+exist in their named harness; I checked each string directly rather than trusting
+the `-` lines. But these dropped to **zero occurrences anywhere in the suite**:
+
+- **Restore-point throttling** — `Playback-safe auto` 3 -> 0, `Superseded auto`
+  1 -> 0, `Manual safety point` 2 -> 0, `Old-season auto` 1 -> 0. This is BETA-007,
+  including the **season-id pin that prevents a cross-season flush** — persistence
+  safety, the same family as the v1.9.30 autosave race.
+- **Scout presentation** — `scoutClass` **22 -> 0**, `storedPerspective` 2 -> 0.
+- **`Long result copy remains complete and uses the approved colon separator`**
+  1 -> 0 — the coach-approved `Result: Yardage` decision, made because `·` read as
+  a minus sign.
+- `one shared library editor` and `canonical unit control` 1 -> 0 each.
+
+**Behavior is intact — I verified rather than assumed.** The flip touches no
+persistence code (`storage.js`, `season-store.js`, `version-manager.js`,
+`breakdown-video.js` are all untouched) and `_maybeSnapshot` is still live. So
+this is a coverage regression, not a behavior regression — but it is the largest
+one in the project, on its least reversible commit, and restore-point throttling
+is not presentation.
+
+**Also now due: §3.2 item 7.** With the flip, `e2e-breakdown-form.mjs` (60/60,
+green) tests a surface no coach can reach, while still being the claimed owner of
+four critical capability ids. The obligation to re-prove those natively has moved
+from "before S7" to "now" in substance, even though the harness still passes.
+
+**Scope respected:** no schema, season byte, film file, storage path, analytics
+formula, package, tag or release changed. **Recommendation: decide S5d-1, restore
+the four orphaned guarantees, then build the installer.**
+
 ### ▶ CLAUDE'S REVIEW of `6c637dd` (UX-5 density batch) — **ACCEPTED on the code. One coach decision required, one latent collision recorded.** (2026-08-02)
 
 **Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.**
