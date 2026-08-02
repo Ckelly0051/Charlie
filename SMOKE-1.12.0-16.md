@@ -7,7 +7,7 @@ Versioned source: `06c3576`
 Date: 2026-08-02
 Tester: Coach
 
-## Status: PENDING - S5d BLOCKED
+## Status: PASS - S5d OPEN
 
 This is the required local unsigned pre-S5d milestone build. It is not tagged,
 published, or advertised as a release. S5a-c remain internal; this installer
@@ -41,6 +41,13 @@ managed C: film copy based on this candidate.
   `35E34B8ED50C98B08419953B4F29362BFE3558E0FD6CF83ACDA3374E21600AF4`
 
 ## Coach Smoke
+
+**Coach decision, 2026-08-02:** targeted baseline PASS. Real tagging worked and
+showed no functional difference from the last accepted build, which is the intended
+S5c outcome. Reports opened against real data. The coach explicitly approved moving
+to S5d. Rows still marked PENDING below were not individually re-executed and are
+retained honestly; they are not being retroactively reported as PASS.
+
 
 Install with the NSIS `.exe` over `1.12.0-15`. Stop at the first failure and
 record a screenshot. Batch minor visual findings; do not issue one-off releases.
@@ -82,7 +89,9 @@ currently accepted route; it is not the S5d native-composition review.
 | Undo/Redo, drawing, and exact Study-to-film navigation still work | PENDING | |
 | Structured penalty and Special Teams editors open without clearing existing data | PENDING | |
 
-## Result: PENDING
+## Result: PASS
 
-A PASS unlocks the isolated S5d ownership-flip commit. A failure keeps S5d
-closed; diagnose against accepted S5c before changing the coach-facing route.
+The coach confirmed that real tagging passes with no functional difference from
+the prior accepted build and approved moving forward. The installed Reports route
+also opened against real data during the review. Design findings are carried into
+`GRIDIRON-IQ-DESIGN-AUDIT.md`; this pass does not waive them. **S5d opens.**

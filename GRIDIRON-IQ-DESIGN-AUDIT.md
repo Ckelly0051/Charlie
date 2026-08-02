@@ -219,6 +219,24 @@ route-specific substitutes before adding more S5 markup. Establish a documented,
 accessible categorical chart palette distinct from semantic status colors.
 Apply the system route by route; do not repaint isolated screenshots.
 
+### UX-5 - S5d coach charting-density and vocabulary batch (P1)
+
+Installed `1.12.0-16` tagging passed functionally, but the coach identified four
+required native-composition corrections. Treat them as one S5d density pass, not
+one-off patches:
+
+- Add **I-Form** to both the standard Formation library and Backfield alignment
+  library. It is intentionally valid in both dimensions; projection, editing,
+  persistence, CSV, analytics and filters must not collapse one into the other.
+- Compress Situation into two rows: **Quarter first + Down & Distance**, then
+  **Hash + Field Position**. Use the available width to reduce scrolling.
+- Keep common Results on one row by moving **Punt** into `More` and placing
+  `More` in Punt's former position.
+- Give the yardage value enough protected width for a visible signed three-digit
+  value; native number spinners may not cover the digits.
+
+Verify the complete route at the four standard viewports. Density may improve,
+but labels, touch targets, keyboard access and football meaning may not regress.
 ## Analytics Experience Findings - Resolve As A Shared S6 Pass
 
 ### AX-1 - Reports formatting and hierarchy (P1)
@@ -263,6 +281,29 @@ complete labels. Repair the shared primitive, not individual instances. Verify
 contrast and non-color meaning. The current cyan/orange legacy palette is not
 assumed to be the approved design-system palette.
 
+### AX-7 - Five-lens football analytics model (P1, coach approved)
+
+Predictability is one diagnostic, not the product's analytical thesis. Reports
+and Study should organize coaching answers through five primary lenses:
+
+1. **Efficiency** - success rate, yards/play, EPA/play and first-down rate.
+2. **Explosiveness** - explosive rate/yards, longest gains and run/pass source.
+3. **Situational** - early downs, money downs, red zone, goal-to-go, backed up
+   and two-minute.
+4. **Tendencies** - formation, personnel, backfield, motion, strength, direction,
+   field zone and high-value cross-tabs.
+5. **Risk** - negative plays, sacks, turnovers, penalties and havoc.
+
+Player impact and opponent-scout views cut across those lenses. Every KPI,
+finding and grouped result stays linked to its exact film cohort. Predictability
+remains available within Tendencies/Risk with sample and effectiveness context;
+it may not stand alone as the only headline. Use concise, source-backed coaching
+findings rather than generic recommendation paragraphs.
+
+The `1.12.0-16` installed review reconfirmed AX-1/AX-4/AX-5 are unresolved: raw
+KPI text stacks, oversized dead space, a full-width Formation bar and unchanged
+clipping/weak donut hierarchy show Reports has not yet received its S6 design
+pass. This is expected sequencing, not acceptance of the current presentation.
 ### AX-6 - Product copy (P2)
 
 Run a US-English copy audit, including the misspelling of `tendencies`. Remove

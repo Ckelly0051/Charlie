@@ -13,7 +13,7 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
-### INSTALLER READY - `1.12.0-16`; PRE-S5d COACH SMOKE PENDING (Codex, 2026-08-02)
+### INSTALLER PASS - `1.12.0-16`; S5d OPEN (Coach/Codex, 2026-08-02)
 
 S5c is independently accepted at `9f8f065`. The four version owners were stamped
 at `06c3576`, and one local unsigned NSIS/MSI candidate was built from those
@@ -27,8 +27,9 @@ MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-16_x64_en-US.msi`
 
 Automated evidence: accepted S5c gate 78/78; P0 exit 17/17; beta config 3/3;
 `cargo check` clean; unsigned native build complete. Hashes and the stop-first
-checklist are recorded in `SMOKE-1.12.0-16.md`. **S5d remains blocked until the
-coach records PASS.** No tag, GitHub release, managed-film deletion, schema,
+checklist are recorded in `SMOKE-1.12.0-16.md`. The coach confirmed real tagging
+passes with no functional change from the prior accepted build and approved moving
+forward. **S5d is open.** No tag, GitHub release, managed-film deletion, schema,
 season data, analytics, or storage behavior changed.
 
 ### CODEX BUILD - S5c NATIVE TAG FORM COMPLETE; REVIEW REQUIRED (2026-08-02)
