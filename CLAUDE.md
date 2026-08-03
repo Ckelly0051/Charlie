@@ -379,6 +379,64 @@ independent review and a replacement installed WebView2 smoke before S4 can be
 accepted. The browser gate cannot substitute for that final installed proof.
 
 The failed artifact and evidence are recorded in `SMOKE-1.12.0-13.md`.
+### ▶ CLAUDE'S REVIEW of `a4806b5` — **ACCEPTED. Both S5d findings closed; build the installer.** 0 findings (2026-08-02)
+
+**Full canonical gate, re-run by me: 80 harnesses | 80 green | 0 skipped.**
+Breakdown geometry 12/12, restore-point throttling 5/5, native tagging 30 → 34,
+breakdown video 11 → 14, capability audit 10/10, tree clean.
+
+**S5d-1 closed, and I re-measured it myself with a fresh browser profile per
+viewport** — my first pass leaked Film Focus through `localStorage` between
+viewports and produced two wrong "default" rows, so these are the corrected
+numbers:
+
+| Viewport | Legacy (pre-S5) | **Default now** | **Film Focus** | 4K default / focus |
+|---|---|---|---|---|
+| 1440x900 | 25.17% | **27.28%** | **39.06%** | 6.82% / 9.77% |
+| 1920x1080 | 48.59% | **53.38%** | **62.67%** | 13.35% / 15.67% |
+| 1280x800 | n/a | 19.27% | 28.34% | 4.82% / 7.08% |
+
+**The claim holds: default charting now beats the legacy baseline at both
+measured viewports** — +8.4% relative at 1440x900 and +9.9% at 1920x1080 — and
+Film Focus roughly doubles the 1280x800 case. **Film Focus reports form width 0
+with `overlap:false` and no page overflow at every viewport, and it survives a
+reload**, so the "no video overlap" and persistence claims are both real.
+
+**The durable part is `e2e-breakdown-geometry.mjs`, not the CSS.** A 12-assertion
+harness now pins film dimensions, so the next composition change cannot quietly
+spend the picture again. That is the right response to a defect that a 78-green
+gate could not see — the same shape as the Reports viewport assertion after
+`1.12.0-13`.
+
+**S5d-2 closed, and one part came back stronger than it left.**
+- **Restore-point throttling** now has its own `e2e-restore-point-throttling.mjs`
+  driving `storage._maybeSnapshot()` directly: automatic defers during playback
+  **and pins the active season** (`pending.seasonId === state.seasonId` — the
+  cross-season flush guard is now asserted explicitly, which it never was inside
+  the old video harness), a pause flushes exactly once, and a forced point
+  supersedes a deferred automatic.
+- **Colon separator** is restored two-sided — it requires
+  `Interception + Touchdown: +5` **and** the absence of `Touchdown · +5`.
+- **Unit owner + shared library editor** are consolidated into one native
+  assertion checking `unitOwners === 1` and the exact `formation/backfield/front`
+  library call sequence, on the native owner where the rule now has to hold.
+- **Scout presentation** is covered by the S5c preflight's `.is-scout` assertion,
+  which I verified reads `tagForm.classList.contains('is-scout')` — the
+  `scoutClass` identifier disappeared, the guarantee did not.
+
+**Still true and worth carrying, not a finding:** 4K in the default composition is
+**6.82%** at 1440x900. Better than the 5.91% of the broken state and better than
+legacy, but full screen remains the only real 4K path. Say that plainly in the
+smoke record rather than letting "beats legacy" imply 4K is solved.
+
+**One housekeeping note:** `football-film-analyzer.html` churned 4,652 lines in
+this commit. It is the retired reference bundle, consumed by nothing in the Vite
+product or the gate, and it dies at S7 — so this is noise rather than risk, but a
+reviewed commit should not carry it silently.
+
+**Scope respected:** no schema, season byte, film file, storage path, analytics
+formula, package, tag or release changed. **Build `1.12.0-17` and smoke it.**
+
 ### ▶ CLAUDE'S REVIEW of `3c251ac` + `1e8bc48` (S5d ownership flip) — **DO NOT BUILD THE INSTALLER YET.** 1 P1 (measured), 1 coverage finding (2026-08-02)
 
 **Full canonical gate, re-run by me: 78 harnesses | 78 green | 0 skipped.** The
