@@ -854,6 +854,14 @@ ok(Object.values(r).every(entry => entry.tag === 'BUTTON' && entry.menu === 'men
 await page.evaluate(() => window.app.workspaceShell.show('reports'));
 await page.click('#wsContextSwitch');
 await page.waitForSelector('.gi-popover-item', { timeout: 5000 });
+// The popover moves initial focus on a requestAnimationFrame, so the items
+// existing does not mean focus has landed. Measuring straight after the
+// selector resolved was a race that reported `focused: undefined` roughly one
+// run in ten. Wait for the condition the assertion is about.
+await page.waitForFunction(
+  () => !!document.activeElement?.closest?.('.gi-popover-panel'),
+  { timeout: 5000 },
+);
 r = await page.evaluate(() => {
   const store = window.app.storage.seasonStore, games = store.data.games;
   const rows = [...document.querySelectorAll('.gi-popover-item')].filter(button => /^game-/.test(button.dataset.popoverItem || ''));

@@ -161,4 +161,29 @@
 }.gi-reports .scoreboard-layout.is-single{grid-template-columns:minmax(0,1fr)}
 .gi-reports .scoreboard-layout.is-single .gi-glance{border-left:0;padding-left:0}
 .gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
-@media(max-width:980px){.gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:980px){.gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}/* AX-2 (S6-4c): the Predictability Map states. Colour now means WHAT KIND of
+   cell this is, not how hard the lean is — a heavy tendency that is winning is
+   a strength and must not look like a leak, and a two-snap cell must not look
+   like a certainty at all. */
+.gi-reports .sm-cell{vertical-align:middle;border:1px solid var(--gi-6)}
+.gi-reports .sm-cell .sm-lean{display:block;font-weight:700;font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .sm-cell .sm-n{display:block;margin-top:2px;font-size:10px;color:var(--gi-11);font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .sm-cell.is-exploit{background:var(--gi-danger-surface);border-color:var(--gi-danger-border)}
+.gi-reports .sm-cell.is-exploit .sm-lean{color:var(--gi-danger-border)}
+.gi-reports .sm-cell.is-working{background:var(--gi-warn-surface);border-color:var(--gi-warn)}
+.gi-reports .sm-cell.is-working .sm-lean{color:var(--gi-warn)}
+.gi-reports .sm-cell.is-balanced .sm-lean{color:var(--gi-ok)}
+.gi-reports .sm-cell.is-low{background:transparent;border-style:dashed}
+.gi-reports .sm-cell.is-low .sm-lean{color:var(--gi-11);font-weight:500}
+.gi-reports .sm-cell.is-low .sm-n{color:var(--gi-warn)}
+.gi-reports .sm-cell.sm-empty{background:transparent;border-style:dashed;border-color:var(--gi-5)}
+.gi-reports .sm-nodata{color:var(--gi-11);font-size:10px;font-style:italic}
+.gi-reports .sm-row-label{text-align:left;white-space:nowrap}
+.gi-reports .sm-row-label .sm-rown{margin-left:6px;color:var(--gi-11);font-size:10px;font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .sm-key{display:inline-block;padding:0 6px;border-radius:2px;font-weight:700;white-space:nowrap}
+.gi-reports .sm-key-exploit{background:var(--gi-danger-surface);color:var(--gi-danger-border)}
+.gi-reports .sm-key-working{background:var(--gi-warn-surface);color:var(--gi-warn)}
+.gi-reports .sm-key-balanced{color:var(--gi-ok)}/* A row header is not a column header: `.gi-reports th` is sticky at the top of
+   the scroll box, which is right for the header row and wrong for every row
+   label — they all floated up and collided with it, swallowing the first row. */
+.gi-reports .sm-table th.sm-row-label{position:static;top:auto;z-index:auto;background:var(--gi-2)}

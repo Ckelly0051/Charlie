@@ -3989,7 +3989,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
       forms.forEach(f => {
-        const k = `${f}${sit}`;
+        const k = `${f}\u0001${sit}`;   // U+0001 separator: "Trip"+"s1" must not collide with "Trips"+"1"
         if (!cells[k]) cells[k] = { n: 0, runs: 0, passes: 0, succ: 0, yards: 0 };
         const c = cells[k];
         c.n++; if (isRun) c.runs++; else c.passes++;
@@ -4005,35 +4005,57 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
 
   _renderSelfScoutMatrix(m) {
     if (!m || m.rows.length < 2 || m.cols.length < 2) return '';
-    const MINC = 3;   // below this, a cell's lean is noise — render it faint
-    let header = '<th class="sm-corner">Formation \\ Situation</th>';
-    m.cols.forEach(c => { header += `<th>${c.label}</th>`; });
+    const MINC = 3;   // below this a lean is noise — shown, never coloured
+    const PRED = 40;  // lean strong enough for a DC to key
+    // AX-2: the baseline is this matrix's OWN success rate, so "not working"
+    // means "worse than you usually are", not worse than a number we invented.
+    // Accumulate over the cell VALUES, not by rebuilding keys. The cell key is
+    // formation + separator + situation, so `row + col.key` does not reconstruct
+    // it — a second lookup here silently summed nothing and reported a 0%
+    // baseline, which then made every predictable cell look like it was working.
+    let baseN = 0, baseSucc = 0;
+    Object.values(m.cells).forEach(cell => {
+      if (cell && cell.n) { baseN += cell.n; baseSucc += cell.succ || 0; }
+    });
+    const baseline = baseN ? Math.round(baseSucc / baseN * 100) : 0;
+    let header = '<th class="sm-corner" scope="col">Formation \\ Situation</th>';
+    m.cols.forEach(c => { header += `<th scope="col">${c.label}</th>`; });
     let body = '';
     m.rows.forEach(f => {
-      let row = `<td class="sm-row-label">${Charts._esc(f)} <span class="sm-rown">${m.rowN[f]}</span></td>`;
+      let row = `<th class="sm-row-label" scope="row">${Charts._esc(f)} <span class="sm-rown">n=${m.rowN[f]}</span></th>`;
       m.cols.forEach(c => {
-        const cell = m.cells[`${f}${c.key}`];
-        if (!cell || !cell.n) { row += '<td class="sm-cell sm-empty">·</td>'; return; }
+        const cell = m.cells[`${f}\u0001${c.key}`];   // same U+0001 separator the builder uses
+        // AX-2: an empty cell said "·", which reads as a value. Say it in words.
+        if (!cell || !cell.n) { row += '<td class="sm-cell sm-empty"><span class="sm-nodata">No data</span></td>'; return; }
         const runPct = Math.round(cell.runs / cell.n * 100);
-        const lean = runPct >= 50 ? 'R' : 'P';
+        const lean = runPct >= 50 ? 'Run' : 'Pass';
         const leanPct = Math.max(runPct, 100 - runPct);
         const pred = Math.round((leanPct - 50) * 2);          // 50%→0, 100%→100
         const strong = cell.n >= MINC;
-        const color = strong ? StatsEngine._meterColor(pred) : '#94a3b8';
-        const bg = strong ? `${color}26` : 'transparent';
         const succ = Math.round(cell.succ / cell.n * 100);
         const avg = (cell.yards / cell.n).toFixed(1);
         const cut = ` cut-row" data-cut-type="comboFS" data-cut-val="${Charts._esc(f)}__${c.key}" data-cut-label="${Charts._esc(f)} on ${c.label} — ${cell.n} plays`;
-        row += `<td class="sm-cell${cut}" style="background:${bg};border-color:${strong ? color + '66' : 'transparent'}" title="${Charts._esc(f)} · ${c.label}: ${cell.n} plays, ${runPct}% run, ${succ}% success, ${avg} avg">
-          <span class="sm-lean" style="color:${color}">${lean} ${leanPct}%</span>
-          <span class="sm-n">${cell.n}</span>
+        // AX-2: four NAMED states, not one lean gradient. A heavy tendency that
+        // is winning is a strength; the old colouring made it look identical to
+        // one that is losing, and painted two-snap cells like certainties.
+        let state = 'balanced', label = 'Balanced';
+        if (!strong) { state = 'low'; label = 'Low sample'; }
+        else if (pred >= PRED && succ < baseline) { state = 'exploit'; label = 'Predictable, not working'; }
+        else if (pred >= PRED) { state = 'working'; label = 'Predictable, but working'; }
+        row += `<td class="sm-cell is-${state}${cut}" title="${Charts._esc(f)} · ${c.label}: ${cell.n} plays, ${leanPct}% ${lean.toLowerCase()}, ${succ}% success vs your ${baseline}% average, ${avg} avg — ${label}">
+          <span class="sm-lean">${lean} ${leanPct}%</span>
+          <span class="sm-n">n=${cell.n}${strong ? '' : ' · low'}</span>
         </td>`;
       });
       body += `<tr>${row}</tr>`;
     });
     return `<div class="stats-section">
       <h3>Predictability Map — Formation × Situation</h3>
-      <p class="viz-caption">Your run/pass lean in each spot. <span style="color:#ef4444;font-weight:600">Red = predictable</span> (a DC keys it), <span style="color:#22c55e;font-weight:600">green = balanced</span>; faint cells are small samples. Click any cell to watch those plays.</p>
+      <p class="viz-caption">Every row is a formation, every column a situation, every cell your run/pass lean in that exact spot — run/pass-classifiable offensive plays only.
+        <span class="sm-key sm-key-exploit">Predictable, not working</span> is the one to fix: a lean a DC can key that also sits below your ${baseline}% average success.
+        <span class="sm-key sm-key-working">Predictable, but working</span> is a strength, not a leak.
+        <span class="sm-key sm-key-balanced">Balanced</span> gives nothing away.
+        Fewer than ${MINC} plays is marked <strong>low</strong> and left uncoloured — too few snaps to call a tendency. Empty spots read <strong>No data</strong>. Click any cell to watch those plays.</p>
       <div class="sm-wrap"><table class="stats-table stats-table-full sm-table">
         <thead><tr>${header}</tr></thead><tbody>${body}</tbody>
       </table></div>
