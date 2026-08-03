@@ -148,6 +148,32 @@ fidelity and an optional temporary strip collapse, not from shrinking controls.
 independently re-derived).** Two constraints the record implies but does not
 state:
 
+**⚠ SUPERSEDED 2026-08-02 by the coach — read this before acting on the 4K
+bullet below.** The coach's position: **downscaling 4K is fine. GridIron IQ is
+not a dedicated video player.** His original mention of 4K was not a request for
+more pixels — it was that a build presented film looking **overly compressed,
+softer than the source should have rendered at that size**.
+
+**So UX-1's success criterion is sharpness at the presented size, not coverage
+percentage.** Film may be displayed small; it may not look mushier than an honest
+downscale of the source. That reframes what is left:
+
+- **Coverage percentages are a regression instrument, not a quality target.**
+  `e2e-breakdown-geometry.mjs` should keep pinning them so a future composition
+  change cannot silently shrink the picture again — which is what they caught at
+  S5d — but hitting a particular 4K percentage is explicitly **not** a goal.
+- **What still matters is resampling quality.** Avoid non-integer scale factors
+  where the layout can cheaply avoid them; the full-screen path measured at
+  **1920 x 1079** is a one-pixel shortfall that forces a fractional resample of
+  every frame, and that is precisely the "softer than it should be" class the
+  coach reported. Fixing that is worth more than any additional pixel budget.
+- **Do not introduce CSS that resamples the picture** — transforms, filters, or
+  fractional sizing on the media node — since that reintroduces the original
+  complaint at any size.
+
+The bullet below is retained as the historical reasoning that produced the S5a
+pixel budget. Treat its "size against 4K" instruction as **withdrawn**.
+
 - **Size the pixel budget against 4K, not the measured 1080p clip.** The
   complaint named 4K film too. At the same 1060 x 596 working viewport a
   3840 x 2160 source presents **7.62%** of its pixels versus 30.47% for 1080p.
