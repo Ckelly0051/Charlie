@@ -56,7 +56,14 @@ export class WorkspaceContext {
       } : null,
       game: game ? {
         id: game.id,
-        name: game.name || gameInfo.projectName || gameInfo.opponent || 'Untitled Game',
+        // ONE naming rule (S6-4a). This used to prefer the raw stored
+        // `game.name`, so the shell context bar could read "New Game" while the
+        // games panel, schedule and game switcher all read "Week 3 vs Rivals"
+        // for the same game — `SeasonStore.gameName()` is football-first
+        // (week + opponent) and is what every other surface already uses.
+        // Building the switcher beside the context bar is what exposed it.
+        name: (store?.gameName ? store.gameName(game, games.indexOf(game)) : '')
+          || game.name || gameInfo.projectName || gameInfo.opponent || 'Untitled Game',
         opponent: gameInfo.opponent || '', date: gameInfo.date || '',
         status: game.status || (store?.gameStatus ? store.gameStatus(game) : 'not_started'),
         playCount: (game.plays || []).length,

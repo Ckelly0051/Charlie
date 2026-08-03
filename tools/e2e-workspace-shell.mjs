@@ -826,6 +826,99 @@ ok(r.linkedText === 'D:\\Football\\Film\\Holy Family' && !r.linkedHidden,
 ok(/managed copy/i.test(r.managedText),
   'A managed game says so instead of implying a path the coach could open', JSON.stringify(r));
 
+console.log('\n== S6-4a UX-2: universal game context switcher ==');
+// A second game with a distinct score/charting profile, so the switcher's rows
+// and the switch itself are both observable.
+await page.evaluate(async () => {
+  const store = window.app.storage.seasonStore, games = store.data.games;
+  const first = games[0];
+  first.gameInfo = { ...(first.gameInfo || {}), opponent: 'Rivals', date: '2026-09-01', scoreUs: 28, scoreThem: 21 };
+  store.addGame({ id: 'ux2-switch-target', name: 'Week 9 vs Tigers', status: 'active',
+    gameInfo: { opponent: 'Tigers', date: '2026-11-07' },
+    plays: [{ id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'defense', playType: 'Run Inside', result: 'Gain', yardage: '3', custom: [] } }] });
+  await store.persist();
+});
+r = await page.evaluate(async () => {
+  const out = {};
+  for (const route of ['home', 'breakdown', 'study', 'reports', 'plan']) {
+    await window.app.workspaceShell.show(route);
+    const button = document.querySelector('#wsContextSwitch');
+    const rect = button?.getBoundingClientRect();
+    out[route] = { tag: button?.tagName, menu: button?.getAttribute('aria-haspopup'),
+      onScreen: !!rect && rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.right <= document.documentElement.clientWidth };
+  }
+  return out;
+});
+ok(Object.values(r).every(entry => entry.tag === 'BUTTON' && entry.menu === 'menu' && entry.onScreen),
+  'Game context is a real switcher on every route, not a Home-only round trip', JSON.stringify(r));
+await page.evaluate(() => window.app.workspaceShell.show('reports'));
+await page.click('#wsContextSwitch');
+await page.waitForSelector('.gi-popover-item', { timeout: 5000 });
+r = await page.evaluate(() => {
+  const store = window.app.storage.seasonStore, games = store.data.games;
+  const rows = [...document.querySelectorAll('.gi-popover-item')].filter(button => /^game-/.test(button.dataset.popoverItem || ''));
+  // Recompute the expected current row from canonical state, not from the render.
+  const activeKey = `game-${store.data.activeGameId}`;
+  return {
+    headings: [...document.querySelectorAll('[data-popover-heading]')].map(node => node.textContent),
+    gameRows: rows.length, gameCount: games.length,
+    current: rows.filter(button => button.getAttribute('aria-current') === 'true').map(button => button.dataset.popoverItem),
+    activeKey,
+    details: rows.map(button => button.querySelector('small')?.textContent || ''),
+    focused: document.activeElement?.dataset?.popoverItem,
+    headingTabIndex: document.querySelector('[data-popover-heading]')?.tabIndex,
+    expanded: document.querySelector('#wsContextSwitch')?.getAttribute('aria-expanded'),
+  };
+});
+ok(r.gameRows === r.gameCount && r.headings[0] && JSON.stringify(r.current) === JSON.stringify([r.activeKey]) && r.expanded === 'true',
+  'The switcher lists every game of the open season under its season name and marks the current one', JSON.stringify(r));
+ok(r.details.every(detail => /charted/.test(detail)) && r.details.some(detail => /W 28-21/.test(detail)) && r.details.some(detail => /Not played/.test(detail)),
+  'Each game row carries its result state and charting progress', JSON.stringify(r.details));
+ok(r.focused && /^game-/.test(r.focused) && r.headingTabIndex === -1,
+  'Keyboard focus enters the game rows and the season heading is not an activatable menu item', JSON.stringify(r));
+await page.keyboard.press('ArrowDown');
+r = await page.evaluate(() => document.activeElement?.dataset?.popoverItem);
+ok(/^game-/.test(r || ''), 'Arrow keys rove between game rows, skipping the heading', String(r));
+const contextSwitch = await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore;
+  const before = store.data.activeGameId;
+  const target = store.data.games.find(game => String(game.id) !== String(before));
+  // Reports sub-view: choose a tab that is NOT the default, so preservation is
+  // observable rather than coincidental.
+  const tabs = [...document.querySelectorAll('.stats-tab')];
+  if (tabs[2]) tabs[2].click();
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const tabBefore = document.querySelector('.stats-tab.active')?.textContent.trim();
+  document.querySelector(`[data-popover-item="game-${target.id}"]`).click();
+  await new Promise(resolve => setTimeout(resolve, 900));
+  return { before, target: String(target.id), after: String(store.data.activeGameId),
+    route: app.workspace.currentRoute(), tabBefore, tabAfter: document.querySelector('.stats-tab.active')?.textContent.trim(),
+    context: document.querySelector('#wsContextGame')?.textContent,
+    focus: document.activeElement?.id, expanded: document.querySelector('#wsContextSwitch')?.getAttribute('aria-expanded'),
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+});
+ok(contextSwitch.after === contextSwitch.target && contextSwitch.after !== contextSwitch.before && contextSwitch.route === 'reports',
+  'Switching a game from Reports changes the canonical active game and stays on Reports', JSON.stringify(contextSwitch));
+r = await page.evaluate(async () => {
+  await window.app.workspaceShell.show('reports');
+  const store = window.app.storage.seasonStore, active = String(store.data.activeGameId);
+  const game = store.data.games.find(entry => String(entry.id) === active);
+  document.querySelector('#wsContextSwitch').click();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  const row = document.querySelector(`[data-popover-item="game-${active}"] span`)?.textContent;
+  const bar = document.querySelector('#wsContextGame')?.textContent;
+  const mobile = document.querySelector('#wsMobileContext')?.textContent;
+  document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  await new Promise(resolve => setTimeout(resolve, 200));
+  // The canonical rule every other surface uses. The context bar used to run a
+  // second rule that preferred the raw stored `game.name`.
+  return { canonical: store.gameName(game, store.data.games.indexOf(game)), row, bar, mobile, stored: game.name };
+});
+ok(r.row === r.canonical && r.bar === r.canonical && r.mobile === r.canonical,
+  'The context bar, the mobile context and the switcher all name a game with the one canonical rule', JSON.stringify(r));
+ok(contextSwitch.tabAfter === contextSwitch.tabBefore && contextSwitch.tabBefore && /Tigers|Rivals/.test(contextSwitch.context || '') && contextSwitch.focus === 'wsContextSwitch' && contextSwitch.expanded === 'false' && !contextSwitch.overflow,
+  'The switch preserves the open report view, updates the context label, and returns focus to the switcher', JSON.stringify(contextSwitch));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

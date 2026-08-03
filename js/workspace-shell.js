@@ -79,7 +79,7 @@ export class WorkspaceShell {
       <button class="ws-team" data-ws-action="seasons"><strong id="wsTeamName">Team</strong><span id="wsTeamMeta">Season workspace</span></button>
       <nav class="ws-nav" aria-label="Workspace">${this._navButtons()}</nav>
       <div class="ws-side-foot"><div class="ws-save-state"><i></i>Season ready</div></div></aside>
-      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-context"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong></div><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn ws-more-btn" id="btnNativeMore" data-ws-action="more" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">▾</span></button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
+      <main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><button class="ws-top-team" data-ws-action="seasons"><strong id="wsTopTeamName">Team</strong><span id="wsTopTeamMeta">Season workspace</span></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><button class="ws-context" id="wsContextSwitch" data-ws-action="game-switch" aria-haspopup="menu" aria-expanded="false" aria-label="Switch game"><span id="wsContextTeam">Team</span><b>›</b><span id="wsContextSeason">No season open</span><b>›</b><strong id="wsContextGame">Team home</strong><b class="ws-context-caret" aria-hidden="true">▾</b></button><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn ws-more-btn" id="btnNativeMore" data-ws-action="more" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">▾</span></button><button class="ws-icon-btn" data-ws-action="seasons" aria-label="Teams and seasons">⋯</button></div></header>
       <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" id="btnNativeMoreMobile" data-ws-action="more" aria-label="Settings and more" aria-haspopup="menu" aria-expanded="false">⋯</button></header>
       <section class="ws-home" id="wsHome"><div class="ws-home-head"><div><div class="ws-eyebrow">Team workspace</div><h1 id="wsGreeting">HOME</h1><p id="wsHomeSummary">Choose a season to get started.</p></div><button class="ws-btn ws-primary" id="wsResume" data-ws-route="breakdown" disabled>Continue breakdown</button></div>
       <section class="ws-continue"><div class="ws-game-mark" id="wsGameMark">GI</div><div class="ws-game-overview"><div class="ws-eyebrow" id="wsGameEyebrow">Continue where you left off</div><h2 id="wsContinueTitle">No game open</h2><p id="wsContinueMeta">Open a season to continue.</p><div class="ws-game-facts" id="wsGameFacts" hidden><div><span>Score</span><strong id="wsScoreValue">—</strong></div><div><span>Plays</span><strong id="wsPlaysValue">0</strong></div><div><span>Charted</span><strong id="wsChartedValue">0</strong></div><div><span>Units</span><strong id="wsUnitsValue">—</strong></div></div></div><div class="ws-progress"><span>Breakdown progress</span><strong id="wsProgressText">0 plays</strong><div><i id="wsProgressBar"></i></div><ul class="ws-unit-progress" id="wsUnitProgress" aria-label="Charting progress by unit"></ul></div></section>
@@ -110,6 +110,7 @@ export class WorkspaceShell {
       if (action === 'new-game') { await this._newGame(); return; }
       if (action === 'settings') this.app.settingsScreen?.open?.({ returnFocus: e.target.closest('[data-ws-action]') });
       if (action === 'more') { this._openMore(e.target.closest('[data-ws-action]')); return; }
+      if (action === 'game-switch') { await this._openGameSwitch(e.target.closest('[data-ws-action]')); return; }
       const sid = e.target.closest('[data-ws-season]')?.dataset.wsSeason;
       if (sid) { await this.app.storage.openSeasonById(sid); await this.show('home'); }
       const previewId = e.target.closest('[data-ws-preview]')?.dataset.wsPreview;
@@ -264,6 +265,57 @@ export class WorkspaceShell {
   }
   _restoreChrome(){
     for(const key of ['undo','redo','shortcuts','settings','backend'])this._restore(this._chrome[key]);
+  }
+  /**
+   * UX-2 (S6-4a). Game context is switchable from every route instead of
+   * requiring a Home round trip. Shared SHELL ownership — one control the five
+   * routes inherit, not five route-specific selectors — and selection goes
+   * through the canonical `App.openGame()` with the CURRENT route as its
+   * destination, so a coach comparing two games in Reports stays in Reports.
+   *
+   * Deliberate limit, stated rather than faked: the popover lists the games of
+   * the OPEN season, because those are the only games in memory. Other seasons
+   * are listed as seasons and say so — reading their game rows would mean
+   * loading every season on every popover open. The switcher never claims to
+   * know a game it has not read.
+   */
+  async _openGameSwitch(anchor){
+    if(!anchor||!this.app.overlays)return;
+    const store=this.app.storage.seasonStore, games=store?.data?.games||[];
+    const context=this.app.workspace.snapshot(), route=this.app.workspace.currentRoute();
+    const activeId=String(store?.data?.activeGameId??'');
+    const health=await Promise.all(games.map(g=>this.app.workspace.filmHealth(g).catch(()=>null)));
+    const items=[];
+    if(games.length){
+      items.push({key:'season-head',heading:true,label:context.season?.name||'This season'});
+      games.forEach((game,index)=>{
+        const info=this.app._gameRowInfo(game,index,store,store.data.activeGameId);
+        items.push({key:`game-${game.id}`,label:info.name||`Game ${index+1}`,detail:this._switchDetail(game,info,health[index]),
+          selected:String(game.id)===activeId,onSelect:()=>this.app.openGame(game.id,{route})});
+      });
+    }
+    const seasons=store?.listSeasons ? await store.listSeasons().catch(()=>[]) : [];
+    const others=(Array.isArray(seasons)?seasons:[]).filter(season=>String(season.id)!==String(store.currentSeasonId));
+    if(others.length){
+      items.push({key:'other-head',heading:true,separator:true,label:'Other seasons'});
+      others.forEach(season=>items.push({key:`season-${season.id}`,label:season.name||'Season',
+        detail:`${season.games||0} game${season.games===1?'':'s'} · open to see them`,
+        onSelect:async()=>{await this.app.storage.openSeasonById(season.id);await this.show('home');}}));
+    }
+    if(!items.length)items.push({key:'none',label:'No games yet',detail:'Create one from Home',disabled:true});
+    anchor.setAttribute('aria-expanded','true');
+    const handle=this.app.overlays.popover({title:'Switch game',anchor,returnFocus:anchor,items});
+    handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
+  }
+  /** Week/opponent is the label; this is the rest of UX-2's row: result, charting, film. */
+  _switchDetail(game,info,health){
+    const parts=[];
+    if(info.date)parts.push(info.date);
+    if(info.hasScore)parts.push(`${Number(info.u)>Number(info.t)?'W':Number(info.u)<Number(info.t)?'L':'T'} ${info.u}-${info.t}`);
+    else parts.push(info.isFinal?'Final':'Not played');
+    parts.push(this._chartedLabel(game));
+    if(health?.label)parts.push(health.label);
+    return parts.join(' · ');
   }
   _openMore(anchor){
     if(!anchor||!this.app.overlays)return;

@@ -69,6 +69,12 @@ export class NativeOverlayService {
       tone: item.tone || 'neutral',
       disabled: item.disabled === true,
       separator: item.separator === true,
+      // S6-4a. `heading` is a non-interactive group label (season name in the
+      // game switcher); it is deliberately NOT a menuitem, so roving arrow keys
+      // skip it and it cannot be activated. `selected` marks the row that is
+      // already current, so a coach opening the switcher can see where they are.
+      heading: item.heading === true,
+      selected: item.selected === true,
       onSelect: item.onSelect,
     }));
     if (type === 'popover' && !items.length && !options.content) throw new Error('A popover requires menu items or content.');

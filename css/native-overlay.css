@@ -55,3 +55,8 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
   .gi-overlay-probe button{min-width:44px;min-height:44px;white-space:nowrap}
 }
 @media(pointer:coarse){.gi-overlay-action,.gi-overlay-close,.gi-native-toast button,.gi-popover-item{min-height:44px}}
+/* S6-4a popover group heading — a label, never a menuitem, so roving arrow keys
+   skip it and it cannot be activated. */
+.gi-popover-heading{margin:6px 0 2px;padding:0 10px;color:var(--gi-7);font:800 10px/1.4 var(--gi-sans);letter-spacing:.08em;text-transform:uppercase}
+.gi-popover-heading.has-separator{margin-top:10px;padding-top:8px;border-top:1px solid var(--gi-5)}
+.gi-popover-item.is-selected{background:var(--gi-4);box-shadow:inset 3px 0 0 var(--gi-10)}

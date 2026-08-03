@@ -281,7 +281,15 @@ class App {
    * Idempotent: re-opening the already-active game does NOT re-switch,
    * re-persist, or reload film. A failed switch opens nothing and returns false.
    */
-  async openGame(gid) {
+  /**
+   * The one authoritative game-entry command (C1). `opts.route` lets the S6-4a
+   * shell game switcher land back on the route the coach was already reading
+   * instead of bouncing every switch through Break Down. It is a destination
+   * argument only: commit/persist/history-reset/film-load ordering below is
+   * untouched, and omitting it keeps the historical Break Down default, so no
+   * existing caller changes behavior.
+   */
+  async openGame(gid, opts = {}) {
     const store = this.storage?.seasonStore;
     if (!store?.data || gid == null) return false;
     const already = String(store.data.activeGameId) === String(gid);
@@ -303,7 +311,10 @@ class App {
     // The `.root` check is "is the shell mounted" (always true in the product);
     // the else is pure crash-safety, not a second product route.
     if (this.workspaceShell?.root) {
-      await this.workspaceShell.show('breakdown');
+      // A requested route that the workspace guard rejects for this game falls
+      // back to Break Down rather than stranding the coach on a blocked route.
+      const requested = opts.route && this.workspace?.guard(opts.route)?.ok ? opts.route : 'breakdown';
+      await this.workspaceShell.show(requested);
     } else {
       this.library?.hide?.();
     }

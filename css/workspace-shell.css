@@ -94,3 +94,12 @@ body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
    dropdown style blocks are inert (no markup can match them) and are a separate
    CSS sweep — NOTE gd-score must survive it: it is _scorePillHtml's default
    class and the live games panel still renders with it. */
+
+/* UX-2 (S6-4a): the context breadcrumb is now the game switcher. It keeps the
+   breadcrumb's typography so the topbar reads the same, and gains the affordance
+   and hit target of a real control. */
+.ws-context{border:1px solid transparent;border-radius:5px;background:transparent;min-height:34px;padding:0 8px;font:inherit;cursor:pointer;text-align:left}
+.ws-context:hover{border-color:var(--ws-line);background:#111923}
+.ws-context:focus-visible{outline:2px solid var(--ws-blue);outline-offset:1px}
+.ws-context[aria-expanded="true"]{border-color:var(--ws-blue);background:#17283d}
+.ws-context-caret{margin-left:2px;color:var(--ws-muted);font-size:10px}

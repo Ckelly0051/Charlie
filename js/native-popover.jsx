@@ -98,12 +98,20 @@ export function NativePopover({ overlay, service, top }) {
       }}
     >
       {overlay.content}
-      {overlay.items.map(item => <button
+      {overlay.items.map(item => item.heading
+        ? <p
+            key={item.key}
+            class={`gi-popover-heading${item.separator ? ' has-separator' : ''}`}
+            role="presentation"
+            data-popover-heading={item.key}
+          >{item.label}</p>
+        : <button
         key={item.key}
         type="button"
         role="menuitem"
         disabled={item.disabled}
-        class={`gi-popover-item is-${item.tone}${item.separator ? ' has-separator' : ''}`}
+        aria-current={item.selected ? 'true' : undefined}
+        class={`gi-popover-item is-${item.tone}${item.separator ? ' has-separator' : ''}${item.selected ? ' is-selected' : ''}`}
         data-popover-item={item.key}
         onClick={() => choose(item)}
       ><span>{item.label}</span>{item.detail && <small>{item.detail}</small>}</button>)}
