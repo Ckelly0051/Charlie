@@ -13,6 +13,57 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CLAUDE BUILD - S6-4c COMPLETE (AX-1..AX-7); INSTALLER IS NEXT (2026-08-03)
+
+**Builder: Claude** (the coach assigned S6 to Claude and dropped per-commit
+independent review for this design pass — Codex reviews the whole S6 range once,
+immediately before the §8 installer). Range `515f1c7..2dc27a2`.
+
+AX-7 lands the five-lens model and closes checkpoint 4. Reports Overview now
+answers through **Efficiency / Explosiveness / Situational / Tendencies / Risk**,
+each lens stating its football question, carrying the numbers that answer it, and
+routing to the report that owns its detail. Study's metric picker is grouped by
+the same five lenses; its dimension picker by football category, because a
+dimension is the axis a question is broken down *by*, not the question.
+
+Three rules carried from the Game at a Glance panel and enforced by test: no
+value is computed by the presentation layer; a tile claims a film cohort **only**
+where `_buildCutFilter` already defines one (so sacks, turnovers and longest
+gains are context and deliberately not clickable); empty is omitted, not zeroed.
+
+**Parity 2/2 with no golden moved — measured before it was claimed.** Unlike
+AX-3, AX-7 touches no computed value and no drilldown ref.
+
+Four defects found by measuring rather than reading: Study's default dimension
+silently moved from Formation to Down (grouping reorders options; six existing
+assertions caught it, and the default is now stated in code and pinned); the lens
+buttons wore the tab bar's own `data-report-tab`, which `_syncTabState` would
+have toggled as a tab; a "Longest pass · 3 attempts" tile played 4 clips because
+`passing.attempts` excludes sacks and the `runpass` cut does not; and a **literal
+NUL byte in `js/study-screen.js`** made the whole file read as binary, so ripgrep
+silently refused to match anything in it — same class as the U+0001 matrix
+separator found during AX-2, now an escape at both sites.
+
+Mutation proof: pointing the Situational tiles at a nonexistent cut type reds two
+assertions with the right evidence — a tile claiming an unresolvable cohort, and
+a tile that displays 8 and plays 0. (The first attempt did not apply; it was
+verified to have landed before its result was believed.) Restored, green.
+
+`e2e-native-reports` 31 → 39, `e2e-study-screen` 73 → 79, `e2e-self-scout` 34 →
+41, `e2e-workspace-shell` 74 → 76. Two new critical capability ids
+(`reports.lens-board`, `reports.lens-routing`). Final gate: **81 harnesses | 81
+green | 0 skipped | 0 failed**, including real data 13/13, parity 2/2, responsive
+containment 105/105, and `e2e-tag-projform` completing at 54/54.
+
+**Carried, not fixed:** `e2e-tag-projform` remains an intermittent puppeteer
+`Promise was collected` crash — measured 3-of-4 standalone crashes on *unmodified*
+code, 54/54 whenever it completes. A speculative rAF-hardening attempt did not fix
+it and was reverted rather than shipped. It needs its own pass from a captured red.
+
+No schema, season byte, analytics formula, film cohort, composite ref, film file,
+storage path, package, tag or release changed. **Next: Codex reviews the S6 range,
+then the §8 installer and coach smoke. S7 does not open before that.**
+
 ### INSTALLER PASS - `1.12.0-17`; S5 COMPLETE, S6 OPEN (Coach/Codex, 2026-08-02)
 
 S5d source `a4806b5` was independently accepted, then packaged from version
