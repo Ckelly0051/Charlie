@@ -4193,7 +4193,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     const exploitable = tells.filter(t => t.verdict === 'exploitable');
     const dominant = tells.filter(t => t.verdict === 'dominant');
     if (exploitable.length > 0) {
-      recommendations.push(`<strong>${exploitable.length} exploitable defensive tendency${exploitable.length > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.`);
+      recommendations.push(`<strong>${exploitable.length} exploitable defensive tendenc${exploitable.length > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.`);
     }
     exploitable.slice(0, 4).forEach(t => {
       recommendations.push(`<span class="ss-rec-label">${t.label}</span>: ${t.tellType} tell — ${t.tellVal} ${t.tellPct}% of the time (n=${t.n}), but only ${t.stopRate}% stop rate. Mix in alternative looks.`);
@@ -4450,7 +4450,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     const dominant = tells.filter(t => t.verdict === 'dominant');
 
     if (exploitable.length > 0) {
-      recommendations.push(`<strong>${exploitable.length} exploitable tendency${exploitable.length > 1 ? 'ies' : 'y'}</strong> — these situations are both predictable and underperforming. A prepared DC will take away your lean.`);
+      recommendations.push(`<strong>${exploitable.length} exploitable tendenc${exploitable.length > 1 ? 'ies' : 'y'}</strong> — these situations are both predictable and underperforming. A prepared DC will take away your lean.`);
     }
     exploitable.slice(0, 4).forEach(t => {
       const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
