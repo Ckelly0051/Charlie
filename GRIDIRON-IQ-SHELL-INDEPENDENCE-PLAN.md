@@ -897,9 +897,18 @@ writing, recorded here — silence is not a decision (S3's season export).
 
 ### 3.3 S6 build contract — Claude builds, Codex reviews (added 2026-08-02)
 
-Five checkpoints, each its own commit and its own independent review. The point
-of splitting them is that S6's risk is **silent analytics drift**, and a
-route-sized diff is reviewable where a milestone-sized one is not.
+Five checkpoints, each its own commit. **Review cadence corrected by the coach
+2026-08-02: no independent review per commit — S6 is a presentation pass and
+per-commit review is excessive.** Codex reviews **once, over the whole S6 range,
+immediately before the §8 installer.** That keeps the principle where it earns
+its cost (a builder does not accept their own work at an installer, and S7's
+deletion follows) without four cycles for styling.
+
+What still runs on every commit, because it is automated and costs nothing:
+the full canonical gate, parity against both goldens with no regeneration,
+before/after assertion counts stated in the commit message, and a mutation proof
+for each new guarantee. If any of those go red the checkpoint stops regardless of
+review cadence.
 
 | # | Checkpoint | Carries | Must not |
 |---|---|---|---|
