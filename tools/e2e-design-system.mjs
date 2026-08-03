@@ -45,5 +45,46 @@ const literalFonts = sources.flatMap(({ path, source }) =>
   /font(?:-family)?\s*:[^;]*(?:IBM Plex|system-ui)/i.test(source) ? [path] : []);
 ok(literalFonts.length === 0, 'native styles consume typography tokens instead of local font stacks', literalFonts.join(', '));
 
+/**
+ * UX-4 (S6-4b): the SHELL stylesheets join enforcement. They are not `native-*`
+ * — they style the workspace the native routes sit inside — and until now they
+ * were unenforced, which is how 89 raw colours across 52 near-duplicate hexes
+ * accumulated there while the native set stayed at zero. The rule is one step
+ * looser than the native rule, and deliberately so: a shell file MAY declare
+ * raw colour inside its `:root` token block (that is what a token block is
+ * for), and may not use raw colour anywhere else.
+ */
+const shellCss = ['workspace-shell.css', 'study-screen.css', 'plan-screen.css'].map(name => resolve(root, 'css', name));
+const shellSources = await Promise.all(shellCss.map(async path => ({ path, source: await readFile(path, 'utf8') })));
+// Blank the token block rather than removing it, so reported line numbers still
+// point at the real line in the file.
+const stripRoot = source => source.replace(/:root\s*\{[\s\S]*?\n?\}/g, match => match.replace(/[^\n]/g, ' '));
+const shellRaw = shellSources.flatMap(({ path, source }) => stripRoot(source).split(/\r?\n/).flatMap((line, index) =>
+  /#[0-9a-f]{3,8}\b|(?:rgb|hsl)a?\(/i.test(line) ? [`${path}:${index + 1}`] : []));
+ok(shellRaw.length === 0, 'shell styles use tokens outside their :root token block', shellRaw.slice(0, 8).join(', '));
+
+const shellTokens = new Set(shellSources.flatMap(({ source }) => [...source.matchAll(/(--ws-[\w-]+)\s*:/g)].map(match => match[1])));
+const shellMissing = shellSources.flatMap(({ path, source }) =>
+  [...new Set([...source.matchAll(/var\((--ws-[\w-]+)/g)].map(match => match[1]))]
+    .filter(name => !shellTokens.has(name))
+    .map(name => `${path}:${name}`));
+ok(shellMissing.length === 0, 'every shell token reference resolves to a declared token', shellMissing.join(', '));
+
+// One palette, not two. Every SHARED shell role must resolve to a design-system
+// token; only the genuinely shell-specific selected-surface roles may stand alone.
+const shellRoot = [...(shellSources[0].source.match(/:root\s*\{[\s\S]*?\n\}/) || [''])][0];
+const shellDecls = [...shellRoot.matchAll(/(--ws-[\w-]+)\s*:\s*([^;\n]+)/g)]
+  .map(match => ({ name: match[1], value: match[2].trim() }))
+  .filter(entry => !/^--ws-(side|top)$/.test(entry.name));
+const standalone = shellDecls.filter(entry => !/var\(--gi-/.test(entry.value)).map(entry => entry.name);
+ok(shellDecls.length > 12 && standalone.length === 0,
+  'every shell colour role derives from a design-system token — one palette, not two', JSON.stringify(standalone));
+
+const shellGiMissing = shellSources.flatMap(({ path, source }) =>
+  [...new Set([...source.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))]
+    .filter(name => !definitions.has(name))
+    .map(name => `${path}:${name}`));
+ok(shellGiMissing.length === 0, 'every design-system token the shell references is declared', shellGiMissing.join(', '));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

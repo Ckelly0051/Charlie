@@ -48,7 +48,18 @@
   --gi-info-border:#3f6f91;
   --gi-info-accent:#57a5cf;
   --gi-info-control-border:#79badb;
-  --gi-danger-surface:#3b171d;
+  /* Accent and advisory SURFACES (S6-4b). These existed only as hand-picked
+   hexes inside the shell stylesheets, which is how the shell ended up with a
+   parallel palette. They are roles, not one screen's decoration: a selected
+   row, an emphatic selected surface, its border and its label, and the amber
+   surface behind a non-blocking advisory. `--gi-info-*` and `--gi-danger-*`
+   already occupied the same shape; these complete the set. */
+--gi-accent-surface:#17283d;
+--gi-accent-surface-strong:#173f80;
+--gi-accent-border:#355f98;
+--gi-accent-text:#8fb6ff;
+--gi-warn-surface:#2a2214;
+--gi-danger-surface:#3b171d;
   --gi-danger-solid:#b93442;
   --gi-danger-border:#d24c57;
 

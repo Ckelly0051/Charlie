@@ -919,6 +919,38 @@ ok(r.row === r.canonical && r.bar === r.canonical && r.mobile === r.canonical,
 ok(contextSwitch.tabAfter === contextSwitch.tabBefore && contextSwitch.tabBefore && /Tigers|Rivals/.test(contextSwitch.context || '') && contextSwitch.focus === 'wsContextSwitch' && contextSwitch.expanded === 'false' && !contextSwitch.overflow,
   'The switch preserves the open report view, updates the context label, and returns focus to the switcher', JSON.stringify(contextSwitch));
 
+console.log('\n== S6-4b UX-4: shell palette resolves and stays legible ==');
+r = await page.evaluate(() => {
+  const styles = getComputedStyle(document.documentElement);
+  const roles = ['--ws-ink', '--ws-nav', '--ws-surface', '--ws-field', '--ws-raised', '--ws-hover', '--ws-active',
+    '--ws-line', '--ws-line-strong', '--ws-text', '--ws-text-soft', '--ws-muted', '--ws-blue', '--ws-green',
+    '--ws-amber', '--ws-red', '--ws-sel', '--ws-sel-line', '--ws-sel-text', '--ws-warn-surface'];
+  const resolved = Object.fromEntries(roles.map(role => [role, styles.getPropertyValue(role).trim()]));
+  const rgb = value => {
+    const probe = document.createElement('span');
+    probe.style.color = value; document.body.appendChild(probe);
+    const parsed = getComputedStyle(probe).color.match(/[\d.]+/g).slice(0, 3).map(Number);
+    probe.remove(); return parsed;
+  };
+  const luminance = channels => {
+    const linear = channels.map(channel => { const s = channel / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const ratio = (a, b) => { const [x, y] = [luminance(rgb(a)), luminance(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const pairs = {
+    'text on ink': ratio(resolved['--ws-text'], resolved['--ws-ink']),
+    'text on nav': ratio(resolved['--ws-text'], resolved['--ws-nav']),
+    'muted on nav': ratio(resolved['--ws-muted'], resolved['--ws-nav']),
+    'muted on raised': ratio(resolved['--ws-muted'], resolved['--ws-raised']),
+    'selected label on selected surface': ratio(resolved['--ws-sel-text'], resolved['--ws-sel']),
+  };
+  return { resolved, pairs, unresolved: roles.filter(role => !resolved[role]) };
+});
+ok(r.unresolved.length === 0 && Object.values(r.resolved).every(value => /^(#|rgb)/.test(value)),
+  'Every shell colour role resolves to a real value through the design-system tokens', JSON.stringify(r.unresolved));
+ok(Object.values(r.pairs).every(value => value >= 4.5),
+  'Shell text stays at or above WCAG AA contrast on every surface it sits on', JSON.stringify(r.pairs));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
