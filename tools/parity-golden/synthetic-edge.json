@@ -2539,12 +2539,14 @@
     "insights": [
      {
       "type": "direction",
+      "subject": "Trips",
       "priority": 360,
       "text": "From <strong>Trips</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
       "tag": "Direction Tell"
      },
      {
       "type": "personnel",
+      "subject": "11",
       "priority": 315,
       "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
@@ -6202,12 +6204,14 @@
     "insights": [
      {
       "type": "direction",
+      "subject": "Trips",
       "priority": 360,
       "text": "From <strong>Trips</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
       "tag": "Direction Tell"
      },
      {
       "type": "personnel",
+      "subject": "11",
       "priority": 315,
       "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"

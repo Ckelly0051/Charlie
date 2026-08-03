@@ -4195,9 +4195,13 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     if (exploitable.length > 0) {
       recommendations.push(`<strong>${exploitable.length} exploitable defensive tendenc${exploitable.length > 1 ? 'ies' : 'y'}</strong> — a prepared OC will identify and attack these alignments.`);
     }
-    exploitable.slice(0, 4).forEach(t => {
-      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: ${t.tellType} tell — ${t.tellVal} ${t.tellPct}% of the time (n=${t.n}), but only ${t.stopRate}% stop rate. Mix in alternative looks.`);
-    });
+    StatsEngine._themedRecommendations(exploitable,
+      t => `<span class="ss-rec-label">${t.label}</span>: ${t.tellType} tell — ${t.tellVal} ${t.tellPct}% of the time (n=${t.n}), but only ${t.stopRate}% stop rate. Mix in alternative looks.`,
+      rest => {
+        const names = [...new Set(rest.map(item => item.label))];
+        return `<strong>${rest.length} more alignments</strong> tip the same way (${names.slice(0, 4).join(', ')}${names.length > 4 ? `, +${names.length - 4} more` : ''}). One change of look covers all of them.`;
+      }
+    ).forEach(line => recommendations.push(line));
     dominant.slice(0, 3).forEach(t => {
       recommendations.push(`<span class="ss-rec-label ss-rec-strength">${t.label}</span>: ${t.tellVal} ${t.tellPct}% is predictable but <strong>working</strong> — ${t.stopRate}% stop rate${t.havocRate >= 15 ? `, ${t.havocRate}% havoc` : ''}. The alignment is earning its keep.`);
     });
@@ -4283,7 +4287,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
         Object.entries(dirs).forEach(([dir, count]) => {
           const pct = Math.round(count / total * 100);
           if (pct >= 75) {
-            insights.push({ type: 'direction', priority: (pct - 50) * 1.2 * Math.min(count, 10),
+            insights.push({ type: 'direction', subject: form, priority: (pct - 50) * 1.2 * Math.min(count, 10),
               text: `From <strong>${Charts._esc(form)}</strong>, you go <strong>${Charts._esc(dir.toLowerCase())}</strong> ${pct}% of the time (${count}/${total} plays). A DC with film will shade that direction.`,
               tag: 'Direction Tell' });
           }
@@ -4356,12 +4360,68 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     const persFormDiv = this._personnelFormationDiversity(plays);
     persFormDiv.forEach(pf => {
       if (pf.topPct < 80) return;
-      insights.push({ type: 'personnel', priority: (pf.topPct - 50) * Math.min(pf.n, 12) * 0.9,
+      insights.push({ type: 'personnel', subject: pf.personnel, priority: (pf.topPct - 50) * Math.min(pf.n, 12) * 0.9,
         text: `<strong>${Charts._esc(pf.personnel)} personnel</strong> lines up in <strong>${Charts._esc(pf.topFormation)}</strong> ${pf.topPct}% of the time (${pf.topCount}/${pf.n} plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.`,
         tag: 'Personnel Tell' });
     });
 
-    return insights.sort((a, b) => b.priority - a.priority).slice(0, 6);
+    return StatsEngine._themeInsights(insights);
+  }
+
+  /**
+   * AX-3 (S6-4c): rank a SMALL number of findings, and collapse a repeated
+   * countermeasure into one theme.
+   *
+   * The cap was a flat top-6, so one class could take every slot: a season with
+   * five directional tendencies produced five near-identical rows ending in the
+   * same sentence, which reads as noise and buries every other kind of finding.
+   * Now each class contributes its two strongest rows, and any remainder becomes
+   * ONE themed line naming the rest — the coach still learns that six formations
+   * tip direction, in one line instead of six.
+   *
+   * Ranking, priority and the insight text itself are untouched; this only
+   * decides how many of each are shown. No cohort, count or metric changes.
+   */
+  static _themeInsights(insights, perType = 2, total = 6) {
+    const ranked = [...insights].sort((a, b) => b.priority - a.priority);
+    const shown = [], counts = new Map(), overflow = new Map();
+    for (const insight of ranked) {
+      const type = insight.type || 'other';
+      const used = counts.get(type) || 0;
+      if (used < perType && shown.length < total) {
+        counts.set(type, used + 1);
+        shown.push(insight);
+      } else {
+        overflow.set(type, [...(overflow.get(type) || []), insight]);
+      }
+    }
+    for (const [type, rest] of overflow) {
+      if (shown.length >= total + 1 || rest.length < 2) continue;
+      const sample = rest[0];
+      const subjects = [...new Set(rest.map(item => item.subject).filter(Boolean))];
+      const named = subjects.length
+        ? ` (${subjects.slice(0, 4).join(', ')}${subjects.length > 4 ? `, +${subjects.length - 4} more` : ''})`
+        : '';
+      shown.push({
+        type: `${type}-theme`, priority: sample.priority, tag: sample.tag || 'Theme',
+        text: `<strong>${rest.length} more ${type} tendencies</strong> read the same way${named}. Break the pattern once and every one of them loses value.`,
+      });
+    }
+    return shown.slice(0, total + 1);
+  }
+
+  /**
+   * AX-3: the recommendation-list version of the same rule. Both self-scouts
+   * listed the first four exploitable tells verbatim, each ending in the
+   * identical countermeasure sentence — four lines that said one thing. Show the
+   * two strongest in full, then name the rest in a single themed line.
+   */
+  static _themedRecommendations(tells, detail, theme, show = 2) {
+    const out = tells.slice(0, show).map(detail);
+    const rest = tells.slice(show);
+    if (rest.length === 1) out.push(detail(rest[0]));
+    else if (rest.length > 1) out.push(theme(rest));
+    return out;
   }
 
   _personnelFormationDiversity(plays) {
@@ -4452,10 +4512,16 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     if (exploitable.length > 0) {
       recommendations.push(`<strong>${exploitable.length} exploitable tendenc${exploitable.length > 1 ? 'ies' : 'y'}</strong> — these situations are both predictable and underperforming. A prepared DC will take away your lean.`);
     }
-    exploitable.slice(0, 4).forEach(t => {
-      const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
-      recommendations.push(`<span class="ss-rec-label">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) at ${t.leanAvg} yds/${t.leanSuccRate}% success — the lean isn't paying off, and ${c.threat}. Add ${c.fix}.`);
-    });
+    StatsEngine._themedRecommendations(exploitable,
+      t => {
+        const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
+        return `<span class="ss-rec-label">${t.label}</span>: you ${t.lean.toLowerCase()} ${t.leanPct}% (n=${t.n}) at ${t.leanAvg} yds/${t.leanSuccRate}% success — the lean isn't paying off, and ${c.threat}. Add ${c.fix}.`;
+      },
+      rest => {
+        const names = [...new Set(rest.map(item => item.label))];
+        return `<strong>${rest.length} more situations</strong> lean the same way (${names.slice(0, 4).join(', ')}${names.length > 4 ? `, +${names.length - 4} more` : ''}). One constraint call answers all of them.`;
+      }
+    ).forEach(line => recommendations.push(line));
     effective.slice(0, 3).forEach(t => {
       const c = t.counter || StatsEngine._offenseTellCounter(t.lean);
       const prod = t.leanAvg >= 5 ? 'productive' : 'adequate';

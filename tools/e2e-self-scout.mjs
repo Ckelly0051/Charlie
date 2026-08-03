@@ -271,6 +271,65 @@ ok(r.deadLinks === 0, 'all cut-rows resolve to plays', JSON.stringify(r));
 ok(r.hasLockedFlag && r.hasLeaningFlag, 'Locked and Leaning flags both shown', JSON.stringify(r));
 ok(r.hasPersonnelTell, 'Personnel Tell appears in Film Room Insights', JSON.stringify(r));
 
+console.log('\n== S6-4c AX-3: repeated findings collapse into one theme ==');
+r = await page.evaluate(() => {
+  const engine = window.app.stats;
+  // Six same-type findings and one of another type. Before AX-3 the flat top-6
+  // cap let one class take every slot, so the other finding never appeared.
+  const many = ['Trips', 'Ace', 'Wing-T', 'Bunch', 'Empty', 'Doubles'].map((subject, index) => ({
+    type: 'direction', subject, priority: 100 - index, tag: 'Direction Tell',
+    text: `From <strong>${subject}</strong>, you go <strong>left</strong> 100% of the time.`,
+  }));
+  many.push({ type: 'motion', subject: null, priority: 5, tag: 'Motion Tell', text: 'Motion tips the pass.' });
+  const themed = engine.constructor._themeInsights(many);
+  const byType = {};
+  themed.forEach(item => { byType[item.type] = (byType[item.type] || 0) + 1; });
+  const theme = themed.find(item => /-theme$/.test(item.type));
+  // The recommendation-list form of the same rule.
+  const tells = ['3rd & Long', '2nd & Long', '22 personnel', '11 personnel', 'Wing-T'].map(label => ({ label }));
+  const recs = engine.constructor._themedRecommendations(tells,
+    t => `DETAIL:${t.label}`, rest => `THEME:${rest.length}:${[...new Set(rest.map(x => x.label))].join('|')}`);
+  return {
+    total: themed.length, byType, themeText: theme?.text || '', themeType: theme?.type || '',
+    survivedOtherType: byType.motion === 1,
+    recs, detailCount: recs.filter(line => line.startsWith('DETAIL:')).length,
+    themeCount: recs.filter(line => line.startsWith('THEME:')).length,
+  };
+});
+ok(r.byType.direction === 2 && r.survivedOtherType,
+  'One finding class cannot take every slot — each contributes its two strongest', JSON.stringify(r.byType));
+ok(/-theme$/.test(r.themeType) && /4 more direction tendencies/.test(r.themeText) && /Wing-T/.test(r.themeText),
+  'The remainder collapses into one themed line that names the rest', JSON.stringify({ type: r.themeType, text: r.themeText }));
+ok(!/&amp;amp;|&lt;strong/.test(r.themeText),
+  'The themed line does not double-escape the labels it names', JSON.stringify({ text: r.themeText }));
+ok(r.detailCount === 2 && r.themeCount === 1 && /THEME:3:/.test(r.recs[2]),
+  'Recommendations show the two strongest in full and name the rest once', JSON.stringify(r.recs));
+r = await page.evaluate(() => {
+  // Wiring, not just the helper. The assertions above call `_themeInsights`
+  // directly, so they stay green even if `_findInsights` goes back to the flat
+  // top-6 cap — the helper would be correct and unused. This proves the real
+  // path runs through it.
+  const engine = window.app.stats;
+  const Klass = engine.constructor;
+  const original = Klass._themeInsights;
+  let called = 0;
+  Klass._themeInsights = list => { called += 1; return [{ type: 'sentinel', text: 'SENTINEL', priority: 1 }]; };
+  const out = engine._findInsights(engine.tagger.plays.filter(p => p && p.tags));
+  Klass._themeInsights = original;
+  return { called, viaTheme: out.length === 1 && out[0].type === 'sentinel' };
+});
+ok(r.called === 1 && r.viaTheme,
+  'The live insight path runs through the theming step, not a flat cap', JSON.stringify(r));
+r = await page.evaluate(() => {
+  // Every real game must still produce a self-scout: the first version of this
+  // change threw on two of six real games because an insight referenced a
+  // variable outside its scope, and the report silently became an error object.
+  const engine = window.app.stats;
+  const report = engine.generateSelfScout();
+  return { ok: !!report && report.totalPlays > 0, keys: report ? Object.keys(report).length : 0, err: report?.__err || null };
+});
+ok(r.ok && !r.err, 'Self-scout still generates a complete report for a charted game', JSON.stringify(r));
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) console.log('Console/page errors:\n' + errors.join('\n'));
 else console.log('No console/page errors.');
