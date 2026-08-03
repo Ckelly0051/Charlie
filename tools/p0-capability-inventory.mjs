@@ -67,6 +67,8 @@ export const P0_CAPABILITIES = [
   // Reports: preserve football analysis breadth and canonical actions
   { id:'reports.native-owner', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Reports has one native owner while the legacy dashboard stays in the classic tree' },
   { id:'reports.eight-views', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'All eight report views render a real pane' },
+  { id:'reports.lens-board', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'A Situational lens tile plays exactly as many composite-ref plays as the number it displays' },
+  { id:'reports.lens-routing', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'The Tendencies lens opens the report that owns its detail' },
   { id:'reports.export', surface:'reports', evidence:'behavior', harness:'e2e-native-reports.mjs', assertion:'Native Reports routes game HTML, full-season HTML, PDF, CSV, and Call Sheet to their canonical owners' },
   { id:'reports.season-html', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Full-season HTML export is downloadable, honest about scope, and read-only against canonical data' },
   { id:'reports.opponent-cohorts', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Watch controls launch the exact displayed unit cohorts' },
@@ -169,6 +171,7 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   'breakdown.multi-angle-view',
   'breakdown.multi-angle-remove',
   'reports.native-owner',
+  'reports.lens-board',
   'reports.opponent-cohorts',
   'reports.opponent-special-teams',
   'reports.csv-roundtrip',

@@ -706,6 +706,64 @@ await new Promise(res => setTimeout(res, 300));
 r = await page.evaluate(() => ({ pivot: !!document.querySelector('.ws-pivot'), rows: document.querySelectorAll('.ws-study-row').length }));
 ok(!r.pivot && r.rows > 0, 'Clearing the second dimension returns the single-list view unchanged', JSON.stringify(r));
 
+// ===== AX-7: Study asks in lenses and categories, not one flat list ========
+const picker = await page.evaluate(() => {
+  const StudyScreen = window.app.studyScreen.constructor;
+  const read = id => {
+    const select = document.querySelector('#' + id);
+    return {
+      groups: [...select.querySelectorAll('optgroup')].map(group => group.label),
+      grouped: select.querySelectorAll('optgroup > option').length,
+      ungrouped: [...select.children].filter(node => node.tagName === 'OPTION').map(node => node.value),
+      values: [...select.querySelectorAll('option')].map(node => node.value),
+    };
+  };
+  return {
+    dimension: read('wsStudyDimension'),
+    column: read('wsStudyColumn'),
+    measure: read('wsStudyMeasure'),
+    dimensionIds: StudyScreen.DIMENSIONS,
+    measureIds: StudyScreen.MEASURES.filter(id => id !== 'sampleSize'),
+    declaredDefault: StudyScreen.DEFAULT_DIMENSION,
+    defaultDimension: (() => {
+      const probe = document.createElement('div');
+      document.body.appendChild(probe);
+      const fresh = new StudyScreen(window.app);
+      fresh.mount(probe);
+      const value = probe.querySelector('#wsStudyDimension')?.value || '';
+      probe.remove();
+      return value;
+    })(),
+  };
+});
+// Grouping reorders options, so "the first option" is no longer a stable
+// default — this is a real behaviour change that the harness caught, and the
+// default is now stated in code rather than inherited from list position.
+ok(picker.defaultDimension === 'formation' && picker.declaredDefault === 'formation',
+  'Study still opens on Formation after the pickers were grouped',
+  JSON.stringify({ selected: picker.defaultDimension, declared: picker.declaredDefault }));
+ok(picker.measure.groups.join(',') === 'Efficiency,Explosiveness,Tendencies,Risk',
+  'The Study metric picker groups measures by lens', picker.measure.groups.join(','));
+ok(picker.dimension.groups.length === 7 && picker.dimension.groups[0] === 'Situation'
+  && !picker.dimension.groups.includes('Other'),
+  'Study dimensions are grouped by football category with none left unclassified', JSON.stringify(picker.dimension.groups));
+// The guarantee that actually matters: grouping is presentation. Every option
+// still exists, with the same value, in the same order — so every saved view
+// and every query is byte-identical to the flat list it replaced.
+ok(picker.dimension.values.length === picker.dimensionIds.length
+  && picker.dimensionIds.every(id => picker.dimension.values.includes(id))
+  && picker.dimension.grouped === picker.dimensionIds.length,
+  'Grouping the dimension picker loses no dimension',
+  JSON.stringify({ shown: picker.dimension.values.length, declared: picker.dimensionIds.length, grouped: picker.dimension.grouped }));
+ok(picker.measure.values.length === picker.measureIds.length
+  && picker.measureIds.every(id => picker.measure.values.includes(id))
+  && picker.measure.grouped === picker.measureIds.length,
+  'Grouping the metric picker loses no measure',
+  JSON.stringify({ shown: picker.measure.values.length, declared: picker.measureIds.length }));
+ok(picker.dimension.ungrouped.length === 0 && picker.column.ungrouped.join(',') === '',
+  'Only the column picker\'s explicit "no second dimension" option sits outside a group',
+  JSON.stringify({ dimension: picker.dimension.ungrouped, column: picker.column.ungrouped }));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

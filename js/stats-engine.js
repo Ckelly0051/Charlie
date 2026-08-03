@@ -2443,13 +2443,40 @@ export class StatsEngine {
    * built on. No value here is computed locally — every one is read from the
    * stats object the parity gate already covers.
    */
+  /**
+   * AX-7: one arithmetic owner for total yards and yards-per-play. The KPI
+   * hero, Game at a Glance and the lens board all report this number, and
+   * three private copies of the same expression is exactly how two surfaces
+   * end up disagreeing about one game.
+   */
+  static totalYards(stats) {
+    return (stats?.rushing?.yards || 0) + (stats?.passing?.yards || 0);
+  }
+
+  static yardsPerPlay(stats) {
+    const plays = stats?.totalPlays || 0;
+    return plays ? (StatsEngine.totalYards(stats) / plays).toFixed(1) : '0.0';
+  }
+
+  /**
+   * Shared stat tile for Game at a Glance and the lens board. A tile claims a
+   * film cohort ONLY when `cut` names a filter `_buildCutFilter` already
+   * defines — see the film-link note on `_renderGlance`.
+   */
+  _statTile(label, value, sub, cut) {
+    const attrs = cut
+      ? ` class="gi-glance-tile cut-row" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" tabindex="0" role="button"`
+      : ' class="gi-glance-tile"';
+    return `<div${attrs}><span>${Charts._esc(label)}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
+  }
+
   _renderGlance(stats) {
     const plays = stats.totalPlays || 0;
     if (!plays) return '';
     // Read from exactly the fields `_renderKpiHero` reads, so the two surfaces
     // can never disagree about the same game.
-    const totalYards = (stats.rushing?.yards || 0) + (stats.passing?.yards || 0);
-    const ypp = plays ? (totalYards / plays).toFixed(1) : '0.0';
+    const totalYards = StatsEngine.totalYards(stats);
+    const ypp = StatsEngine.yardsPerPlay(stats);
     const e = stats.efficiency || {};
     const d = stats.downs || {};
     const success = e.successRate != null ? `${Math.round(parseFloat(e.successRate))}%` : '—';
@@ -2457,10 +2484,7 @@ export class StatsEngine {
     const negativeCount = e.negativePlays != null ? e.negativePlays : 0;
     const thirdLabel = d.thirdDownConv || '—';
     const turnovers = stats.turnovers?.total || 0;
-    const tile = (label, value, sub, cut) => {
-      const attrs = cut ? ` class="gi-glance-tile cut-row" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" tabindex="0" role="button"` : ' class="gi-glance-tile"';
-      return `<div${attrs}><span>${Charts._esc(label)}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
-    };
+    const tile = (label, value, sub, cut) => this._statTile(label, value, sub, cut);
     return `
       <aside class="gi-glance" aria-label="Game at a glance">
         <h4>Game at a Glance</h4>
@@ -2474,6 +2498,128 @@ export class StatsEngine {
         </div>
         ${turnovers ? `<p class="gi-glance-foot">${turnovers} turnover${turnovers === 1 ? '' : 's'} charted</p>` : ''}
       </aside>`;
+  }
+
+  /**
+   * AX-7 — the five-lens board.
+   *
+   * Predictability is one diagnostic, not the product's thesis. A coach opens
+   * Reports with a football question, and the five questions that matter are
+   * Efficiency, Explosiveness, Situational, Tendencies and Risk. This board
+   * replaces the Overview's unlabelled KPI row: the same numbers, but each one
+   * standing under the question it answers, and each lens naming where its
+   * detail lives so the board is a route rather than a dead summary.
+   *
+   * THREE RULES, all inherited from `_renderGlance` and all load-bearing:
+   *
+   * 1. NO VALUE IS COMPUTED HERE. Every number is read from the stats object
+   *    the parity gate already covers. No formula, threshold or denominator is
+   *    introduced by this presentation layer.
+   * 2. A METRIC CLAIMS A COHORT ONLY WHERE ONE ALREADY EXISTS. Explosives,
+   *    negative plays, red zone, goal line, third-and-long/short, backed up,
+   *    downs, run/pass and formation each have a real `_buildCutFilter` case.
+   *    Sacks, turnovers, longest gains and aggregate rates do not, so they are
+   *    shown as context and are deliberately NOT clickable. Inventing a cut
+   *    type to make every tile clickable would break the exact-cohort
+   *    guarantee the whole report rests on.
+   * 3. EMPTY IS OMITTED, NOT ZEROED. A lens with nothing charted disappears
+   *    rather than presenting a wall of honest-looking zeros.
+   */
+  _renderLensBoard(stats) {
+    if (!stats || !stats.totalPlays) return '';
+    const e = stats.efficiency || {};
+    const d = stats.downs || {};
+    const sit = stats.situational || {};
+    const tend = stats.tendencies || {};
+    const rush = stats.rushing || {};
+    const pass = stats.passing || {};
+    const to = stats.turnovers || {};
+    const pen = stats.penalties;
+    const pct = v => (v == null ? null : `${Math.round(parseFloat(v))}%`);
+    const tile = (label, value, sub, cut) => this._statTile(label, value, sub, cut);
+    const bucket = (label, data, val, name) => {
+      if (!data || !data.total) return '';
+      return tile(label, data.total, `${data.successPct}% success`, { type: 'situation', val, label: name });
+    };
+
+    const lenses = [];
+
+    // 1. EFFICIENCY — are we on schedule?
+    // The fourth tile keeps the retired KPI hero's own conditional exactly:
+    // points-per-drive once there are enough drives for it to mean anything,
+    // and first downs before that. Nothing the hero showed is lost — its total
+    // yards live in the Yds/play sub and its TD count in the scoreboard.
+    const drives = stats.drives || {};
+    const efficiency = [
+      tile('Success rate', pct(e.successRate) || '—', 'on-schedule'),
+      tile('Yds / play', StatsEngine.yardsPerPlay(stats), `${StatsEngine.totalYards(stats)} total`),
+      d.thirdDownPct != null ? tile('Third down', pct(d.thirdDownPct), d.thirdDownConv || '', { type: 'down', val: '3', label: 'Third down' }) : '',
+      drives.total >= 3
+        ? tile('Pts / drive', drives.pointsPerDrive, `${drives.total} drives`)
+        : (d.totalFirstDowns != null ? tile('First downs', d.totalFirstDowns, 'gained') : ''),
+    ].filter(Boolean);
+    lenses.push({ id: 'efficiency', name: 'Efficiency', ask: 'Are we staying on schedule?', tiles: efficiency, detail: 'offense', detailLabel: 'Offense report' });
+
+    // 2. EXPLOSIVENESS — the longest gains, and which phase produced them.
+    const explosive = [
+      tile('Explosive rate', pct(e.explosivePct) || '—', `${e.explosivePlays || 0} plays`, (e.explosivePlays ? { type: 'situation', val: 'explosive', label: 'Explosive plays' } : null)),
+      // The sub describes the COHORT THE TILE PLAYS, not a near-neighbour of
+      // it. `passing.attempts` excludes sacks, so "3 attempts" on a tile that
+      // opens 4 clips would be a small lie at the exact moment a coach checks
+      // the number against the film. `tendencies.runs/passes` is the same
+      // isRun/isPass partition the `runpass` cut uses.
+      rush.longest ? tile('Longest run', `${rush.longest} yd`, `${tend.runs || 0} run plays`, { type: 'runpass', val: 'Run', label: 'Run plays' }) : '',
+      pass.longest ? tile('Longest pass', `${pass.longest} yd`, `${tend.passes || 0} pass plays`, { type: 'runpass', val: 'Pass', label: 'Pass plays' }) : '',
+      stats.bigPlays?.length ? tile('Big plays', stats.bigPlays.length, '20+ yds or TD') : '',
+    ].filter(Boolean);
+    lenses.push({ id: 'explosiveness', name: 'Explosiveness', ask: 'Are we hitting chunk plays?', tiles: explosive, detail: 'offense', detailLabel: 'Offense report' });
+
+    // 3. SITUATIONAL — the spots where the call changes.
+    const situational = [
+      bucket('Red zone', sit.redZone, 'redZone', 'Red zone'),
+      bucket('Goal line', sit.goalLine, 'goalLine', 'Goal line'),
+      bucket('3rd & long', sit.thirdLong, 'thirdLong', 'Third and long'),
+      bucket('3rd & short', sit.thirdShort, 'thirdShort', 'Third and short'),
+      bucket('Backed up', sit.backedUp, 'backedUp', 'Backed up'),
+    ].filter(Boolean).slice(0, 4);
+    if (situational.length) lenses.push({ id: 'situational', name: 'Situational', ask: 'Where does the call change?', tiles: situational, detail: null });
+
+    // 4. TENDENCIES — what we show before the snap.
+    const topFormation = tend.formationList?.[0];
+    const topPersonnel = stats.personnel?.find(group => group.name && group.name !== 'Unknown');
+    const tendencies = [
+      tile('Run rate', pct(tend.runPct) || '—', `${tend.runs || 0}R / ${tend.passes || 0}P`, { type: 'runpass', val: 'Run', label: 'Run plays' }),
+      topFormation ? tile('Top formation', topFormation.name, `${topFormation.count} snaps · ${topFormation.successPct}%`, { type: 'formation', val: topFormation.name, label: topFormation.name }) : '',
+      topPersonnel ? tile('Top personnel', topPersonnel.name, `${topPersonnel.count} snaps · ${topPersonnel.successPct}%`, { type: 'personnel', val: topPersonnel.name, label: `${topPersonnel.name} personnel` }) : '',
+    ].filter(Boolean);
+    lenses.push({ id: 'tendencies', name: 'Tendencies', ask: 'What do we show pre-snap?', tiles: tendencies, detail: 'selfscout', detailLabel: 'Self-scout' });
+
+    // 5. RISK — what is costing us. Sacks, turnovers and penalties have no cut
+    // filter of their own, so they inform without pretending to a cohort.
+    const risk = [
+      tile('Negative plays', e.negativePlays || 0, `${pct(e.negativePct) || '0%'} of snaps`, (e.negativePlays ? { type: 'situation', val: 'negative', label: 'Negative plays' } : null)),
+      pass.sacks ? tile('Sacks taken', pass.sacks, `${pass.sackYards || 0} yds lost`) : '',
+      tile('Turnovers', to.total || 0, `${to.interceptions || 0} INT · ${to.fumbles || 0} FUM`),
+      pen?.hasData ? tile('Penalties', pen.accepted, `${pen.flaggedPlays} flagged plays`) : '',
+    ].filter(Boolean);
+    lenses.push({ id: 'risk', name: 'Risk', ask: 'What is costing us snaps?', tiles: risk, detail: 'defense', detailLabel: 'Defense report' });
+
+    const cards = lenses.filter(lens => lens.tiles.length).map(lens => `
+      <section class="gi-lens" data-lens="${lens.id}">
+        <header class="gi-lens-head">
+          <h4>${Charts._esc(lens.name)}</h4>
+          <p>${Charts._esc(lens.ask)}</p>
+        </header>
+        <div class="gi-lens-tiles">${lens.tiles.join('')}</div>
+        ${lens.detail ? `<button type="button" class="gi-lens-more" data-lens-tab="${lens.detail}">${Charts._esc(lens.detailLabel)} &rarr;</button>` : ''}
+      </section>`).join('');
+    if (!cards) return '';
+    return `
+      <div class="stats-section gi-lens-board">
+        <h3>The Five Lenses</h3>
+        <p class="viz-caption">Every lens reads the same charted plays. Highlighted tiles play their exact cohort; the rest are context with no cut of their own.</p>
+        <div class="gi-lens-grid">${cards}</div>
+      </div>`;
   }
 
   _renderConversions(stats) {
@@ -2739,8 +2885,8 @@ export class StatsEngine {
   // sections below use. Tone classes color success/3rd-down/pts-per-drive.
   _renderKpiHero(stats) {
     if (!stats || !stats.totalPlays) return '';
-    const totalYards = (stats.rushing?.yards || 0) + (stats.passing?.yards || 0);
-    const ypp = stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0';
+    const totalYards = StatsEngine.totalYards(stats);
+    const ypp = StatsEngine.yardsPerPlay(stats);
     const e = stats.efficiency || {};
     const d = stats.downs || {};
     const tend = stats.tendencies || {};
@@ -2767,8 +2913,7 @@ export class StatsEngine {
   // 3rd-down/pts-drive) so the two heroes aren't redundant.
   _renderOffenseHero(stats) {
     if (!stats || !stats.totalPlays) return '';
-    const totalYards = (stats.rushing?.yards || 0) + (stats.passing?.yards || 0);
-    const ypp = stats.totalPlays ? (totalYards / stats.totalPlays).toFixed(1) : '0.0';
+    const ypp = StatsEngine.yardsPerPlay(stats);
     const e = stats.efficiency || {};
     const tend = stats.tendencies || {};
     const num = (v) => (v == null ? null : parseFloat(v));
@@ -5168,3 +5313,4 @@ ${bodyHtml}
     setTimeout(doPrint, 900);
   }
 }
+

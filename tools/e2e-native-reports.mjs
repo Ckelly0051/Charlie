@@ -392,8 +392,11 @@ const composition = await page.evaluate(async () => {
     teams,
     sepCentred: !!(sep && final && teams.length === 2
       && Math.abs((sep.left + sep.width / 2) - (final.left + final.width / 2)) < 3),
-    glanceTiles: document.querySelectorAll('.gi-reports .gi-glance-tile').length,
-    glanceLinked: document.querySelectorAll('.gi-reports .gi-glance-tile.cut-row').length,
+    // Scoped to `.gi-glance` deliberately: AX-7's lens board reuses the SAME
+    // tile component, which is the point — one tile in the product, not two
+    // that drift. An unscoped count would silently start measuring both.
+    glanceTiles: document.querySelectorAll('.gi-reports .gi-glance .gi-glance-tile').length,
+    glanceLinked: document.querySelectorAll('.gi-reports .gi-glance .gi-glance-tile.cut-row').length,
     glanceInLayout: !!(glance && layout && layout.contains(glance)),
     disclosure: !!document.querySelector('.gi-reports .scoreboard-note summary'),
     inlineTechnical: /TD = 6, FG = 3/.test(document.querySelector('.gi-reports .scoreboard-note')?.querySelector('p')?.textContent || ''),
@@ -431,7 +434,7 @@ ok(paletteCheck.stroke && paletteCheck.stroke === paletteCheck.run && !paletteCh
 const glanceFilm = await page.evaluate(async () => {
   const app = window.app, calls = [], original = app.filmNavigation.watch;
   app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label }); return Promise.resolve({ completed: true }); };
-  const tile = [...document.querySelectorAll('.gi-reports .gi-glance-tile.cut-row')]
+  const tile = [...document.querySelectorAll('.gi-reports .gi-glance .gi-glance-tile.cut-row')]
     .find(node => /explosive/i.test(node.querySelector('span')?.textContent || ''));
   const shown = Number(tile?.querySelector('strong')?.textContent || 0);
   tile?.click();
@@ -445,6 +448,93 @@ const glanceFilm = await page.evaluate(async () => {
 });
 ok(glanceFilm.calls === 1 && glanceFilm.shown > 0 && glanceFilm.refCount === glanceFilm.shown && glanceFilm.composite && glanceFilm.sameGame,
   'A Game at a Glance tile plays exactly as many composite-ref plays as the number it displays', JSON.stringify(glanceFilm));
+
+console.log('\n== AX-7. Reports answers through five lenses ==');
+const lensBoard = await page.evaluate(() => {
+  const engine = window.app.stats;
+  const stats = engine.compute();
+  const lenses = [...document.querySelectorAll('.gi-reports .gi-lens')].map(node => ({
+    id: node.dataset.lens,
+    ask: (node.querySelector('.gi-lens-head p')?.textContent || '').trim(),
+    detail: node.querySelector('.gi-lens-more')?.dataset.lensTab || null,
+    tiles: [...node.querySelectorAll('.gi-glance-tile')].map(tile => ({
+      label: (tile.querySelector('span')?.textContent || '').trim(),
+      value: (tile.querySelector('strong')?.textContent || '').trim(),
+      cutType: tile.dataset.cutType || '',
+      cutVal: tile.dataset.cutVal || '',
+      clickable: tile.classList.contains('cut-row'),
+    })),
+  }));
+  const claims = lenses.flatMap(lens => lens.tiles.filter(tile => tile.cutType).map(tile => ({
+    lens: lens.id, label: tile.label, clickable: tile.clickable,
+    resolves: !!engine._buildCutFilter(tile.cutType, tile.cutVal),
+  })));
+  const labels = lenses.flatMap(lens => lens.tiles.map(tile => tile.label));
+  const value = name => lenses.flatMap(l => l.tiles).find(t => t.label === name)?.value || '';
+  return {
+    ids: lenses.map(lens => lens.id),
+    asks: lenses.map(lens => lens.ask),
+    details: lenses.map(lens => lens.detail),
+    claims,
+    orphanCut: lenses.flatMap(l => l.tiles).some(t => t.cutType && !t.clickable),
+    // Nothing the retired KPI hero showed may be lost.
+    heroGone: !document.querySelector('.gi-reports [data-pane="overview"] .gi-hero'),
+    carried: ['Success rate', 'Yds / play', 'Third down', 'Run rate'].every(name => labels.includes(name)),
+    fourth: labels.includes('Pts / drive') || labels.includes('First downs'),
+    // Values are READ, never recomputed by the presentation layer.
+    successMatches: value('Success rate') === `${Math.round(parseFloat(stats.efficiency.successRate))}%`,
+    thirdMatches: value('Third down') === `${Math.round(parseFloat(stats.downs.thirdDownPct))}%`,
+    explosiveMatches: value('Explosive rate') === `${Math.round(parseFloat(stats.efficiency.explosivePct))}%`,
+    // The lens detail action must NOT wear the tab bar's own attribute:
+    // `_syncTabState` walks the whole host and would toggle it as a tab.
+    lensWearsTabAttr: !!document.querySelector('.gi-reports .gi-lens [data-report-tab]'),
+  };
+});
+ok(lensBoard.ids.join(',') === 'efficiency,explosiveness,situational,tendencies,risk',
+  'Reports Overview answers through the five lenses in order', lensBoard.ids.join(','));
+ok(lensBoard.asks.every(ask => ask.endsWith('?')),
+  'Every lens states the football question it answers', JSON.stringify(lensBoard.asks));
+ok(lensBoard.claims.length >= 8 && lensBoard.claims.every(claim => claim.resolves && claim.clickable) && !lensBoard.orphanCut,
+  'Every lens tile that claims a film cohort resolves to a real cut filter, and no tile carries a cut it cannot play',
+  JSON.stringify(lensBoard.claims.filter(claim => !claim.resolves)));
+ok(lensBoard.heroGone && lensBoard.carried && lensBoard.fourth,
+  'The lens board replaces the unlabelled KPI row without dropping a metric it showed', JSON.stringify(lensBoard));
+ok(lensBoard.successMatches && lensBoard.thirdMatches && lensBoard.explosiveMatches,
+  'Lens values are read from the stats object, never recomputed by the presentation layer', JSON.stringify(lensBoard));
+ok(!lensBoard.lensWearsTabAttr && lensBoard.details.filter(Boolean).length >= 3,
+  'A lens routes to the report that owns its detail, using its own attribute rather than the tab bar\'s',
+  JSON.stringify(lensBoard.details));
+
+// The same guarantee the Glance tile carries: the number a coach reads is the
+// number of plays that actually play.
+const lensFilm = await page.evaluate(async () => {
+  const app = window.app, calls = [], original = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label }); return Promise.resolve({ completed: true }); };
+  const tile = [...document.querySelectorAll('.gi-reports .gi-lens[data-lens="situational"] .gi-glance-tile.cut-row')][0];
+  const shown = Number(tile?.querySelector('strong')?.textContent || 0);
+  tile?.click();
+  await new Promise(resolve => setTimeout(resolve, 250));
+  app.filmNavigation.watch = original;
+  const activeId = String(app.storage.seasonStore.data.activeGameId);
+  const refs = calls[0]?.refs || [];
+  return { shown, refCount: refs.length, calls: calls.length,
+    composite: refs.every(ref => /^[^:]+::[^:]+$/.test(String(ref))),
+    sameGame: refs.every(ref => String(ref).split('::')[0] === activeId) };
+});
+ok(lensFilm.calls === 1 && lensFilm.shown > 0 && lensFilm.refCount === lensFilm.shown && lensFilm.composite && lensFilm.sameGame,
+  'A Situational lens tile plays exactly as many composite-ref plays as the number it displays', JSON.stringify(lensFilm));
+
+const lensRoute = await page.evaluate(async () => {
+  const button = document.querySelector('.gi-reports .gi-lens[data-lens="tendencies"] .gi-lens-more');
+  const want = button?.dataset.lensTab || '';
+  button?.click();
+  await new Promise(resolve => setTimeout(resolve, 250));
+  const landed = window.app.reportsScreen.activeTab;
+  await window.app.reportsScreen.selectTab('overview');
+  return { want, landed, back: window.app.reportsScreen.activeTab };
+});
+ok(lensRoute.want && lensRoute.landed === lensRoute.want && lensRoute.back === 'overview',
+  'The Tendencies lens opens the report that owns its detail', JSON.stringify(lensRoute));
 
 ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
 await browser.close();

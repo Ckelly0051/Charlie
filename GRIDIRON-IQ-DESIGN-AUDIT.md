@@ -321,6 +321,32 @@ remains available within Tendencies/Risk with sample and effectiveness context;
 it may not stand alone as the only headline. Use concise, source-backed coaching
 findings rather than generic recommendation paragraphs.
 
+**RESOLVED (S6-4c, 2026-08-03).** Reports Overview now answers through the five
+lenses, and Study's pickers ask in the same language.
+
+- **Reports** replaces the unlabelled KPI row with a five-lens board:
+  Efficiency, Explosiveness, Situational, Tendencies, Risk — each stating the
+  football question it answers, and each routing to the report that owns its
+  detail, so a lens is a route rather than a dead summary. Nothing the KPI row
+  showed is dropped; its points-per-drive conditional is preserved exactly.
+- **No value is computed by the presentation layer.** Every number is read from
+  the stats object the parity gate already covers, and a tile claims a film
+  cohort **only** where `_buildCutFilter` already defines one. Sacks,
+  turnovers, longest gains and aggregate rates are shown as context and are
+  deliberately not clickable: inventing a cut type to make every tile clickable
+  would break the exact-cohort guarantee the whole report rests on.
+- **Parity 2/2 with no golden moved** — measured, not assumed. Unlike AX-3 this
+  touches no computed value and no drilldown ref.
+- **Study** groups its metric picker by the same five lenses, and its dimension
+  picker by football category — a dimension is the axis a question is broken
+  down *by*, not the question, so labelling a coverage shell an "Efficiency
+  dimension" would mean nothing. Grouping reorders options, which silently
+  moved Study's default dimension from Formation to Down; the default is now
+  stated in code and pinned by a test.
+
+Predictability keeps the sample and effectiveness context AX-2 gave it and no
+longer stands alone as a headline.
+
 The `1.12.0-16` installed review reconfirmed AX-1/AX-4/AX-5 are unresolved: raw
 KPI text stacks, oversized dead space, a full-width Formation bar and unchanged
 clipping/weak donut hierarchy show Reports has not yet received its S6 design

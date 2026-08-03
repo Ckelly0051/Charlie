@@ -306,7 +306,7 @@ export class ReportsScreen {
       <div class="stats-cut-hint">Select any highlighted row to watch those exact plays. Report totals never substitute for the film.</div>
       ${s._renderGameHeader(stats)}
       ${s._renderTeamStats(stats)}
-      ${s._renderKpiHero(stats)}
+      ${s._renderLensBoard(stats)}
       ${s._renderTakeaways(stats)}
       ${s._renderDownAnalysis(stats)}
       <div class="gi-card-grid">
@@ -356,6 +356,18 @@ export class ReportsScreen {
     try { stats._makeSortable(root); } catch {}
     try { stats._wireSubtabs(root); } catch {}
     try { stats._bindTendencyMatrix(root); } catch {}
+
+    // AX-7: a lens is a route, not a dead summary — its "detail" action opens
+    // the tab that owns that lens's full breakdown. Bound in both perspectives
+    // because it navigates this report rather than resolving a play cohort.
+    //
+    // Deliberately NOT `data-report-tab`: that attribute belongs to the tab
+    // bar, and `_syncTabState` walks the whole host, so a lens button wearing
+    // it would be counted as a tab, toggled `.active`, and hidden by
+    // perspective rules that have nothing to do with it.
+    root.querySelectorAll('[data-lens-tab]').forEach(button => {
+      button.addEventListener('click', () => this.selectTab(button.dataset.lensTab));
+    });
 
     if (this.perspective === 'self') {
       root.querySelectorAll('.player-row[data-player]').forEach(row => {

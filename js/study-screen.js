@@ -15,10 +15,75 @@ export class StudyScreen {
       'customTag', 'customField'];
   }
 
+  /** The dimension Study opens on. Stated, not inferred from list order. */
+  static get DEFAULT_DIMENSION() { return 'formation'; }
+
   static get MEASURES() {
     return ['sampleSize', 'successRate', 'runShare', 'passShare',
       'explosiveRate', 'negativeRate', 'turnovers', 'touchdowns', 'havocRate',
       'epaPerPlay'];
+  }
+
+  /**
+   * AX-7 — the five lenses, applied to the metric picker.
+   *
+   * A coach picking a primary metric is asking a football question, and the
+   * five questions are Efficiency, Explosiveness, Situational, Tendencies and
+   * Risk. Situational is a SCOPE rather than a metric, so it has no entry
+   * here; it is expressed through the dimension and filters instead.
+   *
+   * Grouping does NOT preserve overall option order — a group has to gather
+   * its members — so anything that depended on "the first option" has to be
+   * pinned explicitly. `_bind()` restores the historical default dimension for
+   * exactly that reason. Option VALUES are untouched, so every saved view and
+   * every query is byte-identical.
+   */
+  static get MEASURE_LENSES() {
+    return [
+      { name: 'Efficiency', ids: ['successRate', 'epaPerPlay'] },
+      { name: 'Explosiveness', ids: ['explosiveRate', 'touchdowns'] },
+      { name: 'Tendencies', ids: ['runShare', 'passShare'] },
+      { name: 'Risk', ids: ['negativeRate', 'turnovers', 'havocRate'] },
+    ];
+  }
+
+  /**
+   * Dimensions are the axes a question is broken down BY, not the question
+   * itself, so they are grouped by football category rather than forced into
+   * the five lenses — calling a coverage shell an "Efficiency" dimension would
+   * be a label that means nothing. Every dimension keeps its id and its place;
+   * only the surrounding <optgroup> is new.
+   */
+  static get DIMENSION_GROUPS() {
+    return [
+      { name: 'Situation', ids: ['down', 'distance', 'quarter', 'drive', 'hash'] },
+      { name: 'Offensive look', ids: ['formation', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'playDir', 'playType', 'runPass'] },
+      { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
+      { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
+      { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore'] },
+      { name: 'Players', ids: ['unit', 'playerRole', 'grade'] },
+      { name: 'Custom', ids: ['customTag', 'customField'] },
+    ];
+  }
+
+  /**
+   * Build grouped <option> markup. Anything a group list forgets still ships,
+   * under "Other" — a dimension must never become unreachable because someone
+   * added it to DIMENSIONS and not to a group. That silent-drop is exactly how
+   * qbAlignment and coverageFamily were unselectable for a whole milestone.
+   */
+  _groupedOptions(ids, groups, lookup) {
+    const remaining = new Set(ids);
+    const option = id => `<option value="${this._esc(id)}">${this._esc(lookup(id) || id)}</option>`;
+    const blocks = groups.map(group => {
+      const members = group.ids.filter(id => remaining.has(id));
+      members.forEach(id => remaining.delete(id));
+      if (!members.length) return '';
+      return `<optgroup label="${this._esc(group.name)}">${members.map(option).join('')}</optgroup>`;
+    }).filter(Boolean);
+    const leftovers = ids.filter(id => remaining.has(id));
+    if (leftovers.length) blocks.push(`<optgroup label="Other">${leftovers.map(option).join('')}</optgroup>`);
+    return blocks.join('');
   }
 
   constructor(app) {
@@ -34,20 +99,30 @@ export class StudyScreen {
   mount(host) {
     if (!host || this.host === host) return;
     this.host = host;
-    const dimensions = StudyScreen.DIMENSIONS.map(id => {
-      const item = this.app.analyticsRegistry.getDimension(id);
-      return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
-    }).join('');
-    const measures = StudyScreen.MEASURES.filter(id => id !== 'sampleSize').map(id => {
-      const item = this.app.analyticsRegistry.getMeasure(id);
-      return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
-    }).join('');
+    const dimensions = this._groupedOptions(
+      StudyScreen.DIMENSIONS,
+      StudyScreen.DIMENSION_GROUPS,
+      id => this.app.analyticsRegistry.getDimension(id)?.name,
+    );
+    const measures = this._groupedOptions(
+      StudyScreen.MEASURES.filter(id => id !== 'sampleSize'),
+      StudyScreen.MEASURE_LENSES,
+      id => this.app.analyticsRegistry.getMeasure(id)?.name,
+    );
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
       <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">Nothing — single list</option>${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
       <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div><div class="ws-study-visuals" id="wsStudyVisuals"></div>
       <div class="ws-study-results"><div class="ws-study-table-head"><span>Group</span><span>Plays</span><span id="wsStudyMetricHead">Success</span><span>Run / Pass</span><span id="wsStudyDeltaHead">Explosive</span><span></span></div><div id="wsStudyRows"></div></div>`;
+    // AX-7: a <select> with no explicit value selects its FIRST option, and
+    // grouping moved which option that is. Study has always opened on
+    // Formation; that is a coach-facing default, not a side effect of list
+    // order, so it is now stated rather than inherited.
+    const dimensionSelect = host.querySelector('#wsStudyDimension');
+    if (dimensionSelect && StudyScreen.DIMENSIONS.includes(StudyScreen.DEFAULT_DIMENSION)) {
+      dimensionSelect.value = StudyScreen.DEFAULT_DIMENSION;
+    }
     this._bind();
     this._loadViews();
     this._renderFilters();
@@ -216,7 +291,12 @@ export class StudyScreen {
           filters: [...args.filters, { dimension: state.column, values: [value] }],
         });
       } catch { continue; }
-      for (const group of res.groups) cells.set(`${group.value} ${value}`, group);
+      // Pivot key = row value + separator + column value. The separator is
+      // written as an ESCAPE, never as a literal control character: a raw NUL
+      // byte in the source made this whole file read as binary, so ripgrep and
+      // the repo's own search tooling silently refused to match anything in
+      // it. Same character, same keys — just visible.
+      for (const group of res.groups) cells.set(`${group.value}\u0000${value}`, group);
     }
 
     // Watch targets: every cell, every row total, every column total.
@@ -232,7 +312,7 @@ export class StudyScreen {
     const body = rowGroups.map(group => {
       const rowLabel = String(group.value);
       const tds = colValues.map(value => {
-        const cell = cells.get(`${rowLabel} ${value}`);
+        const cell = cells.get(`${rowLabel}\u0000${value}`);
         if (!cell || !cell.sampleSize) return `<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span><span class="ws-pivot-n">no plays</span></td>`;
         const idx = addTarget(`${rowLabel} · ${value}`, cell.matchingPlayIds);
         cellIndex.set(idx, true);

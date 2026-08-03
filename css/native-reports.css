@@ -187,3 +187,20 @@
    the scroll box, which is right for the header row and wrong for every row
    label — they all floated up and collided with it, swallowing the first row. */
 .gi-reports .sm-table th.sm-row-label{position:static;top:auto;z-index:auto;background:var(--gi-2)}
+/* AX-7 (S6-4c): the five-lens board. Each lens is one card carrying its
+   question and its own tiles, so a number is read under the question it
+   answers rather than in an unlabelled row. Tiles reuse the Game at a Glance
+   component exactly — one tile in the product, not two that drift. */
+.gi-reports .gi-lens-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--gi-3x);margin-top:var(--gi-3x)}
+.gi-reports .gi-lens{min-width:0;display:flex;flex-direction:column;gap:var(--gi-3x);padding:var(--gi-4x);border:1px solid var(--gi-6);background:var(--gi-2)}
+.gi-reports .gi-lens-head h4{margin:0;font-family:var(--gi-cond);font-size:16px;letter-spacing:.02em;text-transform:uppercase;color:var(--gi-12)}
+.gi-reports .gi-lens-head p{margin:2px 0 0;font-size:11px;color:var(--gi-11)}
+.gi-reports .gi-lens-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x)}
+.gi-reports .gi-lens-tiles .gi-glance-tile{background:var(--gi-1)}
+.gi-reports .gi-lens-more{
+  margin-top:auto;align-self:flex-start;min-height:var(--gi-control);padding:0 var(--gi-3x);
+  border:1px solid var(--gi-6);border-radius:var(--gi-radius);background:transparent;
+  color:var(--gi-11);font:600 11px/1 var(--gi-sans);cursor:pointer;
+}
+.gi-reports .gi-lens-more:hover,.gi-reports .gi-lens-more:focus-visible{color:var(--gi-12);border-color:var(--gi-10);outline:none}
+@media(max-width:560px){.gi-reports .gi-lens-tiles{grid-template-columns:minmax(0,1fr)}}
