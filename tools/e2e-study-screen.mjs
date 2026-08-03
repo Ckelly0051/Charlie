@@ -539,7 +539,7 @@ r = await page.evaluate(() => {
 ok(r.lowCount > 0 && r.lowCount === r.populatedCount,
   'A high min-sample marks every populated cell as under-sampled (mechanism is live)', JSON.stringify(r));
 ok(r.allVisible && r.allLabelled && r.stillWatchable,
-  'Under-sampled cells stay visible, labelled, and still play their film rather than being hidden', JSON.stringify(r));
+  'Under-sampled cells are labelled low sample and still play their exact film', JSON.stringify(r));
 await page.evaluate(() => { const el = document.getElementById('wsStudyMin'); el.value = '0'; el.dispatchEvent(new Event('change', { bubbles: true })); });
 await new Promise(res => setTimeout(res, 300));
 

@@ -109,7 +109,7 @@ export const P0_CAPABILITIES = [
 
   { id:'study.pivot', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Study renders a cross-tab with row and column dimensions plus totals' },
   { id:'study.pivot-refs', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'A pivot cell plays exactly the plays carrying both its row and column value' },
-  { id:'study.min-sample', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Under-sampled cells stay visible, labelled, and still play their film rather than being hidden' },
+  { id:'study.min-sample', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Under-sampled cells are labelled low sample and still play their exact film' },
 
   // Shared film navigation
   { id:'film-nav.exact-queue', surface:'film-navigation', evidence:'data', harness:'e2e-film-navigation.mjs', assertion:'Next/Save & Next queue contains only exact requested examples' },
