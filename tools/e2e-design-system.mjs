@@ -80,6 +80,35 @@ const standalone = shellDecls.filter(entry => !/var\(--gi-/.test(entry.value)).m
 ok(shellDecls.length > 12 && standalone.length === 0,
   'every shell colour role derives from a design-system token — one palette, not two', JSON.stringify(standalone));
 
+/**
+ * AX-1 (S6-4c). `redesign-stats.css` styles the Reports route, and 115 of its
+ * 122 rules were scoped to `.stats-overlay` — the modal the native route
+ * retired. The file was linked and loaded, so the dead-stylesheet guard added
+ * after 1.12.0-13 passed; the rules simply never matched, and every KPI hero
+ * rendered as raw stacked text. That is the fourth instance of this class and
+ * the first where the stylesheet WAS reachable, so reachability alone is not a
+ * sufficient check: a Reports rule scoped to a container the native route does
+ * not have is dead in exactly the same way.
+ */
+const reportCssPath = resolve(root, 'css', 'redesign-stats.css');
+const reportCss = await readFile(reportCssPath, 'utf8');
+const retiredScopes = [...reportCss.matchAll(/([^{}]*\.stats-overlay[^{}]*)\{/g)]
+  .map(match => match[1].trim())
+  .filter(selector => !selector.includes('.gi-reports'));
+ok(retiredScopes.length === 0,
+  'no Reports rule is scoped only to the retired stats-overlay container', retiredScopes.slice(0, 4).join(' | '));
+
+const reportRoles = [...reportCss.matchAll(/(--gi-[\w-]+)\s*:\s*([^;\n]+)/g)]
+  .map(match => ({ name: match[1], value: match[2].trim() }));
+const reportStandalone = reportRoles.filter(entry => !/var\(--gi-/.test(entry.value)).map(entry => entry.name);
+ok(reportRoles.length > 8 && reportStandalone.length === 0,
+  'Reports colour and type roles derive from design-system tokens rather than a third palette', JSON.stringify(reportStandalone));
+
+const reportRefs = [...new Set([...reportCss.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))];
+const reportDeclared = new Set(reportRoles.map(entry => entry.name));
+const reportMissing = reportRefs.filter(name => !definitions.has(name) && !reportDeclared.has(name));
+ok(reportMissing.length === 0, 'every token the Reports stylesheet references is declared somewhere', reportMissing.join(', '));
+
 const shellGiMissing = shellSources.flatMap(({ path, source }) =>
   [...new Set([...source.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))]
     .filter(name => !definitions.has(name))

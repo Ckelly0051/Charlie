@@ -310,6 +310,41 @@ ok(result.minControl >= 44 && result.tabScrollsInternally,
   'Mobile controls are at least 44px and report tabs scroll inside their own strip', JSON.stringify(result));
 await capture('mobile-overview');
 
+console.log('\n== S6-4c AX-1: the report stylesheet actually reaches the native route ==');
+await page.setViewport({ width: 1400, height: 860 });
+await new Promise(resolve => setTimeout(resolve, 250));
+const kpiStyling = await page.evaluate(async () => {
+  const offense = [...document.querySelectorAll('.stats-tab')].find(tab => /offense/i.test(tab.textContent));
+  offense?.click();
+  await new Promise(resolve => setTimeout(resolve, 350));
+  const hero = document.querySelector('.gi-reports .gi-hero');
+  const card = document.querySelector('.gi-reports .gi-kpi');
+  const value = document.querySelector('.gi-reports .gi-kpi-value');
+  const heroStyle = hero ? getComputedStyle(hero) : null;
+  const cardStyle = card ? getComputedStyle(card) : null;
+  return {
+    heroes: document.querySelectorAll('.gi-reports .gi-hero').length,
+    cards: document.querySelectorAll('.gi-reports .gi-kpi').length,
+    display: heroStyle?.display,
+    border: cardStyle ? parseFloat(cardStyle.borderTopWidth) : 0,
+    padding: cardStyle ? parseFloat(cardStyle.paddingTop) : 0,
+    background: cardStyle?.backgroundColor,
+    valueSize: value ? parseFloat(getComputedStyle(value).fontSize) : 0,
+    valueFont: value ? getComputedStyle(value).fontFamily : '',
+    retiredContainers: document.querySelectorAll('.stats-overlay').length,
+  };
+});
+// Every number here was wrong before the rescope: display `block`, border and
+// padding 0, transparent background, and the KPI value at the inherited 13px —
+// a stack of raw text where the coach expects stat cards.
+ok(kpiStyling.retiredContainers === 0 && kpiStyling.heroes > 0 && kpiStyling.cards >= 3,
+  'Native Reports renders KPI heroes with no retired stats-overlay container present', JSON.stringify(kpiStyling));
+ok(kpiStyling.display === 'grid' && kpiStyling.border > 0 && kpiStyling.padding > 0
+  && kpiStyling.background !== 'rgba(0, 0, 0, 0)' && kpiStyling.valueSize >= 24,
+  'Native Reports KPI cards are real stat blocks, not unstyled stacked text', JSON.stringify(kpiStyling));
+ok(/IBM Plex Sans Condensed/i.test(kpiStyling.valueFont),
+  'Native Reports numbers use the design-system condensed face', JSON.stringify({ valueFont: kpiStyling.valueFont }));
+
 ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

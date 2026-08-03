@@ -1,48 +1,56 @@
 /* ==================================================================== */
 /* STATS DASHBOARD REDESIGN — broadcast-dark, KPI hero + card grid.      */
 /* -------------------------------------------------------------------- */
-/* Everything here is scoped under .stats-overlay so it NEVER leaks into */
+/* Everything here is scoped under :is(.stats-overlay,.gi-reports) so it NEVER leaks into */
 /* the light main app UI (CLAUDE.md lessons #12/#13). Loaded AFTER       */
 /* styles.css (build.sh + index.html) so it wins the cascade. Display    */
 /* face = bundled Barlow Condensed (css/fonts.css, base64, offline).     */
 /* Matches the Hudl IQ direction the coach locked 2026-06-14.            */
 /* ==================================================================== */
 
-.stats-overlay {
+:is(.stats-overlay,.gi-reports) {
   /* Harmonized to the shipped Theater palette (v1.10.2) so the analytics
      surfaces read as the same app: Midnight canvas, Booth-slate cards,
      broadcast-blue accent, chalk text. Run-orange/pass-sky data ink already
      matched and is unchanged. */
-  --gi-panel:   #0B0F14;   /* Midnight canvas */
-  --gi-card:    #141A22;   /* Booth slate */
-  --gi-card-2:  #1A212B;   /* second elevation */
-  --gi-line:    rgba(233,238,245,0.10);
-  --gi-line-soft: rgba(233,238,245,0.06);
-  --gi-text:    #E9EEF5;   /* chalk */
-  --gi-dim:     #9AA6B5;
-  --gi-faint:   #8390A0;   /* labels: clears 4.5:1 on both card + panel */
-  --gi-blue:    #3D7BFD;   /* accent, glow-bright (solid fills use --accent #2F6BF0) */
-  --gi-amber:   #FBBF24;
-  --gi-green:   #34D399;
-  --gi-red:     #F87171;
-  --gi-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  /* AX-1 / UX-4 (S6-4c): these names stay — 115 rules below reference them —
+     but their VALUES now come from the design system. Before this, Reports ran
+     a THIRD palette that merely wore the --gi- prefix: --gi-card,
+     --gi-text, --gi-display and friends are not design-system tokens and
+     were never in design-system/tokens.css, so a reader could not tell the
+     two vocabularies apart by name. --gi-accent was referenced by rules below
+     and declared nowhere at all. One palette now. */
+  --gi-panel:   var(--gi-1);
+  --gi-card:    var(--gi-2);
+  --gi-card-2:  var(--gi-3);
+  --gi-line:    var(--gi-6);
+  --gi-line-soft: var(--gi-5);
+  --gi-text:    var(--gi-12);
+  --gi-dim:     var(--gi-11);
+  --gi-faint:   var(--gi-11);
+  --gi-blue:    var(--gi-10);
+  --gi-accent:  var(--gi-9);
+  --gi-amber:   var(--gi-warn);
+  --gi-green:   var(--gi-ok);
+  --gi-red:     var(--gi-turnover);
+  --gi-display: var(--gi-cond);
   background: rgba(3, 6, 12, 0.82);
 }
 
 /* ---- shell ---- */
-.stats-overlay .stats-container {
+:is(.stats-overlay,.gi-reports) .stats-container {
   background: var(--gi-panel);
   border: 1px solid var(--gi-line);
   border-radius: 14px;
   max-width: 1140px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
 }
-.stats-overlay .stats-header {
+:is(.stats-overlay,.gi-reports) .stats-header {
   background: var(--gi-panel);
   border-bottom: 1px solid var(--gi-line-soft);
   padding: 16px 22px;
 }
-.stats-overlay .stats-header h2 {
+:is(.stats-overlay,.gi-reports) .stats-header h2 {
   font-family: var(--gi-display);
   font-weight: 700;
   font-size: 26px;
@@ -52,13 +60,13 @@
 }
 
 /* ---- tabs ---- */
-.stats-overlay .stats-tabs {
+:is(.stats-overlay,.gi-reports) .stats-tabs {
   background: #0b0e13;
   border-bottom: 1px solid var(--gi-line-soft);
   padding: 0 16px;
   gap: 2px;
 }
-.stats-overlay .stats-tab {
+:is(.stats-overlay,.gi-reports) .stats-tab {
   color: var(--gi-faint);
   text-transform: none;
   letter-spacing: 0.02em;
@@ -66,14 +74,14 @@
   font-weight: 600;
   padding: 11px 16px;
 }
-.stats-overlay .stats-tab:hover { color: var(--gi-text); }
-.stats-overlay .stats-tab.active {
+:is(.stats-overlay,.gi-reports) .stats-tab:hover { color: var(--gi-text); }
+:is(.stats-overlay,.gi-reports) .stats-tab.active {
   color: var(--gi-text) !important;
   border-bottom-color: var(--gi-blue) !important;
 }
-.stats-overlay .stats-body { padding: 18px; background: var(--gi-panel); }
+:is(.stats-overlay,.gi-reports) .stats-body { padding: 18px; background: var(--gi-panel); }
 
-.stats-overlay .stats-cut-hint {
+:is(.stats-overlay,.gi-reports) .stats-cut-hint {
   color: var(--gi-dim);
   background: #10151c;
   border: 1px dashed #2a323d;
@@ -84,26 +92,26 @@
 }
 
 /* ---- KPI hero row ---- */
-.stats-overlay .gi-hero {
+:is(.stats-overlay,.gi-reports) .gi-hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 10px;
   margin-bottom: 16px;
 }
-.stats-overlay .gi-kpi {
+:is(.stats-overlay,.gi-reports) .gi-kpi {
   background: var(--gi-card);
   border: 1px solid var(--gi-line);
   border-radius: 10px;
   padding: 12px 14px;
 }
-.stats-overlay .gi-kpi-label {
+:is(.stats-overlay,.gi-reports) .gi-kpi-label {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--gi-faint);
 }
-.stats-overlay .gi-kpi-value {
+:is(.stats-overlay,.gi-reports) .gi-kpi-value {
   font-family: var(--gi-display);
   font-weight: 700;
   font-size: 38px;
@@ -112,10 +120,10 @@
   color: var(--gi-text);
   font-variant-numeric: tabular-nums;
 }
-.stats-overlay .gi-kpi-value.is-good { color: var(--gi-green); }
-.stats-overlay .gi-kpi-value.is-warn { color: var(--gi-amber); }
-.stats-overlay .gi-kpi-value.is-bad  { color: var(--gi-red); }
-.stats-overlay .gi-kpi-sub {
+:is(.stats-overlay,.gi-reports) .gi-kpi-value.is-good { color: var(--gi-green); }
+:is(.stats-overlay,.gi-reports) .gi-kpi-value.is-warn { color: var(--gi-amber); }
+:is(.stats-overlay,.gi-reports) .gi-kpi-value.is-bad  { color: var(--gi-red); }
+:is(.stats-overlay,.gi-reports) .gi-kpi-sub {
   font-size: 11px;
   font-weight: 500;
   color: var(--gi-dim);
@@ -123,14 +131,14 @@
 }
 
 /* ---- sections rendered as cards ---- */
-.stats-overlay .stats-section {
+:is(.stats-overlay,.gi-reports) .stats-section {
   background: var(--gi-card);
   border: 1px solid var(--gi-line);
   border-radius: 12px;
   padding: 14px 16px;
   margin-bottom: 12px;
 }
-.stats-overlay .stats-section h3 {
+:is(.stats-overlay,.gi-reports) .stats-section h3 {
   font-family: var(--gi-display);
   font-weight: 700;
   font-size: 16px;
@@ -143,23 +151,23 @@
 }
 
 /* 2-up cluster for the medium-width sections (efficiency/drives/etc.) */
-.stats-overlay .gi-card-grid {
+:is(.stats-overlay,.gi-reports) .gi-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 12px;
   align-items: start;
   margin-bottom: 12px;
 }
-.stats-overlay .gi-card-grid > .stats-section { margin-bottom: 0; }
+:is(.stats-overlay,.gi-reports) .gi-card-grid > .stats-section { margin-bottom: 0; }
 
 /* ---- nested stat cards ---- */
-.stats-overlay .stat-card {
+:is(.stats-overlay,.gi-reports) .stat-card {
   background: var(--gi-card-2);
   border: 1px solid var(--gi-line);
   border-radius: 9px;
 }
-.stats-overlay .stat-card-title { color: var(--gi-faint); }
-.stats-overlay .stat-card-value {
+:is(.stats-overlay,.gi-reports) .stat-card-title { color: var(--gi-faint); }
+:is(.stats-overlay,.gi-reports) .stat-card-value {
   font-family: var(--gi-display);
   font-weight: 700;
   color: var(--gi-text);
@@ -167,35 +175,35 @@
 }
 
 /* ---- tables ---- */
-.stats-overlay .stats-table { font-size: 12px; }
-.stats-overlay .stats-table td,
-.stats-overlay .stats-table th { border-bottom: 1px solid var(--gi-line-soft); }
-.stats-overlay .stats-table td:first-child {
+:is(.stats-overlay,.gi-reports) .stats-table { font-size: 12px; }
+:is(.stats-overlay,.gi-reports) .stats-table td,
+:is(.stats-overlay,.gi-reports) .stats-table th { border-bottom: 1px solid var(--gi-line-soft); }
+:is(.stats-overlay,.gi-reports) .stats-table td:first-child {
   color: var(--gi-dim);
   max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.stats-overlay .stats-table th { color: var(--gi-faint); }
-.stats-overlay .stats-table tr.cut-row { cursor: pointer; }
-.stats-overlay .stats-table tr.cut-row:hover { background: rgba(59, 130, 246, 0.10); }
+:is(.stats-overlay,.gi-reports) .stats-table th { color: var(--gi-faint); }
+:is(.stats-overlay,.gi-reports) .stats-table tr.cut-row { cursor: pointer; }
+:is(.stats-overlay,.gi-reports) .stats-table tr.cut-row:hover { background: rgba(59, 130, 246, 0.10); }
 
 /* ---- Defense / Self-Scout: scale their summaries up to hero weight ---- */
 /* Defense already emits a stat-card summary row; bump it to broadcast scale. */
-.stats-overlay .def-top-row .stat-card-value { font-size: 30px; }
+:is(.stats-overlay,.gi-reports) .def-top-row .stat-card-value { font-size: 30px; }
 
 /* Self-Scout Predictability index → big condensed hero number (keeps its
    inline meter color: green balanced → amber → red predictable). */
-.stats-overlay .ss-meter-val {
+:is(.stats-overlay,.gi-reports) .ss-meter-val {
   font-family: var(--gi-display);
   font-weight: 700;
   font-size: 46px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.stats-overlay .ss-meter-val span { font-size: 18px; color: var(--gi-dim); }
+:is(.stats-overlay,.gi-reports) .ss-meter-val span { font-size: 18px; color: var(--gi-dim); }
 
 /* Sub-section headers (Defense breakdowns, etc.) in the display face so they
    read as part of the broadcast system, not stray <h4>s. */
-.stats-overlay h4 {
+:is(.stats-overlay,.gi-reports) h4 {
   font-family: var(--gi-display);
   font-weight: 700;
   font-size: 14px;
@@ -207,22 +215,22 @@
 /* Narrow / mobile: a fixed 2-col KPI hero reads more intentionally than the
    auto-fit 4+1 orphan that ~500px produces. */
 @media (max-width: 600px) {
-  .stats-overlay .gi-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(.stats-overlay,.gi-reports) .gi-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ---- Season tab: game-by-game trend line charts ---- */
-.stats-overlay .gi-trend-grid {
+:is(.stats-overlay,.gi-reports) .gi-trend-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
-.stats-overlay .gi-trend {
+:is(.stats-overlay,.gi-reports) .gi-trend {
   background: var(--gi-card-2);
   border: 1px solid var(--gi-line);
   border-radius: 10px;
   padding: 11px 13px 9px;
 }
-.stats-overlay .gi-trend-title {
+:is(.stats-overlay,.gi-reports) .gi-trend-title {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -231,23 +239,23 @@
   margin-bottom: 2px;
 }
 /* current value + delta row */
-.stats-overlay .gi-trend-now { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
-.stats-overlay .gi-trend-val {
+:is(.stats-overlay,.gi-reports) .gi-trend-now { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+:is(.stats-overlay,.gi-reports) .gi-trend-val {
   font-family: var(--gi-display); font-weight: 700; font-size: 26px; line-height: 1;
   color: var(--gi-text); font-variant-numeric: tabular-nums;
 }
-.stats-overlay .gi-trend-delta {
+:is(.stats-overlay,.gi-reports) .gi-trend-delta {
   font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gi-dim);
 }
-.stats-overlay .gi-trend-delta.up   { color: var(--gi-green); }
-.stats-overlay .gi-trend-delta.down { color: var(--gi-red); }
-.stats-overlay .gi-trend-svg { width: 100%; height: 46px; display: block; }
-.stats-overlay .gi-trend-legend {
+:is(.stats-overlay,.gi-reports) .gi-trend-delta.up   { color: var(--gi-green); }
+:is(.stats-overlay,.gi-reports) .gi-trend-delta.down { color: var(--gi-red); }
+:is(.stats-overlay,.gi-reports) .gi-trend-svg { width: 100%; height: 46px; display: block; }
+:is(.stats-overlay,.gi-reports) .gi-trend-legend {
   display: flex; justify-content: space-between; gap: 8px;
   font-size: 9.5px; color: var(--gi-dim); margin-top: 1px;
 }
-.stats-overlay .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
-.stats-overlay .gi-trend-legend span:last-child { text-align: right; }
+:is(.stats-overlay,.gi-reports) .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
+:is(.stats-overlay,.gi-reports) .gi-trend-legend span:last-child { text-align: right; }
 
 /* ---- Sortable leaderboard headers (individual-stat tables) ---- */
 table.stats-table-full th.gi-sort-th {
@@ -263,10 +271,10 @@ table.stats-table-full th.gi-sort-asc::after { content: '▲'; font-size: 8px; m
 table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; margin-left: 4px; vertical-align: middle; }
 
 /* ---- Season tab header: map the legacy .season-summary onto the .gi-hero
-   KPI-card look so it matches the Game/Offense heroes. Scoped to .stats-overlay
+   KPI-card look so it matches the Game/Offense heroes. Scoped to :is(.stats-overlay,.gi-reports)
    only — the legacy Season modal (.season-overlay) and the standalone export
    keep their own .season-summary styling untouched. ---- */
-.stats-overlay .season-summary {
+:is(.stats-overlay,.gi-reports) .season-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 10px;
@@ -275,14 +283,14 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
   margin-bottom: 16px;
   justify-content: stretch;
 }
-.stats-overlay .season-summary .ss-stat {
+:is(.stats-overlay,.gi-reports) .season-summary .ss-stat {
   background: var(--gi-card);
   border: 1px solid var(--gi-line);
   border-radius: 10px;
   padding: 12px 14px;
   text-align: left;
 }
-.stats-overlay .season-summary .ss-num {
+:is(.stats-overlay,.gi-reports) .season-summary .ss-num {
   font-family: var(--gi-display);
   font-weight: 700;
   font-size: 38px;
@@ -290,7 +298,7 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
   color: var(--gi-text);
   font-variant-numeric: tabular-nums;
 }
-.stats-overlay .season-summary .ss-lbl {
+:is(.stats-overlay,.gi-reports) .season-summary .ss-lbl {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -334,106 +342,106 @@ table.stats-table-full th.gi-sort-desc::after { content: '▼'; font-size: 8px; 
 .gi-subpane.active { display: block; }
 
 /* ---- Drive chart (Game tab): one row per offensive possession ---- */
-.stats-overlay .drive-chart { display: flex; flex-direction: column; gap: 4px; }
-.stats-overlay .drive-row { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
-.stats-overlay .drive-row:hover { background: var(--gi-card-2, #1c232d); }
-.stats-overlay .drive-num { width: 46px; font-size: 12px; font-weight: 600; color: var(--gi-faint, #8a97a8); flex: none; }
-.stats-overlay .drive-bar-wrap { flex: 1; height: 14px; background: var(--gi-card-2, #1c232d); border-radius: 4px; overflow: hidden; }
-.stats-overlay .drive-bar { display: block; height: 100%; border-radius: 4px; min-width: 3px; }
-.stats-overlay .drive-yards { width: 120px; text-align: right; font-size: 12px; color: var(--gi-dim, #93a1b2); flex: none; font-variant-numeric: tabular-nums; }
-.stats-overlay .drive-out { width: 66px; text-align: right; font-size: 12px; font-weight: 700; flex: none; }
+:is(.stats-overlay,.gi-reports) .drive-chart { display: flex; flex-direction: column; gap: 4px; }
+:is(.stats-overlay,.gi-reports) .drive-row { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+:is(.stats-overlay,.gi-reports) .drive-row:hover { background: var(--gi-card-2, #1c232d); }
+:is(.stats-overlay,.gi-reports) .drive-num { width: 46px; font-size: 12px; font-weight: 600; color: var(--gi-faint, #8a97a8); flex: none; }
+:is(.stats-overlay,.gi-reports) .drive-bar-wrap { flex: 1; height: 14px; background: var(--gi-card-2, #1c232d); border-radius: 4px; overflow: hidden; }
+:is(.stats-overlay,.gi-reports) .drive-bar { display: block; height: 100%; border-radius: 4px; min-width: 3px; }
+:is(.stats-overlay,.gi-reports) .drive-yards { width: 120px; text-align: right; font-size: 12px; color: var(--gi-dim, #93a1b2); flex: none; font-variant-numeric: tabular-nums; }
+:is(.stats-overlay,.gi-reports) .drive-out { width: 66px; text-align: right; font-size: 12px; font-weight: 700; flex: none; }
 
 /* ---- Matchup tab: our offense beside the opponent's defense ---- */
-.stats-overlay .gi-matchup { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
-.stats-overlay .gi-matchup-col { min-width: 0; }
-.stats-overlay .gi-matchup-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
-.stats-overlay .gi-mh-off { background: rgba(34, 197, 94, .15); color: #22c55e; }
-.stats-overlay .gi-mh-def { background: rgba(239, 68, 68, .15); color: #ef4444; }
+:is(.stats-overlay,.gi-reports) .gi-matchup { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+:is(.stats-overlay,.gi-reports) .gi-matchup-col { min-width: 0; }
+:is(.stats-overlay,.gi-reports) .gi-matchup-head { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
+:is(.stats-overlay,.gi-reports) .gi-mh-off { background: rgba(34, 197, 94, .15); color: #22c55e; }
+:is(.stats-overlay,.gi-reports) .gi-mh-def { background: rgba(239, 68, 68, .15); color: #ef4444; }
 
 /* "Big 12" core-calls report */
-.stats-overlay .bt-table td.bt-call { font-weight: 600; }
-.stats-overlay .bt-arrow { color: var(--text-dim, #8b949e); margin: 0 2px; }
-.stats-overlay .bt-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: rgba(201, 162, 39, .18); color: #c9a227; vertical-align: middle; }
-.stats-overlay .bt-tag.bt-mot { background: rgba(99, 102, 241, .18); color: #818cf8; }
+:is(.stats-overlay,.gi-reports) .bt-table td.bt-call { font-weight: 600; }
+:is(.stats-overlay,.gi-reports) .bt-arrow { color: var(--text-dim, #8b949e); margin: 0 2px; }
+:is(.stats-overlay,.gi-reports) .bt-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: rgba(201, 162, 39, .18); color: #c9a227; vertical-align: middle; }
+:is(.stats-overlay,.gi-reports) .bt-tag.bt-mot { background: rgba(99, 102, 241, .18); color: #818cf8; }
 /* The rows that together cover ~90% of snaps — the calls that ARE the offense. */
-.stats-overlay .bt-row.bt-in90 td { box-shadow: inset 2px 0 0 var(--highlight, #c9a227); }
-.stats-overlay .bt-row:not(.bt-in90) { opacity: .6; }
+:is(.stats-overlay,.gi-reports) .bt-row.bt-in90 td { box-shadow: inset 2px 0 0 var(--highlight, #c9a227); }
+:is(.stats-overlay,.gi-reports) .bt-row:not(.bt-in90) { opacity: .6; }
 
 /* ==================================================================== */
 /* SEASON ANALYTICS (v1.10.2) — scorecard, turnovers/scoring, identity,  */
-/* win-loss. All scoped under .stats-overlay, on the harmonized palette.  */
+/* win-loss. All scoped under :is(.stats-overlay,.gi-reports), on the harmonized palette.  */
 /* ==================================================================== */
 
 /* --- Situational scorecard: a grid of stat tiles --- */
-.stats-overlay .gi-sc-grid {
+:is(.stats-overlay,.gi-reports) .gi-sc-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px;
 }
-.stats-overlay .gi-sc-tile {
+:is(.stats-overlay,.gi-reports) .gi-sc-tile {
   background: var(--gi-card-2); border: 1px solid var(--gi-line);
   border-radius: 10px; padding: 11px 13px; text-align: left;
 }
-.stats-overlay .gi-sc-label {
+:is(.stats-overlay,.gi-reports) .gi-sc-label {
   font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--gi-faint);
 }
-.stats-overlay .gi-sc-val {
+:is(.stats-overlay,.gi-reports) .gi-sc-val {
   font-family: var(--gi-display); font-weight: 700; font-size: 30px; line-height: 1.05;
   margin-top: 6px; color: var(--gi-text); font-variant-numeric: tabular-nums;
 }
-.stats-overlay .gi-sc-sub { font-size: 11px; color: var(--gi-dim); margin-top: 3px; }
-.stats-overlay .gi-sc-tile.tone-good .gi-sc-val { color: var(--gi-green); }
-.stats-overlay .gi-sc-tile.tone-warn .gi-sc-val { color: var(--gi-amber); }
-.stats-overlay .gi-sc-tile.tone-bad  .gi-sc-val { color: var(--gi-red); }
+:is(.stats-overlay,.gi-reports) .gi-sc-sub { font-size: 11px; color: var(--gi-dim); margin-top: 3px; }
+:is(.stats-overlay,.gi-reports) .gi-sc-tile.tone-good .gi-sc-val { color: var(--gi-green); }
+:is(.stats-overlay,.gi-reports) .gi-sc-tile.tone-warn .gi-sc-val { color: var(--gi-amber); }
+:is(.stats-overlay,.gi-reports) .gi-sc-tile.tone-bad  .gi-sc-val { color: var(--gi-red); }
 
 /* --- Turnovers & scoring --- */
-.stats-overlay .gi-ts-grid { display: grid; grid-template-columns: minmax(140px, 0.7fr) 2fr; gap: 12px; }
-.stats-overlay .gi-ts-margin {
+:is(.stats-overlay,.gi-reports) .gi-ts-grid { display: grid; grid-template-columns: minmax(140px, 0.7fr) 2fr; gap: 12px; }
+:is(.stats-overlay,.gi-reports) .gi-ts-margin {
   background: var(--gi-card-2); border: 1px solid var(--gi-line); border-radius: 10px;
   padding: 12px 14px; display: flex; flex-direction: column; justify-content: center;
 }
-.stats-overlay .gi-ts-margin-val {
+:is(.stats-overlay,.gi-reports) .gi-ts-margin-val {
   font-family: var(--gi-display); font-weight: 700; font-size: 40px; line-height: 1; margin: 4px 0 3px;
   color: var(--gi-text); font-variant-numeric: tabular-nums;
 }
-.stats-overlay .gi-ts-margin.tone-good .gi-ts-margin-val { color: var(--gi-green); }
-.stats-overlay .gi-ts-margin.tone-bad  .gi-ts-margin-val { color: var(--gi-red); }
-.stats-overlay .gi-ts-quarters {
+:is(.stats-overlay,.gi-reports) .gi-ts-margin.tone-good .gi-ts-margin-val { color: var(--gi-green); }
+:is(.stats-overlay,.gi-reports) .gi-ts-margin.tone-bad  .gi-ts-margin-val { color: var(--gi-red); }
+:is(.stats-overlay,.gi-reports) .gi-ts-quarters {
   background: var(--gi-card-2); border: 1px solid var(--gi-line); border-radius: 10px; padding: 12px 14px;
 }
-.stats-overlay .gi-q-key { float: right; font-size: 10px; color: var(--gi-dim); font-weight: 500; text-transform: none; letter-spacing: 0; }
-.stats-overlay .gi-q-key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 3px 0 8px; vertical-align: -1px; }
-.stats-overlay .gi-q-key i.us { background: var(--gi-green); }
-.stats-overlay .gi-q-key i.them { background: var(--gi-red); }
-.stats-overlay .gi-q-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.stats-overlay .gi-q-lbl { width: 26px; font-size: 11px; font-weight: 700; color: var(--gi-dim); font-family: var(--gi-display); }
-.stats-overlay .gi-q-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-.stats-overlay .gi-q-bar {
+:is(.stats-overlay,.gi-reports) .gi-q-key { float: right; font-size: 10px; color: var(--gi-dim); font-weight: 500; text-transform: none; letter-spacing: 0; }
+:is(.stats-overlay,.gi-reports) .gi-q-key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 3px 0 8px; vertical-align: -1px; }
+:is(.stats-overlay,.gi-reports) .gi-q-key i.us { background: var(--gi-green); }
+:is(.stats-overlay,.gi-reports) .gi-q-key i.them { background: var(--gi-red); }
+:is(.stats-overlay,.gi-reports) .gi-q-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+:is(.stats-overlay,.gi-reports) .gi-q-lbl { width: 26px; font-size: 11px; font-weight: 700; color: var(--gi-dim); font-family: var(--gi-display); }
+:is(.stats-overlay,.gi-reports) .gi-q-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+:is(.stats-overlay,.gi-reports) .gi-q-bar {
   height: 15px; border-radius: 3px; min-width: 14px; display: flex; align-items: center; justify-content: flex-end;
   padding-right: 5px; font-size: 10px; font-weight: 700; color: #06120b; font-variant-numeric: tabular-nums;
 }
-.stats-overlay .gi-q-bar.us { background: var(--gi-green); }
-.stats-overlay .gi-q-bar.them { background: var(--gi-red); color: #1a0606; }
+:is(.stats-overlay,.gi-reports) .gi-q-bar.us { background: var(--gi-green); }
+:is(.stats-overlay,.gi-reports) .gi-q-bar.them { background: var(--gi-red); color: #1a0606; }
 
 /* --- Offensive identity: two usage columns --- */
-.stats-overlay .gi-id-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.stats-overlay .gi-id-head {
+:is(.stats-overlay,.gi-reports) .gi-id-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+:is(.stats-overlay,.gi-reports) .gi-id-head {
   font-size: 11px; font-weight: 700; color: var(--gi-text); letter-spacing: 0.04em; text-transform: uppercase;
   padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--gi-line-soft);
   display: flex; justify-content: space-between;
 }
-.stats-overlay .gi-id-head span { color: var(--gi-faint); font-weight: 500; font-size: 9.5px; letter-spacing: 0.05em; }
-.stats-overlay .gi-id-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.stats-overlay .gi-id-name { width: 92px; font-size: 12px; color: var(--gi-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stats-overlay .gi-id-bar { flex: 1; height: 7px; background: var(--gi-line-soft); border-radius: 4px; overflow: hidden; }
-.stats-overlay .gi-id-bar > div { height: 100%; background: var(--accent); border-radius: 4px; }
-.stats-overlay .gi-id-use { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--gi-text); font-variant-numeric: tabular-nums; }
-.stats-overlay .gi-id-succ { width: 38px; text-align: right; font-size: 12px; color: var(--gi-dim); font-variant-numeric: tabular-nums; }
+:is(.stats-overlay,.gi-reports) .gi-id-head span { color: var(--gi-faint); font-weight: 500; font-size: 9.5px; letter-spacing: 0.05em; }
+:is(.stats-overlay,.gi-reports) .gi-id-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+:is(.stats-overlay,.gi-reports) .gi-id-name { width: 92px; font-size: 12px; color: var(--gi-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(.stats-overlay,.gi-reports) .gi-id-bar { flex: 1; height: 7px; background: var(--gi-line-soft); border-radius: 4px; overflow: hidden; }
+:is(.stats-overlay,.gi-reports) .gi-id-bar > div { height: 100%; background: var(--accent); border-radius: 4px; }
+:is(.stats-overlay,.gi-reports) .gi-id-use { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--gi-text); font-variant-numeric: tabular-nums; }
+:is(.stats-overlay,.gi-reports) .gi-id-succ { width: 38px; text-align: right; font-size: 12px; color: var(--gi-dim); font-variant-numeric: tabular-nums; }
 
 /* --- Wins vs Losses table + per-game TO± cells --- */
-.stats-overlay .gi-wl-table td:nth-child(2), .stats-overlay .gi-wl-table th:nth-child(2) { text-align: right; }
-.stats-overlay .gi-wl-table td:nth-child(3), .stats-overlay .gi-wl-table th:nth-child(3) { text-align: right; }
-.stats-overlay .gi-wl-w { color: var(--gi-green); font-weight: 700; }
-.stats-overlay .gi-wl-l { color: var(--gi-red); font-weight: 700; }
+:is(.stats-overlay,.gi-reports) .gi-wl-table td:nth-child(2), :is(.stats-overlay,.gi-reports) .gi-wl-table th:nth-child(2) { text-align: right; }
+:is(.stats-overlay,.gi-reports) .gi-wl-table td:nth-child(3), :is(.stats-overlay,.gi-reports) .gi-wl-table th:nth-child(3) { text-align: right; }
+:is(.stats-overlay,.gi-reports) .gi-wl-w { color: var(--gi-green); font-weight: 700; }
+:is(.stats-overlay,.gi-reports) .gi-wl-l { color: var(--gi-red); font-weight: 700; }
 
 @media (max-width: 640px) {
-  .stats-overlay .gi-ts-grid, .stats-overlay .gi-id-grid { grid-template-columns: 1fr; }
+  :is(.stats-overlay,.gi-reports) .gi-ts-grid, :is(.stats-overlay,.gi-reports) .gi-id-grid { grid-template-columns: 1fr; }
 }
