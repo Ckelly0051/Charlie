@@ -125,6 +125,11 @@ export class WorkspaceContext {
       mode: opts.mode || null, expected: opts.expected || 0, found: opts.found || 0,
       missing: opts.missing || 0, progress: opts.progress || null,
       action: opts.action || null, detail: opts.detail || '',
+      // Resolved source, so Home can be honest about WHERE film lives rather than
+      // only how many clips it found. Linked games carry the real directory that
+      // filmHealth already resolved for its own listing — this adds no new read.
+      // Managed games have no coach-facing path; they say so instead of guessing.
+      path: opts.path || '',
     };
   }
 
@@ -151,6 +156,9 @@ export class WorkspaceContext {
 
     const linked = game.filmMode === 'linked';
     let files = [];
+    // Hoisted so the resolved linked directory can be reported alongside the
+    // clip counts. It is the same value the listing below already required.
+    let sourcePath = '';
     if (linked) {
       if (!backend.supportsLinkedFilm || !backend.supportsLinkedFilm()) {
         return this._view('unauthorized', { mode: 'linked', expected, missing: expected, action: 'reconnect' });
@@ -159,9 +167,10 @@ export class WorkspaceContext {
       if (!absDir || (backend.isLinkedDirAllowed && !backend.isLinkedDirAllowed(absDir))) {
         return this._view('unauthorized', { mode: 'linked', expected, missing: expected, action: 'reconnect' });
       }
+      sourcePath = absDir;
       try { files = await backend.listLinkedFilm(absDir); }
       catch (e) {
-        return this._view('missing', { mode: 'linked', expected, missing: expected, action: 'reconnect', persistent: true, detail: 'linked-list-failed' });
+        return this._view('missing', { mode: 'linked', expected, missing: expected, action: 'reconnect', persistent: true, detail: 'linked-list-failed', path: sourcePath });
       }
     } else {
       try { files = await backend.listFilmFiles(game.id); }
@@ -176,11 +185,12 @@ export class WorkspaceContext {
     if (missing) {
       return this._view('missing', {
         mode: linked ? 'linked' : 'managed', expected, found, missing,
-        action: linked ? 'reconnect' : 'repair', persistent: true,
+        action: linked ? 'reconnect' : 'repair', persistent: true, path: sourcePath,
       });
     }
     return this._view(linked ? 'linked' : 'managed', {
       mode: linked ? 'linked' : 'managed', expected, found, persistent: true, action: 'open',
+      path: sourcePath,
     });
   }
 }

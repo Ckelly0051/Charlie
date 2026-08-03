@@ -761,6 +761,71 @@ await page.waitForFunction(() => document.activeElement?.id === 'btnNativeMoreMo
 r = await page.evaluate(() => ({ focusReturned: document.activeElement?.id === 'btnNativeMoreMobile' }));
 ok(r.focusReturned, 'Closing native Shortcuts restores focus to the mobile More launcher', JSON.stringify(r));
 
+console.log('\n== S6-1 Home: charting progress by unit and honest film source ==');
+await page.setViewport({ width: 1440, height: 900 });
+r = await page.evaluate(async () => {
+  const app = window.app;
+  await app.storage.createSeason({ name: 'S6 Home Progress', teamId: 't1' });
+  const store = app.storage.seasonStore, game = store.activeGame();
+  const mk = (id, unit, charted) => ({ id, timestamp: { start: id, end: id + 3 },
+    tags: { unit, playType: charted ? 'Run Inside' : '', result: charted ? 'Gain' : '', yardage: charted ? '5' : '',
+      runPass: charted ? 'Run' : '', formation: '', players: {}, grades: {}, custom: [] }, notes: '' });
+  // offense 3 of 4, defense 1 of 3, special teams has NO plays at all
+  game.plays = [mk(1,'offense',true), mk(2,'offense',true), mk(3,'offense',true), mk(4,'offense',false),
+                mk(5,'defense',true), mk(6,'defense',false), mk(7,'defense',false)];
+  await store.persist();
+  await app.storage._loadActiveGame({ renderGames: false });
+  await app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 700));
+
+  // Canonical truth recomputed here, independent of the renderer.
+  const canon = { offense: [0, 0], defense: [0, 0], special: [0, 0] };
+  game.plays.forEach(p => { const u = p.tags.unit; canon[u][1]++; if (p.tags.playType && p.tags.result) canon[u][0]++; });
+
+  const rows = [...document.querySelectorAll('#wsUnitProgress .ws-unit-row')].map(row => ({
+    key: row.querySelector('.ws-unit-key')?.textContent,
+    value: row.querySelector('strong')?.textContent,
+    empty: row.classList.contains('is-empty'),
+  }));
+  const headline = document.getElementById('wsProgressText')?.textContent || '';
+  const summed = rows.reduce((n, row) => n + (Number(String(row.value).split('/')[0]) || 0), 0);
+  return { canon, rows, headline, summed,
+    expected: [`${canon.offense[0]}/${canon.offense[1]}`, `${canon.defense[0]}/${canon.defense[1]}`] };
+});
+ok(r.rows.length === 3 && r.rows[0].value === r.expected[0] && r.rows[1].value === r.expected[1],
+  'Home shows charting progress per unit matching the canonical play data', JSON.stringify(r));
+ok(r.headline.startsWith(`${r.summed} of `),
+  'Per-unit charted counts sum to the headline progress figure', JSON.stringify({ headline: r.headline, summed: r.summed }));
+ok(r.rows[2].value === 'none' && r.rows[2].empty === true,
+  'A unit with no plays reads "none" rather than 0%, which would look like uncharted film', JSON.stringify(r.rows[2]));
+
+// Film source: the row must state WHERE film lives, not only how many clips
+// matched. A managed copy and a linked D: folder previously read identically.
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const real = app.workspace.filmHealth.bind(app.workspace);
+  app.workspace.filmHealth = async () => ({ state: 'linked', label: 'Linked film ready', ready: true,
+    persistent: true, mode: 'linked', expected: 3, found: 3, missing: 0, progress: null,
+    action: 'open', detail: '', path: 'D:\\Football\\Film\\Holy Family' });
+  await app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 700));
+  const linked = document.querySelector('[data-film-source]');
+  const linkedText = linked?.textContent || ''; const linkedHidden = !!linked?.hidden;
+  app.workspace.filmHealth = async () => ({ state: 'managed', label: 'Managed film ready', ready: true,
+    persistent: true, mode: 'managed', expected: 3, found: 3, missing: 0, progress: null,
+    action: 'open', detail: '', path: '' });
+  await app.workspaceShell.show('home');
+  await new Promise(res => setTimeout(res, 700));
+  const managed = document.querySelector('[data-film-source]');
+  const managedText = managed?.textContent || '';
+  app.workspace.filmHealth = real;
+  return { linkedText, linkedHidden, managedText };
+});
+ok(r.linkedText === 'D:\\Football\\Film\\Holy Family' && !r.linkedHidden,
+  'Film inbox reports the resolved linked folder alongside its clip count', JSON.stringify(r));
+ok(/managed copy/i.test(r.managedText),
+  'A managed game says so instead of implying a path the coach could open', JSON.stringify(r));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

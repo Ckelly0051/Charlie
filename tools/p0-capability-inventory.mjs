@@ -7,6 +7,8 @@ export const P0_CAPABILITIES = [
   { id:'home.setup-team', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'First-run Team Hub offers team setup before any season' },
   { id:'home.new-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'Home New Game action opens a chartable game in Break Down' },
   { id:'home.open-game', surface:'home', evidence:'behavior', harness:'e2e-onboarding.mjs', assertion:'opening a game lands in Break Down' },
+  { id:'home.unit-progress', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Home shows charting progress per unit matching the canonical play data' },
+  { id:'home.film-source', surface:'home', evidence:'data', harness:'e2e-workspace-shell.mjs', assertion:'Film inbox reports the resolved linked folder alongside its clip count' },
   { id:'shell.breakdown-route', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Break Down opens its dedicated production route' },
   { id:'shell.settings', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell Settings opens the single native Settings owner with no drawer or scrim' },
   { id:'shell.more-menu', surface:'shell', evidence:'behavior', harness:'e2e-workspace-shell.mjs', assertion:'Shell More is the single action-menu owner and the season-file picker survives outside the legacy tree' },
@@ -123,6 +125,10 @@ export const P0_CAPABILITIES = [
 // Named completeness floor for capabilities this migration has previously
 // hidden or could otherwise erase while leaving a broad item count green.
 export const P0_CRITICAL_CAPABILITY_IDS = [
+  // Storage honesty on the first screen a coach sees. A managed copy and a
+  // linked D: folder reading identically is exactly what made the 1.12.0-8
+  // smoke unprovable.
+  'home.film-source',
   'shell.undo',
   'shell.redo',
   'shell.shortcuts',
