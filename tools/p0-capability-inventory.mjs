@@ -77,6 +77,10 @@ export const P0_CAPABILITIES = [
   { id:'plan.export', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan export downloads the same ordered, audience-aware presentation data' },
   { id:'plan.presentation', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Presentation advances by keyboard and keeps resolved film links' },
   { id:'plan.exact-film', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan item and whole-plan Watch use the same composite film refs' },
+  { id:'plan.sections', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan groups consecutive findings into sections that report their de-duplicated linked-play count' },
+  { id:'plan.section-film', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Section Watch plays the exact de-duplicated composite refs of that section, in plan order' },
+  { id:'plan.section-order', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Reordering an item regroups the plan, proving sections follow the coach order rather than re-sorting it' },
+  { id:'plan.strip', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Selecting a strip entry moves the stage and scrolls the strip without starting film' },
 
   // Team Hub / season library
   { id:'team-hub.native-owner', surface:'team-hub', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Startup has one native Team Hub owner and never reveals the classic outlet' },
@@ -136,6 +140,10 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   // Film-link exactness on the new cross-tab. A cell that plays film other than
   // the plays it counted is the worst outcome S6 could produce.
   'study.pivot-refs',
+  // Same rule one screen later: a plan section's Watch is a new playback entry
+  // point, and a section that plays film other than the plays it counted would
+  // teach the wrong tape in front of a room.
+  'plan.section-film',
   'shell.undo',
   'shell.redo',
   'shell.shortcuts',

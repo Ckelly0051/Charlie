@@ -12,7 +12,55 @@ export class PlanScreen {
     if (plan) this.activeId = plan.id;
     const refs = plan ? this.app.studyPlan.planRefs(plan) : [];
     this.host.innerHTML = `<div class="ws-plan-head"><div><div class="ws-eyebrow">Turn findings into action</div><h1>GAME PLAN</h1><p>Build a staff-ready plan from Study results and linked film.</p></div><button class="ws-btn ws-primary" data-plan-action="create">New plan</button></div>
-      ${plan ? `<div class="ws-plan-toolbar"><label>Plan<select id="wsPlanSelect">${plans.map(p=>`<option value="${this._esc(p.id)}"${p.id===plan.id?' selected':''}>${this._esc(p.name)}</option>`).join('')}</select></label><label class="grow">Name<input id="wsPlanName" value="${this._esc(plan.name)}"></label><label>Audience<select id="wsPlanAudience">${this._audienceOptions(plan.audience)}</select></label><button class="ws-btn" data-plan-action="watch" ${refs.length?'':'disabled'}>Watch plan · ${refs.length}</button><button class="ws-btn" data-plan-action="present" ${plan.items.length?'':'disabled'}>Present</button><button class="ws-btn" data-plan-action="export" ${plan.items.length?'':'disabled'}>Export</button><button class="ws-btn danger" data-plan-action="delete">Delete</button></div><div class="ws-plan-grid"><section><h2>PLAN ITEMS <span>${plan.items.length}</span></h2><div class="ws-plan-items">${plan.items.length?plan.items.map((item,index)=>this._itemHtml(item,index,plan.items.length)).join(''):'<div class="ws-plan-empty">Save a finding from Study to begin this plan.</div>'}</div></section><section><h2>STAFF NOTES</h2><textarea id="wsPlanNotes" placeholder="Install notes, assignments, and meeting emphasis">${this._esc(plan.notes)}</textarea></section></div>${this.presentationIndex>=0?this._presentationHtml(plan):''}`:'<div class="ws-plan-empty large"><strong>No game plan yet</strong><span>Create a plan, then save findings from Study.</span><button class="ws-btn ws-primary" data-plan-action="create">Create game plan</button></div>'}`;
+      ${plan ? `<div class="ws-plan-toolbar"><label>Plan<select id="wsPlanSelect">${plans.map(p=>`<option value="${this._esc(p.id)}"${p.id===plan.id?' selected':''}>${this._esc(p.name)}</option>`).join('')}</select></label><label class="grow">Name<input id="wsPlanName" value="${this._esc(plan.name)}"></label><label>Audience<select id="wsPlanAudience">${this._audienceOptions(plan.audience)}</select></label><button class="ws-btn" data-plan-action="watch" ${refs.length?'':'disabled'}>Watch plan · ${refs.length}</button><button class="ws-btn" data-plan-action="present" ${plan.items.length?'':'disabled'}>Present</button><button class="ws-btn" data-plan-action="export" ${plan.items.length?'':'disabled'}>Export</button><button class="ws-btn danger" data-plan-action="delete">Delete</button></div><div class="ws-plan-grid"><section><h2>PLAN ITEMS <span>${plan.items.length}</span></h2><div class="ws-plan-items">${plan.items.length?this._sectionsHtml(plan):'<div class="ws-plan-empty">Save a finding from Study to begin this plan.</div>'}</div></section><section><h2>STAFF NOTES</h2><textarea id="wsPlanNotes" placeholder="Install notes, assignments, and meeting emphasis">${this._esc(plan.notes)}</textarea></section></div>${this.presentationIndex>=0?this._presentationHtml(plan):''}`:'<div class="ws-plan-empty large"><strong>No game plan yet</strong><span>Create a plan, then save findings from Study.</span><button class="ws-btn ws-primary" data-plan-action="create">Create game plan</button></div>'}`;
+    this._syncStrip();
+  }
+  /**
+   * S6-3 sections. A game plan is grouped by CONSECUTIVE RUNS of the same
+   * subject, never by re-sorting: the coach's order stays the plan's order, and
+   * dragging two formation findings together is what creates a formation
+   * section. Grouping the other way — collecting every finding of a dimension
+   * into a fixed bucket — would silently outrank the reorder controls, and the
+   * displayed order would stop matching PlanExport's order (screen and print
+   * consume one structure and must not drift).
+   *
+   * Derived entirely from data the item already carries. No `plans[]` field is
+   * added, so the contract and `PlanExport.build()` are untouched.
+   */
+  _groups(plan) {
+    const out = [];
+    (plan?.items || []).forEach((item, index) => {
+      const key = this._groupKey(item), last = out[out.length - 1];
+      if (last && last.key === key) last.entries.push({ item, index });
+      else out.push({ key, name: this._groupName(item), entries: [{ item, index }] });
+    });
+    // Section film is the de-duplicated union in plan order — the same rule
+    // StudyPlan.planRefs uses for the whole plan, so a section Watch plays
+    // exactly the plays its items claim, first occurrence winning.
+    return out.map(group => {
+      const refs = [], seen = new Set();
+      group.entries.forEach(entry => (entry.item.refs || []).forEach(ref => {
+        const value = String(ref);
+        if (value && !seen.has(value)) { seen.add(value); refs.push(value); }
+      }));
+      return { ...group, refs };
+    });
+  }
+  _groupKey(item) {
+    const dimension = item?.query?.dimension;
+    return dimension ? `dim:${dimension}` : `kind:${item?.kind || 'note'}`;
+  }
+  _groupName(item) {
+    const dimension = item?.query?.dimension;
+    if (dimension) return this.app.analyticsRegistry?.getDimension(dimension)?.name || String(dimension);
+    return ({ film: 'Film clips', note: 'Notes', finding: 'Findings' })[item?.kind] || 'Plan items';
+  }
+  _sectionsHtml(plan) {
+    const total = plan.items.length;
+    return this._groups(plan).map((group, groupIndex) => {
+      const name = this._esc(group.name), count = group.entries.length;
+      return `<div class="ws-plan-section" data-plan-section="${groupIndex}"><header class="ws-plan-section-head"><h3>${name}</h3><span>${count} item${count===1?'':'s'} &middot; ${group.refs.length} linked play${group.refs.length===1?'':'s'}</span><button class="ws-btn ws-small" data-plan-group-watch="${groupIndex}" ${group.refs.length?'':'disabled'} aria-label="Watch ${name} film">Watch &middot; ${group.refs.length}</button></header>${group.entries.map(entry=>this._itemHtml(entry.item, entry.index, total)).join('')}</div>`;
+    }).join('');
   }
   _audienceOptions(value) {
     return [['staff','Coaching staff'],['players','Players'],['all','Staff and players']].map(([id,label])=>`<option value="${id}"${value===id?' selected':''}>${label}</option>`).join('');
@@ -31,7 +79,15 @@ export class PlanScreen {
       ? `<div class="ws-present-play is-missing"><span>${this._esc(play.gameName)}</span><strong>${play.invalid?'Invalid film reference':`Play ${this._esc(play.playId)} not found`}</strong></div>`
       : `<button class="ws-present-play" data-plan-present-ref="${this._esc(play.ref)}"><span>${this._esc(play.gameName)}${play.situation?` · ${this._esc(play.situation)}`:''}</span><strong>${this._esc(play.look||'Unlabeled look')}</strong><small>${this._esc(play.playType||'Unlabeled play')}${play.result?` · ${this._esc(play.result)}${play.yardage?`: ${this._esc(play.yardage)}`:''}`:''}</small></button>`).join('')
       : '<div class="ws-present-empty">No film is linked to this item.</div>';
-    return `<div class="ws-plan-present" role="dialog" aria-modal="true" aria-label="Present ${this._esc(exp.name)}"><header><div><span>${this._esc(this.app.planExport._audience(exp.audience))}</span><strong>${this._esc(exp.name)}</strong></div><div>${this.presentationIndex+1} of ${exp.items.length}</div><button class="ws-icon-btn" data-plan-present-action="close" aria-label="Close presentation">&times;</button></header><main><section><div class="ws-present-kicker">${this.presentationIndex+1} · ${this._esc(item.kind)}</div><h2>${this._esc(item.label||'Untitled item')}</h2>${query?`<p class="ws-present-query">${query}</p>`:''}${item.note?`<p class="ws-present-note">${this._esc(item.note)}</p>`:''}<div class="ws-present-plays">${plays}</div></section><aside><span>Talking points</span><p>${exp.notes?this._esc(exp.notes):'No staff notes added.'}</p></aside></main><footer><button class="ws-btn" data-plan-present-action="prev" ${this.presentationIndex===0?'disabled':''}>&larr; Previous</button><button class="ws-btn ws-primary" data-plan-present-watch ${resolved.length?'':'disabled'}>Watch item · ${resolved.length}</button><button class="ws-btn" data-plan-present-action="next" ${this.presentationIndex===exp.items.length-1?'disabled':''}>Next &rarr;</button></footer></div>`;
+    // S6-3 bottom strip: every item in PLAN ORDER, always visible, so the coach
+    // jumps rather than pages. Selection only — Watch stays the explicit action
+    // in the footer and on each play row, so scanning the plan in front of a
+    // room can never start film by accident.
+    const strip = `<nav class="ws-plan-strip" data-plan-strip aria-label="Plan items"><div class="ws-plan-strip-track">${exp.items.map((entry,index)=>{
+      const resolvedCount=entry.plays.filter(play=>!play.missing).length;
+      return `<button class="ws-plan-strip-btn${index===this.presentationIndex?' is-current':''}" data-plan-present-jump="${index}"${index===this.presentationIndex?' aria-current="true"':''}><span>${index+1} &middot; ${this._esc(entry.kind)}</span><strong>${this._esc(entry.label||'Untitled item')}</strong><small>${resolvedCount} play${resolvedCount===1?'':'s'}</small></button>`;
+    }).join('')}</div></nav>`;
+    return `<div class="ws-plan-present" role="dialog" aria-modal="true" aria-label="Present ${this._esc(exp.name)}"><header><div><span>${this._esc(this.app.planExport._audience(exp.audience))}</span><strong>${this._esc(exp.name)}</strong></div><div>${this.presentationIndex+1} of ${exp.items.length}</div><button class="ws-icon-btn" data-plan-present-action="close" aria-label="Close presentation">&times;</button></header><main><section><div class="ws-present-kicker">${this.presentationIndex+1} · ${this._esc(item.kind)}</div><h2>${this._esc(item.label||'Untitled item')}</h2>${query?`<p class="ws-present-query">${query}</p>`:''}${item.note?`<p class="ws-present-note">${this._esc(item.note)}</p>`:''}<div class="ws-present-plays">${plays}</div></section><aside><span>Talking points</span><p>${exp.notes?this._esc(exp.notes):'No staff notes added.'}</p></aside></main>${strip}<footer><button class="ws-btn" data-plan-present-action="prev" ${this.presentationIndex===0?'disabled':''}>&larr; Previous</button><button class="ws-btn ws-primary" data-plan-present-watch ${resolved.length?'':'disabled'}>Watch item · ${resolved.length}</button><button class="ws-btn" data-plan-present-action="next" ${this.presentationIndex===exp.items.length-1?'disabled':''}>Next &rarr;</button></footer></div>`;
   }
   _presentationItem() {
     const plan=this._active(),exp=plan?this.app.planExport.build(plan,this._store().data?.games||[]):null;
@@ -41,6 +97,23 @@ export class PlanScreen {
     const count=this._active()?.items.length||0;
     this.presentationIndex=Math.max(0,Math.min(this.presentationIndex+delta,count-1));
     this.render();
+  }
+  _jumpPresentation(index) {
+    const count=this._active()?.items.length||0;
+    if(!Number.isFinite(index)||index<0||index>=count)return;
+    this.presentationIndex=index;
+    this.render();
+  }
+  /**
+   * Keep the selected strip entry visible without ever scrolling the page:
+   * scrollIntoView on a fixed overlay can move the document, and "no page
+   * overflow" is a stated requirement of this strip. Setting scrollLeft on the
+   * strip's own overflow container cannot.
+   */
+  _syncStrip() {
+    const strip=this.host?.querySelector('[data-plan-strip]'),current=strip?.querySelector('.is-current');
+    if(!strip||!current)return;
+    strip.scrollLeft=Math.max(0,current.offsetLeft-((strip.clientWidth-current.offsetWidth)/2));
   }
   _closePresentation() { this.presentationIndex=-1; this.render(); }
   _exportPlan() {
@@ -58,6 +131,8 @@ export class PlanScreen {
     this.host.addEventListener('click',async e=>{
       const presentAction=e.target.closest('[data-plan-present-action]')?.dataset.planPresentAction;
       if(presentAction){if(presentAction==='close')this._closePresentation();if(presentAction==='prev')this._stepPresentation(-1);if(presentAction==='next')this._stepPresentation(1);return;}
+      const jump=e.target.closest('[data-plan-present-jump]')?.dataset.planPresentJump;
+      if(jump!==undefined){this._jumpPresentation(Number(jump));return;}
       const presentRef=e.target.closest('[data-plan-present-ref]')?.dataset.planPresentRef;
       if(presentRef){const item=this._presentationItem();this._closePresentation();this.app.filmNavigation.watch([presentRef],{label:item?.label||'Plan film'});return;}
       if(e.target.closest('[data-plan-present-watch]')){const item=this._presentationItem(),refs=(item?.plays||[]).filter(play=>!play.missing).map(play=>play.ref);this._closePresentation();if(refs.length)this.app.filmNavigation.watch(refs,{label:item.label});return;}
@@ -67,6 +142,8 @@ export class PlanScreen {
       if(action==='watch'&&this._active())this.app.filmNavigation.watch(this.app.studyPlan.planRefs(this._active()),{label:this._active().name});
       if(action==='present'&&this._active()?.items.length){this.presentationIndex=0;this.render();}
       if(action==='export')this._exportPlan();
+      const groupWatch=e.target.closest('[data-plan-group-watch]')?.dataset.planGroupWatch;
+      if(groupWatch!==undefined&&this._active()){const plan=this._active(),group=this._groups(plan)[Number(groupWatch)];if(group?.refs.length)this.app.filmNavigation.watch(group.refs,{label:`${plan.name} · ${group.name}`});return;}
       const move=e.target.closest('[data-plan-move]');if(move&&this._store().movePlanItem(this.activeId,move.dataset.planId,Number(move.dataset.planMove)))this._persist();
       const remove=e.target.closest('[data-plan-remove]')?.dataset.planRemove;if(remove){this._store().removePlanItem(this.activeId,remove);this._persist();}
       const watch=e.target.closest('[data-plan-watch]')?.dataset.planWatch;if(watch){const item=this._active()?.items.find(i=>i.id===watch);if(item)this.app.filmNavigation.watch(item.refs,{label:item.label});}

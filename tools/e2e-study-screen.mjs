@@ -197,6 +197,124 @@ ok(planWatch.length === 2 && planWatch[0].refs.length > 0 && planWatch[1].refs.l
 await page.click('[data-plan-remove]');
 r = await page.evaluate(() => ({ items:window.app.storage.seasonStore.plans()[0].items.length, empty:/Save a finding from Study/.test(document.querySelector('#wsPlan')?.textContent||'') }));
 ok(r.items === 0 && r.empty, 'Plan items remove intentionally without deleting the plan', JSON.stringify(r));
+console.log('\n== S6-3 Plan: grouped sections + bottom presentation strip ==');
+const planFixture = await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore, plan = store.plans()[0];
+  const add = item => store.addPlanItem(plan.id, item);
+  add({ kind: 'finding', label: 'Trips — Success Rate', refs: ['g-study-1::1', 'g-study-1::2'], query: { dimension: 'formation', measure: 'successRate', scope: 'season', group: 'Trips' } });
+  add({ kind: 'finding', label: 'Wing-T — Success Rate', refs: ['g-study-1::2', 'g-study-2::1'], query: { dimension: 'formation', measure: 'successRate', scope: 'season', group: 'Wing-T' } });
+  add({ kind: 'note', label: 'Boundary emphasis', refs: [] });
+  add({ kind: 'finding', label: '3rd Down — Yards per Play', refs: ['g-study-1::3'], query: { dimension: 'down', measure: 'yardsPerPlay', scope: 'season', group: '3' } });
+  ['A', 'B', 'C', 'D'].forEach((tag, i) => add({ kind: 'film', label: `Install clip ${tag}`, refs: [`g-study-2::${(i % 2) + 1}`] }));
+  await store.persist(); app.planScreen.render();
+  return { items: store.getPlan(plan.id).items.length, planId: plan.id, formationName: app.analyticsRegistry.getDimension('formation')?.name, downName: app.analyticsRegistry.getDimension('down')?.name };
+});
+r = await page.evaluate(() => {
+  const store = window.app.storage.seasonStore, plan = store.plans()[0];
+  // Recompute the expected sections from the STORE, independently of the render:
+  // consecutive runs of the same subject, each carrying the de-duplicated union
+  // of its items' refs in plan order.
+  const expected = [];
+  plan.items.forEach(item => {
+    const key = item.query?.dimension ? `dim:${item.query.dimension}` : `kind:${item.kind}`;
+    const last = expected[expected.length - 1];
+    if (last && last.key === key) last.items.push(item); else expected.push({ key, items: [item] });
+  });
+  const expectedCounts = expected.map(section => new Set(section.items.flatMap(item => item.refs.map(String))).size);
+  const rendered = [...document.querySelectorAll('[data-plan-section]')].map(section => ({
+    heading: section.querySelector('h3')?.textContent,
+    meta: section.querySelector('.ws-plan-section-head span')?.textContent,
+    rows: section.querySelectorAll('[data-plan-item]').length,
+  }));
+  const domOrder = [...document.querySelectorAll('[data-plan-item] strong')].map(el => el.textContent);
+  return {
+    expectedSections: expected.length, expectedCounts, rendered, domOrder,
+    planOrder: plan.items.map(item => item.label),
+    renderedCounts: rendered.map(section => Number((section.meta || '').match(/(\d+) linked play/)?.[1])),
+    renderedRows: rendered.map(section => section.rows),
+    expectedRows: expected.map(section => section.items.length),
+  };
+});
+ok(r.rendered.length === r.expectedSections && JSON.stringify(r.renderedCounts) === JSON.stringify(r.expectedCounts) && JSON.stringify(r.renderedRows) === JSON.stringify(r.expectedRows) && JSON.stringify(r.domOrder) === JSON.stringify(r.planOrder),
+  'Plan groups consecutive findings into sections that report their de-duplicated linked-play count', JSON.stringify(r));
+ok(r.rendered[0].heading === planFixture.formationName && r.rendered[0].rows === 2 && r.renderedCounts[0] === 3 && r.rendered[3]?.heading === 'Film clips',
+  'Section headings name the football subject, and two findings sharing a play count that play once', JSON.stringify({ headings: r.rendered.map(s => s.heading), counts: r.renderedCounts, formationName: planFixture.formationName }));
+const sectionWatch = await page.evaluate(() => {
+  const app = window.app, calls = [], old = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => calls.push({ refs, label: options?.label });
+  document.querySelector('[data-plan-group-watch="0"]').click();
+  app.filmNavigation.watch = old;
+  const plan = app.storage.seasonStore.plans()[0];
+  const expected = [...new Set(plan.items.slice(0, 2).flatMap(item => item.refs.map(String)))];
+  return { calls, expected, exact: JSON.stringify(calls[0]?.refs) === JSON.stringify(expected) };
+});
+ok(sectionWatch.calls.length === 1 && sectionWatch.exact && sectionWatch.calls[0].refs.length === 3 && /Rival Week/.test(sectionWatch.calls[0].label),
+  'Section Watch plays the exact de-duplicated composite refs of that section, in plan order', JSON.stringify(sectionWatch));
+const regroup = await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore, plan = store.plans()[0];
+  const before = [...document.querySelectorAll('[data-plan-section]')].length;
+  // Move the note up one so it splits the formation run. If grouping re-sorted
+  // into fixed buckets instead of honouring plan order, this could not change.
+  document.querySelectorAll('[data-plan-item]')[2].querySelector('[data-plan-move="-1"]').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const after = [...document.querySelectorAll('[data-plan-section]')].map(section => section.querySelector('h3')?.textContent);
+  document.querySelectorAll('[data-plan-item]')[1].querySelector('[data-plan-move="1"]').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const restored = [...document.querySelectorAll('[data-plan-section]')].length;
+  return { before, after, restored, labels: store.getPlan(plan.id).items.map(item => item.label) };
+});
+ok(regroup.before === 4 && regroup.after.length === 5 && regroup.restored === 4 && regroup.labels[1] === 'Wing-T — Success Rate',
+  'Reordering an item regroups the plan, proving sections follow the coach order rather than re-sorting it', JSON.stringify(regroup));
+await page.click('[data-plan-action="present"]');
+const strip = await page.evaluate(() => {
+  const plan = window.app.storage.seasonStore.plans()[0];
+  const host = document.querySelector('[data-plan-strip]'), track = host?.querySelector('.ws-plan-strip-track');
+  const buttons = [...document.querySelectorAll('[data-plan-present-jump]')];
+  return {
+    labels: buttons.map(button => button.querySelector('strong')?.textContent),
+    planOrder: plan.items.map(item => item.label),
+    indexes: buttons.map(button => Number(button.dataset.planPresentJump)),
+    current: buttons.filter(button => button.getAttribute('aria-current') === 'true').map(button => button.dataset.planPresentJump),
+    scrolls: !!host && track.scrollWidth > host.clientWidth + 1 && getComputedStyle(host).overflowX === 'auto',
+    pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    minTarget: Math.min(...buttons.map(button => button.getBoundingClientRect().height)),
+    stageLabel: document.querySelector('.ws-plan-present h2')?.textContent,
+  };
+});
+ok(JSON.stringify(strip.labels) === JSON.stringify(strip.planOrder) && JSON.stringify(strip.indexes) === JSON.stringify(strip.planOrder.map((_, i) => i)) && JSON.stringify(strip.current) === JSON.stringify(['0']),
+  'The presentation strip lists every plan item in plan order and marks the selected one', JSON.stringify({ labels: strip.labels, current: strip.current }));
+ok(strip.scrolls && !strip.pageOverflow && strip.minTarget >= 44,
+  'The strip scrolls inside its own container without overflowing the page, at touch-sized targets', JSON.stringify(strip));
+await capture('plan-strip-1280x800');
+const stripJump = await page.evaluate(async () => {
+  const app = window.app, calls = [], old = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => calls.push({ refs, label: options?.label });
+  document.querySelector('[data-plan-present-jump="5"]').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const state = {
+    calls, index: app.planScreen.presentationIndex,
+    stage: document.querySelector('.ws-plan-present h2')?.textContent,
+    position: document.querySelector('.ws-plan-present>header>div:nth-child(2)')?.textContent,
+    current: document.querySelector('[data-plan-present-jump].is-current')?.dataset.planPresentJump,
+    scrolled: document.querySelector('[data-plan-strip]')?.scrollLeft,
+    open: !!document.querySelector('.ws-plan-present'),
+  };
+  const watchCalls = [];
+  app.filmNavigation.watch = (refs, options) => watchCalls.push({ refs, label: options?.label });
+  document.querySelector('[data-plan-present-watch]').click();
+  app.filmNavigation.watch = old;
+  return { ...state, watchCalls };
+});
+ok(stripJump.calls.length === 0 && stripJump.index === 5 && stripJump.stage === 'Install clip B' && /6 of 8/.test(stripJump.position) && stripJump.current === '5' && stripJump.open && stripJump.scrolled > 0,
+  'Selecting a strip entry moves the stage and scrolls the strip without starting film', JSON.stringify(stripJump));
+ok(stripJump.watchCalls.length === 1 && stripJump.watchCalls[0].refs.length === 1 && stripJump.watchCalls[0].label === 'Install clip B',
+  'Watch stays the explicit action and plays the selected item exact refs', JSON.stringify(stripJump.watchCalls));
+await page.keyboard.press('Escape');
+await page.evaluate(async () => {
+  const store = window.app.storage.seasonStore, plan = store.plans()[0];
+  [...plan.items].forEach(item => store.removePlanItem(plan.id, item.id));
+  await store.persist(); window.app.planScreen.render();
+});
 const deleteGuard = await page.evaluate(async () => {
   const app=window.app, store=app.storage.seasonStore, plan=store.createPlan('Delete guard'); app.planScreen.activeId=plan.id; app.planScreen.render();
   app.tagger._confirmDialog=async()=>false; document.querySelector('[data-plan-action="delete"]')?.click(); await new Promise(r=>setTimeout(r,0)); const kept=!!store.getPlan(plan.id);
@@ -376,11 +494,20 @@ await page.click('[data-study-action="plan-picker-cancel"]');
 await page.evaluate(() => window.app.workspaceShell.show('plan'));
 r = await page.evaluate(() => ({ overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth, plan:!document.querySelector('#wsPlan')?.hidden, tabs:document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent' }));
 ok(!r.overflow && r.plan && r.tabs === 'absent', 'Mobile Plan has no page overflow or classic-workflow overlays', JSON.stringify(r));
-const mobilePresentation=await page.evaluate(()=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];const item=store.addPlanItem(plan.id,{kind:'film',label:'Mobile install',refs:['g-study-1::1']});app.planScreen.render();document.querySelector('[data-plan-action="present"]').click();const controls=[...document.querySelectorAll('.ws-plan-present>footer .ws-btn')];const result={itemId:item.id,dialog:!!document.querySelector('.ws-plan-present'),overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,minControl:Math.min(...controls.map(control=>control.getBoundingClientRect().height))};return result;});
+const mobilePresentation=await page.evaluate(()=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];const item=store.addPlanItem(plan.id,{kind:'film',label:'Mobile install',refs:['g-study-1::1']});
+// Enough items that the S6-3 strip MUST scroll at 390px — a one-entry strip
+// cannot prove the container owns its overflow instead of the page.
+const extra=['Mobile install 2','Mobile install 3','Mobile install 4','Mobile install 5'].map(label=>store.addPlanItem(plan.id,{kind:'film',label,refs:['g-study-1::2']}));
+app.planScreen.render();document.querySelector('[data-plan-action="present"]').click();const controls=[...document.querySelectorAll('.ws-plan-present>footer .ws-btn')];
+const stripHost=document.querySelector('[data-plan-strip]'),stripButtons=[...document.querySelectorAll('[data-plan-present-jump]')];
+const result={itemId:item.id,extraIds:extra.map(entry=>entry.id),dialog:!!document.querySelector('.ws-plan-present'),overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,minControl:Math.min(...controls.map(control=>control.getBoundingClientRect().height)),
+  stripEntries:stripButtons.length,stripScrolls:!!stripHost&&stripHost.scrollWidth>stripHost.clientWidth+1,minStripTarget:Math.min(...stripButtons.map(button=>button.getBoundingClientRect().height)),
+  stripInViewport:stripHost?stripHost.getBoundingClientRect().right<=document.documentElement.clientWidth+1:false};return result;});
 ok(mobilePresentation.dialog&&!mobilePresentation.overflow&&mobilePresentation.minControl>=44,'Mobile presentation is full-screen, overflow-free, and keeps large navigation targets',JSON.stringify(mobilePresentation));
+ok(mobilePresentation.stripEntries===5&&mobilePresentation.stripScrolls&&mobilePresentation.stripInViewport&&!mobilePresentation.overflow&&mobilePresentation.minStripTarget>=44,'Mobile strip scrolls within the viewport at touch-sized targets and never widens the page',JSON.stringify(mobilePresentation));
 await capture('plan-presentation-390x844');
 await page.keyboard.press('Escape');
-await page.evaluate(async itemId=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];store.removePlanItem(plan.id,itemId);await store.persist();app.planScreen.render();},mobilePresentation.itemId);
+await page.evaluate(async ids=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];ids.forEach(id=>store.removePlanItem(plan.id,id));await store.persist();app.planScreen.render();},[mobilePresentation.itemId,...mobilePresentation.extraIds]);
 await capture('study-390x844');
 
 // E3b review finding: qbAlignment/coverageFamily were 'ready' in the registry

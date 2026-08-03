@@ -188,8 +188,13 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
     readFile(new URL('../js/plan-screen.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/stats-engine.js', import.meta.url), 'utf8'),
   ]);
-  ok(!plan.includes('studyScreen._watch') && (plan.match(/filmNavigation\.watch/g) || []).length === 4,
-    'all four Plan watch actions use the shared service');
+  // Five Plan watch surfaces since S6-3 added section Watch: whole plan, item,
+  // section, presented play, presented item. The count is a deliberate
+  // change-detector — a new playback entry point must be looked at, not merged
+  // silently — but the real guarantee is the two negatives beside it: Plan owns
+  // no player and reaches through no other screen.
+  ok(!plan.includes('studyScreen._watch') && !/cutupPlayer|crossGameCutup/.test(plan) && (plan.match(/filmNavigation\.watch/g) || []).length === 5,
+    'all five Plan watch actions use the shared service and Plan starts no player itself');
   ok(!study.includes('cutupPlayer.start') && (study.match(/filmNavigation\.watch/g) || []).length === 3,
     'Study delegates playback and retains only a compatibility adapter');
   ok(!stats.includes('window.app.cutupPlayer') && stats.includes('filmNavigation.refsForGame') && stats.includes('filmNavigation.watch'),
