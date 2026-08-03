@@ -111,6 +111,28 @@ Keep this section current after every meaningful storage, migration, or release
 change. It is the quick context block for Claude/Codex before touching film
 storage again.
 
+### ⛔ READ BEFORE BUILDING `1.12.0-17` — one requirement changed after `a4806b5`
+
+**UX-1's success criterion changed (coach, 2026-08-02).** Downscaling 4K is
+fine — GridIron IQ is not a dedicated video player. The original complaint was
+film rendering **softer than the source should look at that size**, not film
+being small. So UX-1 is judged on **sharpness at the presented size, not coverage
+percentage**. Full detail and what is now withdrawn: `GRIDIRON-IQ-DESIGN-AUDIT.md`
+§UX-1, the ⚠ SUPERSEDED block.
+
+Consequences for the installer and its smoke record:
+- Coverage percentages stay in `e2e-breakdown-geometry.mjs` as a **regression
+  instrument** — they caught the S5d composition regression — but no 4K
+  percentage is a target, and the smoke record must not imply 4K is "solved".
+- **Live technical item:** full screen measures **1920 x 1079**, a one-pixel
+  shortfall that forces a fractional resample of every frame. That is the exact
+  "overly compressed" class the coach reported and is now the highest-value
+  remaining UX-1 fix.
+- No CSS transform, filter, or fractional sizing may resample the media node.
+
+Nothing else changed: `a4806b5` is accepted, the gate is 80/80, and the S5d
+landing sequence in plan §8 is unchanged.
+
 ### CODEX BUILD - S5c PREFLIGHT COMPLETE; NATIVE TAG FORM NEXT (2026-08-01)
 
 Claude independently accepted S5b at `726a55c`; S5c is open. Codex closed the
