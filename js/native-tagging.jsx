@@ -323,7 +323,7 @@ function NativeTagging({screen}) {
         </div>
       </Group>
       <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>Previous</button>
-        <button type="button" class="is-primary" onClick={() => screen.saveNext()}>Save &amp; Next</button>
+        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : 'Save & Next'}</button>
         <button type="button" onClick={() => screen.skip()}>Skip</button></footer>
     </main>}
   </section>;

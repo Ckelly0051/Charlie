@@ -16,6 +16,8 @@ export class BreakdownWorkspace {
     this.host = null;
     this.saveState = 'saved';
     this.view = 'chart';
+    this.filmFocus = localStorage.getItem('ffa_breakdown_film_focus') === '1';
+    this._filmFocusOpenedStrip = false;
     this.scoutMode = 'self';
     this._contextGameId = null;
     this._bound = false;
@@ -41,6 +43,7 @@ export class BreakdownWorkspace {
           <div class="gi-breakdown-view" role="group" aria-label="Break Down view">
             <button type="button" class="active" data-bd-view="chart" aria-pressed="true">Chart</button>
             <button type="button" data-bd-view="film-room" aria-pressed="false">Film Room</button>
+            <button type="button" data-bd-film-focus aria-pressed="false">Film focus</button>
           </div>
           <span class="gi-breakdown-save is-saved" id="bdSaveState">Saved</span>
         </header>
@@ -58,6 +61,9 @@ export class BreakdownWorkspace {
       if (!this.app.nativeFilmRoom.mount(host.querySelector('[data-breakdown-film-room-host]'))) throw new Error('Break Down Film Room did not mount.');
       this._bind();
       this._setView(this.view);
+      const savedFilmFocus = this.filmFocus;
+      this.filmFocus = false;
+      this._setFilmFocus(savedFilmFocus, { persist: false });
       this.render();
       return true;
     } catch (error) {
@@ -84,6 +90,7 @@ export class BreakdownWorkspace {
     this.host?.querySelector('[data-bd-customize]')?.addEventListener('click', () => this.app.tagLibrarySettings?.open());
     this.host?.querySelector('[data-bd-game]')?.addEventListener('click', () => this.app.gameScreen?.open({ mode: 'edit' }));
     this.host?.querySelectorAll('[data-bd-view]').forEach(btn => btn.addEventListener('click', () => this._setView(btn.dataset.bdView)));
+    this.host?.querySelector('[data-bd-film-focus]')?.addEventListener('click', () => this._setFilmFocus(!this.filmFocus));
   }
 
   _setView(view) {
@@ -99,6 +106,26 @@ export class BreakdownWorkspace {
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', String(active));
     });
+  }
+  _setFilmFocus(enabled, { persist = true } = {}) {
+    const next = !!enabled;
+    if (next && !this.filmFocus) {
+      this._filmFocusOpenedStrip = !this.app.breakdownTheater?.stripCollapsed;
+      this.app.breakdownTheater?.setStripCollapsed?.(true);
+    } else if (!next && this.filmFocus && this._filmFocusOpenedStrip) {
+      this.app.breakdownTheater?.setStripCollapsed?.(false);
+      this._filmFocusOpenedStrip = false;
+    }
+    this.filmFocus = next;
+    const route = this.host?.querySelector('[data-native-breakdown-route]');
+    route?.classList.toggle('is-film-focus', this.filmFocus);
+    const button = this.host?.querySelector('[data-bd-film-focus]');
+    if (button) {
+      button.classList.toggle('active', this.filmFocus);
+      button.setAttribute('aria-pressed', String(this.filmFocus));
+      button.textContent = this.filmFocus ? 'Show charting' : 'Film focus';
+    }
+    if (persist) localStorage.setItem('ffa_breakdown_film_focus', this.filmFocus ? '1' : '0');
   }
   _setContext(context) {
     if (context === 'quick') {

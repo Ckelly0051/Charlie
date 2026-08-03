@@ -193,7 +193,14 @@ export class BreakdownTheaterScreen {
   }
 
   selectPlay(id) { this.app.tagger?.selectPlay?.(Number(id)); }
-  toggleStrip() { this.stripCollapsed = !this.stripCollapsed; this._publish(); }
+  toggleStrip() { this.setStripCollapsed(!this.stripCollapsed); }
+  setStripCollapsed(value) {
+    const next = !!value;
+    if (next === this.stripCollapsed) return false;
+    this.stripCollapsed = next;
+    this._publish();
+    return true;
+  }
   togglePlay() { this.app.vc?.togglePlay?.(); this._publish(); }
   stepBack() { this.app.vc?.stepBack?.(); this._publish(); }
   stepForward() { this.app.vc?.stepForward?.(); this._publish(); }

@@ -23,6 +23,8 @@ export class NativeTaggingScreen {
     this.activeRole = 'ballCarrier';
     this._observer = null;
     this._publishQueued = false;
+    this._saveConfirmed = false;
+    this._saveTimer = null;
     this._bindDomainEvents();
   }
 
@@ -67,6 +69,9 @@ export class NativeTaggingScreen {
     if (!this.host) return false;
     this._observer?.disconnect();
     this._observer = null;
+    clearTimeout(this._saveTimer);
+    this._saveTimer = null;
+    this._saveConfirmed = false;
     this._view?.unmount?.();
     this._view = null;
     this._restoreSource();
@@ -137,7 +142,7 @@ export class NativeTaggingScreen {
       selectedTemplate: this.tagger?.templateSelect?.value || '',
       canCopyPrevious: index > 0, canPrevious: index > 0,
       autoDD: !!this.tagger?.autoDD, carryScheme: !!this.tagger?.carryScheme, diagram,
-      autoOcr: !!this.app.ocr?.autoOnPlayEnd,
+      autoOcr: !!this.app.ocr?.autoOnPlayEnd, saveConfirmed: this._saveConfirmed,
     };
   }
 
@@ -161,7 +166,13 @@ export class NativeTaggingScreen {
   openCustomFields() { this.app.customFields?.openManager?.(); }
   openLibrary(group) { this.app.tagLibrarySettings?.open?.(group); }
   previous() { this.app.notes?.flush?.(); this.tagger.prevPlay(); this.app._autoPlayCurrent?.(); }
-  saveNext() { this.app._advancePlay(); }
+  saveNext() {
+    this.app._advancePlay();
+    this._saveConfirmed = true;
+    clearTimeout(this._saveTimer);
+    this._queuePublish();
+    this._saveTimer = setTimeout(() => { this._saveConfirmed = false; this._queuePublish(); }, 650);
+  }
   skip() { this.app._advancePlay({skip:true}); }
   setAutoDD(value) { const field=document.getElementById('autoDDToggle'); if(!field)return false; field.checked=!!value; field.dispatchEvent(new Event('change',{bubbles:true})); this._queuePublish(); return true; }
   setCarryScheme(value) { const field=document.getElementById('carrySchemeToggle'); if(!field)return false; field.checked=!!value; field.dispatchEvent(new Event('change',{bubbles:true})); this._queuePublish(); return true; }

@@ -13,6 +13,21 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CODEX REPAIR - S5d FILM GEOMETRY + NATIVE CAPABILITY EVIDENCE; REVIEW REQUIRED (2026-08-02)
+
+Codex addressed Claude's 67db936 CHANGES REQUESTED review as one repair checkpoint. The installer remains held.
+
+- **Film geometry:** the normal charting deck is bounded to 420-500px and its native context/results controls now fit without internal overflow. At both 1440x900 and 1920x1080, the measured contained 16:9 picture meets or exceeds the legacy route while the deck remains usable and never overlays film.
+- **Film Focus:** Break Down has a persisted Film focus command. It removes the charting deck from layout, collapses the play strip to its still-reachable header, and expands the canonical video without mounting another player or covering any film. Show charting restores the deck and the prior open-strip state. The focused picture meets or exceeds the accepted standalone S5a target at 1440 and 1920. Tablet/mobile remain overflow-free with 44px mobile route controls.
+- **Native capability closure:** the four inventory entries that still cited retired e2e-breakdown-form.mjs evidence now point at e2e-native-tagging.mjs. That journey proves one charting-unit owner, one shared formation/backfield/front library seam, complete offense/defense/player/custom/note/situation controls, football-correct scout wording, structured Special Teams without Scored-by, multiple independent penalties, and Save & Next preserving multi-tackler attribution, grade, and notes.
+- **Native Save feedback:** Save & Next already persisted correctly but its legacy-only flash was invisible in the native form. The native primary action now shows a brief green Saved state and remains usable during rapid charting.
+- **Restored guarantees:** e2e-breakdown-video pins the approved result/yardage colon presentation. New e2e-restore-point-throttling.mjs pins playback deferral, pause flush, forced-snapshot precedence, and cross-season ownership. Existing per-game context/relaunch proof plus the native subject-label assertion cover stored perspective presentation.
+
+Focused results: geometry 12/12, native tagging 34/34, native Breakdown 14/14, restore-point throttling 5/5. Controlled mutations restoring the rejected 430px/34vw/580px deck and deleting the cross-season guard each turned their focused harness red before source restoration. Final canonical gate: **80/80 green, 0 skipped, 0 failed**, including real data.
+
+No schema, migration, season/play payload, analytics formula, clip identity/path, film file, managed-film copy, storage location, package, tag, or release changed. **Next:** Claude independently reviews this repair. Only after acceptance should Codex build the immediate S5d installer and the coach run the rollback-contract smoke. S6/S7 remain closed.
+
+
 ### CODEX BUILD - S5d NATIVE BREAK DOWN OWNERSHIP FLIP; REVIEW REQUIRED (2026-08-02)
 
 Codex completed the isolated S5d ownership flip in this commit (play-strip collapse prerequisite `3c251ac`). Break Down now has one coach-facing native composition: the canonical video/theater stays mounted while Chart swaps between the native tag deck and native Film Room. The legacy `.video-section`, `.tag-section`, and `#playGridSection` remain hidden compatibility behavior adapters until S7; they are never a second visible owner.

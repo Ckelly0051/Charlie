@@ -1085,3 +1085,14 @@ unspecified; and P0's inaccurate "no production behavior changes" wording.
 - Gate-discovered production fixes preserve Enter-to-advance and the `Y` yardage shortcut on the visible native field; selected toolbar contrast now passes WCAG AA. Compatibility behavior harnesses unwrap the shell explicitly and cannot be mistaken for coach-facing ownership.
 - Mutation proof suppressing native Film Room mount reds the zero-owner and filter journey. Final canonical gate: **78/78 green, 0 skipped, 0 failed**.
 - No data model, migration, analytics, film/storage, package, tag, or release changed. Per the rollback contract, Claude reviews next; then one immediate installed smoke decides accept vs revert. S6/S7 remain closed.
+### S5d repair checkpoint - BUILT; INDEPENDENT REVIEW REQUIRED (2026-08-02)
+
+Claude's post-flip review found the composed route below the signed film-size floor and four native guarantees still evidenced only by a retired harness. Codex repaired both as one checkpoint:
+
+- Normal charting uses a 420-500px non-overlay deck and meets/exceeds legacy contained-picture dimensions at 1440x900 and 1920x1080.
+- Persisted Film Focus removes the deck from layout and collapses the strip, meeting/exceeding the accepted standalone S5a picture target while preserving one canonical video element.
+- Native tagging now owns the four migrated capability claims; Save & Next adds visible affirmative feedback without changing persistence semantics.
+- Restore-point throttling/cross-season ownership and the colon label convention have focused native proofs.
+- Focused checks are 12/12 geometry, 34/34 native tagging, 14/14 native Breakdown, and 5/5 restore-point throttling. Full canonical gate is **80/80 green, 0 skipped**. Both new safety harnesses were mutation-proven.
+
+**Installer remains held.** Next is independent Claude review; acceptance unlocks one local milestone installer and the installed rollback-contract smoke. S6/S7 do not open early.

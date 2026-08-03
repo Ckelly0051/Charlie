@@ -321,3 +321,10 @@ football-correct, and consistent across routes.
 6. Final cross-route visual audit remains required after S7 legacy deletion.
 ## S5d Native Break Down Route Evidence (2026-08-02, this commit)
 The ownership flip was inspected at 1440x900, 1280x720, 768x1024, and 390x844. The video remains the dominant surface; Chart and Film Room share one fixed theater; the tag deck is dense but readable; mobile keeps film, transport, play strip, and primary actions in the first viewport with no page-level horizontal overflow. The selected toolbar treatment passes WCAG AA after the gate caught a 4.17:1 contrast defect. This is candidate evidence, not milestone acceptance: Claude review and the installed real-film smoke are still required.
+### UX-6 - S5d film geometry and Film Focus repair (P1) - BUILT; REVIEW REQUIRED
+
+The ownership flip initially reduced usable film at desktop widths because the charting deck consumed up to 580px. The repair bounds the deck to 420-500px, compacts only its context/result controls, and stacks at 1180px. Same-viewport automated geometry now requires the contained 16:9 picture to meet/exceed the legacy route at 1440x900 and 1920x1080 while retaining a usable, overflow-free charting deck.
+
+A persisted Film Focus command gives coaches an intentional video-first state: the charting deck leaves layout, the play strip collapses to its header, and no control or border overlays source film. Show charting restores the work surface. Film Focus is required to meet/exceed the accepted standalone S5a picture target at both desktop sizes. Tablet and 390px mobile checks remain overflow-free and mobile route controls remain at least 44px.
+
+The focused geometry harness is 12/12 and was mutation-proven against the rejected wide-deck values. This is structural S5d repair, not the later full visual-polish pass; installer and coach smoke remain gated on independent review.

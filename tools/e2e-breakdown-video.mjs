@@ -36,10 +36,11 @@ await page.click('[data-native-play-id="5"]');
 state=await page.evaluate(()=>({selected:window.app.tagger.currentPlayId,current:document.querySelector('.gi-play-card.is-current')?.dataset.nativePlayId}));
 ok(state.selected===5&&state.current==='5','Selecting a play card drives the real PlayTagger and active state',JSON.stringify(state));
 const beforeNode=await page.$('[data-native-play-id="5"]');
-await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.result='Touchdown';window.app.tagger._emit('play-updated',play);});
-await page.waitForFunction(()=>document.querySelector('[data-native-play-id="5"]')?.textContent.includes('Touchdown'));
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.result='Interception + Touchdown';play.tags.yardage='5';window.app.tagger._emit('play-updated',play);});
+await page.waitForFunction(()=>document.querySelector('[data-native-play-id="5"]')?.textContent.includes('Interception + Touchdown: +5'));
 const afterNode=await page.$('[data-native-play-id="5"]');
 ok((await beforeNode.evaluate((node,other)=>node===other,afterNode)),'Ordinary tag edits update one stable play card instead of rebuilding the strip');
+ok(await afterNode.evaluate(node=>node.textContent.includes('Interception + Touchdown: +5')&&!node.textContent.includes('Touchdown · +5')),'Long result copy remains complete and uses the approved colon separator');
 
 console.log('\n== 2. Canvas, Film Room, and quick chart ==');
 state=await page.evaluate(()=>{
