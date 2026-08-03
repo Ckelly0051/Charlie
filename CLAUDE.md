@@ -13,6 +13,15 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### INSTALLER PASS - `1.12.0-17`; S5 COMPLETE, S6 OPEN (Coach/Codex, 2026-08-02)
+
+S5d source `a4806b5` was independently accepted, then packaged from version
+checkpoint `2d9e532`. The coach installed the NSIS build and passed the complete
+five-point rollback-contract smoke: linked D-drive film, fullscreen/drawing,
+chart-save-revisit, Film Room/Study/Reports/Plan, and switch/restart durability.
+No film, data, or route-usability failure occurred. **S5d is accepted; S5 is
+complete; S6 may open.** Exact artifacts, hashes, evidence, and coach wording are
+recorded in `SMOKE-1.12.0-17.md`. S7 remains closed.
 ### CODEX REPAIR - S5d FILM GEOMETRY + NATIVE CAPABILITY EVIDENCE; REVIEW REQUIRED (2026-08-02)
 
 Codex addressed Claude's 67db936 CHANGES REQUESTED review as one repair checkpoint. The installer remains held.

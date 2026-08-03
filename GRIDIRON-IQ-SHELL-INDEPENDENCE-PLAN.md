@@ -29,6 +29,13 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+**`1.12.0-17` · 2026-08-02 · Coach/Codex · POST-S5d SMOKE PASSED; S5 COMPLETE; S6 OPEN**
+
+- Accepted S5d source `a4806b5` was versioned and packaged at `2d9e532`.
+- Coach passed linked film, fullscreen/drawing, chart persistence, all primary
+  routes, and switch/restart durability in the installed WebView2 app.
+- Full evidence and artifact hashes: `SMOKE-1.12.0-17.md`.
+- S6 audits Home, Study, and Plan. S7 remains closed until S6 acceptance.
 **`1.12.0-16` · 2026-08-02 · Coach/Codex · PRE-S5d SMOKE PASSED; S5d OPEN**
 
 - S5c is accepted at `9f8f065`; four-owner version stamp is `06c3576`.
