@@ -43,7 +43,7 @@ export class StudyScreen {
       return `<option value="${this._esc(id)}">${this._esc(item?.name || id)}</option>`;
     }).join('');
     host.innerHTML = `<div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions"><button class="ws-btn" data-study-action="advanced">Advanced Reports</button><button class="ws-btn" data-study-action="save">Save view</button><button class="ws-btn" data-study-action="save-plan">Save to Plan</button><button class="ws-btn ws-primary" data-study-action="watch-all" disabled>Watch results</button></div></div>
-      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
+      <div class="ws-study-query"><label>Break down by<select id="wsStudyDimension">${dimensions}</select></label><label>Then by<select id="wsStudyColumn"><option value="">Nothing — single list</option>${dimensions}</select></label><label>Scope<select id="wsStudyScope"><option value="game">Current game</option><option value="season">Full season</option><option value="range">Date range</option></select></label><label>Unit<select id="wsStudyUnit"><option value="">All units</option><option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label><label>Primary metric<select id="wsStudyMeasure">${measures}</select></label><label>Minimum sample<select id="wsStudyMin"><option value="0">Show all</option><option value="3">3 plays</option><option value="5">5 plays</option><option value="10">10 plays</option></select></label><label>Compare<select id="wsStudyCompare"><option value="">No comparison</option><option value="season">Game vs season</option><option value="prior">Game vs prior games</option><option value="rangePrior">Date range vs prior</option></select></label><div class="ws-study-saved"><label>Saved view<select id="wsStudySaved"><option value="">Choose a saved view</option></select></label><button class="ws-icon-btn" data-study-action="delete-view" aria-label="Delete selected view" disabled>×</button></div></div>
       <div class="ws-study-range" id="wsStudyRange" hidden><strong>Date range</strong><label>From<input type="date" id="wsStudyDateFrom"></label><span>through</span><label>To<input type="date" id="wsStudyDateTo"></label><small>Only games with dates are included.</small></div>
       <div class="ws-study-filters"><div class="ws-study-filter-head"><strong>Filters</strong><span>Values within a filter use OR. Filters combine with AND.</span><button class="ws-link" data-study-action="add-filter">+ Add filter</button><button class="ws-link" data-study-action="clear-filters" hidden>Clear</button></div><div id="wsStudyFilters"></div></div>
       <div class="ws-study-summary" id="wsStudySummary"></div><div class="ws-study-warning" id="wsStudyWarning" hidden></div><div class="ws-study-visuals" id="wsStudyVisuals"></div>
@@ -108,6 +108,7 @@ export class StudyScreen {
   _state() {
     return {
       dimension: this._control('wsStudyDimension').value,
+      column: this._control('wsStudyColumn')?.value || '',
       scope: this._control('wsStudyScope').value,
       unit: this._control('wsStudyUnit').value,
       measure: this._control('wsStudyMeasure').value,
@@ -161,7 +162,12 @@ export class StudyScreen {
     }
     this._control('wsStudyMetricHead').textContent = this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
     this._control('wsStudyDeltaHead').textContent = state.compare ? 'Delta' : 'Explosive';
-    state.compare ? this._renderCompare(result, state.measure, state.compare) : this._renderQuery(result, state.scope, state.measure, sets.rangeName);
+    // A second dimension turns the list into a cross-tab. Compare mode already
+    // owns the two-cohort view, so the two are mutually exclusive.
+    const pivot = !state.compare && state.column && state.column !== state.dimension;
+    this.host.classList.toggle('is-pivot', !!pivot);
+    if (pivot) this._renderPivot(result, state, sets, args);
+    else state.compare ? this._renderCompare(result, state.measure, state.compare) : this._renderQuery(result, state.scope, state.measure, sets.rangeName);
     this._renderWarnings(result.warnings || []);
   }
 
@@ -178,6 +184,104 @@ export class StudyScreen {
     }).join('') : '<div class="ws-study-empty">No plays match this question.</div>';
     this._renderQueryVisuals(groups, measure, matching);
     this._setWatchAll(matching);
+  }
+
+  /**
+   * Cross-tab built by COMPOSING the parity-locked query engine, never by
+   * recomputing anything here. Each cell is a real `study.run()` grouped by the
+   * row dimension with the column value added as an ordinary filter, so its
+   * value, sample size, below-min-sample flag and composite `gameId::playId`
+   * refs are all engine output. That is what keeps a cell's Watch action playing
+   * exactly the plays the cell counted.
+   *
+   * Cost is 2 + N queries (rows, columns, one per column value). StudyQuery is
+   * pure and in-memory, and dimensions are small vocabularies.
+   */
+  _renderPivot(rowResult, state, sets, args) {
+    const plays = sets[state.scope] || [];
+    const colValues = this._pivotValues(state.column, plays);
+    const rowGroups = rowResult.groups.filter(group => group.sampleSize > 0);
+    let colResult;
+    try { colResult = this.app.study.run({ ...args, dimension: state.column, plays }); }
+    catch { colResult = { groups: [] }; }
+    const colTotals = new Map(colResult.groups.map(group => [String(group.value), group]));
+
+    const cells = new Map();
+    for (const value of colValues) {
+      let res;
+      try {
+        res = this.app.study.run({
+          ...args,
+          plays,
+          filters: [...args.filters, { dimension: state.column, values: [value] }],
+        });
+      } catch { continue; }
+      for (const group of res.groups) cells.set(`${group.value} ${value}`, group);
+    }
+
+    // Watch targets: every cell, every row total, every column total.
+    this.rows = [];
+    const cellIndex = new Map();
+    const addTarget = (label, refs) => { const i = this.rows.length; this.rows.push({ label, refs }); return i; };
+
+    const measure = state.measure;
+    const head = [`<th scope="col" class="ws-pivot-corner">${this._esc(this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension)}</th>`]
+      .concat(colValues.map(value => `<th scope="col">${this._esc(value)}</th>`))
+      .concat(`<th scope="col" class="ws-pivot-total">Total</th>`).join('');
+
+    const body = rowGroups.map(group => {
+      const rowLabel = String(group.value);
+      const tds = colValues.map(value => {
+        const cell = cells.get(`${rowLabel} ${value}`);
+        if (!cell || !cell.sampleSize) return `<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span><span class="ws-pivot-n">no plays</span></td>`;
+        const idx = addTarget(`${rowLabel} · ${value}`, cell.matchingPlayIds);
+        cellIndex.set(idx, true);
+        // Under-sampled cells stay visible and are labelled. Hiding them is how a
+        // coach ends up trusting a 2-play cell without knowing it is a 2-play cell.
+        const small = cell.belowMinSample ? ' is-small' : '';
+        return `<td class="ws-pivot-cell${small}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch ${this._esc(rowLabel)} ${this._esc(value)}, ${cell.sampleSize} play${cell.sampleSize === 1 ? '' : 's'}"><span class="ws-pivot-value">${this._measure(measure, cell.measures[measure])}</span><span class="ws-pivot-n">${cell.sampleSize}${cell.belowMinSample ? ' · low sample' : ''}</span></button></td>`;
+      }).join('');
+      const totalIdx = addTarget(rowLabel, group.matchingPlayIds);
+      const totalCell = `<td class="ws-pivot-cell ws-pivot-total${group.belowMinSample ? ' is-small' : ''}"><button type="button" class="ws-pivot-btn" data-study-row="${totalIdx}" aria-label="Watch all ${this._esc(rowLabel)}, ${group.sampleSize} plays"><span class="ws-pivot-value">${this._measure(measure, group.measures[measure])}</span><span class="ws-pivot-n">${group.sampleSize}${group.belowMinSample ? ' · low sample' : ''}</span></button></td>`;
+      return `<tr><th scope="row">${this._esc(rowLabel)}</th>${tds}${totalCell}</tr>`;
+    }).join('');
+
+    const footCells = colValues.map(value => {
+      const total = colTotals.get(String(value));
+      if (!total || !total.sampleSize) return '<td class="ws-pivot-cell is-none"><span class="ws-pivot-value">—</span></td>';
+      const idx = addTarget(String(value), total.matchingPlayIds);
+      return `<td class="ws-pivot-cell${total.belowMinSample ? ' is-small' : ''}"><button type="button" class="ws-pivot-btn" data-study-row="${idx}" aria-label="Watch all ${this._esc(value)}, ${total.sampleSize} plays"><span class="ws-pivot-value">${this._measure(measure, total.measures[measure])}</span><span class="ws-pivot-n">${total.sampleSize}</span></button></td>`;
+    }).join('');
+
+    const matching = [...new Set(rowGroups.flatMap(group => group.matchingPlayIds))];
+    const grandIdx = addTarget('All matching plays', matching);
+    const scopeLabel = state.scope === 'game' ? 'current game' : state.scope === 'range' ? sets.rangeName : 'full season';
+    this._saveCohorts = [{ id: 'result', label: scopeLabel, refs: matching }];
+    this._control('wsStudySummary').innerHTML = `<strong>${matching.length} matching play${matching.length === 1 ? '' : 's'}</strong><span>${this._esc(this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension)} × ${this._esc(this.app.analyticsRegistry.getDimension(state.column)?.name || state.column)} · ${this._esc(scopeLabel)}</span>`;
+    this._control('wsStudyRows').innerHTML = rowGroups.length && colValues.length
+      ? `<div class="ws-pivot-scroll"><table class="ws-pivot"><caption class="ws-pivot-caption">${this._esc(this.app.analyticsRegistry.getMeasure(measure)?.name || measure)} — every cell plays its own film</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot><tr><th scope="row">All</th>${footCells}<td class="ws-pivot-cell ws-pivot-total"><button type="button" class="ws-pivot-btn" data-study-row="${grandIdx}" aria-label="Watch all ${matching.length} matching plays"><span class="ws-pivot-value">${matching.length}</span><span class="ws-pivot-n">plays</span></button></td></tr></tfoot></table></div>`
+      : '<div class="ws-study-empty">No plays match this question.</div>';
+    this._control('wsStudyVisuals').innerHTML = '';
+    this._setWatchAll(matching);
+  }
+
+  /** Column vocabulary, capped so a free-text dimension cannot produce a table
+   *  a coach has to scroll sideways forever. Capping is by sample size, and the
+   *  cap is disclosed in the caption rather than silently truncating. */
+  _pivotValues(dimension, plays) {
+    const counts = new Map();
+    try {
+      for (const play of plays) {
+        for (const value of this.app.analyticsRegistry.values(dimension, play)) {
+          if (!value) continue;
+          const key = String(value);
+          counts.set(key, (counts.get(key) || 0) + 1);
+        }
+      }
+    } catch { return []; }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], undefined, { numeric: true }))
+      .slice(0, 12).map(entry => entry[0])
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }
 
   _renderCompare(result, measure, compareMode) {

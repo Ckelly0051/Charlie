@@ -36,6 +36,25 @@
 .ws-study-row{min-height:56px;border-top:1px solid var(--ws-line);padding:8px 0}
 .ws-study-row strong{overflow:hidden;text-overflow:ellipsis}.ws-study-row span{color:#c7d0db;font-variant-numeric:tabular-nums}
 .ws-study-row.is-small{opacity:.62}.ws-study-row .is-positive{color:var(--ws-green)}.ws-study-row .is-negative{color:var(--ws-red)}
+/* S6-2 pivot. Every cell is a button because every cell plays its own film.
+   Low-sample cells are dimmed and labelled, never hidden. */
+.ws-pivot-scroll{overflow-x:auto;max-width:100%}
+.ws-pivot{border-collapse:collapse;width:100%;font-size:12px}
+.ws-pivot-caption{caption-side:top;text-align:left;padding:0 0 8px;color:var(--ws-muted);font-size:11px}
+.ws-pivot th,.ws-pivot td{border:1px solid var(--ws-line);padding:0;text-align:center;vertical-align:middle}
+.ws-pivot thead th,.ws-pivot tfoot th,.ws-pivot tbody th{padding:6px 9px;background:#131b25;color:var(--ws-text);font-weight:700;white-space:nowrap}
+.ws-pivot tbody th{text-align:left;position:sticky;left:0;z-index:1}
+.ws-pivot-corner{text-align:left}
+.ws-pivot-btn{width:100%;min-height:44px;border:0;background:transparent;color:var(--ws-text);display:grid;gap:2px;padding:6px 8px;cursor:pointer}
+.ws-pivot-btn:hover{background:#182231}
+.ws-pivot-btn:focus-visible{outline:2px solid var(--ws-blue);outline-offset:-2px}
+.ws-pivot-value{font-weight:700;font-variant-numeric:tabular-nums}
+.ws-pivot-n{font-size:10px;color:var(--ws-muted)}
+.ws-pivot-cell.is-small .ws-pivot-value{opacity:.55}
+.ws-pivot-cell.is-small .ws-pivot-n{color:var(--ws-amber)}
+.ws-pivot-cell.is-none{padding:6px 8px;color:var(--ws-muted)}
+.ws-pivot-cell.is-none .ws-pivot-n{display:block}
+.ws-pivot-total{background:#141d2a}
 .ws-study-empty{padding:42px 4px;color:var(--ws-muted);text-align:center;border-top:1px solid var(--ws-line)}
 @media(max-width:1100px){.ws-study-query{grid-template-columns:repeat(3,1fr)}.ws-study-table-head,.ws-study-row{grid-template-columns:minmax(130px,1.3fr) .5fr .8fr .85fr .7fr 70px}}
 @media(max-width:900px){.ws-study{padding:20px 15px 80px}.ws-study-head{display:block}.ws-study-actions{margin:16px 0 0;display:grid;grid-template-columns:1fr 1fr}.ws-study-actions [data-study-action="watch-all"]{grid-column:1/-1}.ws-study-query{grid-template-columns:1fr 1fr}.ws-study-filter-head{flex-wrap:wrap}.ws-study-filter-head span{width:100%;order:2}.ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}.ws-study-filter-row{grid-template-columns:1fr 34px}.ws-study-filter-row .ws-study-filter-values,.ws-study-filter-row select[data-study-filter-value]{grid-column:1/-1}.ws-study-table-head{display:none}.ws-study-row{grid-template-columns:minmax(115px,1.2fr) .45fr .75fr 68px}.ws-study-row>:nth-child(4),.ws-study-row>:nth-child(5){display:none}.ws-study-summary{display:block}.ws-study-summary span{display:block;margin-top:3px}}

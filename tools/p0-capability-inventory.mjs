@@ -107,6 +107,10 @@ export const P0_CAPABILITIES = [
   { id:'settings.game-version-fail-closed', surface:'settings', evidence:'data', harness:'e2e-native-recovery.mjs', assertion:'Failed game-version restore keeps the live game and canonical season on the pre-restore state' },
   { id:'settings.roster', surface:'settings', evidence:'behavior', harness:'e2e-native-team-hub.mjs', assertion:'Team Hub Roster action opens the canonical native roster workspace' },
 
+  { id:'study.pivot', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Study renders a cross-tab with row and column dimensions plus totals' },
+  { id:'study.pivot-refs', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'A pivot cell plays exactly the plays carrying both its row and column value' },
+  { id:'study.min-sample', surface:'study', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Under-sampled cells stay visible, labelled, and still play their film rather than being hidden' },
+
   // Shared film navigation
   { id:'film-nav.exact-queue', surface:'film-navigation', evidence:'data', harness:'e2e-film-navigation.mjs', assertion:'Next/Save & Next queue contains only exact requested examples' },
   { id:'film-nav.cancel', surface:'film-navigation', evidence:'behavior', harness:'e2e-film-navigation.mjs', assertion:'cancellation never advances into the next game' },
@@ -129,6 +133,9 @@ export const P0_CRITICAL_CAPABILITY_IDS = [
   // linked D: folder reading identically is exactly what made the 1.12.0-8
   // smoke unprovable.
   'home.film-source',
+  // Film-link exactness on the new cross-tab. A cell that plays film other than
+  // the plays it counted is the worst outcome S6 could produce.
+  'study.pivot-refs',
   'shell.undo',
   'shell.redo',
   'shell.shortcuts',

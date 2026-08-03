@@ -480,6 +480,105 @@ ok(famClicked && JSON.stringify(r.refs) === JSON.stringify(r.registryRefs) && r.
 
 await page.select('#wsStudyDimension', 'formation');
 
+console.log('\n== S6-2 Study pivot: any dimension x any dimension, every cell a cut-up ==');
+await page.evaluate(() => window.app.workspaceShell.show('study'));
+await page.select('#wsStudyScope', 'season');
+await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyColumn', 'down');
+await new Promise(res => setTimeout(res, 400));
+
+r = await page.evaluate(() => {
+  const table = document.querySelector('.ws-pivot');
+  const cells = [...document.querySelectorAll('.ws-pivot tbody .ws-pivot-cell')];
+  const withButtons = cells.filter(td => td.querySelector('.ws-pivot-btn')).length;
+  const lowSample = [...document.querySelectorAll('.ws-pivot-cell.is-small')];
+  return {
+    hasTable: !!table,
+    rowHeads: [...document.querySelectorAll('.ws-pivot tbody th')].map(th => th.textContent),
+    colHeads: [...document.querySelectorAll('.ws-pivot thead th')].slice(1).map(th => th.textContent),
+    cells: cells.length, withButtons,
+    hasTotalColumn: [...document.querySelectorAll('.ws-pivot thead th')].some(th => th.textContent === 'Total'),
+    hasTotalRow: !!document.querySelector('.ws-pivot tfoot'),
+    lowSampleVisible: lowSample.every(td => td.offsetParent !== null),
+    lowSampleLabelled: lowSample.every(td => /low sample/i.test(td.textContent)),
+    minTouch: Math.min(...[...document.querySelectorAll('.ws-pivot-btn')].map(b => b.getBoundingClientRect().height)),
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  };
+});
+ok(r.hasTable && r.rowHeads.length > 0 && r.colHeads.length > 0 && r.hasTotalColumn && r.hasTotalRow,
+  'Study renders a cross-tab with row and column dimensions plus totals', JSON.stringify(r));
+ok(r.cells > 0 && r.withButtons > 0 && r.minTouch >= 44 && !r.overflow,
+  'Every populated pivot cell is an operable control and the table scrolls inside its own container', JSON.stringify(r));
+// Mechanism liveness first: a min-sample high enough that cells MUST fall below
+// it, so "they stay visible" cannot pass on an empty set. Without this the
+// assertion is vacuous — proven by mutation: hiding low-sample cells passed.
+// wsStudyMin is a SELECT — pick its largest real option. Setting an arbitrary
+// number silently leaves the value empty, which is how the first version of this
+// assertion passed against zero low-sample cells.
+const maxMin = await page.evaluate(() => {
+  const el = document.getElementById('wsStudyMin');
+  const best = [...el.options].map(o => Number(o.value) || 0).sort((a, b) => b - a)[0];
+  el.value = String(best); el.dispatchEvent(new Event('change', { bubbles: true }));
+  return { chosen: el.value, options: [...el.options].map(o => o.value) };
+});
+await new Promise(res => setTimeout(res, 400));
+ok(Number(maxMin.chosen) > 0, 'Study exposes a real minimum-sample control with usable thresholds', JSON.stringify(maxMin));
+r = await page.evaluate(() => {
+  // Data cells only. Including the row-total column here would let the class be
+  // stripped from every intersection cell while the assertion still passed on
+  // the totals — which is exactly what the first version of this did.
+  const low = [...document.querySelectorAll('.ws-pivot tbody .ws-pivot-cell.is-small:not(.ws-pivot-total)')];
+  const populated = [...document.querySelectorAll('.ws-pivot tbody .ws-pivot-cell:not(.ws-pivot-total)')].filter(td => td.querySelector('.ws-pivot-btn'));
+  return {
+    lowCount: low.length, populatedCount: populated.length,
+    allVisible: low.length > 0 && low.every(td => td.offsetParent !== null && td.getBoundingClientRect().height > 0),
+    allLabelled: low.length > 0 && low.every(td => /low sample/i.test(td.textContent)),
+    stillWatchable: low.length > 0 && low.every(td => !!td.querySelector('.ws-pivot-btn')),
+  };
+});
+ok(r.lowCount > 0 && r.lowCount === r.populatedCount,
+  'A high min-sample marks every populated cell as under-sampled (mechanism is live)', JSON.stringify(r));
+ok(r.allVisible && r.allLabelled && r.stillWatchable,
+  'Under-sampled cells stay visible, labelled, and still play their film rather than being hidden', JSON.stringify(r));
+await page.evaluate(() => { const el = document.getElementById('wsStudyMin'); el.value = '0'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+await new Promise(res => setTimeout(res, 300));
+
+// The guarantee that matters: a cell must play EXACTLY the plays that carry both
+// its row value and its column value — verified against the registry, not against
+// the renderer that produced it.
+r = await page.evaluate(async () => {
+  const app = window.app;
+  const captured = [];
+  const real = app.filmNavigation.watch.bind(app.filmNavigation);
+  app.filmNavigation.watch = async (refs, opts) => { captured.push({ refs: [...refs], label: opts?.label }); return { ok: true }; };
+  const btn = document.querySelector('.ws-pivot tbody .ws-pivot-cell:not(.is-none) .ws-pivot-btn');
+  const aria = btn?.getAttribute('aria-label') || '';
+  btn?.click();
+  await new Promise(res => setTimeout(res, 200));
+  app.filmNavigation.watch = real;
+
+  // Independent recomputation from the registry over the same season play set.
+  const m = aria.match(/^Watch (.+?) (\d+|1st|2nd|3rd|4th), /) || [];
+  const rowValue = (captured[0]?.label || '').split(' · ')[0];
+  const colValue = (captured[0]?.label || '').split(' · ')[1];
+  const games = app.storage.seasonStore.data.games;
+  const expected = [];
+  games.forEach(game => (game.plays || []).forEach(play => {
+    const stamped = { ...play, __gid: String(game.id) };
+    const rows = app.analyticsRegistry.values('formation', stamped).map(String);
+    const cols = app.analyticsRegistry.values('down', stamped).map(String);
+    if (rows.includes(rowValue) && cols.includes(colValue)) expected.push(`${game.id}::${play.id}`);
+  }));
+  return { label: captured[0]?.label, refs: captured[0]?.refs || [], expected, rowValue, colValue };
+});
+ok(r.refs.length > 0 && JSON.stringify([...r.refs].sort()) === JSON.stringify([...r.expected].sort()),
+  'A pivot cell plays exactly the plays carrying both its row and column value', JSON.stringify({ label: r.label, got: r.refs.length, expected: r.expected.length }));
+
+await page.select('#wsStudyColumn', '');
+await new Promise(res => setTimeout(res, 300));
+r = await page.evaluate(() => ({ pivot: !!document.querySelector('.ws-pivot'), rows: document.querySelectorAll('.ws-study-row').length }));
+ok(!r.pivot && r.rows > 0, 'Clearing the second dimension returns the single-list view unchanged', JSON.stringify(r));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
