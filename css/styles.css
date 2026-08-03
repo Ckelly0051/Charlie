@@ -5173,7 +5173,7 @@ body { background: var(--canvas); }
               background var(--transition), border-color var(--transition),
               color var(--transition);
 }
-.btn:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: #fff; }
+.btn:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); color: var(--text-bright); }
 .btn:active { transform: translateY(0); }
 .btn-accent, .btn-highlight { box-shadow: none; }
 .btn-accent:hover, .btn-highlight:hover { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
@@ -5456,7 +5456,7 @@ select:focus,
 }
 .brand-bug b {
   font-weight: 800;
-  color: var(--accent-hover, #6366f1);
+  color: var(--accent-hover);
 }
 @media (max-width: 500px) {
   .brand-bug { font-size: 10px; top: 5px; right: 7px; }
@@ -7118,13 +7118,13 @@ td.pg-cell-focus {
    Keeps the default size as-is; fullscreen only applies while toggled on. ---- */
 #videoContainer:fullscreen,
 #videoContainer:-webkit-full-screen {
-  width: 100vw; height: 100vh; max-width: none; background: #000;
+  width: 100vw; height: 100vh; max-width: none; background: var(--gi-film);
   display: flex; flex-direction: column; justify-content: center;
 }
 #videoContainer:fullscreen .angle-wrapper,
 #videoContainer:-webkit-full-screen .angle-wrapper { flex: 1 1 auto; min-height: 0; }
 #videoContainer:fullscreen #videoPlayer,
-#videoContainer:-webkit-full-screen #videoPlayer { width: 100%; height: 100%; object-fit: contain; background: #000; }
+#videoContainer:-webkit-full-screen #videoPlayer { width: 100%; height: 100%; object-fit: contain; background: var(--gi-film); }
 #btnExpandVideo.is-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 
 /* ---- Phase-aware special-teams detail fields (PlayTagger._applyStPhase) ---- */
@@ -7141,61 +7141,82 @@ td.pg-cell-focus {
    keeps its own scoped palette under .stats-overlay (untouched — e2e pins
    its literals); the Lobby is already this world.
    ===================================================================== */
+/* ══════════════════════════════════════════════════════════════════════════
+ * ONE PALETTE (S6-4d). This is the LAST `:root` in the file, so it wins the
+ * cascade, and it is therefore the block that actually paints the product —
+ * `body`, every `.btn`, the video container, the film drop zone, the shared
+ * chrome. Everything below it consumes these names.
+ *
+ * It used to hold a second, hand-tuned palette. That is why S6 could rebuild
+ * every route on the design system and the app could still not BE on the
+ * design system: the routes were tokenised while the surface underneath them
+ * was painted by a parallel set of hexes. Counting stylesheets made the gap
+ * look small; it was not, because one `body` rule and one `.btn` rule are
+ * reused on every screen in the product.
+ *
+ * Now every role DERIVES from `design-system/tokens.css`. No selector, no
+ * layout and no specificity changed — the names stayed, their sources moved —
+ * so the whole legacy tree inherits the system in one place instead of being
+ * rewritten 7,751 lines at a time. Same shape as the UX-4 shell fix.
+ *
+ * `e2e-design-system` enforces this block: every colour role here must resolve
+ * to a `--gi-*` token, so a hand-picked hex cannot quietly return.
+ * ══════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Accent — broadcast blue, re-tuned for dark (brand #1D4ED8 goes muddy on
-     slate). Fill is #2F6BF0 so WHITE chip/button text clears WCAG AA (4.69:1);
-     the T6 selection halo uses a lighter blue on purpose (a glow is brighter
-     than its source) and --accent-hover stays bright for rings/links. */
-  --accent:            #2F6BF0;
-  --accent-hover:      #5B90FF;
-  --accent-soft:       rgba(47,107,240,0.16);   /* selected-row / key-badge tint */
-  --accent-border:     rgba(47,107,240,0.48);
+  /* Accent — the design system's solid accent, which is also the line-of-
+     scrimmage blue the native routes use for "current". One accent, not two. */
+  --accent:            var(--gi-9);
+  --accent-hover:      var(--gi-10);
+  --accent-soft:       var(--gi-accent-surface);   /* selected-row / key-badge tint */
+  --accent-border:     var(--gi-accent-border);
   --highlight:         var(--accent);
   --highlight-hover:   var(--accent-hover);
   --highlight-soft:    var(--accent-soft);
 
-  /* Neutrals — Midnight canvas, Booth-slate surfaces; elevation by luminance */
-  --canvas:            #0B0F14;
-  --bg-primary:        #0B0F14;
-  --bg-secondary:      #141A22;
-  --bg-elevated:       #1A212B;
-  --bg-tertiary:       #1A212B;   /* sunken wells, inputs, idle chips */
-  --bg-surface:        #141A22;
-  --surface:           #141A22;
-  --border:            rgba(233,238,245,0.08);   /* chalk hairlines */
-  --border-bright:     rgba(233,238,245,0.16);
+  /* Neutrals — the system's surface ladder. `--canvas` is the app floor a
+     coach stares at all night; it is step 1, exactly like the native routes. */
+  --canvas:            var(--gi-1);
+  --bg-primary:        var(--gi-1);
+  --bg-secondary:      var(--gi-2);
+  --bg-elevated:       var(--gi-3);
+  --bg-tertiary:       var(--gi-3);   /* sunken wells, inputs, idle chips */
+  --bg-surface:        var(--gi-2);
+  --surface:           var(--gi-2);
+  --border:            var(--gi-6);   /* chalk hairlines */
+  --border-bright:     var(--gi-7);
   --chip-border:       transparent;
 
-  /* Text — chalk scale (contrast-safe on Midnight + Booth slate) */
-  --text:              #E9EEF5;
-  --text-dim:          #9AA6B5;
-  /* (hint bumped from #6E7A8A → #808B98 to clear 4.5:1 on Booth slate) */
-  --text-hint:         #808B98;
-  --text-bright:       #FFFFFF;
+  /* Text — the system's 11/12 text pair. */
+  --text:              var(--gi-12);
+  --text-dim:          var(--gi-11);
+  --text-hint:         var(--gi-11);
+  --text-bright:       var(--gi-on-solid);
 
-  /* Data ink — reserved for data, never chrome (the dashboard's own pair) */
-  --run-color:         #F97316;
-  --run-text:          #FB923C;
-  --run-soft:          rgba(249,115,22,0.14);
-  --pass-color:        #38BDF8;
-  --pass-text:         #38BDF8;
-  --pass-soft:         rgba(56,189,248,0.14);
-  --success:           #34D399;
-  --danger:            #F87171;
-  --warning:           #FBBF24;
+  /* Data ink — reserved for data, never chrome. These are CATEGORICAL, and
+     the system already owns that distinction: a run is a category, not a
+     warning, which is why it must not borrow the amber that means warning. */
+  --run-color:         var(--gi-run);
+  --run-text:          var(--gi-run);
+  --run-soft:          var(--gi-warn-surface);
+  --pass-color:        var(--gi-pass);
+  --pass-text:         var(--gi-pass);
+  --pass-soft:         var(--gi-info-surface);
+  --success:           var(--gi-ok);
+  --danger:            var(--gi-turnover);
+  --warning:           var(--gi-warn);
 
-  /* Geometry — unchanged */
-  --radius:            6px;
-  --radius-lg:         10px;
-  --radius-sm:         4px;
+  /* Geometry — the system is square. Broadcast graphics are angular. */
+  --radius:            var(--gi-radius);
+  --radius-lg:         var(--gi-radius);
+  --radius-sm:         var(--gi-radius);
 
-  /* Shadows — black-based; elevation only for floating layers */
+  /* Shadows — elevation only for floating layers. */
   --shadow-xs:         none;
   --shadow-sm:         0 1px 2px rgba(0,0,0,0.40);
-  --shadow-md:         0 6px 16px rgba(0,0,0,0.50);
-  --shadow-lg:         0 20px 50px rgba(0,0,0,0.60);
+  --shadow-md:         var(--gi-shadow-toast);
+  --shadow-lg:         var(--gi-shadow-overlay);
 
-  --transition:        120ms cubic-bezier(.4,0,.2,1);
+  --transition:        var(--gi-quick);
 }
 
 /* Focus: one crisp ring everywhere; no colored glow rings. */
@@ -7294,12 +7315,12 @@ body { font-size: 13px; }
    ===================================================================== */
 /* Primary — solid accent, flat (was a 2-stop gradient). */
 .btn-accent, .btn-highlight, .btn-demo {
-  background: var(--accent); border: 1px solid var(--accent); color: #fff; box-shadow: none;
+  background: var(--accent); border: 1px solid var(--accent); color: var(--text-bright); box-shadow: none;
 }
 .btn-accent:hover, .btn-highlight:hover, .btn-demo:hover {
-  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+  background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
-.btn-highlight.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-highlight.active { background: var(--accent); border-color: var(--accent); color: var(--text-bright); }
 
 /* Secondary — white surface, hairline border. Base .btn adopts this so a
    plain .btn no longer floods solid blue on hover. */
@@ -7316,7 +7337,7 @@ body { font-size: 13px; }
 
 /* Danger — ghost red; solid red only inside confirm dialogs. */
 .btn-danger { background: transparent; border: 1px solid transparent; color: var(--danger); }
-.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: var(--text-bright); }
 
 /* Toolbar — white, single hairline bottom border, no shadow. */
 .top-bar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
@@ -7326,26 +7347,26 @@ body { font-size: 13px; }
 .dropzone-card {
   display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 26px 34px; background: transparent;
-  border: 1.5px dashed rgba(255,255,255,0.22); border-radius: var(--radius-lg);
+  border: 1.5px dashed var(--border-bright); border-radius: var(--radius-lg);
 }
-.dropzone-icon { width: 28px; height: 28px; color: rgba(255,255,255,0.5); }
-.dropzone-title { font-size: 15px; font-weight: 700; color: #F1F3F7; }
+.dropzone-icon { width: 28px; height: 28px; color: var(--text-dim); }
+.dropzone-title { font-size: 15px; font-weight: 700; color: var(--text); }
 .dropzone-actions { display: flex; gap: 8px; margin-top: 2px; }
 /* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
 .dropzone-actions .btn-secondary {
-  background: transparent; border-color: rgba(255,255,255,0.28); color: rgba(255,255,255,0.88);
+  background: transparent; border-color: var(--border-bright); color: var(--text);
 }
-.dropzone-actions .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
-.dropzone-card .empty-hint { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; }
+.dropzone-actions .btn-secondary:hover { background: var(--bg-tertiary); color: var(--text-bright); }
+.dropzone-card .empty-hint { color: var(--text-hint); font-size: 11px; margin-top: 2px; }
 
 /* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
    single-class, and .btn is later in source). Raise specificity so the primary
    fill always wins regardless of order — Save Season stays the one blue button. */
 .btn.btn-accent, .btn.btn-highlight, .btn.btn-demo {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent); border-color: var(--accent); color: var(--text-bright);
 }
 .btn.btn-accent:hover, .btn.btn-highlight:hover, .btn.btn-demo:hover {
-  background: var(--accent-hover); border-color: var(--accent-hover); color: #fff;
+  background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
 .btn.btn-highlight.active { background: var(--accent); border-color: var(--accent); }
 

@@ -109,6 +109,75 @@ const reportDeclared = new Set(reportRoles.map(entry => entry.name));
 const reportMissing = reportRefs.filter(name => !definitions.has(name) && !reportDeclared.has(name));
 ok(reportMissing.length === 0, 'every token the Reports stylesheet references is declared somewhere', reportMissing.join(', '));
 
+/**
+ * S6-4d: the LEGACY palette joins enforcement.
+ *
+ * `styles.css` is a layer cake — `body` is redefined six times, `.btn` four —
+ * and its LAST `:root` wins the cascade, so that one block paints the product:
+ * the app background, every button, the film container, the drop zone. It held
+ * a second hand-tuned palette, which is how every route could be on the design
+ * system while the app was not. Counting stylesheets made that look like a
+ * rounding error; it was not, because one `body` rule is every screen.
+ *
+ * The rule is the shell rule: colour roles are declared in the winning `:root`
+ * and must derive from a `--gi-*` token. Nothing is deleted and no selector
+ * moves — the legacy tree stays exactly where it is, and simply inherits the
+ * system. Rules elsewhere in the file are NOT swept: ~95% of them are already
+ * dead, and S7 removes the markup they target.
+ */
+const legacyCss = await readFile(resolve(root, 'css', 'styles.css'), 'utf8');
+/**
+ * The `@media print` re-pin is EXCLUDED, and deliberately: the app is dark and
+ * paper is not, so the print palette cannot be derived from a screen token —
+ * it is a genuine second palette with a real reason to exist. This guard's
+ * first version missed that, picked the print block as the winner, and
+ * reported a correct file as broken. Strip print with brace matching rather
+ * than a regex, so a nested block cannot fool it again.
+ */
+const stripPrint = source => {
+  let out = source, at;
+  while ((at = out.indexOf('@media print')) !== -1) {
+    let depth = 0, index = out.indexOf('{', at);
+    if (index === -1) break;
+    let end = index;
+    for (; end < out.length; end++) {
+      if (out[end] === '{') depth++;
+      else if (out[end] === '}' && --depth === 0) break;
+    }
+    out = out.slice(0, at) + out.slice(end + 1);
+  }
+  return out;
+};
+const legacyRoots = [...stripPrint(legacyCss).matchAll(/:root\s*\{[\s\S]*?\n\}/g)].map(match => match[0]);
+/**
+ * The palette is spread across SIX `:root` blocks — each redesign appended
+ * another — so "the last block" is not the winner. The cascade resolves
+ * per PROPERTY: whichever block declares a role LAST is the one that paints.
+ * Check exactly that, or a stale hex in an earlier block can hide behind a
+ * later block that happens to be tokenised.
+ */
+const colorRole = /^--(accent|highlight|canvas|bg|surface|border|text|chip|run|pass|success|danger|warning)/;
+const winning = new Map();
+for (const block of legacyRoots) {
+  for (const match of block.matchAll(/(--[\w-]+)\s*:\s*([^;\n]+)/g)) {
+    const name = match[1], value = match[2].trim();
+    if (colorRole.test(name)) winning.set(name, value);
+  }
+}
+// `transparent` / `currentColor` / `none` are keywords, not a second palette.
+const KEYWORD = /^(transparent|currentColor|none|inherit)$/i;
+const legacyStandalone = [...winning]
+  .filter(([, value]) => !/var\(--/.test(value) && !KEYWORD.test(value))
+  .map(([name]) => name);
+ok(winning.size > 20 && legacyStandalone.length === 0,
+  'every legacy colour role derives from a design-system token — one palette across the whole product',
+  JSON.stringify({ roles: winning.size, standalone: legacyStandalone }));
+
+const legacyGiMissing = [...new Set([...winning.values()].flatMap(value =>
+  [...value.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1])))]
+  .filter(name => !definitions.has(name));
+ok(legacyGiMissing.length === 0, 'every design-system token the legacy palette references is declared', legacyGiMissing.join(', '));
+
 const shellGiMissing = shellSources.flatMap(({ path, source }) =>
   [...new Set([...source.matchAll(/var\((--gi-[\w-]+)/g)].map(match => match[1]))]
     .filter(name => !definitions.has(name))
