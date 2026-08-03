@@ -29,6 +29,29 @@ non-events.
 ---
 
 ## ⚠ REVISION LOG — read this before acting on anything below
+
+**S6 build roles + required installer · 2026-08-02 · Coach · CHANGES §8 AND WHO BUILDS**
+
+Two changes, both by coach decision:
+
+1. **Claude builds S6; Codex independently reviews it.** This is a deliberate,
+   temporary swap of the default roles (Codex builds / Claude reviews), the same
+   documented exception used for the C1/C2 closeout pass. It reverts after S6.
+   **Codex is the independent reviewer for every S6 checkpoint** — a builder does
+   not accept their own work, and builder self-review has already been shown here
+   to under-count (the C1/C2 pass shipped 5 of 7 findings and reported "four").
+2. **§8 gains a required installer after S6, before S7 opens.** S7 is the one
+   irreversible commit — it deletes `#app`, `#wsClassicOutlet`, the restore paths,
+   `build.sh` and the dead CSS. The coach uses the finished analytics experience
+   on real film **before** that safety net is removed.
+
+**S6 build order (coach's sequence):** Home → Study → Plan → cross-screen
+consistency audit → installed milestone smoke. Each route is its own reviewed
+checkpoint; the consistency audit is a separate checkpoint, not a coat of paint
+applied during the third route.
+
+Nothing else changed: S5 remains complete and accepted, S7 stays closed, the
+frozen contracts and the no-analytics-regression rule are untouched.
 **`1.12.0-17` · 2026-08-02 · Coach/Codex · POST-S5d SMOKE PASSED; S5 COMPLETE; S6 OPEN**
 
 - Accepted S5d source `a4806b5` was versioned and packaged at `2d9e532`.
@@ -872,6 +895,41 @@ Preserve means preserve: none of these may be dropped as a design
 simplification. Retiring any of them requires the coach's explicit approval in
 writing, recorded here — silence is not a decision (S3's season export).
 
+### 3.3 S6 build contract — Claude builds, Codex reviews (added 2026-08-02)
+
+Five checkpoints, each its own commit and its own independent review. The point
+of splitting them is that S6's risk is **silent analytics drift**, and a
+route-sized diff is reviewable where a milestone-sized one is not.
+
+| # | Checkpoint | Carries | Must not |
+|---|---|---|---|
+| 1 | **Home** | Continue hero with progress by unit; film inbox as honest ready/partial/missing health with resolved path and clip counts (§11) | change film health semantics or any storage read |
+| 2 | **Study** | Pivot: any dimension × any dimension, measure switcher, min-sample control, totals, **every cell a cut-up**; under-sampled cells dimmed and labelled, never hidden. Candidate home for the tell surface | change `StudyQuery`/registry results or composite refs |
+| 3 | **Plan** | Findings grouped into a real game plan with linked play counts and Watch; presentation preview as a **bottom horizontal strip** — Plan order, horizontal scroll with no page overflow, selection and Watch preserved, keyboard and touch | change the `plans[]` contract or `PlanExport.build()` structure |
+| 4 | **Cross-screen consistency audit** | AX-1 · AX-2 · AX-3 · AX-4 · AX-5 · AX-6 · **AX-7 five-lens model**, plus UX-2 (shared game-context control), UX-3 (responsive containment), UX-4 (design-system ownership) | be folded into checkpoint 3 as incidental styling |
+| 5 | **Installed milestone smoke** | §8 installer, coach-run, before S7 opens | be skipped or substituted by a browser result |
+
+**Non-negotiable for every checkpoint — this is the whole risk of S6:**
+
+- **No parity-locked formula changes and no film-cohort changes.** `e2e-parity`
+  must stay green against both goldens without regeneration. If a golden must
+  move, that is a separate reviewed decision, called out in the diff, never a
+  side effect of a presentation pass.
+- **Every KPI, finding and grouped result keeps its exact composite
+  `gameId::playId` refs.** A redesigned cell that plays different film than the
+  cell it replaced is the worst possible outcome here.
+- **Assertion counts may not fall.** S5d lost 57 sites before anyone counted;
+  every S6 checkpoint states before/after counts per touched harness, and any
+  removal names the guarantee that replaced it.
+- **Screenshot-plus-truth per route** (four viewports + one source-backed value
+  check), per the design audit.
+
+**AX-7 is the one to challenge hardest.** Reorganising Reports and Study around
+Efficiency / Explosiveness / Situational / Tendencies / Risk is an information-
+architecture change over parity-locked numbers. Reviewer question is not "does it
+look better" but "does every lens still resolve to the same plays and the same
+values it did before".
+
 ### 3.1 P0 exit gate — all required before S1 opens
 
 1. Vite + Preact **browser build and Tauri build both work**.
@@ -953,8 +1011,14 @@ capability goes on an explicit list for coach approval **before** the milestone 
 - One coherent commit boundary per milestone; `CLAUDE.md` + this plan updated at
   every baton pass; full gate output captured to a file.
 - **Local (unpublished) milestone installers after:** native Team & Film Settings ·
-  Break Down ownership flip · final legacy deletion. Browser tests cannot prove
+  Break Down ownership flip · **S6 (before S7 opens — coach, 2026-08-02)** ·
+  final legacy deletion. Browser tests cannot prove
   Windows folder dialogs, linked-film paths, playback or Tauri lifecycle.
+  **The S6 installer is required and non-negotiable:** S7 deletes `#app`,
+  `#wsClassicOutlet`, the restore paths, `build.sh` and the dead CSS. That is the
+  one irreversible commit in the project, and the coach must have used the
+  finished analytics experience on real film **before** the safety net is
+  removed — not after.
   **This is an ACCEPTANCE CONDITION, not a suggestion.** Add it to the review
   checklist alongside the gate — it was missed at S2 and again at S3 precisely
   because it lived only in this section.
