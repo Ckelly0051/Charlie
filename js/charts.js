@@ -26,14 +26,37 @@ export class Charts {
       const pct = seg.value / total;
       const dashLen = circ * pct;
       const dash = `${dashLen.toFixed(2)} ${(circ - dashLen).toFixed(2)}`;
-      const arc = `<circle cx="${r}" cy="${r}" r="${cr.toFixed(1)}" fill="none" stroke="${seg.color}" stroke-width="${stroke.toFixed(1)}" stroke-dasharray="${dash}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${r} ${r})" opacity="0.88"><title>${Charts._esc(seg.label)}: ${seg.value} (${Math.round(pct * 100)}%)</title></circle>`;
+      const arc = `<circle cx="${r}" cy="${r}" r="${cr.toFixed(1)}" fill="none" style="stroke:${seg.color}" stroke-width="${stroke.toFixed(1)}" stroke-dasharray="${dash}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${r} ${r})" opacity="0.88"><title>${Charts._esc(seg.label)}: ${seg.value} (${Math.round(pct * 100)}%)</title></circle>`;
       offset += dashLen;
       return arc;
     }).join('');
 
-    const center = centerText ? `<text x="${r}" y="${r - 2}" text-anchor="middle" fill="var(--text,#E9EEF5)" font-size="${(size * 0.19).toFixed(0)}" font-weight="700">${Charts._esc(centerText)}</text><text x="${r}" y="${r + size * 0.12}" text-anchor="middle" fill="var(--text-dim,#9AA6B5)" font-size="${(size * 0.09).toFixed(0)}">${Charts._esc(centerSub)}</text>` : '';
+    // AX-5: the centre is for ONE primary number, sized to fill the hole, and
+    // the label goes OUTSIDE. Previously both lived inside the ring at fixed
+    // sizes, so "50.0%" rendered wider than the hole and overlapped the stroke,
+    // and the label competed with the number for the same space. The hole is
+    // measurable, so fit the number to it rather than hoping a fixed size fits:
+    // a four-character value and a two-character value both stay inside.
+    const hole = (cr - stroke / 2) * 2;
+    const text = String(centerText ?? '');
+    const fitted = Math.min(size * 0.30, (hole * 0.92) / Math.max(1, text.length * 0.58));
+    const center = text ? `<text x="${r}" y="${r}" text-anchor="middle" dominant-baseline="central" style="fill:var(--gi-12,#E9EEF5)" font-size="${fitted.toFixed(1)}" font-weight="700" font-family="var(--gi-cond,inherit)">${Charts._esc(text)}</text>` : '';
 
-    return `<svg class="chart-donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${arcs}${center}</svg>`;
+    return `<svg class="chart-donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${Charts._esc(centerSub || 'chart')}${text ? `: ${Charts._esc(text)}` : ''}">${arcs}${center}</svg>`;
+  }
+
+  /**
+   * A donut with its title above and its legend below — the AX-5 composition.
+   * The caption is a real element with stable dimensions instead of SVG text
+   * squeezed into the ring, so a long label wraps rather than clipping.
+   */
+  static donutBlock(segments, size = 120, centerText = '', title = '', legend = true) {
+    const donut = Charts.donut(segments, size, centerText, title);
+    if (!donut) return '';
+    const items = legend ? segments.filter(seg => seg.value > 0).map(seg =>
+      `<span class="chart-leg-item"><i style="background:${seg.color}"></i>${Charts._esc(seg.label)} <b>${seg.value}</b></span>`
+    ).join('') : '';
+    return `<figure class="chart-donut-block">${title ? `<figcaption>${Charts._esc(title)}</figcaption>` : ''}${donut}${items ? `<div class="chart-legend">${items}</div>` : ''}</figure>`;
   }
 
   static donutWithLegend(segments, size = 120, centerText = '', centerSub = '') {
@@ -87,7 +110,7 @@ export class Charts {
     const halfCirc = Math.PI * r;
     const dash = `${(halfCirc * frac).toFixed(2)} ${(halfCirc * (1 - frac)).toFixed(2)}`;
 
-    return `<div class="chart-gauge"${tip ? ` title="${Charts._esc(tip)}"` : ''}><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#E9EEF5)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
+    return `<div class="chart-gauge"${tip ? ` title="${Charts._esc(tip)}"` : ''}><svg viewBox="0 0 ${size} ${(size * 0.62).toFixed(0)}" width="${size}" height="${(size * 0.62).toFixed(0)}"><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" stroke="var(--gauge-track, #1c2128)" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"/><path d="M ${(cx - r).toFixed(1)} ${cy.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy.toFixed(1)}" fill="none" style="stroke:${color}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.9"/><text x="${cx}" y="${(cy - 1).toFixed(1)}" text-anchor="middle" fill="var(--text,#E9EEF5)" font-size="${(size * 0.2).toFixed(0)}" font-weight="700">${Math.round(pct)}%</text></svg>${label ? `<div class="chart-gauge-label">${Charts._esc(label)}</div>` : ''}</div>`;
   }
 
   /**
@@ -107,11 +130,11 @@ export class Charts {
     const path = `M${pts.join(' L')}`;
     const zeroY = y(0).toFixed(1);
     const fill = opts.fill !== false
-      ? `<path d="${path} L${(W - pad).toFixed(1)},${zeroY} L${pad},${zeroY} Z" fill="${color}" fill-opacity="0.08"/>`
+      ? `<path d="${path} L${(W - pad).toFixed(1)},${zeroY} L${pad},${zeroY} Z" style="fill:${color}" fill-opacity="0.08"/>`
       : '';
     const zeroLine = lo < 0 ? `<line x1="${pad}" y1="${zeroY}" x2="${W - pad}" y2="${zeroY}" stroke="rgba(233,238,245,0.14)" stroke-width="0.5" stroke-dasharray="3 3"/>` : '';
 
-    return `<svg class="chart-sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${zeroLine}${fill}<path d="${path}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${x(values.length - 1).toFixed(1)}" cy="${y(values[values.length - 1]).toFixed(1)}" r="2.5" fill="${color}"/></svg>`;
+    return `<svg class="chart-sparkline" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${zeroLine}${fill}<path d="${path}" fill="none" style="stroke:${color}" stroke-width="1.5"/><circle cx="${x(values.length - 1).toFixed(1)}" cy="${y(values[values.length - 1]).toFixed(1)}" r="2.5" style="fill:${color}"/></svg>`;
   }
 
   /**
@@ -147,7 +170,7 @@ export class Charts {
     const base = (H - padB).toFixed(1);
     const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padX.toFixed(1)},${base} Z`;
     const dots = points.map((p, i) =>
-      `<circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="2.6" fill="${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
+      `<circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="2.6" style="fill:${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
     ).join('');
     // current value + delta vs first
     const first = points[0].value, lastV = points[points.length - 1].value;
@@ -161,8 +184,8 @@ export class Charts {
       + `<div class="gi-trend-now"><span class="gi-trend-val">${fmt(lastV)}</span>`
       + `<span class="gi-trend-delta ${dClass}">${deltaStr}</span></div>`
       + `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="gi-trend-svg" role="img" aria-label="${Charts._esc(opts.title || 'trend')}">`
-      + `<path d="${area}" fill="${color}" fill-opacity="0.13"/>`
-      + `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}`
+      + `<path d="${area}" style="fill:${color}" fill-opacity="0.13"/>`
+      + `<path d="${path}" fill="none" style="stroke:${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}`
       + `</svg>`
       + `<div class="gi-trend-legend"><span>${nm(points[0].label)}</span><span>${nm(points[points.length - 1].label)}</span></div>`
       + `</div>`;
@@ -217,7 +240,7 @@ export class Charts {
 
     const dots = plays.map((p, i) => {
       const color = p.isRun ? '#f97316' : '#38bdf8';
-      return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" fill="${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
+      return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.cumYards).toFixed(1)}" r="3" style="fill:${color}" opacity="0.7"><title>Play ${p.playNum}: ${p.label} (${p.cumYards} total yds)</title></circle>`;
     }).join('');
 
     return `<div class="viz-block"><h4>Game Flow <span class="viz-legend"><i class="dot run"></i>Run <i class="dot pass"></i>Pass · cumulative yards</span></h4><svg class="viz-svg chart-gameflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}<path d="${areaPath}" fill="var(--accent,#2F6BF0)" fill-opacity="0.06"/><path d="${path}" fill="none" stroke="var(--accent,#2F6BF0)" stroke-width="2"/>${dots}<text x="${padL}" y="${H - 6}" fill="#9AA6B5" font-size="9">Play 1</text><text x="${W - padR}" y="${H - 6}" fill="#9AA6B5" font-size="9" text-anchor="end">Play ${plays.length}</text><text x="${W - padR}" y="12" fill="#9AA6B5" font-size="9" text-anchor="end">${vals[vals.length - 1]} total yds</text></svg></div>`;

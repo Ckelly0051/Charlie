@@ -304,7 +304,7 @@ export class ReportsScreen {
     if (!stats.allPlays) return this._emptyHtml();
     return `
       <div class="stats-cut-hint">Select any highlighted row to watch those exact plays. Report totals never substitute for the film.</div>
-      ${s._renderScoreboard(stats)}
+      ${s._renderGameHeader(stats)}
       ${s._renderTeamStats(stats)}
       ${s._renderKpiHero(stats)}
       ${s._renderTakeaways(stats)}

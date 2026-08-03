@@ -81,8 +81,44 @@
 .gi-reports .cut-row,.gi-reports .player-row,.gi-reports .drive-row{cursor:pointer}.gi-reports .cut-row:hover td,.gi-reports .player-row:hover td{color:var(--gi-12);background:var(--gi-info-surface)}
 .gi-reports .cut-row:focus-visible,.gi-reports .player-row:focus-visible{outline:0;box-shadow:inset var(--gi-focus)}
 .gi-reports .stats-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-5x)}
-.gi-reports .scoreboard-final{display:flex;align-items:center;justify-content:flex-start;gap:var(--gi-5x)}
-.gi-reports .scoreboard-team{text-align:left}.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-mono);font-size:10px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
+/* AX-4 (S6-4c): equal team blocks with a centred separator. This was
+   `flex / justify-content:flex-start`, which sized each block to its own digits
+   — a two-digit score and a one-digit score produced visibly unequal blocks and
+   an off-centre dash. `1fr auto 1fr` makes the two teams symmetrical by
+   construction, whatever the score. */
+.gi-reports .scoreboard-final{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:var(--gi-4x);max-width:520px}
+.gi-reports .scoreboard-team{text-align:center;min-width:0}
+.gi-reports .scoreboard-sep{align-self:center;line-height:1}
+/* The widescreen space beside the scoreboard now carries Game at a Glance
+   instead of sitting empty, and the technical scoring rules move behind a
+   disclosure — they answer "why is this number what it is", not something a
+   coach re-reads every visit. */
+.gi-reports .scoreboard-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.8fr);gap:var(--gi-6x);align-items:start}
+.gi-reports .scoreboard-main{min-width:0}
+.gi-reports .scoreboard-quarters{max-width:520px;width:100%}
+.gi-reports .scoreboard-note{margin-top:var(--gi-3x);color:var(--gi-11);font-size:11px}
+.gi-reports .scoreboard-note summary{cursor:pointer;color:var(--gi-11);text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:10px}
+.gi-reports .scoreboard-note p{margin:var(--gi-2x) 0 0;line-height:1.5}
+.gi-reports .gi-glance{min-width:0;border-left:1px solid var(--gi-6);padding-left:var(--gi-5x)}
+.gi-reports .gi-glance h4{margin:0 0 var(--gi-3x);font-family:var(--gi-cond);font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--gi-12)}
+.gi-reports .gi-glance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gi-2x)}
+.gi-reports .gi-glance-tile{min-width:0;padding:var(--gi-3x);border:1px solid var(--gi-6);background:var(--gi-2);display:grid;gap:2px;align-content:start}
+.gi-reports .gi-glance-tile span{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gi-11)}
+.gi-reports .gi-glance-tile strong{font-family:var(--gi-cond);font-size:26px;line-height:1.05;color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .gi-glance-tile small{font-size:10px;color:var(--gi-11)}
+.gi-reports .gi-glance-tile.cut-row{cursor:pointer}
+.gi-reports .gi-glance-tile.cut-row:hover,.gi-reports .gi-glance-tile.cut-row:focus-visible{border-color:var(--gi-10);background:var(--gi-3);outline:none}
+.gi-reports .gi-glance-foot{margin:var(--gi-3x) 0 0;font-size:11px;color:var(--gi-11)}
+/* AX-5: title above the ring, legend below, both with stable dimensions so a
+   long label wraps instead of clipping the chart. */
+.gi-reports .chart-donut-block{display:grid;justify-items:center;gap:var(--gi-2x);margin:0}
+.gi-reports .chart-donut-block figcaption{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gi-11);text-align:center;max-width:150px}
+.gi-reports .chart-donut-block .chart-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;max-width:170px}
+@media(max-width:980px){
+  .gi-reports .scoreboard-layout{grid-template-columns:1fr;gap:var(--gi-4x)}
+  .gi-reports .gi-glance{border-left:0;border-top:1px solid var(--gi-6);padding:var(--gi-4x) 0 0}
+  .gi-reports .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-mono);font-size:10px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
 .gi-reports .season-summary{display:flex;flex-wrap:wrap;gap:var(--gi-2x);padding:var(--gi-4x);background:var(--gi-2);color:var(--gi-12);border-left:3px solid var(--gi-los);border-radius:var(--gi-radius)}
 .gi-reports .gi-subnav{display:flex;overflow-x:auto;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
 .gi-reports .gi-subtab{min-height:var(--gi-control);padding:0 var(--gi-4x);border:0;border-bottom:2px solid transparent;background:transparent;color:var(--gi-11);font:600 11px/1 var(--gi-sans)}
@@ -122,4 +158,7 @@
   .gi-reports-content{padding:var(--gi-4x) var(--gi-3x) var(--gi-8x)}
   .gi-reports .stats-two-col{grid-template-columns:1fr}.gi-reports .stats-grid,.gi-reports .gi-card-grid,.gi-reports .ss-summary-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .gi-reports th{top:44px}.gi-reports .scoreboard-pts{font-size:40px}
-}
+}.gi-reports .scoreboard-layout.is-single{grid-template-columns:minmax(0,1fr)}
+.gi-reports .scoreboard-layout.is-single .gi-glance{border-left:0;padding-left:0}
+.gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media(max-width:980px){.gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

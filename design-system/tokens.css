@@ -35,8 +35,21 @@
   --gi-turnover:#fa4d56;       /* possession lost, destructive actions        */
   --gi-ok:#42be65;             /* system health only — saved, film resolved   */
   --gi-warn:#ff9f2e;
-  --gi-run:#a8842b;            /* categorical: run                            */
-  --gi-pass:#2f6291;           /* categorical: pass                           */
+  /* CATEGORICAL chart palette (AX-5 / UX-4, S6-4c). Deliberately separate from
+     the semantic status colours above: a chart series is a CATEGORY, not a
+     judgement, and the charts previously drew neutral series in the same red,
+     green and amber that mean turnover, healthy and warning everywhere else.
+     Each entry is paired with a text label in its legend, so colour is never
+     the only carrier of meaning. Run and pass keep their own names because
+     football reads them as a fixed pair rather than as ramp positions. */
+  --gi-cat-1:#4f8fd6;          /* categorical 1 — blue                        */
+  --gi-cat-2:#d99441;          /* categorical 2 — orange                      */
+  --gi-cat-3:#68b58c;          /* categorical 3 — green                       */
+  --gi-cat-4:#a888cf;          /* categorical 4 — violet                      */
+  --gi-cat-5:#d4b45a;          /* categorical 5 — sand                        */
+  --gi-cat-6:#7fb4bf;          /* categorical 6 — teal                        */
+  --gi-run:var(--gi-cat-2);    /* categorical: run                            */
+  --gi-pass:var(--gi-cat-1);   /* categorical: pass                           */
 
   /* Overlays and notices use named roles, never route-local color literals. */
   --gi-scrim:rgba(3,7,12,.76);

@@ -13,8 +13,11 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
 
-const RUN_COLOR = '#f97316';
-const PASS_COLOR = '#38bdf8';
+// AX-5 (S6-4c): run/pass data ink comes from the design system's CATEGORICAL
+// palette, not from two hand-picked hexes that happened to sit next to the
+// semantic amber and info blue. Chart series are categories, not judgements.
+const RUN_COLOR = 'var(--gi-run)';
+const PASS_COLOR = 'var(--gi-pass)';
 // Shown as a hover tooltip wherever Success Rate appears, so the metric is
 // self-explanatory in-app. Matches _isSuccessfulPlay().
 const SUCCESS_RATE_TIP = 'Share of plays that stay on schedule for the down/distance: 1st down needs 50% of the yards to go, 2nd down 70%, 3rd/4th must convert (plus any TD or made kick). Situation-aware: a 4-yard gain is a success on 1st-and-10 but not on 3rd-and-10.';
@@ -1802,7 +1805,7 @@ export class StatsEngine {
                 Down & Distance adds conversion rates. Formation adds tendencies.</div>
               </div>` : ''}
               <div class="stats-cut-hint">▶ Tip: click any highlighted stat row to watch those exact plays as a film cut-up.</div>
-              ${this._renderScoreboard(stats)}
+              ${this._renderGameHeader(stats)}
               ${this._renderTeamStats(stats)}
               ${this._renderKpiHero(stats)}
               ${this._renderTakeaways(stats)}
@@ -2343,6 +2346,31 @@ export class StatsEngine {
       </div>`;
   }
 
+  /**
+   * AX-4: the Overview header. Scoreboard on the left, Game at a Glance filling
+   * the widescreen space on the right.
+   *
+   * The two are composed here rather than nested, because they answer different
+   * questions from different data: the scoreboard needs tagged SCORING plays,
+   * the glance needs tagged plays. Nesting the glance inside the scoreboard —
+   * which is where it first went — meant a game charted without any scoring
+   * tagged silently lost its glance panel too. When only one is available it
+   * takes the full width.
+   */
+  _renderGameHeader(stats) {
+    const board = this._renderScoreboard(stats);
+    const glance = this._renderGlance(stats);
+    if (!board && !glance) return '';
+    return `
+      <div class="stats-section">
+        <h3>${board ? 'Scoreboard' : 'Game at a Glance'}</h3>
+        <div class="scoreboard-layout${board && glance ? '' : ' is-single'}">
+          ${board}
+          ${glance}
+        </div>
+      </div>`;
+  }
+
   _renderScoreboard(stats) {
     const sb = stats.scoreboard;
     if (!sb || !sb.hasData) return '';
@@ -2376,23 +2404,76 @@ export class StatsEngine {
           </tbody>
         </table>${hasUntracked ? '<p class="viz-caption">N/Q = scoring plays missing a Quarter tag.</p>' : ''}`;
     }
+    // AX-4: equal team blocks with a centred separator, and the widescreen space
+    // to the right of the scoreboard now carries Game at a Glance instead of
+    // sitting empty. The technical scoring rules move behind a disclosure — they
+    // are the answer to "why is this number what it is", not something a coach
+    // reads every time they open the report.
     return `
-      <div class="stats-section">
-        <h3>Scoreboard</h3>
-        <div class="scoreboard-final">
-          <div class="scoreboard-team">
-            <div class="scoreboard-name">${team}</div>
-            <div class="scoreboard-pts" style="color:${usColor}">${sb.us}</div>
-          </div>
-          <div class="scoreboard-sep">–</div>
-          <div class="scoreboard-team">
-            <div class="scoreboard-name">${opp}</div>
-            <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
-          </div>
+          <div class="scoreboard-main">
+            <div class="scoreboard-final">
+              <div class="scoreboard-team">
+                <div class="scoreboard-name">${team}</div>
+                <div class="scoreboard-pts" style="color:${usColor}">${sb.us}</div>
+              </div>
+              <div class="scoreboard-sep" aria-hidden="true">–</div>
+              <div class="scoreboard-team">
+                <div class="scoreboard-name">${opp}</div>
+                <div class="scoreboard-pts" style="color:${themColor}">${sb.them}</div>
+              </div>
+            </div>
+            ${qTable}
+            <details class="scoreboard-note">
+              <summary>How this score is tracked</summary>
+              <p>Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Structured scoring follows the charted subject/opponent ruling; legacy plays retain their established unit-based fallback.</p>
+            </details>
+          </div>`;
+  }
+
+  /**
+   * AX-4 "Game at a Glance" — factual, not advisory. Recommendations stay in
+   * Study by design; this panel answers "what happened" in six numbers.
+   *
+   * Film linking is HONEST rather than uniform: a fact gets a `.cut-row` only
+   * when an EXISTING cut filter already defines its exact cohort. Explosives,
+   * negative plays, third downs and red-zone snaps have one; total plays and
+   * yards-per-play are aggregates over everything and are shown as context
+   * without pretending to a cohort. Inventing a cut type to make every tile
+   * clickable would be the opposite of the film-link discipline this report is
+   * built on. No value here is computed locally — every one is read from the
+   * stats object the parity gate already covers.
+   */
+  _renderGlance(stats) {
+    const plays = stats.totalPlays || 0;
+    if (!plays) return '';
+    // Read from exactly the fields `_renderKpiHero` reads, so the two surfaces
+    // can never disagree about the same game.
+    const totalYards = (stats.rushing?.yards || 0) + (stats.passing?.yards || 0);
+    const ypp = plays ? (totalYards / plays).toFixed(1) : '0.0';
+    const e = stats.efficiency || {};
+    const d = stats.downs || {};
+    const success = e.successRate != null ? `${Math.round(parseFloat(e.successRate))}%` : '—';
+    const explosiveCount = e.explosivePlays != null ? e.explosivePlays : 0;
+    const negativeCount = e.negativePlays != null ? e.negativePlays : 0;
+    const thirdLabel = d.thirdDownConv || '—';
+    const turnovers = stats.turnovers?.total || 0;
+    const tile = (label, value, sub, cut) => {
+      const attrs = cut ? ` class="gi-glance-tile cut-row" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" tabindex="0" role="button"` : ' class="gi-glance-tile"';
+      return `<div${attrs}><span>${Charts._esc(label)}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
+    };
+    return `
+      <aside class="gi-glance" aria-label="Game at a glance">
+        <h4>Game at a Glance</h4>
+        <div class="gi-glance-grid">
+          ${tile('Plays', plays, 'charted this game')}
+          ${tile('Yds / play', ypp, `${totalYards} total`)}
+          ${tile('Success rate', success, 'on-schedule')}
+          ${tile('Explosives', explosiveCount, 'watch them', { type: 'situation', val: 'explosive', label: 'Explosive plays' })}
+          ${tile('Negative plays', negativeCount, 'watch them', { type: 'situation', val: 'negative', label: 'Negative plays' })}
+          ${tile('Third down', thirdLabel, 'watch them', { type: 'down', val: '3', label: 'Third down' })}
         </div>
-        ${qTable}
-        <p class="viz-caption">Tracked live from tagged scoring plays (TD = 6, FG = 3, XP = 1, 2-Pt = 2). Structured scoring follows the charted subject/opponent ruling; legacy plays retain their established unit-based fallback.</p>
-      </div>`;
+        ${turnovers ? `<p class="gi-glance-foot">${turnovers} turnover${turnovers === 1 ? '' : 's'} charted</p>` : ''}
+      </aside>`;
   }
 
   _renderConversions(stats) {
@@ -2720,15 +2801,16 @@ export class StatsEngine {
     const tend = stats.tendencies;
     const totalYards = r.yards + p.yards;
 
-    const rpDonut = Charts.donut([
+    // AX-5: title above, one primary number in the ring, legend below.
+    const rpDonut = Charts.donutBlock([
       { value: tend.runs, color: RUN_COLOR, label: 'Run' },
       { value: tend.passes, color: PASS_COLOR, label: 'Pass' }
     ], 110, tend.runPct + '%', 'Run Rate');
 
-    const ydsDonut = Charts.donut([
+    const ydsDonut = Charts.donutBlock([
       { value: Math.max(0, r.yards), color: RUN_COLOR, label: 'Rush Yards' },
       { value: Math.max(0, p.yards), color: PASS_COLOR, label: 'Pass Yards' }
-    ], 110, String(totalYards), 'Total Yds');
+    ], 110, String(totalYards), 'Total Yards');
 
     return `
       <div class="stats-section">

@@ -312,10 +312,35 @@ await capture('mobile-overview');
 
 console.log('\n== S6-4c AX-1: the report stylesheet actually reaches the native route ==');
 await page.setViewport({ width: 1400, height: 860 });
-await new Promise(resolve => setTimeout(resolve, 250));
+// The three-play fixture above proves ownership and lifecycle; it cannot
+// produce a KPI hero, a scoreboard or an explosive cohort. Chart a real game so
+// the presentation assertions below measure a populated report rather than an
+// empty one.
+await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore;
+  const looks = ['Trips', 'Ace', 'Wing-T', 'Bunch', 'Empty', 'Doubles'];
+  const types = ['Run Inside', 'Run Outside', 'Short Pass', 'Deep Pass', 'Screen', 'Play Action'];
+  const game = store.data.games.find(entry => entry.id === 'g-self');
+  game.plays = Array.from({ length: 64 }, (unused, index) => ({
+    id: index + 1, timestamp: { start: index * 5, end: index * 5 + 4 }, notes: '', analysis: null,
+    tags: {
+      unit: index % 5 === 4 ? 'defense' : 'offense', formation: looks[index % looks.length],
+      backfield: index % 2 ? 'I' : 'Single', personnel: index % 2 ? '11' : '21',
+      runPass: index % 2 ? 'Run' : 'Pass', playType: types[index % types.length],
+      result: index % 9 === 0 ? 'Touchdown' : (index % 7 === 0 ? 'Loss' : 'Gain'),
+      yardage: String(index % 9 === 0 ? 18 : (index % 7 === 0 ? -4 : 2 + (index % 14))),
+      down: String((index % 4) + 1), distance: String(1 + (index % 12)), quarter: `Q${(index % 4) + 1}`,
+      defFront: '4-2-5', coverage: 'Cover 3', custom: [], players: { ballCarrier: '22', tackler: '55' }, grades: {},
+    },
+  }));
+  game.nextId = 65;
+  store.data.activeGameId = 'g-self';
+  app.storage._loadActiveGame();
+  await app.workspaceShell.show('reports');
+});
+await new Promise(resolve => setTimeout(resolve, 450));
 const kpiStyling = await page.evaluate(async () => {
-  const offense = [...document.querySelectorAll('.stats-tab')].find(tab => /offense/i.test(tab.textContent));
-  offense?.click();
+  document.querySelector('[data-report-tab="offense"]')?.click();
   await new Promise(resolve => setTimeout(resolve, 350));
   const hero = document.querySelector('.gi-reports .gi-hero');
   const card = document.querySelector('.gi-reports .gi-kpi');
@@ -344,6 +369,82 @@ ok(kpiStyling.display === 'grid' && kpiStyling.border > 0 && kpiStyling.padding 
   'Native Reports KPI cards are real stat blocks, not unstyled stacked text', JSON.stringify(kpiStyling));
 ok(/IBM Plex Sans Condensed/i.test(kpiStyling.valueFont),
   'Native Reports numbers use the design-system condensed face', JSON.stringify({ valueFont: kpiStyling.valueFont }));
+
+console.log('\n== S6-4c AX-4/AX-5: Overview composition and shared chart primitives ==');
+const composition = await page.evaluate(async () => {
+  document.querySelector('[data-report-tab="overview"]')?.click();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  const teams = [...document.querySelectorAll('.gi-reports .scoreboard-team')].map(node => Math.round(node.getBoundingClientRect().width));
+  const sep = document.querySelector('.gi-reports .scoreboard-sep')?.getBoundingClientRect();
+  const layout = document.querySelector('.gi-reports .scoreboard-layout');
+  const glance = document.querySelector('.gi-reports .gi-glance');
+  const svg = document.querySelector('.gi-reports .chart-donut');
+  const centre = svg?.querySelector('text');
+  const ring = svg?.querySelector('circle');
+  const centreBox = centre?.getBBox ? centre.getBBox() : null;
+  // The ring's inner hole, computed from the geometry the primitive draws, is
+  // what the centre number has to fit inside. Before AX-5 it did not.
+  const radius = ring ? parseFloat(ring.getAttribute('r')) : 0;
+  const strokeWidth = ring ? parseFloat(ring.getAttribute('stroke-width')) : 0;
+  const hole = (radius - strokeWidth / 2) * 2;
+  const final = document.querySelector('.gi-reports .scoreboard-final')?.getBoundingClientRect();
+  return {
+    teams,
+    sepCentred: !!(sep && final && teams.length === 2
+      && Math.abs((sep.left + sep.width / 2) - (final.left + final.width / 2)) < 3),
+    glanceTiles: document.querySelectorAll('.gi-reports .gi-glance-tile').length,
+    glanceLinked: document.querySelectorAll('.gi-reports .gi-glance-tile.cut-row').length,
+    glanceInLayout: !!(glance && layout && layout.contains(glance)),
+    disclosure: !!document.querySelector('.gi-reports .scoreboard-note summary'),
+    inlineTechnical: /TD = 6, FG = 3/.test(document.querySelector('.gi-reports .scoreboard-note')?.querySelector('p')?.textContent || ''),
+    donutBlocks: document.querySelectorAll('.gi-reports .chart-donut-block').length,
+    titleOutsideSvg: !!document.querySelector('.gi-reports .chart-donut-block > figcaption'),
+    legendLabels: [...document.querySelectorAll('.gi-reports .chart-donut-block .chart-leg-item')].map(node => node.textContent.trim()),
+    centreWidth: centreBox ? Math.round(centreBox.width) : 0,
+    hole: Math.round(hole),
+    ringStroke: ring ? getComputedStyle(ring).stroke : '',
+  };
+});
+ok(composition.teams.length === 2 && composition.teams[0] === composition.teams[1] && composition.sepCentred,
+  'Scoreboard uses equal team blocks with a centred separator', JSON.stringify(composition.teams));
+ok(composition.glanceTiles === 6 && composition.glanceLinked >= 3 && composition.glanceInLayout,
+  'Game at a Glance fills the space beside the scoreboard with factual, partly film-linked tiles', JSON.stringify(composition));
+ok(composition.disclosure && composition.inlineTechnical,
+  'Technical scoring rules sit behind an information affordance rather than as body copy', JSON.stringify({ disclosure: composition.disclosure }));
+ok(composition.donutBlocks >= 2 && composition.titleOutsideSvg && composition.legendLabels.every(label => /\S+\s+\d/.test(label)),
+  'Donuts carry their title outside the ring and a complete legend below', JSON.stringify(composition.legendLabels));
+ok(composition.centreWidth > 0 && composition.centreWidth <= composition.hole,
+  'The donut centre number fits inside the ring hole instead of overlapping the stroke', JSON.stringify({ centreWidth: composition.centreWidth, hole: composition.hole }));
+// AX-5: a chart series is a category, not a judgement. Assert the run/pass ink
+// resolves to the categorical tokens and is NOT any semantic status colour.
+const paletteCheck = await page.evaluate(() => {
+  const styles = getComputedStyle(document.documentElement);
+  const asRgb = value => { const probe = document.createElement('span'); probe.style.color = value; document.body.appendChild(probe); const out = getComputedStyle(probe).color; probe.remove(); return out; };
+  const ring = document.querySelector('.gi-reports .chart-donut circle');
+  const status = ['--gi-ok', '--gi-warn', '--gi-turnover', '--gi-first-down'].map(token => asRgb(styles.getPropertyValue(token).trim()));
+  return { stroke: ring ? getComputedStyle(ring).stroke : '', run: asRgb(styles.getPropertyValue('--gi-run').trim()), status };
+});
+ok(paletteCheck.stroke && paletteCheck.stroke === paletteCheck.run && !paletteCheck.status.includes(paletteCheck.stroke),
+  'Chart series use the categorical palette and never a semantic status colour', JSON.stringify(paletteCheck));
+// The strongest guarantee on this panel: the number the coach reads is the
+// number of plays that actually play.
+const glanceFilm = await page.evaluate(async () => {
+  const app = window.app, calls = [], original = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label }); return Promise.resolve({ completed: true }); };
+  const tile = [...document.querySelectorAll('.gi-reports .gi-glance-tile.cut-row')]
+    .find(node => /explosive/i.test(node.querySelector('span')?.textContent || ''));
+  const shown = Number(tile?.querySelector('strong')?.textContent || 0);
+  tile?.click();
+  await new Promise(resolve => setTimeout(resolve, 250));
+  app.filmNavigation.watch = original;
+  const activeId = String(app.storage.seasonStore.data.activeGameId);
+  const refs = calls[0]?.refs || [];
+  return { shown, refCount: refs.length, calls: calls.length,
+    composite: refs.every(ref => /^[^:]+::[^:]+$/.test(String(ref))),
+    sameGame: refs.every(ref => String(ref).split('::')[0] === activeId) };
+});
+ok(glanceFilm.calls === 1 && glanceFilm.shown > 0 && glanceFilm.refCount === glanceFilm.shown && glanceFilm.composite && glanceFilm.sameGame,
+  'A Game at a Glance tile plays exactly as many composite-ref plays as the number it displays', JSON.stringify(glanceFilm));
 
 ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
 await browser.close();
