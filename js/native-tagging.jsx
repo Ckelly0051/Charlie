@@ -224,17 +224,23 @@ function Players({screen, state}) {
   const roles = state.unit === 'special' ? ['kicker','returner'] : state.unit === 'defense' ? ['tackler','takeaway'] : ['ballCarrier','passer','receiver'];
   const allowed = role => state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'tackler' || role === 'takeaway'
     ? player.side !== 'O' : player.side !== 'D');
-  return <Group title="Players & Grades" detail="individual performance">
+  // Player attribution is charted on nearly every snap — tacklers on defense,
+  // ball carrier / passer / receiver on offense — so this group opens with the
+  // form. Collapsed by default, tackle charting was effectively missing.
+  const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
+    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner' };
+  return <Group title="Players & Grades" detail={state.unit === 'defense' ? 'tacklers and takeaways — separate multiple with a comma' : 'individual performance'} open>
     <div class="gi-tag-players">{roles.map(role => <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
-      <strong>{role.replace(/([A-Z])/g,' $1')}</strong>
+      <strong>{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
       <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => screen.setActiveRole(role)} onClick={() => screen.setActiveRole(role)}
         onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
       <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
         <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
       </select>
-      {state.activeRole === role && allowed(role).length > 0 && <div class="gi-player-quick">{allowed(role).map(player =>
+      {allowed(role).length > 0 && <div class="gi-player-quick">{allowed(role).map(player =>
         <button type="button" key={player.num} class={selected(state.players[role]?.replace(/,\s*/g,' + '),String(player.num)) ? 'is-active' : ''}
-          onClick={() => screen.quickPickPlayer(player.num)}>#{player.num}{player.name ? ` ${player.name}` : ''}</button>)}</div>}
+          title={player.name ? `#${player.num} ${player.name}` : `#${player.num}`}
+          onClick={() => { screen.setActiveRole(role); screen.quickPickPlayer(player.num); }}>{player.num}</button>)}</div>}
     </div>)}</div>
   </Group>;
 }

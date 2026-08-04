@@ -66,10 +66,14 @@ state=await page.evaluate(async()=>{
   const defensePlayers=[...root.querySelectorAll('.gi-tag-players strong')].map(n=>n.textContent.trim());
   app.nativeTagging.setUnit('offense');await new Promise(r=>setTimeout(r,0));
   const text=root.textContent;
-  return{unitOwners:root.querySelectorAll('[data-native-context=unit]').length,libraryCalls:calls,players:[...new Set([...offensePlayers,...defensePlayers])],notes:root.querySelectorAll('textarea').length,custom:text.includes('Edit custom fields'),penalties:text.includes('Penalties')};
+  const playersGroup=[...root.querySelectorAll('.gi-tag-group')].find(node=>node.querySelector('summary strong')?.textContent.startsWith('Players'));
+  return{unitOwners:root.querySelectorAll('[data-native-context=unit]').length,libraryCalls:calls,players:[...new Set([...offensePlayers,...defensePlayers])],notes:root.querySelectorAll('textarea').length,custom:text.includes('Edit custom fields'),penalties:text.includes('Penalties'),playersOpen:!!playersGroup?.open};
 });
 ok(state.unitOwners===1&&JSON.stringify(state.libraryCalls)===JSON.stringify(['formation','backfield','front']),'Native route has one charting-unit owner and one shared library editor seam',JSON.stringify(state));
-ok(['ball Carrier','passer','receiver','tackler'].every(role=>state.players.includes(role))&&state.notes>0&&state.custom&&state.penalties,'Every production offense, defense, player, custom, note, and situation control remains present in the native form',JSON.stringify(state));
+// Roles now carry football labels ("Tackler(s)") rather than camel-cased field
+// names ("ball Carrier"). Match the label a coach reads.
+ok(['Ball Carrier','Passer','Receiver','Tackler(s)','Takeaway'].every(role=>state.players.includes(role))&&state.notes>0&&state.custom&&state.penalties,'Every production offense, defense, player, custom, note, and situation control remains present in the native form',JSON.stringify(state));
+ok(state.playersOpen,'Players & Grades opens with the form so tackle charting is visible without hunting',JSON.stringify({open:state.playersOpen}));
 state=await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
   const values=field=>[...root.querySelectorAll(`[data-native-field="${field}"] button`)].map(button=>button.textContent.trim());
@@ -170,7 +174,15 @@ state=await page.evaluate(async fixture=>{
   const unitChoice=()=>root().querySelector('[data-native-choice=Unit]');for(let i=0;i<10&&!unitChoice();i++)await new Promise(r=>setTimeout(r,10));if(!unitChoice())throw new Error('No ST unit choice after unit change');const punt=[...unitChoice().querySelectorAll('button')].find(b=>b.textContent.trim()==='Punt');punt.click();await new Promise(r=>setTimeout(r,30));if(!app.tagger.getCurrentPlay().specialTeams)throw new Error('Punt did not create structured model');button('Returned').click();await new Promise(r=>setTimeout(r,30));
   const stInputs=[...root().querySelectorAll('.gi-tag-input')];const returnInput=stInputs.find(l=>l.textContent.includes('Return yards'))?.querySelector('input');returnInput.value='12';returnInput.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,0));
   button('Add penalty').click();await new Promise(r=>setTimeout(r,0));const card=root().querySelector('.gi-penalty-card');const inputs=[...card.querySelectorAll('input')];inputs.find(i=>i.getAttribute('list')) .value='Holding';inputs.find(i=>i.getAttribute('list')).dispatchEvent(new Event('change',{bubbles:true}));button('Play counts').click();await new Promise(r=>setTimeout(r,0));app.nativeTagging.addPenalty();await new Promise(r=>setTimeout(r,0));app.nativeTagging.penaltyInput(1,'foul','Facemask');app.nativeTagging.penaltyAction(1,'disposition','declined');app.nativeTagging.penaltyAction(1,'playCounts','true');
-  const returner=[...root().querySelectorAll('.gi-tag-players strong')].find(n=>n.textContent.trim()==='returner')?.parentElement;returner.querySelector('input').click();app.nativeTagging.setActiveRole('returner');await new Promise(r=>setTimeout(r,10));button('#22 Jones').click();
+  // Roles carry football labels now, and the roster quick-pick is the jersey
+  // NUMBER with the name in its tooltip — a full roster of "#22 Jones" chips
+  // stacked one per line and made the group a screen tall.
+  // Quick-pick chips are visible for EVERY role now — a tackler is one click on
+  // every defensive snap, so they cannot be hidden behind focusing the field —
+  // which means the same jersey number appears in more than one card. Scope the
+  // click to the returner's own card.
+  const returner=[...root().querySelectorAll('.gi-tag-players strong')].find(n=>n.textContent.trim()==='Returner')?.parentElement;
+  [...returner.querySelectorAll('.gi-player-quick button')].find(b=>b.textContent.trim()==='22').click();
   const notes=[...root().querySelectorAll('textarea')][0];notes.value='Punt return right';notes.dispatchEvent(new Event('input',{bubbles:true}));
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
