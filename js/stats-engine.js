@@ -3648,6 +3648,127 @@ export class StatsEngine {
     return String(window.app?.storage?.gameInfo?.opponent || '').trim();
   }
 
+  /**
+   * F3 — every charted game is a scouting source.
+   *
+   * The aggregation has always worked; it was only ever REACHABLE for the
+   * active game's opponent, through one button, so a coach with six charted
+   * games saw one scout report and concluded the rest generated nothing.
+   * This lists every opponent with charted film across every season, so the
+   * report exists for all of them and the coach can move between them.
+   *
+   * A head-to-head game counts exactly like scout film: our defensive snaps
+   * carry their offense, our offensive snaps carry the fronts and coverages
+   * they showed. Charting a game IS scouting the team we played.
+   */
+  listScoutableOpponents() {
+    const byName = new Map();
+    this._allSeasonGames().forEach(game => {
+      const name = String(game?.gameInfo?.opponent || '').trim();
+      if (!name) return;
+      const plays = Array.isArray(game.plays) ? game.plays : [];
+      // Coverage is a PROJECTED field — it must be read through `proj` so a
+      // legacy value embedded in another tag is seen the same way everywhere.
+      const charted = plays.filter(play => play?.tags && (play.tags.playType || play.tags.runPass
+        || play.tags.defFront || StatsEngine.proj(play).coverage || play.tags.unit === 'special')).length;
+      if (!charted) return;
+      const key = name.toLowerCase();
+      const entry = byName.get(key) || { name, games: 0, plays: 0, scoutFilm: 0 };
+      entry.games += 1;
+      entry.plays += charted;
+      if (String(game?.gameInfo?.perspective || '') === 'scout') entry.scoutFilm += 1;
+      byName.set(key, entry);
+    });
+    return [...byName.values()].sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name));
+  }
+
+  /**
+   * F4 — the opponent's defense, read off OUR offensive snaps.
+   *
+   * Each of those plays is a joint observation: their front / coverage /
+   * pressure, our formation / personnel / down and distance, and what
+   * happened. Four questions a coordinator actually asks:
+   *
+   *   effectiveness — where did they hurt us, where did we hurt them
+   *   byOurLook     — what do they call against what we show
+   *   bySituation   — money downs, red zone, and how the call changes
+   *   pressure      — how often they bring it, and what it costs
+   *
+   * Every number here is counted from plays, using the same isRun/isPass,
+   * success and explosive rules the rest of the engine uses. No new formula.
+   * Rows carry their own play ids so each one stays film-linked.
+   */
+  _opponentDefenseJoin(defPlays, ourOnly = new Set()) {
+    const plays = (defPlays || []).filter(play => play?.tags);
+    if (!plays.length) return null;
+    const EXPLOSIVE = play => (StatsEngine.isRun(play) ? 12 : 16);
+    const blank = name => ({ name, n: 0, yards: 0, succ: 0, expl: 0, neg: 0, sacks: 0, tos: 0, refs: [] });
+    const add = (bucket, play) => {
+      const yards = parseInt(play.tags.yardage) || 0;
+      bucket.n += 1;
+      bucket.yards += yards;
+      if (this._isSuccessfulPlay(play)) bucket.succ += 1;
+      if (yards >= EXPLOSIVE(play)) bucket.expl += 1;
+      if (yards < 0) bucket.neg += 1;
+      if (StatsEngine.hasResult(play, 'Sack')) bucket.sacks += 1;
+      if (StatsEngine.hasResult(play, 'Interception') || StatsEngine.hasResult(play, 'Fumble')) bucket.tos += 1;
+      if (play.__gid != null && play.id != null) bucket.refs.push(`${play.__gid}::${play.id}`);
+    };
+    const finish = bucket => ({
+      ...bucket,
+      avg: bucket.n ? (bucket.yards / bucket.n).toFixed(1) : '0.0',
+      succPct: bucket.n ? Math.round(bucket.succ / bucket.n * 100) : 0,
+      explPct: bucket.n ? Math.round(bucket.expl / bucket.n * 100) : 0,
+      refs: [...new Set(bucket.refs)],
+    });
+    const group = (keyOf) => {
+      const map = new Map();
+      plays.forEach(play => {
+        keyOf(play).forEach(key => {
+          if (!key) return;
+          if (!map.has(key)) map.set(key, blank(key));
+          add(map.get(key), play);
+        });
+      });
+      return [...map.values()].map(finish).sort((a, b) => b.n - a.n);
+    };
+
+    const fronts = group(play => StatsEngine.splitFronts(play.tags.defFront).filter(front => front && !ourOnly.has(front)));
+    const coverages = group(play => [StatsEngine.proj(play).coverage]);
+    const byOurLook = group(play => StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+    const bySituation = group(play => {
+      const down = play.tags.down, distance = parseInt(play.tags.distance) || 0;
+      const yard = this._absYardLine(play.tags);
+      const keys = [];
+      if (down === '3' || down === '4') keys.push(distance >= 7 ? 'Money down, long' : 'Money down, short');
+      else if (down) keys.push('Early down');
+      if (yard !== null && yard >= 80) keys.push('Red zone');
+      if (yard !== null && yard <= 10) keys.push('Backed up');
+      return keys;
+    });
+
+    // Pressure is a rate question, not a ranking: how often do they bring it,
+    // and is our answer better or worse when they do?
+    const blitzed = blank('Pressure'), noBlitz = blank('No pressure');
+    plays.forEach(play => add(StatsEngine.splitBlitzes(play.tags.blitz).length ? blitzed : noBlitz, play));
+
+    const total = plays.length;
+    const topOf = list => list.find(row => row.n >= 3) || list[0] || null;
+    return {
+      total,
+      fronts, coverages, byOurLook, bySituation,
+      pressure: { blitzed: finish(blitzed), noBlitz: finish(noBlitz),
+        ratePct: total ? Math.round(blitzed.n / total * 100) : 0 },
+      // "The exceptions are the tell": at 97% one front, the interesting rows
+      // are the other 3%. Surface when they deviate, not just that they rarely do.
+      baseFront: topOf(fronts),
+      baseCoverage: topOf(coverages),
+      changeups: fronts.filter(row => row.n < Math.max(2, total * 0.15)),
+      best: [...byOurLook].filter(row => row.n >= 3).sort((a, b) => b.succPct - a.succPct)[0] || null,
+      worst: [...byOurLook].filter(row => row.n >= 3).sort((a, b) => a.succPct - b.succPct)[0] || null,
+    };
+  }
+
   generateOpponentScout(opponentName) {
     const target = String(opponentName || '').trim().toLowerCase();
     if (!target) return null;
@@ -3691,6 +3812,11 @@ export class StatsEngine {
     return {
       opponent: opponentName,
       games: matched.length,
+      // F4 — the JOIN. Every offensive snap we charted stores their front,
+      // coverage and pressure TOGETHER with our look and the outcome, so the
+      // defensive scout is not "what fronts do they own" (one row, no action)
+      // but "what did they call against what we showed, and what did it cost".
+      defenseJoin: this._opponentDefenseJoin(defPlays, ourOnly),
       offReport: asOffense.length ? this.generateScoutReport(asOffense) : null,
       offPlays: asOffense,
       offCount: offPlays.length,

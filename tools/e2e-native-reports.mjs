@@ -536,6 +536,60 @@ const lensRoute = await page.evaluate(async () => {
 ok(lensRoute.want && lensRoute.landed === lensRoute.want && lensRoute.back === 'overview',
   'The Tendencies lens opens the report that owns its detail', JSON.stringify(lensRoute));
 
+console.log('\n== F3/F4. Every charted game scouts, and the scout says something ==');
+const scout = await page.evaluate(() => {
+  const engine = window.app.stats;
+  const screen = window.app.reportsScreen;
+  const listed = engine.listScoutableOpponents();
+  const data = engine.generateOpponentScout('Wildcats');
+  const join = data?.defenseJoin;
+  const root = document.querySelector('#wsReports');
+  const rows = [...root.querySelectorAll('[data-opponent-refs]')];
+  return {
+    listed: listed.map(item => ({ name: item.name, games: item.games, plays: item.plays })),
+    // A head-to-head game is a scouting source: their offense read off our
+    // defensive snaps, their defense off the fronts we faced.
+    headToHeadCounts: !!(data && data.offCount > 0 && data.defCount > 0),
+    join: join ? {
+      total: join.total, fronts: join.fronts.length, byOurLook: join.byOurLook.length,
+      pressureRate: join.pressure.ratePct,
+      baseFront: join.baseFront?.name || null,
+      // Every row carries its own composite refs, so the join stays film-linked.
+      allRefsComposite: [...join.fronts, ...join.coverages, ...join.byOurLook, ...join.bySituation]
+        .every(row => row.refs.every(ref => /^[^:]+::[^:]+$/.test(ref))),
+      frontRefsMatchCount: join.fronts.every(row => row.refs.length === row.n),
+    } : null,
+    overviewRows: rows.length,
+    perspectiveIsOpponent: screen.perspective === 'opponent',
+  };
+});
+ok(scout.listed.length >= 1 && scout.listed.every(item => item.games > 0 && item.plays > 0),
+  'Every opponent with charted film is listed as scoutable, so a scout report exists for each', JSON.stringify(scout.listed));
+ok(scout.headToHeadCounts,
+  'A head-to-head game feeds the opponent scout — their offense from our defensive snaps, their defense from the fronts we faced', JSON.stringify(scout));
+ok(scout.join && scout.join.total > 0 && scout.join.fronts > 0 && scout.join.byOurLook > 0,
+  'The defensive scout is the JOIN of their call, our look and the outcome — not a frequency list', JSON.stringify(scout.join));
+ok(scout.join?.allRefsComposite && scout.join?.frontRefsMatchCount,
+  'Every joined row carries exactly as many composite refs as the snaps it counts', JSON.stringify(scout.join));
+
+const scoutFilm = await page.evaluate(async () => {
+  const app = window.app, calls = [], original = app.filmNavigation.watch;
+  app.filmNavigation.watch = (refs, options) => { calls.push({ refs, label: options?.label }); return Promise.resolve({ completed: true }); };
+  app.reportsScreen.scoutOpponent('Wildcats');
+  await new Promise(resolve => setTimeout(resolve, 200));
+  app.reportsScreen.selectTab('defense');
+  await new Promise(resolve => setTimeout(resolve, 250));
+  const row = document.querySelector('#wsReports [data-opponent-refs]');
+  const expected = (row?.dataset.opponentRefs || '').split(',').filter(Boolean);
+  const shown = Number(row?.querySelectorAll('td')[1]?.textContent || 0);
+  row?.click();
+  await new Promise(resolve => setTimeout(resolve, 250));
+  app.filmNavigation.watch = original;
+  return { calls: calls.length, refs: calls[0]?.refs || [], expected, shown };
+});
+ok(scoutFilm.calls === 1 && scoutFilm.refs.length === scoutFilm.expected.length && scoutFilm.refs.length === scoutFilm.shown,
+  'A defensive scout row plays exactly the snaps it counts', JSON.stringify(scoutFilm));
+
 ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

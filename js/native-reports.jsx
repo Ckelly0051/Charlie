@@ -55,6 +55,12 @@ function NativeReportsRoute({ screen }) {
         <button type="button" class="is-active" data-report-perspective="self" aria-pressed="true" onClick={() => screen.show()}>Our game</button>
         <button type="button" data-report-perspective="opponent" aria-pressed="false" onClick={() => screen.scoutOpponent()}>Opponent scout</button>
       </div>
+      {/* F3: every charted opponent has a scout report, so every charted
+          opponent is selectable here — not just the active game's. */}
+      <label class="gi-reports-opponent" data-reports-opponent hidden>
+        <span>Team</span>
+        <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
+      </label>
       <span class="gi-reports-film-note">Select any highlighted row to watch the exact snaps.</span>
     </div>
 
