@@ -144,8 +144,17 @@ await page.evaluate(() => {
   if (grid && !grid.cols.includes('backfield')) { grid.cols = [...grid.cols, 'backfield']; }
   if (grid) grid.refresh();
 });
-await sleep(150);
-const gridEdit = await page.evaluate((id) => !!document.querySelector(`.pg-row[data-id="${id}"] td[data-k="backfield"]`), IDS.gridBackfield);
+// Wait for the CELL, not for a fixed number of milliseconds. `grid.refresh()`
+// renders on a frame, so a blind sleep raced it: the row and the column were
+// both present and the cell simply had not been written yet, which surfaced as
+// an intermittent "Film Room Backfield cell is missing" that reproduced on
+// unmodified code and vanished the moment anything added a round-trip before
+// the assertion. If the cell genuinely never renders this still fails, because
+// the wait times out and `gridEdit` stays false.
+const gridEdit = await page.waitForFunction(
+  (id) => !!document.querySelector(`.pg-row[data-id="${id}"] td[data-k="backfield"]`),
+  { timeout: 5000 }, IDS.gridBackfield,
+).then(() => true).catch(() => false);
 ok(gridEdit, 'Film Room Backfield cell is present and reachable before the grid-edit case runs');
 if (gridEdit) {
   await page.evaluate((id) => {
