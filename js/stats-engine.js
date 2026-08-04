@@ -1251,6 +1251,80 @@ export class StatsEngine {
     }));
   }
 
+  /**
+   * F12 — shapes for the new visuals.
+   *
+   * These live in the ENGINE, not in charts.js, deliberately: they are derived
+   * values, and a derived value in a renderer is invisible to the parity gate
+   * and to the raw-read audit. charts.js stays purely geometric — it is handed
+   * numbers and draws them.
+   *
+   * Nothing here introduces a formula. Bins are raw signed yardage; success and
+   * run/pass reuse `_isSuccessfulPlay` and `isRun`; the explosive threshold is
+   * the same 12/16 the efficiency block uses.
+   */
+  _yardageBins(plays) {
+    const EDGES = [-99, -1, 0, 3, 6, 10, 15, 20, 999];
+    const LABELS = ['Loss', '0', '1–3', '4–6', '7–10', '11–15', '16–20', '20+'];
+    const bins = LABELS.map((label, index) => ({ label, from: EDGES[index], to: EDGES[index + 1], count: 0 }));
+    let total = 0, sum = 0;
+    plays.forEach(play => {
+      const yards = parseInt(play.tags.yardage) || 0;
+      total += 1; sum += yards;
+      const index = EDGES.findIndex((edge, i) => i > 0 && yards <= EDGES[i]) - 1;
+      const bin = bins[Math.max(0, Math.min(bins.length - 1, index))];
+      if (bin) bin.count += 1;
+    });
+    if (!total) return null;
+    const mean = sum / total;
+    const meanIndex = bins.findIndex(bin => mean > bin.from && mean <= bin.to);
+    return { bins, mean: mean.toFixed(1), meanIndex: meanIndex < 0 ? null : meanIndex, total };
+  }
+
+  _scatterPoints(plays) {
+    return plays
+      .filter(play => play.tags.distance && play.tags.yardage !== '' && play.tags.yardage != null)
+      .map(play => ({
+        x: parseInt(play.tags.distance) || 0,
+        y: parseInt(play.tags.yardage) || 0,
+        run: StatsEngine.isRun(play),
+        label: `${play.tags.down ? `${play.tags.down} & ${play.tags.distance}` : play.tags.distance + ' to go'} · ${play.tags.playType || (StatsEngine.isRun(play) ? 'Run' : 'Pass')} · ${parseInt(play.tags.yardage) || 0} yd`,
+      }))
+      .filter(point => point.x > 0);
+  }
+
+  _fieldZoneStats(plays) {
+    const ZONES = [
+      { label: 'Backed up', min: 0, max: 10, cut: { type: 'situation', val: 'backedUp' } },
+      { label: 'Own 11–39', min: 11, max: 39, cut: null },
+      { label: 'Midfield', min: 40, max: 59, cut: null },
+      { label: 'Opp 40–20', min: 60, max: 79, cut: null },
+      { label: 'Red zone', min: 80, max: 94, cut: { type: 'situation', val: 'redZone' } },
+      { label: 'Goal line', min: 95, max: 100, cut: { type: 'situation', val: 'goalLine' } },
+    ];
+    const out = ZONES.map(zone => ({ ...zone, count: 0, succ: 0 }));
+    plays.forEach(play => {
+      const yard = this._absYardLine(play.tags);
+      if (yard === null) return;
+      const zone = out.find(item => yard >= item.min && yard <= item.max);
+      if (!zone) return;
+      zone.count += 1;
+      if (this._isSuccessfulPlay(play)) zone.succ += 1;
+    });
+    return out.map(zone => ({ ...zone, successPct: zone.count ? Math.round(zone.succ / zone.count * 100) : 0 }));
+  }
+
+  _downMultiples(plays) {
+    return ['1', '2', '3', '4'].map(down => {
+      const subset = plays.filter(play => play.tags.down === down);
+      const run = subset.filter(play => StatsEngine.isRun(play)).length;
+      const succ = subset.filter(play => this._isSuccessfulPlay(play)).length;
+      return { label: `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'} down`,
+        n: subset.length, run, pass: subset.length - run,
+        successPct: subset.length ? Math.round(succ / subset.length * 100) : 0 };
+    }).filter(item => item.n > 0);
+  }
+
   _gameFlowStats(plays) {
     let cum = 0;
     return plays.map((p, i) => {
@@ -2620,6 +2694,43 @@ export class StatsEngine {
         <p class="viz-caption">Every lens reads the same charted plays. Highlighted tiles play their exact cohort; the rest are context with no cut of their own.</p>
         <div class="gi-lens-grid">${cards}</div>
       </div>`;
+  }
+
+  /**
+   * F12 — the shape of the offense, on one screen.
+   *
+   * A table when you need the exact value, a chart when you need the SHAPE.
+   * Everything here was already a table: how often each formation is called
+   * and how it does, where the gains sit, which snaps moved the chains, and
+   * where on the field it works. None of those questions is answered by
+   * reading a column.
+   */
+  _renderShape(stats) {
+    const plays = stats.offPlays || [];
+    if (!plays.length) return '';
+    const dist = this._yardageBins(plays);
+    const points = this._scatterPoints(plays);
+    const zones = this._fieldZoneStats(plays);
+    const downs = this._downMultiples(plays);
+    const formations = (stats.tendencies?.formationList || []).slice(0, 8).map(row => ({
+      label: row.name, count: row.count, successPct: parseFloat(row.successPct) || 0,
+      cut: { type: 'formation', val: row.name },
+    }));
+
+    const panel = (title, note, body) => body
+      ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
+
+    return `
+      ${panel('How often, and how well', 'Bar length is how often we call it. Fill is how well it works. A long pale bar is a call we lean on that is not paying.',
+        Charts.rampBars(formations))}
+      ${panel('Where the gains sit', `Every offensive snap by yards gained. Mean ${dist?.mean ?? '0.0'} yards, marked.`,
+        dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '')}
+      ${panel('Did we move the chains', 'Distance to go against yards gained. Everything above the dashed line converted.',
+        Charts.scatter(points, { label: 'Yards gained by distance to go' }))}
+      ${panel('Where it works on the field', 'Own goal line on the left, theirs on the right.',
+        Charts.zoneStrip(zones))}
+      ${panel('By down', 'The same read repeated, so the comparison is spatial rather than four rows of numbers.',
+        Charts.smallMultiples(downs))}`;
   }
 
   _renderConversions(stats) {

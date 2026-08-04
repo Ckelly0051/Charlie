@@ -590,6 +590,53 @@ const scoutFilm = await page.evaluate(async () => {
 ok(scoutFilm.calls === 1 && scoutFilm.refs.length === scoutFilm.expected.length && scoutFilm.refs.length === scoutFilm.shown,
   'A defensive scout row plays exactly the snaps it counts', JSON.stringify(scoutFilm));
 
+console.log('\n== F12. The offense has a shape, not just a table ==');
+const shape = await page.evaluate(async () => {
+  const app = window.app;
+  app.reportsScreen.show();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  app.reportsScreen.selectTab('offense');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  const root = document.querySelector('#wsReports');
+  const engine = app.stats;
+  const stats = engine.compute();
+  const dist = engine._yardageBins(stats.offPlays);
+  const points = engine._scatterPoints(stats.offPlays);
+  const zones = engine._fieldZoneStats(stats.offPlays);
+  return {
+    ramp: root.querySelectorAll('.gi-ramp-row').length,
+    rampLinked: root.querySelectorAll('.gi-ramp-row.cut-row').length,
+    histBars: root.querySelectorAll('.gi-hist rect').length,
+    scatterPoints: root.querySelectorAll('.gi-scatter circle').length,
+    zoneCells: root.querySelectorAll('.gi-zone').length,
+    multiples: root.querySelectorAll('.gi-multiple').length,
+    // The engine owns every derived number; charts.js is handed them.
+    engineBins: dist ? dist.bins.reduce((sum, bin) => sum + bin.count, 0) : 0,
+    enginePoints: points.length,
+    engineZoneTotal: zones.reduce((sum, zone) => sum + zone.count, 0),
+    offPlays: stats.offPlays.length,
+    // No chart may invent a colour: every fill resolves to a design token.
+    rampFill: getComputedStyle(root.querySelector('.gi-ramp-track i') || document.body).backgroundColor,
+    losToken: (() => { const probe = document.createElement('div'); probe.style.background = 'var(--gi-los)';
+      document.body.appendChild(probe); const value = getComputedStyle(probe).backgroundColor; probe.remove(); return value; })(),
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  };
+});
+ok(shape.ramp > 0 && shape.rampLinked === shape.ramp,
+  'Frequency-by-success bars render and every bar plays its own film cohort', JSON.stringify(shape));
+ok(shape.histBars > 0 && shape.engineBins === shape.offPlays,
+  'The yardage distribution bins every offensive snap exactly once, in the engine', JSON.stringify({ bins: shape.engineBins, plays: shape.offPlays }));
+ok(shape.scatterPoints > 0 && shape.scatterPoints === shape.enginePoints,
+  'The scatter draws exactly the points the engine derived — no renderer-side filtering', JSON.stringify(shape));
+// Empty is OMITTED, not zeroed: with no field position charted the zone strip
+// must disappear rather than present six honest-looking 0% cells. This fixture
+// tags no yard line, so it pins the omission side of that rule.
+ok(shape.multiples > 0 && (shape.engineZoneTotal > 0 ? shape.zoneCells === 6 : shape.zoneCells === 0),
+  'Per-down small multiples render, and the field-zone strip appears only when field position is charted', JSON.stringify(shape));
+ok(shape.rampFill === shape.losToken,
+  'Chart marks resolve to design-system tokens rather than literal colours', JSON.stringify({ fill: shape.rampFill, token: shape.losToken }));
+ok(!shape.overflow, 'The visual deck does not push the page sideways', JSON.stringify(shape));
+
 ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

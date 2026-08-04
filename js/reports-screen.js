@@ -424,6 +424,7 @@ export class ReportsScreen {
     if (!stats.offPlays.length) return '<div class="stats-section"><h3>No offensive snaps charted</h3><p>Set Unit to Offense to populate this report.</p></div>';
     return `
       ${s._renderOffenseHero(stats)}
+      ${s._renderShape(stats)}
       ${s._renderPlayAction(stats)}
       ${s._renderTendencies(stats)}
       ${s._renderBigTwelve(stats.offPlays, document.getElementById('gameTeamName')?.value || 'Our Offense')}
