@@ -281,23 +281,26 @@ function NativeTagging({screen}) {
           <Field screen={screen} field="yardLine" label="Yard line" value={state.values.yardLine} min="1" max="50"/>
         </div>
       </Group>
-      {state.unit === 'special' ? <SpecialTeams screen={screen} state={state}/> : <>
-        <Group title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open>
+      {state.unit === 'special' ? <SpecialTeams screen={screen} state={state}/> : (() => {
+        // Charting defense, OUR call comes first and the offense we faced
+        // second. The group a coach is actually charting leads.
+        const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} detail="formation, alignment, personnel" open={state.unit !== 'defense'}>
           {chips('formation','Formation',state.libraries.formation,'select all','formation')}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment,'optional')}
           {chips('backfield','Backfield',state.libraries.backfield,'optional','backfield')}
           {chips('strength','Strength',OPTIONS.strength)}{chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
-        </Group>
-        <Group title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} detail="front, coverage, pressure" open={state.unit === 'defense'}>
+        </Group>;
+        const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} detail="front, coverage, pressure" open={state.unit === 'defense'}>
           {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',OPTIONS.coverage)}
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',OPTIONS.blitz)}
-        </Group>
-        <Group title="Play & Result" detail="call, direction, outcome" open>
+        </Group>;
+        const playResult = <Group key="pr" title="Play &amp; Result" detail="call, direction, outcome" open>
           {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',OPTIONS.playType)}
           {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} value={state.values.result}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
-        </Group>
-      </>}
+        </Group>;
+        return <>{state.unit === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;
+      })()}
       <Penalties screen={screen} state={state}/>
       <Players screen={screen} state={state}/>
       <Group title="Notes & Details" detail="staff notes and situation">

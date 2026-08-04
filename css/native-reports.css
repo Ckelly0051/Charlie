@@ -210,7 +210,11 @@
 /* F9 — the score and its team name share a center line. The block was centered
    and the two children were not, so the numbers sat visibly off. */
 .gi-reports .scoreboard-team{display:grid;justify-items:center;gap:var(--gi-1x)}
-.gi-reports .scoreboard-name,.gi-reports .scoreboard-pts{text-align:center}
+.gi-reports .scoreboard-pts{text-align:center}
+/* A team name is an identity, not a column value — it wraps rather than
+   truncating. "St. Peter Lutheran Patriots" must read in full. */
+.gi-reports .scoreboard-name{text-align:center;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25}
+.gi-reports .scoreboard-final{max-width:640px}
 /* F10 — the icon ran into the first letter. */
 .gi-reports .gp-item{display:flex;align-items:baseline;gap:var(--gi-2x)}
 .gi-reports .gp-list{margin:0;padding:0;list-style:none;display:grid;gap:var(--gi-2x)}

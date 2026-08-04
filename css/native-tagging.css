@@ -2,12 +2,13 @@
 /* F2 (S6-4e): the charting header carries the unit control and nothing else.
    Perspective is derived, and Offense direction moved to More Tools with the
    only features that read it. Two columns, not four. */
-.gi-tag-context{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:minmax(150px,1fr) auto;align-items:center;gap:var(--gi-3x);padding:10px 12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-tag-context{position:sticky;top:0;z-index:4;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--gi-2x);padding:10px 12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
+.gi-tag-context>.gi-tag-title{flex:1 1 auto}
 /* F2c: one click. Segmented, not a select — this is the most-used control on
    the screen and a dropdown made every change a two-step. */
-.gi-unit-switch{display:flex;border:1px solid var(--gi-7);border-radius:var(--gi-radius);overflow:hidden}
+.gi-unit-switch{flex:0 0 auto;display:flex;border:1px solid var(--gi-7);border-radius:var(--gi-radius);overflow:hidden}
 .gi-unit-switch button{
-  min-height:var(--gi-control);padding:0 var(--gi-4x);border:0;border-right:1px solid var(--gi-7);
+  min-height:var(--gi-control);padding:0 var(--gi-3x);border:0;border-right:1px solid var(--gi-7);
   background:var(--gi-2);color:var(--gi-11);font:var(--gi-text-control);white-space:nowrap;cursor:pointer;
   transition:background var(--gi-quick),color var(--gi-quick);
 }
