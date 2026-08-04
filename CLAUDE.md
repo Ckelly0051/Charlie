@@ -13,6 +13,98 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### CLAUDE BUILD - S6 SMOKE CYCLE: 1.12.0-18 .. -24; SECOND SMOKE IN PROGRESS (2026-08-04)
+
+**Builder: Claude. Codex reviews the whole S6 range once, before the §8
+installer that closes the milestone. Per-commit independent review is dropped
+for this design pass at the coach's direction.** Range `515f1c7..282c780`.
+S7 remains closed. No tag or published release exists for any of these builds.
+
+Six installers were built and coach-smoked in sequence. **Every one is a local
+unsigned artifact; `1.12.0-24` is current and supersedes the rest.**
+
+| Build | Contents |
+|---|---|
+| `-18` | S6 checkpoints 1-4 (AX-1..AX-7). **Superseded — shipped the design pass with the legacy palette still painting the app.** |
+| `-19` | S6-4d one-palette flip |
+| `-20`/`-21` | S6-4e coach findings F1-F11; S6-4f three follow-ups |
+| `-22` | S6-4g tackle charting |
+| `-23` | S6-4h F3/F4 opponent scout |
+| `-24` | S6-4i F12a/F12b data visualization |
+
+**S6-4d — ONE PALETTE, and the reason it was needed.** S6 rebuilt every route on
+the design system and the app still was not ON it. `styles.css` is a layer cake
+— `body` redefined six times, `.btn` four — and its `:root` blocks held a second
+hand-tuned palette, so the native routes were tokenized while the surface
+underneath them was painted by a parallel set of hexes. Every legacy color role
+now derives from a `--gi-*` token; names stayed, sources moved, no selector or
+layout changed and nothing was deleted. `@media print` is deliberately excluded
+and stays raw: paper is white and cannot derive from a dark screen token.
+
+**My framing error, recorded because it is the reusable lesson.** I reported the
+gap as "5% of rules still live" and scoped it to S7. Counting RULES hides reach:
+one dead rule is worth nothing, one live `body` rule is the entire background of
+the app and one `.btn` rule is every button on every screen. The coach caught
+it. Also wrong: treating a scheduled deletion as a reason to leave a live
+surface unstyled. Deletion-last is right for behavior ownership and says nothing
+about color — the fix needed no deletion at all, which is the proof.
+
+**S6-4e type foundation.** Labels were 9-11px uppercase mono, pushed bright to
+clear contrast, which reads as glow on near-black. Legibility comes from SIZE,
+not brightness: large text needs 3:1 rather than 4.5:1, so buying size back lets
+luminance come down. A named type scale now exists and 168 label declarations
+were swept across 16 stylesheets; the surface ladder was re-spread because steps
+2/3/4 sat within a few points of each other.
+
+**S6-4g — the tackle miss.** The coach could not find tackle charting. It
+existed, in a group that was COLLAPSED by default. For a control used on nearly
+every defensive snap that is functionally missing. Players & Grades now opens
+with the form, roster quick-pick chips are always visible (one click per play,
+never behind a focus step), and chips are jersey NUMBERS in a capped grid — they
+had rendered as `#2 Colt Mihailovich`, wider than their 180px card, so a roster
+stacked one per line and cost most of a screen.
+
+**S6-4h — F3/F4.** Opponent scouting aggregation always worked; it was only ever
+REACHABLE for the active game's opponent, through one button, so six charted
+games produced one scout report. `listScoutableOpponents()` lists every opponent
+with charted film across every season. The defensive scout is now the JOIN the
+data already contained — their front/coverage/pressure WITH our look and the
+outcome — instead of a frequency list. Overview is an answer sheet.
+
+**S6-4i — F12a/F12b.** Five chart primitives: frequency x success bars,
+yardage distribution, play scatter with the sticks drawn, field zones, per-down
+small multiples. **The derived values live in StatsEngine, not charts.js** — a
+derived value in a renderer is invisible to both the parity gate and the
+raw-read audit. Tests assert the rendered mark count equals the engine's count.
+Parity 2/2 with no golden moved, as predicted: parity captures computed values
+and refs, not HTML.
+
+**F12c (team profile radar) is DEFERRED pending a coach decision.** Putting
+success rate on a 0-1 axis means deciding what full scale MEANS; picking a
+number invents a benchmark. Options offered: scale against the coach's own
+season, or against the opponent in a head-to-head.
+
+**One harness race root-caused, not waved off.** `e2e-projform-durability` failed
+intermittently on the Film Room Backfield cell, reproduced on UNMODIFIED code,
+and passed the moment anything added a round-trip before the assertion.
+Instrumenting showed the row present, the column present and the cell present at
+that exact point — `sleep(150)` was racing a frame-scheduled `grid.refresh()`.
+Now a `waitForFunction` on the cell.
+
+**Gate on `282c780`: 81 harnesses | 81 green | 0 skipped | 0 failed.** Parity
+2/2, real data 13/13, design system 16/16, raw-read 11/11.
+
+**SECOND COACH SMOKE IS OPEN** against `1.12.0-24`; findings are logged in
+`SMOKE-1.12.0-24-FINDINGS.md` (G1-G6 so far) and **no fixes have started** —
+the coach's protocol is to collect the full list first. The coach has also asked
+to be told explicitly when design is ready for review; the bar recorded is: every
+remaining Reports tab recomposed rather than restyled, visuals reaching the
+screens that need shape, and the design system's signature element
+(`--gi-lower-third`, still **zero uses**) actually used somewhere.
+
+No schema, migration, season byte, analytics formula, film cohort, composite
+ref, film file, storage path, package, tag or release changed across the range.
+
 ### CLAUDE BUILD - S6-4c COMPLETE (AX-1..AX-7); INSTALLER IS NEXT (2026-08-03)
 
 **Builder: Claude** (the coach assigned S6 to Claude and dropped per-commit
