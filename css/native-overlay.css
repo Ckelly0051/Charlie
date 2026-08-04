@@ -10,7 +10,7 @@
 .gi-overlay-sheet .gi-overlay-panel{width:min(520px,calc(100vw - 32px));height:100vh;max-height:100vh;border-radius:0;border-top:0;border-bottom:0;border-right:0}
 .gi-overlay-head{display:flex;align-items:flex-start;gap:18px;padding:20px 22px 16px;border-bottom:1px solid var(--gi-7)}
 .gi-overlay-head>div{min-width:0;flex:1}
-.gi-overlay-head span{display:block;color:var(--gi-11);font-size:10px;font-weight:700;text-transform:uppercase}
+.gi-overlay-head span{display:block;color:var(--gi-11);font-size:11.5px;font-weight:700;text-transform:uppercase}
 .gi-overlay-head h2{margin:4px 0 0;font-family:var(--gi-sans);font-size:22px;line-height:1.2;letter-spacing:0}
 .gi-overlay-close{flex:0 0 auto;width:44px;height:44px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-3);color:var(--gi-12);font-size:25px}
 .gi-overlay-body{min-height:0;overflow:auto;padding:22px}
@@ -27,19 +27,19 @@
 .gi-popover-item:focus-visible{box-shadow:inset 3px 0 0 var(--gi-10)}
 .gi-popover-item:disabled{color:var(--gi-9);cursor:not-allowed}
 .gi-popover-item.has-separator{margin-top:5px;border-top:1px solid var(--gi-7);border-radius:0 0 3px 3px;padding-top:10px}
-.gi-popover-item small{color:var(--gi-10);font-size:10px;font-weight:500}
+.gi-popover-item small{color:var(--gi-10);font-size:11.5px;font-weight:500}
 .gi-toast-stack{position:fixed;z-index:900;right:16px;bottom:16px;display:grid;width:min(390px,calc(100vw - 32px));gap:8px;pointer-events:none}
 body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .gi-native-toast{display:flex;align-items:center;gap:14px;min-height:52px;padding:12px 14px;border:1px solid var(--gi-info-border);border-left:4px solid var(--gi-info-accent);border-radius:4px;background:var(--gi-info-surface);color:var(--gi-on-solid);box-shadow:var(--gi-shadow-toast);font:700 12px var(--gi-sans);text-transform:uppercase;pointer-events:auto;cursor:pointer}
 .gi-native-toast>span{min-width:0;flex:1}
-.gi-native-toast button{min-height:36px;border:1px solid var(--gi-info-control-border);border-radius:3px;background:var(--gi-info-control);color:var(--gi-on-solid);font:inherit;font-size:11px;font-weight:700;text-transform:uppercase}
+.gi-native-toast button{min-height:36px;border:1px solid var(--gi-info-control-border);border-radius:3px;background:var(--gi-info-control);color:var(--gi-on-solid);font:inherit;font-size:12px;font-weight:700;text-transform:uppercase}
 .gi-native-toast.is-success{border-left-color:var(--gi-ok)}
 .gi-native-toast.is-warning{border-left-color:var(--gi-warn)}
 .gi-native-toast.is-error{border-color:var(--gi-danger-border);border-left-color:var(--gi-turnover);background:var(--gi-danger-surface)}
 .gi-overlay-probe{position:fixed;z-index:100;left:16px;bottom:16px;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--gi-7);border-radius:5px;background:var(--gi-2);color:var(--gi-12)}
-.gi-overlay-probe strong{font-size:11px}
+.gi-overlay-probe strong{font-size:12px}
 .gi-overlay-probe button{min-height:36px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-3);color:var(--gi-12)}
-.gi-overlay-probe output{min-width:90px;color:var(--gi-11);font-size:11px}
+.gi-overlay-probe output{min-width:90px;color:var(--gi-11);font-size:12px}
 .gi-probe-field{display:grid;gap:8px;color:var(--gi-11);font-size:12px}
 .gi-probe-field input{height:44px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-1);color:var(--gi-12);padding:0 10px}
 @media(max-width:700px){
@@ -57,6 +57,6 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 @media(pointer:coarse){.gi-overlay-action,.gi-overlay-close,.gi-native-toast button,.gi-popover-item{min-height:44px}}
 /* S6-4a popover group heading — a label, never a menuitem, so roving arrow keys
    skip it and it cannot be activated. */
-.gi-popover-heading{margin:6px 0 2px;padding:0 10px;color:var(--gi-7);font:800 10px/1.4 var(--gi-sans);letter-spacing:.08em;text-transform:uppercase}
+.gi-popover-heading{margin:6px 0 2px;padding:0 10px;color:var(--gi-7);font:800 11.5px/1.4 var(--gi-sans);letter-spacing:.045em;text-transform:uppercase}
 .gi-popover-heading.has-separator{margin-top:10px;padding-top:8px;border-top:1px solid var(--gi-5)}
 .gi-popover-item.is-selected{background:var(--gi-4);box-shadow:inset 3px 0 0 var(--gi-10)}

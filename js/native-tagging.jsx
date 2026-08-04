@@ -247,12 +247,19 @@ function NativeTagging({screen}) {
   return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging>
     <header class="gi-tag-context">
       <div class="gi-tag-title"><span class="gi-eyebrow">Charting</span><h2>{state.currentPlayId == null ? 'SELECT A PLAY' : `PLAY ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
-      <label><span>Charting unit</span><select data-native-context="unit" value={state.unit} onChange={e => screen.setUnit(e.currentTarget.value)}>
-        <option value="offense">Offense</option><option value="defense">Defense</option><option value="special">Special Teams</option></select></label>
-      <label><span>Game perspective</span><select data-native-context="perspective" value={state.perspective} onChange={e => screen.setPerspective(e.currentTarget.value)}>
-        <option value="offense">Our offense</option><option value="defense">Our defense</option><option value="special">Our Special Teams</option><option value="scout">Opponent film</option></select></label>
-      <label><span>Offense direction</span><select data-native-context="direction" value={state.direction} onChange={e => screen.setDirection(e.currentTarget.value)}>
-        <option value="">Not set</option><option value="right">Left to right</option><option value="left">Right to left</option></select></label>
+      {/* F2c — one click, not two. Unit is the single most-used control on this
+          screen and a dropdown made every change a two-step. F2a's perspective
+          control is gone entirely (it is derived from unit + whose film this
+          is), and F2b's direction control moved to the bottom of the form,
+          because it only serves play recognition. */}
+      <div class="gi-unit-switch" role="group" aria-label="Charting unit" data-native-context="unit">
+        {[['offense', 'Offense'], ['defense', 'Defense'], ['special', 'Special Teams']].map(([value, label]) =>
+          <button key={value} type="button" data-unit={value} class={state.unit === value ? 'is-active' : ''}
+            aria-pressed={state.unit === value} onClick={() => screen.setUnit(value)}>{label}</button>)}
+      </div>
+      {state.perspective === 'scout'
+        ? <p class="gi-tag-subject">Opponent film — the charted team is the subject</p>
+        : null}
     </header>
     <div class="gi-tag-actions">
       <button type="button" disabled={!state.canCopyPrevious} onClick={() => screen.copyPrevious()}>Same as Last</button>
@@ -321,6 +328,17 @@ function NativeTagging({screen}) {
           <label class="gi-tag-check"><input type="checkbox" checked={state.autoOcr} onChange={e => screen.setAutoOcr(e.currentTarget.checked)}/> Auto OCR</label>
           <button type="button" onClick={() => screen.runAutoDetect()}>Auto-detect plays</button>
         </div>
+        {/* F2b — Offense direction lives HERE, with the only features that read
+            it. Its three consumers are the heuristic auto-tagger, the optional
+            CV server and the Vision prompt; no report, analytic, export or
+            stored play field reads it, and unset is inert in all three. It is
+            kept for when play recognition is worth using, and kept out of the
+            charting path until then. */}
+        <label class="gi-tag-input"><span>Offense direction</span>
+          <select data-native-context="direction" value={state.direction} onChange={e => screen.setDirection(e.currentTarget.value)}>
+            <option value="">Not set</option><option value="right">Left to right</option><option value="left">Right to left</option>
+          </select></label>
+        <p class="gi-tag-hint">Only used by play detection. Leave unset unless you are running auto-detect.</p>
       </Group>
       <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>Previous</button>
         <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : 'Save & Next'}</button>

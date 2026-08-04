@@ -199,15 +199,25 @@ r = await page.evaluate(() => {
   const num = pane.querySelector('.season-summary .ss-num');
   const cs = summary ? getComputedStyle(summary) : null;
   const csNum = num ? getComputedStyle(num) : null;
+  // Resolve the token rather than pinning its literal value. The guarantee is
+  // "this band sits on the DECK surface", not "the deck surface is #121820" —
+  // pinning the hex made a legitimate palette re-tune look like a regression
+  // while still not catching a band moved onto the wrong surface.
+  const probe = document.createElement('div');
+  probe.style.background = 'var(--gi-2)';
+  document.body.appendChild(probe);
+  const deck = getComputedStyle(probe).backgroundColor;
+  probe.remove();
   return {
     radius: cs?.borderTopLeftRadius,
     bg: cs?.backgroundColor,
+    deck,
     border: cs?.borderLeftWidth,
     numFont: csNum?.fontFamily || '',
   };
 });
 ok(r.radius === '0px', 'Native season KPI band uses the square broadcast geometry', JSON.stringify(r));
-ok(r.bg === 'rgb(18, 24, 32)' && r.border === '3px', 'Native season KPI band uses the DECK surface and current-context rule', JSON.stringify(r));
+ok(r.bg === r.deck && r.border === '3px', 'Native season KPI band uses the DECK surface and current-context rule', JSON.stringify(r));
 ok(/IBM Plex Sans Condensed/i.test(r.numFont), 'KPI numbers use the native condensed football-number face', JSON.stringify(r));
 
 console.log('\n== 3b. Season analytics blocks (v1.10.2) + trend un-clip ==');

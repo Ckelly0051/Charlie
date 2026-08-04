@@ -2947,6 +2947,9 @@ export class StatsEngine {
     const totalYards = r.yards + p.yards;
 
     // AX-5: title above, one primary number in the ring, legend below.
+    // F1 (S6-4e): each donut used to carry a SECOND legend underneath — a row
+    // of dots with labels and no values, sitting under a legend that already
+    // had both. `donutBlock` owns the legend; the dot row is gone.
     const rpDonut = Charts.donutBlock([
       { value: tend.runs, color: RUN_COLOR, label: 'Run' },
       { value: tend.passes, color: PASS_COLOR, label: 'Pass' }
@@ -2966,8 +2969,8 @@ export class StatsEngine {
             <div class="stat-card"><div class="stat-card-title">Turnovers</div><div class="stat-card-value">${t.total}</div><div style="font-size:11px;opacity:.6">${t.interceptions} INT / ${t.fumbles} Fum</div></div>
           </div>
           <div class="team-summary-donuts">
-            <div class="team-donut-cell">${rpDonut}<div class="chart-donut-label"><i class="dot run"></i>Run <i class="dot pass"></i>Pass</div></div>
-            <div class="team-donut-cell">${ydsDonut}<div class="chart-donut-label"><i class="dot run"></i>Rush <i class="dot pass"></i>Pass</div></div>
+            <div class="team-donut-cell">${rpDonut}</div>
+            <div class="team-donut-cell">${ydsDonut}</div>
           </div>
         </div>
       </div>

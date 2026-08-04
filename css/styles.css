@@ -6287,8 +6287,11 @@ body {
   border-bottom: 1px solid rgba(255,255,255,.06);
 }
 .gp-item:last-child { border-bottom: none; }
-.gp-good::before { content: '\2713 '; color: #22c55e; font-weight: 700; }
-.gp-fix::before  { content: '\26A0 '; color: #ef4444; }
+/* F10 (coach smoke, 1.12.0-19): the icon ran straight into the first letter.
+   A trailing space inside `content` collapses, so the gap has to be real
+   spacing. Colors move onto the semantic roles — these were live raw hex. */
+.gp-good::before { content: '\2713'; margin-right: 7px; color: var(--success); font-weight: 700; }
+.gp-fix::before  { content: '\26A0'; margin-right: 7px; color: var(--danger); }
 
 /* --- Cut-up hint --- */
 .stats-cut-hint {

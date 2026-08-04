@@ -136,6 +136,10 @@ export class ReportsScreen {
     const context = this.app.workspace?.snapshot?.();
     const title = this.host.querySelector('[data-reports-title]');
     const sub = this.host.querySelector('[data-reports-context]');
+    // F5: the eyebrow said "Self scout" on every screen, including the opponent
+    // scout. It states the perspective actually being shown.
+    const eyebrow = this.host.querySelector('[data-reports-eyebrow]');
+    if (eyebrow) eyebrow.textContent = this.perspective === 'opponent' ? 'Reports / Opponent scout' : 'Reports / Our game';
     if (this.perspective === 'opponent') {
       const name = this._opponentData?.opponent || this.app.stats._activeOpponent?.() || 'Opponent';
       if (title) title.textContent = `${name} scout`;

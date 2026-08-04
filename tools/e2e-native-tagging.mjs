@@ -37,13 +37,24 @@ let state=await page.evaluate(()=>{
   return{roots:document.querySelectorAll('[data-native-tagging]').length,sourceMoved:source.dataset.nativeTagSource===''&&source.style.position==='fixed'&&source.style.left==='-100000px',
     ids:[...root.querySelectorAll('[id]')].map(n=>n.id),proxy:root.querySelectorAll('[data-native-tag-proxy]').length,fields,controls:controls.length,
     context:[...root.querySelectorAll('[data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
+    contextInHeader:[...root.querySelectorAll('.gi-tag-context [data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
+    unitButtons:root.querySelectorAll('.gi-unit-switch button').length,
+    unitSelects:root.querySelectorAll('.gi-tag-context select').length,
     capabilities:['Same as Last','Templates','Save Template','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','New Drive','Edit custom fields'].filter(label=>text.includes(label))};
 });
 ok(fixture.mounted&&state.roots===1&&state.sourceMoved,'One native owner mounts and compatibility markup is off-screen',JSON.stringify(state));
 ok(state.proxy===0&&!state.ids.some(id=>id.startsWith('tag')||id.startsWith('btn')),'Visible markup is Preact-owned, not a legacy clone',JSON.stringify({ids:state.ids,proxy:state.proxy}));
 const expectedFields=['backfield','blitz','coverage','coverageFamily','defFront','distance','down','driveNumber','fieldSide','formation','hash','motion','personnel','playDir','playType','qbAlignment','quarter','result','runPass','strength','yardLine','yardage'];
 ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard offense/defense/situation field has a native owner',JSON.stringify(state.fields));
-ok(state.context.join(',')==='direction,perspective,unit','Unit, perspective, and direction are explicit native context controls',JSON.stringify(state.context));
+// F2 (coach smoke, 1.12.0-19): the charting header carries the UNIT and nothing
+// else. Perspective is derived — charting our own game the perspective IS the
+// unit, and on opponent film the subject is the charted team either way — so
+// the control was pure extra clicking. Direction moved to More Tools with the
+// only features that read it. This assertion now pins the smaller contract on
+// purpose: an extra context control reappearing in the header is a regression.
+ok(state.context.join(',')==='direction,unit','Charting context is unit plus the relocated direction control, with no perspective picker',JSON.stringify(state.context));
+ok(state.contextInHeader.join(',')==='unit','The charting header itself carries only the unit control',JSON.stringify(state.contextInHeader));
+ok(state.unitButtons===3&&state.unitSelects===0,'Unit is a one-click segmented control, not a dropdown',JSON.stringify({buttons:state.unitButtons,selects:state.unitSelects}));
 ok(state.capabilities.length===12,'Templates, diagram, OCR, detection, commit, drive, and customization remain reachable',JSON.stringify(state.capabilities));
 state=await page.evaluate(async()=>{
   const root=document.querySelector('[data-native-tagging]'),calls=[],original=app.tagLibrarySettings.open;
@@ -79,12 +90,40 @@ state=await page.evaluate(async()=>{const group=[...document.querySelectorAll('.
 ok(state.opened&&state.stayedOpen,'Coach section expansion survives native state updates',JSON.stringify(state));
 
 console.log('\n== 2. Context lifecycle and isolation ==');
-state=await page.evaluate(()=>({titles:[...document.querySelectorAll('[data-native-tagging] .gi-tag-group>summary strong')].map(n=>n.textContent.trim()),perspective:document.querySelector('[data-native-context="perspective"]').value,unit:document.querySelector('[data-native-context="unit"]').value}));
+// F2a: perspective is no longer a visible control, so these read the canonical
+// stored value instead of a picker. The guarantee is unchanged and slightly
+// stronger — it now checks what the PRESENTATION is derived from rather than
+// what a control happens to display.
+state=await page.evaluate(()=>({titles:[...document.querySelectorAll('[data-native-tagging] .gi-tag-group>summary strong')].map(n=>n.textContent.trim()),perspective:app.storage.gameInfo.perspective,unit:document.querySelector('[data-native-context="unit"] button.is-active')?.dataset.unit}));
 ok(state.perspective==='scout'&&state.unit==='offense'&&state.titles.includes('Opponent Offensive Look'),'Native presentation names the charted football subject from stored perspective and unit',JSON.stringify(state));
-state=await page.evaluate(async secondId=>{await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:root.querySelector('[data-native-context="perspective"]').value,direction:root.querySelector('[data-native-context="direction"]').value,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit}},fixture.secondId);
+state=await page.evaluate(async secondId=>{await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:app.storage.gameInfo.perspective,direction:app.storage.gameInfo.direction,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit,control:!!root.querySelector('[data-native-context="direction"]')}},fixture.secondId);
 ok(state.perspective==='defense'&&state.direction==='right'&&state.opponent==='Beta'&&state.unit==='defense','Native context follows game switch without inheritance',JSON.stringify(state));
-state=await page.evaluate(async firstId=>{await app.storage.switchToGame(firstId,{persist:false});await new Promise(r=>setTimeout(r,0));const before={...app.storage.gameInfo};const p=document.querySelector('[data-native-context="perspective"]');p.value='offense';p.dispatchEvent(new Event('change',{bubbles:true}));const d=document.querySelector('[data-native-context="direction"]');d.value='right';d.dispatchEvent(new Event('change',{bubbles:true}));app.storage.commitActive();await app.storage.seasonStore.persist();return{before,after:{...app.storage.gameInfo}}},fixture.firstId);
-ok(state.after.perspective==='offense'&&state.after.direction==='right'&&state.after.opponent===state.before.opponent&&state.after.week===state.before.week&&state.after.gameType===state.before.gameType,'Context edits only perspective and direction',JSON.stringify(state));
+// F2a: perspective is now written by CHANGING THE UNIT, which is the whole
+// point — one control, one click, and the perspective follows. Direction is
+// still explicit, from its new home in More Tools.
+state=await page.evaluate(async firstId=>{await app.storage.switchToGame(firstId,{persist:false});await new Promise(r=>setTimeout(r,0));const before={...app.storage.gameInfo};document.querySelector('[data-native-context="unit"] button[data-unit="offense"]').click();await new Promise(r=>setTimeout(r,0));const d=document.querySelector('[data-native-context="direction"]');d.value='right';d.dispatchEvent(new Event('change',{bubbles:true}));app.storage.commitActive();await app.storage.seasonStore.persist();return{before,after:{...app.storage.gameInfo}}},fixture.firstId);
+// SCOUT IS STICKY, and this is the case that proves it. Game one is opponent
+// film: selecting Offense must NOT quietly turn it into our own game, because
+// perspective is a property of the FILM, decided at game setup. On our own
+// game the derivation does fire — asserted immediately below.
+ok(state.after.perspective==='scout'&&state.after.direction==='right'&&state.after.opponent===state.before.opponent&&state.after.week===state.before.week&&state.after.gameType===state.before.gameType,'Opponent film keeps its perspective when the unit changes, and no other metadata moves',JSON.stringify(state));
+state=await page.evaluate(async()=>{
+  const p=document.getElementById('gamePerspective');
+  p.value='offense';p.dispatchEvent(new Event('change',{bubbles:true}));
+  const before={...app.storage.gameInfo};
+  document.querySelector('[data-native-context="unit"] button[data-unit="defense"]').click();
+  await new Promise(r=>setTimeout(r,0));
+  const afterDefense=app.storage.gameInfo.perspective;
+  document.querySelector('[data-native-context="unit"] button[data-unit="special"]').click();
+  await new Promise(r=>setTimeout(r,0));
+  const afterSpecial=app.storage.gameInfo.perspective;
+  // Leave the form on Offense: the 20-play session below charts offensive
+  // fields, which only render for the offense unit.
+  document.querySelector('[data-native-context="unit"] button[data-unit="offense"]').click();
+  await new Promise(r=>setTimeout(r,0));
+  return{before:before.perspective,afterDefense,afterSpecial,restored:app.storage.gameInfo.perspective,opponent:app.storage.gameInfo.opponent===before.opponent};
+});
+ok(state.before==='offense'&&state.afterDefense==='defense'&&state.afterSpecial==='special'&&state.opponent,'On our own game the perspective follows the unit with no second control',JSON.stringify(state));
 
 console.log('\n== 3. Realistic 20-play multi-select session ==');
 state=await page.evaluate(async()=>{

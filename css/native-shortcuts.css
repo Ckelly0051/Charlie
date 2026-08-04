@@ -4,6 +4,6 @@
 .gi-shortcuts dl{display:grid;gap:7px;margin:0}
 .gi-shortcuts dl>div{display:grid;grid-template-columns:minmax(90px,.65fr) 1fr;align-items:start;gap:10px}
 .gi-shortcuts dt{display:flex;flex-wrap:wrap;gap:4px}
-.gi-shortcuts dd{margin:0;color:var(--gi-11);font-size:11px;line-height:1.4}
-.gi-shortcuts kbd{display:inline-block;min-width:24px;padding:3px 5px;border:1px solid var(--gi-7);border-bottom-color:var(--gi-8);border-radius:3px;background:var(--gi-1);color:var(--gi-12);font:700 10px ui-monospace,SFMono-Regular,Consolas,monospace;text-align:center;white-space:nowrap}
+.gi-shortcuts dd{margin:0;color:var(--gi-11);font-size:12px;line-height:1.4}
+.gi-shortcuts kbd{display:inline-block;min-width:24px;padding:3px 5px;border:1px solid var(--gi-7);border-bottom-color:var(--gi-8);border-radius:3px;background:var(--gi-1);color:var(--gi-12);font:700 11.5px ui-monospace,SFMono-Regular,Consolas,monospace;text-align:center;white-space:nowrap}
 @media(max-width:700px){.gi-shortcuts{grid-template-columns:1fr}.gi-shortcuts dl>div{grid-template-columns:minmax(100px,.65fr) 1fr}}

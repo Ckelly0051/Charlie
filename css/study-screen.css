@@ -4,22 +4,25 @@
 .ws-study-head h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:34px;line-height:1;margin:6px 0;font-weight:800}
 .ws-study-head p{margin:0;color:var(--ws-muted)}
 .ws-study-actions{margin-left:auto;display:flex;gap:8px}
-.ws-study-query{display:grid;grid-template-columns:1.2fr repeat(5,1fr) 1.2fr;gap:10px;align-items:end;padding:20px 0 16px;border-bottom:1px solid var(--ws-line)}
-.ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
+/* F6a (coach smoke, 1.12.0-19): seven fixed columns squeezed every select
+   below the width of its own longest option, so labels clipped. Let the row
+   wrap at a width where the text actually fits. */
+.ws-study-query{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:10px;align-items:end;padding:20px 0 16px;border-bottom:1px solid var(--ws-line)}
+.ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase}
 .ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:5px;background:var(--ws-field);color:var(--ws-text);padding:0 9px;text-transform:none}
 .ws-study-query select:disabled{opacity:.5;cursor:not-allowed}
 .ws-study-range{display:flex;align-items:end;gap:9px;padding:10px 0;border-bottom:1px solid var(--ws-line)}
 .ws-study-range[hidden]{display:none}
-.ws-study-range>strong{align-self:center;font-size:11px;text-transform:uppercase;margin-right:4px}
-.ws-study-range label{display:grid;gap:4px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.ws-study-range>strong{align-self:center;font-size:12px;text-transform:uppercase;margin-right:4px}
+.ws-study-range label{display:grid;gap:4px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase}
 .ws-study-range input{height:34px;border:1px solid var(--ws-line);border-radius:5px;background:var(--ws-field);color:var(--ws-text);padding:0 8px;color-scheme:dark}
-.ws-study-range>span,.ws-study-range>small{color:var(--ws-muted);font-size:11px}
+.ws-study-range>span,.ws-study-range>small{color:var(--ws-muted);font-size:12px}
 .ws-study-range>span{padding-bottom:9px}.ws-study-range>small{margin-left:auto;padding-bottom:8px}
 .ws-study-saved{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:end}.ws-study-saved .ws-icon-btn{margin-bottom:1px}
 .ws-study-filters{border-bottom:1px solid var(--ws-line);padding:10px 0}
 .ws-study-filter-head{display:flex;align-items:center;gap:10px;min-height:30px}
-.ws-study-filter-head strong{font-size:11px;text-transform:uppercase}
-.ws-study-filter-head span{font-size:11px;color:var(--ws-muted)}
+.ws-study-filter-head strong{font-size:12px;text-transform:uppercase}
+.ws-study-filter-head span{font-size:12px;color:var(--ws-muted)}
 .ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}
 .ws-study-filter-row{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(180px,1.5fr) minmax(130px,.8fr) 34px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--ws-line)}
 .ws-study-filter-row select{height:34px;border:1px solid var(--ws-line);border-radius:5px;background:var(--ws-field);color:var(--ws-text);padding:0 8px}
@@ -29,10 +32,13 @@
 .ws-study-summary{display:flex;align-items:baseline;gap:10px;padding:17px 0 12px}
 .ws-study-summary strong{font-size:18px}.ws-study-summary span{color:var(--ws-muted);font-size:12px}
 .ws-study-warning{padding:9px 11px;border-left:3px solid var(--ws-amber);background:var(--ws-warn-surface);color:var(--ws-amber);font-size:12px;margin-bottom:10px}
-.ws-study-visuals{display:grid;gap:12px;margin:0 0 18px}.ws-study-kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ws-line);background:var(--ws-nav)}.ws-study-kpis>div{min-width:0;padding:14px 16px;border-left:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-left:0}.ws-study-kpis span,.ws-study-kpis small{display:block;color:var(--ws-muted);font-size:10px;font-weight:700;text-transform:uppercase}.ws-study-kpis strong{display:block;margin:5px 0 2px;font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-chart{border:1px solid var(--ws-line);background:var(--ws-nav);padding:14px 16px}.ws-study-chart header{display:flex;justify-content:space-between;gap:16px;margin-bottom:8px}.ws-study-chart header span{color:var(--ws-muted);font-size:11px}.ws-study-bar-row,.ws-study-delta-row{display:grid;grid-template-columns:minmax(120px,190px) minmax(120px,1fr) 70px;gap:12px;align-items:center;width:100%;min-height:34px;border:0;border-top:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}.ws-study-bar-row:hover,.ws-study-delta-row:hover{background:var(--ws-raised)}.ws-study-bar-row>span,.ws-study-delta-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-bar-row>i,.ws-study-delta-row>i{display:block;height:8px;background:var(--ws-raised)}.ws-study-bar-row>i b{display:block;height:100%;background:var(--ws-blue)}.ws-study-delta-row>i{display:flex;justify-content:center;background:linear-gradient(90deg,var(--ws-raised) 49.5%,var(--ws-line-strong) 50%,var(--ws-raised) 50.5%)}.ws-study-delta-row>i b{display:block;height:100%;background:var(--ws-green);margin-left:50%}.ws-study-delta-row>i b.negative{background:var(--ws-red);transform:translateX(-100%);margin-left:50%}.ws-study-bar-row>strong,.ws-study-delta-row>strong{text-align:right;font-variant-numeric:tabular-nums}
+/* F7 (coach smoke, 1.12.0-19): `margin:0 0 18px` reset the horizontal margins
+   that `.ws-study>*` uses to center every block, so this one sat 26px left of
+   everything else on the route. The shorthand was the bug. */
+.ws-study-visuals{display:grid;gap:12px;margin:0 auto 18px}.ws-study-kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ws-line);background:var(--ws-nav)}.ws-study-kpis>div{min-width:0;padding:14px 16px;border-left:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-left:0}.ws-study-kpis span,.ws-study-kpis small{display:block;color:var(--ws-muted);font-size:11.5px;font-weight:700;text-transform:uppercase}.ws-study-kpis strong{display:block;margin:5px 0 2px;font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-chart{border:1px solid var(--ws-line);background:var(--ws-nav);padding:14px 16px}.ws-study-chart header{display:flex;justify-content:space-between;gap:16px;margin-bottom:8px}.ws-study-chart header span{color:var(--ws-muted);font-size:12px}.ws-study-bar-row,.ws-study-delta-row{display:grid;grid-template-columns:minmax(120px,190px) minmax(120px,1fr) 70px;gap:12px;align-items:center;width:100%;min-height:34px;border:0;border-top:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}.ws-study-bar-row:hover,.ws-study-delta-row:hover{background:var(--ws-raised)}.ws-study-bar-row>span,.ws-study-delta-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-bar-row>i,.ws-study-delta-row>i{display:block;height:8px;background:var(--ws-raised)}.ws-study-bar-row>i b{display:block;height:100%;background:var(--ws-blue)}.ws-study-delta-row>i{display:flex;justify-content:center;background:linear-gradient(90deg,var(--ws-raised) 49.5%,var(--ws-line-strong) 50%,var(--ws-raised) 50.5%)}.ws-study-delta-row>i b{display:block;height:100%;background:var(--ws-green);margin-left:50%}.ws-study-delta-row>i b.negative{background:var(--ws-red);transform:translateX(-100%);margin-left:50%}.ws-study-bar-row>strong,.ws-study-delta-row>strong{text-align:right;font-variant-numeric:tabular-nums}
 .ws-study-results{border-top:1px solid var(--ws-line)}
 .ws-study-table-head,.ws-study-row{display:grid;grid-template-columns:minmax(150px,1.4fr) .55fr .75fr .9fr .75fr 74px;gap:12px;align-items:center}
-.ws-study-table-head{min-height:38px;color:var(--ws-muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.ws-study-table-head{min-height:38px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase}
 .ws-study-row{min-height:56px;border-top:1px solid var(--ws-line);padding:8px 0}
 .ws-study-row strong{overflow:hidden;text-overflow:ellipsis}.ws-study-row span{color:var(--ws-text-soft);font-variant-numeric:tabular-nums}
 .ws-study-row.is-small{opacity:.62}.ws-study-row .is-positive{color:var(--ws-green)}.ws-study-row .is-negative{color:var(--ws-red)}
@@ -40,7 +46,7 @@
    Low-sample cells are dimmed and labelled, never hidden. */
 .ws-pivot-scroll{overflow-x:auto;max-width:100%}
 .ws-pivot{border-collapse:collapse;width:100%;font-size:12px}
-.ws-pivot-caption{caption-side:top;text-align:left;padding:0 0 8px;color:var(--ws-muted);font-size:11px}
+.ws-pivot-caption{caption-side:top;text-align:left;padding:0 0 8px;color:var(--ws-muted);font-size:12px}
 .ws-pivot th,.ws-pivot td{border:1px solid var(--ws-line);padding:0;text-align:center;vertical-align:middle}
 .ws-pivot thead th,.ws-pivot tfoot th,.ws-pivot tbody th{padding:6px 9px;background:var(--ws-nav);color:var(--ws-text);font-weight:700;white-space:nowrap}
 .ws-pivot tbody th{text-align:left;position:sticky;left:0;z-index:1}
@@ -49,7 +55,7 @@
 .ws-pivot-btn:hover{background:var(--ws-hover)}
 .ws-pivot-btn:focus-visible{outline:2px solid var(--ws-blue);outline-offset:-2px}
 .ws-pivot-value{font-weight:700;font-variant-numeric:tabular-nums}
-.ws-pivot-n{font-size:10px;color:var(--ws-muted)}
+.ws-pivot-n{font-size:11.5px;color:var(--ws-muted)}
 .ws-pivot-cell.is-small .ws-pivot-value{opacity:.55}
 .ws-pivot-cell.is-small .ws-pivot-n{color:var(--ws-amber)}
 .ws-pivot-cell.is-none{padding:6px 8px;color:var(--ws-muted)}
@@ -61,4 +67,4 @@
 @media(max-width:600px){.ws-study-range{display:grid;grid-template-columns:1fr 1fr}.ws-study-range>strong,.ws-study-range>small{grid-column:1/-1}.ws-study-range>span{display:none}.ws-study-range input{width:100%}.ws-study-range>small{margin-left:0;padding-bottom:0}}
 @media(max-width:600px){.ws-study-kpis{grid-template-columns:1fr}.ws-study-kpis>div{border-left:0;border-top:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-top:0}.ws-study-chart{padding:12px}.ws-study-chart header{display:block}.ws-study-chart header span{display:block;margin-top:3px}.ws-study-bar-row,.ws-study-delta-row{grid-template-columns:minmax(90px,130px) 1fr 56px;gap:8px;font-size:12px}}
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
-.ws-study-kpis span,.ws-study-kpis small{font-size:11px}.ws-study-delta-row.is-favorable>i b{background:var(--ws-green)}.ws-study-delta-row.is-unfavorable>i b{background:var(--ws-red)}
+.ws-study-kpis span,.ws-study-kpis small{font-size:12px}.ws-study-delta-row.is-favorable>i b{background:var(--ws-green)}.ws-study-delta-row.is-unfavorable>i b{background:var(--ws-red)}

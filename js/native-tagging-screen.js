@@ -211,7 +211,30 @@ export class NativeTaggingScreen {
     if (!chip) return false;
     if (control.value !== value) chip.click();
     this.activeRole = this.app.roster?.activeRole || this.activeRole;
+    this._derivePerspective(value);
     this._queuePublish();
+    return true;
+  }
+
+  /**
+   * F2a — perspective is DERIVED, never asked for.
+   *
+   * Charting our own game, the perspective simply IS the unit: pick Defense and
+   * you are looking at our defense. Charting an opponent against a third team,
+   * the subject is the team being charted no matter which unit is selected. So
+   * the only thing a coach ever had to decide is already decided at game setup,
+   * and the per-play control was pure extra clicking.
+   *
+   * `scout` is therefore sticky: it is a property of the FILM, set when the game
+   * is created, and a unit change must never silently turn opponent film into
+   * our own game.
+   */
+  _derivePerspective(unit) {
+    const control = document.getElementById('gamePerspective');
+    if (!control || control.value === 'scout') return false;
+    if (control.value === unit) return false;
+    control.value = unit;
+    control.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   }
 

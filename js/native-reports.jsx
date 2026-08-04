@@ -37,7 +37,9 @@ function NativeReportsRoute({ screen }) {
   return <section class="gi-reports" id="statsDashboard" aria-labelledby="giReportsTitle" data-native-reports>
     <header class="gi-reports-head" data-reports-main-chrome>
       <div class="gi-reports-title-block">
-        <span class="gi-reports-eyebrow">Reports / Self scout</span>
+        {/* F5 — the eyebrow was hardcoded "Self scout" and stayed that way while
+            the route showed the opponent scout. It follows the perspective. */}
+        <span class="gi-reports-eyebrow" data-reports-eyebrow>Reports</span>
         <h1 id="giReportsTitle" data-reports-title>Reports</h1>
         <p data-reports-context>Every number links to its film.</p>
       </div>

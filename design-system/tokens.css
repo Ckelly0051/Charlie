@@ -14,20 +14,28 @@
 /* ── SURFACES ───────────────────────────────────────────────────────────────
  * 1-2 surfaces · 3-5 interactive states · 6-8 borders · 9-10 solid · 11-12 text
  * `film` sits below step 1 so video is always the brightest object on screen. */
+/* SURFACE LADDER, re-tuned (S6-4e). The steps were spaced too tightly through
+ * the middle: 2/3/4 sat within a few points of luminance of each other, so a
+ * panel, a resting control and a hovered control all read as the same box, and
+ * the borders at 6/7 were close enough to the surfaces to disappear. The coach's
+ * report — "the medium and dark blues are a little too similar, text doesn't
+ * pop" — is that. Steps are now spread on luminance, the floor is darker so
+ * film and panels separate from it, and the border steps carry enough contrast
+ * to actually draw an edge. */
 :root{
-  --gi-film:#06090c;
-  --gi-1:#0c1014;   /* app background            */
-  --gi-2:#121820;   /* panel                     */
-  --gi-3:#1a2330;   /* interactive rest          */
-  --gi-4:#202b3a;   /* interactive hover         */
-  --gi-5:#273545;   /* interactive active        */
-  --gi-6:#2f4054;   /* border subtle             */
-  --gi-7:#3a4f66;   /* border default            */
-  --gi-8:#4c657f;   /* border strong / disabled  */
+  --gi-film:#04070a;
+  --gi-1:#080c11;   /* app background            */
+  --gi-2:#101822;   /* panel                     */
+  --gi-3:#1b2634;   /* interactive rest          */
+  --gi-4:#263345;   /* interactive hover         */
+  --gi-5:#324256;   /* interactive active        */
+  --gi-6:#3c5069;   /* border subtle             */
+  --gi-7:#4d6784;   /* border default            */
+  --gi-8:#6482a3;   /* border strong / disabled  */
   --gi-9:#2b6fff;   /* solid accent — CURRENT    */
-  --gi-10:#3d7dff;  /* solid accent hover        */
-  --gi-11:#8fa8c4;  /* text secondary            */
-  --gi-12:#eef3f8;  /* text primary              */
+  --gi-10:#5a92ff;  /* solid accent hover        */
+  --gi-11:#93a9c1;  /* text secondary            */
+  --gi-12:#f2f6fa;  /* text primary              */
 
   /* ── BROADCAST SEMANTICS. Football's own language; each means ONE thing. */
   --gi-los:var(--gi-9);        /* current: selection, active route, scrimmage */
@@ -82,6 +90,25 @@
   --gi-mono:'IBM Plex Mono',ui-monospace,monospace;
   /* Football numbers are ATOMIC: condensed, tabular, and they never reflow. */
   --gi-num-feat:tabular-nums lining-nums;
+
+  /* TYPE SCALE (S6-4e). Named roles, so a label is a decision made once rather
+   * than a font-size retyped in seventy-seven places.
+   *
+   * The rule that produced these: legibility comes from SIZE, not brightness.
+   * Labels were 9-10px uppercase and had to be pushed bright to clear contrast,
+   * which is what made them look like they were glowing on a near-black
+   * surface. Large text needs 3:1 rather than 4.5:1, so buying size back lets
+   * the luminance come down and the text reads calmer AND clearer. */
+  --gi-text-display:700 19px/1.05 var(--gi-cond);
+  --gi-text-stat:700 26px/1.05 var(--gi-cond);
+  --gi-text-body:500 13px/1.45 var(--gi-sans);
+  --gi-text-control:600 12.5px/1 var(--gi-sans);
+  --gi-text-label:650 11.5px/1.2 var(--gi-mono);   /* field + column labels   */
+  --gi-text-eyebrow:650 11px/1.2 var(--gi-mono);   /* section eyebrows        */
+  --gi-text-caption:500 11.5px/1.4 var(--gi-sans); /* sub-values, hints       */
+  /* Uppercase tracking. Wide tracking on tiny type is what turns a label into
+   * a row of disconnected letters; at a readable size it needs far less. */
+  --gi-track-label:.045em;
 
   /* ── SPACE (8px rhythm, Carbon) ── */
   --gi-1x:4px; --gi-2x:8px; --gi-3x:12px; --gi-4x:16px;
