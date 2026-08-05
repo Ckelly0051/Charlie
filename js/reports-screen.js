@@ -265,8 +265,14 @@ export class ReportsScreen {
       else html = `
         <div class="stats-section gi-reports-unit-head"><h3>Their offense · ${report.totalPlays} snaps</h3>${this._opponentWatchButton('offense', data.offCount, 'Watch opponent offense')}</div>
         <div class="stats-section"><h3>Formation tendencies</h3><table class="stats-table stats-table-full"><thead><tr><th>Formation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Yds</th><th>TD</th></tr></thead><tbody>${report.formationDetail.map(row => `<tr><td>${Charts._esc(row.name)}</td><td>${row.total}</td><td>${row.runPct}%</td><td>${100 - row.runPct}%</td><td>${row.yards}</td><td>${row.tds}</td></tr>`).join('')}</tbody></table></div>
+        ${/* H18 / G2 — THIS is the path the native screen renders. Both were
+              built into stats-engine's `renderOpponentScout`, which this screen
+              never calls, so two builds of work went into a dead path and the
+              coach saw none of it. Composed here, where the tab is actually
+              assembled. */''}
+        ${this.app.stats._renderDirectionTendency(data.offPlays, data.opponent)}
         ${this.app.stats._renderBigTwelve(data.offPlays, data.opponent, { cut: false })}
-        <div class="stats-section"><h3>Down &amp; distance</h3><table class="stats-table stats-table-full"><thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead><tbody>${report.downTendency.map(row => `<tr><td>${Charts._esc(row.key)}</td><td>${row.total}</td><td>${row.runPct}%</td><td>${100 - row.runPct}%</td></tr>`).join('')}</tbody></table></div>`;
+        ${this.app.stats._renderScoutDownDistance(report)}`;
     } else if (tab === 'defense') {
       html = this._opponentDefenseHtml(data, opponentName);
     } else if (tab === 'special') {
@@ -323,7 +329,7 @@ export class ReportsScreen {
       <div class="stats-section gi-answer-head">
         <h3>${Charts._esc(opponentName)}</h3>
         ${identity ? `<p class="gi-answer-identity">${Charts._esc(identity)}</p>` : ''}
-        <p class="viz-caption">${data.games} charted game${data.games === 1 ? '' : 's'} · ${data.offCount} of their offensive snaps · ${data.defCount} of their defensive snaps${thin ? ' — a thin sample; read these as leads, not law.' : ''}</p>
+        <p class="viz-caption">${data.games} charted game${data.games === 1 ? '' : 's'} · ${data.offCount} of their offensive snaps · ${data.defCount} of their defensive snaps${thin ? ' — under the minimum sample for a reliable read.' : ''}</p>
       </div>
       <div class="stats-section gi-answer-grid">
         ${block('Expect', 'Their most frequent looks.', expect)}
@@ -358,7 +364,7 @@ export class ReportsScreen {
         </tr></thead><tbody>${rows(list, first.toLowerCase())}</tbody></table></div>`;
 
     const changeup = join.changeups.length
-      ? `<div class="stats-section"><h3>When they change up</h3><p class="viz-caption">They are a ${Charts._esc(join.baseFront?.name || 'base')} team. These are the exceptions — the rarer a look, the more it is telling you something.</p>
+      ? `<div class="stats-section"><h3>When they change up</h3><p class="viz-caption">Fronts and coverages outside their base of ${Charts._esc(join.baseFront?.name || 'base')}, ordered by how rarely they appear.</p>
           <table class="stats-table stats-table-full"><thead><tr><th>Front</th><th>Snaps</th><th>Yds/play</th><th>Our success</th></tr></thead>
           <tbody>${join.changeups.map(row => `<tr class="cut-row" data-opponent-refs="${Charts._esc(row.refs.join(','))}" tabindex="0" role="button"><td>${Charts._esc(row.name)}</td><td>${row.n}</td><td>${row.avg}</td><td>${row.succPct}%</td></tr>`).join('')}</tbody></table></div>` : '';
 
@@ -366,15 +372,15 @@ export class ReportsScreen {
     return `
       <div class="stats-section gi-reports-unit-head"><h3>Their defense · ${join.total} snaps</h3>${this._opponentWatchButton('defense', join.total, 'Watch opponent defense')}</div>
       <div class="stats-section"><h3>Pressure</h3>
-        <p class="viz-caption">How often they bring it, and whether our answer is better or worse when they do.</p>
+        <p class="viz-caption">Snaps with pressure charted, and our yards per play and success rate with and without it.</p>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-card-title">Pressure rate</div><div class="stat-card-value">${p.ratePct}%</div><div class="stat-card-sub">${p.blitzed.n} of ${join.total} snaps</div></div>
           <div class="stat-card"><div class="stat-card-title">Our success vs pressure</div><div class="stat-card-value">${p.blitzed.succPct}%</div><div class="stat-card-sub">${p.blitzed.avg} yds/play</div></div>
           <div class="stat-card"><div class="stat-card-title">Our success without</div><div class="stat-card-value">${p.noBlitz.succPct}%</div><div class="stat-card-sub">${p.noBlitz.avg} yds/play</div></div>
           <div class="stat-card"><div class="stat-card-title">Sacks allowed</div><div class="stat-card-value">${p.blitzed.sacks + p.noBlitz.sacks}</div></div>
         </div></div>
-      ${table('Fronts — and what they cost us', 'Frequency alone is not actionable. This is what happened against each front.', join.fronts, 'Front')}
-      ${table('Coverages — and what they cost us', 'Same read, on the back end.', join.coverages, 'Coverage')}
+      ${table('Fronts — and what they cost us', 'Snaps we faced from each front, with yards per play, our success rate, our explosive rate and sacks allowed against it.', join.fronts, 'Front')}
+      ${table('Coverages — and what they cost us', 'Snaps we faced from each coverage, with yards per play, our success rate, our explosive rate and sacks allowed against it.', join.coverages, 'Coverage')}
       ${table('What they play against our looks', 'Our formation, their answer, our result. The core scouting question.', join.byOurLook, 'Our formation')}
       ${table('By situation', 'Money downs, red zone and backed up — where the call changes.', join.bySituation, 'Situation')}
       ${changeup}`;
