@@ -4058,6 +4058,86 @@ export class StatsEngine {
     return { axes, games: history.length, newBest: axes.some(a => a.isBest) };
   }
 
+  /**
+   * H18 — the two reads a defensive coordinator actually asks for.
+   *
+   * Both fields already existed on every play and NOTHING joined them: there
+   * was a Play Direction table and a Strength table side by side, so a coach
+   * had to do the cross-tab in his head — which does not even work, because
+   * they are different denominators over different play sets.
+   *
+   * SIDE CONVENTION (CLAUDE.md, v1.9.18): hash, strength and playDir are all
+   * recorded from the OFFENSE's perspective on every play regardless of unit.
+   * Both derivations below depend on that, and it is enforced by tagging rather
+   * than by code — so the report states it rather than assuming it.
+   *
+   * Balanced strength and middle hash have no side. They are REAL ROWS with
+   * blank Toward/Away and Field/Boundary — blank, not zero, not dropped.
+   */
+  _directionTendency(plays, key) {
+    const DIRS = ['Left', 'Middle', 'Right'];
+    const runs = (plays || []).filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
+    // Left hash => the field is to the RIGHT. Right hash => field is LEFT.
+    const fieldSideFor = (row) => key === 'hash'
+      ? (row === 'Left' ? 'Right' : row === 'Right' ? 'Left' : '')
+      : (row === 'Left' || row === 'Right' ? row : '');
+    const ROWS = key === 'hash'
+      ? [{ id: 'Left', label: 'Left hash' }, { id: 'Right', label: 'Right hash' }, { id: 'Middle', label: 'Middle' }]
+      : [{ id: 'Right', label: 'Strength right' }, { id: 'Left', label: 'Strength left' }, { id: 'Balanced', label: 'Balanced' }];
+
+    const rows = ROWS.map(row => {
+      const set = runs.filter(p => String(p.tags?.[key] || '').trim() === row.id);
+      if (!set.length) return null;
+      const dirs = DIRS.map(d => set.filter(p => String(p.tags?.playDir || '').trim() === d).length);
+      const total = set.length;
+      const pct = n => Math.round((n / total) * 100);
+      const side = fieldSideFor(row.id);
+      const towardCount = side ? dirs[DIRS.indexOf(side)] : null;
+      const awayCount = side ? dirs[DIRS.indexOf(side === 'Left' ? 'Right' : 'Left')] : null;
+      const runCount = set.filter(p => StatsEngine.isRun(p)).length;
+      return {
+        id: row.id, label: row.label, total,
+        left: pct(dirs[0]), middle: pct(dirs[1]), right: pct(dirs[2]),
+        // null (not 0) where the row has no side — the renderer prints a dash.
+        toward: towardCount == null ? null : pct(towardCount),
+        away: awayCount == null ? null : pct(awayCount),
+        runPct: total ? Math.round((runCount / total) * 100) : 0,
+      };
+    }).filter(Boolean);
+    return rows.length ? { rows, total: rows.reduce((s, r) => s + r.total, 0) } : null;
+  }
+
+  _renderDirectionTendency(plays, opponentName) {
+    const esc = Charts._esc;
+    const strength = this._directionTendency(plays, 'strength');
+    const hash = this._directionTendency(plays, 'hash');
+    if (!strength && !hash) return '';
+    const who = esc(opponentName || 'They');
+    const cell = v => (v == null ? '<td class="bt-blank">—</td>' : `<td class="bt-num">${v}%</td>`);
+    const table = (data, firstCol, towardLabel, awayLabel) => !data ? '' : `
+      <table class="stats-table stats-table-full">
+        <thead><tr>
+          <th>${esc(firstCol)}</th><th class="bt-num">N</th>
+          <th class="bt-num">Left</th><th class="bt-num">Middle</th><th class="bt-num">Right</th>
+          <th class="bt-num">${esc(towardLabel)}</th><th class="bt-num">${esc(awayLabel)}</th>
+          <th class="bt-num">Run%</th>
+        </tr></thead>
+        <tbody>${data.rows.map(r => `<tr>
+          <td>${esc(r.label)}</td><td class="bt-num">${r.total}</td>
+          <td class="bt-num">${r.left}%</td><td class="bt-num">${r.middle}%</td><td class="bt-num">${r.right}%</td>
+          ${cell(r.toward)}${cell(r.away)}
+          <td class="bt-num">${r.runPct}%</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    return `<div class="stats-section">
+      <h3>Direction tendencies</h3>
+      <p class="viz-caption">Play direction against ${who}'s own strength and hash. Left/Middle/Right = share of that row's snaps by direction. Toward/Away and Field/Boundary are blank where the row has no side: Balanced strength and middle hash. All sides recorded from the offense's perspective.</p>
+      ${table(strength, 'Strength', 'Toward', 'Away')}
+      ${hash ? '<h4>By hash</h4>' : ''}
+      ${table(hash, 'Hash', 'Field', 'Boundary')}
+    </div>`;
+  }
+
   _scoutByDown(plays) {
     const rows = ['1', '2', '3', '4'].map(down => {
       const set = (plays || []).filter(p => String(p.tags?.down || '') === down);
@@ -4351,6 +4431,7 @@ export class StatsEngine {
         </div>
         ${this._renderShape(null, { plays: data.offPlays, cut: false,
           formations: (r.formationDetail || []).map(f => ({ name: f.name, count: f.total, successPct: 0 })) })}
+        ${this._renderDirectionTendency(data.offPlays, opponentName)}
         ${this._renderBigTwelve(data.offPlays, opponentName, { cut: false })}
         ${this._renderScoutDownDistance(r)}` : `<div class="stats-section"><p style="color:var(--text-dim)">No offensive snaps tagged against them yet. Tag your <strong>defensive</strong> plays (the formation &amp; play type you faced) to build their offensive tendencies.</p></div>`;
       const td = data.defCount || 0;

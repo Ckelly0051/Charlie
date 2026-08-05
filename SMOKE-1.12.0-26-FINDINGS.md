@@ -318,6 +318,139 @@ structural rather than incidental.
 
 ---
 
+## H17 — Old copy survives in the chart LEGENDS, and duplicates the caption
+
+**Route:** Reports → Offense
+**Severity:** copy
+**Reported:** 2026-08-05, with screenshot
+
+**The captions did update** — the screenshot shows the literal versions ("X =
+yards gained, binned. Y = number of snaps. Loss = yardage below 0…"). What still
+carries the old framing voice is the **legend row underneath each chart**, which
+I never touched because I swept `viz-caption` strings only.
+
+Worse, the legend now **says the same thing as the caption above it**:
+
+> caption: "Bar length = share of offensive snaps. Fill = success rate. Success
+> = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th. Faded = under
+> 3 snaps."
+> legend: "Bar length = how often · Fill = success rate · Faded = under 3 snaps"
+
+Two definitions of the same three terms, stacked, one precise and one loose.
+
+**Fix scope:** the legend strings live inside the chart primitives in
+`charts.js` (`rampBars`, `histogram`, `scatter`, `zoneStrip`,
+`smallMultiples`), not in the caption path — which is exactly why the sweep
+missed them. **Decide per chart whether the legend earns its place at all now
+that the caption defines the terms.** Where it does (a colour key the caption
+cannot carry, like run vs pass), keep it and make it literal; where it only
+restates the caption, delete it.
+
+**This is the third time this class has bitten: I swept one string source and
+called the job done.** F12/G3 (visuals reached one tab), H11 (four captions of
+many), now H17 (captions but not legends). The sweep has to be over every
+string that renders on the surface, not every string matching one selector.
+
+---
+
+## H18 — Run direction relative to offensive strength is not computed
+
+**Route:** Reports → Opponent scout (and self-scout)
+**Severity:** ANALYTICS GAP, not presentation
+**Reported:** 2026-08-05
+
+The coach named the two reports a defensive coordinator actually needs:
+
+1. **"When in formation X, they run/pass Y% of the time."** — **Answered
+   today.** Their Formation Tendencies gives formation × run/pass, and the
+   Big 13 gives a sharper version keyed on formation + alignment + backfield +
+   strength + motion. Only limit is charting: that table read 7 of 34 snaps on
+   the Refuge report because those defensive snaps carried QB alignment but no
+   structural formation.
+
+2. **"Which way do they run relative to their own strength?"** — **NOT
+   answered, and not computed anywhere.** Both fields exist on every play
+   (`strength` = Left/Right/Balanced, `playDir` = Left/Middle/Right, both stored
+   from the offense's perspective by convention) and **nothing joins them**.
+   There is a Play Direction table and a Strength table side by side and no
+   cross-tab. Confirmed by search: no `playDir`×`strength` derivation exists.
+
+Today a coach sees "they ran right 62%" and separately "they set strength right
+55%" and has to do the join in his head — which does not even work, because
+those are different denominators over different play sets.
+
+### What it must be (coach, 2026-08-05)
+
+**A strength × direction cross-tab, with Balanced included as its own row —
+not excluded.** The coach's words: *"I want a report that tells me the direction
+of their runs in relation to offensive strength, left, right, balanced."*
+
+```
+STRENGTH      LEFT    MIDDLE   RIGHT    N     TOWARD   AWAY
+Right          12%      18%     70%     28      70%     12%
+Left           64%      21%     15%     19      64%     15%
+Balanced       38%      24%     38%     13       —       —
+```
+
+* **Balanced is a real row**, not an exclusion. It has no strength side, so
+  Toward/Away are blank for it — blank, not zero, and not dropped.
+* **Toward/Away are derived for the Left/Right rows only** and sit beside the
+  raw direction split rather than replacing it. Keeping the raw columns means
+  the number is checkable.
+* **Run/pass split on the same axis** is worth having: "they run toward strength
+  but throw away from it" is the actionable version.
+* Break out by formation, and by down where the sample supports it — that is
+  where the tell lives.
+* Every row film-linked, like the rest of the report.
+
+### Hash: field vs boundary (coach, same conversation)
+
+Add hash to the same axis so the report answers **"do they run to the field or
+to the boundary, and at what rate?"**
+
+`hash` is already stored Left/Middle/Right from the offense's perspective, the
+same convention as `strength` and `playDir`, so the derivation is consistent:
+
+* ball on the **left hash** → field is **Right**, boundary is **Left**
+* ball on the **right hash** → field is **Left**, boundary is **Right**
+* ball in the **middle** → **neither**; it is a real row with blank
+  field/boundary, exactly like Balanced strength
+
+```
+HASH        LEFT   MIDDLE  RIGHT    N     FIELD   BOUNDARY
+Left hash    18%     15%     67%    22      67%      18%
+Right hash   71%     12%     17%    24      71%      17%
+Middle       40%     20%     40%    10       —        —
+```
+
+### This is one report with a pivot, not three tables
+
+The coach: *"smells like its own report with a pivot."* Agreed, and the product
+already has the machinery twice over — the **Tendency Matrix** (rows × columns
+with dimension pickers) and the **Study** pivot. The cheapest correct build is
+**two new derived dimensions** rather than a bespoke report:
+
+* `dirVsStrength` → Toward / Away / Middle / n-a (Balanced)
+* `dirVsHash` → Field / Boundary / Middle / n-a (middle hash)
+
+Registered as dimensions, they become pivotable against formation, down,
+distance bucket, personnel and each other for free, and they inherit the
+existing film-link and min-sample behaviour. A standalone table would have to
+re-implement all of that.
+
+**Hazard to respect:** both derivations depend on the SIDE CONVENTION — hash,
+strength and playDir are all recorded from the OFFENSE's perspective on every
+play regardless of unit. That convention is enforced by tagging, not by code
+(CLAUDE.md, v1.9.18). If a coach ever tags a defensive snap from the defense's
+point of view, both of these silently invert. Worth stating in the report rather
+than assuming.
+
+**This is the first genuine analytics gap this smoke has found** — everything
+else has been presentation. It is also on the defensive side, which has had the
+least attention of any surface in the redesign.
+
+---
+
 ## H3 — Design implementation status (Claude's read, not a coach finding)
 
 The coach asked whether the full design is implemented, since it is hard to

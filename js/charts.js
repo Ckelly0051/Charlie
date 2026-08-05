@@ -44,7 +44,11 @@ export class Charts {
         <span class="gi-ramp-pct">${Math.round(success)}%${row.count < minN ? ' <em>low</em>' : ''}</span>
       </div>`;
     }).join('')}
-      <div class="gi-ramp-key"><span>Bar length = how often</span><span>Fill = success rate</span><span>Faded = under ${minN} snaps</span></div>
+      ${/* H17 — this legend restated the caption above it in looser words, so
+            the same three terms were defined twice, once precisely and once
+            not. The caption owns the definitions; the legend is deleted rather
+            than rewritten. A legend earns its place only where it carries a key
+            the caption cannot — a colour mapping, not a restatement. */''}
     </div>`;
   }
 
@@ -104,7 +108,10 @@ export class Charts {
         ${list.map(point => `<circle cx="${sx(point.x).toFixed(2)}" cy="${sy(point.y).toFixed(2)}" r="${(1 + Math.min(1.6, Math.abs(point.y) / 22)).toFixed(2)}"
           style="fill:${point.run ? 'var(--gi-run)' : 'var(--gi-pass)'};opacity:.8"><title>${Charts._esc(point.label)}</title></circle>`).join('')}
       </svg>
-      <figcaption><span>Distance to go &rarr;</span><span class="gi-scatter-key"><i style="background:var(--gi-run)"></i>Run<i style="background:var(--gi-pass)"></i>Pass</span><span>Dashed line = the sticks</span></figcaption>
+      ${/* Kept: this one carries a COLOUR KEY the caption cannot. The prose
+            restatements beside it ("Dashed line = the sticks") are gone — the
+            caption already defines the line literally. */''}
+      <figcaption><span>Distance to go &rarr;</span><span class="gi-scatter-key"><i style="background:var(--gi-run)"></i>Run<i style="background:var(--gi-pass)"></i>Pass</span></figcaption>
     </figure>`;
   }
 
