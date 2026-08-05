@@ -386,6 +386,7 @@ export class StatsEngine {
       scoring: this._scoringStats(offPlays),
       downs: this._downStats(offPlays),
       turnovers: this._turnoverStats(offPlays),
+      negativePlays: this._negativePlayStats(offPlays),
       tendencies: this._tendencyStats(offPlays),
       bigPlays: this._bigPlays(offPlays),
       individuals: this._individualStats(individualSource),
@@ -1177,6 +1178,67 @@ export class StatsEngine {
     };
   }
 
+  /**
+   * G14 — the Negative Plays breakdown.
+   *
+   * The lens this replaces was called "Risk", which named four things that had
+   * ALREADY HAPPENED — that is damage, not exposure. Worse, two of its tiles
+   * overlapped: `negative` is `yardage < 0`, so every sack was counted there AND
+   * again under "Sacks taken", in the same lens, with nothing saying so.
+   *
+   * The coach's resolution, over five rounds:
+   *
+   *   HEADLINE is literal — DISTINCT plays that went wrong, with one percentage
+   *   taken against total plays. ROWS are raw counts with no percentages.
+   *
+   * The two levels deliberately disagree, and that is correct: a strip-sack is
+   * ONE play but TWO events, so 12 snaps can carry 16 events. Dropping the row
+   * percentages is what makes that readable — there is no invitation to add
+   * them up against a total they would not match.
+   *
+   * TURNOVERS STAND ALONE and go first; a turnover is never folded into
+   * anything. Everything that could double-count is BRACKETED under Plays for
+   * Loss, where the indent shows the children are part of the total rather than
+   * additional to it. The coach's case for keeping sacks visible: if all four
+   * turnovers are strip-sacks, calling out the sack is exactly what matters.
+   *
+   * The children are mutually exclusive by precedence (sack > run > pass), so
+   * they sum EXACTLY to their header. `_isLoss` is the same `yardage < 0` rule
+   * `_efficiencyStats` uses, so the row and the `negative` cut filter cannot
+   * drift apart and show one number while playing another.
+   */
+  _negativePlayStats(plays) {
+    const list = plays || [];
+    const isLoss = p => (parseInt(p.tags?.yardage, 10) || 0) < 0;
+    const isTurnover = p => StatsEngine.hasResult(p, 'Interception') || StatsEngine.hasResult(p, 'Fumble');
+    const isSack = p => StatsEngine.hasResult(p, 'Sack');
+    const isFlagged = p => StatsEngine.hasResult(p, 'Penalty')
+      || (Array.isArray(p.penalties) && p.penalties.length > 0);
+
+    const losses = list.filter(isLoss);
+    const sacks = losses.filter(isSack);
+    const runs = losses.filter(p => !isSack(p) && StatsEngine.isRun(p));
+    const passes = losses.filter(p => !isSack(p) && !StatsEngine.isRun(p) && StatsEngine.isPass(p));
+    const other = losses.filter(p => !isSack(p) && !StatsEngine.isRun(p) && !StatsEngine.isPass(p));
+
+    // The headline counts PLAYS, so a strip-sack lands here exactly once even
+    // though it appears on two rows below.
+    const distinct = list.filter(p => isLoss(p) || isTurnover(p) || isFlagged(p)).length;
+
+    return {
+      totalPlays: list.length,
+      distinct,
+      distinctPct: list.length ? Math.round((distinct / list.length) * 100) : 0,
+      turnovers: list.filter(isTurnover).length,
+      lossTotal: losses.length,
+      lossSacks: sacks.length,
+      lossRuns: runs.length,
+      lossPasses: passes.length,
+      lossOther: other.length,
+      penalties: list.filter(isFlagged).length,
+    };
+  }
+
   _tendencyStats(plays) {
     const formations = {};
     const formationDetail = {};
@@ -1266,7 +1328,18 @@ export class StatsEngine {
   _yardageBins(plays) {
     const EDGES = [-99, -1, 0, 3, 6, 10, 15, 20, 999];
     const LABELS = ['Loss', '0', '1–3', '4–6', '7–10', '11–15', '16–20', '20+'];
-    const bins = LABELS.map((label, index) => ({ label, from: EDGES[index], to: EDGES[index + 1], count: 0 }));
+    // G14/G4 — the bin owns its own tone. `charts.js` previously decided this
+    // with `bin.to <= 0`, which caught the `0` bin (from -1 to 0) and painted a
+    // NO GAIN in the turnover colour. A zero-yard play is not a loss. Deriving
+    // it here also keeps the judgement inside the engine, where the parity gate
+    // and the raw-read audit can both see it.
+    const bins = LABELS.map((label, index) => ({
+      label,
+      from: EDGES[index],
+      to: EDGES[index + 1],
+      count: 0,
+      tone: EDGES[index + 1] < 0 ? 'loss' : (EDGES[index] < 0 ? 'none' : 'gain'),
+    }));
     let total = 0, sum = 0;
     plays.forEach(play => {
       const yards = parseInt(play.tags.yardage) || 0;
@@ -1631,7 +1704,7 @@ export class StatsEngine {
         working.push({ s: expPct * 20, cut: ['situation', 'explosive'], text: `<strong>${expPct}%</strong> explosive play rate (${stats.efficiency.explosivePlays} plays) — hitting big shots` });
       const negPct = parseFloat(stats.efficiency.negativePct);
       if (negPct >= 15)
-        fix.push({ s: negPct * 20, cut: ['situation', 'negative'], text: `<strong>${negPct}%</strong> negative play rate (${stats.efficiency.negativePlays} plays) — too many losses behind the line` });
+        fix.push({ s: negPct * 20, cut: ['situation', 'negative'], text: `<strong>${negPct}%</strong> plays for loss (${stats.efficiency.negativePlays} plays) — too many losses behind the line` });
     }
 
     // --- Hash predictability ---
@@ -2324,7 +2397,7 @@ export class StatsEngine {
           ${Charts.gauge(parseFloat(t.passSuccRate), 'Pass Success', passSuccColor, 110)}
           <div class="eff-side-cards">
             <div class="stat-card stat-card-sm"><div class="stat-card-title">Explosive</div><div class="stat-card-value" style="color:#22c55e">${e.explosivePlays}</div><div style="font-size:11px;opacity:.6">${e.explosivePct}% (run 12+/pass 16+)</div></div>
-            <div class="stat-card stat-card-sm"><div class="stat-card-title">Negative</div><div class="stat-card-value" style="color:#ef4444">${e.negativePlays}</div><div style="font-size:11px;opacity:.6">${e.negativePct}% of plays</div></div>
+            <div class="stat-card stat-card-sm"><div class="stat-card-title">Plays for Loss</div><div class="stat-card-value" style="color:var(--gi-turnover)">${e.negativePlays}</div><div style="font-size:11px;opacity:.6">${e.negativePct}% of plays</div></div>
           </div>
         </div>
       </div>`;
@@ -2567,7 +2640,7 @@ export class StatsEngine {
           ${tile('Yds / play', ypp, `${totalYards} total`)}
           ${tile('Success rate', success, 'on-schedule')}
           ${tile('Explosives', explosiveCount, 'watch them', { type: 'situation', val: 'explosive', label: 'Explosive plays' })}
-          ${tile('Negative plays', negativeCount, 'watch them', { type: 'situation', val: 'negative', label: 'Negative plays' })}
+          ${tile('Plays for Loss', negativeCount, 'watch them', { type: 'situation', val: 'negative', label: 'Plays for Loss' })}
           ${tile('Third down', thirdLabel, 'watch them', { type: 'down', val: '3', label: 'Third down' })}
         </div>
         ${turnovers ? `<p class="gi-glance-foot">${turnovers} turnover${turnovers === 1 ? '' : 's'} charted</p>` : ''}
@@ -2668,15 +2741,43 @@ export class StatsEngine {
     ].filter(Boolean);
     lenses.push({ id: 'tendencies', name: 'Tendencies', ask: 'What do we show pre-snap?', tiles: tendencies, detail: 'selfscout', detailLabel: 'Self-scout' });
 
-    // 5. RISK — what is costing us. Sacks, turnovers and penalties have no cut
-    // filter of their own, so they inform without pretending to a cohort.
-    const risk = [
-      tile('Negative plays', e.negativePlays || 0, `${pct(e.negativePct) || '0%'} of snaps`, (e.negativePlays ? { type: 'situation', val: 'negative', label: 'Negative plays' } : null)),
-      pass.sacks ? tile('Sacks taken', pass.sacks, `${pass.sackYards || 0} yds lost`) : '',
-      tile('Turnovers', to.total || 0, `${to.interceptions || 0} INT · ${to.fumbles || 0} FUM`),
-      pen?.hasData ? tile('Penalties', pen.accepted, `${pen.flaggedPlays} flagged plays`) : '',
-    ].filter(Boolean);
-    lenses.push({ id: 'risk', name: 'Risk', ask: 'What is costing us snaps?', tiles: risk, detail: 'defense', detailLabel: 'Defense report' });
+    // 5. NEGATIVE PLAYS — see _negativePlayStats for the full rationale. This
+    // lens does NOT use the tile grid: a flat row of tiles is what allowed a
+    // sack to be counted twice with nothing on screen saying so. The nesting IS
+    // the explanation, so it renders its own body.
+    const np = stats.negativePlays;
+    if (np && np.distinct) {
+      const row = (label, value, cut, cls = '') => {
+        const attrs = cut
+          ? ` class="gi-np-row cut-row${cls ? ' ' + cls : ''}" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" role="button" tabindex="0"`
+          : ` class="gi-np-row${cls ? ' ' + cls : ''}"`;
+        return `<div${attrs}><span class="gi-np-label">${Charts._esc(label)}</span><span class="gi-np-value">${value}</span></div>`;
+      };
+      // Only Plays for Loss claims a cohort — it IS the `negative` cut, same
+      // `yardage < 0` rule, so the number shown and the film played cannot
+      // disagree. Turnovers, sacks and penalties have no cut of their own and
+      // stay context rather than inventing one (the AX-7 rule).
+      const kids = [
+        np.lossSacks ? row('Sacks', np.lossSacks, null, 'is-child') : '',
+        np.lossRuns ? row('Runs', np.lossRuns, null, 'is-child') : '',
+        np.lossPasses ? row('Passes', np.lossPasses, null, 'is-child') : '',
+        np.lossOther ? row('Other', np.lossOther, null, 'is-child') : '',
+      ].filter(Boolean).join('');
+      const body = `
+        <div class="gi-np">
+          <div class="gi-np-headline">
+            <b>${np.distinct}</b>
+            <span>${np.distinctPct}% of plays</span>
+          </div>
+          <div class="gi-np-rows">
+            ${row('Turnovers', np.turnovers, null)}
+            ${np.lossTotal ? row('Plays for Loss', np.lossTotal, { type: 'situation', val: 'negative', label: 'Plays for Loss' }) : ''}
+            ${kids ? `<div class="gi-np-kids">${kids}</div>` : ''}
+            ${row('Penalties', np.penalties, null)}
+          </div>
+        </div>`;
+      lenses.push({ id: 'negative', name: 'Negative Plays', ask: 'What is costing us snaps?', tiles: ['x'], body, detail: 'defense', detailLabel: 'Defense report' });
+    }
 
     const cards = lenses.filter(lens => lens.tiles.length).map(lens => `
       <section class="gi-lens" data-lens="${lens.id}">
@@ -2684,7 +2785,7 @@ export class StatsEngine {
           <h4>${Charts._esc(lens.name)}</h4>
           <p>${Charts._esc(lens.ask)}</p>
         </header>
-        <div class="gi-lens-tiles">${lens.tiles.join('')}</div>
+        ${lens.body ? lens.body : `<div class="gi-lens-tiles">${lens.tiles.join('')}</div>`}
         ${lens.detail ? `<button type="button" class="gi-lens-more" data-lens-tab="${lens.detail}">${Charts._esc(lens.detailLabel)} &rarr;</button>` : ''}
       </section>`).join('');
     if (!cards) return '';
@@ -3038,7 +3139,7 @@ export class StatsEngine {
     const kpis = [];
     if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', sub: 'on-schedule', tone: tone(succ, 45, 33), tip: SUCCESS_RATE_TIP });
     if (expl != null) kpis.push({ label: 'Explosive', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
-    if (neg != null) kpis.push({ label: 'Negative', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
+    if (neg != null) kpis.push({ label: 'Plays for Loss', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
     kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
     kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
     return `<div class="gi-hero">${kpis.map(k => `

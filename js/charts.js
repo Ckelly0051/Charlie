@@ -65,9 +65,13 @@ export class Charts {
       <svg viewBox="0 0 100 44" preserveAspectRatio="none" role="img" aria-label="${Charts._esc(opts.label || 'Yardage distribution')}">
         ${list.map((bin, index) => {
           const h = max ? (bin.count / max) * 34 : 0;
-          const negative = bin.to <= 0;
+          // The bin carries its own tone (StatsEngine._yardageBins). This used
+          // to be `bin.to <= 0` here, which painted the `0` bin — a NO GAIN —
+          // in the turnover colour. Renderers do not decide football meaning.
+          const fill = bin.tone === 'loss' ? 'var(--gi-turnover)'
+            : bin.tone === 'none' ? 'var(--gi-7)' : 'var(--gi-cat-1)';
           return `<rect x="${(index * w + w * 0.12).toFixed(2)}" y="${(38 - h).toFixed(2)}" width="${(w * 0.76).toFixed(2)}" height="${h.toFixed(2)}"
-            style="fill:${negative ? 'var(--gi-turnover)' : 'var(--gi-cat-1)'};opacity:.85"><title>${Charts._esc(bin.label)}: ${bin.count}</title></rect>`;
+            style="fill:${fill};opacity:.85"><title>${Charts._esc(bin.label)}: ${bin.count}</title></rect>`;
         }).join('')}
         ${meanIndex != null ? `<line x1="${(meanIndex * w + w / 2).toFixed(2)}" y1="2" x2="${(meanIndex * w + w / 2).toFixed(2)}" y2="38" style="stroke:var(--gi-first-down);stroke-width:.6"/>` : ''}
         <line x1="0" y1="38" x2="100" y2="38" style="stroke:var(--gi-7);stroke-width:.4"/>

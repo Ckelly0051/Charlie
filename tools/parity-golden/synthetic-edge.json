@@ -179,6 +179,18 @@
     "interceptions": 1,
     "fumbles": 0
    },
+   "negativePlays": {
+    "totalPlays": 16,
+    "distinct": 1,
+    "distinctPct": 6,
+    "turnovers": 1,
+    "lossTotal": 0,
+    "lossSacks": 0,
+    "lossRuns": 0,
+    "lossPasses": 0,
+    "lossOther": 0,
+    "penalties": 0
+   },
    "tendencies": {
     "formations": {
      "Trips": 7,
@@ -2860,6 +2872,18 @@
       "interceptions": 1,
       "fumbles": 0
      },
+     "negativePlays": {
+      "totalPlays": 16,
+      "distinct": 1,
+      "distinctPct": 6,
+      "turnovers": 1,
+      "lossTotal": 0,
+      "lossSacks": 0,
+      "lossRuns": 0,
+      "lossPasses": 0,
+      "lossOther": 0,
+      "penalties": 0
+     },
      "tendencies": {
       "formations": {
        "Trips": 7,
@@ -4366,6 +4390,18 @@
     "total": 1,
     "interceptions": 1,
     "fumbles": 0
+   },
+   "negativePlays": {
+    "totalPlays": 10,
+    "distinct": 1,
+    "distinctPct": 10,
+    "turnovers": 1,
+    "lossTotal": 0,
+    "lossSacks": 0,
+    "lossRuns": 0,
+    "lossPasses": 0,
+    "lossOther": 0,
+    "penalties": 0
    },
    "tendencies": {
     "formations": {
@@ -6387,6 +6423,18 @@
       "interceptions": 1,
       "fumbles": 0
      },
+     "negativePlays": {
+      "totalPlays": 10,
+      "distinct": 1,
+      "distinctPct": 10,
+      "turnovers": 1,
+      "lossTotal": 0,
+      "lossSacks": 0,
+      "lossRuns": 0,
+      "lossPasses": 0,
+      "lossOther": 0,
+      "penalties": 0
+     },
      "tendencies": {
       "formations": {
        "Trips": 7,
@@ -7643,6 +7691,18 @@
     "total": 0,
     "interceptions": 0,
     "fumbles": 0
+   },
+   "negativePlays": {
+    "totalPlays": 6,
+    "distinct": 0,
+    "distinctPct": 0,
+    "turnovers": 0,
+    "lossTotal": 0,
+    "lossSacks": 0,
+    "lossRuns": 0,
+    "lossPasses": 0,
+    "lossOther": 0,
+    "penalties": 0
    },
    "tendencies": {
     "formations": {
@@ -8929,6 +8989,18 @@
       "total": 0,
       "interceptions": 0,
       "fumbles": 0
+     },
+     "negativePlays": {
+      "totalPlays": 6,
+      "distinct": 0,
+      "distinctPct": 0,
+      "turnovers": 0,
+      "lossTotal": 0,
+      "lossSacks": 0,
+      "lossRuns": 0,
+      "lossPasses": 0,
+      "lossOther": 0,
+      "penalties": 0
      },
      "tendencies": {
       "formations": {

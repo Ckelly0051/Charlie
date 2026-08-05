@@ -204,6 +204,34 @@
 }
 .gi-reports .gi-lens-more:hover,.gi-reports .gi-lens-more:focus-visible{color:var(--gi-12);border-color:var(--gi-10);outline:none}
 @media(max-width:560px){.gi-reports .gi-lens-tiles{grid-template-columns:minmax(0,1fr)}}
+
+/* G14 — the Negative Plays lens renders its own body instead of the tile grid.
+   A flat row of tiles is exactly what let a sack be counted twice with nothing
+   on screen saying so; the INDENT is the explanation. The headline is distinct
+   plays with one percentage, the rows are raw counts with none, and the two are
+   allowed to disagree because a strip-sack is one play but two events. */
+.gi-reports .gi-np{display:grid;gap:var(--gi-3x);min-width:0}
+.gi-reports .gi-np-headline{display:flex;align-items:baseline;gap:var(--gi-2x);
+  padding-bottom:var(--gi-2x);border-bottom:1px solid var(--gi-6)}
+.gi-reports .gi-np-headline b{font-family:var(--gi-cond);font-weight:700;font-size:34px;
+  line-height:.9;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
+.gi-reports .gi-np-headline span{font-size:12px;color:var(--gi-11)}
+.gi-reports .gi-np-rows{display:grid;gap:1px}
+.gi-reports .gi-np-row{display:flex;align-items:center;gap:var(--gi-2x);
+  min-height:var(--gi-row);padding:0 var(--gi-2x);background:var(--gi-1)}
+.gi-reports .gi-np-label{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--gi-12)}
+.gi-reports .gi-np-value{flex:0 0 auto;font-family:var(--gi-cond);font-weight:700;
+  font-size:17px;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
+.gi-reports .gi-np-row.cut-row{cursor:pointer}
+.gi-reports .gi-np-row.cut-row:hover,.gi-reports .gi-np-row.cut-row:focus-visible{
+  background:var(--gi-3);outline:none;box-shadow:inset 2px 0 0 var(--gi-los)}
+/* The bracket. Children sit inside their parent's total, so they are indented
+   under a rule rather than listed as peers. */
+.gi-reports .gi-np-kids{display:grid;gap:1px;margin-left:var(--gi-3x);
+  padding-left:var(--gi-3x);border-left:1px solid var(--gi-6)}
+.gi-reports .gi-np-row.is-child{min-height:28px;background:transparent}
+.gi-reports .gi-np-row.is-child .gi-np-label{color:var(--gi-11);font-size:12px}
+.gi-reports .gi-np-row.is-child .gi-np-value{font-size:14px;color:var(--gi-11)}
 /* F9/F10/F11 (S6-4e), coach smoke on 1.12.0-19. */
 /* F11 — center the tile contents. */
 .gi-reports .gi-lens-tiles .gi-glance-tile,.gi-reports .gi-glance-tile{justify-items:center;text-align:center}

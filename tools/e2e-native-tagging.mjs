@@ -88,6 +88,14 @@ ok(['I-Form','Split Back'].every(value=>state.formations.includes(value))&&['I',
 ok(JSON.stringify(state.rows)===JSON.stringify([{name:'primary',fields:['quarter','down','distance']},{name:'field',fields:['hash','fieldSide','yardLine']}]),'Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position',JSON.stringify(state.rows));
 ok(state.primary.at(-1)==='Fumble'&&!state.primary.includes('Punt')&&state.more[0]==='Punt','Punt moves behind More while common results remain one row',JSON.stringify({primary:state.primary,more:state.more}));
 ok(state.resultOverflow<=1,'Common results and More fit the production-width tag column without horizontal scrolling',JSON.stringify(state.resultOverflow));
+/* G12b — these two constraints pull against each other: the More control has to
+   be WIDE enough to render its label and NARROW enough that the result row still
+   fits one line. Fixing either alone just moves the bug, so both are pinned.
+   The coach saw this control rendering as "Mo". */
+const moreFit=await page.evaluate(()=>{const el=document.querySelector('.gi-tag-more-select');if(!el)return null;
+  return {label:(el.options?.[0]?.text||'').trim(),scroll:el.scrollWidth,client:el.clientWidth};});
+ok(moreFit&&moreFit.label==='More'&&moreFit.scroll<=moreFit.client+1,
+  'The More control renders its whole label instead of clipping to "Mo"',JSON.stringify(moreFit));
 ok(state.yardWidth>=80,'Yardage input reserves enough width for three digits and spinner controls',JSON.stringify(state.yardWidth));
 if(screenshotPath) await (await page.$('[data-native-tagging]')).screenshot({path:screenshotPath});
 state=await page.evaluate(async()=>{const group=[...document.querySelectorAll('.gi-tag-group')].find(node=>node.querySelector('summary strong')?.textContent==='Notes & Details');group.querySelector('summary').click();await new Promise(r=>setTimeout(r,0));const opened=group.open;app.nativeTagging._publish();await new Promise(r=>setTimeout(r,0));return{opened,stayedOpen:group.open}});

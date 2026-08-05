@@ -333,7 +333,30 @@ await page.evaluate(async () => {
       defFront: '4-2-5', coverage: 'Cover 3', custom: [], players: { ballCarrier: '22', tackler: '55' }, grades: {},
     },
   }));
-  game.nextId = 65;
+  /* G14 — without these the Negative Plays exclusivity check passes VACUOUSLY.
+     The generated 64 carry `result:'Loss'` and no sacks at all, so a sack could
+     never be double-counted and removing the guard changed nothing. Two plays
+     make it real:
+       65  a plain sack — a PASS play with negative yardage, so it lands in both
+           `sacks` and `passes` unless the exclusion holds.
+       66  a STRIP-SACK — sack AND fumble AND negative yardage. This is the
+           coach's own case: one play, three events, so the headline (distinct
+           plays) must NOT equal the sum of the rows. */
+  game.plays.push({
+    id: 65, timestamp: { start: 400, end: 404 }, notes: '', analysis: null,
+    tags: { unit: 'offense', formation: 'Trips', backfield: 'Single', personnel: '11',
+      runPass: 'Pass', playType: 'Short Pass', result: 'Sack', yardage: '-7',
+      down: '3', distance: '8', quarter: 'Q3', defFront: '4-2-5', coverage: 'Cover 3',
+      custom: [], players: { passer: '12' }, grades: {} },
+  });
+  game.plays.push({
+    id: 66, timestamp: { start: 410, end: 414 }, notes: '', analysis: null,
+    tags: { unit: 'offense', formation: 'Trips', backfield: 'Single', personnel: '11',
+      runPass: 'Pass', playType: 'Short Pass', result: 'Sack + Fumble', yardage: '-5',
+      down: '2', distance: '10', quarter: 'Q4', defFront: '4-2-5', coverage: 'Cover 3',
+      custom: [], players: { passer: '12' }, grades: {} },
+  });
+  game.nextId = 67;
   store.data.activeGameId = 'g-self';
   app.storage._loadActiveGame();
   await app.workspaceShell.show('reports');
@@ -490,10 +513,70 @@ const lensBoard = await page.evaluate(() => {
     lensWearsTabAttr: !!document.querySelector('.gi-reports .gi-lens [data-report-tab]'),
   };
 });
-ok(lensBoard.ids.join(',') === 'efficiency,explosiveness,situational,tendencies,risk',
+ok(lensBoard.ids.join(',') === 'efficiency,explosiveness,situational,tendencies,negative',
   'Reports Overview answers through the five lenses in order', lensBoard.ids.join(','));
 ok(lensBoard.asks.every(ask => ask.endsWith('?')),
   'Every lens states the football question it answers', JSON.stringify(lensBoard.asks));
+
+/* G14 — the Negative Plays lens. The defect this replaces was a sack counted
+   in "Negative plays" AND again in "Sacks taken", inside one lens, with nothing
+   saying so. These assertions pin the three things that fix cannot silently
+   lose: the children are mutually exclusive, the headline counts PLAYS while
+   the rows count EVENTS, and the one clickable row plays exactly what it says. */
+const negLens = await page.evaluate(() => {
+  const stats = window.app.stats.compute(window.app.tagger.plays);
+  const np = stats.negativePlays;
+  const host = document.querySelector('.gi-reports .gi-lens[data-lens="negative"]');
+  const rows = [...(host?.querySelectorAll('.gi-np-row') || [])].map(r => ({
+    label: r.querySelector('.gi-np-label')?.textContent.trim(),
+    value: r.querySelector('.gi-np-value')?.textContent.trim(),
+    child: r.classList.contains('is-child'),
+    cut: r.dataset.cutType || null,
+  }));
+  const loss = rows.find(r => r.label === 'Plays for Loss');
+  const kids = rows.filter(r => r.child);
+  return {
+    engine: np,
+    present: !!host,
+    name: host?.querySelector('.gi-lens-head h4')?.textContent.trim(),
+    headline: host?.querySelector('.gi-np-headline b')?.textContent.trim(),
+    headlineSub: host?.querySelector('.gi-np-headline span')?.textContent.trim(),
+    rows,
+    // Children sum EXACTLY to their header — that is what "never double-counted"
+    // means arithmetically, and it is only true if the buckets are exclusive.
+    kidsSum: kids.reduce((s, r) => s + (parseInt(r.value, 10) || 0), 0),
+    lossValue: parseInt(loss?.value, 10) || 0,
+    // Rows carry raw counts and NO percentages: the headline counts plays, the
+    // rows count events, and a stray % would invite adding them up wrongly.
+    rowsHavePct: rows.some(r => /%/.test(r.value || '')),
+    // Exactly one row claims a cohort, and it is Plays for Loss.
+    cutRows: rows.filter(r => r.cut).map(r => r.label),
+    // The word "Risk" must be gone from the board entirely.
+    riskGone: !document.querySelector('.gi-reports .gi-lens[data-lens="risk"]'),
+  };
+});
+ok(negLens.present && negLens.name === 'Negative Plays' && negLens.riskGone,
+  'The Risk lens is renamed Negative Plays and no lens still calls itself Risk', JSON.stringify({ name: negLens.name, riskGone: negLens.riskGone }));
+ok(negLens.kidsSum === negLens.lossValue && negLens.lossValue === negLens.engine.lossTotal,
+  'Sacks, runs and passes are mutually exclusive and sum exactly to Plays for Loss — no play counted twice',
+  JSON.stringify({ kidsSum: negLens.kidsSum, loss: negLens.lossValue, engine: negLens.engine.lossTotal }));
+ok(negLens.headline === String(negLens.engine.distinct) && !negLens.rowsHavePct
+  && /% of plays/.test(negLens.headlineSub || ''),
+  'The headline counts distinct plays and carries the only percentage; rows are raw counts',
+  JSON.stringify({ headline: negLens.headline, sub: negLens.headlineSub, rowsHavePct: negLens.rowsHavePct }));
+/* The strip-sack case, stated as football rather than arithmetic: one play that
+   is a sack AND a turnover must appear on BOTH rows while counting ONCE in the
+   headline. If the headline ever equals the sum of the rows on this fixture,
+   something has started resolving the overlap by precedence — which is exactly
+   what the coach rejected, because it makes a sack disappear into a turnover. */
+ok(negLens.engine.lossSacks >= 2 && negLens.engine.turnovers >= 1
+  && negLens.engine.distinct < (negLens.engine.turnovers + negLens.engine.lossTotal + negLens.engine.penalties),
+  'A strip-sack counts once in the headline while still showing as both a sack and a turnover',
+  JSON.stringify({ distinct: negLens.engine.distinct, turnovers: negLens.engine.turnovers,
+    lossTotal: negLens.engine.lossTotal, sacks: negLens.engine.lossSacks, penalties: negLens.engine.penalties }));
+ok(negLens.cutRows.length === 1 && negLens.cutRows[0] === 'Plays for Loss',
+  'Only Plays for Loss claims a film cohort; turnovers, sacks and penalties stay context rather than inventing a cut',
+  JSON.stringify(negLens.cutRows));
 ok(lensBoard.claims.length >= 8 && lensBoard.claims.every(claim => claim.resolves && claim.clickable) && !lensBoard.orphanCut,
   'Every lens tile that claims a film cohort resolves to a real cut filter, and no tile carries a cut it cannot play',
   JSON.stringify(lensBoard.claims.filter(claim => !claim.resolves)));
