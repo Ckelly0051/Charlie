@@ -1,0 +1,431 @@
+<!-- @dsCard group="FPO Comps" -->
+<meta charset="utf-8">
+<title>FPO — Reports Overview</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Tokens verbatim from design-system/tokens.css — nothing invented for this comp. */
+:root{
+  --gi-film:#04070a;
+  --gi-1:#080c11; --gi-2:#101822; --gi-3:#1b2634; --gi-4:#263345; --gi-5:#324256;
+  --gi-6:#3c5069; --gi-7:#4d6784; --gi-8:#6482a3; --gi-9:#2b6fff; --gi-10:#5a92ff;
+  --gi-11:#93a9c1; --gi-12:#f2f6fa;
+  --gi-los:var(--gi-9); --gi-first-down:#ffd400; --gi-turnover:#fa4d56;
+  --gi-ok:#42be65; --gi-warn:#ff9f2e;
+  --gi-cat-1:#4f8fd6; --gi-cat-2:#d99441; --gi-cat-3:#68b58c;
+  --gi-cat-4:#a888cf; --gi-cat-5:#d4b45a; --gi-cat-6:#7fb4bf;
+  --gi-run:var(--gi-cat-2); --gi-pass:var(--gi-cat-1);
+  --gi-accent-surface:#17283d; --gi-accent-border:#355f98; --gi-accent-text:#8fb6ff;
+  --gi-on-solid:#f5fbff;
+  --gi-sans:'IBM Plex Sans',system-ui,sans-serif;
+  --gi-cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+  --gi-mono:'IBM Plex Mono',ui-monospace,monospace;
+  --gi-text-display:700 19px/1.05 var(--gi-cond);
+  --gi-text-stat:700 26px/1.05 var(--gi-cond);
+  --gi-text-body:500 13px/1.45 var(--gi-sans);
+  --gi-text-control:600 12.5px/1 var(--gi-sans);
+  --gi-text-label:650 11.5px/1.2 var(--gi-mono);
+  --gi-text-eyebrow:650 11px/1.2 var(--gi-mono);
+  --gi-text-caption:500 11.5px/1.4 var(--gi-sans);
+  --gi-track-label:.045em;
+  --gi-1x:4px; --gi-2x:8px; --gi-3x:12px; --gi-4x:16px;
+  --gi-5x:24px; --gi-6x:32px; --gi-7x:48px; --gi-8x:64px;
+  --gi-radius:0;
+  --gi-lower-third:polygon(0 0,100% 0,calc(100% - 20px) 100%,0 100%);
+  --gi-control:34px; --gi-row:36px;
+  --gi-quick:90ms cubic-bezier(.2,.7,.3,1);
+  --gi-focus:0 0 0 2px var(--gi-1),0 0 0 4px var(--gi-los);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--gi-1);color:var(--gi-12);font:var(--gi-text-body);
+     -webkit-font-smoothing:antialiased}
+.n{font-family:var(--gi-cond);font-weight:700;font-variant-numeric:tabular-nums lining-nums;
+   white-space:nowrap;letter-spacing:-.01em}
+
+/* ── THE SIGNATURE. One diagonal in the whole product: the lower-third.
+      It marks every section the way a broadcast graphic names what's on screen. */
+.lt{display:inline-flex;align-items:center;height:26px;padding:0 26px 0 12px;
+    background:var(--gi-9);color:var(--gi-on-solid);clip-path:var(--gi-lower-third);
+    font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.lt.q{background:var(--gi-3);color:var(--gi-11)}
+.lt.fd{background:var(--gi-first-down);color:#1a1500}
+
+.app{max-width:1360px;margin:0 auto;padding:0 var(--gi-5x) var(--gi-8x)}
+
+/* ── SCOREBUG. Film-dark, so the game identity reads as content, not chrome. */
+.bug{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+     background:var(--gi-film);border:1px solid var(--gi-6);border-top:0;
+     padding:var(--gi-4x) var(--gi-5x);margin-bottom:var(--gi-5x)}
+.bug .team{display:flex;flex-direction:column;gap:5px}
+.bug .team.away{align-items:flex-end;text-align:right}
+.bug .team em{font:var(--gi-text-label);letter-spacing:var(--gi-track-label);
+              text-transform:uppercase;color:var(--gi-11);font-style:normal}
+.bug .team b{font-family:var(--gi-cond);font-weight:700;font-size:22px;line-height:1}
+.bug .score{display:flex;align-items:center;gap:var(--gi-4x);padding:0 var(--gi-6x)}
+.bug .score i{font-style:normal;font-family:var(--gi-cond);font-weight:700;font-size:46px;
+              line-height:.9;font-variant-numeric:tabular-nums}
+.bug .score i.w{color:var(--gi-first-down)}
+.bug .score s{text-decoration:none;color:var(--gi-7);font-size:20px}
+.bug .meta{grid-column:1/-1;display:flex;gap:var(--gi-5x);margin-top:var(--gi-3x);
+           padding-top:var(--gi-3x);border-top:1px solid var(--gi-6);
+           font:var(--gi-text-caption);color:var(--gi-11)}
+.bug .meta span{display:flex;gap:6px;align-items:baseline}
+.bug .meta span b{font-family:var(--gi-cond);font-size:14px;color:var(--gi-12)}
+
+/* ── THE FIVE LENSES. Not five tiles in a row — five COLUMNS of one board,
+      hairline-separated, each answering one football question end to end. */
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--gi-6);
+       border:1px solid var(--gi-6);margin-bottom:var(--gi-6x)}
+.lens{background:var(--gi-2);display:flex;flex-direction:column;min-width:0}
+.lens > .top{padding:var(--gi-3x) 0 0}
+.lens h3{margin:0 0 var(--gi-3x);padding:0}
+.lens .ask{margin:0 var(--gi-4x) var(--gi-4x);font:var(--gi-text-caption);color:var(--gi-11);
+           min-height:32px}
+.lens .hero{margin:0 var(--gi-4x);display:flex;align-items:baseline;gap:7px}
+.lens .hero b{font-family:var(--gi-cond);font-weight:700;font-size:42px;line-height:.85;
+              font-variant-numeric:tabular-nums}
+.lens .hero u{text-decoration:none;font:var(--gi-text-label);color:var(--gi-11);
+              letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.lens .heroLbl{margin:var(--gi-2x) var(--gi-4x) var(--gi-4x);font:var(--gi-text-caption);
+               color:var(--gi-8)}
+.lens dl{margin:auto 0 0;padding:0;border-top:1px solid var(--gi-6)}
+.lens dl > div{display:flex;align-items:center;gap:var(--gi-2x);height:var(--gi-row);
+               padding:0 var(--gi-4x);border-bottom:1px solid rgba(60,80,105,.4);cursor:pointer}
+.lens dl > div:last-child{border-bottom:0}
+.lens dl > div:hover{background:var(--gi-3)}
+.lens dt{margin:0;font:var(--gi-text-caption);color:var(--gi-11);flex:1;min-width:0;
+         overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lens dd{margin:0;font-family:var(--gi-cond);font-weight:700;font-size:16px;
+         font-variant-numeric:tabular-nums}
+.lens dd.up{color:var(--gi-ok)} .lens dd.dn{color:var(--gi-turnover)}
+.lens dd.fd{color:var(--gi-first-down)}
+.lens .go{display:flex;align-items:center;justify-content:space-between;height:var(--gi-control);
+          padding:0 var(--gi-4x);background:var(--gi-3);border-top:1px solid var(--gi-6);
+          font:var(--gi-text-control);color:var(--gi-accent-text);cursor:pointer}
+.lens .go:hover{background:var(--gi-4)}
+
+/* ── SECTION. A lower-third plate, then hairline-joined panels beneath it. */
+section{margin-bottom:var(--gi-6x)}
+section > header{display:flex;align-items:center;gap:var(--gi-3x);margin-bottom:var(--gi-3x)}
+section > header .sub{font:var(--gi-text-caption);color:var(--gi-8)}
+section > header .sub b{color:var(--gi-11);font-weight:600}
+
+.split{display:grid;gap:1px;background:var(--gi-6);border:1px solid var(--gi-6)}
+.split.two{grid-template-columns:1.15fr 1fr}
+.pane{background:var(--gi-2);padding:var(--gi-4x);min-width:0}
+.pane > h4{margin:0 0 var(--gi-4x);font:var(--gi-text-label);
+           letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--gi-11);
+           display:flex;align-items:baseline;gap:var(--gi-2x)}
+.pane > h4 span{margin-left:auto;font:var(--gi-text-caption);color:var(--gi-8);
+                text-transform:none;letter-spacing:0}
+
+/* histogram — mass, tail, and where the mean falls */
+.hist{display:grid;grid-template-columns:repeat(8,1fr);gap:var(--gi-1x);align-items:end;
+      height:132px;position:relative}
+.hist i{background:var(--gi-cat-1);display:block;position:relative;cursor:pointer}
+.hist i.neg{background:var(--gi-turnover)}
+.hist i.zero{background:var(--gi-7)}
+.hist i:hover{filter:brightness(1.25)}
+.hist i b{position:absolute;top:-17px;left:0;right:0;text-align:center;
+          font-family:var(--gi-cond);font-weight:700;font-size:13px;color:var(--gi-11)}
+.histx{display:grid;grid-template-columns:repeat(8,1fr);gap:var(--gi-1x);margin-top:6px}
+.histx u{text-decoration:none;text-align:center;font:var(--gi-text-caption);color:var(--gi-8);
+         font-size:10.5px}
+.mean{position:absolute;top:0;bottom:0;width:2px;background:var(--gi-first-down);
+      left:41%;pointer-events:none}
+.mean em{position:absolute;top:-2px;left:6px;font:var(--gi-text-eyebrow);
+         letter-spacing:var(--gi-track-label);color:var(--gi-first-down);font-style:normal;
+         white-space:nowrap}
+
+/* field zones — laid out the way a field is */
+.zones{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--gi-6);
+       border:1px solid var(--gi-6)}
+.zone{padding:var(--gi-3x) var(--gi-2x);background:var(--gi-3);cursor:pointer;min-width:0}
+.zone em{display:block;font:var(--gi-text-caption);font-size:10.5px;color:var(--gi-11);
+         font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zone b{display:block;font-family:var(--gi-cond);font-weight:700;font-size:22px;
+        line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.zone u{display:block;text-decoration:none;font:var(--gi-text-caption);font-size:10.5px;
+        color:var(--gi-8);margin-top:2px}
+.zone.z0{background:var(--gi-2)} .zone.z0 b{color:var(--gi-8)}
+.zone.z1{background:#2c2a17} .zone.z2{background:#3a3418}
+.zone.z3{background:#26401f} .zone.z4{background:#2c5423}
+.zone:hover{filter:brightness(1.3)}
+.fieldnote{display:flex;justify-content:space-between;margin-top:var(--gi-2x);
+           font:var(--gi-text-caption);font-size:10.5px;color:var(--gi-8)}
+
+/* the calls — frequency as length, success as fill. Cells, not prose. */
+table.calls{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.calls th{text-align:left;font:var(--gi-text-label);letter-spacing:var(--gi-track-label);
+               text-transform:uppercase;color:var(--gi-11);padding:0 var(--gi-3x) var(--gi-2x);
+               border-bottom:1px solid var(--gi-6);white-space:nowrap;cursor:pointer;
+               user-select:none}
+table.calls th:hover{color:var(--gi-12)}
+table.calls th.num{text-align:right}
+table.calls th i{font-style:normal;color:var(--gi-8);margin-left:4px}
+table.calls th.sorted i{color:var(--gi-los)}
+table.calls td{padding:0 var(--gi-3x);height:var(--gi-row);
+               border-bottom:1px solid rgba(60,80,105,.35);font-size:12.5px}
+table.calls tr{cursor:pointer}
+table.calls tbody tr:hover td{background:var(--gi-3)}
+table.calls td.num{text-align:right;font-family:var(--gi-cond);font-weight:700;font-size:15px}
+table.calls td.blank{color:var(--gi-8)}
+table.calls tr.in90 td:first-child{box-shadow:inset 3px 0 0 var(--gi-los)}
+.bar{position:relative;height:16px;background:var(--gi-3);min-width:40px}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--gi-cat-1);display:block}
+.bar b{position:absolute;right:5px;top:0;line-height:16px;font-family:var(--gi-cond);
+       font-weight:700;font-size:11.5px;color:var(--gi-12)}
+
+/* small multiples — the same chart four times, compared spatially */
+.mult{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--gi-6);
+      border:1px solid var(--gi-6)}
+.m{background:var(--gi-2);padding:var(--gi-3x) var(--gi-4x) var(--gi-4x)}
+.m header{display:flex;align-items:baseline;gap:var(--gi-2x);margin-bottom:var(--gi-3x)}
+.m header b{font-family:var(--gi-cond);font-weight:700;font-size:19px}
+.m header u{text-decoration:none;font:var(--gi-text-caption);color:var(--gi-8)}
+.m .rp{display:flex;height:8px;margin-bottom:var(--gi-3x)}
+.m .rp i{display:block;height:100%}
+.m .rp i.r{background:var(--gi-run)} .m .rp i.p{background:var(--gi-pass)}
+.m dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:3px var(--gi-2x)}
+.m dt{margin:0;font:var(--gi-text-caption);color:var(--gi-11)}
+.m dd{margin:0;font-family:var(--gi-cond);font-weight:700;font-size:13.5px;text-align:right}
+
+.legend{display:flex;gap:var(--gi-4x);margin-top:var(--gi-3x);font:var(--gi-text-caption);
+        color:var(--gi-11);align-items:center}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:9px;height:9px;display:block}
+
+.fpo{border-top:1px solid var(--gi-6);margin-top:var(--gi-7x);padding-top:var(--gi-4x);
+     font:var(--gi-text-caption);color:var(--gi-8);max-width:760px}
+.fpo b{color:var(--gi-11)}
+</style>
+
+<div class="app">
+
+  <!-- SCOREBUG ─ film-dark, so game identity reads as content -->
+  <div class="bug">
+    <div class="team">
+      <em>Our team</em><b>St. Joseph Mavericks</b>
+    </div>
+    <div class="score"><i class="w">28</i><s>–</s><i>21</i></div>
+    <div class="team away">
+      <em>Opponent</em><b>St. Peter</b>
+    </div>
+    <div class="meta">
+      <span>Week <b>1</b></span>
+      <span>Sep <b>12</b></span>
+      <span><b>69</b> plays charted</span>
+      <span><b>29</b> offense</span>
+      <span><b>34</b> defense</span>
+      <span><b>6</b> special teams</span>
+    </div>
+  </div>
+
+  <!-- THE FIVE LENSES ─ one board, five columns, hairline-joined -->
+  <div class="board">
+
+    <div class="lens">
+      <div class="top"><h3><span class="lt">Efficiency</span></h3></div>
+      <p class="ask">Are we staying on schedule?</p>
+      <div class="hero"><b>45</b><u>%</u></div>
+      <div class="heroLbl">Success rate · 29 snaps</div>
+      <dl>
+        <div><dt>Yards / play</dt><dd>5.1</dd></div>
+        <div><dt>3rd down</dt><dd class="fd">4/9</dd></div>
+        <div><dt>Stayed on schedule</dt><dd>13</dd></div>
+      </dl>
+      <div class="go">Offense <span>→</span></div>
+    </div>
+
+    <div class="lens">
+      <div class="top"><h3><span class="lt">Explosiveness</span></h3></div>
+      <p class="ask">Are we hitting the big play?</p>
+      <div class="hero"><b>17</b><u>%</u></div>
+      <div class="heroLbl">Explosive rate · 5 of 29</div>
+      <dl>
+        <div><dt>Longest run</dt><dd>20</dd></div>
+        <div><dt>Longest pass</dt><dd>20</dd></div>
+        <div><dt>Gains 10+</dt><dd>8</dd></div>
+      </dl>
+      <div class="go">Offense <span>→</span></div>
+    </div>
+
+    <div class="lens">
+      <div class="top"><h3><span class="lt">Situational</span></h3></div>
+      <p class="ask">Do we finish when it matters?</p>
+      <div class="hero"><b>33</b><u>%</u></div>
+      <div class="heroLbl">Red zone TD · 1 of 3</div>
+      <dl>
+        <div><dt>Goal line</dt><dd>1/2</dd></div>
+        <div><dt>3rd &amp; long</dt><dd class="dn">1/2</dd></div>
+        <div><dt>3rd &amp; short</dt><dd class="dn">0/2</dd></div>
+      </dl>
+      <div class="go">Situational <span>→</span></div>
+    </div>
+
+    <div class="lens">
+      <div class="top"><h3><span class="lt">Tendencies</span></h3></div>
+      <p class="ask">What are we telling them?</p>
+      <div class="hero"><b>62</b></div>
+      <div class="heroLbl">Predictability · Predictable</div>
+      <dl>
+        <div><dt>Ace on 1st</dt><dd class="dn">100% run</dd></div>
+        <div><dt>Top 8 calls</dt><dd>75%</dd></div>
+        <div><dt>Formations used</dt><dd>4</dd></div>
+      </dl>
+      <div class="go">Self-scout <span>→</span></div>
+    </div>
+
+    <div class="lens">
+      <div class="top"><h3><span class="lt">Risk</span></h3></div>
+      <p class="ask">Are we giving it away?</p>
+      <div class="hero"><b>2</b></div>
+      <div class="heroLbl">Turnovers · 1 INT, 1 fumble</div>
+      <dl>
+        <div><dt>Negative plays</dt><dd class="dn">6</dd></div>
+        <div><dt>Sacks allowed</dt><dd>2</dd></div>
+        <div><dt>Penalties</dt><dd>4</dd></div>
+      </dl>
+      <div class="go">Risk detail <span>→</span></div>
+    </div>
+
+  </div>
+
+  <!-- SHAPE ─ two panes, both filling their half. No half-empty bar. -->
+  <section>
+    <header>
+      <span class="lt q">Where the gains sit</span>
+      <span class="sub">Every mark plays its film · <b>29</b> offensive snaps</span>
+    </header>
+    <div class="split two">
+
+      <div class="pane">
+        <h4>Yardage distribution <span>mean 5.1y</span></h4>
+        <div class="hist">
+          <div class="mean"><em>MEAN</em></div>
+          <i class="neg" style="height:26%"><b>4</b></i>
+          <i class="zero" style="height:20%"><b>3</b></i>
+          <i style="height:60%"><b>9</b></i>
+          <i style="height:40%"><b>6</b></i>
+          <i style="height:27%"><b>4</b></i>
+          <i style="height:13%"><b>2</b></i>
+          <i style="height:7%"><b>1</b></i>
+          <i style="height:0%"></i>
+        </div>
+        <div class="histx">
+          <u>Loss</u><u>0</u><u>1–3</u><u>4–6</u><u>7–10</u><u>11–15</u><u>16–20</u><u>20+</u>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--gi-turnover)"></i> Loss</span>
+          <span><i style="background:var(--gi-7)"></i> No gain</span>
+          <span><i style="background:var(--gi-cat-1)"></i> Gain</span>
+        </div>
+      </div>
+
+      <div class="pane">
+        <h4>Success by field zone <span>→ attacking</span></h4>
+        <div class="zones">
+          <div class="zone z0"><em>Own 1–20</em><b>—</b><u>0 plays</u></div>
+          <div class="zone z1"><em>Own 20–40</em><b>38%</b><u>8 plays</u></div>
+          <div class="zone z2"><em>Midfield</em><b>33%</b><u>12 plays</u></div>
+          <div class="zone z3"><em>Opp 40–20</em><b>67%</b><u>6 plays</u></div>
+          <div class="zone z4"><em>Red zone</em><b>67%</b><u>3 plays</u></div>
+          <div class="zone z0"><em>Goal line</em><b>—</b><u>0 plays</u></div>
+        </div>
+        <div class="fieldnote"><span>◄ OWN GOAL</span><span>OPPONENT GOAL ►</span></div>
+        <div class="legend">
+          <span>Darker green = higher success. A zone with no snaps says so rather than showing 0%.</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- THE CALLS ─ cells, sortable, blank where untagged (G13) -->
+  <section>
+    <header>
+      <span class="lt">The Big 13</span>
+      <span class="sub"><b>8</b> calls cover 75% · <b>13</b> cover 90% · click any row for film</span>
+    </header>
+    <div class="split">
+      <div class="pane">
+        <table class="calls">
+          <thead>
+            <tr>
+              <th style="width:34px" class="num">#</th>
+              <th class="sorted">Formation <i>▾</i></th>
+              <th>QB align <i>⇅</i></th>
+              <th>Backfield <i>⇅</i></th>
+              <th>Strength <i>⇅</i></th>
+              <th>Motion <i>⇅</i></th>
+              <th>Play <i>⇅</i></th>
+              <th class="num">N <i>⇅</i></th>
+              <th style="width:120px">Success</th>
+              <th class="num">Avg <i>⇅</i></th>
+              <th class="num">Run% <i>⇅</i></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="in90"><td class="num">1</td><td>Ace</td><td>Under Center</td><td>I</td><td>Right</td><td class="blank">—</td><td>Run Inside</td><td class="num">5</td><td><div class="bar"><i style="width:60%"></i><b>60%</b></div></td><td class="num">4.8</td><td class="num">100</td></tr>
+            <tr class="in90"><td class="num">2</td><td>Ace</td><td>Under Center</td><td>Power</td><td>Left</td><td class="blank">—</td><td>Run Outside</td><td class="num">4</td><td><div class="bar"><i style="width:50%"></i><b>50%</b></div></td><td class="num">3.5</td><td class="num">100</td></tr>
+            <tr class="in90"><td class="num">3</td><td>Spread</td><td>Shotgun</td><td>Single</td><td>Balanced</td><td class="blank">—</td><td>Deep Pass</td><td class="num">3</td><td><div class="bar"><i style="width:100%"></i><b>100%</b></div></td><td class="num">20.0</td><td class="num">0</td></tr>
+            <tr class="in90"><td class="num">4</td><td>Single Wing</td><td class="blank">—</td><td>Power</td><td>Right</td><td>Jet</td><td>Run Outside</td><td class="num">3</td><td><div class="bar"><i style="width:67%"></i><b>67%</b></div></td><td class="num">7.0</td><td class="num">100</td></tr>
+            <tr class="in90"><td class="num">5</td><td>Ace</td><td>Shotgun</td><td>Single</td><td>Right</td><td class="blank">—</td><td>RPO</td><td class="num">3</td><td><div class="bar"><i style="width:33%"></i><b>33%</b></div></td><td class="num">2.0</td><td class="num">67</td></tr>
+            <tr class="in90"><td class="num">6</td><td class="blank">—</td><td>Shotgun</td><td class="blank">—</td><td class="blank">—</td><td class="blank">—</td><td>Short Pass</td><td class="num">2</td><td><div class="bar"><i style="width:50%"></i><b>50%</b></div></td><td class="num">4.0</td><td class="num">0</td></tr>
+            <tr class="in90"><td class="num">7</td><td>Spread</td><td>Shotgun</td><td>Single</td><td>Left</td><td>Orbit</td><td>Screen</td><td class="num">2</td><td><div class="bar"><i style="width:0%"></i><b>0%</b></div></td><td class="num">-1.5</td><td class="num">0</td></tr>
+            <tr class="in90"><td class="num">8</td><td>Ace</td><td>Under Center</td><td>I</td><td>Left</td><td class="blank">—</td><td>Play Action</td><td class="num">2</td><td><div class="bar"><i style="width:50%"></i><b>50%</b></div></td><td class="num">9.0</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+        <div class="legend">
+          <span><i style="background:var(--gi-los)"></i> Inside the 90% — the calls that are the offense</span>
+          <span>A blank cell means that dimension was not charted on those snaps.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BY DOWN ─ small multiples: same chart four times, compared spatially -->
+  <section>
+    <header>
+      <span class="lt q">By down</span>
+      <span class="sub">Aggregate first — the distance buckets and every raw situation sit below</span>
+    </header>
+    <div class="mult">
+      <div class="m">
+        <header><b>1st</b><u>13 snaps</u></header>
+        <div class="rp"><i class="r" style="width:85%"></i><i class="p" style="width:15%"></i></div>
+        <dl><dt>Success</dt><dd>46%</dd><dt>Yards / play</dt><dd>4.4</dd><dt>Explosive</dt><dd>2</dd></dl>
+      </div>
+      <div class="m">
+        <header><b>2nd</b><u>9 snaps</u></header>
+        <div class="rp"><i class="r" style="width:67%"></i><i class="p" style="width:33%"></i></div>
+        <dl><dt>Success</dt><dd>44%</dd><dt>Yards / play</dt><dd>6.1</dd><dt>Explosive</dt><dd>2</dd></dl>
+      </div>
+      <div class="m">
+        <header><b>3rd</b><u>6 snaps</u></header>
+        <div class="rp"><i class="r" style="width:33%"></i><i class="p" style="width:67%"></i></div>
+        <dl><dt>Converted</dt><dd>3/6</dd><dt>Yards / play</dt><dd>5.5</dd><dt>Explosive</dt><dd>1</dd></dl>
+      </div>
+      <div class="m">
+        <header><b>4th</b><u>1 snap</u></header>
+        <div class="rp"><i class="r" style="width:100%"></i></div>
+        <dl><dt>Converted</dt><dd>1/1</dd><dt>Yards / play</dt><dd>1.0</dd><dt>Explosive</dt><dd>0</dd></dl>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--gi-run)"></i> Run</span>
+      <span><i style="background:var(--gi-pass)"></i> Pass</span>
+    </div>
+  </section>
+
+  <p class="fpo">
+    <b>FPO comp — Reports Overview.</b> Every color, type role, space step and the
+    lower-third clip-path are read verbatim from <b>design-system/tokens.css</b>; nothing
+    is invented here. What is new is <b>composition</b>: the lower-third finally carries
+    the section marks, the five lenses are one hairline-joined board rather than five
+    floating cards, and every full-width container distributes across its width. The
+    Big 13 is cells with blank-where-untagged and sortable columns, in tag-flow order —
+    Formation first.
+  </p>
+
+</div>
