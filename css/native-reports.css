@@ -441,3 +441,42 @@
 .gi-reports .viz-block>svg{max-height:230px;height:auto;width:100%}
 .gi-reports .hm-field-wrap>svg{max-height:250px;height:auto;width:100%}
 .gi-reports .stats-section svg{max-width:100%}
+/* H10 - the radar rendered full-viewport. My own regression, and the same
+   source-order failure I had just claimed to fix structurally: the generic
+   `.gi-reports .stats-section svg{max-width:100%}` added at the END of this
+   file overrode `.gi-radar svg{max-width:340px}` at EQUAL specificity, so the
+   cap stopped applying. The generic rule is a floor for stray SVGs; anything
+   with its own size needs to come after it. */
+.gi-reports .gi-radar{margin:0 auto;max-width:360px}
+.gi-reports .gi-radar>svg{width:100%;max-width:360px;height:auto;display:block}
+/* == COACH SMOKE 1.12.0-27 (H12-H15) =======================================
+   Specific rules only. The H10 lesson: a GENERIC rule placed last silently
+   defeats every specific one before it, so nothing here is a catch-all. */
+
+/* H12 - caption text was cut mid-sentence instead of wrapping. `.stats-section`
+   carries `overflow-x:auto` and the table rules set `white-space:nowrap`, so a
+   caption inherited both. Definitions are longer than the old framing copy, so
+   this had to land WITH the rewrite, not after it. */
+.gi-reports .viz-caption,.gi-reports .self-scout-intro,.gi-reports .tm-eligible,
+.gi-reports .stats-cut-hint,.gi-reports .gi-lens-head p{
+  white-space:normal;overflow-wrap:anywhere;max-width:76ch;
+}
+
+/* H13 - the FINAL column read as one more quarter. A total is a different KIND
+   of number from the cells it sums, so it gets its own rule and weight rather
+   than sharing their alignment. Scoped: the base right-align governs every
+   table in Reports and must not be edited. */
+.gi-reports .scoreboard-table td:last-child,
+.gi-reports .scoreboard-table th:last-child{
+  text-align:center;border-left:1px solid var(--gi-6);
+  font-family:var(--gi-cond);font-weight:700;font-size:15px;color:var(--gi-12);
+}
+.gi-reports .scoreboard-table th:last-child{color:var(--gi-11);font-size:11px}
+
+/* H14 - three columns were locked to the tallest, leaving ~400px of empty
+   column under Efficiency and Big Plays. Each column now sizes to its own
+   content. NOTE: this removes the dead space; it does NOT move the buried
+   reads (by-down, distribution, field zones) up to fill it. That is the
+   composition pass and is still owed. */
+.gi-reports .stats-three-col,.gi-reports .stats-two-col{align-items:start}
+.gi-reports .stats-three-col>*,.gi-reports .stats-two-col>*{align-self:start}

@@ -154,6 +154,170 @@ rather than as a hierarchy.
 
 ---
 
+## H10 — The radar renders full-viewport
+
+**Route:** Reports → Offense → This game against our best
+**Severity:** defect, mine, introduced in `1.12.0-27`
+**Reported:** 2026-08-05, with screenshot
+
+The team profile radar fills the entire viewport with 38px labels.
+
+**Cause, and it is the same failure I had just claimed to fix structurally.**
+The H8 batch added a generic `.gi-reports .stats-section svg{max-width:100%}` at
+the END of the stylesheet. That is **equal specificity** to
+`.gi-reports .gi-radar svg{max-width:340px}` and comes later, so it overrode the
+cap. I fixed source-order-loss as a class and then reintroduced it with the very
+rule I added to fix it.
+
+**The lesson is not "move rules to the end."** It is that a generic rule placed
+last silently defeats every specific one before it. A catch-all belongs BEFORE
+the specific rules, not after.
+
+*A one-line cap is already in the working tree and will ride with the next
+batch — not shipped or verified as its own build.*
+
+---
+
+## H11 — The subhead rewrite covered four captions, not all of them
+
+**Route:** Reports, all tabs
+**Severity:** incomplete work
+**Reported:** 2026-08-05
+
+H5 said **change all of them**. `1.12.0-27` changed **four** — the captions
+inside `_renderShape`. Everything else still carries the old framing voice:
+
+* the legend row under the frequency bars — "Bar length = how often · Fill =
+  success rate · Faded = under 3 snaps"
+* the Big 13 intro — "Find these and you've found the offense."
+* the tendency-matrix disclosure line
+* "Top 8 of 9 by EPA/play"
+* the scatter footnote — "Each dot is a play — field position vs yards gained"
+* the field-zone, by-quarter, EPA, heat-map and self-scout captions
+* every caption on Defense, Special Teams, Players, Season and Matchup
+
+**Do this as one sweep over every caption string in the Reports render paths,
+not per section.** Doing a section at a time is what produced this.
+
+### The standard, sharpened (coach, 2026-08-05)
+
+**"We need to be literal in our definition of the data."**
+
+My `-27` rewrites are still prose — closer, but they narrate. Literal means
+naming the quantity and the rule, nothing else:
+
+| Instead of | Write |
+|---|---|
+| "Offensive snaps grouped by yards gained. Loss is any play under 0 yards; the gold line marks the mean of 2.9 yards." | "Yards gained per offensive snap. Loss = yardage below 0. Gold line = mean, 2.9 yards." |
+| "Bar length is how often we call it. Fill is how well it works." | "Bar length = share of snaps. Fill = success rate." |
+| "Each dot is one snap: distance to go on the horizontal, yards gained on the vertical." | "X = distance to go. Y = yards gained. Dashed line = yards gained equals distance to go." |
+
+Define the axis, the unit, and the threshold. Drop every clause explaining why
+the chart is shaped that way.
+
+---
+
+## H12 — Caption text is clipped at the container edge
+
+**Route:** Reports → Offense → Where the gains sit (and likely every caption)
+**Severity:** layout
+**Reported:** 2026-08-05, with screenshot
+
+The caption runs past its container and is cut mid-sentence rather than
+wrapping. Longer definition text (H5/H11) makes this worse, so the wrap fix has
+to land WITH the copy rewrite, not after it.
+
+*Probably `white-space:nowrap` inherited from the table rules, or a caption
+sitting inside an `overflow-x:auto` container. Read the computed style before
+picking a fix — three guesses have already cost a build each.*
+
+---
+
+## H13 — Scoreboard final-score column reads badly right-justified
+
+**Route:** Reports → any tab → Scoreboard
+**Severity:** design
+**Reported:** 2026-08-05, with screenshot. Coach: *"Even centered would be
+better."*
+
+The quarter table's FINAL column is right-justified like the quarter columns, so
+the total does not read as a total — it sits flush with Q4 and the spacing looks
+odd.
+
+Coach's floor is centered; that is a floor, not the target. A final score is a
+different KIND of number from a quarter score, and the design system already has
+the vocabulary to say so — condensed at a larger size, its own column rule, or
+the surface treatment the big score above it uses. Make it read as the sum of
+the row rather than as one more cell in it.
+
+*Note for fix time: `.gi-reports th,.gi-reports td{text-align:right}` sets this
+globally with `:first-child` left-aligned. Any change is a scoped rule, not an
+edit to that base — it governs every table in Reports.*
+
+---
+
+## H14 — Dead space beside Efficiency and Big Plays
+
+**Route:** Reports → Offense (Efficiency / Drives / Big Plays row)
+**Severity:** design, structural
+**Reported:** 2026-08-05. Coach: *"Do we really not have anything we can put
+here?"*
+
+Three columns are locked to the height of the tallest. Drives runs ~700px;
+Efficiency ends at ~290px and Big Plays at ~200px with one row, so roughly
+**400px of empty column** sits under each. Same sin as G6 on a bigger scale —
+this is a whole panel of nothing, not a half-filled bar.
+
+**The answer to his question is yes, there is plenty.** The engine already
+computes, and this tab does not show near the top:
+
+* **success rate by down** — computed (`_downMultiples`), currently far below
+* **the yardage distribution** — computed, currently far below
+* **field-zone success** — computed, currently far below
+* **the negative-plays breakdown** — computed at G14, currently only on Overview
+* **third-down conversion detail** — computed
+* **run/pass by direction and by hash** — computed, currently far below
+
+So the fix is composition, not new analytics: the strongest reads are buried
+under the fold while the top of the page is half empty.
+
+**Two ways, and they are different decisions.** Either let the columns flow so
+each is sized by its own content instead of the tallest sibling, or deliberately
+fill the two short columns with the reads above. The second is better football —
+it puts the shape of the offense at the top of the offense tab — but it is a
+composition pass on the tab, not a CSS change.
+
+*Also on this screenshot: BIG PLAYS with a single row does not justify a third
+of the width. If a panel is that thin, it belongs inline, not as a column.*
+
+---
+
+## H15 — Dead space below the commit bar
+
+**Route:** Break Down → charting deck, below Save & Next
+**Severity:** design
+**Reported:** 2026-08-05. Coach: *"Can it be removed entirely? If not, maybe the
+logo can fill it."*
+
+A flat empty band sits under the commit bar after the form's last group.
+
+**Likely cause:** `.gi-native-form` carries `padding-bottom:78px` to clear the
+sticky nav, and the deck column stretches to the route height. So the reserved
+gap is paid twice — once by the padding, once by the column — and shows as a
+band with nothing in it.
+
+**Removal is the right answer, and it should be tried first.** The sticky nav
+already occupies that space; the padding only needs to equal the nav's height,
+and the deck column should size to its content rather than stretch.
+
+**On the logo:** it would work, but it is decoration in a space that has no job,
+and it argues against the rule this project just wrote down — *fill the space or
+kill the space*. Killing is the cleaner half here, because nothing belongs at the
+bottom of a charting form. Keep the logo as the fallback if the space proves
+structural rather than incidental.
+
+---
+
 ## H3 — Design implementation status (Claude's read, not a coach finding)
 
 The coach asked whether the full design is implemented, since it is hard to

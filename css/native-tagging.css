@@ -130,3 +130,12 @@
 .gi-tag-nav .is-primary{border-color:var(--gi-first-down);background:var(--gi-first-down);color:#1a1500;font-weight:700}
 .gi-tag-nav .is-primary:hover{filter:brightness(1.08)}
 .gi-tag-nav .is-primary.is-confirmed{border-color:var(--gi-ok);background:var(--gi-ok);color:var(--gi-1)}
+
+/* H15 - dead band under the commit bar. The gap was reserved twice: the form
+   padded 78px to clear the sticky nav AND the deck column stretched to the
+   route height. The nav already occupies that space, so the padding only needs
+   to match its height and the column sizes to its content.
+   Removed rather than decorated - nothing belongs at the bottom of a charting
+   form, and "fill or kill" cuts toward kill when there is nothing to say. */
+.gi-native-form{padding-bottom:var(--gi-2x);align-content:start}
+.gi-breakdown-deck .gi-native-form,.gi-native-tagging .gi-native-form{min-height:0}

@@ -500,7 +500,7 @@ export class StatsEngine {
       </div>`;
     }).join('');
     return `<div class="stats-section"><h3>Drive Chart</h3>
-      <p class="self-scout-intro">Every offensive possession — click a drive to watch it on film.</p>
+      <p class="self-scout-intro">One row per offensive possession: starting field position, play count and net yards. Click a drive to watch it.</p>
       <div class="drive-chart">${rows}</div></div>`;
   }
 
@@ -589,7 +589,7 @@ export class StatsEngine {
       : `<b>${esc(opp.name)}</b>`;
     pane.innerHTML = `
       <div class="stats-section"><h3>Matchup — Our Offense vs ${picker}</h3>
-        <p class="self-scout-intro">What we run, lined up against what they do on defense. Read-only (cross-game cut-ups are deferred).</p></div>
+        <p class="self-scout-intro">Our offensive calls against their charted defensive fronts and coverages. Read-only.</p></div>
       <div class="gi-matchup">
         <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-off">Our Offense</div>
           ${this._renderEfficiency(offStats)}
@@ -2147,7 +2147,7 @@ export class StatsEngine {
           <div class="ss-meter-val" style="color:${mc}">${report.predictability}<span>/100</span></div>
           <div class="ss-meter-label">${report.predLabel}</div>
         </div>
-        <p class="viz-caption">Higher = more predictable. A defensive coordinator reads these same numbers — aim to keep key situations balanced.</p>
+        <p class="viz-caption">Predictability index = (average largest run/pass share − 50) × 2, weighted by sample. 0 = balanced, 100 = one-dimensional.</p>
       </div>
       <div class="stats-section">
         <h3>Your Top Tells</h3>
@@ -2347,7 +2347,7 @@ export class StatsEngine {
     const head = cols.map((col, i) => `<th class="${col.num ? 'bt-num' : ''}" data-bt-sort="${i}"${i === 6 ? ' aria-sort="descending"' : ''}>${esc(col.label)}</th>`).join('');
     return `<div class="stats-section">
       <h3>The “Big ${d.to90}” — ${esc(label)}'s Core Calls</h3>
-      <p class="self-scout-intro"><b>${d.to90} call${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Find these and you've found the offense.${cut ? ' Click a row to watch it. Click a column to sort.' : ' Click a column to sort.'}</p>
+      <p class="self-scout-intro"><b>${d.to90} call${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Sorted by frequency; click any column to re-sort.${cut ? ' Click a row to watch it. Click a column to sort.' : ' Click a column to sort.'}</p>
       <table class="stats-table stats-table-full bt-table" data-bt-table>
         <thead><tr>${head}</tr></thead>
         <tbody>${rows}</tbody>
@@ -2617,7 +2617,7 @@ export class StatsEngine {
             <tr><td>${team}</td>${usRow}<td><strong>${sb.us}</strong></td></tr>
             <tr><td>${opp}</td>${themRow}<td><strong>${sb.them}</strong></td></tr>
           </tbody>
-        </table>${hasUntracked ? '<p class="viz-caption">N/Q = scoring plays missing a Quarter tag.</p>' : ''}`;
+        </table>${hasUntracked ? '<p class="viz-caption">N/Q = scoring plays with no Quarter tag.</p>' : ''}`;
     }
     // AX-4: equal team blocks with a centred separator, and the widescreen space
     // to the right of the scoreboard now carries Game at a Glance instead of
@@ -2860,7 +2860,7 @@ export class StatsEngine {
     return `
       <div class="stats-section gi-lens-board">
         <h3>The Five Lenses</h3>
-        <p class="viz-caption">Every lens reads the same charted plays. Highlighted tiles play their exact cohort; the rest are context with no cut of their own.</p>
+        <p class="viz-caption">All five lenses read the same charted plays. Highlighted tiles play their exact cohort; unhighlighted tiles have no film cut.</p>
         <div class="gi-lens-grid">${cards}</div>
       </div>`;
   }
@@ -2898,15 +2898,15 @@ export class StatsEngine {
       ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
 
     return `
-      ${panel('How often, and how well', 'Bar length = share of offensive snaps from that formation. Fill = success rate: 1st down needs 50% of the distance, 2nd 70%, 3rd and 4th must convert. Faded = under 3 snaps.',
+      ${panel('How often, and how well', 'Bar length = share of offensive snaps. Fill = success rate. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th. Faded = under 3 snaps.',
         Charts.rampBars(formations))}
-      ${panel('Where the gains sit', `Offensive snaps grouped by yards gained. Loss is any play under 0 yards; the gold line marks the mean of ${dist?.mean ?? '0.0'} yards.`,
+      ${panel('Where the gains sit', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`,
         dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '')}
-      ${panel('Did we move the chains', 'Each dot is one snap: distance to go on the horizontal, yards gained on the vertical. The dashed line is yards gained = distance to go, so anything above it converted.',
+      ${panel('Did we move the chains', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.',
         Charts.scatter(points, { label: 'Yards gained by distance to go' }))}
-      ${panel('Where it works on the field', 'Success rate by field position, own goal line on the left to theirs on the right. A zone with no charted snaps is left blank rather than shown as 0%.',
+      ${panel('Where it works on the field', 'Success rate by field position, own goal line to opponent goal line. Zones with no charted snaps are blank, not 0%.',
         Charts.zoneStrip(zones))}
-      ${panel('By down', 'Run/pass split and success rate for each down. Success is down-adjusted: 1st needs 50% of the distance, 2nd 70%, 3rd and 4th must convert.',
+      ${panel('By down', 'Run/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.',
         Charts.smallMultiples(downs))}
       ${cut ? this._renderTeamProfile(stats) : ''}`;
   }
@@ -2929,7 +2929,7 @@ export class StatsEngine {
     if (!svg) return '';
     return `<div class="stats-section">
       <h3>This game against our best</h3>
-      <p class="viz-caption">Each axis runs from our worst charted game to our best across ${profile.games} games — a scale this team has actually reached, not an invented benchmark. Further out is better on every spoke.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
+      <p class="viz-caption">Each axis runs from our worst to our best across ${profile.games} charted games. Further out = better on every spoke.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
       ${svg}
     </div>`;
   }
@@ -2947,7 +2947,7 @@ export class StatsEngine {
       <div class="stats-section">
         <h3>PAT &amp; 2-Point Conversions</h3>
         <div class="sit-gauges-row">${cards}</div>
-        <p class="viz-caption">Chart the try in Special Teams, choose Kick XP or Two-Point, then record the official result.</p>
+        <p class="viz-caption">Conversion attempts and results. Chart the try in Special Teams: attempt type, then the official result.</p>
       </div>`;
   }
 
@@ -3971,7 +3971,7 @@ export class StatsEngine {
     if (!byDown && !byDist && !(r.downTendency || []).length) return '';
     const detail = (r.downTendency || []).length ? `<div class="stats-section">
         <h3>Every Situation</h3>
-        <p class="self-scout-intro">All ${r.downTendency.length} charted situations — reference detail behind the grouped read above.</p>
+        <p class="self-scout-intro">Every charted down-and-distance combination. ${r.downTendency.length} situations, all snaps accounted for.</p>
         <table class="stats-table stats-table-full">
           <thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead>
           <tbody>${r.downTendency.map(d => `<tr><td>${esc(d.key)}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`).join('')}</tbody>
@@ -4795,7 +4795,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     });
     return `<div class="stats-section">
       <h3>Predictability Map — Formation × Situation</h3>
-      <p class="viz-caption">Every row is a formation, every column a situation, every cell your run/pass lean in that exact spot — run/pass-classifiable offensive plays only.
+      <p class="viz-caption">Rows = formation. Columns = situation. Cell = snap count, run/pass split, success rate and average yards. Offensive snaps with a run/pass classification only.
         <span class="sm-key sm-key-exploit">Predictable, not working</span> is the one to fix: a lean a DC can key that also sits below your ${baseline}% average success.
         <span class="sm-key sm-key-working">Predictable, but working</span> is a strength, not a leak.
         <span class="sm-key sm-key-balanced">Balanced</span> gives nothing away.
@@ -5378,7 +5378,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
     }).join('');
     return `<div class="stats-section ss-personnel-diversity">
       <h3>Personnel → Formation Diversity</h3>
-      <p class="viz-caption">When a personnel group maps to one or two formations, the defense reads the grouping from the huddle and knows the look before you line up.</p>
+      <p class="viz-caption">Share of each personnel group's snaps that came from its most-used formation. 90%+ = locked, 75-89% = leaning.</p>
       <table class="stats-table stats-table-full ss-pd-table">
         <thead><tr><th>Personnel</th><th>#</th><th>Forms</th><th>Top Formation</th><th>Top %</th><th>Distribution</th><th>Read</th></tr></thead>
         <tbody>${rows}</tbody>
