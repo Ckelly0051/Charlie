@@ -771,10 +771,17 @@ r = await page.evaluate(() => {
     // Post-E3a projection: 'Shotgun' is QB alignment, 'Trips' the structural
     // formation, so the call signature renders "Shotgun Trips" (qb + form), not
     // the raw "Shotgun + Trips" formation string.
-    rendered: /Core Calls/.test(html) && /Shotgun Trips/.test(html) && /Jet mo/.test(html),
-    chipsRender: /<span class="bt-tag">Right<\/span>/.test(html)
-      && /<span class="bt-tag bt-mot">Jet mo<\/span>/.test(html)
-      && !/&lt;span class=/.test(html),
+    /* G13 — the call is CELLS now, in charting order (Formation first), not one
+       run-together prose line. Each dimension owns a column, so these assert
+       the columns exist and carry their own values rather than looking for the
+       retired "Shotgun Trips … Right … Jet mo" signature string. */
+    rendered: /Core Calls/.test(html)
+      && /<th[^>]*>Formation<\/th>/.test(html) && /<th[^>]*>QB align<\/th>/.test(html)
+      && /<td[^>]*>Trips<\/td>/.test(html) && /<td[^>]*>Shotgun<\/td>/.test(html),
+    // Cells still render as trusted markup, never as escaped source. This is the
+    // escaping boundary the old chip assertion was really guarding.
+    chipsRender: /<td[^>]*>Right<\/td>/.test(html) && /<td[^>]*>Jet<\/td>/.test(html)
+      && !/&lt;td/.test(html) && !/&lt;span class=/.test(html),
     hostileSafe: !hostileHtml.includes('<img') && !hostileHtml.includes('<script')
       && !hostileHtml.includes('<svg') && hostileHtml.includes('&lt;img'),
   };

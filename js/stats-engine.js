@@ -1207,6 +1207,39 @@ export class StatsEngine {
    * `_efficiencyStats` uses, so the row and the `negative` cut filter cannot
    * drift apart and show one number while playing another.
    */
+  /**
+   * G5 — what the derived measures actually mean.
+   *
+   * Several headline numbers are computed on a rule the coach cannot see, and
+   * the report states them with total confidence. Counted against source there
+   * are ten such terms — too thin for a glossary destination and scattered
+   * across five tabs, so the definition arrives where the number is.
+   *
+   * THE RULE THAT MATTERS: these are written from the constants the engine
+   * computes with. A glossary written from memory drifts, and a confidently
+   * wrong definition is worse than none — it invites checking a number against
+   * a rule the code does not use. `e2e-native-reports` asserts each stated
+   * threshold against the value in use.
+   *
+   * "Low sample" deliberately names its own surface rather than one number:
+   * the gate is 4 for self-scout tells, 5 for formation tendencies and 2 for
+   * the coverage list. One sentence covering all three would be untrue on two
+   * of them. (Coach, 2026-08-04: keep the thresholds, variance genuinely
+   * differs between those things.)
+   */
+  static DEFINITIONS = {
+    successRate: SUCCESS_RATE_TIP,
+    explosive: 'A run of 12+ yards or a pass of 16+ yards. Two different thresholds, because a 13-yard run and a 13-yard pass are not the same play.',
+    playsForLoss: 'Any play that finished behind where it started — yardage below zero. Sacks are counted on their own line and are not repeated here.',
+    negativePlays: 'Distinct plays that went wrong: a turnover, a play for loss, or a penalty. One play counts once here even when it was several of those at once.',
+    turnovers: 'Interceptions and fumbles lost.',
+    havoc: 'Share of snaps where the defense made a sack, a tackle for loss, or forced a turnover.',
+    stopPct: 'Share of snaps where the defense held the offense short of success for that down and distance — the inverse of their success rate.',
+    predictability: 'How lopsided the run/pass mix is across formations and situations, sample-weighted. Higher means easier to call.',
+    tell: 'A situation with at least 4 snaps that leans 70% or more one way.',
+    lowSample: 'Too few snaps for the number to mean much. The gate differs by report: 4 snaps for tells, 5 for formation tendencies, 2 for the coverage list.',
+  };
+
   _negativePlayStats(plays) {
     const list = plays || [];
     const isLoss = p => (parseInt(p.tags?.yardage, 10) || 0) < 0;
@@ -2261,29 +2294,64 @@ export class StatsEngine {
     if (d.total < 8) return '';   // too few snaps to call it a tendency
     const esc = Charts._esc;
     const cut = opts.cut !== false;
-    const rows = d.calls.slice(0, 15).map((c, i) => {
-      const name = `${esc([c.qb, c.form].filter(Boolean).join(' ') || '—')}`
-        + (c.bf ? ` <span class="bt-tag">${esc(c.bf)}</span>` : '')
-        + (c.str ? ` <span class="bt-tag">${esc(c.str)}</span>` : '')
-        + (c.mot ? ` <span class="bt-tag bt-mot">${esc(c.mot)} mo</span>` : '')
-        + ` <span class="bt-arrow">→</span> ${esc(c.pt || '—')}`;
+    /* G13 — the call is CELLS, not prose, and it reads in charting order.
+     *
+     * Three defects, all reported by the coach:
+     *   1. The label led with QB alignment while the tag form leads with
+     *      Formation (native-tagging.jsx: formation -> qbAlignment -> backfield
+     *      -> strength -> personnel -> motion). The report read backwards from
+     *      how the coach charts, which is why scanning it felt wrong.
+     *   2. Everything was one run-together line, so extracting a single
+     *      dimension meant reading the whole string. Now each dimension owns a
+     *      column and can be tracked straight down.
+     *   3. Nothing was sortable — hard-sorted by frequency only.
+     *
+     * An untagged dimension renders BLANK (the coach's call: "that's workable
+     * and useful formatting"). Previously a call with no structural tag
+     * collapsed to a bare "Shotgun", which reads as a complete call and is not
+     * one. The blank says the truth without needing a note.
+     *
+     * Every call is listed. The old `.slice(0, 15)` silently dropped rows while
+     * the header still counted them — the same class as G2's truncation.
+     */
+    const cols = [
+      { key: 'form', label: 'Formation', num: false },
+      { key: 'qb', label: 'QB align', num: false },
+      { key: 'bf', label: 'Backfield', num: false },
+      { key: 'str', label: 'Strength', num: false },
+      { key: 'mot', label: 'Motion', num: false },
+      { key: 'pt', label: 'Play', num: false },
+      { key: 'n', label: 'N', num: true },
+      { key: 'succ', label: 'Success', num: true },
+      { key: 'avg', label: 'Avg', num: true },
+      { key: 'runPct', label: 'Run%', num: true },
+    ];
+    const rows = d.calls.map((c, i) => {
       const runPct = c.n ? Math.round(c.runs / c.n * 100) : 0;
       const avg = c.n ? (c.yards / c.n).toFixed(1) : '0.0';
       const succ = c.n ? Math.round(c.succ / c.n * 100) : 0;
+      const cells = cols.map(col => {
+        const raw = col.key === 'runPct' ? runPct : col.key === 'avg' ? avg
+          : col.key === 'succ' ? succ : c[col.key];
+        const blank = raw === '' || raw == null;
+        const text = blank ? '—' : (col.key === 'succ' || col.key === 'runPct' ? `${raw}%` : raw);
+        return `<td class="${col.num ? 'bt-num' : ''}${blank ? ' bt-blank' : ''}" data-sort="${esc(String(blank ? '' : raw))}">${esc(String(text))}</td>`;
+      }).join('');
       const cls = `bt-row${i < d.to90 ? ' bt-in90' : ''}`;
+      const named = [c.form, c.qb].filter(Boolean).join(' ') || '—';
       const cutAttr = cut
-        ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc(([c.qb, c.form].filter(Boolean).join(' ') || '—') + ' ' + (c.pt || ''))} — ${c.n} plays"`
+        ? ` cut-row" data-cut-type="bigCall" data-cut-val="${esc(c.key)}" data-cut-label="${esc(`${named} ${c.pt || ''}`)} — ${c.n} plays"`
         : '"';
-      return `<tr class="${cls}${cutAttr}><td>${i + 1}</td><td class="bt-call">${name}</td><td>${c.n}</td><td>${c.pct}%</td><td>${c.cumPct}%</td><td>${runPct}% R</td><td>${avg}</td><td>${succ}%</td></tr>`;
+      return `<tr class="${cls}${cutAttr}>${cells}</tr>`;
     }).join('');
-    const more = d.unique > 15 ? `<p class="self-scout-intro" style="margin-top:6px">…and ${d.unique - 15} more rare looks.</p>` : '';
+    const head = cols.map((col, i) => `<th class="${col.num ? 'bt-num' : ''}" data-bt-sort="${i}"${i === 6 ? ' aria-sort="descending"' : ''}>${esc(col.label)}</th>`).join('');
     return `<div class="stats-section">
       <h3>The “Big ${d.to90}” — ${esc(label)}'s Core Calls</h3>
-      <p class="self-scout-intro"><b>${d.to90} call${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Find these and you've found the offense.${cut ? ' Click a row to watch it.' : ''}</p>
-      <table class="stats-table stats-table-full bt-table">
-        <thead><tr><th>#</th><th>Call — formation · strength · motion → play</th><th>Plays</th><th>%</th><th>Cum%</th><th>Run</th><th>Yds</th><th>Succ</th></tr></thead>
+      <p class="self-scout-intro"><b>${d.to90} call${d.to90 !== 1 ? 's' : ''}</b> make up ~90% of ${esc(label)}'s offense (just <b>${d.to75}</b> = 75%), out of ${d.unique} unique looks across ${d.total} snaps. Find these and you've found the offense.${cut ? ' Click a row to watch it. Click a column to sort.' : ' Click a column to sort.'}</p>
+      <table class="stats-table stats-table-full bt-table" data-bt-table>
+        <thead><tr>${head}</tr></thead>
         <tbody>${rows}</tbody>
-      </table>${more}</div>`;
+      </table></div>`;
   }
 
   _buildCutFilter(type, val) {
@@ -2806,16 +2874,24 @@ export class StatsEngine {
    * where on the field it works. None of those questions is answered by
    * reading a column.
    */
-  _renderShape(stats) {
-    const plays = stats.offPlays || [];
+  /* G3 — the opponent's offense gets the same shape view. These five visuals
+     only ever reached the self-scout Offense tab, which is the whole reason two
+     tabs both called "Offense" looked like different builds. `opts` lets the
+     opponent branch pass its own play set and formation list; `cut:false`
+     suppresses film links there, because an opponent row's cut types resolve
+     against OUR charting perspective and would play the wrong cohort. */
+  _renderShape(stats, opts = {}) {
+    const plays = opts.plays || stats.offPlays || [];
     if (!plays.length) return '';
+    const cut = opts.cut !== false;
     const dist = this._yardageBins(plays);
     const points = this._scatterPoints(plays);
     const zones = this._fieldZoneStats(plays);
     const downs = this._downMultiples(plays);
-    const formations = (stats.tendencies?.formationList || []).slice(0, 8).map(row => ({
+    const source = opts.formations || (stats.tendencies?.formationList || []);
+    const formations = source.slice(0, 8).map(row => ({
       label: row.name, count: row.count, successPct: parseFloat(row.successPct) || 0,
-      cut: { type: 'formation', val: row.name },
+      cut: cut ? { type: 'formation', val: row.name } : null,
     }));
 
     const panel = (title, note, body) => body
@@ -2831,7 +2907,31 @@ export class StatsEngine {
       ${panel('Where it works on the field', 'Own goal line on the left, theirs on the right.',
         Charts.zoneStrip(zones))}
       ${panel('By down', 'The same read repeated, so the comparison is spatial rather than four rows of numbers.',
-        Charts.smallMultiples(downs))}`;
+        Charts.smallMultiples(downs))}
+      ${cut ? this._renderTeamProfile(stats) : ''}`;
+  }
+
+  /* F12c — renders only with at least two charted games, because "compared to
+     our best" is meaningless against a single game. Empty is omitted, not
+     zeroed. The caption states the scale explicitly so a moved axis is never
+     silent. */
+  _renderTeamProfile(stats) {
+    let seasonStats = [];
+    try {
+      seasonStats = this._allSeasonGames()
+        .filter(game => Array.isArray(game.plays) && game.plays.length)
+        .map(game => this.compute(game.plays));
+    } catch { return ''; }
+    if (seasonStats.length < 2) return '';
+    const profile = this._teamProfile(stats, seasonStats);
+    if (!profile) return '';
+    const svg = Charts.radar(profile.axes, { label: 'Team profile against our season best' });
+    if (!svg) return '';
+    return `<div class="stats-section">
+      <h3>This game against our best</h3>
+      <p class="viz-caption">Each axis runs from our worst charted game to our best across ${profile.games} games — a scale this team has actually reached, not an invented benchmark. Further out is better on every spoke.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
+      ${svg}
+    </div>`;
   }
 
   _renderConversions(stats) {
@@ -3721,7 +3821,10 @@ export class StatsEngine {
     };
     root.querySelectorAll('table.stats-table-full').forEach(table => {
       const tbody = table.querySelector('tbody');
-      if (!tbody || !tbody.querySelector('tr.player-row')) return;
+      // G13 — the Big 13 joins the existing sorter rather than growing a second
+      // one. Its rows are `bt-row`, so the gate widens; everything below (numeric
+      // detection, direction toggle) is the proven path.
+      if (!tbody || !tbody.querySelector('tr.player-row, tr.bt-row')) return;
       const heads = Array.from(table.querySelectorAll('thead th'));
       if (heads.length < 2) return;
       heads.forEach((th, idx) => {
@@ -3732,8 +3835,15 @@ export class StatsEngine {
           const asc = th.dataset.sortDir !== 'asc';
           const rows = Array.from(tbody.querySelectorAll('tr'));
           rows.sort((a, b) => {
-            const av = (a.children[idx]?.textContent || '').trim();
-            const bv = (b.children[idx]?.textContent || '').trim();
+            // `data-sort` carries the raw value where a cell renders something
+            // else — an untagged Big 13 dimension shows "—" but must sort as
+            // empty, not as a dash.
+            const cell = (row) => {
+              const td = row.children[idx];
+              return (td?.dataset?.sort ?? td?.textContent ?? '').trim();
+            };
+            const av = cell(a);
+            const bv = cell(b);
             const an = num(av), bn = num(bv);
             if (an !== null && bn !== null) return asc ? an - bn : bn - an;
             if (an !== null) return -1;     // real numbers ahead of blanks (—)
@@ -3810,13 +3920,165 @@ export class StatsEngine {
       totalPlays: plays.length, stats,
       formationDetail: Object.entries(formationDetail).sort((a, b) => b[1].total - a[1].total)
         .map(([name, d]) => ({ name, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
-      downTendency: Object.entries(downTendency).sort((a, b) => b[1].total - a[1].total).slice(0, 15)
+      // G2 — no `.slice(0, 15)`. It silently dropped situations while the header
+      // still counted them: 15 rows totalling 30 of 34 snaps, with no "and N
+      // more". A report that looks complete and is not.
+      downTendency: Object.entries(downTendency).sort((a, b) => b[1].total - a[1].total)
         .map(([key, d]) => ({ key, ...d, runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+      byDown: this._scoutByDown(plays),
+      byDistance: this._scoutByDistance(plays),
       fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
       coverages: Object.entries(coverages).sort((a, b) => b[1] - a[1]),
       redZone: { total: redZonePlays.length, tds: redZonePlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length },
       thirdDown: { total: thirdDownPlays.length, converted: thirdDownPlays.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length },
     };
+  }
+
+  /**
+   * G2 — the two levels ABOVE the exact-situation table.
+   *
+   * The coach reads a scout top-down: what do they do on each down, then what
+   * do they do by distance to the sticks, then — as reference — the exact
+   * situations. Only the third existed, sorted by frequency, so the actionable
+   * read had to be assembled in his head from rows like `2&13`.
+   *
+   * The four distance buckets are the coach's: 1-3 / 4-6 / 7-9 / 10+.
+   *
+   * DELIBERATELY NOT `_distBucket`. That bucketer is a THREE-way split
+   * (Short 1-3 / Medium 4-6 / Long 7+) and it is parity-locked: it keys the
+   * self-scout tells, the Predictability Map, and the `dd` / `comboFD` /
+   * `comboFS` cut filters. Splitting its 7+ into 7-9 and 10+ would re-key every
+   * existing tell and cut and move the goldens. This is a separate reporting
+   * dimension that leaves that bucketer untouched.
+   */
+  /* G2 — down and distance, read top-down: by down, then by distance to the
+     sticks, then every exact situation as reference. The coach's call: the
+     bucketing leads because that is what he acts on in the moment, and the raw
+     detail stays because it is worth having — it just stops being the headline,
+     and stops being silently truncated. */
+  _renderScoutDownDistance(r) {
+    const esc = Charts._esc;
+    const rowsOf = list => list.map(d => `<tr><td>${esc(d.label)}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td><td>${d.avg}</td></tr>`).join('');
+    const head = '<thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th><th>Avg</th></tr></thead>';
+    const byDown = (r.byDown || []).length ? `<div>
+        <h3>By Down</h3>
+        <table class="stats-table stats-table-full">${head}<tbody>${rowsOf(r.byDown)}</tbody></table>
+      </div>` : '';
+    const byDist = (r.byDistance || []).length ? `<div>
+        <h3>By Distance to the Sticks</h3>
+        <table class="stats-table stats-table-full">${head}<tbody>${rowsOf(r.byDistance)}</tbody></table>
+      </div>` : '';
+    if (!byDown && !byDist && !(r.downTendency || []).length) return '';
+    const detail = (r.downTendency || []).length ? `<div class="stats-section">
+        <h3>Every Situation</h3>
+        <p class="self-scout-intro">All ${r.downTendency.length} charted situations — reference detail behind the grouped read above.</p>
+        <table class="stats-table stats-table-full">
+          <thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead>
+          <tbody>${r.downTendency.map(d => `<tr><td>${esc(d.key)}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`).join('')}</tbody>
+        </table>
+      </div>` : '';
+    return `${(byDown || byDist) ? `<div class="stats-section stats-two-col">${byDown}${byDist}</div>` : ''}${detail}`;
+  }
+
+  /**
+   * F12c — the team profile radar, and the decision that unblocked it.
+   *
+   * The blocker was never the drawing. Putting success rate on a 0-1 axis means
+   * deciding what FULL SCALE means, and picking a number invents a benchmark.
+   *
+   * Measured against the coach's real season: best game 70.4% success, worst
+   * 20.0%, season 42.5%. On a 0-100 axis all six games bunch in the bottom two
+   * thirds and the shapes are visually indistinguishable — a chart that says
+   * nothing. Scaled to his OWN achieved best they spread across the full axis
+   * and the shape answers a real question: how did this game compare to us at
+   * our best?
+   *
+   * So full scale is the season maximum per spoke — a number the team has
+   * actually reached. Nothing is invented and no benchmark is implied. A game
+   * that sets a new best redefines the axis, which is correct, and the caption
+   * says so rather than letting the scale move silently.
+   *
+   * Lower-is-better spokes are inverted so that OUTWARD always means BETTER;
+   * a radar where one spoke means the opposite of its neighbours is a trap.
+   */
+  _teamProfile(gameStats, seasonGames) {
+    const measure = (stats) => {
+      const e = stats?.efficiency || {};
+      const d = stats?.downs || {};
+      const np = stats?.negativePlays || {};
+      return {
+        success: parseFloat(e.successRate) || 0,
+        explosive: parseFloat(e.explosivePct) || 0,
+        thirdDown: parseFloat(d.thirdDownPct) || 0,
+        ypp: parseFloat(StatsEngine.yardsPerPlay(stats)) || 0,
+        ballSecurity: np.totalPlays ? (np.distinct / np.totalPlays) * 100 : 0,
+      };
+    };
+    const SPOKES = [
+      { key: 'success', label: 'Efficiency', lower: false },
+      { key: 'explosive', label: 'Explosiveness', lower: false },
+      { key: 'thirdDown', label: 'Third down', lower: false },
+      { key: 'ypp', label: 'Yards / play', lower: false },
+      { key: 'ballSecurity', label: 'Ball security', lower: true },
+    ];
+    const now = measure(gameStats);
+    const history = (seasonGames || []).map(measure);
+    if (!history.length) return null;
+
+    const axes = SPOKES.map(spoke => {
+      const values = history.map(h => h[spoke.key]).filter(v => Number.isFinite(v));
+      const best = spoke.lower ? Math.min(...values) : Math.max(...values);
+      const worst = spoke.lower ? Math.max(...values) : Math.min(...values);
+      const value = now[spoke.key];
+      // Outward is always better. For a lower-is-better spoke the scale runs
+      // from the worst game (0) to the best game (1), inverted.
+      const span = Math.abs(best - worst);
+      const ratio = span ? Math.abs(value - worst) / span : (values.length ? 1 : 0);
+      return {
+        label: spoke.label, value, best, lower: spoke.lower,
+        ratio: Math.max(0, Math.min(1, ratio)),
+        isBest: spoke.lower ? value <= best : value >= best,
+      };
+    });
+    return { axes, games: history.length, newBest: axes.some(a => a.isBest) };
+  }
+
+  _scoutByDown(plays) {
+    const rows = ['1', '2', '3', '4'].map(down => {
+      const set = (plays || []).filter(p => String(p.tags?.down || '') === down);
+      const runs = set.filter(p => StatsEngine.isRun(p)).length;
+      const yards = set.reduce((sum, p) => sum + (parseInt(p.tags?.yardage, 10) || 0), 0);
+      return {
+        key: down, label: `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'}`,
+        total: set.length, runs, passes: set.length - runs,
+        runPct: set.length ? Math.round(runs / set.length * 100) : 0,
+        avg: set.length ? (yards / set.length).toFixed(1) : '0.0',
+      };
+    });
+    return rows.filter(r => r.total);   // empty is omitted, not zeroed
+  }
+
+  _scoutByDistance(plays) {
+    const BUCKETS = [
+      { key: '1-3', label: '1–3', min: 1, max: 3 },
+      { key: '4-6', label: '4–6', min: 4, max: 6 },
+      { key: '7-9', label: '7–9', min: 7, max: 9 },
+      { key: '10+', label: '10+', min: 10, max: Infinity },
+    ];
+    const rows = BUCKETS.map(bucket => {
+      const set = (plays || []).filter(p => {
+        const dist = parseInt(p.tags?.distance, 10);
+        return Number.isFinite(dist) && dist >= bucket.min && dist <= bucket.max;
+      });
+      const runs = set.filter(p => StatsEngine.isRun(p)).length;
+      const yards = set.reduce((sum, p) => sum + (parseInt(p.tags?.yardage, 10) || 0), 0);
+      return {
+        key: bucket.key, label: bucket.label, total: set.length, runs, passes: set.length - runs,
+        runPct: set.length ? Math.round(runs / set.length * 100) : 0,
+        avg: set.length ? (yards / set.length).toFixed(1) : '0.0',
+      };
+    });
+    return rows.filter(r => r.total);
   }
 
   // ---- Opponent Scout: aggregate from games you've ALREADY tagged ----
@@ -4072,14 +4334,10 @@ export class StatsEngine {
             <tbody>${r.formationDetail.map(f => `<tr><td>${esc(f.name)}</td><td>${f.total}</td><td>${f.runPct}%</td><td>${100 - f.runPct}%</td><td>${f.yards}</td><td>${f.tds}</td></tr>`).join('')}</tbody>
           </table>
         </div>
+        ${this._renderShape(null, { plays: data.offPlays, cut: false,
+          formations: (r.formationDetail || []).map(f => ({ name: f.name, count: f.total, successPct: 0 })) })}
         ${this._renderBigTwelve(data.offPlays, opponentName, { cut: false })}
-        <div class="stats-section">
-          <h3>Their Down &amp; Distance Tendencies</h3>
-          <table class="stats-table stats-table-full">
-            <thead><tr><th>Situation</th><th>#</th><th>Run%</th><th>Pass%</th></tr></thead>
-            <tbody>${r.downTendency.map(d => `<tr><td>${esc(d.key)}</td><td>${d.total}</td><td>${d.runPct}%</td><td>${100 - d.runPct}%</td></tr>`).join('')}</tbody>
-          </table>
-        </div>` : `<div class="stats-section"><p style="color:var(--text-dim)">No offensive snaps tagged against them yet. Tag your <strong>defensive</strong> plays (the formation &amp; play type you faced) to build their offensive tendencies.</p></div>`;
+        ${this._renderScoutDownDistance(r)}` : `<div class="stats-section"><p style="color:var(--text-dim)">No offensive snaps tagged against them yet. Tag your <strong>defensive</strong> plays (the formation &amp; play type you faced) to build their offensive tendencies.</p></div>`;
       const td = data.defCount || 0;
       const defSection = (data.defFronts.length || data.defCoverages.length) ? `
         <div class="stats-section stats-two-col">

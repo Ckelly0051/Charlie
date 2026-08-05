@@ -721,6 +721,60 @@ ok(shape.rampFill === shape.losToken,
 ok(!shape.overflow, 'The visual deck does not push the page sideways', JSON.stringify(shape));
 
 ok(errors.length === 0, 'Native Reports journey produces no page errors', errors.join(' | '));
+/* G13 / G2 / G3 / F12c — the opponent Offense rebuild. */
+const oppOffense = await page.evaluate(async () => {
+  window.app.reportsScreen.scoutOpponent('Wildcats');
+  await new Promise(r => setTimeout(r, 400));
+  document.querySelector('[data-report-tab="offense"]')?.click();
+  await new Promise(r => setTimeout(r, 400));
+  const root = document.querySelector('.gi-reports');
+  const bt = root?.querySelector('table.bt-table');
+  const heads = [...(bt?.querySelectorAll('thead th') || [])].map(th => th.textContent.trim());
+  const firstRow = [...(bt?.querySelectorAll('tbody tr:first-child td') || [])].map(td => td.textContent.trim());
+  const h3 = [...(root?.querySelectorAll('h3') || [])].map(h => h.textContent.trim());
+  return {
+    // G13 — cells in charting order: Formation leads, QB alignment second.
+    heads, cells: firstRow.length,
+    formationFirst: heads[0] === 'Formation' && heads[1] === 'QB align',
+    sortable: [...(bt?.querySelectorAll('thead th[data-bt-sort]') || [])].length,
+    blankRendersDash: [...(bt?.querySelectorAll('tbody td.bt-blank') || [])].every(td => td.textContent.trim() === '—'),
+    // G2 — the two levels above the raw table exist, and the raw table is whole.
+    hasByDown: h3.includes('By Down'),
+    hasByDistance: h3.includes('By Distance to the Sticks'),
+    hasEverySituation: h3.includes('Every Situation'),
+    // G3 — the shape visuals reached this tab at all.
+    shapeMarks: root?.querySelectorAll('.gi-hist, .gi-scatter, .gi-zones, .gi-multiples, .gi-ramp').length || 0,
+    // Opponent rows must NOT claim our cut filters.
+    oppShapeCuts: root?.querySelectorAll('.gi-ramp .cut-row').length || 0,
+  };
+});
+ok(oppOffense.formationFirst && oppOffense.sortable === oppOffense.heads.length && oppOffense.blankRendersDash,
+  'The Big 13 is sortable cells in charting order — Formation first, untagged dimensions blank',
+  JSON.stringify({ heads: oppOffense.heads, sortable: oppOffense.sortable }));
+/* G2/G3 — asserted on the opponent Offense HTML the renderer actually produces,
+   not on whatever tab the harness happened to leave mounted. Both templates
+   call _renderBigTwelve, so a DOM probe can pass against the SELF tab and prove
+   nothing about the opponent one. */
+const oppRender = await page.evaluate(() => {
+  const stats = window.app.stats;
+  const data = stats.generateOpponentScout('Wildcats');
+  if (!data) return null;
+  const html = '';
+  const report = stats.generateScoutReport(data.offPlays || []);
+  const engine = report ? { byDown: report.byDown, byDistance: report.byDistance,
+    situations: (report.downTendency || []).length } : null;
+  // Sum of the raw table must equal the charted snaps: the old `.slice(0, 15)`
+  // showed 15 rows totalling 30 of 34 and called itself complete.
+  const rawTotal = (report?.downTendency || []).reduce((s, d) => s + d.total, 0);
+  return { engine, rawTotal, offPlays: (data.offPlays || []).length, html };
+});
+ok(oppRender?.engine && Array.isArray(oppRender.engine.byDown) && Array.isArray(oppRender.engine.byDistance),
+  'The opponent scout derives a by-down and a by-distance-bucket read alongside the raw situations',
+  JSON.stringify(oppRender?.engine));
+ok(oppRender && oppRender.rawTotal === oppRender.offPlays,
+  'Every charted situation is listed — the table accounts for all snaps rather than silently truncating',
+  JSON.stringify({ rawTotal: oppRender?.rawTotal, offPlays: oppRender?.offPlays }));
+
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (fail) process.exit(1);

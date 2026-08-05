@@ -205,6 +205,65 @@
 .gi-reports .gi-lens-more:hover,.gi-reports .gi-lens-more:focus-visible{color:var(--gi-12);border-color:var(--gi-10);outline:none}
 @media(max-width:560px){.gi-reports .gi-lens-tiles{grid-template-columns:minmax(0,1fr)}}
 
+/* ── COACH SMOKE 1.12.0-24, layout batch (G1, G6, G7, G8, G9, G10, G11) ──────
+   These are one family: containers that claim space they do not use, and text
+   clipped by a box sized to something other than its content. */
+
+/* G6 — FILL THE SPACE OR KILL THE SPACE. Stated as a rule because it is the
+   third time it has come up: a container that spans the full width must either
+   distribute its children across that width, or not span it. Half-empty chrome
+   reads as broken layout, not as breathing room. Fixed-width tiles left ~45% of
+   the Season KPI band empty. */
+.gi-reports .stats-grid,.gi-reports .gi-glance-grid,.gi-reports .ss-summary-row,
+.gi-reports .gi-card-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.gi-reports .eff-side-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gi-2x)}
+
+/* G8 — the Situational and By Quarter tables sit side by side but started at
+   different heights, because only the left one carried a gauge above it. Align
+   them on their tops and let both fill their half. */
+.gi-reports .stats-two-col{align-items:start}
+.gi-reports .stats-two-col>*{min-width:0}
+.gi-reports .stats-two-col table{width:100%}
+
+/* G1 — one boundary, one rule. The heading drew its own underline AND the
+   section drew a border, so every section header showed two stacked lines. */
+.gi-reports .stats-section h3+table,.gi-reports .stats-section h3+.viz-caption{margin-top:var(--gi-2x)}
+.gi-reports .stats-section>h3{border-bottom:0;padding-bottom:0}
+
+/* G10 — the yardage spray was simply too big. It is a shape, not a workspace. */
+.gi-reports .gi-scatter svg,.gi-reports .viz-spray svg{height:118px}
+.gi-reports .gi-hist svg{height:132px}
+
+/* G7 — the Predictability Map's per-column summary had no row height of its
+   own and drew into the header's line-box, clipping it. */
+.gi-reports .ss-matrix th,.gi-reports .ss-matrix td{vertical-align:top}
+.gi-reports .ss-matrix .ss-matrix-sum{display:block;padding:2px 0;line-height:1.35}
+
+/* G9 — rotated heat-map column labels were cut off at the top. Give the header
+   row the height the rotation actually needs instead of the height the
+   unrotated text would need. */
+.gi-reports .heat-map th,.gi-reports .heat-table th{height:auto;padding-top:var(--gi-4x);overflow:visible}
+.gi-reports .heat-map thead,.gi-reports .heat-table thead{overflow:visible}
+
+/* G11 — a two-part section needs a break between its parts. STRENGTH sat
+   directly against the last BACKFIELD row and read as crowding into it. */
+.gi-reports .stats-section h4,.gi-reports .stats-section h5{margin-top:var(--gi-5x)}
+.gi-reports .stats-section>:first-child{margin-top:0}
+
+/* G13 — the Big 13 is cells now: numeric columns align right, untagged
+   dimensions render as a dimmed dash so a blank reads as "not charted" rather
+   than as an empty cell someone forgot to fill. */
+.gi-reports .bt-table td.bt-num,.gi-reports .bt-table th.bt-num{text-align:right;
+  font-variant-numeric:var(--gi-num-feat)}
+.gi-reports .bt-table td.bt-blank{color:var(--gi-8)}
+.gi-reports .bt-table th{cursor:pointer;user-select:none;white-space:nowrap}
+.gi-reports .bt-table tr.bt-in90 td:first-child{box-shadow:inset 3px 0 0 var(--gi-los)}
+
+/* F12c — the team profile radar. Capped so it reads as a shape rather than
+   taking a screen (the G10 lesson applied up front). */
+.gi-reports .gi-radar{margin:0;display:flex;justify-content:center}
+.gi-reports .gi-radar svg{width:100%;max-width:340px;height:auto;display:block}
+
 /* G14 — the Negative Plays lens renders its own body instead of the tile grid.
    A flat row of tiles is exactly what let a sack be counted twice with nothing
    on screen saying so; the INDENT is the explanation. The headline is distinct

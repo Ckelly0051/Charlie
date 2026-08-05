@@ -137,6 +137,47 @@ export class Charts {
    * comparison is spatial instead of a column of numbers to hold in your head.
    * @param {Array<{label:string,run:number,pass:number,successPct:number,n:number}>} series
    */
+  /* F12c — the team profile radar. Pure geometry: it is handed ratios the
+     engine already scaled (StatsEngine._teamProfile) and draws them. It does
+     not know what full scale means, which is the whole point — that was a
+     football decision, not a rendering one. Outward is always better. */
+  static radar(axes, opts = {}) {
+    const list = (axes || []).filter(a => a && Number.isFinite(a.ratio));
+    if (list.length < 3) return '';
+    const cx = 50, cy = 50, r = 34;
+    const at = (index, radius) => {
+      const angle = (Math.PI * 2 * index) / list.length - Math.PI / 2;
+      return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
+    };
+    const ring = (frac) => list.map((unused, i) => at(i, r * frac).map(n => n.toFixed(2)).join(',')).join(' ');
+    const shape = list.map((a, i) => at(i, r * Math.max(a.ratio, 0.04)).map(n => n.toFixed(2)).join(',')).join(' ');
+    const spokes = list.map((unused, i) => {
+      const [x, y] = at(i, r);
+      return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}" style="stroke:var(--gi-6);stroke-width:.3"/>`;
+    }).join('');
+    const dots = list.map((a, i) => {
+      const [x, y] = at(i, r * Math.max(a.ratio, 0.04));
+      return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.5"
+        style="fill:${a.isBest ? 'var(--gi-first-down)' : 'var(--gi-los)'}"><title>${Charts._esc(a.label)}: ${Charts._esc(String(a.value))}${a.isBest ? ' — season best' : ''}</title></circle>`;
+    }).join('');
+    const labels = list.map((a, i) => {
+      const [x, y] = at(i, r + 11);
+      const anchor = x > cx + 2 ? 'start' : x < cx - 2 ? 'end' : 'middle';
+      return `<text x="${x.toFixed(2)}" y="${(y + 1.4).toFixed(2)}" text-anchor="${anchor}"
+        style="fill:var(--gi-11);font:600 3.6px var(--gi-mono)">${Charts._esc(a.label)}</text>`;
+    }).join('');
+    return `<figure class="gi-radar">
+      <svg viewBox="0 0 100 100" role="img" aria-label="${Charts._esc(opts.label || 'Team profile')}">
+        <polygon points="${ring(1)}" style="fill:none;stroke:var(--gi-6);stroke-width:.4"/>
+        <polygon points="${ring(0.66)}" style="fill:none;stroke:var(--gi-6);stroke-width:.25;opacity:.6"/>
+        <polygon points="${ring(0.33)}" style="fill:none;stroke:var(--gi-6);stroke-width:.25;opacity:.6"/>
+        ${spokes}
+        <polygon points="${shape}" style="fill:var(--gi-los);fill-opacity:.22;stroke:var(--gi-los);stroke-width:.7"/>
+        ${dots}${labels}
+      </svg>
+    </figure>`;
+  }
+
   static smallMultiples(series, opts = {}) {
     const list = (series || []).filter(item => item && item.n > 0);
     if (!list.length) return '';
