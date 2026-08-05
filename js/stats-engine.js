@@ -2898,15 +2898,15 @@ export class StatsEngine {
       ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
 
     return `
-      ${panel('How often, and how well', 'Bar length is how often we call it. Fill is how well it works. A long pale bar is a call we lean on that is not paying.',
+      ${panel('How often, and how well', 'Bar length = share of offensive snaps from that formation. Fill = success rate: 1st down needs 50% of the distance, 2nd 70%, 3rd and 4th must convert. Faded = under 3 snaps.',
         Charts.rampBars(formations))}
-      ${panel('Where the gains sit', `Every offensive snap by yards gained. Mean ${dist?.mean ?? '0.0'} yards, marked.`,
+      ${panel('Where the gains sit', `Offensive snaps grouped by yards gained. Loss is any play under 0 yards; the gold line marks the mean of ${dist?.mean ?? '0.0'} yards.`,
         dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '')}
-      ${panel('Did we move the chains', 'Distance to go against yards gained. Everything above the dashed line converted.',
+      ${panel('Did we move the chains', 'Each dot is one snap: distance to go on the horizontal, yards gained on the vertical. The dashed line is yards gained = distance to go, so anything above it converted.',
         Charts.scatter(points, { label: 'Yards gained by distance to go' }))}
-      ${panel('Where it works on the field', 'Own goal line on the left, theirs on the right.',
+      ${panel('Where it works on the field', 'Success rate by field position, own goal line on the left to theirs on the right. A zone with no charted snaps is left blank rather than shown as 0%.',
         Charts.zoneStrip(zones))}
-      ${panel('By down', 'The same read repeated, so the comparison is spatial rather than four rows of numbers.',
+      ${panel('By down', 'Run/pass split and success rate for each down. Success is down-adjusted: 1st needs 50% of the distance, 2nd 70%, 3rd and 4th must convert.',
         Charts.smallMultiples(downs))}
       ${cut ? this._renderTeamProfile(stats) : ''}`;
   }
@@ -5853,9 +5853,48 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     return css ? `<style>${css}</style>` : '';
   }
 
+  // Desktop (Tauri/WebView2) cannot give us a writable popup. Detect it rather
+  // than trying and failing quietly.
+  _canOpenPrintWindow() {
+    try { return !window.__TAURI__; } catch { return true; }
+  }
+
+  /* Fallback delivery: a standalone HTML file that prints itself on open. The
+     coach gets a PDF through the system print dialog, which is what the popup
+     was trying to do — it just uses a real file instead of a blocked window. */
+  _downloadPrintable(title, bodyHtml, extraClass) {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${Charts._esc(title)}</title>
+${this._exportFontFace()}
+${this._printStyles ? this._printStyles() : ''}
+</head><body class="${Charts._esc(extraClass || '')}">${bodyHtml}
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});<\/script>
+</body></html>`;
+    const name = `${(this._gameTitle() || 'game-report').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.html`;
+    try {
+      // `_download` is the same seam exportHtmlReport uses — the one delivery
+      // path that already works on desktop.
+      window.app?.storage?._download?.(new Blob([html], { type: 'text/html' }), name);
+      window.app?.overlays?.toast?.({ message: `Report saved as ${name} — open it and print to PDF.` });
+    } catch (error) {
+      console.warn('[reports] printable export failed', error);
+    }
+  }
+
   _openPrintWindow(title, bodyHtml, extraClass) {
-    const w = window.open('', '_blank');
-    if (!w) { alert('Pop-up blocked — allow pop-ups for this site to export PDF.'); return; }
+    /* H4 — "Export Game Report to PDF does nothing."
+     *
+     * This opened a popup and printed from it. WebView2 in the installed app
+     * does not hand back a usable window, and the `alert` written as the
+     * fallback is suppressed there too — so the whole path failed in complete
+     * silence. Nothing threw, which is why the gate stayed green and why my
+     * first guess (a regression in the new render code) was wrong.
+     *
+     * On desktop the report is written to a real file and opened with the
+     * system handler, which is the same delivery the HTML export already uses
+     * and the coach has never reported broken. The browser keeps the popup.
+     */
+    const w = this._canOpenPrintWindow() ? window.open('', '_blank') : null;
+    if (!w) { this._downloadPrintable(title, bodyHtml, extraClass); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${Charts._esc(title)}</title>
 ${this._exportFontFace()}
 <style>

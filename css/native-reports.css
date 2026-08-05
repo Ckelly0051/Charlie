@@ -398,3 +398,46 @@
 .gi-reports .gi-answer-row small{grid-column:1/-1;color:var(--gi-11);font-size:11.5px}
 .gi-reports .gi-answer-row.cut-row{cursor:pointer}
 .gi-reports .gi-answer-row.cut-row:hover,.gi-reports .gi-answer-row.cut-row:focus-visible{border-color:var(--gi-los);background:var(--gi-3);outline:none}
+
+/* == S6-5b - DESIGN RULES LAST ==============================================
+   Same discipline as native-tagging.css: design rules go at the END so a later
+   same-specificity rule cannot silently win. The first pass lost Save & Next
+   exactly that way, and I did not see it until the coach did. */
+
+/* H9 - the lower-third marks EVERY heading, not just h3. Half the page had the
+   plate and half was plain uppercase text, which reads as an unfinished sweep
+   rather than as a hierarchy. Sub-heads take the same shape one step quieter. */
+.gi-reports .stats-section h4,.gi-reports .stats-section h5,
+.gi-reports .viz-section h4,.gi-reports .ss-section h4{
+  display:inline-flex;align-items:center;min-height:22px;
+  margin:var(--gi-4x) 0 var(--gi-2x);padding:0 20px 0 10px;
+  background:var(--gi-2);color:var(--gi-11);
+  clip-path:var(--gi-lower-third);
+  font:650 10.5px/1 var(--gi-mono);letter-spacing:var(--gi-track-label);
+  text-transform:uppercase;border:0;
+}
+.gi-reports .stats-section>:first-child{margin-top:0}
+
+/* H7 - the Predictability Map header. My G7 fix targeted `.ss-matrix`, which
+   exists nowhere in the product; the real classes are `.tm-table` / `.tm-cell`.
+   The first data row scrolled under a sticky header that had no background, so
+   its bottom line showed through the header row. */
+.gi-reports .tm-wrap{overflow:auto}
+.gi-reports .tm-table thead th{
+  position:sticky;top:0;z-index:2;
+  background:var(--gi-2);box-shadow:inset 0 -1px 0 var(--gi-6);
+}
+.gi-reports .tm-table td.tm-cell{vertical-align:top;padding:var(--gi-2x) var(--gi-1x)}
+.gi-reports .tm-cell .tm-count,.gi-reports .tm-cell .tm-split,.gi-reports .tm-cell .tm-succ{
+  display:block;line-height:1.35;white-space:nowrap;
+}
+
+/* H8 - a chart is a shape, not a workspace. The F12 visuals were capped at G10
+   and these older ones were not, which is why one screen carries both.
+   Selectors below are MEASURED from the rendered app, not guessed. My first
+   attempt used `.epa-chart` / `.heat-map`, neither of which exists — the real
+   owners are `.viz-block` (481px) and `.hm-field-wrap` (448px). Guessing a
+   class is how the last two fixes silently did nothing. */
+.gi-reports .viz-block>svg{max-height:230px;height:auto;width:100%}
+.gi-reports .hm-field-wrap>svg{max-height:250px;height:auto;width:100%}
+.gi-reports .stats-section svg{max-width:100%}

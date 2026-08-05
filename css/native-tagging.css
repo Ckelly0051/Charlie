@@ -108,3 +108,25 @@
 .gi-tag-input-yardage{width:88px;max-width:88px}.gi-tag-input-yardage input{min-width:88px;padding-left:10px;padding-right:28px;font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat);font-size:14px}.gi-tag-drive-row{grid-template-columns:90px auto;justify-content:start;align-items:end}.gi-tag-drive-row>button{min-height:32px;padding:0 10px}@media(max-width:720px){.gi-native-tagging button,.gi-native-tagging select,.gi-native-tagging input:not([type="checkbox"]),.gi-native-tagging textarea,.gi-tag-check,.gi-penalty-card .gi-is-risk{min-height:44px}.gi-tag-context{position:static;grid-template-columns:1fr 1fr;padding:8px}.gi-tag-title{grid-column:1/-1}.gi-tag-actions{overflow-x:auto;padding:6px 8px}.gi-tag-actions>*{flex:0 0 auto}.gi-tag-actions .gi-is-risk{margin-left:10px}.gi-native-form{padding:8px 8px 84px}.gi-tag-grid{grid-template-columns:1fr 1fr}.gi-tag-nav{grid-template-columns:1fr 1.5fr 1fr}}
 @media(max-width:430px){.gi-tag-context,.gi-tag-grid,.gi-tag-situation-row.is-primary,.gi-tag-situation-row.is-field{grid-template-columns:1fr}.gi-tag-title{grid-column:auto}.gi-tag-players{grid-template-columns:1fr}}
 @media(pointer:coarse){.gi-tag-context select,.gi-tag-actions button,.gi-tag-actions select,.gi-tag-more-select,.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,.gi-tag-nav button,.gi-tag-input input,.gi-tag-input select,.gi-tag-players input,.gi-tag-players select,.gi-tag-custom input,.gi-player-quick button,.gi-tag-check{min-height:44px}.gi-tag-chips{gap:6px}.gi-tag-check input{width:20px;height:20px}}
+
+/* ══ S6-5b — DESIGN RULES LAST ═══════════════════════════════════════════════
+   These live at the END of the file on purpose. The first design pass put them
+   mid-file, and `.gi-tag-nav .is-primary` further down redefined the same
+   property at the same specificity — so Save & Next stayed blue and my rule was
+   inert. Losing on source order is invisible: the CSS is present, correct, and
+   does nothing. Design rules go last so that cannot happen again. */
+
+/* H1 — the commit bar overran its column. The hairline-join change removed the
+   form's inline padding and the sticky nav inherited that, so Skip was cut off
+   at the edge. The bar takes its own padding back and the middle column stops
+   being greedy, so all three fit. */
+.gi-tag-nav{padding-inline:var(--gi-4x);grid-template-columns:auto minmax(0,1fr) auto;gap:var(--gi-2x)}
+.gi-tag-nav>button{min-width:0;white-space:nowrap;padding-inline:var(--gi-3x)}
+
+/* ONE ACTION MEANS DONE. Save & Next is the only control in the deck that means
+   the play is finished, and first-down yellow means achieved everywhere else in
+   the system. Confirmed keeps system-health green — "saved" is a system fact,
+   not a football one. */
+.gi-tag-nav .is-primary{border-color:var(--gi-first-down);background:var(--gi-first-down);color:#1a1500;font-weight:700}
+.gi-tag-nav .is-primary:hover{filter:brightness(1.08)}
+.gi-tag-nav .is-primary.is-confirmed{border-color:var(--gi-ok);background:var(--gi-ok);color:var(--gi-1)}

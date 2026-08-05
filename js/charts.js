@@ -144,7 +144,11 @@ export class Charts {
   static radar(axes, opts = {}) {
     const list = (axes || []).filter(a => a && Number.isFinite(a.ratio));
     if (list.length < 3) return '';
-    const cx = 50, cy = 50, r = 34;
+    /* H6 — the viewBox reserves room for the labels. They sit at r + 11 and the
+       box was 100 wide with no margin, so "Ball security", "Explosiveness" and
+       "Yards / play" were clipped to ":ity", "Exp:" and "ards / play". The
+       drawing is unchanged; the canvas around it grew. */
+    const cx = 50, cy = 50, r = 30;
     const at = (index, radius) => {
       const angle = (Math.PI * 2 * index) / list.length - Math.PI / 2;
       return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
@@ -167,7 +171,7 @@ export class Charts {
         style="fill:var(--gi-11);font:600 3.6px var(--gi-mono)">${Charts._esc(a.label)}</text>`;
     }).join('');
     return `<figure class="gi-radar">
-      <svg viewBox="0 0 100 100" role="img" aria-label="${Charts._esc(opts.label || 'Team profile')}">
+      <svg viewBox="-16 -6 132 112" role="img" aria-label="${Charts._esc(opts.label || 'Team profile')}">
         <polygon points="${ring(1)}" style="fill:none;stroke:var(--gi-6);stroke-width:.4"/>
         <polygon points="${ring(0.66)}" style="fill:none;stroke:var(--gi-6);stroke-width:.25;opacity:.6"/>
         <polygon points="${ring(0.33)}" style="fill:none;stroke:var(--gi-6);stroke-width:.25;opacity:.6"/>

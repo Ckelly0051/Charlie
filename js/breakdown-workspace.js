@@ -95,6 +95,11 @@ export class BreakdownWorkspace {
 
   _setView(view) {
     const filmRoom = view === 'film-room';
+    // H2 — Chart and Film Room were dead inside Film Focus. Focus removes the
+    // deck from layout, so swapping the hidden hosts underneath it did nothing
+    // visible and the coach had to go back through Show Charting. Asking for a
+    // surface IS asking to leave focus.
+    if (this.filmFocus) this._setFilmFocus(false);
     this.view = filmRoom ? 'film-room' : 'chart';
     const tagging = this.host?.querySelector('[data-breakdown-tagging-host]');
     const grid = this.host?.querySelector('[data-breakdown-film-room-host]');
