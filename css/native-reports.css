@@ -205,6 +205,45 @@
 .gi-reports .gi-lens-more:hover,.gi-reports .gi-lens-more:focus-visible{color:var(--gi-12);border-color:var(--gi-10);outline:none}
 @media(max-width:560px){.gi-reports .gi-lens-tiles{grid-template-columns:minmax(0,1fr)}}
 
+/* ── S6-5: REPORTS ON THE DESIGN SYSTEM ─────────────────────────────────────
+   Recomposition, not restyling. Matches design-system/routes/fpo-reports-
+   overview.html. Applies to EVERY tab, not just the ones the smoke happened to
+   surface — a half-migrated surface breaks both looks. */
+
+/* THE SIGNATURE. Every section heading becomes a lower-third plate. This is the
+   design system's one diagonal and it had zero uses in the product. */
+.gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4{
+  display:inline-flex;align-items:center;min-height:26px;
+  margin:0 0 var(--gi-3x);padding:0 26px 0 12px;
+  background:var(--gi-3);color:var(--gi-12);
+  clip-path:var(--gi-lower-third);
+  font:650 11px/1 var(--gi-mono);letter-spacing:var(--gi-track-label);
+  text-transform:uppercase;border:0;
+}
+/* The lens a coach is reading, and the board's own title, take the accent. */
+.gi-reports .gi-lens-head h4,.gi-reports .gi-lens-board>h3{
+  background:var(--gi-9);color:var(--gi-on-solid)}
+
+/* HAIRLINE JOINS. Sections sat as separate bordered cards with margins between
+   them; they now share 1px seams so the page reads as one board. */
+.gi-reports .stats-section{border:0;border-radius:0;background:var(--gi-2);
+  margin:0;padding:var(--gi-4x) var(--gi-5x)}
+.gi-reports [data-native-main-report]{display:grid;gap:1px;background:var(--gi-6);
+  border:1px solid var(--gi-6)}
+.gi-reports .gi-lens-grid{gap:1px;background:var(--gi-6);border:1px solid var(--gi-6);
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.gi-reports .gi-lens{border:0;background:var(--gi-2)}
+
+/* FILM BELOW THE APP FLOOR — the scoreboard is game identity, so it reads as
+   content rather than chrome. */
+.gi-reports .scoreboard,.gi-reports .gi-scorebug{background:var(--gi-film);
+  border:1px solid var(--gi-6)}
+
+/* Tables lose their card chrome and lean on the seam instead. */
+.gi-reports .stats-table{background:transparent}
+.gi-reports .stats-table th{font:650 11px/1.2 var(--gi-mono);
+  letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--gi-11)}
+
 /* ── COACH SMOKE 1.12.0-24, layout batch (G1, G6, G7, G8, G9, G10, G11) ──────
    These are one family: containers that claim space they do not use, and text
    clipped by a box sized to something other than its content. */
