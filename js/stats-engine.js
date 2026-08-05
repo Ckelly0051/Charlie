@@ -2934,6 +2934,21 @@ export class StatsEngine {
     </div>`;
   }
 
+  /* H14 — one shape panel, renderable on its own so Overview can carry a real
+     read instead of an empty column. `_renderShape` emits six panels as one
+     full-width block; this exposes the by-down multiples alone. Same engine
+     derivation, no second computation. */
+  _renderByDownPanel(stats) {
+    const downs = this._downMultiples(stats.offPlays || []);
+    const svg = Charts.smallMultiples(downs);
+    if (!svg) return '';
+    return `<div class="stats-section">
+      <h3>By down</h3>
+      <p class="viz-caption">Run/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.</p>
+      ${svg}
+    </div>`;
+  }
+
   _renderConversions(stats) {
     const c = stats.conversions;
     if (!c || !c.hasData) return '';

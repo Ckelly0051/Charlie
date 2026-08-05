@@ -409,10 +409,21 @@ export class ReportsScreen {
       ${s._renderLensBoard(stats)}
       ${s._renderTakeaways(stats)}
       ${s._renderDownAnalysis(stats)}
-      <div class="gi-card-grid">
-        ${s._renderEfficiency(stats)}
+      ${/* H14 — three equal columns left ~400px empty under Efficiency and Big
+            Plays, because Drives runs ~700px and the other two do not. The
+            earlier `align-items:start` fix was a no-op: it was already set, and
+            the space was never a stretch — it was genuinely empty.
+
+            Two columns instead. Drives keeps its own column; the short panels
+            stack beside it and the remaining room carries the by-down read,
+            which was computed already and only rendered far below the fold. */''}
+      <div class="gi-card-grid gi-overview-row">
         ${s._renderDrives(stats)}
-        ${s._renderBigPlays(stats)}
+        <div class="gi-stack">
+          ${s._renderEfficiency(stats)}
+          ${s._renderByDownPanel(stats)}
+          ${s._renderBigPlays(stats)}
+        </div>
       </div>
       ${s._renderGameFlow(stats)}
       ${s._renderDriveChart(stats)}

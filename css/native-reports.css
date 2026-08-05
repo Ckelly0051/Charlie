@@ -480,3 +480,19 @@
    composition pass and is still owed. */
 .gi-reports .stats-three-col,.gi-reports .stats-two-col{align-items:start}
 .gi-reports .stats-three-col>*,.gi-reports .stats-two-col>*{align-self:start}
+/* H14 (real fix) - the container is `.gi-card-grid`, read from
+   reports-screen.js:412, not `.stats-three-col` which does not exist. Grid
+   items stretch to the row height by default, so Efficiency and Big Plays were
+   padded out to match Drives - about 400px of empty column each.
+
+   Fourth wrong selector this session, all the same cause: writing the rule from
+   the design intent instead of reading the markup. Read first. */
+.gi-reports .gi-card-grid{align-items:start}
+.gi-reports .gi-card-grid>*{align-self:start}
+/* H14 - Overview's panel row is two columns, not three: Drives in its own,
+   the short panels stacked beside it. The stack absorbs whatever height Drives
+   has, so there is no empty column left to explain. */
+.gi-reports .gi-overview-row{grid-template-columns:minmax(300px,1fr) minmax(300px,1.15fr)}
+.gi-reports .gi-stack{display:grid;gap:var(--gi-2x);align-content:start;min-width:0}
+.gi-reports .gi-stack>.stats-section{padding-block:var(--gi-4x)}
+@media(max-width:900px){.gi-reports .gi-overview-row{grid-template-columns:minmax(0,1fr)}}
