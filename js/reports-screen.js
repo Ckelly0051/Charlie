@@ -270,7 +270,15 @@ export class ReportsScreen {
               never calls, so two builds of work went into a dead path and the
               coach saw none of it. Composed here, where the tab is actually
               assembled. */''}
-        ${this.app.stats._renderDirectionTendency(data.offPlays, data.opponent)}
+        ${/* H19 — a PIVOT, which is what was asked for. Two static tables
+              answered exactly the two questions I coded; this answers any pair
+              the coach picks, and `dirVsStrength` / `dirVsHash` are registered
+              dimensions so they cross with formation, down, distance and
+              personnel. Opens on the read he named. */''}
+        ${this.app.stats._renderTendencyMatrix(null, {
+          plays: data.offPlays, row: 'formation', col: 'dirVsStrength',
+          title: 'Tendencies — pivot any two dimensions',
+        })}
         ${this.app.stats._renderBigTwelve(data.offPlays, data.opponent, { cut: false })}
         ${this.app.stats._renderScoutDownDistance(report)}`;
     } else if (tab === 'defense') {

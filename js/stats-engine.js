@@ -3439,6 +3439,38 @@ export class StatsEngine {
       { id: 'motion',     label: 'Motion',      extract: p => [p.tags.motion || 'No Motion'] },
       { id: 'quarter',    label: 'Quarter',     extract: p => [p.tags.quarter || '?'] },
       { id: 'runPass',    label: 'Run / Pass',  extract: p => [StatsEngine.isRun(p) ? 'Run' : 'Pass'] },
+      /* H19 — the two reads a defensive coordinator asks for, as DIMENSIONS
+         rather than two hardcoded tables. Registering them here means they
+         pivot against formation, down, distance, personnel and each other, and
+         they inherit the matrix's film-linking and min-sample gating. The
+         static tables answered exactly two questions; these answer any
+         combination.
+
+         SIDE CONVENTION (CLAUDE.md v1.9.18): hash, strength and playDir are all
+         recorded from the OFFENSE's perspective on every play regardless of
+         unit. Both derivations depend on it.
+
+         Balanced strength and middle hash have no side, so they extract to
+         'n-a' — a real value that groups honestly, never silently dropped and
+         never miscounted as Toward or Away. */
+      { id: 'dirVsStrength', label: 'Direction vs Strength', extract: p => {
+        const dir = String(p.tags.playDir || '').trim();
+        const str = String(StatsEngine.proj(p).strength || '').trim();
+        if (!dir || !str) return [];
+        if (str !== 'Left' && str !== 'Right') return ['n-a (balanced)'];
+        if (dir === 'Middle') return ['Middle'];
+        return [dir === str ? 'Toward strength' : 'Away from strength'];
+      } },
+      { id: 'dirVsHash', label: 'Direction vs Hash', extract: p => {
+        const dir = String(p.tags.playDir || '').trim();
+        const hash = String(p.tags.hash || '').trim();
+        if (!dir || !hash) return [];
+        // Left hash => the field is to the RIGHT; right hash => field is LEFT.
+        if (hash !== 'Left' && hash !== 'Right') return ['n-a (middle hash)'];
+        const field = hash === 'Left' ? 'Right' : 'Left';
+        if (dir === 'Middle') return ['Middle'];
+        return [dir === field ? 'To the field' : 'To the boundary'];
+      } },
     ];
   }
 
@@ -3534,18 +3566,32 @@ export class StatsEngine {
     </table></div>`;
   }
 
-  _renderTendencyMatrix(stats) {
-    if (stats.totalPlays < 3) return '';
+  /* H19 — one matrix, parameterized, rather than a second hardcoded report.
+     `opts.plays` lets the opponent scout pivot THEIR snaps; `opts.row`/`opts.col`
+     set the opening question. The coach asked for a pivot and I shipped two
+     static tables; this is the thing he actually asked for. */
+  _renderTendencyMatrix(stats, opts = {}) {
+    const plays = opts.plays || stats.offPlays || [];
+    if (!opts.plays && stats.totalPlays < 3) return '';
+    if (opts.plays && plays.length < 3) return '';
+    // The binder reads this so refreshes stay on the same cohort the report was
+    // rendered from. Opponent and self panes never render at once.
+    this._matrixPlays = opts.plays || null;
+    const rowId = opts.row || 'formation';
+    const colId = opts.col || 'down';
     const dims = StatsEngine._matrixDimensions();
-    const opts = dims.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
-    const defaultMatrix = this._computeMatrix(stats.offPlays, 'formation', 'down');
+    const sel = (chosen) => dims.map(d =>
+      `<option value="${d.id}"${d.id === chosen ? ' selected' : ''}>${d.label}</option>`).join('');
+    const opts_ = sel(rowId);
+    const defaultMatrix = this._computeMatrix(plays, rowId, colId);
     return `
       <div class="stats-section" id="tendencyMatrixSection">
-        <h3>Tendency Matrix</h3>
+        <h3>${Charts._esc(opts.title || 'Tendency Matrix')}</h3>
+        <p class="viz-caption">Pick any two dimensions. Cell = snap count, run/pass split, success rate and average yards. Direction vs Strength and Direction vs Hash read Balanced strength and middle hash as n-a, because they have no side.</p>
         <div class="tm-controls">
-          <label>Rows: <select id="tmRowDim">${opts}</select></label>
+          <label>Rows: <select id="tmRowDim">${opts_}</select></label>
           <span style="opacity:.5;margin:0 4px">×</span>
-          <label>Cols: <select id="tmColDim">${opts.replace('value="down"', 'value="down" selected')}</select></label>
+          <label>Cols: <select id="tmColDim">${sel(colId)}</select></label>
         </div>
         <div class="tm-legend">
           <span>Cell: <strong>count</strong> · run/pass split · success% · avg yards</span>
@@ -3567,7 +3613,9 @@ export class StatsEngine {
         container.innerHTML = '<p style="opacity:.6">Pick two different dimensions.</p>';
         return;
       }
-      const matrix = this._computeMatrix(this._offensePlays(), rowSel.value, colSel.value);
+      // H19 — refresh stays on the cohort the matrix was rendered from, so the
+      // opponent pivot does not silently swap to our own offense on first use.
+      const matrix = this._computeMatrix(this._matrixPlays || this._offensePlays(), rowSel.value, colSel.value);
       container.innerHTML = this._renderMatrixGrid(matrix);
     };
     rowSel.addEventListener('change', refresh);
