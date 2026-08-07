@@ -89,17 +89,22 @@ export class BreakdownWorkspace {
     });
     this.host?.querySelector('[data-bd-customize]')?.addEventListener('click', () => this.app.tagLibrarySettings?.open());
     this.host?.querySelector('[data-bd-game]')?.addEventListener('click', () => this.app.gameScreen?.open({ mode: 'edit' }));
-    this.host?.querySelectorAll('[data-bd-view]').forEach(btn => btn.addEventListener('click', () => this._setView(btn.dataset.bdView)));
+    this.host?.querySelectorAll('[data-bd-view]').forEach(btn => btn.addEventListener('click', () => this._setView(btn.dataset.bdView, { userInitiated: true })));
     this.host?.querySelector('[data-bd-film-focus]')?.addEventListener('click', () => this._setFilmFocus(!this.filmFocus));
   }
 
-  _setView(view) {
+  _setView(view, { userInitiated = false } = {}) {
     const filmRoom = view === 'film-room';
     // H2 — Chart and Film Room were dead inside Film Focus. Focus removes the
     // deck from layout, so swapping the hidden hosts underneath it did nothing
     // visible and the coach had to go back through Show Charting. Asking for a
     // surface IS asking to leave focus.
-    if (this.filmFocus) this._setFilmFocus(false);
+    //
+    // But ONLY when the coach asked. Mount/restore also calls this to reapply
+    // the stored view, and exiting focus there wiped the persisted Film Focus
+    // on every remount — caught by e2e-breakdown-geometry, which is exactly the
+    // regression that harness exists for.
+    if (userInitiated && this.filmFocus) this._setFilmFocus(false);
     this.view = filmRoom ? 'film-room' : 'chart';
     const tagging = this.host?.querySelector('[data-breakdown-tagging-host]');
     const grid = this.host?.querySelector('[data-breakdown-film-room-host]');

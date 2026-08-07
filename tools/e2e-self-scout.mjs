@@ -300,7 +300,11 @@ r = await page.evaluate(() => {
     rows: matrix.rows.length,
     cuts: host.querySelectorAll('.sm-cell.cut-row[data-cut-type="comboFS"]').length,
     baseline: baselineMatch ? Number(baselineMatch[1]) : null, expected,
-    mentionsInclusion: /run\/pass-classifiable offensive plays only/i.test(caption),
+    // H5/H11 rewrote captions to literal definitions, so the wording moved on
+    // from "run/pass-classifiable offensive plays only". The GUARANTEE is
+    // unchanged and still asserted: the caption must state which snaps are
+    // included, or a coach reads the matrix as covering every play.
+    mentionsInclusion: /offensive snaps with a run\/pass classification only/i.test(caption),
     mentionsThreshold: /Fewer than \d+ plays/.test(caption),
   };
 });
@@ -354,7 +358,11 @@ r = await page.evaluate(() => {
   const host = document.createElement('div'); host.innerHTML = html;
   const caption = host.querySelector('.viz-caption')?.textContent || '';
   return { keys: [...host.querySelectorAll('.sm-key')].map(n => n.textContent.trim()),
-    mentionsInclusion: /run\/pass-classifiable offensive plays only/i.test(caption),
+    // H5/H11 rewrote captions to literal definitions, so the wording moved on
+    // from "run/pass-classifiable offensive plays only". The GUARANTEE is
+    // unchanged and still asserted: the caption must state which snaps are
+    // included, or a coach reads the matrix as covering every play.
+    mentionsInclusion: /offensive snaps with a run\/pass classification only/i.test(caption),
     mentionsThreshold: /Fewer than \d+ plays/.test(caption),
     corner: host.querySelector('.sm-corner')?.textContent || '' };
 });

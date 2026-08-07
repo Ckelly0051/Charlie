@@ -122,9 +122,13 @@ if (!result.missing) {
     'Cut binding matches projected structure + qbAlignment, NOT raw alignment token');
   ok(result.deferred === 'requires-context' && result.deferredThrows, 'Unresolved measure semantics are explicit and unreadable');
   ok(result.unknownDimensionThrows, 'Unknown registry IDs fail loudly');
-  ok(result.matrixIds.length === 16 && result.matrixIds.includes('quarter') && result.matrixIds.includes('distBucket')
-    && result.matrixIds.includes('qbAlignment') && result.matrixIds.includes('coverageFamily'),
-    'All 16 Matrix extractors are pinned (incl. new qbAlignment + coverageFamily cross-tab axes)');
+  // H19 added dirVsStrength/dirVsHash as registered dimensions so the two reads
+  // a defensive coordinator asks for pivot against everything else rather than
+  // living in two hardcoded tables.
+  ok(result.matrixIds.length === 18 && result.matrixIds.includes('quarter') && result.matrixIds.includes('distBucket')
+    && result.matrixIds.includes('qbAlignment') && result.matrixIds.includes('coverageFamily')
+    && result.matrixIds.includes('dirVsStrength') && result.matrixIds.includes('dirVsHash'),
+    'All 18 Matrix extractors are pinned (incl. direction-vs-strength and direction-vs-hash)');
   ok(result.matrixValues.distBucket[0] === 'Med (4-6)' && result.matrixValues.runPass[0] === 'Pass', 'Legacy Matrix distance/run-pass behavior is explicit');
   ok(result.matrixCells.length === 2 && result.matrixCells.every(c => c.count === 1 && c.passes === 1), 'Representative multi-formation Matrix cross-product is pinned');
 }

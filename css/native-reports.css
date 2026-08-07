@@ -496,3 +496,15 @@
 .gi-reports .gi-stack{display:grid;gap:var(--gi-2x);align-content:start;min-width:0}
 .gi-reports .gi-stack>.stats-section{padding-block:var(--gi-4x)}
 @media(max-width:900px){.gi-reports .gi-overview-row{grid-template-columns:minmax(0,1fr)}}
+/* The design pass set `.stats-section{border:0}` for hairline joins, which
+   stripped the danger surface off the Reports failure alert - so "Reports
+   unavailable" rendered identically to "No charted data yet". That distinction
+   was found the hard way at S4h-1 and is pinned by e2e-native-reports; the
+   generic rule silently undid it. Restored last so nothing later can win. */
+.gi-reports .gi-reports-failure{
+  border-left:3px solid var(--gi-danger-border);
+  background:var(--gi-danger-surface);
+}
+.gi-reports .gi-reports-empty:not(.gi-reports-failure){
+  border-left:3px solid var(--gi-7);background:var(--gi-2);
+}
