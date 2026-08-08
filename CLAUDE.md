@@ -13,6 +13,64 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CODEX S6 REPAIR — `9a75b07` AWAITING INDEPENDENT REVIEW (2026-08-08)
+
+**Builder/reviewer: Codex. Repair review range: `c098868..9a75b07`.** Codex
+reviewed the complete Claude S6 range `84e9262..c098868`, repaired the defects,
+and added direct regression proof. **S6 is still not accepted until Claude
+independently reviews `9a75b07`. S7 remains closed. No installer or release was
+cut. `1.12.0-37` remains a known-defective artifact and must not be reused.**
+
+#### Production defects repaired
+
+1. **Delete Season and Delete Game could not open.** `NativeOverlayService`
+   correctly refuses a destructive dialog without an explicit service-owned
+   Cancel action; both new typed-delete forms passed `actions: []`. The forms
+   now have exactly one service-owned Cancel action, Cancel owns initial focus,
+   incomplete confirmation text cannot arm deletion, and cancel preserves data.
+2. **The claimed Delete Game fix lived only in retired compatibility UI.** The
+   reachable native Game Settings dialog now owns Delete Game. It stacks the
+   typed confirmation over the edit form, fails closed if the active game
+   changes, returns Home after deletion, and retains the 30-second film-safe Undo.
+   The journey proves cancel, exact removal, and byte-for-byte restoration.
+3. **Report definition tooltips polluted metric labels and film cohorts.** The
+   tooltip is now a sibling of the visible label, hidden from duplicate screen-
+   reader traversal, and included in the definition button's accessible name.
+   Negative Plays counts and film rows resolve correctly again.
+4. **Native toasts lost their required visual uppercase treatment.** Producers
+   still emit natural sentence text; CSS owns the uppercase visual treatment.
+5. **The mobile tagging proof was false.** A 390px viewport is not a coarse
+   pointer. The harness now uses an isolated mobile/touch browser context, first
+   proves `pointer: coarse` is active and that targets exist, then checks all
+   visible action targets at 44px and page overflow at zero.
+
+#### Test defects repaired
+
+- Four Game Settings tests selected the first `type=button`; once a real Delete
+  command existed, they clicked Delete instead of Cancel and timed out. They now
+  select the neutral Cancel command explicitly and passed twice consecutively.
+- Season deletion now proves one Cancel owner, disarmed initial state, incomplete
+  phrase rejection, exact-phrase arming, and byte-identical cancellation.
+- Native Reports now proves definition text remains available in the accessible
+  name while visible labels remain uncontaminated.
+
+#### Verification
+
+- Focused: native tagging **39/39**, Team Hub **21/21**, native Reports **60/60**,
+  native Game **16/16**, Breakdown accessibility **10/10**, Season **166/166**.
+- Analytics parity: synthetic and real six-game goldens clean.
+- Data-integrity, operation allow-list, XSS, season film-link, and copy-standard
+  checks clean.
+- Canonical gate on the repaired built bundle: **82/82 green, 0 skipped, 0 failed**.
+
+#### Repository hygiene requiring a separate decision
+
+Claude's `7477fe2` accidentally published 267 scratch artifacts, including real
+team-film frames, then untracked them in `db3b606`. They remain retrievable from
+Git history. This repair removes the also-swept local `AGENTS.md` from tracking
+and ignores it going forward. **History was not rewritten:** force-pushing a
+shared branch is an outward-facing destructive action and requires the coach's
+explicit approval. Code acceptance and that purge decision are separate.
 
 ### ▶ CODEX REVIEW QUEUE — THE WHOLE S6 RANGE: 1.12.0-34 .. -37 (2026-08-08)
 

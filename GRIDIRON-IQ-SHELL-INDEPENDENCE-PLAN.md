@@ -1176,3 +1176,23 @@ Claude's post-flip review found the composed route below the signed film-size fl
 - Focused checks are 12/12 geometry, 34/34 native tagging, 14/14 native Breakdown, and 5/5 restore-point throttling. Full canonical gate is **80/80 green, 0 skipped**. Both new safety harnesses were mutation-proven.
 
 **Installer remains held.** Next is independent Claude review; acceptance unlocks one local milestone installer and the installed rollback-contract smoke. S6/S7 do not open early.
+
+### S6 end-to-end repair checkpoint — built at `9a75b07`, independent review required
+
+Codex reviewed Claude's full S6 range and repaired the red handoff before any
+milestone installer could be considered. The repair restores typed destructive
+confirmation, clean and accessible report definitions, native toast treatment,
+and a real coarse-pointer tagging proof. The review also found that Delete Game
+had been implemented only in a retired compatibility panel; reachable native
+Game Settings now owns delete, active-game race protection, Home return, and the
+existing 30-second film-safe Undo. No coach data was migrated, cleared, or
+rewritten.
+
+The repaired bundle passes the canonical gate **82/82, 0 skipped, 0 failed**,
+including analytics parity and the real six-game fixture. S6 remains pending
+independent Claude review. The next installer is cut only after that acceptance;
+S7 remains closed. `1.12.0-37` is defective and must not be promoted.
+
+Repository-history cleanup is a separate coach decision: `7477fe2` still exposes
+unreachable scratch blobs containing real-team captures even though the files
+were removed at `db3b606`. No history rewrite or force-push was performed.
