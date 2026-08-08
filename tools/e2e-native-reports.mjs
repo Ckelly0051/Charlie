@@ -515,8 +515,15 @@ const lensBoard = await page.evaluate(() => {
 });
 ok(lensBoard.ids.join(',') === 'efficiency,explosiveness,situational,tendencies,negative',
   'Reports Overview answers through the five lenses in order', lensBoard.ids.join(','));
-ok(lensBoard.asks.every(ask => ask.endsWith('?')),
-  'Every lens states the football question it answers', JSON.stringify(lensBoard.asks));
+/* THIS ASSERTION USED TO REQUIRE THE OPPOSITE, and that is why the coach had to
+   ask four times. It read `asks.every(ask => ask.endsWith('?'))` — a harness
+   actively enforcing rhetorical sub-heads. Every manual removal was therefore
+   reverted by whoever next made the gate green, and the copy kept reappearing
+   with no one able to point at why. Inverted, not deleted: the lens still has to
+   carry a sub-line, it just has to DEFINE the stat instead of asking about it. */
+ok(lensBoard.asks.every(line => line.length > 12 && !line.trim().endsWith('?')),
+  'Every lens defines the stats it aggregates, and none pose a question',
+  JSON.stringify(lensBoard.asks));
 
 /* G14 — the Negative Plays lens. The defect this replaces was a sack counted
    in "Negative plays" AND again in "Sacks taken", inside one lens, with nothing
@@ -774,6 +781,60 @@ ok(oppRender?.engine && Array.isArray(oppRender.engine.byDown) && Array.isArray(
 ok(oppRender && oppRender.rawTotal === oppRender.offPlays,
   'Every charted situation is listed — the table accounts for all snaps rather than silently truncating',
   JSON.stringify({ rawTotal: oppRender?.rawTotal, offPlays: oppRender?.offPlays }));
+
+/* ── NO RHETORICAL QUESTIONS IN REPORT COPY ────────────────────────────────
+   The coach's standard, stated four separate times: a sub-head is a precise
+   definition of the stat below it, never a question posed back at him. Each
+   previous sweep removed the instances I happened to grep for and missed the
+   rest, because I scoped by ELEMENT (viz-caption, figcaption) instead of by the
+   PATTERN. The lens board's question line is a plain <p>, so it survived every
+   pass and then spread to the season view when H16 added the lens board there.
+
+   This asserts the pattern across the whole rendered report, so the next place
+   copy like this appears fails here instead of in a smoke. Scoped to the
+   Reports route: confirmation dialogs legitimately ask questions, and none of
+   them render inside this DOM. */
+/* MUST WALK EVERY TAB. My first version of this guard ran on whatever pane
+   happened to be open at the end of the harness — opponent perspective — and so
+   never saw the Offense tab, where _renderShape's headings live. Restoring a
+   poetic heading did NOT red it: it was passing vacuously, which is worse than
+   no guard because it reads as coverage. Verified by mutation both ways. */
+await page.evaluate(() => {
+  const screen = window.app.reportsScreen;
+  screen.perspective = 'self';
+  screen._syncTabState?.();
+  screen._renderActiveTab?.();
+});
+await new Promise(r => setTimeout(r, 400));
+const rhetorical = [];
+for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season']) {
+  await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`)?.click(), tab);
+  await new Promise(r => setTimeout(r, 500));
+  const found = await page.evaluate(tabId => {
+    const host = document.querySelector('#statsDashboard, .gi-reports');
+    if (!host) return [`${tabId}: NO HOST`];
+    const bad = [];
+    // Captions and sub-heads: no questions.
+    [...host.querySelectorAll('p, figcaption, .viz-caption, .gi-lens-head p, small')]
+      .map(el => (el.textContent || '').trim())
+      .filter(text => text.endsWith('?') && text.split(/\s+/).length > 2)
+      .forEach(text => bad.push(`${tabId}: ${text}`));
+  // HEADINGS are the half my first guard could not see: "Where the gains sit"
+  // never ends in '?', so a question-mark check passed while the heading above
+  // the caption was still poetry. A section heading names the stat below it, so
+  // it does not open with an interrogative or a demonstrative.
+    const openers = /^(where|how|what|did|do|does|are|is|why|can|should|when|who|this|our|we)\b/i;
+    [...host.querySelectorAll('h3, h4')]
+      .map(el => (el.textContent || '').trim())
+      .filter(text => openers.test(text))
+      .forEach(text => bad.push(`${tabId}: ${text}`));
+    return bad;
+  }, tab);
+  found.forEach(item => rhetorical.push(item));
+}
+ok(rhetorical.length === 0,
+  'Report headings and captions name the data literally — no questions, no prose openers',
+  JSON.stringify(rhetorical));
 
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

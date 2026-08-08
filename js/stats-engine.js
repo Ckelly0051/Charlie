@@ -2773,7 +2773,7 @@ export class StatsEngine {
         ? tile('Pts / drive', drives.pointsPerDrive, `${drives.total} drives`)
         : (d.totalFirstDowns != null ? tile('First downs', d.totalFirstDowns, 'gained') : ''),
     ].filter(Boolean);
-    lenses.push({ id: 'efficiency', name: 'Efficiency', ask: 'Are we staying on schedule?', tiles: efficiency, detail: 'offense', detailLabel: 'Offense report' });
+    lenses.push({ id: 'efficiency', name: 'Efficiency', defines: 'Success rate, yards per play, third-down conversion and points per drive.', tiles: efficiency, detail: 'offense', detailLabel: 'Offense report' });
 
     // 2. EXPLOSIVENESS — the longest gains, and which phase produced them.
     const explosive = [
@@ -2787,7 +2787,7 @@ export class StatsEngine {
       pass.longest ? tile('Longest pass', `${pass.longest} yd`, `${tend.passes || 0} pass plays`, { type: 'runpass', val: 'Pass', label: 'Pass plays' }) : '',
       stats.bigPlays?.length ? tile('Big plays', stats.bigPlays.length, '20+ yds or TD') : '',
     ].filter(Boolean);
-    lenses.push({ id: 'explosiveness', name: 'Explosiveness', ask: 'Are we hitting chunk plays?', tiles: explosive, detail: 'offense', detailLabel: 'Offense report' });
+    lenses.push({ id: 'explosiveness', name: 'Explosiveness', defines: 'Plays gaining 20+ yards or scoring, the explosive rate, and the longest run and pass.', tiles: explosive, detail: 'offense', detailLabel: 'Offense report' });
 
     // 3. SITUATIONAL — the spots where the call changes.
     const situational = [
@@ -2797,7 +2797,7 @@ export class StatsEngine {
       bucket('3rd & short', sit.thirdShort, 'thirdShort', 'Third and short'),
       bucket('Backed up', sit.backedUp, 'backedUp', 'Backed up'),
     ].filter(Boolean).slice(0, 4);
-    if (situational.length) lenses.push({ id: 'situational', name: 'Situational', ask: 'Where does the call change?', tiles: situational, detail: null });
+    if (situational.length) lenses.push({ id: 'situational', name: 'Situational', defines: 'Success rate in the red zone, on the goal line, on third and long or short, and backed up.', tiles: situational, detail: null });
 
     // 4. TENDENCIES — what we show before the snap.
     const topFormation = tend.formationList?.[0];
@@ -2807,7 +2807,7 @@ export class StatsEngine {
       topFormation ? tile('Top formation', topFormation.name, `${topFormation.count} snaps · ${topFormation.successPct}%`, { type: 'formation', val: topFormation.name, label: topFormation.name }) : '',
       topPersonnel ? tile('Top personnel', topPersonnel.name, `${topPersonnel.count} snaps · ${topPersonnel.successPct}%`, { type: 'personnel', val: topPersonnel.name, label: `${topPersonnel.name} personnel` }) : '',
     ].filter(Boolean);
-    lenses.push({ id: 'tendencies', name: 'Tendencies', ask: 'What do we show pre-snap?', tiles: tendencies, detail: 'selfscout', detailLabel: 'Self-scout' });
+    lenses.push({ id: 'tendencies', name: 'Tendencies', defines: 'Run/pass split, plus the most-used formation and personnel group with their success rates.', tiles: tendencies, detail: 'selfscout', detailLabel: 'Self-scout' });
 
     // 5. NEGATIVE PLAYS — see _negativePlayStats for the full rationale. This
     // lens does NOT use the tile grid: a flat row of tiles is what allowed a
@@ -2844,14 +2844,14 @@ export class StatsEngine {
             ${row('Penalties', np.penalties, null)}
           </div>
         </div>`;
-      lenses.push({ id: 'negative', name: 'Negative Plays', ask: 'What is costing us snaps?', tiles: ['x'], body, detail: 'defense', detailLabel: 'Defense report' });
+      lenses.push({ id: 'negative', name: 'Negative Plays', defines: 'Distinct plays that lost yardage, turned the ball over, or drew a flag, as a share of all plays.', tiles: ['x'], body, detail: 'defense', detailLabel: 'Defense report' });
     }
 
     const cards = lenses.filter(lens => lens.tiles.length).map(lens => `
       <section class="gi-lens" data-lens="${lens.id}">
         <header class="gi-lens-head">
           <h4>${Charts._esc(lens.name)}</h4>
-          <p>${Charts._esc(lens.ask)}</p>
+          <p>${Charts._esc(lens.defines)}</p>
         </header>
         ${lens.body ? lens.body : `<div class="gi-lens-tiles">${lens.tiles.join('')}</div>`}
         ${lens.detail ? `<button type="button" class="gi-lens-more" data-lens-tab="${lens.detail}">${Charts._esc(lens.detailLabel)} &rarr;</button>` : ''}
@@ -2859,7 +2859,7 @@ export class StatsEngine {
     if (!cards) return '';
     return `
       <div class="stats-section gi-lens-board">
-        <h3>The Five Lenses</h3>
+        <h3>Key Metrics</h3>
         <p class="viz-caption">All five lenses read the same charted plays. Highlighted tiles play their exact cohort; unhighlighted tiles have no film cut.</p>
         <div class="gi-lens-grid">${cards}</div>
       </div>`;
@@ -2898,15 +2898,15 @@ export class StatsEngine {
       ? `<div class="stats-section"><h3>${Charts._esc(title)}</h3><p class="viz-caption">${Charts._esc(note)}</p>${body}</div>` : '';
 
     return `
-      ${panel('How often, and how well', 'Bar length = share of offensive snaps. Fill = success rate. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th. Faded = under 3 snaps.',
+      ${panel('Formation frequency and success rate', 'Bar length = share of offensive snaps. Fill = success rate. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th. Faded = under 3 snaps.',
         Charts.rampBars(formations))}
-      ${panel('Where the gains sit', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`,
+      ${panel('Yards gained per play, distribution', `X = yards gained, binned. Y = number of snaps. Loss = yardage below 0. Gold line = mean, ${dist?.mean ?? '0.0'} yards.`,
         dist ? Charts.histogram(dist.bins, { meanIndex: dist.meanIndex, label: 'Yards gained per play' }) : '')}
-      ${panel('Did we move the chains', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.',
+      ${panel('Yards gained vs distance to go', 'X = distance to go. Y = yards gained. One dot per snap. Dashed line = yards gained equals distance to go; above it converted.',
         Charts.scatter(points, { label: 'Yards gained by distance to go' }))}
-      ${panel('Where it works on the field', 'Success rate by field position, own goal line to opponent goal line. Zones with no charted snaps are blank, not 0%.',
+      ${panel('Success rate by field zone', 'Success rate by field position, own goal line to opponent goal line. Zones with no charted snaps are blank, not 0%.',
         Charts.zoneStrip(zones))}
-      ${panel('By down', 'Run/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.',
+      ${panel('Run/pass split and success rate by down', 'Run/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.',
         Charts.smallMultiples(downs))}
       ${/* H16 — the radar is gated SEPARATELY from `cut`, not as a side effect
             of it. It asks "how did THIS GAME do against our season best", which
@@ -2934,7 +2934,7 @@ export class StatsEngine {
     const svg = Charts.radar(profile.axes, { label: 'Team profile against our season best' });
     if (!svg) return '';
     return `<div class="stats-section">
-      <h3>This game against our best</h3>
+      <h3>Team profile vs season best</h3>
       <p class="viz-caption">Each axis runs from our worst to our best across ${profile.games} charted games. Further out = better on every spoke.${profile.newBest ? ' A gold point is a new season best, which moves that axis.' : ''}</p>
       ${svg}
     </div>`;
@@ -3080,7 +3080,7 @@ export class StatsEngine {
       return `<li class="gp-item gp-${cls}${i.cut ? ' cut-row' : ''}"${cutAttrs}>${i.text}</li>`;
     }).join('');
     const workingHtml = t.working?.length
-      ? `<div class="gp-col"><h4 class="gp-head gp-head-good">What's Working</h4><ul class="gp-list">${renderList(t.working, 'good')}</ul></div>` : '';
+      ? `<div class="gp-col"><h4 class="gp-head gp-head-good">Strengths</h4><ul class="gp-list">${renderList(t.working, 'good')}</ul></div>` : '';
     const fixHtml = t.fix?.length
       ? `<div class="gp-col"><h4 class="gp-head gp-head-fix">Needs Work</h4><ul class="gp-list">${renderList(t.fix, 'fix')}</ul></div>` : '';
     return `
@@ -5798,7 +5798,7 @@ ${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th>
     if (tk?.working?.length || tk?.fix?.length) {
       gamePlanHtml = '<div class="gp-print">';
       if (tk.working?.length)
-        gamePlanHtml += `<div class="gp-print-col"><h4 class="gp-h good">What's Working</h4><ul>${tk.working.map(i => `<li>${i.text}</li>`).join('')}</ul></div>`;
+        gamePlanHtml += `<div class="gp-print-col"><h4 class="gp-h good">Strengths</h4><ul>${tk.working.map(i => `<li>${i.text}</li>`).join('')}</ul></div>`;
       if (tk.fix?.length)
         gamePlanHtml += `<div class="gp-print-col"><h4 class="gp-h fix">Needs Work</h4><ul>${tk.fix.map(i => `<li>${i.text}</li>`).join('')}</ul></div>`;
       gamePlanHtml += '</div>';
