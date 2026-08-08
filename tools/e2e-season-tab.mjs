@@ -270,7 +270,10 @@ r = await page.evaluate(() => {
   // passes as long as something is there, and the defect this closes was that
   // the season view silently kept an old subset while the game view grew.
   const seasonNowRenders = {
-    lensBoard: /The Five Lenses/.test(text('overview')),
+    // Heading renamed "The Five Lenses" -> "Key Metrics" in the literal-copy
+    // pass; the lens CARDS are what this assertion is about, so key off the
+    // structure rather than a heading string that copy review can move again.
+    lensBoard: !!pane.querySelector('.gi-subpane[data-subpane="overview"] .gi-lens'),
     drives: /Drives/.test(text('overview')),
     bigPlays: /Big Plays/.test(text('overview')),
     penalties: /Penalt/.test(text('overview')),
@@ -404,17 +407,56 @@ r = await page.evaluate(() => {
   eng._matchupData = () => ({ opponents: [], yourOff: [] });
   eng._renderMatchupInto(pane);
   const emptyOk = /Opponent Scout/i.test(pane.innerHTML);
+  // A HALF-SHAPED FIXTURE IS THE POINT OF THIS ONE. This is the pre-mirror
+  // shape — no offPlays, no yourDef. It reproduced a real crash: the renderer
+  // dereferenced both unguarded, and because the Matchup tab wraps its render in
+  // a try/catch, the whole tab blanked to "Matchup unavailable" rather than
+  // showing the offense half it did have. It must now degrade, not throw.
   eng._matchupData = () => ({
     opponents: [{ name: 'Test Foe', defPlays: Array.from({ length: 6 }, () => mk({ unit: 'defense', down: '2', distance: '8', defFront: 'Nickel', coverage: 'Cover 3', result: 'Incomplete', yardage: '0' })) }],
     yourOff: Array.from({ length: 6 }, () => mk({ unit: 'offense', down: '1', distance: '10', formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' })),
   });
   eng._renderMatchupInto(pane);
   const populatedOk = /gi-matchup/.test(pane.innerHTML) && /Test Foe/.test(pane.innerHTML);
+  const legacyShapeSurvives = /Offense vs Test Foe defense/.test(pane.innerHTML)
+    && /Not charted yet/.test(pane.innerHTML);
+
+  // Both sides charted: our offense vs their defense AND our defense vs their
+  // offense. Their offense is our defensive reps relabelled — the same
+  // already-played shortcut the Opponent Scout uses.
+  eng._matchupData = () => ({
+    opponents: [{
+      name: 'Test Foe',
+      defPlays: Array.from({ length: 6 }, () => mk({ unit: 'defense', down: '2', distance: '8', defFront: 'Nickel', coverage: 'Cover 3', result: 'Incomplete', yardage: '0' })),
+      offPlays: Array.from({ length: 5 }, () => mk({ unit: 'offense', down: '1', distance: '10', formation: 'Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4' })),
+    }],
+    yourOff: Array.from({ length: 6 }, () => mk({ unit: 'offense', down: '1', distance: '10', formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' })),
+    yourDef: Array.from({ length: 5 }, () => mk({ unit: 'defense', down: '1', distance: '10', defFront: '4-3', coverage: 'Cover 2', result: 'Gain', yardage: '4' })),
+  });
+  eng._renderMatchupInto(pane);
+  const bothHalves = {
+    rows: (pane.innerHTML.match(/gi-matchup"/g) || []).length,
+    offenseHalf: /Offense vs Test Foe defense/.test(pane.innerHTML),
+    defenseHalf: /Defense vs Test Foe offense/.test(pane.innerHTML),
+    ourDefenseCol: /gi-mh-def">Our Defense/.test(pane.innerHTML),
+    theirOffenseCol: /gi-mh-off">Test Foe Offense/.test(pane.innerHTML),
+    // Their formation must reach the tendency table, not ours.
+    theirFormation: /Trips/.test(pane.innerHTML),
+    noMissingBanner: !/Not charted yet/.test(pane.innerHTML),
+  };
   eng._matchupData = orig;
-  return { emptyOk, populatedOk };
+  return { emptyOk, populatedOk, legacyShapeSurvives, bothHalves };
 });
 ok(r.emptyOk, 'Matchup shows the "scout an opponent" empty state with no scout data', JSON.stringify(r));
 ok(r.populatedOk, 'Matchup renders our offense vs the opponent defense when scouted', JSON.stringify(r));
+ok(r.legacyShapeSurvives,
+  'Matchup degrades to the half it has instead of throwing when the other side is absent',
+  JSON.stringify(r.legacyShapeSurvives));
+ok(r.bothHalves.rows === 2 && r.bothHalves.offenseHalf && r.bothHalves.defenseHalf
+  && r.bothHalves.ourDefenseCol && r.bothHalves.theirOffenseCol
+  && r.bothHalves.theirFormation && r.bothHalves.noMissingBanner,
+  'Matchup shows BOTH sides of the ball: our offense vs their defense, and our defense vs their offense',
+  JSON.stringify(r.bothHalves));
 
 console.log('\n== 10. Depth chart: groups roster by side + position ==');
 r = await page.evaluate(() => {

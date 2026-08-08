@@ -538,16 +538,21 @@ export class StatsEngine {
     const store = app && app.storage && app.storage.seasonStore;
     const games = app?.season?._effectiveGames?.() || ((store && store.gamesChrono) ? store.gamesChrono() : []);
     const yourOff = [];
+    const yourDef = [];
     const oppMap = {};
+    const oppOffMap = {};
     games.forEach(g => {
       const scout = ((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
       const rawOpp = String((g.gameInfo && g.gameInfo.opponent) || '').trim();
+      const key = rawOpp || 'Opponent';
       (g.plays || []).forEach(p => {
         const t = p.tags || {};
         const u = t.unit || 'offense';
         if (scout) {
-          // Opponent film tagged directly: their defense = their defensive snaps.
-          if (u === 'defense') (oppMap[rawOpp || 'Opponent'] = oppMap[rawOpp || 'Opponent'] || []).push(p);
+          // Opponent film tagged directly: their defense = their defensive snaps,
+          // their offense = their offensive snaps. No relabelling needed.
+          if (u === 'defense') (oppMap[key] = oppMap[key] || []).push(p);
+          else if (u === 'offense') (oppOffMap[key] = oppOffMap[key] || []).push(p);
         } else if (u === 'offense') {
           yourOff.push(p);
           // A game we PLAYED: their defense = the front/coverage we FACED on this
@@ -558,12 +563,32 @@ export class StatsEngine {
           if (rawOpp && (t.defFront || StatsEngine.proj(p).coverage || StatsEngine.proj(p).coverageFamily)) {
             (oppMap[rawOpp] = oppMap[rawOpp] || []).push({ ...p, tags: { ...t, unit: 'defense' } });
           }
+        } else if (u === 'defense') {
+          // THE MIRROR, and it is the same shortcut read the other way. On OUR
+          // defensive snap the front/coverage/blitz recorded is ours, but the
+          // formation, play type, direction and result recorded are THEIRS —
+          // that is the offense we faced. So the one rep feeds both columns:
+          // kept as-is it is our defense, relabelled offense it is their offense.
+          //
+          // Gated on carrying an actual offensive tag. A defensive rep charted
+          // with only a front is real defensive data and no information at all
+          // about their offense; admitting it would pad their play count with
+          // rows that say nothing.
+          yourDef.push(p);
+          const proj = StatsEngine.proj(p);
+          if (rawOpp && (proj.formation || t.playType || t.runPass || proj.backfield || t.personnel)) {
+            (oppOffMap[rawOpp] = oppOffMap[rawOpp] || []).push({ ...p, tags: { ...t, unit: 'offense' } });
+          }
         }
       });
     });
-    const opponents = Object.entries(oppMap).map(([name, defPlays]) => ({ name, defPlays }))
-      .sort((a, b) => b.defPlays.length - a.defPlays.length);
-    return { opponents, yourOff };
+    const names = [...new Set([...Object.keys(oppMap), ...Object.keys(oppOffMap)])];
+    const opponents = names.map(name => ({
+      name,
+      defPlays: oppMap[name] || [],
+      offPlays: oppOffMap[name] || [],
+    })).sort((a, b) => (b.defPlays.length + b.offPlays.length) - (a.defPlays.length + a.offPlays.length));
+    return { opponents, yourOff, yourDef };
   }
 
   // Renders the Matchup tab: our offense beside a scouted opponent's defense,
@@ -583,13 +608,27 @@ export class StatsEngine {
     const opp = data.opponents.find(o => o.name === want) || data.opponents[0];
     const offStats = this.compute(data.yourOff);
     const defStats = this.compute(opp.defPlays);
+    // The mirror. Our defensive reps stay ours; the same reps relabelled are the
+    // offense we faced. Both computed through the identical engine path.
+    // Read defensively. The Matchup tab wraps this render in a try/catch that
+    // paints "Matchup unavailable", so an unguarded dereference does not crash
+    // the app — it silently blanks the WHOLE tab, including the half that has
+    // real data. A partial shape now degrades to "not charted yet" instead.
+    const yourOffPlays = data.yourOff || [];
+    const yourDefPlays = data.yourDef || [];
+    const oppDefPlays = opp.defPlays || [];
+    const oppOffPlays = opp.offPlays || [];
+    const ourDefStats = this.compute(yourDefPlays);
+    const oppOffStats = this.compute(oppOffPlays);
     const picker = data.opponents.length > 1
       ? `<select id="matchupOpp" class="play-select" style="margin-left:8px">${data.opponents.map(o =>
-          `<option value="${esc(o.name)}"${o.name === opp.name ? ' selected' : ''}>${esc(o.name)} (${o.defPlays.length} D)</option>`).join('')}</select>`
+          `<option value="${esc(o.name)}"${o.name === opp.name ? ' selected' : ''}>${esc(o.name)} (${(o.defPlays||[]).length} D / ${(o.offPlays||[]).length} O)</option>`).join('')}</select>`
       : `<b>${esc(opp.name)}</b>`;
-    pane.innerHTML = `
-      <div class="stats-section"><h3>Matchup — Our Offense vs ${picker}</h3>
-        <p class="self-scout-intro">Our offensive calls against their charted defensive fronts and coverages. Read-only.</p></div>
+
+    // Each half renders only when BOTH sides of it have reps. A column of zeros
+    // beside a real one reads as "they never ran the ball", not as "we have not
+    // charted that yet" — empty is omitted and named, never zeroed.
+    const halfA = (yourOffPlays.length && oppDefPlays.length) ? `
       <div class="gi-matchup">
         <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-off">Our Offense</div>
           ${this._renderEfficiency(offStats)}
@@ -598,7 +637,32 @@ export class StatsEngine {
         <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-def">${esc(opp.name)} Defense</div>
           ${this._renderDefensive(defStats)}
         </div>
-      </div>`;
+      </div>` : '';
+    const halfB = (yourDefPlays.length && oppOffPlays.length) ? `
+      <div class="stats-section"><h3>Defense vs ${esc(opp.name)} offense</h3>
+        <p class="self-scout-intro">Our fronts, coverages and blitzes on ${yourDefPlays.length} defensive snaps, beside the ${oppOffPlays.length} offensive snaps we faced. Read-only.</p></div>
+      <div class="gi-matchup">
+        <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-def">Our Defense</div>
+          ${this._renderDefensive(ourDefStats)}
+        </div>
+        <div class="gi-matchup-col"><div class="gi-matchup-head gi-mh-off">${esc(opp.name)} Offense</div>
+          ${this._renderEfficiency(oppOffStats)}
+          ${this._renderTendencies(oppOffStats)}
+        </div>
+      </div>` : '';
+    const missing = [];
+    if (!halfA) missing.push('their defense (chart the front and coverage you face on your offensive snaps)');
+    if (!halfB) missing.push('their offense (chart formation and play type on your defensive snaps)');
+
+    pane.innerHTML = `
+      <div class="stats-section"><h3>Matchup — ${picker}</h3>
+        <p class="self-scout-intro">Both sides of the ball against the same opponent, aggregated across every game charted with them. Read-only.</p></div>
+      ${halfA ? `<div class="stats-section"><h3>Offense vs ${esc(opp.name)} defense</h3>
+        <p class="self-scout-intro">Our offensive calls on ${yourOffPlays.length} snaps, against their ${oppDefPlays.length} charted defensive fronts and coverages.</p></div>` : ''}
+      ${halfA}
+      ${halfB}
+      ${missing.length ? `<div class="stats-section"><h3>Not charted yet</h3>
+        <p class="self-scout-intro">Missing: ${missing.map(esc).join('; ')}.</p></div>` : ''}`;
     const sel = pane.querySelector('#matchupOpp');
     if (sel) sel.addEventListener('change', (e) => this._renderMatchupInto(pane, e.target.value));
   }
