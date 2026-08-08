@@ -1,0 +1,222 @@
+=== BUILD ===
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+=== GATE ===
+ok   e2e-addfiles-race.mjs                         6s  == RESULT: 4 passed, 0 failed ==
+ok   e2e-analytics-projection.mjs                  2s  == RESULT: 43 passed, 0 failed ==
+ok   e2e-analytics-registry.mjs                    2s  == RESULT: 25 passed, 0 failed ==
+ok   e2e-b2-tries.mjs                              0s  == RESULT: 13 passed, 0 failed ==
+ok   e2e-beta-config.mjs                           0s  == RESULT: 3 passed, 0 failed ==
+FAIL e2e-breakdown-a11y.mjs                        2s  (exit 1) == RESULT: 9 passed, 1 failed ==
+       assertion failure(s):
+         FAIL  History feedback keeps natural accessible text while CSS owns visual all-caps -- {"text":"Saved next play","action":"Undo · 6s","background":"rgb(16, 41, 58)","textTransform":"none","page":"rgb(8, 12, 17)","legacyAbsent":true}
+         PASS  Workspace and charting chips use the approved readable UI font
+         PASS  Selected chip text meets WCAG AA contrast
+         PASS  Header commands and collapsible groups expose keyboard-accessible names
+         PASS  Keyboard activation opens canonical Film Source settings with visible focus and no silent relabel
+         FAIL  History feedback keeps natural accessible text while CSS owns visual all-caps -- {"text":"Saved next play","action":"Undo · 6s","background":"rgb(16, 41, 58)","textTransform":"none","page":"rgb(8, 12, 17)","legacyAbsent":true}
+         PASS  Native history toast invokes its Undo action once and dismisses
+         PASS  Updater feedback uses the native toast host with no duplicate notification owner
+         PASS  125% effective Windows scaling keeps header controls visible and unclipped
+         PASS  150% effective Windows scaling keeps header controls visible and unclipped
+         PASS  No page errors
+       
+       == RESULT: 9 passed, 1 failed ==
+ok   e2e-breakdown-form.mjs                        7s  == RESULT: 60 passed, 0 failed ==
+ok   e2e-breakdown-geometry.mjs                    3s  == RESULT: 12 passed, 0 failed ==
+ok   e2e-breakdown-lifecycle.mjs                   2s  == RESULT: 16 passed, 0 failed ==
+ok   e2e-breakdown-video.mjs                       2s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-catalog-backend.mjs                       2s  == RESULT: 6 passed, 0 failed ==
+ok   e2e-catalog-fuzzer.mjs                        1s  == RESULT: 1 passed, 0 failed ==
+ok   e2e-catalog-persistence.mjs                   0s  == RESULT: 50 passed, 0 failed ==
+ok   e2e-catalog-versions.mjs                      0s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-clip-identity.mjs                         2s  ALL PASS — 18 passed, 0 failed
+ok   e2e-clip-match.mjs                            0s  == RESULT: 15 passed, 0 failed ==
+ok   e2e-copy-standard.mjs                        17s  == RESULT: 3 passed, 0 failed ==
+ok   e2e-core.mjs                                  2s  == RESULT: 25 passed, 0 failed ==
+ok   e2e-cross-game-cutup.mjs                      0s  == RESULT: 13 passed, 0 failed ==
+ok   e2e-crosstab.mjs                              2s  == RESULT: 20 passed, 0 failed ==
+ok   e2e-csv-projection.mjs                        2s  == RESULT: 22 passed, 0 failed ==
+ok   e2e-csv-roundtrip.mjs                         3s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-delete-undo-film.mjs                      2s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-design-system.mjs                         0s  == RESULT: 16 passed, 0 failed ==
+ok   e2e-field-fixes.mjs                           3s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-film-index.mjs                            3s  ALL PASS — 9 passed, 0 failed
+ok   e2e-film-load-race.mjs                        1s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-film-navigation.mjs                       0s  == RESULT: 24 passed, 0 failed ==
+ok   e2e-film-persist.mjs                          2s  == RESULT: 3 passed, 0 failed ==
+ok   e2e-film-room.mjs                             9s  == RESULT: 179 passed, 0 failed ==
+ok   e2e-film-storage-setup.mjs                    7s  == RESULT: 31 passed, 0 failed ==
+ok   e2e-integrity.mjs                            22s  == RESULT: 2 passed, 0 failed ==
+ok   e2e-legacy-film-fields.mjs                    0s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-linked-film.mjs                           0s  ALL PASS — 40 passed, 0 failed
+ok   e2e-mark-flow.mjs                             9s  == RESULT: 11 passed, 0 failed ==
+ok   e2e-multi-angle.mjs                           1s  == RESULT: 6 passed, 0 failed ==
+ok   e2e-native-breakdown-theater.mjs              2s  == RESULT: 22 passed, 0 failed ==
+ok   e2e-native-film-room.mjs                      2s  == RESULT: 24 passed, 0 failed ==
+ok   e2e-native-game.mjs                           2s  == RESULT: 16 passed, 0 failed ==
+ok   e2e-native-overlay.mjs                        3s  == RESULT: 42 passed, 0 failed ==
+ok   e2e-native-quick-chart.mjs                    2s  == RESULT: 12 passed, 0 failed ==
+ok   e2e-native-recovery.mjs                       4s  == RESULT: 10 passed, 0 failed ==
+FAIL e2e-native-reports.mjs                       11s  (exit 1) == RESULT: 55 passed, 4 failed ==
+       assertion failure(s):
+         FAIL  Sacks, runs and passes are mutually exclusive and sum exactly to Plays for Loss — no play counted twice -- {"kidsSum":8,"loss":0,"engine":8}
+         FAIL  Only Plays for Loss claims a film cohort; turnovers, sacks and penalties stay context rather than inventing a cut -- ["Plays for LossiAny play that finished behind where it started — yardage below zero. Sacks are counted on their own line and are not repeated here."]
+         FAIL  The lens board replaces the unlabelled KPI row without dropping a metric it showed -- {"ids":["efficiency","explosiveness","situational","tendencies","negative"],"asks":["Success rate, yards per play, third-down conversion and points per drive.","Plays gaining 20+ yards or scoring, the explosive rate, and the longest run and pass.","Success rate in the red zone, on the goal line, on third and long or short, and backed up.","Run/pass split, plus the most-used formation and personnel group with their success rates.","Distinct plays that lost yardage, turned the ball over, or drew a flag, as a share of all plays."],"details":["offense","offense",null,"selfscout","defense"],"claims":[{"lens":"efficiency","label":"Third down","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Explosive rateiA run of 12+ yards or a pass of 16+ yards. Two different thresholds, because a 13-yard run and a 13-yard pass are not the same play.","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest run","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest pass","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & long","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & short","clickable":true,"resolves":true},{"lens":"tendencies","label":"Run rate","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top formation","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top personnel","clickable":true,"resolves":true}],"orphanCut":false,"heroGone":true,"carried":false,"fourth":true,"successMatches":false,"thirdMatches":true,"explosiveMatches":false,"lensWearsTabAttr":false}
+         FAIL  Lens values are read from the stats object, never recomputed by the presentation layer -- {"ids":["efficiency","explosiveness","situational","tendencies","negative"],"asks":["Success rate, yards per play, third-down conversion and points per drive.","Plays gaining 20+ yards or scoring, the explosive rate, and the longest run and pass.","Success rate in the red zone, on the goal line, on third and long or short, and backed up.","Run/pass split, plus the most-used formation and personnel group with their success rates.","Distinct plays that lost yardage, turned the ball over, or drew a flag, as a share of all plays."],"details":["offense","offense",null,"selfscout","defense"],"claims":[{"lens":"efficiency","label":"Third down","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Explosive rateiA run of 12+ yards or a pass of 16+ yards. Two different thresholds, because a 13-yard run and a 13-yard pass are not the same play.","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest run","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest pass","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & long","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & short","clickable":true,"resolves":true},{"lens":"tendencies","label":"Run rate","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top formation","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top personnel","clickable":true,"resolves":true}],"orphanCut":false,"heroGone":true,"carried":false,"fourth":true,"successMatches":false,"thirdMatches":true,"explosiveMatches":false,"lensWearsTabAttr":false}
+         PASS  The donut centre number fits inside the ring hole instead of overlapping the stroke
+         PASS  Chart series use the categorical palette and never a semantic status colour
+         PASS  A Game at a Glance tile plays exactly as many composite-ref plays as the number it displays
+       
+       == AX-7. Reports answers through five lenses ==
+         PASS  Reports Overview answers through the five lenses in order
+         PASS  Every lens defines the stats it aggregates, and none pose a question
+         PASS  The Risk lens is renamed Negative Plays and no lens still calls itself Risk
+         FAIL  Sacks, runs and passes are mutually exclusive and sum exactly to Plays for Loss — no play counted twice -- {"kidsSum":8,"loss":0,"engine":8}
+         PASS  The headline counts distinct plays and carries the only percentage; rows are raw counts
+         PASS  A strip-sack counts once in the headline while still showing as both a sack and a turnover
+         FAIL  Only Plays for Loss claims a film cohort; turnovers, sacks and penalties stay context rather than inventing a cut -- ["Plays for LossiAny play that finished behind where it started — yardage below zero. Sacks are counted on their own line and are not repeated here."]
+         PASS  Every lens tile that claims a film cohort resolves to a real cut filter, and no tile carries a cut it cannot play
+         FAIL  The lens board replaces the unlabelled KPI row without dropping a metric it showed -- {"ids":["efficiency","explosiveness","situational","tendencies","negative"],"asks":["Success rate, yards per play, third-down conversion and points per drive.","Plays gaining 20+ yards or scoring, the explosive rate, and the longest run and pass.","Success rate in the red zone, on the goal line, on third and long or short, and backed up.","Run/pass split, plus the most-used formation and personnel group with their success rates.","Distinct plays that lost yardage, turned the ball over, or drew a flag, as a share of all plays."],"details":["offense","offense",null,"selfscout","defense"],"claims":[{"lens":"efficiency","label":"Third down","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Explosive rateiA run of 12+ yards or a pass of 16+ yards. Two different thresholds, because a 13-yard run and a 13-yard pass are not the same play.","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest run","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest pass","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & long","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & short","clickable":true,"resolves":true},{"lens":"tendencies","label":"Run rate","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top formation","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top personnel","clickable":true,"resolves":true}],"orphanCut":false,"heroGone":true,"carried":false,"fourth":true,"successMatches":false,"thirdMatches":true,"explosiveMatches":false,"lensWearsTabAttr":false}
+         FAIL  Lens values are read from the stats object, never recomputed by the presentation layer -- {"ids":["efficiency","explosiveness","situational","tendencies","negative"],"asks":["Success rate, yards per play, third-down conversion and points per drive.","Plays gaining 20+ yards or scoring, the explosive rate, and the longest run and pass.","Success rate in the red zone, on the goal line, on third and long or short, and backed up.","Run/pass split, plus the most-used formation and personnel group with their success rates.","Distinct plays that lost yardage, turned the ball over, or drew a flag, as a share of all plays."],"details":["offense","offense",null,"selfscout","defense"],"claims":[{"lens":"efficiency","label":"Third down","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Explosive rateiA run of 12+ yards or a pass of 16+ yards. Two different thresholds, because a 13-yard run and a 13-yard pass are not the same play.","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest run","clickable":true,"resolves":true},{"lens":"explosiveness","label":"Longest pass","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & long","clickable":true,"resolves":true},{"lens":"situational","label":"3rd & short","clickable":true,"resolves":true},{"lens":"tendencies","label":"Run rate","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top formation","clickable":true,"resolves":true},{"lens":"tendencies","label":"Top personnel","clickable":true,"resolves":true}],"orphanCut":false,"heroGone":true,"carried":false,"fourth":true,"successMatches":false,"thirdMatches":true,"explosiveMatches":false,"lensWearsTabAttr":false}
+         PASS  A lens routes to the report that owns its detail, using its own attribute rather than the tab bar's
+         PASS  A Situational lens tile plays exactly as many composite-ref plays as the number it displays
+         PASS  The Tendencies lens opens the report that owns its detail
+       
+       == F3/F4. Every charted game scouts, and the scout says something ==
+         PASS  Every opponent with charted film is listed as scoutable, so a scout report exists for each
+         PASS  A head-to-head game feeds the opponent scout — their offense from our defensive snaps, their defense from the fronts we faced
+         PASS  The defensive scout is the JOIN of their call, our look and the outcome — not a frequency list
+         PASS  Every joined row carries exactly as many composite refs as the snaps it counts
+         PASS  A defensive scout row plays exactly the snaps it counts
+       
+       == F12. The offense has a shape, not just a table ==
+         PASS  Frequency-by-success bars render and every bar plays its own film cohort
+         PASS  The yardage distribution bins every offensive snap exactly once, in the engine
+         PASS  The scatter draws exactly the points the engine derived — no renderer-side filtering
+         PASS  Per-down small multiples render, and the field-zone strip appears only when field position is charted
+         PASS  Chart marks resolve to design-system tokens rather than literal colours
+         PASS  The visual deck does not push the page sideways
+         PASS  Native Reports journey produces no page errors
+         PASS  The Big 13 is sortable cells in charting order — Formation first, untagged dimensions blank
+         PASS  The opponent scout derives a by-down and a by-distance-bucket read alongside the raw situations
+         PASS  Every charted situation is listed — the table accounts for all snaps rather than silently truncating
+         PASS  Report headings and captions name the data literally — no questions, no prose openers
+       
+       == RESULT: 55 passed, 4 failed ==
+ok   e2e-native-season.mjs                         2s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-native-settings.mjs                       3s  == RESULT: 19 passed, 0 failed ==
+FAIL e2e-native-tagging.mjs                        3s  (exit 1) == RESULT: 38 passed, 1 failed ==
+       assertion failure(s):
+         FAIL  Mobile native form has no page overflow and keeps 44px action targets -- {"overflow":0,"min":22,"small":[{"tag":"BUTTON","text":"22","h":22,"cls":""},{"tag":"BUTTON","text":"55","h":22,"cls":""},{"tag":"BUTTON","text":"22","h":22,"cls":""},{"tag":"BUTTON","text":"55","h":22,"cls":""}],"count":71}
+         PASS  Players & Grades opens with the form so tackle charting is visible without hunting
+         PASS  Formation and Backfield expose distinct football-correct I/Split vocabularies
+         PASS  Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position
+         PASS  Punt moves behind More while common results remain one row
+         PASS  Common results and More fit the production-width tag column without horizontal scrolling
+         PASS  The More control renders its whole label instead of clipping to "Mo"
+         PASS  Yardage input reserves enough width for three digits and spinner controls
+         PASS  Coach section expansion survives native state updates
+       
+       == 2. Context lifecycle and isolation ==
+         PASS  Native presentation names the charted football subject from stored perspective and unit
+         PASS  Native context follows game switch without inheritance
+         PASS  Opponent film keeps its perspective when the unit changes, and no other metadata moves
+         PASS  On our own game the perspective follows the unit with no second control
+       
+       == 3. Realistic 20-play multi-select session ==
+         PASS  All 20 plays retain both Formation selections
+         PASS  All 20 plays retain multi-select Play Type and Result
+         PASS  Save & Next advances chronologically without collapse
+         PASS  Native Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback
+         PASS  I-Form/I and Split Back/Split can be charted together without collapsing dimensions
+         PASS  Three-digit yardage is accepted without truncation
+         PASS  Canonical persist and relaunch preserve the 20-play session
+         PASS  Canonical reload preserves dual-dimension formations and three-digit yardage
+         PASS  Charting session leaves the other game byte-semantically isolated
+       
+       == 4. Structured football workflows ==
+         PASS  Native Special Teams exposes dedicated kick, return, field-goal, and try units while hiding the legacy Scored-by control
+         PASS  Native penalty editor stores multiple independent fouls and actual enforcement
+         PASS  Native try editor preserves compound events and official return ruling
+         PASS  Roster quick-pick and notes write the selected play
+         PASS  Diagram and OCR commands reach canonical owners exactly once
+       
+       == 5. Responsive geometry and exact restore ==
+         PASS  Desktop native form has no page-level horizontal overflow
+         FAIL  Mobile native form has no page overflow and keeps 44px action targets -- {"overflow":0,"min":22,"small":[{"tag":"BUTTON","text":"22","h":22,"cls":""},{"tag":"BUTTON","text":"55","h":22,"cls":""},{"tag":"BUTTON","text":"22","h":22,"cls":""},{"tag":"BUTTON","text":"55","h":22,"cls":""}],"count":71}
+         PASS  Unmount restores compatibility source attributes exactly
+         PASS  No page errors
+       
+       == RESULT: 38 passed, 1 failed ==
+FAIL e2e-native-team-hub.mjs                      37s  (exit 1) <no result line — crashed?>
+         PASS  Startup has one native Team Hub owner and never reveals the classic outlet
+         PASS  First setup creates one active team and a clear empty-season state
+         PASS  Native Team Hub preserves the five-step setup progress with real completion state
+         PASS  rapid season-name entry reaches the submit boundary intact
+         PASS  Create season stores active-team ownership and hands off to Home
+         PASS  Current season is explicit with honest neutral film health and no legacy owner
+         PASS  Rapid team-name entry reaches the submit boundary intact
+         PASS  Adding a team starts blank, closes outgoing season context, and scopes its season list
+         PASS  Switching back shows only that team seasons without implicitly opening one
+         PASS  Team switch fails closed when the outgoing canonical season save fails
+       file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/common/QueryHandler.js:211
+                       const waitForSelectorError = new (error instanceof TimeoutError ? TimeoutError : Error)(`Waiting for selector \`${selector}\` failed`);
+                                                    ^
+       
+       TimeoutError: Waiting for selector `[data-overlay-id] .gi-overlay-panel.is-destructive` failed
+           at CSSQueryHandler.waitFor (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/common/QueryHandler.js:211:46)
+           at async CdpFrame.waitForSelector (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:541:21)
+           at async CdpPage.waitForSelector (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:1387:20)
+           at async file:///C:/Users/charl/Charlie/tools/e2e-native-team-hub.mjs:112:1 {
+         cause: TimeoutError: Waiting failed: 30000ms exceeded
+             at new WaitTask (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/common/WaitTask.js:46:34)
+             at IsolatedWorld.waitForFunction (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Realm.js:49:26)
+             at CSSQueryHandler.waitFor (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/common/QueryHandler.js:176:95)
+             at async CdpFrame.waitForSelector (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:541:21)
+             at async CdpPage.waitForSelector (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:1387:20)
+             at async file:///C:/Users/charl/Charlie/tools/e2e-native-team-hub.mjs:112:1
+       }
+       
+       Node.js v24.15.0
+ok   e2e-onboarding.mjs                            6s  == RESULT: 32 passed, 0 failed ==
+ok   e2e-operation-diff.mjs                        2s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-p0-capabilities.mjs                       0s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-p0-exit.mjs                               0s  == RESULT: 17 passed, 0 failed ==
+ok   e2e-parity.mjs                                3s  == RESULT: 2 passed, 0 failed ==
+ok   e2e-penalty-contract.mjs                      0s  == RESULT: 7 passed, 0 failed ==
+ok   e2e-plan-contract.mjs                         0s  == RESULT: 32 passed, 0 failed ==
+ok   e2e-plan-export.mjs                           1s  == RESULT: 22 passed, 0 failed ==
+ok   e2e-projform-durability.mjs                   6s  == RESULT: 53 passed, 0 failed ==
+ok   e2e-raw-read-audit.mjs                        0s  == RESULT: 11 passed, 0 failed ==
+ok   e2e-realdata.mjs                             20s  == RESULT: 13 passed, 0 failed ==
+ok   e2e-relink-legacy.mjs                         3s  ALL PASS — 7 passed, 0 failed
+ok   e2e-relink-linked.mjs                         2s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-responsive-containment.mjs               11s  == RESULT: 105 passed, 0 failed ==
+ok   e2e-restore-point-throttling.mjs              2s  == RESULT: 5 passed, 0 failed ==
+ok   e2e-s5c-preflight.mjs                         3s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-season-tab.mjs                           11s  == RESULT: 161 passed, 0 failed ==
+ok   e2e-self-scout.mjs                            4s  == RESULT: 41 passed, 0 failed ==
+ok   e2e-special-teams-contract.mjs                0s  == RESULT: 20 passed ==
+ok   e2e-sql-catalog.mjs                           0s  ALL PASS — 17 passed, 0 failed
+ok   e2e-sql-fuzzer.mjs                            3s  ALL PASS — 16 campaigns clean, 0 failures
+ok   e2e-study-plan.mjs                            0s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-study-query.mjs                           2s  == RESULT: 35 passed, 0 failed ==
+ok   e2e-study-screen.mjs                          5s  == RESULT: 79 passed, 0 failed ==
+ok   e2e-tag-fields.mjs                            3s  == RESULT: 15 passed, 0 failed ==
+ok   e2e-tag-library-settings.mjs                  2s  == RESULT: 15 passed, 0 failed ==
+ok   e2e-tag-library.mjs                           0s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-tag-model.mjs                             0s  == RESULT: 37 passed, 0 failed ==
+ok   e2e-tag-projform.mjs                          5s  == RESULT: 54 passed, 0 failed ==
+ok   e2e-tagging.mjs                               6s  == RESULT: 28 passed, 0 failed ==
+ok   e2e-video-cors.mjs                            2s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-wipe-recovery.mjs                         4s  == RESULT: 12 passed, 0 failed ==
+ok   e2e-workspace-context.mjs                     2s  == RESULT: 20 passed, 0 failed ==
+ok   e2e-workspace-shell.mjs                       9s  == RESULT: 76 passed, 0 failed ==
+ok   e2e-xss-names.mjs                             2s  == RESULT: 4 passed, 0 failed ==
+
+=== harnesses over 25s (watch these — slow precedes intermittent red) ===
+  37s  e2e-native-team-hub.mjs
+
+=== 82 harnesses | 78 green | 0 skipped | 4 failed ===
+failed: e2e-breakdown-a11y.mjs e2e-native-reports.mjs e2e-native-tagging.mjs e2e-native-team-hub.mjs

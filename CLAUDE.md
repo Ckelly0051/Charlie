@@ -14,11 +14,133 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
-### CLAUDE BUILD - S6-6/S6-7 + FOURTH SMOKE: 1.12.0-34 .. -37 (2026-08-08)
+### ▶ CODEX REVIEW QUEUE — THE WHOLE S6 RANGE: 1.12.0-34 .. -37 (2026-08-08)
 
-**Builder: Claude. Range `84e9262..HEAD`. No gate was run on `-37` at the
-coach's explicit direction ("no gates"); `-34` and `-35` were both cut from
-81/81 green source. S7 remains closed. No tag or published release exists.**
+**Builder: Claude. Review range: `84e9262..c098868` on the canonical
+`claude/football-film-analyzer-GRiCW` branch — 10 commits, none of them
+independently reviewed. This is the single S6 review the coach scheduled at
+`515f1c7`, and it is due BEFORE the §8 installer that closes the milestone.
+S6 is NOT accepted. S7 remains closed. No tag or published release exists.**
+
+**THIS IS A FULL END-TO-END REVIEW, NOT A GUIDED ONE.** Codex reviews the range
+on its own terms. Everything the builder flags below is disclosure of where the
+builder already knows he was weak — **it is not a scope, not a checklist, and
+not a claim that the rest is sound.** The builder's judgment about what deserves
+attention in this range has a measured error rate; see the two sections below.
+
+### 🔴 THE GATE IS RED — 82 harnesses | 78 green | 0 skipped | **4 FAILED**
+
+**`e2e-breakdown-a11y` · `e2e-native-reports` · `e2e-native-tagging` ·
+`e2e-native-team-hub`.** Full output: `%TEMP%/gate-s6.log`. **This range is
+handed over RED at the coach's direction** — Codex fixes these rather than the
+builder patching his own defects ahead of the review. Nothing below is fixed.
+
+Last independently green gate was `b567d24` (`-33`): 81/81. **The suite is 82
+now** — `e2e-copy-standard.mjs` is new in this range. `-34`/`-35` were cut from
+81/81 source; **`-36` and `-37` were built ungated** at the coach's explicit
+direction ("no gates" during design iteration). This run is the first time the
+range has been measured end to end, and **all four failures are builder defects
+introduced in those two ungated builds.**
+
+**`1.12.0-37`, the installer the coach is holding, therefore ships at least one
+live regression** (F1 below). It is not a candidate for anything.
+
+| # | Harness | Failing assertion | Cause |
+|---|---|---|---|
+| **F1** | `e2e-native-tagging` | *Mobile native form keeps 44px action targets* — `min:22`, offenders are jersey chips `22`/`55` | J4 chip density |
+| **F2** | `e2e-native-team-hub` | crash, 30s timeout on `[data-overlay-id] .gi-overlay-panel.is-destructive` | J8 delete gate |
+| **F3** | `e2e-native-reports` | 4 assertions: two lens checks, the Negative Plays exclusivity sum, and the film-cohort claim | G5 tooltips |
+| **F4** | `e2e-breakdown-a11y` | *History feedback keeps natural accessible text while CSS owns visual all-caps* — `textTransform:"none"` | S6-7 / copy pass |
+
+**F1 — and the builder explicitly told the coach this could not happen.** The
+handover message for `-37` said J4 was "scoped to `@media(pointer:fine)` so the
+coarse 44px target isn't clobbered." The rule **is** scoped that way
+(`native-tagging.css:160`). It was not enough. **The second finding is worse
+than the first:** `e2e-native-tagging.mjs:210` sets a 390px viewport and
+**never sets `hasTouch`/`isMobile`**, so `pointer:coarse` has never matched in
+that harness — meaning the entire `@media(pointer:coarse)` block at
+`native-tagging.css:110`, every touch target in the native tag form, **has never
+been exercised by the gate.** The assertion passed because fine-pointer sizes
+happened to clear 44px. This is the check-narrower-than-its-name class again.
+
+**F2 — the selector is not the question.** `ConfirmDeleteForm` replaced the
+service-owned destructive panel on delete-season and delete-game. What must be
+established is whether the type-to-confirm form **still carries the destructive
+surface treatment and the forced-Cancel default**, or whether the S4h-1
+distinction was silently undone. The coach's position is that the form can carry
+it. Builder did not verify this before shipping.
+
+**F3 — probably one root cause, and it is not only a test problem.** The G5
+stat-definition tooltips put their text **inside** the label element, so it is
+scraped into `textContent`: the evidence line reads
+`"label":"Explosive rateiA run of 12+ yards or a pass of 16+ yards..."`. A
+screen reader reads that entire string as the stat's accessible name. The fourth
+assertion — Negative Plays `{"kidsSum":8,"loss":0,"engine":8}` — **may be the
+same label-scraping or may be a real computation defect; the builder did not
+separate them.** Treat it as unknown, not as collateral.
+
+**F4 —** the N5 / S4b-1 rule is that producers keep natural case and CSS owns
+the all-caps. `text-transform` was dropped from the history toast somewhere in
+the material or copy pass.
+
+#### ⚠ WHAT THE BUILDER GOT WRONG IN THIS RANGE — read before trusting anything below
+
+Recorded because it is the calibration for how much weight to give the builder's
+own account of this work. Each was caught, but several were caught late and one
+was caught only because the coach asked four times.
+
+1. **A test was enforcing the defect the coach kept reporting.**
+   `e2e-native-reports` asserted every lens sub-line `endsWith('?')`. Every
+   manual removal was reverted by whoever next made the gate green.
+2. **The replacement guard was scoped to the surface it had just fixed.** It
+   inspected only the Reports DOM, so it certified Reports clean while Season
+   blocks, Team Hub, Study and Plan went unchecked for the whole range.
+3. **That guard's first version passed vacuously.** Mutation-restoring a removed
+   sub-head did NOT red it — it ran at harness end in opponent perspective and
+   never saw the Offense tab.
+4. **Two claims about the builder's own code were false and were corrected by
+   probing, not reasoning** — `_renderBigTwelve({cut:false})` was said to
+   exclude the radar (the gate is in `_renderShape`), and a finding was logged
+   as new in `-36` with the builder's own CSS as suspect when the coach knew it
+   predated the release.
+5. **A cross-cutting CSS layer was written twice into files where it was already
+   inert** — once into `workspace-shell.css` (loads before `study-screen.css`),
+   once into `native-reports.css` (overridden by `.gi-overlay-panel` 8kb later).
+   Both caught by reading the BUILT output rather than the diff.
+6. **`git add -A` committed 267 local-only scratch files**, including Break Down
+   captures of real team film. Untracked at `db3b606` and `.gitignore` hardened;
+   **they remain in `7477fe2` history** and that is the coach's call to make.
+7. **Four gate failures shipped in two ungated builds, and one of them
+   contradicts a claim the builder made to the coach in writing** — see F1. The
+   coach directed design iteration without gates, which is a legitimate call;
+   choosing not to gate before handing over an INSTALLER was the builder's, and
+   it put a live touch-target regression in the coach's hands.
+
+#### Known-weak surfaces — disclosure, NOT a review scope
+
+* **`design-system/material.css` is correct only because `js/app.js` imports it
+  LAST.** The whole layer goes inert if that import moves, and inert CSS looks
+  identical to correct CSS in a diff. This is the third instance of the
+  source-order class in two ranges.
+* **`--display` now derives from `--gi-cond`** (`styles.css`). One line that
+  changes the headline typeface on every route. Two condensed faces are still
+  bundled; only one should now be reachable.
+* **`_allPlays()` stamps a non-enumerable `__gid`** on season plays so rows can
+  resolve real composite refs. Non-enumerability is load-bearing — it must not
+  reach any serialization path.
+* **`statsHtml()` was rewritten** to compose from the game report's block set
+  with an explicit exception list (game header, game flow, drive chart, radar).
+  The exceptions are stated in code; whether each is *right* is a football call.
+* **`_renderMatchupInto` gained defensive reads after a real crash** in which a
+  partial-data throw blanked the entire tab through the try/catch.
+* **Two new destructive gates** (`ConfirmDeleteForm`, season + game) sit on top
+  of the existing overlay rules — forced Cancel default, impact summary, and
+  delete-game's 30-second undo. Confirm none of those were weakened.
+* **`e2e-copy-standard.mjs`'s stated limit**: it catches interrogative openers
+  and question captions, **not vague prose**. Do not read a green copy guard as
+  a judgment that the copy is good.
+* **`-37` shipped 11 smoke fixes with no gate.** J1/J4/J6/J8/J10/J11/J12/J13/
+  J15/J17/J23, verified only by computed-style probes in the running app.
 
 | Build | Contents |
 |---|---|
@@ -2313,10 +2435,11 @@ ordering, and give the two orphaned behaviours an owner.
 | | |
 |---|---|
 | Last build a human actually ran | **`1.12.0-36`** — fourth coach smoke, findings J1-J23 in `SMOKE-1.12.0-36-FINDINGS.md`. `1.12.0-37` is built and handed over |
-| Commits since | **9 unreviewed application-code commits** (`84e9262..HEAD`). Codex has reviewed none of S6-6 or S6-7 |
+| Commits since | **10 unreviewed commits** (`84e9262..c098868`), 9 of them application code — `db3b606` is the scratch-file untrack. Codex has reviewed none of S6-6 or S6-7 |
 | Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. S5 accepted at the `1.12.0-17` smoke. **S6 is NOT accepted: Codex reviews the whole S6 range once, before the §8 installer that closes it.** |
-| Next installer due | **`1.12.0-37` is delivered.** No gate was run on it — coach directed design iteration without gates. **A full gate is owed before the S6-closing installer.** |
-| Newly proven | The copy defect had a TEST enforcing it, and the replacement guard was scoped to the one route it had just fixed. Both closed; the guard now walks every route and is mutation-verified off-Reports. |
+| Next installer due | **`1.12.0-37` is delivered and is DEFECTIVE** — it ships F1, a live 22px touch target. Not a candidate for anything. The S6-closing installer is due after Codex's review and a green gate. |
+| Gate | 🔴 **82 harnesses \| 78 green \| 4 failed** on `c098868`. Handed to Codex red at the coach's direction. Last green: `b567d24` (`-33`), 81/81 |
+| Newly proven | `e2e-native-tagging`'s mobile 44px assertion **never emulated touch**, so the whole `pointer:coarse` block in the native tag form has never been gated. Found only because a builder defect removed the accident that was keeping it green. |
 
 *Why this table exists: every other check in this project fails loudly. An
 unbuilt installer emits no signal at all, so the drift has to be carried as a
