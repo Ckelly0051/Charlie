@@ -13,7 +13,108 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
-### CLAUDE BUILD - S6 SMOKE CYCLE: 1.12.0-18 .. -24; SECOND SMOKE IN PROGRESS (2026-08-04)
+### CLAUDE BUILD - S6-5 DESIGN PASS + THIRD SMOKE: 1.12.0-25 .. -33 (2026-08-05)
+
+**Builder: Claude. Gate green at `b567d24`: 81 harnesses | 81 green | 0 skipped
+| 0 failed.** Range `282c780..b567d24`. S7 remains closed. No tag or published
+release exists for any of these builds.
+
+**Coach directive that shaped this range: design iterates WITHOUT the gate, one
+gate at the end.** His reasoning — the gate is strong on data and behavior and
+weak on presentation, which is why it stayed green through every visual defect
+he found. Correct call, and the closing gate then caught two real regressions
+the ungated builds had introduced. Both halves of that are true and worth
+keeping.
+
+| Build | Contents |
+|---|---|
+| `-25` | G14 Negative Plays, G13 Big 13 cells, G2 down/distance, G3 visuals, G4, G12 |
+| `-26` | S6-5 design pass: lower-third, film below floor, hairline joins |
+| `-27` | H1-H9 |
+| `-28` | H10-H15 + caption sweep |
+| `-29` | H14 done properly |
+| `-30` | H18 direction tendencies |
+| `-31` | H18 moved to the path that renders |
+| `-32` | H19 pivot |
+| `-33` | gate repairs |
+
+**THE LOWER-THIRD FINALLY EXISTS IN THE PRODUCT.** `--gi-lower-third` had ZERO
+uses. It now carries every Reports section heading and every charting-deck group
+header. Film sits on `--gi-film`, below the app floor, so video is the brightest
+object on screen — another token nothing consumed. Sections share 1px seams
+instead of floating as bordered cards, which was the coach's "square boxes
+inside square boxes".
+
+**G14 — Negative Plays.** "Risk" named four things that had already happened,
+and sacks were counted twice inside it. Settled over five rounds with the coach:
+headline = DISTINCT plays with one percentage; rows = raw counts, no
+percentages. The two levels deliberately disagree because a strip-sack is one
+play but two events. Turnovers stand alone first; everything double-countable is
+bracketed under Plays for Loss where the indent is the explanation.
+
+**H19 — the pivot.** `dirVsStrength` and `dirVsHash` are registered DIMENSIONS,
+so the two reads a DC asks for cross against formation, down, distance and each
+other and inherit film-linking and min-sample gating. Balanced strength and
+middle hash extract to an explicit `n-a` group rather than being dropped, which
+would make every denominator lie.
+
+### ⚠ THE LESSON OF THIS RANGE — read before touching CSS or a render path
+
+**Six times I shipped a change that did nothing, and told the coach it was
+done.** Every one had the same cause: I wrote from design intent instead of
+reading the markup, the cascade, or the call graph first.
+
+1. `.gi-tag-nav .is-primary` — correct selector, LOST ON SOURCE ORDER to an
+   identical-specificity rule later in the same file. Invisible: the CSS is
+   present, correct, and inert.
+2. `.ss-matrix` — does not exist anywhere. Real classes are `.tm-table`.
+3. `.epa-chart` / `.heat-map` — do not exist. Real owners are `.viz-block` and
+   `.hm-field-wrap`.
+4. `.stats-three-col` — does not exist. The container is `.gi-card-grid`.
+5. `align-items:start` — was ALREADY set, so the rule was a no-op AND the
+   diagnosis was wrong: the dead space was never a stretch, it was emptiness.
+6. **`StatsEngine.renderOpponentScout` — a function the native Reports screen
+   never calls.** Two builds of work went into a dead path.
+
+**The rules that came out of it:**
+* **Read the markup and the cascade before writing a selector.** A rule that
+  loses on source order looks identical to a rule that works.
+* **A GENERIC catch-all placed last defeats every specific rule before it.** I
+  fixed source-order-loss by moving design rules to the end, then reintroduced
+  it by adding `svg{max-width:100%}` there. Catch-alls go FIRST.
+* **Verify against computed style in the running app**, not by reading the diff.
+* **Sweep every string or call site that reaches the surface**, not every one
+  matching the first file opened. The caption sweep missed `charts.js` legends
+  and all of `reports-screen.js`; the visuals reached one tab of two.
+
+### What the closing gate caught
+
+Six failures, five mine, two of them regressions that would have reached the
+coach: **Film Focus stopped surviving a remount** (my H2 fix made ANY view
+change exit focus, and mount/restore call `_setView`), and **the Reports failure
+alert lost its danger surface** (the hairline-join rule set
+`.stats-section{border:0}`, so "Reports unavailable" rendered identically to "No
+charted data yet" — the S4h-1 distinction, silently undone).
+
+The raw-read audit also caught `_directionTendency` reading the projected
+`strength` field raw; that function was dead after the pivot and was deleted.
+
+### Still open
+
+* **H16 — the season report renders a hand-maintained subset.** `statsHtml()`
+  computes over all plays correctly; the VIEW is a hardcoded list of 16 blocks
+  that never grew. The Big 13, the F12 visuals, EPA, Drives, Negative Plays and
+  the whole Defense/ST blocks never appear at season scope. Compose it from the
+  same block set as the game view with an explicit exception list.
+* Repair Film is gated on `health.missing`, so it is invisible until the app
+  agrees something is wrong. `Change` on the same row is the working path.
+* Study and Plan were never reviewed in this smoke and are unchanged.
+
+Parity was regenerated twice, audited each time: **insertions only, zero
+deletions.** No schema, migration, season byte, analytics formula, film cohort,
+composite ref, film file, storage path, package, tag or release changed.
+
+### CLAUDE BUILD - S6 SMOKE CYCLE: 1.12.0-18 .. -24 (2026-08-04)
 
 **Builder: Claude. Codex reviews the whole S6 range once, before the §8
 installer that closes the milestone. Per-commit independent review is dropped
