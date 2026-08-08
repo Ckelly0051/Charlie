@@ -101,14 +101,54 @@ The raw-read audit also caught `_directionTendency` reading the projected
 
 ### Still open
 
-* **H16 — the season report renders a hand-maintained subset.** `statsHtml()`
-  computes over all plays correctly; the VIEW is a hardcoded list of 16 blocks
-  that never grew. The Big 13, the F12 visuals, EPA, Drives, Negative Plays and
-  the whole Defense/ST blocks never appear at season scope. Compose it from the
-  same block set as the game view with an explicit exception list.
+* **H16 — CLOSED at `131f035`.** The season report is now composed from the game
+  report's block set with an explicit exception list. Left here for the history:
+  `statsHtml()` always computed correctly and the VIEW was a hardcoded list of 16
+  blocks that never grew.
 * Repair Film is gated on `health.missing`, so it is invisible until the app
   agrees something is wrong. `Change` on the same row is the working path.
 * Study and Plan were never reviewed in this smoke and are unchanged.
+
+### 🗒 BACKLOG — OPPONENT SCOUT DATA (coach request, 2026-08-08; NOT scheduled)
+
+The coach asked what a defensive coordinator actually wants out of an opponent
+scout that this app does not yet produce. Checked against the standard DC
+game-plan hierarchy (what do they DO → what do they do BEST → how do we take
+that away → situational) rather than invented.
+
+**What the opponent scout renders today** — overview (run/pass, run%, avg yards,
+3rd down), formation tendencies, `_renderShape`, `_renderBigTwelve`,
+`_renderScoutDownDistance`, their fronts and coverages, and (H19) the
+direction-vs-strength / direction-vs-hash pivot.
+
+**Gaps, and the point is that almost none of them need new charting** — every
+row below is an aggregation of tags the coach already records:
+
+| Gap | Why a DC wants it | Reads |
+|---|---|---|
+| **Openers** — their first 3-5 snaps per game | Scripted; the cheapest read on what the OC thinks beats you | play order + `driveNumber` |
+| **What they do BEST, not most** | `_bigTwelveData` ranks by FREQUENCY only. The 80/20 rule is about production — an 8.4-per-snap call on 9 snaps outranks a 30-snap dive netting 2. Re-rank, no new math | existing success/avg in `_bigTwelveData` |
+| **Their explosive profile** | "Hold them under 5 explosives" is the axiom. Explosives are computed for US and not for them. Which formation, direction and down produced their 20+ | `yardage` + formation/playType |
+| **Personnel tendencies** | The pre-snap read that comes BEFORE formation — what grouping, do they sub, does one tip run. `_renderPersonnel` exists and is never pointed at them | `tags.personnel` |
+| **Motion** | Motion table exists for our offense, not theirs | `tags.motion` |
+| **RPO block** | Rate, which formations, and the run/pass split off one look = the conflict-player read | `playType` includes RPO |
+| **Their situational splits** | Only 3rd down is shown. Missing red zone, goal line, backed up, 4th down, two-minute | `down`/`distance`/`fieldSide`/`yardLine` |
+
+**Two that DO need a model change, recorded honestly:**
+* **Their ball carrier.** On a defensive snap the player roles are Tackler and
+  Takeaway — there is nowhere to record THEIR back. So "primary back or
+  committee, and where does he get it" is unanswerable without a new role. This
+  is a real tag-model gap and it changes run fits.
+* **Pulling linemen, tempo, huddle-vs-no-huddle.** Not in the tag model at all.
+  Probably not worth adding.
+
+**Recommended first slice:** *what they do best* and *their explosive profile* —
+both are pure re-reads of existing data, and the app currently answers "what do
+they do" five different ways and "what do they do best" not at all.
+
+**⚠ Build it in the NATIVE path.** `StatsEngine.renderOpponentScout` is DEAD —
+the native Reports screen composes the opponent tabs inline in
+`reports-screen.js`. Two builds were lost to that in this range.
 
 Parity was regenerated twice, audited each time: **insertions only, zero
 deletions.** No schema, migration, season byte, analytics formula, film cohort,
