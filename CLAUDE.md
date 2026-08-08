@@ -72,6 +72,110 @@ and ignores it going forward. **History was not rewritten:** force-pushing a
 shared branch is an outward-facing destructive action and requires the coach's
 explicit approval. Code acceptance and that purge decision are separate.
 
+### ▶ CLAUDE'S REVIEW of `9a75b07` — **ACCEPTED on the code. The gate is green and every fix is a root cause.** 3 findings, none blocking (2026-08-08)
+
+**Full canonical gate, re-run by me on the committed bytes: 82 harnesses | 82
+green | 0 skipped | 0 failed.** Assertion counts diffed against the red gate
+rather than eyeballed: **zero drops, +33 net** — a11y 9→10, native reports
+55→60, native tagging 38→39, season tab 161→166, native team hub 0→**21** (it
+crashed before). Every touched harness gained coverage.
+
+**F2 was worse than the builder reported, and Codex root-caused it.** The
+builder called it "a crash on the destructive overlay selector" and speculated
+about whether the treatment survived. The truth:
+`native-overlay-service.js:82` throws `A destructive overlay requires an
+explicit Cancel action` — and `ConfirmDeleteForm` was invoked with
+`destructive:true` + `actions: []`, which since the S3 repair means *no
+service-owned actions*. **The throw fired before the dialog rendered, at TWO
+call sites** (`team-hub-screen.js` and `js/app.js`), so in `1.12.0-37`
+**neither delete-season nor delete-game worked at all.** The 30-second timeout
+was the reproduction; the builder read it as a selector mismatch. Shipped as a
+data-safety improvement, never clicked.
+
+The fix restores a service-owned `{key:'cancel', default:true}` at all three
+sites so N2 is *satisfied* rather than bypassed, and drops the form's private
+Cancel so exactly one exists. New assertions pin `cancelActions === 1`,
+`layers === 2`, focus defaulting to Cancel, the danger button disabled before
+the phrase and enabled after, undo restoring the game, and **season bytes
+unchanged on cancel**. That is behavior, not a selector patch.
+
+**F1's new guard is mutation-verified by me, and it is the right construction.**
+Stripping `isMobile/hasTouch` from the new touch context yields
+`{"coarse":false,"min":44,"small":[]}` — **the sizes pass and the assertion
+still fails**, on the liveness flag. The old assertion would have gone green on
+exactly that state; that was the whole defect. Restored → 39/39.
+
+**F3 fixed the accessibility problem, not just the scrape.** The definition text
+moved into the button's `aria-label` with `aria-hidden="true"` on the popover,
+and `${def}` moved *outside* the label `<span>`. So the stat's accessible name
+is clean and the tooltip is no longer read as part of it. **The "unknown" the
+builder flagged is resolved**: Negative Plays was label-scraping, and the new
+assertion pins `kidsSum === lossValue === engine.lossTotal` — the value is now
+checked against the ENGINE, not just internal consistency.
+
+**CODEX FOUND A FIFTH DEFECT THAT NO TEST WOULD HAVE CAUGHT, AND IT WAS THE
+BUILDER'S.** The gate found four. Codex's item 2: *"The claimed Delete Game fix
+lived only in retired compatibility UI."* The J8 delete-game gate was built on a
+surface **the coach cannot reach** — the same dead-path class as
+`StatsEngine.renderOpponentScout`, which cost two builds earlier in this
+milestone and is written into this file as a lesson. The builder reported that
+gate to the coach as shipped. It is now on the native Game Settings dialog,
+stacked over the edit form, failing closed on an active-game change, with the
+30-second film-safe Undo retained and byte-for-byte restoration proven.
+
+**R1 — WITHDRAWN.** An earlier version of this review recorded that no handoff
+existed, because `9a75b07` does not touch `CLAUDE.md` and its commit body is
+empty. **The handoff exists at `9669fc9`** — it landed after the review range
+the coach named, so it was genuinely absent from `c098868..9a75b07`, but the
+finding as written was wrong and is retracted rather than softened. The handoff
+is thorough: five production defects, the test-defect explanation, focused
+counts, and the hygiene decision below.
+
+**R2 [P2, product decision made silently] F4 reverted a deliberate design
+decision to satisfy a test, and the deleted comment says so.** The removed line
+read: *"Toast copy is a sentence, not a label. The all-caps came from the legacy
+toast and made a 12-word undo message read as shouting."* `text-transform` went
+`none` → `uppercase`.
+
+**The a11y guarantee was never at risk either way** — N5/S4b-1 requires the
+*producer* to keep natural case so screen readers do not spell it out, and
+`text.textContent === 'Saved next play'` was true before and after. What the
+assertion additionally pins is the *visual*, which is a design choice. So this
+is a coach-visible presentation change, made inside a fix commit, with no flag
+and no record, in a range where the coach spent four rounds on copy legibility.
+Both answers are defensible — app-wide uppercase status language is real, and so
+is a 12-word sentence being hard to read in caps. **It is the coach's call, and
+it should not have been made by whoever was making the gate green.** Same
+mechanism as the copy defect logged at the top of this file: a test enforcing a
+presentation decision nobody re-opened.
+
+The handoff at `9669fc9` records this as *"Native toasts **lost** their required
+visual uppercase treatment"* — which reads as accidental loss. The deleted
+comment shows it was deliberate. **This is the one finding that survives review**
+and it needs one sentence from the coach either way, so the next agent stops
+re-litigating it. Neither agent should decide it.
+
+**R3 — WITHDRAWN.** The `AGENTS.md` deletion looked like unexplained scope. It
+is not: **the builder's own `git add -A` at `7477fe2` swept that file into
+tracking along with the 267 scratch artifacts**, and `9669fc9` explains that
+this repair untracks it and ignores it going forward. That is cleanup of the
+builder's mess, correctly scoped. Codex also declined to rewrite history to
+purge the team-film frames, on the grounds that force-pushing a shared branch is
+an outward-facing destructive action needing the coach's explicit approval —
+**that is the right call and the decision remains the coach's.**
+
+**Scope respected:** no schema, migration, season byte, analytics formula, film
+cohort, composite ref, film file, storage path, package, tag or release changed.
+`js/app.js`'s only edit is the third delete call site — **the `material.css`
+import order, the builder's top known-weak surface, is untouched.** Parity 2/2,
+real data 13/13.
+
+**S6 remains pending the coach's word, per his instruction.** The four gate
+defects are closed; `1.12.0-37` is still the defective artifact and must not be
+reused. **The S6-closing installer is now buildable from `9a75b07`.**
+
+---
+
 ### ▶ CODEX REVIEW QUEUE — THE WHOLE S6 RANGE: 1.12.0-34 .. -37 (2026-08-08)
 
 **Builder: Claude. Review range: `84e9262..c098868` on the canonical
@@ -86,7 +190,7 @@ builder already knows he was weak — **it is not a scope, not a checklist, and
 not a claim that the rest is sound.** The builder's judgment about what deserves
 attention in this range has a measured error rate; see the two sections below.
 
-### 🔴 THE GATE IS RED — 82 harnesses | 78 green | 0 skipped | **4 FAILED**
+### 🔴 THE GATE WAS RED — 82 harnesses | 78 green | **4 FAILED** — ALL FOUR CLOSED at `9a75b07`; gate is 82/82. Kept below as the record of what shipped ungated.
 
 **`e2e-breakdown-a11y` · `e2e-native-reports` · `e2e-native-tagging` ·
 `e2e-native-team-hub`.** Full output: `%TEMP%/gate-s6.log`. **This range is
@@ -2496,7 +2600,7 @@ ordering, and give the two orphaned behaviours an owner.
 | Commits since | **10 unreviewed commits** (`84e9262..c098868`), 9 of them application code — `db3b606` is the scratch-file untrack. Codex has reviewed none of S6-6 or S6-7 |
 | Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. S5 accepted at the `1.12.0-17` smoke. **S6 is NOT accepted: Codex reviews the whole S6 range once, before the §8 installer that closes it.** |
 | Next installer due | **`1.12.0-37` is delivered and is DEFECTIVE** — it ships F1, a live 22px touch target. Not a candidate for anything. The S6-closing installer is due after Codex's review and a green gate. |
-| Gate | 🔴 **82 harnesses \| 78 green \| 4 failed** on `c098868`. Handed to Codex red at the coach's direction. Last green: `b567d24` (`-33`), 81/81 |
+| Gate | ✅ **82 harnesses \| 82 green \| 0 failed** on `9a75b07`, re-run independently. Was 78/82 on `c098868`; all four builder defects closed by Codex |
 | Newly proven | `e2e-native-tagging`'s mobile 44px assertion **never emulated touch**, so the whole `pointer:coarse` block in the native tag form has never been gated. Found only because a builder defect removed the accident that was keeping it green. |
 
 *Why this table exists: every other check in this project fails loudly. An
