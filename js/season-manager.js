@@ -6,6 +6,10 @@
  * game management. It owns no game data of its own.
  */
 import { Charts } from './charts.js';
+// H16 — the season Offense pane renders the same field-zone / spray / quarter
+// visuals the game Offense tab does. They were computed for every play in the
+// season already; nothing rendered them above game scope.
+import { Visualizations } from './visualizations.js';
 
 export class SeasonManager {
   constructor(statsEngine) {
@@ -50,6 +54,15 @@ export class SeasonManager {
       (g.plays || []).map(p => {
         Object.defineProperty(p, '__seasonGameIdx',
           { value: gi, configurable: true, writable: true, enumerable: false });
+        // H16 — also stamp the OWNING GAME ID, same non-enumerable contract.
+        // Season rows previously had no way to name their film: every cut row
+        // resolved through StatsEngine._watchPlays, which rebuilds its pool from
+        // the ACTIVE game's tagger. A season row therefore showed a season-wide
+        // count and played only the active game's matching snaps. With the game
+        // id present, a season row can carry real `gameId::playId` composite
+        // refs and route through the proven cross-game player instead.
+        Object.defineProperty(p, '__gid',
+          { value: g.id, configurable: true, writable: true, enumerable: false });
         return p;
       }));
   }
@@ -82,35 +95,92 @@ export class SeasonManager {
       <p class="self-scout-intro">Per-player totals across all ${games.length} loaded games.</p></div>
       ${indTables}` : '';
 
-    // The season view is 13 sections deep — too long to scroll. Group them into
-    // secondary sub-tabs (Overview / Breakdown / Players / Self-Scout) under the
-    // always-visible KPI header. Panes stay in the DOM (CSS show/hide), so the
-    // heat-map binding + leaderboard sort-wiring done once by the caller still
-    // apply. StatsEngine._wireSubtabs() activates the nav; the dashboard tab and
-    // the legacy modal both call it after injecting this HTML.
+    // ── H16 — THE SEASON REPORT IS COMPOSED FROM THE GAME REPORT'S BLOCK SET ──
+    //
+    // What this replaces, and why it mattered. compute() has always aggregated
+    // every play in the season correctly; the VIEW was a hand-maintained list of
+    // 16 render calls that never grew as the game report did. So the Big 13, the
+    // shape visuals, EPA, Drives, Negative Plays, the takeaway board, penalties
+    // and the ENTIRE Defense and Special Teams reports were computed at season
+    // scope and then not rendered. A coach could read his defensive front data
+    // for one game and had no way to see it across six.
+    //
+    // The block set below is the same one reports-screen.js renders per game, in
+    // the same order, with ONE explicit exception list. Anything a future tab
+    // gains has to be added here too — that coupling is the point: a hardcoded
+    // subset silently rots, an explicit exception list has to be argued with.
+    //
+    // EXCLUDED AT SEASON SCOPE, each for a stated reason:
+    //   _renderGameHeader / scoreboard — game identity. A single scoreline
+    //     cannot describe six games; _renderHeader is the season's own answer.
+    //   _renderGameFlow / _renderDriveChart — both plot progress against a
+    //     within-game play index. Concatenating six games onto one axis draws a
+    //     line whose x-axis means nothing.
+    //   _renderTeamProfile (radar) — its axes scale against the season's own
+    //     best, so at season scope every axis pegs to itself. Excluded for free:
+    //     _renderBigTwelve only draws it under { cut: true }.
+    const s = this.statsEngine;
+    const defScout = s.generateDefensiveSelfScout(allPlays);
+    const teamName = (window.app?.storage?.gameInfo?.teamName)
+      || document.getElementById('gameTeamName')?.value || 'Our Offense';
+
     const html = `
       ${this._renderHeader(stats)}
       <div class="gi-subnav" role="tablist">
         <button class="gi-subtab active" data-subtab="overview" role="tab">Overview</button>
-        <button class="gi-subtab" data-subtab="breakdown" role="tab">Breakdown</button>
+        <button class="gi-subtab" data-subtab="offense" role="tab">Offense</button>
+        <button class="gi-subtab" data-subtab="defense" role="tab">Defense</button>
+        <button class="gi-subtab" data-subtab="special" role="tab">Special Teams</button>
         <button class="gi-subtab" data-subtab="players" role="tab">Players</button>
         <button class="gi-subtab" data-subtab="scout" role="tab">Self-Scout</button>
+        <button class="gi-subtab" data-subtab="trends" role="tab">Trends</button>
       </div>
       <div class="gi-subpane active" data-subpane="overview">
-        ${this.statsEngine._renderTeamStats(stats)}
-        ${this.statsEngine._renderEfficiency(stats)}
+        ${s._renderTeamStats(stats)}
+        ${s._renderLensBoard(stats)}
+        ${s._renderTakeaways(stats)}
+        ${s._renderDownAnalysis(stats)}
+        <div class="gi-card-grid gi-overview-row">
+          ${s._renderDrives(stats)}
+          <div class="gi-stack">
+            ${s._renderEfficiency(stats)}
+            ${s._renderByDownPanel(stats)}
+            ${s._renderBigPlays(stats)}
+          </div>
+        </div>
         ${this._renderSituationalScorecard(stats)}
         ${this._renderTurnoverScoring(stats)}
-        ${this._renderProgression()}
-        ${this._renderTrends()}
+        ${s._renderPenalties(stats)}
       </div>
-      <div class="gi-subpane" data-subpane="breakdown">
+      <div class="gi-subpane" data-subpane="offense">
         ${this._renderOffensiveIdentity(stats)}
-        ${this.statsEngine._renderDownAnalysis(stats)}
-        ${this.statsEngine._renderSituational(stats)}
-        ${this.statsEngine._renderTendencies(stats)}
-        ${this.statsEngine._renderPersonnel(stats)}
-        ${this.statsEngine.heatMaps.render(allPlays)}
+        ${s._renderOffenseHero(stats)}
+        ${s._renderShape(stats, { profile: false })}
+        ${s._renderPlayAction(stats)}
+        ${s._renderTendencies(stats)}
+        ${s._renderBigTwelve(stats.offPlays, teamName, { cut: false })}
+        ${s._renderPersonnel(stats)}
+        ${s._renderBackfieldStrength(stats)}
+        ${s._renderDirectionMotion(stats)}
+        ${s._renderHashStats(stats)}
+        ${s._renderPersonnelSituation(stats)}
+        ${s._renderTendencyMatrix(stats)}
+        ${s._renderSituational(stats)}
+        ${s.heatMaps.render(stats.offPlays)}
+        ${Visualizations.render(stats.offPlays)}
+        ${s._renderAdvanced(stats)}
+      </div>
+      <div class="gi-subpane" data-subpane="defense">
+        ${s._renderDefenseTabBody(stats, defScout)}
+      </div>
+      <div class="gi-subpane" data-subpane="special">
+        ${/* Empty is stated, not silent. The game tab already falls back to
+             guidance when nothing is charted; a season pane that renders to an
+             empty <div> reads as a broken tab rather than as "no ST data yet",
+             and the demo season has exactly zero ST snaps. */''}
+        ${[s._renderSpecialTeams(stats), s._renderConversions(stats),
+           s._renderIndividualStats(stats, 'special')].filter(Boolean).join('')
+          || '<div class="stats-section"><h3>No Special Teams snaps charted this season</h3><p>Chart kickoff, return, punt, field goal, and try units to populate this report.</p></div>'}
       </div>
       <div class="gi-subpane" data-subpane="players">
         ${this._renderWinLossSplits()}
@@ -119,6 +189,10 @@ export class SeasonManager {
       </div>
       <div class="gi-subpane" data-subpane="scout">
         ${this._renderSelfScout()}
+      </div>
+      <div class="gi-subpane" data-subpane="trends">
+        ${this._renderProgression()}
+        ${this._renderTrends()}
       </div>
     `;
     this.statsEngine._seasonLabels = null;

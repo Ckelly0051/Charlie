@@ -261,17 +261,40 @@ r = await page.evaluate(() => {
   const overviewAfter = disp('overview'), playersAfter = disp('players');
   const playersPane = pane.querySelector('.gi-subpane[data-subpane="players"]');
   const leaderboardUnderPlayers = !!playersPane?.querySelector('table.stats-table-full tr.player-row');
-  // Heat maps (SVG) live under Breakdown and still carry their inner tabs.
-  const heatUnderBreakdown = !!pane.querySelector('.gi-subpane[data-subpane="breakdown"] .heatmap-tabs');
+  // H16 — heat maps moved from the old catch-all "breakdown" pane to Offense,
+  // which is where the game report has always kept them.
+  const heatUnderOffense = !!pane.querySelector('.gi-subpane[data-subpane="offense"] .heatmap-tabs');
+  const text = key => pane.querySelector(`.gi-subpane[data-subpane="${key}"]`)?.textContent || '';
+  // H16 — the blocks that computed correctly at season scope and were never
+  // rendered. Asserting them by NAME rather than by counting sections: a count
+  // passes as long as something is there, and the defect this closes was that
+  // the season view silently kept an old subset while the game view grew.
+  const seasonNowRenders = {
+    lensBoard: /The Five Lenses/.test(text('overview')),
+    drives: /Drives/.test(text('overview')),
+    bigPlays: /Big Plays/.test(text('overview')),
+    penalties: /Penalt/.test(text('overview')),
+    bigCalls: /Big “?\d+/.test(text('offense')) || /Core Calls|Big /.test(text('offense')),
+    epa: /Expected Points/.test(text('offense')),
+    defense: /Defensive Analytics/.test(text('defense')),
+    special: text('special').trim().length > 0,
+  };
+  // The radar asks "this game against our best" — unanswerable at season scope.
+  const radarExcluded = !/against our best/i.test(pane.textContent || '');
   return { subtabs, overviewBefore, playersBefore, overviewAfter, playersAfter,
-    headerOutsidePanes, leaderboardUnderPlayers, heatUnderBreakdown };
+    headerOutsidePanes, leaderboardUnderPlayers, heatUnderOffense, seasonNowRenders, radarExcluded };
 });
-ok(JSON.stringify(r.subtabs) === JSON.stringify(['overview', 'breakdown', 'players', 'scout']), 'four season sub-tabs render in order', JSON.stringify(r));
+ok(JSON.stringify(r.subtabs) === JSON.stringify(['overview', 'offense', 'defense', 'special', 'players', 'scout', 'trends']),
+  'season sub-tabs mirror the game report tabs, in order', JSON.stringify(r.subtabs));
+ok(Object.values(r.seasonNowRenders).every(Boolean),
+  'H16: every block the season view used to omit now renders at season scope', JSON.stringify(r.seasonNowRenders));
+ok(r.radarExcluded,
+  'H16: the game-vs-season-best radar is excluded at season scope (it would peg every axis to itself)', JSON.stringify(r));
 ok(r.headerOutsidePanes, 'KPI header stays above the sub-nav (always visible)', JSON.stringify(r));
 ok(r.overviewBefore === 'block' && r.playersBefore === 'none', 'Overview is the default sub-pane', JSON.stringify(r));
 ok(r.overviewAfter === 'none' && r.playersAfter === 'block', 'clicking a sub-tab swaps the visible pane', JSON.stringify(r));
 ok(r.leaderboardUnderPlayers, 'player leaderboard lives under the Players sub-tab', JSON.stringify(r));
-ok(r.heatUnderBreakdown, 'heat maps live under the Breakdown sub-tab', JSON.stringify(r));
+ok(r.heatUnderOffense, 'heat maps live under the Offense sub-tab, as in the game report', JSON.stringify(r));
 
 console.log('\n== 5. gamesChrono: undated games keep their slot (trends/progression order) ==');
 r = await page.evaluate(() => {

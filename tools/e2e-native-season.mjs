@@ -69,13 +69,25 @@ state = await page.evaluate(() => ({
     label: card.querySelector('.ss-lbl')?.textContent.trim(),
   })),
   subTabs: [...document.querySelectorAll('[data-pane="season"] .gi-subtab')].map(button => button.textContent.trim()),
+  // A season row must resolve its own cross-game composite refs. A row still
+  // bound to the game-scope handler would show a season count and play only
+  // whichever of those snaps live in the open game.
+  seasonFilmRows: document.querySelectorAll('[data-pane="season"] [data-season-film]').length,
+  gameScopedLeaks: document.querySelectorAll('[data-pane="season"] .cut-row[data-cut-type]:not([data-season-film])').length,
   data: JSON.stringify(window.app.storage.seasonStore.data),
 }));
 const metric = label => state.summary.find(item => item.label === label)?.value;
 ok(metric('Games') === '2' && metric('Record') === '1-1' && metric('Plays') === '3' && metric('Total Yds') === '17',
   'Native Season report aggregates both games and includes an uncommitted live edit without writing it', JSON.stringify(state.summary));
-ok(state.subTabs.join('|') === 'Overview|Breakdown|Players|Self-Scout',
+// H16 — the season view is now composed from the game report's block set, so
+// its sections mirror the game tabs instead of a hand-maintained subset. The
+// old assertion pinned four labels; this pins the seven AND the film contract
+// that expanding the block set made load-bearing.
+ok(state.subTabs.join('|') === 'Overview|Offense|Defense|Special Teams|Players|Self-Scout|Trends',
   'Native Season report retains every season analysis section', JSON.stringify(state.subTabs));
+ok(state.seasonFilmRows > 0 && state.gameScopedLeaks === 0,
+  'H16: every clickable season row films the SEASON, not the active game only',
+  JSON.stringify({ seasonFilmRows: state.seasonFilmRows, gameScopedLeaks: state.gameScopedLeaks }));
 const diffAt = [...Array(Math.max(state.data.length, fixture.before.length)).keys()]
   .find(index => state.data[index] !== fixture.before[index]);
 ok(state.data === fixture.before, 'Opening and reading season analytics leaves canonical season bytes unchanged',

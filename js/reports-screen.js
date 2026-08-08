@@ -496,11 +496,66 @@ export class ReportsScreen {
     });
 
     if (this.perspective === 'self') {
-      root.querySelectorAll('.player-row[data-player]').forEach(row => {
+      // ── H16 — SEASON ROWS FILM THE SEASON, NOT THE ACTIVE GAME ─────────────
+      //
+      // Every binding below resolves through StatsEngine._watchPlays, which
+      // rebuilds its pool from `this.tagger.plays` — the ACTIVE GAME only. That
+      // is correct for a game tab and a lie in the Season pane: the row showed a
+      // season-wide count and played whichever of those snaps happened to live
+      // in the game currently open. Expanding the season block set (the rest of
+      // H16) would have multiplied that lie across every new table.
+      //
+      // Season rows now carry real `gameId::playId` composite refs, resolved by
+      // running the SAME _buildCutFilter predicate over _allPlays(), and route
+      // through FilmNavigationService — the cross-game path Study and Plan
+      // already use. A row that resolves to no playable ref loses its film
+      // affordance outright rather than offering a dead click.
+      //
+      // Bound BEFORE the generic handlers and flagged, so the game-scope
+      // selectors below skip these rows instead of double-binding them.
+      const seasonPane = root.querySelector('[data-pane="season"]');
+      if (seasonPane) {
+        const seasonPlays = this.app.season?._allPlays?.() || [];
+        const refsFor = predicate => [...new Set(seasonPlays
+          .filter(play => { try { return predicate(play); } catch { return false; } })
+          .filter(play => play?.__gid != null && play?.id != null)
+          .map(play => `${play.__gid}::${play.id}`))];
+        const wire = (row, predicate, label) => {
+          row.setAttribute('data-season-film', '');
+          const refs = refsFor(predicate);
+          if (!refs.length) {
+            row.classList.remove('cut-row', 'player-row');
+            row.removeAttribute('tabindex'); row.removeAttribute('role');
+            return;
+          }
+          row.title = `Watch ${refs.length} play${refs.length === 1 ? '' : 's'} across the season`;
+          this._makeFilmControl(row, () => this.app.filmNavigation?.watch?.(refs, { label }));
+        };
+        seasonPane.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
+          wire(row, stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal),
+            row.dataset.cutLabel || 'Season');
+        });
+        seasonPane.querySelectorAll('.player-row[data-player]').forEach(row => {
+          const num = String(row.dataset.player);
+          // Mirrors StatsEngine._watchPlayer's predicate exactly — a player
+          // value may hold several jersey numbers (shared tackles).
+          const split = stats.constructor.splitPlayers;
+          wire(row, play => Object.values(play?.tags?.players || {})
+            .some(v => split(v).includes(num)), `${stats._playerLabel(num)} — season cut-up`);
+        });
+        // Drive rows reconstruct drives per game and key on bare play ids, which
+        // collide across games. Season scope has no unambiguous cohort for them.
+        seasonPane.querySelectorAll('.drive-row[data-drive-ids]').forEach(row => {
+          row.setAttribute('data-season-film', '');
+          row.removeAttribute('data-drive-ids');
+        });
+      }
+
+      root.querySelectorAll('.player-row[data-player]:not([data-season-film])').forEach(row => {
         row.title = "Watch this player's plays";
         this._makeFilmControl(row, () => stats._watchPlayer(row.dataset.player));
       });
-      root.querySelectorAll('.cut-row[data-cut-type]').forEach(row => {
+      root.querySelectorAll('.cut-row[data-cut-type]:not([data-season-film])').forEach(row => {
         row.title = row.dataset.cutLabel ? `Watch: ${row.dataset.cutLabel}` : 'Watch these plays';
         this._makeFilmControl(row, () => {
           const filter = stats._buildCutFilter(row.dataset.cutType, row.dataset.cutVal);

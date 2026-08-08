@@ -2908,7 +2908,13 @@ export class StatsEngine {
         Charts.zoneStrip(zones))}
       ${panel('By down', 'Run/pass split and success rate per down. Success = 50% of distance on 1st, 70% on 2nd, conversion on 3rd and 4th.',
         Charts.smallMultiples(downs))}
-      ${cut ? this._renderTeamProfile(stats) : ''}`;
+      ${/* H16 — the radar is gated SEPARATELY from `cut`, not as a side effect
+            of it. It asks "how did THIS GAME do against our season best", which
+            is a question a season-scope report cannot ask of itself: every axis
+            would peg to its own maximum and the heading would read "This game
+            against our best" over six games. The season composer passes
+            { profile: false }; game tabs are unchanged. */''}
+      ${cut && opts.profile !== false ? this._renderTeamProfile(stats) : ''}`;
   }
 
   /* F12c — renders only with at least two charted games, because "compared to
