@@ -43,7 +43,7 @@
 .ws-study-row strong{overflow:hidden;text-overflow:ellipsis}.ws-study-row span{color:var(--ws-text-soft);font-variant-numeric:tabular-nums}
 .ws-study-row.is-small{opacity:.62}.ws-study-row .is-positive{color:var(--ws-green)}.ws-study-row .is-negative{color:var(--ws-red)}
 /* S6-2 pivot. Every cell is a button because every cell plays its own film.
-   Low-sample cells are dimmed and labelled, never hidden. */
+   Low-sample cells are dimmed and labeled, never hidden. */
 .ws-pivot-scroll{overflow-x:auto;max-width:100%}
 .ws-pivot{border-collapse:collapse;width:100%;font-size:12px}
 .ws-pivot-caption{caption-side:top;text-align:left;padding:0 0 8px;color:var(--ws-muted);font-size:12px}

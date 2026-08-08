@@ -1,5 +1,5 @@
 /* UX-4 (S6-4b): the shell's palette. Measured before this change, the three
-   shell stylesheets carried 89 raw colour values across 52 distinct hexes —
+   shell stylesheets carried 89 raw color values across 52 distinct hexes —
    eleven near-identical dark greys and four near-identical accent blues, each
    picked by hand at the point of use. That is not a palette, it is improvisation,
    and it is why the shell and the native routes drifted apart.
@@ -7,7 +7,7 @@
    Every SHARED role now resolves to a design-system token, so there is one
    source of truth rather than two parallel palettes. The handful of genuinely
    shell-specific roles (the blue-tinted selected surface) are declared HERE, in
-   the one place a raw colour is allowed — `e2e-design-system.mjs` enforces that
+   the one place a raw color is allowed — `e2e-design-system.mjs` enforces that
    rule for these files, exactly as it already does for the native set. */
 :root{
   --ws-ink:var(--gi-1);            /* app background, behind every route      */

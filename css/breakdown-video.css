@@ -16,19 +16,19 @@
   min-height: 38px; padding: 5px 11px; border: 1px solid #304257; border-right: 0;
   color: #aab8c8; background: #111b26; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
 }
-.bd-film-context button:first-of-type { border-radius: 4px 0 0 4px; }
-.bd-film-context button:last-child { border-right: 1px solid #304257; border-radius: 0 4px 4px 0; }
+.bd-film-context button:first-of-type { border-radius:var(--gi-radius); }
+.bd-film-context button:last-child { border-right: 1px solid #304257; border-radius:var(--gi-radius); }
 .bd-film-context button small { display: block; color: #71849a; font-size: 9px; font-weight: 600; }
 .bd-film-context button:hover { color: #f4f7fb; background: #172536; }
 .bd-film-context button.active { color: #fff; background: #1f5da9; border-color: #3c7fd2; }
 .bd-film-context button.active small { color: #dbeaff; }
 .bd-film-context button:focus-visible { position: relative; z-index: 1; outline: 2px solid #80b2ff; outline-offset: 2px; }
-.bd-customize,.bd-game { min-height: 38px; padding: 6px 10px; color: #c8d4e2; background: #111b26; border: 1px solid #304257; border-radius: 4px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.bd-customize,.bd-game { min-height: 38px; padding: 6px 10px; color: #c8d4e2; background: #111b26; border: 1px solid #304257; border-radius:var(--gi-radius); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
 .bd-customize:hover,.bd-game:hover { color: #fff; border-color: #557ca9; }
 .bd-view-switch { display: flex; }
 .bd-view-switch button { min-height: 38px; padding: 5px 10px; color: #9eafc1; background: #0e1721; border: 1px solid #304257; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
-.bd-view-switch button:first-child { border-radius: 4px 0 0 4px; }
-.bd-view-switch button:last-child { border-left: 0; border-radius: 0 4px 4px 0; }
+.bd-view-switch button:first-child { border-radius:var(--gi-radius); }
+.bd-view-switch button:last-child { border-left: 0; border-radius:var(--gi-radius); }
 .bd-view-switch button.active { color: #fff; background: #204d82; border-color: #4b83c5; }
 .bd-customize:focus-visible,.bd-game:focus-visible, .bd-view-switch button:focus-visible { outline: 2px solid #80b2ff; outline-offset: 2px; }
 .bd-play-context { min-width: 0; display: grid; grid-template-columns: auto auto; align-items: baseline; justify-content: start; gap: 2px 12px; }
@@ -37,7 +37,7 @@
 .bd-play-context > small { grid-column: 1 / -1; color: #8e9daf; font-size: 10px; }
 .bd-route-state { display: grid; justify-items: end; gap: 4px; color: #aab7c6; font-size: 11px; white-space: nowrap; }
 #bdSaveState { padding-left: 14px; position: relative; font-weight: 700; }
-#bdSaveState::before { content: ''; position: absolute; left: 1px; top: 50%; width: 7px; height: 7px; border-radius: 50%; transform: translateY(-50%); }
+#bdSaveState::before { content: ''; position: absolute; left: 1px; top: 50%; width: 7px; height: 7px; border-radius:var(--gi-radius); transform: translateY(-50%); }
 #bdSaveState.is-saved::before { background: #43b981; }
 #bdSaveState.is-pending::before { background: #e2a84a; }
 body.ws-shell-active.ws-route-breakdown .bd-coder-column .bd-head { display: none; }
@@ -86,7 +86,7 @@ body.ws-shell-active.ws-route-breakdown .breakdown-player-controls {
   width: auto;
   padding: 7px 9px;
   border: 1px solid rgba(139, 168, 207, .32);
-  border-radius: 6px;
+  border-radius:var(--gi-radius);
   background: rgba(8, 13, 19, .92);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .36);
   backdrop-filter: blur(8px);
@@ -146,8 +146,8 @@ body.ws-shell-active.ws-route-breakdown .breakdown-player-controls .video-timeli
 }
 
 .breakdown-play-track::-webkit-scrollbar { height: 8px; }
-.breakdown-play-track::-webkit-scrollbar-track { background: #111a24; border-radius: 999px; }
-.breakdown-play-track::-webkit-scrollbar-thumb { background: #50647c; border: 2px solid #111a24; border-radius: 999px; }
+.breakdown-play-track::-webkit-scrollbar-track { background: #111a24; border-radius:var(--gi-radius); }
+.breakdown-play-track::-webkit-scrollbar-thumb { background: #50647c; border: 2px solid #111a24; border-radius:var(--gi-radius); }
 .breakdown-play-track::-webkit-scrollbar-thumb:hover { background: #6f86a1; }
 
 .breakdown-play-card {
@@ -162,7 +162,7 @@ body.ws-shell-active.ws-route-breakdown .breakdown-player-controls .video-timeli
   color: #e8eef6;
   background: #111a24;
   border: 1px solid #304155;
-  border-radius: 4px;
+  border-radius:var(--gi-radius);
   cursor: pointer;
 }
 

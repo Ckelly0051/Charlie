@@ -10,7 +10,7 @@
 .gi-breakdown-commands { margin-left: auto; }
 .gi-breakdown-view { padding-left: var(--gi-2x); border-left: 1px solid var(--gi-7); }
 .gi-breakdown-save { flex: 0 0 auto; color: var(--gi-10); font: 600 11.5px/1 var(--gi-mono); }
-.gi-breakdown-save::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: var(--gi-1x); border-radius: 50%; background: var(--gi-ok); }
+.gi-breakdown-save::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: var(--gi-1x); border-radius:var(--gi-radius); background: var(--gi-ok); }
 .gi-breakdown-save.is-pending::before { background: var(--gi-first-down); }
 .gi-breakdown-composition { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(420px, 28vw, 500px); }
 .gi-breakdown-theater-host, .gi-breakdown-deck, .gi-breakdown-tagging-host, .gi-breakdown-film-room-host { min-width: 0; min-height: 0; }

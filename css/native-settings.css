@@ -65,3 +65,20 @@
 .gi-settings-danger{color:var(--gi-turnover)!important}.gi-settings-danger:hover:not(:disabled){border-color:var(--gi-turnover)!important;background:color-mix(in srgb,var(--gi-turnover) 14%,var(--gi-1))!important}
 .gi-recovery-row{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-3x);min-height:54px;padding:var(--gi-2x) var(--gi-3x);border-top:1px solid var(--gi-7)}.gi-recovery-row>div:first-child{min-width:0}.gi-recovery-row strong,.gi-recovery-row span{display:block}.gi-recovery-row strong{color:var(--gi-12);font-size:12px}.gi-recovery-row span{margin-top:var(--gi-1x);color:var(--gi-9);font-size:11.5px}.gi-recovery-row>div:last-child{display:flex;gap:var(--gi-1x)}.gi-recovery-row button{min-height:32px;padding:0 var(--gi-3x)}
 @media(max-width:700px){.gi-settings[data-native-settings] button{min-height:44px}.gi-settings-head-actions{align-items:flex-end;flex-direction:column}.gi-roster-add{grid-template-columns:70px 1fr}.gi-roster-add input:nth-child(3),.gi-roster-add select{grid-column:span 1}.gi-roster-add button{grid-column:1/-1}.gi-library-list{grid-template-columns:1fr}.gi-library-row:nth-child(even){border-left:0}.gi-filter-selects,.gi-drawing-tools{grid-template-columns:1fr}.gi-filter-group button{min-height:44px}.gi-drawing-options{align-items:stretch;flex-direction:column}.gi-library-add,.gi-recovery-create{grid-template-columns:1fr}.gi-settings-command-row{align-items:stretch;flex-direction:column}.gi-recovery-row{align-items:flex-start;flex-direction:column}.gi-recovery-row>button{width:100%}}
+
+/* ══ S6-6g — DESIGN RULES LAST ══════════════════════════════════════════════
+   The four smaller native surfaces. Same vocabulary as every route: a section
+   heading is a lower-third plate, a label is the mono label role at the shared
+   tracking token. These were already square and tokenized — what they lacked
+   was the grouping mark, so a settings panel opened from a recomposed route
+   still looked like a different product. */
+.gi-settings-section h3{
+  display:inline-flex;align-items:center;min-height:22px;margin:var(--gi-1x) 0 0;
+  padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);
+  clip-path:var(--gi-lower-third);
+  font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
+}
+/* .12em tracking on 12px mono is the pre-scale treatment — wide enough that the
+   kicker read as separated letters rather than a word. */
+.gi-settings-kicker,.gi-settings-status{
+  color:var(--gi-11);font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label)}

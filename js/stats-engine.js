@@ -1304,6 +1304,46 @@ export class StatsEngine {
     lowSample: 'Too few snaps for the number to mean much. The gate differs by report: 4 snaps for tells, 5 for formation tendencies, 2 for the coverage list.',
   };
 
+  /* G5 — surface a definition next to the term it defines.
+     The definitions have existed since the last range and nothing rendered
+     them, so the app knew what "havoc rate" meant and never said so.
+     A BUTTON, not a title attribute: `title` is invisible to touch, is not
+     focusable, and cannot be dismissed. This opens on hover, on keyboard focus
+     and on tap, and Escape closes it — the same contract every other overlay in
+     the product honors. */
+  static defMark(key) {
+    const text = StatsEngine.DEFINITIONS[key];
+    if (!text) return '';
+    return `<button type="button" class="gi-def" data-def="${Charts._esc(key)}"
+      aria-label="What this measures">i<span class="gi-def-pop" role="tooltip">${Charts._esc(text)}</span></button>`;
+  }
+
+  /* One delegated binding for the whole report. Hover and focus are CSS; this
+     owns tap (which has no hover) and Escape. */
+  static bindDefs(root) {
+    if (!root || root.dataset.defsBound === '1') return;
+    root.dataset.defsBound = '1';
+    const closeAll = () => root.querySelectorAll('.gi-def.is-open')
+      .forEach(el => el.classList.remove('is-open'));
+    root.addEventListener('click', event => {
+      const mark = event.target.closest?.('.gi-def');
+      if (!mark) { closeAll(); return; }
+      // A definition sits inside clickable rows in several reports; opening it
+      // must never also launch that row's film.
+      event.preventDefault();
+      event.stopPropagation();
+      const open = mark.classList.contains('is-open');
+      closeAll();
+      if (!open) mark.classList.add('is-open');
+    });
+    root.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && root.querySelector('.gi-def.is-open')) {
+        event.stopPropagation();
+        closeAll();
+      }
+    });
+  }
+
   _negativePlayStats(plays) {
     const list = plays || [];
     const isLoss = p => (parseInt(p.tags?.yardage, 10) || 0) < 0;
@@ -1427,7 +1467,7 @@ export class StatsEngine {
     const LABELS = ['Loss', '0', '1–3', '4–6', '7–10', '11–15', '16–20', '20+'];
     // G14/G4 — the bin owns its own tone. `charts.js` previously decided this
     // with `bin.to <= 0`, which caught the `0` bin (from -1 to 0) and painted a
-    // NO GAIN in the turnover colour. A zero-yard play is not a loss. Deriving
+    // NO GAIN in the turnover color. A zero-yard play is not a loss. Deriving
     // it here also keeps the judgement inside the engine, where the parity gate
     // and the raw-read audit can both see it.
     const bins = LABELS.map((label, index) => ({
@@ -2205,7 +2245,7 @@ export class StatsEngine {
     return `
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-sm" id="btnExportSelfScout">Export Report</button></div>
       <div class="stats-section">
-        <h3>Predictability (${report.totalPlays} run/pass plays)</h3>
+        <h3>Predictability (${report.totalPlays} run/pass plays)${StatsEngine.defMark("predictability")}</h3>
         <div class="ss-meter-wrap">
           <div class="ss-meter"><div class="ss-meter-fill" style="width:${report.predictability}%;background:${mc}"></div></div>
           <div class="ss-meter-val" style="color:${mc}">${report.predictability}<span>/100</span></div>
@@ -2214,7 +2254,7 @@ export class StatsEngine {
         <p class="viz-caption">Predictability index = (average largest run/pass share − 50) × 2, weighted by sample. 0 = balanced, 100 = one-dimensional.</p>
       </div>
       <div class="stats-section">
-        <h3>Your Top Tells</h3>
+        <h3>Top Tells${StatsEngine.defMark('tell')}</h3>
         ${this._selfScoutTellsTable(report.tells)}
       </div>
       ${this._renderSelfScoutMatrix(report.matrix)}
@@ -2742,11 +2782,14 @@ export class StatsEngine {
    * film cohort ONLY when `cut` names a filter `_buildCutFilter` already
    * defines — see the film-link note on `_renderGlance`.
    */
-  _statTile(label, value, sub, cut) {
+  /* `def` is a separate parameter for the same reason the Negative Plays row
+     takes one: `label` is escaped, so a definition button passed through it
+     would render as literal markup on screen. */
+  _statTile(label, value, sub, cut, def = '') {
     const attrs = cut
       ? ` class="gi-glance-tile cut-row" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" tabindex="0" role="button"`
       : ' class="gi-glance-tile"';
-    return `<div${attrs}><span>${Charts._esc(label)}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
+    return `<div${attrs}><span>${Charts._esc(label)}${def}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
   }
 
   _renderGlance(stats) {
@@ -2763,7 +2806,7 @@ export class StatsEngine {
     const negativeCount = e.negativePlays != null ? e.negativePlays : 0;
     const thirdLabel = d.thirdDownConv || '—';
     const turnovers = stats.turnovers?.total || 0;
-    const tile = (label, value, sub, cut) => this._statTile(label, value, sub, cut);
+    const tile = (label, value, sub, cut, def) => this._statTile(label, value, sub, cut, def);
     return `
       <aside class="gi-glance" aria-label="Game at a glance">
         <h4>Game at a Glance</h4>
@@ -2815,7 +2858,7 @@ export class StatsEngine {
     const to = stats.turnovers || {};
     const pen = stats.penalties;
     const pct = v => (v == null ? null : `${Math.round(parseFloat(v))}%`);
-    const tile = (label, value, sub, cut) => this._statTile(label, value, sub, cut);
+    const tile = (label, value, sub, cut, def) => this._statTile(label, value, sub, cut, def);
     const bucket = (label, data, val, name) => {
       if (!data || !data.total) return '';
       return tile(label, data.total, `${data.successPct}% success`, { type: 'situation', val, label: name });
@@ -2830,7 +2873,7 @@ export class StatsEngine {
     // yards live in the Yds/play sub and its TD count in the scoreboard.
     const drives = stats.drives || {};
     const efficiency = [
-      tile('Success rate', pct(e.successRate) || '—', 'on-schedule'),
+      tile('Success rate', pct(e.successRate) || '—', 'on-schedule', null, StatsEngine.defMark('successRate')),
       tile('Yds / play', StatsEngine.yardsPerPlay(stats), `${StatsEngine.totalYards(stats)} total`),
       d.thirdDownPct != null ? tile('Third down', pct(d.thirdDownPct), d.thirdDownConv || '', { type: 'down', val: '3', label: 'Third down' }) : '',
       drives.total >= 3
@@ -2841,7 +2884,7 @@ export class StatsEngine {
 
     // 2. EXPLOSIVENESS — the longest gains, and which phase produced them.
     const explosive = [
-      tile('Explosive rate', pct(e.explosivePct) || '—', `${e.explosivePlays || 0} plays`, (e.explosivePlays ? { type: 'situation', val: 'explosive', label: 'Explosive plays' } : null)),
+      tile('Explosive rate', pct(e.explosivePct) || '—', `${e.explosivePlays || 0} plays`, (e.explosivePlays ? { type: 'situation', val: 'explosive', label: 'Explosive plays' } : null), StatsEngine.defMark('explosive')),
       // The sub describes the COHORT THE TILE PLAYS, not a near-neighbour of
       // it. `passing.attempts` excludes sacks, so "3 attempts" on a tile that
       // opens 4 clips would be a small lie at the exact moment a coach checks
@@ -2879,11 +2922,14 @@ export class StatsEngine {
     // the explanation, so it renders its own body.
     const np = stats.negativePlays;
     if (np && np.distinct) {
-      const row = (label, value, cut, cls = '') => {
+      // `def` is a SEPARATE parameter, not markup smuggled through `label`.
+      // The label is escaped — passing a definition button through it would
+      // render the button as literal text on screen.
+      const row = (label, value, cut, cls = '', def = '') => {
         const attrs = cut
           ? ` class="gi-np-row cut-row${cls ? ' ' + cls : ''}" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" role="button" tabindex="0"`
           : ` class="gi-np-row${cls ? ' ' + cls : ''}"`;
-        return `<div${attrs}><span class="gi-np-label">${Charts._esc(label)}</span><span class="gi-np-value">${value}</span></div>`;
+        return `<div${attrs}><span class="gi-np-label">${Charts._esc(label)}${def}</span><span class="gi-np-value">${value}</span></div>`;
       };
       // Only Plays for Loss claims a cohort — it IS the `negative` cut, same
       // `yardage < 0` rule, so the number shown and the film played cannot
@@ -2899,11 +2945,11 @@ export class StatsEngine {
         <div class="gi-np">
           <div class="gi-np-headline">
             <b>${np.distinct}</b>
-            <span>${np.distinctPct}% of plays</span>
+            <span>${np.distinctPct}% of plays${StatsEngine.defMark('negativePlays')}</span>
           </div>
           <div class="gi-np-rows">
-            ${row('Turnovers', np.turnovers, null)}
-            ${np.lossTotal ? row('Plays for Loss', np.lossTotal, { type: 'situation', val: 'negative', label: 'Plays for Loss' }) : ''}
+            ${row('Turnovers', np.turnovers, null, '', StatsEngine.defMark('turnovers'))}
+            ${np.lossTotal ? row('Plays for Loss', np.lossTotal, { type: 'situation', val: 'negative', label: 'Plays for Loss' }, '', StatsEngine.defMark('playsForLoss')) : ''}
             ${kids ? `<div class="gi-np-kids">${kids}</div>` : ''}
             ${row('Penalties', np.penalties, null)}
           </div>
@@ -3754,7 +3800,7 @@ export class StatsEngine {
         ${frontRows ? `
         <h4 style="margin:16px 0 4px">Defensive Front Breakdown</h4>
         <table class="stats-table stats-table-full">
-          <thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead>
+          <thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%${StatsEngine.defMark("stopPct")}</th><th>Havoc%${StatsEngine.defMark("havoc")}</th></tr></thead>
           <tbody>${frontRows}</tbody>
         </table>` : ''}
         ${covRows ? `
@@ -5843,7 +5889,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
 <div class="card"><div class="cv">${d.incompletions}</div><div class="cl">Incompletions</div></div>
 <div class="card"><div class="cv">${d.threeAndOuts}</div><div class="cl">3-and-Outs</div></div>
 </div>
-${frontRows ? `<h3>Defensive Front</h3><table><thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%</th><th>Havoc%</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}
+${frontRows ? `<h3>Defensive Front</h3><table><thead><tr><th>Front</th><th>#</th><th>Run/Pass</th><th>Yds</th><th>Avg</th><th>Stop%${StatsEngine.defMark("stopPct")}</th><th>Havoc%${StatsEngine.defMark("havoc")}</th></tr></thead><tbody>${frontRows}</tbody></table>` : ''}
 ${covRows ? `<h3>Coverage</h3><table><thead><tr><th>Coverage</th><th>#</th><th>Comp</th><th>Inc</th><th>INT</th><th>Sack</th><th>Yds</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${covRows}</tbody></table>` : ''}
 ${blitzRows ? `<h3>Blitz Analysis</h3><table><thead><tr><th>Blitz</th><th>#</th><th>Sacks</th><th>Havoc%</th><th>Avg</th><th>Stop%</th></tr></thead><tbody>${blitzRows}</tbody></table>` : ''}`;
     this._openPrintWindow(title, body);

@@ -478,6 +478,7 @@ export class ReportsScreen {
 
   _bindContent(root) {
     const stats = this.app.stats;
+    try { stats.constructor.bindDefs(root); } catch {}
     try { stats.heatMaps.bind(root); } catch {}
     try { stats._makeSortable(root); } catch {}
     try { stats._wireSubtabs(root); } catch {}

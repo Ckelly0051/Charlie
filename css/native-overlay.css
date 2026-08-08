@@ -3,50 +3,50 @@
 .gi-overlay-layer{position:fixed;inset:0;display:grid;pointer-events:none}
 .gi-overlay-layer[inert]{visibility:visible}
 .gi-overlay-scrim{position:absolute;inset:0;background:var(--gi-scrim);backdrop-filter:blur(2px);pointer-events:auto}
-.gi-overlay-panel{position:relative;z-index:1;display:flex;flex-direction:column;max-height:calc(100vh - 48px);border:1px solid var(--gi-7);border-radius:6px;background:var(--gi-2);color:var(--gi-12);box-shadow:var(--gi-shadow-overlay);pointer-events:auto;overflow:hidden}
+.gi-overlay-panel{position:relative;z-index:1;display:flex;flex-direction:column;max-height:calc(100vh - 48px);border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-2);color:var(--gi-12);box-shadow:var(--gi-shadow-overlay);pointer-events:auto;overflow:hidden}
 .gi-overlay-dialog{z-index:720;place-items:center}
 .gi-overlay-dialog .gi-overlay-panel{width:min(520px,calc(100vw - 32px))}
 .gi-overlay-sheet{z-index:710;justify-items:end;align-items:stretch}
-.gi-overlay-sheet .gi-overlay-panel{width:min(520px,calc(100vw - 32px));height:100vh;max-height:100vh;border-radius:0;border-top:0;border-bottom:0;border-right:0}
+.gi-overlay-sheet .gi-overlay-panel{width:min(520px,calc(100vw - 32px));height:100vh;max-height:100vh;border-radius:var(--gi-radius);border-top:0;border-bottom:0;border-right:0}
 .gi-overlay-head{display:flex;align-items:flex-start;gap:18px;padding:20px 22px 16px;border-bottom:1px solid var(--gi-7)}
 .gi-overlay-head>div{min-width:0;flex:1}
 .gi-overlay-head span{display:block;color:var(--gi-11);font-size:11.5px;font-weight:700;text-transform:uppercase}
 .gi-overlay-head h2{margin:4px 0 0;font-family:var(--gi-sans);font-size:22px;line-height:1.2;letter-spacing:0}
-.gi-overlay-close{flex:0 0 auto;width:44px;height:44px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-3);color:var(--gi-12);font-size:25px}
+.gi-overlay-close{flex:0 0 auto;width:44px;height:44px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-12);font-size:25px}
 .gi-overlay-body{min-height:0;overflow:auto;padding:22px}
 .gi-overlay-body>p{margin:0;color:var(--gi-11);line-height:1.55}
 .gi-overlay-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--gi-7)}
-.gi-overlay-action{min-height:42px;padding:0 16px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-3);color:var(--gi-12);font:600 14px var(--gi-sans)}
+.gi-overlay-action{min-height:42px;padding:0 16px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-12);font:600 14px var(--gi-sans)}
 .gi-overlay-action.is-primary{border-color:var(--gi-10);background:var(--gi-9)}
 .gi-overlay-action.is-destructive{border-color:var(--gi-danger-border);background:var(--gi-danger-solid)}
 .gi-overlay-action:focus-visible,.gi-overlay-close:focus-visible,.gi-overlay-probe button:focus-visible{outline:2px solid var(--gi-10);outline-offset:2px}
 .gi-overlay-popover{z-index:920}
-.gi-popover-panel{position:fixed;visibility:hidden;display:grid;width:min(290px,calc(100vw - 16px));max-height:calc(100vh - 16px);padding:6px;border:1px solid var(--gi-7);border-radius:5px;background:var(--gi-2);box-shadow:var(--gi-shadow-overlay);pointer-events:auto;overflow:auto}
-.gi-popover-item{display:grid;gap:2px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:3px;background:transparent;color:var(--gi-12);font:600 13px var(--gi-sans);text-align:left}
+.gi-popover-panel{position:fixed;visibility:hidden;display:grid;width:min(290px,calc(100vw - 16px));max-height:calc(100vh - 16px);padding:6px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-2);box-shadow:var(--gi-shadow-overlay);pointer-events:auto;overflow:auto}
+.gi-popover-item{display:grid;gap:2px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:var(--gi-radius);background:transparent;color:var(--gi-12);font:600 13px var(--gi-sans);text-align:left}
 .gi-popover-item:hover,.gi-popover-item:focus-visible{background:var(--gi-4);outline:none}
 .gi-popover-item:focus-visible{box-shadow:inset 3px 0 0 var(--gi-10)}
 .gi-popover-item:disabled{color:var(--gi-9);cursor:not-allowed}
-.gi-popover-item.has-separator{margin-top:5px;border-top:1px solid var(--gi-7);border-radius:0 0 3px 3px;padding-top:10px}
+.gi-popover-item.has-separator{margin-top:5px;border-top:1px solid var(--gi-7);border-radius:var(--gi-radius);padding-top:10px}
 .gi-popover-item small{color:var(--gi-10);font-size:11.5px;font-weight:500}
 .gi-toast-stack{position:fixed;z-index:900;right:16px;bottom:16px;display:grid;width:min(390px,calc(100vw - 32px));gap:8px;pointer-events:none}
 body.ws-route-breakdown .gi-toast-stack{bottom:76px}
-.gi-native-toast{display:flex;align-items:center;gap:14px;min-height:52px;padding:12px 14px;border:1px solid var(--gi-info-border);border-left:4px solid var(--gi-info-accent);border-radius:4px;background:var(--gi-info-surface);color:var(--gi-on-solid);box-shadow:var(--gi-shadow-toast);font:700 12px var(--gi-sans);text-transform:uppercase;pointer-events:auto;cursor:pointer}
+.gi-native-toast{display:flex;align-items:center;gap:14px;min-height:52px;padding:12px 14px;border:1px solid var(--gi-info-border);border-left:4px solid var(--gi-info-accent);border-radius:var(--gi-radius);background:var(--gi-info-surface);color:var(--gi-on-solid);box-shadow:var(--gi-shadow-toast);font:700 12px var(--gi-sans);text-transform:uppercase;pointer-events:auto;cursor:pointer}
 .gi-native-toast>span{min-width:0;flex:1}
-.gi-native-toast button{min-height:36px;border:1px solid var(--gi-info-control-border);border-radius:3px;background:var(--gi-info-control);color:var(--gi-on-solid);font:inherit;font-size:12px;font-weight:700;text-transform:uppercase}
+.gi-native-toast button{min-height:36px;border:1px solid var(--gi-info-control-border);border-radius:var(--gi-radius);background:var(--gi-info-control);color:var(--gi-on-solid);font:inherit;font-size:12px;font-weight:700;text-transform:uppercase}
 .gi-native-toast.is-success{border-left-color:var(--gi-ok)}
 .gi-native-toast.is-warning{border-left-color:var(--gi-warn)}
 .gi-native-toast.is-error{border-color:var(--gi-danger-border);border-left-color:var(--gi-turnover);background:var(--gi-danger-surface)}
-.gi-overlay-probe{position:fixed;z-index:100;left:16px;bottom:16px;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--gi-7);border-radius:5px;background:var(--gi-2);color:var(--gi-12)}
+.gi-overlay-probe{position:fixed;z-index:100;left:16px;bottom:16px;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-2);color:var(--gi-12)}
 .gi-overlay-probe strong{font-size:12px}
-.gi-overlay-probe button{min-height:36px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-3);color:var(--gi-12)}
+.gi-overlay-probe button{min-height:36px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-12)}
 .gi-overlay-probe output{min-width:90px;color:var(--gi-11);font-size:12px}
 .gi-probe-field{display:grid;gap:8px;color:var(--gi-11);font-size:12px}
-.gi-probe-field input{height:44px;border:1px solid var(--gi-7);border-radius:4px;background:var(--gi-1);color:var(--gi-12);padding:0 10px}
+.gi-probe-field input{height:44px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-1);color:var(--gi-12);padding:0 10px}
 @media(max-width:700px){
   .gi-overlay-dialog{align-items:center}
   .gi-overlay-dialog .gi-overlay-panel{width:calc(100vw - 20px)}
   .gi-overlay-sheet{align-items:end;justify-items:stretch}
-  .gi-overlay-sheet .gi-overlay-panel{width:100%;height:auto;max-height:calc(100vh - 20px);border:1px solid var(--gi-7);border-radius:6px 6px 0 0}
+  .gi-overlay-sheet .gi-overlay-panel{width:100%;height:auto;max-height:calc(100vh - 20px);border:1px solid var(--gi-7);border-radius:var(--gi-radius)}
   .gi-overlay-actions{flex-direction:column-reverse}
   .gi-overlay-action{width:100%;min-height:44px}
   .gi-toast-stack{top:auto;right:10px;bottom:72px;width:calc(100vw - 20px)}
@@ -60,3 +60,38 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .gi-popover-heading{margin:6px 0 2px;padding:0 10px;color:var(--gi-7);font:800 11.5px/1.4 var(--gi-sans);letter-spacing:.045em;text-transform:uppercase}
 .gi-popover-heading.has-separator{margin-top:10px;padding-top:8px;border-top:1px solid var(--gi-5)}
 .gi-popover-item.is-selected{background:var(--gi-4);box-shadow:inset 3px 0 0 var(--gi-10)}
+/* ══ S6-6e — DESIGN RULES LAST ══════════════════════════════════════════════
+   Overlays open OVER every recomposed route, so a rounded, differently-typed
+   dialog was the most visible seam left in the product: a square Reports page
+   opening a rounded panel. Two token misuses were sitting here as well, and
+   both are real rather than cosmetic — a border token used as text color, and
+   the accent blue used for disabled text, which reads as "clickable". */
+
+/* Panel head takes the route vocabulary: eyebrow plate, condensed title. */
+.gi-overlay-head span{
+  display:inline-flex;align-items:center;min-height:20px;
+  margin-bottom:6px;padding:0 18px 0 8px;
+  background:var(--gi-3);color:var(--gi-12);clip-path:var(--gi-lower-third);
+  font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
+}
+.gi-overlay-head h2{font-family:var(--gi-cond);font-size:24px;letter-spacing:0}
+
+/* --gi-7 is a BORDER token. Used as text it sat at roughly 3:1 on the panel and
+   read as disabled, on a heading that labels a group of live commands. */
+.gi-popover-heading{color:var(--gi-11);font:var(--gi-text-eyebrow);
+  letter-spacing:var(--gi-track-label)}
+
+/* --gi-9 is the SOLID ACCENT — the same blue that means "current" and
+   "interactive" everywhere else. On a disabled item it said the opposite of
+   what the state is. --gi-8 is the border-strong/disabled role. */
+.gi-popover-item:disabled{color:var(--gi-8)}
+
+/* One focus language, matching every route. */
+.gi-overlay-action:focus-visible,.gi-overlay-close:focus-visible,
+.gi-overlay-probe button:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+
+/* Toast copy is a sentence, not a label. The all-caps came from the legacy
+   toast and made a 12-word undo message read as shouting. */
+.gi-native-toast{font:var(--gi-text-control);text-transform:none}
+.gi-native-toast button{font:var(--gi-text-label);letter-spacing:var(--gi-track-label);
+  text-transform:uppercase}
