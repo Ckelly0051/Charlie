@@ -1,0 +1,232 @@
+
+== 1. Setup: team + demo season + open game ==
+
+== 2. Grid renders on demo data ==
+  PASS  grid section visible with plays
+  PASS  one row per play
+  PASS  expanded by default on widescreen
+
+== 3. Row click selects the play (click-to-seek path) ==
+  PASS  row click sets currentPlayId
+  PASS  clicked row highlighted
+  PASS  external selectPlay moves grid highlight
+
+== 4. Filters ==
+  PASS  down filter narrows to 3rd downs
+  PASS  stacking Pass matches StatsEngine.isPass count
+  PASS  "X of Y" count shown
+  PASS  Clear restores all rows
+  PASS  TD flag filter matches result splits
+  PASS  Untagged on fully-tagged demo → empty state
+
+== 5. Bulk selection + Watch fallback (no video) ==
+  PASS  Watch button shows selection count
+  PASS  no-video Watch falls back to selecting first play
+  PASS  select-all checks every visible row
+  PASS  select-all toggles off
+  PASS  Watch shows 0 + disables when selection is filtered out
+
+== 6. Collapse persistence ==
+  PASS  collapse toggles + persists
+  PASS  collapsed state survives reload
+  PASS  grid re-populated after reload (storage hook)
+
+== 7. Narrow screen defaults collapsed (fresh pref) ==
+  PASS  narrow viewport defaults to collapsed
+
+== 8. Play CRUD keeps grid in sync ==
+  PASS  play-updated refreshes row content
+
+== 8b. Undo/redo + game switch keep grid in sync (plays-loaded) ==
+  PASS  grid re-renders after history restore (undo)
+  PASS  grid re-renders after history restore (redo)
+  PASS  game switch clears row selection
+  PASS  game 2 plays render after switch
+
+== 8c. v2: tendency row + inline editing ==
+  PASS  formation tendency = top value + share
+  PASS  tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)
+  PASS  tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)
+
+== 8c-2. E3b: tendency value/share + eligible denominator across ALL SIX projected columns ==
+  PASS  coverage (Coverage Call) tendency uses the ELIGIBLE denominator — the legacy family-mapped play is excluded, not counted as a third eligible play
+  PASS  qbAlignment is a genuine editable enum column (E4-2) — confirms this proof targets the right half of the six columns
+  PASS  qbAlignment tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)
+  PASS  qbAlignment renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)
+  PASS  backfield is a genuine editable enum column (E4-2) — confirms this proof targets the right half of the six columns
+  PASS  backfield tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)
+  PASS  backfield renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)
+  PASS  strength is a genuine editable enum column (E4-2) — confirms this proof targets the right half of the six columns
+  PASS  strength tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)
+  PASS  strength renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)
+  PASS  coverageFamily is a genuine editable enum column (E4-2) — confirms this proof targets the right half of the six columns
+  PASS  coverageFamily tendency = top value + share, with the blank play EXCLUDED from the eligible denominator (2/3, not 2/4)
+  PASS  coverageFamily renders NOTHING below the minimum-3-eligible-play threshold (2 eligible plays here)
+
+== 8d. E3b/E4-2: projected cells + editable projected columns + saved-column upgrade ==
+  PASS  alignment-only play: Formation cell reads "Not charted" (never Shotgun/Unknown)
+  PASS  the "Not charted" cell carries the explanatory tooltip
+  PASS  QB Alignment column shows the projected alignment
+  PASS  structural play: Formation cell shows projected structure only
+  PASS  QB Alignment column shows alignment split out of a mixed formation
+  PASS  Coverage Family column shows the projected family
+  PASS  QB Alignment + Coverage Family are declared as genuine editable enum columns (E4-2)
+  PASS  P4 via _loadCols: NO saved preference -> new defaults
+  PASS  P4 via _loadCols: saved OLD default preset -> upgraded
+  PASS  P4 via _loadCols: saved OLD offense preset -> upgraded
+  PASS  P4 via _loadCols: saved OLD defense preset -> upgraded
+  PASS  P4 via _loadCols: CUSTOM layout preserved untouched
+  PASS  P4: the upgraded presets actually expose the new columns
+  PASS  click focuses cell, second click opens editor
+  PASS  multi-enum edit commits to tags + cell
+  PASS  tag form synced for the selected play
+  PASS  editor closes after Done
+  PASS  yardage magnitude gets Loss sign (-9)
+  PASS  Dn & Dist editor commits both fields
+
+== 8d. v2: keyboard navigation ==
+  PASS  ArrowDown moves focus to next play, same column
+  PASS  video selection follows vertical focus moves
+  PASS  Enter opens editor, Esc closes
+
+== 8e. v2: custom columns ==
+  PASS  Defense preset swaps columns
+  PASS  preset persisted to localStorage
+  PASS  checkbox adds a column (persisted)
+
+== 8f. v2: saved filters ==
+  PASS  filter saved with full criteria
+  PASS  saved filter re-applies identically
+  PASS  saved filter deletable
+
+== 9. Multi-team: add a JV team, switch between hubs ==
+  PASS  one native team selector for Mavericks
+  PASS  + Add team action present
+  PASS  native add-team dialog shows with Cancel
+  PASS  JV team added and active
+  PASS  native Hub and profile show JV
+  PASS  JV hub shows no seasons because the sample belongs to Mavericks
+  PASS  open season was closed on team switch
+
+== 10. Per-team rosters ==
+  PASS  Mavericks roster untouched by JV player
+  PASS  JV roster restored on switch back
+
+== 11. Mavericks hub still owns the sample; remove-team guard ==
+  PASS  Mavericks hub still lists the sample season
+  PASS  team with seasons cannot be removed
+  PASS  empty team gets the remove confirmation
+  PASS  JV removed and Mavericks active again
+  PASS  JV roster snapshot deleted
+  PASS  grid drops the exclusive rival: "Gain + Loss" → "Loss" (was stored as-is)
+  PASS  yardage then takes the Loss sign (-8), not flipped from a stale "Gain + Loss"
+  PASS  positive yardage with no result auto-sets Gain (mirror of the form)
+  PASS  a grid Dn&Dist edit clears _autoSit so Save & Next cannot overwrite it
+  PASS  the now-editable columns actually render a cell to interact with
+  PASS  E4-2 BEHAVIORAL: a 2nd click genuinely OPENS the editor on the new columns (not just a type declaration)
+  PASS  E4-2 BEHAVIORAL: Enter also opens the editor
+  PASS  E4-2 BEHAVIORAL: a direct _openEditor call also opens it
+  PASS  E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event
+  PASS  E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction — view/cancel never writes
+
+== 8e. E3b-P1: Formation editor projected seed + promote-on-commit ==
+  PASS  P1 seed: the Formation editor opens (seed assertions are not vacuous)
+  PASS  P1 seed: an alignment-only play seeds the REAL editor with NO active chip
+  PASS  P1 seed: a mixed play activates ONLY its structural chip in the real editor
+  PASS  P1: the structural Formation picker offers NO QB alignments
+  PASS  P1 promote: explicit commit writes the structural choice AND preserves the alignment
+  PASS  P1: an EXISTING explicit qbAlignment wins (never overwritten)
+  PASS  P1: no alignment is INVENTED when the play never had one
+  PASS  P1: editing a DIFFERENT field promotes nothing (no sibling rewrite)
+  PASS  P1: the Formation editor DOES open (so the cancel test is not vacuous)
+  PASS  P1: opening then cancelling the editor writes NOTHING
+
+== 8f. E3b-P1b: COVERAGE CALL — same promote class as Formation ==
+  PASS  P1b: the Coverage CALL picker offers NO family values (Man/Zone/Match)
+  PASS  P1b promote: explicit Coverage commit preserves the family (Man) instead of destroying it
+  PASS  P1b: an EXISTING explicit coverageFamily wins
+  PASS  P1b: no family is INVENTED when the play never had one
+  PASS  P1b: editing a DIFFERENT field promotes nothing
+
+== 8g. E3b-P1c: promotion is ONE undoable transaction (real history) ==
+  PASS  P1c prereq: a real HistoryManager is present
+  PASS  P1c prereq: real plays exist to edit
+  PASS  P1c prereq: ALL FOUR registered RELATIONSHIPS are covered by this test — enumerated by relationship, not by primary key, so Formation->Backfield cannot silently escape again
+  PASS  P1c Formation/QB Alignment: the promote+write commit records EXACTLY ONE history entry
+  PASS  P1c Formation/QB Alignment: commit wrote the primary + promoted sibling
+  PASS  P1c Formation/QB Alignment: UNDO restores the raw primary AND blank sibling TOGETHER
+  PASS  P1c Formation/QB Alignment: REDO restores the primary AND promoted sibling TOGETHER
+  PASS  P1c Formation/Backfield: the promote+write commit records EXACTLY ONE history entry
+  PASS  P1c Formation/Backfield: commit wrote the primary + promoted sibling
+  PASS  P1c Formation/Backfield: UNDO restores the raw primary AND blank sibling TOGETHER
+  PASS  P1c Formation/Backfield: REDO restores the primary AND promoted sibling TOGETHER
+  PASS  P1c Backfield/QB Alignment: the promote+write commit records EXACTLY ONE history entry
+  PASS  P1c Backfield/QB Alignment: commit wrote the primary + promoted sibling
+  PASS  P1c Backfield/QB Alignment: UNDO restores the raw primary AND blank sibling TOGETHER
+  PASS  P1c Backfield/QB Alignment: REDO restores the primary AND promoted sibling TOGETHER
+  PASS  P1c Coverage/Coverage Family: the promote+write commit records EXACTLY ONE history entry
+  PASS  P1c Coverage/Coverage Family: commit wrote the primary + promoted sibling
+  PASS  P1c Coverage/Coverage Family: UNDO restores the raw primary AND blank sibling TOGETHER
+  PASS  P1c Coverage/Coverage Family: REDO restores the primary AND promoted sibling TOGETHER
+
+== 8h. E4-2: safe Film Room editing for QB Alignment/Backfield/Strength/Coverage Family ==
+  PASS  E4-2: selecting a row (view) writes NOTHING to any of the four newly-editable projected fields
+  PASS  E4-2 prereq: the QB Alignment editor actually opened (proves the guard was lifted, not that nothing ran)
+  PASS  E4-2: opening then CANCELING the QB Alignment editor writes NOTHING
+  PASS  E4-2: an explicit Strength edit (no registered relationship) is exactly ONE history entry
+  PASS  E4-2: editing Strength touches NO other field
+  PASS  E4-2: UNDO reverts the Strength edit
+  PASS  E4-2 cross-surface parity: a Formation edit made in the GRID promotes QB Alignment identically to how the TAG FORM displays it — no divergent write path
+
+== 8i. E4-2 review fix: DIRECT commit-and-clear of QB Alignment, Backfield, and Coverage Family through the GRID, each with revisit + undo/redo ==
+  PASS  QB Alignment (from Formation): the DERIVED value is genuinely shown before any commit
+  PASS  QB Alignment (from Formation): the direct clear is EXACTLY one history entry
+  PASS  QB Alignment (from Formation): clearing the sibling strips the primary's raw token in the SAME commit
+  PASS  QB Alignment (from Formation): UNDO restores the raw legacy primary TOGETHER with the (still-derived, not explicit) sibling
+  PASS  QB Alignment (from Formation): REDO restores the stripped primary TOGETHER with the cleared sibling
+  PASS  QB Alignment (from Formation): the clear STICKS after a full grid re-render — the derived value does not silently reappear
+  PASS  Backfield (from Formation): the DERIVED value is genuinely shown before any commit
+  PASS  Backfield (from Formation): the direct clear is EXACTLY one history entry
+  PASS  Backfield (from Formation): clearing the sibling strips the primary's raw token in the SAME commit
+  PASS  Backfield (from Formation): UNDO restores the raw legacy primary TOGETHER with the (still-derived, not explicit) sibling
+  PASS  Backfield (from Formation): REDO restores the stripped primary TOGETHER with the cleared sibling
+  PASS  Backfield (from Formation): the clear STICKS after a full grid re-render — the derived value does not silently reappear
+  PASS  Coverage Family (from Coverage): the DERIVED value is genuinely shown before any commit
+  PASS  Coverage Family (from Coverage): the direct clear is EXACTLY one history entry
+  PASS  Coverage Family (from Coverage): clearing the sibling strips the primary's raw token in the SAME commit
+  PASS  Coverage Family (from Coverage): UNDO restores the raw legacy primary TOGETHER with the (still-derived, not explicit) sibling
+  PASS  Coverage Family (from Coverage): REDO restores the stripped primary TOGETHER with the cleared sibling
+  PASS  Coverage Family (from Coverage): the clear STICKS after a full grid re-render — the derived value does not silently reappear
+
+== 8j. E4-2 review fix: the combined "Pistol backfield + Empty formation" case, exercised through the GRID ==
+  PASS  prereq: the fixture genuinely projects as Pistol / Ace / Empty
+  PASS  the Formation commit through the grid is EXACTLY one history entry
+  PASS  a GRID Formation commit preserves BOTH promotions (QB Alignment AND Backfield) — neither is lost
+  PASS  UNDO restores the raw legacy Formation and Backfield ("Pistol") together, removing only the PROMOTED QB Alignment
+  PASS  REDO restores the commit and BOTH promoted siblings together
+
+== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==
+  PASS  formation: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)
+  PASS  formation: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value
+  PASS  formation: rendered group SET is complete — no value silently dropped
+  PASS  qbAlignment: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)
+  PASS  qbAlignment: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value
+  PASS  qbAlignment: rendered group SET is complete — no value silently dropped
+  PASS  backfield: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)
+  PASS  backfield: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value
+  PASS  backfield: rendered group SET is complete — no value silently dropped
+  PASS  strength: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)
+  PASS  strength: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value
+  PASS  strength: rendered group SET is complete — no value silently dropped
+  PASS  coverage: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)
+  PASS  coverage: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value
+  PASS  coverage: rendered group SET is complete — no value silently dropped
+  PASS  coverageFamily: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)
+  PASS  coverageFamily: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value
+  PASS  coverageFamily: rendered group SET is complete — no value silently dropped
+  PASS  the legacy mixed play (9002) projects into the SAME rendered Shotgun group as the modern play (9001) — composite refs
+  PASS  a MULTI-structural formation play (9009, "Trips + Bunch") lands in BOTH rendered groups, alongside their single-value siblings
+  PASS  Watch receives EXACTLY the COMPOSITE refs of the selected rendered row group, no more, no fewer
+
+== RESULT: 179 passed, 0 failed ==
+No console/page errors.

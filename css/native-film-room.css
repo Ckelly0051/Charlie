@@ -51,4 +51,41 @@
 .gi-film-save-filter{display:grid;gap:7px;color:var(--gi-11);font:700 12px var(--gi-sans)}
 @media(max-width:900px){.gi-film-room-head{align-items:flex-start;flex-wrap:wrap}.gi-film-room-actions{width:100%;margin-left:0;overflow-x:auto}.gi-film-column-list{grid-template-columns:1fr}.gi-film-table-wrap thead th{min-width:110px}}
 @media(pointer:coarse){.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:44px}.gi-film-filters button{min-height:44px}.gi-film-table-wrap th,.gi-film-table-wrap td{height:44px}.gi-film-table-wrap td>button{min-height:44px}.gi-film-table-wrap input[type="checkbox"]{width:20px;height:20px}}
+/* ══ S6-6b — DESIGN RULES LAST ═══════════════════════════════════════════════
+
+   THE EYEBROW WAS BUILT AND THEN HIDDEN. `native-film-room.jsx:160` renders
+   `<span class="gi-eyebrow">Breakdown table</span>` and line 6 of this file
+   clipped it to 1x1px. The identical span in native-tagging.css:21 is visible.
+   Same component, same class, opposite treatment — so the two halves of Break
+   Down disagreed about whether a route announces itself. It announces itself,
+   and it does it with the system's one diagonal. */
+.gi-film-room-head .gi-eyebrow{
+  position:static;width:auto;height:auto;overflow:visible;clip-path:var(--gi-lower-third);
+  display:inline-flex;align-items:center;align-self:center;min-height:22px;
+  padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);
+  font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
+}
+
+/* SQUARE. `--gi-radius` is 0 because broadcast graphics are angular; this file
+   hard-coded 3px on every control and 2px on the play badge, so Film Room was
+   the one route with rounded corners. */
+.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button,
+.gi-film-cell-editor input,.gi-film-save-filter input,
+.gi-film-table-wrap .is-play button span{border-radius:var(--gi-radius)}
+
+/* ONE FOCUS LANGUAGE. Everywhere else focus is the two-ring `--gi-focus`
+   shadow; here it was a flat outline, so tabbing between the deck and the
+   table changed what focus looked like mid-keyboard-pass. */
+.gi-film-room button:focus-visible,.gi-film-columns button:focus-visible,
+.gi-film-cell-editor button:focus-visible,.gi-film-cell-editor input:focus-visible,
+.gi-film-save-filter input:focus-visible,.gi-film-table-wrap td>button:focus-visible{
+  outline:none;box-shadow:var(--gi-focus)}
+
+/* Filter chips become one segmented run rather than loose pills, matching the
+   Break Down toolbar's context switch. */
+.gi-film-filters{gap:0;padding:7px 12px}
+.gi-film-filters button{border-left-width:0}
+.gi-film-filters button:first-child{border-left-width:1px}
+.gi-film-filters button.is-active{box-shadow:inset 0 -2px 0 var(--gi-los)}
+
 @media(max-width:600px){.gi-film-room-head{padding:8px}.gi-film-filters{padding:6px 8px}.gi-film-room-actions button{padding:0 9px}.gi-film-room-head h2{font-size:16px}.gi-film-room-head p{font-size:11.5px}}

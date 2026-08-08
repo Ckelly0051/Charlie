@@ -1,0 +1,121 @@
+=== BUILD ===
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+=== GATE ===
+ok   e2e-addfiles-race.mjs                         2s  == RESULT: 4 passed, 0 failed ==
+ok   e2e-analytics-projection.mjs                  2s  == RESULT: 43 passed, 0 failed ==
+ok   e2e-analytics-registry.mjs                    3s  == RESULT: 25 passed, 0 failed ==
+ok   e2e-b2-tries.mjs                              0s  == RESULT: 13 passed, 0 failed ==
+ok   e2e-beta-config.mjs                           0s  == RESULT: 3 passed, 0 failed ==
+ok   e2e-breakdown-a11y.mjs                        2s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-breakdown-form.mjs                        7s  == RESULT: 60 passed, 0 failed ==
+ok   e2e-breakdown-geometry.mjs                    3s  == RESULT: 12 passed, 0 failed ==
+ok   e2e-breakdown-lifecycle.mjs                   3s  == RESULT: 16 passed, 0 failed ==
+ok   e2e-breakdown-video.mjs                       2s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-catalog-backend.mjs                       2s  == RESULT: 6 passed, 0 failed ==
+ok   e2e-catalog-fuzzer.mjs                        1s  == RESULT: 1 passed, 0 failed ==
+ok   e2e-catalog-persistence.mjs                   0s  == RESULT: 50 passed, 0 failed ==
+ok   e2e-catalog-versions.mjs                      0s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-clip-identity.mjs                         2s  ALL PASS — 18 passed, 0 failed
+ok   e2e-clip-match.mjs                            0s  == RESULT: 15 passed, 0 failed ==
+ok   e2e-core.mjs                                  2s  == RESULT: 25 passed, 0 failed ==
+ok   e2e-cross-game-cutup.mjs                      0s  == RESULT: 13 passed, 0 failed ==
+ok   e2e-crosstab.mjs                              2s  == RESULT: 20 passed, 0 failed ==
+ok   e2e-csv-projection.mjs                        3s  == RESULT: 22 passed, 0 failed ==
+ok   e2e-csv-roundtrip.mjs                         2s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-delete-undo-film.mjs                      2s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-design-system.mjs                         0s  == RESULT: 16 passed, 0 failed ==
+ok   e2e-field-fixes.mjs                           3s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-film-index.mjs                            2s  ALL PASS — 9 passed, 0 failed
+ok   e2e-film-load-race.mjs                        2s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-film-navigation.mjs                       0s  == RESULT: 24 passed, 0 failed ==
+ok   e2e-film-persist.mjs                          2s  == RESULT: 3 passed, 0 failed ==
+ok   e2e-film-room.mjs                            10s  == RESULT: 179 passed, 0 failed ==
+ok   e2e-film-storage-setup.mjs                    7s  == RESULT: 31 passed, 0 failed ==
+ok   e2e-integrity.mjs                            21s  == RESULT: 2 passed, 0 failed ==
+ok   e2e-legacy-film-fields.mjs                    0s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-linked-film.mjs                           0s  ALL PASS — 40 passed, 0 failed
+ok   e2e-mark-flow.mjs                            10s  == RESULT: 11 passed, 0 failed ==
+ok   e2e-multi-angle.mjs                           2s  == RESULT: 6 passed, 0 failed ==
+ok   e2e-native-breakdown-theater.mjs              3s  == RESULT: 22 passed, 0 failed ==
+ok   e2e-native-film-room.mjs                      2s  == RESULT: 24 passed, 0 failed ==
+ok   e2e-native-game.mjs                           2s  == RESULT: 16 passed, 0 failed ==
+ok   e2e-native-overlay.mjs                        3s  == RESULT: 42 passed, 0 failed ==
+ok   e2e-native-quick-chart.mjs                    2s  == RESULT: 12 passed, 0 failed ==
+ok   e2e-native-recovery.mjs                       3s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-native-reports.mjs                        4s  == RESULT: 39 passed, 0 failed ==
+ok   e2e-native-season.mjs                         2s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-native-settings.mjs                       2s  == RESULT: 19 passed, 0 failed ==
+FAIL e2e-native-tagging.mjs                        2s  (exit 1) <no result line — crashed?>
+       
+       == 1. Native owner and complete capability manifest ==
+         PASS  One native owner mounts and compatibility markup is off-screen
+         PASS  Visible markup is Preact-owned, not a legacy clone
+         PASS  Every standard offense/defense/situation field has a native owner
+         PASS  Charting context is unit plus the relocated direction control, with no perspective picker
+         PASS  The charting header itself carries only the unit control
+         PASS  Unit is a one-click segmented control, not a dropdown
+         PASS  Templates, diagram, OCR, detection, commit, drive, and customization remain reachable
+         PASS  Native route has one charting-unit owner and one shared library editor seam
+         PASS  Every production offense, defense, player, custom, note, and situation control remains present in the native form
+         PASS  Formation and Backfield expose distinct football-correct I/Split vocabularies
+         PASS  Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position
+         PASS  Punt moves behind More while common results remain one row
+         PASS  Common results and More fit the production-width tag column without horizontal scrolling
+         PASS  Yardage input reserves enough width for three digits and spinner controls
+         PASS  Coach section expansion survives native state updates
+       
+       == 2. Context lifecycle and isolation ==
+       node:internal/modules/run_main:107
+           triggerUncaughtException(
+           ^
+       
+       Error [TypeError]: Cannot read properties of null (reading 'value')
+           at evaluate (evaluate at file:///C:/Users/charl/Charlie/tools/e2e-native-tagging.mjs:93:18, <anonymous>:0:201)
+           at #evaluate (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:388:19)
+           at async ExecutionContext.evaluate (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:274:16)
+           at async IsolatedWorld.evaluate (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/cdp/IsolatedWorld.js:102:16)
+           at async CdpFrame.evaluate (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:359:20)
+           at async CdpPage.evaluate (file:///C:/Users/charl/Charlie/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:826:20)
+           at async file:///C:/Users/charl/Charlie/tools/e2e-native-tagging.mjs:93:7
+       
+       Node.js v24.15.0
+ok   e2e-native-team-hub.mjs                       7s  == RESULT: 18 passed, 0 failed ==
+ok   e2e-onboarding.mjs                            5s  == RESULT: 32 passed, 0 failed ==
+ok   e2e-operation-diff.mjs                        1s  == RESULT: 9 passed, 0 failed ==
+ok   e2e-p0-capabilities.mjs                       0s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-p0-exit.mjs                               0s  == RESULT: 17 passed, 0 failed ==
+ok   e2e-parity.mjs                                3s  == RESULT: 2 passed, 0 failed ==
+ok   e2e-penalty-contract.mjs                      0s  == RESULT: 7 passed, 0 failed ==
+ok   e2e-plan-contract.mjs                         0s  == RESULT: 32 passed, 0 failed ==
+ok   e2e-plan-export.mjs                           0s  == RESULT: 22 passed, 0 failed ==
+ok   e2e-projform-durability.mjs                   7s  == RESULT: 53 passed, 0 failed ==
+ok   e2e-raw-read-audit.mjs                        0s  == RESULT: 11 passed, 0 failed ==
+ok   e2e-realdata.mjs                             20s  == RESULT: 13 passed, 0 failed ==
+ok   e2e-relink-legacy.mjs                         2s  ALL PASS — 7 passed, 0 failed
+ok   e2e-relink-linked.mjs                         2s  == RESULT: 8 passed, 0 failed ==
+ok   e2e-responsive-containment.mjs               15s  == RESULT: 105 passed, 0 failed ==
+ok   e2e-restore-point-throttling.mjs              2s  == RESULT: 5 passed, 0 failed ==
+ok   e2e-s5c-preflight.mjs                         3s  == RESULT: 10 passed, 0 failed ==
+ok   e2e-season-tab.mjs                           10s  == RESULT: 157 passed, 0 failed ==
+ok   e2e-self-scout.mjs                            5s  == RESULT: 41 passed, 0 failed ==
+ok   e2e-special-teams-contract.mjs                0s  == RESULT: 20 passed ==
+ok   e2e-sql-catalog.mjs                           0s  ALL PASS — 17 passed, 0 failed
+ok   e2e-sql-fuzzer.mjs                            2s  ALL PASS — 16 campaigns clean, 0 failures
+ok   e2e-study-plan.mjs                            0s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-study-query.mjs                           2s  == RESULT: 35 passed, 0 failed ==
+ok   e2e-study-screen.mjs                          6s  == RESULT: 79 passed, 0 failed ==
+ok   e2e-tag-fields.mjs                            3s  == RESULT: 15 passed, 0 failed ==
+ok   e2e-tag-library-settings.mjs                  3s  == RESULT: 15 passed, 0 failed ==
+ok   e2e-tag-library.mjs                           0s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-tag-model.mjs                             0s  == RESULT: 37 passed, 0 failed ==
+ok   e2e-tag-projform.mjs                          5s  == RESULT: 54 passed, 0 failed ==
+ok   e2e-tagging.mjs                               6s  == RESULT: 28 passed, 0 failed ==
+ok   e2e-video-cors.mjs                            2s  == RESULT: 14 passed, 0 failed ==
+ok   e2e-wipe-recovery.mjs                         4s  == RESULT: 12 passed, 0 failed ==
+ok   e2e-workspace-context.mjs                     2s  == RESULT: 20 passed, 0 failed ==
+ok   e2e-workspace-shell.mjs                       9s  == RESULT: 76 passed, 0 failed ==
+ok   e2e-xss-names.mjs                             3s  == RESULT: 4 passed, 0 failed ==
+
+=== 81 harnesses | 80 green | 0 skipped | 1 failed ===
+failed: e2e-native-tagging.mjs

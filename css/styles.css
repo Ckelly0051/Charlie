@@ -7480,13 +7480,27 @@ body { font-size: 13px; }
 
 /* =====================================================================
    DESIGN DEEP-DIVE P1 — one broadcast type voice, one wordmark.
-   The condensed display face (Barlow Condensed, already embedded offline
-   for the dark stats dashboard) extends to the LIGHT chrome's display
-   roles — the scorebug voice the app already speaks when it shows stats.
-   Body text, chips and controls stay system: the face is for names,
-   labels-of-record and numerals, never for reading.
+   The condensed display face carries the app's display roles — the scorebug
+   voice it already speaks when it shows stats. Body text, chips and controls
+   stay system: the face is for names, labels-of-record and numerals, never
+   for reading.
+
+   S6-6 — `--display` NOW DERIVES FROM `--gi-cond`, it does not redeclare a
+   face. "One broadcast type voice" was written here and then quietly broken:
+   this stack resolved to Barlow Condensed (css/fonts.css) while the design
+   system's `--gi-cond` resolves to IBM Plex Sans Condensed (design-system/
+   plex.css). BOTH were bundled and BOTH were shipping, so Home, Study and
+   Plan drew their headlines in one condensed face while Reports and the
+   charting deck drew theirs in another. Two voices, neither wrong on its own,
+   and the seam only visible when you put two routes side by side.
+
+   Same shape as the S6-4d palette flip: the NAME stays so every existing
+   consumer keeps working, the SOURCE moves so there is one owner. Nothing was
+   deleted — fonts.css still bundles Barlow for the reference bundle and the
+   export/print documents in stats-engine.js, which are standalone files a
+   recipient opens outside the app.
    ===================================================================== */
-:root { --display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif; }
+:root { --display: var(--gi-cond); }
 
 /* Wordmark — ONE mark. Condensed caps, IQ in blue (the hub's gold IQ dies). */
 .app-title { font-family: var(--display); font-size: 16px; letter-spacing: .1em; }

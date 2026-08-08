@@ -1,7 +1,7 @@
 .ws-study{min-width:0;min-height:0;overflow:auto;padding:26px 30px 34px}
 .ws-study>*{max-width:1280px;margin-left:auto;margin-right:auto}
 .ws-study-head{display:flex;align-items:flex-end;gap:24px}
-.ws-study-head h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:34px;line-height:1;margin:6px 0;font-weight:800}
+.ws-study-head h1{font-family:var(--gi-cond);font-size:34px;line-height:1;margin:6px 0;font-weight:800}
 .ws-study-head p{margin:0;color:var(--ws-muted)}
 .ws-study-actions{margin-left:auto;display:flex;gap:8px}
 /* F6a (coach smoke, 1.12.0-19): seven fixed columns squeezed every select
@@ -9,13 +9,13 @@
    wrap at a width where the text actually fits. */
 .ws-study-query{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:10px;align-items:end;padding:20px 0 16px;border-bottom:1px solid var(--ws-line)}
 .ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase}
-.ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:5px;background:var(--ws-field);color:var(--ws-text);padding:0 9px;text-transform:none}
+.ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-field);color:var(--ws-text);padding:0 9px;text-transform:none}
 .ws-study-query select:disabled{opacity:.5;cursor:not-allowed}
 .ws-study-range{display:flex;align-items:end;gap:9px;padding:10px 0;border-bottom:1px solid var(--ws-line)}
 .ws-study-range[hidden]{display:none}
 .ws-study-range>strong{align-self:center;font-size:12px;text-transform:uppercase;margin-right:4px}
 .ws-study-range label{display:grid;gap:4px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase}
-.ws-study-range input{height:34px;border:1px solid var(--ws-line);border-radius:5px;background:var(--ws-field);color:var(--ws-text);padding:0 8px;color-scheme:dark}
+.ws-study-range input{height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-field);color:var(--ws-text);padding:0 8px;color-scheme:dark}
 .ws-study-range>span,.ws-study-range>small{color:var(--ws-muted);font-size:12px}
 .ws-study-range>span{padding-bottom:9px}.ws-study-range>small{margin-left:auto;padding-bottom:8px}
 .ws-study-saved{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:end}.ws-study-saved .ws-icon-btn{margin-bottom:1px}
@@ -25,10 +25,10 @@
 .ws-study-filter-head span{font-size:12px;color:var(--ws-muted)}
 .ws-study-filter-head [data-study-action="add-filter"]{margin-left:auto}
 .ws-study-filter-row{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(180px,1.5fr) minmax(130px,.8fr) 34px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--ws-line)}
-.ws-study-filter-row select{height:34px;border:1px solid var(--ws-line);border-radius:5px;background:var(--ws-field);color:var(--ws-text);padding:0 8px}
+.ws-study-filter-row select{height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-field);color:var(--ws-text);padding:0 8px}
 .ws-study-filter-values{display:flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap}
 .ws-study-filter-values>span{font-size:12px;color:var(--ws-muted)}
-.ws-study-filter-chip{height:28px;border:1px solid var(--ws-sel-line);border-radius:4px;background:var(--ws-sel);color:var(--ws-sel-text);padding:0 8px;font-size:12px}
+.ws-study-filter-chip{height:28px;border:1px solid var(--ws-sel-line);border-radius:var(--gi-radius);background:var(--ws-sel);color:var(--ws-sel-text);padding:0 8px;font-size:12px}
 .ws-study-summary{display:flex;align-items:baseline;gap:10px;padding:17px 0 12px}
 .ws-study-summary strong{font-size:18px}.ws-study-summary span{color:var(--ws-muted);font-size:12px}
 .ws-study-warning{padding:9px 11px;border-left:3px solid var(--ws-amber);background:var(--ws-warn-surface);color:var(--ws-amber);font-size:12px;margin-bottom:10px}
@@ -68,3 +68,50 @@
 @media(max-width:600px){.ws-study-kpis{grid-template-columns:1fr}.ws-study-kpis>div{border-left:0;border-top:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-top:0}.ws-study-chart{padding:12px}.ws-study-chart header{display:block}.ws-study-chart header span{display:block;margin-top:3px}.ws-study-bar-row,.ws-study-delta-row{grid-template-columns:minmax(90px,130px) 1fr 56px;gap:8px;font-size:12px}}
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
 .ws-study-kpis span,.ws-study-kpis small{font-size:12px}.ws-study-delta-row.is-favorable>i b{background:var(--ws-green)}.ws-study-delta-row.is-unfavorable>i b{background:var(--ws-red)}
+
+
+/* ══ S6-6d — DESIGN RULES LAST ══════════════════════════════════════════════
+   In THIS file, not in workspace-shell.css: index.html loads study-screen.css
+   after the shell, so a `.ws-study-*` rule written there loses on source order
+   at equal specificity and does nothing. That was the defect that made six
+   changes in the previous range invisible; it is cheaper to obey the load
+   order than to out-specify it. */
+
+.ws-study-head h1{font:var(--gi-text-display);font-size:34px;letter-spacing:0}
+
+/* THE SIGNATURE, ON STUDY. The query builder, the filter stack and each chart
+   are sections, and they announced themselves with 12px uppercase text. They
+   take the lower-third plate, matching Reports and Home. */
+.ws-study-filter-head>strong,.ws-study-chart>header>strong,.ws-study-range>strong{
+  display:inline-flex;align-items:center;min-height:22px;
+  padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);
+  clip-path:var(--gi-lower-third);
+  font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
+}
+.ws-study-range>strong{align-self:center;margin-right:var(--gi-1x)}
+
+/* Labels take the mono label role. `font-weight:800` uppercase sans was the
+   pre-S6-4e treatment: small type pushed heavy to stay legible, which is what
+   the type scale exists to stop. */
+.ws-study-query label,.ws-study-range label,.ws-study-table-head,
+.ws-study-kpis span,.ws-study-kpis small,.ws-study-chart>header span{
+  font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.ws-study-kpis strong{font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+.ws-study-summary strong{font:var(--gi-text-display);font-size:18px}
+
+/* HAIRLINE JOINS. The KPI band already shared seams; the pivot and the chart
+   blocks sat as separate bordered cards with gaps between them. They now read
+   as one board, the way the Reports sections do. */
+.ws-study-visuals{gap:1px;background:var(--gi-6);border:1px solid var(--gi-6)}
+.ws-study-visuals>*{border:0}
+.ws-study-kpis{border:0}
+
+/* One focus language. */
+.ws-pivot-btn:focus-visible,.ws-study-bar-row:focus-visible,
+.ws-study-delta-row:focus-visible,.ws-study-filter-chip:focus-visible{
+  outline:none;box-shadow:var(--gi-focus)}
+
+/* The pivot header row is a column label, not body text. */
+.ws-pivot thead th,.ws-pivot tfoot th{
+  font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.ws-pivot-value{font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}

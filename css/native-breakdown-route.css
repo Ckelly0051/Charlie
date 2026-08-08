@@ -39,6 +39,9 @@
 }
 @media (max-width: 620px) {
   .gi-breakdown-toolbar { padding: var(--gi-1x); gap: var(--gi-1x); }
+  /* The segmented groups below run edge-to-edge on a phone; a fixed outline
+     around a wrapping group boxes in a line break. */
+  .gi-breakdown-context, .gi-breakdown-view { flex-wrap: nowrap; }
   .gi-breakdown-toolbar button { min-height: 44px; }
   .gi-breakdown-context { order: 1; width: 100%; }
   .gi-breakdown-context button { flex: 1 0 auto; }
@@ -46,4 +49,56 @@
   .gi-breakdown-view { order: 2; margin-left: auto; padding-left: var(--gi-1x); }
   .gi-breakdown-save { order: 3; width: 100%; }
   .gi-breakdown-theater-host { min-height: 0; }
+}
+
+/* ══ S6-6a — DESIGN RULES LAST ═══════════════════════════════════════════════
+   Placed at the END of the file for the reason recorded in native-tagging.css:
+   a rule that loses on source order is invisible — the CSS is present, correct
+   and inert. Nothing generic goes in this block; catch-alls belong at the top.
+
+   THE PROBLEM THIS SOLVES. The toolbar held three groups — film context, route
+   commands, view switch — drawn identically, so a mode switch, a one-shot
+   action and a surface switch were indistinguishable. Three roles, one look.
+   They are now three shapes: context and view are SEGMENTED (joined by 1px
+   seams inside one outline, the way a picker reads), commands are QUIET (no
+   chrome until hover, the way an action reads). */
+
+.gi-breakdown-context, .gi-breakdown-view {
+  gap: 0; padding-left: 0; border: 1px solid var(--gi-7); background: var(--gi-2);
+}
+.gi-breakdown-context > button, .gi-breakdown-view > button {
+  border: 0; border-left: 1px solid var(--gi-7); background: transparent;
+}
+.gi-breakdown-context > button:first-child, .gi-breakdown-view > button:first-child { border-left: 0; }
+.gi-breakdown-context > button:hover, .gi-breakdown-view > button:hover { background: var(--gi-4); }
+/* CURRENT means one thing everywhere: the scrimmage blue, carried on an
+   underline rather than a fill so the segment still reads as one control. */
+.gi-breakdown-context > button.active, .gi-breakdown-view > button.active {
+  background: var(--gi-5); box-shadow: inset 0 -2px 0 var(--gi-los);
+}
+
+.gi-breakdown-commands > button {
+  border-color: transparent; background: transparent; color: var(--gi-11);
+}
+.gi-breakdown-commands > button:hover {
+  border-color: var(--gi-7); background: var(--gi-3); color: var(--gi-12);
+}
+
+/* S6-4e raised labels to 11.5px because legibility comes from SIZE, not
+   brightness — but the sweep never reached this file, so the film-context
+   sub-label stayed 8px mono AND was pushed to the accent blue to compensate.
+   That is the exact glow-on-near-black the sweep existed to remove. */
+.gi-breakdown-toolbar button small {
+  margin-top: 3px; color: var(--gi-11);
+  font: var(--gi-text-caption); font-family: var(--gi-mono);
+  letter-spacing: var(--gi-track-label); text-transform: uppercase;
+}
+.gi-breakdown-toolbar button.active small { color: var(--gi-12); }
+
+/* Save state is a fact, not a control — it takes the label role and a seam so
+   it stops competing with the buttons beside it. */
+.gi-breakdown-save {
+  padding-left: var(--gi-3x); border-left: 1px solid var(--gi-6);
+  color: var(--gi-11); font: var(--gi-text-label);
+  letter-spacing: var(--gi-track-label); text-transform: uppercase;
 }
