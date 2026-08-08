@@ -283,7 +283,7 @@ export class SeasonManager {
     return `
       <div class="stats-section">
         <h3>Season Progression</h3>
-        <p class="self-scout-intro">First half of the season vs. the second half — where the team is trending.</p>
+        <p class="self-scout-intro">Success rate, yards per play, third down, touchdowns per game and turnovers per game, first half of the season against the second.</p>
         ${headline}
         <div class="prog-grid">${cards}</div>
       </div>`;
@@ -393,7 +393,7 @@ export class SeasonManager {
     ];
     if (gl.total > 0) tiles.push(this._scTile('Goal Line', `${pct(gl.tds, gl.total)}%`, `${gl.tds}/${gl.total} TD`));
     return `<div class="stats-section"><h3>Situational Scorecard</h3>
-      <p class="self-scout-intro">Season efficiency in the moments that decide games.</p>
+      <p class="self-scout-intro">Third down, red zone, goal line, backed up and third-and-long conversion rates across the season.</p>
       <div class="gi-sc-grid">${tiles.join('')}</div></div>`;
   }
 
@@ -438,7 +438,7 @@ export class SeasonManager {
         + `<span class="gi-id-use">${use}%</span><span class="gi-id-succ">${x.successPct}%</span></div>`;
     }).join('');
     return `<div class="stats-section"><h3>Offensive Identity</h3>
-      <p class="self-scout-intro">What your offense actually is, season-wide — usage and how it's working.</p>
+      <p class="self-scout-intro">Snap share, success rate and yards per play for each formation, personnel group and play type across the season.</p>
       <div class="gi-id-grid">
         <div class="gi-id-col"><div class="gi-id-head">Personnel <span>use · succ</span></div>${rowsFor(pers, totP) || '<div class="gi-sc-sub">No personnel tagged.</div>'}</div>
         <div class="gi-id-col"><div class="gi-id-head">Formation <span>use · succ</span></div>${rowsFor(forms, totF) || '<div class="gi-sc-sub">No formations tagged.</div>'}</div>
@@ -466,7 +466,7 @@ export class SeasonManager {
     const w = agg(wins), l = agg(losses), sign = v => v > 0 ? `+${v}` : `${v}`;
     const row = (label, wv, lv) => `<tr><td>${label}</td><td>${wv}</td><td>${lv}</td></tr>`;
     return `<div class="stats-section"><h3>Wins vs Losses</h3>
-      <p class="self-scout-intro">Where games are won and lost — the offense across ${wins.length} win${wins.length > 1 ? 's' : ''} vs ${losses.length} loss${losses.length > 1 ? 'es' : ''}.</p>
+      <p class="self-scout-intro">Offensive success rate, yards per play and run/pass split across ${wins.length} win${wins.length > 1 ? 's' : ''} against ${losses.length} loss${losses.length > 1 ? 'es' : ''}.</p>
       <table class="stats-table gi-wl-table"><thead><tr><th></th><th>Wins</th><th>Losses</th></tr></thead><tbody>
         ${row('Yards / Play', w.ypp, l.ypp)}
         ${row('Success %', w.succ + '%', l.succ + '%')}

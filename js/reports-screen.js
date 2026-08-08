@@ -372,7 +372,7 @@ export class ReportsScreen {
         </tr></thead><tbody>${rows(list, first.toLowerCase())}</tbody></table></div>`;
 
     const changeup = join.changeups.length
-      ? `<div class="stats-section"><h3>When they change up</h3><p class="viz-caption">Fronts and coverages outside their base of ${Charts._esc(join.baseFront?.name || 'base')}, ordered by how rarely they appear.</p>
+      ? `<div class="stats-section"><h3>Fronts and coverages outside their base</h3><p class="viz-caption">Fronts and coverages outside their base of ${Charts._esc(join.baseFront?.name || 'base')}, ordered by how rarely they appear.</p>
           <table class="stats-table stats-table-full"><thead><tr><th>Front</th><th>Snaps</th><th>Yds/play</th><th>Our success</th></tr></thead>
           <tbody>${join.changeups.map(row => `<tr class="cut-row" data-opponent-refs="${Charts._esc(row.refs.join(','))}" tabindex="0" role="button"><td>${Charts._esc(row.name)}</td><td>${row.n}</td><td>${row.avg}</td><td>${row.succPct}%</td></tr>`).join('')}</tbody></table></div>` : '';
 
