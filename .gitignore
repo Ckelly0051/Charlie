@@ -27,3 +27,11 @@ tools/parity-golden/mavericks-6game.json
 tools/build_charles_kelly_resume.py
 resume_qa/
 resume_qa_rewritten/
+
+# S6-6: scratch captures, probe scripts and gate logs are LOCAL ONLY. Several
+# contain frames of the coach's real team film and screenshots of real season
+# data. A `git add -A` swept 267 of them into 7477fe2; this stops a recurrence.
+.tmp-*
+_shots-*/
+tmpdur.mjs
+tools/.tmp-*
