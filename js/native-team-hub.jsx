@@ -66,7 +66,7 @@ export function AddTeamForm({ onSubmit, onCancel }) {
    the impact summary above the field still names the games, plays and film
    affected. The summary is what makes typing the word a real decision rather
    than a speed bump, so it stays. */
-export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onSubmit, onCancel }) {
+export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onSubmit }) {
   const [typed, setTyped] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -90,7 +90,6 @@ export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onS
     <p id="giConfirmHint" class="gi-confirm-hint">This cannot be undone.</p>
     {error && <p class="gi-hub-error" role="alert">{error}</p>}
     <div class="gi-hub-form-actions">
-      <button type="button" onClick={onCancel}>Cancel</button>
       <button class="is-danger" disabled={!armed || busy}>{busy ? 'Deleting…' : (confirmLabel || 'Delete')}</button>
     </div>
   </form>;

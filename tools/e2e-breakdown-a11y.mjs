@@ -51,7 +51,7 @@ state = await page.evaluate(() => {
 });
 ok(!state.scout && state.perspective === 'offense' && state.modal && state.focused === 'perspective' && state.focusRing !== 'none',
   'Keyboard activation opens canonical Film Source settings with visible focus and no silent relabel', JSON.stringify(state));
-await page.click('[data-overlay-id="game-details"] .gi-game-actions button[type="button"]');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions button:not(.is-danger)[type="button"]');
 
 await page.evaluate(() => {
   window.__historyToastUndo = 0;

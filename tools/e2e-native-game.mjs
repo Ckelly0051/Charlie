@@ -39,7 +39,7 @@ ok(r.native === 1 && !r.legacy, 'New Game has one native owner and no legacy mod
 ok(r.focused === 'week' && /^\d{4}-\d{2}-\d{2}$/.test(r.date), 'New Game opens with deterministic focus and today as the default date', JSON.stringify(r));
 await page.click('[data-overlay-id="game-details"] [data-overlay-scrim]');
 ok(await page.evaluate(() => !!document.querySelector('[data-overlay-id="game-details"]')), 'Game form cannot be discarded by an accidental scrim click');
-await page.click('[data-native-game-form] .gi-game-actions button[type="button"]');
+await page.click('[data-native-game-form] .gi-game-actions button:not(.is-danger)[type="button"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]'));
 const afterCancel = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
 ok(beforeCancel === afterCancel, 'Canceling New Game preserves the complete season byte-for-byte');
@@ -86,7 +86,7 @@ r = await page.evaluate(() => ({ opponent: document.querySelector('[name="oppone
 ok(r.opponent === 'Bravo Bears' && r.focused === 'opponent', 'Edit Game opens pre-filled with the active game and opponent focus', JSON.stringify(r));
 const beforeEditCancel = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
 await page.$eval('[data-native-game-form] [name="opponent"]', el => { el.value = 'Discard Me'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-await page.click('[data-native-game-form] .gi-game-actions button[type="button"]');
+await page.click('[data-native-game-form] .gi-game-actions button:not(.is-danger)[type="button"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="game-details"]'));
 ok(beforeEditCancel === await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data)), 'Canceling Edit Game writes nothing');
 
@@ -100,7 +100,7 @@ await page.waitForSelector('[data-native-game-form] .gi-game-error');
 r = await page.evaluate(() => ({ error: document.querySelector('.gi-game-error')?.textContent, activeOpp: window.app.storage.seasonStore.activeGame()?.gameInfo?.opponent,
   wrong: window.app.storage.seasonStore.data.games.some(g => g.gameInfo?.opponent === 'Wrong Owner') }));
 ok(/open game changed/i.test(r.error) && r.activeOpp === 'Alpha' && !r.wrong, 'A game switch while Edit is open fails closed without cross-game writes', JSON.stringify(r));
-await page.click('[data-native-game-form] .gi-game-actions button[type="button"]');
+await page.click('[data-native-game-form] .gi-game-actions button:not(.is-danger)[type="button"]');
 
 // Canonical save failure: memory and live editor both return to the snapshot.
 await page.evaluate(async () => {

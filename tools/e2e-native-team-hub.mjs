@@ -114,10 +114,20 @@ await page.waitForFunction(() => document.activeElement?.dataset.overlayAction =
 r = await page.evaluate(() => ({
   message: document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '',
   initial: document.activeElement?.dataset.overlayAction || '',
+  cancelActions: document.querySelectorAll('[data-overlay-action="cancel"]').length,
+  deleteDisabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
 }));
 ok(/1 game/.test(r.message) && /0 plays/.test(r.message) && /Managed film copies/.test(r.message) && /Linked original folders are never deleted/.test(r.message),
   'Season delete names game/play impact and managed-versus-linked film consequences', JSON.stringify(r));
 ok(r.initial === 'cancel', 'Season delete defaults focus to Cancel', JSON.stringify(r));
+ok(r.cancelActions === 1 && r.deleteDisabled,
+  'Season delete has one service-owned Cancel action and starts disarmed', JSON.stringify(r));
+await page.type('.gi-confirm-delete input[name="confirm"]', 'dele');
+ok(await page.$eval('.gi-confirm-delete button.is-danger', button => button.disabled),
+  'An incomplete confirmation phrase cannot delete the season');
+await page.type('.gi-confirm-delete input[name="confirm"]', 'te');
+ok(await page.$eval('.gi-confirm-delete button.is-danger', button => !button.disabled),
+  'The exact confirmation phrase arms the destructive action');
 await page.click('[data-overlay-action="cancel"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-layer'));
 const afterDeleteCancel = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));

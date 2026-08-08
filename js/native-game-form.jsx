@@ -3,7 +3,7 @@ import '../css/native-game-form.css';
 
 const clean = value => String(value ?? '').trim();
 
-export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel }) {
+export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel, onDelete }) {
   const [values, setValues] = useState(initial);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -37,6 +37,6 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
       <div class="gi-game-tracked"><span>Tagged score <strong>{trackedScore.us}–{trackedScore.them}</strong></span><button type="button" onClick={applyTracked} disabled={!trackedScore.hasData}>Use tagged score</button></div>
     </fieldset>
     {error && <p class="gi-game-error" role="alert">{error}</p>}
-    <div class="gi-game-actions"><button type="button" onClick={onCancel} disabled={busy}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Saving…' : mode === 'create' ? 'Create game' : 'Save game'}</button></div>
+    <div class="gi-game-actions">{onDelete && <button type="button" class="is-danger" onClick={onDelete} disabled={busy}>Delete game</button>}<button type="button" onClick={onCancel} disabled={busy}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Saving…' : mode === 'create' ? 'Create game' : 'Save game'}</button></div>
   </form>;
 }

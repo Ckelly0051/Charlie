@@ -560,10 +560,18 @@ const negLens = await page.evaluate(() => {
     cutRows: rows.filter(r => r.cut).map(r => r.label),
     // The word "Risk" must be gone from the board entirely.
     riskGone: !document.querySelector('.gi-reports .gi-lens[data-lens="risk"]'),
+    definitions: [...(host?.querySelectorAll('.gi-def') || [])].map(button => ({
+      label: button.getAttribute('aria-label') || '',
+      text: button.querySelector('.gi-def-pop')?.textContent || '',
+      hidden: button.querySelector('.gi-def-pop')?.getAttribute('aria-hidden'),
+    })),
   };
 });
 ok(negLens.present && negLens.name === 'Negative Plays' && negLens.riskGone,
   'The Risk lens is renamed Negative Plays and no lens still calls itself Risk', JSON.stringify({ name: negLens.name, riskGone: negLens.riskGone }));
+ok(negLens.definitions.length >= 3 && negLens.definitions.every(definition => definition.hidden === 'true' && definition.text && definition.label.includes(definition.text)),
+  'Definition markers keep labels clean while exposing the complete definition in their accessible name',
+  JSON.stringify(negLens.definitions));
 ok(negLens.kidsSum === negLens.lossValue && negLens.lossValue === negLens.engine.lossTotal,
   'Sacks, runs and passes are mutually exclusive and sum exactly to Plays for Loss — no play counted twice',
   JSON.stringify({ kidsSum: negLens.kidsSum, loss: negLens.lossValue, engine: negLens.engine.lossTotal }));

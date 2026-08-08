@@ -363,6 +363,44 @@ r = await page.evaluate(() => ({ opponent: window.app.storage.seasonStore.active
   summary: document.getElementById('gameHeaderSummary')?.textContent || '' }));
 ok(r.opponent === 'Probe Rivals B' && /Rivals B/.test(r.summary), 'native edit updates the active game and summary', JSON.stringify(r));
 
+const deleteProbe = await page.evaluate(() => {
+  const store = window.app.storage.seasonStore;
+  const active = store.activeGame();
+  void window.app.gameScreen.open({ mode: 'edit' });
+  return { id: String(active.id), before: store.data.games.length, bytes: JSON.stringify(active) };
+});
+await page.waitForSelector('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
+await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
+await page.waitForSelector('.gi-overlay-panel.is-destructive .gi-confirm-delete');
+await page.waitForFunction(() => document.activeElement?.dataset.overlayAction === 'cancel');
+r = await page.evaluate(() => ({
+  layers: document.querySelectorAll('[data-overlay-id]').length,
+  cancelActions: document.querySelectorAll('.gi-overlay-panel.is-destructive [data-overlay-action="cancel"]').length,
+  disarmed: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
+}));
+ok(r.layers === 2 && r.cancelActions === 1 && r.disarmed,
+  'Native Game settings stacks one safe typed-delete decision over the edit form', JSON.stringify(r));
+await page.type('.gi-confirm-delete input[name="confirm"]', 'dele');
+ok(await page.$eval('.gi-confirm-delete button.is-danger', button => button.disabled),
+  'An incomplete phrase cannot delete a game');
+await page.click('.gi-overlay-panel.is-destructive [data-overlay-action="cancel"]');
+await page.waitForFunction(() => !document.querySelector('.gi-overlay-panel.is-destructive'));
+r = await page.evaluate(id => ({ exists: window.app.storage.seasonStore.data.games.some(game => String(game.id) === id), parent: !!document.querySelector('[data-overlay-id="game-details"]') }), deleteProbe.id);
+ok(r.exists && r.parent, 'Canceling game deletion preserves the game and returns to Game settings', JSON.stringify(r));
+await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
+await page.waitForSelector('.gi-overlay-panel.is-destructive .gi-confirm-delete');
+await page.type('.gi-confirm-delete input[name="confirm"]', 'delete');
+await page.click('.gi-confirm-delete button.is-danger');
+await page.waitForFunction(() => !document.querySelector('[data-overlay-id]'));
+r = await page.evaluate(probe => ({ count: window.app.storage.seasonStore.data.games.length, exists: window.app.storage.seasonStore.data.games.some(game => String(game.id) === probe.id), route: document.getElementById('workspaceShell')?.dataset.route, undo: document.querySelector('.gi-native-toast button')?.textContent || '' }), deleteProbe);
+ok(r.count === deleteProbe.before - 1 && !r.exists && r.route === 'home' && /Undo/.test(r.undo),
+  'Confirmed game deletion removes only that game, returns Home, and exposes Undo', JSON.stringify(r));
+await page.click('.gi-native-toast button');
+await page.waitForFunction(id => window.app.storage.seasonStore.data.games.some(game => String(game.id) === id), {}, deleteProbe.id);
+r = await page.evaluate(probe => ({ count: window.app.storage.seasonStore.data.games.length, bytes: JSON.stringify(window.app.storage.seasonStore.data.games.find(game => String(game.id) === probe.id)) }), deleteProbe);
+ok(r.count === deleteProbe.before && r.bytes === deleteProbe.bytes,
+
+  'Undo restores the deleted game byte-for-byte inside the recovery window', JSON.stringify(r));
 console.log('\n== 7. Expand-video toggle wires to the Fullscreen API ==');
 r = await page.evaluate(() => {
   const btn = document.getElementById('btnExpandVideo');

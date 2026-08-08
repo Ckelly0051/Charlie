@@ -1315,7 +1315,7 @@ export class StatsEngine {
     const text = StatsEngine.DEFINITIONS[key];
     if (!text) return '';
     return `<button type="button" class="gi-def" data-def="${Charts._esc(key)}"
-      aria-label="What this measures">i<span class="gi-def-pop" role="tooltip">${Charts._esc(text)}</span></button>`;
+      aria-label="What this measures: ${Charts._esc(text)}">i<span class="gi-def-pop" role="tooltip" aria-hidden="true">${Charts._esc(text)}</span></button>`;
   }
 
   /* One delegated binding for the whole report. Hover and focus are CSS; this
@@ -2800,7 +2800,7 @@ export class StatsEngine {
     const attrs = cut
       ? ` class="gi-glance-tile cut-row" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" tabindex="0" role="button"`
       : ' class="gi-glance-tile"';
-    return `<div${attrs}><span>${Charts._esc(label)}${def}</span><strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
+    return `<div${attrs}><span>${Charts._esc(label)}</span>${def}<strong>${Charts._esc(String(value))}</strong>${sub ? `<small>${Charts._esc(sub)}</small>` : ''}</div>`;
   }
 
   _renderGlance(stats) {
@@ -2951,7 +2951,7 @@ export class StatsEngine {
         const attrs = cut
           ? ` class="gi-np-row cut-row${cls ? ' ' + cls : ''}" data-cut-type="${cut.type}" data-cut-val="${Charts._esc(cut.val)}" data-cut-label="${Charts._esc(cut.label)}" role="button" tabindex="0"`
           : ` class="gi-np-row${cls ? ' ' + cls : ''}"`;
-        return `<div${attrs}><span class="gi-np-label">${Charts._esc(label)}${def}</span><span class="gi-np-value">${value}</span></div>`;
+        return `<div${attrs}><span class="gi-np-label">${Charts._esc(label)}</span>${def}<span class="gi-np-value">${value}</span></div>`;
       };
       // Only Plays for Loss claims a cohort — it IS the `negative` cut, same
       // `yardage < 0` rule, so the number shown and the film played cannot
@@ -2967,7 +2967,7 @@ export class StatsEngine {
         <div class="gi-np">
           <div class="gi-np-headline">
             <b>${np.distinct}</b>
-            <span>${np.distinctPct}% of plays${StatsEngine.defMark('negativePlays')}</span>
+            <span>${np.distinctPct}% of plays</span>${StatsEngine.defMark('negativePlays')}
           </div>
           <div class="gi-np-rows">
             ${row('Turnovers', np.turnovers, null, '', StatsEngine.defMark('turnovers'))}

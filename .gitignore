@@ -33,5 +33,8 @@ resume_qa_rewritten/
 # data. A `git add -A` swept 267 of them into 7477fe2; this stops a recurrence.
 .tmp-*
 _shots-*/
+
+# Local agent context is machine-specific and must not ship with the product.
+AGENTS.md
 tmpdur.mjs
 tools/.tmp-*

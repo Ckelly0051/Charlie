@@ -207,9 +207,16 @@ ok(Object.values(state.calls).every(v=>v===1),'Diagram and OCR commands reach ca
 console.log('\n== 5. Responsive geometry and exact restore ==');
 state=await page.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');return{overflow:document.documentElement.scrollWidth-innerWidth,width:root.getBoundingClientRect().width,data:JSON.stringify(app.storage.seasonStore.data)}});
 ok(state.overflow<=1&&state.width>0,'Desktop native form has no page-level horizontal overflow',JSON.stringify(state));
-await page.setViewport({width:390,height:844});
-state=await page.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');const targets=[...root.querySelectorAll('button,select,input:not([type="checkbox"]),textarea,.gi-tag-check')].filter(n=>n.getClientRects().length);return{overflow:document.documentElement.scrollWidth-innerWidth,min:Math.min(...targets.map(n=>n.getBoundingClientRect().height)),small:targets.filter(n=>n.getBoundingClientRect().height<44).map(n=>({tag:n.tagName,text:n.textContent.trim().slice(0,30),h:n.getBoundingClientRect().height,cls:n.className})).slice(0,12),count:targets.length}});
-ok(state.overflow<=1&&state.min>=44,'Mobile native form has no page overflow and keeps 44px action targets',JSON.stringify(state));
+const touchContext=await browser.createBrowserContext();
+const touchPage=await touchContext.newPage();
+await touchPage.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
+await touchPage.goto(APP_URL,{waitUntil:'networkidle0'});
+await touchPage.waitForFunction(()=>window.app?.nativeTagging&&document.querySelector('[data-native-team-hub]'));
+await touchPage.evaluate(async()=>{const app=window.app;await app.storage.createSeason({name:'Touch target probe',team:'Mavericks',year:'2026'});const store=app.storage.seasonStore,game=store.activeGame();game.plays=[{id:1,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',players:{},grades:{},custom:[]}}];await store.persist();await app.storage._loadActiveGame({renderGames:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');});
+await touchPage.waitForSelector('[data-native-tagging]');
+state=await touchPage.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');const targets=[...root.querySelectorAll('button,select,input:not([type="checkbox"]),textarea,.gi-tag-check')].filter(n=>n.getClientRects().length);return{coarse:matchMedia('(pointer:coarse)').matches,overflow:document.documentElement.scrollWidth-innerWidth,min:Math.min(...targets.map(n=>n.getBoundingClientRect().height)),small:targets.filter(n=>n.getBoundingClientRect().height<44).map(n=>({tag:n.tagName,text:n.textContent.trim().slice(0,30),h:n.getBoundingClientRect().height,cls:n.className})).slice(0,12),count:targets.length}});
+ok(state.coarse&&state.count>0&&state.overflow<=1&&state.min>=44,'Mobile native form has no page overflow and keeps 44px action targets',JSON.stringify(state));
+await touchContext.close();
 state=await page.evaluate(async()=>{
   app.workspaceShell.disable();
   const source=app.nativeTagging.source;

@@ -90,8 +90,8 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .gi-overlay-action:focus-visible,.gi-overlay-close:focus-visible,
 .gi-overlay-probe button:focus-visible{outline:none;box-shadow:var(--gi-focus)}
 
-/* Toast copy is a sentence, not a label. The all-caps came from the legacy
-   toast and made a 12-word undo message read as shouting. */
-.gi-native-toast{font:var(--gi-text-control);text-transform:none}
+/* Producers retain natural sentence copy; the visual treatment follows the
+   app-wide uppercase status language without mutating accessible text. */
+.gi-native-toast{font:var(--gi-text-control);text-transform:uppercase}
 .gi-native-toast button{font:var(--gi-text-label);letter-spacing:var(--gi-track-label);
   text-transform:uppercase}
