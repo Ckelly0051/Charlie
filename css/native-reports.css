@@ -216,7 +216,7 @@
   display:inline-flex;align-items:center;min-height:26px;
   margin:0 0 var(--gi-3x);padding:0 26px 0 12px;
   background:var(--gi-3);color:var(--gi-12);
-  clip-path:var(--gi-lower-third);
+  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font:650 11px/1 var(--gi-mono);letter-spacing:var(--gi-track-label);
   text-transform:uppercase;border:0;
 }
@@ -412,7 +412,7 @@
   display:inline-flex;align-items:center;min-height:22px;
   margin:var(--gi-4x) 0 var(--gi-2x);padding:0 20px 0 10px;
   background:var(--gi-2);color:var(--gi-11);
-  clip-path:var(--gi-lower-third);
+  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font:650 10.5px/1 var(--gi-mono);letter-spacing:var(--gi-track-label);
   text-transform:uppercase;border:0;
 }

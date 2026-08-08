@@ -71,7 +71,7 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .gi-overlay-head span{
   display:inline-flex;align-items:center;min-height:20px;
   margin-bottom:6px;padding:0 18px 0 8px;
-  background:var(--gi-3);color:var(--gi-12);clip-path:var(--gi-lower-third);
+  background:var(--gi-3);color:var(--gi-12);clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
 }
 .gi-overlay-head h2{font-family:var(--gi-cond);font-size:24px;letter-spacing:0}

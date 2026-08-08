@@ -59,6 +59,31 @@
   --gi-run:var(--gi-cat-2);    /* categorical: run                            */
   --gi-pass:var(--gi-cat-1);   /* categorical: pass                           */
 
+  /* ── MATERIAL (S6-7). The system specified GEOMETRY and COLOR and never
+   * specified how a plane sits above another plane. The result, in the coach's
+   * words: "the textures seem very flat, low res maybe... the scheme is
+   * boring." He was reading a real omission — there were exactly two shadow
+   * tokens in the whole system and both were for floating overlays, so every
+   * surface in the app was a flat fill separated by a 1px line.
+   *
+   * His own diagnosis was half right: it is not the hairline's WIDTH, it is
+   * that a hairline was the only separation device we had. These give the
+   * system a second one.
+   *
+   * EDGE LIGHT is the load-bearing token. A 1px lit top edge is what makes a
+   * dark surface read as material rather than as paint, and it costs no
+   * layout. It also does the thing the hairline alone could not: the border
+   * draws the boundary, the edge light gives it thickness. */
+  --gi-edge:inset 0 1px 0 rgba(255,255,255,.055);
+  --gi-edge-strong:inset 0 1px 0 rgba(255,255,255,.085);
+  /* Elevation, in the order a coach meets it: seated, raised, floating. */
+  --gi-raise-1:0 1px 2px rgba(0,0,0,.5);
+  --gi-raise-2:0 6px 18px rgba(0,0,0,.42);
+  --gi-raise-film:0 20px 44px rgba(0,0,0,.58);
+  /* A top-lit ramp over a flat fill. Deliberately near-invisible in isolation —
+   * it is felt across a whole panel, not seen on one. */
+  --gi-ramp:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0) 46%);
+
   /* Overlays and notices use named roles, never route-local color literals. */
   --gi-scrim:rgba(3,7,12,.76);
   --gi-shadow-overlay:0 24px 72px rgba(0,0,0,.62);
@@ -118,6 +143,12 @@
    * One diagonal exists in the whole product: the lower-third. */
   --gi-radius:0;
   --gi-lower-third:polygon(0 0,100% 0,calc(100% - 20px) 100%,0 100%);
+  /* A real broadcast lower-third is never a flat fill: it has a bright leading
+   * edge and falls off toward the cut. Ours was a flat plate with a diagonal
+   * corner, which is why the system's signature element did not read as
+   * broadcast. The leading edge is the scrimmage blue — the same "current"
+   * accent the rest of the product uses. */
+  --gi-lower-third-fill:linear-gradient(90deg,var(--gi-los) 0 3px,var(--gi-4) 3px,var(--gi-3) 55%);
 
   /* ── DENSITY. 44px is a FINGER requirement, not a law. Break Down on desktop
    * is a mouse+keyboard surface where a coach charts 60+ plays per game. */

@@ -181,7 +181,7 @@
   display: inline-flex; align-items: center; height: auto; min-height: 18px;
   margin: 0 0 var(--gi-1x); padding: 0 17px 0 7px;
   background: var(--gi-3); color: var(--gi-12);
-  clip-path: var(--gi-lower-third);
+  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font: var(--gi-text-eyebrow); letter-spacing: var(--gi-track-label);
   text-transform: uppercase;
 }

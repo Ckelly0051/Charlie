@@ -1,0 +1,80 @@
+/* ══ S6-7 — MATERIAL. THIS FILE LOADS LAST, ON PURPOSE. ═════════════════════
+   The material rules cross every route by nature — a lit edge on a control is
+   the same decision whether that control is in Reports or the shell. I first
+   appended them to native-reports.css and checked the BUILT bundle rather than
+   assuming: .gi-overlay-panel redefines box-shadow 8kb later in the output, so
+   the overlay edge light was already inert. Same source-order defect that made
+   six changes invisible last range, caught this time before it shipped.
+
+   A cross-cutting layer needs a file of its own, imported last by
+   native-root.jsx, so nothing can be appended after it by accident.
+   ═════════════════════════════════════════════════════════════════════════ */
+/* ══ S6-7 — MATERIAL ════════════════════════════════════════════════════════
+   The coach: "layout is solid, shapes are good, colors are good enough, but the
+   textures seem very flat, low res maybe... the scheme is boring."
+
+   He was reading a real omission, not a taste difference. The design system
+   specified geometry and color and never specified MATERIAL — how one plane
+   sits above another. Measured before this pass: two shadow tokens in the whole
+   system, both for floating overlays, and zero gradients. Every surface in the
+   app was a flat fill separated by a 1px line.
+
+   His own guess was that the 1px lines "leave no room for shading". Half right,
+   and the useful half: the width is not the problem, the problem is that a
+   hairline was the ONLY separation device the system had. The border draws the
+   boundary; the edge light gives it thickness. */
+
+/* CONTROLS get the lit top edge. This is the single highest-impact rule in the
+   pass and it costs no layout: on a near-black surface a 1px lit edge is what
+   separates "material" from "paint". */
+.gi-reports .gi-def,
+.gi-breakdown-toolbar button,
+.gi-icon-command,.gi-play-command,.gi-theater-command,.gi-theater-actions button,
+.gi-film-room button,.gi-tag-chips button,.gi-tag-nav > button,
+.gi-team-hub button,.gi-overlay-action,.gi-overlay-close,
+.ws-btn,.ws-icon-btn{box-shadow:var(--gi-edge)}
+
+/* The two controls that MEAN something keep their semantic fill and take the
+   stronger edge, so the lit top does not flatten them against their neighbours. */
+.gi-tag-nav .is-primary,.gi-play-command{box-shadow:var(--gi-edge-strong)}
+
+/* PANELS take a top-lit ramp. Near-invisible on one element by design — it is
+   felt across a whole panel rather than seen on any part of it. */
+.gi-breakdown-toolbar,.gi-film-room-head,.gi-tag-context,
+.gi-drive-strip,.gi-hub-head,.ws-topbar,.ws-sidebar,
+.gi-reports .stats-section{background-image:var(--gi-ramp)}
+
+/* RAISED things get real elevation instead of a border alone. */
+.gi-play-card,.gi-reports .gi-lens,.gi-reports .gi-glance-tile,
+.ws-study-kpis,.ws-plan-strip-btn{box-shadow:var(--gi-edge),var(--gi-raise-1)}
+.gi-popover-panel,.gi-overlay-panel{box-shadow:var(--gi-edge),var(--gi-shadow-overlay)}
+.gi-native-toast{box-shadow:var(--gi-edge),var(--gi-shadow-toast)}
+
+/* FILM READS AS A SCREEN, NOT A HOLE. It sits on --gi-film below the app floor
+   with no depth at all, so the brightest object on screen looked punched out of
+   the page rather than seated on it. */
+.gi-theater-media-slot > #videoContainer.gi-native-video{box-shadow:var(--gi-raise-film)}
+/* Full screen is the one place it must not have a shadow — there is no page
+   left for it to sit on. */
+#videoContainer.gi-native-video:fullscreen,
+#videoContainer.gi-native-video:-webkit-full-screen{box-shadow:none}
+
+/* Sticky rows sit ABOVE the rows they cover, so they carry the seated shadow —
+   this is also what stops a sticky header from looking like it is painted onto
+   the row beneath it while scrolling. */
+.gi-film-table-wrap thead th,.gi-reports .tm-table thead th{box-shadow:var(--gi-raise-1)}
+
+@media(prefers-reduced-transparency:reduce){
+  .gi-breakdown-toolbar,.gi-film-room-head,.gi-tag-context,.gi-drive-strip,
+  .gi-hub-head,.ws-topbar,.ws-sidebar,.gi-reports .stats-section{background-image:none}
+}
+/* CURRENT STATES CARRY BOTH. The scrimmage underline that marks "current" is a
+   box-shadow too, and at higher specificity than the material rule above — so
+   selecting a segment, a play card or a filter chip silently stripped its edge
+   light and the control went flat exactly when it mattered most. Caught in
+   computed style, not by reading: the probe returned only the underline. */
+.gi-breakdown-context > button.active,.gi-breakdown-view > button.active{
+  box-shadow:var(--gi-edge),inset 0 -2px 0 var(--gi-los)}
+.gi-play-card.is-current{box-shadow:var(--gi-edge),inset 0 -2px 0 var(--gi-los),var(--gi-raise-1)}
+.gi-film-filters button.is-active{box-shadow:var(--gi-edge),inset 0 -2px 0 var(--gi-los)}
+.gi-film-table-wrap tbody tr.is-current .is-play{box-shadow:inset 3px 0 0 var(--gi-los),var(--gi-edge)}

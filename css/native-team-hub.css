@@ -47,7 +47,7 @@
 .gi-hub-section-head h2,.gi-hub-setup-head h2{
   display:inline-flex;align-items:center;min-height:24px;margin:0;
   padding:0 24px 0 11px;background:var(--gi-3);color:var(--gi-12);
-  clip-path:var(--gi-lower-third);
+  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
 }
 /* The kicker over the team name is the route eyebrow — one tracking decision,

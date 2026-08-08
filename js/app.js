@@ -58,6 +58,13 @@ import { Updater } from './updater.js';
 import { SeasonLibrary } from './season-library.js';
 import { PlayGrid } from './play-grid.js';
 import { configureBetaDefaults } from './beta-config.js';
+// LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
+// crosses every route, so it has to win on source order against the per-route
+// stylesheets those modules pull in. Importing it after them puts it last in
+// the CSS graph. Verified in the BUILT bundle, not assumed — an earlier version
+// of this block sat inside native-reports.css and was already being overridden
+// by .gi-overlay-panel 8kb further down the output.
+import '../design-system/material.css';
 
 /**
  * Single source of truth for the displayed app version. Keep in lockstep with
@@ -65,7 +72,7 @@ import { configureBetaDefaults } from './beta-config.js';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-35';
+const APP_VERSION = '1.12.0-36';
 
 class App {
   constructor() {

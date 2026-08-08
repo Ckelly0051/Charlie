@@ -33,6 +33,6 @@
 .gi-play-import-section>header h3{
   display:inline-flex;align-items:center;min-height:22px;margin:2px 0 0;
   padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);
-  clip-path:var(--gi-lower-third);
+  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
 }

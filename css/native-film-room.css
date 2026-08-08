@@ -60,7 +60,7 @@
    Down disagreed about whether a route announces itself. It announces itself,
    and it does it with the system's one diagonal. */
 .gi-film-room-head .gi-eyebrow{
-  position:static;width:auto;height:auto;overflow:visible;clip-path:var(--gi-lower-third);
+  position:static;width:auto;height:auto;overflow:visible;clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   display:inline-flex;align-items:center;align-self:center;min-height:22px;
   padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);
   font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;

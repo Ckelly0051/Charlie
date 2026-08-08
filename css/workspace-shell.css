@@ -162,7 +162,7 @@ body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
 .ws-section-head h2{
   display:inline-flex;align-items:center;min-height:24px;margin:0 0 -1px;
   padding:0 24px 0 11px;background:var(--gi-3);color:var(--gi-12);
-  clip-path:var(--gi-lower-third);
+  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
   font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
 }
 
