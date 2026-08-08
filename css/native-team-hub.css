@@ -53,3 +53,19 @@
 /* The kicker over the team name is the route eyebrow — one tracking decision,
    taken from the token rather than retyped as .1em. */
 .gi-hub-kicker{font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);color:var(--gi-11)}
+/* J8 — the type-to-confirm gate on a destructive delete. */
+.gi-confirm-delete .gi-confirm-field{display:grid;gap:var(--gi-2x);margin:var(--gi-4x) 0 var(--gi-2x)}
+.gi-confirm-delete .gi-confirm-field>span{color:var(--gi-11);font:var(--gi-text-label);
+  letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.gi-confirm-delete .gi-confirm-field>span b{color:var(--gi-12)}
+.gi-confirm-delete input{width:100%;min-height:var(--gi-control);padding:0 var(--gi-3x);
+  border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-1);
+  color:var(--gi-12);font:600 14px var(--gi-mono)}
+.gi-confirm-delete input:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+.gi-confirm-hint{margin:0;color:var(--gi-11);font:var(--gi-text-caption)}
+/* Disabled means NOT YET ARMED, so it must read as inert rather than as a
+   button that failed. */
+.gi-confirm-delete .is-danger{border-color:var(--gi-danger-border);background:var(--gi-danger-solid);
+  color:var(--gi-on-solid)}
+.gi-confirm-delete .is-danger:disabled{border-color:var(--gi-7);background:var(--gi-3);
+  color:var(--gi-8);cursor:not-allowed}

@@ -139,3 +139,25 @@
    form, and "fill or kill" cuts toward kill when there is nothing to say. */
 .gi-native-form{padding-bottom:var(--gi-2x);align-content:start}
 .gi-breakdown-deck .gi-native-form,.gi-native-tagging .gi-native-form{min-height:0}
+/* J4 — ROSTER QUICK-PICK CHIP DENSITY (coach). "These number chips are way too
+   big. Shrink them down so they're not much bigger than the number itself.
+   Maybe a goal is to get an additional row of numbers above the scroll."
+
+   Was: 38px track, 28px tall, 3px gap — 31px per row into a 98px window, so
+   3.1 rows cleared the scroll and a two-digit number carried the footprint of a
+   button. Now 30px track, 22px tall, 2px gap = 24px per row into 100px, so
+   4.1 rows clear it. Wider tracks per row as well.
+
+   SCOPED TO FINE POINTERS ON PURPOSE. `@media(pointer:coarse)` raises these
+   chips to 44px, and this file's design block sits after that media query — an
+   unscoped rule here would win on source order and silently shrink the touch
+   target to 22px. Density is a mouse decision; 44px is a finger requirement.
+
+   What must NOT change, from S6-4g: these stay jersey NUMBERS. They previously
+   rendered `#2 Colt Mihailovich`, wider than their own card, so a roster
+   stacked one per line and ate most of the screen. And attribution stays one
+   click — quick-pick is used on nearly every defensive snap. */
+@media (pointer: fine) {
+  .gi-player-quick{grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:2px;max-height:100px}
+  .gi-player-quick button{min-height:22px;padding:0 1px;font-size:11.5px}
+}

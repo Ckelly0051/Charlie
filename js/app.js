@@ -29,6 +29,8 @@ import { ShortcutsScreen } from './shortcuts-screen.js';
 import { TeamHubScreen } from './team-hub-screen.js';
 import { GameScreen } from './game-screen.js';
 import { getNativeOverlayService } from './native-root.jsx';
+import { h } from 'preact';
+import { ConfirmDeleteForm } from './native-team-hub.jsx';
 import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
@@ -72,7 +74,7 @@ import '../design-system/material.css';
  * bundle can't read those at runtime). On desktop, the live Tauri config
  * version overrides this at runtime via Updater._currentVersion().
  */
-const APP_VERSION = '1.12.0-36';
+const APP_VERSION = '1.12.0-37';
 
 class App {
   constructor() {
@@ -491,8 +493,25 @@ class App {
 
       card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const ok = await this.tagger._confirmDialog(`Remove "Game ${idx + 1}: ${r.name}" from the season?`, 'Remove');
-        if (!ok) return;
+        // J8 — delete-game takes the same type-to-confirm gate as delete-season
+        // (coach: "delete game should get the same gate, yes").
+        //
+        // The 30-second undo below STAYS. The gate and the undo answer different
+        // failures: the gate stops the click you did not mean to make, the undo
+        // recovers the one you did. Removing either because the other exists
+        // would be the cheaper-looking and worse choice — and the undo is the
+        // only thing that brings the film back.
+        const plays = (g.plays || []).length;
+        const handle = this.overlays.dialog({
+          title: `Delete ${r.name}?`, destructive: true, actions: [],
+          content: h(ConfirmDeleteForm, {
+            impact: `${plays} charted play${plays === 1 ? '' : 's'} will be removed from this season. Film stays recoverable for ${Math.round(this.storage.undoGameWindowMs() / 1000)} seconds after deleting.`,
+            confirmLabel: 'Delete game',
+            onCancel: () => handle.close('cancel'),
+            onSubmit: async () => { handle.close('delete'); return { ok: true }; },
+          }),
+        });
+        if (await handle.result !== 'delete') return;
         this.storage.removeGame(g.id);
         this._renderGamesPanel();
         // In-situ recovery (UX audit A2): the stash-backed one-shot undo.

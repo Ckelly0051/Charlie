@@ -409,7 +409,23 @@ export class StudyScreen {
     const host = this._control('wsStudyVisuals');
     if (!groups.length) { host.innerHTML = ''; return; }
     const ranked = groups.slice().sort((a, b) => (Number(b.measures[measure]) || 0) - (Number(a.measures[measure]) || 0));
-    const top = ranked[0], max = Math.max(1, ...ranked.map(group => Math.abs(Number(group.measures[measure]) || 0)));
+    /* J10 — the "Highest <metric>" headline crowned a ONE-SNAP group. Coach:
+       "one play is not worth noting in what's supposed to be a comparative
+       stat. We need a minimum gate, at least 3-4 plays."
+
+       This is the exact class the minimum-sample control exists to prevent,
+       appearing in the one place on the screen that had no gate: the table rows
+       are gated and dimmed, the bars are drawn from the same set, and the
+       headline picked a winner from everything.
+
+       The gate is applied to the HEADLINE ONLY. The rows and bars still show
+       every group, because hiding data is not the fix — overstating it is the
+       problem. If nothing clears the gate the headline says so rather than
+       falling back to the best of the noise. */
+    const HEADLINE_MIN_N = 4;
+    const eligible = ranked.filter(group => (Number(group.sampleSize) || 0) >= HEADLINE_MIN_N);
+    const top = eligible[0] || null;
+    const max = Math.max(1, ...ranked.map(group => Math.abs(Number(group.measures[measure]) || 0)));
     const metricName = this.app.analyticsRegistry.getMeasure(measure)?.name || measure;
     const bars = ranked.slice(0, 8).map(group => {
       const index = groups.indexOf(group), value = Number(group.measures[measure]) || 0;
@@ -417,7 +433,9 @@ export class StudyScreen {
       return `<button class="ws-study-bar-row" data-study-row="${index}" aria-label="Watch ${this._esc(group.value)} film"><span>${this._esc(group.value)}</span><i aria-hidden="true"><b style="width:${width}%"></b></i><strong>${this._measure(measure, value)}</strong></button>`;
     }).join('');
     const mix = this._runPassForRefs(refs);
-    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${refs.length}</strong></div><div><span>Highest ${this._esc(metricName)}</span><strong>${this._esc(top.value)}</strong><small>${this._measure(measure, top.measures[measure])}</small></div><div><span>Run / Pass</span><strong>${this._pct(mix.run)} / ${this._pct(mix.pass)}</strong><small>${mix.classified} classified plays</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(metricName)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
+    host.innerHTML = `<section class="ws-study-kpis"><div><span>Matching plays</span><strong>${refs.length}</strong></div><div><span>Highest ${this._esc(metricName)}</span>${top
+      ? `<strong>${this._esc(top.value)}</strong><small>${this._measure(measure, top.measures[measure])} · ${top.sampleSize} snaps</small>`
+      : `<strong>—</strong><small>no group with ${HEADLINE_MIN_N}+ snaps</small>`}</div><div><span>Run / Pass</span><strong>${this._pct(mix.run)} / ${this._pct(mix.pass)}</strong><small>${mix.classified} classified plays</small></div></section><section class="ws-study-chart"><header><strong>${this._esc(metricName)} by group</strong><span>Select a bar to watch film</span></header>${bars}</section>`;
   }
 
   _renderCompareVisuals(rows, measure, aLabel, bLabel) {

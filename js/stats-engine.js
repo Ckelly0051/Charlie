@@ -2768,6 +2768,17 @@ export class StatsEngine {
    * three private copies of the same expression is exactly how two surfaces
    * end up disagreeing about one game.
    */
+  /* "1st & 10" from a play's own down and distance, or '' when either is
+     missing. One owner, so a situation never renders two ways. */
+  static situationLabel(play) {
+    const tags = play?.tags || play || {};
+    const down = String(tags.down || '').trim();
+    const dist = String(tags.distance || '').trim();
+    if (!down || !dist) return '';
+    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[down] || down;
+    return `${ord} & ${dist}`;
+  }
+
   static totalYards(stats) {
     return (stats?.rushing?.yards || 0) + (stats?.passing?.yards || 0);
   }
@@ -2811,7 +2822,18 @@ export class StatsEngine {
       <aside class="gi-glance" aria-label="Game at a glance">
         <h4>Game at a Glance</h4>
         <div class="gi-glance-grid">
-          ${tile('Plays', plays, 'charted this game')}
+          ${/* J11 — this tile said "Plays / charted this game" while reading
+                stats.totalPlays, which is offPlays.length. The Reports header
+                one section above says 67 from stats.allPlays. Two numbers, both
+                called plays, on one screen, and neither said which it was.
+                27 was never defensive snaps — it was offense only.
+
+                Every other tile in this panel is an offensive metric, so the
+                tile is correctly scoped; it was only mislabeled. It now names
+                its own scope AND carries the whole-game count, so the two
+                numbers explain each other instead of contradicting. */''}
+          ${tile('Offensive plays', plays,
+            stats.allPlays && stats.allPlays !== plays ? `of ${stats.allPlays} charted` : 'charted this game')}
           ${tile('Yds / play', ypp, `${totalYards} total`)}
           ${tile('Success rate', success, 'on-schedule')}
           ${tile('Explosives', explosiveCount, 'watch them', { type: 'situation', val: 'explosive', label: 'Explosive plays' })}
@@ -3825,7 +3847,7 @@ export class StatsEngine {
     let rows = '';
     for (const bp of stats.bigPlays) {
       rows += `<tr>
-        <td>${Charts._esc(bp.clipName)}</td>
+        <td title="${Charts._esc(bp.clipName || '')}"><strong>Play ${bp.id}</strong>${StatsEngine.situationLabel(bp) ? ` <span class="bp-sit">${Charts._esc(StatsEngine.situationLabel(bp))}</span>` : ''}</td>
         <td>${Charts._esc(bp.type)}</td>
         <td>${Charts._esc(bp.result)}</td>
         <td>${bp.yards}</td>

@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm } from './native-team-hub.jsx';
+import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, ConfirmDeleteForm } from './native-team-hub.jsx';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -87,7 +87,12 @@ export class TeamHubScreen {
     const games = live?.games || null;
     const gameCount = games ? games.length : Number(meta.games) || 0;
     const playCount = games ? games.reduce((sum, game) => sum + (game.plays?.length || 0), 0) : Number(meta.plays) || 0;
-    let film = { state: 'checking', label: current ? 'Checking film' : 'Open to check film', expected: 0, found: 0, missing: 0 };
+    // J6 — "Open to check film" described an app action and named film, when
+    // the subject of the row is the season and this cell is a STATE. It also
+    // read as a second command competing with the real `Open →` button beside
+    // it. Film health for a closed season genuinely is not known until it is
+    // opened, so the honest label says that rather than instructing.
+    let film = { state: 'checking', label: current ? 'Checking film' : 'Not checked yet', expected: 0, found: 0, missing: 0 };
     if (games) film = await this._aggregateFilm(games);
     return {
       id: String(meta.id), name: meta.name || 'Untitled Season', year: meta.year || '', level: meta.level || '',
@@ -258,14 +263,30 @@ export class TeamHubScreen {
     const linkedCopy = row.isDemo
       ? 'Your teams, roster, and other seasons are untouched.'
       : 'Managed film copies stored by GridIron IQ for this season are also removed. Linked original folders are never deleted.';
-    const choice = await this.overlays.dialog({
-      title: row.isDemo ? 'Remove sample season?' : `Delete ${row.name}?`, destructive: true, returnFocus: invoker,
-      message: `${row.gameCount} game${row.gameCount === 1 ? '' : 's'} and ${row.playCount} play${row.playCount === 1 ? '' : 's'} will be removed. ${linkedCopy}`,
-      actions: [
-        { key: 'cancel', label: 'Cancel', default: true },
-        { key: 'delete', label: row.isDemo ? 'Remove sample' : 'Delete season', tone: 'danger' },
-      ],
-    }).result;
+    const impact = `${row.gameCount} game${row.gameCount === 1 ? '' : 's'} and ${row.playCount} play${row.playCount === 1 ? '' : 's'} will be removed. ${linkedCopy}`;
+    // J8 — the sample season is disposable and regenerable, so it keeps the
+    // ordinary confirm. A real season does not: it is the largest destructible
+    // object in the product and there is no undo for it.
+    let choice;
+    if (row.isDemo) {
+      choice = await this.overlays.dialog({
+        title: 'Remove sample season?', destructive: true, returnFocus: invoker, message: impact,
+        actions: [
+          { key: 'cancel', label: 'Cancel', default: true },
+          { key: 'delete', label: 'Remove sample', tone: 'danger' },
+        ],
+      }).result;
+    } else {
+      const handle = this.overlays.dialog({
+        title: `Delete ${row.name}?`, destructive: true, returnFocus: invoker, actions: [],
+        content: h(ConfirmDeleteForm, {
+          impact, confirmLabel: 'Delete season',
+          onCancel: () => handle.close('cancel'),
+          onSubmit: async () => { handle.close('delete'); return { ok: true }; },
+        }),
+      });
+      choice = await handle.result;
+    }
     if (choice !== 'delete') return false;
     const deleted = await this._storage().deleteSeason(row.id);
     if (deleted === false) { await this.load(); return false; }

@@ -538,3 +538,30 @@
 .gi-reports .gi-np-row:last-child .gi-def-pop,
 .gi-reports .stats-section>h3 .gi-def-pop{left:0;transform:none}
 @media(pointer:coarse){.gi-reports .gi-def{width:24px;height:24px;font-size:12px}}
+
+/* J1 — SCOREBOARD ALIGNMENT (coach). "The two team names should stay entirely
+   within the width of the scoreboard cells below and should be centered
+   between them."
+   `1fr auto 1fr` made the halves equal only when the separator was narrow; a
+   long name pushed its own half wider than the quarter table underneath it, so
+   the name and the columns it labels stopped lining up. A FIXED separator
+   column makes the two halves exactly equal by construction and pins the whole
+   block to the same 520px the quarter table uses. */
+.gi-reports .scoreboard-final{
+  grid-template-columns:1fr 44px 1fr;max-width:520px;width:100%;gap:0}
+.gi-reports .scoreboard-team{max-width:100%;min-width:0;justify-items:center}
+.gi-reports .scoreboard-name{max-width:100%;text-align:center;overflow-wrap:anywhere}
+.gi-reports .scoreboard-pts{line-height:1.05}
+
+/* J13 — the dead space moved rather than closed. H14 made this two columns
+   because three left ~400px empty beside Drives; the stack then ran taller than
+   Drives and left ~370px empty BELOW it. Big Plays is a four-column table and
+   was the tallest thing in the stack, so it comes out of the row entirely and
+   runs full width, where a table belongs. What is left — Efficiency and By Down
+   — is close to the height of Drives, and both columns size to their content
+   instead of one stretching to match the other. */
+.gi-reports .gi-overview-row{align-items:start;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.gi-reports .gi-overview-row .gi-stack{align-content:start}
+
+/* J12 — the situation beside a big play's number. */
+.gi-reports .bp-sit{margin-left:var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);font-family:var(--gi-mono)}

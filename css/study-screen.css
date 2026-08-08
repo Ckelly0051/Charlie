@@ -115,3 +115,7 @@
 .ws-pivot thead th,.ws-pivot tfoot th{
   font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
 .ws-pivot-value{font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+/* J17 — the saved-view control clipped to "Choose a sa". It sits in the query
+   grid's auto-fit track (min 172px) and then gives 34px of that to its delete
+   button, leaving ~130px for a 17-character option. It takes two tracks. */
+.ws-study-query .ws-study-saved{grid-column:span 2}

@@ -50,3 +50,9 @@
 /* One focus language. */
 .ws-plan-strip-btn:focus-visible,.ws-plan-grip:focus-visible,
 .ws-present-play:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+/* J15 — "PLAN ITEMS0". The source has a space between the label and its count
+   span, but the S6-6f lower-third rule made this h2 `display:inline-flex`, and
+   whitespace between flex ITEMS collapses. My rule, my bug — the gap has to be
+   declared now that the box is a flex container. */
+.ws-plan-grid h2 span{margin-left:var(--gi-2x)}
+

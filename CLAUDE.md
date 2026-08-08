@@ -13,6 +13,103 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+
+### CLAUDE BUILD - S6-6/S6-7 + FOURTH SMOKE: 1.12.0-34 .. -37 (2026-08-08)
+
+**Builder: Claude. Range `84e9262..HEAD`. No gate was run on `-37` at the
+coach's explicit direction ("no gates"); `-34` and `-35` were both cut from
+81/81 green source. S7 remains closed. No tag or published release exists.**
+
+| Build | Contents |
+|---|---|
+| `-34` | S6-6 composition: Break Down toolbar + theater, Film Room, Home/Team Hub, Study |
+| `-35` | H16 season report; Matchup both sides; app-wide copy standard |
+| `-36` | S6-7 material layer |
+| `-37` | Fourth-smoke fixes J1/J4/J6/J8/J10/J11/J12/J13/J15/J17/J23 |
+
+**THE COMPOSITION PASS IS COMPLETE.** Nine stylesheets carry a terminal design
+block. 54 hardcoded radii removed; **zero non-zero radii remain outside
+`styles.css` and `redesign-stats.css`**, which S7 deletes. Overlays, Plan,
+Settings, Shortcuts, Play Import and Quick Chart all took the lower-third and
+the label role.
+
+**ONE BROADCAST TYPE VOICE, FOR REAL.** `styles.css` declared `--display` as
+Barlow Condensed while `--gi-cond` resolves to IBM Plex Sans Condensed. **Both
+faces were bundled and both were shipping** — Home, Study and Plan drew
+headlines in one and Reports drew them in another. `--display` now derives from
+`--gi-cond`; the name stays, the source moves, exactly the S6-4d palette shape.
+
+**S6-7 MATERIAL.** Measured before touching anything: **two shadow tokens in the
+whole system, both for floating overlays, and zero gradients.** The system
+specified geometry and color and never specified how one plane sits above
+another, which is precisely the coach's "very flat, low res maybe... boring".
+New tokens: `--gi-edge`, `--gi-raise-1/-2/-film`, `--gi-ramp`,
+`--gi-lower-third-fill`. All 13 lower-third plates now carry a broadcast leading
+edge. Film has elevation so it reads as a screen rather than a hole — and
+explicitly none in full screen, where there is no page to sit on.
+
+**H16 — the season report is composed from the game report's block set.**
+`statsHtml()` always computed correctly; the VIEW was 16 hand-maintained render
+calls that never grew. The Big 13, shape visuals, EPA, Drives, Negative Plays
+and the whole Defense/ST reports were computed at season scope and not rendered.
+Sub-tabs now mirror the game tabs with an explicit exception list (game header,
+game flow, drive chart, the radar — each with a stated reason).
+
+**Season rows now film the SEASON.** Every season row bound through
+`_watchPlays`, which rebuilds its pool from the ACTIVE game's tagger — so a
+season row showed a season-wide count and played only whichever snaps lived in
+the open game. `_allPlays()` stamps a non-enumerable `__gid`, rows resolve real
+composite refs through FilmNavigationService, and rows with no playable film
+lose the affordance rather than offering a dead click.
+
+**Matchup shows both sides.** On our defensive snap the front/coverage is ours
+but the formation/play type is THEIRS, so one rep feeds both columns. Gated on
+real offensive content so a front-only defensive rep does not pad their count.
+
+### ⚠ THE LESSON OF THIS RANGE — the copy defect, and why it took four asks
+
+**The coach asked four times to remove rhetorical sub-heads. Two causes, both
+mine, both structural:**
+
+1. **A TEST WAS ENFORCING THEM.** `e2e-native-reports` asserted every lens
+   sub-line `endsWith('?')`. Every manual removal was reverted by whoever next
+   made the gate green. Nobody could point at why it kept coming back.
+2. **THE GUARD WAS SCOPED TO REPORTS.** The replacement check inspected only the
+   Reports DOM, so it certified Reports clean while Season blocks, Team Hub,
+   Study and Plan went unchecked for the whole range.
+
+`tools/e2e-copy-standard.mjs` walks every route and both Reports perspectives —
+236 headings, 83 captions — and is mutation-verified on a NON-Reports route.
+**Stated limit: it catches interrogative openers and question captions, not
+vague prose.** That judgment no regex makes.
+
+**The same source-order defect nearly shipped twice more in this range** and was
+caught both times by checking the BUILT output instead of reasoning: Study rules
+written into `workspace-shell.css` (which loads first) would have been inert,
+and the material block appended to `native-reports.css` was already being
+overridden by `.gi-overlay-panel` 8kb further down. A cross-cutting layer now
+lives in `design-system/material.css`, imported last by `app.js`.
+
+**Also recorded: I committed 267 local-only scratch files with `git add -A`**,
+including Break Down captures of real team film. Untracked at `db3b606` and
+`.gitignore` hardened; they remain in `7477fe2` history.
+
+### Fourth coach smoke — `SMOKE-1.12.0-36-FINDINGS.md`
+
+J1-J23 logged under the collect-first protocol. Fixed in `-37`: scoreboard
+alignment, quick-pick chip density, "Not checked yet" copy, type-to-confirm on
+delete-season AND delete-game, Study's headline sample gate, the 67-vs-27 play
+count, Big Plays identity, the Reports dead space, `PLAN ITEMS0`, the clipped
+saved-view select, and the title-bar tint.
+
+**J11 answered a coach question: 27 was never defensive snaps.**
+`stats.totalPlays` is `offPlays.length`; `stats.allPlays` is the 67. The tile was
+correctly scoped and mislabeled.
+
+**Still open:** J5 (team-home design — research Hudl first), J7 (the `Open →`
+arrow aims at delete; the gate landed, the adjacency has not), J14, J16, J19,
+J21, J22, plus the pre-snap-penalty denominator question for the coach.
+
 ### CLAUDE BUILD - S6-5 DESIGN PASS + THIRD SMOKE: 1.12.0-25 .. -33 (2026-08-05)
 
 **Builder: Claude. Gate green at `b567d24`: 81 harnesses | 81 green | 0 skipped
@@ -2215,11 +2312,11 @@ ordering, and give the two orphaned behaviours an owner.
 
 | | |
 |---|---|
-| Last build a human actually ran | **`1.12.0-13` FAILED Reports smoke.** Replacement `1.12.0-14` is built from accepted source `e45742d`; coach smoke pending |
-| Commits since | **0 unreviewed application-code commits.** Reports repair and S4g closure are independently accepted; packaging docs only |
-| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. **Final S4 code is reviewed and accepted; the S4 MILESTONE remains pending coach smoke.** |
-| Next installer due | **None now.** `1.12.0-14` exists and must be smoked Reports-first. The failed `1.12.0-13` must not be reused. S5 stays closed. |
-| Newly proven | **`1.12.0-13` failed installed Reports smoke.** Root cause and false-green are repaired at `e911b97`; dead-CSS and four-owner version guards are mutation-proven in this closure. |
+| Last build a human actually ran | **`1.12.0-36`** — fourth coach smoke, findings J1-J23 in `SMOKE-1.12.0-36-FINDINGS.md`. `1.12.0-37` is built and handed over |
+| Commits since | **9 unreviewed application-code commits** (`84e9262..HEAD`). Codex has reviewed none of S6-6 or S6-7 |
+| Milestones accepted since | **12** — P0-a/b/c/d, S1, S2, S3, S4-a/b/c/d/e. S5 accepted at the `1.12.0-17` smoke. **S6 is NOT accepted: Codex reviews the whole S6 range once, before the §8 installer that closes it.** |
+| Next installer due | **`1.12.0-37` is delivered.** No gate was run on it — coach directed design iteration without gates. **A full gate is owed before the S6-closing installer.** |
+| Newly proven | The copy defect had a TEST enforcing it, and the replacement guard was scoped to the one route it had just fixed. Both closed; the guard now walks every route and is mutation-verified off-Reports. |
 
 *Why this table exists: every other check in this project fails loudly. An
 unbuilt installer emits no signal at all, so the drift has to be carried as a

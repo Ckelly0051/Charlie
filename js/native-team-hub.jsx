@@ -51,6 +51,51 @@ export function AddTeamForm({ onSubmit, onCancel }) {
   </form>;
 }
 
+/* J8 — TYPE-TO-CONFIRM FOR DESTRUCTIVE DELETES.
+   Coach: "delete season is a huge potential for data loss. We should have a
+   confirmation click that requires spelling delete in a text box." Confirmed
+   for delete-GAME as well.
+
+   A season is the largest destructible object in the product — six games and
+   440 charted plays in the coach's live data — and it sat behind one `×` at the
+   end of a row, beside an arrow pointing at it (J7). A click plus an OK is not
+   a decision at that size.
+
+   This is IN ADDITION to the existing destructive-overlay rules, not instead of
+   them: the service still forces an explicit Cancel as the default action, and
+   the impact summary above the field still names the games, plays and film
+   affected. The summary is what makes typing the word a real decision rather
+   than a speed bump, so it stays. */
+export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onSubmit, onCancel }) {
+  const [typed, setTyped] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const armed = typed.trim().toLowerCase() === phrase.toLowerCase();
+  const submit = async event => {
+    event.preventDefault();
+    if (!armed) return;
+    setBusy(true); setError('');
+    const result = await onSubmit();
+    if (!result?.ok) { setError(result?.message || 'That could not be deleted.'); setBusy(false); }
+  };
+  return <form class="gi-hub-dialog-form gi-confirm-delete" onSubmit={submit}>
+    <p>{impact}</p>
+    <label class="gi-confirm-field">
+      <span>Type <b>{phrase}</b> to confirm</span>
+      <input
+        name="confirm" type="text" autoComplete="off" autoCorrect="off" spellcheck={false}
+        value={typed} onInput={event => setTyped(event.currentTarget.value)}
+        aria-describedby="giConfirmHint" />
+    </label>
+    <p id="giConfirmHint" class="gi-confirm-hint">This cannot be undone.</p>
+    {error && <p class="gi-hub-error" role="alert">{error}</p>}
+    <div class="gi-hub-form-actions">
+      <button type="button" onClick={onCancel}>Cancel</button>
+      <button class="is-danger" disabled={!armed || busy}>{busy ? 'Deleting…' : (confirmLabel || 'Delete')}</button>
+    </div>
+  </form>;
+}
+
 export function CreateSeasonForm({ teamName, onSubmit, onCancel }) {
   const yearNow = String(new Date().getFullYear());
   const [error, setError] = useState('');
