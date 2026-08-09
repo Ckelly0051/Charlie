@@ -1509,6 +1509,74 @@ switching, season scoping and checklist state. **Only then** delete the legacy
 overlay controller and its markup. The service is the deliverable; the deletion
 is the by-product.
 
+#### S7-c RESULT (2026-08-09) — COMPLETE
+
+**The 12-member count held, and my first re-count found only 5** — line 61 of
+`team-hub-screen.js` caches `_library()` in a local, so a `_library()\.` regex
+misses everything after it. Third instance of the same undercount; the plan's
+number was right for the right reason.
+
+`js/team-registry.js` is the extraction: DOM-free, dependency-injected, public
+API. `season-library.js` is **deleted** — 973 lines, plus `#libraryOverlay` and
+its 7.6 KB of markup. Ids inside `#app` fell **211 → 170**; the ledger's
+dead-module and nonvisual-host buckets are both **0**, leaving 141 engine-dep
+and 29 native-owned as the honest S7-d surface.
+
+**Two live defects the extraction had to close.**
+
+1. `_applyGameInfoDraft` listed `teamName` / `jerseyColor` **after** the draft
+   spread and read them only from `#gameTeamName` / `#gameJerseyColor`. So
+   `_applyGameInfoDraft({teamName})` silently did nothing, and team identity
+   could only be written by poking hidden inputs inside `#app` — markup S7-d
+   deletes. It would have become a no-op that still reported success.
+2. Three harnesses checked `!document.getElementById('libraryOverlay')?.classList
+   .contains('hidden')`. With the element deleted, `?.` yields `undefined` and
+   `!undefined` is `true` — **each negative check inverted the moment its subject
+   went away**, reporting the overlay as visible. They now assert absence.
+
+**No capability was lost, and I checked rather than assumed.** `SeasonLibrary
+._open()` was `openSeasonById()` + `openSchedule()`, and the C1 "opening a
+season lands on Home" behavior lived there. `TeamHubScreen.openSeason()` already
+does `openSeasonById` → `show('home')`, so the guarantee survives on the
+surviving owner; only the legacy caller disappeared. The harness now drives that
+owner and additionally asserts the legacy controller and markup are **absent**.
+
+**Deliberately deferred to S7-e, not skipped:** ~81 lines of library CSS in
+`styles.css`. It is **interleaved with live rules** — `.gi-card, .season-card,
+.team-card, .sidebar-panel, .stat-card` is one grouped selector mixing dead and
+live — which is exactly the hazard on record. It belongs with the screenshot
+matrix, not hand-cut inside a data-service phase. Dead CSS is inert; the markup
+was the risk and it is gone.
+
+**Proof.** `tools/e2e-team-registry.mjs` is 20/20 on the service contract:
+reconciliation's four branches, season scoping fallbacks, id collisions,
+identity-to-game-metadata **with the hidden inputs removed from the DOM**,
+multi-team wipe recovery, checklist truth, and identity clearing. Two mutations:
+
+| Mutation | Result |
+|---|---|
+| recovery mints fresh ids instead of keeping the stamped one | 3 reds, `seasonsVisible: []` — **the field-reported "you deleted my season" bug, reproduced** |
+| identity write reverts to reading hidden DOM only | 1 red, `gameInfoName: "GridIron Demo"` — the write silently does not land |
+
+**Gate: 82 harnesses | 82 green | 0 failed.** Counts diffed against the S7-b
+log: **zero drops**, `+74` (new registry harness 20, plus `e2e-tag-projform`
+completing at 54 rather than hitting its intermittent).
+
+Seven harnesses drove the deleted `#teamSetupName` / `#btnExploreDemo` controls.
+They now share **one** `tools/hub-setup.mjs` helper driving the native Team Hub —
+seven inline copies of a first-run flow drift, and a harness that quietly stops
+reaching the real path is worse than one that fails loudly.
+
+**Carried to S7-f:** `tools/verify-audit-fixes.mjs` still references the deleted
+setup controls and the retired bundle. It is not a gate harness and S7-f already
+owns converting or removing it.
+
+**Self-inflicted, recorded:** the `mklink /J` junction I used in S7-b to build a
+baseline was followed by `git worktree remove --force`, which deleted packages
+out of the real `node_modules`. Derived and gitignored, no source or data
+touched, restored with `npm install` — but junctioning into a worktree is not
+worth the shortcut.
+
 ### S7-d — delete `#app`, `#wsClassicOutlet` and the restore paths
 Only after 0/a/b/c. (`wizard.js` is already gone — retired in S7-b with the input
 call sites it held.) Assert **absence**, not hiding — the test must red if the

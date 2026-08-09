@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* E2E harness — the Season tab in the stats dashboard (added v1.9.4, polished
    v1.9.5). Covers the paths no other harness opens:
      1. Sortable leaderboards (v1.9.5): clicking an individual-stat column header
@@ -95,12 +96,7 @@ console.log('\n== Setup: team + demo + open a game (full app init) ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
 // Team/season setup lives in the library overlay, opened from the shell Home.
-await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-await sleep(400);
-await page.type('#teamSetupName', 'Mavericks');
-await click('#btnTeamSetupSave');
-await sleep(300);
-await click('#btnExploreDemo');
+await setupTeamAndDemo(page);
 await sleep(900);
 // Open game 1 from the shell Home film inbox (the sole game-entry route).
 await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());

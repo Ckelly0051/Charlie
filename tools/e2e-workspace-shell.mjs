@@ -418,35 +418,37 @@ ok(r.loadCompleted && !r.breakdownBeforeLoad && r.activeGameId === 'preview-game
   'Delayed game switch finishes before Break Down renders and keeps Settings/More visible', JSON.stringify(r));
 
 // C1 (binding amendment 2026-07-23): the legacy Season Library SCHEDULE is
-// RETIRED as a game-entry surface. In the shell, Home is the single place to
-// open a game. Opening a season through the legacy handler must land on Home,
-// and a direct call to the retired schedule surface must redirect to Home and
-// never expose the game grid — it cannot be reached, mounted, or restored.
+// RETIRED as a game-entry surface. Home is the single place to open a game.
+//
+// S7-c DELETED the overlay that hosted it, so this no longer drives
+// `library._open()` / `library.openSchedule()` and asserts they redirect —
+// those functions do not exist. Both halves of the guarantee are kept:
+//   1. the OUTCOME — opening a season through the canonical path lands on Home;
+//   2. the ABSENCE of the retired surface. Hidden markup is what let this flow
+//      resurface twice when an overlay revealed the classic outlet, so the
+//      check is that it is gone, which cannot be un-hidden.
 r = await page.evaluate(async () => {
   const app = window.app;
   const seasonId = app.storage.seasonStore.currentSeasonId;
   await app.openGame('preview-game');              // start in Break Down
   const beforeRoute = app.workspace.currentRoute();
-  await app.library._open(seasonId);               // legacy "Open season" handler
+  await app.teamHubScreen.openSeason(seasonId);    // the surviving native owner
   const afterOpen = {
     route: app.workspace.currentRoute(),
-    scheduleHidden: document.getElementById('libraryScheduleView')?.classList.contains('hidden'),
-    libraryHidden: app.library.overlay.classList.contains('hidden'),
     homeVisible: !document.getElementById('wsHome')?.hidden,
   };
-  await app.library.openSchedule();                // direct call to the retired surface
-  const afterSchedule = {
-    route: app.workspace.currentRoute(),
-    scheduleHidden: document.getElementById('libraryScheduleView')?.classList.contains('hidden'),
-    homeVisible: !document.getElementById('wsHome')?.hidden,
+  return {
+    beforeRoute, afterOpen,
+    library: !!app.library,
+    legacyNodes: ['libraryOverlay', 'libraryScheduleView', 'librarySeasonsView', 'scheduleBody']
+      .filter(id => !!document.getElementById(id)),
   };
-  return { beforeRoute, afterOpen, afterSchedule };
 });
 ok(r.beforeRoute === 'breakdown', 'Retirement precondition: openGame lands in Break Down', JSON.stringify(r));
-ok(r.afterOpen.route === 'home' && r.afterOpen.homeVisible && r.afterOpen.scheduleHidden && r.afterOpen.libraryHidden,
-  'Retired route: opening a season lands on Home, never the legacy schedule grid', JSON.stringify(r.afterOpen));
-ok(r.afterSchedule.route === 'home' && r.afterSchedule.homeVisible && r.afterSchedule.scheduleHidden,
-  'Retired route: a direct openSchedule() redirects to Home and never shows the game grid', JSON.stringify(r.afterSchedule));
+ok(r.afterOpen.route === 'home' && r.afterOpen.homeVisible,
+  'Retired route: opening a season lands on Home, never a legacy schedule grid', JSON.stringify(r.afterOpen));
+ok(r.library === false && r.legacyNodes.length === 0,
+  'Retired route: the legacy Season Library controller and its markup are absent, not hidden', JSON.stringify(r));
 
 // Home must highlight the ACTUAL current game after a round trip — never the
 // previously opened game (closeout item 2 / amendment proof item 3).

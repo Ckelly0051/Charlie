@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 // Targeted verification for the field-report fixes:
 //  1. Folder re-upload re-links clips to saved plays (no duplicates).
 //  2. Quarter carries across possession changes; defense field position advances.
@@ -25,16 +26,11 @@ await page.goto(bundle, { waitUntil: 'load' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'load' });
 await new Promise(r => setTimeout(r, 600));
-await page.evaluate(() => {
-  document.getElementById('teamSetupName').value = 'Test Team';
-  document.getElementById('btnTeamSetupSave').click();
-});
-await new Promise(r => setTimeout(r, 300));
+await createFirstTeam(page, 'Test Team');
 await page.evaluate(() => {
   document.getElementById('libNewName') && (document.getElementById('libNewName').value = 'S1');
   // Create a season through the library API to get a live tagger.
   window.app.storage.createSeason({ name: 'Test Season' });
-  document.getElementById('libraryOverlay')?.classList.add('hidden');
 });
 await new Promise(r => setTimeout(r, 400));
 

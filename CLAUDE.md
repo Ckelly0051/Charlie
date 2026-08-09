@@ -14,6 +14,91 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### S7-c COMPLETE — TeamRegistry extracted, the legacy overlay deleted (2026-08-09)
+
+**`js/team-registry.js` is the deliverable; the deletion is the by-product** —
+which is the order the plan insisted on, and it was right. `season-library.js`
+is gone (973 lines) along with `#libraryOverlay` and its 7.6 KB of markup. Ids
+inside `#app` fell **211 → 170**, and the ledger's dead-module and
+nonvisual-host buckets are both **0**: what remains is 141 engine-dep and 29
+native-owned, the honest S7-d surface.
+
+**The 12-member count held — and my first re-count found 5.** Line 61 of
+`team-hub-screen.js` caches `_library()` in a local, so a `_library()\.` regex
+misses every use after it. Third instance of that undercount in this milestone.
+The registry now owns all twelve behind a public, DOM-free, injected API.
+
+#### Two live defects the extraction had to close
+
+**1. Team identity could only be written by poking hidden DOM inside `#app`.**
+`_applyGameInfoDraft` listed `teamName` / `jerseyColor` **after** the draft
+spread and read them only from `#gameTeamName` / `#gameJerseyColor` — so
+`_applyGameInfoDraft({teamName})` silently did nothing, and the working path was
+`_syncGameInfoFromTeam` setting those inputs then calling `_saveGameInfo()` to
+read them back. After S7-d deletes them that becomes a **no-op that still
+reports success** — the exact class the S4 review filed. The draft now wins,
+matching what `direction` already did.
+
+**2. Three harness checks inverted the moment their subject was deleted.**
+`!document.getElementById('libraryOverlay')?.classList.contains('hidden')`
+yields `!undefined` → `true` once the element is gone, so each reported the
+legacy overlay as **visible**. They assert absence now, which cannot invert.
+
+#### No capability was lost — checked, not assumed
+
+`SeasonLibrary._open()` was `openSeasonById()` + `openSchedule()`, and the C1
+"opening a season lands on Home" guarantee lived there. `TeamHubScreen
+.openSeason()` already does `openSeasonById` → `show('home')`, so the behavior
+survives on the surviving owner; only the legacy caller disappeared. The harness
+now drives that owner and additionally asserts the legacy controller and markup
+are **absent**, not hidden.
+
+#### Proof
+
+`tools/e2e-team-registry.mjs` — **20/20** on the service contract: all four
+reconciliation branches, season-scoping fallbacks (a season on disk is never
+invisible), id collisions, identity→game-metadata **with the hidden inputs
+removed from the DOM**, multi-team wipe recovery, checklist truth, identity
+clearing. Two mutations:
+
+| Mutation | Result |
+|---|---|
+| recovery mints fresh ids instead of keeping the stamped one | 3 reds, `seasonsVisible: []` — **the field-reported "you deleted my season" bug, reproduced** |
+| identity write reverts to reading hidden DOM only | 1 red, `gameInfoName: "GridIron Demo"` — the write silently does not land |
+
+**Gate: 82 harnesses | 82 green | 0 failed.** Counts diffed against the S7-b
+log: **zero drops, +74** — the new harness at 20, plus `e2e-tag-projform`
+completing at 54 instead of hitting its intermittent.
+
+Seven harnesses drove the deleted `#teamSetupName` / `#btnExploreDemo` controls.
+They now share **one** `tools/hub-setup.mjs` helper driving the native Team Hub.
+Seven inline copies of a first-run flow drift, and a harness that quietly stops
+exercising the real path is worse than one that fails loudly.
+
+#### Deliberately deferred, and why
+
+**~81 lines of library CSS stay in `styles.css` until S7-e.** They are
+**interleaved with live rules** — `.gi-card, .season-card, .team-card,
+.sidebar-panel, .stat-card` is one grouped selector mixing dead and live — which
+is the documented "careless grouped-selector cut breaks a live surface" hazard.
+That belongs with S7-e's screenshot matrix, not hand-cut inside a data-service
+phase. Dead CSS is inert; the markup was the risk and it is gone.
+
+**Carried to S7-f:** `tools/verify-audit-fixes.mjs` still references the deleted
+setup controls and the retired bundle. Not a gate harness; S7-f already owns it.
+
+#### ⚠ Self-inflicted, recorded rather than buried
+
+The `mklink /J` junction I used in S7-b to build a baseline was followed by
+`git worktree remove --force`, which deleted packages out of the real
+`node_modules`. Derived and gitignored — no source, no coach data, no season
+file touched — and restored with `npm install`. Junctioning into a worktree is
+not worth the shortcut.
+
+**Scope:** no schema, migration, season byte, analytics formula, film cohort,
+composite ref, storage path, film file, version owner, package, tag or release
+changed. No installer — that is S7-g, after Codex's review.
+
 ### S7-b COMPLETE — film loading is off the legacy shell; the wizard is deleted (2026-08-09)
 
 **Both film pickers now live on `body`.** `videoFileInput` / `videoFolderInput`

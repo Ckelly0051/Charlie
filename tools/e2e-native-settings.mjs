@@ -39,8 +39,9 @@ await page.evaluate(() => {
   window.app.workspace.filmHealth = async game => game.id === 'g-linked'
     ? { state:'missing', mode:'linked', expected:82, found:65, missing:17 }
     : { state:'managed', mode:'managed', expected:12, found:12, missing:0 };
-  window.app.library._teamProfile = () => ({ teamName:'Mavericks', jerseyColor:'blue' });
-  window.app.library.saveTeamIdentity = (name, color) => { state.teamSave = { name, color }; return true; };
+  // S7-c: team identity is owned by TeamRegistry, not the deleted overlay.
+  window.app.teamRegistry.teamProfile = () => ({ teamName:'Mavericks', jerseyColor:'blue' });
+  window.app.teamRegistry.saveTeamIdentity = (name, color) => { state.teamSave = { name, color }; return true; };
   window.__nativeSettingsState = state;
   const invoker = document.createElement('button');
   invoker.id = 'settings-test-invoker'; invoker.textContent = 'Open settings';

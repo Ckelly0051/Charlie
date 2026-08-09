@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* E2E mark-flow harness — the only test that drives the REAL coach flow
    end-to-end: generate an actual video in-page, load it through
    VideoController.loadFile, click the real Mark Start / Mark End buttons,
@@ -19,8 +20,7 @@ page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
 // Team setup + create a real (non-demo) season + new game, like a coach would
-await page.type('#teamSetupName', 'Mavericks');
-await page.evaluate(() => document.querySelector('#btnTeamSetupSave')?.click());
+await createFirstTeam(page);
 await sleep(400);
 const seasonSetup = await page.evaluate(async () => {
   const app = window.app;

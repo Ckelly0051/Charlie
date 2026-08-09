@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* E4 (D-projform) — GRIDIRON-IQ-TAG-MODEL.md §18. The tag FORM (not Film
    Room's grid, covered separately by e2e-film-room.mjs's E3b-P1 proofs) shows
    the PROJECTED view and writes only on the coach's explicit save. Proves the
@@ -48,12 +49,7 @@ console.log('\n== 1. Setup: team + demo season + open game + a synthetic fixture
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
 // Team/season setup lives in the library overlay, opened from the shell Home.
-await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-await sleep(400);
-await page.type('#teamSetupName', 'Mavericks');
-await click('#btnTeamSetupSave');
-await sleep(300);
-await click('#btnExploreDemo');
+await setupTeamAndDemo(page);
 await sleep(900);
 // Open game 1 from the shell Home film inbox (the sole game-entry route).
 await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());

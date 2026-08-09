@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* CANONICAL SEASON SAVE/REOPEN DURABILITY PROOF — the pre-package item named
    as outstanding since early E3b and never substituted for by anything in
    E4-1/E4-2. Every existing projection test (e2e-tag-projform.mjs,
@@ -80,8 +81,7 @@ const pick = (obj) => JSON.stringify(Object.fromEntries(RELEVANT.map(k => [k, ob
 console.log('\n== 1. Setup: team + a real (non-demo) season + one game ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
-await page.type('#teamSetupName', 'Mavericks');
-await click('#btnTeamSetupSave');
+await createFirstTeam(page);
 await sleep(300);
 const seasonId = await page.evaluate(async () => {
   const rec = await window.app.storage.createSeason({ name: 'Durability Proof' });

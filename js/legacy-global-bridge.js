@@ -13,7 +13,6 @@ import { PlanExport } from './plan-export.js';
 import { PlayGrid } from './play-grid.js';
 import { PlaylistManager } from './playlist-manager.js';
 import { PlayTagger } from './play-tagger.js';
-import { SeasonLibrary } from './season-library.js';
 import { SeasonStore } from './season-store.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { SqlCatalog } from './sql-catalog.js';
@@ -49,7 +48,6 @@ Object.assign(globalThis, {
   PlayGrid,
   PlaylistManager,
   PlayTagger,
-  SeasonLibrary,
   SeasonStore,
   SpecialTeamsModel,
   SqlCatalog,

@@ -1051,7 +1051,6 @@ export class StorageManager {
     this._lastDeletedGame = null;
     // Refresh every games view that may be showing (all display-only).
     try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
-    try { window.app && window.app.library && window.app.library._renderSchedule && window.app.library._renderSchedule(); } catch (e) {}
     return true;
   }
 
@@ -1276,11 +1275,11 @@ export class StorageManager {
         alert('Invalid project file.');
         return;
       }
-      // If the library overlay is up (first-run import), re-open it: the
-      // recovery pass rebuilds team identity from the imported season's
-      // teamProfile, so the coach lands on a populated Team Home, not setup.
-      const lib = window.app && window.app.library;
-      if (lib && lib._isOpen && lib._isOpen()) await lib.open();
+      // If the coach is on Team Hub (first-run import), reload it: recovery
+      // rebuilds team identity from the imported season's teamProfile, so they
+      // land on a populated hub rather than first-run setup.
+      const hub = window.app?.teamHubScreen;
+      if (hub && hub.host && !hub.host.hidden) await hub.load();
     };
     reader.readAsText(file);
   }

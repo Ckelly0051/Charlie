@@ -38,10 +38,10 @@ export class WorkspaceContext {
     const profile = data?.teamProfile || {};
     let teamId = data?.teamId || '';
     if (!teamId) {
-      try { teamId = this.app.library?._activeTeamId?.() || ''; } catch (e) {}
+      try { teamId = this.app.teamRegistry?.activeTeamId?.() || ''; } catch (e) {}
     }
     let ownerName = '';
-    try { ownerName = this.app.library?._teams?.().find(team => String(team.id) === String(teamId))?.teamName || ''; } catch (e) {}
+    try { ownerName = this.app.teamRegistry?.teams?.().find(team => String(team.id) === String(teamId))?.teamName || ''; } catch (e) {}
     const teamName = ownerName || profile.teamName || data?.team || '';
     const games = data?.games || [];
     const seasonId = store?.currentSeasonId || '';

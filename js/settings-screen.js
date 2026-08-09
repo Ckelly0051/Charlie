@@ -29,8 +29,8 @@ export class SettingsScreen {
     const result = handle.result.finally(() => {
       if (this.handle === handle) this.handle = null;
       this.activeTab = null;
-      this.app.library?._renderTeamCard?.();
-      this.app.library?._render?.();
+      // S7-c: the legacy overlay is gone; the native Team Hub owns this view.
+      this.app.teamHubScreen?.load?.();
     });
     return result.then(value => required && value !== 'linked' && value !== 'managed' ? '' : value);
   }
@@ -50,8 +50,8 @@ export class SettingsScreen {
   _desktop() { return !!(window.__TAURI__ && this._backend()?.supportsLinkedFilm?.()); }
   _toast(message, tone = 'success') { this.overlays.toast({ message, tone }); }
 
-  teamProfile() { return this.app.library?._teamProfile?.() || {}; }
-  saveTeam(name, color) { return this.app.library?.saveTeamIdentity?.(name, color) === true; }
+  teamProfile() { return this.app.teamRegistry.teamProfile(); }
+  saveTeam(name, color) { return this.app.teamRegistry.saveTeamIdentity(name, color) === true; }
 
   analysisProfile() {
     return {

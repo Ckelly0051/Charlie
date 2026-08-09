@@ -56,7 +56,7 @@ import { BreakdownForm } from './breakdown-form.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
-import { SeasonLibrary } from './season-library.js';
+import { TeamRegistry } from './team-registry.js';
 import { PlayGrid } from './play-grid.js';
 import { configureBetaDefaults } from './beta-config.js';
 // LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
@@ -136,7 +136,23 @@ class App {
     });
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer);
     this.season = new SeasonManager(this.stats);
-    this.library = new SeasonLibrary();
+    // S7-c: the team/season identity layer. SeasonLibrary's overlay is dead but
+    // twelve of its private members were still the registry, so the data moved
+    // here first and the overlay becomes the by-product.
+    this.teamRegistry = new TeamRegistry({
+      app: () => this,
+      // Team identity propagates into the active game's canonical metadata
+      // through the draft path, not through hidden inputs inside #app.
+      syncGame: profile => {
+        if (!this.storage?.gameInfo) return;
+        this._applyGameInfoDraft({
+          teamName: profile.teamName || '',
+          jerseyColor: profile.jerseyColor || '',
+        });
+        this.storage._autoSave();
+      },
+      notify: message => this.history?._toast?.(message),
+    });
     this.teamHubScreen = new TeamHubScreen(this, this.overlays);
     this.gameScreen = new GameScreen(this, this.overlays);
     this.workspace = new WorkspaceContext(this);
@@ -329,7 +345,6 @@ class App {
       const requested = opts.route && this.workspace?.guard(opts.route)?.ok ? opts.route : 'breakdown';
       await this.workspaceShell.show(requested);
     } else {
-      this.library?.hide?.();
     }
     return true;
   }
@@ -1622,8 +1637,14 @@ class App {
       : '';
     this.storage.gameInfo = {
       ...current, ...draft, projectName, week, opponent,
-      teamName: document.getElementById('gameTeamName')?.value || current.teamName || '',
-      jerseyColor: document.getElementById('gameJerseyColor')?.value || current.jerseyColor || '',
+      // S7-c: an explicit draft value wins over the hidden legacy input, which
+      // is the pattern `direction` already used. Before this, these two keys
+      // were listed AFTER the draft spread and read only from #gameTeamName /
+      // #gameJerseyColor, so `_applyGameInfoDraft({teamName})` silently did
+      // nothing and team identity could only be written by poking hidden DOM
+      // inside #app — markup S7-d deletes.
+      teamName: draft.teamName ?? document.getElementById('gameTeamName')?.value ?? current.teamName ?? '',
+      jerseyColor: draft.jerseyColor ?? document.getElementById('gameJerseyColor')?.value ?? current.jerseyColor ?? '',
       direction: draft.direction ?? document.getElementById('gameDirection')?.value ?? current.direction ?? '',
       perspective: draft.perspective || current.perspective || 'offense',
       gameType: draft.gameType || current.gameType || 'game',

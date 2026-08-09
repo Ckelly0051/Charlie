@@ -36,8 +36,9 @@ const sources = fs.readdirSync(jsDir).filter(f => /\.(js|jsx)$/.test(f));
 const text = new Map(sources.map(f => [f, fs.readFileSync(path.join(jsDir, f), 'utf8')]));
 
 // Modules S7 retires. A reference from ONLY these does not keep an id alive.
-// wizard.js was on this list and is deleted in S7-b, so it no longer appears.
-const DYING = new Set(['season-library.js']);
+// wizard.js was deleted in S7-b and season-library.js in S7-c, so the set is
+// empty: every id below is now classified against LIVE code only.
+const DYING = new Set();
 
 // Live references that S7-b made OPTIONAL. These still show as engine-dep,
 // because a reference is a reference — but their consumer guards against

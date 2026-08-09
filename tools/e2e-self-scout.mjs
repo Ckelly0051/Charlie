@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* E2E harness — defensive self-scout in the stats dashboard. Covers the paths
    the other harnesses never open:
      1. The Self-Scout TAB renders the defensive section (the reported "self
@@ -32,12 +33,7 @@ console.log('\n== Setup: team + demo + open a game (full app init) ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await sleep(600);
 // Team/season setup lives in the library overlay, opened from the shell Home.
-await page.evaluate(() => document.querySelector('[data-ws-action="seasons"]')?.click());
-await sleep(400);
-await page.type('#teamSetupName', 'Mavericks');
-await click('#btnTeamSetupSave');
-await sleep(300);
-await click('#btnExploreDemo');
+await setupTeamAndDemo(page);
 await sleep(900);
 // Open game 1 from the shell Home film inbox (the sole game-entry route).
 await page.evaluate(() => document.querySelector('#wsFilmList [data-ws-game]')?.click());

@@ -17,7 +17,9 @@ await page.waitForFunction(() => window.app?.teamHubScreen && document.querySele
 let r = await page.evaluate(() => ({
   native: document.querySelectorAll('[data-native-team-hub]').length,
   first: !!document.querySelector('.gi-hub-first'),
-  legacy: !document.getElementById('libraryOverlay')?.classList.contains('hidden'),
+  // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
+  // read true once el is gone, so this asserts absence, which cannot invert.
+  legacy: !!document.getElementById('libraryOverlay'),
   outlet: !document.getElementById('wsClassicOutlet')?.hidden,
   route: document.getElementById('workspaceShell')?.dataset.route,
 }));
@@ -62,7 +64,9 @@ r = await page.evaluate(() => ({
   rows: document.querySelectorAll('[data-season-id]').length,
   current: document.querySelector('[data-season-id].is-current')?.textContent || '',
   film: document.querySelector('[data-season-id].is-current .gi-hub-film')?.textContent.trim(),
-  legacy: !document.getElementById('libraryOverlay')?.classList.contains('hidden'),
+  // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
+  // read true once el is gone, so this asserts absence, which cannot invert.
+  legacy: !!document.getElementById('libraryOverlay'),
   outlet: !document.getElementById('wsClassicOutlet')?.hidden,
 }));
 ok(r.rows === 1 && /Current/.test(r.current) && /No film linked/.test(r.film) && !r.legacy && !r.outlet,

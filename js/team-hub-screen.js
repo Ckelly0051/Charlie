@@ -3,8 +3,9 @@ import { mountNativeTeamHub, AddTeamForm, CreateSeasonForm, ConfirmDeleteForm } 
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
-/** Native Team Hub controller. SeasonLibrary remains a temporary registry/data
- * helper during S3, but it no longer owns presentation or route visibility. */
+/** Native Team Hub controller. It is the only Team Hub: the legacy
+ * SeasonLibrary overlay was deleted in S7-c, and TeamRegistry owns the
+ * registry/identity data it used to hold. */
 export class TeamHubScreen {
   constructor(app, overlays) {
     this.app = app;
@@ -41,7 +42,9 @@ export class TeamHubScreen {
   snapshot() { return clone(this._state); }
   _emit() { const state = this.snapshot(); for (const listener of this._listeners) listener(state); }
   _set(patch) { this._state = { ...this._state, ...patch }; this._emit(); }
-  _library() { return this.app.library; }
+  /** S7-c: the team/season identity layer. Was twelve private members of the
+   *  legacy SeasonLibrary overlay; now one public service that owns no DOM. */
+  _registry() { return this.app.teamRegistry; }
   _storage() { return this.app.storage; }
   _store() { return this.app.storage?.seasonStore; }
 
@@ -58,19 +61,19 @@ export class TeamHubScreen {
     const token = ++this._loadToken;
     this._set({ status: 'loading', error: '' });
     try {
-      const library = this._library();
-      await library?._recoverFromWipe?.();
-      library?._ensureTeamRegistry?.();
-      const teams = library?._teams?.() || [];
-      const activeTeamId = library?._activeTeamId?.() || teams[0]?.id || '';
-      const profile = library?._teamProfile?.() || {};
+      const registry = this._registry();
+      await registry.recoverFromWipe();
+      registry.ensureRegistry();
+      const teams = registry.teams();
+      const activeTeamId = registry.activeTeamId() || teams[0]?.id || '';
+      const profile = registry.teamProfile();
       const allSeasons = await this._storage().listSeasons();
-      const seasons = teams.length ? library._teamSeasons(allSeasons, activeTeamId) : [];
+      const seasons = teams.length ? registry.seasonsForTeam(allSeasons, activeTeamId) : [];
       const currentSeasonId = this._store()?.currentSeasonId || '';
       const rows = await Promise.all(seasons.map(season => this._seasonRow(season, currentSeasonId)));
-      const items = teams.length ? library._checklistItems(seasons) : [];
+      const items = teams.length ? registry.checklistItems(seasons) : [];
       const doneCount = items.filter(item => item.done).length;
-      const checklist = { items, doneCount, visible: !!teams.length && !!items.length && doneCount < items.length && !library._checklistDismissed() };
+      const checklist = { items, doneCount, visible: !!teams.length && !!items.length && doneCount < items.length && !registry.checklistDismissed() };
       if (token !== this._loadToken) return false;
       this._set({ status: 'ready', teams, seasons: rows, activeTeamId, currentSeasonId, profile, checklist, error: '' });
       return true;
@@ -120,7 +123,7 @@ export class TeamHubScreen {
   openRoster(invoker = null) { return this.app.settingsScreen?.open?.({ initialTab:'roster', returnFocus:invoker || document.activeElement }); }
 
   dismissChecklist() {
-    try { localStorage.setItem('ffa_checklist_dismissed', '1'); } catch {}
+    this._registry().dismissChecklist();
     this._set({ checklist: { ...this._state.checklist, visible: false } });
   }
 
@@ -148,13 +151,13 @@ export class TeamHubScreen {
 
   async switchTeam(id) {
     id = String(id || '');
-    if (!id || id === this._library()?._activeTeamId?.()) return true;
-    const teams = this._library()?._teams?.() || [];
+    if (!id || id === this._registry().activeTeamId()) return true;
+    const teams = this._registry().teams();
     const next = teams.find(team => String(team.id) === id);
     if (!next) return false;
     const storage = this._storage();
     const store = this._store();
-    const previousId = this._library()?._activeTeamId?.() || '';
+    const previousId = this._registry().activeTeamId() || '';
     if (store?.hasCurrent?.()) {
       storage.commitActive();
       const saved = await store.persist();
@@ -166,12 +169,12 @@ export class TeamHubScreen {
       storage._clearForNewGame();
     }
     if (previousId) {
-      try { localStorage.setItem(this._library()._teamRosterKey(previousId), localStorage.getItem('ffa_roster') || '[]'); } catch {}
+      try { localStorage.setItem(this._registry().rosterKey(previousId), localStorage.getItem('ffa_roster') || '[]'); } catch {}
     }
-    try { localStorage.setItem('ffa_active_team_id', id); } catch {}
-    this._library()._saveTeamProfile({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
+    this._registry().setActiveTeamId(id);
+    this._registry().saveTeamProfile({ teamName: next.teamName, jerseyColor: next.jerseyColor || '' });
     let roster = [];
-    try { roster = JSON.parse(localStorage.getItem(this._library()._teamRosterKey(id)) || '[]') || []; } catch {}
+    try { roster = JSON.parse(localStorage.getItem(this._registry().rosterKey(id)) || '[]') || []; } catch {}
     this.app.roster?.loadFrom?.(roster);
     this.app.customChips?.reload?.();
     await this.load();
@@ -182,21 +185,21 @@ export class TeamHubScreen {
   async addTeam({ name, jerseyColor = '' }) {
     const clean = String(name || '').trim();
     if (!clean) return { ok: false, message: 'Enter a team name.' };
-    const library = this._library();
-    const teams = library?._teams?.() || [];
-    const team = { id: library._newTeamId(clean, teams.map(item => item.id)), teamName: clean, jerseyColor: String(jerseyColor || '') };
-    library._saveTeams([...teams, team]);
-    try { localStorage.setItem(library._teamRosterKey(team.id), teams.length ? '[]' : (localStorage.getItem('ffa_roster') || '[]')); } catch {}
+    const registry = this._registry();
+    const teams = registry.teams();
+    const team = { id: registry.newTeamId(clean, teams.map(item => item.id)), teamName: clean, jerseyColor: String(jerseyColor || '') };
+    registry.saveTeams([...teams, team]);
+    try { localStorage.setItem(registry.rosterKey(team.id), teams.length ? '[]' : (localStorage.getItem('ffa_roster') || '[]')); } catch {}
     if (teams.length) {
       const switched = await this.switchTeam(team.id);
       if (!switched) {
-        library._saveTeams(teams);
-        try { localStorage.removeItem(library._teamRosterKey(team.id)); } catch {}
+        registry.saveTeams(teams);
+        try { localStorage.removeItem(registry.rosterKey(team.id)); } catch {}
         return { ok: false, message: 'The new team was not added because the open season could not be saved.' };
       }
     } else {
-      try { localStorage.setItem('ffa_active_team_id', team.id); } catch {}
-      library._saveTeamProfile({ teamName: team.teamName, jerseyColor: team.jerseyColor });
+      registry.setActiveTeamId(team.id);
+      registry.saveTeamProfile({ teamName: team.teamName, jerseyColor: team.jerseyColor });
       await this.load();
       this.overlays.toast({ tone: 'success', message: 'Team saved. Start a season when you are ready.' });
     }
@@ -315,18 +318,16 @@ export class TeamHubScreen {
     }).result;
     if (choice !== 'delete') return false;
     const rest = this._state.teams.filter(item => item.id !== id);
-    this._library()._saveTeams(rest);
-    try { localStorage.removeItem(this._library()._teamRosterKey(id)); } catch {}
+    this._registry().saveTeams(rest);
+    try { localStorage.removeItem(this._registry().rosterKey(id)); } catch {}
     if (rest.length) {
-      try { localStorage.setItem('ffa_active_team_id', rest[0].id); } catch {}
-      this._library()._saveTeamProfile({ teamName: rest[0].teamName, jerseyColor: rest[0].jerseyColor || '' });
+      this._registry().setActiveTeamId(rest[0].id);
+      this._registry().saveTeamProfile({ teamName: rest[0].teamName, jerseyColor: rest[0].jerseyColor || '' });
       let roster = [];
-      try { roster = JSON.parse(localStorage.getItem(this._library()._teamRosterKey(rest[0].id)) || '[]') || []; } catch {}
+      try { roster = JSON.parse(localStorage.getItem(this._registry().rosterKey(rest[0].id)) || '[]') || []; } catch {}
       this.app.roster?.loadFrom?.(roster);
     } else {
-      for (const key of ['ffa_team_profile', 'ffa_active_team_id', 'ffa_checklist_dismissed', 'ffa_seen_stats']) {
-        try { localStorage.removeItem(key); } catch {}
-      }
+      this._registry().clearIdentity();
       this.app.roster?.loadFrom?.([]);
     }
     await this.load();

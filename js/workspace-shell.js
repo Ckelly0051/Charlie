@@ -139,10 +139,10 @@ export class WorkspaceShell {
       if (previousRoute !== 'home') this._homeSelectedGameId = null;
       await this.refreshHome();
     }
-    if (routeId==='breakdown') { this.app.stats?.hideDashboard(); this.app.library?.hide(); }
-    if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.studyScreen?.show(); }
-    if (routeId==='reports') { this.app.library?.hide(); this.app.reportsScreen?.show(); }
-    if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.library?.hide(); this.app.planScreen?.show(); }
+    if (routeId==='breakdown') { this.app.stats?.hideDashboard(); }
+    if (routeId==='study') { this.app.stats?.hideDashboard(); this.app.studyScreen?.show(); }
+    if (routeId==='reports') { this.app.reportsScreen?.show(); }
+    if (routeId==='plan') { this.app.stats?.hideDashboard(); this.app.planScreen?.show(); }
     return result;
   }
   /** Re-apply the CURRENT route's visibility with NO navigation side effects.
@@ -190,7 +190,7 @@ export class WorkspaceShell {
   async refreshHome() {
     if (!this.root) return; const token=++this._homeToken; this._syncChrome(); const c=this.app.workspace.snapshot(); const store=this.app.storage.seasonStore; const game=store.data ? store.activeGame?.() : null;
     this._text('wsGreeting',c.team?.name?`${c.team.name.toUpperCase()} HOME`:'TEAM HOME'); this._text('wsHomeSummary',c.season?`${c.season.name} · ${c.season.gameCount} game${c.season.gameCount===1?'':'s'}`:'Choose a season to get started.');
-    let seasons=[]; try{seasons=await this.app.storage.listSeasons();}catch{} try{if(this.app.library?._teams?.().length)seasons=this.app.library._teamSeasons(seasons,this.app.library._activeTeamId());}catch{}
+    let seasons=[]; try{seasons=await this.app.storage.listSeasons();}catch{} try{const r=this.app.teamRegistry;if(r?.teams().length)seasons=r.seasonsForTeam(seasons,r.activeTeamId());}catch{}
     if(token!==this._homeToken||!this.root)return; this._renderSeasons(seasons,c.season?.id);
     const games=store.data?.games||[],list=this.root.querySelector('#wsFilmList');
     if(!games.length){this._homeSelectedGameId=null;this._renderGamePreview(null,c);list.innerHTML='<div class="ws-empty">No games in the active season.</div>';this._text('wsTopFilm','No film selected');return;}

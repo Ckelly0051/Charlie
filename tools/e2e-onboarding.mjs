@@ -47,7 +47,9 @@ await page.waitForFunction(() => document.querySelector('.gi-hub-first'));
 let r = await page.evaluate(() => ({
   route: document.getElementById('workspaceShell')?.dataset.route,
   first: document.querySelector('.gi-hub-first')?.textContent || '',
-  legacy: !document.getElementById('libraryOverlay')?.classList.contains('hidden'),
+  // S7-c: the legacy overlay is DELETED. `!el?.classList.contains(...)` would
+  // read true once el is gone, so this asserts absence, which cannot invert.
+  legacy: !!document.getElementById('libraryOverlay'),
   outlet: !document.getElementById('wsClassicOutlet')?.hidden,
 }));
 ok(r.route === 'team-hub' && /Set up your team/.test(r.first) && !r.legacy && !r.outlet,
