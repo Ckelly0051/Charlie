@@ -13,6 +13,77 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+
+### ▶ CLAUDE'S REVIEW of `25bb158` — **ACCEPTED on the three repairs. One measured design finding, one pre-existing red.** (2026-08-09)
+
+**Scope check first:** `25bb158` touches no version owner, no schema, no
+analytics formula, no storage path, no film file. `4911645` is the separate
+`1.12.0-38` stamp. The batch's "no version/installer/release change" claim is
+accurate for this commit.
+
+**The stacking fix is real and I mutation-verified it.** The proof is an
+`elementFromPoint` hit test at the disclosed button's centre asserting the
+topmost node **is** that button — not merely that the menu is visible, which is
+the assertion that would have proven nothing. Setting
+`.gi-breakdown-toolbar{z-index:0}` reds exactly *Mobile More tools commands
+remain above the film hit target*; restored → Quick Chart 13/13. The defect was
+real: disclosed commands rendered visibly but underneath the video, so taps
+landed on film.
+
+**The Film Room layout assertions cannot pass vacuously.** Expected layout is a
+per-viewport loop constant (`1920 → side-by-side`, `1440`/`1280 → stacked`) and
+the measured DOM must match it. Had `stacked` been read back from the DOM the
+test would have blessed whichever layout rendered.
+
+**`shots.mjs` is genuinely repaired, and I verified the instrument rather than
+the count.** Both captures pointed at retired DOM — `.bd-route` and the legacy
+`#playGridSection`, hidden since the S5d flip. I ran it: **44 files, 44 distinct
+MD5s, zero duplicate groups**, and I opened `1440x900-04-film-room.png` — it
+renders the actual Film Room (70 plays, filter chips, column headers), not Home.
+That closes the R1/R2 defect where 5 of 10 captures were duplicates and the Film
+Room capture showed Home.
+
+**S6D-1 [P2, design] At the coach's own window size the Film Room table is below
+the fold, and the assertion that guards it cannot see that.** Measured by me,
+demo season, Film Room mode:
+
+| Viewport | Host height | Host top | Visible height | Data rows visible |
+|---|---|---|---|---|
+| 1920x1080 | 981 | 99 | **981** | **24 of 70** |
+| 1440x900 | 720 | 779 | **121** | **0 of 70** |
+| 1280x720 | 666 | 777 | **0** | **0 of 70** |
+
+At 1280x720 switching to Film Room shows **none of it** until the coach scrolls
+the route; at 1440x900 they get a header and filter strip and no data. The
+theater is `height: min(680px, calc(100vh - 42px))` with `min-height: 540px`, so
+on a 720px-tall screen it takes 678px and leaves nothing beneath it.
+
+**The lifecycle assertion passes because it measures `film.height >= 500` — the
+element's own box — not whether any of it is on screen.** That is the
+check-narrower-than-its-name class again, and it is the reason a green gate did
+not surface this. Worth stating plainly: full-width but off-screen is a trade
+against the 420-500px rail it replaced, not a strict improvement at these two
+viewports. **Recommend the theater height become viewport-relative so both panes
+get a share, and the assertion check visible height rather than box height.**
+Not blocking — it is a design call and the coach owns it.
+
+**S6D-2 [P1, pre-existing, NOT caused by this commit] My gate came back 80/82.**
+- `e2e-tag-projform` — `ProtocolError: Promise was collected`, the intermittent
+  already documented in this file. **54/54 standalone.** Not a regression.
+- `e2e-season-tab` — **deterministic, 3/3**, timing out at
+  `e2e-season-tab.mjs:394`: the wait for all overlays to close after a confirmed
+  game deletion. **I bisected it: it fails identically on `4911645`, the tree
+  without the design commit, and that harness file is byte-identical in both.**
+  So `25bb158` did not cause it; it belongs to the delete-game work in
+  `9a75b07`. Codex reports 82/82 on the same commit, so this does not reproduce
+  everywhere — but it is deterministic here, it is on a destructive data path,
+  and **it must be resolved before the milestone closes rather than absorbed as
+  a flake.** The last two times an intermittent was waved off in this project it
+  was a real bug.
+
+**Not verified by me:** the 44 captures were checked for count, byte-distinctness
+and one opened surface. I did not inspect all 44 for aesthetic quality — that is
+the coach's visual review, and a passing overflow check is not a design sign-off.
 ### ▶ CLAUDE REVIEW QUEUE — S6 DESIGN COMPLETION BATCH 1 (2026-08-09)
 
 **Builder: Codex. Review range: `4911645..HEAD` after this checkpoint lands.**
