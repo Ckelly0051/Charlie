@@ -126,14 +126,14 @@
    * the luminance come down and the text reads calmer AND clearer. */
   --gi-text-display:700 19px/1.05 var(--gi-cond);
   --gi-text-stat:700 26px/1.05 var(--gi-cond);
-  --gi-text-body:500 13px/1.45 var(--gi-sans);
+  --gi-text-body:400 13px/1.45 var(--gi-sans);
   --gi-text-control:600 12.5px/1 var(--gi-sans);
-  --gi-text-label:700 12px/1.25 var(--gi-sans);    /* field + column labels   */
-  --gi-text-eyebrow:700 11.5px/1.25 var(--gi-sans);/* section eyebrows        */
-  --gi-text-caption:500 12.5px/1.45 var(--gi-sans);/* sub-values, hints       */
+  --gi-text-label:600 12px/1.25 var(--gi-sans);    /* field + column labels   */
+  --gi-text-eyebrow:600 12px/1.25 var(--gi-sans);/* section eyebrows        */
+  --gi-text-caption:400 13px/1.45 var(--gi-sans);/* sub-values, hints       */
   /* Uppercase tracking. Wide tracking on tiny type is what turns a label into
    * a row of disconnected letters; at a readable size it needs far less. */
-  --gi-track-label:.045em;
+  --gi-track-label:0;
 
   /* ── SPACE (8px rhythm, Carbon) ── */
   --gi-1x:4px; --gi-2x:8px; --gi-3x:12px; --gi-4x:16px;

@@ -132,3 +132,9 @@
   .ws-study-query label{min-width:0}
   .ws-study-query select{min-width:0}
 }
+
+/* Readability floor: supporting copy is prose, not dashboard chrome. */
+.ws-study-filter-head span,.ws-study-filter-values>span,.ws-study-summary span,
+.ws-study-range>span,.ws-study-range>small,.ws-pivot-caption{
+  color:var(--gi-11);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
+}

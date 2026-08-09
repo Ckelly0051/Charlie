@@ -471,9 +471,15 @@ not the available viewport.
   blue copy; table numerals remain aligned without turning whole rows mono.
 - `1.12.0-40` exposed a cascade miss: Film Inbox rows are buttons and did not
   inherit the shell family, so the installed screen looked unchanged. The
-  follow-up explicitly assigns Sans to the control and establishes visible
-  14px/650 game-title and 12.5px/500 metadata hierarchy. Include it in the next
-  consolidated visual installer, not a single-finding rebuild.`r`n- Remaining visual check: Home, Break Down, Film Room, Study, Reports, Plan,
+  follow-up assigns Sans at the control boundary with a 14px/600 game title and
+  12.5px/400 metadata hierarchy.
+- The installed screenshots then proved the larger defect: Plex Sans ships only
+  400/600, while route CSS requested synthetic intermediate/heavy weights and
+  still used 10-12px helper copy. Current source disables synthesis, removes
+  tracking, raises ordinary coaching copy to a 13px floor, and corrects Break
+  Down, Study, and Reports at their active cascade boundaries. Vite build passes;
+  visual acceptance awaits the next consolidated installer (`1.12.0-41` or later).
+- Remaining visual check: Home, Break Down, Film Room, Study, Reports, Plan,
   Settings, dialogs/toasts at normal Windows scaling and a narrow desktop.
 
 ### Responsive composition

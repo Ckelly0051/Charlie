@@ -16,17 +16,27 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ### ACTIVE - COACH VISUAL REVIEW + TYPOGRAPHY QUICK PASS (2026-08-09)
 
-**Product source checkpoint: `9a5fd19`; it is restored as an ancestor of this handoff.
-Claude packages the next local installer from this tip after bumping all four
-version owners to unique version `1.12.0-40`; the coach will continue the visual
-review from that installed build.** Do not issue a second distinct `1.12.0-39`
-binary or add another product change before packaging.
+**Installed visual baseline:** `1.12.0-40` was built at `1926c64` and exposed
+the typography gaps documented below. Current source extends `ae9083e` with the
+systemic cross-route correction. The next visual installer must use a unique
+version (`1.12.0-41` or later) and include the complete batch, not a stale or
+partial typography commit.
+
+**Systemic typography follow-up (current source):** screenshots across Break Down, Study,
+Reports, and Home proved the issue was not one missed button. The bundle embeds Plex
+Sans only at 400/600, while local rules requested synthetic 500/650/700/800
+weights; tiny text, tracking, and accent-blue prose compounded the blur. The current
+CSS uses real token weights, disables font synthesis on the shell, removes label
+tracking, establishes a 13px prose/caption floor, makes play-strip coaching copy
+Sans, and applies the same readable treatment to Study helpers and Reports
+explanations/lens headings. Vite build passes. Carry this in the next consolidated
+visual installer (`1.12.0-41` or later); do not package stale `ae9083e` alone.
 
 **Installed `1.12.0-40` follow-up:** the coach correctly found that Film Inbox
 looked unchanged. Its visible rows are `<button>` controls, and those controls
 did not inherit the shell family; changing only the parent was insufficient. The
 current CSS correction explicitly assigns IBM Plex Sans at the control boundary
-and gives game titles 14px/650 primary type plus 12.5px/500 status metadata. This
+and gives game titles 14px/600 primary type plus 12.5px/400 status metadata. This
 remains visual-only. Do not package it as a one-finding installer; carry it in
 the next consolidated visual batch, using unique version `1.12.0-41` or later.
 `9a5fd19` is a deliberately small, visual-only typography batch. Ordinary UI

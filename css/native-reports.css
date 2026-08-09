@@ -581,3 +581,14 @@
 @media(max-width:600px){
   .gi-reports .gi-hero>.gi-kpi:last-child:nth-child(odd){grid-column:1/-1}
 }
+
+/* Readability floor: report explanations are coaching guidance, not metadata.
+   Keep them neutral and readable; blue remains reserved for action/emphasis. */
+.gi-reports .stats-cut-hint,.gi-reports .viz-caption,
+.gi-reports .self-scout-intro,.gi-reports .tm-eligible,
+.gi-reports .gi-lens-head p,.gi-reports .gi-answer>p{
+  color:var(--gi-11);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
+}
+.gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4{
+  font:var(--gi-text-label);letter-spacing:0
+}

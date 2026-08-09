@@ -191,13 +191,14 @@
   background: var(--gi-los); color: var(--gi-on-solid);
 }
 
-/* 8px MONO, TWICE. The S6-4e sweep covered 16 stylesheets and missed this file,
+/* The S6-4e sweep covered 16 stylesheets and missed this file,
    so the play card's situation line and the drive label stayed at a size that
    had to be pushed bright to stay legible. Buying the size back is the fix;
    shrinking type and raising luminance is what made labels glow. */
 .gi-play-card > span {
-  color: var(--gi-11); font: var(--gi-text-caption); font-family: var(--gi-mono);
+  color: var(--gi-11); font: var(--gi-text-caption); font-family: var(--gi-sans);
   letter-spacing: var(--gi-track-label);
 }
+.gi-play-card > small { font: var(--gi-text-caption); color: var(--gi-12); }
 .gi-drive-strip > header { font: var(--gi-text-label); letter-spacing: var(--gi-track-label); }
 .gi-theater-anglebar, .gi-autoplay-toggle { font-size: 11.5px; }
