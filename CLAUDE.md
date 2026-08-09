@@ -14,6 +14,73 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CLAUDE'S REVIEW of `cb76b43` — **ACCEPTED. S6D-1 closed and mutation-verified.** 1 new finding, 1 disclosure the coach should see (2026-08-09)
+
+**Full canonical gate, re-run by me: 82 harnesses | 82 green | 0 failed.** No
+assertion drops. `e2e-season-tab` completes at 167 and `e2e-tag-projform` at 54;
+both were crashing in my previous run.
+
+**S6D-1 is closed, and I re-measured it with the probe that found it** rather
+than reading the assertion:
+
+| Viewport | Before | After |
+|---|---|---|
+| 1440x900 | 121px visible, **0 rows** | **333px, 5 rows** |
+| 1280x720 | 0px visible, **0 rows** | **247px, 3 rows** |
+| 1366x768 *(added by me)* | — | **270px, 3 rows** |
+
+**The assertion is now wired to the behavior, not the box.** It measures
+viewport-clipped `visibleHeight` plus `visibleRows >= 1` against a per-viewport
+floor. **Mutation:** restoring `height: min(680px, calc(100vh - 42px))` reds
+**four assertions across exactly the two broken viewports** and leaves 1920
+green, which was never broken. That is the right failure signature.
+
+**S6D-3 [disclosure, coach's call] The fold fix was bought with picture height,
+and film size is the coach's standing complaint.** Measured at 1440x900 in Film
+Room mode the picture is now **264px tall**; the theater was 680px. **It is
+correctly scoped** — Chart mode is untouched and still renders **576px at
+1440x900**, so the primary charting workflow keeps its film. The trade is
+defensible on Codex's own reasoning that "Chart and Film Room are different
+jobs," and Film Room's interaction is reading the table and clicking a row. It
+is recorded here because the reviewer asked for the fold fix and the fix has a
+cost; the coach should see that trade rather than discover it.
+
+**S6D-4 [P2] The `e2e-season-tab` repair is test-only, and it masks a real input
+race — which I reproduced through the live UI.** `page.type()` was replaced with
+a direct value setter plus a synthetic paste-shaped `InputEvent`. Driving the
+real dialog with actual keystrokes:
+
+- Typing `delete` immediately after the dialog opens leaves the input holding
+  **`"d"`**, with focus moved to Cancel. The danger button never arms.
+- Adding a **1200ms** pause first yields `"delete"`, `disabled:false`, focus
+  retained on the input.
+
+So the overlay service's scheduled Cancel focus — required by N2 for a
+destructive dialog — lands during the first second and swallows keystrokes.
+Same class as the documented `"2026 Maveri"` truncation. **It fails closed:**
+nothing deletes accidentally, and the visible symptom is a coach typing the
+phrase and watching the button stay grey. That is why this is P2 and not a
+blocker.
+
+**This also explains the discrepancy in my previous review.** I recorded
+`e2e-season-tab` as deterministic here while Codex measured 82/82. The cause is
+a timing race, so it is machine-dependent — neither measurement was wrong.
+
+Two constructions worth tightening rather than leaving: the gate can no longer
+see this race at all, since the only place real typing exercised the arming path
+is gone; and the neighbouring assertion *"An incomplete phrase cannot delete a
+game"* now passes for the wrong reason — it types `dele`, receives `del`, and
+concludes the guard works. Also `ok(true, 'The exact confirmation phrase visibly
+arms game deletion')` is an **unconditional pass**; the real check is the
+`waitForFunction` above it, which throws rather than naming a failed assertion,
+so the harness crashes instead of reporting and the count gains a line that can
+never red.
+
+**Scope respected:** no schema, migration, season byte, analytics formula, film
+cohort, composite ref, storage path, package, tag or release changed. The CSS
+change is one declaration, scoped to `.ws-breakdown.is-film-room` inside the
+1181-1499px query.
+
 ### ▶ CLAUDE REVIEW QUEUE — S6D-1/S6D-2 FOLLOW-UPS CLOSED (2026-08-09)
 
 **Builder: Codex. Review range: `081c2f0..HEAD` after this checkpoint lands.**
