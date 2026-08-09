@@ -1386,6 +1386,48 @@ Cover the boot-time constructors in `app.js` and the surviving restore paths in
 `workspace-shell.js` and `breakdown-workspace.js`. **No deletion begins until
 every id has a class.**
 
+#### S7-0 RESULT (2026-08-09) — `tools/s7-dependency-ledger.mjs`
+
+Ledger built and run. **213 ids collected from `#app` onward**, classified:
+
+| Bucket | Count | Meaning |
+|---|---|---|
+| **engine-dep** | **141** | a live module does real work through it — decouple or relocate first |
+| nonvisual-host | 2 | `videoFileInput`, `videoFolderInput` — rehome (S7-b) |
+| dead-module-only | 38 | referenced only by `wizard.js` / `season-library.js` — retire together |
+| native-owned | 32 | no JS reference — removable with the markup |
+
+**The headline finding, and it resizes S7-d: `#app` cannot simply be deleted.**
+The 141 engine dependencies are not a long tail — they are three coherent
+families, and two of them are load-bearing:
+
+1. **The canonical media subtree** — `videoContainer`, `videoPlayer`,
+   `drawingCanvas`, `angleWrapper1/2`, `videoPlayer2`, the scrub bar and the
+   whole transport — owned by `video-controller.js`, `canvas-overlay.js`,
+   `multi-angle.js`, `playlist-manager.js`, and **adopted at runtime by
+   `breakdown-theater-screen.js`**. This is the film surface the coach watches.
+   It must be **relocated out of `#app`**, not deleted, and the S5a adoption
+   contract (one canonical `#videoContainer`, canvas inside it, exact restore)
+   must survive the move.
+2. **The legacy tag-form engines** — `tagForm`, `tagUnit`, `tagPlayer*`,
+   `tagGrade*`, `rosterQuickPick`, `templateSelect`, `notesArea`,
+   `playDiagram*`, the OCR controls — owned by `play-tagger.js`,
+   `roster-manager.js`, `custom-fields.js`, `notes-manager.js`,
+   `play-diagram.js`, `scoreboard-ocr.js`. Since S5c these engines are the
+   **behavior owners** the native form delegates to, and the markup is their
+   off-screen adapter. Deleting the markup requires the engines to stop reading
+   the DOM — that is a real refactor, not a deletion.
+3. **Legacy chrome** — `btnSave`, `btnShowStats`, `btnQuickChart`,
+   `btnUndoAction`, `backendStatusBadge` and similar, already superseded or
+   relocated. This family is genuinely removable.
+
+**Consequence for the plan:** S7-d must be split. Relocating the media subtree is
+its own checkpoint with its own installer-grade risk, and decoupling the tag-form
+engines from the DOM is a larger piece of work than "delete `#app`" implies. The
+32 native-owned plus 38 dead-module ids — **70 of 213** — are the genuinely cheap
+deletions and should go first, in that order, so the milestone banks safe ground
+before touching film.
+
 ### S7-a — close the capability floor (BLOCKING, additive only)
 Re-prove the four `e2e-s5c-preflight.mjs` ids **in their owning surface**, not
 bundled into one harness to retire another: `play-diagram`, `scoreboard-ocr` and
