@@ -30,6 +30,24 @@ non-events.
 
 ## ⚠ REVISION LOG — read this before acting on anything below
 
+**S7 execution plan accepted · 2026-08-09 · Claude built, Codex reviewed (3 rounds), coach approved · ADDS §13**
+
+S6 is accepted (coach smoked `1.12.0-43`) and **S7 is open**. Its execution plan
+is **§13 at the end of this document** — read it before touching any deletion.
+It supersedes the one-line S7 description in §3.1 and **corrects §3.2 item 7**.
+
+Three things in it change what §3.1 implies, all measured rather than inherited:
+
+1. **§3.2 item 7 is narrower than written — four stranded capability ids, not
+   eight.** `e2e-breakdown-form.mjs` now claims zero.
+2. **The "dead CSS" is not dead.** `styles.css` (253 KB) and
+   `redesign-stats.css` (21 KB) are both linked in `index.html`. S7's CSS half is
+   a migration, not a sweep.
+3. **`season-library.js` is not dead either.** The native Team Hub reaches into
+   **12 of its private members**, including post-wipe recovery and registry
+   reconciliation. Deleting it because its overlay is unreachable would break
+   team switching and recovery. A `TeamRegistry` service is extracted first.
+
 **S6 build roles + required installer · 2026-08-02 · Coach · CHANGES §8 AND WHO BUILDS**
 
 Two changes, both by coach decision:
@@ -1276,3 +1294,200 @@ All pre-package evidence is green: canonical gate 82/82, P0 exit 17/17, cargo
 check clean, and both accepted proof nits mutation-verified. The coach now runs
 the installed checklist. PASS closes S6 and opens S7; any film, data, route, or
 focus failure keeps S7 closed.
+
+
+---
+
+## 13. S7 execution plan — ACCEPTED 2026-08-09
+
+**Built by Claude, reviewed by Codex across three rounds (each returned CHANGES
+REQUESTED and each was substantively right), approved by the coach.** This is the
+governing contract for S7 and supersedes the one-line description in §3.1.
+
+## Context
+
+The coach smoked and accepted `1.12.0-43` and opened S7, with Codex reviewing the
+S7 work when it is done. S7 is plan §3.1's final milestone: **delete
+`#wsClassicOutlet`, `#app`, the restore paths, `build.sh`, and dead CSS.**
+
+It is the least reversible milestone in the project, and this codebase has a
+specific history with it: **hidden markup resurfaced twice** when an overlay
+revealed the outlet, and a stylesheet that was present, correct and *inert*
+looked identical to a working one in a diff three separate times. Absence is the
+only state that cannot be un-hidden — which is the argument for doing this, and
+the reason to sequence it so every step is independently revertible.
+
+## Measured starting state (not inherited from the plan)
+
+| Thing | Measured |
+|---|---|
+| Live ids inside `#app` | **218** |
+| `football-film-analyzer.html` | 1.80 MB, **tracked**, referenced only by `tools/verify-audit-fixes.mjs:8` (not a gate harness) |
+| `build.sh` | 7 KB, **tracked**, referenced by no harness and no CI workflow |
+| `css/styles.css` | **253 KB and LIVE** — linked in `index.html` |
+| `css/redesign-stats.css` | **21 KB and LIVE** — linked in `index.html` |
+| Vite stylesheet ownership | 20/20 reachable — no dead stylesheet in the build today |
+
+**Correction to plan §3.2 item 7, measured against `p0-capability-inventory.mjs`:**
+it records eight stranded capability ids; **four** are.
+`e2e-breakdown-form.mjs` now claims **zero** (all four moved to
+`e2e-native-tagging.mjs`). `e2e-s5c-preflight.mjs` still claims
+`breakdown.game-context`, `play-diagram`, `scoreboard-ocr`, `templates`.
+
+**Two findings that change the shape of the work:**
+
+1. **The "dead CSS" is not dead.** Both stylesheets are linked and live. S7's CSS
+   half is a *migration*, not a sweep, and 253 KB is far too much to delete in one
+   reviewed commit.
+2. **`#app` contains live controls.** `videoFileInput` / `videoFolderInput` are
+   consumed by `video-controller.js:8-9`, `ui-polish.js:106/128` and
+   `wizard.js:180/258` — they are the film-loading inputs. `libraryOverlay` is
+   still held by `season-library.js:14`. Deleting `#app` naively breaks film
+   loading, which is the single worst outcome available in this app.
+
+## Codex review — CHANGES REQUESTED, all six accepted
+
+Codex reviewed the first draft and returned six findings. All are legitimate and
+all are folded in below. **The crucial one was P0-1, and it would have broken the
+product:**
+
+I proposed deleting `season-library.js` once its overlay was proven unreachable.
+**Overlay-unreachable is not module-dead.** The native Team Hub reaches into
+**12 private members** of it, covering team registry, team switching, season
+filtering, roster keys, post-wipe recovery and checklist state — the full list is
+in S7-c below. The file's own header even says *"SeasonLibrary remains a
+temporary registry/data…"*. **I had read that file and missed the sentence
+describing precisely what I was proposing to delete.** Executing the original
+S7-c would have taken out team switching and recovery while the legacy overlay it
+targeted was genuinely dead.
+
+**I under-counted that surface twice.** First at seven, then — after being
+corrected — my verification regex still returned seven, because it could not
+match past optional chaining (`library?._recoverFromWipe?.()`). The five it
+missed include the two with data-safety consequences. Both counts were a pattern
+narrower than the claim attached to it, which is the recurring failure mode in
+this project and the reason the S7-0 ledger is blocking rather than advisory.
+
+## Approach — S7-0 ledger, then seven sequenced phases
+
+### S7-0 — the dependency ledger (BLOCKING, read-only)
+`audit-shell-deps.mjs` counts ids and checks composition; it does **not** map JS
+dependencies, so 218 ids is a surface count, not a deletion list. Build a ledger
+classifying every legacy subtree/id as exactly one of:
+
+1. **native-owned** — removable outright;
+2. **nonvisual host** — rehome (e.g. the film inputs);
+3. **engine dependency** — decouple before deletion (e.g. SeasonLibrary's
+   registry role);
+4. **dead module** — retires together with its imports, constructors, listeners
+   and tests.
+
+Cover the boot-time constructors in `app.js` and the surviving restore paths in
+`workspace-shell.js` and `breakdown-workspace.js`. **No deletion begins until
+every id has a class.**
+
+### S7-a — close the capability floor (BLOCKING, additive only)
+Re-prove the four `e2e-s5c-preflight.mjs` ids **in their owning surface**, not
+bundled into one harness to retire another: `play-diagram`, `scoreboard-ocr` and
+`templates` belong in native tagging; **`breakdown.game-context` belongs in the
+workspace/breakdown journey.** `play-diagram` is the dangerous one —
+`play.diagram` is a persisted field with a live consumer at
+`call-sheet-builder.js:180`, so its proof must assert the **round-trip and the
+rendered Call Sheet thumbnail**, not reachability. Diff
+`e2e-breakdown-form.mjs`'s assertions against the native ones before retiring it;
+it claims nothing now, but assuming equivalence is what caused S5c-1.
+
+### S7-b — rehome the live nonvisual hosts, and retire the wizard here
+Move `videoFileInput` / `videoFolderInput` to `body`, as `projectFileInput`
+already was. Update `video-controller.js:8-9` and `ui-polish.js:106/128`.
+
+**Retire `wizard.js` and its tests in this phase rather than S7-d.** It is
+already approved for retirement and it holds two of the input call sites
+(`wizard.js:180/258`); updating and testing that path in S7-b only to delete it
+in S7-d is work spent on a surface that disappears. Prove the **surviving native
+film-import paths** instead — the empty-state CTA and the Film/Team settings
+import — which are what a coach actually uses.
+
+### S7-c — extract the team registry, then delete only the overlay
+**The dependency surface is 12 members, not 7.** My first count used a regex that
+could not match past optional chaining, so it missed five — including the two that
+matter most. Complete surface, verified:
+
+| | |
+|---|---|
+| Load path | `_recoverFromWipe`, `_ensureTeamRegistry`, `_teams`, `_activeTeamId`, `_teamProfile`, `_teamSeasons`, `_checklistItems`, `_checklistDismissed` |
+| Mutations | `_saveTeams`, `_saveTeamProfile`, `_teamRosterKey`, `_newTeamId` |
+
+Extract all twelve into a presentation-free `TeamRegistry` / `TeamLibraryService`
+with a **public** API and move Team Hub onto it. Tests must cover **post-wipe
+recovery** and **registry reconciliation** (the two I missed, and the two with
+data-safety consequences), plus reads, team create/switch/delete, roster
+switching, season scoping and checklist state. **Only then** delete the legacy
+overlay controller and its markup. The service is the deliverable; the deletion
+is the by-product.
+
+### S7-d — delete `#app`, `#wsClassicOutlet` and the restore paths
+Only after 0/a/b/c. (`wizard.js` is already gone — retired in S7-b with the input
+call sites it held.) Assert **absence**, not hiding — the test must red if the
+markup is re-inserted hidden.
+
+### S7-e — the CSS migration (reviewed checkpoints, visually lossless)
+274 KB across `styles.css` + `redesign-stats.css`, both live. Split into
+route/shared-style checkpoints, each reviewed. **Runtime coverage is evidence,
+not deletion authority** — it cannot see empty/error/loading states, responsive
+rules, focus/hover, Tauri-only states or dynamically generated selectors. Use
+static ownership as the primary instrument, backed by a route × state × viewport
+screenshot matrix. **The bar is that S7 is visually lossless.**
+
+### S7-f — retire the build artifacts
+Delete `build.sh` and `football-film-analyzer.html` (1.80 MB, tracked); remove or
+convert `tools/verify-audit-fixes.mjs`, which still opens the bundle; update the
+executable references and the deploy documentation. **Decide explicitly how the
+GitHub Pages build is produced from Vite afterwards** — the current recipe copies
+the bundle, and that recipe stops existing here.
+
+### S7-g — review BEFORE the installer, then package
+**Sequence, corrected:** Claude builds and gates → **Codex reviews the S7 range
+independently** → repair and re-review if needed → §8 installer → coach smoke →
+milestone acceptance.
+
+The earlier draft put the installer before the review, which would have had the
+coach installing and testing unreviewed structural demolition. That also
+contradicts this project's own §8 rule that a builder does not accept their own
+work at an installer — the reason the milestone-installer requirement exists at
+all.
+
+## Governance
+
+**Copy this accepted plan into the repository planning document and commit it
+before implementation begins.** It currently lives only in
+`~/.claude/plans/`, outside the repo — a handoff or reset would lose the
+governing contract, which is the same class of problem as an undocumented
+requirement change.
+
+## Verification
+
+- Full canonical gate green at every phase boundary; assertion counts **diffed,
+  not eyeballed** — zero drops.
+- `audit-shell-deps.mjs` ids-inside-`#app` count falls to 0 by S7-d and is
+  asserted, so residue cannot creep back.
+- Mutation proof per phase: re-inserting the deleted markup *hidden* must red the
+  absence assertion; removing a rehomed input must red the film-load assertion;
+  bypassing the new TeamRegistry must red team switching and recovery.
+- Real-data check (`e2e-realdata`) and parity 2/2 at each boundary.
+- **Responsive and density-sensitive checks measured against the coach's real
+  season**, per the standing rule added at the charting closeout — a synthetic
+  fixture understates string lengths and vocabulary size.
+- Route × state × viewport screenshot matrix before and after each CSS
+  checkpoint; S7 must be visually lossless.
+- **Milestone sequence:** Claude gate → **Codex independent review** →
+  repairs / re-review → §8 installer → coach smoke → acceptance. The review comes
+  before the installer, never after.
+
+## Explicitly not in scope
+
+No schema, migration, season byte, analytics formula, film cohort, composite ref,
+storage path, or film file change. No history rewrite. The 267 scratch artifacts
+in `7477fe2` history remain the coach's separate decision.
+
+---
