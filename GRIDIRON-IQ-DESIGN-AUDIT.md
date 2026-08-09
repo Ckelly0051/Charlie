@@ -469,7 +469,11 @@ not the available viewport.
 - Outcome, not merely audit: two visible product voices in ordinary UI (Sans for
   reading, Condensed for display). No glow/shadow on normal text; no tiny thin
   blue copy; table numerals remain aligned without turning whole rows mono.
-- Remaining visual check: Home, Break Down, Film Room, Study, Reports, Plan,
+- `1.12.0-40` exposed a cascade miss: Film Inbox rows are buttons and did not
+  inherit the shell family, so the installed screen looked unchanged. The
+  follow-up explicitly assigns Sans to the control and establishes visible
+  14px/650 game-title and 12.5px/500 metadata hierarchy. Include it in the next
+  consolidated visual installer, not a single-finding rebuild.`r`n- Remaining visual check: Home, Break Down, Film Room, Study, Reports, Plan,
   Settings, dialogs/toasts at normal Windows scaling and a narrow desktop.
 
 ### Responsive composition

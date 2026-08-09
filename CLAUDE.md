@@ -22,6 +22,13 @@ version owners to unique version `1.12.0-40`; the coach will continue the visual
 review from that installed build.** Do not issue a second distinct `1.12.0-39`
 binary or add another product change before packaging.
 
+**Installed `1.12.0-40` follow-up:** the coach correctly found that Film Inbox
+looked unchanged. Its visible rows are `<button>` controls, and those controls
+did not inherit the shell family; changing only the parent was insufficient. The
+current CSS correction explicitly assigns IBM Plex Sans at the control boundary
+and gives game titles 14px/650 primary type plus 12.5px/500 status metadata. This
+remains visual-only. Do not package it as a one-finding installer; carry it in
+the next consolidated visual batch, using unique version `1.12.0-41` or later.
 `9a5fd19` is a deliberately small, visual-only typography batch. Ordinary UI
 copy, labels, report headings, Film Room headings, Home metadata, and native tag
 labels now use IBM Plex Sans. IBM Plex Sans Condensed remains for true display
