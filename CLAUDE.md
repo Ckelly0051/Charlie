@@ -14,6 +14,52 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ ACTIVE — S6 ACCEPTED BY THE COACH; S7 IS OPEN (2026-08-09)
+
+**The coach smoked `1.12.0-43` and accepted it** — *"solid improvement, I see no
+immediate issues"* — and directed S7 to begin, with **Codex reviewing the S7 work
+when it is done** rather than reviewing S6 first. That is a deliberate change to
+the earlier sequencing and is recorded here so the next agent does not re-open it.
+No tag or published release exists. `1.12.0-37` remains the known-defective
+artifact and must not be reused.
+
+**S7 scope, from plan §3.1:** delete `#wsClassicOutlet`, `#app`, the restore
+paths, `build.sh`, and dead CSS. This is the least reversible milestone in the
+project — hidden markup is what resurfaced twice when an overlay revealed the
+outlet, and absence is the only state that cannot be un-hidden.
+
+#### Measured starting state
+
+- **218 ids still live inside `#app`.** That is the deletion surface.
+- `libraryOverlay` is the last `#app` top-level child the audit still reports.
+- Vite stylesheet ownership 20/20 reachable, so no dead stylesheet is hiding in
+  the build today.
+
+#### ⚠ §3.2 item 7 is narrower than the plan states — measured, not assumed
+
+The plan records **eight** breakdown capability ids stranded in harnesses S7
+retires. Re-measured against `p0-capability-inventory.mjs`:
+
+| Harness S7 retires | Capability ids it still claims |
+|---|---|
+| `e2e-breakdown-form.mjs` | **0** — `all-fields`, `special-teams`, `penalties`, `save-next` all now resolve to `e2e-native-tagging.mjs` |
+| `e2e-s5c-preflight.mjs` | **4** — `breakdown.game-context`, `play-diagram`, `scoreboard-ocr`, `templates` |
+
+So the blocking preflight is **four ids, not eight**. Three of the four
+(`play-diagram`, `scoreboard-ocr`, `templates`) are the same capabilities §3.2
+item 1 found with **zero** coverage before S5c, and `play-diagram` is a persisted
+play field with a live Call Sheet consumer — the one whose silent loss would
+orphan data with nothing red.
+
+**The obligation stands and is unchanged in force: re-prove those four natively
+BEFORE retiring `e2e-s5c-preflight.mjs`.** Deleting it first removes the
+guarantee and leaves `e2e-p0-capabilities` green, because the audit checks that a
+claimed assertion exists, not that it is strong. `e2e-breakdown-form.mjs` is now
+free of claims and may be retired on its own evidence — but its assertions should
+be diffed against the native ones before deletion rather than assumed equivalent,
+which is exactly the substitution that caused the S5c-1 capability-floor
+regression.
+
 ### CLAUDE CHARTING CLOSEOUT COMPLETE — `1.12.0-43` READY FOR SMOKE (2026-08-09)
 
 **Executor: Claude. Complete coach-approved batch, no partial packaging.**
