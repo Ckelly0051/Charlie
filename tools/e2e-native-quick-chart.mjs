@@ -107,6 +107,15 @@ ok(true, 'Leaving Break Down closes Quick Chart instead of leaking it onto anoth
 await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
 
 await page.setViewport({ width: 390, height: 844 });
+await page.click('[data-bd-tools-toggle]');
+await page.waitForFunction(() => document.querySelector('[data-bd-context="quick"]')?.getClientRects().length);
+const mobileCommandIsTopmost = await page.evaluate(() => {
+  const button = document.querySelector('[data-bd-context="quick"]');
+  const box = button?.getBoundingClientRect();
+  const hit = box && document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+  return !!button && (hit === button || hit?.closest('[data-bd-context="quick"]') === button);
+});
+ok(mobileCommandIsTopmost, 'Mobile More tools commands remain above the film hit target');
 await page.click('[data-bd-context="quick"]');
 await page.waitForFunction(() => document.activeElement?.matches('[data-native-quick-chart]'));
 state = await page.evaluate(() => ({

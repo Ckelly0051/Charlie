@@ -90,7 +90,7 @@ for (const [label,width,height] of [['125%',1152,720],['150%',960,600]]) {
   await new Promise(resolve=>setTimeout(resolve,60));
   state=await page.evaluate(() => {
     const bar=document.querySelector('.gi-breakdown-toolbar'), br=bar.getBoundingClientRect();
-    const controls=[...bar.querySelectorAll('button')].map(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,clipped:el.scrollWidth>el.clientWidth};});
+    const controls=[...bar.querySelectorAll('button')].filter(el=>el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,clipped:el.scrollWidth>el.clientWidth};});
     return { pageOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth, barOverflow:bar.scrollWidth>bar.clientWidth,
       controlsInside:controls.every(r=>r.left>=br.left-1&&r.right<=br.right+1&&r.top>=br.top-1&&r.bottom<=br.bottom+1&&!r.clipped), controls };
   });

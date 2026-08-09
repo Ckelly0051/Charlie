@@ -13,6 +13,38 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### ▶ CLAUDE REVIEW QUEUE — S6 DESIGN COMPLETION BATCH 1 (2026-08-09)
+
+**Builder: Codex. Review range: `4911645..HEAD` after this checkpoint lands.**
+The coach approved implementation after the installed `1.12.0-38` visual audit.
+This is one batched design repair, not an installer or a published release. S7
+remains closed pending independent review and the remaining design batches.
+
+#### What changed
+
+1. `tools/shots.mjs` now targets the live native Break Down and Film Room owners
+   instead of retired selectors. It produced **44 distinct captures** across
+   1440x900, 1280x720, 768x1024, and 390x844 with no page-level overflow.
+2. Film Room now gets a data-workspace composition rather than the Chart deck's
+   420-500px rail: side-by-side only when both panes can remain at least 680px;
+   it stacks theater over a full-width, at-least-520px table at 1280/1440.
+3. Mobile Break Down keeps film context and Chart/Film Room as first-level mode
+   controls. Quick Chart, Customize Fields, Game Settings, and Film Focus remain
+   available in one 44px `More tools` disclosure instead of consuming permanent
+   toolbar rows.
+4. The focused journey found a real stacking defect: the disclosed commands
+   rendered visibly but underneath the legacy video placeholder, so taps landed
+   on film. The mobile toolbar now owns the higher stacking layer, and the test
+   proves the Quick Chart command is the actual topmost hit target before click.
+
+#### Verification and scope
+
+- Focused: lifecycle 25/25, video 14/14, accessibility 10/10, geometry 12/12,
+  native Film Room 24/24, Quick Chart 13/13, shell 76/76.
+- Canonical gate on freshly rebuilt bytes: **82/82 green, 0 skipped, 0 failed**.
+- No schema, season/play payload, analytics formula, film cohort, composite ref,
+  storage path, film file, migration, version, package, tag, or release changed.
+
 ### DESIGN AUDIT CANDIDATE - `1.12.0-38` BUILT (2026-08-09)
 
 The coach approved a fresh installed baseline for the end-to-end visual review.

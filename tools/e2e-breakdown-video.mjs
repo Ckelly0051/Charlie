@@ -70,7 +70,7 @@ ok(state.text==='Saving...'&&state.pending,'Native Break Down projects canonical
 for(const [width,height] of [[1280,720],[768,1024],[390,844]]){
   await page.setViewport({width,height});
   await new Promise(resolve=>setTimeout(resolve,50));
-  state=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,route:!!document.querySelector('[data-native-breakdown-route]'),min:Math.min(...[...document.querySelectorAll('.gi-breakdown-toolbar button')].map(button=>button.getBoundingClientRect().height))}));
+  state=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,route:!!document.querySelector('[data-native-breakdown-route]'),min:Math.min(...[...document.querySelectorAll('.gi-breakdown-toolbar button')].filter(button=>button.getClientRects().length).map(button=>button.getBoundingClientRect().height))}));
   ok(!state.overflow&&state.route&&(width>620||state.min>=44),`${width}x${height} keeps the native route contained and usable`,JSON.stringify(state));
 }
 ok(errors.length===0,'Native Breakdown journey has zero page errors',errors.join(' | '));

@@ -139,7 +139,7 @@ for (const [width,height] of sizes) {
     const theater = document.querySelector('[data-breakdown-theater-host]').getBoundingClientRect();
     const media = document.getElementById('videoContainer').getBoundingClientRect();
     const deck = document.querySelector('[data-breakdown-tagging-host]').getBoundingClientRect();
-    const toolbarButtons = [...document.querySelectorAll('.gi-breakdown-toolbar button')].map(button => button.getBoundingClientRect().height);
+    const toolbarButtons = [...document.querySelectorAll('.gi-breakdown-toolbar button')].filter(button => button.getClientRects().length).map(button => button.getBoundingClientRect().height);
     return {
       route: [route.left, route.right, route.top, route.bottom],
       theater: [theater.left, theater.right, theater.top, theater.bottom],
@@ -155,6 +155,66 @@ for (const [width,height] of sizes) {
   if (width <= 620) ok(geometry.minToolbarHit >= 44,
     width + 'x' + height + ' keeps route controls touch-sized', JSON.stringify(geometry));
   if (shotDir) await page.screenshot({ path: path.join(shotDir, 'breakdown-' + width + 'x' + height + '.png'), fullPage: true });
+}
+
+console.log('\n== 5. Mobile commands are consolidated, not removed ==');
+await page.setViewport({ width: 390, height: 844 });
+await page.evaluate(() => window.app.breakdownWorkspace._setView('chart'));
+await page.click('[data-bd-tools-toggle]');
+state = await page.evaluate(() => {
+  const menu = document.querySelector('.gi-breakdown-tools');
+  const toggle = menu.querySelector('[data-bd-tools-toggle]');
+  const commands = [...menu.querySelectorAll('.gi-breakdown-commands button')];
+  return {
+    open: menu.classList.contains('is-open'),
+    expanded: toggle.getAttribute('aria-expanded'),
+    labels: commands.map(button => button.textContent.trim()),
+    minHit: Math.min(...commands.map(button => button.getBoundingClientRect().height)),
+    visible: commands.every(button => button.getClientRects().length),
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  };
+});
+ok(state.open && state.expanded === 'true' && state.visible && state.minHit >= 44 && !state.overflow,
+  'Mobile More tools opens a contained touch-sized command menu', JSON.stringify(state));
+ok(JSON.stringify(state.labels) === JSON.stringify(['Quick chart', 'Customize fields', 'Game settings', 'Film focus']),
+  'Mobile menu retains every advanced Break Down command', JSON.stringify(state));
+await page.keyboard.press('Escape');
+state = await page.evaluate(() => ({
+  open: document.querySelector('.gi-breakdown-tools').classList.contains('is-open'),
+  expanded: document.querySelector('[data-bd-tools-toggle]').getAttribute('aria-expanded'),
+  visibleCommands: [...document.querySelectorAll('.gi-breakdown-commands button')].filter(button => button.getClientRects().length).length,
+  focused: document.activeElement === document.querySelector('[data-bd-tools-toggle]'),
+}));
+ok(!state.open && state.expanded === 'false' && state.visibleCommands === 0 && state.focused,
+  'Escape closes Mobile More tools and restores focus to its launcher', JSON.stringify(state));
+
+console.log('\n== 6. Film Room owns a usable data workspace ==');
+for (const [width, height, stacked] of [[1920,1080,false],[1440,900,true],[1280,720,true]]) {
+  await page.setViewport({ width, height });
+  await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room'));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const layout = await page.evaluate(() => {
+    const route = document.querySelector('[data-native-breakdown-route]').getBoundingClientRect();
+    const theater = document.querySelector('[data-breakdown-theater-host]').getBoundingClientRect();
+    const deck = document.querySelector('.gi-breakdown-deck').getBoundingClientRect();
+    const film = document.querySelector('[data-breakdown-film-room-host]').getBoundingClientRect();
+    return {
+      route: { left: route.left, right: route.right, width: route.width },
+      theater: { left: theater.left, right: theater.right, top: theater.top, bottom: theater.bottom, width: theater.width },
+      deck: { left: deck.left, right: deck.right, top: deck.top, bottom: deck.bottom, width: deck.width },
+      film: { width: film.width, height: film.height },
+      sideBySide: Math.abs(theater.top - deck.top) <= 1 && deck.left >= theater.right - 1,
+      stacked: deck.top >= theater.bottom - 1 && Math.abs(deck.width - route.width) <= 2,
+      tableVisible: !!document.querySelector('[data-native-film-room]')?.getClientRects().length,
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+  if (stacked) ok(layout.stacked && layout.film.width >= layout.route.width - 2 && layout.film.height >= 500,
+    width + 'x' + height + ' gives Film Room a full-width table below the theater', JSON.stringify(layout));
+  else ok(layout.sideBySide && layout.film.width >= 680,
+    width + 'x' + height + ' gives Film Room a wide side-by-side data deck', JSON.stringify(layout));
+  ok(layout.tableVisible && !layout.pageOverflow,
+    width + 'x' + height + ' keeps Film Room visible with overflow contained internally', JSON.stringify(layout));
 }
 
 ok(errors.length === 0, 'Native Break Down ownership journey has zero page errors', errors.join(' | '));

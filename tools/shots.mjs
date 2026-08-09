@@ -83,10 +83,10 @@ for(const viewport of viewports){
   await capture(viewport,'02-home','#wsHome:not([hidden])');
 
   await page.evaluate(async () => { const s=window.app.storage.seasonStore.data; await window.app.openGame(s.activeGameId || s.games[0].id); window.app.breakdownWorkspace._setView('chart'); });
-  await capture(viewport,'03-breakdown-chart','#wsBreakdown:not([hidden]) .bd-route');
+  await capture(viewport,'03-breakdown-chart','#wsBreakdown:not([hidden]) [data-native-breakdown-route]');
 
   await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room'));
-  await capture(viewport,'04-film-room','#wsBreakdown.bd-film-room-mode #playGridSection:not([hidden])');
+  await capture(viewport,'04-film-room','#wsBreakdown:not([hidden]) [data-breakdown-film-room-host]:not([hidden]) [data-native-film-room]');
 
   await page.evaluate(() => { window.app.breakdownWorkspace._setView('chart'); if(!window.app.quickChart.isActive) window.app.quickChart.toggle(); });
   await capture(viewport,'05-quick-chart','[data-native-quick-chart]');

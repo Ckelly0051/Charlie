@@ -1196,3 +1196,21 @@ S7 remains closed. `1.12.0-37` is defective and must not be promoted.
 Repository-history cleanup is a separate coach decision: `7477fe2` still exposes
 unreachable scratch blobs containing real-team captures even though the files
 were removed at `db3b606`. No history rewrite or force-push was performed.
+
+### S6 design completion batch 1 — built 2026-08-09; independent review required
+
+Codex implemented the first structural findings from the installed `1.12.0-38`
+design audit. Film Room no longer inherits Chart's narrow deck: it is side-by-
+side only when both theater and table remain usable, and stacks to a full-width
+table at medium desktop widths. Mobile Break Down now presents film context and
+workspace mode first, with all four advanced commands retained in a 44px
+disclosure.
+
+The screenshot gate was repaired to use live native owners and produced 44
+distinct route/viewport captures. Focused geometry and interaction tests pin the
+responsive composition and the disclosed command's real hit target above film.
+The canonical gate is **82/82 green, 0 skipped, 0 failed** on rebuilt bytes.
+
+No installer, version, tag, release, data migration, storage change, analytics
+formula, or film-cohort change is included. Claude reviews this checkpoint next;
+S7 remains closed and subsequent design work waits for that verdict.

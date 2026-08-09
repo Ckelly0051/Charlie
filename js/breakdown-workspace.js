@@ -34,16 +34,19 @@ export class BreakdownWorkspace {
           <div class="gi-breakdown-context" role="group" aria-label="Film context">
             <button type="button" data-bd-context="self">Our games <small>Self-scout</small></button>
             <button type="button" data-bd-context="scout">Opponent film <small>Scout</small></button>
-            <button type="button" data-bd-context="quick">Quick chart</button>
-          </div>
-          <div class="gi-breakdown-commands">
-            <button type="button" data-bd-customize>Customize fields</button>
-            <button type="button" data-bd-game>Game</button>
           </div>
           <div class="gi-breakdown-view" role="group" aria-label="Break Down view">
             <button type="button" class="active" data-bd-view="chart" aria-pressed="true">Chart</button>
             <button type="button" data-bd-view="film-room" aria-pressed="false">Film Room</button>
-            <button type="button" data-bd-film-focus aria-pressed="false">Film focus</button>
+          </div>
+          <div class="gi-breakdown-tools">
+            <button type="button" data-bd-tools-toggle aria-haspopup="menu" aria-controls="bdMoreTools" aria-expanded="false">More tools</button>
+            <div class="gi-breakdown-commands" id="bdMoreTools" role="menu">
+              <button type="button" role="menuitem" data-bd-context="quick">Quick chart</button>
+              <button type="button" role="menuitem" data-bd-customize>Customize fields</button>
+              <button type="button" role="menuitem" data-bd-game>Game settings</button>
+              <button type="button" role="menuitem" data-bd-film-focus aria-pressed="false">Film focus</button>
+            </div>
           </div>
           <span class="gi-breakdown-save is-saved" id="bdSaveState">Saved</span>
         </header>
@@ -84,13 +87,47 @@ export class BreakdownWorkspace {
       this.perspective?.addEventListener('change', () => this.render());
       this.unitControl?.addEventListener('click', () => requestAnimationFrame(() => this.render()));
     }
-    this.host?.querySelectorAll('[data-bd-context]').forEach(btn => {
-      btn.addEventListener('click', () => this._setContext(btn.dataset.bdContext));
+    this.host?.querySelector('[data-bd-tools-toggle]')?.addEventListener('click', () => this._toggleTools());
+    this.host?.querySelector('.gi-breakdown-tools')?.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      const button = this.host?.querySelector('[data-bd-tools-toggle]');
+      this._closeTools();
+      button?.focus();
     });
-    this.host?.querySelector('[data-bd-customize]')?.addEventListener('click', () => this.app.tagLibrarySettings?.open());
-    this.host?.querySelector('[data-bd-game]')?.addEventListener('click', () => this.app.gameScreen?.open({ mode: 'edit' }));
+    this.host?.querySelectorAll('[data-bd-context]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._setContext(btn.dataset.bdContext);
+        this._closeTools();
+      });
+    });
+    this.host?.querySelector('[data-bd-customize]')?.addEventListener('click', () => {
+      this._closeTools();
+      this.app.tagLibrarySettings?.open();
+    });
+    this.host?.querySelector('[data-bd-game]')?.addEventListener('click', () => {
+      this._closeTools();
+      this.app.gameScreen?.open({ mode: 'edit' });
+    });
     this.host?.querySelectorAll('[data-bd-view]').forEach(btn => btn.addEventListener('click', () => this._setView(btn.dataset.bdView, { userInitiated: true })));
-    this.host?.querySelector('[data-bd-film-focus]')?.addEventListener('click', () => this._setFilmFocus(!this.filmFocus));
+    this.host?.querySelector('[data-bd-film-focus]')?.addEventListener('click', () => {
+      this._closeTools();
+      this._setFilmFocus(!this.filmFocus);
+    });
+  }
+
+  _toggleTools() {
+    const menu = this.host?.querySelector('.gi-breakdown-tools');
+    const button = menu?.querySelector('[data-bd-tools-toggle]');
+    const open = !menu?.classList.contains('is-open');
+    menu?.classList.toggle('is-open', open);
+    button?.setAttribute('aria-expanded', String(open));
+  }
+
+  _closeTools() {
+    const menu = this.host?.querySelector('.gi-breakdown-tools');
+    menu?.classList.remove('is-open');
+    menu?.querySelector('[data-bd-tools-toggle]')?.setAttribute('aria-expanded', 'false');
   }
 
   _setView(view, { userInitiated = false } = {}) {

@@ -379,4 +379,31 @@ The ownership flip initially reduced usable film at desktop widths because the c
 
 A persisted Film Focus command gives coaches an intentional video-first state: the charting deck leaves layout, the play strip collapses to its header, and no control or border overlays source film. Show charting restores the work surface. Film Focus is required to meet/exceed the accepted standalone S5a picture target at both desktop sizes. Tablet and 390px mobile checks remain overflow-free and mobile route controls remain at least 44px.
 
+
 The focused geometry harness is 12/12 and was mutation-proven against the rejected wide-deck values. This is structural S5d repair, not the later full visual-polish pass; installer and coach smoke remain gated on independent review.
+
+## S6 Design Completion — Batch 1 Built, Independent Review Required (2026-08-09)
+
+The installed audit showed two structural problems worth fixing before cosmetic
+polish: Film Room was forced into the narrow Chart deck, and mobile Breakdown
+gave every secondary command permanent toolbar weight. Both are repaired without
+changing football data, analytics, film cohorts, or storage behavior.
+
+- **Film Room composition:** at 1500px and wider, theater and table share the
+  workspace only while each can keep at least 680px. At 1280/1440 the theater
+  stacks over a full-width table with at least 520px of stable working height.
+  Chart retains its dense 420-500px tagging deck.
+- **Mobile command hierarchy:** film context and Chart/Film Room stay visible.
+  Quick Chart, Customize Fields, Game Settings, and Film Focus move into one
+  44px `More tools` disclosure. No capability was removed.
+- **Interaction truth:** the first implementation exposed a stacking bug where
+  the menu appeared above film visually but the video placeholder owned the hit
+  target. The corrected journey checks `elementFromPoint` before activation and
+  then proves the Quick Chart modal, focus, inert route, touch sizes, and Escape.
+- **Visual evidence:** the repaired `tools/shots.mjs` captures all 11 live routes
+  at 1440x900, 1280x720, 768x1024, and 390x844: 44 distinct images, zero page
+  overflow. Geometry checks pin the Film Room behavior at 1920, 1440, and 1280.
+
+This closes the first structural batch only. The broader color, spacing,
+typography, chart, and cross-route polish audit remains open. Claude reviews this
+checkpoint independently before another batch or installer is considered.
