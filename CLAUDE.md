@@ -13,6 +13,15 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 **Branch**: `claude/football-film-analyzer-GRiCW`
 
 ## Current Handoff / Changelog
+### DESIGN AUDIT CANDIDATE - `1.12.0-38` BUILT (2026-08-09)
+
+The coach approved a fresh installed baseline for the end-to-end visual review.
+The four version owners were stamped to `1.12.0-38` from accepted source HEAD
+`39e2196`; no application behavior changed. `node tools/e2e-p0-exit.mjs` passed
+17/17, Vite rebuilt cleanly, and `cargo tauri build --no-sign` produced local
+NSIS and MSI installers. This is an unsigned design-audit candidate, not a
+published release. `1.12.0-37` remains defective and must not be reused.
+
 ### ▶ CODEX S6 REPAIR — `9a75b07` AWAITING INDEPENDENT REVIEW (2026-08-08)
 
 **Builder/reviewer: Codex. Repair review range: `c098868..9a75b07`.** Codex
