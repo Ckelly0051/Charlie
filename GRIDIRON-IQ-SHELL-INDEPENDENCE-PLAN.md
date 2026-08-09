@@ -1577,10 +1577,128 @@ out of the real `node_modules`. Derived and gitignored, no source or data
 touched, restored with `npm install` — but junctioning into a worktree is not
 worth the shortcut.
 
-### S7-d — delete `#app`, `#wsClassicOutlet` and the restore paths
+### S7-d — extract the remaining owners, then delete `#app` and restore paths
+
 Only after 0/a/b/c. (`wizard.js` is already gone — retired in S7-b with the input
-call sites it held.) Assert **absence**, not hiding — the test must red if the
-markup is re-inserted hidden.
+call sites it held.) **Codex's 2026-08-09 consultation supersedes the earlier
+single-checkpoint wording here.** The ledger's post-S7-c `141 engine-dep / 29
+native-owned` output and its later working `167 / 3` output both understate the
+real deletion surface in different ways. The ledger originally missed bare ids
+resolved through maps; after that repair, its three apparent native-owned ids
+were all unreferenced parents whose descendants remain live:
+
+- `timelineStrip` owns the live `timelineBar`;
+- `motionGraph` owns the live `motionGraphCanvas`;
+- `legacyGameContextState` owns `gameTeamName`, `gameJerseyColor`,
+  `gamePerspective`, `gameDirection`, `gameApiKey` and `gameAiModel`.
+
+#### S7-d0 — make the dependency ledger tree-aware (blocking, read-only)
+
+Use a real DOM parser and propagate each descendant's strongest classification
+to its ancestors. An element tree is removable only when every descendant is
+removable. The inventory must account for:
+
+- literal `getElementById` and selector strings;
+- bare ids held in maps/arrays and later passed to a generic resolver;
+- template-built selectors and `querySelectorAll`;
+- class/structural navigation (`.pick`, `.st-field`, `closest`, sibling walks);
+- constructor-captured element references and native controllers that proxy
+  through legacy fields/buttons;
+- runtime-generated descendants such as the Film Room grid.
+
+Regex/AST/runtime evidence is advisory, not deletion authority. Every production
+checkpoint below must cold-start the built app with its retired markup absent.
+Deleting nodes after boot is an invalid proof because controllers may retain
+detached references. Commit this ledger repair separately before production
+S7-d work.
+
+#### S7-d1 — extract game context first
+
+The canonical durable owner is `SeasonStore.activeGame().gameInfo`; the working
+owner is `StorageManager.gameInfo`. Replace the hidden-form event bus with a
+DOM-free `GameContext` controller/service exposing `snapshot`, `update` and
+`subscribe`. Route `_applyGameInfoDraft`, BreakdownWorkspace, NativeTagging,
+Reports, StatsEngine, SeasonManager and Settings through it. Team identity uses
+TeamRegistry; analysis provider/model uses native settings/storage rather than
+hidden fields.
+
+Prove games with different perspective/direction, opponent-scout stickiness
+across unit changes, new-game defaults, persist/reload, failed-save rollback,
+Vision context and report labels. Only then delete `_bindGameInfo`, the DOM-sync
+portion of `_loadGameInfo`, synthetic `#gamePerspective` change dispatches and
+`#legacyGameContextState`.
+
+#### S7-d2 — establish a permanent media foundation
+
+Move the one canonical media subtree — videos, drawing canvas, multi-angle
+wrappers, transport, scrub/timeline and required file inputs — to a permanent
+host outside `#app`, not an ephemeral route container. Replace
+`BreakdownTheaterScreen._home` with that permanent owner and remove the legacy
+video restore/fallback transaction only after route switching works without it.
+Decouple `VideoController` from the old top-bar `fileLabel`, folder badge and
+drop-zone status elements; S7-b moved the inputs but did not eliminate these
+remaining reads/writes.
+
+#### S7-d3 — extract the tagging domain
+
+Move behavior behind DOM-free APIs in two reviewed checkpoints:
+
+1. core fields, units, players, grades and notes;
+2. structured penalties/special teams, templates, Auto D&D and carry-forward.
+
+Native Tagging must call those APIs directly. It must not click hidden buttons,
+toggle hidden chips or treat `tagger.tagFields` as native ownership. Preserve the
+accepted E1-E4 projection, one-entry undo/redo and persistence contracts.
+
+#### S7-d4 — extract auxiliary film tools
+
+Move scoreboard OCR, play diagram, auto-detect, suggestions and drawing commands
+behind explicit controllers. Native commands call those controllers directly,
+not hidden form buttons. Replace StatsEngine's
+`#tagDefFront .our-def-only` vocabulary read with TagLibrary/CustomChips data.
+
+#### S7-d5 — separate Film Room model from legacy presentation
+
+Preserve PlayGrid's filtering, selection, edit, saved-column and Watch behavior,
+but remove its requirement that `#playGridSection` already exist. The native Film
+Room becomes the presentation owner; the legacy renderer is deleted only after
+composite-ref film parity and edit persistence remain proven.
+
+#### S7-d6 — remove the Reports legacy target
+
+Reports still adopts and restores `#statsDashboard`, and StatsEngine still binds
+that element as a render target. Give Reports a permanent native target and
+remove the id-swapping/restore path. Prove every report route, game switching,
+Watch-film refs and zero hidden-target rendering.
+
+#### S7-d7 — make shell chrome native-owned
+
+Undo, redo, shortcuts, settings and backend/film status are currently adopted
+from the old top bar. Create and bind their native controls before deleting their
+source markup. Verify listeners, disabled state, keyboard behavior, focus and
+route persistence.
+
+#### S7-d8 — final shell deletion
+
+Only after d1-d7 are independently accepted: delete `#app`,
+`#wsClassicOutlet`, the compatibility flag, `WorkspaceShell.disable()`,
+Breakdown restore paths and the remaining legacy lifecycle code. Assert
+**absence, not hiding** — re-inserting the markup hidden must red the test. Replace
+tests that explicitly drive `disable()`/`restore()` with permanent-shell
+cold-boot and route-cycle tests; do not simply remove their assertions.
+
+#### S7-d review traps
+
+- Optional chaining can make a missing dependency look like a successful no-op.
+- `#app` absence alone is insufficient if detached legacy nodes still power a
+  feature.
+- Native reachability is not native ownership; S7-a proved the former.
+- Runtime-generated markup and empty/error/loading states can evade a static-id
+  inventory.
+- `statsDashboard`, `btnCloseStats`, the media home, the tag form and
+  `playGridSection` are live fallback hosts until their named checkpoint closes.
+- S7-b was necessary but incomplete for VideoController top-bar decoupling.
+- No specific S7-c regression was found in this consultation; do not reopen it.
 
 ### S7-e — the CSS migration (reviewed checkpoints, visually lossless)
 274 KB across `styles.css` + `redesign-stats.css`, both live. Split into

@@ -14,6 +14,73 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ ACTIVE — S7-d architecture consultation (Codex, 2026-08-09)
+
+**Do not delete `#app` or `#wsClassicOutlet` from the current ledger count.**
+Codex reviewed the live ownership paths after S7-c. The hardened ledger's
+working count (`167 engine-dep / 3 native-owned`) is still not a deletion oracle:
+all three apparent native-owned ids are parent containers with live descendants.
+`timelineStrip` contains `timelineBar`, `motionGraph` contains
+`motionGraphCanvas`, and `legacyGameContextState` contains six live game-context
+fields. The earlier `141 / 29` count below is retained as historical S7-c output,
+not current deletion authority.
+
+#### Binding corrections for S7-d
+
+1. **Make the ledger tree-aware before production deletion.** Parse the actual
+   DOM tree and propagate the strongest descendant classification to every
+   ancestor. Cover bare ids in maps/arrays, generic resolver loops,
+   template-built selectors, `querySelectorAll`, class/structural selectors,
+   constructor-captured elements, runtime-generated descendants and native
+   controllers that proxy through legacy fields/buttons. Static evidence remains
+   advisory; each checkpoint must cold-boot from built source with the retired
+   markup absent. Removing markup after boot can falsely pass because controllers
+   retain detached nodes.
+2. **Extract game context first.** Canonical durable truth is
+   `SeasonStore.activeGame().gameInfo`; live working truth is
+   `StorageManager.gameInfo`. Add a DOM-free game-context controller/service with
+   `snapshot`, `update` and `subscribe`. Route App, BreakdownWorkspace,
+   NativeTagging, Reports, Stats, SeasonManager and Settings through it. Preserve
+   opponent-scout stickiness, direction, save rollback, new-game defaults, Vision
+   settings and report labels. Only then delete the hidden inputs and synthetic
+   `change` event bus.
+3. **Give media a permanent home outside `#app`.** The canonical video, canvas,
+   multi-angle wrappers, transport and required file inputs may move one-way, but
+   not into an ephemeral route host. Remove the legacy restore/fallback path after
+   the permanent host exists. Also decouple `VideoController` from the old
+   `fileLabel`, folder badge and drop-zone status nodes; S7-b rehomed the inputs,
+   not those remaining dependencies.
+4. **Split the remaining work by ownership seam:** game context; permanent media;
+   tagging domain; auxiliary film tools; Film Room model/presentation; Reports
+   target; shell chrome; final shell deletion. The detailed order and gates are
+   binding in `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` §13.
+5. **Do not equate native reachability with native ownership.** Native Tagging
+   still delegates to legacy `tagger.tagFields`, hidden toggles and synthetic
+   clicks. `PlayGrid` still requires `#playGridSection`; Reports still adopts and
+   restores `#statsDashboard`; shell chrome still adopts controls from the old
+   top bar. These are extraction targets, not deletable remnants.
+
+#### Review traps that must stay visible
+
+- Optional chaining can turn a missing element into silent feature loss.
+- An assertion that only proves `#app` is absent can pass while detached legacy
+  nodes still power the feature.
+- Runtime-generated ids and class-based behavior are not covered by an
+  ids-in-`index.html` inventory alone.
+- `StatsEngine` still reads `#tagDefFront .our-def-only`; move that vocabulary to
+  TagLibrary/CustomChips data before deleting the form.
+- Tests that call `WorkspaceShell.disable()` or `BreakdownWorkspace.restore()`
+  must be replaced by permanent-shell lifecycle tests, not merely deleted.
+- S7-a proved capability reachability, not independence. S7-b was necessary but
+  did not finish VideoController's top-bar decoupling. No new S7-c defect was
+  found; do not reopen that accepted extraction.
+
+**Working-tree note:** Claude's only uncommitted file at consultation time was
+`tools/s7-dependency-ledger.mjs`. Codex did not edit, stage or revert it. Commit
+the tree-aware ledger repair separately before the first S7-d production
+checkpoint. No schema, season/play data, analytics formula, film path/file,
+package, tag or release changes are authorized by this consultation.
+
 ### S7-c COMPLETE — TeamRegistry extracted, the legacy overlay deleted (2026-08-09)
 
 **`js/team-registry.js` is the deliverable; the deletion is the by-product** —
