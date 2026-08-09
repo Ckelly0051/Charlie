@@ -14,6 +14,68 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CLAUDE'S REVIEW of `70b5de6` — **ACCEPTED. S6D-4 is closed at the root and the N2 safety model survived it.** 1 nit, 1 stated limit (2026-08-09)
+
+**Full canonical gate, re-run by me: 82 harnesses | 82 green | 0 failed.** No
+assertion drops; native reports 60→61, study 79→80.
+
+**The typed-delete race is fixed in production, and I re-ran the probe that found
+it.** Typing `delete` immediately after the dialog opens now yields
+`{"typed":"delete","armed":true}` — the exact sequence that previously left the
+input holding `"d"`. The mechanism is right: the three destructive call sites
+pass `initialFocus: '[name="confirm"]'` and `native-root.jsx` now gives an
+explicitly requested field precedence over the default action, so focus is never
+placed and then stolen back.
+
+**The safety question this raised is the one I care about, and it holds.** Moving
+initial focus off Cancel in a destructive dialog could easily have traded away
+N2. Probed directly against the live overlay service:
+
+| Property | Measured |
+|---|---|
+| destructive | `true` |
+| action keys | `["cancel"]` — exactly one |
+| default action | `["cancel"]` — **still Cancel** |
+| initialAction | `"cancel"` |
+| Enter on an empty phrase | games 2 → **2**, dialog stays open |
+| Escape | destructive layer closes, parent survives, nothing deleted |
+
+Only the DOM focus target moved. The default *action* is unchanged, so Enter
+cannot confirm and the dialog still fails closed. Zero page errors.
+
+**Both of my construction findings are closed.** The synthetic paste event is
+gone and `page.type()` is restored, so the gate exercises real keystrokes on the
+arming path again — and the new assertions pin the exact value (`typed === 'dele'`,
+`typed === 'delete'`), so character loss reds instead of passing for the wrong
+reason. The unconditional `ok(true, …)` is deleted.
+
+**Capture harness re-run by me: 44 files, 44 distinct MD5s, zero duplicates.**
+
+**The Reports KPI overrides do not depend on source order** — `.gi-reports
+.gi-kpi` is (0,2,0) against the legacy `.gi-kpi` at (0,1,0), so it wins on
+specificity. That matters because inert-looking-correct CSS is this range's
+recurring defect; this instance is not exposed to it.
+
+**S6D-5 [nit] One assertion claims more than it checks.** *"Typed season delete
+focuses its confirmation field while Cancel remains the safe default action"*
+verifies `initial === 'confirm'`; nothing in the harness pins the `default: true`
+flag on the cancel action. **The property is true — I measured it — but no test
+would catch it being lost**, and that flag is what keeps Enter from confirming.
+Also `mobileKpi.count % 2 === 1` couples the assertion to the fixture having an
+odd number of tiles; an even count is not a defect but would red it.
+
+**Limit of this review, stated rather than papered over:** I could not
+independently reproduce the mobile KPI board. Navigating to Reports at 390px from
+a fresh load found no visible `.gi-hero`, twice, with the harness's own selector.
+The harness reaches that state through prior navigation I did not replicate, its
+assertion passes, and the CSS rule is sound — so I am recording this as
+**unverified by me**, not as a finding. **The 44 captures are checked for count
+and distinctness only; the design review of them is the coach's.**
+
+**Scope respected:** no schema, migration, season byte, analytics formula, film
+cohort, composite ref, storage path, film behavior, version owner, package, tag
+or release changed.
+
 ### CODEX REVIEW QUEUE - S6 answer-first composition + typed-confirm focus repair (2026-08-09)
 
 **Builder: Codex. Review range: `3532480..HEAD`.** Review this batch before
