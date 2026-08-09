@@ -459,6 +459,29 @@ readability, film area, interaction safety, or touch targets.** Dense means
 well-composed, not cramped. Visualization dimensions follow their information,
 not the available viewport.
 
+### Charting closeout - Claude executor, batch before next installer
+
+Installed baseline is `1.12.0-42` (`a57e883`). Claude owns the next consolidated
+charting installer (`1.12.0-43` or later). Three intended changes are already
+uncommitted in `css/native-tagging.css`, `js/native-tagging.jsx`, and
+`js/quick-chart.js`; preserve and review them rather than resetting the worktree.
+
+Accepted outcomes for the batch:
+
+- Coverage Call is one desktop scan line without shrinking readable type or
+  violating coarse-pointer targets.
+- Quick Chart retains three-digit yardage through 109, matching the native form.
+- The narrowed Breakdown header adapts without clipping team identity, primary
+  navigation, or controls; lower-priority context yields first.
+- Native charting groups use consistent compact top/bottom body padding (roughly
+  8-10px) across the route.
+- Group titles use normal-width Plex Sans 600 and descriptions use Plex Sans 400;
+  the lower-third hierarchy remains, but condensation no longer harms reading.
+
+Situation ordering, Punt in More, I-Form/Split Back, and native 0-109 yardage are
+already shipped and are not part of this repair. Claude runs focused proof plus
+the canonical gate, updates both handoff documents, stamps all four version
+owners, builds and hashes the installer, commits, and pushes the complete batch.
 ### Typography - quick pass built, installed judgment pending
 
 - `9a5fd19` changes ordinary product copy from mono/legacy Segoe overrides to

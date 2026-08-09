@@ -14,6 +14,53 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ACTIVE - CLAUDE CHARTING CLOSEOUT + INSTALLER HANDOFF (2026-08-09)
+
+**Executor: Claude. Installed baseline: `1.12.0-42` at `a57e883`. Next unique
+installer: `1.12.0-43` or later.** Codex stops here. Claude owns completing the
+batch, focused proof, canonical gate, four-owner version stamp, installer build,
+documentation, commit, and push.
+
+**Do not run `reset --hard`, clean, checkout-overwrite, or discard the worktree.**
+Three intended product files are already modified but uncommitted:
+
+- `css/native-tagging.css` - Coverage Call receives a field-scoped one-row rule.
+- `js/native-tagging.jsx` - native fields expose a field-specific class for that
+  scoped layout rule.
+- `js/quick-chart.js` - Quick Chart accepts three-digit yardage through 109 rather
+  than silently retaining only two digits.
+
+Claude must inspect, retain, and review those changes before continuing. Then
+complete this coach-approved charting batch:
+
+1. **Coverage Call:** Cover 0-6 stays on one row at the normal desktop charting
+   width. Tighten chip boxes, not readable type. Preserve coarse-pointer 44px
+   height and prevent horizontal overflow.
+2. **Quick Chart yardage:** accept 0-109 consistently with the native form; prove
+   100 is retained rather than truncated.
+3. **Breakdown header responsiveness:** eliminate the clipped team/season context
+   shown at a narrowed desktop window. Preserve the full team identity where
+   practical; collapse lower-priority season/breadcrumb detail before clipping
+   primary route navigation. No overlap or page-level horizontal overflow.
+4. **Charting group density:** reduce excessive top AND bottom body padding to a
+   consistent roughly 8-10px. Keep clear separation without wasting vertical
+   charting space. Apply across every native charting group, not screenshot-only
+   selectors.
+5. **Charting group typography:** keep the lower-third structure but replace its
+   unnecessarily condensed title copy with Plex Sans 600. Descriptions use Plex
+   Sans 400 at a readable size/contrast. Apply to Situation, calls/looks, Play &
+   Result, Penalties, Players, Notes, and Special Teams groups consistently.
+
+Already complete; do not rebuild: Quarter + Down/Distance then Hash + Field
+Position, Punt first under More, I-Form/Split Back standard formations, and the
+native form's 0-109 yardage input.
+
+Required proof before packaging: focused assertions for Coverage Call overflow,
+Quick Chart 100-yard retention, narrowed-header reachability/no clipping, and
+charting group density/type ownership; then the full canonical gate. Update
+`CLAUDE.md` and `GRIDIRON-IQ-DESIGN-AUDIT.md`, stamp all four version owners to
+the same unique version, build the installer, record its path/hash, commit, and
+push. Do not package a partial batch.
 ### ACTIVE - COACH VISUAL REVIEW + TYPOGRAPHY QUICK PASS (2026-08-09)
 
 **Installed visual baseline:** `1.12.0-40` was built at `1926c64` and exposed
