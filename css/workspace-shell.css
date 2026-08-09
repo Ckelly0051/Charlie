@@ -139,6 +139,25 @@ body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
 .ws-context[aria-expanded="true"]{border-color:var(--ws-blue);background:var(--ws-sel)}
 .ws-context-caret{margin-left:2px;color:var(--ws-muted);font-size:11.5px}
 
+/* S6 charting closeout — the context bar clipped every segment on the coach's
+   real names ("Mavericks / 2025 St. Joseph Mavericks - JV / Week 2 vs ND Prep
+   Fighting Irish") at 1440, not just when narrowed. Priority is explicit:
+   team identity never shrinks, the game is the working context and shrinks
+   only after the season has, and the season is the first thing to go. IDs are
+   used deliberately — these three nodes are shell-owned singletons and the
+   rule must outrank the route-level `.ws-context` sizing. */
+.ws-context{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
+.ws-context>b{flex:0 0 auto}
+#wsContextTeam{flex:0 0 auto;white-space:nowrap}
+#wsContextSeason{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wsContextGame{flex:0 1 auto;min-width:3.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Below this the season is dropped outright rather than reduced to an
+   ellipsis that carries no information; team and game both stay whole. */
+@media (max-width:1499px){
+  body.ws-shell-active.ws-route-breakdown #wsContextSeason,
+  body.ws-shell-active.ws-route-breakdown #wsContextSeason+b{display:none}
+}
+
 /* ══ S6-6c — DESIGN RULES LAST ══════════════════════════════════════════════
    Home carries the shell chrome and was the last big surface still speaking a
    dialect: `font-weight:800` uppercase labels with 1px tracking, section heads

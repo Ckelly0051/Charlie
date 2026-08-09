@@ -17,7 +17,7 @@ const selected = (value, option) => String(value || '').split(' + ').includes(op
 
 function Chips({screen, field, label, options, value, hint, library}) {
   const choices = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
-  return <div class="gi-tag-field" data-native-field={field}>
+  return <div class={`gi-tag-field gi-tag-field-${field}`} data-native-field={field}>
     <div class="gi-tag-field-label">
       <span>{label}</span>{hint && <small>{hint}</small>}
       {library && <button type="button" onClick={() => screen.openLibrary(library)}>Edit library</button>}

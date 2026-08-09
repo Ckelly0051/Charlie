@@ -205,8 +205,8 @@ export class QuickChart {
 
     // Yardage: digits 0-9
     if (!e.shiftKey && code >= 'Digit0' && code <= 'Digit9') {
-      this.yardageStr += code.replace('Digit', '');
-      if (this.yardageStr.length > 2) this.yardageStr = this.yardageStr.slice(-2);
+      const nextYardage = this.yardageStr + code.replace('Digit', '');
+      if (Number(nextYardage) <= 109) this.yardageStr = nextYardage;
       this.currentEntry.yardage = (this.yardageNegative ? '-' : '') + this.yardageStr;
       this._updateDisplay();
       return true;

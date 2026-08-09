@@ -222,6 +222,52 @@ for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1
     width + 'x' + height + ' keeps Film Room data visible with overflow contained internally', JSON.stringify(layout));
 }
 
+console.log('\n== 7. Narrowed Break Down header keeps its context reachable ==');
+// Measured on the coach's real names ("Mavericks / 2025 St. Joseph Mavericks -
+// JV / Week 2 vs ND Prep Fighting Irish") every context segment was HARD clipped
+// once the window narrowed — cut mid-word with no ellipsis and no way to read
+// what was lost. The contract now has an explicit priority: team identity stays
+// whole, the season is dropped outright rather than reduced to an uninformative
+// stub, the game truncates with a real ellipsis, and route navigation is never
+// the thing that gives way.
+await page.evaluate(() => {
+  const store = window.app.storage.seasonStore;
+  const game = store.activeGame();
+  game.gameInfo = { ...(game.gameInfo || {}), opponent: 'ND Prep Fighting Irish', week: '2' };
+  store.data.seasonName = '2025 St. Joseph Mavericks - JV';
+  window.app.workspaceShell._syncChrome();
+});
+for (const [width, height] of [[1440, 900], [1280, 800], [1180, 800]]) {
+  await page.setViewport({ width, height });
+  await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
+  await new Promise(resolve => setTimeout(resolve, 350));
+  const header = await page.evaluate(vp => {
+    const shown = el => !!el && el.getClientRects().length > 0;
+    const whole = el => !!el && el.scrollWidth <= el.clientWidth + 1;
+    const team = document.getElementById('wsContextTeam');
+    const season = document.getElementById('wsContextSeason');
+    const game = document.getElementById('wsContextGame');
+    const nav = [...document.querySelectorAll('.ws-top-nav button')].filter(shown);
+    return {
+      viewport: vp,
+      teamShown: shown(team), teamWhole: whole(team),
+      seasonDropped: !shown(season),
+      gameShown: shown(game),
+      gameEllipsis: game ? getComputedStyle(game).textOverflow : null,
+      gameWidth: game ? Math.round(game.clientWidth) : 0,
+      navCount: nav.length,
+      navClipped: nav.filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent.trim()),
+      pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
+  }, width + 'x' + height);
+  ok(header.teamShown && header.teamWhole && header.seasonDropped,
+    width + 'x' + height + ' keeps the team identity whole and drops the season first', JSON.stringify(header));
+  ok(header.gameShown && header.gameEllipsis === 'ellipsis' && header.gameWidth > 60,
+    width + 'x' + height + ' truncates the game with a readable ellipsis rather than a hard cut', JSON.stringify(header));
+  ok(header.navCount >= 4 && header.navClipped.length === 0 && header.pageOverflow <= 0,
+    width + 'x' + height + ' never clips primary route navigation and adds no page overflow', JSON.stringify(header));
+}
+
 ok(errors.length === 0, 'Native Break Down ownership journey has zero page errors', errors.join(' | '));
 await browser.close();
 console.log('\n== RESULT: ' + pass + ' passed, ' + fail + ' failed ==');

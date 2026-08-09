@@ -12,6 +12,39 @@ This is a batched audit. Do not ship one-off styling releases from individual
 screenshots. Structural findings are resolved at their owning milestone; shared
 analytics presentation is resolved as one system.
 
+### ▶ CHARTING CLOSEOUT RESOLVED — `1.12.0-43` (2026-08-09)
+
+The coach-approved charting batch is complete and gated (82/82, +15 assertions,
+zero drops). Coverage Call holds one row without shrinking its type; Quick Chart
+accepts 0-109; the narrowed Break Down header drops the season before it clips
+anything else and never clips route navigation; all nine charting group bodies
+share one 9px rhythm; group titles are Plex Sans 600 and descriptions Plex Sans
+400 at 13px.
+
+**Method change worth keeping, and it came from the coach.** These were measured
+against a **read-only in-memory copy of his real season**, not the demo fixture,
+after he asked why the demo was being used. It mattered immediately:
+
+- His season string (`2025 St. Joseph Mavericks - JV`) is far longer than the
+  demo's, so the header clipped at 1440 in the harness where the demo clipped
+  only at 1180 — **tuning against the fixture would have set the wrong
+  threshold.**
+- His Front library carries **16 custom values** (Maverick / Eagle / Falcon /
+  Jumbo Shift plus the standards) where the demo has defaults only.
+- His installed screenshot then showed the header does **not** clip at his
+  maximized window, which is why the season now collapses below 1500px rather
+  than unconditionally. A fixture-only measurement would have changed a view
+  that was never broken for him.
+
+**Standing rule from this pass: measure responsive and density work against real
+coach data, and confirm the starting state in the installed app before tuning a
+threshold.** A synthetic fixture understates string lengths and vocabulary size,
+which are exactly the inputs these findings depend on.
+
+**Still owned by the coach's eyes, not the gate:** whether the new title weight
+rasterizes cleanly at his DPI in WebView2. Headless Chromium cannot reproduce
+that, so a green gate is not a design sign-off here.
+
 ## Review Ownership
 
 - **Coach:** workflow truth, football usefulness, final product acceptance.

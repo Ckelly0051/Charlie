@@ -14,6 +14,72 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CLAUDE CHARTING CLOSEOUT COMPLETE — `1.12.0-43` READY FOR SMOKE (2026-08-09)
+
+**Executor: Claude. Complete coach-approved batch, no partial packaging.**
+Canonical gate **82/82 green, 0 skipped, 0 failed**; assertion counts diffed
+rather than eyeballed: **zero drops, +15** (breakdown lifecycle 25→34, native
+quick chart 13→15, native tagging 39→43). No schema, migration, season byte,
+analytics formula, film cohort, composite ref, storage path or film behavior
+changed. S7 remains closed.
+
+**Everything was measured against the coach's REAL season** — a read-only
+in-memory seed of the Documents mirror (`2025 St. Joseph Mavericks - JV`, 6
+games, 449 plays), never persisted back — after he pointed out the demo fixture
+does not represent him. That single change surfaced two things the synthetic
+fixture hid: his season string is far longer, and his Front library carries 16
+custom values where the demo has the defaults.
+
+#### The five items
+
+1. **Coverage Call is one row.** Seven calls share the deck width via `flex:1 1 0`
+   with `nowrap`. **The chip type was NOT shrunk** — the in-flight rule dropped it
+   to 11.5px, which contradicts "tighten chip boxes, not readable type", so that
+   override was removed and chips inherit 12px. Coarse-pointer 44px is untouched
+   (it is owned by the earlier `@media(pointer:coarse)` block). Measured in the
+   420px deck: 7 chips, 1 row, 0 overflow, 30px boxes.
+2. **Quick Chart accepts 0-109.** `100` and `109` are retained, `110` is refused,
+   ordinary two-digit entry is unchanged — proven through **real keystrokes**
+   reading the rendered `#qcYardage`, not a fabricated event object.
+3. **The narrowed header no longer hard-clips.** Priority is explicit: team
+   identity never shrinks, the season is dropped outright below 1500px on the
+   Break Down route rather than reduced to an uninformative stub, the game
+   truncates with a real ellipsis, and route navigation never gives way.
+   **The coach's maximized window is deliberately unaffected** — his screenshot
+   shows nothing clipping there, so the collapse only engages once he narrows.
+4. **Charting density.** Group bodies were 12px top / 16px bottom; all nine now
+   carry one consistent **9px/9px**. Owned at `.gi-tag-group-body` so it reaches
+   every native group rather than the ones a screenshot happened to show.
+5. **Charting group typography.** Titles were condensed 700 — a display face
+   doing a UI job, at a weight Plex does not embed, so it rasterized synthesized.
+   Titles are now **Plex Sans 600**, descriptions **Plex Sans 400 at 13px** with
+   the brighter secondary tone. The lower-third plate is preserved.
+
+#### Proof
+
+Focused assertions were added for all four required outcomes, and **both new CSS
+rules are mutation-proven**: reverting the padding reds only *"Every native
+charting group body owns one consistent 8-10px vertical rhythm"* with
+`pads:["12/16"]`; removing the media query reds only the three header assertions
+with `seasonDropped:false`, at every width, leaving all others green.
+
+#### Installer
+
+Local unsigned smoke artifact, not a tag or published release.
+
+NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-43_x64-setup.exe`
+SHA-256 `725494626C1D8B0274FA20529BBED8A8F4766D8B24F8021937A53AAEE636A1CB`
+
+MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-43_x64_en-US.msi`
+SHA-256 `6818FB01DFA35264AD5594648CA8EEAA44B043368ECD1EB09B18F0750C2F027F`
+
+#### Not done, and why
+
+**No aesthetic sign-off is claimed.** The gate proves geometry, ownership and
+type metrics. Whether the new title weight *reads* correctly is a rasterization
+question at the coach's DPI in WebView2, which headless Chromium cannot
+reproduce — that is what the installed build is for.
+
 ### ACTIVE - CLAUDE CHARTING CLOSEOUT + INSTALLER HANDOFF (2026-08-09)
 
 **Executor: Claude. Installed baseline: `1.12.0-42` at `a57e883`. Next unique

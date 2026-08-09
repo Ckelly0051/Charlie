@@ -204,6 +204,50 @@ ok(state.tryPlay?.unit==='try'&&state.tryPlay?.attemptType==='twoPoint'&&state.t
 ok(state.player==='22'&&state.notes==='Punt return right','Roster quick-pick and notes write the selected play',JSON.stringify({player:state.player,notes:state.notes}));
 ok(Object.values(state.calls).every(v=>v===1),'Diagram and OCR commands reach canonical owners exactly once',JSON.stringify(state.calls));
 
+console.log('\n== 6. Charting deck density, type ownership and Coverage Call ==');
+// to two rows in the 420px deck, every group body carried 12px top / 16px
+// bottom, and titles were condensed 700 (not an embedded Plex weight, so it
+// rasterized synthesized). These pin the repaired state on the DEFENSIVE unit,
+// where Coverage Call is the primary group rather than a collapsed secondary.
+await page.setViewport({width:1440,height:900});
+await page.evaluate(()=>window.app.workspaceShell.show('breakdown'));
+await page.evaluate(()=>window.app.breakdownWorkspace?._setView?.('chart'));
+await page.evaluate(()=>{const t=window.app.tagger;const d=t.plays.find(p=>(p.tags?.unit)==='defense')||t.plays[0];if(d)t.selectPlay(d.id);});
+await page.evaluate(()=>window.app.nativeTagging?.setUnit?.('defense'));
+await new Promise(r=>setTimeout(r,500));
+state=await page.evaluate(()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  const cs=el=>el?getComputedStyle(el):null;
+  const cov=[...root.querySelectorAll('[data-native-field]')].find(f=>/^coverage$/i.test(f.dataset.nativeField||''));
+  const chips=cov?.querySelector('[class*="chips"]');
+  const btns=chips?[...chips.querySelectorAll('button')].filter(x=>x.getClientRects().length):[];
+  const bodies=[...root.querySelectorAll('.gi-tag-group-body')];
+  const titles=[...root.querySelectorAll('.gi-tag-group>summary strong')];
+  const descs=[...root.querySelectorAll('.gi-tag-group>summary span')].filter(x=>x.textContent.trim());
+  const pad=x=>parseFloat(cs(x).paddingTop)+'/'+parseFloat(cs(x).paddingBottom);
+  const face=x=>cs(x).fontFamily.split(',')[0].replace(/"/g,'')+' '+cs(x).fontWeight+' '+parseFloat(cs(x).fontSize);
+  return{
+    covCount:btns.length,
+    covRows:[...new Set(btns.map(x=>Math.round(x.getBoundingClientRect().top)))].length,
+    covOverflow:chips?chips.scrollWidth-chips.clientWidth:null,
+    covFont:btns[0]?parseFloat(cs(btns[0]).fontSize):null,
+    bodyCount:bodies.length,
+    pads:[...new Set(bodies.map(pad))],
+    titleFaces:[...new Set(titles.map(face))],
+    descFaces:[...new Set(descs.map(face))],
+    pageOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+  };
+});
+ok(state.covCount>=7&&state.covRows===1&&state.covOverflow<=0&&state.covFont>=12,
+  'Coverage Call keeps every call on one row in the charting deck without shrinking its type',JSON.stringify(state));
+ok(state.bodyCount>=6&&state.pads.length===1&&parseFloat(state.pads[0])>=8&&parseFloat(state.pads[0])<=10
+  &&state.pads[0].split('/')[0]===state.pads[0].split('/')[1],
+  'Every native charting group body owns one consistent 8-10px vertical rhythm',JSON.stringify(state));
+ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])
+  &&state.descFaces.every(f=>/IBM Plex Sans 400/.test(f)&&parseFloat(f.split(' ').pop())>=13),
+  'Charting group titles are Plex Sans 600 and descriptions Plex Sans 400 at 13px or more',JSON.stringify(state));
+ok(state.pageOverflow<=0,'The charting deck introduces no page-level horizontal overflow',JSON.stringify(state));
+
 console.log('\n== 5. Responsive geometry and exact restore ==');
 state=await page.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');return{overflow:document.documentElement.scrollWidth-innerWidth,width:root.getBoundingClientRect().width,data:JSON.stringify(app.storage.seasonStore.data)}});
 ok(state.overflow<=1&&state.width>0,'Desktop native form has no page-level horizontal overflow',JSON.stringify(state));
@@ -227,6 +271,7 @@ state=await page.evaluate(async()=>{
   return{mounted,restored,empty:!host.childElementCount,actual:{style:source.getAttribute('style'),aria:source.getAttribute('aria-hidden'),marker:source.getAttribute('data-native-tag-source')},before,exact:(source.getAttribute('style')||null)===(before.style||null)&&source.getAttribute('aria-hidden')===before.aria&&source.getAttribute('data-native-tag-source')===before.marker};
 });
 ok(state.mounted&&state.restored&&state.empty&&state.exact,'Unmount restores compatibility source attributes exactly',JSON.stringify(state));
+
 ok(!errors.length,'No page errors',errors.join(' | '));
 console.log('\n== RESULT: '+pass+' passed, '+fail+' failed ==');
 await browser.close();

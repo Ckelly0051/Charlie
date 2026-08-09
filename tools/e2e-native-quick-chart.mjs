@@ -77,6 +77,30 @@ state = await page.evaluate(() => ({
 ok(state.type === 'Run Inside' && state.result === 'Gain' && state.yards === '7' && state.down === '2nd',
   'Keyboard map renders the intended football entry before save', JSON.stringify(state));
 
+// Quick Chart yardage accepted only two digits: a third keystroke silently
+// dropped the first, so a 100-yard kick return charted as 00. The native form
+// already accepts 0-109; this pins Quick Chart to the same range through real
+// keystrokes, reading the value the coach actually sees. The upper bound is
+// pinned too, so the widened field cannot take a value the form would reject.
+const typeYards = async digits => {
+  await page.evaluate(() => { window.app.quickChart.yardageStr = ''; window.app.quickChart._updateDisplay(); });
+  await page.focus('[data-native-quick-chart]');
+  for (const d of digits) await page.keyboard.press('Digit' + d);
+  return page.evaluate(() => document.getElementById('qcYardage')?.textContent);
+};
+const yardageProbe = {
+  hundred: await typeYards('100'),
+  oneOhNine: await typeYards('109'),
+  rejectsAbove: await typeYards('110'),
+  twoDigit: await typeYards('47'),
+};
+ok(yardageProbe.hundred === '100' && yardageProbe.oneOhNine === '109',
+  'Quick Chart retains a three-digit yardage through 109 instead of dropping the leading digit', JSON.stringify(yardageProbe));
+ok(yardageProbe.rejectsAbove === '11' && yardageProbe.twoDigit === '47',
+  'Quick Chart refuses a yardage beyond 109 and leaves ordinary two-digit entry unchanged', JSON.stringify(yardageProbe));
+// restore the entry the save assertions below expect
+await page.evaluate(() => { window.app.quickChart.yardageStr = '7'; window.app.quickChart.currentEntry.yardage = '7'; window.app.quickChart._updateDisplay(); });
+
 await page.type('#qcBallCarrier', '22');
 await page.focus('[data-native-quick-chart]');
 await page.keyboard.press('Enter');

@@ -161,3 +161,25 @@
   .gi-player-quick{grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:2px;max-height:100px}
   .gi-player-quick button{min-height:22px;padding:0 1px;font-size:11.5px}
 }
+/* Coverage Call is one scan line in the charting deck. Seven calls fit by
+   sharing the available width; touch height remains governed separately. */
+.gi-breakdown-deck .gi-tag-field-coverage .gi-tag-chips{flex-wrap:nowrap;gap:3px}
+.gi-breakdown-deck .gi-tag-field-coverage .gi-tag-chips button{
+  flex:1 1 0;min-width:0;padding-inline:3px;white-space:nowrap
+}
+
+/* S6 charting closeout — density. Measured on the coach's real season: group
+   bodies carried 12px top and 16px bottom, so every one of the 14 charting
+   groups spent 28px on air. One consistent 9px keeps the separation the border
+   already provides and returns the rest to charting. Owned at the group-body
+   level so it reaches every native group, not the ones a screenshot happened
+   to show. */
+.gi-tag-group-body{padding:9px var(--gi-4x)}
+
+/* S6 charting closeout — group typography. The title was condensed 700, a
+   display face doing a UI job, and 700 is not an embedded Plex weight so it
+   rasterized synthesized. Titles are now Plex Sans 600; descriptions are Plex
+   Sans 400 at a readable 13px with the brighter secondary tone. The
+   lower-third plate on the title is deliberately preserved. */
+.gi-tag-group>summary strong{font:600 12.5px var(--gi-sans);letter-spacing:.01em}
+.gi-tag-group>summary span{color:var(--gi-11);font:400 13px var(--gi-sans)}
