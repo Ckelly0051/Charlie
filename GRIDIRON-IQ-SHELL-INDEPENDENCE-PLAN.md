@@ -1214,3 +1214,18 @@ The canonical gate is **82/82 green, 0 skipped, 0 failed** on rebuilt bytes.
 No installer, version, tag, release, data migration, storage change, analytics
 formula, or film-cohort change is included. Claude reviews this checkpoint next;
 S7 remains closed and subsequent design work waits for that verdict.
+
+### S6 design completion batch 1 — review follow-ups closed (2026-08-09)
+
+Claude accepted `25bb158` and identified one product-layout gap plus one
+deterministic gate red. Codex repaired the Film Room layout so medium desktop
+viewports show real table rows without scrolling past the theater, then replaced
+the old box-height assertion with viewport-intersection and visible-row proof.
+
+The delete red was root-caused as a Puppeteer controlled-input race: only `de`
+reached the form and the disabled Delete command correctly did nothing. The
+production delete path was unchanged; the test now proves the exact phrase arms
+the command before asserting overlay cleanup, deletion, Home return, and Undo.
+
+Canonical gate: **82/82 green, 0 skipped, 0 failed**. Independent review is next;
+S7 remains closed.

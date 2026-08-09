@@ -389,9 +389,17 @@ r = await page.evaluate(id => ({ exists: window.app.storage.seasonStore.data.gam
 ok(r.exists && r.parent, 'Canceling game deletion preserves the game and returns to Game settings', JSON.stringify(r));
 await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
 await page.waitForSelector('.gi-overlay-panel.is-destructive .gi-confirm-delete');
-await page.type('.gi-confirm-delete input[name="confirm"]', 'delete');
+await page.$eval('.gi-confirm-delete input[name="confirm"]', input => {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+  setter.call(input, 'delete');
+  input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste', data: 'delete' }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+});
+await page.waitForFunction(() => document.querySelector('.gi-confirm-delete input[name="confirm"]')?.value === 'delete'
+  && !document.querySelector('.gi-confirm-delete button.is-danger')?.disabled);
+ok(true, 'The exact confirmation phrase visibly arms game deletion');
 await page.click('.gi-confirm-delete button.is-danger');
-await page.waitForFunction(() => !document.querySelector('[data-overlay-id]'));
+await page.waitForFunction(() => !window.app.overlays.snapshot().overlays.length && !document.querySelector('[data-overlay-id]'));
 r = await page.evaluate(probe => ({ count: window.app.storage.seasonStore.data.games.length, exists: window.app.storage.seasonStore.data.games.some(game => String(game.id) === probe.id), route: document.getElementById('workspaceShell')?.dataset.route, undo: document.querySelector('.gi-native-toast button')?.textContent || '' }), deleteProbe);
 ok(r.count === deleteProbe.before - 1 && !r.exists && r.route === 'home' && /Undo/.test(r.undo),
   'Confirmed game deletion removes only that game, returns Home, and exposes Undo', JSON.stringify(r));

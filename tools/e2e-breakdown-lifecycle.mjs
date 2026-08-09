@@ -189,7 +189,7 @@ ok(!state.open && state.expanded === 'false' && state.visibleCommands === 0 && s
   'Escape closes Mobile More tools and restores focus to its launcher', JSON.stringify(state));
 
 console.log('\n== 6. Film Room owns a usable data workspace ==');
-for (const [width, height, stacked] of [[1920,1080,false],[1440,900,true],[1280,720,true]]) {
+for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1440,900,true,300],[1280,720,true,200]]) {
   await page.setViewport({ width, height });
   await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room'));
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -198,23 +198,28 @@ for (const [width, height, stacked] of [[1920,1080,false],[1440,900,true],[1280,
     const theater = document.querySelector('[data-breakdown-theater-host]').getBoundingClientRect();
     const deck = document.querySelector('.gi-breakdown-deck').getBoundingClientRect();
     const film = document.querySelector('[data-breakdown-film-room-host]').getBoundingClientRect();
+    const visibleFilmHeight = Math.max(0, Math.min(film.bottom, innerHeight) - Math.max(film.top, 0));
+    const visibleRows = [...document.querySelectorAll('[data-native-film-room] tbody tr')].filter(row => {
+      const box = row.getBoundingClientRect();
+      return box.bottom > 0 && box.top < innerHeight;
+    }).length;
     return {
       route: { left: route.left, right: route.right, width: route.width },
       theater: { left: theater.left, right: theater.right, top: theater.top, bottom: theater.bottom, width: theater.width },
       deck: { left: deck.left, right: deck.right, top: deck.top, bottom: deck.bottom, width: deck.width },
-      film: { width: film.width, height: film.height },
+      film: { top: film.top, bottom: film.bottom, width: film.width, height: film.height, visibleHeight: visibleFilmHeight, visibleRows },
       sideBySide: Math.abs(theater.top - deck.top) <= 1 && deck.left >= theater.right - 1,
       stacked: deck.top >= theater.bottom - 1 && Math.abs(deck.width - route.width) <= 2,
       tableVisible: !!document.querySelector('[data-native-film-room]')?.getClientRects().length,
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     };
   });
-  if (stacked) ok(layout.stacked && layout.film.width >= layout.route.width - 2 && layout.film.height >= 500,
-    width + 'x' + height + ' gives Film Room a full-width table below the theater', JSON.stringify(layout));
+  if (stacked) ok(layout.stacked && layout.film.width >= layout.route.width - 2 && layout.film.height >= 500 && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1,
+    width + 'x' + height + ' gives Film Room a full-width table with data rows in the viewport', JSON.stringify(layout));
   else ok(layout.sideBySide && layout.film.width >= 680,
     width + 'x' + height + ' gives Film Room a wide side-by-side data deck', JSON.stringify(layout));
-  ok(layout.tableVisible && !layout.pageOverflow,
-    width + 'x' + height + ' keeps Film Room visible with overflow contained internally', JSON.stringify(layout));
+  ok(layout.tableVisible && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1 && !layout.pageOverflow,
+    width + 'x' + height + ' keeps Film Room data visible with overflow contained internally', JSON.stringify(layout));
 }
 
 ok(errors.length === 0, 'Native Break Down ownership journey has zero page errors', errors.join(' | '));

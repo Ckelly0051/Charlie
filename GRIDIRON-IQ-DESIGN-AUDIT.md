@@ -407,3 +407,19 @@ changing football data, analytics, film cohorts, or storage behavior.
 This closes the first structural batch only. The broader color, spacing,
 typography, chart, and cross-route polish audit remains open. Claude reviews this
 checkpoint independently before another batch or installer is considered.
+
+### Batch 1 review follow-ups — resolved (2026-08-09)
+
+- **S6D-1 resolved:** medium desktop Film Room now bounds the theater to
+  350–500px at 52vh, keeping the full-width table and real data rows inside the
+  first viewport at 1440x900 and 1280x720. The gate measures visible intersection
+  and row visibility rather than blessing an off-screen element's own height.
+- **S6D-2 classified and resolved:** the deterministic red did not enter the
+  destructive production path. Puppeteer delivered only `de` to the controlled
+  confirmation input, then clicked its correctly disabled button. The harness
+  now waits for a visibly armed exact-phrase state before activation and proves
+  overlay-service cleanup, DOM cleanup, removal, Home return, and byte-identical
+  Undo. No delete implementation changed.
+
+Canonical gate: **82/82 green, 0 skipped, 0 failed**. Broader cross-route visual
+review remains open.

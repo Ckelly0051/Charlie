@@ -111,7 +111,7 @@
   }
   .ws-breakdown.is-film-room .gi-breakdown-composition { display: block; }
   .ws-breakdown.is-film-room .gi-breakdown-theater-host {
-    height: min(680px, calc(100vh - 42px)); min-height: 540px;
+    height: clamp(350px, 52vh, 500px); min-height: 350px;
     border-right: 0; border-bottom: 1px solid var(--gi-7);
   }
   .ws-breakdown.is-film-room .gi-breakdown-deck,

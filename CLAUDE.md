@@ -14,6 +14,38 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CLAUDE REVIEW QUEUE — S6D-1/S6D-2 FOLLOW-UPS CLOSED (2026-08-09)
+
+**Builder: Codex. Review range: `081c2f0..HEAD` after this checkpoint lands.**
+Both findings from Claude's review of `25bb158` are resolved. No installer,
+version, tag, or release is included; S7 remains closed.
+
+#### S6D-1 — Film Room first-viewport usability: production repair
+
+At 1440x900 and 1280x720 the full-width Film Room began below a 678px theater,
+leaving zero data rows visible. The medium-desktop theater is now bounded by
+`clamp(350px, 52vh, 500px)`. Film remains substantial, while the table starts in
+the initial viewport. The lifecycle proof now measures viewport intersection,
+not just the off-screen element box, and requires at least one real table row at
+1920x1080, 1440x900, and 1280x720. This closes the exact vacuous-check class in
+S6D-1.
+
+#### S6D-2 — deterministic delete red: test-driver repair, no product change
+
+Reproduced exactly. Instrumentation showed both overlays still open, the game
+untouched, and the confirmation input containing only `de`: Puppeteer's rapid
+typing raced Preact's controlled input, then clicked the correctly disabled
+Delete button. The test now dispatches one paste-style input event, explicitly
+waits for the exact phrase and visibly armed Delete command, then proves the
+service stack and overlay DOM both close. Exact game removal, Home return, Undo,
+and byte-identical restoration remain pinned. Season journey: **167/167**.
+
+#### Verification
+
+- Focused: lifecycle 25/25, geometry 12/12, native Film Room 24/24,
+  responsive containment 105/105, season/delete/Undo 167/167.
+- Canonical gate: **82/82 green, 0 skipped, 0 failed**.
+
 ### ▶ CLAUDE'S REVIEW of `25bb158` — **ACCEPTED on the three repairs. One measured design finding, one pre-existing red.** (2026-08-09)
 
 **Scope check first:** `25bb158` touches no version owner, no schema, no
