@@ -22,6 +22,14 @@ systemic cross-route correction. The next visual installer must use a unique
 version (`1.12.0-41` or later) and include the complete batch, not a stale or
 partial typography commit.
 
+**Shell-control follow-up (current source):** the installed screenshot confirmed that
+form controls still used native button typography even after the content family changed.
+All shell buttons/inputs/selects/textareas now inherit Plex Sans, buttons use the
+shared control role, Film Inbox titles/metadata have explicit 600/400 hierarchy,
+and linked status copy is literal Film linked. The green state dot remains the
+success signal; clip counts and paths stay neutral. Vite build and JS syntax check pass.
+Include this with the complete typography batch in 1.12.0-41 or later.
+
 **Systemic typography follow-up (current source):** screenshots across Break Down, Study,
 Reports, and Home proved the issue was not one missed button. The bundle embeds Plex
 Sans only at 400/600, while local rules requested synthetic 500/650/700/800

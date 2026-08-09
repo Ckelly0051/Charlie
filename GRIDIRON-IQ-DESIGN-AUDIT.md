@@ -479,6 +479,10 @@ not the available viewport.
   tracking, raises ordinary coaching copy to a 13px floor, and corrects Break
   Down, Study, and Reports at their active cascade boundaries. Vite build passes;
   visual acceptance awaits the next consolidated installer (`1.12.0-41` or later).
+- Follow-up screenshot confirmed native form-control typography still bypassed the
+  family. Current source normalizes all shell controls, gives Film Inbox titles and
+  metadata an explicit 600/400 hierarchy, changes status copy to **Film linked**,
+  and leaves the green state dot as the success signal while counts/paths remain neutral.
 - Remaining visual check: Home, Break Down, Film Room, Study, Reports, Plan,
   Settings, dialogs/toasts at normal Windows scaling and a narrow desktop.
 

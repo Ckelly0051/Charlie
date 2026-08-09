@@ -122,7 +122,7 @@ export class WorkspaceContext {
   _view(state, opts = {}) {
     const labels = {
       empty: 'No film added', 'browser-only': 'Film must be re-added',
-      managed: 'Managed film ready', linked: 'Linked film ready',
+      managed: 'Film managed', linked: 'Film linked',
       missing: 'Film missing', saving: 'Saving film', repairing: 'Repairing film',
       unauthorized: 'Linked folder unavailable'
     };
