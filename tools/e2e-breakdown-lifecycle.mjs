@@ -268,6 +268,103 @@ for (const [width, height] of [[1440, 900], [1280, 800], [1180, 800]]) {
     width + 'x' + height + ' never clips primary route navigation and adds no page overflow', JSON.stringify(header));
 }
 
+console.log('\n== 8. S7-a: per-game charting context survives a canonical relaunch ==');
+// breakdown.game-context used to be claimed by e2e-s5c-preflight.mjs, which S7
+// retires. That proof read `gamePerspective.value` / `gameDirection.value` — the
+// hidden legacy inputs inside #legacyGameContextState, which S7 DELETES. Porting
+// it unchanged would have left a critical capability pointed at markup that
+// stops existing.
+//
+// This asserts the same guarantee against what survives: the CANONICAL
+// storage.gameInfo, plus the native group titles the coach actually reads
+// ("Opponent Offensive Look" on scout film vs "Our Offensive Look" on our own).
+// The relaunch is preserved — a sentinel set before reload must be gone after —
+// because that is what makes this a durability proof rather than an in-memory
+// identity check.
+// Three guarantees the retired preflight owned that were NOT among the four
+// capability ids. Ported so the retirement costs no coverage — the third is the
+// closeout Lane C rule: a context control must never write game metadata as a
+// side effect.
+const ctxOpen = await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore;
+  const a = store.activeGame();
+  a.gameInfo = { ...(a.gameInfo || {}), opponent: 'Ctx Alpha', week: '1', gameType: 'game',
+                 perspective: 'scout', direction: 'left' };
+  const b = store.addGame();
+  b.gameInfo = { ...(b.gameInfo || {}), opponent: 'Ctx Beta', week: '2', gameType: 'game',
+                 perspective: 'defense', direction: 'right' };
+  b.plays = [{ id: 901, timestamp: { start: 0, end: 4 }, notes: '',
+               tags: { unit: 'defense', players: {}, grades: {}, custom: [] } }];
+  store.setActive(a.id); await store.persist();
+  await app.storage._loadActiveGame({ renderGames: false });
+  const opened = { ...app.storage.gameInfo };
+  await app.storage.switchToGame(b.id, { persist: false });
+  const switched = { ...app.storage.gameInfo, defaultUnit: app.tagger.defaultUnit };
+  return { aId: String(a.id), bId: String(b.id), opened, switched };
+});
+ok(ctxOpen.opened.perspective === 'scout' && ctxOpen.opened.direction === 'left'
+   && ctxOpen.opened.opponent === 'Ctx Alpha',
+  'Game open restores its perspective, direction, and scout presentation together', JSON.stringify(ctxOpen.opened));
+ok(ctxOpen.switched.perspective === 'defense' && ctxOpen.switched.direction === 'right'
+   && ctxOpen.switched.opponent === 'Ctx Beta',
+  'Game switch restores the destination game context without inheriting the prior game', JSON.stringify(ctxOpen.switched));
+const ctxEdit = await page.evaluate(async ids => {
+  const app = window.app;
+  await app.storage.switchToGame(ids.aId, { persist: false });
+  const before = { ...app.storage.gameInfo };
+  // change ONLY the context a coach can change from the charting surface
+  app.storage.gameInfo.perspective = 'offense';
+  app.storage.gameInfo.direction = 'right';
+  app.storage.commitActive?.();
+  const after = { ...app.storage.gameInfo };
+  return { before, after };
+}, ctxOpen);
+ok(ctxEdit.after.perspective === 'offense' && ctxEdit.after.direction === 'right'
+   && ctxEdit.after.opponent === ctxEdit.before.opponent
+   && ctxEdit.after.week === ctxEdit.before.week
+   && ctxEdit.after.gameType === ctxEdit.before.gameType,
+  'Context edits change only perspective and direction, never opponent or game metadata', JSON.stringify(ctxEdit));
+
+const ctxFixture = await page.evaluate(async () => {
+  const app = window.app;
+  const store = app.storage.seasonStore;
+  const game = store.activeGame();
+  game.gameInfo = { ...(game.gameInfo || {}), opponent: 'Relaunch Rivals', week: '3',
+                    gameType: 'game', perspective: 'scout', direction: 'left' };
+  await store.persist();
+  await app.storage._loadActiveGame({ renderGames: false });
+  window.__s7CtxSentinel = 'must disappear';
+  return { seasonId: store.data.id, gameId: String(game.id) };
+});
+await page.reload({ waitUntil: 'networkidle0' });
+await page.waitForFunction(() => window.app?.workspaceShell?.root);
+const relaunched = await page.evaluate(async probe => {
+  await window.app.storage.openSeasonById(probe.seasonId);
+  await window.app.storage._loadActiveGame({ renderGames: false });
+  const play = window.app.tagger.plays[0];
+  if (play) window.app.tagger.selectPlay(play.id);
+  await window.app.workspaceShell.show('breakdown');
+  await new Promise(r => setTimeout(r, 300));
+  const info = window.app.storage.gameInfo || {};
+  const root = document.querySelector('[data-native-tagging]');
+  const titles = root ? [...root.querySelectorAll('.gi-tag-group > summary strong')].map(n => n.textContent.trim()) : [];
+  return {
+    fresh: !('__s7CtxSentinel' in window),
+    perspective: info.perspective,
+    direction: info.direction,
+    opponent: info.opponent,
+    week: info.week,
+    scoutTitles: titles.filter(t => /Opponent|Scout/i.test(t)),
+    titles,
+  };
+}, ctxFixture);
+ok(relaunched.fresh && relaunched.perspective === 'scout' && relaunched.direction === 'left'
+   && relaunched.opponent === 'Relaunch Rivals' && relaunched.week === '3',
+  'Canonical relaunch rehydrates the explicitly saved per-game context', JSON.stringify(relaunched));
+ok(relaunched.scoutTitles.length > 0,
+  'The rehydrated scout perspective reaches the native charting labels a coach reads',
+  JSON.stringify({ scoutTitles: relaunched.scoutTitles, all: relaunched.titles }));
+
 ok(errors.length === 0, 'Native Break Down ownership journey has zero page errors', errors.join(' | '));
 await browser.close();
 console.log('\n== RESULT: ' + pass + ' passed, ' + fail + ' failed ==');

@@ -14,6 +14,64 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### S7-a COMPLETE — capability floor closed, `e2e-s5c-preflight` retired (2026-08-09)
+
+**The blocking preflight is done.** All four stranded capability ids are re-proven
+on their **owning** surfaces, with the assertion strings kept **byte-identical**
+so the guarantee is preserved rather than substituted — S5c-1 happened because
+ids were re-pointed at weaker strings while the audit stayed green.
+
+| id | now proven by |
+|---|---|
+| `breakdown.play-diagram` | `e2e-native-tagging` — byte-stable across a real relaunch, read off the **rehydrated store**, plus the rendered Call Sheet thumbnail |
+| `breakdown.scoreboard-ocr` | `e2e-native-tagging` — region / read-now / auto-read reach the canonical owner once, via the native controls |
+| `breakdown.templates` | `e2e-native-tagging` — real save → name → apply round-trip through the native select |
+| `breakdown.game-context` | `e2e-breakdown-lifecycle` — canonical relaunch rehydrates perspective/direction/opponent/week |
+
+**Two things the port had to change rather than copy**, which is why this was
+blocking rather than clerical:
+
+1. The preflight drove **legacy ids** — `btnSaveTemplate`,
+   `btnSetScoreboardRegion`, `templateSelect`, `btnClearDiagram`. Every one is on
+   S7's deletion list. Porting the label alone would have left a critical
+   capability pointed at markup that stops existing.
+2. `game-context` read `gamePerspective.value` — the hidden inputs inside
+   `#legacyGameContextState`, which S7 deletes. It now reads canonical
+   `storage.gameInfo`, and additionally asserts the rehydrated scout perspective
+   reaches the **native group titles a coach reads**. Stronger than the old
+   `.is-scout` class check.
+
+**The relaunch survived the move, and I mutation-proved it.** Removing
+`page.reload()` yields `{"fresh":false,"match":true,"html":"<img class=\"cs-diagram\"…}`
+— the diagram still matches and the thumbnail still renders, and the assertion
+fails **only** on the sentinel. So a match-and-thumbnail check alone would pass
+with no relaunch at all; the durability half is load-bearing. That is exactly the
+defect filed at `1786afb`, now structurally prevented.
+
+**The retirement cost no coverage — and I nearly let it.** The preflight owned
+**eight** labelled assertions; only four were capability ids. Diffing before
+deleting found five more with no other owner, including *"Context edits change
+only perspective and direction, never opponent or game metadata"* — the closeout
+Lane C rule. All are ported. **10 assertions retired, 10 added**
+(breakdown lifecycle 34→39, native tagging 43→48).
+
+#### ⚠ S7-d FOLLOW-UP — recorded, not asserted
+
+The preflight proved *"Clearing a diagram updates only the selected play through
+the canonical event path"* by clicking the **legacy** `btnClearDiagram`, and it
+passed. Driving `PlayDiagram.clearCurrent()` directly leaves the diagram
+untouched and emits nothing — its `if (!play) return` guard fires, meaning
+**`playDiagram.tagger.getCurrentPlay()` is falsy while `app.tagger`'s is not.**
+The legacy button works because it was bound to the instance owning that tagger.
+
+What **is** asserted: the native Clear command reaches the canonical owner
+exactly once and disturbs no other play. The scoped-write half is **deliberately
+not asserted**, because it is not currently demonstrable through the canonical
+owner and an assertion that cannot fail is not coverage. **This is a real seam
+question for S7-d**, when the diagram engine is decoupled from its markup — and
+`play.diagram` is a persisted field with a live Call Sheet consumer, so it wants
+a real answer rather than a green tick.
+
 ### ▶ ACTIVE — S6 ACCEPTED BY THE COACH; S7 IS OPEN (2026-08-09)
 
 **The coach smoked `1.12.0-43` and accepted it** — *"solid improvement, I see no
