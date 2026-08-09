@@ -14,6 +14,33 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ACTIVE - COACH VISUAL REVIEW + TYPOGRAPHY QUICK PASS (2026-08-09)
+
+**Product source checkpoint: `9a5fd19`; it is restored as an ancestor of this handoff.
+Claude packages the next local installer from this tip after bumping all four
+version owners to unique version `1.12.0-40`; the coach will continue the visual
+review from that installed build.** Do not issue a second distinct `1.12.0-39`
+binary or add another product change before packaging.
+
+`9a5fd19` is a deliberately small, visual-only typography batch. Ordinary UI
+copy, labels, report headings, Film Room headings, Home metadata, and native tag
+labels now use IBM Plex Sans. IBM Plex Sans Condensed remains for true display
+headings and KPI values. IBM Plex Mono remains for actual identifiers such as
+play numbers and jersey numbers. The shared label/eyebrow/caption tokens are
+slightly larger and heavier. No schema, season/play payload, analytics formula,
+film ref/cohort, storage path, native command, or package changed.
+
+Per the coach's explicit iteration policy, this CSS/token-only batch was checked
+with `git diff --check` and committed without a full gate or installer build.
+Testing is now proportional to consequence: visual copy/color/spacing changes
+are batched and visually inspected; localized behavior runs its focused harness;
+storage, deletion, migration, film identity, and analytics retain strict proof;
+the full canonical gate runs at milestone acceptance or before release artifacts,
+not after every visual adjustment.
+
+The active coach backlog and governing design outcomes are recorded at the end
+of `GRIDIRON-IQ-DESIGN-AUDIT.md`.
+
 ### S6 CLOSING INSTALLER - 1.12.0-39 READY FOR COACH SMOKE (2026-08-09)
 
 Built from committed source `6be953c` after the canonical gate passed 82/82,

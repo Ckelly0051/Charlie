@@ -448,3 +448,81 @@ canonical gate: 82/82 green. This batch does not claim final visual acceptance:
 route hierarchy, chart storytelling, density, and palette usage still receive a
 combined installed design review after independent code acceptance. No metric
 formula or film cohort changed.
+
+## Active Installed Visual Review - Coach Backlog (2026-08-09)
+
+This is a consolidated design backlog, not permission to issue one-finding
+installers. The coach is the visual reviewer and will explicitly close the
+feedback round. Batch related repairs. The governing rule for both tagging and
+reports is: **maximize useful information per viewport without compromising
+readability, film area, interaction safety, or touch targets.** Dense means
+well-composed, not cramped. Visualization dimensions follow their information,
+not the available viewport.
+
+### Typography - quick pass built, installed judgment pending
+
+- `9a5fd19` changes ordinary product copy from mono/legacy Segoe overrides to
+  IBM Plex Sans, retains the condensed face for true display headings/KPIs, and
+  retains mono for real identifiers only. Shared labels and captions are larger
+  and heavier. It is restored beneath this handoff; Claude packages the
+  next local installer as unique version `1.12.0-40`, never a second `-39` binary.
+- Outcome, not merely audit: two visible product voices in ordinary UI (Sans for
+  reading, Condensed for display). No glow/shadow on normal text; no tiny thin
+  blue copy; table numerals remain aligned without turning whole rows mono.
+- Remaining visual check: Home, Break Down, Film Room, Study, Reports, Plan,
+  Settings, dialogs/toasts at normal Windows scaling and a narrow desktop.
+
+### Responsive composition
+
+- Window resizing currently preserves a desktop-width canvas and clips the tag
+  deck, primary action, route context, and navigation. Columns must shrink to a
+  defined breakpoint, then stack cleanly. Hidden horizontal overflow is not a
+  responsive solution; no primary action may become unreachable.
+- Reports and tagging should eliminate decorative emptiness, cap simple chart
+  widths, compose related metrics in rows/grids, and reduce scrolling without
+  making controls unsafe or copy crowded.
+
+### Reports information design
+
+- Remove the large blank region in Reports Overview and other stretched modules.
+  Simple comparisons should use compact square modules that can share a row.
+- Replace the Team Profile default benchmark from per-axis Season Best to
+  **Current Game vs Season Average**. Keep actual values visible and describe it
+  honestly as a team-relative profile; Season Best may remain secondary.
+- Game Flow is not useful as a full-width cumulative-yards line. Recompose it as
+  a compact coaching timeline with drives/quarters, scores, turnovers,
+  explosives, stalled possessions, and selectable exact-play film.
+- Field-position heat maps deserve larger treatment: enlarge the proportional
+  field and dots, handle overlapping plays, retain filtering, and make every dot
+  open its exact `gameId::playId` film while preserving report state.
+- Repair chart hierarchy globally: titles outside donuts, larger primary values,
+  unclipped legends/labels, stable aspect ratios, and readable axes. Do not make
+  every chart full width.
+- Replace generic Predictability emphasis with the accepted five-lens model:
+  Efficiency, Explosiveness, Situational, Tendencies, and Risk. Recommendations
+  must be concise, source-backed coaching findings rather than repeated prose.
+- Fix raw implementation copy such as rendered `&amp;` strings and use US-English
+  `Tendencies` consistently.
+- Victory/kneel plays need an explicit football-statistics decision before any
+  formula change: preserve official lost yards while evaluating exclusion from
+  aggregate efficiency/success denominators. Do not silently change parity.
+
+### Persistent report context
+
+- Collapse the duplicated top summary and Team Summary into one compact KPI rail
+  that carries across report tabs. Literal labels: **Final Score, Total Plays,
+  Plays Charted, Plays per Phase, Success Rate**.
+- Season KPIs: Games, Record, Points For/Against plus Point Differential,
+  Success Rate, Touchdowns with rush/pass split, Turnover Margin with takeaways
+  and giveaways, Run Rate, and Yards by Type. Remove redundant Total Yards cards.
+- Use restrained semantic color: team blue, run orange, pass cyan, positive
+  green, warning amber, negative red. Color the value/accent/compact graphic, not
+  the entire module, and never make color the only meaning.
+- KPI modules should be square or subtly radiused (0-4px), hairline joined where
+  appropriate, with centered/emphasized values rather than weak left-aligned
+  rounded cards.
+
+### Home and status polish
+
+- Replace `Linked film ready` with literal **Film linked**, styled as a restrained
+  green success status rather than a toolbar button. Missing/disconnected film
