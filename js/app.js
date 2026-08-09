@@ -504,6 +504,7 @@ class App {
         const plays = (g.plays || []).length;
         const handle = this.overlays.dialog({
           title: `Delete ${r.name}?`, destructive: true,
+          initialFocus: '[name="confirm"]',
           actions: [{ key: 'cancel', label: 'Cancel', default: true }],
           content: h(ConfirmDeleteForm, {
             impact: `${plays} charted play${plays === 1 ? '' : 's'} will be removed from this season. Film stays recoverable for ${Math.round(this.storage.undoGameWindowMs() / 1000)} seconds after deleting.`,

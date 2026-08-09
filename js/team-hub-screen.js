@@ -279,6 +279,7 @@ export class TeamHubScreen {
     } else {
       const handle = this.overlays.dialog({
         title: `Delete ${row.name}?`, destructive: true, returnFocus: invoker,
+        initialFocus: '[name="confirm"]',
         actions: [{ key: 'cancel', label: 'Cancel', default: true }],
         content: h(ConfirmDeleteForm, {
           impact, confirmLabel: 'Delete season',

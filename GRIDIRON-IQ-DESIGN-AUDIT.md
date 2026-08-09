@@ -423,3 +423,28 @@ checkpoint independently before another batch or installer is considered.
 
 Canonical gate: **82/82 green, 0 skipped, 0 failed**. Broader cross-route visual
 review remains open.
+
+## S6 answer-first composition - Batch 2 built, independent review required (2026-08-09)
+
+Codex inspected the rebuilt native routes from fresh screenshots rather than
+reviewing CSS alone. The before/after matrices each contain 44 distinct captures
+across 1440x900, 1280x720, 768x1024, and 390x844 with no page-level horizontal
+overflow.
+
+The app is mechanically coherent but still visually conservative. This batch
+fixes the highest-value shared composition defects without pretending the final
+cross-route polish is complete:
+
+- Reports now owns its KPI primitive instead of inheriting rounded legacy cards.
+  Metrics read as one square, hairline-joined scan board, and a fifth mobile KPI
+  uses the full row instead of leaving an empty cell.
+- Study's query area is a real instrument panel and remains two columns on a
+  phone, moving the answer materially closer to the first viewport.
+- Home's selected-game continuation and Plan's empty state use restrained
+  working bands so primary content no longer floats in an undifferentiated void.
+
+Both responsive rules were mutation-proven against rebuilt bundle bytes. Final
+canonical gate: 82/82 green. This batch does not claim final visual acceptance:
+route hierarchy, chart storytelling, density, and palette usage still receive a
+combined installed design review after independent code acceptance. No metric
+formula or film cohort changed.

@@ -1229,3 +1229,26 @@ the command before asserting overlay cleanup, deletion, Home return, and Undo.
 
 Canonical gate: **82/82 green, 0 skipped, 0 failed**. Independent review is next;
 S7 remains closed.
+
+### S6 answer-first composition batch 2 - built; independent review required (2026-08-09)
+
+Codex closed the live S6D-4 typed-confirm focus race before continuing visual
+work. Typed confirmation fields now receive explicit focus while Cancel remains
+the safe default action. Real-keyboard regressions cover every typed season/game
+delete route; ordinary destructive dialogs still default actual focus to Cancel.
+
+The next native composition increment gives Reports an owned square-edged KPI
+scan board, closes its odd-mobile-metric hole, compacts Study into a two-column
+mobile query workbench, and anchors the Home continuation and Plan empty state
+in design-system working bands. Fresh before/after screenshot matrices cover all
+11 routes at four viewports (44 distinct captures each) with no page overflow.
+
+The two new responsive guarantees were mutation-proven after rebuilding the
+bundle, not against stale source. The first full gate exposed one stale Team Hub
+focus expectation; the corrected contract distinguishes a safe default action
+from actual typed-field focus. Final canonical gate: **82/82 green, 0 skipped,
+0 failed**.
+
+No installer, version, tag, release, schema, migration, analytics formula, film
+cohort/ref, storage path, or coach data changed. Claude reviews this checkpoint
+next. S7 remains closed.

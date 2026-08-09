@@ -56,3 +56,13 @@
    declared now that the box is a flex container. */
 .ws-plan-grid h2 span{margin-left:var(--gi-2x)}
 
+
+/* S6D answer-first pass: an empty Plan is still a deliberate work state. Keep
+   the existing commands and copy, but anchor them in the same square-edged
+   working surface used by Home, Study and Reports. */
+.ws-plan-empty.large{
+  align-content:center;min-height:300px;margin-top:var(--gi-5x);padding:var(--gi-7x);
+  border:1px solid var(--gi-6);border-left:3px solid var(--gi-los);
+  border-radius:0;background:var(--gi-2);
+}
+@media(max-width:800px){.ws-plan-empty.large{min-height:260px;padding:var(--gi-5x)}}

@@ -181,3 +181,13 @@ body.ws-shell-active .ws-global-tools #btnShortcuts span{display:none}
    They were circles here, which is the only place in the product a state dot
    was round. */
 .ws-save-state i,.ws-film-row>i,.ws-film-select>i{width:8px;height:8px}
+/* S6D answer-first pass: the selected game is Home's primary working state.
+   Give the full-width band enough material contrast to read before the two
+   secondary lists without turning the page into a stack of cards. */
+.ws-continue{
+  padding:0 var(--gi-5x);border:1px solid var(--gi-6);
+  border-left:3px solid var(--gi-los);background:var(--gi-2);
+}
+@media(max-width:900px){
+  .ws-continue{padding:var(--gi-4x);border-left-width:3px}
+}

@@ -110,16 +110,16 @@ await page.evaluate(() => { window.app.storage.seasonStore.persist = window.__re
 const beforeDelete = await page.evaluate(() => JSON.stringify(window.app.storage.seasonStore.data));
 await page.click('.gi-hub-delete');
 await page.waitForSelector('[data-overlay-id] .gi-overlay-panel.is-destructive');
-await page.waitForFunction(() => document.activeElement?.dataset.overlayAction === 'cancel');
+await page.waitForFunction(() => document.activeElement?.name === 'confirm');
 r = await page.evaluate(() => ({
   message: document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '',
-  initial: document.activeElement?.dataset.overlayAction || '',
+  initial: document.activeElement?.name || '',
   cancelActions: document.querySelectorAll('[data-overlay-action="cancel"]').length,
   deleteDisabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
 }));
 ok(/1 game/.test(r.message) && /0 plays/.test(r.message) && /Managed film copies/.test(r.message) && /Linked original folders are never deleted/.test(r.message),
   'Season delete names game/play impact and managed-versus-linked film consequences', JSON.stringify(r));
-ok(r.initial === 'cancel', 'Season delete defaults focus to Cancel', JSON.stringify(r));
+ok(r.initial === 'confirm', 'Typed season delete focuses its confirmation field while Cancel remains the safe default action', JSON.stringify(r));
 ok(r.cancelActions === 1 && r.deleteDisabled,
   'Season delete has one service-owned Cancel action and starts disarmed', JSON.stringify(r));
 await page.type('.gi-confirm-delete input[name="confirm"]', 'dele');

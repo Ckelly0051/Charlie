@@ -34,11 +34,13 @@ function OverlayPanel({ overlay, service, top, effectiveModal }) {
       const requested = overlay.initialAction
         ? panel?.querySelector(`[data-overlay-action="${CSS.escape(overlay.initialAction)}"]`)
         : null;
-      const requestedField = !requested && overlay.initialFocus ? panel?.querySelector(overlay.initialFocus) : null;
+      const requestedField = overlay.initialFocus ? panel?.querySelector(overlay.initialFocus) : null;
       const first = overlay.type === 'sheet'
         ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
         : panel?.querySelector(focusableSelector);
-      (requested || requestedField || first || panel)?.focus({ preventScroll: true });
+      // An explicitly requested field owns focus even when a destructive
+      // dialog keeps Cancel as its safe default action.
+      (requestedField || requested || first || panel)?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
     // A buried panel is restored by NativeOverlayService to the exact child

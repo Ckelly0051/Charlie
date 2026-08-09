@@ -119,3 +119,16 @@
    grid's auto-fit track (min 172px) and then gives 34px of that to its delete
    button, leaving ~130px for a 17-character option. It takes two tracks. */
 .ws-study-query .ws-study-saved{grid-column:span 2}
+/* S6D answer-first pass: the query is a working instrument, not loose fields
+   floating between the route title and its answer. On phones it remains two
+   columns so the matching-play result reaches the first viewport sooner. */
+.ws-study-query{
+  margin-top:var(--gi-5x);padding:var(--gi-4x);border:1px solid var(--gi-6);
+  border-left:3px solid var(--gi-los);background:var(--gi-2);
+}
+@media(max-width:480px){
+  .ws-study-query{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x)}
+  .ws-study-query .ws-study-saved{grid-column:1/-1}
+  .ws-study-query label{min-width:0}
+  .ws-study-query select{min-width:0}
+}

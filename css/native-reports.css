@@ -565,3 +565,19 @@
 
 /* J12 — the situation beside a big play's number. */
 .gi-reports .bp-sit{margin-left:var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);font-family:var(--gi-mono)}
+/* S6D answer-first pass: native Reports owns the KPI primitive. The shared
+   legacy stylesheet still supplied rounded cards and its old surface palette,
+   which made the migrated route look like an embedded dashboard. Hairline
+   joins turn the metrics into one scan board and remove the mobile 4+1 hole. */
+.gi-reports .gi-hero{
+  gap:1px;padding:1px;border:0;background:var(--gi-6);
+}
+.gi-reports .gi-kpi{
+  min-height:108px;padding:var(--gi-4x);border:0;border-radius:0;
+  background:var(--gi-2);box-shadow:none;
+}
+.gi-reports .gi-kpi-label{font:var(--gi-text-label);letter-spacing:var(--gi-track-label)}
+.gi-reports .gi-kpi-value{font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+@media(max-width:600px){
+  .gi-reports .gi-hero>.gi-kpi:last-child:nth-child(odd){grid-column:1/-1}
+}

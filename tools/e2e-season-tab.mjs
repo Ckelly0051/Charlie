@@ -372,32 +372,37 @@ const deleteProbe = await page.evaluate(() => {
 await page.waitForSelector('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
 await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
 await page.waitForSelector('.gi-overlay-panel.is-destructive .gi-confirm-delete');
-await page.waitForFunction(() => document.activeElement?.dataset.overlayAction === 'cancel');
+await page.waitForFunction(() => document.activeElement?.name === 'confirm');
 r = await page.evaluate(() => ({
   layers: document.querySelectorAll('[data-overlay-id]').length,
   cancelActions: document.querySelectorAll('.gi-overlay-panel.is-destructive [data-overlay-action="cancel"]').length,
   disarmed: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
+  focused: document.activeElement?.name,
 }));
-ok(r.layers === 2 && r.cancelActions === 1 && r.disarmed,
-  'Native Game settings stacks one safe typed-delete decision over the edit form', JSON.stringify(r));
+ok(r.layers === 2 && r.cancelActions === 1 && r.disarmed && r.focused === 'confirm',
+  'Native Game settings stacks one safe typed-delete decision and focuses its required phrase', JSON.stringify(r));
 await page.type('.gi-confirm-delete input[name="confirm"]', 'dele');
-ok(await page.$eval('.gi-confirm-delete button.is-danger', button => button.disabled),
-  'An incomplete phrase cannot delete a game');
+r = await page.evaluate(() => ({
+  typed: document.querySelector('.gi-confirm-delete input[name="confirm"]')?.value,
+  focused: document.activeElement?.name,
+  disabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
+}));
+ok(r.typed === 'dele' && r.focused === 'confirm' && r.disabled,
+  'Real typing preserves an incomplete phrase and cannot delete a game', JSON.stringify(r));
 await page.click('.gi-overlay-panel.is-destructive [data-overlay-action="cancel"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-panel.is-destructive'));
 r = await page.evaluate(id => ({ exists: window.app.storage.seasonStore.data.games.some(game => String(game.id) === id), parent: !!document.querySelector('[data-overlay-id="game-details"]') }), deleteProbe.id);
 ok(r.exists && r.parent, 'Canceling game deletion preserves the game and returns to Game settings', JSON.stringify(r));
 await page.click('[data-overlay-id="game-details"] .gi-game-actions .is-danger');
 await page.waitForSelector('.gi-overlay-panel.is-destructive .gi-confirm-delete');
-await page.$eval('.gi-confirm-delete input[name="confirm"]', input => {
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-  setter.call(input, 'delete');
-  input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste', data: 'delete' }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-});
-await page.waitForFunction(() => document.querySelector('.gi-confirm-delete input[name="confirm"]')?.value === 'delete'
-  && !document.querySelector('.gi-confirm-delete button.is-danger')?.disabled);
-ok(true, 'The exact confirmation phrase visibly arms game deletion');
+await page.type('.gi-confirm-delete input[name="confirm"]', 'delete');
+r = await page.evaluate(() => ({
+  typed: document.querySelector('.gi-confirm-delete input[name="confirm"]')?.value,
+  focused: document.activeElement?.name,
+  disabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
+}));
+ok(r.typed === 'delete' && r.focused === 'confirm' && r.disabled === false,
+  'Real typing preserves the exact phrase and visibly arms game deletion', JSON.stringify(r));
 await page.click('.gi-confirm-delete button.is-danger');
 await page.waitForFunction(() => !window.app.overlays.snapshot().overlays.length && !document.querySelector('[data-overlay-id]'));
 r = await page.evaluate(probe => ({ count: window.app.storage.seasonStore.data.games.length, exists: window.app.storage.seasonStore.data.games.some(game => String(game.id) === probe.id), route: document.getElementById('workspaceShell')?.dataset.route, undo: document.querySelector('.gi-native-toast button')?.textContent || '' }), deleteProbe);

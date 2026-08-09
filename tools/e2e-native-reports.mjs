@@ -374,7 +374,9 @@ const kpiStyling = await page.evaluate(async () => {
     heroes: document.querySelectorAll('.gi-reports .gi-hero').length,
     cards: document.querySelectorAll('.gi-reports .gi-kpi').length,
     display: heroStyle?.display,
-    border: cardStyle ? parseFloat(cardStyle.borderTopWidth) : 0,
+    gap: heroStyle ? parseFloat(heroStyle.columnGap) : 0,
+    heroBackground: heroStyle?.backgroundColor,
+    radius: cardStyle ? parseFloat(cardStyle.borderRadius) : -1,
     padding: cardStyle ? parseFloat(cardStyle.paddingTop) : 0,
     background: cardStyle?.backgroundColor,
     valueSize: value ? parseFloat(getComputedStyle(value).fontSize) : 0,
@@ -382,16 +384,34 @@ const kpiStyling = await page.evaluate(async () => {
     retiredContainers: document.querySelectorAll('.stats-overlay').length,
   };
 });
-// Every number here was wrong before the rescope: display `block`, border and
-// padding 0, transparent background, and the KPI value at the inherited 13px —
-// a stack of raw text where the coach expects stat cards.
+// The board is native-owned: one-pixel joins, square stat blocks, and the
+// design-system deck surface. It must not fall back to the rounded legacy
+// dashboard cards that first shipped inside this route.
 ok(kpiStyling.retiredContainers === 0 && kpiStyling.heroes > 0 && kpiStyling.cards >= 3,
   'Native Reports renders KPI heroes with no retired stats-overlay container present', JSON.stringify(kpiStyling));
-ok(kpiStyling.display === 'grid' && kpiStyling.border > 0 && kpiStyling.padding > 0
-  && kpiStyling.background !== 'rgba(0, 0, 0, 0)' && kpiStyling.valueSize >= 24,
-  'Native Reports KPI cards are real stat blocks, not unstyled stacked text', JSON.stringify(kpiStyling));
+ok(kpiStyling.display === 'grid' && kpiStyling.gap === 1 && kpiStyling.radius === 0 && kpiStyling.padding > 0
+  && kpiStyling.heroBackground !== 'rgba(0, 0, 0, 0)' && kpiStyling.background !== 'rgba(0, 0, 0, 0)' && kpiStyling.valueSize >= 24,
+  'Native Reports KPI metrics form one square-edged design-system scan board', JSON.stringify(kpiStyling));
 ok(/IBM Plex Sans Condensed/i.test(kpiStyling.valueFont),
   'Native Reports numbers use the design-system condensed face', JSON.stringify({ valueFont: kpiStyling.valueFont }));
+
+await page.setViewport({ width: 390, height: 844 });
+const mobileKpi = await page.evaluate(() => {
+  const hero = [...document.querySelectorAll('.gi-reports .gi-hero')].find(node => node.offsetParent !== null);
+  const cards = [...(hero?.querySelectorAll(':scope>.gi-kpi') || [])];
+  const rect = hero?.getBoundingClientRect();
+  const last = cards.at(-1)?.getBoundingClientRect();
+  return {
+    count: cards.length,
+    heroWidth: rect?.width || 0,
+    lastWidth: last?.width || 0,
+    columns: hero ? getComputedStyle(hero).gridTemplateColumns : '',
+  };
+});
+ok(mobileKpi.count >= 3 && mobileKpi.count % 2 === 1 && mobileKpi.lastWidth >= mobileKpi.heroWidth - 3,
+  'An odd mobile KPI board gives its final metric the full row instead of an empty slot', JSON.stringify(mobileKpi));
+await page.setViewport({ width: 1400, height: 860 });
+
 
 console.log('\n== S6-4c AX-4/AX-5: Overview composition and shared chart primitives ==');
 const composition = await page.evaluate(async () => {

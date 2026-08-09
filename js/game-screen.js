@@ -66,6 +66,7 @@ export class GameScreen {
     let confirm;
     confirm = this.overlays.dialog({
       title: `Delete ${name}?`, destructive: true, parentId: parentHandle.id,
+      initialFocus: '[name="confirm"]',
       actions: [{ key: 'cancel', label: 'Cancel', default: true }],
       content: h(ConfirmDeleteForm, {
         impact: `${plays} charted play${plays === 1 ? '' : 's'} will be removed. Managed film remains recoverable for ${Math.round(storage.undoGameWindowMs() / 1000)} seconds; linked original folders are never deleted.`,

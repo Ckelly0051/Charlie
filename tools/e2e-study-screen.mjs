@@ -487,6 +487,17 @@ await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyScope', 'range');
 r = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth, study: !document.querySelector('#wsStudy')?.hidden, tabs: document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent', cutup: !!document.querySelector('.cutup-banner') }));
 ok(!r.overflow && r.study && r.tabs === 'absent' && !r.cutup, 'Mobile Study has no overflow or classic-workflow overlays', JSON.stringify(r));
+r = await page.evaluate(() => {
+  const labels = [...document.querySelectorAll('.ws-study-query>label')];
+  const first = labels[0]?.getBoundingClientRect();
+  const second = labels[1]?.getBoundingClientRect();
+  const query = document.querySelector('.ws-study-query');
+  const style = query ? getComputedStyle(query) : null;
+  return { sameRow: !!first && !!second && Math.abs(first.top - second.top) <= 1,
+    background: style?.backgroundColor, borderLeft: style ? parseFloat(style.borderLeftWidth) : 0 };
+});
+ok(r.sameRow && r.borderLeft >= 3 && r.background !== 'rgba(0, 0, 0, 0)',
+  'Mobile Study keeps a compact two-column query workbench before the answer', JSON.stringify(r));
 await page.click('[data-study-action="save-plan"]');
 r = await page.evaluate(() => { const dialog=document.querySelector('.ws-plan-picker'),controls=[...dialog.querySelectorAll('select,input,button')].filter(control=>control.getClientRects().length); return { open:dialog.open,overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,width:dialog.getBoundingClientRect().width,minControl:Math.min(...controls.map(control=>control.getBoundingClientRect().height)) }; });
 ok(r.open && !r.overflow && r.width <= 370 && r.minControl >= 42, 'Mobile Save-to-Plan picker is overflow-free with touch-ready controls', JSON.stringify(r));

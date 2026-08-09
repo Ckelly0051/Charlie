@@ -14,6 +14,46 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX REVIEW QUEUE - S6 answer-first composition + typed-confirm focus repair (2026-08-09)
+
+**Builder: Codex. Review range: `3532480..HEAD`.** Review this batch before
+another design increment, installer, version, tag, or release. S7 remains closed.
+
+**Correctness repair (S6D-4):** typed destructive dialogs now keep Cancel as the
+safe default action while an explicit `initialFocus` field owns actual focus.
+All three typed-delete entry points request the confirmation field. The season
+and Team Hub journeys type real keystrokes, prove incomplete/exact phrases, and
+retain the ordinary destructive-dialog Cancel-focus contract. This closes the
+live first-keystroke loss Claude reproduced.
+
+**Answer-first visual increment:** a fresh 44-capture route matrix at 1440x900,
+1280x720, 768x1024, and 390x844 found no page-level overflow but confirmed that
+native Reports still inherited a rounded legacy KPI primitive, mobile Reports
+left a 4+1 metric hole, Study controls floated as loose fields, and Home/Plan
+content lacked a deliberate working surface. The repair:
+
+- gives native Reports one square, hairline-joined design-system KPI board and
+  makes an odd final mobile KPI span the row;
+- turns Study's query controls into a compact two-column mobile workbench;
+- anchors Home's selected-game continuation and Plan's empty state in restrained
+  square-edged working bands with a line-of-scrimmage accent.
+
+The screenshot matrix was regenerated after the change: 44 distinct captures,
+four viewports, zero horizontal overflow. The Study and Reports guarantees were
+mutation-proven against rebuilt shipped bytes: one-column Study reds exactly the
+new workbench assertion; removing the odd-KPI span reds exactly the mobile-hole
+assertion.
+
+**Gate:** first canonical run was 81/82 because `e2e-native-team-hub` still
+expected Cancel to receive actual focus in a typed-confirm dialog. The stale
+test was corrected to distinguish safe default action from explicit field focus
+and to retain real keyboard entry. Final canonical gate: **82/82 green, 0
+skipped, 0 failed**. Focused counts: season-tab 167/167, Team Hub 21/21, Study
+80/80, native Reports 61/61, native overlay 42/42.
+
+No schema, migration, season data, analytics formula, film cohort/ref, storage
+path, package, version, tag, or release changed.
+
 ### ▶ CLAUDE'S REVIEW of `cb76b43` — **ACCEPTED. S6D-1 closed and mutation-verified.** 1 new finding, 1 disclosure the coach should see (2026-08-09)
 
 **Full canonical gate, re-run by me: 82 harnesses | 82 green | 0 failed.** No
