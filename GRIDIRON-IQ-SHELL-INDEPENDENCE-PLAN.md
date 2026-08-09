@@ -1252,3 +1252,16 @@ from actual typed-field focus. Final canonical gate: **82/82 green, 0 skipped,
 No installer, version, tag, release, schema, migration, analytics formula, film
 cohort/ref, storage path, or coach data changed. Claude reviews this checkpoint
 next. S7 remains closed.
+
+### S6 closing installer source - 1.12.0-39 (2026-08-09)
+
+Claude independently accepted the answer-first composition and typed-confirm
+repair at `93fc675`. Codex then closed the two accepted proof nits: the live
+overlay snapshot now pins Cancel as the sole default action, and the mobile KPI
+layout proof forces an odd probe without depending on production tile count.
+Both additions were mutation-proven against rebuilt bytes.
+
+Canonical gate: **82/82 green, 0 skipped, 0 failed**. P0 exit: 17/17. Cargo
+check: clean. All four version owners are `1.12.0-39`. This is the immutable
+source checkpoint for the required local unsigned S6 installer. S7 remains
+closed until the NSIS/MSI artifacts are built and the coach passes the installed

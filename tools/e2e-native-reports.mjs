@@ -399,17 +399,30 @@ await page.setViewport({ width: 390, height: 844 });
 const mobileKpi = await page.evaluate(() => {
   const hero = [...document.querySelectorAll('.gi-reports .gi-hero')].find(node => node.offsetParent !== null);
   const cards = [...(hero?.querySelectorAll(':scope>.gi-kpi') || [])];
+  // The product may legitimately gain or lose a metric. Force an odd-card
+  // probe only when needed so this tests the responsive rule, not fixture count.
+  const probe = cards.length % 2 === 0 && cards.length
+    ? cards.at(-1).cloneNode(true)
+    : null;
+  if (probe) {
+    probe.dataset.kpiLayoutProbe = 'true';
+    hero.append(probe);
+    cards.push(probe);
+  }
   const rect = hero?.getBoundingClientRect();
   const last = cards.at(-1)?.getBoundingClientRect();
-  return {
-    count: cards.length,
+  const result = {
+    sourceCount: cards.length - (probe ? 1 : 0),
+    probeCount: cards.length,
     heroWidth: rect?.width || 0,
     lastWidth: last?.width || 0,
     columns: hero ? getComputedStyle(hero).gridTemplateColumns : '',
   };
+  probe?.remove();
+  return result;
 });
-ok(mobileKpi.count >= 3 && mobileKpi.count % 2 === 1 && mobileKpi.lastWidth >= mobileKpi.heroWidth - 3,
-  'An odd mobile KPI board gives its final metric the full row instead of an empty slot', JSON.stringify(mobileKpi));
+ok(mobileKpi.sourceCount >= 3 && mobileKpi.probeCount % 2 === 1 && mobileKpi.lastWidth >= mobileKpi.heroWidth - 3,
+  'An odd mobile KPI board gives its final metric the full row without requiring an odd production fixture', JSON.stringify(mobileKpi));
 await page.setViewport({ width: 1400, height: 860 });
 
 

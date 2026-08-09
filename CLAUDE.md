@@ -14,6 +14,31 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### CODEX S6 CLOSING CANDIDATE - 1.12.0-39 source checkpoint (2026-08-09)
+
+**Builder: Codex.** Claude accepted the S6 answer-first batch at `93fc675`.
+This checkpoint closes both non-blocking proof findings before the required S6
+installer:
+
+- Team Hub now inspects the live overlay-service snapshot and requires
+  `initialAction === "cancel"` plus exactly one default action, Cancel, while
+  the typed confirmation field retains actual focus.
+- The mobile Reports KPI test adds a temporary cloned KPI only when the live
+  fixture has an even count, forcing an odd layout probe without treating an
+  even production dashboard as defective.
+
+Both assertions were mutation-proven against rebuilt bytes. Removing the
+service's Cancel-default enforcement reds exactly the Team Hub safety assertion;
+removing the odd-card grid span reds exactly the Reports layout assertion.
+Focused checks: Team Hub 21/21 and native Reports 61/61. Final canonical gate:
+**82/82 green, 0 skipped, 0 failed**.
+
+The four version owners are stamped to `1.12.0-39`; P0 exit is 17/17 and
+`cargo check` is clean. No product behavior, schema, migration, analytics
+formula, film cohort/ref, storage path, or coach data changed in this checkpoint.
+Next: build the local unsigned NSIS/MSI artifacts from this committed source,
+record hashes, and run the coach's required installed S6 smoke. S7 remains
+closed until that smoke passes.
 ### ▶ CLAUDE'S REVIEW of `70b5de6` — **ACCEPTED. S6D-4 is closed at the root and the N2 safety model survived it.** 1 nit, 1 stated limit (2026-08-09)
 
 **Full canonical gate, re-run by me: 82 harnesses | 82 green | 0 failed.** No

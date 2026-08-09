@@ -114,12 +114,15 @@ await page.waitForFunction(() => document.activeElement?.name === 'confirm');
 r = await page.evaluate(() => ({
   message: document.querySelector('.gi-overlay-panel.is-destructive')?.textContent || '',
   initial: document.activeElement?.name || '',
+  overlayInitialAction: window.app.overlays.snapshot().overlays.at(-1)?.initialAction || '',
+  defaultActions: window.app.overlays.snapshot().overlays.at(-1)?.actions.filter(action => action.default).map(action => action.key) || [],
   cancelActions: document.querySelectorAll('[data-overlay-action="cancel"]').length,
   deleteDisabled: document.querySelector('.gi-confirm-delete button.is-danger')?.disabled,
 }));
 ok(/1 game/.test(r.message) && /0 plays/.test(r.message) && /Managed film copies/.test(r.message) && /Linked original folders are never deleted/.test(r.message),
   'Season delete names game/play impact and managed-versus-linked film consequences', JSON.stringify(r));
-ok(r.initial === 'confirm', 'Typed season delete focuses its confirmation field while Cancel remains the safe default action', JSON.stringify(r));
+ok(r.initial === 'confirm' && r.overlayInitialAction === 'cancel' && JSON.stringify(r.defaultActions) === '["cancel"]',
+  'Typed season delete focuses its confirmation field while Cancel remains the sole safe default action', JSON.stringify(r));
 ok(r.cancelActions === 1 && r.deleteDisabled,
   'Season delete has one service-owned Cancel action and starts disarmed', JSON.stringify(r));
 await page.type('.gi-confirm-delete input[name="confirm"]', 'dele');
