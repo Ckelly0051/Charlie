@@ -1,6 +1,6 @@
 /* Video-first Break Down presentation. Scoped to the opt-in workspace shell. */
 .ws-breakdown { min-width: 0; min-height: 0; overflow: hidden; }
-.ws-shell, .ws-breakdown, .tag-library-dialog { font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; letter-spacing: 0; }
+.ws-shell, .ws-breakdown, .tag-library-dialog { font-family: var(--gi-sans); letter-spacing: 0; }
 .bd-route { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .bd-context-bar {
   min-width: 0; min-height: 58px; padding: 8px 12px;

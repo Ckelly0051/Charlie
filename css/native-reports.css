@@ -11,7 +11,7 @@
   border-bottom:1px solid var(--gi-6);
 }
 .gi-reports-title-block{min-width:0}.gi-reports-eyebrow,.gi-reports-model>span:first-child{
-  display:block;color:var(--gi-11);font-family:var(--gi-mono);font-size:11.5px;
+  display:block;color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;
   font-weight:600;line-height:1.2;letter-spacing:0;text-transform:uppercase;
 }
 .gi-reports-title-block h1{margin:var(--gi-1x) 0 0;font-family:var(--gi-cond);font-size:28px;line-height:1;font-weight:700;letter-spacing:0}
@@ -48,7 +48,7 @@
 .gi-reports-tab{flex:0 0 auto;min-height:42px;padding:0 var(--gi-4x);border:0;border-bottom:2px solid transparent;background:transparent;color:var(--gi-11);font:600 12px/1 var(--gi-sans);cursor:pointer}
 .gi-reports-tab:hover{color:var(--gi-12);background:var(--gi-3)}.gi-reports-tab.active{color:var(--gi-12);border-bottom-color:var(--gi-los);background:var(--gi-3)}
 .gi-reports-special-head{display:flex;align-items:center;gap:var(--gi-3x);padding:var(--gi-3x) var(--gi-6x);border-bottom:1px solid var(--gi-6);background:var(--gi-2)}
-.gi-reports-special-head[hidden]{display:none}.gi-reports-special-head>span{color:var(--gi-11);font:600 11.5px/1 var(--gi-mono);text-transform:uppercase}
+.gi-reports-special-head[hidden]{display:none}.gi-reports-special-head>span{color:var(--gi-11);font:600 11.5px/1 var(--gi-sans);text-transform:uppercase}
 .gi-reports-content{min-width:0;padding:var(--gi-5x) var(--gi-6x) var(--gi-8x)}
 .gi-reports-content>.stats-tab-pane,.gi-reports-content>.gi-report-pane{display:block;min-width:0}
 
@@ -70,13 +70,13 @@
 .gi-reports .stat-card,.gi-reports .gi-card,.gi-reports .ss-summary-card{
   min-width:0;padding:var(--gi-3x) var(--gi-4x);border:1px solid var(--gi-6);border-left:3px solid var(--gi-8);border-radius:var(--gi-radius);background:var(--gi-2);box-shadow:none;
 }
-.gi-reports .stat-card-title,.gi-reports .ss-card-label{color:var(--gi-11);font:600 11.5px/1.2 var(--gi-mono);letter-spacing:0;text-transform:uppercase}
+.gi-reports .stat-card-title,.gi-reports .ss-card-label{color:var(--gi-11);font:600 11.5px/1.2 var(--gi-sans);letter-spacing:0;text-transform:uppercase}
 .gi-reports .stat-card-value,.gi-reports .ss-num,.gi-reports .scoreboard-pts,.gi-reports .kpi-value{color:var(--gi-12);font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat);letter-spacing:0;white-space:nowrap}
 .gi-reports .stat-card-value{margin-top:var(--gi-2x);font-size:30px;line-height:1}
 .gi-reports .stats-table-scroll,.gi-reports .stats-section{max-width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--gi-8) var(--gi-2)}
 .gi-reports table{width:100%;border-collapse:collapse;background:transparent}
 .gi-reports th,.gi-reports td{height:var(--gi-row);padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-6);font-size:12px;white-space:nowrap;text-align:right}
-.gi-reports th{position:sticky;top:42px;z-index:2;background:var(--gi-2);color:var(--gi-11);font:600 11.5px/1 var(--gi-mono);letter-spacing:0;text-transform:uppercase}
+.gi-reports th{position:sticky;top:42px;z-index:2;background:var(--gi-2);color:var(--gi-11);font:600 11.5px/1 var(--gi-sans);letter-spacing:0;text-transform:uppercase}
 .gi-reports th:first-child,.gi-reports td:first-child{text-align:left}.gi-reports tbody tr:hover td{background:var(--gi-3)}
 .gi-reports .cut-row,.gi-reports .player-row,.gi-reports .drive-row{cursor:pointer}.gi-reports .cut-row:hover td,.gi-reports .player-row:hover td{color:var(--gi-12);background:var(--gi-info-surface)}
 .gi-reports .cut-row:focus-visible,.gi-reports .player-row:focus-visible{outline:0;box-shadow:inset var(--gi-focus)}
@@ -118,7 +118,7 @@
   .gi-reports .scoreboard-layout{grid-template-columns:1fr;gap:var(--gi-4x)}
   .gi-reports .gi-glance{border-left:0;border-top:1px solid var(--gi-6);padding:var(--gi-4x) 0 0}
   .gi-reports .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-mono);font-size:11.5px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
+}.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
 .gi-reports .season-summary{display:flex;flex-wrap:wrap;gap:var(--gi-2x);padding:var(--gi-4x);background:var(--gi-2);color:var(--gi-12);border-left:3px solid var(--gi-los);border-radius:var(--gi-radius)}
 .gi-reports .gi-subnav{display:flex;overflow-x:auto;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
 .gi-reports .gi-subtab{min-height:var(--gi-control);padding:0 var(--gi-4x);border:0;border-bottom:2px solid transparent;background:transparent;color:var(--gi-11);font:600 12px/1 var(--gi-sans)}
@@ -217,7 +217,7 @@
   margin:0 0 var(--gi-3x);padding:0 26px 0 12px;
   background:var(--gi-3);color:var(--gi-12);
   clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
-  font:650 11px/1 var(--gi-mono);letter-spacing:var(--gi-track-label);
+  font:650 11px/1 var(--gi-sans);letter-spacing:var(--gi-track-label);
   text-transform:uppercase;border:0;
 }
 /* The lens a coach is reading, and the board's own title, take the accent. */
@@ -241,7 +241,7 @@
 
 /* Tables lose their card chrome and lean on the seam instead. */
 .gi-reports .stats-table{background:transparent}
-.gi-reports .stats-table th{font:650 11px/1.2 var(--gi-mono);
+.gi-reports .stats-table th{font:650 11px/1.2 var(--gi-sans);
   letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--gi-11)}
 
 /* ── COACH SMOKE 1.12.0-24, layout batch (G1, G6, G7, G8, G9, G10, G11) ──────
@@ -352,7 +352,7 @@
 .gi-reports .gi-ramp-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--gi-text-control)}
 .gi-reports .gi-ramp-track{min-width:0;height:14px;background:var(--gi-3)}
 .gi-reports .gi-ramp-track i{display:block;height:100%}
-.gi-reports .gi-ramp-n,.gi-reports .gi-ramp-pct{text-align:right;font-family:var(--gi-mono);font-size:11.5px;font-variant-numeric:var(--gi-num-feat);color:var(--gi-11)}
+.gi-reports .gi-ramp-n,.gi-reports .gi-ramp-pct{text-align:right;font-family:var(--gi-sans);font-size:11.5px;font-variant-numeric:var(--gi-num-feat);color:var(--gi-11)}
 .gi-reports .gi-ramp-pct em{font-style:normal;color:var(--gi-warn);font-size:10px}
 .gi-reports .gi-ramp-row.cut-row{cursor:pointer}
 .gi-reports .gi-ramp-row.cut-row:hover,.gi-reports .gi-ramp-row.cut-row:focus-visible{background:var(--gi-3);outline:none}
@@ -413,7 +413,7 @@
   margin:var(--gi-4x) 0 var(--gi-2x);padding:0 20px 0 10px;
   background:var(--gi-2);color:var(--gi-11);
   clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
-  font:650 10.5px/1 var(--gi-mono);letter-spacing:var(--gi-track-label);
+  font:650 10.5px/1 var(--gi-sans);letter-spacing:var(--gi-track-label);
   text-transform:uppercase;border:0;
 }
 .gi-reports .stats-section>:first-child{margin-top:0}
@@ -517,7 +517,7 @@
   width:15px;height:15px;margin-left:6px;padding:0;vertical-align:middle;
   border:1px solid var(--gi-7);border-radius:var(--gi-radius);
   background:transparent;color:var(--gi-11);
-  font:650 10px/1 var(--gi-mono);cursor:help;
+  font:650 10px/1 var(--gi-sans);cursor:help;
 }
 .gi-reports .gi-def:hover,.gi-reports .gi-def:focus-visible{
   border-color:var(--gi-los);color:var(--gi-12);outline:none}
@@ -564,7 +564,7 @@
 .gi-reports .gi-overview-row .gi-stack{align-content:start}
 
 /* J12 — the situation beside a big play's number. */
-.gi-reports .bp-sit{margin-left:var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);font-family:var(--gi-mono)}
+.gi-reports .bp-sit{margin-left:var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);font-family:var(--gi-sans)}
 /* S6D answer-first pass: native Reports owns the KPI primitive. The shared
    legacy stylesheet still supplied rounded cards and its old surface palette,
    which made the migrated route look like an embedded dashboard. Hairline
