@@ -127,11 +127,18 @@ ok(result.rendered === false && result.visibleFailure && result.recovered && res
 ok(result.failureTone?.width !== '0px' && result.failureTone?.background !== result.emptyTone?.background && result.failureTone?.border !== result.emptyTone?.border,
   'Report failure uses a distinct danger surface while no-data guidance remains neutral', JSON.stringify(result));
 
+// The 1.12.0-14 outage: opening a linked game auto-loads film, the dismissed
+// legacy Wizard advanced on `video-loaded`, and its step side effect hid
+// #statsDashboard — an id that belongs to native Reports. The coach got a fully
+// rendered report at 0x0.
+//
+// S7-b retires that module, so the defect is now structurally impossible rather
+// than merely guarded. Both halves are asserted: the coach-facing OUTCOME (a
+// video-load leaves Reports visible and populated) and the ABSENCE of the owner,
+// so reintroducing a boot-time subscriber that hides the route reds this.
 result = await page.evaluate(async () => {
   const app = window.app;
   await app.workspaceShell.show('home');
-  app.wizard.setDismissed(true);
-  app.wizard.currentStep = 1;
   let sideEffects = 0;
   const originalHideDashboard = app.stats.hideDashboard;
   app.stats.hideDashboard = (...args) => {
@@ -146,7 +153,8 @@ result = await page.evaluate(async () => {
   const rect = native?.getBoundingClientRect();
   return {
     nav: nav.ok,
-    wizardStep: app.wizard.currentStep,
+    wizard: !!app.wizard,
+    wizardBar: !!document.querySelector('.wizard-bar, .wiz-step, #btnToggleWizard'),
     sideEffects,
     hiddenAfterLoad,
     hiddenAfterReports: native?.classList.contains('hidden'),
@@ -155,10 +163,12 @@ result = await page.evaluate(async () => {
     textLength: document.querySelector('[data-native-report-content]')?.textContent.trim().length || 0,
   };
 });
-ok(result.nav && result.wizardStep === 1 && result.sideEffects === 0
+ok(result.nav && result.sideEffects === 0
   && !result.hiddenAfterLoad && !result.hiddenAfterReports
   && result.width > 0 && result.height > 0 && result.textLength > 0,
-  'Dismissed wizard ignores linked-film video-load events and cannot hide native Reports', JSON.stringify(result));
+  'A linked-film video-load leaves native Reports visible and populated', JSON.stringify(result));
+ok(result.wizard === false && result.wizardBar === false,
+  'The legacy onboarding wizard is absent, not hidden, so it cannot hide native Reports again', JSON.stringify(result));
 await capture('desktop-overview');
 
 console.log('\n== 2. Every self report is reachable without changing season data ==');

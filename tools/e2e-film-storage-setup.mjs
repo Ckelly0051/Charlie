@@ -441,6 +441,88 @@ ok(real.reopenMode === 'linked' && real.reopenDir === 'Refuge 7-13' && real.link
 ok(real.nonTargetsUnchanged,
   'C2 isolation: opening, linking, saving, and reopening Refuge leaves every complete non-target game byte-identical', JSON.stringify(real));
 
+// ===================== S7-b: film loading survives the legacy shell =====
+//
+// The two film pickers lived inside #app, which S7-d deletes. They are the
+// nonvisual hosts the ledger flagged: no coach sees them, but the native empty
+// state and Film settings both click them, so deleting #app from a surface
+// count would have taken film loading with it.
+//
+// These assertions pin the coach-facing path, not the markup: the pickers are
+// outside the legacy tree, the visible actions reach them, and a dropped file
+// still starts an import.
+console.log('\n== S7-b: film loading is independent of the legacy shell ==');
+await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
+await page.waitForSelector('#videoPlaceholder [data-action="file"]');
+
+let s7b = await page.evaluate(() => {
+  const q = id => document.getElementById(id);
+  const outsideLegacy = el => !!el && !el.closest('#app') && !el.closest('#wsClassicOutlet');
+  const onScreen = el => {
+    const r = el?.getBoundingClientRect();
+    return !!r && r.width > 0 && r.height > 0 && !el.closest('.hidden,[hidden]');
+  };
+  // Click the visible Add Video action and record which input it opened. The
+  // picker itself cannot open a real dialog headlessly, so the proof is that
+  // the click reaches the canonical input exactly once.
+  const opened = [];
+  const patch = id => {
+    const el = q(id);
+    const original = el.click.bind(el);
+    el.click = () => { opened.push(id); };
+    return () => { el.click = original; };
+  };
+  const restore = [patch('videoFileInput'), patch('videoFolderInput')];
+  document.querySelector('#videoPlaceholder [data-action="file"]').click();
+  document.querySelector('#videoPlaceholder [data-action="folder"]').click();
+  restore.forEach(fn => fn());
+  return {
+    fileOutside: outsideLegacy(q('videoFileInput')),
+    folderOutside: outsideLegacy(q('videoFolderInput')),
+    opened,
+    placeholderLive: onScreen(q('videoPlaceholder')),
+    // The only pre-S7-b drop target. Measured 0x0 inside the hidden outlet, so
+    // dropping film had been dead the whole shell era while the empty state
+    // still advertised it.
+    legacyDropZoneReachable: onScreen(q('videoDropZone')),
+  };
+});
+ok(s7b.fileOutside && s7b.folderOutside,
+  'Both film pickers live outside #app and the classic outlet, so final deletion cannot take film loading with it', JSON.stringify(s7b));
+ok(s7b.opened.join(',') === 'videoFileInput,videoFolderInput',
+  'The native empty-state actions reach the canonical film pickers exactly once each', JSON.stringify(s7b));
+
+// Drop on the live empty state must reach the same files-selected path the
+// pickers use. Bound only to the entombed label before S7-b.
+s7b = await page.evaluate(async () => {
+  const placeholder = document.getElementById('videoPlaceholder');
+  // beforeFilesSelected is the canonical import gate every entry point feeds,
+  // ahead of any managed/linked branching. Returning false keeps this proof
+  // read-only: nothing is imported, copied, or written.
+  const original = window.app.vc.beforeFilesSelected;
+  let received = null;
+  window.app.vc.beforeFilesSelected = files => { received = files.map(f => f.name); return false; };
+  // A synthetic DataTransfer's webkitGetAsEntry() yields an entry whose file()
+  // callback never fires, so the dropped-FOLDER branch cannot be driven
+  // headlessly. This drives the flat-files branch — a dropped file — which is
+  // the same handler and the same import gate.
+  const fire = type => {
+    const ev = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, 'dataTransfer', {
+      value: { items: null, files: [new File([new Uint8Array([0])], 'drop-test.mp4', { type: 'video/mp4' })] },
+    });
+    placeholder.dispatchEvent(ev);
+  };
+  fire('dragover');
+  const over = placeholder.classList.contains('drag-over');
+  fire('drop');
+  await new Promise(r => setTimeout(r, 150));
+  window.app.vc.beforeFilesSelected = original;
+  return { over, received, stillOver: placeholder.classList.contains('drag-over') };
+});
+ok(s7b.over === true && Array.isArray(s7b.received) && s7b.received[0] === 'drop-test.mp4' && s7b.stillOver === false,
+  'Dropping film on the live empty state reaches the canonical import gate, which the entombed top-bar label could not', JSON.stringify(s7b));
+
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

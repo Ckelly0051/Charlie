@@ -1393,7 +1393,7 @@ Ledger built and run. **213 ids collected from `#app` onward**, classified:
 | Bucket | Count | Meaning |
 |---|---|---|
 | **engine-dep** | **141** | a live module does real work through it — decouple or relocate first |
-| nonvisual-host | 2 | `videoFileInput`, `videoFolderInput` — rehome (S7-b) |
+| nonvisual-host | 2 | `videoFileInput`, `videoFolderInput` — rehomed in S7-b; this bucket is now **0** |
 | dead-module-only | 38 | referenced only by `wizard.js` / `season-library.js` — retire together |
 | native-owned | 32 | no JS reference — removable with the markup |
 
@@ -1449,6 +1449,47 @@ already approved for retirement and it holds two of the input call sites
 in S7-d is work spent on a surface that disappears. Prove the **surviving native
 film-import paths** instead — the empty-state CTA and the Film/Team settings
 import — which are what a coach actually uses.
+
+#### S7-b RESULT (2026-08-09) — COMPLETE
+
+Both pickers now sit on `body` beside `projectFileInput`. The ledger's
+**nonvisual-host bucket is 0**; ids inside `#app` fell 213 → 211.
+
+`wizard.js` is deleted — module, boot construction, `build.sh` entry, and three
+`styles.css` blocks. It was default-dismissed, had no toggle control, and
+injected its bar into the hidden outlet (measured 0×0), so no coach could reach
+it; but it stayed subscribed to `video-loaded` and called
+`stats.hideDashboard()`, which is what rendered native Reports at 0×0 in
+`1.12.0-14`. **That defect class is now structurally impossible rather than
+guarded**, and `e2e-native-reports` asserts both the coach-facing outcome and the
+owner's absence.
+
+**The measurement found a live defect the phase had to answer.** The only `drop`
+handler was bound to `#videoDropZone`, the top-bar label — **0×0, hidden
+ancestor, inside `#wsClassicOutlet`**. So dropping film had been dead for the
+whole shell era while the native empty state still read *"or drop a video or
+folder anywhere."* `_bindDropTarget()` is now one implementation applied to both
+the label and the live `#videoPlaceholder`, so the advertised behavior works
+again and the label becomes optional — S7-d may delete it without decoupling
+first. The hint says *"here"* rather than *"anywhere"*, which is what is true.
+
+**Stated limit:** the dropped-**folder** branch cannot be driven headlessly — a
+synthetic `DataTransfer`'s `webkitGetAsEntry()` yields an entry whose `file()`
+callback never fires, so `_walkEntries` awaits forever. The assertion drives the
+flat-files branch, same handler and same import gate.
+
+Three mutations, each reddening exactly its own assertion: removing the
+placeholder drop target → the drop assertion, `{"over":false,"received":null}`;
+returning the pickers to `#app` → the ownership assertion,
+`{"fileOutside":false,"folderOutside":false}`; reintroducing a boot-time hidden
+wizard bar that hides the dashboard → both Reports assertions, `sideEffects:1`.
+
+**Assertion counts diffed against the S7-a gate, not eyeballed: two lines differ,
+both up.** Film storage 31→34, native Reports 61→62. Zero drops.
+
+**Method note.** The first CSS sweep missed a third wizard block because the
+`grep` was piped through `head`. Same mechanism as the S7-c undercount recorded
+below — a pattern narrower than the claim attached to it.
 
 ### S7-c — extract the team registry, then delete only the overlay
 **The dependency surface is 12 members, not 7.** My first count used a regex that

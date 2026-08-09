@@ -309,7 +309,7 @@ export class PlaylistManager {
     this._updateClipIndicator();
     this._updateClipCount();
     // Plays were pushed directly (not via tagger.createPlay), so listeners —
-    // the Film Room grid, the wizard — only hear about them via this emit
+    // the Film Room grid, the play strip — only hear about them via this emit
     // (same pattern as the CSV import path in storage.js).
     if (created) this.tagger._emit('play-created');
     // Land ready to tag: select the first new play so the selector and the

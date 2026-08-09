@@ -27,6 +27,11 @@
        #app so linked/imported film survives final legacy-outlet deletion. -->
   <input type="file" id="clipFileInput" accept="video/*" multiple hidden>
   <input type="file" id="repairFilmInput" webkitdirectory directory multiple hidden>
+  <!-- S7-b: the two film pickers. They were inside the top bar, which S7-d
+       deletes; the native empty-state CTA and Film settings both click them, so
+       losing them would take film loading with the legacy markup. -->
+  <input type="file" id="videoFileInput" accept="video/*" multiple hidden>
+  <input type="file" id="videoFolderInput" webkitdirectory directory multiple hidden>
   <div id="app">
     <!-- Top Bar -->
     <header class="top-bar">
@@ -56,16 +61,14 @@
              revealed the classic outlet. -->
       </div>
       <div class="top-bar-center">
-        <label class="file-input-label" id="videoDropZone">
+        <label class="file-input-label" id="videoDropZone" for="videoFileInput">
           <svg class="icon"><use href="assets/icons.svg#icon-upload"/></svg>
           <span id="fileLabel">Drop video(s) / folder or click to load</span>
-          <input type="file" id="videoFileInput" accept="video/*" multiple hidden>
         </label>
         <button class="btn btn-sm" id="btnLoadFolder" title="Load an entire folder of plays">
           <svg class="icon"><use href="assets/icons.svg#icon-folder"/></svg>
           <span class="btn-label">Folder</span>
         </button>
-        <input type="file" id="videoFolderInput" webkitdirectory directory multiple hidden>
         <span class="folder-load-badge hidden" id="folderLoadBadge"></span>
       </div>
       <div class="top-bar-right">

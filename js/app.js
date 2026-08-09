@@ -49,7 +49,6 @@ import { CutupPlayer } from './cutup-player.js';
 import { SeasonManager } from './season-manager.js';
 import { CallSheetBuilder } from './call-sheet-builder.js';
 import { UIPolish } from './ui-polish.js';
-import { Wizard } from './wizard.js';
 import { CustomFieldsManager } from './custom-fields.js';
 import { CustomChips } from './custom-chips.js';
 import { TagLibrarySettings } from './tag-library-settings.js';
@@ -166,7 +165,12 @@ class App {
     this.callSheet = new CallSheetBuilder(this.tagger);
     this.uiPolish = new UIPolish(this);
     this.vc.beforeFilesSelected = files => this.uiPolish.prepareFilmFiles(files);
-    this.wizard = new Wizard({ videoController: this.vc, tagger: this.tagger, stats: this.stats, history: this.history });
+    // S7-b: the legacy onboarding Wizard is retired. It was default-dismissed
+    // with no toggle control and injected its bar into the hidden classic
+    // outlet, so no coach could reach it — but it stayed subscribed to
+    // video-loaded and called stats.hideDashboard(), which is what blanked
+    // native Reports in 1.12.0-14. Deleting the module closes that class at the
+    // root; e2e-native-reports asserts its absence so it cannot return.
 
     // Give storage references
     this.storage.playlist = this.playlist;

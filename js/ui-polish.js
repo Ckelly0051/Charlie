@@ -118,7 +118,7 @@ export class UIPolish {
           <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
           ${window.__TAURI__ ? '<button class="btn btn-secondary" type="button" data-action="link">Link Existing Folder</button>' : ''}
         </div>
-        <div class="empty-hint">${window.__TAURI__ ? 'Link references clips in your own folder — no copy. ' : ''}or drop a video or folder anywhere</div>
+        <div class="empty-hint">${window.__TAURI__ ? 'Link references clips in your own folder — no copy. ' : ''}or drop a video or folder here</div>
       </div>
     `;
     placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {

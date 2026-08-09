@@ -14,6 +14,82 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### S7-b COMPLETE — film loading is off the legacy shell; the wizard is deleted (2026-08-09)
+
+**Both film pickers now live on `body`.** `videoFileInput` / `videoFolderInput`
+join `projectFileInput` outside `#app`, so S7-d cannot take film loading with the
+markup. The ledger's **nonvisual-host bucket is 0**; ids inside `#app` fell
+213 → 211.
+
+**`wizard.js` is deleted at the root** — module, boot construction, `build.sh`
+entry, three `styles.css` blocks, and two stale comments that named it. Measured
+before deleting: default-dismissed, **no toggle control exists in the markup at
+all**, and its injected bar was 0×0 inside the hidden outlet. Unreachable to a
+coach — yet it stayed subscribed to `video-loaded` and called
+`stats.hideDashboard()`, which is exactly what left a fully rendered report at
+0×0 in `1.12.0-14`. **That class is now structurally impossible rather than
+guarded.**
+
+The assertion that guarded it did not just get deleted with its subject. It is
+split into the coach-facing **outcome** (*"A linked-film video-load leaves native
+Reports visible and populated"*) and the **absence** of the owner (*"…is absent,
+not hidden, so it cannot hide native Reports again"*).
+
+#### ⚠ The measurement found a live defect, and it is the interesting part
+
+The only `drop` handler in the app was bound to `#videoDropZone`, the top-bar
+label. Measured: **0×0, hidden ancestor, inside `#wsClassicOutlet`**. So
+**dropping film has been dead for the entire shell era**, while the live native
+empty state still read *"or drop a video or folder anywhere."*
+
+`_bindDropTarget()` is now one implementation applied to both the label and the
+live `#videoPlaceholder`. Two consequences: the advertised behavior works again,
+and the label becomes an **optional** reference, so S7-d may delete it without
+decoupling first. The hint now says *"here"* instead of *"anywhere"*, which is
+what is actually true — drop works on the empty state, not the whole page.
+
+**Stated limit rather than papered over:** the dropped-**folder** branch cannot
+be driven headlessly. A synthetic `DataTransfer`'s `webkitGetAsEntry()` returns
+an entry whose `file()` callback never fires, so `_walkEntries` awaits forever —
+it hung the harness until I drove the flat-files branch instead. Same handler,
+same import gate, but folder drops are proven by neither harness.
+
+#### Proof
+
+Three mutations, each reddening **exactly** its own assertion:
+
+| Mutation | Reds | Evidence |
+|---|---|---|
+| remove the placeholder drop target | the drop assertion only | `{"over":false,"received":null}` |
+| return both pickers to `#app` | the ownership assertion only | `{"fileOutside":false,"folderOutside":false}` |
+| reintroduce a boot-time hidden wizard bar that hides the dashboard | both Reports assertions | `sideEffects:1` |
+
+The third is worth reading: the outcome assertion reds on `sideEffects:1` while
+`hiddenAfterLoad` is still `false` — the symptom is currently harmless because
+`hideDashboard()` short-circuits on the Reports route. So it catches the
+**mechanism** rather than waiting for the symptom to become visible again.
+
+**Assertion counts diffed against the S7-a gate log, not eyeballed: exactly two
+lines differ and both went up** — film storage 31→34, native Reports 61→62.
+**Zero drops, +4.** No other harness file is touched by this commit.
+
+**Gate: 81 harnesses | 80 green | 1 failed** — `e2e-tag-projform`'s documented
+`Promise was collected` intermittent. Unlike S7-a this commit *does* touch
+production JS, so I measured rather than asserted: the harness references **zero**
+of the surfaces S7-b changed, and on the **pre-S7-b baseline (`a163b1e`) it
+crashed 3 of 4 standalone runs** — worse than the 1 of 3 on these bytes, and an
+exact match for the 3-of-4 rate recorded at AX-7. Pre-existing.
+
+**Method note, recorded because it is the recurring failure mode.** My first CSS
+sweep missed a third wizard block because the `grep` was piped through `head`.
+Same mechanism as the S7-c SeasonLibrary undercount: a pattern narrower than the
+claim attached to it. The second sweep ran unpiped and the residue check is now
+`grep` over `css/ js/ index.html build.sh` with no truncation.
+
+**Scope:** no schema, migration, season byte, analytics formula, film cohort,
+composite ref, storage path, film file, version owner, package, tag or release
+changed. No installer — per plan §13 that is S7-g, after Codex's review.
+
 ### S7-a COMPLETE — capability floor closed, `e2e-s5c-preflight` retired (2026-08-09)
 
 **The blocking preflight is done.** All four stranded capability ids are re-proven

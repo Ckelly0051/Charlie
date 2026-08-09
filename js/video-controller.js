@@ -77,42 +77,18 @@ export class VideoController {
       this.btnLoadFolder.addEventListener('click', () => this.folderInput.click());
     }
 
-    // Drag and drop — supports single files, multi-files, AND dropped folders
-    this.dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      this.dropZone.classList.add('drag-over');
-    });
-    this.dropZone.addEventListener('dragleave', () => {
-      this.dropZone.classList.remove('drag-over');
-    });
-    this.dropZone.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      this.dropZone.classList.remove('drag-over');
-
-      // Try DataTransferItemList for folder support. Fallback to flat files.
-      const items = e.dataTransfer.items;
-      let files = [];
-      if (items && items.length && typeof items[0].webkitGetAsEntry === 'function') {
-        const entries = [];
-        for (const it of items) {
-          const entry = it.webkitGetAsEntry();
-          if (entry) entries.push(entry);
-        }
-        files = await this._walkEntries(entries);
-      } else {
-        files = Array.from(e.dataTransfer.files);
-      }
-      files = this._filterVideoFiles(files)
-        .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
-          b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
-      if (files.length > 0) {
-        if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) return;
-        this._showFolderBadge(files);
-        this._emit('files-selected', { files });
-      } else if (e.dataTransfer.files.length || (items && items.length)) {
-        alert('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
-      }
-    });
+    // Drag and drop — supports single files, multi-files, AND dropped folders.
+    //
+    // S7-b: this was bound ONLY to #videoDropZone, the top-bar label, which the
+    // shell hides inside #wsClassicOutlet — measured 0x0 with a hidden ancestor.
+    // So dropping film had been dead for the whole shell era while the native
+    // empty state still said "or drop a video or folder anywhere". The live
+    // #videoPlaceholder is now a drop target too, which both restores the
+    // advertised behavior and frees S7-d to delete the label. The label keeps
+    // its binding while it exists, and is optional so its removal cannot throw
+    // in this constructor.
+    this._bindDropTarget(this.dropZone);
+    this._bindDropTarget(this.placeholder);
 
     // Playback controls
     this.btnPlayPause.addEventListener('click', () => this.togglePlay());
@@ -334,6 +310,49 @@ export class VideoController {
     this._updatePlayPauseIcon(false);
     if (this.timeDisplay) this.timeDisplay.textContent = '0:00 / 0:00';
     this._emit('video-unloaded', {});
+  }
+
+  /**
+   * Make an element accept dropped video files or folders. One implementation
+   * for every drop target, so the legacy label and the native empty state
+   * cannot diverge in what they accept. A missing element is a no-op: S7-d
+   * deletes the label, and a drop target is a convenience, not the film path.
+   */
+  _bindDropTarget(el) {
+    if (!el) return;
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+
+      // Try DataTransferItemList for folder support. Fallback to flat files.
+      const items = e.dataTransfer.items;
+      let files = [];
+      if (items && items.length && typeof items[0].webkitGetAsEntry === 'function') {
+        const entries = [];
+        for (const it of items) {
+          const entry = it.webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        files = await this._walkEntries(entries);
+      } else {
+        files = Array.from(e.dataTransfer.files);
+      }
+      files = this._filterVideoFiles(files)
+        .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(
+          b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      if (files.length > 0) {
+        if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) return;
+        this._showFolderBadge(files);
+        this._emit('files-selected', { files });
+      } else if (e.dataTransfer.files.length || (items && items.length)) {
+        alert('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
+      }
+    });
   }
 
   /**

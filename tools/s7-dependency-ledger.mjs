@@ -36,7 +36,13 @@ const sources = fs.readdirSync(jsDir).filter(f => /\.(js|jsx)$/.test(f));
 const text = new Map(sources.map(f => [f, fs.readFileSync(path.join(jsDir, f), 'utf8')]));
 
 // Modules S7 retires. A reference from ONLY these does not keep an id alive.
-const DYING = new Set(['wizard.js', 'season-library.js']);
+// wizard.js was on this list and is deleted in S7-b, so it no longer appears.
+const DYING = new Set(['season-library.js']);
+
+// Live references that S7-b made OPTIONAL. These still show as engine-dep,
+// because a reference is a reference — but their consumer guards against
+// absence, so S7-d may delete them without decoupling first.
+const OPTIONAL = new Set(['videoDropZone']);
 
 // Modules that render into the native tree — a reference from these means the
 // id is genuinely consumed by the surviving product.
@@ -79,7 +85,10 @@ for (const b of ['engine-dep', 'nonvisual-host', 'dead-module', 'native-owned'])
   console.log(`${b.toUpperCase().padEnd(15)} ${String(set.length).padStart(4)}`);
 }
 console.log('\n-- ENGINE DEPENDENCIES (decouple before deleting) --');
-for (const r of by('engine-dep')) console.log(`  ${r.id.padEnd(32)} ${r.live.join(', ')}`);
+for (const r of by('engine-dep')) {
+  const flag = OPTIONAL.has(r.id) ? '  [optional — consumer guards absence]' : '';
+  console.log(`  ${r.id.padEnd(32)} ${r.live.join(', ')}${flag}`);
+}
 console.log('\n-- NONVISUAL HOSTS (rehome to body) --');
 for (const r of by('nonvisual-host')) console.log(`  ${r.id.padEnd(32)} ${r.live.join(', ')}`);
 console.log('\n-- DEAD MODULE ONLY (retire together) --');

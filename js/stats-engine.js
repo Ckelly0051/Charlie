@@ -282,7 +282,7 @@ export class StatsEngine {
     // than popping the legacy full-screen dashboard over whatever route the
     // coach was on. The shell's reports route calls showDashboard() itself, so
     // the render path is identical — only the framing changes. Every other
-    // caller (season-library, ui-polish, wizard) clicks this same button, so
+    // caller (season-library, ui-polish) clicks this same button, so
     // they all inherit the routing with no change of their own.
     this.btnShowStats.addEventListener('click', () => {
       const shell = window.app?.workspaceShell;
