@@ -1265,3 +1265,14 @@ Canonical gate: **82/82 green, 0 skipped, 0 failed**. P0 exit: 17/17. Cargo
 check: clean. All four version owners are `1.12.0-39`. This is the immutable
 source checkpoint for the required local unsigned S6 installer. S7 remains
 closed until the NSIS/MSI artifacts are built and the coach passes the installed
+
+### S6 closing installer built - 1.12.0-39; coach smoke pending (2026-08-09)
+
+Local unsigned NSIS and MSI artifacts were built from committed source
+`6be953c`. Hashes and the six-step real-film acceptance checklist are recorded
+in `SMOKE-1.12.0-39.md`. This artifact is not tagged or published.
+
+All pre-package evidence is green: canonical gate 82/82, P0 exit 17/17, cargo
+check clean, and both accepted proof nits mutation-verified. The coach now runs
+the installed checklist. PASS closes S6 and opens S7; any film, data, route, or
+focus failure keeps S7 closed.

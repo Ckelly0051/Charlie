@@ -14,6 +14,22 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### S6 CLOSING INSTALLER - 1.12.0-39 READY FOR COACH SMOKE (2026-08-09)
+
+Built from committed source `6be953c` after the canonical gate passed 82/82,
+P0 exit passed 17/17, and `cargo check` completed cleanly. `cargo tauri build
+--no-sign` produced both local unsigned Windows artifacts:
+
+- NSIS: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-39_x64-setup.exe`
+  (`B5364284B20D4C6BD0C3A2F8A163E4F944A30EB665FEAD3FF72DD7743EF01AD4`)
+- MSI: `src-tauri/target/release/bundle/msi/GridIron IQ_1.12.0-39_x64_en-US.msi`
+  (`085CD38F8574B01C09EDB983CFF8E408FBF227646CE215FCA55A07AD4F542B6E`)
+
+The exact six-step installed checklist is in `SMOKE-1.12.0-39.md`. This is a
+local milestone artifact, not a tag, published release, or stable promotion.
+Install over the current app without deleting application data. **S7 remains
+closed until the coach records PASS or reports the exact failed checklist item.**
+
 ### CODEX S6 CLOSING CANDIDATE - 1.12.0-39 source checkpoint (2026-08-09)
 
 **Builder: Codex.** Claude accepted the S6 answer-first batch at `93fc675`.
