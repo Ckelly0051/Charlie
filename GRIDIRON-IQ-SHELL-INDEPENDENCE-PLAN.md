@@ -1921,6 +1921,18 @@ rules, focus/hover, Tauri-only states or dynamically generated selectors. Use
 static ownership as the primary instrument, backed by a route × state × viewport
 screenshot matrix. **The bar is that S7 is visually lossless.**
 
+**PARKED, not started (coach, 2026-08-10).** Asked what S7-e actually buys —
+answer: nothing user-visible, only smaller/safer CSS for future edits, against
+real risk of a wrong dead-rule call causing a live regression. Coach chose not
+to spend the time now. A throwaway static-ownership audit (postcss selector
+parse, cross-referenced against every literal class/id/data-attribute string
+in `index.html`+`js/**/*.js(x)`, dynamic-construction risk excluded from
+candidates) found **538 of 1886 rules in `styles.css` provably dead** (0 in
+`redesign-stats.css`), spot-checked clean against known-retired features and
+against current native-route prefixes. No file was changed; the script was not
+committed. **This method is the validated starting point if S7-e resumes** —
+re-run fresh rather than trusting the exact count, source will have moved.
+
 ### S7-f — retire the build artifacts
 Delete `build.sh` and `football-film-analyzer.html` (1.80 MB, tracked); remove or
 convert `tools/verify-audit-fixes.mjs`, which still opens the bundle; update the

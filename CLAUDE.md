@@ -14,6 +14,35 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ PARKED — S7-e (CSS migration) investigated, not started (coach, 2026-08-10)
+
+**Coach's call: no visible payoff for the risk, park it.** Asked directly
+"what do we gain" — the honest answer is nothing user-facing: zero pixels
+change, zero behavior changes if done right, the only benefit is a smaller/
+safer file for FUTURE edits. Weighed against real risk (a wrong "this rule is
+dead" call is a live visual regression), the coach chose to park rather than
+spend the time now.
+
+**What was learned before parking, so it isn't re-derived from scratch:** a
+throwaway static-ownership audit (postcss-parsed selectors, cross-referenced
+against every literal class/id/data-attribute string in `index.html` + all of
+`js/**/*.js(x)`, `@media print` and `@keyframes` excluded, dynamic
+template-literal construction risk flagged and excluded from candidates)
+found **538 of 1886 rules in `css/styles.css` are provably dead** (0 in
+`redesign-stats.css`) — a rule is only flagged dead when at least one class/id
+token it requires has zero literal-string occurrence anywhere in application
+code, which is a sound sufficient condition (that token can never exist on any
+element, so the selector can never match). Spot-checked against known-retired
+features (the deleted breadcrumb/game-dropdown, the deleted standalone
+film-storage modal, the deleted legacy library overlay) — all correctly
+flagged. Sanity-swept the candidate list for anything matching current
+native-route prefixes (`ws-`, `gi-`, `data-native-`, `giMediaHost`,
+`giLegacyEngineHost`) — zero false positives found. **No file was changed**
+(dry run only); the scratch script was deleted rather than committed unused.
+**If S7-e is picked up later, this static-ownership method is the validated
+starting point — re-run it fresh rather than trusting these exact numbers,
+since source will have moved.**
+
 ### ▶ ACTIVE — S7 DEMOLITION CLOSED; SMOKE PASSED (2026-08-10)
 
 **The coach installed `1.12.0-44` and passed the full checklist: "it all works
