@@ -1921,17 +1921,19 @@ rules, focus/hover, Tauri-only states or dynamically generated selectors. Use
 static ownership as the primary instrument, backed by a route × state × viewport
 screenshot matrix. **The bar is that S7 is visually lossless.**
 
-**PARKED, not started (coach, 2026-08-10).** Asked what S7-e actually buys —
-answer: nothing user-visible, only smaller/safer CSS for future edits, against
-real risk of a wrong dead-rule call causing a live regression. Coach chose not
-to spend the time now. A throwaway static-ownership audit (postcss selector
-parse, cross-referenced against every literal class/id/data-attribute string
-in `index.html`+`js/**/*.js(x)`, dynamic-construction risk excluded from
-candidates) found **538 of 1886 rules in `styles.css` provably dead** (0 in
-`redesign-stats.css`), spot-checked clean against known-retired features and
-against current native-route prefixes. No file was changed; the script was not
-committed. **This method is the validated starting point if S7-e resumes** —
-re-run fresh rather than trusting the exact count, source will have moved.
+**STATUS: DEFERRED (coach, 2026-08-10), not part of S7's closure.** Asked what
+S7-e actually buys — answer: nothing user-visible, only smaller/safer CSS for
+future edits, against real risk of a wrong dead-rule call causing a live
+regression. Coach chose not to spend the time now; this is an independent,
+separately-scoped follow-up, not a blocker on S7 closing. A throwaway
+static-ownership audit (postcss selector parse, cross-referenced against every
+literal class/id/data-attribute string in `index.html`+`js/**/*.js(x)`,
+dynamic-construction risk excluded from candidates) found **538 of 1886 rules
+in `styles.css` provably dead** (0 in `redesign-stats.css`), spot-checked
+clean against known-retired features and against current native-route
+prefixes. No file was changed; the script was not committed. **This method is
+the validated starting point if S7-e resumes** — re-run fresh rather than
+trusting the exact count, source will have moved.
 
 ### S7-f — retire the build artifacts
 Delete `build.sh` and `football-film-analyzer.html` (1.80 MB, tracked); remove or
@@ -1939,6 +1941,9 @@ convert `tools/verify-audit-fixes.mjs`, which still opens the bundle; update the
 executable references and the deploy documentation. **Decide explicitly how the
 GitHub Pages build is produced from Vite afterwards** — the current recipe copies
 the bundle, and that recipe stops existing here.
+
+**STATUS: DEFERRED (coach, 2026-08-10), not part of S7's closure.** Not
+started; not blocking. Independent, separately-scoped follow-up like S7-e.
 
 ### S7-g — review BEFORE the installer, then package
 **Sequence, corrected:** Claude builds and gates → **Codex reviews the S7 range
@@ -1950,6 +1955,32 @@ coach installing and testing unreviewed structural demolition. That also
 contradicts this project's own §8 rule that a builder does not accept their own
 work at an installer — the reason the milestone-installer requirement exists at
 all.
+
+**STATUS: COMPLETE (2026-08-10).** The full sequence ran on the demolition
+commit `888b27e`: Codex independently reviewed and accepted with no material
+findings (one trivial whitespace nit, fixed in `a00c49e`); the `1.12.0-44`
+installer was built from that reviewed source (§8); the coach ran the
+installed smoke checklist and reported PASS — "it all works fine," including
+the two items targeting exactly what this pass rewired. Full record in
+`SMOKE-1.12.0-44.md`.
+
+### ▶ S7 — FULLY CLOSED AT `1.12.0-44` (coach, 2026-08-10)
+
+**Administrative closeout.** S7-0 through S7-d (the ledger, capability floor,
+nonvisual-host rehoming, TeamRegistry extraction, and the `#app`/
+`#wsClassicOutlet` demolition itself) are complete, reviewed, and
+installed-verified. **S7-g is complete** (review → installer → coach smoke, all
+passed). **S7-e (CSS migration) and S7-f (build-artifact retirement) are
+DEFERRED** — investigated where useful (S7-e has a validated starting-point
+audit recorded above) but explicitly not scheduled; neither blocks S7's
+closure, per the coach's direct call that they carry cost and risk with no
+user-visible payoff right now.
+
+**S7 the milestone is closed.** Its governing question — can the legacy
+`#app`/`#wsClassicOutlet` application shell be removed as a runtime dependency
+— is answered yes, shipped, reviewed, and confirmed on real hardware. S7-e/f
+remain on the record as open, independently-scoped follow-up work, to be
+picked up on their own schedule with no obligation tied to S7.
 
 ## Governance
 

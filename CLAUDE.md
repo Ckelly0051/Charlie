@@ -14,6 +14,29 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ S7 FULLY CLOSED at `1.12.0-44` (coach, 2026-08-10)
+
+**Administrative closeout, coach's explicit call.** S7-0 through S7-d (ledger,
+capability floor, nonvisual-host rehoming, TeamRegistry extraction, and the
+`#app`/`#wsClassicOutlet` demolition) are complete, Codex-reviewed, and
+installed-verified — see the smoke-PASS and review-acceptance entries below.
+
+- **S7-g (review → installer → coach smoke) is COMPLETE.** All three steps ran
+  on demolition commit `888b27e` and passed: Codex accepted with no material
+  findings, the `1.12.0-44` installer was built from that reviewed source, the
+  coach ran it against real data and confirmed "it all works fine."
+- **S7-e (CSS migration) and S7-f (build-artifact retirement) are DEFERRED.**
+  Investigated where useful (S7-e has a validated static-ownership audit on
+  record below as a starting point) but explicitly not scheduled — no
+  user-visible payoff against real regression risk, coach's call. Full detail
+  in `GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` under S7-e/S7-f's own headers.
+
+**S7 the milestone is closed.** Its governing question — can the legacy
+`#app`/`#wsClassicOutlet` shell be removed as a runtime dependency — is
+answered yes, shipped, reviewed, and confirmed on real hardware. S7-e/S7-f
+remain on the record as open, independently-scoped follow-up work with no
+obligation tied to S7's closure.
+
 ### ▶ PARKED — S7-e (CSS migration) investigated, not started (coach, 2026-08-10)
 
 **Coach's call: no visible payoff for the risk, park it.** Asked directly
