@@ -1107,10 +1107,9 @@ r = await page.evaluate(async () => {
   window.__xss30 = 0;
   window.app.roster.players = window.app.roster.players.filter(p => !/onerror/i.test(p.name || ''));
   const payload = `<img src=x onerror="window.__xss30=(window.__xss30||0)+1">`;
-  const teamInput = document.getElementById('gameTeamName');
   const out = {};
   // Defensive report header interpolates ${team} (raw before the fix).
-  teamInput.value = payload;
+  window.app.gameContext.update({ teamName: payload });
   eng.renderDefensiveReport();
   await new Promise(rs => setTimeout(rs, 200));
   out.defImg = !!document.querySelector('.stats-overlay h2 img');

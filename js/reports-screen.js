@@ -452,7 +452,7 @@ export class ReportsScreen {
       ${s._renderShape(stats)}
       ${s._renderPlayAction(stats)}
       ${s._renderTendencies(stats)}
-      ${s._renderBigTwelve(stats.offPlays, document.getElementById('gameTeamName')?.value || 'Our Offense')}
+      ${s._renderBigTwelve(stats.offPlays, this.app.gameContext.snapshot().teamName || 'Our Offense')}
       ${s._renderPersonnel(stats)}
       ${s._renderBackfieldStrength(stats)}
       ${s._renderDirectionMotion(stats)}
@@ -597,9 +597,9 @@ export class ReportsScreen {
     }
     root.querySelector('#btnExportSelfScout')?.addEventListener('click', () => {
       const report = stats.generateSelfScout();
-      if (report) stats._exportSelfScout(report, document.getElementById('gameTeamName')?.value || 'Our Offense');
+      if (report) stats._exportSelfScout(report, this.app.gameContext.snapshot().teamName || 'Our Offense');
     });
-    root.querySelector('#btnExportDef')?.addEventListener('click', () => stats._exportDefensiveReport(stats.compute(), document.getElementById('gameTeamName')?.value || 'Our Defense'));
+    root.querySelector('#btnExportDef')?.addEventListener('click', () => stats._exportDefensiveReport(stats.compute(), this.app.gameContext.snapshot().teamName || 'Our Defense'));
   }
 
   _makeFilmControl(element, activate) {

@@ -230,12 +230,9 @@ export class NativeTaggingScreen {
    * our own game.
    */
   _derivePerspective(unit) {
-    const control = document.getElementById('gamePerspective');
-    if (!control || control.value === 'scout') return false;
-    if (control.value === unit) return false;
-    control.value = unit;
-    control.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+    // fromUnit: the service refuses this while scouting, so a unit change can
+    // never silently turn opponent film into one of our own games.
+    return this.app.gameContext?.update({ perspective: unit }, { fromUnit: true }) === true;
   }
 
   copyPrevious() {
@@ -266,19 +263,15 @@ export class NativeTaggingScreen {
   }
 
   setPerspective(value) {
-    const control = document.getElementById('gamePerspective');
-    if (!control) return false;
-    control.value = value;
-    control.dispatchEvent(new Event('change', { bubbles: true }));
+    if (!this.app.gameContext?.update({ perspective: value })) return false;
+    this.app._saveGameInfo?.();
     this._queuePublish();
     return true;
   }
 
   setDirection(value) {
-    const control = document.getElementById('gameDirection');
-    if (!control) return false;
-    control.value = value;
-    control.dispatchEvent(new Event('change', { bubbles: true }));
+    if (!this.app.gameContext?.update({ direction: value })) return false;
+    this.app._saveGameInfo?.();
     this._queuePublish();
     return true;
   }

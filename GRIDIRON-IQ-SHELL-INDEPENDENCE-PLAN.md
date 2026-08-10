@@ -1628,6 +1628,41 @@ Vision context and report labels. Only then delete `_bindGameInfo`, the DOM-sync
 portion of `_loadGameInfo`, synthetic `#gamePerspective` change dispatches and
 `#legacyGameContextState`.
 
+#### S7-d1 RESULT (2026-08-09) — COMPLETE
+
+`js/game-context.js` replaces the hidden-form event bus: `snapshot` / `update` /
+`subscribe` / `notify`, DOM-free, over the existing owners (durable
+`SeasonStore.activeGame().gameInfo`, working `StorageManager.gameInfo`).
+`#legacyGameContextState` and all six inputs are **deleted**; ids inside `#app`
+fall 170 → 163.
+
+Routed off the DOM: `_applyGameInfoDraft`, `_saveGameInfo`, `_loadGameInfo`,
+`_clearGameInfoForm`, `_applyTeamProfile`, `_getTeamContext`, `_bindScoutMode`,
+BreakdownWorkspace, NativeTagging, and **11 report-label reads** across
+StatsEngine, Reports and SeasonManager (now one `_subjectName()` helper).
+Vision provider/model come from storage, not hidden fields.
+
+**The landmine, now proven rather than argued.** `_saveGameInfo()` rebuilt
+gameInfo from those inputs, so `direction` was
+`getElementById('gameDirection')?.value || ''`. Restoring that one read yields
+`{"afterSet":"right","afterSave":"","durable":""}` — set, blanked by the save,
+persisted empty. Silent data loss, not a visible break.
+
+**A real behavior change the harness caught.** Team identity stopped carrying to
+a new game. It had never had an owner: `_deserialize` overwrites `gameInfo` with
+the new game's blank record, and the carry survived only because the hidden
+`#gameTeamName` input kept its value across that overwrite and `_saveGameInfo`
+read it back. Carry-forward now comes from the team profile via
+`_applyTeamProfile()` on load — where it always belonged.
+
+**Proof.** `tools/e2e-game-context.mjs` 16/16, cold-booting the built app with
+the markup already absent. Two mutations, each reddening only its own assertion:
+restoring the `direction` DOM read (above), and removing scout stickiness
+(`stillScout: "defense"` — opponent film silently became one of our games).
+
+**Gate: 83 harnesses | 83 green | 0 failed.** Counts diffed against S7-c: the
+only difference is the new harness at 16. **Zero drops.**
+
 #### S7-d2 — establish a permanent media foundation
 
 Move the one canonical media subtree — videos, drawing canvas, multi-angle

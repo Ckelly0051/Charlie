@@ -345,7 +345,8 @@ if (process.argv.includes('--self-test')) {
       ['tagQbAlignment', 'tagBackfield', 'tagStrength', 'tagCoverage', 'tagBlitz', 'tagPlayType']
         .every(id => blockingIds.has(id))],
     ['unreferenced parents of live children are reported, not hidden',
-      ['legacyGameContextState', 'timelineStrip', 'motionGraph', 'tagPlayersSection']
+      // legacyGameContextState was here until S7-d1 deleted it.
+      ['timelineStrip', 'motionGraph', 'tagPlayersSection']
         .every(id => childBlockedIds.has(id))],
     // Load-bearing only once #app stops being referenced, so it is probed on a
     // synthetic unreferenced root. Without this the case above passes because

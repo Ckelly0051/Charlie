@@ -833,19 +833,6 @@
 
     <!-- Temporary controller state until S5 removes the last global game-context
          lookups. These are not a presentation owner and leave with #app in S7. -->
-    <div id="legacyGameContextState" hidden aria-hidden="true">
-      <input type="text" id="gameTeamName">
-      <select id="gameJerseyColor">
-        <option value=""></option><option value="white">White</option><option value="black">Black</option>
-        <option value="red">Red</option><option value="blue">Blue</option><option value="navy">Navy</option>
-        <option value="green">Green</option><option value="yellow">Yellow</option><option value="orange">Orange</option>
-        <option value="purple">Purple</option><option value="maroon">Maroon</option><option value="gray">Gray</option><option value="teal">Teal</option>
-      </select>
-      <select id="gamePerspective"><option value="offense">Our Offense</option><option value="defense">Our Defense</option><option value="special">Special Teams</option><option value="scout">Scouting film</option></select>
-      <select id="gameDirection"><option value=""></option><option value="right">Left to Right</option><option value="left">Right to Left</option></select>
-      <input type="password" id="gameApiKey" autocomplete="off">
-      <select id="gameAiModel"><option value="claude-opus-4-6">Opus</option><option value="claude-sonnet-4-6">Sonnet</option></select>
-    </div>
 
     <!-- Stats Dashboard (full-screen overlay) -->
     <div class="hidden" id="statsDashboard"></div>

@@ -120,8 +120,7 @@ state=await page.evaluate(async firstId=>{await app.storage.switchToGame(firstId
 // game the derivation does fire — asserted immediately below.
 ok(state.after.perspective==='scout'&&state.after.direction==='right'&&state.after.opponent===state.before.opponent&&state.after.week===state.before.week&&state.after.gameType===state.before.gameType,'Opponent film keeps its perspective when the unit changes, and no other metadata moves',JSON.stringify(state));
 state=await page.evaluate(async()=>{
-  const p=document.getElementById('gamePerspective');
-  p.value='offense';p.dispatchEvent(new Event('change',{bubbles:true}));
+  app.gameContext.update({perspective:'offense'});
   const before={...app.storage.gameInfo};
   document.querySelector('[data-native-context="unit"] button[data-unit="defense"]').click();
   await new Promise(r=>setTimeout(r,0));

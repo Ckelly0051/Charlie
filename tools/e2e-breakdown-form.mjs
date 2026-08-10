@@ -115,9 +115,7 @@ state = await page.evaluate(() => {
 ok(state.primaryBodyVisible && state.secondaryStartedCollapsed && state.secondaryOpened, 'Primary form stays open while the faced group remains intentionally collapsible', JSON.stringify(state));
 
 await page.evaluate(() => {
-  const perspective = document.querySelector('#gamePerspective');
-  perspective.value = 'scout';
-  perspective.dispatchEvent(new Event('change', { bubbles: true }));
+  window.app.gameContext.update({ perspective: 'scout' });
 });
 await page.waitForFunction(() => /^Opponent Defensive Call/.test(document.querySelector('.group-defense .tag-group-head')?.textContent || ''));
 state = await page.evaluate(() => ({

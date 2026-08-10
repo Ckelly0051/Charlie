@@ -11,7 +11,7 @@ export class BreakdownWorkspace {
     this.unitControl = document.querySelector('#tagForm .unit-toggle-section');
     this.unitParent = this.unitControl?.parentNode || null;
     this.unitNext = this.unitControl?.nextSibling || null;
-    this.perspective = document.getElementById('gamePerspective');
+    // S7-d1: game context comes from the service, not a hidden <select>.
 
     this.host = null;
     this.saveState = 'saved';
@@ -84,7 +84,7 @@ export class BreakdownWorkspace {
       ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded']
         .forEach(event => this.app.tagger?.on(event, () => requestAnimationFrame(() => this.render())));
       this.app.quickChart?.on('mode-changed', () => requestAnimationFrame(() => this.render()));
-      this.perspective?.addEventListener('change', () => this.render());
+      this.app.gameContext?.subscribe(() => this.render());
       this.unitControl?.addEventListener('click', () => requestAnimationFrame(() => this.render()));
     }
     this.host?.querySelector('[data-bd-tools-toggle]')?.addEventListener('click', () => this._toggleTools());
@@ -191,7 +191,7 @@ export class BreakdownWorkspace {
   }
 
   _isScoutFilm() {
-    return this.perspective?.value === 'scout';
+    return this.app.gameContext?.isScout() === true;
   }
 
   _openFilmContextSettings() {

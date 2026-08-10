@@ -57,6 +57,7 @@ import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
 import { TeamRegistry } from './team-registry.js';
+import { GameContext } from './game-context.js';
 import { PlayGrid } from './play-grid.js';
 import { configureBetaDefaults } from './beta-config.js';
 // LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
@@ -139,6 +140,14 @@ class App {
     // S7-c: the team/season identity layer. SeasonLibrary's overlay is dead but
     // twelve of its private members were still the registry, so the data moved
     // here first and the overlay becomes the by-product.
+    // S7-d1: the per-game charting context. Perspective, direction and team
+    // identity used to travel through hidden inputs in #legacyGameContextState
+    // and a synthetic `change` event on #gamePerspective — an event bus made of
+    // markup that S7-d8 deletes. This is that bus, DOM-free.
+    this.gameContext = new GameContext({
+      storage: this.storage,
+      applyDraft: patch => this._applyGameInfoDraft(patch),
+    });
     this.teamRegistry = new TeamRegistry({
       app: () => this,
       // Team identity propagates into the active game's canonical metadata
@@ -629,13 +638,10 @@ class App {
       projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
       homeAway: '', gameType: 'game', direction: '', perspective: 'offense',
     };
-    const perspectiveEl = document.getElementById('gamePerspective');
-    const directionEl = document.getElementById('gameDirection');
-    const wasLoading = this._loadingGameInfo;
-    this._loadingGameInfo = true;
-    if (perspectiveEl) { perspectiveEl.value = 'offense'; perspectiveEl.dispatchEvent(new Event('change')); }
-    if (directionEl) directionEl.value = '';
-    this._loadingGameInfo = wasLoading;
+    // S7-d1: a new game resets to the offense default and republishes. force,
+    // because the outgoing game may already have been 'offense' while every
+    // subscriber still needs to re-render for the new game.
+    this.gameContext?.notify({ force: true });
     this._trackedScore = null;
     this._renderGameSummary();
   }
@@ -1291,11 +1297,8 @@ class App {
    * panel. Set once per session/game — applies to every play analyzed.
    */
   _getTeamContext() {
-    return {
-      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
-      perspective: document.getElementById('gamePerspective')?.value || 'offense',
-      direction: document.getElementById('gameDirection')?.value || '',
-    };
+    const { jerseyColor, perspective, direction } = this.gameContext.snapshot();
+    return { jerseyColor, perspective, direction };
   }
 
   /**
@@ -1553,31 +1556,13 @@ class App {
     document.getElementById('btnEditGame')?.addEventListener('click', event => {
       this.gameScreen.open({ mode: 'edit', returnFocus: event.currentTarget });
     });
-    const fields = ['gameTeamName', 'gameJerseyColor', 'gamePerspective', 'gameDirection'];
-    fields.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('change', () => this._saveGameInfo());
-        el.addEventListener('input', () => this._saveGameInfo());
-      }
-    });
-    const apiKeyEl = document.getElementById('gameApiKey');
-    if (apiKeyEl) {
-      const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
-      if (savedKey) apiKeyEl.value = savedKey;
-      apiKeyEl.addEventListener('change', () => this._saveApiKey());
-      apiKeyEl.addEventListener('blur', () => this._saveApiKey());
-    }
-    const modelEl = document.getElementById('gameAiModel');
-    if (modelEl) {
-      const savedModel = localStorage.getItem('ffa_claude_model') || '';
-      if (savedModel) modelEl.value = savedModel;
-      this.vision.model = modelEl.value;
-      modelEl.addEventListener('change', () => {
-        this.vision.model = modelEl.value;
-        localStorage.setItem('ffa_claude_model', modelEl.value);
-      });
-    }
+    // S7-d1: the hidden context inputs are gone. GameContext is the bus, and
+    // native Settings owns the analysis provider/model, so nothing here binds
+    // to legacy form DOM. Vision is seeded straight from storage.
+    const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
+    if (savedKey) this.vision.apiKey = savedKey;
+    const savedModel = localStorage.getItem('ffa_claude_model') || '';
+    if (savedModel) this.vision.model = savedModel;
 
     // Live "tracked" score: recompute from scoring plays whenever they change,
     // and let the coach copy it into the Final Score with one click.
@@ -1604,7 +1589,7 @@ class App {
 
   _saveApiKey(value) {
     const apiKey = value === undefined
-      ? document.getElementById('gameApiKey')?.value || ''
+      ? localStorage.getItem('ffa_claude_api_key') || ''
       : String(value || '').trim();
     localStorage.setItem('ffa_claude_api_key', apiKey);
     this.vision.apiKey = apiKey;
@@ -1637,32 +1622,21 @@ class App {
       : '';
     this.storage.gameInfo = {
       ...current, ...draft, projectName, week, opponent,
-      // S7-c: an explicit draft value wins over the hidden legacy input, which
-      // is the pattern `direction` already used. Before this, these two keys
-      // were listed AFTER the draft spread and read only from #gameTeamName /
-      // #gameJerseyColor, so `_applyGameInfoDraft({teamName})` silently did
-      // nothing and team identity could only be written by poking hidden DOM
-      // inside #app — markup S7-d deletes.
-      teamName: draft.teamName ?? document.getElementById('gameTeamName')?.value ?? current.teamName ?? '',
-      jerseyColor: draft.jerseyColor ?? document.getElementById('gameJerseyColor')?.value ?? current.jerseyColor ?? '',
-      direction: draft.direction ?? document.getElementById('gameDirection')?.value ?? current.direction ?? '',
+      // S7-d1: the draft and the stored value are the only sources. The hidden
+      // #gameTeamName / #gameJerseyColor / #gameDirection reads are gone —
+      // `direction` in particular used to fall back to an input that S7-d8
+      // deletes, which would have written '' over the coach's stored value.
+      teamName: draft.teamName ?? current.teamName ?? '',
+      jerseyColor: draft.jerseyColor ?? current.jerseyColor ?? '',
+      direction: draft.direction ?? current.direction ?? '',
       perspective: draft.perspective || current.perspective || 'offense',
       gameType: draft.gameType || current.gameType || 'game',
     };
 
-    // Keep the still-live Break Down context control in sync until S5 moves
-    // that owner. Dispatch under the load guard so its context listeners run
-    // without recursively saving the game.
-    const perspectiveEl = document.getElementById('gamePerspective');
-    const wasLoading = this._loadingGameInfo;
-    this._loadingGameInfo = true;
-    if (perspectiveEl) {
-      perspectiveEl.value = this.storage.gameInfo.perspective;
-      if (this.storage.gameInfo.perspective !== priorPerspective) {
-        perspectiveEl.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-    this._loadingGameInfo = wasLoading;
+    // S7-d1: publish through the service instead of dispatching a synthetic
+    // `change` on a hidden <select>. notify() no-ops when nothing moved, so a
+    // reload does not churn every subscriber.
+    if (this.storage.gameInfo.perspective !== priorPerspective) this.gameContext?.notify();
     this._renderGameSummary();
     this._checkFinishHint();
     return this.storage.gameInfo;
@@ -1674,18 +1648,14 @@ class App {
     this.storage._autoSave();
   }
 
+  /**
+   * Commit the current game context. S7-d1: this used to re-read four hidden
+   * inputs and write them back, which is how `direction` would have been
+   * blanked once they were deleted. gameInfo is already authoritative, so this
+   * only persists and mirrors team identity forward.
+   */
   _saveGameInfo() {
-    // The remaining legacy settings fields are team/profile context only. Game
-    // identity, date, opponent and score are owned by GameScreen.
     if (this._loadingGameInfo) return;
-    const current = this.storage.gameInfo || {};
-    this._applyGameInfoDraft({
-      ...current,
-      teamName: document.getElementById('gameTeamName')?.value || '',
-      jerseyColor: document.getElementById('gameJerseyColor')?.value || '',
-      perspective: document.getElementById('gamePerspective')?.value || current.perspective || 'offense',
-      direction: document.getElementById('gameDirection')?.value || '',
-    });
     this.storage._autoSave();
     this._saveTeamProfile();
   }
@@ -1717,45 +1687,34 @@ class App {
   _applyTeamProfile() {
     let profile = {};
     try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return; }
-    const nameEl = document.getElementById('gameTeamName');
-    const colorEl = document.getElementById('gameJerseyColor');
-    let applied = false;
-    if (nameEl && !nameEl.value && profile.teamName) { nameEl.value = profile.teamName; applied = true; }
-    if (colorEl && !colorEl.value && profile.jerseyColor) { colorEl.value = profile.jerseyColor; applied = true; }
-    // Mirror into storage.gameInfo so stats/scoreboard/exports pick up the
-    // carried-forward team name without waiting for a manual field edit.
-    if (applied) this._saveGameInfo();
+    // S7-d1: carry identity forward through the context service. Only fills a
+    // BLANK field, so a game that carries its own identity is never overwritten.
+    const current = this.gameContext.snapshot();
+    const patch = {};
+    if (!current.teamName && profile.teamName) patch.teamName = profile.teamName;
+    if (!current.jerseyColor && profile.jerseyColor) patch.jerseyColor = profile.jerseyColor;
+    if (Object.keys(patch).length && this.gameContext.update(patch)) this._saveGameInfo();
   }
 
   _loadGameInfo(info) {
     if (!info) return;
     this._loadingGameInfo = true;
-    const nameEl = document.getElementById('gameTeamName');
-    const colorEl = document.getElementById('gameJerseyColor');
-    const perspectiveEl = document.getElementById('gamePerspective');
-    const directionEl = document.getElementById('gameDirection');
-    // Team identity carries across games when an older game omitted it. The
-    // game-owned fields are rendered by the native form and have no hidden DOM
-    // mirror to become stale.
-    if (nameEl && info.teamName) nameEl.value = info.teamName;
-    if (colorEl && info.jerseyColor) colorEl.value = info.jerseyColor;
-    if (perspectiveEl) perspectiveEl.value = info.perspective || 'offense';
-    if (directionEl) directionEl.value = info.direction || '';
     this._renderGameSummary(info);
-    if (perspectiveEl) perspectiveEl.dispatchEvent(new Event('change'));
+    // S7-d1: opening a game republishes the context. force, because the
+    // incoming game may share the outgoing game's perspective while every
+    // subscriber still has to re-render for the new game.
+    this.gameContext?.notify({ force: true });
     const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
-    if (savedKey) {
-      const keyEl = document.getElementById('gameApiKey');
-      if (keyEl) keyEl.value = savedKey;
-      this.vision.apiKey = savedKey;
-    }
+    if (savedKey) this.vision.apiKey = savedKey;
     const savedModel = localStorage.getItem('ffa_claude_model') || '';
-    if (savedModel) {
-      const modelEl = document.getElementById('gameAiModel');
-      if (modelEl) modelEl.value = savedModel;
-      this.vision.model = savedModel;
-    }
+    if (savedModel) this.vision.model = savedModel;
     this._loadingGameInfo = false;
+    // S7-d1: a game with no stored identity inherits the team profile. This
+    // used to happen by accident — the hidden #gameTeamName input kept the
+    // previous game's value across _deserialize's gameInfo overwrite, and
+    // _saveGameInfo read it back out of the DOM. With the input gone the carry
+    // has a real owner: the team profile, which is where it always belonged.
+    this._applyTeamProfile();
   }
   _bindShortcuts() {
     const btn = document.getElementById('btnShortcuts');
@@ -1767,28 +1726,27 @@ class App {
     btn?.addEventListener('click', () => this.toggleShortcuts());
   }
 
+  /**
+   * Scout mode follows the game context. S7-d1: this was a `change` listener on
+   * the hidden #gamePerspective <select>; it is now a GameContext subscriber,
+   * so the sticky charting unit survives deleting that markup.
+   */
   _bindScoutMode() {
-    const perspectiveEl = document.getElementById('gamePerspective');
-    const scoutSection = document.getElementById('scoutSection');
-    const btnScoutReport = document.getElementById('btnScoutReport');
-    if (!perspectiveEl) return;
     const unitFromPerspective = (p) => {
       if (p === 'defense') return 'defense';
       if (p === 'special') return 'special';
       return 'offense'; // offense or scout (charts both, default offense layout)
     };
-    const tagForm = document.getElementById('tagForm');
-    const toggleScoutUI = () => {
-      const isScout = perspectiveEl.value === 'scout';
-      if (scoutSection) scoutSection.classList.toggle('hidden', !isScout);
-      if (tagForm) tagForm.classList.toggle('is-scout', isScout);
-      this.tagger.defaultUnit = unitFromPerspective(perspectiveEl.value);
+    const apply = ({ perspective }) => {
+      const isScout = perspective === 'scout';
+      document.getElementById('scoutSection')?.classList.toggle('hidden', !isScout);
+      document.getElementById('tagForm')?.classList.toggle('is-scout', isScout);
+      this.tagger.defaultUnit = unitFromPerspective(perspective);
     };
-    perspectiveEl.addEventListener('change', toggleScoutUI);
-    toggleScoutUI();
-    if (btnScoutReport) {
-      btnScoutReport.addEventListener('click', () => this.stats.renderScoutReport());
-    }
+    this.gameContext.subscribe(apply);
+    apply(this.gameContext.snapshot());
+    document.getElementById('btnScoutReport')
+      ?.addEventListener('click', () => this.stats.renderScoutReport());
   }
 
   _bindTagNav() {

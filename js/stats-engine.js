@@ -2109,7 +2109,7 @@ export class StatsEngine {
               ${this._renderOffenseHero(stats)}
               ${this._renderPlayAction(stats)}
               ${this._renderTendencies(stats)}
-              ${this._renderBigTwelve(stats.offPlays, document.getElementById('gameTeamName')?.value || 'Our Offense')}
+              ${this._renderBigTwelve(stats.offPlays, this._subjectName('Our Offense'))}
               ${this._renderPersonnel(stats)}
               ${this._renderBackfieldStrength(stats)}
               ${this._renderDirectionMotion(stats)}
@@ -2185,12 +2185,12 @@ export class StatsEngine {
     // Self-scout export
     el.querySelector('#btnExportSelfScout')?.addEventListener('click', () => {
       const report = this.generateSelfScout();
-      if (report) this._exportSelfScout(report, document.getElementById('gameTeamName')?.value || 'Our Offense');
+      if (report) this._exportSelfScout(report, this._subjectName('Our Offense'));
     });
 
     // Defensive report export
     el.querySelector('#btnExportDef')?.addEventListener('click', () => {
-      const team = document.getElementById('gameTeamName')?.value || 'Our Defense';
+      const team = this._subjectName('Our Defense');
       this._exportDefensiveReport(stats, team);
     });
 
@@ -2393,6 +2393,15 @@ export class StatsEngine {
     return { calls, total, unique: calls.length, to75: callsTo(75), to90: callsTo(90) };
   }
 
+  /**
+   * The subject team's name for report labels. S7-d1: these all read
+   * #gameTeamName, a hidden input inside #app. gameInfo is the canonical owner
+   * and GameContext is the seam over it, so the labels survive its deletion.
+   */
+  _subjectName(fallback = '') {
+    return window.app?.gameContext?.snapshot?.().teamName || fallback;
+  }
+
   _renderBigTwelve(plays, label, opts = {}) {
     const d = this._bigTwelveData(plays);
     if (d.total < 8) return '';   // too few snaps to call it a tendency
@@ -2541,7 +2550,7 @@ export class StatsEngine {
     // is no #gameProjectName input.
     const gi = window.app?.storage?.gameInfo || {};
     const name = esc(gi.projectName || '');
-    const t = esc(gi.teamName || document.getElementById('gameTeamName')?.value || '');
+    const t = esc(gi.teamName || this._subjectName(''));
     const o = esc(gi.opponent || '');
     const u = gi.scoreUs;
     const th = gi.scoreThem;
@@ -2693,7 +2702,7 @@ export class StatsEngine {
   _renderScoreboard(stats) {
     const sb = stats.scoreboard;
     if (!sb || !sb.hasData) return '';
-    const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Us');
+    const team = Charts._esc(this._subjectName('Us'));
     const opp = Charts._esc(window.app?.storage?.gameInfo?.opponent || 'Opponent');
     const winColor = '#22c55e', loseColor = '#ef4444', tieColor = 'var(--text)';
     const usColor = sb.us > sb.them ? winColor : sb.us < sb.them ? loseColor : tieColor;
@@ -5703,7 +5712,7 @@ ${notes ? `<h3>Notes</h3><p style="white-space:pre-wrap">${Charts._esc(notes)}</
   renderSelfScout() {
     const report = this.generateSelfScout();
     if (!report) { this._emptyOverlay('Self-Scout', 'No run/pass-tagged offensive plays yet. Tag your offense’s Run/Pass (and Play Type) on a few snaps, then re-open Self-Scout to see your tendencies and the tells you’re giving away.'); return; }
-    const team = Charts._esc(document.getElementById('gameTeamName')?.value || 'Our Offense');
+    const team = Charts._esc(this._subjectName('Our Offense'));
     const mc = StatsEngine._meterColor(report.predictability);
     const exploitable = report.tells.filter(t => t.verdict === 'exploitable').length;
     const dominant = report.tells.filter(t => t.verdict === 'dominant').length;
@@ -5852,7 +5861,7 @@ ${ddRows ? `<h4 style="margin-top:16px;font-size:12px;color:#666">Scheme by Situ
   // ================================================================
   renderDefensiveReport() {
     const stats = this.compute();
-    const team = document.getElementById('gameTeamName')?.value || 'Our Defense';
+    const team = this._subjectName('Our Defense');
     const hasData = stats.defensive.hasData;
     const body = hasData ? this._renderDefensive(stats) : `
       <div class="stats-section def-empty">

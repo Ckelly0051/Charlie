@@ -81,6 +81,70 @@ the tree-aware ledger repair separately before the first S7-d production
 checkpoint. No schema, season/play data, analytics formula, film path/file,
 package, tag or release changes are authorized by this consultation.
 
+### S7-d0 + S7-d1 COMPLETE — tree-aware ledger, then GameContext (2026-08-09)
+
+**S7-d0 (`f7aef72`) rebuilt the dependency ledger, and it had to be rebuilt
+because it was wrong twice — both times in the direction that deletes working
+code.** It matched only literal `getElementById` / selector strings, so
+`play-tagger.js:133`'s `fieldMap` of **bare** id strings resolved in a loop made
+all 22 tag-form chip groups — the whole E1-E4 tag model — read as "no JS
+reference" and therefore removable. After that repair its three remaining
+"removable" ids were all **unreferenced parents of live children**. A tool built
+to prevent deletion-by-surface-count had the same hole it exists to catch.
+
+It now uses a real DOMParser plus a booted-app snapshot, and propagates
+removability **both** directions — up (a parent is held open by a live
+descendant) and down (a child of a live element belongs to it). Result: **612
+authored elements, 163 ids, 0 removable subtree roots.** Zero is the honest
+answer while `#app` is itself referenced. The output is the worklist instead,
+grouped by owning module, plus 18 runtime-only ids and the
+`getElementById(<variable>)` resolvers no static inventory can enumerate.
+
+Its `--self-test` is mutation-proven three ways. **The valuable failure was
+mine: my first "unreferenced parents" case passed under mutation**, because
+downward propagation already blocks everything while `#app` is referenced — the
+assertion could not fail for its stated reason. Upward propagation only matters
+at S7-d8, so it is now probed on a synthetic detached tree where it is decisive.
+
+**S7-d1 replaces the hidden-form event bus with `js/game-context.js`.**
+`snapshot` / `update` / `subscribe` / `notify`, DOM-free, over the existing
+owners. `#legacyGameContextState` and its six inputs are **deleted**; ids inside
+`#app` fall 170 → 163. Routed off the DOM: the whole game-info path,
+`_bindScoutMode`, BreakdownWorkspace, NativeTagging, and **11 report-label
+reads** now behind one `_subjectName()` helper.
+
+#### The landmine, proven rather than argued
+
+`_saveGameInfo()` rebuilt gameInfo from those inputs, so `direction` was
+`getElementById('gameDirection')?.value || ''`. Restoring that single read gives
+`{"afterSet":"right","afterSave":"","durable":""}` — **set, blanked by the save,
+persisted empty.** Silent data loss on a coach-entered field, not a visible
+break.
+
+#### A real behavior change the harness caught
+
+Team identity stopped carrying to a new game. It turns out it never had an
+owner: `_deserialize` overwrites `gameInfo` with the new game's blank record,
+and the carry survived only because the hidden `#gameTeamName` input kept its
+value across that overwrite and `_saveGameInfo` read it back out of the DOM.
+DOM-as-state. Carry-forward now comes from the team profile on load.
+
+#### Proof
+
+`tools/e2e-game-context.mjs` — **16/16**, cold-booting the built app with the
+markup already absent, which is the only proof the consultation accepts. Two
+mutations, each reddening exactly its own assertion: the `direction` read above,
+and removing scout stickiness (`stillScout: "defense"` — opponent film silently
+becoming one of our own games).
+
+**Gate: 83 harnesses | 83 green | 0 failed.** Counts diffed against S7-c: the
+only difference is the new harness at 16. **Zero drops.** Five harnesses that
+drove the deleted inputs were re-pointed at the service, not deleted.
+
+**Scope:** no schema, migration, season byte, analytics formula, film cohort,
+composite ref, storage path, film file, version owner, package, tag or release
+changed. Next is S7-d2, the permanent media foundation.
+
 ### S7-c COMPLETE — TeamRegistry extracted, the legacy overlay deleted (2026-08-09)
 
 **`js/team-registry.js` is the deliverable; the deletion is the by-product** —

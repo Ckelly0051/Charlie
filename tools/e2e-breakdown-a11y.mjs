@@ -43,7 +43,7 @@ state = await page.evaluate(() => {
   const focused = document.activeElement;
   return {
     scout: document.getElementById('tagForm').classList.contains('is-scout'),
-    perspective: document.getElementById('gamePerspective').value,
+    perspective: window.app.gameContext.snapshot().perspective,
     modal: !!document.querySelector('[data-overlay-id="game-details"]'),
     focused: focused?.name,
     focusRing: getComputedStyle(focused).boxShadow,

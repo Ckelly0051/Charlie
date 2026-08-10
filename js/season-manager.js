@@ -121,8 +121,9 @@ export class SeasonManager {
     //     _renderBigTwelve only draws it under { cut: true }.
     const s = this.statsEngine;
     const defScout = s.generateDefensiveSelfScout(allPlays);
-    const teamName = (window.app?.storage?.gameInfo?.teamName)
-      || document.getElementById('gameTeamName')?.value || 'Our Offense';
+    // S7-d1: gameInfo was already preferred here; the #gameTeamName fallback
+    // was dead weight pointing at markup S7-d8 deletes.
+    const teamName = window.app?.gameContext?.snapshot?.().teamName || 'Our Offense';
 
     const html = `
       ${this._renderHeader(stats)}

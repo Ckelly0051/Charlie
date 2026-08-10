@@ -66,7 +66,7 @@ r = await page.evaluate(async firstId => {
   return { calls: window.__nativeGamePersistCalls, games: store.data.games.length,
     activeId: active.id, firstIntact: JSON.stringify(store.data.games.find(g => g.id === firstId).plays),
     info: active.gameInfo, durableInfo: durable.games.find(g => g.id === active.id)?.gameInfo,
-    perspective: document.getElementById('gamePerspective')?.value, defaultUnit: window.app.tagger.defaultUnit,
+    perspective: window.app.gameContext.snapshot().perspective, defaultUnit: window.app.tagger.defaultUnit,
     dialogClosed: !document.querySelector('[data-overlay-id="game-details"]') && !window.app.gameScreen.handle,
     headerButton: document.getElementById('btnEditGame')?.tagName === 'BUTTON',
     headerSummary: document.getElementById('gameHeaderSummary')?.textContent || '',
