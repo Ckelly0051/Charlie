@@ -633,12 +633,20 @@ ok(r.outletWhileReportsOpen && r.outletAfterReportsClose,
 ok(r.breadcrumbGone,
   'The legacy breadcrumb + game dropdown are DELETED, not merely hidden', JSON.stringify(r));
 // disable() remains as the INTERNAL mount/restore teardown contract (tested
-// lifecycle hygiene — proves the shell returns #app intact). It is not reachable
-// from any product affordance.
+// lifecycle hygiene). It is not reachable from any product affordance.
+//
+// S7-d2: the media subtree no longer returns to #app, because it now has a
+// PERMANENT home outside it. The guarantee is unchanged — teardown parks every
+// adopted surface with exactly one owner, so re-enable cannot leak into a
+// detached tree — so it is asserted against the permanent host instead of
+// being dropped.
 r = await page.evaluate(() => {
   window.app.workspaceShell.disable();
+  const media = document.querySelector('#giMediaHost > .video-section');
   return {
-    restored: document.querySelector('#app .main-content > .video-section') != null
+    restored: media != null
+      && !media.closest('#app')
+      && document.querySelectorAll('.video-section').length === 1
       && document.querySelector('#app .main-content > #playGridSection') != null
       && document.querySelector('#app .main-content > .tag-section') != null,
     // Every adopted control must go home, not just the two the shell started
@@ -650,7 +658,7 @@ r = await page.evaluate(() => {
       && !document.getElementById('drawerScrim'),
   };
 });
-ok(r.restored && r.chromeRestored, 'disable() (internal teardown) restores canonical surfaces and every adopted chrome control', JSON.stringify(r));
+ok(r.restored && r.chromeRestored, 'disable() (internal teardown) parks media in its permanent host and restores every adopted chrome control', JSON.stringify(r));
 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => { localStorage.setItem('ffa_workspace_shell_v2', '1'); window.app.workspaceShell.enable(); });

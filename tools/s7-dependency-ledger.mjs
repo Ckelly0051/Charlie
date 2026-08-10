@@ -344,10 +344,14 @@ if (process.argv.includes('--self-test')) {
     ['bare ids resolved through a map are seen as referenced (play-tagger fieldMap)',
       ['tagQbAlignment', 'tagBackfield', 'tagStrength', 'tagCoverage', 'tagBlitz', 'tagPlayType']
         .every(id => blockingIds.has(id))],
+    // Fixture-independent: naming specific ids went stale twice as S7-d moved
+    // markup (legacyGameContextState at d1, timelineStrip at d2). What matters
+    // is that the report SURFACES unreferenced parents holding live children —
+    // the class that stopped S7-d — not which ones exist this week.
     ['unreferenced parents of live children are reported, not hidden',
-      // legacyGameContextState was here until S7-d1 deleted it.
-      ['timelineStrip', 'motionGraph', 'tagPlayersSection']
-        .every(id => childBlockedIds.has(id))],
+      report.childBlocked.length > 0
+      && report.childBlocked.some(n => n.descendants > 0)
+      && report.childBlocked.every(n => !n.reasons?.length)],
     // Load-bearing only once #app stops being referenced, so it is probed on a
     // synthetic unreferenced root. Without this the case above passes because
     // DOWNWARD propagation already blocks everything — the wrong reason.

@@ -26,6 +26,11 @@ export class VideoController {
     this.btnLoopB = document.getElementById('btnLoopB');
 
     this.fps = 30;
+    // S7-d2: the loaded film's display name lives here, not in #fileLabel.
+    // _handleMediaError used to read the name back out of that label's
+    // textContent — the top-bar label was acting as state, and it is markup
+    // S7-d8 deletes. The label is now an optional MIRROR of this field.
+    this.currentFileName = '';
     this.objectUrl = null;
     this.isScrubbing = false;
     this._wasPlayingBeforeScrub = false;
@@ -214,7 +219,7 @@ export class VideoController {
     this.video.removeAttribute('crossorigin');
     this.video.src = this.objectUrl;
     this.video.load();
-    this.fileLabel.textContent = file.name;
+    this._setFilmStatus(file.name);
     this.placeholder.classList.add('hidden');
     this._emit('file-loaded', { name: file.name });
   }
@@ -228,7 +233,7 @@ export class VideoController {
     this._loadUrlName = displayName || 'Film';
     this.setSrc(url);
     this.placeholder.classList.add('hidden');
-    this.fileLabel.textContent = this._loadUrlName;
+    this._setFilmStatus(this._loadUrlName);
     this._emit('file-loaded', { name: this._loadUrlName });
   }
 
@@ -270,9 +275,10 @@ export class VideoController {
     // Not retryable, or the retry itself just failed: not a CORS problem. Clear
     // the pending mark so a later unrelated success can't falsely latch.
     this._corsRetryPending = null;
-    const name = this.currentFile?.name || this.fileLabel?.textContent || 'this file';
+    const name = this.currentFile?.name || this.currentFileName || 'this file';
     this.placeholder.classList.remove('hidden');
-    this.fileLabel.textContent = `⚠ Couldn't play ${name} — try MP4, MOV, or WebM`;
+    // remember:false — an error message is not the film's name.
+    this._setFilmStatus(`⚠ Couldn't play ${name} — try MP4, MOV, or WebM`, { remember: false });
     if (src && (src.includes('asset.localhost') || src.startsWith('asset:'))) {
       const detail = `Video load failed (asset protocol) | Error code: ${code} | Message: ${msg} | URL: ${src.slice(0, 300)}`;
       console.warn('ASSET-DIAG:', detail);
@@ -304,7 +310,7 @@ export class VideoController {
     this.video.removeAttribute('crossorigin');
     try { this.video.load(); } catch {}
     if (this.placeholder) this.placeholder.classList.remove('hidden');
-    if (this.fileLabel) this.fileLabel.textContent = 'Drop video(s) / folder or click to load';
+    this._setFilmStatus('Drop video(s) / folder or click to load');
     if (this.folderLoadBadge) this.folderLoadBadge.classList.add('hidden');
     this._setScrubPosition(0);
     this._updatePlayPauseIcon(false);
@@ -318,6 +324,16 @@ export class VideoController {
    * cannot diverge in what they accept. A missing element is a no-op: S7-d
    * deletes the label, and a drop target is a convenience, not the film path.
    */
+  /**
+   * Set the film-name status text. The top-bar label is optional: it is
+   * entombed inside the hidden legacy shell today and deleted at S7-d8, so its
+   * absence must not throw on the film-loading path.
+   */
+  _setFilmStatus(text, { remember = true } = {}) {
+    if (remember) this.currentFileName = text;
+    if (this.fileLabel) this.fileLabel.textContent = text;
+  }
+
   _bindDropTarget(el) {
     if (!el) return;
     el.addEventListener('dragover', (e) => {

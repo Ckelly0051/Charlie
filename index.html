@@ -32,6 +32,124 @@
        losing them would take film loading with the legacy markup. -->
   <input type="file" id="videoFileInput" accept="video/*" multiple hidden>
   <input type="file" id="videoFolderInput" webkitdirectory directory multiple hidden>
+  <!-- S7-d2: the permanent media foundation. The one canonical media
+       subtree — video, drawing canvas, multi-angle wrappers, transport,
+       scrub/timeline and the play-control bar — lives here, OUTSIDE #app,
+       so S7-d8 cannot take film with the legacy shell. BreakdownTheater
+       adopts it into the route and parks it back here; this host is that
+       permanent home, not an ephemeral route container. -->
+  <div id="giMediaHost" class="gi-media-host" hidden>
+  <div class="video-section">
+          <div class="video-container" id="videoContainer">
+            <span class="brand-bug" aria-hidden="true">GridIron <b>IQ</b></span>
+            <div class="angle-wrapper" id="angleWrapper1">
+              <video id="videoPlayer" preload="auto" playsinline></video>
+              <canvas id="drawingCanvas"></canvas>
+              <span class="angle-badge" id="angleLabel1">Angle 1</span>
+            </div>
+            <div class="angle-wrapper angle-wrapper-2" id="angleWrapper2">
+              <video id="videoPlayer2" preload="auto" playsinline></video>
+              <span class="angle-badge" id="angleLabel2">Angle 2</span>
+            </div>
+            <div class="video-placeholder" id="videoPlaceholder">
+              <svg class="icon icon-large"><use href="assets/icons.svg#icon-film"/></svg>
+              <p>Load a video file to begin</p>
+            </div>
+          </div>
+
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <div class="controls-left">
+              <button class="ctrl-btn" id="btnPrevClip" title="Previous Clip (Shift+Left)">
+                <svg class="icon"><use href="assets/icons.svg#icon-prev-clip"/></svg>
+              </button>
+              <button class="ctrl-btn" id="btnStepBack" title="Step Back (Left Arrow)">
+                <svg class="icon"><use href="assets/icons.svg#icon-step-back"/></svg>
+              </button>
+              <button class="ctrl-btn" id="btnPlayPause" title="Play/Pause (Space)">
+                <svg class="icon" id="iconPlayPause"><use href="assets/icons.svg#icon-play"/></svg>
+              </button>
+              <button class="ctrl-btn" id="btnStepForward" title="Step Forward (Right Arrow)">
+                <svg class="icon"><use href="assets/icons.svg#icon-step-forward"/></svg>
+              </button>
+              <button class="ctrl-btn" id="btnNextClip" title="Next Clip (Shift+Right)">
+                <svg class="icon"><use href="assets/icons.svg#icon-next-clip"/></svg>
+              </button>
+              <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+              <span class="clip-indicator" id="clipIndicator"></span>
+            </div>
+            <div class="transport-center">
+              <div class="scrub-bar-container">
+                <div class="scrub-bar" id="scrubBar">
+                  <div class="scrub-bar-fill" id="scrubBarFill"></div>
+                  <div class="scrub-bar-plays" id="scrubBarPlays"></div>
+                  <div class="scrub-bar-handle" id="scrubBarHandle"></div>
+                </div>
+              </div>
+              <!-- Timeline folds into the transport line's center (no dedicated row) -->
+              <div class="video-timeline">
+                <div class="timeline-strip" id="timelineStrip">
+                  <div class="timeline-bar" id="timelineBar"></div>
+                </div>
+              </div>
+            </div>
+            <div class="controls-right">
+              <button class="ctrl-btn" id="btnLoop" title="Loop the current play (toggle)">
+                <svg class="icon"><use href="assets/icons.svg#icon-loop"/></svg>
+              </button>
+              <button class="ctrl-btn ab-btn" id="btnLoopA" title="Set A — loop start">A</button>
+              <button class="ctrl-btn ab-btn" id="btnLoopB" title="Set B — loop end">B</button>
+              <select id="speedSelect" class="speed-select" title="Playback Speed">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+              </select>
+              <label class="fps-label" title="Video frame rate">
+                FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
+              </label>
+              <button class="ctrl-btn" id="btnExpandVideo" title="Expand the video to full screen (Esc to exit)">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Multi-angle controls -->
+          <div class="angle-controls" id="angleControls">
+            <input type="file" id="angle2FileInput" accept="video/*" hidden>
+            <span class="angle2-info hidden" id="angle2Info">
+              <span class="angle2-name" id="angle2Name"></span>
+              <select id="angleViewMode" class="speed-select" title="View layout">
+                <option value="single">Toggle</option>
+                <option value="sideBySide">Side by Side</option>
+                <option value="pip">Picture-in-Picture</option>
+              </select>
+              <button class="ctrl-btn" id="btnSwapAngle" title="Swap active angle (V)">⇄</button>
+              <label class="angle-sync-label" title="Time offset for angle 2 (seconds)">
+                Sync: <input type="number" id="angleSyncOffset" value="0" step="0.1" class="fps-input" style="width:52px">s
+              </label>
+              <button class="ctrl-btn angle-remove-btn" id="btnRemoveAngle" title="Remove second angle">✕</button>
+            </span>
+          </div>
+
+          <!-- Play marking + selector (moved under the video to use the dead space) -->
+          <div class="video-play-controls">
+            <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
+            <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
+            <button class="btn btn-sm" id="btnClearTags" title="Reset this play's tags (keeps the play and video)">Clear Tags</button>
+            <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
+            <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
+            <label class="autoplay-next-toggle" title="When moving to another play, start its film automatically">
+              <input type="checkbox" id="autoplayNextToggle" checked>
+              <span>Autoplay next</span>
+            </label>
+            <select id="playSelect" class="play-select" title="Current play">
+              <option value="">No plays yet</option>
+            </select>
+          </div>
+        </div>
+  </div>
   <div id="app">
     <!-- Top Bar -->
     <header class="top-bar">
@@ -96,117 +214,7 @@
 
     <!-- Main Content -->
     <div class="main-content">
-      <!-- Video Area -->
-      <div class="video-section">
-        <div class="video-container" id="videoContainer">
-          <span class="brand-bug" aria-hidden="true">GridIron <b>IQ</b></span>
-          <div class="angle-wrapper" id="angleWrapper1">
-            <video id="videoPlayer" preload="auto" playsinline></video>
-            <canvas id="drawingCanvas"></canvas>
-            <span class="angle-badge" id="angleLabel1">Angle 1</span>
-          </div>
-          <div class="angle-wrapper angle-wrapper-2" id="angleWrapper2">
-            <video id="videoPlayer2" preload="auto" playsinline></video>
-            <span class="angle-badge" id="angleLabel2">Angle 2</span>
-          </div>
-          <div class="video-placeholder" id="videoPlaceholder">
-            <svg class="icon icon-large"><use href="assets/icons.svg#icon-film"/></svg>
-            <p>Load a video file to begin</p>
-          </div>
-        </div>
 
-        <!-- Playback Controls -->
-        <div class="playback-controls">
-          <div class="controls-left">
-            <button class="ctrl-btn" id="btnPrevClip" title="Previous Clip (Shift+Left)">
-              <svg class="icon"><use href="assets/icons.svg#icon-prev-clip"/></svg>
-            </button>
-            <button class="ctrl-btn" id="btnStepBack" title="Step Back (Left Arrow)">
-              <svg class="icon"><use href="assets/icons.svg#icon-step-back"/></svg>
-            </button>
-            <button class="ctrl-btn" id="btnPlayPause" title="Play/Pause (Space)">
-              <svg class="icon" id="iconPlayPause"><use href="assets/icons.svg#icon-play"/></svg>
-            </button>
-            <button class="ctrl-btn" id="btnStepForward" title="Step Forward (Right Arrow)">
-              <svg class="icon"><use href="assets/icons.svg#icon-step-forward"/></svg>
-            </button>
-            <button class="ctrl-btn" id="btnNextClip" title="Next Clip (Shift+Right)">
-              <svg class="icon"><use href="assets/icons.svg#icon-next-clip"/></svg>
-            </button>
-            <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
-            <span class="clip-indicator" id="clipIndicator"></span>
-          </div>
-          <div class="transport-center">
-            <div class="scrub-bar-container">
-              <div class="scrub-bar" id="scrubBar">
-                <div class="scrub-bar-fill" id="scrubBarFill"></div>
-                <div class="scrub-bar-plays" id="scrubBarPlays"></div>
-                <div class="scrub-bar-handle" id="scrubBarHandle"></div>
-              </div>
-            </div>
-            <!-- Timeline folds into the transport line's center (no dedicated row) -->
-            <div class="video-timeline">
-              <div class="timeline-strip" id="timelineStrip">
-                <div class="timeline-bar" id="timelineBar"></div>
-              </div>
-            </div>
-          </div>
-          <div class="controls-right">
-            <button class="ctrl-btn" id="btnLoop" title="Loop the current play (toggle)">
-              <svg class="icon"><use href="assets/icons.svg#icon-loop"/></svg>
-            </button>
-            <button class="ctrl-btn ab-btn" id="btnLoopA" title="Set A — loop start">A</button>
-            <button class="ctrl-btn ab-btn" id="btnLoopB" title="Set B — loop end">B</button>
-            <select id="speedSelect" class="speed-select" title="Playback Speed">
-              <option value="0.25">0.25x</option>
-              <option value="0.5">0.5x</option>
-              <option value="1" selected>1x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-            </select>
-            <label class="fps-label" title="Video frame rate">
-              FPS: <input type="number" id="fpsInput" value="30" min="1" max="120" class="fps-input">
-            </label>
-            <button class="ctrl-btn" id="btnExpandVideo" title="Expand the video to full screen (Esc to exit)">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Multi-angle controls -->
-        <div class="angle-controls" id="angleControls">
-          <input type="file" id="angle2FileInput" accept="video/*" hidden>
-          <span class="angle2-info hidden" id="angle2Info">
-            <span class="angle2-name" id="angle2Name"></span>
-            <select id="angleViewMode" class="speed-select" title="View layout">
-              <option value="single">Toggle</option>
-              <option value="sideBySide">Side by Side</option>
-              <option value="pip">Picture-in-Picture</option>
-            </select>
-            <button class="ctrl-btn" id="btnSwapAngle" title="Swap active angle (V)">⇄</button>
-            <label class="angle-sync-label" title="Time offset for angle 2 (seconds)">
-              Sync: <input type="number" id="angleSyncOffset" value="0" step="0.1" class="fps-input" style="width:52px">s
-            </label>
-            <button class="ctrl-btn angle-remove-btn" id="btnRemoveAngle" title="Remove second angle">✕</button>
-          </span>
-        </div>
-
-        <!-- Play marking + selector (moved under the video to use the dead space) -->
-        <div class="video-play-controls">
-          <button class="btn btn-sm btn-accent" id="btnMarkStart" title="Mark Play Start ([)">Mark Start</button>
-          <button class="btn btn-sm btn-accent" id="btnMarkEnd" title="Mark Play End (])">Mark End</button>
-          <button class="btn btn-sm" id="btnClearTags" title="Reset this play's tags (keeps the play and video)">Clear Tags</button>
-          <button class="btn btn-sm btn-danger" id="btnDeletePlay" title="Delete this play and unload the video (the source file is not deleted)">Delete Play</button>
-          <button class="btn btn-sm" id="btnAddAngle" title="Load a second camera angle (e.g., end zone)">+ Angle</button>
-          <label class="autoplay-next-toggle" title="When moving to another play, start its film automatically">
-            <input type="checkbox" id="autoplayNextToggle" checked>
-            <span>Autoplay next</span>
-          </label>
-          <select id="playSelect" class="play-select" title="Current play">
-            <option value="">No plays yet</option>
-          </select>
-        </div>
-      </div>
 
       <!-- Film Room: play grid co-equal with the video (PlayGrid builds the
            inner DOM). Hidden until the open game has plays. -->

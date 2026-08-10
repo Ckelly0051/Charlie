@@ -5,7 +5,8 @@ export class BreakdownWorkspace {
   constructor(app) {
     this.app = app;
     this.source = document.querySelector('#app .main-content');
-    this.video = this.source?.querySelector('.video-section') || null;
+    // S7-d2: .video-section left #app for the permanent media host. This
+    // field was assigned and never read, so it goes with the move.
     this.grid = this.source?.querySelector('#playGridSection') || null;
     this.tags = this.source?.querySelector('.tag-section') || null;
     this.unitControl = document.querySelector('#tagForm .unit-toggle-section');

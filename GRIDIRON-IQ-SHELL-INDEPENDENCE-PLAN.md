@@ -1674,6 +1674,41 @@ Decouple `VideoController` from the old top-bar `fileLabel`, folder badge and
 drop-zone status elements; S7-b moved the inputs but did not eliminate these
 remaining reads/writes.
 
+#### S7-d2 RESULT (2026-08-09) — COMPLETE
+
+`.video-section` — video, drawing canvas, multi-angle wrappers, transport,
+scrub/timeline and the play-control bar, 44 ids in one 6.5 KB subtree — moved
+**one-way in the authored markup** into `#giMediaHost` on `body`. Not a runtime
+relocation and not an ephemeral route container. `BreakdownTheaterScreen._home`
+now resolves to that permanent host, so restore parks the media outside `#app`
+rather than back inside it. Ids inside `#app` fall 163 → 119.
+
+`VideoController` is decoupled from the top bar. It wrote `#fileLabel.textContent`
+**unguarded** at three sites, and `_handleMediaError` read the film's name back
+**out of** that label — the entombed top-bar label was acting as state. The name
+now lives on `currentFileName` with the label as an optional mirror through one
+`_setFilmStatus()` writer.
+
+**Film geometry is unchanged:** `e2e-breakdown-geometry` 12/12, which is the
+instrument that caught the S5d-1 regression.
+
+**Proof.** `e2e-native-breakdown-theater` 22 → 27. Two mutations: returning the
+subtree to `#app` reds four assertions (`parkedInApp:true`, `pieces:[]`);
+restoring the unguarded label write reds one with the exact
+`Cannot set properties of null (setting 'textContent')`.
+
+**Stated limit:** the decoupling proof removes the label after boot, which is
+evidence of decoupling, **not** deletion authority. S7-d7 owns that markup and
+must re-prove it cold.
+
+**A test re-expressed rather than deleted.** `disable()`'s teardown assertion
+required the media back inside `#app`, which is now false by design. The
+guarantee — teardown leaves exactly one owner so re-enable cannot leak into a
+detached tree — is asserted against the permanent host instead.
+
+**Gate: 83 harnesses | 83 green | 0 failed**, counts diffed: the only change is
+the theater harness +5. Zero drops.
+
 #### S7-d3 — extract the tagging domain
 
 Move behavior behind DOM-free APIs in two reviewed checkpoints:

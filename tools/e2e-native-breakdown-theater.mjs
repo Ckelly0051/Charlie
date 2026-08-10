@@ -192,6 +192,73 @@ state = await page.evaluate(() => {
 ok(state.restored && state.mediaHome && state.nativeGone && !state.legacyRemounted,
   'Restore returns media without reviving the retired legacy presentation', JSON.stringify(state));
 ok(state.dataSame, 'The complete native theater journey does not rewrite season payloads');
+// ===================== S7-d2: the permanent media foundation ==============
+//
+// The one canonical media subtree now lives in #giMediaHost on BODY, not inside
+// #app. It is adopted into the route while mounted and parked back in the
+// permanent host on restore, so S7-d8 cannot take film with the legacy shell.
+console.log('\n== S7-d2: media has a permanent home outside the legacy shell ==');
+const d2 = await page.evaluate(async () => {
+  const app = window.app;
+  const media = document.getElementById('videoContainer');
+  const host = document.getElementById('giMediaHost');
+  const theater = app.breakdownTheater;
+  const mountedIn = media?.closest('#app') ? 'app' : (media?.closest('#giMediaHost') ? 'host' : 'route');
+  // Park it: restore must return the media to the PERMANENT host, never to #app.
+  const restored = theater.restore();
+  const parked = document.getElementById('videoContainer');
+  const out = {
+    hostExists: !!host,
+    hostOutsideApp: !!host && !host.closest('#app'),
+    mountedIn,
+    restored,
+    parkedInHost: !!parked?.closest('#giMediaHost'),
+    parkedInApp: !!parked?.closest('#app'),
+    // The theater's captured home must BE the permanent host, not legacy markup.
+    homeOutsideApp: !!theater._home?.parent && !theater._home.parent.closest('#app'),
+    // Every piece of the media foundation travelled together.
+    pieces: ['videoPlayer', 'drawingCanvas', 'angleWrapper2', 'videoPlayer2',
+             'btnPlayPause', 'scrubBar', 'timelineBar', 'playSelect']
+      .filter(id => !!document.getElementById(id)?.closest('#giMediaHost, .gi-theater-media-slot')),
+  };
+  await app.workspaceShell.show('breakdown');
+  await new Promise(r => setTimeout(r, 400));
+  out.remountedOutsideApp = !document.getElementById('videoContainer')?.closest('#app');
+  return out;
+});
+ok(d2.hostExists && d2.hostOutsideApp,
+  'A permanent media host exists on body, outside the legacy shell', JSON.stringify(d2));
+ok(d2.parkedInHost && !d2.parkedInApp && d2.homeOutsideApp,
+  'Restoring the theater parks the media in the permanent host, never back inside #app', JSON.stringify(d2));
+ok(d2.pieces.length === 8,
+  'Video, canvas, multi-angle, transport, scrub/timeline and play controls all moved together', JSON.stringify(d2));
+ok(d2.remountedOutsideApp,
+  'Re-entering Break Down re-adopts the media without reaching into the legacy shell', JSON.stringify(d2));
+
+// VideoController kept the film name in #fileLabel.textContent and read it back
+// on an error. That top-bar label is entombed today and deleted at S7-d7, so the
+// name now lives on the controller and the label is an optional mirror.
+//
+// LIMIT, stated rather than implied: this removes the label after boot, which is
+// evidence of decoupling, NOT deletion authority. S7-d7 must re-prove it cold.
+const d2b = await page.evaluate(() => {
+  const vc = window.app.vc;
+  const label = document.getElementById('fileLabel');
+  const badge = document.getElementById('folderLoadBadge');
+  const zone = document.getElementById('videoDropZone');
+  [label, badge, zone].forEach(el => el?.remove());
+  vc.fileLabel = document.getElementById('fileLabel');
+  vc.folderLoadBadge = document.getElementById('folderLoadBadge');
+  let threw = null;
+  try {
+    vc.loadUrl('asset://localhost/x.mp4', 'Week 3 vs Alpha.mp4');
+    vc._showFolderBadge([{ name: 'a.mp4' }, { name: 'b.mp4' }]);
+  } catch (e) { threw = String(e); }
+  return { threw, remembered: vc.currentFileName, labelGone: !document.getElementById('fileLabel') };
+});
+ok(d2b.threw === null && d2b.labelGone && d2b.remembered === 'Week 3 vs Alpha.mp4',
+  'Film loading survives the top-bar label and folder badge being gone, and the film name has a real owner', JSON.stringify(d2b));
+
 ok(errors.length === 0, 'Native S5a journey has zero page errors', errors.join(' | '));
 
 await browser.close();

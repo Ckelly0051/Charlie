@@ -81,6 +81,59 @@ the tree-aware ledger repair separately before the first S7-d production
 checkpoint. No schema, season/play data, analytics formula, film path/file,
 package, tag or release changes are authorized by this consultation.
 
+### S7-d2 COMPLETE — the media foundation has a permanent home (2026-08-09)
+
+**Film is no longer parked inside the legacy shell.** `.video-section` — video,
+drawing canvas, multi-angle wrappers, transport, scrub/timeline and the
+play-control bar, 44 ids in one 6.5 KB subtree — moved **one-way in the authored
+markup** into `#giMediaHost` on `body`. Not a runtime relocation, not an
+ephemeral route container, which is what the consultation asked for.
+`BreakdownTheaterScreen._home` now resolves to that permanent host, so restore
+parks the media outside `#app` instead of back inside it. Ids inside `#app` fall
+**163 → 119** (elements 612 → 529).
+
+**VideoController is off the top bar.** It wrote `#fileLabel.textContent`
+**unguarded** at three sites — each one a throw once that markup goes — and
+`_handleMediaError` read the film's name back **out of** the label. The entombed
+top-bar label was acting as state on the film-loading path. The name now lives
+on `currentFileName`, with the label as an optional mirror behind one
+`_setFilmStatus()` writer.
+
+**Film geometry is unchanged — measured, not assumed.** `e2e-breakdown-geometry`
+12/12, the instrument that caught the S5d-1 regression where the composed route
+quietly gave the coach less picture than before.
+
+#### Proof
+
+`e2e-native-breakdown-theater` 22 → **27**. Two mutations:
+
+| Mutation | Result |
+|---|---|
+| return the subtree to `#app` | 4 reds — `parkedInApp:true`, `pieces:[]` |
+| restore the unguarded label write | 1 red — `TypeError: Cannot set properties of null (setting 'textContent')` |
+
+**Stated limit rather than implied:** the decoupling proof removes the label
+*after* boot. That is evidence of decoupling, **not** deletion authority — S7-d7
+owns that markup and must re-prove it with a cold boot.
+
+**One test re-expressed, not deleted.** `disable()`'s teardown assertion required
+the media back inside `#app`, which is now false by design. The guarantee —
+teardown leaves exactly one owner, so re-enable cannot leak into a detached tree
+— is asserted against the permanent host instead.
+
+**Gate: 83 harnesses | 83 green | 0 failed.** Counts diffed against S7-d1: the
+only difference is the theater harness +5. **Zero drops.**
+
+**Ledger note:** its self-test named specific unreferenced-parent ids, and that
+fixture went stale twice as S7-d moved markup (`legacyGameContextState` at d1,
+`timelineStrip` at d2). It now asserts the fixture-independent invariant — that
+such parents are surfaced at all — since the load-bearing synthetic case already
+proves the propagation itself.
+
+**Scope:** no schema, migration, season byte, analytics formula, film cohort,
+composite ref, storage path, film file, version owner, package, tag or release
+changed. Next is S7-d3, the tagging domain, in two reviewed checkpoints.
+
 ### S7-d0 + S7-d1 COMPLETE — tree-aware ledger, then GameContext (2026-08-09)
 
 **S7-d0 (`f7aef72`) rebuilt the dependency ledger, and it had to be rebuilt
