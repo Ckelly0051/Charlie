@@ -1903,8 +1903,15 @@ than moving that markup to a permanent home — is likewise not done; the plan's
 d5/d6 sections above describe work that remains open if a future pass wants
 true DOM-independence for those two engines rather than a permanent host.
 
-**Next:** Codex reviews this commit independently, per the coach's directive.
-S7-e/S7-f/S7-g remain open pending that review.
+**ACCEPTED — Codex independent review of `888b27e` (2026-08-10).** No material
+findings: the permanent-host relocation is coherent, direct tagging APIs
+preserve prior behavior, shell teardown/re-enable is sound, and the updated
+tests assert actual absence. One trivial nit (a stray blank/whitespace line at
+`index.html:842`) was fixed, not release-blocking. Independent re-runs: native
+tagging 48/48, workspace shell 76/76. S7 demolition is closed.
+
+**Next:** S7-e (CSS migration), S7-f (build-artifact retirement) and S7-g
+(review-then-installer) remain open.
 
 ### S7-e — the CSS migration (reviewed checkpoints, visually lossless)
 274 KB across `styles.css` + `redesign-stats.css`, both live. Split into

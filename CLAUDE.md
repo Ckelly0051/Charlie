@@ -14,6 +14,24 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
+### ▶ CODEX REVIEW of `888b27e` — ACCEPTED, no material findings (2026-08-10)
+
+**S7 one-pass demolition is review-approved.** Codex's independent pass found
+the permanent-host relocation coherent, the direct tagging APIs preserve prior
+behavior, shell teardown/re-enable remains sound, and the test updates assert
+actual element absence rather than a weaker proxy. Independent re-runs:
+native tagging 48/48, workspace shell 76/76, working tree clean.
+
+**One trivial finding, fixed:** a stray blank line with trailing whitespace at
+`index.html:842` (a leftover from the extraction script's markup surgery),
+between the closing `#giLegacyEngineHost` div and the native-root script tag.
+Not release-blocking; removed anyway. Rebuilt, no other change.
+
+**S7 demolition (the `#app`/`#wsClassicOutlet` deletion) is now closed.**
+S7-e (CSS migration), S7-f (build-artifact retirement) and S7-g
+(review-then-installer) remain open — see
+`GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md` §13.
+
 ### ▶ ACTIVE — S7 one-pass demolition COMPLETE; awaiting Codex review (Claude, 2026-08-10)
 
 **The coach issued a formal, explicit directive superseding the incremental
