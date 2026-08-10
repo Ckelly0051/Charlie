@@ -14,16 +14,19 @@ A browser-based football film analysis tool for coaches. Load game film, mark pl
 
 ## Current Handoff / Changelog
 
-### ▶ ACTIVE — 1.12.0-44 S7 DEMOLITION SMOKE CANDIDATE BUILT (2026-08-10)
+### ▶ ACTIVE — S7 DEMOLITION CLOSED; SMOKE PASSED (2026-08-10)
 
-Built from `a00c49e` (S7 one-pass demolition `888b27e` + the trivial whitespace
-fix + version stamp) after Codex's independent review came back ACCEPTED with
-no material findings. Local unsigned NSIS/MSI, not a tag or published release.
-See `SMOKE-1.12.0-44.md` for the coach checklist and hashes. **S7 demolition
-code is review-accepted; this smoke is the installed verification step before
-calling the milestone fully closed.** S7-e (CSS migration), S7-f
-(build-artifact retirement) and S7-g remain open regardless of this smoke's
-outcome.
+**The coach installed `1.12.0-44` and passed the full checklist: "it all works
+fine."** No film, data, route, or focus failure — including items 6-7, the
+controls this pass actually rewired (unit toggle, New Drive, note timestamp,
+Auto D&D/Carry Scheme, Undo/Redo/Shortcuts from their new permanent home). Full
+record in `SMOKE-1.12.0-44.md`.
+
+**The S7 demolition milestone (`#app`/`#wsClassicOutlet` deletion) is CLOSED —
+code-accepted by Codex, installed-verified by the coach.** This is a local
+unsigned smoke artifact, not a tag or published release. **S7-e (CSS
+migration), S7-f (build-artifact retirement) and S7-g remain open** — separate,
+not-yet-started work; nothing here authorizes starting them.
 
 ### ▶ CODEX REVIEW of `888b27e` — ACCEPTED, no material findings (2026-08-10)
 

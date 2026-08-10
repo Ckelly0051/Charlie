@@ -74,9 +74,14 @@ regression from this pass, since nothing else changed.
   - Size: 5,517,312 bytes
   - SHA-256: `01735086F8580047BB50C3B89648E6938EA55A30989839B5403FB543CE9483B5`
 
-## Next
+## Result: PASS (coach, 2026-08-10)
 
-Coach records PASS or the exact failed checklist item here. PASS closes the S7
-demolition milestone as installed-verified. S7-e (CSS migration), S7-f
-(build-artifact retirement), and S7-g remain open regardless of this smoke's
-outcome — they are separate, not-yet-started work.
+Coach ran the installed `1.12.0-44` build against real data and confirmed "it
+all works fine" — no film, data, route, or focus failure across the checklist,
+including items 6-7 (the controls this pass actually rewired: unit toggle,
+New Drive, note timestamp, Auto D&D/Carry Scheme, and Undo/Redo/Shortcuts from
+their new permanent home).
+
+**The S7 demolition milestone is closed, installed-verified.** S7-e (CSS
+migration), S7-f (build-artifact retirement), and S7-g remain open — separate,
+not-yet-started work.
